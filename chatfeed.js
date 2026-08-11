@@ -357,8 +357,34 @@ router.get('/', async (req, res) => {
     });
     // `truncated` lists chats whose history was cut, so the client knows to
     // pull the full thread when one is opened instead of guessing.
+    //
+    // A CHAT WITH NO MESSAGE IN THE SCAN MUST BE LISTED TOO (Aug 2026 — this
+    // was the hole, and it was silent). `perChat` only counts what the SCAN
+    // saw, and the scan is the newest SCAN messages across every chat, which
+    // at ~125 posts a day reaches back about four days. A chat quieter than
+    // that appears in no scanned doc, so it was in neither `messages` nor
+    // `truncated` — and chats.html's `ensureFullThread` early-returns unless
+    // the chat is marked, so opening it showed an EMPTY thread that never
+    // repaired itself. Measured live 2026-08-10 before the fix: 201 chats in
+    // the registry, 183 messages delivered, 125 chats given nothing — and 118
+    // of those really had history, 2,762 messages that the app could not
+    // reach by browsing (search could: focusMessage pulls the thread on a
+    // miss, which is why this read as "browsing is empty but search works").
+    // Sophie reported it as "I don't see a lot of messages for older chats".
+    //
+    // Marking them costs the FIRST LOAD nothing — no extra message ships, the
+    // payload is unchanged. It only means opening one of those chats fetches
+    // its thread, exactly as opening a trimmed recent chat already does, once
+    // per session (`fullLoaded`). The 7 registry entries that genuinely have
+    // no messages just fetch an empty list once and settle.
     const truncated = Object.keys(perChat)
       .filter((c) => perChat[c] > (rank[c] < DEEPCHATS ? DEEP : TAIL));
+    // …plus every registry chat the scan never reached. A tombstone (`movedTo`)
+    // is skipped: its messages were re-keyed to the chat it points at, so
+    // fetching that slug can only ever come back empty.
+    Object.keys(reg.chats).forEach((c) => {
+      if (!(c in perChat) && !(reg.chats[c] || {}).movedTo) truncated.push(c);
+    });
     res.json({ chats: reg.chats, settings: reg.settings, messages, truncated, build: pageBuild() });
   } catch (err) { fail(res, err); }
 });
