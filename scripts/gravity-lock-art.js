@@ -193,6 +193,7 @@ async function onNightSky(pngBuf, side = 900) {
     try {
       const refs = await Promise.all(st.refs.map(loadRef));
       let buf = await editWithRefs(prompt, refs, { quality: QUALITY, size: SIZE });
+      const buf0 = buf;                       // untouched original, banked below
       fs.writeFileSync(path.join(OUT, id + '-raw.png'), buf);
 
       if (st.whiten) buf = await sharp(await cutBackground(buf)).flatten({ background: '#ffffff' }).png().toBuffer();
@@ -203,8 +204,11 @@ async function onNightSky(pngBuf, side = 900) {
 
       // permanent public URLs — OpenAI's bytes are ours already, but the app
       // needs somewhere to fetch them from
+      // The RAW bytes go up too. They are the only untouched copy — the cutout is
+      // trimmed and alpha'd and the on-sky one is composited — and .artout/ is a
+      // scratch dir that does not survive the session.
       const urls = {};
-      for (const [kind, bytes] of [['cutout', cut], ['onsky', tile]]) {
+      for (const [kind, bytes] of [['raw', buf0], ['cutout', cut], ['onsky', tile]]) {
         const p = `gravity-lock/${id}-${kind}.png`;
         await bucket.file(p).save(bytes, { contentType: 'image/png', metadata: { cacheControl: 'public,max-age=31536000,immutable' } });
         await bucket.file(p).makePublic();
