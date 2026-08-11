@@ -943,6 +943,55 @@ router.post('/status', async (req, res) => {
 //
 // 200 chars is the cap because her own notes run 26-66. A field that can
 // hold a paragraph invites one.
+// THE WIDGET's feed (Aug 2026, Sophie: "I'd like the widget") — the Update
+// tab in one small JSON, for a home-screen widget that refreshes on iOS's
+// timeline and must never pull the real feed (~500KB) to do it.
+//
+// It answers the same question the tab does — which chats have something she
+// hasn't checked off — with ONE difference that is forced and worth knowing:
+// the tab's floor is `notifSeenAt` OR the per-device `seen` mark in the
+// phone's localStorage, and a widget process can't read the web view's
+// storage. So this uses `notifSeenAt` alone: the ✓ she taps on a card settles
+// the widget too, but merely opening a chat does not. Erring toward showing
+// one row too many is the right way round for a glance surface.
+//
+// Cost: the registry (5-min cached) + ONE capped message read. Nothing
+// per-chat, so a widget refresh is cheap however many chats exist.
+router.get('/widget', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const limit = Math.min(6, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const [reg, snap] = await Promise.all([
+      registry(),
+      db().collection(MSGS).orderBy('created', 'desc').limit(200).get(),
+    ]);
+    const newest = new Map();          // chat → its newest non-sophie message
+    snap.docs.forEach((d) => {
+      const m = d.data() || {};
+      if (m.from === 'sophie' || m.working) return;   // hers, and live drafts
+      if (!m.chat || newest.has(m.chat)) return;
+      newest.set(m.chat, m);
+    });
+    const rows = [];
+    for (const [chat, m] of newest) {
+      const r = reg.chats[chat] || {};
+      if (r.archived) continue;
+      if (r.notifSeenAt && r.notifSeenAt >= (m.created || '')) continue;
+      rows.push({
+        chat,
+        name: r.displayName || chat,
+        // the same one line the home row shows: her note wins, then the
+        // chat's status card, then its TLDR
+        line: String(r.sophieNote || r.statusNeed || r.statusDoing || m.tldr
+          || (m.text || '').split('\n').find((l) => l.trim()) || '').replace(/[*_`#]/g, '').slice(0, 90),
+        at: m.created || '',
+      });
+    }
+    rows.sort((a, b) => (a.at < b.at ? 1 : -1));
+    res.json({ ok: true, count: rows.length, rows: rows.slice(0, limit) });
+  } catch (err) { fail(res, err); }
+});
+
 // THE UPDATE CARD — the three lines behind the ⌄ on a card in the UPDATE tab
 // (Aug 2026, Sophie: "I wonder if it would be a good idea to have a chat have
 // like a TLDR in their update — not fully in the message, because it would

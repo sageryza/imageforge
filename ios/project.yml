@@ -48,6 +48,8 @@ targets:
         product: FirebaseFirestore
       - target: DumpShare
         embed: true
+      - target: ForgeWidget
+        embed: true
 
   # "Send to Deck Factory" — the share-sheet way into the Dump, so dumping
   # works from Photos, Files, Safari, anywhere. Uploads run through a
@@ -76,6 +78,34 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
+  # The home-screen widget (Aug 2026, Sophie: "I'd like the widget") — the
+  # Update tab's count + the newest chats, refreshed on iOS's own timeline
+  # from ONE small endpoint (/api/chatfeed/widget). It reads the server URL
+  # and studio token out of the App Group below, which the app writes at
+  # launch: a widget extension has its own container and cannot see the app's
+  # UserDefaults. Signing needs nothing new — Apple-managed CI signing
+  # registers this extension's App ID the same way it did DumpShare's.
+  ForgeWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ForgeWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge.widget
+        PRODUCT_NAME: ForgeWidget
+        CODE_SIGN_ENTITLEMENTS: ForgeWidget/ForgeWidget.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ForgeWidget/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: "Deck Factory"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+
   # Secretly a Witch — the public witchy app as its own tiny native shell
   # (WKWebView on the deployed /witch page + native SF-Symbols tab bar).
   # No Firebase, no CI patching: display name / compliance / icon / launch
