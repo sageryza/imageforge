@@ -284,6 +284,15 @@ body.native header #storiesbtn{position:static;}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Listen rows — episodes cut from this story's material in the Episode
+   Editor (the NDE montages live here). One row per linked episode: play,
+   the episode's name, its length. They share the page's one player, so a
+   tap replaces whatever is speaking, never stacks. */
+#audios{margin-top:.6em;}
+.aurow{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);}
+.aurow:first-child{border-top:1px solid var(--line);}
+.aurow .aunm{flex:1; min-width:0; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -306,6 +315,7 @@ body.native header #storiesbtn{position:static;}
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
+  <div id="audios" hidden></div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
 </div>
@@ -593,8 +603,56 @@ function renderFilm(){
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
+/* ── listen: episodes cut from this story in the Episode Editor ─────
+   (Aug 2026, Sophie: the NDE montages "should be connected to their
+   stories so I can listen to them when I go to their story".) GET /
+   resolves each linked episode's newest render server-side (`audios`);
+   the rows reuse the page's ONE player, so a tap replaces whatever is
+   speaking — a beat's line, another episode — never stacks. */
+var audios=[];
+var AU_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
+var AU_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>';
+function fmtDur(s){
+  s=Math.round(Number(s)||0); if(!s)return '';
+  return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);
+}
+function auGlyphs(){
+  var rows=document.querySelectorAll('#audios .aurow');
+  for(var i=0;i<rows.length;i++){
+    var on=player.src===rows[i]._url&&!player.paused&&!player.ended;
+    rows[i].querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+  }
+}
+player.addEventListener('play',auGlyphs);
+player.addEventListener('pause',auGlyphs);
+player.addEventListener('ended',auGlyphs);
+function renderAudios(){
+  var box=document.getElementById('audios');
+  box.innerHTML=''; box.hidden=!audios.length;
+  audios.forEach(function(a){
+    var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
+    var b=document.createElement('button'); b.className='iconbtn';
+    b.setAttribute('aria-label','Listen — '+a.title);
+    b.innerHTML=AU_PLAY;
+    b.onclick=function(ev){
+      ev.stopPropagation();
+      /* play() synchronously in the tap — the iOS rule */
+      if(player.src===a.url&&!player.paused){ player.pause(); }
+      else if(player.src===a.url){ player.play(); }
+      else { player.pause(); player.src=a.url; player.play(); }
+      auGlyphs();
+    };
+    var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=a.title;
+    var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(a.seconds);
+    row.appendChild(b); row.appendChild(nm); row.appendChild(du);
+    box.appendChild(row);
+  });
+  auGlyphs();
+}
+
 function playFilm(){
   if(!film||!film.url)return;
+  player.pause();   // the film's sound must not fight an episode's
   var v=document.getElementById('filmvid');
   v.src=film.url;
   document.getElementById('filmplay').hidden=false; lock(true);
@@ -687,6 +745,7 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
+    audios=d.audios||[]; renderAudios();
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
     padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
@@ -811,6 +870,7 @@ function openPad(id){
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
+  player.pause(); audios=[]; renderAudios();
   closeShelf();
   beats=[]; padTitle=''; render();
   load();
