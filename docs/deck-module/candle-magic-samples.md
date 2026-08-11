@@ -76,3 +76,23 @@ subjects.
 Cloud samples: same STYLE formula, Storage `deck-samples/clouds/` (+`webp/`),
 Compare page "Clouds deck — first samples v1", filed in Assets with prompt
 splits. All medium, ~40s each.
+
+## Iteration 0.2 — monsters + the grid trick + the running list (2026-08-10)
+
+- Clouds archived (Sophie: nothing wrong, not her cup of tea). **Monsters of
+  America is the active deck.**
+- **Running deck-ideas list** lives as Compare page "Deck ideas — running
+  list" (verdict sheet `deck-ideas`, ok = 'todo' | 'archive', notes per idea).
+  Update it by re-posting the page with the SAME sheet + item ids — verdicts
+  live on the verdict doc, not the page, so her checks survive a re-post.
+- **The multi-panel grid trick VALIDATED**: one 1024x1536 medium image
+  prompted as "a 3x3 grid of nine equal card panels … The nine panels, in
+  reading order: 1) …" reliably yields 9 distinct correct panels in order —
+  54-card survey for ~36¢ (6 images). Panels ~341x512 each — survey/planning
+  resolution, not print; keepers get drawn full-size individually. Style
+  header used: "Antique cryptozoology field-guide plate" variant of the
+  STYLE formula (in each image's prompt split).
+- Full 54-monster list with per-panel one-liners: `scratchpad gen3.js` copy →
+  the prompt splits filed on each grid image in Assets (chat
+  deck-factory-image-gen). Storage `deck-samples/monsters/` + `webp/`.
+  Survey page: "Monsters of America — 54-card survey v1" (sheet monsters-v1).
