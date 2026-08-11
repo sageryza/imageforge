@@ -1256,7 +1256,7 @@ function paintHomeChrome(){
   // UPDATE is in this set too: its cards are one per chat but they are
   // notifications, not the filing surface — a category chip or a select
   // checkbox there would be a control that does nothing to what is on screen.
-  var other=(homeView==='bookmarks'||homeView==='status'||homeView==='todo'||homeView==='news');
+  var other=otherView();
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   // The account tabs split a list of CHATS, so they belong on the chat list
@@ -1286,12 +1286,27 @@ function paintHomeChrome(){
 // the row back on the next launch for no reason, and an empty search bar
 // sitting open reads as a filter she can't see the effect of.
 var searchOpen=false;
+// The views that are NOT a list of chats — no category chips, no select.
+function otherView(){
+  return homeView==='bookmarks'||homeView==='status'||homeView==='todo'||homeView==='news';
+}
 function paintSearch(){
-  var row=document.getElementById('searchrow');
-  if(!row) return;
+  var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
+      tools=document.getElementById('toolrow'), ref=document.getElementById('refresh');
+  if(!row||!btn) return;
   var todoing=(homeView==='todo');
-  row.style.display = todoing ? 'none' : '';
-  row.classList.toggle('on', searchOpen && !todoing);
+  var open=searchOpen && !todoing;
+  row.classList.toggle('on', open);
+  // WITH THE CHIPS GONE THE GLASS JOINS THE TOOL ROW (Sophie caught it on the
+  // UPDATE tab): there, the tool row is one lonely refresh icon and the folded
+  // glass is a second lonely icon on its own row underneath — two rows of
+  // screen spending almost nothing. The glass only needs a row of its own on
+  // the chat list, where the chips are using that width (measured: a third
+  // icon up there wraps them at 375/390).
+  var park = !open && otherView() && !todoing;
+  if(park){ if(btn.parentNode!==tools) tools.insertBefore(btn, ref); }
+  else if(btn.parentNode!==row) row.insertBefore(btn, row.firstChild);
+  row.style.display = (todoing || park) ? 'none' : '';
 }
 function setSearchOpen(on){
   searchOpen=!!on;
