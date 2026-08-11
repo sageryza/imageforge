@@ -61,7 +61,10 @@ body {
   color: var(--gold); margin-bottom: 6px; padding-right: 56px;
 }
 h1 { font-size: 26px; line-height: 1.2; font-weight: 700; margin-bottom: 4px; padding-right: 56px; }
-.sub { color: var(--ink2); font-size: 15px; margin-bottom: 22px; }
+/* the pill's corner is reserved on .eyebrow and h1 above — .sub was missed,
+   and a one-line subtitle is long enough to run under it (measured at 390px:
+   the sub text reached x=376, the pill starts at x=326 and spans y 14-197) */
+.sub { color: var(--ink2); font-size: 15px; margin-bottom: 22px; padding-right: 56px; }
 h2 {
   font: 700 13px/1.2 -apple-system, 'Helvetica Neue', sans-serif;
   letter-spacing: .14em; text-transform: uppercase;
