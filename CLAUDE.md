@@ -1654,6 +1654,26 @@ lifted into a standalone tool later.
     opening that chat's Assets tab. On top sits the home list's own row
     (name, her note or the chat's status line, how long ago), so the two
     screens read as one app.
+  - **A NEW VERSION REPLACES THE OLD ONE on the card (Aug 2026, Sophie, from
+    a card carrying both: "if there's one version and then a new one comes
+    out it should just replace that one — this is a clear example because it
+    says v6 and then v5").** `pageFamily`/`newestPerVersion` in chats.html.
+    It works because the pages already follow the new-version-is-a-NEW-page
+    rule, so the version is in the TITLE — and **where the version sits
+    decides what the family is** (measured 2026-08-11 against the live
+    pages, which carry both shapes):
+    - version in the HEAD — "Cutting blocks v6 (s96) — tap empty space to
+      deselect" — the head is the thing and the subtitle is that version's
+      own notes, so family = "cutting blocks" and v2-v5 collapse.
+    - version in the SUBTITLE or absent — "Evan — v11, the art from your
+      notes" / "Evan — pick the pauses (v6)" / "Monsters — info backs, 3
+      samples v1" — the head is a PROJECT and the subtitle IS the
+      deliverable, so the whole title (minus version tokens) is the family
+      and those stay separate.
+    Cutting at the dash unconditionally was v1 of this and it collapsed
+    three different Evan pages into one — **check a rule like this against
+    `GET /api/chatfeed/pages-recent` before shipping it**, which is how that
+    was caught.
   - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
     isn't hers, a Compare page, an image — because **a chat can deliver
     without saying anything**, and a feed keyed on messages alone would miss
