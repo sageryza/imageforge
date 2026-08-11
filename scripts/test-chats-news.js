@@ -69,8 +69,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const reg = {
       // she checked this card off 5 hours ago — the ✓ IS the superseded mark,
-      // so anything from before it is old news whatever its title says
-      'chat-oven': { account: '1', notifSeenAt: iso(T0 - 300 * 60000) },
+      // so anything from before it is old news whatever its title says.
+      // It also carries a written UPDATE card (the ⌄ pop-out).
+      'chat-oven': { account: '1', notifSeenAt: iso(T0 - 300 * 60000),
+        updAsked: 'a tab for daily notifications', updDid: 'shipped the tab and the cards',
+        updNext: 'tell me if the name is wrong' },
       'chat-pics': { account: '1' },
       'chat-quiet': { account: '2' },
       // checked off AFTER its last message arrived — the card is settled
@@ -241,6 +244,40 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   //    posted a message — the pages alone earn it a card
   const deck = await page.$$eval('.nwcard[data-chat="chat-deck"] .pr-title', ns => ns.map(n => n.textContent));
   if (deck.length !== 2) fail('two different pages from one chat did not both show: ' + deck.join(' | '));
+
+  // THE ⌄ POP-OUT (Sophie, Aug 2026: "a TLDR in their update — not fully in
+  // the message, because it would crowd things, but more as like a button I
+  // could click and it would pop out"), in her shape: label bold, answer not.
+  if (await page.$eval('.nwcard[data-chat="chat-oven"] .nwsum',
+    n => getComputedStyle(n).display !== 'none')) fail('the update pop-out is open before she taps');
+  await page.click('.nwcard[data-chat="chat-oven"] .nwmore');
+  await page.waitForFunction(() => {
+    const n = document.querySelector('.nwcard[data-chat="chat-oven"] .nwsum');
+    return n && getComputedStyle(n).display !== 'none';
+  }, null, { timeout: 4000 }).catch(() => fail('tapping the ⌄ did not open the update'));
+  const rows = await page.$$eval('.nwcard[data-chat="chat-oven"] .nwrow', ns => ns.map(n => ({
+    label: n.querySelector('b').textContent,
+    answer: n.querySelector('span').textContent,
+    labelBold: getComputedStyle(n.querySelector('b')).fontWeight,
+    answerBold: getComputedStyle(n.querySelector('span')).fontWeight,
+  })));
+  const updLabels = rows.map(r => r.label);
+  if (JSON.stringify(updLabels) !== JSON.stringify(['What you asked', 'What I did', "What's next"])) {
+    fail('the update is not in her three-part shape: ' + updLabels.join(' | '));
+  }
+  if (rows[0].answer !== 'a tab for daily notifications') fail('the answer is not the chat\'s own text');
+  if (!(Number(rows[0].labelBold) >= 600)) fail('the label is not bold: ' + rows[0].labelBold);
+  if (Number(rows[0].answerBold) >= 600) fail('the answer is bold and should not be: ' + rows[0].answerBold);
+  // a chat with NO written card falls back to its reply's TLDR under "What I did"
+  const fb = await page.$$eval('.nwcard[data-chat="chat-pics"] .nwrow b', ns => ns.map(n => n.textContent));
+  if (JSON.stringify(fb) !== JSON.stringify(['What I did'])) {
+    fail('the no-card fallback is not just "What I did": ' + fb.join(' | '));
+  }
+  await page.click('.nwcard[data-chat="chat-oven"] .nwmore');
+  await page.waitForFunction(() => {
+    const n = document.querySelector('.nwcard[data-chat="chat-oven"] .nwsum');
+    return n && getComputedStyle(n).display === 'none';
+  }, null, { timeout: 4000 }).catch(() => fail('tapping the ⌄ again did not close the update'));
 
   // the version-collapsing half, on real titles from her feed: WHERE the
   // version sits decides what the family is, so re-cuts of one thing collapse

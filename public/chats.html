@@ -552,7 +552,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    ✓ on the right is the "I've checked this" — see POST /notif-seen. */
 .nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
   padding:4px 10px 10px; margin:0 0 10px;}
-.nwtop{display:flex; align-items:center; gap:6px;}
+.nwtop{display:flex; align-items:center; gap:3px;}
 /* the home row's own layout, minus its rule — the card is the boundary now */
 .nwcard .crow{border-bottom:none; flex:1; min-width:0; padding:7px 0;}
 /* A picture and a page belong to the CARD, so they run its full width and the
@@ -566,6 +566,29 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* Same circle as the row's ⊖/✓ so it reads as one family of marks, in the
    ARCHIVE green — checking a notification off is a settling gesture, not an
    alarm, and the red on this screen belongs to the hidden bar and the badges. */
+/* The ⌄ that opens the chat's update. Quieter than the ✓ on purpose — no
+   circle, no shadow: the ✓ is the action on this card, this is just a way to
+   look closer. It rotates when open, so the card says which state it is in. */
+.nwmore{border:none; background:none; cursor:pointer; padding:6px 1px; display:flex; align-items:center;
+  justify-content:center; flex:none; color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+/* every pixel here comes off the chat NAME, which already truncates on 83 of
+   her 144 names — so the glyph is small and the padding is vertical only (the
+   tap target stays 30px tall, which is what a thumb actually needs) */
+.nwmore svg{width:17px; height:17px; display:block; transition:transform .18s ease;}
+.nwmore.on{color:var(--ink);}
+.nwmore.on svg{transform:rotate(180deg);}
+/* Closed by default; the card carries the open state so the whole block can be
+   hidden with one class. */
+.nwsum{display:none; margin:2px 0 2px; padding:9px 2px 2px; border-top:1px solid var(--line);}
+.nwcard.sumon .nwsum{display:block;}
+/* Her shape: the label bold, the answer not ("those would be in bold, but the
+   answers would not be"). Serif for both — this is prose, not a control, and
+   the app's sans is its LABEL voice, which is also the one that must not be
+   bold. */
+.nwrow{font-family:'EBGaramond',Georgia,serif; font-size:15px; line-height:1.35; margin:0 0 7px;}
+.nwrow:last-child{margin-bottom:4px;}
+.nwrow b{display:block; font-weight:600; color:var(--ink);}
+.nwrow span{display:block; color:var(--ink2);}
 .nwck{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent; border-radius:50%; width:31px; height:31px; flex:none;
   background:rgba(250,247,240,.92); color:#5d7a5a; box-shadow:0 1px 4px rgba(0,0,0,.18);}
@@ -1837,6 +1860,76 @@ function newsItems(g){
   return out;
 }
 var NWCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+var NWDN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+// THE UPDATE BEHIND A TAP (Aug 2026, Sophie: "I wonder if it would be a good
+// idea to have a chat have like a TLDR in their update — not fully in the
+// message, because it would crowd things, but more as like a button I could
+// click and it would pop out"), in the shape she then specified: "the first
+// question in bold would be what I asked, and they just describe what I
+// originally wanted; and then the next would be what they did; and then an
+// optional one would be like if they had any questions for me or what would be
+// coming next" — and "those would be in bold, but the answers would not be".
+//
+// So it is three fields a chat WRITES (POST /api/chatfeed/update, stored on
+// the registry beside the status card), not anything derived from its reply:
+// what she asked, what it did, and what is next — the three things she would
+// otherwise have to reconstruct by reading a whole thread. The head row's one
+// line still belongs to her note / the chat's status card, which is exactly
+// why this is worth having: a chat's own account of the turn had nowhere to go.
+//
+// The FALLBACK is the reply's TLDR under "What I did" — honest (it is what the
+// chat did) and it means the ⌄ still does something for a chat that has not
+// written a card yet, instead of the button appearing and disappearing across
+// the list for no reason she can see.
+var UPD_LABELS=[['asked','What you asked'],['did','What I did'],['next',"What's next"]];
+function newsUpdate(it){
+  var r=chats[it.chat]||{};
+  var u={ asked:String(r.updAsked||'').trim(), did:String(r.updDid||'').trim(),
+          next:String(r.updNext||'').trim() };
+  if(u.asked||u.did||u.next) return u;
+  var m=it.last;
+  if(!m || m.from==='sophie') return null;
+  var t=String(m.tldr||'').trim();
+  // no TLDR (an older hook, or a draft still being written) — the reply's own
+  // opening line is the honest stand-in, and `plain` drops the markdown marks
+  if(!t) t=plain(String(m.text||'').split('\n').filter(function(l){ return l.trim(); })[0]||'');
+  t=t.trim();
+  if(!t) return null;
+  // a guard, not a design: anything this long is a chat that wrote an essay
+  // into a summary field, and the card must not become the thread
+  return { asked:'', did:(t.length>400? t.slice(0,399)+'…' : t), next:'' };
+}
+function newsSumBox(u){
+  var box=document.createElement('div'); box.className='nwsum';
+  UPD_LABELS.forEach(function(pair){
+    var v=u[pair[0]]; if(!v) return;
+    var row=document.createElement('div'); row.className='nwrow';
+    // her spec, exactly: the label bold, the answer not
+    row.innerHTML='<b>'+esc(pair[1])+'</b><span>'+esc(v)+'</span>';
+    box.appendChild(row);
+  });
+  return box;
+}
+// Tap to open, tap to close, and it opens IN PLACE rather than over the
+// screen: she is skimming a list, so an overlay would mean a second tap to get
+// back to the thing she is skimming. Session-only, and every paint starts
+// closed — a card that reopened itself would undo the "not fully in the
+// message" half of the ask.
+function newsMore(card){
+  var b=document.createElement('button'); b.className='nwmore';
+  b.innerHTML=NWDN;
+  b.setAttribute('aria-label','What this chat did');
+  b.setAttribute('aria-expanded','false');
+  b.onclick=function(e){
+    e.stopPropagation();
+    var on=!card.classList.contains('sumon');
+    card.classList.toggle('sumon',on);
+    b.classList.toggle('on',on);
+    b.setAttribute('aria-expanded',on?'true':'false');
+    if(window.__jumpsRecheck) window.__jumpsRecheck();
+  };
+  return b;
+}
 function newsCard(it){
   var card=document.createElement('div'); card.className='nwcard'; card.dataset.chat=it.chat;
   var top=document.createElement('div'); top.className='nwtop';
@@ -1849,8 +1942,11 @@ function newsCard(it){
     +'<span class="cr-time">'+ago(it.at)+'</span>';
   row.onclick=function(){ openChat(it.chat); };
   top.appendChild(row);
+  var upd=newsUpdate(it);
+  if(upd) top.appendChild(newsMore(card));
   top.appendChild(newsCheck(it,card));
   card.appendChild(top);
+  if(upd) card.appendChild(newsSumBox(upd));
   // The artifact itself: its title opens the page full-screen, which is what
   // she actually wants from "a link to it" — the Compare tab is one more tap
   // to the same place.

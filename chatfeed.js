@@ -917,6 +917,45 @@ router.post('/status', async (req, res) => {
 //
 // 200 chars is the cap because her own notes run 26-66. A field that can
 // hold a paragraph invites one.
+// THE UPDATE CARD — the three lines behind the ⌄ on a card in the UPDATE tab
+// (Aug 2026, Sophie: "I wonder if it would be a good idea to have a chat have
+// like a TLDR in their update — not fully in the message, because it would
+// crowd things, but more as like a button I could click and it would pop out",
+// then the shape: "the first question in bold would be what I asked, and they
+// just describe what I originally wanted; and then the next would be what they
+// did; and then an optional one would be like if they had any questions for me
+// or what would be coming next").
+//
+// So it is deliberately NOT the reply and NOT the TLDR: it is the chat saying
+// back what she wanted, what it actually did about it, and what it needs or
+// intends next — the three things she has to reconstruct by reading a whole
+// thread otherwise. Kept on the registry doc beside the status card, so it
+// rides the cached read the Chats app already does and costs nothing.
+//
+// `next` is optional by her spec; sending "" clears any field.
+const UPD_MAX = 300;
+function updLine(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  if (s.length <= UPD_MAX) return s;
+  const cut = s.slice(0, UPD_MAX);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > UPD_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
+router.post('/update', async (req, res) => {
+  try {
+    const { chat, session, asked, did, next } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const del = admin.firestore.FieldValue.delete();
+    const patch = { updAt: new Date().toISOString() };
+    if (asked !== undefined) patch.updAsked = updLine(asked) || del;
+    if (did !== undefined) patch.updDid = updLine(did) || del;
+    if (next !== undefined) patch.updNext = updLine(next) || del;
+    await regRef(resolved).set(patch, { merge: true });
+    res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/chatnote', async (req, res) => {
   try {
     const { chat, note } = req.body || {};
