@@ -221,12 +221,13 @@
           + '<div class="jg-card' + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it)
           + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
-          // the note is a small + in the card's corner and never opens by
-          // itself — a written one shows as a filled + (Sophie, Aug 2026)
-          + '<div class="cmp-note">'
-          + '<button type="button" class="cmp-note-open'
-          + (notes[it.id] ? ' has' : '') + '" aria-label="a note about this one">'
+          // the note is a small + in the card's bottom-right corner; a
+          // written one SHOWS as her words, never as an open textarea
+          // (Sophie, Aug 2026 — same contract as compare.js's __compareNotes)
+          + '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
+          + '<button type="button" class="cmp-note-open" aria-label="a note about this one">'
           + PLUS_SVG + '</button>'
+          + '<div class="cmp-note-text">' + esc(notes[it.id] || '') + '</div>'
           + '<textarea class="cmp-note-box" rows="2" placeholder="a note about this one…">'
           + esc(notes[it.id] || '') + '</textarea></div>'
           + '</div>'
@@ -238,16 +239,22 @@
           + '</div></div>';
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
+        var shownNote = mount.querySelector('.cmp-note-text');
         if (open) open.addEventListener('click', function () {
           var wrap = box.closest('.cmp-note');
           if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
           wrap.classList.add('open'); box.focus();
         });
+        if (shownNote) shownNote.addEventListener('click', function () {
+          box.closest('.cmp-note').classList.add('open'); box.focus();
+        });
         if (box) box.addEventListener('input', function () { saveNote(it.id, box.value); });
         if (box) box.addEventListener('blur', function () {
-          // fold back to the corner + ; the filled + says a note is there
-          if (open) open.classList.toggle('has', !!box.value.trim());
-          box.closest('.cmp-note').classList.remove('open');
+          // fold back to her words — the textarea is only for writing
+          var wrap = box.closest('.cmp-note');
+          if (shownNote) shownNote.textContent = box.value;
+          wrap.classList.toggle('has', !!box.value.trim());
+          wrap.classList.remove('open');
         });
       }
     }

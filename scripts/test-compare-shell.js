@@ -103,9 +103,14 @@ __PILL__
     // the affordance is a small + pinned in the item's corner and costs the
     // page no height (Sophie, Aug 2026) — the opener stays visible when open
     var ob = opener && opener.getBoundingClientRect();
+    var hb = host && host.getBoundingClientRect();
     ok(!!ob && ob.width <= 26 && ob.height <= 26 &&
        getComputedStyle(opener).position === 'absolute',
        'the note affordance is a small + in the corner');
+    // BOTTOM-right, not top (Sophie, Aug 2026: "put the plus for a note at
+    // the bottom not the top")
+    ok(!!ob && ob.bottom > hb.bottom - 26 && ob.right > hb.right - 26,
+       'the + is in the BOTTOM-right corner');
     ok(note && note.getBoundingClientRect().height < 1, 'a collapsed note costs no height');
     if (opener) opener.click();
     ok(note && note.classList.contains('open') && !opener.hidden, 'tapping the + opens the box');
@@ -113,6 +118,13 @@ __PILL__
       box.value = 'this one drifts';
       box.dispatchEvent(new Event('blur'));           // blur flushes immediately
     }
+    // a written note SHOWS as her words, folded out of the textarea (Sophie,
+    // Aug 2026: "if I left a note, make it show")
+    var shown = note && note.querySelector('.cmp-note-text');
+    ok(!!shown && note.classList.contains('has') && !note.classList.contains('open') &&
+       shown.textContent === 'this one drifts' &&
+       getComputedStyle(box).display === 'none',
+       'a written note shows as her words, not as an open textarea');
     setTimeout(function () {
       var p = posts.filter(function (x) { return x.u.indexOf('/api/chatfeed/verdict') === 0; }).pop();
       var body = p ? JSON.parse(p.b) : null;

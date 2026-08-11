@@ -2104,18 +2104,30 @@ lifted into a standalone tool later.
     wrote before, saves as she types (debounced), and flushes on blur and on
     `pagehide` so a half-typed note can't be lost by navigating away. Never
     hand-roll a note box per page.
-  - **THE AFFORDANCE IS A SMALL + IN THE ITEM'S TOP-RIGHT CORNER, AND IT
-    COSTS NO HEIGHT (Aug 2026, Sophie: it "takes up too much space and makes
-    it hard to see everything at once").** v1 was a "+ note" text button on
-    its own line under every item, and a written note then stayed OPEN — so a
-    page of twenty items paid twenty extra rows for notes she wasn't reading.
-    Now the + is a 22px square pinned in the corner (absolute, adds no row),
-    the box opens under the item only while she is writing in it and folds
-    away on blur, and an item that HAS a note wears a **filled gold +** so
-    the page still says at a glance where her notes are. Don't put it back in
-    flow, don't auto-open a written note, and don't hand-roll a bigger one on
-    a new page — it lives in `/compare.js` + `/compare.css`, so every page
-    (including ones posted before this) gets it at runtime.
+  - **THE AFFORDANCE IS A SMALL + IN THE ITEM'S BOTTOM-RIGHT CORNER, AND AN
+    EMPTY ONE COSTS NO HEIGHT (Aug 2026, Sophie: it "takes up too much space
+    and makes it hard to see everything at once", then "put the plus for a
+    note at the bottom not the top, and if I left a note, make it show").**
+    v1 was a "+ note" text button on its own line under every item, and a
+    written note then stayed OPEN IN A TEXTAREA — so a page of twenty items
+    paid twenty rows whether or not she had written anything. Three states,
+    each load-bearing: **nothing written** → just the + (absolute, zero
+    height); **she wrote one** → HER WORDS SHOW quietly under the item;
+    **writing** → the textarea, folding back to her words on blur. So height
+    is spent only on notes that exist. Don't put an empty one back in flow,
+    don't open a written one into a textarea just to display it, and don't
+    hand-roll a bigger one on a new page — it lives in `/compare.js` +
+    `/compare.css`, so every page (including ones posted before this) gets it
+    at runtime.
+  - **ANSWER HER ON THE NOTE ITSELF (Aug 2026, Sophie: "respond to my notes
+    on the note itself so I can respond there also — otherwise I forget what
+    we're talking about, I can't keep it on my mind at once").** A note is a
+    conversation, not a comment box she files into the void. Read the sheet
+    (`GET /verdict` → `texts`), append your answer to the SAME field —
+    `<her words>\n\n— Claude: <short answer>` — and POST the whole field
+    back; the shown note keeps its line breaks, so both voices sit on the
+    item and she writes back under yours. Keep answers short (the field caps
+    at 2000 chars) and don't re-answer a note that already carries your line.
   - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
     for the vote, `text` for the note — so writing one never clears the other
     (that is why the route has both). Read them back together with
