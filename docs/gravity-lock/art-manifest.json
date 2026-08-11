@@ -1,0 +1,199 @@
+[
+  {
+    "id": "pastel-moon",
+    "styleKey": "pastel",
+    "styleLabel": "Pastel",
+    "subjKey": "moon",
+    "subjName": "the moon",
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. A full moon: a round sphere covered in craters, seen straight on. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "stylePrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. [content] Absolutely no text, no words, no letters, no numbers, no captions.",
+    "content": "A full moon: a round sphere covered in craters, seen straight on.",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786408988826,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-moon-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-moon-onsky.png"
+    }
+  },
+  {
+    "id": "pastel-astronaut",
+    "styleKey": "pastel",
+    "styleLabel": "Pastel",
+    "subjKey": "astronaut",
+    "subjName": "the astronaut",
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. An astronaut in a spacesuit with a round helmet, floating with arms and legs loose, seen from the front, whole body. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "stylePrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. [content] Absolutely no text, no words, no letters, no numbers, no captions.",
+    "content": "An astronaut in a spacesuit with a round helmet, floating with arms and legs loose, seen from the front, whole body.",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409055503,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-astronaut-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-astronaut-onsky.png"
+    }
+  },
+  {
+    "id": "pastel-planet",
+    "styleKey": "pastel",
+    "styleLabel": "Pastel",
+    "subjKey": "planet",
+    "subjName": "a planet",
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. A small round planet with two thin rings circling it, seen straight on. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "stylePrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. [content] Absolutely no text, no words, no letters, no numbers, no captions.",
+    "content": "A small round planet with two thin rings circling it, seen straight on.",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409108204,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-planet-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-planet-onsky.png"
+    }
+  },
+  {
+    "id": "pastel-blackhole",
+    "styleKey": "pastel",
+    "styleLabel": "Pastel",
+    "subjKey": "blackhole",
+    "subjName": "the black hole",
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. A black hole: a solid dark circle with a bright ring of light around it. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "stylePrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. [content] Absolutely no text, no words, no letters, no numbers, no captions.",
+    "content": "A black hole: a solid dark circle with a bright ring of light around it.",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409148910,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-blackhole-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-blackhole-onsky.png"
+    }
+  },
+  {
+    "id": "hoonies-moon",
+    "styleKey": "hoonies",
+    "styleLabel": "Hoonies",
+    "subjKey": "moon",
+    "subjName": "the moon",
+    "prompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. A full moon: a round sphere covered in craters, seen straight on. Do not include any text in the image.",
+    "stylePrompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. [content] Do not include any text in the image.",
+    "content": "A full moon: a round sphere covered in craters, seen straight on.",
+    "refs": [
+      "hoonies/refs/style-1.png",
+      "hoonies/refs/style-2.png",
+      "hoonies/refs/style-3.png",
+      "hoonies/refs/style-4.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409207465,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-moon-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-moon-onsky.png"
+    }
+  },
+  {
+    "id": "hoonies-astronaut",
+    "styleKey": "hoonies",
+    "styleLabel": "Hoonies",
+    "subjKey": "astronaut",
+    "subjName": "the astronaut",
+    "prompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. An astronaut in a spacesuit with a round helmet, floating with arms and legs loose, seen from the front, whole body. Do not include any text in the image.",
+    "stylePrompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. [content] Do not include any text in the image.",
+    "content": "An astronaut in a spacesuit with a round helmet, floating with arms and legs loose, seen from the front, whole body.",
+    "refs": [
+      "hoonies/refs/style-1.png",
+      "hoonies/refs/style-2.png",
+      "hoonies/refs/style-3.png",
+      "hoonies/refs/style-4.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409252802,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-astronaut-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-astronaut-onsky.png"
+    }
+  },
+  {
+    "id": "hoonies-planet",
+    "styleKey": "hoonies",
+    "styleLabel": "Hoonies",
+    "subjKey": "planet",
+    "subjName": "a planet",
+    "prompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. A small round planet with two thin rings circling it, seen straight on. Do not include any text in the image.",
+    "stylePrompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. [content] Do not include any text in the image.",
+    "content": "A small round planet with two thin rings circling it, seen straight on.",
+    "refs": [
+      "hoonies/refs/style-1.png",
+      "hoonies/refs/style-2.png",
+      "hoonies/refs/style-3.png",
+      "hoonies/refs/style-4.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409295646,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-planet-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-planet-onsky.png"
+    }
+  },
+  {
+    "id": "hoonies-blackhole",
+    "styleKey": "hoonies",
+    "styleLabel": "Hoonies",
+    "subjKey": "blackhole",
+    "subjName": "the black hole",
+    "prompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. A black hole: a solid dark circle with a bright ring of light around it. Do not include any text in the image.",
+    "stylePrompt": "Use the attached images ONLY as a style reference — copy their drawing style, not their content. Draw the subject below in that exact style, alone on a plain white background, no border, no frame, no text. [content] Do not include any text in the image.",
+    "content": "A black hole: a solid dark circle with a bright ring of light around it.",
+    "refs": [
+      "hoonies/refs/style-1.png",
+      "hoonies/refs/style-2.png",
+      "hoonies/refs/style-3.png",
+      "hoonies/refs/style-4.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409337860,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-blackhole-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/hoonies-blackhole-onsky.png"
+    }
+  },
+  {
+    "id": "pastel-blackhole2",
+    "styleKey": "pastel",
+    "styleLabel": "Pastel",
+    "subjKey": "blackhole2",
+    "subjName": "the black hole",
+    "prompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. A black hole, alone: one solid black circle with a single bright glowing ring around its edge, and nothing else at all in the picture. No people, no animals, no plants, no other objects. Absolutely no text, no words, no letters, no numbers, no captions.",
+    "stylePrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration. [content] Absolutely no text, no words, no letters, no numbers, no captions.",
+    "content": "A black hole, alone: one solid black circle with a single bright glowing ring around its edge, and nothing else at all in the picture. No people, no animals, no plants, no other objects.",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "quality": "medium",
+    "size": "1024x1024",
+    "madeAt": 1786409485056,
+    "urls": {
+      "cutout": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-blackhole2-cutout.png",
+      "onsky": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/pastel-blackhole2-onsky.png"
+    }
+  }
+]
