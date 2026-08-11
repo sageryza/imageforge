@@ -483,6 +483,14 @@ app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
 // Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.
 app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
+// A Witch School lesson has a link of its OWN: /lesson/<key> (e.g.
+// /lesson/sync, /lesson/synchronicity) opens that lesson's deck straight away
+// — the shareable form of a lesson (Aug 2026, Sophie: "I want to send my
+// friend Richard the synchronicity lesson, but there's no direct links to
+// anything"). The deck is a full-screen overlay with no URL of its own, so
+// there was nothing to send. Serves the same app page on BOTH hosts; the page
+// reads the key off the path (and also accepts ?lesson= / #lesson-).
+app.get('/lesson/:key', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
 // Public privacy policy (App Store requires a reachable privacy URL).
 app.get('/witch/privacy', (req, res) => { res.sendFile(__dirname + '/public/witch-privacy.html'); });
 // Public support page (App Store requires a reachable SUPPORT url too).

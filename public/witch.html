@@ -7502,6 +7502,40 @@
     if (askState.status === 'working' || askState.status === 'done') renderAsk();
   });
   loadTarotReadings();
-  </script>
+
+  /* ── A lesson's own link (Aug 2026, Sophie: "I want to send my friend
+     Richard the synchronicity lesson, but there's no direct links to
+     anything"). The deck is a full-screen overlay with no URL of its own, so
+     there was nothing to send anyone. Three forms, all landing on the same
+     deck — the path is the pretty one to share, the other two exist because a
+     link gets pasted through things that rewrite paths:
+        secretlyawitch.com/lesson/sync   ?lesson=sync   #lesson-sync
+     A friendly name works as well as the internal key ("synchronicity",
+     "shadow-work"), matched off LESSON_TITLES so a renamed lesson can never
+     leave a stale alias pointing at the wrong deck.
+     An UNKNOWN key opens NOTHING: openLesson() falls back to Spell Work, and
+     handing someone who followed a link a different lesson than the one they
+     were sent is worse than landing them on the school.
+     The URL is left in the bar on purpose — it IS the link, so it has to
+     survive being forwarded on again (and a reload has to come back here). ── */
+  (() => {
+    const path = /^\/lesson\/([^/?#]+)/i.exec(location.pathname || '');
+    const hash = /^#lesson[-/]([^/?#]+)/i.exec(location.hash || '');
+    const raw = path ? path[1] : (new URLSearchParams(location.search).get('lesson') || (hash ? hash[1] : ''));
+    if (!raw) return;
+    const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    let want = raw;
+    try { want = decodeURIComponent(raw); } catch (e) {}
+    want = slug(want);
+    const key = Object.keys(LESSON_TITLES).find(k => k === want || slug(LESSON_TITLES[k]) === want);
+    if (!key) return;
+    go('school');
+    // Put the lesson's own course up behind the deck, so closing it lands on
+    // the road it belongs to instead of a bare catalog.
+    const course = SCHOOL_COURSES.find(c => c.lessons.includes(key));
+    if (course) { schoolCourse = course.id; try { renderSchoolPath(); } catch (e) {} }
+    openLesson(key);
+  })();
+</script>
 </body>
 </html>
