@@ -1297,6 +1297,140 @@ router.post('/:id/narration-preview', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Page cuts: "the film as she has marked it" ─────────────────────
+// A Compare page (the Evan Cutting-blocks artifact) renders Sophie's CURRENT
+// cut of an already-produced film: the spans she kept, in her order, with her
+// typed lines voiced from the narration cache. Content-addressed like every
+// other cut — the same request is rendered ONCE ever, then answered from
+// Storage — and a background job like every slow thing (house rule). There is
+// deliberately NO Firestore doc: the immutable Storage object is the
+// persistence, an in-flight job is process-local, and after a restart the
+// page's poll gets 'unknown' and simply re-POSTs the same request.
+const PAGECUT_REV = 'v1';
+const PAGECUT_FOLDER = `${RENDER_FOLDER}/page-cuts`;
+const pageCutJobs = new Map(); // key -> { status: 'making'|'failed', error? }
+
+function pageCutKey(film, parts) {
+  const norm = parts.map(p => p.tts ? `t:${p.tts}` : `${p.t0.toFixed(2)}-${p.t1.toFixed(2)}`).join('|');
+  return crypto.createHash('sha1').update([PAGECUT_REV, film, norm].join('||')).digest('hex');
+}
+
+// Only spans of OUR films and OUR rendered narration may be stitched — the
+// route is open (the token is off on the live server) and it does real work,
+// so it must not become a generic fetch-and-transcode for arbitrary urls.
+function pageCutUrlOk(u) {
+  return /^https:\/\/storage\.googleapis\.com\//.test(String(u || ''));
+}
+
+function parsePageCutParts(body) {
+  const film = String((body && body.film) || '').trim();
+  if (!pageCutUrlOk(film)) throw new Error('film must be a storage.googleapis.com url');
+  const raw = Array.isArray(body && body.parts) ? body.parts : [];
+  if (!raw.length) throw new Error('no parts');
+  if (raw.length > 220) throw new Error('too many parts');
+  let total = 0;
+  const parts = raw.map(p => {
+    if (p && p.tts) {
+      if (!pageCutUrlOk(p.tts)) throw new Error('a tts part must be a storage.googleapis.com url');
+      total += 8; // placeholder toward the budget; the real length comes from the file
+      return { tts: String(p.tts) };
+    }
+    const t0 = Number(p && p.t0), t1 = Number(p && p.t1);
+    if (!Number.isFinite(t0) || !Number.isFinite(t1) || t1 <= t0) throw new Error('bad span');
+    if (t1 - t0 > 90) throw new Error('a span is longer than 90s');
+    total += t1 - t0;
+    return { t0: Math.max(0, t0), t1 };
+  });
+  if (total > 900) throw new Error('the cut would run past 15 minutes');
+  return { film, parts };
+}
+
+async function buildPageCut(film, parts, key) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-pagecut-'));
+  const ctx = { log: [] };
+  try {
+    if (!FFMPEG) throw new Error('ffmpeg unavailable');
+    // every input local first: the film once, each distinct tts file once
+    const filmLocal = await downloadOnce(film, ctx);
+    const ttsLocals = new Map();
+    for (const p of parts) {
+      if (p.tts && !ttsLocals.has(p.tts)) {
+        const f = path.join(dir, `tts-${ttsLocals.size}.mp3`);
+        const res = await fetch(p.tts, { redirect: 'follow', timeout: 180000 });
+        if (!res.ok) throw new Error(`tts fetch ${res.status}`);
+        fs.writeFileSync(f, await res.buffer());
+        ttsLocals.set(p.tts, f);
+      }
+    }
+    // ONE ffmpeg pass: trim each span, normalize everything to 44.1k mono,
+    // 12ms edge fades so no join ever clicks (the Cut Marks numbers), filter
+    // concat (never the concat demuxer — mp3/aac priming walks joins apart),
+    // encode once. NO loudnorm — her voice is never dynamically squeezed (the
+    // narration finding); the tts files already carry the narration gain.
+    const inputs = ['-i', filmLocal];
+    const ttsIndex = new Map();
+    for (const [u, f] of ttsLocals) { ttsIndex.set(u, inputs.length / 2); inputs.push('-i', f); }
+    const FADE = 0.012;
+    const graph = [];
+    const tags = [];
+    parts.forEach((p, i) => {
+      const tag = `s${i}`;
+      if (p.tts) {
+        // tts duration is unknown here — areverse fades the tail without it
+        graph.push(`[${ttsIndex.get(p.tts)}:a]aresample=44100,aformat=channel_layouts=mono,afade=t=in:d=${FADE},areverse,afade=t=in:d=${FADE},areverse[${tag}]`);
+      } else {
+        const d = p.t1 - p.t0;
+        graph.push(`[0:a]atrim=${p.t0}:${p.t1},asetpts=PTS-STARTPTS,aresample=44100,aformat=channel_layouts=mono,afade=t=in:d=${FADE},afade=t=out:st=${Math.max(0, d - FADE).toFixed(3)}:d=${FADE}[${tag}]`);
+      }
+      tags.push(`[${tag}]`);
+    });
+    graph.push(`${tags.join('')}concat=n=${parts.length}:v=0:a=1[out]`);
+    const out = path.join(dir, 'cut.mp3');
+    await run(FFMPEG, ['-y', ...inputs, '-filter_complex', graph.join(';'), '-map', '[out]', '-c:a', 'libmp3lame', '-q:a', '3', out], 600000);
+    if (!fs.existsSync(out) || fs.statSync(out).size < 2000) throw new Error('ffmpeg wrote no audio');
+    return await uploadPublic(out, `${PAGECUT_FOLDER}/${key}.mp3`, 'audio/mpeg', 'public, max-age=31536000, immutable');
+  } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* temp */ }
+  }
+}
+
+router.post('/page-cut', async (req, res) => {
+  try {
+    const { film, parts } = parsePageCutParts(req.body || {});
+    const key = pageCutKey(film, parts);
+    const storagePath = `${PAGECUT_FOLDER}/${key}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(500).json({ error: 'Firebase Storage unavailable' });
+    const [exists] = await b.file(storagePath).exists();
+    if (exists) return res.json({ status: 'ready', key, url: storagePublicUrl(storagePath) });
+    const inFlight = pageCutJobs.get(key);
+    if (!inFlight || inFlight.status !== 'making') {
+      pageCutJobs.set(key, { status: 'making' });
+      buildPageCut(film, parts, key)
+        .then(() => pageCutJobs.delete(key))   // the Storage object answers from here
+        .catch(err => pageCutJobs.set(key, { status: 'failed', error: err.message }));
+    }
+    res.json({ status: 'making', key });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.get('/page-cut/:key', async (req, res) => {
+  try {
+    const key = String(req.params.key || '');
+    if (!/^[a-f0-9]{40}$/.test(key)) return res.status(400).json({ error: 'bad key' });
+    const storagePath = `${PAGECUT_FOLDER}/${key}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(500).json({ error: 'Firebase Storage unavailable' });
+    const [exists] = await b.file(storagePath).exists();
+    if (exists) return res.json({ status: 'ready', key, url: storagePublicUrl(storagePath) });
+    const job = pageCutJobs.get(key);
+    if (job && job.status === 'failed') return res.json({ status: 'failed', key, error: job.error });
+    if (job) return res.json({ status: 'making', key });
+    // no job, no object: the server restarted mid-render — the page re-POSTs
+    res.json({ status: 'unknown', key });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:id/preview/:snippetId', async (req, res) => {
   try {
     const ep = await loadEpisode(req.params.id);
