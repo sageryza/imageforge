@@ -361,19 +361,21 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   font-size:13px; line-height:1; padding:4px 6px; cursor:pointer; flex:0 0 auto;
   -webkit-tap-highlight-color:transparent;}
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
-  /* SANS, matching the Current/Superseded tab labels above it (Sophie, Aug
-     2026) — the serif belonged to the old list and reads as a different app
-     next to the tabs. */
-  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  /* THE SERIF, back again (Sophie, Aug 2026 — LATEST word: "I actually
+     prefer the other font for the updates page and the compare pages"). It
+     went sans for an evening to match the Current/Superseded labels above it;
+     she looked at both and picked the serif. This is the newer preference —
+     don't flip it back to the sans without asking her. */
+  font-family:'EBGaramond',Georgia,serif;
   /* this row used to be a <button> and now has to be a <div> (a button cannot
      contain the retire button), so the UA button font-size no longer applies —
      without this the titles render noticeably larger than every other list */
   font-size:13.333px;}
-/* CAPS AND NOT BOLD — her standing rule for this sans (Aug 2026: "whenever
-   this font is shown it should generally be capitalized and not bold, and in
-   general things should try not to be bold if they don't have to"). */
-.pr-title{flex:1; font-size:1.12em; font-weight:400; line-height:1.3; min-width:0;
-  text-transform:uppercase; letter-spacing:.03em;}
+/* Mixed case, as it always was: the caps went with the SANS (her rule is
+   "whenever this font is shown it should generally be capitalized"), and the
+   serif is back here. The weight stays 400 under the other half of that rule
+   — "in general things should try not to be bold if they don't have to". */
+.pr-title{flex:1; font-size:1.12em; font-weight:400; line-height:1.25; min-width:0;}
 .pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 /* Full-screen viewer for a Compare page */
 .pageview{position:fixed; inset:0; z-index:40; background:var(--paper); display:flex; flex-direction:column;}

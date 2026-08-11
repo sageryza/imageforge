@@ -3267,6 +3267,16 @@ lifted into a standalone tool later.
     like "Cutting blocks v3 (s96) — punctuated, cut pile, maybe state" went
     from two rendered lines to three. Worth saying to her when a set of
     labels is long, rather than quietly shrinking the type.
+  - **THE COMPARE + UPDATE ROW TITLES ARE THE SERIF, and that is her LATER
+    word** ("I actually prefer the other font for the updates page and the
+    compare pages"). They were the serif, went sans for one evening to match
+    the Current/Superseded tabs above them, and she picked the serif back
+    after seeing both — so the caps half of the rule does not apply there
+    (it is about the sans), and they read mixed case again. The weight stays
+    400 under the other half. `test-chats-superseded` asserts the serif, so
+    flipping it back has to be deliberate. **Two chats were editing these
+    rows the same evening — check the newest instruction before changing
+    them.**
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's
