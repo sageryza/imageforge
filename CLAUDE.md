@@ -1727,6 +1727,31 @@ lifted into a standalone tool later.
     `stCache` now fetches the routes' maximums (60 images / 20 pages) because
     UPDATE needs three pictures for EACH drawing chat; the Status painters
     slice back to the 24/6 they always showed.
+  - **EVERY CHAT WRITES AN UPDATE CARD — the ⌄ pop-out on its card (Aug
+    2026, Sophie: "I wonder if it would be a good idea to have a chat have
+    like a TLDR in their update — not fully in the message, because it would
+    crowd things, but more as like a button I could click and it would pop
+    out", then the shape: "the first question in bold would be what I asked,
+    and they just describe what I originally wanted; then what they did; then
+    an optional one would be if they had any questions for me or what would
+    be coming next" — and "those would be in bold, but the answers would not
+    be").** `POST /api/chatfeed/update { chat, session, asked, did, next }`,
+    stored on the registry beside the status card, rendered as three
+    bold-labelled lines: **What you asked** / **What I did** / **What's
+    next**.
+    - **Write it at the end of any turn that changed your state**, the same
+      moment you refresh your STATUS CARD — they answer different questions
+      (the status card is the ONE line on her home row; this is the account
+      of the turn, behind a tap).
+    - `asked` = what SHE wanted, in her terms, not a restatement of your
+      plan. `did` = what actually changed. `next` = optional, and it is the
+      place for a question or the next step.
+    - 300 chars each, truncated server-side; `""` clears one. Plain
+      sentences, no markdown — the app renders the labels, you supply the
+      answers.
+    - **The FALLBACK when a chat has never written one is its reply's TLDR
+      under "What I did"** — honest, and it means the ⌄ is not a button that
+      appears and vanishes down the list for no visible reason.
   - Tests: `node scripts/test-chats-news.js`.
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
