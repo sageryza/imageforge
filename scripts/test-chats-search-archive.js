@@ -175,6 +175,26 @@ const vis = (page, sel) => page.evaluate((s) => {
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
+  // A6c. WITH THE CHIPS GONE the glass joins the tool row instead of holding
+  //      a row of its own — on a chips-less view (Bookmarks / Status / the
+  //      UPDATE tab) it was one lonely icon above another, two rows spending
+  //      almost nothing (Sophie caught it on UPDATE).
+  await page.evaluate(() => window.__setHomeView('bookmarks'));
+  await page.waitForTimeout(120);
+  const parked = await page.evaluate(() => ({
+    inTools: document.getElementById('searchbtn').parentNode === document.getElementById('toolrow'),
+    rowH: Math.round(document.getElementById('searchrow').getBoundingClientRect().height),
+  }));
+  if (!parked.inTools) fail('the glass kept its own row on a view with no chips');
+  if (parked.rowH !== 0) fail('the empty search row is still taking space: ' + parked.rowH + 'px');
+  // …and it comes back to its own row on the chat list, where the chips need
+  // the width
+  await page.evaluate(() => window.__setHomeView('bookmarks'));   // toggles back to live
+  await page.waitForTimeout(120);
+  if (await page.evaluate(() => document.getElementById('searchbtn').parentNode === document.getElementById('toolrow'))) {
+    fail('the glass stayed in the tool row on the chat list, where it wraps the chips');
+  }
+
   // A7. leaving a chat lands on a folded bar
   await page.evaluate(() => window.__setSearchOpen(true));
   await page.click('#grid .crow[data-chat="live-one"]');

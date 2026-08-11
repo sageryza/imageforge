@@ -1686,11 +1686,18 @@ lifted into a standalone tool later.
   it, and then it expands into the search bar as it is right now").**
   `.searchrow` is the glass until tapped, then the bar it always was
   (focused, so the keyboard comes with it).
-  - **The glass keeps the BAR'S OWN place — it does NOT join the tool row's
-    icons.** That was the first build and it is measurably wrong: at 375 and
-    390 a third icon up there squeezes the category chips onto a second
-    line, spending the row this was meant to save. The test asserts the
-    chips stay on one line at 375/390/430.
+  - **The glass keeps the BAR'S OWN place on the CHAT LIST — it does NOT
+    join the tool row's icons there.** That was the first build and it is
+    measurably wrong: at 375 and 390 a third icon up there squeezes the
+    category chips onto a second line, spending the row this was meant to
+    save. The test asserts the chips stay on one line at 375/390/430.
+  - **…but on a view with NO chips it DOES join the tool row** (Bookmarks,
+    Status, To do, UPDATE). There the tool row is one lonely refresh icon
+    and the folded glass was a second lonely icon on its own row underneath
+    — two rows spending almost nothing, which Sophie caught on UPDATE.
+    `otherView()` is the one predicate for "not a list of chats"; both
+    `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
+    can never disagree about which state they are in.
   - **The ✕ is the only way out, and it does two jobs**: with words in the
     field it clears them (bar stays open); on an empty field it folds the
     bar away. One control, no second button to discover.
