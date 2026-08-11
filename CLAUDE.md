@@ -238,6 +238,12 @@ each opens a focused workflow that shares the same house styles.
   hook-equipped sessions. Still post manually (below) when the hook is absent,
   for non-image types, per-image prompts/styles, or true generation times on
   a backfill.
+  **It also scans the turn's RAW tool activity, so an image a chat merely
+  TOUCHED (read, verified, copied a url of) can be filed into that chat
+  unlabelled — see `docs/wip-asset-filing.md`** for the mechanism, how to spot
+  one (no `description`, caption reads `from <chat>`), the measurement, and
+  the options for fixing it. Not fixed as of Aug 2026; `POST
+  /api/gallery/asset-cleanup` (with `dry` first) removes strays.
 - **NO contact sheets — review happens IN the gallery, labeled (July 2026,
   Sophie's rule).** Every image deliverable goes into the gallery / the chat's
   Assets tab **individually and LABELED** (the label is its `description` — what
@@ -2119,7 +2125,6 @@ lifted into a standalone tool later.
     hand-roll a bigger one on a new page — it lives in `/compare.js` +
     `/compare.css`, so every page (including ones posted before this) gets it
     at runtime.
-<<<<<<< HEAD
   - **ANSWER HER ON THE NOTE ITSELF, AND IT RENDERS AS A THREAD (Aug 2026,
     Sophie: "respond to my notes on the note itself so I can respond there
     also — otherwise I forget what we're talking about", then, having used
@@ -2141,17 +2146,6 @@ lifted into a standalone tool later.
       different coloured rules and a tiny ME / CLAUDE label.
     - Keep answers short (the field caps at 2000 chars) and don't re-answer
       a note that already carries your line.
-=======
-  - **ANSWER HER ON THE NOTE ITSELF (Aug 2026, Sophie: "respond to my notes
-    on the note itself so I can respond there also — otherwise I forget what
-    we're talking about, I can't keep it on my mind at once").** A note is a
-    conversation, not a comment box she files into the void. Read the sheet
-    (`GET /verdict` → `texts`), append your answer to the SAME field —
-    `<her words>\n\n— Claude: <short answer>` — and POST the whole field
-    back; the shown note keeps its line breaks, so both voices sit on the
-    item and she writes back under yours. Keep answers short (the field caps
-    at 2000 chars) and don't re-answer a note that already carries your line.
->>>>>>> origin/main
   - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
     for the vote, `text` for the note — so writing one never clears the other
     (that is why the route has both). Read them back together with
