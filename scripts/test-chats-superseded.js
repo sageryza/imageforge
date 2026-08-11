@@ -62,10 +62,13 @@ const server=http.createServer((req,res)=>{
   await page.waitForTimeout(500);
   ok(await page.$$eval('#thread .acctabs',n=>n.length)===1,'the tabs appear once one is superseded');
   ok(await page.$$eval('.pagerow',n=>n.length)===2,'it leaves the current list');
-  await page.$$eval('#thread .acctab',ns=>ns[1].click());
+  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='2','Current is the tab she lands on');
+  ok((await page.$eval('#thread .acctab',n=>n.textContent)).indexOf('Superseded')>=0,'Superseded is the LEFT tab');
+  await page.$$eval('#thread .acctab',ns=>ns[0].click());
   await page.waitForTimeout(300);
-  ok(await page.$$eval('.pagerow',n=>n.length)===1,'and it is on the superseded tab');
-  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='2','the underline slid to tab two');
+  ok(await page.$$eval('.pagerow',n=>n.length)===1,'and the superseded one is on the left tab');
+  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='1','the underline slid to the left');
+  ok(Math.round(await page.$eval('.pagerow',n=>parseFloat(getComputedStyle(n).fontSize)))===13,'a row keeps the button font size');
   ok((await page.$eval('.pagerow .pr-title',n=>n.textContent)).indexOf('earlier')>=0,'the right page moved');
   // put it back
   await page.$$eval('.pagerow .pr-sup',ns=>ns[0].click());

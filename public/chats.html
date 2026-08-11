@@ -342,10 +342,14 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sres.schat .sr-chat{font-family:'EBGaramond',Georgia,serif; font-size:17px; letter-spacing:0; text-transform:none;}
 .sres.schat .sr-chat b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Compare tab: a chat's published pages (comparison sheets / option boards) */
-.pr-sup{margin-left:8px; border:0; background:none; color:var(--ink2);
+.pr-sup{margin-left:8px; align-self:center; border:0; background:none; color:var(--ink2);
   font-size:13px; line-height:1; padding:4px 6px; cursor:pointer; flex:0 0 auto;
   -webkit-tap-highlight-color:transparent;}
-.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
+.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;
+  /* this row used to be a <button> and now has to be a <div> (a button cannot
+     contain the retire button), so the UA button font-size no longer applies —
+     without this the titles render noticeably larger than every other list */
+  font-size:13.333px;}
 .pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
 .pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 /* Full-screen viewer for a Compare page */
@@ -2890,18 +2894,21 @@ function openChat(name, keepScroll, focusId, noFetch){
         var old=ps.filter(function(p){ return p.superseded; });
         var tabs=null;
         if(old.length){
-          tabs=document.createElement('div'); tabs.className='acctabs'; tabs.dataset.on='1';
-          tabs.innerHTML='<button class="acctab on">Current</button>'+
-                         '<button class="acctab">Superseded</button>';
+          // Superseded on the LEFT, Current on the RIGHT — and Current is
+          // still where she lands (Sophie's ask). data-on='2' starts the
+          // sliding underline under the right-hand tab.
+          tabs=document.createElement('div'); tabs.className='acctabs'; tabs.dataset.on='2';
+          tabs.innerHTML='<button class="acctab">Superseded</button>'+
+                         '<button class="acctab on">Current</button>';
           comparePanel.appendChild(tabs);
         }
         var list=document.createElement('div');
         comparePanel.appendChild(list);
         function paint(which){
           list.innerHTML='';
-          var set = which==='2' ? old : live;
+          var set = which==='1' ? old : live;          // tab 1 = Superseded, tab 2 = Current
           if(!set.length){ list.appendChild(Object.assign(document.createElement('div'),
-            {className:'state',textContent: which==='2' ? 'Nothing superseded yet.' : 'Nothing current — everything is superseded.'})); return; }
+            {className:'state',textContent: which==='1' ? 'Nothing superseded yet.' : 'Nothing current — everything is superseded.'})); return; }
           set.forEach(function(p){
             var row=document.createElement('div'); row.className='pagerow';
             row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
@@ -2928,7 +2935,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           [].forEach.call(tabs.querySelectorAll('.acctab'), function(x){ x.classList.toggle('on', x===b); });
           paint(String(i));
         };
-        paint('1');
+        paint(tabs ? '2' : '2');
       })
       .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\u2019t load pages.</div>'; });
   }
