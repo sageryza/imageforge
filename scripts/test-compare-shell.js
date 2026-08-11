@@ -100,8 +100,15 @@ __PILL__
     var opener = note && note.querySelector('.cmp-note-open');
     var box = note && note.querySelector('.cmp-note-box');
     ok(!!(note && opener && box), 'every [data-item] gets a note box');
+    // the affordance is a small + pinned in the item's corner and costs the
+    // page no height (Sophie, Aug 2026) — the opener stays visible when open
+    var ob = opener && opener.getBoundingClientRect();
+    ok(!!ob && ob.width <= 26 && ob.height <= 26 &&
+       getComputedStyle(opener).position === 'absolute',
+       'the note affordance is a small + in the corner');
+    ok(note && note.getBoundingClientRect().height < 1, 'a collapsed note costs no height');
     if (opener) opener.click();
-    ok(note && note.classList.contains('open') && opener.hidden, 'tapping "+ note" opens the box');
+    ok(note && note.classList.contains('open') && !opener.hidden, 'tapping the + opens the box');
     if (box) {
       box.value = 'this one drifts';
       box.dispatchEvent(new Event('blur'));           // blur flushes immediately

@@ -52,8 +52,10 @@
     '.jg-ic+.jg-ic{margin-left:0;}' +
     '.jg-ic svg{width:15px;height:15px;}' +
     '.jg-ic.txt{font:700 15px/1 Georgia,serif;}' +
+    // position:relative because the note + is pinned in this card's corner
+    // (compare.css .cmp-note-open — see the note-affordance rule there)
     '.jg-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;' +
-    ' padding:12px;}' +
+    ' padding:12px;position:relative;}' +
     '.jg-media{display:flex;gap:8px;justify-content:center;}' +
     '.jg-media figure{margin:0;flex:1;min-width:0;text-align:center;}' +
     '.jg-media .tag{display:block;font:700 11px/1 -apple-system,sans-serif;' +
@@ -86,6 +88,11 @@
     '.jg-help b{color:var(--gold);font-family:-apple-system,sans-serif;font-size:13px;}' +
     '.jg-flash{animation:jgf .18s;}@keyframes jgf{from{opacity:.35}to{opacity:1}}';
   document.head.appendChild(css);
+
+  // the note + — same glyph compare.js draws, so the mark reads the same
+  // wherever she meets it
+  var PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
   var I = {
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
@@ -214,9 +221,12 @@
           + '<div class="jg-card' + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it)
           + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
-          + '<div class="cmp-note' + (notes[it.id] ? ' open' : '') + '">'
-          + '<button type="button" class="cmp-note-open"' + (notes[it.id] ? ' hidden' : '')
-          + '>+ note</button>'
+          // the note is a small + in the card's corner and never opens by
+          // itself — a written one shows as a filled + (Sophie, Aug 2026)
+          + '<div class="cmp-note">'
+          + '<button type="button" class="cmp-note-open'
+          + (notes[it.id] ? ' has' : '') + '" aria-label="a note about this one">'
+          + PLUS_SVG + '</button>'
           + '<textarea class="cmp-note-box" rows="2" placeholder="a note about this one…">'
           + esc(notes[it.id] || '') + '</textarea></div>'
           + '</div>'
@@ -229,9 +239,16 @@
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
         if (open) open.addEventListener('click', function () {
-          open.hidden = true; box.closest('.cmp-note').classList.add('open'); box.focus();
+          var wrap = box.closest('.cmp-note');
+          if (wrap.classList.contains('open')) { box.blur(); wrap.classList.remove('open'); return; }
+          wrap.classList.add('open'); box.focus();
         });
         if (box) box.addEventListener('input', function () { saveNote(it.id, box.value); });
+        if (box) box.addEventListener('blur', function () {
+          // fold back to the corner + ; the filled + says a note is there
+          if (open) open.classList.toggle('has', !!box.value.trim());
+          box.closest('.cmp-note').classList.remove('open');
+        });
       }
     }
 
