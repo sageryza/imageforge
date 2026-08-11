@@ -46,6 +46,12 @@ A median filter first kills the paper grain gpt-image-2 leaves in the flats
 (without it the moon comes out mottled), and a median filter on the LABEL map
 kills stray single-pixel assignments inside an otherwise flat area.
 
+`ink` is where the soft edge counts as line, and it sets the STROKE WEIGHT of
+the whole drawing. Measured against the source's own 50%% crossing across five
+cards, the old 150 drew 6-9% too much line; 130 lands inside 2.5%. Check it the
+same way if you move it — count the fraction of pixels under 130 in the render
+and in the source at the same size.
+
 vtracer writes no viewBox, so this adds one — without it the SVG does not
 scale, which is the entire point of having it.
 """
@@ -145,7 +151,7 @@ def pick_fills(pix, lo=2, hi=7, apart=24.0, share=0.012, frompaper=25.0):
     return best if best is not None else kmeans(sub, lo)
 
 
-def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smooth=9):
+def flatten(src, fills=4, ink=130, paper=243, band=3, median=3, upscale=3, smooth=9):
     """The card as exactly `fills + 2` flat colours: the fills, ink, and paper.
 
     `fills=0` asks pick_fills to work the count out from the picture.
@@ -156,10 +162,16 @@ def flatten(src, fills=4, ink=150, paper=243, band=3, median=3, upscale=3, smoot
         bg.paste(im, mask=im.split()[-1])
         im = bg
     im = im.convert('RGB')
-    if median:
-        im = im.filter(ImageFilter.MedianFilter(median))
     if upscale > 1:
         im = im.resize((im.width * upscale, im.height * upscale), Image.LANCZOS)
+    if median:
+        # AFTER the upscale, never before. A 3px median on a 512px card is a
+        # third of a source pixel of smearing and it closes real gaps: the four
+        # dots on the astronaut's chest badge merged into one blob and the
+        # badge's white interior flooded with the lilac around it. Run on the
+        # upscaled copy the same filter only touches a third of a source pixel,
+        # which is what it was for — killing the paper grain.
+        im = im.filter(ImageFilter.MedianFilter(median))
 
     a = np.array(im).astype(np.float64)
     lum = a @ [0.299, 0.587, 0.114]
@@ -227,7 +239,7 @@ if __name__ == '__main__':
     p.add_argument('out', help='the SVG, or a folder when src is one')
     p.add_argument('--fills', type=int, default=0,
                    help='colours besides ink and paper; 0 (default) works it out')
-    p.add_argument('--ink', type=int, default=150, help='luminance below this is line')
+    p.add_argument('--ink', type=int, default=130, help='luminance below this is line')
     p.add_argument('--paper', type=int, default=243, help='luminance above this is paper')
     p.add_argument('--band', type=int, default=3, help='px of anti-aliased collar to exclude')
     p.add_argument('--flat', help='also write the flattened raster here, to eyeball it')
