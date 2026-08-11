@@ -4,6 +4,11 @@ import CoreText
 
 @main
 struct ImageForgeApp: App {
+    // Push registration + notification taps (PushDelegate.swift). The adaptor
+    // is what gives a SwiftUI app the UIApplicationDelegate callbacks APNs
+    // delivers its device token through.
+    @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
+
     init() {
         FirebaseApp.configure()
         Self.registerBundledFonts()

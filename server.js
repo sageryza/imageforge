@@ -311,6 +311,9 @@ loadConfig().then(() => {
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);
+  // Push — device registration + the APNs sender behind the Chats app's
+  // lock-screen notifications. Dormant until the APNS_* keys exist.
+  app.use('/api/push', require('./push').router);
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —

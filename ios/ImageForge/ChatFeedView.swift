@@ -46,6 +46,15 @@ struct ChatFeedView: View {
                     .ignoresSafeArea(edges: .bottom)
             }
         }
+        // A tapped push reloads the page onto the Update tab. Bumping the key
+        // recreates the web view, whose URL builder consumes the pending flag
+        // (?view=news — the page strips the param after reading it, so a later
+        // natural reload can't drag her back there). Covers warm AND cold
+        // starts: on a cold start the flag is set before this view first
+        // builds, and the URL builder checks it directly.
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+            reloadKey += 1
+        }
     }
 }
 
@@ -65,7 +74,15 @@ private struct ChatFeedWebView: UIViewRepresentable {
         web.isOpaque = false
         web.backgroundColor = UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1) // page paper
         web.allowsBackForwardNavigationGestures = false
-        if let url = URL(string: MovieService.serverURL + "/chats") {
+        // A pending push tap opens straight onto the Update tab — the push is
+        // that tab's doorbell. The flag is one-shot; chats.html strips the
+        // query param after honoring it.
+        var path = "/chats"
+        if PushDelegate.pendingUpdateTab {
+            PushDelegate.pendingUpdateTab = false
+            path = "/chats?view=news"
+        }
+        if let url = URL(string: MovieService.serverURL + path) {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
         context.coordinator.stopAutoscrollOnScreenChange(web)

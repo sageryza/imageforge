@@ -334,6 +334,11 @@ struct RootView: View {
         // ://business (the second home grid). Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
+        // A tapped push lands on the Chats screen; ChatFeedView hears the same
+        // notification and reloads its page onto the Update tab (?view=news).
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+            if screen != .tool(.chats) { setScreen(.tool(.chats)) }
+        }
         // CI screenshot hook: launch with FORGE_SCREEN=<dest> to open straight
         // to a screen (the simulator screenshot workflow relaunches per screen).
         // Never set in production, so it's inert there.

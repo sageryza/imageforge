@@ -606,6 +606,18 @@ router.post('/', async (req, res) => {
     // the moment the reply lands. A growing draft is still mid-turn.
     if (!working) reg.workingAt = admin.firestore.FieldValue.delete();
     await regRef(doc.chat).set(reg, { merge: true });
+    // …and it's the moment worth a buzz (Aug 2026): a FINISHED reply — never a
+    // draft — pushes to her phone. Fire-and-forget by contract; notifyChat
+    // debounces per chat and can never fail this route. The title is the name
+    // SHE gave the chat, when there is one.
+    if (!working) {
+      try {
+        const { chats } = await registry();
+        const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
+        require('./push').notifyChat(doc.chat, name,
+          doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240));
+      } catch (e) { /* push must never fail a post */ }
+    }
     res.json({ ok: true, id: msgId });
   } catch (err) { fail(res, err); }
 });
@@ -1226,6 +1238,14 @@ router.post('/page', async (req, res) => {
     });
     doc.path = file.name;
     await ref.set(doc);
+    // A new Compare page is a delivery even when the chat says nothing — the
+    // same reason the Update tab counts it as an arrival. Same debounce, so a
+    // page and the reply that follows it in one turn are one buzz.
+    try {
+      const { chats } = await registry();
+      const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
+      require('./push').notifyChat(doc.chat, name, doc.title);
+    } catch (e) { /* push must never fail a post */ }
     res.json({ ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` });
   } catch (err) { fail(res, err); }
 });

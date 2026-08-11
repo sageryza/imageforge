@@ -132,6 +132,15 @@ const titleOf = (page) => page.textContent('#htxt');
     fail('a plain first load did not open on the chat list: ' + await fresh.textContent('#htxt'));
   }
 
+  // 5. a push tap loads /chats?view=news — lands on the Update tab with the
+  //    param STRIPPED, so checkBuild's later reloads can't drag her back
+  const pushed = await browser.newPage({ viewport: { width: 390, height: 780 } });
+  await pushed.goto(base + '/chats?view=news');
+  await pushed.waitForFunction(() => document.getElementById('htxt')
+    && document.getElementById('htxt').textContent === 'Update', null, { timeout: 5000 })
+    .catch(() => fail('?view=news did not open the Update tab'));
+  if ((await pushed.evaluate(() => location.search)) !== '') fail('?view=news not stripped after boot');
+
   await browser.close();
   server.close();
   console.log(process.exitCode ? 'DONE with failures'

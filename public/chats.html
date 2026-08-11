@@ -1258,6 +1258,15 @@ var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' |
 // carried out of the Update tab by a deploy is the app interrupting her, and
 // putting her back is not the same as remembering a preference.
 var RELOAD_VIEW='chats-reload-view';
+// A notification tap opens the app on /chats?view=news — the push IS an
+// Update-tab doorbell, so the tap lands on the tab (Aug 2026). The param is
+// consumed and STRIPPED immediately: checkBuild's reload keeps the URL, and a
+// leftover ?view would drag her back to Update on every deploy forever.
+try{
+  var _qv=new URLSearchParams(location.search).get('view');
+  if(_qv==='news'||_qv==='update'){ homeView='news';
+    history.replaceState(null,'',location.pathname); }
+}catch(e){}
 try{
   var _rv=sessionStorage.getItem(RELOAD_VIEW);
   sessionStorage.removeItem(RELOAD_VIEW);
