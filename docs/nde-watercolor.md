@@ -47,9 +47,29 @@ drift on every image. The character-anchor path is validated twice in-house
 it is what "watercolor" means here anyway: Sophie's scan as a style reference
 through gpt-image-2, not the WTR look.
 
-So: photo → watercolour portrait (style ref first, photo second, "keep their
-likeness") → that portrait rides as the character reference on every scene the
-person appears in, restating the preserve list.
+So: photo → watercolour portrait (style ref first, photo second) → that portrait
+rides as the character reference on every scene the person appears in.
+
+### The likeness line is ONE sentence — do not grow it back
+
+    The SECOND attached image is a photograph of the person to draw.
+
+(`THIRD` when a second style reference rides along.) That is the whole line.
+It reached that shape in three steps, each one Sophie's call, and each step
+visibly loosened the drawing:
+
+- v1 said `Keep their likeness — same face, same hair, same age. Do not
+  redesign the person.` The cards came out as rendered photographs. This was a
+  mistake on arrival — `docs/in-the-hospital-film/shot-list.md` already
+  records **"Do not add 'same face and same hair' … it over-weights the face
+  and hair specifically instead of letting the whole reference carry."**
+- v2 dropped the preserve-list clause.
+- v3 dropped `Do not redesign the person.` and the person's NAME — the name
+  buys nothing when the photograph is right there, and a name in the prompt
+  pulls on whatever the model thinks that name looks like.
+
+The realism was never mainly the style reference; it was the photograph plus
+these instructions. Adding preserve-list wording back will undo it.
 
 ## The nine cards
 
