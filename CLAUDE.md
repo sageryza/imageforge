@@ -1775,6 +1775,17 @@ lifted into a standalone tool later.
   tightest cut"), pointing at NEW version-numbered media files; the old pages
   and files stay as history. DELETE+re-post is only for fixing a typo on the
   SAME version.
+  **CURRENT / SUPERSEDED tabs on the Compare list (Aug 2026, Sophie: "the
+  drafts that have changed can still exist, but not crowd the current area").**
+  A page doc carries `superseded`; `POST /api/chatfeed/page/:id/supersede
+  {superseded}` flips it, and `GET /pages` returns it. The Compare panel then
+  shows the account tabs' exact pattern (`.acctabs` — no boxes, two half-width
+  labels over a hairline with a sliding underline) and the tabs **only appear
+  once something is superseded**, so a chat with three pages still looks like
+  three pages. Every row carries a small ↓ / ↺ so she can move one across
+  herself. **A chat posting a new version should supersede the one it
+  replaces** — that is what keeps eleven drafts of one tool out of her way
+  WITHOUT deleting the history.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME

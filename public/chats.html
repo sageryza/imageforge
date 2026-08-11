@@ -342,6 +342,9 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sres.schat .sr-chat{font-family:'EBGaramond',Georgia,serif; font-size:17px; letter-spacing:0; text-transform:none;}
 .sres.schat .sr-chat b{background:color-mix(in srgb, var(--rose) 24%, var(--paper)); border-radius:3px; padding:0 1px;}
 /* Compare tab: a chat's published pages (comparison sheets / option boards) */
+.pr-sup{margin-left:8px; border:0; background:none; color:var(--ink2);
+  font-size:13px; line-height:1; padding:4px 6px; cursor:pointer; flex:0 0 auto;
+  -webkit-tap-highlight-color:transparent;}
 .pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
 .pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
@@ -2878,12 +2881,54 @@ function openChat(name, keepScroll, focusId, noFetch){
         var ps=(d&&d.pages)||[];
         comparePanel.innerHTML='';
         if(!ps.length){ comparePanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No pages from this chat yet.'})); return; }
-        ps.forEach(function(p){
-          var row=document.createElement('button'); row.className='pagerow';
-          row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
-          row.onclick=function(){ openPage(p); };
-          comparePanel.appendChild(row);
-        });
+        // CURRENT / SUPERSEDED, the account tabs' pattern (Sophie, Aug 2026:
+        // "the drafts that have changed can still exist, but not crowd the
+        // current area"). An old version is never deleted — it moves behind
+        // the second tab, because the old page is the record of what she was
+        // looking at when she left a note.
+        var live=ps.filter(function(p){ return !p.superseded; });
+        var old=ps.filter(function(p){ return p.superseded; });
+        var tabs=null;
+        if(old.length){
+          tabs=document.createElement('div'); tabs.className='acctabs'; tabs.dataset.on='1';
+          tabs.innerHTML='<button class="acctab on">Current</button>'+
+                         '<button class="acctab">Superseded</button>';
+          comparePanel.appendChild(tabs);
+        }
+        var list=document.createElement('div');
+        comparePanel.appendChild(list);
+        function paint(which){
+          list.innerHTML='';
+          var set = which==='2' ? old : live;
+          if(!set.length){ list.appendChild(Object.assign(document.createElement('div'),
+            {className:'state',textContent: which==='2' ? 'Nothing superseded yet.' : 'Nothing current — everything is superseded.'})); return; }
+          set.forEach(function(p){
+            var row=document.createElement('div'); row.className='pagerow';
+            row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
+            row.onclick=function(e){ if(e.target.closest('.pr-sup')) return; openPage(p); };
+            // her own way to move one across, so she is never stuck with my judgement
+            var sup=document.createElement('button'); sup.className='pr-sup';
+            sup.title = p.superseded ? 'Put back in Current' : 'Move to Superseded';
+            sup.textContent = p.superseded ? '\u21ba' : '\u2193';
+            sup.onclick=function(ev){
+              ev.stopPropagation();
+              api('/api/chatfeed/page/'+encodeURIComponent(p.id)+'/supersede',{method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({superseded: !p.superseded})})
+                .then(function(){ loadPages(true); }).catch(function(){});
+            };
+            row.appendChild(sup);
+            list.appendChild(row);
+          });
+        }
+        if(tabs) tabs.onclick=function(e){
+          var b=e.target.closest('.acctab'); if(!b) return;
+          var i=[].indexOf.call(tabs.querySelectorAll('.acctab'), b)+1;
+          tabs.dataset.on=String(i);
+          [].forEach.call(tabs.querySelectorAll('.acctab'), function(x){ x.classList.toggle('on', x===b); });
+          paint(String(i));
+        };
+        paint('1');
       })
       .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\u2019t load pages.</div>'; });
   }

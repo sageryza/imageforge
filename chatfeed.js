@@ -1111,9 +1111,32 @@ router.get('/pages', async (req, res) => {
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const snap = await db().collection(PAGES).where('chat', '==', chat).get();
     const pages = snap.docs
-      .map((d) => ({ id: d.id, title: d.data().title, created: d.data().created }))
+      .map((d) => ({
+        id: d.id, title: d.data().title, created: d.data().created,
+        superseded: !!d.data().superseded,
+      }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
     res.json({ pages });
+  } catch (err) { fail(res, err); }
+});
+
+// SUPERSEDED (Aug 2026, Sophie: "make a superseded tab and a current tab, that
+// way the drafts that have changed can still exist, but not crowd the current
+// area"). A new version of a deliverable is a NEW page and the old one is the
+// history — but eleven drafts of one tool buried the thing she is using. This
+// moves an old page behind a tab instead of deleting it, which is the whole
+// point: deleting it throws away the record of what she was looking at when
+// she left a note.
+router.post('/page/:id/supersede', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').slice(0, 60);
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const ref = db().collection(PAGES).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'no such page' });
+    const on = req.body && req.body.superseded === false ? false : true;
+    await ref.set({ superseded: on }, { merge: true });
+    res.json({ ok: true, id, superseded: on });
   } catch (err) { fail(res, err); }
 });
 
