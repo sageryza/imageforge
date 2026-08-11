@@ -42,6 +42,27 @@ try {
   process.env.APNS_KEY = pem;
 } catch (e) { fail('key loader: ' + e.message); }
 
+// ---- 1b. the Render SECRET FILE path --------------------------------------
+// The key's other home: a .p8 uploaded as a secret file, found by extension in
+// the mount dirs with no name to get right. Proven by pointing APNS_KEY_FILE
+// at a real file with APNS_KEY unset — the env var must not be required.
+try {
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'p8-'));
+  const file = path.join(dir, 'AuthKey_G8WMZDR4KK.p8');
+  fs.writeFileSync(file, pem);
+  const savedEnv = process.env.APNS_KEY;
+  delete process.env.APNS_KEY;
+  process.env.APNS_KEY_FILE = file;
+  assert(apnsKey() && apnsKey().includes('BEGIN'), 'reads the key out of a secret file');
+  // …and the JWT still signs from it, which is the thing that actually matters
+  const jwt = providerJwt(Date.now() + 99 * 60 * 1000);
+  assert(jwt.split('.').length === 3, 'signs with the file-sourced key');
+  delete process.env.APNS_KEY_FILE;
+  process.env.APNS_KEY = savedEnv;
+  jwtCache.at = 0; jwtCache.token = null;
+} catch (e) { fail('secret file: ' + e.message); }
+
 // ---- 2. the JWT is real ES256 JOSE ----------------------------------------
 try {
   const jwt = providerJwt();
