@@ -1230,6 +1230,16 @@ function statusFor(list){
 // working / just delivered). `homeView` survives opening a chat and coming
 // back, so she returns to the list she was reading.
 var homeView='live';   // 'live' | 'archive' | 'bookmarks' | 'status' | 'todo' | 'news'
+// …restored ONLY across a reload the page did to itself (a new build landed —
+// see checkBuild). A launch she started still opens on the chat list; being
+// carried out of the Update tab by a deploy is the app interrupting her, and
+// putting her back is not the same as remembering a preference.
+var RELOAD_VIEW='chats-reload-view';
+try{
+  var _rv=sessionStorage.getItem(RELOAD_VIEW);
+  sessionStorage.removeItem(RELOAD_VIEW);
+  if(_rv==='news'||_rv==='archive'||_rv==='bookmarks'||_rv==='todo'||_rv==='status') homeView=_rv;
+}catch(e){}
 // Where am I / how do I leave. The title carries the state (the word alone was
 // "really confusing" — Sophie), the archlink carries the exit.
 function paintHomeChrome(){
@@ -3864,12 +3874,35 @@ function loadCache(){
 // screen, never mid-thread or while she's typing, so a reload can't eat words
 // or lose her place.
 var BUILD=null;
+// NEVER RELOAD OVER SOMETHING SHE IS LOOKING AT, AND PUT HER BACK WHERE SHE
+// WAS (Aug 2026, Sophie: "if I'm on the update tab — I guess it's when a chat
+// finishes, but I don't know — it brings me out automatically, and then I have
+// to go back to the update tab and click into the artifact again").
+//
+// It was never a chat finishing: it is THIS, a deploy landing while she reads,
+// and five of them shipped that evening. The guard only knew about an open
+// THREAD and a focused text field, so a full-screen Compare page or an image
+// lightbox was reloaded out from under her — and the reload then dropped her
+// on the chat list, because `homeView` lives in a variable that a reload
+// resets. Both halves are needed: waiting alone would still lose the tab, and
+// restoring the tab alone would still close the artifact.
+//
+// `body.ontop` is set by BOTH overlays (the Compare viewer and the lightbox),
+// and `body.selecting` means a half-made selection would be thrown away.
+function busyOnScreen(){
+  return document.body.classList.contains('ontop')
+      || document.body.classList.contains('selecting');
+}
 function checkBuild(data){
   if(!data||!data.build) return;
   if(!BUILD){ BUILD=data.build; return; }
   if(BUILD===data.build) return;
   var a=document.activeElement, typing=a&&/^(INPUT|TEXTAREA)$/.test(a.tagName||'');
-  if(cur||typing) return;             // it can wait until she's back on the list
+  // it can wait — the next poll asks again, so nothing is lost by deferring
+  if(cur||typing||busyOnScreen()) return;
+  // Only OUR reload restores the view: a real launch still lands on the chat
+  // list, which is what every other filter here promises.
+  try{ sessionStorage.setItem(RELOAD_VIEW,homeView); }catch(e){}
   location.reload();
 }
 function load(){

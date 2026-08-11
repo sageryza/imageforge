@@ -1701,6 +1701,24 @@ lifted into a standalone tool later.
     UPDATE needs three pictures for EACH drawing chat; the Status painters
     slice back to the 24/6 they always showed.
   - Tests: `node scripts/test-chats-news.js`.
+- **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
+  "if I'm on the update tab — I guess it's when a chat finishes, but I don't
+  know — it brings me out automatically, and then I have to go back to the
+  update tab and click into the artifact again").** It was never a chat
+  finishing: `checkBuild` in chats.html reloads the page when the feed's
+  build stamp changes (that is how a page change reaches her phone at all),
+  and five deploys shipped that evening. Two halves, both needed —
+  **`busyOnScreen()`** defers the reload while `body.ontop` (the Compare
+  viewer OR the image lightbox) or `body.selecting` is set, and the reload
+  stashes `homeView` in `sessionStorage['chats-reload-view']` so she comes
+  back on the tab she was on. Waiting alone would still have lost the tab;
+  restoring alone would still have closed the artifact. **Only the page's
+  OWN reload restores the view** — a launch she started still opens on the
+  chat list, like every other filter here promises. Any new full-screen
+  overlay must set `body.ontop` (it already has to, for the scroll lock) or
+  it will be reloaded away. Tests:
+  `node scripts/test-chats-build-reload.js` (verified failing on each half
+  separately).
 - **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
   the search bar collapse into just a magnifying glass button unless I click
   it, and then it expands into the search bar as it is right now").**
