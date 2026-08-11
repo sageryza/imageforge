@@ -96,15 +96,13 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/chatfeed/pages-recent') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    // v4 REPLACES v3 (same thing, new cut — her ask), while the palette board
-    // is a different deliverable from the same chat and must survive
+    // ONLY THE NEWEST SHOWS. p3 is the card she photographed first (v3 sitting
+    // under v4); p2 is the one that beat the title-parsing rule the second
+    // time — the same artifact with NO version number in its title at all.
     return res.end(JSON.stringify({ pages: [
-      // ORDER MATTERS: v3 is the second-newest, exactly as in the card she
-      // photographed (v6 above v5). Without the version rule the two-page cap
-      // would show v4 + v3 and drop the palette board entirely.
       { id: 'p1', title: 'Oven artifact v4 (s96) — tightest cut', chat: 'chat-oven', created: iso(T0 - 90 * 60000) },
       { id: 'p3', title: 'Oven artifact v3 (s96) — link mode in the strip', chat: 'chat-oven', created: iso(T0 - 100 * 60000) },
-      { id: 'p2', title: 'Oven palette board', chat: 'chat-oven', created: iso(T0 - 200 * 60000) },
+      { id: 'p2', title: 'Oven artifact (s96) — moved from the Evan chat', chat: 'chat-oven', created: iso(T0 - 200 * 60000) },
     ] }));
   }
   if (url.pathname === '/api/chatfeed/notif-seen' && req.method === 'POST') {
@@ -213,46 +211,19 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     fail('wrong cards (newest arrival first expected): ' + cards.join(','));
   }
   const pgTitles = await page.$$eval('.nwcard[data-chat="chat-oven"] .pr-title', ns => ns.map(n => n.textContent));
-  if (!pgTitles.some(t => t.indexOf('Oven artifact v4') >= 0)) fail('the Compare page is not on the oven card');
-  // A NEW VERSION REPLACES THE OLD ONE (Sophie, Aug 2026: "if there's one
-  // version and then a new one comes out it should just replace that one —
-  // this is a clear example because it says v6 and then v5")…
+  if (!pgTitles.some(t => t.indexOf('Oven artifact v4') >= 0)) fail('the newest Compare page is not on the oven card');
+  // ONLY THE NEWEST PAGE SHOWS (Sophie, Aug 2026, after this failed her twice:
+  // "same problem happening again — I think it tricked it cause there was no
+  // version number. Probably better is taking advantage of the superseded and
+  // current: if something moves to the superseded pile then it no longer shows
+  // in the Update tab if there's a new version"). Superseded is simply
+  // not-the-newest, so neither an older version NOR an older page whose title
+  // never says "version" can sit on the card.
+  if (pgTitles.length !== 1) fail('more than one page on the card: ' + pgTitles.join(' | '));
   if (pgTitles.some(t => t.indexOf('v3') >= 0)) fail('the superseded v3 is still on the card: ' + pgTitles.join(' | '));
-  // …but a genuinely different deliverable from the same chat is not a version
-  // of it, so it stays
-  if (!pgTitles.some(t => t.indexOf('palette board') >= 0)) {
-    fail('a different page from the same chat was swallowed as a version: ' + pgTitles.join(' | '));
+  if (pgTitles.some(t => t.indexOf('moved from the Evan chat') >= 0)) {
+    fail('an older page with no version number in its title survived: ' + pgTitles.join(' | '));
   }
-
-  // the family rule itself, on the titles that made her ask (versions collapse,
-  // different things do not)
-  const fam = await page.evaluate(() => {
-    const f = window.__pageFamily;
-    return {
-      // the version is in the HEAD — the head is the thing, so these collapse
-      v6: f('Cutting blocks v6 (s96) — tap empty space to deselect'),
-      v5: f('Cutting blocks v5 (s96) — link mode in the strip, paragraph links'),
-      cut: f('Short 1 cut 3 — tightest'),
-      cut2: f('Short 1 cut 4'),
-      // the head is a PROJECT and the subtitle is the deliverable — these are
-      // five different pages and must all survive (real titles from her feed;
-      // cutting at the dash unconditionally collapsed the Evan ones into one)
-      ev1: f('Evan — v11, the art from your notes'),
-      ev2: f('Evan — pick the pauses (v6)'),
-      ev3: f('Evan — the two floors, side by side'),
-      mon1: f('Monsters — full-size cards, quality ladder v1'),
-      mon2: f('Monsters — info backs, 3 samples v1'),
-      plain: f('Oven artifact v4'),
-      other: f('Oven palette board'),
-      bare: f('v2'),
-    };
-  });
-  if (fam.v6 !== fam.v5) fail('v6 and v5 of the same page are not one family: ' + fam.v6 + ' / ' + fam.v5);
-  if (fam.cut !== fam.cut2) fail('cut 3 and cut 4 are not one family: ' + fam.cut + ' / ' + fam.cut2);
-  if (fam.plain === fam.other) fail('two different deliverables collapsed into one family: ' + fam.plain);
-  const proj = [fam.ev1, fam.ev2, fam.ev3, fam.mon1, fam.mon2];
-  if (new Set(proj).size !== proj.length) fail('different pages under one project collapsed: ' + proj.join(' | '));
-  if (!fam.bare) fail('a title that is only a version marker lost its identity');
   const thumbs = await page.$$('.nwcard[data-chat="chat-pics"] .nwimg');
   if (thumbs.length !== 3) fail('expected the last THREE pictures, got ' + thumbs.length);
 
