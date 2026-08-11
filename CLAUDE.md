@@ -2943,6 +2943,28 @@ lifted into a standalone tool later.
   keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
+- **SHIPPING IT IS ALL CI — no Mac, and that now includes the App Store
+  listing text (Aug 2026).** Three workflows in `memory-library-react`, which
+  is where the App Store Connect secrets live; every one of them takes the
+  bundle id `com.sageryza.secretlyawitch` (the app builds from the
+  `SecretlyAWitch` target in THIS repo's `ios/`, and the workflow checks this
+  repo out — `imageforge_ref` picks the branch):
+  - **Secretly a Witch TestFlight** — build + upload.
+  - **ASC edit metadata** (`ci/asc_metadata.py`) — description, keywords,
+    subtitle, promotional text, What's New, and the App Review contact /
+    demo account / notes. **Run it with `dry_run` ON first**: it prints every
+    current value plus the app and version a write would land on, so nobody
+    edits the wrong app. Fields with no input of their own (supportUrl,
+    marketingUrl, privacyPolicyUrl, demo account…) go through `fields_json`,
+    where `""` CLEARS a field. Edits save on the version but do NOT submit.
+  - **ASC submit release** (`ci/asc_submit_release.py`) — attach the build,
+    set What's New, submit. `resubmit:true` cancels an in-queue submission
+    first so a newer build can take its place.
+  So a rejected version is reworked entirely from a chat: fix the metadata,
+  then submit. **The two things that still need Sophie** are the reviewer's
+  rejection text and any Resolution Center reply — Apple exposes neither in
+  the public API, so paste the message in rather than guessing at it.
+  Screenshots are API-able in principle but that flow is NOT built.
 - **School + quiz art is served as WEBP, never the PNG originals (Aug 2026).**
   `SW_IMG` points at `witch-school/webp/` and every reference goes through
   `SW_EXT`, never a hard-coded `.png`; `QZ_IMG` is the SAME folder (the `qz-*`
