@@ -371,11 +371,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
      contain the retire button), so the UA button font-size no longer applies —
      without this the titles render noticeably larger than every other list */
   font-size:13.333px;}
-/* Mixed case, as it always was: the caps went with the SANS (her rule is
-   "whenever this font is shown it should generally be capitalized"), and the
-   serif is back here. The weight stays 400 under the other half of that rule
-   — "in general things should try not to be bold if they don't have to". */
-.pr-title{flex:1; font-size:1.12em; font-weight:400; line-height:1.25; min-width:0;}
+/* Mixed case AND BOLD, exactly as it always was. Her no-bold rule is about
+   the SANS only — "that was supposed to stay bold actually, it's only that
+   other font I don't like it when it's bold" (Aug 2026) — so nothing set in
+   the serif is covered by it. */
+.pr-title{flex:1; font-size:1.12em; font-weight:600; line-height:1.25; min-width:0;}
 .pr-time{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.12em; color:var(--ink2); text-transform:uppercase; flex:none;}
 /* Full-screen viewer for a Compare page */
 .pageview{position:fixed; inset:0; z-index:40; background:var(--paper); display:flex; flex-direction:column;}
