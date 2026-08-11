@@ -492,7 +492,8 @@ router.get('/thread', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working } = req.body || {};
+    const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working,
+            head, tail } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -543,6 +544,18 @@ router.post('/', async (req, res) => {
     // draft; the final post simply re-patches `chat` to the current
     // resolution. postedAt bumps on every write, which is what re-delivers
     // the updated doc through the app's delta poll.
+    // THE WORKING FOLD's two boundaries (Aug 2026) — character offsets into
+    // `text`: `head` = where the FIRST tool call of the turn fell, `tail` =
+    // where the LAST one did. So text[0,head) is what the chat said before it
+    // started working, text[tail,…) is the closing rundown, and the middle is
+    // narration between tool calls. The Chats app folds that middle. This
+    // replaced a vocabulary classifier that guessed from wording and got it
+    // wrong (see foldBody in chats.html for the measurement).
+    // A hook new enough to send them is exact and always wins.
+    const num = (v) => (Number.isFinite(Number(v)) && Number(v) >= 0
+      ? Math.min(Math.round(Number(v)), 100000) : null);
+    const hd = num(head), tl = num(tail);
+    if (hd !== null && tl !== null && tl >= hd) { doc.head = hd; doc.tail = tl; }
     let msgId;
     const turnKey = String(turn || '').slice(0, 120);
     if (turnKey) {
@@ -550,6 +563,13 @@ router.post('/', async (req, res) => {
         .update((skey || doc.chat) + '|' + turnKey).digest('hex').slice(0, 28);
       const ref = db().collection(MSGS).doc(msgId);
       if (working) doc.working = true;
+      // …and DERIVED from the drafts themselves for a hook that doesn't send
+      // them, which costs nothing and needs no re-paste: a draft posts at a
+      // tool call carrying the turn's text SO FAR, so the first draft's length
+      // IS `head` and the newest draft's length is `tail`. Approximate only in
+      // that the draft pass skips turns under 60 chars and posts only when the
+      // prose grew — both of which err toward folding less, never more.
+      if (working && doc.head === undefined) { doc.head = doc.text.length; doc.tail = doc.text.length; }
       const prev = await ref.get();
       if (prev.exists) {
         // keep the first write's `created` (it's what the unread dot keys on —
@@ -560,6 +580,14 @@ router.post('/', async (req, res) => {
         };
         if (doc.url) patch.url = doc.url;
         if (doc.audioUrl) patch.audioUrl = doc.audioUrl;
+        // The FINAL post must never overwrite the boundaries the drafts left
+        // behind — its own text is the whole turn, so deriving from it would
+        // mark the entire reply as pre-work and fold nothing.
+        if (doc.head !== undefined && (working || hd !== null)) {
+          if (hd !== null) patch.head = doc.head;
+          else if (prev.get('head') === undefined) patch.head = doc.head;
+          patch.tail = doc.tail;
+        }
         await ref.update(patch);
       } else {
         await ref.set(doc);
