@@ -493,15 +493,29 @@ router.get('/thread', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working,
-            head, tail } = req.body || {};
+            head, tail, created } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    // `created` = when the reply was actually written. Normally the server
+    // stamps NOW, which is right for a live post — but a BACKFILL of an old
+    // conversation has to keep its real times or the thread reads wrong: the
+    // app sorts by `created`, so every backfilled reply would pile up at the
+    // top above the messages it was answering. Same guard as /reply (hers has
+    // accepted this since July 2026): honoured only when it parses and isn't
+    // in the future, so a bad clock can't push a message to the top forever.
+    // `postedAt` below is untouched — the delta poll ranges over that, and it
+    // must stay monotonic or a backfilled message is never delivered.
+    let madeAt = new Date().toISOString();
+    if (created) {
+      const t = new Date(created).getTime();
+      if (!isNaN(t) && t <= Date.now() + 60000) madeAt = new Date(t).toISOString();
+    }
     const doc = {
       chat: String(chat).slice(0, 60),
       title: String(title || '').slice(0, 120),
       text: String(text).slice(0, 20000),
       tldr: String(tldr || '').slice(0, 1000),
       from: 'claude',
-      created: new Date().toISOString(),
+      created: madeAt,
       // Same monotonic write stamp as /reply — it's what the delta poll ranges
       // over, so nothing can be skipped for having an older `created`.
       postedAt: new Date().toISOString(),
