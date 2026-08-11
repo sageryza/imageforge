@@ -1737,64 +1737,33 @@ function newsFloor(name){
   var s=seen[name]||'', n=(chats[name]&&chats[name].notifSeenAt)||'';
   return s>n ? s : n;
 }
-// A NEW VERSION REPLACES THE OLD ONE ON THE CARD (Aug 2026, Sophie, from the
-// card that showed both: "if there's one version and then a new one comes out
-// it should just replace that one — this is a clear example because it says v6
-// and then v5").
+// ONE PAGE PER CHAT — THE NEWEST, AND ONLY THAT ONE (Aug 2026, Sophie, v2 of
+// this rule after it failed her twice: "same problem happening again. I think
+// it tricked it cause there was no version number. Probably better is taking
+// advantage of the superseded and current — so if something moves to the
+// superseded pile, then it no longer shows in the Update tab if there's a new
+// version").
 //
-// It works because of the house rule the pages already follow: a new cut is a
-// NEW page whose TITLE states the version ("Cutting blocks v6 (s96) — tap
-// empty space to deselect"). So the FAMILY is what is left of the title after
-// the version marker and the per-version subtitle come off, and the newest
-// page in a family is the only one that shows.
+// v1 tried to be clever: derive a "family" from the title, so re-cuts of one
+// thing collapsed while two genuinely different deliverables both showed. It
+// worked on "Cutting blocks v6/v5" and then lost to "Cutting blocks (s96) —
+// moved from the Evan chat", which carries no version number at all and so
+// read as a different thing. Any title-parsing rule can be tricked by a title,
+// and every failure puts a stale artifact in front of her — the exact thing
+// this tab is for not doing.
 //
-// Deliberately a family and not just "the newest page": a chat that delivered
-// two genuinely DIFFERENT things (a storyboard and a palette board) must still
-// show both, and only the re-cuts of one thing collapse.
-var PL_VER=/\b(?:v|ver|version|cut|take|pass|round|draft|rev)\s*\.?\s*\d+(?:\.\d+)?\b/;
-function stripVer(t){
-  return t
-    .replace(new RegExp(PL_VER.source,'g'),' ')
-    .replace(/\(\s*[a-z]?\d+\s*\)/g,' ')     // a build/session marker like (s96)
-    .replace(/#\d+/g,' ')
-    .replace(/[^a-z0-9]+/g,' ').trim();
+// So: superseded is simply NOT-THE-NEWEST. A chat's newest page is the current
+// state of what it is making; everything it posted before that is history, and
+// history belongs in the chat's own Compare tab, which is one tap away on the
+// card. The cost is that a chat delivering two genuinely different pages at
+// once shows only the newer here — she chose that trade knowing it, and it
+// cannot be tricked by a string.
+function newestPage(pages){
+  // sorted rather than trusting the caller: "newest wins" is the whole rule,
+  // so it must not depend on the order the server happened to send
+  return pages.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+    .slice(0,1);
 }
-// WHERE THE VERSION SITS decides what the family is, and both shapes are real
-// in her feed (measured 2026-08-11 against the live pages):
-//   • "Cutting blocks v6 (s96) — tap empty space to deselect" — the version is
-//     in the HEAD, so the head is the thing and everything after the dash is
-//     that version's own notes. Family = "cutting blocks", v5 collapses.
-//   • "Evan — v11, the art from your notes" / "Evan — pick the pauses (v6)" /
-//     "Monsters — info backs, 3 samples v1" — the head is a PROJECT and the
-//     subtitle is the deliverable, so the whole title (minus version tokens)
-//     is the family and those stay separate.
-// Cutting at the dash unconditionally was v1 of this rule and it collapsed
-// three different Evan pages into one — the case that made the two shapes
-// worth telling apart.
-function pageFamily(title){
-  var t=String(title||'').toLowerCase();
-  var parts=t.split(/\s+[—–-]\s+/);
-  if(parts.length>1 && PL_VER.test(parts[0])){
-    var head=stripVer(parts[0]);
-    if(head) return head;
-  }
-  // a title that was ONLY a version marker keeps its own identity rather than
-  // collapsing every such page into one empty family
-  return stripVer(t) || t.replace(/[^a-z0-9]+/g,' ').trim();
-}
-function newestPerVersion(pages){
-  var byFam={}, out=[];
-  // sorted here rather than trusting the caller: "newest wins" is the whole
-  // rule, so it must not depend on the order the server happened to send
-  pages.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
-    .forEach(function(p){
-      var k=pageFamily(p.title);
-      if(byFam[k]) return;                   // an older cut of the same thing
-      byFam[k]=1; out.push(p);
-    });
-  return out;
-}
-window.__pageFamily=pageFamily;   // the tests check the tricky titles directly
 function newsItems(g){
   var ix=newsIndex(), out=[], done={};
   // sortedChatNames covers the registry AND anything in the feed, and this
@@ -1804,10 +1773,10 @@ function newsItems(g){
     if(chats[name]&&chats[name].archived) return;
     var list=g[name]||[];
     var last=list.length? list[list.length-1] : null;
-    // up to three pictures and two pages — "the last three pictures in a
-    // little row" is her spec, and both server lists arrive newest-first.
+    // three pictures ("the last three pictures in a little row" is her spec)
+    // and exactly ONE page, the newest — see newestPage above.
     var pics=(ix.imgs[name]||[]).slice(0,3);
-    var pages=newestPerVersion(ix.pgs[name]||[]).slice(0,2);
+    var pages=newestPage(ix.pgs[name]||[]);
     var at='';
     function bump(t){ if(t && t>at) at=t; }
     if(last && last.from!=='sophie') bump(last.created||'');
