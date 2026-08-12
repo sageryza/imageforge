@@ -933,7 +933,7 @@ router.post('/clip-words', async (req, res) => {
     if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
 
     const key = crypto.createHash('sha1')
-      .update(`${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
+      .update(`v2|${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
       .digest('hex').slice(0, 16);
     const dest = `${CLIP_PREFIX}words-${key}.mp3`;
     const b = bucket();
@@ -950,10 +950,13 @@ router.post('/clip-words', async (req, res) => {
       try {
         let out;
         if (source.k === 'nde') {
-          out = await editor.buildClip(
-            { id: `sw-${key}`, name: text.slice(0, 40), videoId: srcId, text, timeSec: Number.isFinite(timeSec) ? timeSec : 0 },
-            { videoId: srcId, audioUrl: source.audioUrl, timeSec: 0 },
-            { dir, log: [], downloads: new Map() });
+          const anchor = Number.isFinite(timeSec) ? Math.max(0, timeSec) : 0;
+          const estLen = Math.max(3, editor.normWords(text).length / 2.6);
+          const winDur = Math.min(300, estLen + 90);
+          const win = path.join(dir, 'win.mp3');
+          await editor.extractWindow(source.audioUrl, Math.max(0, anchor - 12), winDur, win, { log: [], dir, downloads: new Map() });
+          out = await cutInWindow(win, winDur, text, dir, true);
+          if (!out) throw new Error("couldn't find those words in the interview");
         } else {
           out = await cutMemoWords(srcId, text, chunkText, dir);
         }
@@ -969,6 +972,53 @@ router.post('/clip-words', async (req, res) => {
     res.json({ status: 'making' });
   } catch (err) { fail(res, err); }
 });
+
+// Locate the pick in FRESH window words. The pick's text comes from the
+// INDEX transcript while the window is a fresh listen, and the two disagree
+// on the odd word — phraseSpan trims unmatched EDGE words as "never said"
+// (its own earned rule), which here dropped real leading words ("now it's
+// verified. But I saw…" cut as "But I saw…" — caught in live verification,
+// Aug 2026). So each edge anchors on its own sub-phrase, and edge words the
+// fresh pass heard differently are reclaimed BY POSITION — they exist in the
+// audio as some word; clampBounds + the silence snap tidy any overshoot.
+function edgeSpan(words, text) {
+  const pw = editor.normWords(text);
+  const full = editor.phraseSpan(words, text);
+  if (pw.length <= 9) return full;
+  const headN = 6; const tailN = 6;
+  const head = editor.phraseSpan(words, pw.slice(0, headN).join(' '));
+  const tail = editor.phraseSpan(words, pw.slice(-tailN).join(' '));
+  if (head && tail && tail.end >= head.start
+      && (tail.end - head.start) <= pw.length * 1.8 + 10) {
+    const start = Math.max(0, head.start - Math.max(0, headN - (head.end - head.start + 1)));
+    const end = Math.min(words.length - 1, tail.end + Math.max(0, tailN - (tail.end - tail.start + 1)));
+    return { start, end, score: Math.min(head.score, tail.score) };
+  }
+  return full;
+}
+
+// One window → one precise cut (or null when the words aren't in it).
+// loudnorm only for interview audio — a memo is her voice and keeps its own
+// dynamics (micro-fades only).
+async function cutInWindow(win, winDur, text, dir, loudnormFlag) {
+  let words;
+  try { words = await editor.whisperWords(win); } catch { return null; }
+  const span = edgeSpan(words, text);
+  if (!span) return null;
+  let [rs, re] = editor.clampBounds(words, span.start, span.end);
+  const nxt = words.find((w) => w.start > re + 0.02);
+  const silences = await editor.detectSilences(win);
+  [rs, re] = editor.snapToSilence(rs, re, silences, nxt ? nxt.start : null);
+  rs = Math.max(0, rs); re = Math.min(winDur, re);
+  const cut = path.join(dir, `cut-${Math.round(rs * 10)}.mp3`);
+  await editor.run(editor.FFMPEG, ['-y', '-ss', String(rs), '-to', String(re), '-i', win, '-c:a', 'libmp3lame', '-q:a', '3', cut], 180000);
+  const out = path.join(dir, `clip-${Math.round(rs * 10)}.mp3`);
+  const af = (loudnormFlag ? 'loudnorm=I=-16:TP=-1.5:LRA=11,' : '')
+    + 'afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse';
+  await editor.run(editor.FFMPEG, ['-y', '-i', cut, '-af', af,
+    '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
+  return out;
+}
 
 // Her voice: fresh-listen precision, NO loudnorm (micro-fades only).
 async function cutMemoWords(memoId, text, chunkText, dir) {
@@ -991,22 +1041,8 @@ async function cutMemoWords(memoId, text, chunkText, dir) {
   for (const winStart of tries) {
     const win = path.join(dir, `w-${Math.round(winStart)}.mp3`);
     await editor.run(editor.FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', local, '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '3', win], 300000);
-    let words;
-    try { words = await editor.whisperWords(win); } catch { continue; }
-    const span = editor.phraseSpan(words, text);
-    if (!span) continue;
-    let [rs, re] = editor.clampBounds(words, span.start, span.end);
-    const nxt = words.find((w) => w.start > re + 0.02);
-    const silences = await editor.detectSilences(win);
-    [rs, re] = editor.snapToSilence(rs, re, silences, nxt ? nxt.start : null);
-    rs = Math.max(0, rs); re = Math.min(winDur, re);
-    const cut = path.join(dir, 'cut.mp3');
-    await editor.run(editor.FFMPEG, ['-y', '-ss', String(rs), '-to', String(re), '-i', win, '-c:a', 'libmp3lame', '-q:a', '3', cut], 180000);
-    const out = path.join(dir, 'clip.mp3');
-    await editor.run(editor.FFMPEG, ['-y', '-i', cut, '-af',
-      'afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse',
-      '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
-    return out;
+    const out = await cutInWindow(win, winDur, text, dir, false);
+    if (out) return out;
   }
   throw new Error("couldn't find those words in the recording — open it in the Cutting Room instead");
 }
