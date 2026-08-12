@@ -1294,6 +1294,40 @@ lifted into a standalone tool later.
   Firestore needs no composite index). Before that route existed the bookmark
   button wrote a flag NOTHING ever read — a bookmark could only be found by
   scrolling to that exact message in its own thread.
+  **DELETE + THE TRASH (Aug 2026, Sophie: "a delete button as a second option
+  to archive so I can delete this chat so it doesn't keep confusing things
+  rather than just archive it, and I'd like deleted chats to go to a trash
+  that I can empty").** `deletedAt` on the registry doc
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
+  thread header after Archive and Hide, and a **Trash** word in the masthead
+  beside Archive.
+  - **TWO STAGES, and the split is the whole point.** Deleting only stamps
+    `deletedAt` — nothing is destroyed, and every row in the trash carries
+    **Restore**. `POST /trash/empty` is the irreversible half (`{chat}` empties
+    one, no body empties all) and it says so in much stronger words than the
+    first confirm: a mis-tap on Delete costs one tap to undo, so the two must
+    not read alike.
+  - **`deletedAt` is NOT a self-clearing stamp and `/reply` never clears it**,
+    which is exactly where it differs from its two neighbours: `hiddenAt` pops
+    back when the chat answers, and `archived` is cleared by her messaging the
+    chat. A deleted chat must never resurrect itself because something posted
+    into it. Presence of the field is the whole test.
+  - **The exclusion lives in ONE place — `sortedChatNames()`** — because every
+    pile derives from it (live, hidden, ★, archive, the category chips, the
+    account tabs). A filter per pile is how a new pile silently forgets;
+    deleting is stronger than archiving, so a chat that is both must show in
+    neither. Pinned by a test that was verified failing without it.
+  - **Empty deletes the chat's messages, Compare pages, asset records and its
+    registry doc — never the image BYTES in Storage.** The same picture is in
+    her iOS gallery and can be referenced by another chat, so clearing a
+    chat's records must not reach through and destroy the pictures. Asset
+    VOTES are left too (keyed `sha1(chat|url)`, so unqueryable by chat, and a
+    few orphaned bytes nothing reads). The registry doc goes LAST, so a
+    failure partway leaves a row she can see and re-empty rather than a
+    half-erased chat that has vanished.
+  - Firestore caps a batch at 500 writes and a long chat holds thousands of
+    messages, so the delete runs in chunks of 400.
+  - Tests: `node scripts/test-chats-trash.js`.
   **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
   Sophie: "when I message a chat that I archived, can it automatically come
   out of the archive").** Archive means "away for good" — and going back to
