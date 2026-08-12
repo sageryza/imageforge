@@ -59,6 +59,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>chapters test</title>
   <div id="chapters"></div>
   <div id="chapters2"></div>
   <div id="chapters3"></div>
+  <div id="chapters4"></div>
 </div>
 <script src="/compare.js"></script>
 <script src="/chapters.js"></script>
@@ -292,6 +293,46 @@ window.addEventListener('error', function(e){
     ok(buried.length === 0,
        'every level button is tappable, none under the pill (' + (buried.join(',') || 'all clear') + ')');
     window.scrollTo(0, 0);
+
+
+    // 12 — v6: the OPTIONAL fourth level, "copy" (the rewritten lesson words)
+    ok(bar().querySelectorAll('button').length === 3 && !bar().classList.contains('lv4'),
+       'a page with NO copy keeps exactly three tabs (the live artifacts are safe)');
+    window.__chapters({ chat:'t', sheet:'chapters4', mount:'#chapters4',
+      chapters:[
+        { id:'c1', title:'Coffee', when:'Jul 29', kind:'lesson', l1:'g', l2:['d'],
+          msgs:[{ who:'sophie', at:'2026-07-29T06:54:00Z', text:'hi' }],
+          copy:{ cards:[
+            { img:'/cf-x.webp', kicker:'okay, so', h:'One time',
+              body:'I was hanging out with my friend Josiah [[and]] then <b> stays text' },
+          ]} },
+        { id:'c2', title:'No copy yet', when:'Jul 30', kind:'build', l1:'g', l2:['d'],
+          msgs:[{ who:'sophie', at:'2026-07-30T06:54:00Z', text:'ho' }] },
+      ]});
+    var m4 = document.getElementById('chapters4');
+    var bar4 = m4.querySelector(':scope > .cx-lv');
+    ok(bar4.querySelectorAll('button').length === 4 && bar4.classList.contains('lv4'),
+       'a page WITH copy grows a fourth tab');
+    var bw = bar4.getBoundingClientRect().width;
+    var lw = parseFloat(getComputedStyle(bar4, '::after').width);
+    ok(Math.abs(lw - (bw - 56) / 4) < 2,
+       'the sliding line is a quarter of the reserved bar (' + Math.round(lw) + 'px)');
+    m4.querySelector('.cx-ch .cx-head').click();
+    bar4.querySelector('button[data-lv="4"]').click();
+    var b4 = m4.querySelector('.cx-ch .cx-body');
+    ok(!!b4.querySelector('.cx-cplegend'), 'the copy level opens with the legend');
+    ok(!!b4.querySelector('.cx-cp .cx-cpimg'), 'a copy card carries its image');
+    var mine = b4.querySelector('.cx-cpb .cx-mine');
+    ok(!!mine && mine.textContent === 'and', 'a word of MINE renders red ([[and]])');
+    ok(b4.querySelector('.cx-cpb').textContent.indexOf('[[') === -1,
+       'the [[ ]] marker never leaks into the text');
+    ok(b4.querySelector('.cx-cpb').innerHTML.indexOf('<b>') === -1,
+       'raw HTML in the copy stays text, never markup');
+    // the chapter with no copy answers honestly
+    m4.querySelectorAll('.cx-ch')[1].querySelector('.cx-head').click();
+    var b4b = m4.querySelectorAll('.cx-ch')[1].querySelector('.cx-body');
+    ok(b4b.textContent.indexOf('No new copy') !== -1,
+       'a chapter without copy says so instead of a blank body');
 
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
   }, 500);
