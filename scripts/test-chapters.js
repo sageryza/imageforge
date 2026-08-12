@@ -52,6 +52,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>chapters test</title>
 <div class="wrap">
   <div class="eyebrow">TEST</div><h1>Chapters</h1>
   <div id="chapters"></div>
+  <div id="chapters2"></div>
 </div>
 <script src="/compare.js"></script>
 <script src="/chapters.js"></script>
@@ -131,9 +132,33 @@ window.addEventListener('error', function(e){
     ok(txt.indexOf('here it is')===0 && txt.indexOf('have a look')>0 && txt.indexOf('/root/')<0,
        'the words around the attachment are untouched');
 
-    // 5b — the kind reads as a colour dot
+    // 5b — with NO icons supplied, the kind falls back to the colour dot
     ok(rows[0].querySelector('.cx-dot.cx-k-research') && rows[1].querySelector('.cx-dot.cx-k-lesson'),
-       'each chapter carries its kind as a colour dot');
+       'with no icons supplied the kind falls back to its colour dot');
+
+    // 5c — a page CAN supply a drawing per kind, and then it replaces the dot
+    // (Sophie: "replace the little dots in different colors with the icons")
+    window.__chapters({ chat:'t', sheet:'chapters2', mount:'#chapters2',
+      icons:{ research:'/icon-magnifier.webp', lesson:'/icon-snake.webp' },
+      chapters:[
+        { id:'x', title:'With icons', when:'Jul 28', kind:'research', l1:'g', l2:['a'],
+          msgs:[{ who:'sophie', at:'2026-07-28T18:25:00Z', text:'hi' }] },
+        { id:'y', title:'Also icons', when:'Jul 28', kind:'lesson', l1:'g', l2:['a'],
+          msgs:[{ who:'claude', at:'2026-07-28T18:26:00Z', text:'yo' }] },
+      ]});
+    var r2 = document.querySelectorAll('#chapters2 .cx-ch');
+    var ico = r2[0] && r2[0].querySelector('.cx-ico');
+    ok(!!ico && /icon-magnifier/.test(ico.getAttribute('src')),
+       'a supplied icon replaces the dot, and it is the one for that kind');
+    ok(!r2[0].querySelector('.cx-dot'), 'the coloured dot is gone when an icon is shown');
+    ok(/icon-snake/.test(r2[1].querySelector('.cx-ico').getAttribute('src')),
+       'each kind gets its own icon');
+    // it must NOT become a lightbox target — a tap on the row opens the chapter
+    ok(!ico.matches('img.zoom, .imgrow img, .duo img'),
+       'the icon is not a lightbox target, so tapping the row still opens it');
+    r2[0].querySelector('.cx-head').click();
+    ok(!r2[0].querySelector('.cx-body').hidden && !document.querySelector('.cmp-lb:not([hidden])'),
+       'tapping a row with an icon opens the chapter and no lightbox');
 
     // 3b — opening and closing must not move the page under her
     document.body.style.height='4000px';
