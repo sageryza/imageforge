@@ -12,6 +12,10 @@ def stamp(iso):
     return MONTH[int(iso[5:7])-1] + ' ' + str(int(iso[8:10]))
 
 ICON = SourceFileLoader('ci', 'chapters-icons.py').load_module().ICON
+# THE NEW COPY, per chapter number — the 4th level (Sophie: "add one more
+# section so there's four, where the new copy will go so I can read it first
+# before you add it to the cards"). Coffee first; the rest follow her review.
+COPY = {11: SourceFileLoader('cc', 'coffee-copy.py').load_module().CARDS}
 IBASE = ('https://storage.googleapis.com/'
          'deckfactory-43176.firebasestorage.app/lesson-icons/')
 
@@ -31,6 +35,8 @@ for i,(start, title, l1, l2) in enumerate(chs):
     }
     if (i+1) in ICON:
         row['icon'] = IBASE + ICON[i+1] + '.webp'
+    if (i+1) in COPY:
+        row['copy'] = {'cards': COPY[i+1]}
     out.append(row)
 
 missing = sorted(set(ICON) - {int(c['id'][2:]) for c in out})
@@ -45,7 +51,7 @@ print('payload:', round(len(data)/1e6, 2), 'MB')
 page = '''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Imprint — the chapters v5</title>
+<title>Imprint — the chapters v6</title>
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
