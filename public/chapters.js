@@ -40,6 +40,12 @@
      l1    — ONE short paragraph (level 1)
      l2    — a few short lines (level 2); each renders as its own line
      msgs  — who: 'sophie' | 'claude', at: ISO string, text: verbatim
+     copy  — OPTIONAL { cards: [{img?, kicker?, h?, body}] }: the REWRITTEN
+             lesson copy for review (v6, Sophie: "add one more section so
+             there's four — where the new copy will go so I can read it
+             first before you add it to the cards"). Any chapter carrying it
+             grows the page a 4th tab; [[words]] in any field = words that
+             are MINE, not hers, rendered red with a star.
 
    Notes ride the same verdict doc every reviewable surface uses (the
    standing rule), so a chat reads them back with
@@ -156,6 +162,30 @@
     ' transition:transform .2s ease;}' +
     '.cx-lv[data-on="2"]::after{transform:translateX(100%);}' +
     '.cx-lv[data-on="3"]::after{transform:translateX(200%);}' +
+    /* A FOURTH LEVEL, only when a page carries it (Sophie, Aug 2026: "add one
+       more section to the artifact so there's four — this is where the new
+       copy will go so I can read it first before you add it to the cards").
+       The bar grows a 4th tab ONLY when some chapter has `copy` — the two
+       live artifacts without it keep their three tabs untouched. */
+    '.cx-lv.lv4::after{width:calc((100% - 56px)/4);}' +
+    '.cx-lv.lv4[data-on="4"]::after{transform:translateX(300%);}' +
+    /* the copy level: the card's image small on the left, the new words
+       beside it. HER words in ink; a word I changed or added is RED with a
+       small star — different colour than the text, her spec, so nothing of
+       mine can pass as hers. */
+    '.cx-cp{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);}' +
+    '.cx-cp:last-child{border-bottom:0;}' +
+    '.cx-cpimg{flex:none;width:72px;height:72px;border-radius:8px;object-fit:cover;}' +
+    '.cx-cptxt{flex:1;min-width:0;}' +
+    '.cx-cpk{font:400 9px/1.4 -apple-system,sans-serif;letter-spacing:.12em;' +
+    ' text-transform:uppercase;color:var(--ink2);margin:0 0 1px;}' +
+    '.cx-cph{font:700 15px/1.35 Georgia,serif;margin:0 0 4px;}' +
+    '.cx-cpb{font-size:14.5px;line-height:1.55;margin:0;white-space:pre-wrap;}' +
+    '.cx-mine{color:#b3443f;}' +
+    '.cx-mine:before{content:"\\2731";font-size:8px;vertical-align:super;margin-right:1px;}' +
+    '.cx-cplegend{font:400 11px/1.5 -apple-system,sans-serif;letter-spacing:.05em;' +
+    ' color:var(--ink2);padding:10px 0 4px;}' +
+    '.cx-cplegend .cx-mine{letter-spacing:.05em;}' +
     /* THE NOTE + ONLY EXISTS ON THE OPEN CHAPTER (Sophie, Aug 2026: "make
        the plus for the note only appear once I open the section"). A closed
        row is a spine entry, and a + on every one of 28 of them is 28 offers
@@ -209,6 +239,14 @@
   function line(s) {
     return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
   }
+  /* The copy level's one extra marker: [[words]] = words that are MINE, not
+     hers — rendered red with a small star. Escaped first, same as line(), so
+     nothing in the text itself can become markup. */
+  function copyLine(s) {
+    return esc(s)
+      .replace(/\[\[([^\]]+)\]\]/g, '<span class="cx-mine">$1</span>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  }
   /* An attachment reaches the transcript as @"/root/.claude/uploads/<session>/
      <hash>-<name>". The path is machinery, not her words, so it renders as a
      chip carrying the real filename; every other character stays verbatim. */
@@ -256,13 +294,18 @@
     var level = 1;                         // ONE level for the page, session-only
     var repaint = null;                    // the open chapter's painter
 
+    /* The COPY level exists only when a page brings copy — the bar grows the
+       tab by DATA, so the pages without any keep three tabs with no repost. */
+    var hasCopy = list.some(function (c) { return c.copy && (c.copy.cards || []).length; });
+    var levels = hasCopy ? LEVELS.concat([['4', 'copy']]) : LEVELS;
+
     /* The sticky bar, built once and living above the list. It is present
        even with nothing open: tapping a level then sets the depth the next
        chapter opens at, which is what "for the whole thing" means. */
     var bar = document.createElement('div');
-    bar.className = 'cx-lv';
+    bar.className = 'cx-lv' + (hasCopy ? ' lv4' : '');
     bar.setAttribute('data-on', String(level));
-    LEVELS.forEach(function (L) {
+    levels.forEach(function (L) {
       var b = document.createElement('button');
       b.setAttribute('data-lv', L[0]);
       b.textContent = L[1];
@@ -337,6 +380,27 @@
           } else {
             // no detail written — say so rather than showing a blank body
             h += '<p class="cx-l1">' + line(ch.l1 || '') + '</p>';
+          }
+        } else if (lv === 4) {
+          /* THE NEW COPY, for review before it goes anywhere near the real
+             cards. Same images, rewritten words — hers verbatim in ink, and
+             any word that is MINE marked red ([[..]] in the data), so she can
+             see exactly where the telling was touched. */
+          var cp = ch.copy || {};
+          if ((cp.cards || []).length) {
+            h += '<div class="cx-cplegend">your words in ink · ' +
+              '<span class="cx-mine">red&nbsp;=&nbsp;a word that is mine, not yours</span></div>';
+            cp.cards.forEach(function (c) {
+              h += '<div class="cx-cp">' +
+                (c.img ? '<img class="cx-cpimg" src="' + esc(c.img) + '" alt="">' : '') +
+                '<div class="cx-cptxt">' +
+                (c.kicker ? '<p class="cx-cpk">' + copyLine(c.kicker) + '</p>' : '') +
+                (c.h ? '<p class="cx-cph">' + copyLine(c.h) + '</p>' : '') +
+                '<p class="cx-cpb">' + copyLine(c.body || '') + '</p>' +
+                '</div></div>';
+            });
+          } else {
+            h += '<p class="cx-l1">No new copy written for this chapter yet.</p>';
           }
         } else {
           /* The CHAT MESSAGE style, collapsible the same way: a long message
