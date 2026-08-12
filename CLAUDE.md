@@ -2312,10 +2312,15 @@ lifted into a standalone tool later.
   - It reads **`GET /api/chatfeed/widget?limit=`** — one small JSON — and
     must NEVER pull the real feed (~500KB on a refresh timer). Cost is the
     cached registry + one capped message read, nothing per-chat.
-  - **Its floor is `notifSeenAt` ALONE**, unlike the tab, which also uses the
-    per-device `seen` mark in the web view's localStorage — a widget process
-    can't read that. So the ✓ settles the widget; merely opening a chat does
-    not. Erring toward one row too many is the right way round for a glance.
+  - **Its floor is `notifSeenAt`, and OPENING A CHAT NOW WRITES THAT STAMP
+    TOO** (`markSeen` POSTs `/notif-seen`, Aug 2026). Without it the widget
+    counted everything-since-the-✓ while the tab counted
+    everything-since-she-last-looked — measured live the hour it shipped:
+    **14 against 2**, the same idea disagreeing with itself on two screens,
+    because `seen` is localStorage inside the web view and a widget is a
+    separate process with its own container. Opening a chat already cleared
+    its Update card, so this changed no visible behaviour in the app; it
+    just put the same fact where the widget can read it.
   - **IT HAS NO ENTITLEMENTS FILE, and that is load-bearing — the first
     build died on exactly this.** Apple-managed CI signing registers a NEW
     App ID for the extension but does NOT enable the App GROUP on it, so
