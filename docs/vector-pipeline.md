@@ -21,14 +21,11 @@ editing a fill, and **its outline IS the cut line** — which is normally the
 fiddly part of a sticker listing. It is also **free**: the trace runs locally,
 so the only money in the whole pipeline is the one image call.
 
-So reach for it when something has to be **big, printed, or cut**. On a phone
-screen a PNG already looks fine; a vector library for its own sake would not
-earn its keep.
-
-**It only works on FLAT art.** Ink lines and solid colour vectorise
-beautifully. Shading, texture, a watercolour wash or a photograph do not — the
-tracer would emit hundreds of near-duplicate layers and the result would be
-bigger AND worse than the PNG. That is why the style below is fixed.
+What it cannot do is a gradient. The tracer's whole method is to reduce the
+picture to a handful of flat colours; a wash, a soft shadow or a photograph has
+no flat colours to find, so it emits hundreds of near-duplicate layers and the
+SVG comes out both bigger and worse than the PNG. Ink lines and solid fills are
+what it is for. That is a limit of the tracer, not a view about what to draw.
 
 ## The style, exactly
 
@@ -70,10 +67,9 @@ teaching cards were drawn with, word for word.
 `POST /api/vector/prompt` returns the literal assembled prompt and spends
 nothing. Use it to check the wording before paying.
 
-**A caller supplies only what is IN each drawing.** That is deliberate: a
-caller free to describe shading would quietly produce art this pipeline cannot
-trace. If a different look is genuinely needed, add a NAMED style to `HOUSE`
-rather than letting prompts drift.
+**A caller supplies only what is IN each drawing** — the style comes from
+`HOUSE`. That keeps a set consistent and keeps the output flat enough to trace
+(see the gradient limit above). To change the look, change `HOUSE`.
 
 ### Why a sheet, and how many to put on it
 
@@ -93,11 +89,14 @@ objects, because each one is smaller: fills per drawing averaged **2.9 at 3x3
 against 4.75 at 2x2** over the same kind of subject. So pick the grid by how
 much is IN each picture:
 
-- **2x2** — a drawing that needs detail (a figure doing something, a scene).
-- **3x3** — simple objects and icons. 0.7c a drawing instead of 1.5c.
-- **5x5** — a lot of simple icons at once, 0.24c each. See the caveat below.
+| grid | cells | cell px | per drawing |
+|---|---|---|---|
+| 2x2 | 4 | ~512 | 1.5c |
+| 3x3 | 9 | ~341 | 0.7c |
+| 4x4 | 16 | ~256 | 0.4c |
+| 5x5 | 25 | ~205 | 0.24c |
 
-**5x5 traces fine — and the 8% number is NOT a quality cliff.** Measured on a
+**8% is NOT a quality cliff.** Measured on a
 real 21-icon 5x5 sheet another chat made: 204px cells, drawings 111-206px, and
 3 of the 21 drew their lines 8.6-9.3% heavier than the source. That was first
 written up here as "past the edge", which was wrong, and the correction matters
@@ -116,17 +115,30 @@ is a mouthful and an invitation to misplace) and becomes a row-by-row list —
 `ROW 1 of 5, left to right: …` — which is a shape models follow well for long
 sets. Drawings came out 147-203px, line weight mean 4.3%, 3 of 25 over 8%.
 
-**And this is where the percentage DOES start to mean something.** The two
-worst — a strawberry at +14.1% and an acorn at +12.7% — are visibly heavier
-than their sources, and both in the same way: **fine repeated detail
-thickens.** The strawberry's seeds go chunky, the acorn cap's cross-hatching
-muddies. Nothing is broken and both still read correctly, but you can see it.
-Everything under about 10% remains indistinguishable (the cassette at +9.8% is
-identical to its source, and a bicycle's spokes survive at 200px).
+### Where the line is
 
-So the rule for a 5x5 is about the SUBJECT, not the count: simple shapes are
-excellent, and a drawing whose character lives in fine repeated texture —
-seeds, hatching, stippling, scales — should get a bigger cell.
+Cell size does not move the AVERAGE — it moves the WORST CASE. Mean line-weight
+error is ~4.3% at 5x5 and ~4.4% at 4x4, i.e. the same; what changes is the tail.
+
+Measured on the SAME subjects drawn at both sizes, which isolates the cell:
+
+| subject | 5x5 (205px) | 4x4 (256px) |
+|---|---|---|
+| strawberry (seeds) | +14.1% | +9.0% |
+| acorn (cross-hatch) | +12.7% | +8.6% |
+| cassette | +9.8% | +6.9% |
+| bicycle | +0.9% | -1.1% |
+| moon | +7.5% | -4.1% |
+
+The pattern is one thing: **error scales with how fine the drawing's detail is
+relative to its cell.** Subjects carrying fine repeated marks — seeds,
+hatching, stippling, scales — climb as the cell shrinks; subjects made of large
+shapes sit in the noise at every size (a bicycle's spokes survive at 200px).
+
+And the percentage only becomes visible somewhere past ~10%. At +9.8% the
+cassette is identical to its source; at +14.1% the strawberry's seeds are
+visibly chunkier. Under 10% treat the number as a regression signal only, and
+judge by looking.
 
 Layouts run 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3), 12 (4x3), 16 (4x4),
 20 (5x4), 25 (5x5). **A count that does not tile** takes the next layout up and
