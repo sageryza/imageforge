@@ -57,16 +57,16 @@
     '.cx-ch:last-child{border-bottom:1px solid var(--line);}' +
     '.cx-head{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;' +
     ' background:none;border:0;padding:13px 0;cursor:pointer;color:var(--ink);}' +
-    '.cx-n{font:600 11px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
+    '.cx-n{font:500 11px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
     ' letter-spacing:.06em;min-width:20px;flex:none;}' +
     '.cx-t{flex:1;min-width:0;font:600 15px/1.3 Georgia,serif;}' +
     '.cx-ch.on .cx-t{color:var(--chg);}' +
-    '.cx-when{flex:none;font:600 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
+    '.cx-when{flex:none;font:500 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
     ' letter-spacing:.05em;white-space:nowrap;}' +
     '.cx-body{padding:0 0 18px;}' +
     /* the horizontal axis */
     '.cx-lv{display:flex;gap:6px;padding:0 0 12px;}' +
-    '.cx-lv button{font:600 10px/1 -apple-system,sans-serif;letter-spacing:.09em;' +
+    '.cx-lv button{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.09em;' +
     ' text-transform:uppercase;padding:7px 10px;border-radius:6px;border:1px solid var(--line);' +
     ' background:var(--surface);color:var(--ink2);cursor:pointer;}' +
     '.cx-lv button.on{border-color:var(--chg);color:var(--chg);' +
@@ -84,17 +84,17 @@
     '.cx-raw{padding:2px 0 0;}' +
     '.cx-msg{padding:11px 0;border-bottom:1px solid var(--line);}' +
     '.cx-msg:last-child{border-bottom:0;}' +
-    '.cx-who{font:700 10px/1 -apple-system,sans-serif;letter-spacing:.1em;' +
+    '.cx-who{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.1em;' +
     ' text-transform:uppercase;color:var(--ink2);padding-bottom:5px;display:block;}' +
     '.cx-msg.me .cx-who{color:var(--chg);}' +
     '.cx-text{white-space:pre-wrap;font:400 14px/1.55 -apple-system,sans-serif;' +
     ' word-break:break-word;}' +
     '.cx-msg.me .cx-text{color:var(--ink);}' +
     '.cx-msg.them .cx-text{color:var(--ink2);}' +
-    '.cx-att{display:inline-block;font:600 11px/1 -apple-system,sans-serif;' +
+    '.cx-att{display:inline-block;font:500 11px/1 -apple-system,sans-serif;' +
     ' color:var(--ink2);border:1px solid var(--line);border-radius:6px;' +
     ' padding:4px 7px;margin:2px 4px 2px 0;background:var(--surface);}' +
-    '.cx-count{font:600 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
+    '.cx-count{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
     ' text-transform:uppercase;color:var(--ink2);padding:0 0 8px;}';
   document.head.appendChild(css);
 
