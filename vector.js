@@ -1,6 +1,6 @@
 // Vector Studio — a described set of drawings -> scalable SVG art.
 //
-//   POST /api/vector/sheet    describe 1-9 drawings -> grid -> cut -> vectors
+//   POST /api/vector/sheet    describe 1-25 drawings -> grid -> cut -> vectors
 //   POST /api/vector/trace    a picture you already have -> a vector
 //
 // WHY THIS EXISTS. Every other image surface here ends at a PNG, which is fine
@@ -23,21 +23,20 @@
 // line weight lands within 4.8% / 7.4% / 6.4% of the source, all inside the 8%
 // the 2x2 cards are held to. Nothing degrades.
 //
-// What DOES change is the drawing, not the trace: at 3x3 the model draws
-// SIMPLER objects, because each one is smaller. Measured over the same set,
-// fills per drawing averaged 2.9 at 3x3 against 4.75 at 2x2. So a 3x3 is right
-// for simple objects and icons, and a 2x2 is right when each drawing needs
-// detail. That is the real trade — pick the grid by how much is in each
-// picture, not by how many you want.
+// What DOES change with the grid is the drawing, not the trace: a smaller cell
+// gets a simpler drawing from the model (fills per drawing averaged 2.9 at 3x3
+// against 4.75 at 2x2), and trace error scales with how fine a drawing's detail
+// is relative to its cell. Measured on the SAME subjects at two sizes: a
+// strawberry's seeded surface went +14.1% at 205px to +9.0% at 256px, an acorn's
+// cross-hatch +12.7% to +8.6%, while a bicycle sat in the noise at both. Cell
+// size moves the worst case, not the average (mean ~4.3% at 5x5, ~4.4% at 4x4).
+// See docs/vector-pipeline.md for the full table.
 //
-// THE STYLE IS FIXED AND IS THE POINT. `HOUSE` below is the exact recipe the
-// Gravity Lock cards were drawn with, down to the wording — the same two Witch
-// School style references the pastel house style uses, the same grid clause,
-// the same no-text suffix. A caller supplies only what is IN each drawing.
-// That is deliberate: flat ink-and-pastel is what vectorises cleanly, and a
-// caller free to describe shading would quietly produce art this pipeline
-// cannot trace. If you need a different look, add a NAMED style here rather
-// than letting prompts drift.
+// `HOUSE` below is the style, and it is the recipe the Gravity Lock cards were
+// drawn with, down to the wording. It is here as ONE technical constraint plus
+// one convenience: the tracer needs flat colour (a gradient has no flat colours
+// to find), and a fixed prompt keeps a set consistent. It is not a view about
+// what the art should look like — change HOUSE to change the look.
 //
 // Everything slow is a BACKGROUND JOB on a Firestore doc (house rule): the POST
 // returns an id in well under a second, the caller polls, and a finished sheet
@@ -82,23 +81,42 @@ const HOUSE = {
   suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
 };
 
-const WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six', 9: 'nine' };
-// How many columns and rows for a given number of drawings. 5, 7 and 8 do not
-// tile, so they take the next layout up and the spare cells are simply never
-// cut out — the sheet costs the same either way. Ask for 4, 6 or 9 to waste
+const WORDS = {
+  1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six', 9: 'nine',
+  12: 'twelve', 16: 'sixteen', 20: 'twenty', 25: 'twenty-five',
+};
+// How many columns and rows for a given number of drawings. A count that does
+// not tile takes the next layout up and the spare cells are simply never cut
+// out — the sheet costs the same either way. 4, 6, 9, 12, 16, 20 and 25 waste
 // nothing.
-const LAYOUT = { 1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2], 6: [3, 2], 7: [3, 3], 8: [3, 3], 9: [3, 3] };
+const LAYOUT = {
+  1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2], 6: [3, 2],
+  7: [3, 3], 8: [3, 3], 9: [3, 3],
+  10: [4, 3], 11: [4, 3], 12: [4, 3],
+  13: [4, 4], 14: [4, 4], 15: [4, 4], 16: [4, 4],
+  17: [5, 4], 18: [5, 4], 19: [5, 4], 20: [5, 4],
+  21: [5, 5], 22: [5, 5], 23: [5, 5], 24: [5, 5], 25: [5, 5],
+};
+const MAX_CELLS = 25;
 const COLNAME = { 1: [''], 2: ['LEFT', 'RIGHT'], 3: ['LEFT', 'CENTRE', 'RIGHT'] };
 const ROWNAME = { 1: [''], 2: ['TOP', 'BOTTOM'], 3: ['TOP', 'MIDDLE', 'BOTTOM'] };
 
-/** Where each cell sits, named the way the model is told about it.
- *  A 2x2 still reads TOP LEFT / TOP RIGHT / BOTTOM LEFT / BOTTOM RIGHT, exactly
- *  as the Gravity Lock cards were asked for — that wording is not to be drifted. */
+/** Where each cell sits.
+ *
+ *  Up to 3x3 these are the NAMES the model is told, and a 2x2 still reads
+ *  TOP LEFT / TOP RIGHT / BOTTOM LEFT / BOTTOM RIGHT exactly as the Gravity
+ *  Lock cards were asked for — that wording is not to be drifted. Beyond 3
+ *  there is no natural name for the fourth column across, so the prompt
+ *  switches to a row-by-row list and these become plain coordinates, used only
+ *  as the `cell` label on a finished item. (Returning undefined here instead
+ *  crashed a 5x5 render: runSheet labels every item with one.) */
 function positions(cols, rows) {
   const out = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      out.push([ROWNAME[rows][r], COLNAME[cols][c]].filter(Boolean).join(' '));
+      out.push(COLNAME[cols] && ROWNAME[rows]
+        ? [ROWNAME[rows][r], COLNAME[cols][c]].filter(Boolean).join(' ')
+        : `row ${r + 1}, column ${c + 1}`);
     }
   }
   return out;
@@ -125,8 +143,24 @@ function sheetPrompt(cells) {
   const say = (c) => String(c.draw || c).trim().replace(/\.$/, '');
   if (cells.length === 1) return `${HOUSE.prefix} ${HOUSE.single} ${say(cells[0])}. ${HOUSE.suffix}`;
   const [cols, rows] = LAYOUT[cells.length];
-  const at = positions(cols, rows);
-  const parts = cells.map((c, i) => `${at[i]}: ${say(c)}.`);
+  let parts;
+  if (cols <= 3) {
+    // Named positions, which is what the Gravity Lock cards used and what the
+    // 2x2 byte-identity assertion pins.
+    const at = positions(cols, rows);
+    parts = cells.map((c, i) => `${at[i]}: ${say(c)}.`);
+  } else {
+    // Past three columns there is no natural name for the fourth one across
+    // ("UPPER FAR LEFT" is a mouthful and an invitation to misplace), so the
+    // instruction becomes a row-by-row list — a shape models follow well for
+    // long sets.
+    parts = [];
+    for (let r = 0; r < rows; r++) {
+      const row = cells.slice(r * cols, (r + 1) * cols);
+      if (!row.length) break;
+      parts.push(`ROW ${r + 1} of ${rows}, left to right: ${row.map(say).join('; ')}.`);
+    }
+  }
   return `${HOUSE.prefix} ${HOUSE.grid(cols, rows)} ${parts.join(' ')} ${HOUSE.suffix}`;
 }
 
@@ -318,8 +352,8 @@ router.get('/status', (req, res) => {
 /** The literal prompt a sheet would send, without spending anything. */
 router.post('/prompt', (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
-    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > MAX_CELLS) {
+    return res.status(400).json({ error: `cells must be 1-${MAX_CELLS} descriptions` });
   }
   const [cols, rows] = LAYOUT[cells.length];
   res.json({ prompt: sheetPrompt(cells), layout: `${cols}x${rows}`, wasted: cols * rows - cells.length });
@@ -327,8 +361,8 @@ router.post('/prompt', (req, res) => {
 
 router.post('/sheet', async (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
-    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > MAX_CELLS) {
+    return res.status(400).json({ error: `cells must be 1-${MAX_CELLS} descriptions` });
   }
   if (!admin.apps.length) return res.status(503).json({ error: 'Firebase not configured' });
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY not set' });
@@ -366,4 +400,4 @@ router.get('/jobs', async (req, res) => {
   res.json({ jobs: q.docs.map((d) => d.data()) });
 });
 
-module.exports = { router, HOUSE, LAYOUT, positions, sheetPrompt, traceOne };
+module.exports = { router, HOUSE, LAYOUT, MAX_CELLS, positions, sheetPrompt, traceOne };
