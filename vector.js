@@ -150,11 +150,19 @@ async function houseRef(path) {
 
 /** One gpt-image-2 edits call with the house style references attached.
  *
- * Deliberately `output_format: png`, where the rest of the app asks for webp at
- * compression 80. Every other surface is showing the picture to a person, where
- * lossy is free; this one hands it straight to a tracer that clusters flat
- * colours, and webp's ringing around a hard ink line is exactly the noise the
- * flattener then has to spend a cluster on.
+ * `output_format: png`, where the rest of the app asks for webp at compression
+ * 80 — but NOT for the reason this comment used to give. It claimed webp's
+ * ringing around a hard ink line was noise the flattener would spend a cluster
+ * on. That was reasoning, and it is wrong: measured on the same 3x3 sheet, PNG
+ * (933KB) and webp-80 (53KB) trace to the same line weight within noise — max
+ * 7.4% against 7.0%, mean 3.6% against 3.3%, the webp marginally BETTER. One
+ * drawing found a fourth fill instead of three.
+ *
+ * PNG stays because it is free to keep and removes a variable from a pipeline
+ * whose whole job is flat colour — not because webp was costing anything. So a
+ * sheet drawn elsewhere and handed to /trace (e.g. /api/generate/housestyle,
+ * which saves webp) is NOT handicapped, and nobody should re-render one to PNG
+ * hoping for a better trace.
  */
 async function drawSheet(prompt, { quality = HOUSE.quality, size = HOUSE.size, timeout = 180000, retries = 2 } = {}) {
   const refs = await Promise.all(HOUSE.refs.map(houseRef));
