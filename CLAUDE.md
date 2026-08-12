@@ -634,7 +634,7 @@ lifted into a standalone tool later.
   chat she points there can use it without re-deriving the recipe. It carries
   the exact style (prompt wording, model, refs, size, quality), the routes, the
   gotchas and the test.
-- **What it does:** describe 1-9 drawings → ONE gpt-image-2 sheet in the pastel
+- **What it does:** describe 1-25 drawings → ONE gpt-image-2 sheet in the pastel
   house style (~6¢, the only cost) → cut into cells → lift each off its paper →
   trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
   drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does

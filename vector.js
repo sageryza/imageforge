@@ -1,6 +1,6 @@
 // Vector Studio — a described set of drawings -> scalable SVG art.
 //
-//   POST /api/vector/sheet    describe 1-9 drawings -> grid -> cut -> vectors
+//   POST /api/vector/sheet    describe 1-25 drawings -> grid -> cut -> vectors
 //   POST /api/vector/trace    a picture you already have -> a vector
 //
 // WHY THIS EXISTS. Every other image surface here ends at a PNG, which is fine
@@ -82,23 +82,42 @@ const HOUSE = {
   suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
 };
 
-const WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six', 9: 'nine' };
-// How many columns and rows for a given number of drawings. 5, 7 and 8 do not
-// tile, so they take the next layout up and the spare cells are simply never
-// cut out — the sheet costs the same either way. Ask for 4, 6 or 9 to waste
+const WORDS = {
+  1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six', 9: 'nine',
+  12: 'twelve', 16: 'sixteen', 20: 'twenty', 25: 'twenty-five',
+};
+// How many columns and rows for a given number of drawings. A count that does
+// not tile takes the next layout up and the spare cells are simply never cut
+// out — the sheet costs the same either way. 4, 6, 9, 12, 16, 20 and 25 waste
 // nothing.
-const LAYOUT = { 1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2], 6: [3, 2], 7: [3, 3], 8: [3, 3], 9: [3, 3] };
+const LAYOUT = {
+  1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2], 6: [3, 2],
+  7: [3, 3], 8: [3, 3], 9: [3, 3],
+  10: [4, 3], 11: [4, 3], 12: [4, 3],
+  13: [4, 4], 14: [4, 4], 15: [4, 4], 16: [4, 4],
+  17: [5, 4], 18: [5, 4], 19: [5, 4], 20: [5, 4],
+  21: [5, 5], 22: [5, 5], 23: [5, 5], 24: [5, 5], 25: [5, 5],
+};
+const MAX_CELLS = 25;
 const COLNAME = { 1: [''], 2: ['LEFT', 'RIGHT'], 3: ['LEFT', 'CENTRE', 'RIGHT'] };
 const ROWNAME = { 1: [''], 2: ['TOP', 'BOTTOM'], 3: ['TOP', 'MIDDLE', 'BOTTOM'] };
 
-/** Where each cell sits, named the way the model is told about it.
- *  A 2x2 still reads TOP LEFT / TOP RIGHT / BOTTOM LEFT / BOTTOM RIGHT, exactly
- *  as the Gravity Lock cards were asked for — that wording is not to be drifted. */
+/** Where each cell sits.
+ *
+ *  Up to 3x3 these are the NAMES the model is told, and a 2x2 still reads
+ *  TOP LEFT / TOP RIGHT / BOTTOM LEFT / BOTTOM RIGHT exactly as the Gravity
+ *  Lock cards were asked for — that wording is not to be drifted. Beyond 3
+ *  there is no natural name for the fourth column across, so the prompt
+ *  switches to a row-by-row list and these become plain coordinates, used only
+ *  as the `cell` label on a finished item. (Returning undefined here instead
+ *  crashed a 5x5 render: runSheet labels every item with one.) */
 function positions(cols, rows) {
   const out = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      out.push([ROWNAME[rows][r], COLNAME[cols][c]].filter(Boolean).join(' '));
+      out.push(COLNAME[cols] && ROWNAME[rows]
+        ? [ROWNAME[rows][r], COLNAME[cols][c]].filter(Boolean).join(' ')
+        : `row ${r + 1}, column ${c + 1}`);
     }
   }
   return out;
@@ -125,8 +144,24 @@ function sheetPrompt(cells) {
   const say = (c) => String(c.draw || c).trim().replace(/\.$/, '');
   if (cells.length === 1) return `${HOUSE.prefix} ${HOUSE.single} ${say(cells[0])}. ${HOUSE.suffix}`;
   const [cols, rows] = LAYOUT[cells.length];
-  const at = positions(cols, rows);
-  const parts = cells.map((c, i) => `${at[i]}: ${say(c)}.`);
+  let parts;
+  if (cols <= 3) {
+    // Named positions, which is what the Gravity Lock cards used and what the
+    // 2x2 byte-identity assertion pins.
+    const at = positions(cols, rows);
+    parts = cells.map((c, i) => `${at[i]}: ${say(c)}.`);
+  } else {
+    // Past three columns there is no natural name for the fourth one across
+    // ("UPPER FAR LEFT" is a mouthful and an invitation to misplace), so the
+    // instruction becomes a row-by-row list — a shape models follow well for
+    // long sets.
+    parts = [];
+    for (let r = 0; r < rows; r++) {
+      const row = cells.slice(r * cols, (r + 1) * cols);
+      if (!row.length) break;
+      parts.push(`ROW ${r + 1} of ${rows}, left to right: ${row.map(say).join('; ')}.`);
+    }
+  }
   return `${HOUSE.prefix} ${HOUSE.grid(cols, rows)} ${parts.join(' ')} ${HOUSE.suffix}`;
 }
 
@@ -318,8 +353,8 @@ router.get('/status', (req, res) => {
 /** The literal prompt a sheet would send, without spending anything. */
 router.post('/prompt', (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
-    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > MAX_CELLS) {
+    return res.status(400).json({ error: `cells must be 1-${MAX_CELLS} descriptions` });
   }
   const [cols, rows] = LAYOUT[cells.length];
   res.json({ prompt: sheetPrompt(cells), layout: `${cols}x${rows}`, wasted: cols * rows - cells.length });
@@ -327,8 +362,8 @@ router.post('/prompt', (req, res) => {
 
 router.post('/sheet', async (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
-    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > MAX_CELLS) {
+    return res.status(400).json({ error: `cells must be 1-${MAX_CELLS} descriptions` });
   }
   if (!admin.apps.length) return res.status(503).json({ error: 'Firebase not configured' });
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY not set' });
@@ -366,4 +401,4 @@ router.get('/jobs', async (req, res) => {
   res.json({ jobs: q.docs.map((d) => d.data()) });
 });
 
-module.exports = { router, HOUSE, LAYOUT, positions, sheetPrompt, traceOne };
+module.exports = { router, HOUSE, LAYOUT, MAX_CELLS, positions, sheetPrompt, traceOne };
