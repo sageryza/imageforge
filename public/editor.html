@@ -166,6 +166,9 @@ const ICON = {
   play:'<svg viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
   pause:'<svg viewBox="0 0 24 24"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>',
   loader:'<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
+  // The Cutting Room's own glyph — a button that opens another tool wears
+  // THAT tool's icon (design rule), and scissors is what its tile carries.
+  scissors:'<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
 };
 const prevBtn = id => `<button class="icon play" data-prev="${esc(id)}" aria-label="Play preview">${ICON.play}</button>`;
 
@@ -744,15 +747,45 @@ function renderJob() {
   }
 }
 
+// A render's cut number comes from its own FILE (`<episode>-3.mp3`), never
+// from its position in the list: `renders` is capped at 10 and newest-first,
+// so positions shift as older cuts fall off while the files keep counting up.
+// The number is what she'll call it in the Cutting Room, so it has to be the
+// real one.
+function cutNumber(r, fallback) {
+  const m = /-(\d+)\.mp3(?:[?#]|$)/.exec(String(r.url || ''));
+  return m ? m[1] : String(fallback);
+}
+
 function renderRenders() {
   const rs = (ep && ep.renders) || [];
-  $('#renders').innerHTML = rs.length ? rs.map((r, i) => `
+  const n = rs.length;
+  $('#renders').innerHTML = n ? rs.map((r, i) => `
     <div class="card">
       <div class="row"><div class="grow tiny">${esc(new Date(r.at).toLocaleString())}${r.seconds ? ' · ' + Math.round(r.seconds) + 's' : ''}${r.cards ? ' · ' + r.cards + ' cards' : ''}</div>
-      ${i === 0 ? '<span class="chip">newest</span>' : ''}</div>
+      ${i === 0 ? '<span class="chip">newest</span>' : ''}
+      <button class="icon" data-cutroom="${esc(r.url)}" data-cutname="${esc((ep.title || 'Episode') + ' — cut ' + cutNumber(r, n - i))}"
+        aria-label="Take the pauses out in the Cutting Room" title="Take the pauses out in the Cutting Room">${ICON.scissors}</button></div>
       <audio controls preload="none" src="${esc(r.url)}"></audio>
     </div>`).join('') : '';
 }
+
+// Send a finished render to the Cutting Room, where pauses and filler words
+// come out by tapping them on the transcript. Deliberately NOT done inside
+// the render: cutting an "um" out of the MIDDLE of a clip is a splice, and a
+// splice is something to approve by ear, not have happen invisibly. Each
+// render goes over as its own recording (content-addressed there), so cutting
+// cut 3 never touches the marking she did on cut 2.
+//
+// In the app this navigates THIS web view; the nav chevron then asks
+// __navBack (Cutting Room: room → its list) and falls through to the web
+// view's own history, which lands back here. Same path Search already uses.
+$('#renders').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cutroom]');
+  if (!b) return;
+  location.href = '/cuttingroom?url=' + encodeURIComponent(b.dataset.cutroom)
+    + '&name=' + encodeURIComponent(b.dataset.cutname);
+});
 
 // In the app, the native nav bar carries the back chevron + tool title
 // (body.native hides this page's own — see the CSS). The chevron asks

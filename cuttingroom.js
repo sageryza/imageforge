@@ -387,19 +387,45 @@ async function runListen(id, progress) {
 }
 
 // ─── cutting one section (save / story) ─────────────────────────────
-// clampBounds gives word-derived edges, then both edges snap into REAL
-// silences in a small window around the section — the editor's cutter, so a
-// tap never clips a syllable. Micro-fades only; no loudnorm (her voice).
+// The stored words come from the 75s-CHUNKED whole-recording pass — accurate
+// enough to place pause chips, NOT accurate enough to cut on (Sophie's first
+// clip started at "yeah" and grabbed the "he said" before it: the bulk pass
+// had timed "yeah" early). So the cut RE-LISTENS to a small window with a
+// fresh whisper pass and locates the section's words in THOSE timestamps —
+// the exact buildClip pipeline the Episode Editor's precision comes from —
+// then clampBounds + snapToSilence as before. The bulk timings survive only
+// as the fallback when the fresh listen can't find the phrase.
+// Micro-fades only; no loudnorm (her voice).
 async function cutSection(doc, words, wi0, wi1, dir) {
+  const text = words.slice(wi0, wi1 + 1).map((w) => w.word).join(' ');
   const [t0raw, t1raw] = editor.clampBounds(words, wi0, wi1);
-  const winStart = Math.max(0, t0raw - 4);
-  const winDur = (t1raw - t0raw) + 8;
+  const winStart = Math.max(0, t0raw - 6);
+  const winDur = (t1raw - t0raw) + 12;
   const win = path.join(dir, 'win.mp3');
   await editor.extractWindow(doc.source.url, winStart, winDur, win, { downloads: new Map(), dir, log: [] });
+
+  let rs; let re; let maxEndRel;
+  let fresh = null;
+  try {
+    const w2 = await editor.whisperWords(win);
+    const span = editor.phraseSpan(w2, text);
+    if (span) {
+      [rs, re] = editor.clampBounds(w2, span.start, span.end);
+      const nxt2 = w2.find((w) => w.start > re + 0.02);
+      maxEndRel = nxt2 ? nxt2.start : null;
+      fresh = true;
+    }
+  } catch (err) {
+    console.warn('cutroom: fresh listen failed —', err.message);
+  }
+  if (!fresh) {
+    rs = t0raw - winStart; re = t1raw - winStart;
+    const nxt = words.find((w) => w.start > t1raw + 0.02);
+    maxEndRel = nxt ? nxt.start - winStart : null;
+  }
+
   const silences = await editor.detectSilences(win);
-  const nxt = words.find((w) => w.start > t1raw + 0.02);
-  const maxEndRel = nxt ? nxt.start - winStart : null;
-  let [rs, re] = editor.snapToSilence(t0raw - winStart, t1raw - winStart, silences, maxEndRel);
+  [rs, re] = editor.snapToSilence(rs, re, silences, maxEndRel);
   rs = Math.max(0, rs); re = Math.min(winDur, re);
   const cut = path.join(dir, 'cut.mp3');
   await run(FFMPEG, ['-y', '-ss', String(rs), '-to', String(re), '-i', win, '-c:a', 'libmp3lame', '-q:a', '3', cut], 180000);
@@ -407,7 +433,7 @@ async function cutSection(doc, words, wi0, wi1, dir) {
   await run(FFMPEG, ['-y', '-i', cut, '-af',
     'afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse',
     '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
-  return { file: out, seconds: Math.round((re - rs) * 10) / 10, t0: winStart + rs, t1: winStart + re };
+  return { file: out, seconds: Math.round((re - rs) * 10) / 10, t0: winStart + rs, t1: winStart + re, fresh: !!fresh };
 }
 
 // File a finished audio file into the audio library (forge-audio, batch
@@ -576,6 +602,31 @@ router.get('/:id/words', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// A clip or render as a same-origin ATTACHMENT — the Storage URL alone just
+// plays inline, so "download to my phone" needs this: Safari's download
+// manager takes the disposition, and the app's share bridge fetches the same
+// bytes. `u` must be one of THIS recording's own Storage files.
+router.get('/:id/file', async (req, res) => {
+  try {
+    const doc = await loadDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'no such recording' });
+    let p = '';
+    try {
+      p = decodeURIComponent(new URL(String(req.query.u || '')).pathname).replace(/^\/[^/]+\//, '');
+    } catch { /* not a url */ }
+    if (!p.startsWith(`${STORAGE_FOLDER}/${req.params.id}/`)) {
+      return res.status(400).json({ error: "not this recording's file" });
+    }
+    const name = String(req.query.n || 'clip')
+      .replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'clip';
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Disposition', `attachment; filename="${name}.mp3"`);
+    bucket().file(p).createReadStream()
+      .on('error', (e) => { console.warn('cutroom: download stream —', e.message); try { res.destroy(); } catch { /* closed */ } })
+      .pipe(res);
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/:id/job', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
@@ -704,6 +755,7 @@ router.post('/:id/section', async (req, res) => {
         const entry = {
           id: `k-${crypto.randomBytes(4).toString('hex')}`, name,
           sec: clip.seconds, url, at: Date.now(), dest: action,
+          wi0, wi1,   // the picked span — what makes a clip re-cuttable later
         };
         if (action === 'story') {
           await progress(0, 1, 'attaching to the beat');
@@ -751,9 +803,32 @@ router.post('/:id/render', async (req, res) => {
         const words = await loadWords(id);
         const silences = await editor.detectSilences(local);
         const ranges = removedPauses.map((p) => [p.s, p.e]);
+        // Cut-out edges get the same fresh-listen precision as sections (see
+        // cutSection — bulk chunk timings are chips-only accuracy): re-listen
+        // to a small window per cut-out and locate its words in the fresh
+        // timestamps. Long spans skip it — their edges land in real silences
+        // via the snap anyway, and phraseSpan wants a phrase, not a speech.
         for (const c of cutouts) {
-          const nxt = words.find((w) => w.start > c.e + 0.02);
-          const [s, e] = editor.snapToSilence(c.s, c.e, silences, nxt ? nxt.start : null);
+          let t0 = c.s; let t1 = c.e;
+          const nxtG = words.find((w) => w.start > c.e + 0.02);
+          let maxEnd = nxtG ? nxtG.start : null;
+          if (Number.isFinite(c.wi0) && Number.isFinite(c.wi1) && c.wi1 - c.wi0 <= 60) {
+            try {
+              const text = words.slice(c.wi0, c.wi1 + 1).map((w) => w.word).join(' ');
+              const wStart = Math.max(0, c.s - 6);
+              const wf = path.join(dir, `cw-${c.id}.mp3`);
+              await run(FFMPEG, ['-y', '-ss', String(wStart), '-t', String((c.e - c.s) + 12), '-i', local, '-c:a', 'libmp3lame', '-q:a', '3', wf], 180000);
+              const w2 = await editor.whisperWords(wf);
+              const sp = editor.phraseSpan(w2, text);
+              if (sp) {
+                const [a, b] = editor.clampBounds(w2, sp.start, sp.end);
+                t0 = wStart + a; t1 = wStart + b;
+                const nxt2 = w2.find((w) => w.start > b + 0.02);
+                if (nxt2) maxEnd = wStart + nxt2.start;
+              }
+            } catch (err) { console.warn('cutroom: cutout refine —', err.message); }
+          }
+          const [s, e] = editor.snapToSilence(t0, t1, silences, maxEnd);
           ranges.push([Math.max(0, s), Math.min(dur, e)]);
         }
         const merged = mergeRanges(ranges);

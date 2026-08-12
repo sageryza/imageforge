@@ -13,6 +13,57 @@
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
 
+## Claims about OTHER sessions or the environment: MEASURE, never reason
+**(Sophie asked for this as a case study, 2026-08-10, so it can't happen
+again.)** A chat can test its own page, its own hook, its own container — but
+any claim about what the OTHER ~190 sessions or the environment do (which hook
+they carry, whether a setup script re-ran, what actually reaches the server)
+is a POPULATION fact. It cannot be derived from inside one chat, and reasoning
+it out anyway is how this repo lost weeks:
+- **The case: the Chats app's pink "working" tint.** It depended on a ping
+  only sessions with a current hook ever send. Chat after chat believed it
+  worked or was one bug away, because: (1) this file carried confident wrong
+  claims about the environment ("the setup script re-runs per session" — it
+  doesn't; "a reinstalled hook waits for the next session" — backwards),
+  each written by a chat that reasoned instead of measured, and every later
+  chat inherited the sentence as fact; (2) a REAL client repaint bug
+  (#931/#933) gave false confirmation — fixing it made local tests green, so
+  the next chat hunted the same layer; (3) every headless test stubs the
+  hook, so green tests proved the machinery while saying nothing about
+  deployment. **The settling measurement took thirty seconds and nobody ran
+  it for weeks:** count the signal in the live registry — 3 of 77 chats
+  that had posted replies in six days had ever sent the ping. The tint
+  missed working chats and lit idle ones, and was retired (see the /chats
+  section for the full story and what replaced it).
+- **The rule.** Before shipping anything that depends on the hook, the setup
+  script, or other sessions' behaviour: query the LIVE data first (the
+  registry, the feed, file mtimes in a fresh container) and write the dated
+  measurement next to the claim — the way the best notes in this file
+  already read ("measured 2026-08-08, mtime Aug 1"). A green test that
+  stubs the environment is evidence about the machinery, not the
+  deployment; say which one you have. An undated confident claim about the
+  environment in this file should be treated as a hypothesis, not a fact.
+- **THE GAP TEST — how to tell which chats carry a current hook, from the
+  feed alone (2026-08-10).** You cannot look inside another session's
+  container, but the feed tells you anyway: an OLD hook can only lift her
+  message from the transcript at the END of a turn, so her `postedAt` lands
+  ~1s before the reply's. A CURRENT hook posts it at UserPromptSubmit, so
+  the gap between her message and the reply IS the turn's duration. Measure
+  `sophie.postedAt → next non-sophie postedAt` per chat: **~1s = stale
+  hook, seconds-to-minutes = healed.** Verified 2026-08-10 against a chat
+  that healed mid-conversation — its gap jumped 0.6s → 9.8s on the very
+  next turn, and the healed chats were exactly the ones stamping
+  `workingAt`. Use this before telling her a chat "isn't working"; it costs
+  one feed read and needs nothing from the session in question.
+- **A transient mark leaves NO trace, so don't read its absence as failure.**
+  `workingAt` is deleted by the chat's own reply, and `hiddenAt` is
+  overwritten by the next hide — so a chat that parked and un-parked inside a
+  10-second turn looks identical to one that never parked. That is exactly
+  what "the Jesus rules chat didn't hide itself" turned out to be
+  (2026-08-10): it had healed and it did park; the turn was 9.8s long, so
+  the window was gone before she could look. Judge parking/tint on a LONG
+  turn, or from the gap test above — never on a fast one.
+
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
 time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
@@ -36,12 +87,30 @@ around them change, so verify the labels and use these for the URL.
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
 - **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
+  and only one is used (measured 2026-08-10 via `list_environments` +
+  `list_sessions`/`get_session`).** Telling them apart matters, because the
+  Setup script is a per-environment field and pasting it into the wrong one
+  looks identical to pasting it into the right one:
+  - `env_01NCcMuoimJBkNbag4JrEGZx` — name "Default", description **empty**.
+    **This is the one every session actually runs in**: all 19 sessions back
+    to Aug 3 were on it, including this file's own chats.
+  - `env_01PpZpGDKFXqhCj3ZieoBUkH` — name "Default", description "Default -
+    trusted network access". Nothing observed running on it.
+  Both were created 2026-07-26 within 0.23s of each other, i.e. auto-
+  provisioned at account setup — Sophie did not make two. **A chat can settle
+  which environment anything is on by calling `get_session` on its own
+  session id and reading `environment_id`; never infer it from behaviour.**
+  (This corrected a live wrong diagnosis: differing hook versions across
+  chats were blamed on "two environments" when in fact every chat shared one
+  and the healed ones had each been healed BY HAND.)
 - **Missing an id you need?** Ask Sophie to paste the URL from her address bar
   while she's on that page, build the exact link from it, and ADD THE ID HERE
   so no future chat has to ask twice.
 
 ## Live app
-- **Deployed:** https://imageforge-q125.onrender.com (Render.com, free plan)
+- **Deployed:** https://imageforge-q125.onrender.com (Render.com, **Starter**
+  instance — $7/mo, always-on; Sophie upgraded Aug 2026)
   - Hub: https://imageforge-q125.onrender.com/
   - Test Station: https://imageforge-q125.onrender.com/test
   - Picture Book (Miracles): https://imageforge-q125.onrender.com/book
@@ -58,35 +127,33 @@ around them change, so verify the labels and use these for the URL.
     lives at **Hover** (not Shopify); the flip checklist is in
     `docs/secretly-a-witch-todo.md` (Domain section).
 
-## Render keep-awake & running hours (READ THIS before blaming cold starts)
-- **What pings the app: the app itself.** `server.js` (bottom, the "Keep-awake"
-  block) runs a `setInterval` every **10 min** that fetches
-  `${RENDER_EXTERNAL_URL}/api/talking/ping` — an **internal self-ping**, not an
-  external uptime monitor / cron / GitHub Action. There is NO external pinger
-  anywhere in any of the four repos; do not go hunting for one. Render injects
-  `RENDER_EXTERNAL_URL` automatically, so the self-ping is live in production
-  (log line: `Keep-awake self-ping enabled for …`).
-- **Why it exists:** Render **free** web services spin down after ~15 min with
-  no inbound traffic, and the next visit eats a ~30–60s cold start ("Load
-  failed" / slow first render). The 10-min self-ping (under the 15-min idle
-  window) keeps the instance warm so Sophie doesn't hit that wait.
-- **A self-ping can't wake a sleeping instance.** If the service ever DOES sleep
-  — right after a deploy/restart before any traffic, or if the ping ever lapses
-  — it can't ping itself back awake; the *next real visitor* eats the cold
-  start. So an occasional slow first load is still expected, especially just
-  after a deploy. (A slow generation is usually cold start **plus** the model
-  itself, e.g. gpt-image-2 medium ~30–90s.)
-- **Limited running hours (the trade-off):** Render's free tier gives **750
-  instance hours per workspace per calendar month** (reset on the 1st, no
-  rollover). Keeping the app awake 24/7 burns hours continuously — a full month
-  is ~730 hours, so a single always-on free service *just* fits under 750 with
-  little slack. **If those 750 hours run out, Render suspends ALL free web
-  services in the workspace until the next month** — so a second free service,
-  or restart churn, can exhaust the budget early and take the app down till the
-  1st. If ImageForge is ever hard-down (not just slow) late in the month, this
-  is the first thing to check. The real fix is the $7/mo Starter plan (always-on,
-  no hour cap); until then, the self-ping is the free-tier compromise.
-  (Verified against Render's current free-tier terms, July 2026.)
+## Render plan: STARTER since Aug 2026 (don't diagnose free-tier symptoms)
+- **The service runs on the $7/mo Starter instance** (`plan: starter` in
+  `render.yaml`; confirmed live on the dashboard). Two free-tier problems are
+  simply gone, so **do not explain a slow load with either of them**:
+  - **No spin-down.** Free services slept after ~15 min idle and the next
+    visitor ate a ~30–60s cold start. Starter never sleeps, so there is no
+    cold start except the ~30–60s right after a deploy or restart, while the
+    new instance boots.
+  - **No 750-hour monthly cap.** The free tier's per-workspace hour budget
+    (which could suspend every free service until the 1st) does not apply.
+    "ImageForge is hard-down late in the month" is no longer a running-hours
+    question.
+- **CPU went 0.1 → 0.5 vCPU** (RAM is still 512MB, unchanged — the streaming
+  discipline around big audio/video buffers still matters exactly as much).
+  So the **server's own** work got roughly 5× the CPU: ffmpeg (film stitching,
+  Episode Editor / Cutting Room renders, pause detection), sharp (webp copies,
+  HEIC re-encodes, MPC prep), zip building.
+- **Model time did NOT change** and it dominates most waits: gpt-image-2,
+  Replicate, Whisper, ElevenLabs and the LLM calls all run on someone else's
+  hardware. A ~30–90s medium image is still ~30–90s.
+- **The keep-awake self-ping is now redundant but harmless.** `server.js`
+  (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
+  10 min via `setInterval` — an **internal self-ping**, not an external uptime
+  monitor / cron / GitHub Action (there is NO external pinger in any of the
+  four repos; don't go hunting for one). It was the free-tier compromise
+  against spin-down. Left in place deliberately: it costs one request per
+  10 min and it is the safety net if the instance is ever moved back to Free.
 
 ## Dating book — "The Sophie Experiment"
 Sophie's long-running dating-memoir project (square coffee-table book from ~50
@@ -136,6 +203,28 @@ each opens a focused workflow that shares the same house styles.
   are written by the app's Cloud Functions under the device's **anonymous-auth**
   uid, so images made outside the app never appear on their own — you must write
   the doc yourself with the Admin SDK.
+- **The gallery is PAGED (Aug 2026) — 60 at a time, then an "Older" button.**
+  It used to be ONE capped 60-doc query with no way to ask for more, so
+  creation 61 and everything behind it was unreachable. That is a hard truncate
+  the same shape as the Assets tab's old one, and it hid almost everything:
+  1,396 creations existed, 442 of them made in eight days, so the visible
+  window had shrunk to about a day and Sophie reported her older images as
+  gone. **Never diagnose that report as data loss** — check the count first
+  (`node scripts/find-gallery-uid.js` prints it per uid).
+  `ForgeService.fetchCreationPage(limit:after:)` returns items plus a
+  `DocumentSnapshot` cursor; `hasMore` and the cursor are derived from the
+  SNAPSHOT count, never the mapped items, because a doc with no usable url is
+  dropped from the page but still occupies a slot.
+- **Tiles decode DOWNSAMPLED, and both image caches are cost-bounded.** A
+  gallery tile is ~110pt but its url is a full 1024x1536 picture (~6MB once
+  decoded), so paging back through hundreds of them would be a gigabyte of
+  bitmaps. `CachedImageView(url:contentMode:maxPixel:)` decodes to the tile's
+  size via `CGImageSourceCreateThumbnailAtIndex` (~0.4MB) and keeps the
+  downloaded BYTES on disk, so the popup and Save-to-Photos still get the
+  original. Leave `maxPixel` nil for anything shown large.
+  **The download is still full-size** — there is no server-side thumbnail for
+  creations (unlike `scripts/selfcare-thumbs.js` / `webp-assets.js`), so
+  paging deep costs real bandwidth. Worth building if she pages a lot.
 - **Label your images (July 2026).** The hook turns the markdown link text of
   a Firebase image URL in your finished reply into the asset's DESCRIPTION,
   shown on the Assets tile + lightbox (Sophie reviews with ♥/notes there). So
@@ -149,6 +238,12 @@ each opens a focused workflow that shares the same house styles.
   hook-equipped sessions. Still post manually (below) when the hook is absent,
   for non-image types, per-image prompts/styles, or true generation times on
   a backfill.
+  **It also scans the turn's RAW tool activity, so an image a chat merely
+  TOUCHED (read, verified, copied a url of) can be filed into that chat
+  unlabelled — see `docs/wip-asset-filing.md`** for the mechanism, how to spot
+  one (no `description`, caption reads `from <chat>`), the measurement, and
+  the options for fixing it. Not fixed as of Aug 2026; `POST
+  /api/gallery/asset-cleanup` (with `dry` first) removes strays.
 - **NO contact sheets — review happens IN the gallery, labeled (July 2026,
   Sophie's rule).** Every image deliverable goes into the gallery / the chat's
   Assets tab **individually and LABELED** (the label is its `description` — what
@@ -288,7 +383,7 @@ lifted into a standalone tool later.
 - **`pipeline.js`** (`/api/pipeline`) — orchestration glue. `GET /status`
   aggregates connectivity across every service; `GET /route?product_type=` maps
   a product type to a POD service; `POST /listing-content` AI-writes SEO
-  title/13 tags/description (OpenAI `gpt-4o-mini`, clamped to Etsy limits);
+  title/13 tags/description (**Claude** — buyer-facing copy, clamped to Etsy limits);
   `POST /publish-draft` creates the Etsy draft **and** uploads the design
   image(s) in one call (auto-generates listing content when `generateContent`;
   category comes from a `productType`→Etsy-taxonomy map — `taxonomyFor()` — so
@@ -384,8 +479,8 @@ lifted into a standalone tool later.
   that **failed or was cancelled never blocks a retry** (only one that really
   produced a picture counts). The prompt is normalized the way the server
   does it — trimmed, trailing periods dropped — or a typed "." reads as a
-  different run. The check sees the loaded feed (40 runs) plus anything in
-  flight, so a duplicate of something much older still gets through.
+  different run. The check sees the loaded feed plus anything in flight, so a
+  duplicate of something older than she has paged back to still gets through.
 - **Identical runs share ONE box (Aug 2026, Sophie).** Tapping the stars twice
   on the same prompt is one job as far as she's concerned, so the feed merges
   runs whose prompt AND settings match — engine, model, status, quality,
@@ -400,6 +495,26 @@ lifted into a standalone tool later.
   X on a merged box cancels every run in it (`data-kill` holds a comma list).
   `groupBy`/`sameRunKey` in `promptlab.html` do it; the server knows nothing
   about it.
+- **The feed is PAGED, and it pages BACKWARDS THROUGH TIME (Aug 2026).** It
+  used to ask for the newest 40 runs and had no way to ask for more, so run 41
+  and everything behind it was simply unreachable — 213 runs existed and 40
+  could be seen, which Sophie reported as her older pictures being gone.
+  Nothing had been deleted; nothing ever deletes a run. Now an **Older** button
+  under both views loads the next 40 (`GET /api/promptlab?limit=&before=`,
+  `more` on the response says whether there is any point offering it).
+  - **The cursor is a `createdAt`, never an OFFSET.** Runs land at the TOP
+    while she reads, so an offset shifts under her and repeats or skips one.
+    The server does `where('createdAt','<',…)` on the field it already orders
+    by, so no composite index is needed.
+  - **A head refresh MERGES, it never replaces.** Every finished run calls
+    `loadRuns()`, and rebuilding the feed from page one there would throw away
+    everything she had paged back to. `feed` holds every run loaded, fresh
+    copies win (a vote or a status moved), and the list re-sorts by time.
+  - **It is a TAP, deliberately not load-on-scroll** — the autoscroll pill
+    would run the page to the bottom by itself and pull page after page of
+    pictures over her data without her asking.
+  - Tests: `node scripts/test-playground-paging.js` (drives the real page in
+    headless Chromium against a stub API; skips without Playwright).
 - **The feed has TWO views: LIST and TILES** (`promptlab_view` in
   localStorage, default list). List = a box per run, prompt above its
   pictures. Tiles = every picture from every run as uniform SQUARE thumbnails
@@ -513,6 +628,81 @@ lifted into a standalone tool later.
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+## Vector pipeline (`/api/vector`) — described drawings → art that scales
+- **Making vector art, or touching `vector.js` / `vectorize.js`? Read
+  `docs/vector-pipeline.md` FIRST** — Sophie asked for it written down so any
+  chat she points there can use it without re-deriving the recipe. It carries
+  the exact style (prompt wording, model, refs, size, quality), the routes, the
+  gotchas and the test.
+- **What it does:** describe 1-25 drawings → ONE gpt-image-2 sheet in the pastel
+  house style (~6¢, the only cost) → cut into cells → lift each off its paper →
+  trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
+  drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
+  just the tracing half on any flat-colour image URL, for nothing. `POST
+  /prompt` shows the literal prompt and spends nothing.
+- **What a vector buys:** sharp at any size from one ~100KB file, recolourable
+  by editing a fill, and its outline IS the cut line for a die-cut sticker. On
+  a phone screen a PNG already looks the same.
+- **The one hard limit is GRADIENTS** — the tracer reduces a picture to a few
+  flat colours, so a wash, a soft shadow or a photo has none to find and comes
+  out bigger AND worse than the PNG. Ink lines and solid fills are what it
+  handles. That is a limit of the tracer, not art direction.
+- **The style is the Gravity Lock card recipe verbatim** (`HOUSE` in
+  `vector.js`) — the same two Witch School style refs the pastel house style
+  uses, the same grid clause, the same no-text suffix. Don't let prompts
+  drift; add a NAMED style if a different look is needed.
+- **Re-cutting a sheet you already paid for is free** — pass its url back as
+  `sheet`. Tuning the trace must never re-bill the model.
+- **Pick the grid by how much is IN each drawing, not by how many you want
+  (measured Aug 2026, 3x3 drawn at all three qualities).** Nine fits and the
+  tracer does not care — 341px cells trace within 4.8/7.4/6.4% of the source,
+  inside the 8% the 2x2 cards are held to. What changes is the MODEL: at 3x3 it
+  draws simpler objects (2.9 fills a drawing against 4.75 at 2x2). So 2x2 for a
+  drawing with detail, 3x3 for simple objects and icons (0.7¢ each). 5/7/8
+  don't tile — the spare cells are drawn and binned, so ask for 4, 6 or 9.
+  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly. **Nothing about the
+  tracer is tuned per quality or per grid** — they are inputs, the defaults are
+  untouched; the only per-drawing options are `fills` and `darkBackground`.
+  **5x5 TRACES FINE** — on a real 21-icon sheet (204px cells) 3 of 21 drew lines
+  8.6-9.3% fat, but put those three beside their sources and they are
+  indistinguishable: the 8% figure is a regression detector calibrated on the
+  2x2 cards, NOT a threshold of visible badness. An earlier note here called
+  5x5 "past the edge" and that was wrong. The route still caps at 9 for a
+  different reason — this module has never DRAWN a 5x5, so the model placing
+  25 described drawings from this prompt is untested. And **webp
+  costs the trace nothing** — measured same-sheet against PNG, max 7.0% vs
+  7.4%; the "PNG traces better" claim was reasoning and it was wrong, so never
+  re-render a sheet hoping to improve a trace.
+- **Two gotchas that cost real time:** a dark-background drawing needs
+  `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
+  background — the Grand Tour card is the live example), and the Assets tab
+  dedupes by FILENAME, so a v2 needs a new *filename*, not just a new folder.
+- **CHANGE ITS COLOURS AFTER THE FACT — `POST /api/vector/recolor`, free
+  (Aug 2026, Sophie).** Hex or a CSS colour NAME (`salmon`, `steel blue`), as
+  a list parallel to the palette or a map keyed by source hex / slot; `ink`
+  and `paper` too. No colours at all = it answers with the palette and writes
+  nothing. **It is NOT a find-and-replace and must never be turned into one:**
+  vtracer writes a 4-colour palette out as 21 hex values (shapes come back
+  slightly shifted, plus thin blend layers at every seam), so swapping exact
+  matches recolours a 0.08% sliver and leaves a fringe of the old colour round
+  every edge. Every fill is mapped by where it sits between its two nearest
+  anchors. Recolouring nothing returns the identical file, byte for byte.
+- **The front is `/vector` (`public/vector.html`), iOS tile "Vector" under the
+  PICTURES filter (Aug 2026, Sophie: "make a new tool in the image tab").**
+  `tool.css` step flow: describe drawings (the one starred, paid control) or
+  trace a picture you already have (free) -> tap a drawing -> **one text box
+  per colour**, prefilled with its hex, plus LINE and PAPER left blank (empty
+  means leave it). Filter-only like the Test Station — it is deliberately not
+  on the default home. Its glyph is the bundled `Vector` asset (a bezier curve
+  with its two anchor points); `deckfactory://vector` opens it.
+- Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
+  (no invented colour, no dropped colour, line weight, structure), not against
+  the Python it was ported from. It deliberately does NOT catch small
+  localised wrong-colour patches; that class is caught by looking.
+  `node scripts/test-vector-recolor.js` is the recolour gate (measured on the
+  rendered picture, not on the file), and `node scripts/test-vector-page.js`
+  drives the real page end to end against a local server — both free to run.
+
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
   surface with **no opinion**. Every other one wraps her words in a house style
@@ -578,6 +768,17 @@ lifted into a standalone tool later.
   `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
   **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
   chat's tile appeared on its own (verified live).
+- **SKILLS load in every session via the SAME setup script (v9, Aug 2026).**
+  The repo's `.claude/skills/` (witch-copy, deliver-images, new-page,
+  new-module, sophie-audio, …) are only discovered by Claude Code once a chat
+  is already working inside this repo — the same starting-folder gotcha as
+  the hook — so the setup script SYMLINKS them to `/home/user/.claude/skills`
+  and they load from the first turn. A symlink, never a copy: sessions always
+  read whatever is on the clone today, so merged skill improvements arrive
+  with no re-paste. Like every hook change, an EXISTING environment needs
+  Sophie to re-paste the current `docs/chats-autopost-setup-script.sh` once;
+  a running session self-heals with the same
+  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
 - **LIVE DRAFTS (Aug 2026, hook v7):** the same hook is also registered on
   **PostToolUse**, so the prose a chat writes BEFORE/BETWEEN tool calls
   reaches the Chats app while the turn is still running — a long coding turn
@@ -598,9 +799,169 @@ lifted into a standalone tool later.
   UserPromptSubmit sweep. After ANY edit to the hook, run
   `python3 scripts/build-chats-setup.py` — it rebuilds
   `docs/chats-autopost-setup-script.sh` + `public/setup.sh` with the hook
-  body verbatim-embedded; never hand-edit those two copies. Existing
-  environments pick v7 up automatically (the setup script re-runs each
-  session start and appends the missing PostToolUse registration).
+  body verbatim-embedded; never hand-edit those two copies.
+  **A NEW HOOK VERSION DOES NOT REACH AN EXISTING ENVIRONMENT ON ITS OWN —
+  this note used to claim it did, and it is wrong (checked live 2026-08-07).**
+  The Setup script is PASTED TEXT in the environment settings dialog, and it
+  re-runs *the copy she pasted*, so an environment set up before v7 keeps
+  installing the pre-v7 hook forever. **It may not even re-run per session:
+  measured 2026-08-08, `/home/user/.claude/` and `.claude/hooks/` in a fresh
+  container both carried an mtime of Aug 1 23:32 — the environment SNAPSHOT
+  date — so nothing had written them in a week of sessions.** Treat the hook
+  as baked into the snapshot: after changing the Setup script, VERIFY in a
+  brand-new session (`grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`)
+  rather than assuming the edit took. Live
+  proof: `/home/user/.claude/settings.json` in these sessions registers only
+  Stop and UserPromptSubmit, the installed hook contains no `working` logic
+  at all, and the feed therefore holds ZERO live drafts — which is why the
+  Chats app's working-chat tint never fired. Fixing it needs Sophie to
+  re-paste the CURRENT script into the environment once — the whole file,
+  `docs/chats-autopost-setup-script.sh` (GitHub's file view has a one-tap
+  copy button, which matters: she does this on a phone).
+  **PREFER THE SELF-CONTAINED PASTE over the elegant one-liner** — this file
+  recommended `curl -fsSL …/setup.sh | bash` as the Setup script for exactly
+  one evening, on no evidence, and it is at best unproven here. What IS
+  established (2026-08-08): the big paste demonstrably installs a working
+  hook (it is what put the Aug 1 one there), needs no network, and cannot
+  fail on a server blip; whereas a Setup script that fetches at init dies
+  with "Setup script failed" (`recoverable:false`) the moment the fetch does
+  — which took out three probe sessions in one evening. **The honest limit of
+  that measurement: all three probes were MCP-seeded sessions whose network
+  was restricted anyway** (the one that recovered reported no hook file and
+  outbound POSTs blocked), so they do NOT prove a normal session's Setup
+  script lacks network. They only show the failure mode is real and fatal.
+  Given the script has to carry the hook body regardless — the whole reason
+  `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
+  it at init. A RUNNING session is different: it has network, and curl is the
+  right tool for self-healing there (see the self-heal note below).
+- **THE "··· working details" FOLD IS STRUCTURAL — the signal is the turn's
+  TOOL CALLS (Aug 2026, v2, Sophie: "it's supposed to find when the message is
+  done coding … unless there's some internal signal, that would be the
+  best").** There is one, and this is it. The hook already walks the
+  transcript, where `text` and `tool_use` blocks are interleaved in order, so
+  every finished turn posts two character offsets into its text: **`head`** =
+  where the FIRST tool call fell, **`tail`** = where the LAST one did. The app
+  shows `text[0,head)` (what it said before starting), folds the middle (the
+  narration between tool calls), and shows `text[tail,…)` — the closing
+  rundown, which is the thing she opens the message for.
+  - **v1 was a VOCABULARY classifier and she called it a nuisance. Measured
+    2026-08-11 over the 132 real replies in six days of feed: it folded 4.5%
+    of reply text while putting a fold button on 46 of 112 long messages, and
+    what it hid included lines plainly meant for her** ("Now I have the truth,
+    and I owe you a correction."). It never once surfaced the closing rundown.
+    `isWork`/`splitBlocks` are deleted; **do not reintroduce a text-based
+    fallback.**
+  - **With no signal the message shows WHOLE** — the honest default, and what
+    she had before the feature existed. A chat on an older hook simply doesn't
+    fold: silence, not a wrong guess (the same rule the tint follows).
+  - **Coverage grows two ways, and the second costs nothing.** A v12 hook
+    sends `head`/`tail` exactly. For hooks v7–v11 the SERVER derives the same
+    pair from the live drafts for free — a draft posts at a tool call carrying
+    the turn's text so far, so **the first draft's length IS `head` and the
+    newest draft's length is `tail`**. Measured 2026-08-11: 33 of 132 replies
+    (23 of 77 chats) already post drafts, so a quarter of replies fold
+    correctly with no re-paste at all. The derived pair is approximate only in
+    erring toward folding LESS (the draft pass skips turns under 60 chars and
+    posts only when the prose grew).
+  - **The final post must never overwrite the drafts' boundaries** — its text
+    is the whole turn, so deriving from it would mark the entire reply as
+    pre-work and fold nothing. That guard is in `chatfeed.js` and pinned by a
+    test.
+  - Tests: `node scripts/test-chats-working-fold.js` — covers all three layers
+    (hook parser against a real JSONL, the server's contract, and `foldBody`
+    lifted out of chats.html and run for real). Needs no playwright.
+- **THE ROSE WORKING TINT: v3 — HONEST SIGNALS ONLY, LIVING WITH PARKING
+  INSIDE THE HIDDEN PILE (Aug 2026, Sophie: "it could still be tinted even if
+  it's in the hidden area — I could look in the hidden area and see which
+  ones are working"). `TINT=true` again.** v1's report ("skill is tinted pink
+  and it's not working whereas Imprint is working and it wasn't tinted pink")
+  had both halves true at once, and neither was fixable in `chats.html`:
+  - **The miss.** The tint's only honest signal is `workingAt`, stamped by the
+    hook's turn-start ping. A session keeps whatever hook its CONTAINER
+    SNAPSHOT holds, forever — so every chat started before Sophie re-pasted
+    the setup script can never tint, however long we wait. Measured
+    2026-08-10: of **77 chats that posted replies in six days, 3 had ever
+    carried `workingAt`**. Imprint is one of the ~190 older ones.
+    **CORRECTION (measured 2026-08-11, over all 6,166 feed docs): the claim
+    that "her own messages first appear in the feed on Aug 9" is WRONG.** Her
+    earliest lifted message is **2026-07-17**, 73 of them that first day, and
+    1,638 in all across 112 chats. What Aug 9 changed is the HIT RATE, and it
+    is the same container-snapshot story told properly — by the week a chat
+    STARTED: before 17 Jul **0%** of chats ever carried a message from her,
+    Jul 17-23 **17%**, Jul 24-30 **5%**, Jul 31-Aug 6 **76%**, Aug 7-11
+    **98%**. So the snapshot picked up a message-lifting hook around Jul 31
+    and the re-paste finished the job. Don't read a whole feature's absence
+    off one date again; count the docs.
+  - **The false positive.** The fallback signal "her message is the newest
+    thing in this chat" is really WAITING ON THE CHAT, not working. `skill`
+    was pink for exactly that reason, correctly by the code and wrongly by
+    the word.
+  So the tint came off entirely for a few hours and auto-parking replaced it
+  — until Sophie's v3 synthesis dissolved the "they defeat each other"
+  framing: parking and tint only collide on the MAIN list. A parked chat is
+  still a row inside the hidden pile, and THAT row glows while the chat
+  works; the CLOSED bar carries a rose "· N working" so the glow isn't a
+  secret (`paintHideWork`, refreshed by `paintLive` on message-less polls —
+  the mark arrives on exactly those). She wants to watch whether the honest
+  tint proves itself; if it does, parking may come off later. Three rules
+  survive from the saga:
+  - **`chatWorking` answers on the PING (`workingAt`) and on a live draft
+    (`working:true`) ONLY — never on "her message is the newest thing".**
+    That fallback is what lit `skill` wrongly (waiting, not working) and it
+    is deliberately gone. A chat with an old hook parks and simply doesn't
+    glow: silence, not a lie.
+  - **Coverage grows three ways:** every new session carries the re-pasted
+    setup script's hook; an idle chat's container recycles onto the current
+    snapshot on its own; and Sophie pastes the self-heal
+    (`curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`) into
+    live old chats gradually (takes effect same session, proven 2026-08-07).
+  - **Do not "fix" a dead-looking tint by hunting the client repaint.**
+    #931/#933 did that, #901/#908/#910/#911 corrected this file's own wrong
+    claims, and the layer was never the problem — check the chat's HOOK
+    first (see the case-study rule at the top of this file).
+  `window.__setTint(true)` is how the tests force the flag regardless of its
+  default (the page script is an IIFE — `window.TINT` is a stray global that
+  proves nothing).
+- **AUTO-PARKING A CHAT SHE ANSWERED (Aug 2026, Sophie: "we need to go back
+  to the hiding method we tried before" — and kept in v3: "let's keep the
+  hidden thing currently").** `POST /reply` and `POST /working` stamp
+  `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list and
+  the stamp's own rule brings it back when the reply lands. It COEXISTS with
+  the v3 tint: the parked chat glows inside the pile, not on the list.
+  **Why parking's coverage is broader than the tint's:** parking rides on HER
+  MESSAGE arriving (`POST /reply`), which the hook has lifted since July
+  2026, well before the v7 ping. And its failure mode is graceful — a chat
+  whose hook is too old simply doesn't park, which is the ordinary list, not
+  a wrong colour. Manual hiding (the ⊖) is untouched.
+- **HOW THE PING GOT THERE — the turn-start ping, and why her own message is
+  NOT a usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
+  working on something. The obvious signal ("the chat's newest message is
+  hers") looks right and is useless: the hook can only lift her message out of
+  the TRANSCRIPT, and at UserPromptSubmit the transcript does not contain it
+  yet — so it is posted at the END of the turn. Measured live across a whole
+  afternoon of her messages, her `postedAt` lands **~1 second** before the
+  reply's, every time, so that condition is true for about one second and the
+  tint never appeared. The hook therefore pings **`POST /api/chatfeed/working
+  {chat, session}`** at UserPromptSubmit (no transcript needed, backgrounded),
+  which stamps `workingAt` on the chat's registry doc; the reply's own
+  registry write deletes it. `chatWorking()` in chats.html reads that mark,
+  with a 3h cap and a backstop (a reply newer than the mark means the turn
+  finished, even if the clear was lost). The app's own reply box stamps the
+  same mark server-side, so that path works with no hook at all.
+  **The mark arrives on polls that carry ZERO new messages — repaint anyway
+  (Aug 2026, the "it doesn't work" bug).** `workingAt` lives on the REGISTRY,
+  so a turn starting or ending changes no message doc, and chats.html's
+  `poll()` early-returned on an empty message list BEFORE repainting — the
+  fresh mark was stored in memory and never painted, so the tint effectively
+  only ever showed on a first-ever load or a manual Refresh tap (a normal app
+  open paints from the localStorage cache and then polls). The whole server
+  loop was verified working the entire time; when this tint "doesn't fire",
+  check the CLIENT repaint path before the hook or the server. `poll()` now
+  calls `paintLive()` whenever fresh `chats` arrive, before that return
+  (paintLive only toggles classes on tiles already on screen — no rebuild, no
+  scroll jump, safe every poll). Test:
+  `node scripts/test-chats-working-tint.js` (headless Chromium against a stub
+  feed; skips without playwright).
 - **Do NOT also post replies by hand** — the hook already does it, and manual
   posts would duplicate. Check `ls /home/user/.claude/hooks/post-to-feed.sh`;
   only if it's MISSING (hook absent in your session) fall back to the old
@@ -635,18 +996,67 @@ lifted into a standalone tool later.
   moves a mis-filed message/asset span between chats, re-keys votes, and
   plants the tombstone (`--dry-run` first; the Imprint repair is its header
   example).
-- **Self-heal if you're NOT posting (any chat).** If your replies aren't
-  showing up in the Chats app, check `ls /home/user/.claude/hooks/post-to-feed.sh`.
-  If it's MISSING, your session's environment didn't install the hook —
-  reinstall it: `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`
-  (writes the hook + `/home/user/.claude/settings.json`). Hooks only load at
-  Claude Code startup, so the reinstall kicks in on your NEXT session — to
-  surface THIS session's replies now, post each by hand once with
-  `POST https://imageforge-q125.onrender.com/api/chatfeed`
-  `{ "chat":"<branch-name>", "text":"<reply>", "tldr":"<TLDR>" }`, but ONLY
-  while the hook is missing (once it's back the hook posts, and a manual post
-  would duplicate). No auth header needed (STUDIO_TOKEN is off on the live
-  server).
+- **A REPLY CAN BE BLOCKED BY THE SANDBOX EGRESS FILTER, and the symptom is a
+  reply stuck as its partial draft (found live 2026-08-10).** The cloud
+  environment's proxy scores outbound POST bodies and answered one with a 403
+  HTML block page — with curl exit 0, so the old hook recorded it as posted
+  and the full reply never reached the app. The trigger that time: the reply
+  contained the literal setup.sh pipe-to-shell one-liner inside a long
+  message (the same string alone in a small body passes — it's a scored
+  filter, not a string match). Two consequences:
+  - **Don't put the literal `curl … | bash` one-liner in a reply.** When a
+    reply needs to tell Sophie or another chat about the self-heal, DESCRIBE
+    it ("fetch /setup.sh with curl and run it with bash", or point at this
+    file) — the hook POSTs your reply through the same filter.
+  - **Hook v10 records a turn as posted only AFTER the server answers
+    `ok:true`** — a blocked or failed post stays un-recorded and the next
+    event retries it. A stuck partial draft from an OLDER hook is repaired by
+    re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
+    the transcript uuid of the user message that started the turn; the server
+    upserts onto the same message doc).
+- **STALE HOOKS SHOW THEMSELVES NOW — and AUTO-UPDATE IS A HARD NO (v11, Aug
+  2026).** The turn-start ping carries the md5 of the session's INSTALLED
+  hook file; the server compares it to the repo copy it deployed with
+  (setup.sh installs byte-identical — verified 2026-08-10) and stamps
+  `hookV`/`hookStale` on the registry doc, and the Chats app shows "hook out
+  of date — paste the heal" under the chat's name. So nobody hunts stale
+  chats anymore: Sophie pastes the self-heal into the marked ones and the
+  mark clears on that chat's next turn. Detection ONLY, and that boundary is
+  not ours to move: two stronger designs — the hook fetching and running the
+  setup script by itself, and the hook telling the chat's model to run it —
+  were built on 2026-08-10 WITH Sophie's explicit permission and the chat
+  harness refused both (an unattended path that makes every chat execute
+  server-supplied code is over its line regardless of consent). Don't
+  rebuild them; extend the telemetry instead if more is needed. A chat can
+  check ITSELF without the server: `md5sum
+  /home/user/.claude/hooks/post-to-feed.sh` vs the repo's
+  `.claude/hooks/post-to-feed.sh` — different means stale, and the self-heal
+  below fixes it in-session.
+- **Self-heal if you're NOT posting, or posting with an OLD hook (any chat).**
+  Run `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
+  (Curl works HERE and not in the Setup script for one reason: a running
+  session has network, session INIT does not — see the trap above before
+  suggesting this to Sophie as an environment setting.) It
+  rewrites the hook + `/home/user/.claude/settings.json`, and — **contrary to
+  what this file said for weeks — it takes effect IMMEDIATELY, in the session
+  you run it in** (proved live 2026-08-07: a container holding the Aug 1 hook
+  with only Stop + UserPromptSubmit registered ran the script mid-turn and the
+  very next tool call posted a live draft with `working:true`). Hooks and
+  settings are re-read per event, not only at Claude Code startup. That wrong
+  claim is why a stale hook was left in place for days with a manual-posting
+  workaround instead of a five-second fix.
+  - **Check whether YOUR hook is current before believing a feature is
+    broken:** `grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`
+    (0 = pre-v7, no live drafts and no turn-start ping — the Chats app's
+    "still writing…" and its pink working tint can never fire for you).
+  - A brand-new session gets whatever the ENVIRONMENT's pasted setup script
+    installs, so self-healing per session is a patch, not the cure — the cure
+    is the fetch-the-current-one Setup script (see the LIVE DRAFTS note above).
+  - Only if the hook is genuinely MISSING and can't be reinstalled, post by
+    hand: `POST https://imageforge-q125.onrender.com/api/chatfeed`
+    `{ "chat":"<branch-name>", "text":"<reply>", "tldr":"<TLDR>" }` — and ONLY
+    then (once the hook is back it posts, and a manual post would duplicate).
+    No auth header needed (STUDIO_TOKEN is off on the live server).
   - **If the curl / POST is BLOCKED (network error, not a 4xx):** your cloud
     environment's **Network access** doesn't allow `imageforge-q125.onrender.com`
     (the default **Trusted** level only permits package registries + GitHub +
@@ -697,6 +1107,87 @@ lifted into a standalone tool later.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **STATUS CARDS — every chat keeps one, updated at the END of every turn
+  (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
+  that chat is currently working on").** The card shows under the chat's name
+  on the `/chats` home (list, tiles, and the Status view — the ask reads in
+  rose). `POST /api/chatfeed/status { chat, session, need, doing }`:
+  - **WRITE IT THE WAY SHE WRITES HER OWN NOTES (Aug 2026, measured against
+    the real ones): telegraphic fragments, commas between, NO connecting
+    words, ~30-60 chars.** Hers read "research it, karaoke, tabs" and
+    "compare and Tinder templates" — that is the target. Not a sentence, not
+    a summary, never a changelog: a chat pasted a 464-character release note
+    into her field the day it shipped, which is what prompted this rule. The
+    server truncates at 110 chars, but hitting the cap means you wrote the
+    wrong thing.
+  - **ONLY ONE LINE SHOWS, and it looks exactly like her own notes** (Aug
+    2026, Sophie: "I want them the same as mine — italicized, not bold, not
+    pink… they only need one line"). The row renders `note || need ||
+    doing`: **a note SHE wrote supersedes your card entirely**, otherwise
+    your `need` takes the line and `doing` is the fallback. So write the
+    ONE thing worth her seeing — both fields are stored, but do not count
+    on `doing` being read while a `need` is set.
+  - `need` = what you need from her, with the size of the ask — "pick a
+    palette, 10 seconds", "listen to two cuts". Send `""` when nothing is
+    needed; an empty `need` is the honest default, and a stale ask is worse
+    than none.
+  - `doing` = what you're on — "six lesson cards, drawing now". Clear it
+    (`""`) when you finish.
+  - `session` = `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_` — resolution
+    is session-first like every other post, so the card lands on your
+    effective chat whatever your branch slug says.
+  - Refresh it at the end of ANY turn that changed your state (200 chars
+    each; the fields you don't send are left alone). Stored on the registry
+    doc, so it rides the feed's already-cached read — costs nothing.
+- **The NOTE on a chat (`sophieNote`) is the where-things-stand line, mostly
+  HERS (Aug 2026: "it's not really for the chat to read, it's for me") — but
+  it is NOT locked to her ("it's not that I wanted the field to myself, I
+  just wanted them to know how to write notes").** She writes it from the
+  thread ("+ note for this chat"); it shows on the home row with no prefix.
+  `GET /api/chatfeed/status` returns it as `note` — read it for context, but
+  it is not an instruction and needs no reply.
+  - A chat MAY write one (`POST /chatnote {chat, note}`), and the rule is
+    **STYLE, not permission**: her length and her shape — telegraphic
+    fragments, commas, no connecting words, ~30-60 chars. A chat filed a
+    464-character changelog there and that is the failure to avoid. Prefer
+    your STATUS CARD (above) for what you're doing; leave the note alone
+    when she has written one you'd be overwriting.
+  - **NEVER write test/probe text into it, or any other live field.** A
+    deploy-watcher here POSTed the literal word `probe` as this chat's note
+    to see whether the route answered — the write SUCCEEDED against the
+    old code, and she found "probe" sitting in her app as a note to
+    herself. Watch a deploy with a READ (`GET /status`, the build stamp),
+    never a write to real data.
+    **A MADE-UP CHAT NAME IS NOT A SAFE PROBE EITHER (2026-08-10, done
+    again — same rule, different field).** Poking a new registry route with
+    `{chat:"__nonexistent-probe"}` to confirm it was live CREATED that
+    chat: Firestore's `set({field: <delete>}, {merge:true})` on a missing
+    doc still writes the doc (empty), and `sortedChatNames` lists every
+    registry key, so the fake name becomes a phantom row in her list. Two
+    things to know if it happens: only the Admin SDK can remove it
+    (`forge-chat-registry`, there is no delete route), and the registry's
+    5-minute cache keeps serving the phantom afterwards until ANY write
+    through the API invalidates it — a no-op write to a chat that really
+    exists is the clean way to force that. Confirm a new route with a READ
+    of the page (`curl /chats | grep <the new markup>`), never by calling
+    the write.
+  - **Never gate a field the app already writes behind a flag only a NEW
+    build sends.** The `app:true` requirement did exactly that: the phone
+    keeps a cached page for days, so her own edit was refused with
+    "couldn't be saved" while the note she was trying to fix stayed put.
+- **HER OWN MESSAGE NEVER RAISES THE "NEW MESSAGE" BAR (Aug 2026, Sophie: "it
+  notifies me when my own message comes in — that's a bug").** The hook lifts
+  what she types in the Claude app into the feed, so it arrives on a delta
+  poll like anything else — and `poll()` counted every arrival toward
+  `pendingNew`, so the app told her about the message she had just sent. The
+  row dot and the answered badges have always excluded her
+  (`from!=='sophie'`); the bar was the one path that didn't, which made the
+  single signal meaning "something came back" cry wolf. `poll()` now counts
+  `news`/`mineNews` (non-sophie) for the bar while `added`/`mine` still drive
+  caching and repainting — her message is merged as before and simply appears
+  at the next natural render. Tests:
+  `node scripts/test-chats-own-message.js` (drives the real delta poll via
+  `window.__poll`; verified failing against the old counting).
 - **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
   conversation it was** instead of a monologue of Claude replies. The same hook
   posts them: it already fires on `UserPromptSubmit` (that firing used to only
@@ -714,6 +1205,17 @@ lifted into a standalone tool later.
     rather than used to reject the message (they ride inside real messages).
   - First firing in a session **baselines her history and posts only her latest**,
     same policy as the reply poster, so installing it never floods a live feed.
+  - **MID-TURN messages need the queue records (Aug 2026, fixed).** A message
+    Sophie sends WHILE Claude is still working is queued, and a queued message
+    is written to the transcript ONLY as a `queue-operation`/`enqueue` record —
+    it never becomes a `user` record. The parser only read `user` records, so
+    those messages reached Claude but **silently never reached the Chats app**
+    (found live 2026-08-07: "Yeah. Do the images." was lost, and it was a
+    course-correction — exactly the kind worth keeping). The hook now also
+    collects enqueue records. EVERY message is enqueued, so a queued entry only
+    counts when no `user` record carries the same words — matched as a
+    **multiset** so repeating a short phrase can't let the first swallow the
+    second — and its dedupe key is `q:<timestamp>`.
   - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
@@ -738,8 +1240,14 @@ lifted into a standalone tool later.
   to a tappable one-line summary), `.btn` that hugs its text, `.btn.star` for
   anything that spends a model call, and a `?` circle holding the explanation
   that used to be a paragraph. Link it, set `body class="tool"`, don't
-  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`
-  and `report.html` follow.
+  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`,
+  `report.html` and `vector.html` follow.
+  **The rail and EVERY step caption reserve the pill's corner (Aug 2026)** —
+  `padding-right:56px`, not just the header. The injected pill is fixed over
+  roughly x 324-374 / y 14-192, which is the header AND the first two step
+  rows, so a caption's one-line summary rendered UNDER it (caught on /vector:
+  step 1 read "4 draw…"). It costs 56px off a summary that is ellipsised
+  anyway, and it fixed the same latent collision on every other tool page.
 - **A gated page hosted inside a native tool must be asked for with
   `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
   `.app-header` — its brand row duplicated the native nav-bar title, and its
@@ -848,11 +1356,764 @@ lifted into a standalone tool later.
   ANY header control reaching that corner is untappable — the rename pencil was,
   for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
   reservation on any new header row, and never place a control in that corner.
+  **The home screen has FOUR views, switched from the title row: chats,
+  ARCHIVE, BOOKMARKS, and STATUS (Aug 2026, Sophie).** `homeView` in
+  chats.html. **STATUS** (the list-todo icon left of the bookmark) is the
+  prioritized front door Sophie asked for ("this is what's done, this is
+  what's waiting on you, these are the assets that were just delivered"):
+  WAITING ON YOU (her flagged come-back-later chats first, then finished
+  replies she hasn't opened, each row carrying the same ✓/! triage buttons as
+  the home list so she can mark answered without opening anything), WORKING
+  RIGHT NOW (the pink-tint chats), JUST DELIVERED (the newest images across
+  every chat — `GET /api/gallery/assets/recent`, server-side filename dedupe
+  + 480px thumbs, a thumb opens that chat's Assets tab — plus the newest
+  Compare pages via `GET /api/chatfeed/pages-recent`), and MARKED DONE (what
+  she has checked off). The chat sections derive from the registry + feed the
+  page already holds, so they paint instantly; only the delivered strip
+  fetches (cached 60s). Tests: `node scripts/test-chats-status.js` (headless
+  Chromium against a stub feed; skips without playwright). The
+  serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
+  the word beside it becomes the way OUT, reading "← Chats" — a bold word
+  alone was "really confusing" and left her with no visible exit. The
+  bookmark icon next to it opens **every bookmarked message across all
+  chats**, newest first, tapping one jumps to it in its thread
+  (`GET /api/chatfeed/bookmarks`, one equality filter sorted in memory so
+  Firestore needs no composite index). Before that route existed the bookmark
+  button wrote a flag NOTHING ever read — a bookmark could only be found by
+  scrolling to that exact message in its own thread.
+  **DELETE + THE TRASH (Aug 2026, Sophie: "a delete button as a second option
+  to archive so I can delete this chat so it doesn't keep confusing things
+  rather than just archive it, and I'd like deleted chats to go to a trash
+  that I can empty").** `deletedAt` on the registry doc
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
+  thread header after Archive and Hide, and the trash itself.
+  - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
+    trash in archive and make it just a picture of a trashcan I guess").**
+    It shipped as a fifth WORD in the masthead and that broke the header:
+    measured at 390px, `.hctl` started at **x=48** while the word "Chats"
+    occupies **x=20-96**, so the bookmark button sat under the visible title
+    and won the tap — **tapping "Chats" opened Bookmarks**. Five controls
+    plus a long title do not fit on her phone. So `#trashlink` is an ICON
+    (~26px against the word's ~56px), `display:none` unless
+    `homeView==='archive'||'trash'`, and leaving the trash returns to the
+    ARCHIVE it opened from rather than all the way home. Its own class
+    `.trashbtn`, never `.bmk` — that rule's `.on svg{fill:currentColor}`
+    floods a stroke glyph into a blob (the `.stbtn` trap).
+    **The lesson for the next control:** the masthead is FULL. Anything new
+    there must be an icon, must be view-scoped, or must go somewhere else —
+    and `node scripts/test-chats-title-back.js` is what catches it, because
+    it hit-tests every header control under every title.
+  - **TWO STAGES, and the split is the whole point.** Deleting only stamps
+    `deletedAt` — nothing is destroyed, and every row in the trash carries
+    **Restore**. `POST /trash/empty` is the irreversible half (`{chat}` empties
+    one, no body empties all) and it says so in much stronger words than the
+    first confirm: a mis-tap on Delete costs one tap to undo, so the two must
+    not read alike.
+  - **`deletedAt` is NOT a self-clearing stamp and `/reply` never clears it**,
+    which is exactly where it differs from its two neighbours: `hiddenAt` pops
+    back when the chat answers, and `archived` is cleared by her messaging the
+    chat. A deleted chat must never resurrect itself because something posted
+    into it. Presence of the field is the whole test.
+  - **The exclusion lives in ONE place — `sortedChatNames()`** — because every
+    pile derives from it (live, hidden, ★, archive, the category chips, the
+    account tabs). A filter per pile is how a new pile silently forgets;
+    deleting is stronger than archiving, so a chat that is both must show in
+    neither. Pinned by a test that was verified failing without it.
+  - **Empty deletes the chat's messages, Compare pages, asset records and its
+    registry doc — never the image BYTES in Storage.** The same picture is in
+    her iOS gallery and can be referenced by another chat, so clearing a
+    chat's records must not reach through and destroy the pictures. Asset
+    VOTES are left too (keyed `sha1(chat|url)`, so unqueryable by chat, and a
+    few orphaned bytes nothing reads). The registry doc goes LAST, so a
+    failure partway leaves a row she can see and re-empty rather than a
+    half-erased chat that has vanished.
+  - Firestore caps a batch at 500 writes and a long chat holds thousands of
+    messages, so the delete runs in chunks of 400.
+  - Tests: `node scripts/test-chats-trash.js`.
+  **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
+  Sophie: "when I message a chat that I archived, can it automatically come
+  out of the archive").** Archive means "away for good" — and going back to
+  talk to it is her saying it isn't, so she should not have to undo the
+  archive by hand first. `POST /reply` clears `archived` when the chat had
+  it, alongside the `workingAt`/`hiddenAt` stamps it already wrote, so the
+  chat comes out of the archive AND parks until it answers.
+  - **Server-side, in the route, for the same reason parking is**: that is
+    where her message ARRIVES, including the one the hook lifts out of the
+    Claude app with no page open anywhere.
+  - **Only HER message does it.** A chat's own reply must never drag itself
+    out of the archive she put it in — that is the whole difference between
+    Archive and the self-clearing `hiddenAt`. `/reply` is hers by definition
+    (`from:'sophie'`); the chat-reply route never touches `archived`, and a
+    test pins that.
+  - Tests: `node scripts/test-chats-unarchive-on-reply.js` — it drives the
+    REAL route against a stubbed Firestore (the question is what the route
+    WRITES, which source-shape assertions cannot answer) and was verified
+    failing without the change.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
   message first. The **App/Web account toggle is a plain on/off switch** on the
   home header's title line (`.swi`, off = account 1, on = account 2, no text —
   the toast names the account).
+  **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
+  chat she wants to come back to but not look at right now gets hidden: it
+  leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
+  · 1 new"). Tapping the bar opens the pile; tapping it again puts it away.
+  Details that are load-bearing:
+  - **THE OPEN PILE IS THE WHOLE SCREEN (Aug 2026, Sophie: "when I press the
+    hidden one it shows hidden, but it also shows everything else — can you
+    make it just show hidden until I get out of the hidden area").** v1
+    opened the pile IN PLACE, above the live list; the list underneath was
+    the thing she had taken those chats off, and it buried the pile she had
+    just opened. Opening the pile is going somewhere, the way Archive is —
+    so `renderHome` returns right after `renderHiddenBar` while it is open.
+    The masthead already says "Hidden" in red, and the ways out are
+    unchanged (the bar again, or the title). **Guarded on `hid.length`:** if
+    the last hidden chat pops out while she is in there (a reply lands, the
+    stamp self-clears) the bar is gone, so the list has to come back or the
+    screen would be blank with nothing to tap. One consequence to expect:
+    the ⊕ inside the pile takes a chat out of the PILE immediately, and the
+    list it rejoins is the one waiting when she leaves the hidden area.
+  - **`hiddenAt` is a self-clearing STAMP on the registry doc**
+    (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
+    `answeredAt`: a chat stays hidden only while nothing newer has arrived,
+    so **the moment it answers her it pops back out into the list**. That is
+    Sophie's explicit call — v1 shipped this as a permanent boolean and she
+    asked for the opposite the same day. Hiding means "not now"; **Archive**
+    is the one that means "away for good". **The retired v1 field
+    `hidden:true` is GONE and is no longer read** — it could never pop out,
+    which is precisely the bug she reported the same evening ("when I hide
+    something and then it answers me I want it to become unhidden"): the 11
+    chats she hid before the stamp shipped were stuck behind the bar
+    forever. All 11 were migrated onto stamps on 2026-08-09 by re-POSTing
+    `/hide`, which rewrites both fields. If a hidden chat ever "won't come
+    back", check for a doc still carrying the boolean before suspecting
+    `stampActive`.
+  - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
+    the ! with it") — hiding *is* the come-back-to-this mark now, and it does
+    what the flag only implied. `flaggedAt` still exists server-side
+    (`POST /flag`) but nothing in the page writes or reads it; **don't
+    re-add a flag button without asking her.**
+  - The glyph is a **circle-minus** on a visible chat and a **circle-plus**
+    (lit red) on a hidden one — take it off the list / put it back.
+    Deliberately NOT an eye: she rejected the eye by name.
+  - **The bar only exists when something is hidden**, and open/closed is
+    session-only, always starting CLOSED — persisting "open" would quietly
+    undo the feature overnight. Hiding a chat never opens the pile.
+  - **While the pile is OPEN the masthead says "Hidden" in the same red**
+    (`#htitle.hid`) — the pile is a place, so the screen has to name the one
+    she is in. It slightly overlaps the status icon at that width; Sophie
+    said that is fine for now.
+  - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
+    though **STATUS now has NO ENTRANCE**: its list-todo icon beside the
+    masthead came off at Sophie's ask ("the weird check-plus next to the big
+    chat's name — I don't actually know what it does"). The view and its
+    tests survive (`window.__setHomeView` is the only way in, kept so the
+    retained code stays testable); ask her what it should say before wiring
+    a button back, since the ✓ that filled MARKED DONE and the rose working
+    signal are both switched off now.
+  - **ANSWERING A CHAT PARKS IT (Aug 2026, Sophie: "is there any way you
+    could directly send a chat that I answered to the hidden section until
+    it comes back?").** `POST /reply` and `POST /working` both stamp
+    `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list
+    and the stamp's own rule brings it back when the reply lands — no new
+    field, no new rule. **`/reply` is the path that carries it** — it is both
+    the app's own reply box AND where the hook POSTs her lifted Claude-app
+    messages, a feature that predates the v7 ping, so parking reaches chats
+    the tint never could. `/working` parks too and fires earlier in the turn,
+    but only from a hook new enough to send the ping. The stamp is
+    `postedAt`, never her message's
+    `created`: `created` is her real send time and a stamp older than the
+    newest message reads as not-hidden.
+  - **The thread header carries HIDE beside Archive** — "not now" next to
+    "away for good", so a chat she has just read can be parked without going
+    back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
+    2026, her ask) so the pair says which is the bigger decision at a glance;
+    fixed colours, like the row's ⊖ and ✓, since that row is cream in both
+    themes. The **"chats" crumb that used to lead the row is gone** ("that
+    seems redundant") — the back chevron already says where she is — and
+    `#thread header .no` is `justify-content:flex-end`, which is what the
+    crumb's `flex:1` used to do for the buttons' position.
+  - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
+    red outline over a light red tint, at Sophie's ask ("the same style as
+    the red outline version of the categories"). It shipped for one evening
+    as a solid red block; matching the chip means the two can never drift
+    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
+    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
+    colour before it is ever tapped, and its circle background is cream in
+    both themes so a fixed red is right there.
+    Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
+    stub feed; skips without playwright).
+  **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
+  2026, Sophie).** She stopped using the tile view, so the toggle was two taps
+  of nothing: the home is always the list (`view='list'` — **`renderTiles()`
+  is deliberately kept**, her ask, flip the const to bring it back), and the
+  tool row now holds category chips plus two icon-only buttons (select,
+  refresh — refresh lost its word to save the space).
+  - **A category is one `category` field on the registry doc**
+    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
+    `track` in another costume, and it takes a whole selection in one call
+    because filing is a bulk gesture. Empty category clears it.
+  - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
+    exist before anything is filed; anything typed into select mode's New…
+    box joins them. Tapping the LIT chip clears back to everything — the Dump
+    sort page's convention, and why there is no "All" chip.
+  - **A CATEGORY IS A THING, not a side effect of filing (Aug 2026 — she made
+    one and it wasn't there).** Two bugs, both real: typing a name with NO
+    chats picked toasted "Nothing picked" and threw the name away, and the
+    New… box only committed on Enter — she DICTATES these and dictation ends
+    with a tap elsewhere, not a press of return. So the name is now stored on
+    the `__settings` doc (`categories`, arrayUnion), `POST /category` accepts
+    an empty `chats`, the box commits on blur too, and `catList()` = seeds +
+    settings.categories + names in use. An empty folder outlives the filing
+    that created it.
+  - **The home header has NO eyebrow** (Aug 2026, Sophie: "that's wasted real
+    estate"). It said "deck factory · every chat, one place" above a screen
+    she opens from a tile that already says Chats. The THREAD header keeps
+    its `.no` row — that one carries the crumb, Archive and Hide.
+  - **The filter is session-only, never persisted.** A sticky filter would
+    show her three chats one morning and read as the rest having vanished.
+  - **A chip narrows the WHOLE screen, hidden pile included** — a bar
+    counting chats from a category she isn't looking at is noise.
+  - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
+    fixed bottom bar files the lot, filing exits the mode. While it is on a
+    tap anywhere on a row PICKS instead of opening, and the row's own ⊖/✓ are
+    hidden — two checkmarks on one row means the wrong one is the easy tap.
+  - **The tool row reserves the pill's corner** (`padding-right:64px`): it
+    sits inside the pill's y 14–192 band, so its right-hand icons would be
+    untappable without it. Measured live at 390px wide: the icons end at
+    x≈306, the pill starts at x≈324. Tests:
+    `node scripts/test-chats-categories.js`.
+  - **FILING MOVES A CHAT (Aug 2026, Sophie — this replaced the one-evening
+    "parked" note above it).** "When I mark something as a story, it takes it
+    out of the normal list." So the unfiltered home is the UNFILED pile, an
+    inbox, and a lit chip is that folder. Two consequences to keep in mind:
+    - **…BUT IT COMES BACK WHEN IT ANSWERS (Aug 2026, Sophie: "it's been a
+      problem when chats are in stories and they don't pop out back into the
+      main list when they're done, so let's have them pop back out").** Same
+      idea as the hidden pile: filing means "not in my way", not "gone".
+      **READING IT DOES NOT SETTLE IT (v2, same day — v1 keyed the pop-out on
+      the reply being unread and Sophie overruled that within the hour:
+      "reading it shouldn't send it back to stories — it should stay in both
+      places until I file it away again or respond").** A popped-out chat
+      stays on the main list, read or not, until she RE-FILES it (renewing
+      `filedAt` past the reply — the select-mode chips stamp it
+      optimistically, so the row leaves on the tap) or RESPONDS (her message
+      becomes the newest thing there, which ends the pop-out AND parks the
+      chat via auto-parking; the next reply pops it back out — the round
+      trip she described). The `filedAt` half of `chatBack` — the reply must
+      have landed after the filing moment, stamped by `POST /category` — is
+      still load-bearing: without it, filing a chat whose last reply she had
+      never opened would bounce straight back, and the backfill day would
+      have dumped a whole folder onto the list.
+      The chat NEVER leaves its folder — it is in two places.
+      Chats filed before the field existed carry no stamp and can't pop; all
+      23 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
+      idempotent, stamps NOW rather than back-dating for exactly that
+      reason), so a missing `filedAt` now means the chat isn't filed. Tests:
+      `node scripts/test-chats-filed-popout.js`.
+    - **The chips carry ONE number, the red ANSWERED badge** (the dim total
+      came off at her ask: "I don't need to see the number on the categories,
+      it should just say the number of chats I haven't read yet — just the
+      one in red"). Without them
+      a filed chat would simply vanish and a reply inside a folder would be
+      silent — the same reason the hidden bar names what is behind it. The
+      badge counts CHATS that came back and she hasn't opened (Sophie's ask:
+      "a little number next to stories that says if there's chats that just
+      recently answered to me"), not messages; it is the dots exception to
+      the no-pills rule, not a pill. A filed chat no longer shows its working
+      tint on the home; STATUS still shows it, and STATUS is deliberately NOT
+      category-filtered.
+    - **NOTHING in the app writes `answeredAt` anymore (Aug 2026, Sophie:
+      "the checkmark next to chats — I don't actually know what it does,
+      take it off" — she meant the STATUS icon beside the masthead, but the
+      ✓ had already gone from the rows and came off Status in the same
+      pass).** The ✓ came off the STATUS rows too, so MARKED DONE
+      only ever shows chats stamped before that day. `chatDone` /
+      `toggleMark` / `mkCheck` and `POST /answered` all still exist — the ✓
+      is one `appendChild` away in `renderList` or `stRow`. **Ask her before
+      putting it back**; hiding is what she reaches for now.
+    - **The home rows carry NO ✓ and NO letter icon (Aug 2026, Sophie).** A
+      chat with no picture used to get a box with a giant italic initial —
+      gone; 18 of ~190 chats have a real picture and those still show, so
+      the left edge is deliberately ragged. The ✓ came off the rows and the
+      hide ⊖ took its place on the right. **`mkCheck` is still on the STATUS
+      rows on purpose** — that view has a "Marked done" section, and pulling
+      the only control that writes `answeredAt` would leave it dead. Bring
+      the ✓ back to the rows by re-adding `mkCheck` in `renderList`.
+    - **ARCHIVE deliberately does NOT hide filed chats.** It is already the
+      "away for good" pile; filtering it down to the unfiled ones would
+      leave a filed+archived chat reachable only by lighting the right chip
+      first. A chip still narrows it.
+  - The home screen was tightened vertically in the same pass (rule, h1,
+    tool row, search row and `.crow` padding, 46px row icon → 40px) — her
+    ask, "a little bit too much space between the different lines".
+- **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
+  arrow next to it that brings me all the way down to the bottom").** `.jumps`
+  holds the back-to-top arrow and its new twin. Three rules worth keeping:
+  each shows only when it has somewhere to go (>400px that way), so nothing
+  floats over a list that already fits; both call `__scrollStop` FIRST, or the
+  autoscroll keeps creeping after the jump arrives; and they hide under
+  `body.selecting`, where the filing bar owns the bottom of the screen.
+  **THE DOWN ARROW ANSWERS TO THE OPEN MESSAGE FIRST (Aug 2026, Sophie: "a
+  floating down button that gets me just to the bottom of the current message
+  that's open and visible on the screen — you could co-opt" the existing
+  one).** A finished reply runs for screens, and "the end of THIS one" is a
+  different question from "the end of everything". `openMsgEnd()` takes over
+  only when an open message is genuinely on screen AND its end is still below
+  the fold; otherwise the button is the page-bottom jump it always was. So a
+  long thread reads as a progression — one tap lands on the message's end,
+  the next carries on down the page — and on the chat list, where nothing is
+  open, nothing changes.
+  **IT LANDS ABOVE THE ARROWS, NOT UNDER THEM** (Sophie, the first time she
+  used it: "the arrow buttons when I go to the bottom of a message now sit
+  right where the Open in Claude button is"). A message's LAST ROW is its
+  bookmark + Open-in-Claude pair, so a flush landing parks the floating pair
+  exactly on top of the Open button. `bottomReserve()` measures what `.jumps`
+  is actually occupying — live, not hard-coded, so it stays right if the pair
+  changes size — and falls back to a hairline when neither arrow is showing.
+  The page-BOTTOM jump needs none of this: `.wrap` ends in 16vh of padding,
+  which already clears the pair.
+  The show/hide rule follows the same target, since the page bottom can be
+  close while the message still has a screen to go. Tests:
+  `node scripts/test-chats-jump-message.js` (verified failing without it). The
+  page height changes on every rebuild, so `window.__jumpsRecheck()` is called
+  after renderHome and openChat. Tests: `node scripts/test-chats-jumps.js`
+  (which starts the real autoscroll and proves it moved before asserting that
+  the jump stopped it).
+- **STARRED CHATS (Aug 2026, Sophie: "chats that were important, that have
+  work I want to refer back to, but I'm not actively using them" — Imprint
+  and the original Anthony Chene chat were the two she named).** `starred` on
+  the registry doc (`POST /api/chatfeed/star {chat, starred}`), a plain
+  boolean like `archived`: it is a permanent judgement about the chat, not a
+  state anything newer should clear.
+  - The mark is a **filled red star at the FRONT of the row**, in the
+    bookmark's `--chg` ("a red star would be nice to match the bookmark
+    colour"). Drawn only when starred — an empty slot on every row would be a
+    column of nothing down the list.
+  - **The ★ chip leads the category row and REACHES INTO THE ARCHIVE.** These
+    are chats she has finished with and put away, so a star filter that
+    stopped at `archived` would miss most of them. It replaces the list
+    rather than narrowing it, and clears the category filter.
+  - Setting it is the **star button in the thread header**, beside Archive and
+    Hide — the only place the star is a control.
+  - **A starred chat IS a kept chat**: it fills the **CHATS tab of the
+    Bookmarks pile** (Aug 2026 — see "THE KEEP-PILE IS THREE TABS"). Star and
+    bookmark are one mark on purpose; do NOT add a second per-chat keep-flag,
+    or she has to remember which of two piles a chat went into.
+- **A BOOKMARK CARRIES A NOTE (Aug 2026, Sophie: "when I bookmark messages I
+  want to leave a note or title the message so I remember what it was and why
+  I bookmarked it").** `bookmarkNote` on the MESSAGE doc;
+  `POST /bookmark {id, note}` with no `bookmarked` edits only the note, so
+  writing one can never quietly un-save the message.
+  - The box **appears the moment she bookmarks and is focused** — the reason
+    is in her head then and nowhere else — and it **stays under the message
+    for as long as it is bookmarked**, so editing it later needs no gesture to
+    discover. Un-bookmarking takes it away. Saves on tap-away.
+  - In the BOOKMARKS view her note **leads the row** above the snippet (the
+    snippet is the message's first line, which is rarely why she kept it) and
+    it is **editable right there** — naming a backlog of old bookmarks must
+    not mean opening each message in turn (her ask). That is why a bookmark
+    row is a `div` with a handler and not a `<button>`: an `<input>` cannot
+    live inside a button, and the note has to sit between the chat line and
+    the snippet. A tap on the input is skipped so typing never opens the chat.
+    The field is borderless until focused, so the list still reads as a list.
+  - Tests: `node scripts/test-chats-star-bookmark.js`.
+- **THE KEEP-PILE IS THREE TABS: CHATS · ARTIFACTS · MESSAGES (Aug 2026,
+  Sophie: "I should be able to bookmark chats, compare pages and messages and
+  they should all live in the same place… the hairline underline pattern with
+  chats on the left, pages in the middle and messages on the right — except
+  rather than Pages I want it called artifacts, cause that's the name I used
+  for it myself").** Bookmarks is THE pile for anything she kept; the old
+  All / Code / To read chip row is gone and `.acctabs` (the witch shop tab
+  pattern, same as the account row) splits it three ways.
+  - **"ARTIFACTS" is her word and the SCREEN's word; the code still says
+    `page`** — the route, the collection and `kind:'page'` are unchanged.
+    That split is deliberate, not an oversight: don't rename the data, and
+    don't rename the tab back.
+  - **A tab is not a chip, so there is no "All"** — the same reason the
+    account tabs have none. **Landing tab is MESSAGES** (slot 2), where the
+    pile she already had lives.
+  - **The Code / To read FILTER went with the chips** — code/read are now one
+    Messages tab. The distinction survives as the `code` BADGE on the row,
+    which is why that badge stays while the chat/artifact ones went: it
+    splits things WITHIN a tab, where the tab overhead can't. Ask her before
+    reviving the filter as a sub-row.
+  - **A kept CHAT is a STARRED chat — the same mark, deliberately.**
+    `starred` already meant "important, work I want to refer back to", so a
+    second per-chat keep-flag would only make her remember which of two
+    piles a chat went into. The **star button in the thread header is still
+    the only setter**; the Chats tab reads it. The ★ chip on the category
+    row shows the same set, and that duplicate is fine ("it can be in two
+    places, silly").
+  - **Rows branch on `kind`:** a chat row and a message row open a thread
+    (a chat row at the top — there is no message to jump to), an artifact
+    row launches `openPage` full-screen.
+  - **Each kind's note goes to its OWN route, and never carries a keep-flag**
+    — `/bookmark {id,note}` for a message, `/page/:id/bookmark {note}` for an
+    artifact, `/chatnote {chat,note}` for a chat. A chat's note IS its
+    existing `sophieNote` (the home-row where-things-stand line), editable
+    here as well as in the thread — one note per chat, never a third field.
+  - **`bookmarked` + `bookmarkNote` live on the PAGE doc**, so **deleting a
+    page takes its bookmark with it** — the pile can never hold a row
+    pointing at a 404. A **SUPERSEDED page can be kept**, on purpose: the old
+    version is often the thing worth keeping.
+  - **The mark on an artifact is the BOOKMARK glyph, not a star** — one glyph
+    for "kept" wherever it appears. `BMK_SVG` in chats.html is the single
+    copy; the button is `.bmk.pr-bmk`, written that way and never `.pr-bmk`,
+    because the generic `.bmk` rules sit LATER in the file and would win at
+    equal specificity (the `.bmk.hdrbmk` trap).
+  - **`GET /bookmarks` merges two queries + the cached registry** — still
+    single-equality only, so no composite index. Starred chats cost NO extra
+    read: the registry is already loaded for the display names.
+  - **`.acctabs.bmktabs` adds the pill's 56px corner reserve, and that is
+    load-bearing** — unlike the account row (which sits low, above the hidden
+    bar) this row is near the TOP of the screen, inside the pill's
+    x 324–374 / y 14–192 band, so the right-hand tab's own centre would land
+    under the pill. The sliding line then needs
+    `width:calc((100% - 56px)/3)`: an abspos child's percentages resolve
+    against the PADDING box, so the inherited 33.33% sits wider than a tab
+    and drifts right. The translateX steps stay 100%/200% (relative to the
+    line's own width).
+  - Tests: `node scripts/test-chats-bookmark-pile.js` — drives the real page
+    home → thread → Compare → Bookmarks, checks all three tabs and their
+    routes, and hit-tests every tab plus the underline width at 375/390/430.
+- **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
+  running to-do list").** `/chats` home view `todo`, entered by the word **To
+  do** beside Archive; Firestore `forge-chat-todos`;
+  `GET /api/chatfeed/todos`, `POST /todo {text}`,
+  `PATCH|DELETE /todo/:id {done?, text?}`.
+  - **Deliberately NOT per-chat.** The whole point is that an idea arrives
+    while she is somewhere else — a bug she noticed, an art direction to try.
+  - **ANY chat may read it** and act on an item the next time she messages
+    that chat — the same snail-mail rhythm as the notes on an image. Read it
+    in the same sweep as asset votes/notes. Do NOT poll it on a timer.
+  - Open items first, newest at the top of each group (the server sorts). A
+    crossed-off item stays, struck through, until she deletes it.
+  - The view hides the tool row and the search bar — both act on CHATS, and
+    neither does anything to this list. **That is exactly why the add row
+    carries `padding-right:56px`**: with those two gone it rides up into the
+    pill's y 14–192 band, and the Add button shipped underneath the pill,
+    untappable (Sophie caught it the first time she used the list). The test
+    hit-tests the button with `elementFromPoint` rather than comparing
+    numbers, so a future layout change cannot quietly re-bury it.
+- **The chat rows carry their ACCOUNT as a bare 1 or 2 at the front** (Aug
+  2026, Sophie, in the slot the letter icon vacated). Not a button: the
+  account picker lives in the thread, and a tappable-looking number there
+  would just be a mis-tap on the way into a chat. An untagged chat renders a
+  blank of the same width so the names still line up.
+- **ONE ACCOUNT AT A TIME — the ACCOUNT 1 / ACCOUNT 2 tabs (Aug 2026, Sophie:
+  "look at the Secretly a Witch app and see the pattern for where it says
+  reviews versus description, then follow that same pattern for account 1 and
+  account 2 so that on the main page of the chats app I can only see one
+  account at a time").** `.acctabs` in chats.html, a verbatim port of the
+  witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
+  hairline with a line under the one she is reading that SLIDES when she taps
+  the other.
+  - **In INK, not `--chg`** (Sophie, Aug 2026: "make it not red, just
+    black"). The screen spends its red on the hidden bar and the answered
+    badges, which are alarms; which account she is reading is not one. The
+    **red badge on each tab stays red** — that is the app's "something
+    answered you" colour everywhere else, and it is the one thing on the row
+    meant to catch her eye. Small type (10px) and a 5px negative top margin
+    keep it tight under the search box, also her ask.
+  - **It sits directly ABOVE THE HIDDEN BAR** (Sophie moved it there the same
+    day — it shipped under the masthead), so it is the last thing before the
+    list it governs. That position is also what lets it run FULL WIDTH: down
+    there it clears the autoscroll pill's band, so it needs neither the 56px
+    corner reserve nor a shortened hairline. **Move it back up and it needs
+    both again** — plus a sliding line of `calc((100% - 56px)/2)`, since an
+    abspos child measures the PADDING box. The test hit-tests both tabs at
+    375/390/430 rather than trusting any of that.
+  - **A gray line closes the hidden block off** from the chats under it
+    (`.hbsep`, her ask). It follows the whole block — the bar when the pile
+    is shut, the pile's last row when it is open — and that last row drops
+    its own border so the two never stack into a double line.
+  - **A tab is not a chip.** A category chip narrows a pile; this SPLITS the
+    screen in half, so it has to be a labelled tab that says which half she
+    is in — 144 of 200 chats are on account 1 (measured 2026-08-10), and a
+    silent filter would read as the rest having vanished.
+  - **An UNTAGGED chat shows on BOTH tabs.** Only 2 of 200 carry no account,
+    so it costs nothing, and picking a side for them would drop a chat off a
+    screen she can't tell is filtered.
+  - **It narrows every list of CHATS** — live, hidden pile, ★ pile, archive —
+    and the category chips' red badges count within the account, or a folder
+    promises replies that are on the other tab. Bookmarks / To do / Status
+    are lists of messages and items, so the tabs hide there; SEARCH is
+    deliberately untouched (searching is how she looks for one thing across
+    everything).
+  - **Session-only, defaulting to `appAccount`** — the App/Web switch on the
+    title line. Flipping that switch moves the list too (that is what the
+    switch means), unless she has already tapped a tab this session. Never
+    persisted: a sticky account would show her half her chats one morning
+    with no memory of having chosen.
+  - Each tab carries the same red ANSWERED badge the category chips do, so
+    the tab she is NOT on can still say there are three waiting over there.
+  - Tests: `node scripts/test-chats-accounts.js`.
+- **"UPDATE" — the daily notifications tab, and it LEADS the tab row (Aug
+  2026, Sophie: "right now there's account one and account two, two tabs on my
+  chat app screen — I wanna make one more tab, and this is like a daily
+  notifications thing, so it includes a little more information and I can get
+  rid of them if I've already checked them", then, having used it: "I would
+  put it on the left side of the accounts and call it update").**
+  `homeView='news'` — **the view key is still `news`; only her word for it
+  changed** — painted by `renderNews` in chats.html. The tab is the FIRST of
+  the three in `.acctabs` and lights up on its own (`data-on="new"`, the
+  sliding line's slot 0, which is the row's default); the two account words go
+  quiet under it. **The `::after` translate steps follow the MARKUP order** —
+  move a tab and move its step with it.
+  - **A card carries the THING, not a line about it** — that is the whole
+    point of the tab. Her two examples ARE the two blocks: "for the [oven]
+    chat, they keep delivering different versions of this artifact, so it
+    would show the actual artifact — I guess maybe a link to it" → the
+    chat's newest **Compare pages** (up to 2) as titles that open the page
+    full-screen; "if there's a chat that's making pictures, it would show the
+    last three pictures in a little row, so I can see it and be easily
+    reminded what they're doing" → the newest **three thumbnails**, a tap
+    opening that chat's Assets tab. On top sits the home list's own row
+    (name, her note or the chat's status line, how long ago), so the two
+    screens read as one app.
+  - **WHICH PAGES A CARD SHOWS — v3, and it answers both of her rules at once
+    (Aug 2026).** `freshPages`/`pageFamily` in chats.html. The two rules:
+    "if there's one version and then a new one comes out it should just
+    replace that one" (v6 sitting above v5), and — correcting v2, which
+    showed only the newest page at all — **"wait, if they give me a different
+    page, why would I want it to not be shown?"** Hiding a genuinely
+    different deliverable was a trade she never asked for.
+    So TWO filters, and the load-bearing one parses nothing:
+    1. **NEWER THAN THE FLOOR.** The ✓ she taps (and opening the chat) IS the
+       superseded marker — "I have seen the state of this chat as of now" —
+       so a page older than that mark never comes back whatever its title
+       says. This is what kills "Cutting blocks (s96) — moved from the Evan
+       chat", the page with no version number that beat v1 twice: it was
+       never a version question, it was an old-news question.
+    2. **…then versions collapse among what is left**, so a rapid v5 → v6
+       pair inside one unchecked stretch shows as v6 alone. `pageFamily`
+       reads WHERE the version sits: in the HEAD ("Cutting blocks v6 (s96) —
+       tap empty space to deselect") the head is the thing and the subtitle
+       is that version's notes; in the SUBTITLE or absent ("Evan — v11, the
+       art from your notes" / "Evan — pick the pauses (v6)") the head is a
+       PROJECT and the subtitle IS the deliverable, so those stay separate.
+       That half is title parsing and CAN be tricked — but a miss now costs
+       one extra row in a card she has not checked yet, never a stale
+       artifact that survives every check.
+    Cap 2 per card. **The PICTURES are deliberately not floor-filtered** —
+    she asked for "the last three pictures… to be easily reminded what
+    they're doing", which is context, and a row of one picture with two
+    blanks is worse at that job.
+  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
+    isn't hers, a Compare page, an image — because **a chat can deliver
+    without saying anything**, and a feed keyed on messages alone would miss
+    exactly the picture batches she asked to see. Cards sort by that arrival,
+    not by the chat's last message.
+  - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
+    /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
+    `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
+    not silence v4, so the card is gone only while nothing newer has landed
+    and the next version brings it back by itself. Nothing has to un-check
+    anything. A card also leaves when she OPENS the chat (`seen`, the
+    localStorage mark the unread dot reads), so the floor is whichever of the
+    two is later. Both are deliberately separate from `answeredAt` — "I know
+    about this" is not "this chat is done".
+  - **It ignores the account tabs**, like Status does: this is the
+    what-happened-while-I-was-away screen, and splitting it in half would mean
+    checking two screens to know she is caught up. The card carries the
+    account digit instead.
+  - **The badge counts CARDS and is honest on the CHAT LIST**, before she
+    opens the tab — which is why the tab row kicks `stFetch` once per load.
+    Deliberately once, not per paint: `/api/gallery/assets/recent` reads 240
+    Firestore documents a call and the home screen polls. Refresh drops the
+    cache (`stCache.at=0`) so the tap means the pictures too. The shared
+    `stCache` now fetches the routes' maximums (60 images / 20 pages) because
+    UPDATE needs three pictures for EACH drawing chat; the Status painters
+    slice back to the 24/6 they always showed.
+  - **EVERY CHAT WRITES AN UPDATE CARD — the ⌄ pop-out on its card (Aug
+    2026, Sophie: "I wonder if it would be a good idea to have a chat have
+    like a TLDR in their update — not fully in the message, because it would
+    crowd things, but more as like a button I could click and it would pop
+    out", then the shape: "the first question in bold would be what I asked,
+    and they just describe what I originally wanted; then what they did; then
+    an optional one would be if they had any questions for me or what would
+    be coming next" — and "those would be in bold, but the answers would not
+    be").** `POST /api/chatfeed/update { chat, session, asked, did, next }`,
+    stored on the registry beside the status card, rendered as three
+    bold-labelled lines: **What you asked** / **What I did** / **What's
+    next**.
+    - **Write it at the end of any turn that changed your state**, the same
+      moment you refresh your STATUS CARD — they answer different questions
+      (the status card is the ONE line on her home row; this is the account
+      of the turn, behind a tap).
+    - `asked` = what SHE wanted, in her terms, not a restatement of your
+      plan. `did` = what actually changed. `next` = optional, and it is the
+      place for a question or the next step.
+    - 300 chars each, truncated server-side; `""` clears one. Plain
+      sentences, no markdown — the app renders the labels, you supply the
+      answers.
+    - **The FALLBACK when a chat has never written one is its reply's TLDR
+      under "What I did"** — honest, and it means the ⌄ is not a button that
+      appears and vanishes down the list for no visible reason.
+  - Tests: `node scripts/test-chats-news.js`.
+- **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
+  "if I'm on the update tab — I guess it's when a chat finishes, but I don't
+  know — it brings me out automatically, and then I have to go back to the
+  update tab and click into the artifact again").** It was never a chat
+  finishing: `checkBuild` in chats.html reloads the page when the feed's
+  build stamp changes (that is how a page change reaches her phone at all),
+  and five deploys shipped that evening. Two halves, both needed —
+  **`busyOnScreen()`** defers the reload while `body.ontop` (the Compare
+  viewer OR the image lightbox) or `body.selecting` is set, and the reload
+  stashes `homeView` in `sessionStorage['chats-reload-view']` so she comes
+  back on the tab she was on. Waiting alone would still have lost the tab;
+  restoring alone would still have closed the artifact. **Only the page's
+  OWN reload restores the view** — a launch she started still opens on the
+  chat list, like every other filter here promises. Any new full-screen
+  overlay must set `body.ontop` (it already has to, for the scroll lock) or
+  it will be reloaded away. Tests:
+  `node scripts/test-chats-build-reload.js` (verified failing on each half
+  separately).
+- **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
+  the search bar collapse into just a magnifying glass button unless I click
+  it, and then it expands into the search bar as it is right now").**
+  `.searchrow` is the glass until tapped, then the bar it always was
+  (focused, so the keyboard comes with it).
+  - **The glass keeps the BAR'S OWN place on the CHAT LIST — it does NOT
+    join the tool row's icons there.** That was the first build and it is
+    measurably wrong: at 375 and 390 a third icon up there squeezes the
+    category chips onto a second line, spending the row this was meant to
+    save. The test asserts the chips stay on one line at 375/390/430.
+  - **…but on a view with NO chips it DOES join the tool row** (Bookmarks,
+    Status, To do, UPDATE). There the tool row is one lonely refresh icon
+    and the folded glass was a second lonely icon on its own row underneath
+    — two rows spending almost nothing, which Sophie caught on UPDATE.
+    `otherView()` is the one predicate for "not a list of chats"; both
+    `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
+    can never disagree about which state they are in.
+  - **The ✕ is the only way out, and it does two jobs**: with words in the
+    field it clears them (bar stays open); on an empty field it folds the
+    bar away. One control, no second button to discover.
+  - **The row reserves the pill's corner AND lays the ✕ out as a real flex
+    child** rather than the absolutely-positioned overlay `.qclear` is
+    elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
+    against the PADDING box, so the reserve alone leaves the ✕ exactly where
+    it was — measured at 390, under the pill's own down-arrow, which ate the
+    tap. (That was already true of the old always-open bar; it only became
+    load-bearing when the ✕ became the way to close.)
+  - Session-only, always starting SHUT, and `goHome()` folds it — leaving a
+    chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
+    tests. Tests: `node scripts/test-chats-search-archive.js`.
+- **TAKING A CHAT OUT OF THE ARCHIVE KEEPS HER IN IT (Aug 2026, Sophie:
+  "when I take something out of the archive it should go straight to that
+  chat, and when I get out of that chat I shouldn't be in the archive").**
+  Unarchive used to `goHome()` like Archive does, which was wrong twice: she
+  pulls a chat out BECAUSE she wants it, and the home she landed on was the
+  ARCHIVE view — the one place the chat no longer is. So Unarchive now
+  repaints the thread in place (the word flips back to "Archive") and flips
+  `homeView` off `archive`, so the back chevron lands on the live list.
+  **Archiving is unchanged** — that gesture means "away for good", so it
+  still ends by leaving.
+- **A chat's NAME is SANS and CAPS (Aug 2026, Sophie: "change the font in the
+  title of every chat to be the same font that the account one account two is
+  in — no serif", then "did you change the font size? put it back — and make
+  it caps by default").** `-apple-system`, the same family as the account
+  tabs and the timestamps; the serif stays for the masthead and the message
+  prose. **It applies to the chat NAMES ON THE LIST only — `.cr-name`.**
+  It shipped on `.thread-head h1` too, on the reasoning that one name should
+  not change typeface when you tap into it; Sophie put the thread header back
+  ("I noticed you also changed the titles inside the chats — I actually want
+  them back exactly how they were"). That rule is now the original,
+  declaration for declaration: serif, 1.5em, bold, mixed case, no tracking.
+  **Don't re-add font declarations there to "match" the row.**
+  - **`text-transform`, never an uppercased STRING**, so her real
+    capitalisation survives in the rename box (a separate `.nameed` input,
+    unaffected), in search, and anywhere else the name is read.
+  - **Size: `.cr-name` 1.15em — TWO POINTS at a time off the original, in
+    real pixels, never a guessed em step** ("make it two points smaller",
+    then "make the title font a little smaller, two points or so"). The
+    row's base is 13.333px: 1.45em was 19.33px, 1.3em 17.33px, 1.15em is
+    15.33px. **Measure the base before changing it** — the thread header's
+    base is 16px, not 13.333px, so an em figure alone says nothing about
+    points across the two.
+  - **`letter-spacing:.04em`** on both ("a little bit more space between the
+    letters"). Caps set solid read as a block; this is enough air to tell
+    the letters apart without turning a name into a label.
+  - **NOT BOLD — `font-weight:400` in both places** ("the titles shouldn't
+    be bold"). An `h1` is bold by default, so the thread header needs it
+    said out loud; caps at this size hold the row on their own.
+  - **Truncation, measured 2026-08-10** against her 144 live chat names at
+    390px (195px of room on a row): at 15.33px **83 truncate**, against 96
+    at 17.33px, 98 at 19.33px, and 58 for the original serif. The FIRST two
+    points barely moved it (98 → 96) because the new tracking spent what the
+    size saved; the second two actually landed. If it comes up again the
+    measured levers are tracking at .02em (-2) and another point or two of
+    size; **don't quietly change it without telling her the number**.
+- **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
+  archive create extra rows because they are longer than the word chats —
+  can you just make it overlap with the other things").** Title + bookmark +
+  To do + Archive + the account switch, inside the pill's 56px reserve, leave
+  the title ~78px on a 375px phone: enough for "Chats", not for "Archive"
+  (102) or "Bookmarks" (147). It briefly WRAPPED to fit, which cost her a row
+  of screen in those views. Now `#htitle` takes **no width at all**
+  (`width:0`, `overflow:visible`) so the control group never moves and the row
+  is always one line; a long title simply draws across it. Two details make
+  that liveable and are load-bearing: the title has `z-index:2` so the word
+  she is reading wins, and `pointer-events:none` so every tap falls through
+  to the buttons underneath. Verified across 375/390/430 × all five titles.
+- **THE TITLE IS THE WAY BACK, and the handler must live on the ROW (Aug 2026,
+  Sophie: "I'm supposed to be able to click on the archive title and it goes
+  back to chats and same with hidden").** Tapping the big serif word returns
+  to the chat list from Archive / Bookmarks / To do / Status, and closes the
+  hidden pile; on the chat list it does nothing, because she is already
+  there. **Do NOT do this by putting a click handler on `#htitle`** — its
+  `pointer-events:none` is exactly what keeps the overlapped buttons
+  tappable, and turning it back on swallows the bookmark button under the
+  word "Bookmarks" (147px of title over ~78px of room). Instead `.hrow`
+  carries the handler: a tap that arrives as `.hrow` itself is one that
+  missed every button, and it counts as the title only when it lands inside
+  the text's own rect. `#htxt` is an inner span that exists ONLY to measure
+  that rect — the h1 is zero-width by design, so it cannot report where its
+  letters are; `paintHomeChrome` writes the word into the span, never the h1.
+  **The ARCHIVE title is green** (`#htitle.arch`, `#5d7a5a` — the same green
+  as the thread header's ARCHIVE word), the hidden pile's stays red, and both
+  classes are toggled together so a view swap can never leave the wrong one
+  on. Tests: `node scripts/test-chats-title-back.js` — it taps the real word
+  in every view AND hit-tests all four header controls with `elementFromPoint`
+  at 375/390/430 across all five titles, so a future layout change cannot
+  quietly re-bury one.
+- **The view words never rename themselves (Aug 2026, Sophie: "when I press
+  hidden or archive it just takes me back to chats rather than having a
+  button that says chats and a back arrow — get rid of that button").** TO DO
+  and ARCHIVE each stay put and toggle: tap to go, tap again to come back.
+  The lit state and the big serif title say which view she is in. The old
+  "← Chats" relabel is gone.
+- **CHAPTERS inside one long thread (Aug 2026, Sophie: "divide the moon milk
+  chat into chapters — aim for somewhere around five but it's OK if there's
+  like four or seven").** A few chats ran for weeks, and re-reading one meant
+  scrolling past everything. `POST /api/chatfeed/chapters { chat, chapters:
+  [{title, at}] }` stores them on the REGISTRY doc; the thread draws a small
+  hairline heading where the chapter changes.
+  - **A chapter is just `{title, at}` and it MOVES NOTHING.** `at` is an ISO
+    time and the chapter owns every message from there until the next one
+    starts — no message is re-keyed, re-timed or copied, so a wrong boundary
+    costs one more POST and can never damage a thread. Send `[]` to clear.
+  - **On the registry, deliberately** — the feed already loads that doc whole
+    (`registry()` hands the client the entire doc), so chapters reach the app
+    with NO extra request and a chat without them renders exactly as before.
+  - **`chapterPlan()` in chats.html is the whole client rule**, and it is a
+    pure function so it can be tested. The thread paints NEWEST FIRST, so a
+    heading is drawn where the chapter CHANGES on the way down — which lands
+    it on that chapter's newest message, i.e. at the TOP of its block.
+    Messages older than the first chapter get NO heading (silence, not a
+    guess) and the dividers hide while the in-thread search filters rows —
+    a heading naming a block that has been filtered away is a lie.
+  - **The route refuses a chat that doesn't exist (404).** Firestore's
+    `set({},{merge:true})` WRITES a missing doc and `sortedChatNames` lists
+    every registry key, so a typo would put a phantom row in her list that
+    only the Admin SDK could remove — that has happened before. The registry
+    read is already cached by `followMoves`, so the guard costs nothing.
+  - A chapter with no title or an unparseable `at` is DROPPED, never guessed
+    at; the stored list is sorted by time whatever order it arrived in.
+  - Tests: `node scripts/test-chats-chapters.js` (the real route against a
+    stubbed Firestore + `chapterPlan` lifted out of the page and executed;
+    verified failing on both halves separately).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
@@ -864,6 +2125,22 @@ lifted into a standalone tool later.
   first, self-contained; image URLs from Firebase Storage are fine). The server
   auto-appends the shared autoscroll pill to every served page — do NOT add
   your own scroll pill.
+  **START FROM THE SHELL — `public/compare-shell.html` (Aug 2026, Sophie's
+  ask: "a shell every chat can use for their compare page that has the auto
+  scroll pill with everything exempt").** Copy that file and fill it in; it
+  links the two shared halves and carries the rules below as comments, so a
+  new page gets them without anyone remembering them:
+  - **`/compare.css`** — the one house look AND the `:root` tokens the
+    injected pill styles itself from.
+  - **`/compare.js`** — the one house BEHAVIOUR, in a single script tag:
+    any tap pauses the autoscroll **with the pill itself exempt** (an
+    unconditional handler eats the click on the pill's own play button) and
+    `[data-nostop]` as an opt-out; plus an image lightbox that stops the
+    scroll, locks the page, and restores the exact scroll position on close.
+    Do NOT hand-roll these handlers per page anymore — a page that includes
+    `/compare.js` has them right by construction. Tests:
+    `node scripts/test-compare-shell.js` (drives real taps against the real
+    injected pill in headless Chromium; skips if no Chromium).
   **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
   styled differently — there should be one style").** Start every new page
   from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
@@ -887,8 +2164,50 @@ lifted into a standalone tool later.
   unconditional version makes the pill's own play button dead (found live on
   Cut Marks, fixed on the Cutting Room too):
   `document.addEventListener('pointerdown', function(e){ var t=e.target; if(t&&t.closest&&t.closest('.float')) return; if(window.__scrollStop) window.__scrollStop(); }, true);`
+  **Including `/compare.js` does exactly this for you** — that snippet is now
+  only for a page that genuinely cannot load the shared script.
   This is on top of the existing image-lightbox rule below — opening an
   image still locks background scroll too.
+  **The tap gesture's exempt list is SHARED — never hand-roll one, and always
+  PASS THE EVENT (Aug 2026, Sophie: this "comes up a lot").** `pill.py` owns
+  `PILL_SKIP` (`a,button,summary,details,input,textarea,select,label,video,
+  audio,[onclick]`) and exposes it two ways: `window.__scrollTap(e)` applies
+  it for you, and `window.__pillInteractive(el)` answers it for a page's own
+  handler. **`__scrollTap()` called with no argument exempts NOTHING** — that
+  is exactly how a code block's COPY button in the Chats app both copied AND
+  started the autoscroll (Sophie caught it; the copy handler's own
+  `stopPropagation` is a document-level listener, so it runs after the page's
+  tap handler and can't help). A page may ADD its own exemptions on top
+  (chats: `pre`/`code`, so selecting text in a code block isn't a tap;
+  writing: `.notebox`), but the shared list is the floor. This is why a
+  Compare page with a copy button, a vote chip or a text field must route
+  through the shared helper rather than reinventing the skip list.
+  **IN THE APP the page runs EMBEDDED, and that is a SECOND pill (Aug 2026 —
+  Sophie caught it on the judge demo; the standalone tests were all green).**
+  chats.html opens a Compare page in an IFRAME with `?embed=1` (no injected
+  pill) and its own parent pill drives the iframe, with a tap-to-TOGGLE
+  gesture bound inside the page's document. That gesture used to start the
+  autoscroll from taps on IMAGES (while the lightbox opened over it) and on
+  the lightbox backdrop. Now: the parent forwards `__scrollStop` into the
+  iframe (per-gesture memory so a pause isn't re-toggled by its own click),
+  exempts `img`/`figure`/`.cmp-lb` as pause-only, and honours
+  `[data-nostop]`; `.duo img` joined the lightbox selector. A page whose
+  ordinary content is tappable (a judge card, a word picker) marks that
+  region `data-nostop`. Tests: `node scripts/test-page-embed.js` (drives the
+  REAL chats.html viewer end to end) — testing only the standalone page
+  misses this entire path.
+  **AN EXTERNAL LINK ON AN EMBEDDED PAGE MUST LEAVE THE IFRAME (Aug 2026,
+  Sophie: an "Open the chat" link "just took me back to the compare page").**
+  A plain `<a href="https://claude.ai/…">` navigates the IFRAME, and
+  claude.ai sends `x-frame-options: SAMEORIGIN` (measured 2026-08-10), so the
+  load is refused and the tap reads as bouncing back. `/compare.js` now opens
+  any OFF-ORIGIN http(s) link from the TOP document with `target="_blank"` —
+  the same thing the Chats app's own Open button does — so it never navigates
+  the web view away from the app; same-origin and `#anchor` links are left
+  alone, and a standalone page is untouched. **A page gets this for free by
+  linking `/compare.js`, including pages posted BEFORE the fix** (they load
+  it at runtime, so no repost — which matters, since a repost would throw
+  away verdicts she had already saved).
   **A page served with the injected pill must SCOPE its own script (IIFE).**
   The pill snippet runs in global scope and declares `var raf`, `var I`,
   `var playing`, … — a page-level `let raf`/`const I` collides and kills the
@@ -908,6 +2227,91 @@ lifted into a standalone tool later.
   tightest cut"), pointing at NEW version-numbered media files; the old pages
   and files stay as history. DELETE+re-post is only for fixing a typo on the
   SAME version.
+  **CURRENT / SUPERSEDED tabs on the Compare list (Aug 2026, Sophie: "the
+  drafts that have changed can still exist, but not crowd the current area").**
+  A page doc carries `superseded`; `POST /api/chatfeed/page/:id/supersede
+  {superseded}` flips it, and `GET /pages` returns it. The Compare panel then
+  shows the account tabs' exact pattern (`.acctabs` — no boxes, two half-width
+  labels over a hairline with a sliding underline) and the tabs **only appear
+  once something is superseded**, so a chat with three pages still looks like
+  three pages. Every row carries a small ↓ / ↺ so she can move one across
+  herself. **A chat posting a new version should supersede the one it
+  replaces** — that is what keeps eleven drafts of one tool out of her way
+  WITHOUT deleting the history.
+  **Every row (both tabs) also carries a BOOKMARK** that sends the page to
+  the Bookmarks view's **ARTIFACTS** tab, alongside her kept chats and
+  messages — see "THE KEEP-PILE IS THREE TABS" above. One more reason never
+  to delete a superseded page: she may have kept it.
+  **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
+  earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
+  rebuilt page usually renumbers its items — so re-posting a page under the SAME
+  `sheet` silently re-points her answers at different content: `b05` in an
+  82-block split became a different sentence in the 96-block split, and four of
+  her cuts landed on lines she had never marked. Nothing errors; the page just
+  quietly shows her the wrong state. Put the item set's shape in the name
+  (`blocks-s96`, not `blocks-v8`), and when a rebuild changes the items,
+  MIGRATE rather than making her redo it — map old ids to new by TIME OVERLAP
+  or text, write the migrated state into the new sheet, and say what moved.
+  **And do not delete the superseded page.** A new version is a new page and the
+  old one is the history (see above); deleting it throws away the only record of
+  what she was looking at when she gave a note.
+  **SHE MUST BE ABLE TO ADD A NOTE — everywhere it could apply (Aug 2026,
+  Sophie's standing rule: "that should be a standing rule generally whenever
+  applicable").** A vote answers yes/no; a note is where she says WHY, or what
+  to change, and it has to sit next to the thing itself. So **anything
+  reviewable gets a note box**: every item on a Compare page, and by extension
+  any new surface where she judges things (the Assets lightbox and the Writing
+  Room already work this way — match them). Do NOT ship a page whose only
+  input is a pair of vote buttons.
+  - **It is one line, because `/compare.js` owns it.** Mark each item
+    `data-item="<id>"` and call
+    `window.__compareNotes({ chat, sheet })` after the items are in the DOM.
+    That builds the note affordance per item, prefills whatever she
+    wrote before, saves as she types (debounced), and flushes on blur and on
+    `pagehide` so a half-typed note can't be lost by navigating away. Never
+    hand-roll a note box per page.
+  - **THE AFFORDANCE IS A SMALL + IN THE ITEM'S BOTTOM-RIGHT CORNER, AND AN
+    EMPTY ONE COSTS NO HEIGHT (Aug 2026, Sophie: it "takes up too much space
+    and makes it hard to see everything at once", then "put the plus for a
+    note at the bottom not the top, and if I left a note, make it show").**
+    v1 was a "+ note" text button on its own line under every item, and a
+    written note then stayed OPEN IN A TEXTAREA — so a page of twenty items
+    paid twenty rows whether or not she had written anything. Three states,
+    each load-bearing: **nothing written** → just the + (absolute, zero
+    height); **she wrote one** → HER WORDS SHOW quietly under the item;
+    **writing** → the textarea, folding back to her words on blur. So height
+    is spent only on notes that exist. Don't put an empty one back in flow,
+    don't open a written one into a textarea just to display it, and don't
+    hand-roll a bigger one on a new page — it lives in `/compare.js` +
+    `/compare.css`, so every page (including ones posted before this) gets it
+    at runtime.
+  - **ANSWER HER ON THE NOTE ITSELF, AND IT RENDERS AS A THREAD (Aug 2026,
+    Sophie: "respond to my notes on the note itself so I can respond there
+    also — otherwise I forget what we're talking about", then, having used
+    it: "I don't know why I'm responding inside of your message. That's
+    strange").** A note is a conversation, not a comment box she files into
+    the void — but v1 handed her the whole field in one textarea, so
+    answering meant typing inside the chat's paragraph.
+    - **The field is a list of MESSAGES, one per line-start marker: `— me:`
+      and `— Claude:`.** Read the sheet (`GET /verdict` → `texts`), append
+      `\n\n— Claude: <short answer>` and POST the whole field back. Text
+      before the first marker is hers, so every note written before this
+      still reads correctly.
+    - **Her box is always EMPTY and only ever APPENDS.** `/compare.js` keeps
+      the stored field separate from the draft; never repopulate the
+      textarea with the thread (a second blur then appends it to itself).
+    - **More than one message FOLDS to the newest**, behind a small
+      "N earlier" (her ask: "also collapse the messages anyway"), so a long
+      back-and-forth can't bury the list. Hers and the chat's carry
+      different coloured rules and a tiny ME / CLAUDE label.
+    - Keep answers short (the field caps at 2000 chars) and don't re-answer
+      a note that already carries your line.
+  - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
+    for the vote, `text` for the note — so writing one never clears the other
+    (that is why the route has both). Read them back together with
+    `GET /api/chatfeed/verdict?chat=&sheet=` → `{ items, texts }`.
+  - **Read the notes when she next messages you**, in the same sweep as asset
+    votes/notes, and act on them.
   **A page must NEVER post to `/api/chatfeed/reply`** (Aug 2026, Sophie's
   rule): notes she types on a Compare page are not chat messages and must stay
   on the page — use `POST /api/chatfeed/verdict { chat, sheet, item, text }`.
@@ -919,6 +2323,182 @@ lifted into a standalone tool later.
   are the review surface. Build a page only when Sophie asks for one or the
   set genuinely can't be reviewed as tiles. And when you DO build one, lay the
   images out in **rows of TWO**, never one full-width image per row.
+  **THE TITLE, AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie: "get rid of
+  the gold top part of the top and just make it the name… everything but the
+  title, including the tagline and the top thing with the date or
+  whatever").** A Compare page opens with its `<h1>` and goes straight into
+  the thing. **No `.eyebrow`** (the gold CHAT NAME · DATE line — she already
+  knows which chat she is in and when she asked for it) and **no `.sub`**
+  tagline. Both classes stay in `compare.css` for older pages; a NEW page
+  simply does not use them, and `compare-shell.html` no longer has them.
+  **PREFER NOT SCROLLING, AND WHEN THERE ARE TWO KINDS OF THING USE THE
+  HAIRLINE TABS (Aug 2026, Sophie's standing rule).** A page she has to
+  scroll to reach the controls is a page where the thing and the controls are
+  never on screen together. So: fit what she is looking at on ONE screen, and
+  when a page carries two different kinds of thing — a picture and its
+  inputs, a shape and the buttons that drive it — split them with the
+  `.acctabs` hairline pattern (two half-width labels over a hairline, the
+  line sliding under the one she is reading) instead of stacking them down
+  the page. The tab row sits near the top, so it needs the pill's 56px corner
+  reserve and a sliding line of `calc((100% - 56px)/N)` — an abspos child
+  resolves its percentage against the PADDING box.
+    **MINIMAL TEXT, and compared things SIDE BY SIDE (Aug 2026, Sophie — asked
+  for on page after page).** A review page is a VISUAL reference, not an
+  extension of the chat: title, ONE line under it, labels on the pictures —
+  no paragraphs. And the things being compared sit NEXT TO each other (the
+  `.duo` block in compare.css — labels ON TOP, "medium" / "high"), never
+  stacked so she scrolls between them. Full rules live in the `new-page`
+  skill and the shells' own comments.
+  **A FILM IS A LINE OF TEXT WITH A PLAY BUTTON, AT THE TOP — never an
+  embedded `<video>` (Aug 2026, Sophie: "never put a whole video when it's
+  gonna be opened as a lightbox anyway, it should just be a line of text with
+  a play button… so I don't just scroll through the whole thing").** Both
+  the Evan film pages and the Mason one shipped a full-width player parked at
+  the top; it is a black slab she scrolls past on every visit, and tapping it
+  goes fullscreen regardless — so the box bought nothing. One line does it,
+  and the overlay contract (autoscroll stopped, page locked, scroll position
+  restored, video torn down on close so it can't play on behind the page)
+  comes with it:
+  `window.__filmRow({ url, label, meta:'4:56', mount:'#film' })` in
+  `/compare.js`. **The deliverable sits at the TOP of the page**, above
+  whatever there is to decide — that is where she looks for it, and it is why
+  a delivery gets a Compare page at all.
+  **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
+  is PICKING/CHOOSING across a set rather than reading a comparison, start
+  from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,
+  NO scrolling, ♥/✕/maybe/later (maybe and later are real piles — 'later' is
+  "declined to sort now", reviewable as a group), verdicts saved live to the
+  chat's verdict doc (`ok` accepts those short strings since Aug 2026),
+  resume on reopen, piles view with re-judging, undo, a note box per card. A
+  judge item can be a labeled PAIR judged as one thing — the
+  compare-and-choose case (medium vs high of the same portrait, PDF page vs
+  its text). Read answers back via `GET /api/chatfeed/verdict?chat=&sheet=`.
+  Tests: `node scripts/test-judge.js`.
+- **THE CUT PICKER IS THE REQUIRED SURFACE for "pick spans of a recording"
+  jobs (Aug 2026, Sophie — after FOUR chats each hand-rolled their own
+  span-picking page in one week and each re-shipped the same bugs).** Any
+  time Sophie needs to pick which parts of a long recording to keep — an
+  audiobook passage, an interview, one of her own recordings — start from
+  **`public/picker-shell.html`** and `window.__cutPicker` (`/picker.js`).
+  Do NOT hand-roll word-tap handlers, per-pick audio, reorder tiles, or
+  pick-saving again. What it gives you, debugged once:
+  - tap-a-first-word / tap-a-last-word span picking (her own preferred
+    model, from the "grasshopper" chat's page), tap a pick to remove, undo;
+  - WORDS / PICKS tabs (the witch shop's description-vs-reviews pattern —
+    Sophie's ask, so the tiles aren't a long scroll below the transcript),
+    and a follow-along highlight: the word being spoken lights up and
+    auto-centers while a pick plays (the Voice Memos / Cutting Room
+    pattern; only as exact as the page's word times);
+  - **a ▶ on every pick that plays THAT EXACT SPAN within seconds** — the
+    server cuts it once via `GET /api/search/clip-span?src=&t0=&t1=`
+    (editor.js's transcoder + the search-clips immutable cache), so she
+    never waits for a chat to wake up and render before hearing a cut;
+  - pick tiles with ▲▼ reorder, a note box per pick, play-them-in-order
+    (the "TIME — move the sentences around" page's model);
+  - live saving as **ONE verdict field per pick** (`<id>:p<key>` →
+    `{a, z, o, note}`) — never one big JSON string, which silently
+    truncates at the verdict route's 2000-char cap around 15 picks;
+  - the autoscroll-pill tap contract via `/compare.js`, so the
+    tap-starts-the-scroll bug cannot ship again.
+  Read her picks back with `GET /api/chatfeed/verdict?chat=&sheet=` (keys
+  `<id>:p*`, empty = removed, order by `o`, indexes into YOUR words array),
+  then cut the real audio with the precise cutter — preview clips are
+  previews. Word times can be segment-interpolated; with no times the
+  picker still picks, just without play buttons. Seed your suggested spans
+  via `seed:`, shade already-used words via `shade:`; the scissors on a
+  pick tile splits it into two back-to-back picks (so each part can get a
+  different picture or speaker).
+  **Send-to-episode (Aug 2026, Sophie):** for an INDEXED source the picker
+  bar carries a "to the Episode Editor" button — every pick, in her order,
+  becomes a snippet card in ONE NEW episode (`POST
+  /api/search/picks-to-editor {src, title, picks:[{text,timeSec}]}`), where
+  narration cards, gaps and the real render already live. Each send makes a
+  NEW episode (never appends — the new-version rule); a chat asked to "put
+  these in an episode" should call the same route rather than hand-building
+  episode docs. Tests: `node scripts/test-cut-picker.js`.
+## Push notifications (the Update tab's doorbell — Aug 2026)
+- **`push.js` (`/api/push`) sends real APNs lock-screen notifications**, raw
+  HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app
+  registers its device token per launch (`POST /device`, upsert), and
+  `chatfeed.js` calls `notifyChat()` on a **finished reply** (never a draft)
+  and on a **new Compare page**. Debounce: one push per chat per 10 min +
+  60s global gap — the pushes are the Update tab's doorbell, not its
+  replacement, so dropped ones are never lost news.
+- **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
+  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
+  key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all
+  accepted) **OR — the better home, her ask — as a RENDER SECRET FILE**: any
+  `*.p8` in `/etc/secrets`, the project root or cwd is picked up by
+  extension, so Apple's own `AuthKey_<KEYID>.p8` can be uploaded unchanged
+  with no name to get right (`APNS_KEY_FILE` overrides with a path). Env
+  wins; a file MISS is re-checked every 30s, so a key uploaded after the
+  deploy starts working on its own. Everything is read lazily at send time,
+  so a key landing needs no redeploy. **Only Sophie can mint the key** (Apple
+  developer portal → Keys, environment **Sandbox & Production** — TestFlight
+  rides production); never paste it into a chat.
+  **Her ids, for reference: Key ID `G8WMZDR4KK`, Team ID `5XR23N2CBH`** —
+  neither is a credential (the .p8 is), and having them here saves a
+  screenshot hunt next time.
+- **`POST /api/push/test {title?, body?}`** (gated) sends a real push to
+  every registered device with per-device results — the end-to-end check.
+  `GET /status` → `{configured, devices}`.
+- **iOS side** (`PushDelegate.swift` + `aps-environment` in the
+  entitlements): permission asked once at launch, token POSTed with the
+  studio token, notifications SUPPRESSED while the app is foregrounded (the
+  Update tab is the notification there), and a **tap opens THE CHAT IT CAME
+  FROM** (`/chats?chat=<slug>`).
+  - **v1 always opened the Update tab and she rejected it** ("I click on the
+    notification, it lands me in the updates tab, but that notification is
+    already gone because clicking the notification gets rid of it"): iOS
+    consumes the banner on tap, so landing on a LIST leaves her no way to
+    tell which chat just spoke. The payload always carried `chat`; now it
+    routes. A push naming no chat (the `/test` send) still lands on Update.
+  - **BOTH params are stripped at boot** (`?chat=` and `?view=news`) —
+    checkBuild reloads the page on every deploy and keeps the URL, so a
+    leftover param would re-open that thread over whatever she is reading,
+    on every deploy, forever. Pinned by `test-chats-build-reload.js`. TestFlight rides the
+  PRODUCTION APNs host. Apple-managed CI signing registers the push
+  capability on the App ID automatically (same as the App Group did).
+- **THE HOME-SCREEN WIDGET (Aug 2026, Sophie: "I'd like the widget")** —
+  `ios/ForgeWidget/`, a WidgetKit extension: the Update count big, plus the
+  newest chats (names at small, name + line at medium), tap opens
+  `deckfactory://chats`. Flat paper palette, no gradients.
+  - It reads **`GET /api/chatfeed/widget?limit=`** — one small JSON — and
+    must NEVER pull the real feed (~500KB on a refresh timer). Cost is the
+    cached registry + one capped message read, nothing per-chat.
+  - **Its floor is `notifSeenAt`, and OPENING A CHAT NOW WRITES THAT STAMP
+    TOO** (`markSeen` POSTs `/notif-seen`, Aug 2026). Without it the widget
+    counted everything-since-the-✓ while the tab counted
+    everything-since-she-last-looked — measured live the hour it shipped:
+    **14 against 2**, the same idea disagreeing with itself on two screens,
+    because `seen` is localStorage inside the web view and a widget is a
+    separate process with its own container. Opening a chat already cleared
+    its Update card, so this changed no visible behaviour in the app; it
+    just put the same fact where the widget can read it.
+  - **IT HAS NO ENTITLEMENTS FILE, and that is load-bearing — the first
+    build died on exactly this.** Apple-managed CI signing registers a NEW
+    App ID for the extension but does NOT enable the App GROUP on it, so
+    asking for `com.apple.security.application-groups` fails the archive:
+    *"provisioning profile … doesn't match the entitlements file's value for
+    the com.apple.security.application-groups entitlement"*. DumpShare's
+    group was enabled long before, which is why that target never hits this
+    — **do not copy DumpShare's entitlements into a NEW extension and expect
+    it to build.** Consequence: the widget can't read the settings the app
+    writes (`ImageForgeApp.shareSettingsWithWidget` still writes them), so it
+    calls the DEFAULT server unauthenticated. Fine while STUDIO_TOKEN is off
+    (it is). To restore the group: enable App Groups on
+    `com.sageryza.imageforge.widget` in the developer portal ONCE, then add
+    the entitlements file back — the Swift side already reads the group, so
+    there is no code change.
+  - A failed fetch says "can't reach the feed" rather than showing 0:
+    "nothing new" and "couldn't ask" must never look the same.
+  - Tests: `node scripts/test-widget-feed.js` (drives the real route against
+    a stubbed Firestore).
+- **A dead token self-heals**: 410/`Unregistered` deletes the device doc.
+  Tests: `node scripts/test-push.js` (key-paste shapes, verifiable ES256
+  JWT, wire format against a local h2c server; Apple itself is only
+  testable via `/test` + a real phone).
+
 - **NO recurring hourly self-check-ins / `send_later` loops (July 2026).** Do not
   set up a chat to wake itself every hour to poll for notes/replies/PRs — that
   pattern spread across chats and kept pinging Sophie, and it's been turned off.
@@ -1052,7 +2632,7 @@ lifted into a standalone tool later.
   and "are these the characters?" (pick a candidate / unpick = not them /
   type a description). **Stage 3 — `POST /dream/:id/render {quality,
   characters:[{name, url|image|desc}]}`:** `dreamPaginate()` lets the model
-  decide how many IMAGES the dream needs (1-8, never padded) and allots each
+  decide how many IMAGES the dream needs (1-6, never padded) and allots each
   image a verbatim slice of the dreamer's words in TRUE chronological order
   (drift cues fix the narration order); then `makeDreamPagesV2` draws
   sequentially — each page gets the style ref FIRST, then ONLY that slot's
@@ -1061,7 +2641,15 @@ lifted into a standalone tool later.
   (`dreamPageRefs` — a face is carried from the page it first appeared on),
   plus the whole dream for context and "THIS page tells ONLY this part".
   **The model decides each page's layout** (single drawing or panels — no
-  fixed 2x2). Pages store `{url, promptUsed, text, who}`; plan kept on
+  fixed 2x2). Pages store `{url, promptUsed, text, captions, who, softened}` —
+  **`text`/`captions` are what the picture ACTUALLY says**, so anything
+  rendering captions from the doc matches the drawing; when the safety filter
+  forced a rewording, **Sophie's own wording is kept beside them as
+  `textOriginal`/`captionsOriginal`** (present ONLY on a softened page, so
+  ordinary pages carry no redundant copy). The dream is a record of what she
+  said — a content filter must never silently replace her sentence with a
+  paraphrase, and `softened:true` alone couldn't tell you WHICH sentence
+  changed. Plan kept on
   `dream.pagePlan`. ~$0.06/page medium. Legacy beat docs still render
   through the old `makeDreamPages` 2x2 path (`order:[beatId]` still
   honored). Own polled docs (`GET /dream`, `GET/DELETE /dream/:id`,
@@ -1183,6 +2771,66 @@ lifted into a standalone tool later.
 - PATCH writes are whitelisted to `EDITABLE` — everything else on the doc
   (url, storagePath, createdAt) is server-owned. Queries use a single equality
   filter and sort in memory, so no composite Firestore index is needed.
+### The Splitter — `/crystalsplit` (Aug 2026), where one stone stops and the next begins
+- **The album-is-one-stone model above is WRONG for most of the real data.** The
+  photos never came through `/upload` — Sophie dumped them into the **Dump**
+  (`forge-drops`, folder "Crystals": **15 albums, 629 photos + 33 videos**). Only
+  TWO albums are one stone ("Clear quartz cluster", "Selenite sphere", plus the
+  one tiger's-eye sphere shot properly). The rest are catalogue runs — one stone,
+  a couple of shots, next stone — so a single album holds 20-50 separate stones.
+  "Individual crystals" is ~20 labradorite freeforms; "Sectarian day two" is
+  **septarian** (voice-to-text) and ~50 pieces in the lightbox. **Roughly 175
+  stones in total.** Don't rebuild anything on album=stone.
+- **Most stones have 1-3 photos, which is a grid slot but NOT a listing** (Etsy
+  wants 5-10). `enoughForOwnListing` derives the re-shoot list from that; the
+  re-shoot itself is physical work, not a computer job.
+- **How they get sold (Sophie, Aug 2026): treatments 1 and 2 MIXED, per stone** —
+  its own listing for the individually striking pieces (big labradorite
+  freeforms, amethyst clusters), a numbered **pick-your-own grid** slot for the
+  many-similar ones (septarian, tiger's eye spheres, pink quartz). Her older
+  idea from the July brief still stands: run "you choose" and "you get what you
+  get" as two listings over the same stones, two price points (the one case
+  where Etsy's duplicate-listing policy really applies — word them as genuinely
+  distinct).
+- **Nothing can DERIVE the stone boundaries and a wrong guess is expensive** —
+  three consecutive frames of a yellow septarian are either one stone turned
+  around or three different stones, and reading it wrong puts a number on a grid
+  that two customers can buy. So the splitter asks: the album's photos in
+  shooting order, one tap on any photo that starts a NEW stone; everything
+  between two marks is one stone is one listing.
+- **Marks are FILE IDS, never indexes.** Re-dumping an album tops it up and
+  `photoIndex` is allocated per arrival, so an index-keyed split would silently
+  re-point at different photos. `names`/`treatment` key off the id of a stone's
+  FIRST photo for the same reason.
+- **The split is its own doc** (`forge-crystal-splits`, id = the bundle slug) and
+  the photos are read live — it never changes any grouping or label in the Dump,
+  so a split is always re-editable and throwing one away costs only the taps.
+- **TILES MUST USE `thumb`, NEVER `url`.** A Dump photo is the full-resolution
+  original (~3.7MB — correct, Etsy wants 2000px+) and an album is up to 100 of
+  them. `node scripts/crystal-thumbs.js` writes a 480px webp beside each photo
+  (content-addressed off the source bytes, one-year immutable cache) and adds
+  `thumbUrl` to the drop doc — the one field the splitter writes back. **Re-run
+  it after any new crystal dump**; `--force` rebuilds, `--bundle`/`--track`
+  narrow it. Ran once over all 629 on 2026-08-09.
+- **Routes** (on `/api/crystals`, same gate): `GET /split/albums` (every Crystals
+  album + split progress), `GET /split/:bundle` (photos in order + marks),
+  `POST /split/:bundle` `{marks?, skip?, names?, treatment?}` (whole state, merge
+  write), `GET /split/:bundle/stones` (the derived stones — what a listing
+  writer, a grid builder or the re-shoot list reads).
+- **`deriveStones` rules, pinned by tests** (`node scripts/test-crystal-split.js`,
+  12 cases): no marks = ONE stone (not zero — the first photo starts a stone by
+  definition); a mark on photo 0 is a harmless no-op and the page refuses to
+  offer it; **a skipped photo does NOT break the run it sits in** (that is how a
+  tray shot or a weight-sticker close-up leaves the count without splitting a
+  stone in two); numbering is positional, so **any re-split renumbers and a grid
+  must be re-rendered, never patched**. Page tested headless:
+  `node scripts/test-crystal-split-page.js`.
+- **Weights are already on some stones** — several septarian carry blue stickers
+  with the weight written on them (14.4oz, 11.7oz), readable straight off the
+  photos.
+- The Dump album **"crystals"** (#62, 15 files) is NOT photos — it's AI-generated
+  crystal illustrations mis-filed into the Crystals folder. "Light box review" is
+  4 shots of Sophie testing the lightbox, not a stone.
 - **A/B testing note (July 2026 research):** Etsy has NO native split test, and
   changing tags/title on a live listing resets its ranking clock (7–14 days to
   restabilize, 30–90 to fully re-rank). The safe method is a **duplicate
@@ -1288,13 +2936,84 @@ lifted into a standalone tool later.
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead
   of losing the recording.
-- Dedupe is belt and braces: hash match always skips; a caller-supplied
-  (trusted) stamp match skips; a server-derived stamp never skips on its own
-  and gets a hash suffix in the id so two same-minute recordings can't
-  collide. `GET /api/memos/status` returns `stamps` + `hashes`.
-- One-time repairs (both ran 2026-08-05): `scripts/memo-unify-backfill.js`
-  — phase A stamped `hash` onto existing records from Storage md5 metadata,
-  phase B merged strays from `forge-audio` into the archive.
+- **THE FILE md5 IS NOT A FINGERPRINT OF THE RECORDING (Aug 2026 — this is
+  what let duplicates through after the "one library" fix).** iOS rewrites an
+  m4a's QuickTime creation/modification dates every time the file is exported
+  or shared, so re-sharing a recording gives DIFFERENT BYTES for identical
+  audio. Measured on a real pair: both copies 2,820,952 bytes, **36 bytes
+  different, every one a date field** (copy A `2026-08-02T19:43:44Z`, copy B
+  `2026-08-04T04:31:10Z` — each the moment it was FILED), all 2.8MB of audio
+  bit-identical. **That single cause defeated BOTH dedupe layers at once**,
+  because `mvhdDate()` reads the same rewritten clock, so the server-derived
+  stamp was "when it was shared" too. Don't diagnose a repeat memo as a hash
+  bug — the hash was working; it was hashing the wrong thing.
+- **Dedupe is THREE layers now, and each catches what the one before cannot:**
+  1. **file md5** (`hash`) — a byte-identical resend, i.e. a retried upload.
+  2. **audio fingerprint** (`ahash`, `memos.audioHash`) — the file md5 with
+     every mvhd/tkhd/mdhd date zeroed, so a re-SHARED recording matches. The
+     scan is a whole-buffer search, NOT a tree walk from the top-level moov:
+     Voice Memos leaves an earlier copy of those boxes inside the mdat region
+     (headers at 17814 *and* 2755110 in the measured file) and iOS updates
+     both — a tree walk finds one and the fingerprints still disagree.
+  3. **transcript backstop** (`memos.transcriptTwin`) — exact duration + ≥40
+     words + ≥90% word agreement. This is what catches a re-ENCODED copy,
+     where even the audio bytes differ. **The thresholds are calibrated
+     against the real archive, not guessed** (swept over all 1,117 records:
+     they flag the 9 genuine duplicates and nothing else). Every gate is
+     load-bearing — EXACT duration because Sophie re-records the same line
+     constantly and those takes land 1–2s apart (±2s slack wrongly flagged
+     four of them); 40 WORDS because an 8-second line repeated ten seconds
+     later really is word-for-word identical and is NOT a duplicate; 90%
+     because Whisper transcribes the same audio differently each run (which
+     is exactly why duplicates read as different memos). Re-run
+     `node scripts/memo-dedupe.js` after touching any of them.
+- **A SHARED STAMP IS NOT A DUPLICATE, and the stamp no longer dedupes
+  anywhere (Aug 2026).** It is minute-resolution, Sophie records several short
+  thoughts back to back, and the archive holds **70 groups of recordings that
+  honestly share a minute** — so the rule was wrong for about one recording in
+  fifteen. It cost a real one: a 28-minute recording from 2025-09-12 was
+  refused as "already in the archive" because an unrelated 11-second clip
+  (91KB against 14.2MB) was made in the same minute. Identity is bytes or
+  words; the stamp only NAMES a record.
+  - The Mac push had it worse, because it filters BEFORE uploading — a new
+    recording sharing a minute with an archived one was never sent at all, so
+    the server's layers never got to judge it. `GET /status` returns **`keys`**
+    (`stamp|duration`) and `push-memos.mjs` skips only when both match;
+    duration comes free from the Voice Memos database, so this costs no file
+    reading. (`stamps` is still returned for older callers.)
+  - **The direction of the risk is deliberate**: a false SEND is harmless (three
+    real layers catch it, and a fingerprint match costs nothing — not even
+    transcription), while a false SKIP loses a recording for good.
+- **Never hand-build a stamp** — POST the bytes and let the server work it out.
+  A stamp equal to NOW is a caller guessing (12 records got in that way, 0–3
+  min from their own upload); it still names the record but earns the id a hash
+  suffix so two derived minutes can't collide.
+- A skip after the audio is already uploaded now DELETES those bytes, or they
+  become an orphan object nothing can reach (five of those had accumulated).
+- **Repairs: `node scripts/memo-dedupe.js`** — `--fingerprints` (backfill
+  `ahash`), `--merge` (merge duplicate pairs), `--orphans` (sweep audio no
+  record points at), `--all`, `--dry-run`. **It never deletes**: a merged-away
+  recording's audio moves to `memo-audio/_removed/` and the manifest is backed
+  up beside itself before any write, so every repair is reversible by hand.
+  Bare (no flags) it scans and changes nothing — run that first.
+- Ran 2026-08-07, end to end: 9 duplicate pairs merged (1,117 → 1,108) — 6 from
+  the 11 July bulk build (`export-voice-memos.sh` appends `_1` when a filename
+  already exists, so a second export run into the same folder copied some
+  recordings out twice and each copy was transcribed and titled separately),
+  3 from re-shares in Aug. Then `ahash` backfilled over all 1,108 (4.86GB read,
+  ~$0.60 of egress; 3 zero-duration empties have no container to fingerprint),
+  and the 5 orphan objects re-filed → **1,113 records, 0 duplicate pairs**. One
+  of those orphans was a 28-minute DREAM with a 19,316-character transcript
+  that had been invisible since Sept 2025.
+- **After any merge or re-file: rebuild the Search index AND re-embed.** The
+  index keys its vectors to `builtAt` + chunk count, so a reindex that changes
+  chunking leaves meaning-search 409ing on `stale-vectors`.
+  `POST /api/search/reindex` (free) then `POST /api/search/embed` (~$0.05).
+- Earlier one-time repairs (both ran 2026-08-05):
+  `scripts/memo-unify-backfill.js` — phase A stamped `hash` onto existing
+  records from Storage md5 metadata, phase B merged strays from `forge-audio`
+  into the archive. Note phase A landed AFTER two of the three Aug duplicates,
+  so the md5 layer wasn't even present when they were filed.
 
 ## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
 - `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for
@@ -1391,7 +3110,8 @@ lifted into a standalone tool later.
   vs windowed sales, and buckets listings into top sellers / hidden gems (high
   conversion, low views → visibility problem) / stalled (views, no sales) /
   sale candidates (favorites = Etsy-notified audience) / ad candidates (proven
-  converters). gpt-4o-mini writes a short advice section (`?advice=0` skips).
+  converters). **Claude** writes a short advice section — **opt-in via `?advice=1`**
+  (the page loads numbers only; opening it must never spend, Aug 2026).
   Same `STUDIO_TOKEN` gate; page uses `serveGated`. If the stored token
   predates `transactions_r` the report degrades to listings-only with a
   reconnect banner instead of failing.
@@ -1498,8 +3218,8 @@ lifted into a standalone tool later.
   Google's AI Overviews can't fully answer, so the click still comes to you;
   organize as topic clusters (a pillar + specific cluster posts).
 - **Flow:** `POST /keywords` (topic → long-tail keyword ideas w/ intent +
-  difficulty + a pillar/cluster shape, gpt-4o-mini) → `POST /draft` (full post:
-  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, gpt-4o-mini) →
+  difficulty + a pillar/cluster shape, **Claude**) → `POST /draft` (full post:
+  title/meta/slug/tags/HTML body/FAQ/image prompts, ~900 words, **Claude**) →
   `POST /image` (gpt-image-2 → permanent Firebase webp URL) → `POST /publish`
   (reuses `shopify.publishArticle`; hidden draft or live). Generation endpoints
   are stateless; drafts best-effort persist to Firestore (`forge-blog`) for a
@@ -1594,6 +3314,28 @@ lifted into a standalone tool later.
   keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
+- **SHIPPING IT IS ALL CI — no Mac, and that now includes the App Store
+  listing text (Aug 2026).** Three workflows in `memory-library-react`, which
+  is where the App Store Connect secrets live; every one of them takes the
+  bundle id `com.sageryza.secretlyawitch` (the app builds from the
+  `SecretlyAWitch` target in THIS repo's `ios/`, and the workflow checks this
+  repo out — `imageforge_ref` picks the branch):
+  - **Secretly a Witch TestFlight** — build + upload.
+  - **ASC edit metadata** (`ci/asc_metadata.py`) — description, keywords,
+    subtitle, promotional text, What's New, and the App Review contact /
+    demo account / notes. **Run it with `dry_run` ON first**: it prints every
+    current value plus the app and version a write would land on, so nobody
+    edits the wrong app. Fields with no input of their own (supportUrl,
+    marketingUrl, privacyPolicyUrl, demo account…) go through `fields_json`,
+    where `""` CLEARS a field. Edits save on the version but do NOT submit.
+  - **ASC submit release** (`ci/asc_submit_release.py`) — attach the build,
+    set What's New, submit. `resubmit:true` cancels an in-queue submission
+    first so a newer build can take its place.
+  So a rejected version is reworked entirely from a chat: fix the metadata,
+  then submit. **The two things that still need Sophie** are the reviewer's
+  rejection text and any Resolution Center reply — Apple exposes neither in
+  the public API, so paste the message in rather than guessing at it.
+  Screenshots are API-able in principle but that flow is NOT built.
 - **School + quiz art is served as WEBP, never the PNG originals (Aug 2026).**
   `SW_IMG` points at `witch-school/webp/` and every reference goes through
   `SW_EXT`, never a hard-coded `.png`; `QZ_IMG` is the SAME folder (the `qz-*`
@@ -1634,8 +3376,8 @@ lifted into a standalone tool later.
   single-page app with a **fixed bottom nav** (Lucide icons). Its own dark
   mystical theme (inline, not `forge.css`). Reuses the open `/api/generate/*`
   endpoints + a small set of stateless AI endpoints in `server.js`:
-  `POST /api/witch/{tarot,spell,familiar,horoscope}` (all `openaiChat`,
-  `gpt-4o-mini`; `parseJsonReply` helper strips fences).
+  `POST /api/witch/{tarot,spell,horoscope}` (all `openaiChat`,
+  **Claude** via `anthropicChat`; `parseAnthropicJson` strips fences).
 - **The blog is a real NAVIGATION out of the app page, and the tab re-assert
   must not follow it (Aug 2026 — this bug made the blog unreachable in the
   app: tapping "The blog" bounced to Home instantly).** In the iOS app the
@@ -1664,7 +3406,7 @@ lifted into a standalone tool later.
   - **Tarot** — 1 / three-card / yes-no draws + AI reading; **save readings** to
     `localStorage['witch_saved_readings']`.
   - **Conjure** — spell/ritual maker (**save to grimoire**,
-    `localStorage['witch_grimoire']`), name-your-familiar, and a charm image
+    `localStorage['witch_grimoire']`) and a charm image
     maker over the house LoRA styles.
   - **More** — daily horoscope, Watch/Shop/Follow tiles, About.
 - **Synchronicities order by SLOT, not by timestamp (Aug 2026).** A day's
@@ -1733,6 +3475,38 @@ lifted into a standalone tool later.
   YouTube is still a placeholder search** — the channel URL isn't stored anywhere
   (the YouTube token is upload-only scope and can't read the channel), so it
   needs Sophie's `@handle` pasted in.
+
+## Which model writes it (Aug 2026, Sophie: "my brains are really important")
+- **Anything whose output is WORDS A HUMAN READS runs on Claude, never
+  `gpt-4o-mini`.** Blog posts *and the keyword research behind them*, Etsy
+  listing copy, the shop advice she makes spending decisions from, the witch
+  app's spells / natal readings / sky lessons. Route them through **`anthropic.js`** (`chat` / `chatJSON`,
+  default `claude-sonnet-5` via `CLAUDE_WRITING_MODEL`) — do NOT hand-copy the
+  fetch a fifth time. `server.js`'s `anthropicChat` + `parseAnthropicJson` is
+  the in-server equivalent for routes that already live there.
+- **`gpt-4o-mini` stays ONLY for bulk mechanical extraction** where the job is
+  "pull the fields out of hundreds of documents", not "write something worth
+  reading": NDE moment mining (`nde.js`), memo titling (`memos.js`), the deck
+  brainstorm lists (`/api/generate/subjects`, `/moments`), `stories.js`,
+  `/api/set/third`, the Talking zine's planner, `dreamapp.js`. If you switch
+  one of these, say why.
+- **The Book of Miracles stays on mini — Sophie's explicit call.** It was
+  switched to Claude once and she asked for it back: the book's voice is
+  settled and the model change moves how the pages read. `/api/generate/miracles`
+  is ONE route feeding BOTH the witch app's Miracles tab and `/book` (they also
+  share the same localStorage book), so touching it moves both at once. The
+  THIRD Book of Miracles is a separate iOS app in another repo and is not
+  affected by anything here.
+- **`gpt-4o-mini-tts` and `gpt-4o-mini-transcribe` are NOT this.** They are
+  the audio models — a grep for "gpt-4o-mini" hits them and inflates the
+  count. Leave them alone; the voice rules elsewhere govern them.
+- **A doc that tells you to use mini for reader-facing words is STALE — fix
+  the doc.** This kept coming back because the module headers said "gpt-4o-mini"
+  long after the code moved on. When you change a model, change its comment,
+  its module header, and this file in the same commit.
+- **Opening a page must never spend money.** The Shop Report used to write its
+  AI advice on page load; that is now `?advice=1`, behind a star button. Same
+  rule anywhere else: numbers/lists are free, a model call is a deliberate tap.
 
 ## Design rules (forever)
 - **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
@@ -1842,6 +3616,36 @@ lifted into a standalone tool later.
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by
   ChatGPT").
+  **SAY THE QUALITY IN THE REPLY TOO, as a word, not "the default" (Aug 2026,
+  Sophie: "she doesn't say what quality").** A delivery that says "quality
+  copied from the function" or "at the usual settings" leaves her guessing —
+  she assumed a medium sheet was high and asked for it to be re-run. Name the
+  value (`medium`) and its rough cost in the message that hands over the
+  image, every time. The caption is where she checks it LATER; the reply is
+  where she reads it NOW, and both have to carry it.
+  **THIS CANNOT BE BACKFILLED BY A LATER CHAT — file it when you make the
+  image or it is gone (Aug 2026, measured).** A sweep of all 171 chats found
+  **2,488 images, 1,938 with no quality caption**, and of those only **31**
+  could be recovered honestly (their filed prompt happened to contain both the
+  model and the quality). **1,320 had no filed prompt at all**, so nothing on
+  the record says how they were made. Guessing a caption is worse than an empty
+  one — it puts a confident wrong number in front of her forever — so those
+  1,938 stay blank by design and NO chat should invent them. The only chat that
+  ever knows an image's quality is the one that generated it, at the moment it
+  generated it. If you are backfilling your OWN older images, derive the value
+  from your filed prompt or your own run records; where neither exists, leave
+  it empty and say so.
+  **THE HOLE EVERY CHAT FALLS IN (Aug 2026, found on the hospital film):
+  images you send as chat FILES get auto-filed by the hook as
+  `claude-deliveries/<random>` copies with NO label and NO quality caption,
+  and they DON'T merge with your captioned tile (different filename, so the
+  filename union can't join them).** So captioning only what you POST is not
+  enough — after any SendUserFile that includes images, sweep
+  `GET /api/gallery/assets?chat=` for caption-less `claude-deliveries/*`
+  tiles and caption them too (match them to your originals by md5 of the
+  bytes; a backfill of 18 such tiles is what surfaced this). Until the
+  server unions by content hash instead of filename, this sweep is the only
+  thing that keeps the Assets tab fully captioned.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
@@ -1928,8 +3732,42 @@ lifted into a standalone tool later.
   docs), name the exact current labels, and when a deep link needs an account/app
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
+- **THE SANS IS CAPS AND NOT BOLD — the SERIF is untouched by this rule (Aug
+  2026, Sophie: "whenever this font is shown it should generally be
+  capitalized and not bold", then, when it was read as universal: "that was
+  supposed to stay bold actually — it's only that other font I don't like it
+  when it's bold").** The rule is about `-apple-system` ONLY. Serif text
+  keeps whatever weight it had; do not de-bold a serif element in the name of
+  this guideline.** `-apple-system` is the app's LABEL voice — chat
+  names, tabs, timestamps, Compare-row titles, chips — and it reads as caps
+  at a normal weight with a little tracking (`.03–.04em`; caps set solid read
+  as a block). The SERIF stays as it is: the masthead, a thread's own title,
+  and message prose are not covered by this.
+  - **Bold has to earn itself IN THE SANS.** A lit state that already carries a tinted
+    background, a coloured outline or a sliding underline does NOT need
+    weight on top — the account tabs, the category chips and the Chat/Assets/
+    Compare toggle all had it and lost it. What kept bold: the tiny numbers
+    inside the red answered badges (9–10px in a dot, where weight is
+    legibility) and the hidden bar (it is the screen's one alarm).
+  - **Caps cost width** — roughly a line per long string. A Compare title
+    like "Cutting blocks v3 (s96) — punctuated, cut pile, maybe state" went
+    from two rendered lines to three. Worth saying to her when a set of
+    labels is long, rather than quietly shrinking the type.
+  - **THE COMPARE + UPDATE ROW TITLES ARE THE SERIF, and that is her LATER
+    word** ("I actually prefer the other font for the updates page and the
+    compare pages"). They were the serif, went sans for one evening to match
+    the Current/Superseded tabs above them, and she picked the serif back
+    after seeing both — so this rule does not apply there at all: they read
+    mixed case AND BOLD (600), exactly as they were before the sans evening. `test-chats-superseded` asserts the serif, so
+    flipping it back has to be deliberate. **Two chats were editing these
+    rows the same evening — check the newest instruction before changing
+    them.**
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
-  Circular icon buttons (toggles, dots) are the only exception.
+  Circular icon buttons (toggles, dots) are the only exception. **Plus one
+  named exception Sophie asked for (Aug 2026): the Chats home screen's
+  REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
+  a loosening of the rule — don't round anything else off, and don't "fix"
+  that one back.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
@@ -1961,28 +3799,55 @@ lifted into a standalone tool later.
   Playground's **pyramid** (low·low·medium, a picture of how many — an actual
   tiered pyramid, two cells along the base for the lows and the filled top
   tier for the better one; NOT Lucide's `pyramid`, which is a solid 3D shape
-  that says nothing about how many).
-- **A custom (non-SF-Symbol) icon is framed SMALLER than its point size, not
-  bigger** (`ToolGlyph`). An SF Symbol at point size S draws only ~0.75·S of
-  ink — it sits on a text baseline, so the glyph is about cap height, not the
-  full box — while custom art fills ~0.9 of whatever frame it gets. Matching
-  the two means a frame of ~0.86·S. `ToolGlyph` scaled UP by 1.35 for a long
-  time, which is why the Test Station's tubes read half again the size of
-  every symbol beside them. **A bundled glyph MUST fill exactly 0.90 of its
-  own viewBox, centred — run `python3 scripts/normalize-glyphs.py` after
-  adding or editing one** (`--check` measures without writing; it's the
-  gate). That script is the real fix for "the hand-drawn icons are all
-  different sizes" (Sophie, Aug 2026): `ToolGlyph` applies ONE frame rule,
-  which is only correct if every glyph fills the SAME share of its box, and
-  measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
-  (playground)** — `.scaledToFit()` scales by the longer side, so the
-  Playground rendered ~17% bigger than the quilt at the same nominal size.
-  No frame number can fix that; the difference is in the ART, so the script
-  normalizes the art and leaves the Swift rule alone. An earlier pass got
-  this wrong by measuring ONE glyph and assuming the rest matched
-  (testtube.svg's comment claimed it filled "the same share the Playground
-  glyph fills" — 0.923 against 1.000), which is why the script RENDERS every
-  file and measures the ink instead of trusting any comment.
+  that says nothing about how many). **It is EQUILATERAL** — Sophie asked, and
+  she was right that it wasn't: base 18 on y 19.8 with the apex 9√3 = 15.59
+  above it puts all three angles at 60.00°, where the first version was
+  isosceles at 53°/63° (base 17, height 17) and read noticeably narrow. The
+  horizontal cut sits at half the HEIGHT, which lands its ends exactly halfway
+  along each side, so the filled cap is the same triangle at half scale.
+  **It is a REUSABLE named glyph: `SetPyramid`** (Sophie's name, Aug 2026) —
+  `ios/ImageForge/Assets.xcassets/SetPyramid.imageset/setpyramid.svg`, so
+  `ToolGlyph.asset("SetPyramid", size:)` draws it anywhere in the app, and it
+  is in `normalize-glyphs.py`'s `GLYPHS` list like the other three. TWO copies
+  exist by necessity (64-box bundled for iOS, 24-box inline in
+  `promptlab.html` for the web) and each names the other — move both.
+- **Custom-icon sizing has TWO halves, and both were wrong for a long time —
+  the numbers below are MEASURED off a real 3x screenshot, never reasoned
+  about (Aug 2026, third attempt; the first two failed by reasoning).**
+  - **Half one — the frame (`ToolGlyph.customFrame` = 1.11·S).** The old note
+    here claimed "an SF Symbol at point size S draws only ~0.75·S of ink", so
+    custom art was framed SMALLER, at 0.86·S. **That premise is false.**
+    Measured on the home screen at declared S: `briefcase` 22.7w x 19.0h,
+    `film` 24.0 x 19.0, `photo` 24.0 x 19.0, `bubble.left.and.bubble.right`
+    28.0 x 22.3 — i.e. real symbols draw **0.90-0.95·S tall and ~1.13·S
+    wide**, not 0.75. The hand-drawn glyphs measured 15.3pt (test tube) and
+    15.7pt (quilt) against those, which is why Sophie kept seeing them as
+    different sizes. Custom art fills 0.90 of its frame, so a frame of
+    **1.11·S** puts its ink at ~1.00·S, inside the cluster the real symbols
+    occupy. History: 1.35·S (far too big — the tubes read half again the size
+    of everything), then 0.86·S (too small), now 1.11·S. **Only `ToolGlyph`
+    may hold this number** — `ToolGlyph.asset(_:size:)` renders any bundled
+    glyph, and a hand-picked frame anywhere else is how it drifts.
+  - **Half two — the art. A bundled glyph MUST fill exactly 0.90 of its own
+    viewBox, centred — run `python3 scripts/normalize-glyphs.py` after adding
+    or editing one** (`--check` measures without writing; it's the gate). One
+    frame rule is only correct if every glyph fills the SAME share of its
+    box, and measured they filled **0.853 (quilt) / 0.923 (test tube) / 1.000
+    (playground)** — `.scaledToFit()` scales by the longer side, so the
+    Playground rendered ~17% bigger than the quilt at the same nominal size.
+    No frame number can fix that; the difference is in the ART, so the script
+    normalizes the art and leaves the Swift rule alone. An earlier pass got
+    this wrong by measuring ONE glyph and assuming the rest matched
+    (testtube.svg's comment claimed it filled "the same share the Playground
+    glyph fills" — 0.923 against 1.000), which is why the script RENDERS
+    every file and measures the ink instead of trusting any comment.
+  - **How to check this properly next time:** take a screenshot of the real
+    screen, find the accent ink with a colour test (`R-B > 45` — borders and
+    background are near-neutral), group it into icons by column runs, and
+    divide the bounding boxes by the device scale (3 on an iPhone 13). That
+    gives every icon's true rendered size in points, custom and SF alike, on
+    one comparable scale. It takes minutes and settles the question; two
+    earlier attempts guessed instead and shipped wrong.
 - **A button that opens another tool wears THAT tool's icon.** The Story
   Room's "make its art in the Playground" is the Playground's own wire-loop
   drawing, not a generic palette — same vector as the iOS tile
@@ -1997,28 +3862,62 @@ lifted into a standalone tool later.
   asked for). The pages still serve at their URLs for a chat or a browser.
 - **ONE home, with a shortcut row of FILTERS at the top (Aug 2026, Sophie —
   REPLACES the earlier three-home-screens rule).** The home is a single grid;
-  above the module cards sits a row of six rounded squares, **icons only**
+  above the module cards sits a row of five rounded squares, **icons only**
   ("just the icon" — no labels, `HomeGrid.shortcutRow` in `RootView.swift`).
-  TWO open a tool (**Dump**, which itself now opens on SORT, and **Chats**);
-  the other four FILTER the cards below (`HomeFilter`): **photo** = the picture-makers
+  ONE opens a tool (**Chats**); the other four FILTER the cards below
+  (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
   card at all), **briefcase** = business, **quilt** = old fashioned, **film**
   = everything that makes or cuts moving pictures AND sound (Movies, Films,
-  Cutting Room, Cut Marks, Episode Editor, Story Room, Song Station, Voice
-  Studio, Search, Characters). The lit chip clears back to everything when
+  Cutting Room, Cut Marks, Episode Editor, Voice Studio, Search,
+  Characters). The lit chip clears back to everything when
   tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
   and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
   `://crafts` (alias `://quilt`) land on the home with that filter already
   lit. `Tool.isBusiness` / `Tool.isCraft` now decide which FILTER a tool
   answers to, and keep it off the unfiltered list so the default home stays
-  scannable — the picture and film sets are explicit lists, and their tools
-  DO still appear on the unfiltered home. **Four corner icons** beside the
+  scannable.
+  **THE FILM FILTER HIDES ITS TOOLS TOO (Aug 2026, Sophie — she spotted the
+  asymmetry: "the quilt hides the modules, but the movies tab doesn't —
+  they're all still on the default home screen", then "leave the stuff off
+  the home screen, just put it in the movie tab").** So `movieTools` is
+  SUBTRACTED from the default grid exactly like `isBusiness`/`isCraft`, and
+  the old `pinnedBottom` trio is gone with it — Voice Studio, Characters and
+  Films were all film tools sitting at the bottom of the home list. Three
+  deliberate exceptions to know before "fixing" any of them:
+  - **Story Room is default-home only** — pinned FIRST, and taken out of the
+    film set ("story room is no longer movies").
+  - **The PICTURES filter is still a pure NARROWING**, not a hiding one:
+    Playground and **Freeform** are cards on the default home AND under the
+    photo chip (her ask, "put Freeform in the default"). Only the Test
+    Station is filter-only there.
+  - **Song Station has NO card anywhere** — off the default grid, out of the
+    film set, and its tile removed from the web hub too ("get rid of song
+    station altogether"). The `.song` case, its view and `deckfactory://song`
+    are kept and `/song` still serves; it just joins the
+    deliberately-unlinked pages.
+  The default home is therefore SHORT on purpose — Story Room, Dreams,
+  Lessons, Dump, Playground, Freeform — and everything else is one chip away.
+  **Four corner icons** beside the
   masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
   RIGHT with Chats on the very end (its original spot). The briefcase and
   quilt corners fire the same filters as their row squares — several
   controls live in two places on purpose ("it can be in two places, silly"),
-  which is also why the row is six rather than the five it started as. Don't
-  "fix" the duplicates.
+  so don't "fix" those duplicates. **The DUMP square came OFF the row (Aug
+  2026, Sophie: "get rid of the dump button in the row at the top since it's
+  now in the main home screen as the default")** — a shortcut to a tool whose
+  card sits two inches below it stopped earning its slot once the film tools
+  left and the grid got short. That is the one duplicate she did want gone;
+  Chats stays in both places.
+  **The squares are 60pt with a 26pt icon (Aug 2026, Sophie: "the icons are
+  too small — they were set when there were six and now there's only five,
+  make them fill out the space a little better").** 48 was sized for SIX on a
+  375pt phone; five left a quarter of the row as gap. The arithmetic, so the
+  next change needn't guess: usable row = width - 32, gap = (usable - 5 x
+  side) / 4 — at 375 that is **10.8pt**, at 390 **14.5**, at 430 **24.5**.
+  375 is the floor. It makes the row ~12pt taller and pushes the cards down;
+  she said that is fine. `squareSide` / `squareIcon` in RootView are the only
+  copies of those numbers.
   **They are SQUARES, and the lit state is a thicker gold outline over a
   light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
   gold) — v1 stretched them into rectangles by sharing the row width out,
@@ -2291,6 +4190,11 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   resolution as `editor.js`) and `OPENAI_API_KEY`.
 
 ## Episode Editor (transcript spans → snippet cards → finished audio)
+- **ANY work on Sophie's audio starts with the `sophie-audio` skill**
+  (`.claude/skills/sophie-audio/`) — cutting, pause removal, take selection,
+  assembling narration, TTS. It is the tripwire for the two docs below, and
+  it ends with the rule chats keep skipping: run
+  `node scripts/vo-verify.js` before handing a cut back.
 - **Full cutting-pipeline documentation: `docs/nde-precise-cutting.md`** — read
   it before cutting interview audio; it is the doc of record for the precise
   cutter (alignment caches, snapping rules, both implementations, data layout).
@@ -2376,6 +4280,10 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   rebuilds the **PROOF** episode — the 12 verified veridical moments as sources +
   snippets (named by experiencer), the "Pajamas hook" opener, and the v4 running
   order with its narration fills. 23 cards.
+- **Each render row has a SCISSORS → the Cutting Room** (Aug 2026), where the
+  pauses and filler words come out by tapping them. See the Cutting Room
+  section for the contract; nothing about the render itself changed, and
+  pause/filler removal deliberately does NOT happen inside a render.
 - **iOS:** `EpisodeEditorView.swift` = a WKWebView on `/editor` that answers the
   HTTP Basic gate with the studio token (same wrapper pattern as
   `WritingRoomView`), registered as the `editor` tool in `RootView` — home-grid
@@ -2401,11 +4309,31 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   cut out / save-send). Tap a pause chip → cut it (rose, struck; tap again to
   keep). "Tighten" cuts every pause in one tap. MARK drops a pin at the word
   being spoken. Cut-out words show struck-through; tapping them offers restore.
+  **A picked section STAYS picked after save/send** (Aug 2026, Sophie) — she
+  saves AND sends the same span without re-picking; only the ✕ (or cutting it
+  out) lets go.
+- **The room is TWO hairline tabs — TRANSCRIPT | CLIPS (Aug 2026, Sophie:
+  "the scrolling is pretty brutal")** — saved clips and renders live behind
+  the second tab instead of below the transcript. Long-recording navigation
+  on the transcript tab: **chapter notches** down the left edge (every 5 min,
+  10 for >1hr; tap = jump the page to that minute) for recordings over 8 min,
+  and a **find-a-word** magnifier in the tools row (live matches highlighted,
+  next-arrow cycles; commits on blur — she dictates). Tab row reserves the
+  pill's 56px corner; the sliding line is `calc((100% - 56px)/2)`.
 - **Cuts are the Episode Editor's cutter** (imported from editor.js —
   `clampBounds` + `detectSilences` + `snapToSilence`, ONE implementation): a
   tap never needs to be precise, edges land in real silences. **A planned
   "manual mode" (cut at the exact tapped millisecond, no snapping) is PARKED
   by request — not in v1.**
+  **Every real cut RE-LISTENS first (Aug 2026, earned):** the stored words
+  come from the 75s-chunked whole-recording pass, which is chips-only
+  accuracy — Sophie's first clip started at "yeah" and grabbed the "he said"
+  before it, because the bulk pass timed "yeah" early. `cutSection` and the
+  render's cut-outs therefore extract a small window, take FRESH whisper
+  word timestamps, and locate the span with `phraseSpan` (buildClip's exact
+  precision path); the bulk timings survive only as the fallback. Never cut
+  from the stored words directly. Clip entries carry `wi0`/`wi1` so a clip
+  can be re-cut.
 - **Pause detection = vo-remove-pauses.js's two passes** (word-timing +
   relative-energy breath pauses, room-tone runs — silencedetect alone CANNOT
   find noisy pauses, see docs/nde-precise-cutting.md). Detection only; nothing
@@ -2418,7 +4346,16 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   bytes; clips get micro-fades on the edges only.
 - **Hand-offs:** save → clip file + a `forge-audio` doc (batch
   `cutting-room`, track `cutroom`, content-hash deduped, no second copy of
-  bytes) so it lists on `/audio`; **Story Room** → clip cut here, then
+  bytes). **Do NOT point Sophie at `/audio` to find a clip** — that page is
+  an UPLOADER whose list shows only the batch typed in its box (defaults to
+  today's date), so a `cutting-room` clip is invisible there (Aug 2026, bit
+  for real). The review surface is the room's own Sections list, and every
+  clip/render row carries a **download** button (Apple's arrow-into-box
+  glyph): in a browser it's a same-origin attachment
+  (`GET /:id/file?u=<storage url>&n=<name>` — validated to the recording's
+  own folder), in the app the `cutroomShare` WKScriptMessage bridge fetches
+  the file natively and opens the iOS share sheet (Save to Files/AirDrop);
+  **Story Room** → clip cut here, then
   `scratchpad.attachVoiceUrl(padId, beatId, url)` (a normal voice take —
   every take kept); **Episode Editor** → NO audio is cut: the recording gets
   a `forge-nde-videos` doc (`cr-<id>`, segments grouped from our words) and
@@ -2453,6 +4390,29 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   Keep it in step with the icons if any control changes.
 - The recordings list links out to **Search** (below) — the way in when she
   knows what was said but not which recording said it.
+- **A finished Episode Editor render comes here to have its pauses and filler
+  words taken out (Aug 2026, Sophie's ask).** Each render row in the editor
+  carries a **scissors** (that tool's own glyph) → `/cuttingroom?url=…&name=…`;
+  the page opens that url on boot and strips the param, so a reload lands
+  where she actually is. `POST /open` already accepted any https url, so this
+  needed NO new server code and NO TestFlight build — the nav chevron asks
+  `__navBack` (room → list) then falls through to the web view's history back
+  to the editor, exactly the path Search's memo hand-off uses.
+  **The cut number comes from the render's FILE** (`<episode>-7.mp3`), never
+  its row position: `renders` is capped at 10 and newest-first, so positions
+  drift as old cuts fall off while the files keep counting up.
+  Each render is its own content-addressed room, so marking cut 7 never
+  touches the marking on cut 6. Tests: `node scripts/test-cutroom-handoff.js`
+  (drives both real pages in headless Chromium; skips without one).
+- **Do NOT move pause/filler removal INTO the editor's render** (Aug 2026,
+  the decision behind the hand-off). The editor's cuts are safe because both
+  edges land in detected silences; removing an "um" from the MIDDLE of a clip
+  is a splice, and a splice is something to approve by ear, not have happen
+  invisibly inside a render. That is what this room is for. Caveat worth
+  knowing: **Whisper often doesn't transcribe "uh"/"um" at all** (that is what
+  caused the doubled-word bug — see phraseSpan in
+  `docs/nde-precise-cutting.md`), so filler removal by transcript is partial;
+  the pause detection catches many of them anyway as breath pauses.
 
 ## Search (`search.js`) — every transcript, one search
 - `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
@@ -2470,7 +4430,22 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   **interview → Episode Editor** (`editor.addExternalSnippet` — a snippet card
   lands in an episode and the editor re-cuts it natively), **memo → Cutting
   Room** (`POST /api/cutroom/open` with the recording's url). Search cuts no
-  audio of its own; both paths feed the ONE cutter in `editor.js`.
+  audio of its own except `/clip-words` below; every path feeds the ONE
+  cutter in `editor.js`.
+- **CLIP-THESE-WORDS on a hit (Aug 2026, Sophie: "pick the words from that
+  step if I just want one clip and not the whole recording").** The scissors
+  Clip button puts the hit's passage in pick mode — tap first word, tap last
+  word, ✓ — and `POST /clip-words {src, text, chunk, timeSec}` cuts JUST
+  that span (background job, content-addressed cache
+  `search-clips/words-*`), with ▶ + a download button on the result (share
+  bridge in the app / same-origin attachment `GET /clip-file?u=&n=` in a
+  browser). Rules: an INTERVIEW goes through `editor.buildClip` (loudnorm,
+  clip cache — identical to an episode clip); a MEMO is HER VOICE, never
+  loudnormed — fresh-listen + snap + micro-fades only, bytes downloaded
+  server-side via `memos.memoAudioToFile` (memo audio is not public). A
+  memo's anchor is PROPORTIONAL (memo chunks carry no clock): the chunk's
+  place in the transcript maps to time, and the listen window slides once
+  each way when the phrase isn't where the estimate said.
 - **A hit's Play NEVER points at the banked interview audio.** Those files are
   what yt-dlp downloaded — webm/opus, one object per whole interview (the
   Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once
@@ -2482,6 +4457,19 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   the difference between a tap that plays and one that doesn't) and **format**
   (iOS Safari has no WebM audio support; Opus plays there only inside CAF).
   Voice memos skip all of it — m4a, minutes long, streamed through `/audio/:id`.
+- **A page that FETCHES audio needs CORS on the bucket, and testing it
+  same-origin hides that completely (Aug 2026, the pausing tool).** An
+  `<audio src>` needs no CORS, so every media element in the app worked and
+  nothing looked wrong — but `fetch()` + `decodeAudioData` (what any WebAudio
+  page does) is a cross-origin read and the browser blocks it. Both buckets
+  had **zero** CORS entries, so every such page would have failed live while
+  passing its tests, because a local test server serves the mp3 from the
+  page's own origin. Both now allow GET/HEAD from
+  `imageforge-q125.onrender.com` + `secretlyawitch.com` (added, never
+  replaced — `bucket.setCorsConfiguration` overwrites the whole list).
+  Check it with `curl -D - -H "Origin: https://imageforge-q125.onrender.com"
+  <url> | grep access-control` — a missing header is the bug, and it is
+  invisible from a same-origin test.
 - **Two things about audio CANNOT be tested from a chat's sandbox** (both cost
   real debugging time — don't re-derive them): ffmpeg's **direct HTTP seek**
   fails because the sandbox's outbound HTTPS proxy is one ffmpeg can't use (it
@@ -2678,6 +4666,19 @@ route to bring it back. Film renders record per-unit audio receipts on
 `film.notes` ('her voice' / 'tts' / 'quiet') — read them before debugging
 any "it used the wrong voice" report. The title row is sticky; placement
 slots are short centered dashes.
+**LISTEN ROWS — Episode Editor episodes linked to a story (Aug 2026,
+Sophie: the NDE montages "should be connected to their stories so I can
+listen to them when I go to their story").** A story doc may carry
+`episodes: [episodeId, …]` (forge-editor ids); `GET /api/scratchpad/`
+resolves each to its NEWEST render live (`audios` on the response — a
+re-render in the editor reaches the story with no re-link) and the page
+shows a listen row per episode under the title (play · name · length,
+sharing the page's one player). Link with `POST /api/scratchpad/episode
+{pad, episodeId, remove?}` — like /category it does NOT bump updatedAt.
+All 12 NDE-category stories were linked to their montage episodes on
+2026-08-11 (`node scripts/link-episodes-to-stories.js`, idempotent;
+"NDE · all the supercuts" carries all 11). Tests:
+`node scripts/test-storyroom-listen.js`.
 
 ## Scratch Pad (stage ONE of a story — before the Story Room)
 - `scratchpad.js` (`/api/scratchpad`, page at `/scratchpad`, built by

@@ -1,0 +1,218 @@
+{
+  "title": "No Words For It",
+  "subtitle": "Dolores Cannon on the limits of language",
+  "note": "Act 1 opens on a 1600s druid so the failure isn't only an alien one; the rest of the body is the four ET books. Act 3 is one continuous passage in Custodians 2 (5:25:03-5:27:45) and is the film's turn.",
+  "style": {
+    "engine": "gpt-image-2",
+    "plStyle": "evan",
+    "size": "1024x1536",
+    "prefix": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.",
+    "suffix": "Do not include any text in the image.",
+    "refs": [
+      "refs/sage-sandy-mirror.png"
+    ]
+  },
+  "shots": [
+    {
+      "n": 1,
+      "act": "1",
+      "videoId": "IJZVNv5O6rA",
+      "book": "Horns of the Goddess 1",
+      "anchor": 13968,
+      "prompt": "A woman in a rough woven cloak kneeling beside a wide shallow clay pot filled with dark still water, in a forest clearing at night lit by a single torch. Her lips are parted as though she had begun to speak and stopped. Her open hands hover above the water without touching it.",
+      "motion": "The dark water in the pot ripples outward once, slowly, from its centre.",
+      "cite": "Horns of the Goddess 1 @ 3:52:48"
+    },
+    {
+      "n": 2,
+      "act": "1",
+      "videoId": "VXO-C9w3TDw",
+      "book": "Keepers of the Garden 1",
+      "anchor": 1585,
+      "prompt": "A tall slender figure in a plain grey one-piece garment standing in a metal corridor, holding both palms open and empty in a small apologetic shrug. Behind the figure is a bank of large circular gauges whose faces are completely blank, with no numbers, no hands and no markings of any kind.",
+      "motion": "The unmarked dials on the back wall turn slowly, all of them at once.",
+      "cite": "Keepers of the Garden 1 @ 0:26:25"
+    },
+    {
+      "n": 3,
+      "act": "1",
+      "videoId": "mMLQaQ7jsts",
+      "book": "Custodians 1",
+      "anchor": 15306,
+      "prompt": "A woman lying on her back on a raised flat table in a dim curved room, her eyes open and turned to one side, listening hard. Three narrow figures stand at the far edge of the room with their backs partly turned to her. Thin pale ripples hang in the air near their heads.",
+      "motion": "The pale ripples in the air drift slowly sideways across the room.",
+      "cite": "Custodians 1 @ 4:15:06"
+    },
+    {
+      "n": 4,
+      "act": "1",
+      "videoId": "VXO-C9w3TDw",
+      "book": "Keepers of the Garden 1",
+      "anchor": 6894,
+      "prompt": "A tall thin figure with very large dark eyes and no mouth at all, standing in front of a wide window full of stars, one long hand lifted to its own smooth throat. The skin where a mouth would be is unbroken.",
+      "motion": "The figure's long hand lowers slowly from its throat.",
+      "cite": "Keepers of the Garden 1 @ 1:54:54"
+    },
+    {
+      "n": 5,
+      "act": "1",
+      "videoId": "rvfOUg4zVc0",
+      "book": "Keepers of the Garden 2",
+      "anchor": 24391,
+      "prompt": "Two cupped human hands in a dark empty space, holding a loose knot of pale light with no clear edges. The light spills between the fingers like smoke and leaves no trace behind it.",
+      "motion": "The pale light slowly spills further between the fingers.",
+      "cite": "Keepers of the Garden 2 @ 6:46:31"
+    },
+    {
+      "n": 6,
+      "act": "1",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 33060,
+      "prompt": "A woman reclining in an armchair with her eyes closed, caught mid-sentence, one hand lifted and stopped in the air with the fingers half open. An older woman sits opposite her holding a notebook, leaning forward, waiting.",
+      "motion": "The lifted hand trembles very slightly and stays where it is.",
+      "cite": "Custodians 2 @ 9:11:00"
+    },
+    {
+      "n": 7,
+      "act": "1",
+      "videoId": "VXO-C9w3TDw",
+      "book": "Keepers of the Garden 1",
+      "anchor": 9166,
+      "prompt": "A slender pale figure standing between two tall mirrors that face each other, its reflections receding away in both directions. Each reflection differs very slightly from the one before it in build and posture.",
+      "motion": "The receding reflections shift one step further out of alignment.",
+      "cite": "Keepers of the Garden 1 @ 2:32:46"
+    },
+    {
+      "n": 8,
+      "act": "1",
+      "videoId": "VXO-C9w3TDw",
+      "book": "Keepers of the Garden 1",
+      "anchor": 5507,
+      "prompt": "A bright open field where several small stooped figures covered in soft hair work together gathering something into baskets. A taller smooth-skinned figure stands among them with one hand resting gently on the shoulder of the nearest small one.",
+      "motion": "The small figures keep working, bending and lifting in unison.",
+      "cite": "Keepers of the Garden 1 @ 1:31:47"
+    },
+    {
+      "n": 9,
+      "act": "2",
+      "videoId": "mMLQaQ7jsts",
+      "book": "Custodians 1",
+      "anchor": 1770,
+      "prompt": "A woman in her sixties with short curled hair sitting alone at a small desk with an early boxy computer, in a farmhouse kitchen at night. On the table beside her stands a row of sealed glass jars of canned peaches. Her hands rest on the keys without typing.",
+      "motion": "Steam rises faintly from the row of sealed jars beside her.",
+      "cite": "Custodians 1 @ 0:29:30"
+    },
+    {
+      "n": 10,
+      "act": "2",
+      "videoId": "rvfOUg4zVc0",
+      "book": "Keepers of the Garden 2",
+      "anchor": 4841,
+      "prompt": "A vast dark library whose upper shelves dissolve into empty air partway up. One small lamp lights the lowest shelf, which holds only a few thin books.",
+      "motion": "The single lamp's light wavers, and the dissolving upper shelves recede further.",
+      "cite": "Keepers of the Garden 2 @ 1:20:41"
+    },
+    {
+      "n": 11,
+      "act": "2",
+      "videoId": "VXO-C9w3TDw",
+      "book": "Keepers of the Garden 1",
+      "anchor": 12256,
+      "prompt": "A man standing in a plain empty room holding one small pebble in his open palm. Filling the entire wall behind him is an enormous intricate branching shape, of which the pebble is clearly a single tiny fragment.",
+      "motion": "The enormous shape on the wall pulses once, slowly, and the man does not move.",
+      "cite": "Keepers of the Garden 1 @ 3:24:16"
+    },
+    {
+      "n": 12,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19503,
+      "prompt": "A woman lying back in a reclining chair with her eyes closed and her face flushed with heat, speaking. An older woman sits near her holding a small microphone. The air between the two of them is thick with small dark drifting marks, like settling ash.",
+      "motion": "The small dark marks settle slowly downward through the air between them.",
+      "cite": "Custodians 2 @ 5:25:03"
+    },
+    {
+      "n": 13,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19516,
+      "prompt": "A huge flood of pale light pouring down a broad slope toward a massive stone wall, in which there is one very narrow vertical slot. Only a thin thread of the light passes through the slot to the far side. All the rest piles up against the wall and spills away to either side.",
+      "motion": "The light keeps flowing and banking up higher at the narrow entrance.",
+      "cite": "Custodians 2 @ 5:25:16"
+    },
+    {
+      "n": 14,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19527,
+      "prompt": "A tall thin figure with large dark eyes leaning over a human hand that is writing a long line of tiny marks across a wide sheet of paper. The figure's head is tilted and its posture is one of gentle amusement.",
+      "motion": "The human hand keeps writing, moving steadily along the line.",
+      "cite": "Custodians 2 @ 5:25:27"
+    },
+    {
+      "n": 15,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19539,
+      "prompt": "A single bold curling mark drawn at the centre of a pale surface, with dense pages of tiny handwriting unrolling outward from it in every direction, as though the one mark were unpacking itself.",
+      "motion": "The pages of tiny handwriting keep unrolling outward from the central mark.",
+      "cite": "Custodians 2 @ 5:25:39"
+    },
+    {
+      "n": 16,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19553,
+      "prompt": "A single glowing symbol on the curved metal wall of a corridor, with a tall slender figure in a plain garment standing beside it, one flat hand pressed against the mark as though it were their own name.",
+      "motion": "The glowing symbol brightens slowly under the figure's hand.",
+      "cite": "Custodians 2 @ 5:25:53"
+    },
+    {
+      "n": 17,
+      "act": "3",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19603,
+      "prompt": "A human hand cutting letters into a slab of stone with a chisel, one letter at a time. Above the slab, a long queue of small luminous shapes waits in the air, unable to land.",
+      "motion": "The queue of luminous shapes drifts and waits above the stone.",
+      "cite": "Custodians 2 @ 5:26:43"
+    },
+    {
+      "n": 18,
+      "act": "4",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19622,
+      "prompt": "One small drawn mark at the centre of a page, with a decorated fir tree, wrapped parcels, hanging bells, a stable scene and drifts of deep red and green blooming outward from it like breath spreading on cold glass.",
+      "motion": "The images keep blooming outward from the small central mark.",
+      "cite": "Custodians 2 @ 5:27:02"
+    },
+    {
+      "n": 19,
+      "act": "4",
+      "videoId": "L0TSZDqQlnU",
+      "book": "Custodians 2",
+      "anchor": 19640,
+      "prompt": "A room where loose written pages are piled waist-deep across the entire floor. In the middle of them a hand holds up one small card between two fingers, with a single mark on it.",
+      "motion": "Loose pages slide and settle across the deep pile on the floor.",
+      "cite": "Custodians 2 @ 5:27:20"
+    },
+    {
+      "n": 20,
+      "act": "close",
+      "videoId": "mMLQaQ7jsts",
+      "book": "Custodians 1",
+      "anchor": 1777,
+      "prompt": "A woman in her sixties with short curled hair alone at a small desk with an early boxy computer in a dark farmhouse kitchen, typing now, her face lit by the screen. Through the window behind her shows the first grey light of dawn.",
+      "motion": "The grey dawn light at the window brightens very slowly.",
+      "cite": "Custodians 1 @ 0:29:37"
+    }
+  ],
+  "lines": "Narration lines live in lines.local.json (gitignored) — this repo is public, so it records citations and timings, not the books text."
+}

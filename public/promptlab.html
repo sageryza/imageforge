@@ -84,6 +84,11 @@
      keeps "newest first" true while a slow run is still going. */
   .runhead .waiting { margin-left: auto; }
   .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: 2 / 3; }
+  /* "Older" — the way further back through the feed. Hugs its text, rounded
+     rectangle (no pills), centered under whichever view is showing. */
+  #more { display: flex; justify-content: center; padding: 4px 0 22px; }
+  .morebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px 18px; font: inherit; font-size: 14px; background: #fdfcf9; color: #6f675e; }
+  .morebtn[disabled] { opacity: .55; }
   .killbtn { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #6f675e; display: flex; align-items: center; justify-content: center; }
   .killbtn svg { width: 14px; height: 14px; }
   /* Cancel confirmation. Flat, no gradients; buttons are rounded rectangles. */
@@ -151,6 +156,7 @@
 <div id="pendings"></div>
 <div id="runs"></div>
 <div id="tiles"></div>
+<div id="more"></div>
 
 <div id="toast"></div>
 
@@ -180,7 +186,16 @@
   var timer = null;
   var swapTimer = null;
   var swapping = {};      // id -> true while a 'ready' run waits for permanent urls
-  var runsById = {};      // id -> run doc from the last list load
+  var runsById = {};      // id -> run doc, for the lightbox / copy button
+  // The feed pages BACKWARDS THROUGH TIME, and holds everything loaded so far.
+  // It used to be the newest 40 and nothing else — so a run older than that was
+  // unreachable, which read as her older pictures having vanished. `feed` is the
+  // whole loaded list, newest first; "Older" asks the server for the page behind
+  // the oldest one it holds.
+  var PAGE = 40;
+  var feed = [];          // every run loaded so far, newest first
+  var feedMore = true;    // the server had more behind the last page it gave
+  var paging = false;     // an Older fetch is in flight
   var lbCur = null;       // { id, i } while the lightbox is open
   var lbBlob = null;      // { url, blob } prefetched so Save can share instantly
 
@@ -200,7 +215,17 @@
     // about how many. An actual pyramid drawn in the Lucide idiom instead,
     // tiered: two cells along the base for the two low draws, the filled top
     // tier for the better one, so the button is a picture of what the tap does.
-    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20.5 20.5H3.5Z"/><path d="M7.75 12h8.5"/><path d="M12 12v8.5"/><path d="M12 3.5 16.25 12H7.75Z" fill="currentColor"/></svg>',
+    // EQUILATERAL (Aug 2026, Sophie asked) — base 18 wide on y 19.8, apex at
+    // 9√3 = 15.59 above it, so all three angles are 60.00°. The first version
+    // was isosceles at 53°/63°: base 17 with a height of 17, which reads
+    // noticeably narrow beside a real triangle. The horizontal cut sits at
+    // half the HEIGHT (y 12.01), which puts its ends exactly halfway along
+    // each side — so the filled cap is the same triangle at half scale.
+    // REUSABLE as **SetPyramid** — the same glyph is bundled at
+    // ios/…/Assets.xcassets/SetPyramid.imageset/setpyramid.svg (64 box, the
+    // house stroke, normalized by scripts/normalize-glyphs.py). Move BOTH if
+    // this ever changes; this 24-box copy is the web one.
+    pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
   document.getElementById('lowmed').innerHTML = ICONS.pyramid;
@@ -427,8 +452,7 @@
     if (!key) return false;
     var hit = pendingList().some(function (p) { return p.key === key; });
     if (hit) return true;
-    return Object.keys(runsById).some(function (id) {
-      var r = runsById[id];
+    return feed.some(function (r) {
       return runImages(r).length > 0 && runKey(r) === key;
     });
   }
@@ -674,11 +698,53 @@
     return parts;
   }
 
+  // Fold a page of runs into the feed. Fresh copies WIN (a vote or a status
+  // moved), and the whole list is re-sorted by time — so a head refresh and an
+  // Older page can arrive in any order without scrambling it.
+  function mergeRuns(fresh) {
+    var byId = {};
+    feed.forEach(function (r) { byId[r.id] = r; });
+    fresh.forEach(function (r) { byId[r.id] = r; });
+    feed = Object.keys(byId).map(function (k) { return byId[k]; })
+      .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    runsById = byId;
+  }
+
+  // Refresh the newest page. Anything already paged in behind it is kept — a
+  // finished run must never throw away the older runs she scrolled back to.
   function loadRuns() {
-    fetch('/api/promptlab?limit=40').then(function (r) { return r.json(); }).then(function (d) {
+    fetch('/api/promptlab?limit=' + PAGE).then(function (r) { return r.json(); }).then(function (d) {
       var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
-      runsById = {};
-      runs.forEach(function (r) { runsById[r.id] = r; });
+      // Only page one can answer "is there more" — once she has paged deeper,
+      // the tail fetch owns that flag.
+      if (feed.length <= PAGE) feedMore = !!d.more;
+      mergeRuns(runs);
+      renderFeed();
+    }).catch(function () {});
+  }
+
+  // One more page, behind the oldest run the feed holds. The cursor is that
+  // run's createdAt, NOT an offset — runs land at the top while she reads, and
+  // an offset would shift under her and repeat or skip one.
+  function loadMore() {
+    if (paging || !feedMore) return;
+    var oldest = null;
+    for (var i = feed.length - 1; i >= 0; i--) { if (feed[i].createdAt) { oldest = feed[i].createdAt; break; } }
+    if (!oldest) return;
+    paging = true; renderMoreBtn();
+    fetch('/api/promptlab?limit=' + PAGE + '&before=' + oldest)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        feedMore = !!d.more;
+        paging = false;
+        mergeRuns((d.runs || []).filter(function (r) { return r.status !== 'running'; }));
+        renderFeed();
+      })
+      .catch(function () { paging = false; renderMoreBtn(); });
+  }
+
+  function renderFeed() {
+      var runs = feed;
       // Identical runs share a box. A failed run never joins one — its error is
       // its own — so it keys on its id and stays alone.
       var groups = groupBy(runs, function (r) {
@@ -711,8 +777,22 @@
       }).join('');
       applyClamps(document.getElementById('runs'));
       if (curView() === 'tiles') renderTiles();
-    }).catch(function () {});
+      renderMoreBtn();
   }
+
+  // "Older" sits under BOTH views (it is the way further back in either one).
+  // Deliberately a TAP, never load-on-scroll: the autoscroll pill would run the
+  // page to the bottom on its own and pull page after page of pictures over her
+  // data without her asking for any of them.
+  function renderMoreBtn() {
+    var el = document.getElementById('more');
+    if (!feed.length || !feedMore) { el.innerHTML = ''; return; }
+    el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
+      (paging ? 'Loading…' : 'Older') + '</button>';
+  }
+  document.getElementById('more').addEventListener('click', function (e) {
+    if (e.target.closest('.morebtn')) loadMore();
+  });
 
   // The tiles view: every picture from every run, newest first, as one wall of
   // uniform thumbnails. No prompt on the page — that's what the lightbox is
@@ -725,8 +805,10 @@
       var slots = p.count || OUTPUTS;
       for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
     });
-    Object.keys(runsById).forEach(function (id) {
-      var r = runsById[id];
+    // Straight off `feed` — it is already sorted newest-first. (Walking
+    // Object.keys of the id map relied on insertion order holding, which is a
+    // property of the map, not of the wall's intended order.)
+    feed.forEach(function (r) {
       if (r.status === 'failed') return;
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {

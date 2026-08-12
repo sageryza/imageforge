@@ -18,3 +18,18 @@ __pycache__/
 
 # Video clips pulled down by scripts/clip — big files, and this repo is public
 clips/
+
+# one-off mockup manifest (scripts/day-stickers-mockup.js)
+.day-stickers.json
+
+# Quoted audiobook text for the Cannon language film — public repo, so the
+# lines themselves stay local; shots.json keeps citations and timings.
+docs/cannon-language/lines.local.json
+docs/cannon-language/*.log
+
+# generated art output — the pictures are banked in Firebase Storage
+# (raw, cutout and on-sky), so this folder is disposable
+.artout/
+
+# test fixtures downloaded on demand (scripts/test-vectorize.js)
+.cache/

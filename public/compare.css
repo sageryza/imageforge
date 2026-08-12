@@ -61,7 +61,10 @@ body {
   color: var(--gold); margin-bottom: 6px; padding-right: 56px;
 }
 h1 { font-size: 26px; line-height: 1.2; font-weight: 700; margin-bottom: 4px; padding-right: 56px; }
-.sub { color: var(--ink2); font-size: 15px; margin-bottom: 22px; }
+/* the pill's corner is reserved on .eyebrow and h1 above — .sub was missed,
+   and a one-line subtitle is long enough to run under it (measured at 390px:
+   the sub text reached x=376, the pill starts at x=326 and spans y 14-197) */
+.sub { color: var(--ink2); font-size: 15px; margin-bottom: 22px; padding-right: 56px; }
 h2 {
   font: 700 13px/1.2 -apple-system, 'Helvetica Neue', sans-serif;
   letter-spacing: .14em; text-transform: uppercase;
@@ -125,6 +128,21 @@ li::before { content: '•'; position: absolute; left: 4px; color: #c9b48f; }
 figure { margin: 0; }
 figcaption { font-size: 13px; color: var(--ink2); padding-top: 4px; }
 
+/* The COMPARISON UNIT (Aug 2026, Sophie): things being compared sit NEXT TO
+   each other — never stacked so she scrolls between them — with each side's
+   label ON TOP ("medium" / "high"), the Mason-art layout made the default.
+   <div class="duo">
+     <figure><span class="tag">medium</span><img …></figure>
+     <figure><span class="tag">high</span><img …></figure>
+   </div> */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.duo .tag {
+  display: block; font: 700 11px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gold); padding-bottom: 5px;
+}
+.duo img { width: 100%; height: auto; border-radius: 6px; display: block; }
+
 /* Video — these films are PORTRAIT (1024×1536 / 1080×1920). A <video> with
    only a width set has no aspect until its metadata loads, so it lays out in
    the browser's default box and reads SQUARE (Sophie caught this on the Bath
@@ -142,3 +160,94 @@ button, .btn {
   border: 1.5px solid var(--gold); color: var(--gold);
   background: var(--surface); border-radius: 6px; padding: 9px 14px;
 }
+
+/* Notes on an item (Aug 2026, Sophie's standing rule — every reviewable
+   thing takes a note). The markup is built by /compare.js's
+   window.__compareNotes(); a page only marks its items `data-item="<id>"`.
+
+   IT IS A SMALL + IN THE ITEM'S BOTTOM-RIGHT CORNER, and an EMPTY one costs
+   NO HEIGHT (Aug 2026, Sophie: the note section "takes up too much space and
+   makes it hard to see everything at once"; then "put the plus for a note at
+   the bottom not the top, and if I left a note, make it show"). v1 was a
+   "+ note" text button on its own line under every item and a written note
+   stayed open in a textarea — so a page of twenty items paid twenty rows
+   whether or not she had written anything.
+
+   The three states, and each is load-bearing:
+     nothing written  → just the + in the corner (absolute: zero height)
+     she wrote one    → HER WORDS SHOW, quietly, under the item
+     writing          → the textarea, folding back to her words on blur
+   So the page's height is spent only on notes that exist. Do not put an
+   empty note back in flow, and do not open a written one into a textarea
+   just to display it. The + rotates 45° into an × while the box is open.
+
+   A note is also a CONVERSATION: a chat answers on the note itself (Sophie:
+   "respond to my notes on the note itself so I can respond there also —
+   otherwise I forget what we're talking about"), so the shown text keeps its
+   line breaks and both voices live in the one field. */
+.cmp-note { margin: 0; }
+.cmp-note-open {
+  position: absolute; bottom: 7px; right: 7px; z-index: 2;
+  width: 22px; height: 22px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--paper); color: var(--ink2);
+  cursor: pointer; transition: transform .15s;
+}
+.cmp-note-open svg { width: 13px; height: 13px; display: block; }
+.cmp-note-open:hover { color: var(--gold); border-color: var(--gold); }
+.cmp-note.open .cmp-note-open { transform: rotate(45deg); }
+/* The thread — hers and the chat's as SEPARATE blocks (Aug 2026, Sophie: "I
+   don't know why I'm responding inside of your message. That's strange").
+   Writing appends a new message; it never hands her the whole field to edit.
+   More than one message folds to the newest behind a small "N earlier" —
+   her ask, so a long back-and-forth can't bury the list. */
+.cmp-note-text { display: none; cursor: text; margin-top: 9px; }
+.cmp-note.has .cmp-note-text { display: block; }
+.cmp-note.open .cmp-note-text { display: none; }
+.cmp-msg {
+  border-left: 2px solid var(--line);
+  padding: 1px 30px 1px 9px; margin-bottom: 7px;
+}
+.cmp-msg:last-child { margin-bottom: 0; }
+.cmp-msg.me { border-left-color: var(--rose); }
+.cmp-msg.claude { border-left-color: var(--gold); }
+.cmp-msg-who {
+  display: block; font: 600 9px/1 -apple-system, sans-serif;
+  letter-spacing: .12em; text-transform: uppercase; padding-bottom: 3px;
+}
+.cmp-msg.me .cmp-msg-who { color: var(--rose); }
+.cmp-msg.claude .cmp-msg-who { color: var(--gold); }
+.cmp-msg-t {
+  white-space: pre-wrap;
+  font: 14px/1.5 Georgia, 'Times New Roman', serif; color: var(--ink2);
+}
+/* folded: only the newest message shows */
+.cmp-note.folded .cmp-msg { display: none; }
+.cmp-note.folded .cmp-msg.last { display: block; }
+.cmp-note-more {
+  display: none; border: 0; background: none; padding: 4px 0 0 9px;
+  font: 600 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink2); cursor: pointer;
+}
+.cmp-note.has.foldable .cmp-note-more { display: block; }
+.cmp-note.open .cmp-note-more { display: none; }
+.cmp-note-more::before { content: '▾ '; }
+.cmp-note.folded .cmp-note-more::before { content: '▸ '; }
+.cmp-note-box {
+  display: none; width: 100%; margin-top: 8px;
+  font: 14px/1.45 Georgia, 'Times New Roman', serif;
+  color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 9px; resize: vertical;
+  -webkit-text-size-adjust: 100%;   /* iOS must not zoom the page on focus */
+}
+.cmp-note.open .cmp-note-box { display: block; }
+.cmp-note-box:focus { outline: none; border-color: var(--gold); }
+.cmp-note-saved {
+  display: none; font: 600 11px/1 -apple-system, sans-serif;
+  color: var(--green); padding-top: 4px; opacity: 0; transition: opacity .18s;
+}
+.cmp-note.open .cmp-note-saved { display: block; }
+.cmp-note-saved.on { opacity: 1; }

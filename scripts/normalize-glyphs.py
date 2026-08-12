@@ -28,7 +28,8 @@ Usage:  python3 scripts/normalize-glyphs.py [--check] [--target 0.90]
 import argparse, os, re, subprocess, sys, tempfile
 
 ART = os.path.join(os.path.dirname(__file__), "..", "ios", "ImageForge", "Assets.xcassets")
-GLYPHS = ["Playground/playground", "Quilt/quilt", "TestTube/testtube"]
+GLYPHS = ["Playground/playground", "Quilt/quilt", "TestTube/testtube",
+          "SetPyramid/setpyramid", "Vector/vector"]
 CHROME = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell"
 PX = 640          # render size; viewBox units are PX/64
 TOL = 0.005       # a glyph within half a percent of target is fine
@@ -58,7 +59,12 @@ def render_bbox(svg_path, work):
 
 def wrap(svg_text, tx, ty, s):
     """Wrap the drawing in one normalizing transform, replacing a previous one."""
-    open_tag = re.match(r"\s*<svg[^>]*>", svg_text)
+    # search, not match: a glyph may open with an XML comment or a doctype, and
+    # a leading comment used to make this return None — which then TRUNCATED the
+    # file, because `open(path, "w")` is evaluated before the wrap() that raises.
+    open_tag = re.search(r"<svg[^>]*>", svg_text)
+    if not open_tag:
+        raise SystemExit("no <svg> tag found — refusing to rewrite the file")
     head, body = svg_text[:open_tag.end()], svg_text[open_tag.end():]
     body = re.sub(r'\s*<g class="norm"[^>]*>(.*)</g>\s*(?=</svg>)', r"\1", body,
                   flags=re.S)
@@ -94,7 +100,11 @@ def main():
             s = args.target / fill
             cx, cy = (x0 + x1) / 2 * 64, (y0 + y1) / 2 * 64
             text = open(path).read()
-            open(path, "w").write(wrap(text, 32 - s * cx, 32 - s * cy, s))
+            # Build the whole new file BEFORE opening for write: opening
+            # truncates, so a wrap() that raises would otherwise leave an
+            # empty glyph behind (it did, once).
+            out = wrap(text, 32 - s * cx, 32 - s * cy, s)
+            open(path, "w").write(out)
             x0, x1, y0, y1 = render_bbox(path, work)
             print(f"{'':11s}  -> {max(x1 - x0, y1 - y0):.3f}, "
                   f"centred at ({(x0 + x1) / 2:.3f}, {(y0 + y1) / 2:.3f})")

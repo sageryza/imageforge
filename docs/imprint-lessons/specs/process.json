@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients, playful modern editorial illustration, on a plain white background, house palette plus red, blue, yellow and lime green accents. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-process", "prompt":"A vertical S-shaped process diagram snaking down the square: a chain of four simple rounded-rectangle boxes connected by flowing wavy strands, like strands of colored pencil. Loose tangled multicolored strands (yellow, red, blue, beige) representing NOISE and chaos flow into the first box; they emerge from it as neat, evenly-combed, ordered lime-green parallel lines representing ORDER and control; those ordered lines then scatter back into loose tangled colored noise as they flow into the next box, which combs them into order again; the pattern alternates back and forth — noise, then order, then noise, then order — down through the boxes to a final box at the bottom. Clearly show the back-and-forth alternation between the tangled chaotic state and the combed ordered state. Bold black outlines, flat colors, no gradients, plain white background." }
+  ] }

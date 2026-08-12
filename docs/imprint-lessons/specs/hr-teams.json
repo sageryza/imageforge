@@ -1,0 +1,4 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"hr-teams", "prompt":"Two people sitting together at a small table doing an exercise, a shared worksheet between them showing a row of blank circles connected by dashed lines — comparing a person's opposite traits together as a pair. Blank worksheet, no words. Flat house colors, bold outlines, cream space. No text, no numbers." }
+  ] }

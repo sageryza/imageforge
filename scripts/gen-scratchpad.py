@@ -33,11 +33,11 @@ page = r"""<!doctype html>
 <title>Story Room</title>
 <style>
 @font-face{font-family:'EBGaramond';font-weight:400 700;font-display:swap;src:url(data:font/ttf;base64,__FONT__) format('truetype');}
-:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7;
+:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;
   --mustard:#c99b3f; --green:#7d9b76; --blue:#7189a5; --pink:#c88fa2; }
-@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19;}}
-:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19;}
-:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7;}
+@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19; --gold:#c9a06b;}}
+:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --barbg:#211e19; --gold:#c9a06b;}
+:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --barbg:#fffdf7; --gold:#a8845c;}
 html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 [hidden]{display:none !important;}
@@ -70,8 +70,33 @@ body.native header #storiesbtn{position:static;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
 .sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
 .sheethead .no{flex:1;}
-/* The shelf: every story as a row — its first picture, its name, how many
-   beats. The one you're in is marked with a rule, not a label. */
+/* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
+   Sophie): category chips + portrait tiles four across. A tile is a REAL
+   picture from that story — portrait 2:3 so nothing crops the art — with the
+   name only underneath; tapping it opens that story's beat canvas directly.
+   The chips are the witch shop's category style: rounded rectangles, gold
+   border + gold text when lit. */
+#shelfcats{display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  margin:14px 0 12px; padding-bottom:2px;}
+#shelfcats::-webkit-scrollbar{display:none;}
+.scat{flex:0 0 auto; background:var(--barbg); border:1px solid var(--line); color:var(--ink2);
+  border-radius:6px; padding:7px 13px; font:600 13px -apple-system,'Helvetica Neue',sans-serif;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.scat.on{border-color:var(--gold); color:var(--gold);}
+#shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
+.stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
+  cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
+.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
+.stile .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
+.stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
+  background:var(--barbg);}
+.stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
+.stile.cur .snm{color:var(--gold);}
+/* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
+   links here (Sophie's call); ?plain=1 is the one way in. */
 #storylist{margin-top:1.2em;}
 .srow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none;
   border:none; border-bottom:1px solid var(--line); padding:10px 0; cursor:pointer;
@@ -137,6 +162,21 @@ body.native header #storiesbtn{position:static;}
   height:48px; width:0; border-left:2px dashed var(--ink2);}
 /* ── overlays ─────────────────────────────────────────────────────── */
 .sheet{position:fixed; inset:0; background:var(--paper); z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+/* About this story — her words pre-wrapped verbatim, her recordings above */
+#descbody{white-space:pre-wrap; line-height:1.55; font-size:.95em; padding:4px 0 60px;}
+#descaudios .arow{margin:12px 0 16px;}
+#descaudios .arow .no{margin-bottom:6px;}
+#descaudios audio{width:100%; display:block;}
+/* The sheet is its own scroller, so the page's pill cannot drive it — it gets
+   one of its own, same look, in the same corner. */
+.sfloat{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:41;
+  display:flex; flex-direction:column; gap:8px; align-items:center;}
+.sfloat .vseg{display:flex; flex-direction:column; width:44px; border:1.5px solid var(--ink);
+  border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.sfloat button{border:none; background:transparent; color:var(--ink); width:44px; height:46px;
+  display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer;}
+.sfloat button+button{border-top:1.5px solid var(--ink);}
+.sfloat button.on{background:color-mix(in srgb, var(--gold,#a8845c) 18%, var(--paper)); color:var(--gold,#a8845c);}
 .sheet .wrap{padding-top:3vh;}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
 #inboxgrid button{aspect-ratio:2/3; border:1px solid var(--line); border-radius:4px; background:var(--barbg);
@@ -174,9 +214,10 @@ body.native header #storiesbtn{position:static;}
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{display:flex; gap:14px;}
-#speak,#linkbtn,#micbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
+#speak,#linkbtn,#micbtn,#coverbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
-#speak svg,#linkbtn svg,#micbtn svg,#delbtn svg{width:17px; height:17px;}
+#speak svg,#linkbtn svg,#micbtn svg,#coverbtn svg,#delbtn svg{width:17px; height:17px;}
+#coverbtn.on{background:var(--ink); color:var(--barbg);}
 /* Every generation this beat has had, all the same size, newest first; the
    one currently on the pad wears the dark ring. Tap one to see it big. */
 #verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
@@ -243,6 +284,15 @@ body.native header #storiesbtn{position:static;}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Listen rows — episodes cut from this story's material in the Episode
+   Editor (the NDE montages live here). One row per linked episode: play,
+   the episode's name, its length. They share the page's one player, so a
+   tap replaces whatever is speaking, never stacks. */
+#audios{margin-top:.6em;}
+.aurow{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);}
+.aurow:first-child{border-top:1px solid var(--line);}
+.aurow .aunm{flex:1; min-width:0; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -258,12 +308,14 @@ body.native header #storiesbtn{position:static;}
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
+    <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
+  <div id="audios" hidden></div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
 </div>
@@ -275,7 +327,9 @@ body.native header #storiesbtn{position:static;}
       <div class="no">Your stories</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
-    <div id="storylist"></div>
+    <div id="shelfcats"></div>
+    <div id="shelftiles"></div>
+    <div id="storylist" hidden></div>
   </div>
 </div>
 
@@ -287,6 +341,18 @@ body.native header #storiesbtn{position:static;}
     </div>
     <div id="inboxgrid"></div>
     <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+  </div>
+</div>
+
+<!-- About this story: her own words + her recordings, read-only -->
+<div class="sheet" id="descsheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="descclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <div class="no">About this story</div>
+    </div>
+    <div id="descaudios"></div>
+    <div id="descbody"></div>
   </div>
 </div>
 
@@ -326,6 +392,7 @@ body.native header #storiesbtn{position:static;}
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button id="linkbtn" hidden aria-label="Link with the next beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
     <button id="unlinkbtn" hidden aria-label="Break this chunk apart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></button>
+    <button id="coverbtn" hidden aria-label="Make this the story's cover on the shelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></button>
     <button id="delbtn" aria-label="Delete this beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></button>
   </div>
   </div></div>
@@ -536,8 +603,56 @@ function renderFilm(){
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
+/* ── listen: episodes cut from this story in the Episode Editor ─────
+   (Aug 2026, Sophie: the NDE montages "should be connected to their
+   stories so I can listen to them when I go to their story".) GET /
+   resolves each linked episode's newest render server-side (`audios`);
+   the rows reuse the page's ONE player, so a tap replaces whatever is
+   speaking — a beat's line, another episode — never stacks. */
+var audios=[];
+var AU_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
+var AU_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>';
+function fmtDur(s){
+  s=Math.round(Number(s)||0); if(!s)return '';
+  return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);
+}
+function auGlyphs(){
+  var rows=document.querySelectorAll('#audios .aurow');
+  for(var i=0;i<rows.length;i++){
+    var on=player.src===rows[i]._url&&!player.paused&&!player.ended;
+    rows[i].querySelector('.iconbtn').innerHTML=on?AU_PAUSE:AU_PLAY;
+  }
+}
+player.addEventListener('play',auGlyphs);
+player.addEventListener('pause',auGlyphs);
+player.addEventListener('ended',auGlyphs);
+function renderAudios(){
+  var box=document.getElementById('audios');
+  box.innerHTML=''; box.hidden=!audios.length;
+  audios.forEach(function(a){
+    var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
+    var b=document.createElement('button'); b.className='iconbtn';
+    b.setAttribute('aria-label','Listen — '+a.title);
+    b.innerHTML=AU_PLAY;
+    b.onclick=function(ev){
+      ev.stopPropagation();
+      /* play() synchronously in the tap — the iOS rule */
+      if(player.src===a.url&&!player.paused){ player.pause(); }
+      else if(player.src===a.url){ player.play(); }
+      else { player.pause(); player.src=a.url; player.play(); }
+      auGlyphs();
+    };
+    var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=a.title;
+    var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(a.seconds);
+    row.appendChild(b); row.appendChild(nm); row.appendChild(du);
+    box.appendChild(row);
+  });
+  auGlyphs();
+}
+
 function playFilm(){
   if(!film||!film.url)return;
+  player.pause();   // the film's sound must not fight an episode's
   var v=document.getElementById('filmvid');
   v.src=film.url;
   document.getElementById('filmplay').hidden=false; lock(true);
@@ -630,44 +745,133 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
+    audios=d.audios||[]; renderAudios();
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
+    padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
+    padVoice=(d.voiceover&&d.voiceover.url)?d.voiceover.url:null;
+    document.getElementById('descbtn').hidden=!(padDesc||padDescAudio||padVoice);
     renderTitle(); render(); renderFilm();
     if(anyDrawing()) startGenPoll();   // a draw survives leaving the app
     if(film&&film.status==='making') startFilmPoll();
   });
 }
 
-/* ── the shelf: every story, newest-touched first ─────────────────── */
+/* ── the shelf: every story, newest-touched first ──────────────────
+   The NEW look (Aug 2026, the survey prototype): Personal · Lessons · NDE
+   chips over portrait tiles, a real picture from each story and its name.
+   Tap a tile → straight to that story's beat canvas (Sophie's call). A story
+   with no category files under Personal so a brand-new one is never
+   invisible; the chip choice is session-only, every open starts on Personal.
+   The old row list is the fallback ONLY — nothing links to it; ?plain=1 is
+   the one way in. */
+var SHELF_CATS=[['Personal','personal'],['Lessons','lessons'],['NDE','nde']];
+var shelfCat='personal';
+var PLAIN_SHELF=/(\?|&)plain=1/.test(location.search);
+var shelfPads=[];
+function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
 document.getElementById('storiesbtn').onclick=function(ev){
   ev.stopPropagation();
-  document.getElementById('stories').hidden=false; lock(true);
+  var sh=document.getElementById('stories');
+  sh.hidden=false; lock(true); sheetPill(sh);
   api('/pads').then(function(r){return r.json()}).then(function(d){
-    var list=document.getElementById('storylist'); list.innerHTML='';
-    (d.pads||[]).forEach(function(p){
-      var row=document.createElement('button'); row.className='srow'+(p.id===padId?' cur':'');
-      var cov;
-      if(p.cover){ cov=document.createElement('img'); cov.src=p.cover; cov.alt=''; cov.loading='lazy'; }
-      else { cov=document.createElement('div'); }
-      cov.className='sc'; row.appendChild(cov);
-      var nm=document.createElement('div'); nm.className='sn'+(p.title?'':' blank');
-      nm.textContent=p.title||'Untitled'; row.appendChild(nm);
-      var ct=document.createElement('div'); ct.className='sb';
-      ct.textContent=p.beats+(p.beats===1?' beat':' beats'); row.appendChild(ct);
-      row.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
-      list.appendChild(row);
-    });
+    shelfPads=d.pads||[];
+    if(PLAIN_SHELF) renderPlainShelf(); else renderShelf();
   });
 };
+function renderShelf(){
+  var cats=document.getElementById('shelfcats');
+  var tiles=document.getElementById('shelftiles');
+  document.getElementById('storylist').hidden=true;
+  cats.hidden=false; tiles.hidden=false;
+  cats.innerHTML='';
+  SHELF_CATS.forEach(function(c){
+    var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
+    b.textContent=c[0];
+    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
+    cats.appendChild(b);
+  });
+  tiles.innerHTML='';
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
+      var cov=document.createElement('span'); cov.className='cov';
+      if(p.cover){
+        var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+        im.src=thumbOf(p.cover); cov.appendChild(im);
+      } else {
+        var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+      }
+      t.appendChild(cov);
+      var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
+      nm.textContent=p.title||'Untitled'; t.appendChild(nm);
+      t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+      tiles.appendChild(t);
+    });
+}
+function renderPlainShelf(){
+  document.getElementById('shelfcats').hidden=true;
+  document.getElementById('shelftiles').hidden=true;
+  var list=document.getElementById('storylist'); list.hidden=false; list.innerHTML='';
+  shelfPads.forEach(function(p){
+    var row=document.createElement('button'); row.className='srow'+(p.id===padId?' cur':'');
+    var cov;
+    if(p.cover){ cov=document.createElement('img'); cov.src=p.cover; cov.alt=''; cov.loading='lazy'; }
+    else { cov=document.createElement('div'); }
+    cov.className='sc'; row.appendChild(cov);
+    var nm=document.createElement('div'); nm.className='sn'+(p.title?'':' blank');
+    nm.textContent=p.title||'Untitled'; row.appendChild(nm);
+    var ct=document.createElement('div'); ct.className='sb';
+    ct.textContent=p.beats+(p.beats===1?' beat':' beats'); row.appendChild(ct);
+    row.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+    list.appendChild(row);
+  });
+}
+function closeShelf(){
+  var sh=document.getElementById('stories');
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
+}
 document.getElementById('storiesclose').onclick=function(ev){
+  ev.stopPropagation(); closeShelf();
+};
+
+/* ── About this story: what she said about it, verbatim + recordings ──
+   Data-only fields on the pad doc (a chat writes them); the sheet is
+   read-only. When descriptionAudio and the voiceover are the SAME file
+   (a lesson whose source IS her read-aloud) only one player shows. */
+var padDesc='', padDescAudio=null, padVoice=null;
+document.getElementById('descbtn').onclick=function(ev){
   ev.stopPropagation();
-  document.getElementById('stories').hidden=true; lock(false);
+  var au=document.getElementById('descaudios'); au.innerHTML='';
+  function row(label,url){
+    if(!url) return;
+    var d=document.createElement('div'); d.className='arow';
+    var n=document.createElement('div'); n.className='no'; n.textContent=label; d.appendChild(n);
+    var a=document.createElement('audio'); a.controls=true; a.preload='none'; a.src=url;
+    d.appendChild(a); au.appendChild(d);
+  }
+  if(padDescAudio && padVoice===padDescAudio){ row('Your recording', padDescAudio); }
+  else { row('As you told it', padDescAudio); row('Your narration', padVoice); }
+  var b=document.getElementById('descbody');
+  b.textContent=padDesc; b.hidden=!padDesc;
+  var sh=document.getElementById('descsheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
+};
+document.getElementById('descclose').onclick=function(ev){
+  ev.stopPropagation();
+  var sh=document.getElementById('descsheet');
+  var as=sh.querySelectorAll('audio');
+  for(var i=0;i<as.length;i++) as[i].pause();
+  if(sh._stopPill) sh._stopPill();
+  sh.hidden=true; lock(false);
 };
 function openPad(id){
   padId=id; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
-  document.getElementById('stories').hidden=true; lock(false);
+  player.pause(); audios=[]; renderAudios();
+  closeShelf();
   beats=[]; padTitle=''; render();
   load();
 }
@@ -683,15 +887,54 @@ document.getElementById('newstory').onclick=function(ev){
    beat popup's inbox icon (fillBeat set → the choice becomes THAT beat's
    art, no placement step). */
 var fillBeat=null;
+// A pill for a sheet: same three buttons as the page's, but it scrolls the
+// sheet, which is its own scroller.
+function sheetPill(sheet){
+  var old=sheet.querySelector('.sfloat'); if(old) old.remove();
+  var I={up:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+         down:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+         play:'<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+         pause:'<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4.5" height="16" rx="1"/><rect x="14.5" y="4" width="4.5" height="16" rx="1"/></svg>'};
+  var el=document.createElement('div'); el.className='sfloat';
+  el.innerHTML='<div class="vseg"><button class="su"></button><button class="sm"></button><button class="sd"></button></div>';
+  var up=el.querySelector('.su'), mid=el.querySelector('.sm'), dn=el.querySelector('.sd');
+  var playing=false, raf=null, last=null, dir=1, acc=0;
+  function paint(){ up.innerHTML=I.up; dn.innerHTML=I.down; mid.innerHTML=playing?I.pause:I.play;
+    mid.classList.toggle('on',playing); }
+  function step(ts){ if(!playing) return;
+    if(last!=null){ acc+=dir*(ts-last)/1000*80;
+      var m=acc>0?Math.floor(acc):Math.ceil(acc);
+      if(m){ sheet.scrollTop+=m; acc-=m; }
+      if(dir>0 && sheet.scrollTop+sheet.clientHeight>=sheet.scrollHeight-4) return stop();
+      if(dir<0 && sheet.scrollTop<=2) return stop(); }
+    last=ts; raf=requestAnimationFrame(step); }
+  function start(d){ dir=d; playing=true; last=null; acc=0; paint(); raf=requestAnimationFrame(step); }
+  function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
+  up.onclick=function(e){ e.stopPropagation(); playing?stop():start(-1); };
+  dn.onclick=function(e){ e.stopPropagation(); playing?stop():start(1); };
+  mid.onclick=function(e){ e.stopPropagation(); playing?stop():start(1); };
+  sheet.addEventListener('pointerdown',function(ev){ if(!ev.target.closest('.sfloat')) stop(); },true);
+  paint(); sheet.appendChild(el); sheet._stopPill=stop;
+  return el;
+}
 function openInbox(){
-  document.getElementById('inbox').hidden=false; lock(true);
+  var sh=document.getElementById('inbox');
+  sh.hidden=false; lock(true); sheetPill(sh);
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
+    // A story that carries its own gathered art says so; otherwise this is
+    // still the Playground hearts.
+    var hd=document.querySelector('#inbox .no');
+    if(hd) hd.textContent = (d.source==='story') ? 'This story\u2019s art' : 'From the Playground';
     var g=document.getElementById('inboxgrid'); g.innerHTML='';
     document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
+    // A picture she has already placed is gone from here, not dimmed: the
+    // inbox is what is still waiting to be used (Sophie, Aug 2026).
     var onPad={}; beats.forEach(function(b){onPad[b.url]=1;});
+    inboxItems=inboxItems.filter(function(it){ return !onPad[it.url]; });
+    document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
     inboxItems.forEach(function(it){
-      var el=document.createElement('button'); if(onPad[it.url])el.className='used';
+      var el=document.createElement('button');
       var im=document.createElement('img'); im.src=it.url; im.alt=''; im.loading='lazy'; el.appendChild(im);
       // stopPropagation matters: this click must not reach the document-level
       // cancel handler, which would clear the placing mode it just started.
@@ -702,7 +945,8 @@ function openInbox(){
 }
 document.getElementById('inboxbtn').onclick=function(){ fillBeat=null; openInbox(); };
 document.getElementById('inboxclose').onclick=function(){
-  document.getElementById('inbox').hidden=true;
+  var sh=document.getElementById('inbox'); if(sh._stopPill) sh._stopPill();
+  sh.hidden=true;
   if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); return; }
   lock(false);
 };
@@ -762,6 +1006,8 @@ function openBeat(b){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
+  document.getElementById('coverbtn').hidden=!b.url;
+  document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
   // ringed. Only shows once there is more than the current picture.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
@@ -953,6 +1199,17 @@ document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
   this.hidden=true;
 };
+/* Make this beat's art the story's cover on the shelf. The button fills in
+   dark as the ack and the popup stays open (same manner as the color chips). */
+document.getElementById('coverbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var b=popBeat; if(!b||!b.url)return;
+  var btn=this;
+  api('/cover',{method:'POST',body:JSON.stringify({id:b.id})})
+    .then(function(r){return r.json()})
+    .then(function(d){ if(d&&d.ok){ btn.classList.add('on'); } })
+    .catch(function(){});
+};
 /* Delete, behind an are-you-sure. The beat leaves the pad; its pictures are
    already in Storage and My Creations, and its record moves to pad.trash. */
 document.getElementById('delbtn').onclick=function(ev){
@@ -1013,8 +1270,10 @@ window.__navBack=function(){
     if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
     return true;
   }
+  el=document.getElementById('descsheet');
+  if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden){ el.hidden=true; lock(false); return true; }
+  if(!el.hidden){ closeShelf(); return true; }
   return false;
 };
 

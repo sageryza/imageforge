@@ -57,6 +57,38 @@ earlier shot.
 - The 2x2 panel trick works on this engine (hard-border language, slice at
   quarters) and at high quality matches the singles' hand. Whether the film
   uses panels, singles, or both is Sophie's call.
+- **Animation pairs (Sophie's invention, Aug 2026): one page of two
+  side-by-side panels, same scene and camera — panel 1 is the animation's
+  START frame, panel 2 the END frame; wan 2.2 i2v (`image` + `last_image`)
+  animates between them so the story moves forward inside the shot.** Audition
+  pages at low (~2¢) + draft clips at 480p (~6¢); keepers get the page redrawn
+  at HIGH and the animation at 720p (~16¢). The two panels must show visibly
+  DIFFERENT poses/compositions or wan has nothing to do.
+- **DEFAULT TO ONE DRAWING — a pair is the exception (Sophie, Aug 2026:
+  "putting one arm around Laura needs two illustrations? that could be done
+  with the animation").** wan animates a single finished shot from a motion
+  prompt alone (`image`, no `last_image`), and most of the movie's actions are
+  that: an arm going round a shoulder, a cup tipped back, cuffs rolled, a jump.
+  Drawing those twice is wasted money AND looks bad — the two panels come out
+  near-identical, which is what made the v3 audition "literally terrible".
+  **Draw a second panel ONLY when the end state is a genuinely DIFFERENT
+  PICTURE** the model could not invent from the first: a new location or scale,
+  a body somewhere it wasn't, a scene that has transformed. Everything else is
+  one shot + `scripts/…/single-animate.js`-style i2v.
+- **A pair is a PLOT EVENT — "this is supposed to be a movie. Things actually
+  happen" (Sophie, Aug 2026, after two rejected rounds).** The round of tiny
+  hand-task pairs was "small movements again"; the round of bold METAPHOR
+  pairs (the idol collapsing into the nurse, animals materializing) was
+  "you're just showing weird metaphors." What she wants: **the actual actions
+  of the story** — things that really happened in the manuscript (she springs
+  out of push-up position and gets into bed when the nurse checks; she digs
+  the soup container out of the trash; she drinks the soap cup in front of
+  the nurse; the nurses make her take the statues down). A thought or an
+  image in her head (the flowers blooming, the idol) is NOT a pair — it
+  didn't happen. **Test each candidate by imagining the narration line
+  playing behind it** (her suggestion): the animation should show the thing
+  the voice says happening, with clear whole-body movement between the
+  panels, never a hand-scale gesture.
 - **Narration: Sophie — morning (`UTkHGl2ImiT6gwtAFCql`) on
   `eleven_multilingual_v2` — NEVER `eleven_v3`** (Aug 2026, Sophie; film v1
   shipped on v3 by mistake and was re-rendered). Settings: stability 0.5,

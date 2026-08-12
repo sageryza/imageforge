@@ -154,13 +154,6 @@ h2 { font-size:16px; color:var(--muted); font-weight:normal; font-style:italic; 
             <button data-v="off">All hard cuts</button>
           </div>
         </div>
-        <div>
-          <div class="optlabel">Motion feel</div>
-          <div class="seg" id="motionSeg">
-            <button data-v="normal" class="sel">Normal</button>
-            <button data-v="subtle">Mostly still</button>
-          </div>
-        </div>
       </div>
     </div>
     <div class="row" style="margin-top:14px; flex-wrap:wrap" id="actions"></div>
@@ -360,7 +353,6 @@ function render() {
       motionStage = true;
       btn('Add motion', () => act('/clips', {
         morphPairs: segVal('morphSeg') === 'on',
-        motionFeel: segVal('motionSeg'),
       }, 'Animating the scenes…'));
     }
     else btn(movie.movieUrl ? 'Re-stitch the film' : 'Stitch the film', () => act('/stitch', {}, 'Stitching…'), Boolean(movie.movieUrl));

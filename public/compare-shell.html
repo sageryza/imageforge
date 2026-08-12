@@ -1,0 +1,115 @@
+<!doctype html>
+<!-- ===========================================================================
+     THE COMPARE PAGE SHELL — copy this file, fill it in, POST it.
+
+       POST /api/chatfeed/page  { chat: "<your-chat-name>", title: "…", html }
+
+     It appears in your chat's Compare tab and opens full-screen in the app.
+     Starting from this file gets you, without thinking about any of it:
+
+       /compare.css  the ONE house look (warm paper, gold accent, serif) AND
+                     the :root tokens the injected autoscroll pill styles
+                     itself from — a page missing them renders the pill BLACK
+                     on transparent. Do NOT override the tokens.
+       /compare.js   the house behaviour: any tap pauses the autoscroll (with
+                     the pill itself exempt, or its own play button dies), an
+                     image lightbox that stops the scroll, locks the page and
+                     restores the exact scroll position on close, AND a note
+                     box on every item (see __compareNotes below).
+
+     The pill is INJECTED BY THE SERVER. Never add your own scroll pill.
+
+     Two rules that bite if you ignore them:
+     - WRAP YOUR SCRIPT IN AN IIFE. The injected pill runs in global scope and
+       declares `var raf`, `var I`, `var playing`, …; a page-level `let raf`
+       collides and kills the pill's script at PARSE time (empty stretched
+       buttons, no scrolling).
+     - A NEW VERSION IS A NEW PAGE, never an edit of the old one. Put the
+       version in the TITLE ("Short 1 v4 — tightest cut") and point at new,
+       version-numbered media. The old pages stay as history.
+
+     Layout notes: mobile first; images in ROWS OF TWO (`.imgrow`), never one
+     full-width image per row. Skeleton blocks live at the top of compare.css.
+     Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
+
+     DELIVERING A FILM? It is a LINE OF TEXT WITH A PLAY BUTTON at the TOP of
+     the page — never an embedded <video> (Aug 2026, Sophie: "never put a
+     whole video when it's gonna be opened as a lightbox anyway… so I don't
+     just scroll through the whole thing"). A player parked at the top is a
+     black slab she scrolls past every time, and tapping it goes fullscreen
+     regardless. One line, and the overlay contract comes with it:
+
+         <div id="film"></div>
+         window.__filmRow({ url: '…/cut-v2.mp4', label: 'Mason — the shape',
+                            meta: '4:56', mount: '#film' });
+
+     MINIMAL TEXT (Aug 2026, Sophie — asked for on page after page): this is
+     a VISUAL reference, not an extension of the chat. Title, ONE line under
+     it, labels on the pictures — no paragraphs, no explanations, no recap of
+     the conversation. She knows what's going on from the chat.
+
+     THE THINGS BEING COMPARED SIT SIDE BY SIDE — never stacked so she
+     scrolls between them. Use `.duo` (labels ON TOP: "medium" / "high") for
+     every A-vs-B pair; `.imgrow` is for plain sets that aren't versus.
+
+     Picking/choosing across a set instead of reading a comparison? That is
+     the JUDGE page — start from judge-shell.html, not this file.
+=========================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title of this page</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <!-- THE TITLE AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie): no eyebrow
+       chat/date line, no tagline. Straight from the title into the thing.
+       And PREFER NOT SCROLLING — if the page carries two different kinds of
+       thing (a picture and its inputs, a shape and the buttons that drive
+       it), split them with the .acctabs hairline tabs instead of stacking
+       them down the page. -->
+  <h1>Title states the version and what it is</h1>
+
+  <!-- Every REVIEWABLE item carries data-item="<id>" — that is all it takes
+       to get a note box on it (wired at the bottom). -->
+  <div class="card" data-item="thing-1">
+    <h2>A short label, not a paragraph</h2>
+    <!-- An A-vs-B pair is a .duo: side by side, labels ON TOP. Tapping an
+         image opens the lightbox — no wiring needed. -->
+    <div class="duo">
+      <figure><span class="tag">medium</span><img src="https://…/one-med.webp" alt="Penny — medium"></figure>
+      <figure><span class="tag">high</span><img src="https://…/one-high.webp" alt="Penny — high"></figure>
+    </div>
+    <!-- A plain set (not versus) is an .imgrow, two to a row. -->
+    <div class="imgrow">
+      <img src="https://…/one.webp" alt="what this one is">
+      <img src="https://…/two.webp" alt="what this one is">
+    </div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+// YOUR page script — inside an IIFE (see the note above).
+(function () {
+  // NOTES — one line, and every [data-item] gets a note box that saves as she
+  // types, reloads what she wrote last time, and survives leaving the page.
+  // Add this to EVERY page with reviewable items (Sophie's standing rule).
+  window.__compareNotes({ chat: 'CHAT NAME', sheet: 'SHEET NAME' });
+
+  // Votes, if the page has them. A Compare page must NEVER post to
+  // /api/chatfeed/reply — what she writes here is not a chat message, and the
+  // server reroutes such a post onto this page's verdict doc anyway.
+  // Votes go in `ok`, notes in `text`: separate fields on the same doc, so
+  // writing one never clears the other.
+  window.__saveVote = function (item, ok) {
+    return fetch('/api/chatfeed/verdict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: 'CHAT NAME', sheet: 'SHEET NAME', item: item, ok: ok })
+    });
+  };
+  // Read both back later with:
+  //   GET /api/chatfeed/verdict?chat=CHAT%20NAME&sheet=SHEET%20NAME
+  //   → { items: {id: true|false}, texts: {id: "her note"} }
+})();
+</script>

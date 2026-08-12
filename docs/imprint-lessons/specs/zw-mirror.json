@@ -1,0 +1,6 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "zw-mirror", "prompt": "A calm, symmetrical landscape reflected in a still pond, illustrating 'as above, so below.' In the TOP half: a few simple shimmering trees and a gentle mountain silhouette under a dark starry night sky sprinkled with small four-point stars. In the BOTTOM half: the exact mirror image of all of it — the same trees, mountain and stars — reflected upside-down in smooth dark water. A single clean horizontal waterline runs across the middle so the top and its reflection read as near-perfect mirrors of each other. Flat, simple, calm, generous cream space at the edges. No text." }
+  ]
+}

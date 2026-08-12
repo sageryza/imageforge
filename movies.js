@@ -168,18 +168,20 @@ function styleRefGridPrefix(style) {
     'quarter the image, separated by thin borders, with no captions and no text anywhere. ';
 }
 
-// Style lock that held the illustration style verbatim in the validated run.
-// The "mostly still" motion feel, choosable at the Add-motion step: most of
-// the frame holds still and only one small thing moves.
-const SUBTLE_MOTION_STYLE =
-  'Hand-drawn illustration, nearly still, on textured paper. Camera completely ' +
-  'static. The frame holds almost motionless — only ONE small, quiet movement ' +
-  '(a breath, drifting steam, a blink). The illustration style, linework and ' +
-  'colors are preserved exactly.';
-const DEFAULT_MOTION_STYLE =
-  'Hand-drawn ink and watercolor illustration, subtle limited animation on ' +
-  'textured paper. Camera completely static. Gentle storybook motion. The ' +
-  'illustration style, linework and colors are preserved exactly.';
+// What rides in front of every clip prompt. Deliberately ONLY the art-
+// preservation clause — it stops the video model redrawing the panel, and says
+// NOTHING about how much or how little should move.
+//
+// It used to carry "subtle limited animation … Gentle storybook motion", with a
+// "mostly still" variant beside it, and that vocabulary reached the model from
+// four independent places at once — so films came out gently drifting no matter
+// what the scene asked for, and turning the "mostly still" option off changed
+// almost nothing. Sophie never wanted that look (Aug 2026): "it doesn't need to
+// be anywhere — if I want that I'll ask for it directly." Motion now comes from
+// the scene's own motionPrompt and nowhere else. Do not reintroduce a house
+// motion feel here; per-movie `motionStyle` is hers to set.
+const ART_LOCK =
+  'The illustration style, linework and colors are preserved exactly.';
 const DEFAULT_NEGATIVE = 'photorealistic, 3d render, blurry, distorted face';
 const DEFAULT_IMAGE_STYLE =
   'Hand-drawn ink and watercolor illustration on textured paper, storybook ' +
@@ -858,7 +860,6 @@ async function concatClips(files, outFile) {
 // asking for it can pressure the breakdown into inventing one.
 async function breakdownStory(story, sceneCount, opts = {}) {
   const morphPairs = opts.morphPairs !== false;          // pairs allowed by default; the model picks which moments deserve one
-  const subtleMotion = opts.motionProfile === 'subtle';  // "mostly still" is an option, not a rule
   const target = sceneCount ? `exactly ${sceneCount}` : 'between 8 and 12';
   const pairField = morphPairs
     ? `\n   "pairWithNext": true when this scene and the NEXT are the SAME shot before/after one key action,`
@@ -866,16 +867,18 @@ async function breakdownStory(story, sceneCount, opts = {}) {
   const pairRule = morphPairs
     ? '- For EACH moment, decide whether it wants a MORPH or a HARD CUT — purely your judgement for THIS story. There is NO quota and no expected ratio: one story might morph everywhere, another might be all hard cuts, most are somewhere between. A morph = a before/after pair: two consecutive scenes that are the SAME shot and composition with one small state change (door closed → door open; cup full → cup empty; a fist landing). Mark the FIRST of the pair with "pairWithNext": true. The pair\'s imagePrompts must describe the identical composition, differing only in the changed detail.'
     : '- Every scene is its own single still — do NOT create before/after pairs or repeat a composition with one small change.';
-  const motionRule = subtleMotion
-    ? '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move. Keep most scenes nearly still (breathing, wind, blinking); give pronounced action ONLY to the 1-3 most important beats — the contrast makes those beats land.'
-    : '- motionPrompt is about MOTION only, one continuous subtle action, never a cut or a camera move.';
+  // MOTION ONLY, and no house opinion about how much of it. The old version of
+  // this rule insisted on "one continuous subtle action" and (optionally) that
+  // most scenes stay "nearly still" — see ART_LOCK. What the shot needs is the
+  // story's business, not this prompt's.
+  const motionRule = '- motionPrompt is about MOTION only — one continuous action within the shot, never a cut. Let the scene decide how much movement it wants.';
   const sys = `You are a storyboard artist breaking a story into scenes for an illustrated animated short film. Return STRICT JSON:
 {"title": short film title,
  "characters": one compact phrase of visual continuity tokens for the recurring character(s) — MUST specify hairstyle, facial features (beard/glasses/etc), AND the exact clothing worn for the whole story, e.g. "a girl with a black bob haircut and a crystal necklace, wearing a yellow raincoat and red boots",
  "scenes": [{"title": 2-5 word scene label,
    "description": what happens in this scene, written SELF-CONTAINED,
    "imagePrompt": a full image-generation prompt for this scene's illustrated panel,
-   "motionPrompt": one sentence of the SMALL physical motion happening in the shot (subtle — steam rising, a hand reaching, eyes blinking, rain falling),
+   "motionPrompt": one sentence of the physical motion happening in the shot (steam rising, a hand reaching, a door slamming, rain falling),
    "hasText": true only if the panel should contain written text (a speech bubble, a sign, a screen),${pairField}
    "key": true on EXACTLY the 3 scenes that show the main character most clearly (well lit, framed large, face visible) — these render first so the character design can be approved}]}
 
@@ -896,7 +899,7 @@ ${motionRule}`;
     title: String(s.title || `Scene ${i + 1}`).trim(),
     description: String(s.description || '').trim(),
     imagePrompt: String(s.imagePrompt || s.description || '').trim(),
-    motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
+    motionPrompt: String(s.motionPrompt || '').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: morphPairs ? Boolean(s.pairWithNext) : false,
     key: Boolean(s.key),
@@ -1088,7 +1091,7 @@ function isMerged(movie, idx) {
 
 // The full motion prompt actually sent to the video model.
 function motionPromptFor(movie, scene) {
-  const style = (movie.motionStyle || DEFAULT_MOTION_STYLE).trim();
+  const style = (movie.motionStyle || ART_LOCK).trim();
   let p = `${style} ${scene.motionPrompt}`.trim();
   if (scene.hasText) p += STATIC_TEXT_SUFFIX;
   return p;
@@ -1332,7 +1335,7 @@ async function generateBridge(movie, bridge, tmpDir) {
   const frameUrl = await saveBufferToStorage(fs.readFileSync(frameFile), 'image/png', 'movies/frames');
   if (frameUrl.startsWith('data:')) throw new Error('bridges need Firebase Storage (permanent frame URLs)');
 
-  const style = (movie.motionStyle || DEFAULT_MOTION_STYLE).trim();
+  const style = (movie.motionStyle || ART_LOCK).trim();
   const prompt = `${style} ${bridge.prompt}`.trim();
   const m = VIDEO_MODELS.draft;
   const p = await replicatePredict(m.version, {
@@ -1653,13 +1656,16 @@ async function softenOnRefusal(bundle, draw, soften, passes = 2) {
 }
 
 // Draw a page from its narrative bundle; `build(bundle)` returns the full prompt.
+// `used` comes back as the bundle the finished picture was actually drawn from —
+// the softened one when softening fired — so the caller can record what the page
+// really says alongside the dreamer's original words.
 async function drawWithSoftening(bundle, build, refs, quality) {
   return softenOnRefusal(bundle, async b => {
     const prompt = build(b);
     const buf = refs.length
       ? await openaiPanelEdit(prompt, refs, quality)
       : await openaiPanel(prompt, quality);
-    return { buf, prompt };
+    return { buf, prompt, used: b };
   }, softenRefusedNarrative);
 }
 
@@ -1688,8 +1694,11 @@ async function renderDreamPage(dream, group, quality, rendered) {
   const build = b => dreamZinePagePrompt(dream, group.map((s, i) => ({
     ...s, imagePrompt: b.panels[i].scene, title: b.panels[i].caption,
   })), usable);
-  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
+  const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality);
+  return {
+    url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'),
+    prompt, softened: !!softened, used: used || bundle,
+  };
 }
 
 // ─── Resilient page drawing ─────────────────────────────────────────
@@ -1773,7 +1782,18 @@ async function makeDreamPages(dream, quality, progress) {
     });
     const page = await renderDreamPage(dream, groups[i], quality, rendered);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    return { url: page.url, promptUsed: page.prompt, beatIds: groups[i].map(s => s.id) };
+    const rec = {
+      url: page.url, promptUsed: page.prompt, beatIds: groups[i].map(s => s.id),
+      softened: !!page.softened,
+    };
+    // This path keeps its captions on dream.beats[].caption, so nothing of hers
+    // is overwritten — but a softened page still records what it actually
+    // letters, beside her originals, for the same auditability as V2.
+    if (page.softened) {
+      rec.captions = ((page.used || {}).panels || []).map(p => p.caption);
+      rec.captionsOriginal = groups[i].map(s => s.title || '');
+    }
+    return rec;
   }, progress, persist);
 }
 
@@ -1803,13 +1823,22 @@ function dreamPagePersister(dream, quality) {
 // whole dream for context plus its allotment, the style ref, and ONLY that
 // slot's approved characters — and lays out its own page (no fixed 2x2).
 async function dreamPaginate(dream, castNames) {
-  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs — lean toward FEW: combine several moments onto one image (an image can be drawn as multiple panels), and only start a new image when a single one genuinely can't hold the moment. A short dream is ONE image; even a long, rambly one is usually 2-3 and at most 4. Do NOT make one image per sentence. Return STRICT JSON and nothing else:
+  // Page count follows the SHAPE of the dream, not a flat "lean toward few".
+  // The old wording ("lean toward FEW … even a long, rambly one is usually 2-3")
+  // over-steered: measured 2026-08-08 on the real dreams, it chose ONE image
+  // three times out of three for a dream that visits five different places, and
+  // the single page's captions then spanned the whole arc from arriving to
+  // waking. Swept over four dreams x3 runs each: a five-scene dream went 1,1,1
+  // -> 2,2,2 and a two-scene one 1,1,1 -> 3,3,3, while a genuinely one-scene
+  // dream stayed 1,1,1 — which is the property that matters, since the same
+  // planner serves the dream illustrator and must not inflate a short dream.
+  const sys = `You are planning a short hand-drawn comic that tells someone's real dream. Decide how many IMAGES it needs by the SHAPE OF THE DREAM: one image per distinct scene — a change of place, of company, or a real turn in what is happening. Moments that share a setting belong on ONE image (an image can be drawn as multiple panels), so do NOT make one image per sentence; but a dream that moves somewhere new needs a new image, because a single drawing cannot show two different places. A one-scene dream is ONE image; a dream that wanders through four places is FOUR. Return STRICT JSON and nothing else:
 {"pages": [
   {"text": the slice of the dream this image covers, in the TRUE order events happened — use the dreamer's cues ("before that", "at first", "right before I woke up") to fix out-of-order narration; reorder whole passages if needed. This is CONTEXT for what to draw, not the caption,
    "captions": [1 to 3 short hand-lettered caption lines for this image, IN ORDER, narrating this part in the DREAMER'S OWN WORDS AND VOICE. Use their actual phrasing — lightly clean the worst filler ("like", "you know", "I mean", "um", stutters/false starts) but KEEP their real words and tone; do NOT rewrite them to sound darker, more poetic, or more "haunting" to match the art. Each line up to ~15 words. Together the lines should let the dreamer narrate what's happening on this page — err toward keeping MORE of their voice, not less. [] only if this image truly needs no words],
    "who": [names from the CAST list of the people who appear in THIS image] ([] if none)}
 ]}
-RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
+RULES: 1 to 6 pages — as many as the dream has scenes, merging only moments that share a setting. Captions are the dreamer's real words (their voice, lightly cleaned) — several short lines are welcome, not one terse line. "who" must use CAST names EXACTLY as given, only names from that list.`;
   const cues = (dream.driftCues || []).length
     ? `\n\nPhrases narrated out of chronological order (use these to restore the true order): ${JSON.stringify(dream.driftCues)}`
     : '';
@@ -1833,7 +1862,7 @@ RULES: 1 to 4 pages, as FEW as the dream needs (merge adjacent moments). Caption
       };
     })
     .filter(p => p.text)
-    .slice(0, 4);
+    .slice(0, 6);
   if (!pages.length) throw new Error('page planning produced no pages');
   return pages;
 }
@@ -1892,8 +1921,11 @@ async function renderDreamPageV2(dream, plan, idx, total, quality, rendered) {
       + 'Decide the page layout yourself — one full-page drawing or a few panels, whatever tells this part best. '
       + capInstr;
   };
-  const { buf, prompt, softened } = await drawWithSoftening(bundle, build, refs, quality);
-  return { url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'), prompt, softened: !!softened };
+  const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality);
+  return {
+    url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'),
+    prompt, softened: !!softened, used: used || bundle,
+  };
 }
 
 async function makeDreamPagesV2(dream, quality, progress) {
@@ -1908,11 +1940,27 @@ async function makeDreamPagesV2(dream, quality, progress) {
     const rendered = slots.filter(Boolean).map(pg => ({ url: pg.url, who: new Set(pg.who || []) }));
     const page = await renderDreamPageV2(dream, plans[i], i, total, quality, rendered);
     dream.spend = +((dream.spend || 0) + (PANEL_COST[quality] || 0.06)).toFixed(2);
-    return {
-      url: page.url, promptUsed: page.prompt, text: plans[i].text,
-      captions: plans[i].captions || [], who: plans[i].who || [],
+    // `text`/`captions` are what the picture ACTUALLY says (softened when the
+    // filter forced it), so anything rendering captions from the doc matches the
+    // drawing. Sophie's own words are kept beside them whenever they differ —
+    // the dream is a record of what she said, and a content filter must never
+    // silently replace her sentence with a paraphrase. Only present when
+    // softening fired, so ordinary pages carry no redundant copy.
+    const used = page.used || {};
+    const rec = {
+      url: page.url, promptUsed: page.prompt,
+      text: used.text || plans[i].text,
+      captions: used.captions || plans[i].captions || [],
+      who: plans[i].who || [],
       softened: !!page.softened,
     };
+    if (page.softened) {
+      const origText = plans[i].text || '';
+      const origCaps = plans[i].captions || [];
+      if (rec.text !== origText) rec.textOriginal = origText;
+      if (JSON.stringify(rec.captions) !== JSON.stringify(origCaps)) rec.captionsOriginal = origCaps;
+    }
+    return rec;
   }, progress, persist);
 }
 
@@ -2279,7 +2327,7 @@ function authoredScene(s, i) {
     title: String(s.title || `Scene ${i + 1}`).trim(),
     description: String(s.description || s.imagePrompt || '').trim(),
     imagePrompt: String(s.imagePrompt || s.description || '').trim(),
-    motionPrompt: String(s.motionPrompt || 'subtle ambient motion, gentle movement').trim(),
+    motionPrompt: String(s.motionPrompt || '').trim(),
     hasText: Boolean(s.hasText),
     pairWithNext: Boolean(s.pairWithNext),
     key: Boolean(s.key),
@@ -2299,7 +2347,7 @@ function authoredScene(s, i) {
 router.post('/', async (req, res) => {
   try {
     const { story, title, sceneCount, panelQuality, scenes, characters, aspect,
-            style, styles, characterRefs, motionProfile, morphPairs, storyId } = req.body || {};
+            style, styles, characterRefs, morphPairs, storyId } = req.body || {};
     // Two ways in: a story for GPT to break down, OR a hand-authored scene list
     // (exact beats, outfits, startAts) that skips the breakdown entirely.
     const authored = Array.isArray(scenes) && scenes.length;
@@ -2317,7 +2365,6 @@ router.post('/', async (req, res) => {
 
     const opts = {
       morphPairs: morphPairs !== false,                                // model's free morph-vs-cut judgement; false = all hard cuts
-      motionProfile: motionProfile === 'subtle' ? 'subtle' : 'normal', // 'subtle' = mostly-still option
     };
     let plan;
     if (authored) {
@@ -2352,10 +2399,9 @@ router.post('/', async (req, res) => {
       characters: plan.characters,
       style: sid,
       morphPairs: opts.morphPairs,
-      motionProfile: opts.motionProfile,
       characterRefs: cards,
       imageStyle: DEFAULT_IMAGE_STYLE,
-      motionStyle: DEFAULT_MOTION_STYLE,
+      motionStyle: ART_LOCK,
       negativePrompt: DEFAULT_NEGATIVE,
       dreamMode: false,
       aspect: CANVAS[aspect] ? aspect : undefined,   // 'portrait' | 'landscape' | 'square'; undefined = source-size (classic stitch)
@@ -2455,7 +2501,7 @@ router.post('/animate', async (req, res) => {
 
     (async () => {
       try {
-        const fullPrompt = (quick.prompt || 'subtle natural motion, gentle ambient movement') +
+        const fullPrompt = (quick.prompt || '') +
           '. The subject, style and composition of the image are preserved exactly.';
         let p;
         if (tier === 'draft') {
@@ -2621,7 +2667,7 @@ router.post('/morphfilm', async (req, res) => {
         const movie = {
           id: 'm' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
           title: filmTitle, story: '', characters: '',
-          imageStyle: DEFAULT_IMAGE_STYLE, motionStyle: DEFAULT_MOTION_STYLE, negativePrompt: DEFAULT_NEGATIVE,
+          imageStyle: DEFAULT_IMAGE_STYLE, motionStyle: ART_LOCK, negativePrompt: DEFAULT_NEGATIVE,
           dreamMode: true, panelQuality: 'low', characterAnchor: null,
           kind: 'morph',
           scenes, bridges: [], cuts: [cut], job: null,
@@ -3128,14 +3174,11 @@ router.post('/:id/clips', async (req, res) => {
   try {
     const movie = await loadMovie(req.params.id);
     if (!movie) return res.status(404).json({ error: 'movie not found' });
-    const { tier = 'draft', only, force = false, morphPairs, motionFeel } = req.body || {};
+    const { tier = 'draft', only, force = false, morphPairs } = req.body || {};
     if (!VIDEO_MODELS[tier]) return res.status(400).json({ error: `unknown tier "${tier}"` });
     // Motion decisions arrive at THIS step (they're irrelevant while images
-    // are being made): morphPairs:false flattens every pair to hard cuts;
-    // motionFeel 'subtle'/'normal' swaps the movie-level motion style.
+    // are being made): morphPairs:false flattens every pair to hard cuts.
     if (morphPairs === false) movie.scenes.forEach(s => { s.pairWithNext = false; });
-    if (motionFeel === 'subtle') movie.motionStyle = SUBTLE_MOTION_STYLE;
-    else if (motionFeel === 'normal' && movie.motionStyle === SUBTLE_MOTION_STYLE) movie.motionStyle = DEFAULT_MOTION_STYLE;
     const targets = [];
     movie.scenes.forEach((s, idx) => {
       if (isMerged(movie, idx)) return;                 // folded into the previous pair-clip

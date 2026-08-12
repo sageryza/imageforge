@@ -1,0 +1,6 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "zw-gossip", "prompt": "One clear playful tableau: two young women perched on tall high-backed bar stools at a small round bistro table, gabbing and gossiping over dinner — two glasses of red wine and a little plate of cheese and crackers on the table between them. One woman is turned toward the other with one hand raised in an animated 'oh my gosh!' gesture, mid-gossip; the other reacts with a lively face. Floating in the air just above their heads — the people they are gossiping about — is a tidy cluster of exactly twelve small circles, each circle a DIFFERENT flat solid color, and inside each circle a different little cartoon face showing a different emotion: one angry, one annoyed, one happy, one scared, one smug, one dopey, one crying, one surprised, and so on — all distinct personalities. Bold black ink outlines, flat colors, warm and fun, lots of cream space around the whole scene. Keep the two women and the table in the warm house palette; let the twelve circles be varied flat colors. Absolutely no text, no letters, no numbers, no labels." }
+  ]
+}

@@ -37,55 +37,6 @@
 
     .block { margin-bottom: 26px; }
 
-    /* Reference images */
-    .refs-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 4px;
-    }
-    .ref-thumb {
-      position: relative;
-      width: 78px;
-      height: 78px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      background: var(--surface-2);
-    }
-    .ref-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .ref-remove {
-      position: absolute;
-      top: 3px; right: 3px;
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0,0,0,0.55);
-      color: #fff;
-      cursor: pointer;
-      font-size: 12px;
-      line-height: 20px;
-      text-align: center;
-      padding: 0;
-    }
-    .ref-add {
-      width: 78px;
-      height: 78px;
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-      background: transparent;
-      color: var(--text-dim);
-      cursor: pointer;
-      font-size: 22px;
-      font-family: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-    }
-    .ref-add:hover { border-color: var(--text-dim); color: var(--text); }
-    .ref-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
-
     /* Quality segmented control (rounded rects, no pills) */
     .seg { display: inline-flex; gap: 6px; }
     .seg-btn {
@@ -195,23 +146,15 @@
 
   <div class="wrap">
     <p class="intro">
-      Describe a set of stickers and ImageForge renders one full-page sheet of
-      kiss-cut stickers with ChatGPT (gpt-image-2). Add reference images to guide
-      the subjects or the look.
+      Describe a set of stickers and you get one full-page sheet, drawn in the
+      house style — delicate hand-drawn line art in a dusty muted palette. This
+      is the same renderer the iOS app uses, so a sheet made here and a sheet
+      made on your phone come out of the identical code.
     </p>
 
     <div class="block">
       <label class="field-label" for="prompt">What stickers do you want?</label>
       <textarea id="prompt" placeholder="e.g. a set of cozy autumn stickers — a steaming mug, a maple leaf, a little fox, a stack of books, a candle"></textarea>
-    </div>
-
-    <div class="block">
-      <label class="field-label">Reference images (optional)</label>
-      <div class="refs-grid" id="refs-grid">
-        <button class="ref-add" id="ref-add" title="Add reference image">+</button>
-      </div>
-      <input type="file" id="ref-input" accept="image/*" multiple style="display:none;">
-      <p class="ref-hint">Up to 4 images — photos or art to base the stickers on.</p>
     </div>
 
     <div class="block">
@@ -223,7 +166,7 @@
       </div>
     </div>
 
-    <button class="btn" id="generate-btn" onclick="generate()">Generate Sticker Sheet</button>
+    <button class="btn" id="generate-btn">Generate Sticker Sheet</button>
     <div class="error" id="error"></div>
 
     <div class="loading" id="loading">rendering your sticker sheet…</div>
@@ -231,16 +174,48 @@
     <div class="result" id="result"></div>
 
     <div class="next-note">
-      <strong>Coming next:</strong> tap any single sticker to regenerate just that
-      one in place, and drag stickers around the sheet to rearrange them.
+      <strong>In the app:</strong> open a sheet in the iOS Sticker Page and you can
+      tap any single sticker to redraw just that one in place. Same renderer, so
+      a sheet made here behaves the same there.
     </div>
   </div>
 
-  <script>
-    let refs = [];               // array of data URLs
+  <!-- The sheet is rendered by the SAME code the iOS app calls: the
+       `forgeTestImage` callable (style "sticker-sheet") in the
+       memory-library-react repo, which owns the house style and its two
+       committed reference images. This page deliberately holds NO prompt or
+       style text of its own — that is what let the web and the app drift into
+       two different looks before. -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
+
+    // membry-df528 — the same Firebase project the iOS app signs into, so the
+    // sheet lands in the same My Creations gallery.
+    const app = initializeApp({
+      apiKey: 'AIzaSyCA04ReaTAoNDUgUCuBS-ti0Jkfl-16h_s',
+      authDomain: 'membry-df528.firebaseapp.com',
+      projectId: 'membry-df528',
+      storageBucket: 'membry-df528.firebasestorage.app',
+      messagingSenderId: '513384339473',
+      appId: '1:513384339473:web:8f46c5915a949c93a8b9b0',
+    });
+    const auth = getAuth(app);
+    // getFunctions() with no region argument resolves us-central1, which is
+    // where forgeTestImage is deployed. Keep them in step.
+    const renderSheet = httpsCallable(getFunctions(app), 'forgeTestImage', { timeout: 300000 });
+
     let quality = 'medium';
 
-    // ── Quality selector ──
+    // forgeTestImage refuses an unauthenticated call, so get an anonymous uid
+    // in the background at load — the first tap shouldn't wait on a round trip.
+    const ready = new Promise((resolve, reject) => {
+      onAuthStateChanged(auth, (user) => { if (user) resolve(user); });
+      signInAnonymously(auth).catch(reject);
+    });
+    ready.catch((e) => showError('Could not sign in: ' + (e.message || e)));
+
     document.getElementById('quality-seg').addEventListener('click', (e) => {
       const btn = e.target.closest('.seg-btn');
       if (!btn) return;
@@ -248,46 +223,6 @@
       document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
 
-    // ── Reference images ──
-    const refInput = document.getElementById('ref-input');
-    document.getElementById('ref-add').addEventListener('click', () => refInput.click());
-    refInput.addEventListener('change', async () => {
-      for (const file of refInput.files) {
-        if (refs.length >= 4) break;
-        const dataUrl = await readFile(file);
-        refs.push(dataUrl);
-      }
-      refInput.value = '';
-      renderRefs();
-    });
-
-    function readFile(file) {
-      return new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(file);
-      });
-    }
-
-    function renderRefs() {
-      const grid = document.getElementById('refs-grid');
-      grid.querySelectorAll('.ref-thumb').forEach(t => t.remove());
-      const addBtn = document.getElementById('ref-add');
-      refs.forEach((src, i) => {
-        const div = document.createElement('div');
-        div.className = 'ref-thumb';
-        div.innerHTML = `<img src="${src}" alt="reference ${i + 1}">
-          <button class="ref-remove" title="Remove" data-i="${i}">×</button>`;
-        grid.insertBefore(div, addBtn);
-      });
-      addBtn.style.display = refs.length >= 4 ? 'none' : '';
-      grid.querySelectorAll('.ref-remove').forEach(b => {
-        b.addEventListener('click', () => { refs.splice(+b.dataset.i, 1); renderRefs(); });
-      });
-    }
-
-    // ── Errors ──
     function showError(msg) {
       const el = document.getElementById('error');
       el.textContent = msg;
@@ -295,7 +230,6 @@
     }
     function hideError() { document.getElementById('error').classList.remove('show'); }
 
-    // ── Generate ──
     async function generate() {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) { showError('Describe the stickers you want first.'); return; }
@@ -308,26 +242,25 @@
       document.getElementById('loading').classList.add('show');
 
       try {
-        const res = await fetch('/api/generate/sticker-page', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, refs, quality, size: '1024x1536' }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+        await ready;
+        const { data } = await renderSheet({ style: 'sticker-sheet', prompt, quality });
+        if (!data || !data.url) throw new Error('No sticker sheet was returned.');
         document.getElementById('result').innerHTML = `
           <label class="field-label">Your sticker sheet</label>
           <div class="sheet-frame"><img src="${data.url}" alt="Sticker sheet"></div>
           <a class="download-link" href="${data.url}" download="sticker-sheet.webp" target="_blank">↓ Download full sheet</a>
         `;
       } catch (err) {
-        showError(err.message);
+        showError(err.message || String(err));
       } finally {
         document.getElementById('loading').classList.remove('show');
         btn.disabled = false;
         btn.textContent = 'Generate Sticker Sheet';
       }
     }
+
+    // Module scope isn't global, so the button is wired here rather than onclick.
+    document.getElementById('generate-btn').addEventListener('click', generate);
   </script>
 </body>
 </html>

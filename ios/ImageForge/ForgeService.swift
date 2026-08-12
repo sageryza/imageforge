@@ -392,18 +392,33 @@ final class ForgeService {
         _ = try await call("forgeTestImage", payload)
     }
 
+    /// One page of creations, plus the cursor for the page behind it.
+    struct CreationPage {
+        let items: [Creation]
+        /// The last document of this page — `nil` once the end is reached.
+        let cursor: DocumentSnapshot?
+        var hasMore: Bool { cursor != nil }
+    }
+
     /// Read the signed-in user's saved creations (newest first). These are
     /// written server-side on every generation, so they survive a dropped
     /// connection / backgrounded app and back the in-app grid.
-    func fetchCreations(limit: Int = 60) async throws -> [Creation] {
+    ///
+    /// PAGED since Aug 2026. It used to be one capped query and nothing else,
+    /// so creation 61 and everything behind it could not be reached at all —
+    /// with 1,396 saved and 400+ made in a week, the visible window had shrunk
+    /// to about a day and it read as her older pictures having disappeared.
+    /// `after` walks backwards from a previous page's `cursor`.
+    func fetchCreationPage(limit: Int = 60, after: DocumentSnapshot? = nil) async throws -> CreationPage {
         try await ensureSignedIn()
-        guard let uid = Auth.auth().currentUser?.uid else { return [] }
-        let snap = try await Firestore.firestore()
+        guard let uid = Auth.auth().currentUser?.uid else { return CreationPage(items: [], cursor: nil) }
+        var q: Query = Firestore.firestore()
             .collection("users").document(uid).collection("creations")
             .order(by: "createdAt", descending: true)
             .limit(to: limit)
-            .getDocuments()
-        return snap.documents.compactMap { doc in
+        if let after { q = q.start(afterDocument: after) }
+        let snap = try await q.getDocuments()
+        let items: [Creation] = snap.documents.compactMap { doc in
             let data = doc.data()
             guard let urlStr = data["url"] as? String, let url = URL(string: urlStr) else { return nil }
             return Creation(
@@ -416,6 +431,18 @@ final class ForgeService {
                 style: data["style"] as? String
             )
         }
+        // Both of these read the SNAPSHOT, never `items`: a doc with no usable
+        // url is dropped from the page but still occupies a slot, so counting
+        // items would end paging early and cursoring on the last *item* would
+        // re-serve the dropped ones forever.
+        let more = snap.documents.count == limit
+        return CreationPage(items: items, cursor: more ? snap.documents.last : nil)
+    }
+
+    /// The first page only — for the screens that want a fixed recent slice
+    /// (Storybook, Instagram) rather than something to scroll back through.
+    func fetchCreations(limit: Int = 60) async throws -> [Creation] {
+        try await fetchCreationPage(limit: limit).items
     }
 
     /// Recovery: if a sticker generation's on-screen call dropped (e.g. the app

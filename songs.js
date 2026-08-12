@@ -74,8 +74,13 @@ const CHUNK_SECONDS = 30;
 // Cost guard: 4 minutes = 8 chunks ≈ $1 of MusicGen per instrumental pass.
 const MAX_SONG_SECONDS = 240;
 
-const DEFAULT_STYLE =
-  'gentle acoustic pop, warm fingerpicked guitar and soft piano, light brushed drums';
+// NO default musical style (Aug 2026, Sophie — "I don't really want that
+// anyway"). This used to be 'gentle acoustic pop, warm fingerpicked guitar and
+// soft piano, light brushed drums', which meant every song she didn't type a
+// style for came back as that band. A style is a taste decision and belongs to
+// whoever is making the song; with none given, MusicGen follows her melody and
+// the suffix below is the only thing added.
+const DEFAULT_STYLE = '';
 // MusicGen happily generates its own "vocals" (wordless ooohs) unless told not
 // to — the suffix keeps the backing track purely instrumental.
 const STYLE_SUFFIX = ', instrumental backing track, no vocals, no singing';
@@ -314,7 +319,10 @@ async function cleanVocal(song) {
 async function generateInstrumental(song, tmpDir, progress) {
   if (!song.vocal?.url) throw new Error('cleaned vocal missing');
   const m = AUDIO_MODELS.instrumental;
-  const stylePrompt = ((song.style || DEFAULT_STYLE).trim().replace(/[.,\s]+$/, '')) + STYLE_SUFFIX;
+  // With no style at all, STYLE_SUFFIX opens with ", " — strip that so the
+  // prompt reads "instrumental backing track…" rather than ", instrumental…".
+  const chosen = (song.style || DEFAULT_STYLE).trim().replace(/[.,\s]+$/, '');
+  const stylePrompt = chosen ? chosen + STYLE_SUFFIX : STYLE_SUFFIX.replace(/^,\s*/, '');
 
   const vocalFile = path.join(tmpDir, 'vocal.wav');
   const { buffer } = await fetchBuffer(song.vocal.url);

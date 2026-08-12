@@ -1,0 +1,63 @@
+<!doctype html>
+<!-- ===========================================================================
+     THE JUDGE PAGE SHELL — the "Tinder style" review page (Aug 2026, Sophie).
+     Copy this file, fill in the items, POST it like any Compare page:
+
+       POST /api/chatfeed/page  { chat: "<your-chat-name>", title: "…", html }
+
+     WHAT IT IS: one thing at a time, big, NO SCROLLING — she taps ♥ / ✕ /
+     maybe / later and the next one appears. Use it whenever Sophie needs to
+     pick or choose across a set (keepers from a batch, which quality to use,
+     which portrait of each person). /judge.js does all of it: live-saved
+     verdicts, resume where she left off, the piles view (Loved / Maybe /
+     Later / Passed) where any tile re-opens for re-judging, a note box on
+     every card, undo, the "?" help circle.
+
+     AN ITEM CAN BE A LABELED SIDE-BY-SIDE judged as ONE thing — the
+     compare-and-choose case (medium vs high of the same portrait, a PDF page
+     next to its text): use `pair` instead of `img`.
+
+     MINIMAL TEXT (Sophie's rule): the page is a visual reference, not an
+     extension of the chat. Title, ONE line under it, and per-item labels —
+     no paragraphs, no explanations. She knows what's going on from the chat.
+
+     Reading her answers back:
+       GET /api/chatfeed/verdict?chat=&sheet=
+       → items: { "<id>": true | false | "maybe" | "later" }, texts = notes.
+
+     Everything a Compare page needs still applies (see compare-shell.html):
+     the pill is injected by the server; /compare.css carries its tokens;
+     /compare.js carries tap-pauses-scroll + the lightbox; wrap your script
+     in an IIFE. Test: node scripts/test-judge.js
+=========================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portraits — pick the keepers (v1)</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <div class="eyebrow">CHAT NAME · DATE</div>
+  <h1>Title states the version and what she is choosing</h1>
+  <div class="sub">One line, then the pictures. Nothing else.</div>
+  <div id="judge"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script src="/judge.js"></script>
+<script>
+(function () {
+  window.__judge({
+    chat: 'CHAT NAME',
+    sheet: 'SHEET NAME',
+    items: [
+      // one picture, judged on its own
+      { id: 'penny-01', label: 'Penny — the blue Kleenex', img: 'https://…/penny-01.webp' },
+      // a labeled side-by-side judged as ONE thing (compare-and-choose)
+      { id: 'penny-med-vs-high', label: 'Penny — which quality?', pair: [
+        { img: 'https://…/penny-med.webp',  label: 'medium' },
+        { img: 'https://…/penny-high.webp', label: 'high' },
+      ]},
+    ],
+  });
+})();
+</script>

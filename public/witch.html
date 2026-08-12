@@ -101,6 +101,8 @@
       font-family: var(--serif); font-style: italic; font-weight: 500;
       font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap;
     }
+    header h1#app-title { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    header h1#app-title:active { opacity: 0.7; }
 
     /* ── Sections ── */
     main { padding: 18px 16px 8px; }
@@ -222,8 +224,28 @@
     .btn-white svg { width: 15px; height: 15px; }
 
     /* Suspicious coincidence — describe it, AI draws it */
-    .coin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-    .coin-saved { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
+    /* The head is a WRAPPING flex row and the kicker never breaks. The old
+       label ("Saved to your Book of Shadows", 177px) plus the kicker (188px)
+       needed 397px inside a 316px card, so "Suspicious coincidence…" split
+       across two lines — Sophie's report. "Save to book" / "See in book" is
+       71/62px, which fits one line on a 390px phone with ~7px to spare; on
+       anything narrower the SAVE BUTTON drops to its own line (margin-left
+       auto keeps it right-aligned there) rather than the phrase breaking. */
+    .coin-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; margin-bottom: 4px; }
+    /* 1.8px instead of the house 2.5px, on THIS kicker only: measured, the
+       phrase is 209px at 2.5 and the row has 193px to give once the ⓘ and the
+       save button are placed. The nearest other kicker is a screen away, so
+       the tighter tracking doesn't read as inconsistent — and a broken phrase
+       very much did. */
+    .coin-head .kicker { white-space: nowrap; letter-spacing: 1.8px; }
+    .coin-title { display: flex; align-items: center; gap: 5px; }
+    /* The "what even is this?" circle — the way from the boxes to the
+       Synchronicity lesson that explains them (the lesson's last card points
+       back here, so the two are double-linked). */
+    .coin-info { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; padding: 0; flex: none; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; }
+    .coin-info svg { width: 16px; height: 16px; stroke: currentColor; fill: none; }
+    .coin-info:hover { color: var(--gold); }
+    .coin-saved { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: none; cursor: pointer; color: var(--gold-dim); font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 0; white-space: nowrap; }
     .coin-saved.filled { color: var(--gold); }
     .coin-saved .coin-bm { line-height: 0; }
     .coin-saved .coin-bm svg { width: 15px; height: 15px; stroke: currentColor; fill: none; transition: fill 0.25s ease; }
@@ -382,6 +404,16 @@
 
     /* End-of-lesson note screen — pick a path, nothing to type until you do. */
     .deck-note .tcard-img { cursor: default; }
+    /* The note screen sits at the TOP of its slot, not centred (Aug 2026,
+       Sophie: "move everything up so that whichever one you click, the
+       envelope appears under it"). A lesson CARD is centred because its text
+       is short; this screen is a question, two choices and then a whole
+       envelope, and the auto-margins were pushing the first line 306px down —
+       so on a real phone the letter's Send button fell off the bottom, and
+       further still once the keyboard opened. Cancels the .deck-text auto
+       margins for this screen only. */
+    .deck-note .deck-text > :first-child { margin-top: 0; }
+    .deck-note .deck-text > :last-child { margin-bottom: 0; }
     .note-lead { font-family: var(--serif); font-size: 18px; line-height: 1.35; text-align: center; color: var(--text); margin: 2px auto 6px; max-width: 300px; }
     /* Two choices side by side: Tell Sophie (real, slow) + Ask (AI, instant). */
     .note-choices { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
@@ -1006,6 +1038,32 @@
     .deck-text > :first-child { margin-top: auto; }
     .deck-text > :last-child { margin-bottom: auto; }
     .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+    /* A CTA button sat flush against .deck-text's scrolling edge, so its
+       rounded BOTTOM corners were clipped and it read as a half-rectangle
+       (Sophie caught it). Two fixes DON'T work here: padding on .deck-text
+       lands inside the scroll area (measured — the button still came within
+       2px of the edge), and a margin-bottom on the button itself defeats the
+       `> :last-child { margin-bottom: auto }` rule that centres a card's text.
+       Both failed for the same reason: .deck-text SCROLLS, so any space added
+       below the button lands in the overflow and the button still rests on the
+       clipped edge. So the CTA moved OUT of the scrolling text into its own
+       flex:none row under it — it can no longer be clipped, and on a long
+       card it no longer needs scrolling to reach. */
+    .cta-row { flex: none; padding: 0 24px 16px; }
+    /* The ⓘ FAQ: a card's obvious follow-up questions, answered in place.
+       Tap the circle by the heading, tap anywhere to close. */
+    #deck-stage .tcard { position: relative; }
+    .faq-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 7px; padding: 0; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; vertical-align: middle; }
+    .faq-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; }
+    .faq-btn:hover, .faq-btn.on { color: var(--gold); }
+    .faq-wrap { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; z-index: 6; }
+    .faq-wrap.on { display: flex; }
+    .faq-card { background: #fffdf8; border: 1px solid rgba(120, 90, 40, 0.18); border-radius: 8px; padding: 15px 16px 14px; max-height: 100%; overflow-y: auto; text-align: left; box-shadow: 0 10px 30px rgba(90, 66, 24, 0.16); }
+    .faq-card .faq-hd { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+    .faq-card .faq-q { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 13px; }
+    .faq-card .faq-q:first-of-type { margin-top: 0; }
+    .faq-card .faq-a { font-size: 14px; line-height: 1.5; color: var(--text); margin-top: 3px; }
+    .faq-card .faq-close { font-size: 11px; color: var(--gold-dim); text-align: center; margin-top: 14px; }
     .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
     .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
     .tcard-body b { font-weight: 600; }
@@ -1179,6 +1237,13 @@
        box gives each one an edge to end at. */
     .wcourse .cv { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
                    border: 2px solid var(--gold); border-radius: 14px; background: var(--surface); }
+    /* Home's school card leads with ART (Aug 2026, Sophie: "the first thing
+       they should see is pictures"). Three course covers in a row, same
+       outlined-square treatment as the catalog tiles so the two read as one
+       set. Square via aspect-ratio, so a slow image never collapses the row. */
+    .sch-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }  /* TWO to a row, matching #school-path .cat (Aug 2026, Sophie) */
+    .sch-covers img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+                      border: 2px solid var(--gold); border-radius: 12px; background: var(--surface); }
     .wcourse .meta { padding: 8px 2px 0; }
     .wcourse .t { font-family: var(--serif); font-size: 17.5px; color: var(--text); }
     .wcourse .s { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
@@ -1277,6 +1342,16 @@
        flat spine crease — on the app's own dark background (flat tones only,
        per the no-gradients rule; the "curve" is stepped flat strips). */
     #bos-reader { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+    /* ON THE WEBSITE the reader stops ABOVE the bottom nav (Aug 2026, Sophie:
+       opening the Book of Shadows "gets rid of the bottom navigation bar").
+       It never removed it — `inset: 0` at z-index 90 simply painted the
+       reader's own Previous / Add / Next row on top of a nav still sitting
+       there at z-index 50, so the tabs were unreachable behind the book.
+       It shows up on the WEB only: in the app the page's nav is hidden
+       (html.in-app) and the native tab bar lives outside the web view, where
+       nothing in here can cover it. Nothing to do with the long pages — the
+       reader is fixed to the viewport, so page length never moved it. */
+    html:not(.in-app) #bos-reader { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); }
     #bos-reader .deck-top { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .bos-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 20px 12px; }
     .bos-head h1 { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 26px; letter-spacing: 0.4px; color: var(--gold); white-space: nowrap; }
@@ -1330,6 +1405,11 @@
     .bos-toc-row .p { font-family: var(--serif); font-size: 14.5px; color: #221c14; }
     /* Section title page: the art on its own tinted leaf, section name under it. */
     /* Centred in the leaf — a part-title sits in the middle of its page. */
+    /* The empty leaf — a page that says the section is empty and points at
+       where to make one. Same centred part-title feel, no art. */
+    .bos-empty { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12%; gap: 16px; }
+    .bos-empty-line { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.35; color: #6d5c3f; }
+    .bos-empty-cta { width: auto; padding: 10px 18px; }
     .bos-sectcover { text-align: center; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6%; }
     /* The art's box is SIZED BEFORE THE PICTURE ARRIVES (`aspect-ratio`, and a
        width that folds the old max-width/max-height into one min()), so the
@@ -1540,6 +1620,17 @@
     .modal .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; font-weight: 500; color: #3a3a3a; cursor: pointer; margin-bottom: 14px; }
     .modal .gbtn:hover { border-color: var(--text-dim); }
     .modal .gbtn svg { width: 17px; height: 17px; }
+    /* Sign in with Apple — guideline 4.8 requires it beside Google. Black is
+       one of Apple's sanctioned button styles and keeps it distinct from the
+       white Google button stacked above it. */
+    .modal .abtn { background: #000; border-color: #000; color: #fff; }
+    .modal .abtn:hover { border-color: #000; }
+    .modal .abtn svg { width: 16px; height: 16px; fill: #fff; margin-top: -2px; }
+    /* Account deletion (guideline 5.1.1(v)) — quiet until tapped; it must be
+       findable, not prominent. */
+    .modal .del-link { background: none; border: none; color: var(--text-faint); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: inherit; margin: 16px auto 0; display: block; }
+    .modal .del-warn { font-size: 11.5px; color: var(--text-dim); margin: 14px 0 10px; line-height: 1.5; }
+    .modal .btn-danger { width: 100%; padding: 12px; background: #8c2f2f; border: 1px solid #8c2f2f; border-radius: var(--radius); color: #fff; font-family: inherit; font-size: 14px; cursor: pointer; }
     .modal .divider { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin: 4px 0 14px; }
     .modal .close-x { background: none; border: none; color: var(--text-faint); font-size: 13px; cursor: pointer; margin-top: 14px; font-family: inherit; }
     .modal .acct-email { font-size: 13px; color: var(--text); margin-bottom: 2px; word-break: break-all; }
@@ -1555,7 +1646,9 @@
   <div class="app">
     <header>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
-      <h1>Secretly a Witch</h1>
+      <!-- The title is also the way HOME (Aug 2026, Sophie). go() closes any
+           open overlay first, so it works from inside a lesson or the book. -->
+      <h1 id="app-title" role="button" tabindex="0" aria-label="Secretly a Witch — back to home">Secretly a Witch</h1>
       <span class="sigil"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></span>
       <button class="menu-btn" id="menu-btn" aria-label="Jump to a section" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
     </header>
@@ -1568,13 +1661,20 @@
              feature (moved to Shadows once by mistake; never again). Boxes
              reset at midnight; every draw also files permanently into the
              Book of Shadows' Synchronicities pages. -->
+        <!-- The date opens Home. It used to sit under Synchronicities as the
+             daily reading's kicker; with the astrology gone it was stranded
+             above Witch School, reading as if the school were dated. -->
+        <div class="kicker" id="today-date">Today</div>
         <div class="section-title">Synchronicities abound…</div>
         <div class="section-sub">Which ones have been put in your path today?</div>
         <div class="card" id="coincidence-card" style="margin-bottom:24px;">
           <div class="coin-head">
-            <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
-            <button class="coin-saved" id="coin-saved" type="button" aria-label="Saved to your Book of Shadows">
-              <span class="coin-saved-lbl">Saved to your Book of Shadows</span>
+            <div class="coin-title">
+              <div class="kicker" style="margin:0;">Suspicious coincidence…</div>
+              <button class="coin-info" id="coin-info" type="button" aria-label="What is a synchronicity?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>
+            </div>
+            <button class="coin-saved" id="coin-saved" type="button" aria-label="Write a coincidence to save it to your Book of Shadows">
+              <span class="coin-saved-lbl">Save to book</span>
               <span class="coin-bm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
             </button>
           </div>
@@ -1585,7 +1685,35 @@
           </div>
         </div>
 
-        <div class="kicker" id="today-date">Today</div>
+        <!-- Witch School — the home entrance to the curriculum (Aug 2026). It
+             sits in the slot the daily astrology reading used to hold: the
+             first thing under Synchronicities is now the school, not a
+             horoscope. Filled by renderSchoolHome(). -->
+        <!-- The SAME header the School tab wears (Aug 2026, Sophie: "make it
+             say learn the craft in the same gold style just like it does in
+             the actual app tab") — gold kicker over the title, so arriving at
+             the tab feels like the same place. -->
+        <div class="kicker">Learn the craft</div>
+        <div class="section-title">Everything you ever wanted to know about witchcraft</div>
+        <!-- ART FIRST (Aug 2026, Sophie: "the first thing they should see is
+             pictures"). The course covers lead; the words sit under them. The
+             card never names which course — that is the tab's job. -->
+        <div class="card" id="school-home-card" role="button" tabindex="0">
+          <div class="sch-covers" id="sch-home-covers"></div>
+          <div id="sch-home-next" style="font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.25; margin-bottom:6px;"></div>
+          <div id="sch-home-moons" style="margin-bottom:10px;"></div>
+          <p class="hint" id="sch-home-prog"></p>
+          <button class="btn" id="sch-home-btn" type="button">Open the school</button>
+        </div>
+
+        <!-- ASTROLOGY — taken off Home (Aug 2026, Sophie). The daily sky
+             reading and the birth-chart form were the app's front door and
+             read as a horoscope app; App Review cited exactly that under
+             4.3(b). The markup and every function are kept intact and simply
+             not shown, so the birth chart can come back inside the "Your Sky,
+             Read" lesson when Sophie decides how she wants it. renderHome()
+             force-hides everything in here — see HOME_DIVINATION. -->
+        <div id="home-astro" style="display:none;">
         <div class="section-title">Your daily reading</div>
         <div class="section-sub">A reading from today's real sky — written fresh for you each day.</div>
 
@@ -1647,8 +1775,9 @@
             <div class="note" id="astro-note"></div>
           </div>
         </div>
+        </div><!-- /#home-astro -->
 
-        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0]; sits under the daily reading -->
+        <!-- Products (row 1) — rendered from PRODUCT_ROWS[0] -->
         <div class="prow" id="prow-1"></div>
 
         <!-- "Are you secretly a witch?" — Home entry; opens the full-screen quiz app -->
@@ -1794,6 +1923,16 @@
           <div class="lesson-card" id="open-signs">
             <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg></span>
             <div><div class="lt">Reading Signs</div><div class="ld">Omens, synchronicity & discernment</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <div class="lesson-card" id="open-sync">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg></span>
+            <div><div class="lt">Synchronicity</div><div class="ld">Meaningful coincidence, and how to keep a record</div></div>
+            <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <div class="lesson-card" id="open-blood">
+            <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></span>
+            <div><div class="lt">Blood, Spit and Hair</div><div class="ld">Sympathetic magic, witch bottles & consent</div></div>
             <span class="les-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
           <div class="lesson-card" id="open-divin">
@@ -2292,6 +2431,19 @@
   $('nav').addEventListener('click', (e) => {
     const btn = e.target.closest('.nav-btn'); if (btn) go(btn.dataset.view);
   });
+  // Tapping the masthead goes Home (Aug 2026, Sophie). It reaches the header
+  // itself only when no full-page surface is up — a lesson deck and the Book
+  // of Shadows are fixed at z-index 90 and cover it (measured: the click is
+  // intercepted by .deck-top). Those have their own back control, so that is
+  // the right behaviour; go() still calls closeFullPages() first in case
+  // anything ever sits under the header rather than over it.
+  (function () {
+    const t = $('app-title'); if (!t) return;
+    t.addEventListener('click', () => go('home'));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('home'); }
+    });
+  })();
 
   // ── Native app mode (iOS wrapper): ?app=1 hides the web nav; the app's
   // native tab bar calls window.__setTab('home'|'school'|'book'|'shop').
@@ -3660,6 +3812,19 @@
     dream: { img: 'bos-dream', bg: '#faf3ec', line: 'The ones you wrote down before they faded.' },
     lesson: { img: 'bos-lesson', bg: '#fef7ee', line: 'The pages you kept from Witch School.' },
   };
+  /* What an empty section offers. `el` is a Home element to scroll to after
+     the book closes. Readings and Spell work have NO button on purpose:
+     tarot came off the Home screen (App Review 4.3(b)) and there is no spell
+     maker in the current four tabs, so there is nowhere honest to send her —
+     a button that goes nowhere is worse than a line that admits it. Give one
+     a `go`/`el` the day its maker exists. */
+  const BOS_EMPTY = {
+    reading: { line: 'No readings saved yet.' },
+    sync:    { line: 'No coincidences yet.', cta: 'Write one down', go: 'home', el: 'coincidence-card' },
+    spell:   { line: 'No spells written down yet.' },
+    dream:   { line: 'No dreams yet.', cta: 'Write down a dream', go: 'home', el: 'dream-home-slot' },
+    lesson:  { line: 'No lesson pages saved yet.', cta: 'Go to Witch School', go: 'school' },
+  };
   const BOS_COVER_HOLD = 1200;   // ms a part-title waits for its art before showing the words anyway
   let bosPageIdx = 0;   // 0 = the contents page, 1..N = pages
   // The leaf being written on, if any (see "Writing a page" below) — declared
@@ -3756,10 +3921,18 @@
         pages.forEach(p => { p.sect = s.key; });
         if (s.reverse) pages = pages.slice().reverse();   // bosAllPages() is oldest-first
       }
-      // The title page leads its section — but only once the section has
-      // something in it, so an unused section doesn't pad the book with a
-      // part-title in front of nothing.
-      if (pages.length && BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      // The title page leads its section, and an EMPTY section now gets one
+      // too, followed by an empty leaf (Aug 2026, Sophie: tapping Dreams with
+      // no dreams saved "doesn't go to the Dreams" — bosSectStart() answered
+      // with where the section WOULD start, which is another section's page,
+      // so the contents quietly sent you to the wrong place). Her ask: land on
+      // the section, then a leaf that says there's nothing here yet and points
+      // at where to make one.
+      // 'lesson' is the exception and stays invisible until the first bookmark
+      // — that was deliberate, and its contents row is filtered out to match.
+      if (s.key === 'lesson' && !pages.length) continue;
+      if (BOS_SECT_COVERS[s.key]) out.push({ sect: s.key, page: 'sectcover', name: s.name });
+      if (!pages.length) out.push({ sect: s.key, page: 'empty', name: s.name });
       pages.forEach(p => out.push(p));
     }
     // The writing leaf — a real page of the book, only while one is being
@@ -4024,6 +4197,14 @@
       }
       return;   // a part-title carries no page number, like a real book
     }
+    if (p.page === 'empty') {
+      const cfg = BOS_EMPTY[p.sect] || { line: 'Nothing here yet.' };
+      $('bos-pagewrap').innerHTML = `<div class="bos-page bos-empty">
+        <div class="bos-empty-line">${esc(cfg.line)}</div>
+        ${cfg.cta ? `<button class="btn bos-empty-cta" type="button" data-empty-go="${esc(cfg.go)}" data-empty-el="${esc(cfg.el || '')}">${esc(cfg.cta)}</button>` : ''}
+      </div>`;
+      return;
+    }
     if (p.page === 'write') { renderWriteLeaf(); return; }
     if (p.page === 'sync') {
       // 2×2 grid: the day's coincidences, image in the box + caption under it.
@@ -4183,6 +4364,13 @@
   $('bos-stage').addEventListener('click', (e) => {
     const sect = e.target.closest('[data-sect]');
     if (sect) { bosPageIdx = Math.min(bosSectStart(sect.dataset.sect), Math.max(1, bosPages().length)); renderBosPage(); return; }
+    const eg = e.target.closest('[data-empty-go]');
+    if (eg) {
+      const view = eg.dataset.emptyGo, el = eg.dataset.emptyEl;
+      closeBook(); go(view);
+      if (el) setTimeout(() => { const t = $(el); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90);
+      return;
+    }
     const gl = e.target.closest('[data-lsnap]');
     if (gl) { openLsnap(gl.dataset.lsnap, gl.dataset.lcard); return; }
     const oc = e.target.closest('[data-outcome]');
@@ -4688,6 +4876,110 @@
     if (accountsConfigured !== false && !fbUser) return 'gate';    // then create an account to unlock it
     return 'ready';
   }
+  // Astrology + tarot on HOME. Off since Aug 2026 (see renderHome). One flag
+  // restores both; the lessons that teach them are untouched either way.
+  const HOME_DIVINATION = false;
+
+  // ── Witch School on Home ──────────────────────────────────────────────
+  // The school's front door, in the slot the daily reading used to hold. It
+  // shows the course she is furthest into — the one with lessons done but not
+  // all of them — so the card follows her through the curriculum instead of
+  // always pointing at the same place. Nothing started yet → the first course.
+  // Reads the same schoolProgress()/courseProgress() the School tab does, so
+  // the two can never disagree.
+  // A reader who has never opened a lesson is offered SYNCHRONICITY first —
+  // the lesson that teaches the thing the boxes directly above it are asking
+  // her to do (Aug 2026, Sophie: "since we have a synchronicity lesson now
+  // that could be the first lesson that shows underneath the synchronicity
+  // area"). It is the app's own front page argument: the coincidence journal
+  // is the point, and the school explains it.
+  // Only the FIRST-EVER state is overridden. The moment she has opened any
+  // lesson the card goes back to following her through the curriculum, or
+  // this would keep pulling a returning reader back to lesson one.
+  const HOME_FIRST_LESSON = 'sync';
+  function schoolNeverStarted() {
+    const p = schoolProgress();
+    for (const k in p) { const e = p[k]; if (e && (e.done || e.seen > 0)) return false; }
+    return true;
+  }
+  function schoolHomePick() {
+    if (typeof SCHOOL_COURSES === 'undefined') return null;
+    if (schoolNeverStarted()) {
+      const c = SCHOOL_COURSES.find(x => x.lessons.includes(HOME_FIRST_LESSON));
+      if (c) return { c, p: courseProgress(c), lesson: HOME_FIRST_LESSON };
+    }
+    let started = null, fresh = null;
+    for (const c of SCHOOL_COURSES) {
+      const p = courseProgress(c);
+      if (p.done > 0 && p.done < p.total) { started = started || { c, p }; }
+      if (p.done === 0 && !fresh) fresh = { c, p };
+    }
+    if (started) return started;
+    if (fresh) return fresh;
+    const c = SCHOOL_COURSES[0];
+    return c ? { c, p: courseProgress(c) } : null;
+  }
+  function renderSchoolHome() {
+    const card = $('school-home-card'); if (!card) return;
+    const pick = schoolHomePick(); if (!pick) return;
+    const { c, p } = pick;
+    const prog = schoolProgress();
+    // Same "where am I" rule the course path uses: a lesson opened but not
+    // finished wins, else the first unfinished one. pick.lesson overrides it
+    // for the never-started reader (Synchronicity — see schoolHomePick).
+    const nextKey = pick.lesson
+      || c.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0)
+      || c.lessons.find(k => !(prog[k] && prog[k].done));
+    const titles = (typeof LESSON_TITLES !== 'undefined') ? LESSON_TITLES : {};
+    const done = p.done >= p.total;
+    $('sch-home-next').textContent = done
+      ? 'Course complete'
+      : (titles[nextKey] || c.sub);
+    // Art first: this course's cover, then the next two courses' — so the top
+    // of the card is always three pictures, whichever course she is on.
+    const covers = $('sch-home-covers');
+    if (covers) {
+      const start = SCHOOL_COURSES.findIndex(x => x.id === c.id);
+      const two = [0, 1].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
+      // On the Synchronicity offer the FIRST picture is that lesson's own
+      // opening card, not its course cover — the card is offering a lesson
+      // there, so it should show the lesson.
+      const lessonArt = pick.lesson && LESSONS[pick.lesson] && LESSONS[pick.lesson][0]
+        ? LESSONS[pick.lesson][0].img : null;
+      const imgs = lessonArt ? [lessonArt, two[1] && two[1].cover] : two.map(x => x && x.cover);
+      covers.innerHTML = imgs.filter(Boolean).map(id =>
+        `<img src="${SW_IMG}${id}${SW_EXT}" alt="" loading="lazy">`).join('');
+    }
+    const moons = $('sch-home-moons');
+    if (moons) moons.innerHTML = (typeof courseMoon === 'function') ? courseMoon(p.done, p.total, 15) : '';
+    $('sch-home-prog').textContent = pick.lesson
+      ? `${SCHOOL_LESSON_COUNT} lessons across ${SCHOOL_COURSES.length} courses`
+      : (p.done
+        ? `${p.done} of ${p.total} lessons done`
+        : `${p.total} ${p.total === 1 ? 'lesson' : 'lessons'} · start any time`);
+    $('sch-home-btn').textContent = pick.lesson
+      ? 'Read this lesson'
+      : (p.done && !done ? 'Keep going' : (done ? 'Open the school' : 'Start the course'));
+  }
+  // The whole card is the tap target, and the button inside it must not fire
+  // the handler twice.
+  (function () {
+    const card = $('school-home-card'); if (!card) return;
+    const open = (e) => {
+      if (e) e.stopPropagation();
+      const pick = schoolHomePick();
+      go('school');
+      if (pick) { schoolCourse = pick.c.id; try { renderSchoolPath(); } catch (e) {} }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // The Synchronicity offer opens that lesson itself — the card names one
+      // lesson, so landing on a course list would not be what it promised.
+      // The course path is still underneath it, so closing the lesson lands
+      // somewhere sensible rather than back on Home.
+      if (pick && pick.lesson) { try { openLesson(pick.lesson); } catch (e) {} }
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
+  })();
   function renderHome() {
     // Preview mode: /witch?wheel just parks on the spinning astrology wheel so
     // it can be watched as long as you like (the real reading is cached and
@@ -4698,6 +4990,18 @@
       $('daily-reading').style.display = '';
       $('tarot-card').style.display = 'none';
       setAstroLoading();
+      return;
+    }
+    // Divination is OFF the home screen (Aug 2026, Sophie — App Review 4.3(b)
+    // called the app a horoscope app, and the daily sky reading plus the birth
+    // form were the front door). Flip HOME_DIVINATION back to true to restore
+    // both cards exactly as they were; nothing else was deleted. The tarot card
+    // has to be force-hidden here too, not just in the markup, because the line
+    // below would otherwise un-hide it the moment homeState() reached 'ready'.
+    if (!HOME_DIVINATION) {
+      const astro = $('home-astro'); if (astro) astro.style.display = 'none';
+      const tc = $('tarot-card'); if (tc) tc.style.display = 'none';
+      try { renderSchoolHome(); } catch (e) {}
       return;
     }
     const s = homeState();
@@ -5237,12 +5541,21 @@
     else if (accountsConfigured === false || witchAuthReady) { canCommit = true; }
     if (canCommit) { try { localStorage.setItem('witch_coin_reset', COIN_RESET_V); } catch {} }
   }
-  // "Saved to your Book of Shadows" bookmark — fills once you've drawn one today.
+  // The book bookmark, in two states (Aug 2026, Sophie). Nothing saved yet →
+  // "Save to book"; once a coincidence is drawn (drawing IS what files it into
+  // the Book of Shadows) → "See in book", and the tap jumps to today's page.
+  // The label carries the second tap: a bare bookmark icon made "there is a
+  // page to go and read" a secret, the same reason .bm-lbl exists.
   function coinSavedToday() { const d = coinDoneAll(); return Object.keys(d).some(i => { const st = d[i]; return st && st.v && st.v.length; }); }
   function updateCoinBookmark(animate) {
     const el = $('coin-saved'); if (!el) return;
     const on = coinSavedToday();
     el.classList.toggle('filled', on);
+    const lbl = el.querySelector('.coin-saved-lbl');
+    if (lbl) lbl.textContent = on ? 'See in book' : 'Save to book';
+    el.setAttribute('aria-label', on
+      ? 'See today\'s coincidences in your Book of Shadows'
+      : 'Write a coincidence to save it to your Book of Shadows');
     if (on && animate) { el.classList.remove('just'); void el.offsetWidth; el.classList.add('just'); }
   }
   const COIN_BTN_HTML = 'Draw it! <span class="js-star"></span>';
@@ -5251,7 +5564,23 @@
   function coinDoneAll() { return pendGet(COIN_DONE) || {}; }
   function coinSetDone(i, v) { const m = coinDoneAll(); if (v) m[i] = v; else delete m[i]; pendSet(COIN_DONE, Object.keys(m).length ? m : null); try { cloudSyncSoon(); } catch (e) {} }
   function coinBtn(i) { return document.querySelector('.coin-btn[data-i="' + i + '"]'); }
-  function coinSpinner(box) { box.setAttribute('contenteditable', 'false'); box.innerHTML = '<img class="coin-load" src="/hoonie-loading-clear.gif" alt="drawing…">'; }
+  // The three boxes must NOT draw in lockstep (Aug 2026, Sophie: "they should
+  // be asynchronous so you see different hoonies"). Each box gets its own FILE,
+  // built by scripts/hoonie-split-gif.py: the 70-drawing loop is split into
+  // three disjoint sets, so box 0 cycles hoonies 0,3,6…, box 1 gets 1,4,7…,
+  // box 2 gets 2,5,8… — never the same drawing at the same moment.
+  //
+  // Do NOT "simplify" this back to one file with a query string per box. That
+  // was tried and MEASURED: Chromium keeps GIF animation in step regardless of
+  // the URL — all three boxes still showed the same frame in 0/12 samples,
+  // identical to sharing one URL. Different bytes are the only thing that
+  // works. Splitting rather than copying also means the three files together
+  // (329KB) weigh LESS than the single file did (390KB).
+  function coinSpinner(box, i) {
+    box.setAttribute('contenteditable', 'false');
+    const n = (typeof i === 'number' ? i : 0) % 3;
+    box.innerHTML = `<img class="coin-load" src="/hoonie-loading-clear-${n}.gif" alt="drawing…">`;
+  }
   function coinRestoreBtn(btn) { if (btn) { btn.disabled = false; btn.classList.remove('coin-caption'); btn.innerHTML = COIN_BTN_HTML; renderStars(); } }
   function coinShortText(desc) { const t = String(desc || '').trim(); return t.length > 44 ? t.slice(0, 42).trim() + '…' : t; }
   // A box's DONE state is a version history: { desc, v:[url,…], i:currentIdx }.
@@ -5336,7 +5665,7 @@
     box.dataset.desc = desc;
     if (redraw) { const rd = box.closest('.coin-cell')?.querySelector('.coin-redraw'); if (rd) { rd.disabled = true; rd.textContent = '…'; } }
     else { const btn = coinBtn(i); if (btn) { btn.disabled = true; btn.textContent = '…'; } }
-    coinSpinner(box);
+    coinSpinner(box, i);
     try {
       // Raw note → server distills it into ONE simple pastel spot illustration.
       const id = await startWitchJob('coincidence', { desc, quality: 'low', size: '1024x1024' });
@@ -5386,7 +5715,7 @@
     const done = coinDoneAll();
     Object.keys(done).forEach(i => { if (done[i] && done[i].v && done[i].v.length) coinRenderDrawn(+i); });
     const pend = coinPending();
-    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box); } coinWatch(+i, id, desc, redraw); } });
+    Object.keys(pend).forEach(i => { const { id, desc, redraw } = pend[i] || {}; const box = $('coin-' + i); if (box && id) { if (!redraw) { box.dataset.desc = desc; coinSpinner(box, +i); } coinWatch(+i, id, desc, redraw); } });
     updateCoinBookmark(false);
   }
   document.querySelectorAll('.coin-btn').forEach(b => b.addEventListener('click', (e) => {
@@ -5426,7 +5755,19 @@
   // The "Saved to your Book of Shadows" bookmark jumps to the page TODAY's
   // coincidences were filed on — the newest Synchronicities page, not the first
   // one (that's the oldest day in the book, which is never what you just saved).
-  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => { go('book'); openBook('sign', { newest: true, dateISO: todayISO() }); }); }
+  { const cs = $('coin-saved'); if (cs) cs.addEventListener('click', () => {
+    // Nothing saved today: the book page doesn't exist yet, so opening it would
+    // land on an empty spread. Send her to the first empty box instead — that's
+    // where saving actually starts.
+    if (!coinSavedToday()) {
+      const box = ['coin-0', 'coin-1', 'coin-2'].map($).find(b => b && !b.textContent.trim()) || $('coin-0');
+      if (box) { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { box.focus(); } catch {} }
+      return;
+    }
+    go('book'); openBook('sign', { newest: true, dateISO: todayISO() });
+  }); }
+  // The ⓘ beside "Suspicious coincidence…" → the lesson that explains it.
+  { const ci = $('coin-info'); if (ci) ci.addEventListener('click', (e) => { e.stopPropagation(); go('school'); openLesson('sync'); }); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('quiz-app').style.display !== 'none') closeQuiz(); });
   if (/[?&]quiz\b/.test(location.search)) openQuiz();
 
@@ -5614,8 +5955,12 @@
     if (item) showDreamDetail(+item.dataset.past);
   });
   $('dream-past').addEventListener('click', openDreamPast);
-  // Dream "Unlock the symbolism" — dual-LLM reading as a background job, so it
-  // survives leaving the app (pending id saved + resumed on return).
+  // Dream "Unlock the symbolism" — the WRITTEN reading (one Claude call), run
+  // as a background job so it survives leaving the app (pending id saved +
+  // resumed on return). This button does NOT draw anything: "Illustrate" is a
+  // separate button, a separate endpoint (/api/witch/dream-illustrate) and a
+  // separate job. An earlier version of this comment called it a "dual-LLM
+  // reading", which was never true and read as though one button did both.
   const DREAMREAD_PEND = 'witch_dreamread_job'; // {id, dream}
   const DREAMREAD_BTN = 'Unlock the symbolism';
   function dreamReadSpinner() {
@@ -6015,10 +6360,10 @@
     { img: 'tr-07', bg: '#fdf9f4', kicker: 'The reading', h: 'The mirror', body: 'Modern readers rarely use the cards to predict events. Treat a card as a mirror: the picture asks, <i>“where is this in your life right now?”</i> A reading maps the present — what\'s helping, what\'s blocking — more than it fixes the future.' },
     { img: 'tr-08', bg: '#fdfaf7', kicker: 'The practice', h: 'One card a day', body: 'Learn the deck with one habit: draw a single card each morning, look at it properly, and jot one line about where it showed up by nightfall. In three months of mornings you\'ll know the deck like a neighborhood.' },
     { img: 'tr-09', bg: '#fcf3e8', kicker: 'The spreads', h: 'Start with three', body: '<b>Past · Present · Future</b> — or “what\'s helping · what\'s blocking · what to do” — is the spread to learn first. Put your care into an honest, specific question; once three cards feel fluent, the great spreads — the Celtic Cross and its kin — will open from there.' },
-    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: 'You\'re holding a deck right now — this app deals your daily three from the real 1909 deck.<br><br><b>Tonight:</b> pull your cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them. ✦', cta: { label: 'Draw today\'s cards', go: 'home', el: 'tarot-card', fallback: 'natal-form' } },
+    { img: 'tr-10', bg: '#fefaf5', kicker: 'After', h: 'Draw yours now', body: '<b>Tonight:</b> pull three cards and <i>look</i> at each one before you read a word of meaning. What\'s happening in the picture? The 1909 artists painted the meanings in before any book explained them — the picture will tell you most of it before the book does. ✦' },
   ];
   const SIGNS_CARDS = [
-    { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'Synchronicities abound — the whole front door of this app says so. This lesson covers the craft behind that: how witches have always read feathers, birds, and uncanny repeats, and how to do it without fooling yourself.' },
+    { img: 'rs-01', bg: '#fdf8f2', kicker: 'Reading Signs', h: 'The world talks', body: 'The world puts things in your path — a feather where you sat down, the same number three times before noon, a bird that will not leave the window. This lesson is the craft of reading them: how witches have always taken feathers, birds and uncanny repeats seriously, and how to do it without fooling yourself.' },
     { img: 'rs-02', bg: '#fdf9f3', kicker: 'The old office', h: 'The augurs', body: 'Rome kept official state priests — <b>augurs</b> — whose whole job was reading birds: which direction they flew, how high, how many. Nothing launched, no war, no vote, until the sky had spoken. Sign-reading used to be a government position.' },
     { img: 'rs-03', bg: '#fdf9f5', kicker: 'The counting', h: 'One for sorrow', body: '“One for sorrow, two for joy…” — the magpie rhyme is a surviving scrap of real augury, four hundred years old. Counting crows, greeting a lone magpie to soften the omen — folk sign-craft that never died out.' },
     { img: 'rs-04', bg: '#fefdfc', kicker: 'The word', h: 'Synchronicity', body: 'The psychologist <b>Carl Jung</b> coined it: a coincidence with no cause connecting the events — except that it lands, precisely, in the middle of your life. The outer event rhymes with the inner one.' },
@@ -6028,6 +6373,55 @@
     { img: 'rs-08', bg: '#fef7ee', kicker: 'The lexicon', h: 'Your own signs', body: 'Like dreams, signs speak a private language. A feather might be your grandmother; for someone else it\'s nothing. Your Book of Shadows has a Signs section for exactly this — what appeared, what was happening, what came next. Your dictionary writes itself.' },
     { img: 'rs-09', bg: '#fef9f2', kicker: 'The answering', h: 'Answering a sign', body: 'Take a sign as an invitation rather than an order: the response is one small step in the direction it pointed — send the message, look up the class, take the walk.' },
     { img: 'rs-10', bg: '#fef9f4', kicker: 'After', h: 'Draw the coincidence', body: 'Your Book of Shadows has a page waiting for exactly this — <b>Signs</b>, your own dictionary of synchronicities.<br><br><b>This week:</b> when a sign finds you, write it down there — what appeared, and what was happening. (And the coincidence boxes on Home will draw it for you.) ✦', cta: { label: 'Open my Signs pages', go: 'book', book: 'sign' } },
+  ];
+  /* Synchronicity — the sequel to Reading Signs, and the lesson behind the
+     coincidence boxes on Home. The ⓘ next to "Suspicious coincidence…" opens
+     it; its last card sends you back to the boxes, so the two are linked both
+     ways. 14 cards (the house 10 is a floor, not a rule). */
+  const SYNC_CARDS = [
+    { img: 'sy-01', bg: '#fdf8f1', kicker: 'Synchronicity', h: 'The word for it', body: 'Everyone has had one. You think of someone you have not spoken to in years and they call that afternoon; a word you learned on Tuesday turns up three times before Friday. Behind that ordinary experience sits a hundred years of argument — who named it, what they actually claimed, and how to tell a real one from a trick of your own attention. We\'ll take it one idea at a time.' },
+    { img: 'sy-02', bg: '#fefbf8', kicker: 'Munich, 1930', h: 'A word said at a funeral', body: 'The term arrives in a eulogy. In May 1930 <b>Jung</b> spoke at a Munich memorial for <b>Richard Wilhelm</b>, who had brought the <i>I Ching</i> into German, and tried to account for how such a book could work at all. Its science, he said, rests not on causality but on a principle “hitherto unnamed” — which he was tentatively calling <b>synchronistic</b>.' },
+    { img: 'sy-03', bg: '#fdf8ef', kicker: 'The definition', h: 'Two events, no thread', body: 'His full phrase was <b>an acausal connecting principle</b>. Two events with nothing running between them — no chain of cause in either direction — that nevertheless answer each other, because of what you happened to be carrying at the time. Jung\'s claim was that <b>meaning</b> can do the connecting where cause does not.', faq: [{ q: 'What does acausal actually mean?', a: 'That neither event caused the other, and no third thing caused both. Jung was not proposing a hidden mechanism we have yet to find — he was proposing a kind of connection that is not mechanical at all.' }, { q: 'Is that not just coincidence with a nicer name?', a: 'That was the standard objection in his own lifetime, and he took it seriously enough to run statistics himself. His answer: the defining ingredient is the <b>meaning it carries for the person it happens to</b>, which a frequency count neither confirms nor refutes.' }, { q: 'Did other psychologists accept it?', a: 'Largely not. It sits at the edge of Jung\'s work even among Jungians, and it is the part most often left out of introductions to him.' }, { q: 'Where can I read the original?', a: '<i>Synchronicity: An Acausal Connecting Principle</i>, published 1952 alongside Pauli\'s essay on Kepler, and collected in Volume 8 of Jung\'s Collected Works.' }] },
+    { img: 'sy-04-v2', bg: '#fdf9f3', kicker: 'The scarab', h: 'The beetle at the window', body: 'His famous case: a patient so armoured in rationalism that the work had stalled for months. She was describing a dream of being handed a golden scarab when Jung heard tapping at the glass — a <b>rose-chafer</b>, the nearest thing Switzerland has to a scarab, trying to get in. He caught it and passed it to her: <i>“Here is your scarab.”</i> Years of argument had not shifted her. The beetle did.' },
+    { img: 'sy-05', bg: '#fdfaf4', kicker: 'The physicist', h: 'Pauli’s half', body: '<b>Wolfgang Pauli</b> — Nobel laureate, one of the architects of quantum mechanics — spent years writing to Jung about all this, and in 1952 the two published <i>Naturerklärung und Psyche</i> together: Jung\'s essay on synchronicity bound with Pauli\'s on Kepler. Pauli\'s contribution came from physics. A radioactive atom decays at no particular moment, for no prior reason; events without causes were already on the books.' },
+    { img: 'sy-06', bg: '#fef6eb', kicker: 'Vienna, 1919', h: 'The law of series', body: 'Eleven years earlier the biologist <b>Paul Kammerer</b> had published <i>Das Gesetz der Serie</i> — the law of seriality. His method was to sit in Viennese parks for hours tallying passers-by: how many wore spectacles, how many carried umbrellas, the exact minute each arrived. They came in clumps. Jung read him.' },
+    { img: 'sy-07', bg: '#fdfaf4', kicker: 'Kammerer’s shapes', h: 'Series come in kinds', body: 'He did not only collect them, he <b>sorted</b> them — homologous and analogous series, pure and hybrid, inverted, alternating, cyclic — ranked by how many attributes the events shared. Statisticians since have argued he was watching ordinary random clustering. The habit is still worth stealing: a coincidence you have classified is one you can compare against the next.' },
+    { img: 'sy-08', bg: '#fdf8f1', kicker: 'The library angel', h: 'The book that finds you', body: 'By the early 1970s <b>Arthur Koestler</b> had gathered so many accounts of the right information arriving by accident rather than by catalogue that he named the culprit: the <b>library angel</b>. Rebecca West wrote to him about hunting a passage through the unindexed Nuremberg trial records at the Royal Institute of International Affairs, where what she needed reached her by no method at all. It favours second-hand shelves and the wrong search result.' },
+    { img: 'sy-09', bg: '#fdfcf8', kicker: 'The honest part', h: 'Why it is suddenly everywhere', body: 'Learn a word and it turns up four times that week. That is the <b>frequency illusion</b> — christened the Baader-Meinhof phenomenon in a 1994 letter to the <i>St. Paul Pioneer Press</i>, and given its proper name by the Stanford linguist Arnold Zwicky in 2005. Your attention changed; the world\'s supply of the thing did not. Jung took the objection seriously enough to run statistics on it himself.' },
+    { img: 'sy-10', bg: '#fcf9f4', kicker: 'The arithmetic', h: 'A miracle a month', body: 'The Cambridge mathematician <b>J. E. Littlewood</b> did the sum. Call a miracle a one-in-a-million event. You are awake some eight hours a day and things happen to you at roughly one a second — so a million events take about a month. Expect a miracle monthly. Read that as your <b>background rate</b>: the number a genuine sign has to beat.' },
+    { bg: '#fdfaf5', kicker: 'Try it', h: 'Check your knowing', know: { qs: [
+      { q: 'Jung used the word in public for the first time in 1930. Where?', a: ['In a lecture on dreams', 'At a memorial service', 'In a letter to Freud'], ok: 1, tell: 'At Richard Wilhelm\'s memorial in Munich — trying to explain how the I Ching could possibly work.' },
+      { q: 'Kammerer spent his hours in Viennese parks doing what?', a: ['Sketching the passers-by', 'Counting umbrellas and spectacles', 'Waiting for one particular woman'], ok: 1, tell: 'Tallying attributes and arrival times, watching for clumps — coincidence studied with a notebook and a clock.' },
+      { q: 'By Littlewood\'s arithmetic, a one-in-a-million event should reach you about…', a: ['Once in a lifetime', 'Once a month', 'Once a decade'], ok: 1, tell: 'About once a month. That is the baseline — the ones worth keeping are the ones that also arrive on topic.' },
+    ] } },
+    { img: 'sy-11', bg: '#fefcf7', kicker: 'The test', h: 'Three questions', body: 'The working discernment, once the arithmetic has been respected. <b>Does it repeat?</b> Kammerer would not have logged a single instance at all. <b>Does it land in the body</b> — the drop in the chest — rather than in your cleverness? <b>Does it point at a live decision</b>, something you are actually facing this week? The strong ones survive all three.' },
+    { img: 'sy-12', bg: '#fefbf6', kicker: 'The record', h: 'Why you write it down', body: 'Kammerer\'s entire science was a notebook — years of dated entries and nothing else. An unrecorded coincidence stays a good evening; a recorded one becomes evidence you can read backwards in six months. Date it, then write <b>both halves</b>: what happened outside, and what you had been turning over inside when it did. The inside half is the one everybody skips, and the only one that makes the entry legible later.' },
+    { img: 'sy-13', bg: '#fdfbf8', kicker: 'After', h: 'Tonight', body: 'Write down one from today. There is usually one, and you usually know which. Put the outside half and the inside half in the same entry — then draw it, because a picture is what you will still recognise a year from now.<br><br><b>Tonight:</b> one entry, both halves. ✦', cta: { label: 'Write today’s coincidence', go: 'home', el: 'coincidence-card' } },
+  ];
+  /* Blood, Spit and Hair — the first lesson of The Living World (Sophie asked
+     for a biology course, Aug 2026). Sympathetic magic's second law, the
+     archaeology that proves people really did this, and the modern honesty:
+     the material is real, the causal thread is not. Carries BOTH a consent
+     card and a blood-safety card — the topic doesn't ship without them. */
+  const BLOOD_CARDS = [
+    { img: 'bh-01', bg: '#fef6ec', kicker: 'Blood, Spit and Hair', h: 'The parts that leave you', body: 'You shed yourself constantly — hair on the pillow, skin on the sheets, spit on the rim of a glass. Nearly every tradition that works magic on a person works on those leavings. This lesson is what the old craft did with them, why English gardens keep turning up bottles of them, and where the practice stands now that a laboratory can read a single hair. One idea at a time.' },
+    { img: 'bh-02', bg: '#fefbf7', kicker: 'The two laws', h: 'Like, and contact', body: 'Cataloguing magic across the world in the 1890s, the anthropologist <b>James Frazer</b> kept finding the same two rules. <b>Similarity</b> — like produces like, so an image of a thing acts on the thing. <b>Contagion</b> — objects that have once touched go on acting on each other after they are parted. Hair, nails, blood and spit are the second law\'s favourite material: they were you, so by that logic they still are.' },
+    { img: 'bh-03', bg: '#fcfbf6', kicker: 'The other laboratory', h: 'Every contact leaves a trace', body: 'Thirty years on, <b>Edmond Locard</b> was running the first forensic laboratory in Lyon on a principle with the same shape as Frazer\'s second law: when two things touch, each leaves something on the other. Two fields a generation apart, both landing on contact as the thing that carries. One correction for honesty\'s sake — Locard never wrote the famous sentence. “Every contact leaves a trace” was tidied out of his work by other people afterwards.', faq: [{ q: 'What did the laboratory actually do?', a: 'Examined the physical traces left behind at a crime scene — dust, fibres, hair, soil, face powder — under a microscope, and matched them against a suspect\'s clothes and body. It opened in <b>Lyon in 1910</b>, in two attic rooms of the courthouse, with two assistants and almost no budget.' }, { q: 'Is a trace the same as DNA?', a: 'No — DNA fingerprinting arrived in <b>1984</b>, seventy years later. Locard worked with what a lens could see: the type of a fibre, the mineral makeup of dust, the particular dirt of one street.' }, { q: 'Did it actually solve anything?', a: 'His best-known case is a strangling in 1912. He scraped under the suspect\'s fingernails and found skin cells and the pink face powder the victim wore. The man confessed.' }, { q: 'Why is it in a witchcraft lesson?', a: 'Because it is the law of contagion stated as a testable claim — contact transfers material, and the material leads back. The craft and the laboratory disagree about what that connection can carry, not about whether the contact leaves something behind.' }] },
+    { img: 'bh-04', bg: '#fdf9f5', kicker: 'The material', h: 'What you actually shed', body: 'What the old craft asks for is real, measurable, and specifically yours. You shed skin cells by the thousand every minute, spit on every rim, and hair — with a root it carries your full <b>DNA</b>, without one it carries only your mother\'s line. A laboratory reads all that as identity; a witch reads it as contact. Both are working from the same fact: those parts were you, and they go on carrying you after they leave.' },
+    { img: 'bh-05', bg: '#fefbf6', kicker: 'Greenwich, 2004', h: 'The bottle that was still corked', body: 'Builders turned up a stoneware <b>bellarmine</b> jar — the bearded face moulded on its shoulder — with the cork still in. Roughly two hundred had been found in England before it and every one had already been opened. Alan Massey\'s team catalogued the inside: urine, twelve bent iron nails, eight pins, hair, navel fluff, a leather heart pierced through with a nail, and traces of brimstone. The nail clippings were neatly manicured, so whoever made it was not poor.' },
+    { img: 'bh-06', bg: '#fefbf6', kicker: 'Suffolk, 1681', h: 'The recipe', body: 'These were <b>counter-magic</b>, not curses. Joseph Glanvill\'s <i>Saducismus Triumphatus</i> tells of a Suffolk man whose wife was ill and haunted by something in the shape of a bird, and of the travelling old man who gave him the method: <i>“Take your wife\'s urine… and cork it in a bottle with nails, pins and needles, and bury it in the earth; and that will do the feat.”</i> The harm is sent back up the same thread it arrived on.' },
+    { img: 'bh-07', bg: '#fdfaf3', kicker: 'Spit', h: 'The sealing agent', body: 'Spit binds a thing. On the palm before the handshake that seals a bargain, on the hands before heavy work, three times over the shoulder against the evil eye — a gesture still alive in Greek and Yiddish households. Of the three materials it is the most freely given and the least ceremonious, which is why it turns up in the ordinary contracts of daily life rather than in ritual.' },
+    { img: 'bh-08', bg: '#fdf9f3', kicker: 'Hair', h: 'The keepsake', body: 'Hair is the one people keep openly. The Victorians built an industry on it — <b>hairwork</b>: mourning brooches, rings and bracelets woven from the hair of the dead and sold by catalogue. A lock in a locket is the same instinct without the workshop. Hair holds its colour, lasts indefinitely, and is the only part of a body most people will willingly carry.' },
+    { bg: '#fdfaf5', kicker: 'Try it', h: 'Check your knowing', know: { qs: [
+      { q: 'Frazer\'s law of contagion says two things that have once touched…', a: ['Cancel each other out', 'Go on acting on each other', 'Must never touch again'], ok: 1, tell: 'They go on acting on each other at a distance, long after they are parted — which is why hair and nails are its favourite material.' },
+      { q: 'The Greenwich witch bottle mattered because…', a: ['It was made of gold', 'Its cork was still in', 'It was found under a church'], ok: 1, tell: 'Some two hundred had been found before it and every one was already open. This one still held its urine, bent nails, hair and a pierced leather heart.' },
+      { q: 'A witch bottle was buried in order to…', a: ['Curse a neighbour', 'Turn a harm back on whoever sent it', 'Bless a new house'], ok: 1, tell: 'Counter-magic. Glanvill\'s Suffolk recipe sends the sickness back the way it came.' },
+    ] } },
+    { img: 'bh-09', bg: '#fdf9f3', kicker: 'The asking', h: 'Whose hair is it', body: 'The rule the old books never bothered with: a person\'s leavings are theirs. Ask for them. A strand <b>given</b> is a person joining in, which is most of what makes the working worth doing — and a strand <b>taken</b> puts you in the role those bottles were buried against. This is the one place where the craft and the law of the land happen to agree with each other.' },
+    { img: 'bh-10', bg: '#fdf5eb', kicker: 'Safety', h: 'Blood, and how little', body: 'Blood is the one with real rules. Use only your <b>own</b> — never another person\'s, and never anyone\'s who cannot consent. Bloodborne infection is not folklore. A sterile single-use lancet, the side of a fingertip, <b>one drop</b>. Anything calling for more than a drop is not asking for blood, it is asking for a wound. On a blood thinner, or with a clotting condition: use spit, which the old craft treats as the same currency.' },
+    { img: 'bh-11', bg: '#fef9f4', kicker: 'Now', h: 'The spit in the post', body: 'The modern way to hand over a personal concern is a plastic tube of saliva mailed to a company. Same material, same logic — that a piece of you can be read at a distance. What acts on you afterwards is a database that can be sold, subpoenaed, or passed on in a bankruptcy, and the consent you gave was a checkbox. Read those terms as carefully as you would want a stranger to read yours before you posted them your hair.' },
+    { img: 'bh-12', bg: '#fdfaf5', kicker: 'The keeping', h: 'How to hold a concern', body: 'Two rules of housekeeping. <b>Label it</b> — whose, what, when, and what it was given for; an unlabelled envelope of hair is a thing your family finds one day and cannot read. <b>End it</b> — a concern belongs to a working, so when the working is over the material is burned, buried or given back. A drawer full of other people is not a practice.' },
+    { img: 'bh-13', bg: '#fcf9f4', kicker: 'After', h: 'Tonight', body: 'Start with your own, so nothing turns on anyone else\'s permission — and start with the <b>intention</b>, because without one you are only tying a knot. Name what you want carried: your nerve held through a particular conversation, safe travel on a particular road, staying findable to someone you are far from. Then pick the thing that will be near you while it matters — a key, a ring, a bag strap — say the intention aloud as you wind one hair around it, and write down both halves: what you asked for, and how you will know if it lands. (Spell Work teaches how to word one properly.)<br><br><b>Tonight:</b> the intention first, then the hair. ✦', cta: { label: 'Open my Spells pages', go: 'book', book: 'spell' } },
   ];
   const TRAVEL_CARDS = [
     { img: 'tw-01', bg: '#fefaf6', kicker: 'The Traveling Witch', h: 'Magic travels in you', body: 'Attention, intention, and your two hands weigh nothing and pass every security check. This lesson covers witchcraft for hotel rooms, road trips, and other people\'s guest beds.' },
@@ -6133,7 +6527,7 @@
     ], done: 'The cauldron glows — mugwort for the dreams, lavender for the way in, chamomile for the calm. Warm cup, dark room. ✦' } },
     { img: 'ap-10', bg: '#f9f3eb', kicker: 'After', h: 'Your first blend', body: 'Tonight, blend something small: a spoon of two herbs into a muslin bag — a dream sachet for the pillow, or a calm-evening tea. Label it. Date it.<br><br>And write what it does in your Book of Shadows — apothecaries are built on notes. ✦' },
   ];
-  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
+  const LESSONS = { spell: SPELL_CARDS, plants: PLANT_CARDS, plants2: PLANT2_CARDS, astro: ASTRO_CARDS, dream: DREAM_CARDS, protect: PROTECT_CARDS, tarot: TAROT_CARDS, signs: SIGNS_CARDS, sync: SYNC_CARDS, blood: BLOOD_CARDS, travel: TRAVEL_CARDS, divin: DIVIN_CARDS, crystal: CRYSTAL_CARDS, crystal2: CRYSTAL2_CARDS, altar: ALTAR_CARDS, shadow: SHADOW_CARDS, wheel: WHEEL_CARDS, apoth: APOTH_CARDS };
   /* ── The School: COURSES (Imprint-style), each with its own lesson path ──
      Sophie's structure: Divination 101 is the intro that opens onto Tarot &
      Astrology; Plants is its OWN course (lots more coming); Crystals stands
@@ -6144,12 +6538,22 @@
   // course's craft with its tools around her, which is why the Divination
   // cover (dv-01) always read at thumbnail size while the others didn't.
   const SCHOOL_COURSES = [
-    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection & the witch on the move', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel'] },
-    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'mysky', 'signs', 'dream'] },
-    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'ap-10', lessons: ['plants', 'plants2', 'apoth'] },
-    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'ce-04', lessons: ['crystal', 'crystal2'] },
+    { id: 'craft', title: 'The Craft', sub: 'Spells, altars, protection, the witch on the move & what the old craft did with the body', cover: 'al-01', lessons: ['spell', 'altar', 'protect', 'travel', 'wheel', 'blood'] },
+    // 'mysky' ("Your Sky, Read") is OUT of the path for now (Aug 2026): it
+    // casts the reader's real birth chart, and the birth form it needs came
+    // off Home with the rest of the astrology. Its code is untouched — putting
+    // the form inside this lesson is the planned way to give the chart back.
+    { id: 'divination', title: 'Divination', sub: 'Start with Divination 101, then tarot, the stars & signs', cover: 'dv-01', lessons: ['divin', 'tarot', 'astro', 'signs', 'sync', 'dream'] },
+    { id: 'plants', title: 'Plant Magic', sub: 'A whole course of green craft — and growing', cover: 'pa-09', lessons: ['plants', 'plants2', 'apoth'] },
+    { id: 'crystals', title: 'Crystals', sub: 'Stones, shapes, charging & channeling energy', cover: 'cr-06', lessons: ['crystal', 'crystal2'] },
     { id: 'inner', title: 'The Inner Work', sub: 'The gentle craft of meeting yourself', cover: 'sh-01', lessons: ['shadow'] },
+    // 'The Living World' was its own one-lesson course; its lesson ('blood',
+    // Blood, Spit and Hair) now closes The Craft instead (Aug 2026, Sophie:
+    // "make it a course within the craft module so it's not its own module").
+    // A device whose saved schoolCourse was 'living' falls back to the
+    // catalog on its own — renderCoursePath() already handles a missing id.
   ];
+  const SCHOOL_LESSON_COUNT = SCHOOL_COURSES.reduce((n, c) => n + c.lessons.length, 0);
   let schoolCourse = null; // null = catalog; a course id = that course's path
   function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
   function saveSchoolProgress(p) { try { localStorage.setItem('witch_school_progress', JSON.stringify(p)); } catch {} cloudSyncSoon(); }
@@ -6210,7 +6614,7 @@
           <div class="pr">${p.done ? p.done + ' of ' + p.total + ' lessons done' : p.total + (p.total === 1 ? ' lesson' : ' lessons')}</div>
         </div>
       </div>`;
-    }).join('') + '</div><p class="hint" style="text-align:center; margin-top:18px;">More courses are being written.</p>';
+    }).join('') + '</div>';   // no "more courses are being written" line (Aug 2026, Sophie)
   }
   function renderCoursePath(courseId) {
     const wrap = $('school-path'); if (!wrap) return;
@@ -6324,6 +6728,18 @@
   function warmSchoolCovers() {
     if (schoolWarmed) return; schoolWarmed = true;
     Object.values(LESSONS).forEach(cards => preload(cards.slice(0, 1)));
+  }
+  /* The ⓘ FAQ (Aug 2026, Sophie: the cards "point at a whole bank of
+     knowledge" and she wants the obvious follow-ups answered). A card opts in
+     with `faq: [{ q, a }, …]` — three is the usual number, more when the
+     subject genuinely needs it. Ordered by which question a reader hits FIRST. */
+  const FAQ_BTN = '<button class="faq-btn" id="faq-btn" type="button" aria-label="More about this"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>';
+  function faqPanel(faq) {
+    return `<div class="faq-wrap" id="faq-wrap"><div class="faq-card">
+      <div class="faq-hd">More about this</div>
+      ${faq.map(f => `<div class="faq-q">${esc(f.q)}</div><div class="faq-a">${f.a}</div>`).join('')}
+      <div class="faq-close">tap anywhere to close</div>
+    </div></div>`;
   }
   const TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
   /* ── Lesson quizzes (from Sophie's quiz-ideas notes). House rules: no
@@ -6443,16 +6859,31 @@
     else $('deck-stage').innerHTML = `<div class="tcard">
       <div class="deck-head">
         <div class="tcard-kicker">${esc(c.kicker)}</div>
-        <div class="tcard-h">${esc(c.h)}</div>
+        <div class="tcard-h">${esc(c.h)}${c.faq ? FAQ_BTN : ''}</div>
       </div>
       ${c.html ? `<div class="tcard-html">${c.html}</div>` : `<img class="tcard-img" src="${SW_IMG}${c.img}${SW_EXT}" alt="">`}
       <div class="deck-text">
         <div class="tcard-body">${c.body}</div>
-        ${c.cta ? `<button class="btn deck-cta" id="deck-cta" style="margin:16px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button>` : ''}
         ${deckIdx === 0 ? TAP_HINT : ''}
       </div>
+      ${c.cta ? `<div class="cta-row"><button class="btn deck-cta" id="deck-cta" style="margin:6px auto 0;">${esc(c.cta.label)} <span class="js-star"></span></button></div>` : ''}
+      ${c.faq ? faqPanel(c.faq) : ''}
     </div>`;
     updateDeckBmk(c);
+    // The ⓘ and its panel live inside the tap-zone stage, so both swallow the
+    // tap — otherwise opening the FAQ would also turn the card.
+    const faqBtn = $('faq-btn'), faqWrap = $('faq-wrap');
+    if (faqBtn && faqWrap) {
+      faqBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const on = faqWrap.classList.toggle('on');
+        faqBtn.classList.toggle('on', on);
+      });
+      faqWrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        faqWrap.classList.remove('on'); faqBtn.classList.remove('on');
+      });
+    }
     // The CTA lives inside the tap-zone stage, so stop the tap from also
     // advancing the deck; jump to the feature the lesson taught.
     const ctaBtn = $('deck-cta');
@@ -6489,14 +6920,11 @@
   }
   function closeLesson() { deckOnNote = false; $('school-lesson').style.display = 'none'; document.body.classList.remove('lesson-open'); try { renderSchoolPath(); } catch {} }
   // ── End-of-lesson note screen: ask a question (AI answers) or tell Sophie ──
-  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
+  const LESSON_TITLES = { spell: 'Spell Work', plants: 'The Magic of Plants', plants2: 'Plant Magic II', astro: 'Astrology Basics', dream: 'Dream Work', protect: 'Protection & Cleansing', tarot: 'Tarot 101', signs: 'Reading Signs', sync: 'Synchronicity', blood: 'Blood, Spit and Hair', travel: 'The Traveling Witch', divin: 'Divination 101', crystal: 'Crystals', crystal2: 'Crystal Energy', altar: 'Building an Altar', shadow: 'Shadow Work', wheel: 'The Wheel of the Year', apoth: 'The Witch\'s Apothecary', mysky: 'Your Sky, Read' };
   function renderDeckNote() {
     $('school-lesson').style.background = '#fefaf6';
     $('deck-prog').innerHTML = '';
     $('deck-stage').innerHTML = `<div class="tcard deck-note">
-      <div class="deck-head">
-        <div class="tcard-kicker">Before you go</div>
-      </div>
       <div class="deck-text">
         <div class="note-lead">Have a question, or want to understand something better?</div>
         <div class="note-choices">
@@ -6550,7 +6978,10 @@
       $('nchat-send').addEventListener('click', send);
       ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; });
       ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-      ta.focus();
+      // Deliberately NOT focused (Aug 2026, Sophie: "don't have the keyboard
+      // come up automatically only when they click into the envelope") — an
+      // auto-keyboard covers the bottom half the moment a choice is tapped,
+      // taking the Send button with it.
     }
 
     // ── Tell Sophie: a letter, snail-mailed to the real witch ──
@@ -6584,7 +7015,7 @@
           else { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
         } catch { out.innerHTML = `<div class="note-answer">It didn't send — try again in a moment.</div>`; btn.disabled = false; }
       });
-      $('nletter-text').focus();
+      // No auto-focus — the keyboard waits until she taps the paper (above).
     }
 
     $('note-ai-btn').addEventListener('click', openAskChat);
@@ -6610,6 +7041,8 @@
   { const pc = $('open-protect'); if (pc) pc.addEventListener('click', () => openLesson('protect')); }
   { const tr = $('open-tarot'); if (tr) tr.addEventListener('click', () => openLesson('tarot')); }
   { const rs = $('open-signs'); if (rs) rs.addEventListener('click', () => openLesson('signs')); }
+  { const sy = $('open-sync'); if (sy) sy.addEventListener('click', () => openLesson('sync')); }
+  { const bh = $('open-blood'); if (bh) bh.addEventListener('click', () => openLesson('blood')); }
   { const dv = $('open-divin'); if (dv) dv.addEventListener('click', () => openLesson('divin')); }
   { const cr = $('open-crystal'); if (cr) cr.addEventListener('click', () => openLesson('crystal')); }
   { const c2 = $('open-crystal2'); if (c2) c2.addEventListener('click', () => openLesson('crystal2')); }
@@ -6684,6 +7117,7 @@
   }
 
   const GOOGLE_G = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16z"/><path fill="#FBBC05" d="M10.3 28.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.5l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.5 2.1-7.9 2.1-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>`;
+  const APPLE_LOGO = `<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M13.4 10.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2C.5 10.3 1.6 14 3 16c.7 1 1.5 2.1 2.6 2.1 1 0 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.3s-2.1-.8-2.2-3.1zM11.3 4c.6-.7 1-1.7.9-2.7-.8 0-1.9.6-2.5 1.3-.6.6-1 1.6-.9 2.6.9.1 1.9-.5 2.5-1.2z"/></svg>`;
   function openModal(html) { $('modal').innerHTML = html; $('modal-bg').classList.add('show'); }
   function closeModal() { $('modal-bg').classList.remove('show'); }
   $('modal-bg').addEventListener('click', e => { if (e.target === $('modal-bg')) closeModal(); });
@@ -6697,6 +7131,7 @@
       <h2>Make a free account</h2>
       <p class="sub">It saves your chart, readings &amp; miracles across devices — and keeps your daily reading in sync.</p>
       <button class="gbtn" id="btn-google">${GOOGLE_G} Continue with Google</button>
+      <button class="gbtn abtn" id="btn-apple">${APPLE_LOGO} Sign in with Apple</button>
       <div class="divider">or</div>
       <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
       <button class="btn" id="btn-email">Email me a magic link</button>
@@ -6709,6 +7144,7 @@
       <button class="close-x" id="acct-close">maybe later</button>`);
     $('acct-close').addEventListener('click', closeModal);
     $('btn-google').addEventListener('click', signInGoogle);
+    $('btn-apple').addEventListener('click', signInApple);
     $('btn-email').addEventListener('click', signInEmail);
     $('btn-pw-toggle').addEventListener('click', () => {
       $('pw-block').style.display = 'block';
@@ -6729,6 +7165,7 @@
       <div class="acct-note" style="margin-bottom:10px;">Pick a default and the Tropical / Astronomical toggle disappears. Leave it on “Ask” to keep the toggle on your reading.</div>
       <div style="display:flex; gap:8px;">${opt('ask','Ask')}${opt('tropical','Tropical')}${opt('astronomical','Astronomical')}</div>
       <button class="btn-ghost" id="btn-signout" style="margin-top:18px;">Sign out</button>
+      <button class="del-link" id="btn-delete">Delete my account</button>
       <button class="close-x" id="acct-close">close</button>`);
     document.querySelectorAll('.zdef-opt').forEach(b => b.addEventListener('click', () => {
       const v = b.dataset.def;
@@ -6740,7 +7177,55 @@
       showAccount();  // re-render to reflect the new selection
     }));
     $('btn-signout').addEventListener('click', async () => { try { await fbAuth.signOut(); } catch {} closeModal(); });
+    $('btn-delete').addEventListener('click', showDeleteAccount);
     $('acct-close').addEventListener('click', closeModal);
+  }
+
+  // Account deletion, required by App Store guideline 5.1.1(v) for any app that
+  // supports account creation — 1.0 (8) was rejected for not having it. It must
+  // be reachable and finishable IN the app: offering only to deactivate, or
+  // sending the user to email support, does not satisfy it.
+  function showDeleteAccount() {
+    openModal(`
+      <h2>Delete your account</h2>
+      <div class="del-warn">
+        This permanently deletes your account and everything synced to it —
+        your chart, saved readings, grimoire and miracles. It cannot be undone.
+      </div>
+      <button class="btn-danger" id="btn-delete-confirm">Delete my account</button>
+      <div class="note" id="del-msg" style="text-align:center;"></div>
+      <button class="close-x" id="del-cancel">cancel</button>`);
+    $('del-cancel').addEventListener('click', showAccount);
+    $('btn-delete-confirm').addEventListener('click', deleteAccount);
+  }
+
+  async function deleteAccount() {
+    const m = $('del-msg'), btn = $('btn-delete-confirm');
+    const user = fbAuth && fbAuth.currentUser;
+    if (!user) { closeModal(); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    if (m) m.textContent = '';
+    try {
+      // The synced doc first: if the auth user goes first we lose the uid and
+      // the document is orphaned where nothing can ever reach it again.
+      if (fbDb) { try { await fbDb.collection('users').doc(user.uid).delete(); } catch {} }
+      await user.delete();
+      closeModal();
+      toast('Your account has been deleted.');
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Delete my account'; }
+      // Firebase refuses to delete on a stale session. That is a re-auth, not a
+      // dead end — signing back in makes the session fresh and the delete works.
+      if (e && e.code === 'auth/requires-recent-login') {
+        if (m) m.textContent = 'For your security, please sign in again, then delete.';
+        if (btn) {
+          btn.textContent = 'Sign in again';
+          btn.onclick = async () => { try { await fbAuth.signOut(); } catch {} closeModal(); showSignIn(); };
+        }
+        return;
+      }
+      if (m) m.textContent = (e && e.message) || 'Could not delete the account.';
+    }
   }
   async function signInGoogle() {
     // Inside the iOS app, Google's web popup can't complete (WKWebView blocks
@@ -6767,6 +7252,46 @@
     }
   };
   window.__witchGoogleFailed = (msg) => {
+    const m = $('acct-msg'); if (m) m.textContent = msg || '';
+  };
+  // Sign in with Apple. Guideline 4.8 requires it wherever Google is offered,
+  // and 1.0 (8) was rejected for not having it.
+  async function signInApple() {
+    // In the iOS app the native sheet is the only one that works AND the only
+    // one Apple accepts as a real Sign in with Apple — same bridge as Google.
+    const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.witchAuth;
+    if (bridge) {
+      const m = $('acct-msg'); if (m) m.textContent = '';
+      try { bridge.postMessage('apple'); } catch (e) { if (m) m.textContent = e.message; }
+      return;
+    }
+    // Plain browser (secretlyawitch.com) — Apple's web OAuth via Firebase.
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      p.addScope('email'); p.addScope('name');
+      await fbAuth.signInWithPopup(p);
+      closeModal();
+    } catch (e) { const m = $('acct-msg'); if (m) m.textContent = e.message; }
+  }
+  // The rawNonce is what Firebase verifies against the hash Apple was sent —
+  // pass it through untouched or the credential is rejected.
+  window.__witchAppleCredential = async (idToken, rawNonce, fullName) => {
+    try {
+      const p = new firebase.auth.OAuthProvider('apple.com');
+      const cred = p.credential({ idToken: idToken, rawNonce: rawNonce });
+      const res = await fbAuth.signInWithCredential(cred);
+      // Apple only ever sends the name on the FIRST authorization, so if it
+      // came through, save it now — there is no second chance.
+      if (fullName && res && res.user && !res.user.displayName) {
+        try { await res.user.updateProfile({ displayName: fullName }); } catch {}
+      }
+      closeModal();
+    } catch (e) {
+      const m = $('acct-msg');
+      if (m) m.textContent = e.message; else toast('Sign-in error: ' + e.message);
+    }
+  };
+  window.__witchAppleFailed = (msg) => {
     const m = $('acct-msg'); if (m) m.textContent = msg || '';
   };
   // Email + password sign-in (secondary option; primarily for a demo/reviewer
@@ -6847,9 +7372,10 @@
      reveals them rather than doing nothing. Tab items just switch tabs. */
   const JUMPS = [
     { label: 'Synchronicities', view: 'home', el: 'coincidence-card' },
-    { label: 'Your daily reading', view: 'home', el: 'daily-card' },
+    // 'Your daily reading' and 'Tarot' are gone with the cards they scrolled
+    // to (Aug 2026) — a jump row pointing at a hidden element does nothing.
+    // Witch School already has its own row further down, to the School TAB.
     { label: 'The quiz', view: 'home', el: 'quiz-card' },
-    { label: 'Tarot', view: 'home', el: 'tarot-card', fallback: 'daily-card' },
     { label: 'Dreams', view: 'home', el: 'dream-card' },
     { label: 'The moon', view: 'home', el: 'moon-card', fallback: 'dream-card' },
     { label: 'Witch School', view: 'school' },
@@ -7013,6 +7539,40 @@
     if (askState.status === 'working' || askState.status === 'done') renderAsk();
   });
   loadTarotReadings();
-  </script>
+
+  /* ── A lesson's own link (Aug 2026, Sophie: "I want to send my friend
+     Richard the synchronicity lesson, but there's no direct links to
+     anything"). The deck is a full-screen overlay with no URL of its own, so
+     there was nothing to send anyone. Three forms, all landing on the same
+     deck — the path is the pretty one to share, the other two exist because a
+     link gets pasted through things that rewrite paths:
+        secretlyawitch.com/lesson/sync   ?lesson=sync   #lesson-sync
+     A friendly name works as well as the internal key ("synchronicity",
+     "shadow-work"), matched off LESSON_TITLES so a renamed lesson can never
+     leave a stale alias pointing at the wrong deck.
+     An UNKNOWN key opens NOTHING: openLesson() falls back to Spell Work, and
+     handing someone who followed a link a different lesson than the one they
+     were sent is worse than landing them on the school.
+     The URL is left in the bar on purpose — it IS the link, so it has to
+     survive being forwarded on again (and a reload has to come back here). ── */
+  (() => {
+    const path = /^\/lesson\/([^/?#]+)/i.exec(location.pathname || '');
+    const hash = /^#lesson[-/]([^/?#]+)/i.exec(location.hash || '');
+    const raw = path ? path[1] : (new URLSearchParams(location.search).get('lesson') || (hash ? hash[1] : ''));
+    if (!raw) return;
+    const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    let want = raw;
+    try { want = decodeURIComponent(raw); } catch (e) {}
+    want = slug(want);
+    const key = Object.keys(LESSON_TITLES).find(k => k === want || slug(LESSON_TITLES[k]) === want);
+    if (!key) return;
+    go('school');
+    // Put the lesson's own course up behind the deck, so closing it lands on
+    // the road it belongs to instead of a bare catalog.
+    const course = SCHOOL_COURSES.find(c => c.lessons.includes(key));
+    if (course) { schoolCourse = course.id; try { renderSchoolPath(); } catch (e) {} }
+    openLesson(key);
+  })();
+</script>
 </body>
 </html>
