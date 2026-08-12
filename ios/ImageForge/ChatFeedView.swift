@@ -74,11 +74,19 @@ private struct ChatFeedWebView: UIViewRepresentable {
         web.isOpaque = false
         web.backgroundColor = UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1) // page paper
         web.allowsBackForwardNavigationGestures = false
-        // A pending push tap opens straight onto the Update tab — the push is
-        // that tab's doorbell. The flag is one-shot; chats.html strips the
-        // query param after honoring it.
+        // A pending push tap opens THE CHAT it came from (Sophie: tapping the
+        // banner consumed it, so landing on a list left her with no way to
+        // tell which chat had spoken). A push that names no chat — the
+        // /api/push/test send — still lands on the Update tab. Both flags are
+        // one-shot, and chats.html strips either query param after honouring
+        // it, so a later reload can't re-open the same thread.
         var path = "/chats"
-        if PushDelegate.pendingUpdateTab {
+        if let chat = PushDelegate.pendingChat, !chat.isEmpty {
+            PushDelegate.pendingChat = nil
+            PushDelegate.pendingUpdateTab = false
+            let slug = chat.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? chat
+            path = "/chats?chat=" + slug
+        } else if PushDelegate.pendingUpdateTab {
             PushDelegate.pendingUpdateTab = false
             path = "/chats?view=news"
         }
