@@ -2057,6 +2057,36 @@ lifted into a standalone tool later.
   and ARCHIVE each stay put and toggle: tap to go, tap again to come back.
   The lit state and the big serif title say which view she is in. The old
   "← Chats" relabel is gone.
+- **CHAPTERS inside one long thread (Aug 2026, Sophie: "divide the moon milk
+  chat into chapters — aim for somewhere around five but it's OK if there's
+  like four or seven").** A few chats ran for weeks, and re-reading one meant
+  scrolling past everything. `POST /api/chatfeed/chapters { chat, chapters:
+  [{title, at}] }` stores them on the REGISTRY doc; the thread draws a small
+  hairline heading where the chapter changes.
+  - **A chapter is just `{title, at}` and it MOVES NOTHING.** `at` is an ISO
+    time and the chapter owns every message from there until the next one
+    starts — no message is re-keyed, re-timed or copied, so a wrong boundary
+    costs one more POST and can never damage a thread. Send `[]` to clear.
+  - **On the registry, deliberately** — the feed already loads that doc whole
+    (`registry()` hands the client the entire doc), so chapters reach the app
+    with NO extra request and a chat without them renders exactly as before.
+  - **`chapterPlan()` in chats.html is the whole client rule**, and it is a
+    pure function so it can be tested. The thread paints NEWEST FIRST, so a
+    heading is drawn where the chapter CHANGES on the way down — which lands
+    it on that chapter's newest message, i.e. at the TOP of its block.
+    Messages older than the first chapter get NO heading (silence, not a
+    guess) and the dividers hide while the in-thread search filters rows —
+    a heading naming a block that has been filtered away is a lie.
+  - **The route refuses a chat that doesn't exist (404).** Firestore's
+    `set({},{merge:true})` WRITES a missing doc and `sortedChatNames` lists
+    every registry key, so a typo would put a phantom row in her list that
+    only the Admin SDK could remove — that has happened before. The registry
+    read is already cached by `followMoves`, so the guard costs nothing.
+  - A chapter with no title or an unparseable `at` is DROPPED, never guessed
+    at; the stored list is sorted by time whatever order it arrived in.
+  - Tests: `node scripts/test-chats-chapters.js` (the real route against a
+    stubbed Firestore + `chapterPlan` lifted out of the page and executed;
+    verified failing on both halves separately).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to

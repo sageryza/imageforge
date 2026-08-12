@@ -93,10 +93,31 @@ Why this one is the good trade:
 Cost: one extra `where('url','==',…)` query on `forge-chat-assets`, only on the
 wip path (single-field index, no composite needed).
 
-**Honest caveat:** this depends on ordering. It would have caught the case
-above (the panel was already labelled in `jonas` before the stray was filed),
-but if a wip catch beats the deliberate filing, it won't. It is a strong net,
-not a proof.
+**Honest caveat 1 — ordering.** This depends on the deliberate filing landing
+first. It would have caught the case above (the panel was already labelled in
+`jonas` before the stray was filed), but if a wip catch beats the deliberate
+filing, it won't. It is a strong net, not a proof.
+
+**Honest caveat 2 — it does NOT catch derived urls, demonstrated live.**
+Investigating the first stray meant printing its asset record, and that record
+contains a `thumb` url (`…/thumbs/<sha1>.webp`). The hook filed **that** as a
+second stray, in the same chat, minutes later:
+
+```
+stray: 597235f0e4c68229ced680a17e7749dae29ad0ee.webp | caption: from deck-factory-movies
+```
+
+Looking at the bug printed the bug back into the tab. The rule above would NOT
+have stopped it, because a thumbnail is not a labelled asset in any other chat.
+
+So pair it with a second, cheaper rule:
+
+> Never wip-file a url under the server's own `thumbs/` prefix.
+
+Those are derived display copies the server generates itself — they are never a
+deliverable, so nothing is lost by refusing them outright. Any other
+server-derived prefix (webp display copies, poster frames) deserves the same
+treatment.
 
 ### 2. Client-side — narrow what the hook scans
 
