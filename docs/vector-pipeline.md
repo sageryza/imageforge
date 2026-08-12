@@ -308,6 +308,36 @@ off by more than 4). They agree exactly on 8 of the 13 Gravity Lock cards and
 differ by one marginal colour — 0.04% to 0.3% of the card — on the rest.
 Neither answer is the right one.
 
+## How it compares to an off-the-shelf tracer (measured 2026-08-12)
+
+Sophie asked whether this beats the vectorisers on the web. Measured on four
+drawings cut from the 5x5 sheet (clock, cassette, strawberry, bicycle), three
+tracers each, line weight against the source drawing:
+
+- **vtracer with its own defaults** (the SAME engine this module calls, just
+  with no pre-pass): 25-92KB, **58-159 distinct fills**, lines **+6.3% to
+  +26.3%** fat. It traces the anti-aliased ramp beside every line as its own
+  thin colour layers, which is where the fill count and the muddy halo come
+  from.
+- **imagetracerjs** (a genuinely different engine, pure JS): 56-124KB, 6-15
+  fills, lines **+3.2% to +41.4%**. It quantises to few colours, so the counts
+  look right, but the outlines come out crunchy and speckled and on the
+  bicycle it **dropped the green frame entirely** (6 fills).
+- **ours**: 21-65KB, 14-16 fills, lines **−0.4% to +0.6%**.
+
+**The engine is not ours and is not a moat.** vtracer is MIT, imagetracerjs is
+Unlicense; anything on the web is running something similar. What the numbers
+above measure is the PRE-PASS — flatten to real flat colours (k-means with the
+anti-aliased collar excluded, labels filled by exact EDT), plus the
+ink-threshold calibration that lands line weight on the source's own 50%
+crossing. It is tuned for exactly one kind of input: flat pastel ink drawings
+on paper, cut from a grid. On a photo or anything with a gradient it is worse
+than useless (see the gradient limit above), so this is a narrow win, not a
+better general-purpose vectoriser.
+
+**Vectorizer.AI and vector.io were NOT tested** — both need a paid account, so
+there is no measurement of them here and none should be implied.
+
 ## Testing
 
     node scripts/test-vectorize.js          # all thirteen fixtures
