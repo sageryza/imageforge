@@ -634,7 +634,7 @@ lifted into a standalone tool later.
   chat she points there can use it without re-deriving the recipe. It carries
   the exact style (prompt wording, model, refs, size, quality), the routes, the
   gotchas and the test.
-- **What it does:** describe 1-4 drawings → ONE gpt-image-2 sheet in the pastel
+- **What it does:** describe 1-9 drawings → ONE gpt-image-2 sheet in the pastel
   house style (~6¢, the only cost) → cut into cells → lift each off its paper →
   trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
   drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
@@ -652,6 +652,14 @@ lifted into a standalone tool later.
   drift; add a NAMED style if a different look is needed.
 - **Re-cutting a sheet you already paid for is free** — pass its url back as
   `sheet`. Tuning the trace must never re-bill the model.
+- **Pick the grid by how much is IN each drawing, not by how many you want
+  (measured Aug 2026, 3x3 drawn at all three qualities).** Nine fits and the
+  tracer does not care — 341px cells trace within 4.8/7.4/6.4% of the source,
+  inside the 8% the 2x2 cards are held to. What changes is the MODEL: at 3x3 it
+  draws simpler objects (2.9 fills a drawing against 4.75 at 2x2). So 2x2 for a
+  drawing with detail, 3x3 for simple objects and icons (0.7¢ each). 5/7/8
+  don't tile — the spare cells are drawn and binned, so ask for 4, 6 or 9.
+  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly.
 - **Two gotchas that cost real time:** a dark-background drawing needs
   `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
   background — the Grand Tour card is the live example), and the Assets tab
