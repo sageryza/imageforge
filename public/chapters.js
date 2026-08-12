@@ -74,7 +74,14 @@
     '.cx-head{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;' +
     ' background:none;border:0;padding:13px 0;cursor:pointer;color:var(--ink);' +
     ' -webkit-tap-highlight-color:transparent;}' +
+    /* THE KIND IS A DRAWING, NOT A COLOURED DOT (Sophie, Aug 2026: "replace
+       the little dots in different colors with the icons you picked"). A dot
+       needs a legend; a magnifying glass says research by itself. Pass icons
+       per kind via the `icons` option — the engine ships none, so a page that
+       supplies nothing falls back to the coloured dot it always had. */
     '.cx-dot{flex:none;width:8px;height:8px;border-radius:50%;align-self:center;}' +
+    '.cx-ico{flex:none;width:22px;height:22px;align-self:center;display:block;' +
+    ' object-fit:contain;mix-blend-mode:multiply;}' +
     '.cx-n{font:400 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
     ' letter-spacing:.06em;flex:none;}' +
     '.cx-k-lesson{background:#e39ab4;}' +      /* her colours: lessons pink */
@@ -189,7 +196,11 @@
       var head = document.createElement('button');
       head.className = 'cx-head';
       var kind = KINDS[ch.kind] ? ch.kind : 'build';
-      head.innerHTML = '<span class="cx-dot cx-k-' + kind + '"></span>' +
+      // an icon when the page supplied one for this kind, else the old dot
+      var icon = (opts.icons || {})[kind];
+      head.innerHTML = (icon
+          ? '<img class="cx-ico" src="' + esc(icon) + '" alt="' + esc(kind) + '">'
+          : '<span class="cx-dot cx-k-' + kind + '"></span>') +
         '<span class="cx-n">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="cx-t">' + esc(ch.title) + '</span>' +
         '<span class="cx-when">' + esc(ch.when || '') + '</span>';
