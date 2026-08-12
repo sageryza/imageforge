@@ -261,7 +261,7 @@
     <div class="qmeta" id="sheetmeta"></div>
     <div class="srow" data-act="save">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
-      <div class="tx"><b>Save as a clip</b><span>lands in your audio library with its own link</span></div>
+      <div class="tx"><b>Save as a clip</b><span>its own file — listed under Sections below, with a download button</span></div>
       <div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
     </div>
     <div class="srow" data-act="editor">
@@ -288,6 +288,7 @@
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>pin the word being spoken, so you can find it again</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with all your cuts — the original is never touched</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span>play — with a section picked, it plays just that section</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 11 12 15 16 11"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span>download a clip or cut to your phone (Save to Files, AirDrop…)</span></div>
 </div>
 
 <!-- confirm -->
@@ -672,7 +673,19 @@ const DESTICON = {
   editor: '<svg viewBox="0 0 24 24"><line x1="3" y1="9" x2="3" y2="15"/><line x1="7.5" y1="6" x2="7.5" y2="18"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="16.5" y1="7" x2="16.5" y2="17"/><line x1="21" y1="10" x2="21" y2="14"/></svg>',
 };
 const PLAYSVG = '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-const OPENSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+// Apple's save glyph — the share box with the arrow pointing DOWN into it.
+const DLSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 11 12 15 16 11"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+// In the app a same-origin download can't reach the Files app from a web
+// view, so the wrapper injects a share bridge: the button hands the file to
+// the iOS share sheet (Save to Files / AirDrop / anywhere) instead.
+const SHARE_BRIDGE = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cutroomShare);
+function dlHref(url, name) {
+  return API + '/' + doc.id + '/file?u=' + encodeURIComponent(url) + '&n=' + encodeURIComponent(name)
+    + (TOKEN && TOKEN[0] !== '_' ? '&token=' + encodeURIComponent(TOKEN) : '');
+}
+function dlBtn(url, name) {
+  return '<a class="btn dl" data-u="' + esc(url) + '" data-n="' + esc(name) + '" href="' + esc(dlHref(url, name)) + '" download>' + DLSVG + '</a>';
+}
 
 function renderOuts() {
   const renders = doc.renders || [];
@@ -682,7 +695,7 @@ function renderOuts() {
     + '<button class="btn" data-play="' + esc(r.url) + '">' + PLAYSVG + '</button>'
     + '<div class="grow"><div class="lbl">' + fmt(r.seconds) + ' · −' + Math.round(r.removed) + 's</div>'
     + '<div class="tiny">' + r.edits + ' edits · ' + fmtDate(r.at) + '</div></div>'
-    + '<button class="btn" data-open="' + esc(r.url) + '">' + OPENSVG + '</button>'
+    + dlBtn(r.url, (doc.title || 'recording') + ' cut')
     + '</div>').join('');
   const clips = (doc.clips || []).slice().reverse();
   $('clipsWrap').hidden = !clips.length;
@@ -691,9 +704,9 @@ function renderOuts() {
     + (k.url ? '<button class="btn" data-play="' + esc(k.url) + '">' + PLAYSVG + '</button>' : '')
     + '<div class="grow"><div class="lbl clip1">' + esc(k.name) + '</div>'
     + '<div class="tiny">' + (k.sec ? fmt(k.sec) + ' · ' : '')
-    + (k.dest === 'editor' ? 'in “' + esc(k.episodeTitle || 'episode') + '”' : k.dest === 'story' ? 'a beat’s voice' : 'audio library')
+    + (k.dest === 'editor' ? 'in “' + esc(k.episodeTitle || 'episode') + '”' : k.dest === 'story' ? 'a beat’s voice' : 'saved clip')
     + ' · ' + fmtDate(k.at) + '</div></div>'
-    + '<span style="color:var(--goldline)">' + (DESTICON[k.dest] || '') + '</span>'
+    + (k.url ? dlBtn(k.url, k.name) : '<span style="color:var(--goldline)">' + (DESTICON[k.dest] || '') + '</span>')
     + '</div>').join('');
   $('outs').onclick = (e) => {
     const p = e.target.closest('[data-play]');
@@ -705,8 +718,14 @@ function renderOuts() {
       outP.play().catch(() => toast('couldn’t play'));
       return;
     }
-    const o = e.target.closest('[data-open]');
-    if (o) window.open(o.dataset.open, '_blank');
+    const d = e.target.closest('.dl');
+    if (d && SHARE_BRIDGE) {
+      // In the app: hand the file to the iOS share sheet (Save to Files etc.)
+      e.preventDefault();
+      window.webkit.messageHandlers.cutroomShare.postMessage({ url: d.dataset.u, name: d.dataset.n });
+      toast('Getting the file…', 1800);
+    }
+    // In a browser the <a download> href does the real download itself.
   };
 }
 
