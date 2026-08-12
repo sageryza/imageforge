@@ -11,8 +11,11 @@
    open one, the rest of them collapse" — so the spine of the whole project
    stays readable on a phone.
 
-   HORIZONTAL — progressive expansion / contraction. Inside an open chapter
-   she steps through three levels:
+   HORIZONTAL — progressive expansion / contraction. ONE sticky bar at the
+   top of the list sets the depth for the whole page (v3, Sophie: "not per
+   section but for the whole thing, and they stay pinned even when I scroll
+   down so they can still be clicked"), and whichever chapter is open shows
+   at that level:
 
      1  gist    a surface summary, enough to refresh her memory
      2  deeper  what was decided, built, learned — the detail under the gist
@@ -82,8 +85,6 @@
     '.cx-dot{flex:none;width:8px;height:8px;border-radius:50%;align-self:center;}' +
     '.cx-ico{flex:none;width:22px;height:22px;align-self:center;display:block;' +
     ' object-fit:contain;mix-blend-mode:multiply;}' +
-    '.cx-n{font:400 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
-    ' letter-spacing:.06em;flex:none;}' +
     '.cx-k-lesson{background:#e39ab4;}' +      /* her colours: lessons pink */
     '.cx-k-experiment{background:#e3c25c;}' +  /* experiments yellow */
     '.cx-k-build{background:#8fc7ae;}' +       /* everything else: mint */
@@ -95,19 +96,39 @@
     '.cx-when{flex:none;font:400 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
     ' letter-spacing:.05em;white-space:nowrap;}' +
     '.cx-body{padding:0 0 18px;}' +
-    /* the horizontal axis — the account-tabs hairline, ported verbatim */
-    '.cx-lv{position:relative;display:flex;border-bottom:1px solid var(--line);' +
-    ' margin:0 0 14px;}' +
-    '.cx-lv button{flex:1 1 0;min-width:0;padding:7px 4px 9px;border:none;background:none;' +
+    /* THE LEVEL SWITCH IS ONE BAR FOR THE WHOLE PAGE, AND IT STAYS PUT
+       (Sophie, Aug 2026: "have the gist/deeper/raw hairline buttons not
+       per-section but for the whole thing, and they stay pinned — even when
+       I scroll down, so they can still be clicked"). v2 drew a copy inside
+       every open chapter, so the control scrolled away the moment she read
+       past the top of a long chapter and she had to scroll back up to change
+       depth. One bar, sticky at the top, governing whichever chapter is open.
+       Still the account-tabs hairline, ported verbatim.
+       IT RESERVES THE PILL'S CORNER (padding-right:56px). Stuck at the top it
+       sits inside the autoscroll pill's x 324-374 / y 14-192 band, so without
+       the reserve the RAW button's own half is under the pill and eats the
+       tap. The sliding line then needs calc((100% - 56px)/3): an abspos
+       child's percentages resolve against the PADDING box, so an inherited
+       33.33% is wider than a tab and drifts right. */
+    '.cx-lv{position:sticky;top:0;z-index:5;background:var(--paper);' +
+    ' display:flex;border-bottom:1px solid var(--line);margin:0 0 2px;' +
+    ' padding-right:56px;}' +
+    '.cx-lv button{flex:1 1 0;min-width:0;padding:9px 4px 10px;border:none;background:none;' +
     ' cursor:pointer;font-family:-apple-system,sans-serif;font-size:10px;' +
     ' letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);' +
     ' -webkit-tap-highlight-color:transparent;}' +
     '.cx-lv button.on{color:var(--ink);}' +   /* the sliding line says which — no bold */
     '.cx-lv::after{content:"";position:absolute;left:0;bottom:-1px;height:2px;' +
-    ' width:33.3333%;background:var(--ink);transform:translateX(0);' +
+    ' width:calc((100% - 56px)/3);background:var(--ink);transform:translateX(0);' +
     ' transition:transform .2s ease;}' +
     '.cx-lv[data-on="2"]::after{transform:translateX(100%);}' +
     '.cx-lv[data-on="3"]::after{transform:translateX(200%);}' +
+    /* THE NOTE + ONLY EXISTS ON THE OPEN CHAPTER (Sophie, Aug 2026: "make
+       the plus for the note only appear once I open the section"). A closed
+       row is a spine entry, and a + on every one of 28 of them is 28 offers
+       to write something. A note she HAS written still shows on the closed
+       row — that is the point of having written it. */
+    '.cx-ch:not(.on) .cmp-note-open{display:none;}' +
     /* levels 1 and 2 */
     '.cx-l1{font:400 15px/1.55 Georgia,serif;margin:0 0 2px;}' +
     '.cx-l2{list-style:none;padding:12px 0 0;margin:0;}' +
@@ -186,9 +207,36 @@
     mount.setAttribute('data-nostop', '');
 
     var open = null;                       // one at a time — her spec
-    var level = {};                        // per chapter, session-only
+    var level = 1;                         // ONE level for the page, session-only
+    var repaint = null;                    // the open chapter's painter
 
-    list.forEach(function (ch, i) {
+    /* The sticky bar, built once and living above the list. It is present
+       even with nothing open: tapping a level then sets the depth the next
+       chapter opens at, which is what "for the whole thing" means. */
+    var bar = document.createElement('div');
+    bar.className = 'cx-lv';
+    bar.setAttribute('data-on', String(level));
+    LEVELS.forEach(function (L) {
+      var b = document.createElement('button');
+      b.setAttribute('data-lv', L[0]);
+      b.textContent = L[1];
+      if (String(level) === L[0]) b.className = 'on';
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        level = Number(L[0]);
+        bar.setAttribute('data-on', String(level));
+        bar.querySelectorAll('button').forEach(function (x) {
+          x.classList.toggle('on', x.getAttribute('data-lv') === L[0]);
+        });
+        /* Changing depth changes the open chapter's height, so hold ITS row
+           under her finger the same way opening one does. */
+        if (repaint) repaint();
+      };
+      bar.appendChild(b);
+    });
+    mount.appendChild(bar);
+
+    list.forEach(function (ch) {
       var el = document.createElement('div');
       el.className = 'cx-ch';
       el.setAttribute('data-item', ch.id);  // her note keys off this
@@ -204,7 +252,8 @@
       head.innerHTML = (icon
           ? '<img class="cx-ico" src="' + esc(icon) + '" alt="' + esc(kind) + '">'
           : '<span class="cx-dot cx-k-' + kind + '"></span>') +
-        '<span class="cx-n">' + String(i + 1).padStart(2, '0') + '</span>' +
+        // No 01/02/03 (Sophie, Aug 2026: "get rid of the numbers"). The order
+        // is the page, and a number on every row is a column of nothing.
         '<span class="cx-t">' + esc(ch.title) + '</span>' +
         '<span class="cx-when">' + esc(ch.when || '') + '</span>';
       el.appendChild(head);
@@ -215,13 +264,8 @@
       el.appendChild(bodyEl);
 
       function paint() {
-        var lv = level[ch.id] || 1;
-        var h = '<div class="cx-lv" data-on="' + lv + '">';
-        LEVELS.forEach(function (L) {
-          h += '<button data-lv="' + L[0] + '"' + (String(lv) === L[0] ? ' class="on"' : '') +
-            '>' + L[1] + '</button>';
-        });
-        h += '</div>';
+        var lv = level;                      // the page's one level, not this row's
+        var h = '';
         if (lv < 3) {
           h += '<p class="cx-l1">' + line(ch.l1 || '') + '</p>';
           if (lv === 2 && (ch.l2 || []).length) {
@@ -248,13 +292,6 @@
           });
         }
         bodyEl.innerHTML = h;
-        bodyEl.querySelectorAll('.cx-lv button').forEach(function (b) {
-          b.onclick = function (ev) {
-            ev.stopPropagation();
-            level[ch.id] = Number(b.getAttribute('data-lv'));
-            hold(paint);                       // switching level must not move the page either
-          };
-        });
         bodyEl.querySelectorAll('.cx-msg.long').forEach(function (mEl) {
           mEl.onclick = function () { mEl.classList.toggle('open'); };
         });
@@ -275,7 +312,8 @@
       head.onclick = function () {
         hold(function () {
           if (open === el) {                     // tapping the open one closes it
-            el.classList.remove('on'); bodyEl.hidden = true; open = null; return;
+            el.classList.remove('on'); bodyEl.hidden = true;
+            open = null; repaint = null; return;
           }
           if (open) {                            // the rest collapse — her spec
             open.classList.remove('on');
@@ -285,6 +323,8 @@
           el.classList.add('on');
           paint();
           bodyEl.hidden = false;
+          // the bar drives whichever chapter is open, and holds ITS row
+          repaint = function () { hold(paint); };
         });
       };
 

@@ -82,7 +82,9 @@ window.addEventListener('error', function(e){
     var m=document.getElementById('chapters');
     var rows=m.querySelectorAll('.cx-ch');
     function body(i){ return rows[i].querySelector('.cx-body'); }
-    function lvl(i,n){ var b=body(i).querySelector('.cx-lv button[data-lv="'+n+'"]'); b.click(); }
+    // ONE bar for the page (v3) — it lives on the mount, not inside a body
+    function bar(){ return m.querySelector(':scope > .cx-lv'); }
+    function lvl(i,n){ bar().querySelector('button[data-lv="'+n+'"]').click(); }
 
     // 1 — rows, and the vertical axis
     ok(rows.length===2 && body(0).hidden && body(1).hidden, 'every chapter is a row, all closed to start');
@@ -102,17 +104,19 @@ window.addEventListener('error', function(e){
     var b0=body(0);
     ok(!!b0.querySelector('.cx-l1') && !b0.querySelector('.cx-l2') && !b0.querySelector('.cx-msg'),
        'level 1 is the gist alone');
-    ok(b0.querySelector('.cx-lv').getAttribute('data-on')==='1',
+    ok(bar().getAttribute('data-on')==='1',
        'the hairline underline sits on the open level');
-    ok(!b0.querySelector('.cx-lv button .cx-num'), 'the level switch is tabs, not numbered chips');
-    ok(b0.querySelector('.cx-lv button[data-lv="1"]').classList.contains('on'),
+    ok(!bar().querySelector('button .cx-num'), 'the level switch is tabs, not numbered chips');
+    ok(bar().querySelector('button[data-lv="1"]').classList.contains('on'),
        'a chapter opens at level 1');
+    ok(!b0.querySelector('.cx-lv') && m.querySelectorAll('.cx-lv').length===1,
+       'the level switch is ONE bar for the whole page, not a copy per chapter');
     lvl(0,2); b0=body(0);
     var lis=b0.querySelectorAll('.cx-l2 li');
     ok(!!b0.querySelector('.cx-l1') && lis.length===2 && !!lis[0].querySelector('b'),
        'level 2 keeps the gist and adds the detail lines');
     lvl(0,3); b0=body(0);
-    ok(b0.querySelector('.cx-lv').getAttribute('data-on')==='3', 'the line slides to level 3');
+    ok(bar().getAttribute('data-on')==='3', 'the line slides to level 3');
     var msgs=b0.querySelectorAll('.cx-msg');
     ok(msgs.length===2 && msgs[0].classList.contains('me') && msgs[1].classList.contains('them'),
        'level 3 is the real messages, both sides');
@@ -191,6 +195,51 @@ window.addEventListener('error', function(e){
     ok(!!m.querySelector('.cmp-note-box') || !!m.querySelector('[data-item] .cmp-note'),
        'every chapter carries a note affordance');
 
+    // 8 — v3, Sophie: "get rid of the numbers"
+    ok(!m.querySelector('.cx-n') && !/^\s*\d\d\b/.test(rows[0].querySelector('.cx-t').textContent),
+       'no 01/02 number on a row');
+
+    // 9 — v3: the note + only exists on the OPEN chapter
+    rows.forEach(function(r){ r.classList.remove('on'); });
+    var plus = m.querySelector('[data-item] .cmp-note-open');
+    ok(!!plus, 'the note + is built for every chapter');
+    ok(getComputedStyle(plus).display === 'none', 'a CLOSED chapter shows no note +');
+    rows[0].querySelector('.cx-head').click();
+    ok(getComputedStyle(rows[0].querySelector('.cmp-note-open')).display !== 'none',
+       'opening a chapter reveals its note +');
+
+    // 10 — v3: ONE level for the whole page, and it survives switching chapter
+    lvl(0,3);
+    rows[1].querySelector('.cx-head').click();
+    ok(!!body(1).querySelector('.cx-msg') && bar().getAttribute('data-on')==='3',
+       'the level belongs to the PAGE — opening another chapter keeps raw, it does not reset to gist');
+    lvl(1,1);
+    ok(!body(1).querySelector('.cx-msg') && !!body(1).querySelector('.cx-l1'),
+       'the bar drives whichever chapter is open');
+
+    // 11 — v3: the bar is pinned, and every button of it is really tappable
+    //      (it stays put when scrolled AND clears the autoscroll pill's corner)
+    ok(getComputedStyle(bar()).position === 'sticky' && getComputedStyle(bar()).top === '0px',
+       'the level bar is pinned to the top');
+    /* Sticky is bounded by its PARENT, so scroll to somewhere still inside
+       the list — that is exactly the range it has to survive (the real page
+       has 27 chapters; here there are 2). Past the end of .cx it is meant to
+       leave with the list it belongs to. */
+    var cx = m.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, cx + m.offsetHeight - 60);
+    var br = bar().getBoundingClientRect();
+    ok(br.top >= -1 && br.top <= 2,
+       'scrolled down the list, the bar is still at the top of the screen (top=' + Math.round(br.top) + ')');
+    var buried = [];
+    bar().querySelectorAll('button').forEach(function(b){
+      var r = b.getBoundingClientRect();
+      var hit = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+      if (!hit || !bar().contains(hit)) buried.push(b.textContent + '@' + Math.round(r.left));
+    });
+    ok(buried.length === 0,
+       'every level button is tappable, none under the pill (' + (buried.join(',') || 'all clear') + ')');
+    window.scrollTo(0, 0);
+
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
   }, 500);
 })();
@@ -223,7 +272,12 @@ const server = http.createServer((req, res) => {
 server.listen(0, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/`;
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chapters-'));
+  /* HER PHONE'S WIDTH, not a desktop default. The autoscroll pill is fixed
+     over x 324-374, so the sticky level bar's right-hand button only lands
+     under it at a narrow viewport — a wide window hides the whole hazard and
+     the hit test passes while saying nothing. */
   const kid = spawn(chrome, ['--headless', '--no-sandbox', '--disable-gpu',
+    '--window-size=390,844',
     '--user-data-dir=' + profile, url], { stdio: 'ignore' });
 
   const done = (verdict, err) => {
