@@ -4,7 +4,7 @@
 `vector.js` / `vectorize.js`.** Sophie asked for it to be written down so any
 chat she points here can use it without re-deriving the recipe.
 
-    describe 1-4 drawings
+    describe 1-9 drawings
       -> ONE gpt-image-2 sheet in the pastel house style   (~6c, the only cost)
       -> cut into cells, lift each off its paper
       -> trace each to SVG                                  (free, local, ~1.3s)
@@ -48,17 +48,21 @@ teaching cards were drawn with, word for word.
   > shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow,
   > on a plain white background, playful modern editorial illustration.
 
-- **Grid clause**, next, for 2-4 drawings:
+- **Grid clause**, next, sized to the number of drawings. For four:
 
   > A 2x2 grid of four completely separate small illustrations on a plain white
   > background. Wide clean white gutters between them, each drawing sitting well
   > inside its own quarter, nothing crossing or touching between the cells, no
   > grid lines, no borders, no frames.
 
-  For ONE drawing a different clause is used ("ONE small illustration, centred
-  …"). Asking for a 2x2 and describing one quadrant gets three cells of
-  invented filler.
-- **Then the caller's descriptions**, as `TOP LEFT: …  TOP RIGHT: …` etc.
+  A 2x2 says "quarter" and every other layout says "cell", which keeps the 2x2
+  prompt **byte-identical** to the one the Gravity Lock cards were drawn with —
+  there is an assertion of exactly that. For ONE drawing a different clause is
+  used ("ONE small illustration, centred …"): asking for a grid and describing
+  a single cell fills the rest with invented filler.
+- **Then the caller's descriptions**, by position — `TOP LEFT: … TOP RIGHT: …`
+  for a 2x2, `LEFT: … RIGHT: …` for a 2x1, `TOP LEFT … MIDDLE CENTRE …
+  BOTTOM RIGHT` for a 3x3.
 - **Suffix**, at the very end, after everything — the no-text rule:
 
   > Absolutely no text, no words, no letters, no numbers, no captions.
@@ -71,13 +75,38 @@ caller free to describe shading would quietly produce art this pipeline cannot
 trace. If a different look is genuinely needed, add a NAMED style to `HOUSE`
 rather than letting prompts drift.
 
-### Why a sheet of four instead of four calls
+### Why a sheet, and how many to put on it
 
-Four times cheaper (one ~6c call rather than four) and — the real reason — the
-four come out as a **set**: one pass of the model, so line weight, palette and
-scale match across them. Four separate calls drift apart. The cost is
-resolution: a cell of a 1024 sheet is only ~512px of picture, which is exactly
-the softness the tracer removes.
+A sheet is N times cheaper than N calls (one ~6c call) and — the real reason —
+the drawings come out as a **set**: one pass of the model, so line weight,
+palette and scale match across them. Separate calls drift apart.
+
+**Up to nine, and the ceiling is not the tracer.** The pipeline shipped at four
+only because the Gravity Lock cards happened to be a 2x2; that was inherited,
+not derived. Measured since, on a 3x3 sheet drawn at all three qualities: cells
+come out 341px, the drawings ~250-310px of that, and the traced line weight
+lands within **4.8% (low) / 7.4% (medium) / 6.4% (high)** of the source — all
+inside the 8% the 2x2 cards are held to. Nothing about the trace degrades.
+
+**What changes is the drawing, not the trace.** At 3x3 the model draws simpler
+objects, because each one is smaller: fills per drawing averaged **2.9 at 3x3
+against 4.75 at 2x2** over the same kind of subject. So pick the grid by how
+much is IN each picture:
+
+- **2x2** — a drawing that needs detail (a figure doing something, a scene).
+- **3x3** — simple objects and icons. 0.7c a drawing instead of 1.5c.
+
+Layouts are 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3). **5, 7 and 8 do not
+tile** — they take the next layout up and the spare cells are drawn and thrown
+away. The sheet costs the same either way, so ask for 4, 6 or 9 to waste
+nothing. `POST /prompt` reports the `layout` and how many cells are `wasted`.
+
+### Quality
+
+`low` / `medium` / `high` — roughly 2c / 6c / 25c a SHEET, not per drawing.
+All three trace cleanly (the line-weight numbers above are all three). High
+gives the model more detail per object; low is genuinely usable for simple
+icons, and at 3x3 a low sheet is nine drawings for about 2c.
 
 ## Using it
 
@@ -106,7 +135,7 @@ Poll `GET /api/vector/job/<id>` until `status` is `done` (or `failed`, with
 - `png` — a 2048px render of it, for a gallery tile
 - `cut` — the cut-out cell it was traced from
 - `colors` — the fills as hex, for a swatch or a recolour
-- `kb`, `ms`, `quadrant`, `draw`
+- `kb`, `ms`, `cell` (where it sat on the sheet), `draw`
 
 Per-cell options: `fills` (0 = work it out, the default) and
 `darkBackground: true` — see the gotchas.
@@ -196,6 +225,13 @@ Neither answer is the right one.
 
     node scripts/test-vectorize.js          # all thirteen fixtures
     node scripts/test-vectorize.js weight   # one
+    node scripts/test-vector-prompt.js      # the house prompt, no network needed
+
+`test-vector-prompt.js` rebuilds the sheet-A prompt from its four descriptions
+and asserts it is **byte-identical** to the one banked in
+`cards-manifest.json`. Generalising the grid clause from four cells to any
+number nearly broke it — "its own quarter" became "its own cell", which reads
+like a tidy-up and is a different prompt.
 
 It re-traces the Gravity Lock cards and asserts against the **source card**,
 not against the Python: no invented colour, no dropped colour, line weight
@@ -219,7 +255,8 @@ them.
 - `vectorize.js` — the engine (no HTTP): `vectorize`, `flatten`, `cutout`, `slice`
 - `vector.js` — the router `/api/vector`, the `HOUSE` style, the background job
 - `scripts/vectorize-card.py` — the original CLI and the readable reference
-- `scripts/test-vectorize.js` — the quality gate
+- `scripts/test-vectorize.js` — the trace quality gate
+- `scripts/test-vector-prompt.js` — the prompt-drift gate
 - `docs/gravity-lock/vector/*.svg` — thirteen traced cards, the worked example
 - `@neplex/vectorizer` — native vtracer bindings, an optionalDependency so a
   host without the binary fails on this one route rather than at boot

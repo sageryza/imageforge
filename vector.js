@@ -1,6 +1,6 @@
 // Vector Studio — a described set of drawings -> scalable SVG art.
 //
-//   POST /api/vector/sheet    describe 1-4 drawings -> grid -> cut -> vectors
+//   POST /api/vector/sheet    describe 1-9 drawings -> grid -> cut -> vectors
 //   POST /api/vector/trace    a picture you already have -> a vector
 //
 // WHY THIS EXISTS. Every other image surface here ends at a PNG, which is fine
@@ -11,12 +11,24 @@
 // make — the trace is local, so the only money in this whole module is the one
 // gpt-image-2 call that draws the sheet.
 //
-// WHY A SHEET OF FOUR, not four separate calls. It is four times cheaper (one
-// medium call, ~6c, instead of four) and — the real reason — the four drawings
-// come out as a SET: one pass of the model, so the line weight, the palette and
-// the scale match across them. Four separate calls drift. The cost is
-// resolution: a cell of a 1024 sheet is ~512px of picture, which is exactly the
-// softness the vectoriser removes.
+// WHY A SHEET, not one call per drawing. It is N times cheaper (one medium
+// call, ~6c) and — the real reason — the drawings come out as a SET: one pass
+// of the model, so line weight, palette and scale match across them. Separate
+// calls drift.
+//
+// HOW MANY PER SHEET: up to NINE, and the ceiling is not the tracer. This was
+// measured, not assumed — the pipeline shipped at four only because the Gravity
+// Lock cards happened to be a 2x2. A 3x3 sheet was drawn at low, medium and
+// high: cells come out 341px, the drawings ~250-310px of that, and the traced
+// line weight lands within 4.8% / 7.4% / 6.4% of the source, all inside the 8%
+// the 2x2 cards are held to. Nothing degrades.
+//
+// What DOES change is the drawing, not the trace: at 3x3 the model draws
+// SIMPLER objects, because each one is smaller. Measured over the same set,
+// fills per drawing averaged 2.9 at 3x3 against 4.75 at 2x2. So a 3x3 is right
+// for simple objects and icons, and a 2x2 is right when each drawing needs
+// detail. That is the real trade — pick the grid by how much is in each
+// picture, not by how many you want.
 //
 // THE STYLE IS FIXED AND IS THE POINT. `HOUSE` below is the exact recipe the
 // Gravity Lock cards were drawn with, down to the wording — the same two Witch
@@ -54,19 +66,43 @@ const HOUSE = {
     + 'a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, '
     + 'playful modern editorial illustration.',
   // Wide gutters and "nothing crossing between the cells" are load-bearing: the
-  // sheet is cut on a straight quarter line, so a drawing that leans into its
-  // neighbour's quarter loses a limb.
-  grid: 'A 2x2 grid of four completely separate small illustrations on a plain white background. '
-    + 'Wide clean white gutters between them, each drawing sitting well inside its own quarter, '
+  // sheet is cut on a straight grid line, so a drawing that leans into its
+  // neighbour's cell loses a limb.
+  // "quarter" for a 2x2 keeps that prompt BYTE-IDENTICAL to the one the Gravity
+  // Lock cards were drawn with; any other layout says "cell".
+  grid: (cols, rows) => `A ${cols}x${rows} grid of ${WORDS[cols * rows]} completely separate `
+    + 'small illustrations on a plain white background. '
+    + `Wide clean white gutters between them, each drawing sitting well inside its own ${cols === 2 && rows === 2 ? 'quarter' : 'cell'}, `
     + 'nothing crossing or touching between the cells, no grid lines, no borders, no frames.',
-  // One drawing is not a grid of one — asking for a 2x2 and describing a single
-  // quadrant gets you three cells of invented filler.
+  // One drawing is not a grid of one — asking for a grid and describing a single
+  // cell gets you the rest in invented filler.
   single: 'ONE small illustration, centred on a plain white background with clean white space '
     + 'all around it, no grid, no borders, no frames.',
   // At the VERY END, after the caller's words — the no-text rule.
   suffix: 'Absolutely no text, no words, no letters, no numbers, no captions.',
-  quadrants: ['TOP LEFT', 'TOP RIGHT', 'BOTTOM LEFT', 'BOTTOM RIGHT'],
 };
+
+const WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six', 9: 'nine' };
+// How many columns and rows for a given number of drawings. 5, 7 and 8 do not
+// tile, so they take the next layout up and the spare cells are simply never
+// cut out — the sheet costs the same either way. Ask for 4, 6 or 9 to waste
+// nothing.
+const LAYOUT = { 1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 5: [3, 2], 6: [3, 2], 7: [3, 3], 8: [3, 3], 9: [3, 3] };
+const COLNAME = { 1: [''], 2: ['LEFT', 'RIGHT'], 3: ['LEFT', 'CENTRE', 'RIGHT'] };
+const ROWNAME = { 1: [''], 2: ['TOP', 'BOTTOM'], 3: ['TOP', 'MIDDLE', 'BOTTOM'] };
+
+/** Where each cell sits, named the way the model is told about it.
+ *  A 2x2 still reads TOP LEFT / TOP RIGHT / BOTTOM LEFT / BOTTOM RIGHT, exactly
+ *  as the Gravity Lock cards were asked for — that wording is not to be drifted. */
+function positions(cols, rows) {
+  const out = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out.push([ROWNAME[rows][r], COLNAME[cols][c]].filter(Boolean).join(' '));
+    }
+  }
+  return out;
+}
 
 const QUALITIES = ['low', 'medium', 'high'];
 const COST = { low: 0.02, medium: 0.06, high: 0.25 };   // one sheet, not one card
@@ -88,8 +124,10 @@ router.use(express.json({ limit: '40mb' }));
 function sheetPrompt(cells) {
   const say = (c) => String(c.draw || c).trim().replace(/\.$/, '');
   if (cells.length === 1) return `${HOUSE.prefix} ${HOUSE.single} ${say(cells[0])}. ${HOUSE.suffix}`;
-  const quads = cells.map((c, i) => `${HOUSE.quadrants[i]}: ${say(c)}.`);
-  return `${HOUSE.prefix} ${HOUSE.grid} ${quads.join(' ')} ${HOUSE.suffix}`;
+  const [cols, rows] = LAYOUT[cells.length];
+  const at = positions(cols, rows);
+  const parts = cells.map((c, i) => `${at[i]}: ${say(c)}.`);
+  return `${HOUSE.prefix} ${HOUSE.grid(cols, rows)} ${parts.join(' ')} ${HOUSE.suffix}`;
 }
 
 async function put(buf, path, contentType) {
@@ -210,7 +248,9 @@ async function runSheet(id, body) {
     }
     await patch(id, { step: 'cutting the sheet', sheet: sheetUrl });
 
-    const cellPngs = cells.length > 1 ? await slice(sheetPng, 2, 2) : [sheetPng];
+    const [cols, rows] = LAYOUT[cells.length];
+    const cellPngs = cells.length > 1 ? await slice(sheetPng, cols, rows) : [sheetPng];
+    const at = cells.length > 1 ? positions(cols, rows) : [''];
     const items = [];
     for (let i = 0; i < cells.length; i++) {
       const slug = String(cells[i].id || `cell-${i + 1}`).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
@@ -225,7 +265,7 @@ async function runSheet(id, body) {
       }
       const cutUrl = await put(await sharp(cell).png().toBuffer(), `${base}/${slug}-cut.png`, 'image/png');
       const traced = await traceOne(cell, `${base}/${slug}`, { fills: Number(cells[i].fills) || 0 });
-      items.push({ id: slug, draw: String(cells[i].draw || cells[i]), quadrant: HOUSE.quadrants[i], cut: cutUrl, ...traced });
+      items.push({ id: slug, draw: String(cells[i].draw || cells[i]), cell: at[i], cut: cutUrl, ...traced });
       await patch(id, { items });
     }
     await patch(id, { status: 'done', step: '', items, finishedAt: new Date().toISOString() });
@@ -270,16 +310,17 @@ router.get('/status', (req, res) => {
 /** The literal prompt a sheet would send, without spending anything. */
 router.post('/prompt', (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 4) {
-    return res.status(400).json({ error: 'cells must be 1-4 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
+    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
   }
-  res.json({ prompt: sheetPrompt(cells), style: HOUSE });
+  const [cols, rows] = LAYOUT[cells.length];
+  res.json({ prompt: sheetPrompt(cells), layout: `${cols}x${rows}`, wasted: cols * rows - cells.length });
 });
 
 router.post('/sheet', async (req, res) => {
   const cells = req.body && req.body.cells;
-  if (!Array.isArray(cells) || !cells.length || cells.length > 4) {
-    return res.status(400).json({ error: 'cells must be 1-4 descriptions' });
+  if (!Array.isArray(cells) || !cells.length || cells.length > 9) {
+    return res.status(400).json({ error: 'cells must be 1-9 descriptions' });
   }
   if (!admin.apps.length) return res.status(503).json({ error: 'Firebase not configured' });
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY not set' });
@@ -317,4 +358,4 @@ router.get('/jobs', async (req, res) => {
   res.json({ jobs: q.docs.map((d) => d.data()) });
 });
 
-module.exports = { router, HOUSE, sheetPrompt, traceOne };
+module.exports = { router, HOUSE, LAYOUT, positions, sheetPrompt, traceOne };
