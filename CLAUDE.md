@@ -1305,8 +1305,23 @@ lifted into a standalone tool later.
   rather than just archive it, and I'd like deleted chats to go to a trash
   that I can empty").** `deletedAt` on the registry doc
   (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
-  thread header after Archive and Hide, and a **Trash** word in the masthead
-  beside Archive.
+  thread header after Archive and Hide, and the trash itself.
+  - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
+    trash in archive and make it just a picture of a trashcan I guess").**
+    It shipped as a fifth WORD in the masthead and that broke the header:
+    measured at 390px, `.hctl` started at **x=48** while the word "Chats"
+    occupies **x=20-96**, so the bookmark button sat under the visible title
+    and won the tap — **tapping "Chats" opened Bookmarks**. Five controls
+    plus a long title do not fit on her phone. So `#trashlink` is an ICON
+    (~26px against the word's ~56px), `display:none` unless
+    `homeView==='archive'||'trash'`, and leaving the trash returns to the
+    ARCHIVE it opened from rather than all the way home. Its own class
+    `.trashbtn`, never `.bmk` — that rule's `.on svg{fill:currentColor}`
+    floods a stroke glyph into a blob (the `.stbtn` trap).
+    **The lesson for the next control:** the masthead is FULL. Anything new
+    there must be an icon, must be view-scoped, or must go somewhere else —
+    and `node scripts/test-chats-title-back.js` is what catches it, because
+    it hit-tests every header control under every title.
   - **TWO STAGES, and the split is the whole point.** Deleting only stamps
     `deletedAt` — nothing is destroyed, and every row in the trash carries
     **Restore**. `POST /trash/empty` is the irreversible half (`{chat}` empties

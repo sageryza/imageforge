@@ -298,6 +298,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* Delete reads in the same red as Hide — both take the chat off the list —
    but it sits last in the row, after the bigger-sounding green Archive. */
 .archlink.del-r{color:#b3443f;}
+/* The trash can — an ICON, and its OWN class rather than `.bmk`, because the
+   generic `.bmk.on svg{fill:currentColor}` rule would flood this stroke-drawn
+   glyph into a solid blob when lit (the same trap `.stbtn` exists for). */
+.trashbtn{background:none; border:none; padding:6px 2px; cursor:pointer; color:var(--ink2);
+  display:inline-flex; align-items:center; flex:none; -webkit-tap-highlight-color:transparent;}
+.trashbtn svg{display:block;}
+.trashbtn.on{color:var(--chg);}
 /* The trash's own bar: the count on the left, the one irreversible control on
    the right. Same lit-chip look as the hidden bar (red outline over a light
    red tint) so the two "this is not the normal list" places match. */
@@ -867,7 +874,17 @@ body.ontop > .float{display:none !important;}
           <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <button id="todolink" class="archlink">To do</button>
           <button id="archlink" class="archlink">Archive</button>
-          <button id="trashlink" class="archlink">Trash</button>
+          <!-- THE TRASH LIVES INSIDE THE ARCHIVE, AS A PICTURE (Aug 2026,
+               Sophie: "put trash in archive and make it just a picture of a
+               trashcan I guess"). It shipped as a fifth WORD in this row and
+               that broke the masthead: measured at 390px, the controls
+               started at x=48 while the word "Chats" occupies x=20-96, so
+               the bookmark button sat under the visible title and won the
+               tap — tapping "Chats" opened Bookmarks. Five controls plus a
+               long title do not fit on her phone. So it is hidden unless
+               she is in the Archive (or the Trash itself), and it is an
+               icon, which costs ~26px against the word's ~56px. -->
+          <button id="trashlink" class="trashbtn" aria-label="Deleted chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
           <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
         </div>
       </div>
@@ -1347,9 +1364,14 @@ function paintHomeChrome(){
   // The trash wears the same red as the hidden bar — it is the one place on
   // this screen where a tap destroys something.
   t.classList.toggle('trash', homeView==='trash');
+  // The trash can shows ONLY inside the Archive (and in the trash itself, so
+  // there is a way back out) — her ask, and what keeps the masthead's five
+  // controls from burying the title on the chat list.
   var tr=document.getElementById('trashlink');
+  var inArch=(homeView==='archive'||homeView==='trash');
+  tr.style.display = inArch ? '' : 'none';
   tr.classList.toggle('on', homeView==='trash');
-  tr.setAttribute('aria-label', homeView==='trash' ? 'Back to all chats' : 'Show deleted chats');
+  tr.setAttribute('aria-label', homeView==='trash' ? 'Back to the archive' : 'Deleted chats');
   // The words never change and never disappear (Aug 2026, Sophie: "when I
   // press hidden or archive it just takes me back to chats rather than having
   // a button that says chats and a back arrow — get rid of that button"). Each
@@ -4148,7 +4170,13 @@ window.__setSearchOpen=setSearchOpen;
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
-document.getElementById('trashlink').onclick=function(){ setHomeView('trash'); };
+// The trash is a room off the ARCHIVE now, so its way out is back to the
+// archive rather than all the way home — that is where she was standing when
+// she opened it. (The big title is still the exit to the chat list.)
+document.getElementById('trashlink').onclick=function(){
+  if(homeView==='trash'){ homeView='archive'; renderHome(); window.scrollTo(0,0); }
+  else setHomeView('trash');
+};
 document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 

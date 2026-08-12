@@ -13,9 +13,11 @@
 //      and puts the chat back on the live list,
 //   4. Empty asks first and only POSTs /trash/empty when she confirms —
 //      cancelling must destroy nothing,
-//   5. the header's Trash word is reachable at 375/390/430 (the masthead is
-//      tight and the autoscroll pill owns the top-right corner, so a new
-//      control there has to be hit-tested, not eyeballed).
+//   5. the trash CAN is reachable at 375/390/430, measured where it lives —
+//      inside the archive (the masthead is tight and the autoscroll pill owns
+//      the top-right corner, so a control there is hit-tested, not eyeballed;
+//      this shipped as a fifth WORD and buried the title under the bookmark
+//      button, which is why the can is an icon and lives in the Archive).
 //
 //   node scripts/test-chats-trash.js
 //
@@ -124,7 +126,15 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   rows = await page.$$eval('#grid .crow[data-chat]', (ns) => ns.map(n => n.dataset.chat));
   if (rows.includes('chat-live')) fail('the deleted chat is still on the list after deleting');
 
-  // 3. the Trash view lists them, and Restore puts one back
+  // 3. the Trash view lists them, and Restore puts one back.
+  //    THE TRASH LIVES INSIDE THE ARCHIVE now (Aug 2026, Sophie: "put trash
+  //    in archive and make it just a picture of a trashcan") — as a fifth
+  //    WORD in the masthead it pushed the controls under the title, and
+  //    tapping "Chats" opened Bookmarks. So the can exists only in the
+  //    Archive, and that is the way in.
+  await page.click('#archlink');
+  await page.waitForTimeout(200);
+  if (!(await page.$eval('#trashlink', (n) => !!n.offsetParent))) fail('no trash can in the Archive');
   await page.click('#trashlink');
   await page.waitForTimeout(200);
   const title = await page.$eval('#htxt', (n) => n.textContent.trim());
@@ -138,12 +148,23 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   });
   await page.waitForTimeout(300);
   if (!delPosts.some(p => p.chat === 'chat-gone' && p.deleted === false)) fail('Restore did not POST deleted:false');
-  await page.click('#trashlink');           // back to the live list
+  await page.click('#trashlink');           // back to the ARCHIVE it opened from
   await page.waitForTimeout(200);
+  if ((await page.$eval('#htxt', (n) => n.textContent.trim())) !== 'Archive') {
+    fail('leaving the trash did not land back in the archive it opened from');
+  }
+  await page.evaluate(() => window.__titleBack());   // the title is the way home
+  await page.waitForTimeout(200);
+  // …and the can is NOT on the chat list, which is the whole point of moving it
+  if (await page.$eval('#trashlink', (n) => !!n.offsetParent)) {
+    fail('the trash can is still on the chat list — that is what buried the title');
+  }
   rows = await page.$$eval('#grid .crow[data-chat]', (ns) => ns.map(n => n.dataset.chat));
   if (!rows.includes('chat-gone')) fail('a restored chat did not come back to the live list');
 
   // 4. Empty asks first — cancelling destroys nothing
+  await page.click('#archlink');
+  await page.waitForTimeout(200);
   await page.click('#trashlink');
   await page.waitForTimeout(200);
   await page.click('#grid .trashbar .tbtn');
@@ -159,11 +180,19 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForTimeout(300);
   if (!emptyPosts.length) fail('confirming Empty did not POST /trash/empty');
 
-  // 5. the Trash word is actually tappable at every width — the masthead is
-  // tight and the autoscroll pill owns the top-right corner
+  // 5. the trash CAN is tappable at every width, measured where it actually
+  // lives now (inside the archive / the trash) — the masthead is tight and
+  // the autoscroll pill owns the top-right corner
   for (const width of [375, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
+    // stand in the Archive, where the can lives — and where the title is the
+    // LONG word that has to share the row with it
+    await page.evaluate(() => window.__setHomeView('archive'));
     await page.waitForTimeout(120);
+    if ((await page.$eval('#htxt', (n) => n.textContent.trim())) !== 'Archive') {
+      await page.evaluate(() => window.__setHomeView('archive'));
+      await page.waitForTimeout(120);
+    }
     const ok = await page.evaluate(() => {
       const b = document.getElementById('trashlink');
       const r = b.getBoundingClientRect();
@@ -171,7 +200,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
       const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
       return (hit === b || b.contains(hit)) ? true : 'covered by ' + (hit ? (hit.id || hit.className || hit.tagName) : 'nothing');
     });
-    if (ok !== true) fail('the Trash word is not tappable at ' + width + 'px (' + ok + ')');
+    if (ok !== true) fail('the trash can is not tappable at ' + width + 'px (' + ok + ')');
   }
 
   await browser.close();
