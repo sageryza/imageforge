@@ -115,6 +115,35 @@ is a mouthful and an invitation to misplace) and becomes a row-by-row list —
 `ROW 1 of 5, left to right: …` — which is a shape models follow well for long
 sets. Drawings came out 147-203px, line weight mean 4.3%, 3 of 25 over 8%.
 
+### Line weight calibrates itself
+
+`ink` decides where a soft edge stops being a line, so it sets the stroke weight
+of the whole drawing — and a single fixed value is one guess for every picture.
+The error it produces is smooth and monotonic, so it can simply be solved for.
+Measured on a strawberry at a 205px cell: +14.1% at ink 130, +10.5% at 124,
++8.7% at 118, +5.7% at 110, +1.6% at 100.
+
+`ink: 'auto'` (the default in `/sheet` and `/trace`) probes, fits a line through
+(threshold, error) and takes its root — about three traces instead of one, which
+is free and takes ~1s. Results:
+
+| drawing | fixed 130 | auto |
+|---|---|---|
+| strawberry | +14.1% | +0.5% (ink 99) |
+| acorn | +12.7% | +1.2% (ink 110) |
+| cassette | +9.8% | +0.2% (ink 105) |
+| clock | — | 0.0% (ink 114) |
+
+Pass a number to `ink` per cell to override. The tables below were measured at
+the fixed default, which is what the test still runs at — a fixed threshold is
+a regression detector, and auto-calibration would hide a change in the
+flattener behind a corrected result.
+
+**The one cost:** a lower threshold thins everything, so a drawing's faintest
+marks can drop out. The alarm clock's short tick marks come out lighter than
+its source at ink 114. If that matters for a particular drawing, set `ink`
+explicitly.
+
 ### Where the line is
 
 Cell size does not move the AVERAGE — it moves the WORST CASE. Mean line-weight

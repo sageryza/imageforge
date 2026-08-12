@@ -64,6 +64,15 @@ function tracer() {
 // neighbour's severed piece, not part of this drawing.
 const STRAY_SHARE = 0.15;
 
+// A fill this close to pure white is paper as far as the eye is concerned, so
+// painting it as a fill costs an outline and a layer for no visible gain. The
+// wind card is the case: its astronaut's white spacesuit is a genuine interior
+// region walled off by its own ink outline, and treating it as a colour took
+// the SVG from 95KB to 410KB while looking identical. A pale CREAM is a
+// different matter and stays a fill — an alarm clock's face sits 30 from white,
+// well outside this.
+const WHITE_MERGE = 8;
+
 const DEFAULTS = {
   fills: 0,        // 0 = work the count out from the picture
   ink: 130,        // luminance below this is line
@@ -73,6 +82,10 @@ const DEFAULTS = {
   upscale: 3,
   smooth: 9,       // median filter on the LABEL map
   speckle: 10,
+  // `ink: 'auto'` picks the threshold per drawing so the traced line weight
+  // matches the source, rather than taking whatever the fixed default gives.
+  inkTol: 0.015,   // stop once within this of the source
+  inkSteps: 2,     // extra secant steps after the first correction
 };
 
 // ── deterministic RNG ──────────────────────────────────────────────────────
@@ -231,16 +244,33 @@ function pickFills(X, n, { lo = 2, hi = 7, apart = 24, share = 0.012, frompaper 
       if (Math.sqrt(dr * dr + dg * dg + db * db) >= frompaper) real.push(j);
     }
     if (!real.length) continue;
+    // DISTANCE is judged over pairs of REAL centres, and additionally over any
+    // pair where BOTH are pale. SHARE is judged over the real ones only.
+    //
+    // Each clause was earned. A near-white centre must not veto a good k on
+    // SIZE — that is what threw out the co-orbital card's true k=5 and lost the
+    // planet its mint and pink. But two PALE surfaces cannot both be real, and
+    // exempting them entirely let one smooth face split into two: an alarm
+    // clock came out with fills at (253,246,238) and (253,242,228), ten apart,
+    // mottling what should be one cream. Judging distance over ALL pairs
+    // instead was too blunt and cost the mirror card a colour, so the pale-pair
+    // test is scoped by `palish` — 45 from white, which sits in a clean gap
+    // (the clock's pair are 21 and 30 from white; the mirror's nearest pair are
+    // 69 and 101).
+    const palish = [];
+    for (let j = 0; j < k; j++) {
+      if (Math.hypot(C[j * 3] - 255, C[j * 3 + 1] - 255, C[j * 3 + 2] - 255) < 45) palish.push(j);
+    }
+    const gap = (a, b) => Math.hypot(C[a * 3] - C[b * 3], C[a * 3 + 1] - C[b * 3 + 1], C[a * 3 + 2] - C[b * 3 + 2]);
     let minD = Infinity, minShare = Infinity;
     for (const a of real) {
       minShare = Math.min(minShare, counts[a] / s.n);
-      for (const b of real) {
-        if (a === b) continue;
-        const dr = C[a * 3] - C[b * 3], dg = C[a * 3 + 1] - C[b * 3 + 1], db = C[a * 3 + 2] - C[b * 3 + 2];
-        minD = Math.min(minD, Math.sqrt(dr * dr + dg * dg + db * db));
-      }
+      for (const b of real) if (a !== b) minD = Math.min(minD, gap(a, b));
     }
-    if (real.length === 1) minD = Infinity;
+    for (let x = 0; x < palish.length; x++) {
+      for (let y = x + 1; y < palish.length; y++) minD = Math.min(minD, gap(palish[x], palish[y]));
+    }
+    if (real.length === 1 && palish.length < 2) minD = Infinity;
     if (minD >= apart && minShare >= share) best = C;
   }
   // RETURN THE CENTRES, not just the count. Deciding k on one clustering and
@@ -367,11 +397,53 @@ async function flatten(input, opts = {}) {
   const w = info.width, h = info.height, N = w * h;
 
   const lum = new Float64Array(N);
-  const inkm = new Uint8Array(N), paperm = new Uint8Array(N);
+  const inkm = new Uint8Array(N), bright = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
     const l = 0.299 * raw[i * 3] + 0.587 * raw[i * 3 + 1] + 0.114 * raw[i * 3 + 2];
     lum[i] = l;
-    if (l < o.ink) inkm[i] = 1; else if (l > o.paper) paperm[i] = 1;
+    if (l < o.ink) inkm[i] = 1; else if (l > o.paper) bright[i] = 1;
+  }
+  // PAPER IS THE BACKGROUND, NOT MERELY THE BRIGHT. Treating every pixel over
+  // the threshold as paper puts a knife-edge through any pale FILL that happens
+  // to sit near it, and the fill then breaks into white blotches. Measured on
+  // an alarm clock whose cream face lands at luminance 242-246 against a
+  // threshold of 243: 3,144 pixels of one smooth face crossed to pure white
+  // while 1,825 stayed cream, which is exactly the "weird cream spots in the
+  // white area" Sophie reported. So paper is the bright region a BORDER can
+  // reach — the same reasoning as the cut-out's flood fill. An interior white
+  // (a clock face, an eye, a badge) is a fill and gets painted like one.
+  // The fill CONDUCTS through anything that is not ink, but only MARKS the
+  // bright. Conducting through `bright` alone gets walled off by the
+  // anti-aliased ridge between two close shapes, so pockets of real background
+  // become fills and the tracer has to outline them all — measured on the wind
+  // card, a dense band of arrows: 5 fills / 95KB became 6 fills / 410KB, the
+  // extra one a (252,252,252) "colour" that is just trapped paper. Conducting
+  // through not-ink lets the collar pass the fill along, while a region truly
+  // enclosed by a closed outline (a clock face, an eye) still stays a fill.
+  const paperm = new Uint8Array(N);
+  {
+    const seen = new Uint8Array(N);
+    const st = [];
+    const push = (i) => {
+      if (seen[i] || inkm[i]) return;
+      seen[i] = 1; st.push(i);
+      if (bright[i]) paperm[i] = 1;
+    };
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+    while (st.length) {
+      const i = st.pop(), x = i % w, y = (i / w) | 0;
+      if (x > 0) push(i - 1);
+      if (x < w - 1) push(i + 1);
+      if (y > 0) push(i - w);
+      if (y < h - 1) push(i + w);
+    }
+    // A drawing that fills its frame leaves no border background to start from.
+    // Falling through with almost no paper would make the whole picture fills,
+    // so in that case the plain threshold is the better answer.
+    let np = 0;
+    for (let i = 0; i < N; i++) if (paperm[i]) np++;
+    if (np < N * 0.005) paperm.set(bright);
   }
   const edge = dilate(inkm, w, h, o.band);            // see (1)
   const solid = new Uint8Array(N);
@@ -425,6 +497,7 @@ async function flatten(input, opts = {}) {
   const inkCol = core[0].length > 200
     ? core.map((a) => { a.sort((x, y) => x - y); const m = a.length >> 1; return Math.round(a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2); })
     : [26, 26, 26];
+  const asPaper = cols.map((c) => Math.hypot(c[0] - 255, c[1] - 255, c[2] - 255) <= WHITE_MERGE);
   for (let i = 0; i < N; i++) {
     let c;
     if (inkm[i]) c = inkCol;
@@ -432,16 +505,77 @@ async function flatten(input, opts = {}) {
     else {
       const lab = LAB[iy[i] * w + ix[i]];
       if (lab < 0) throw new Error('a pixel was left unlabelled — it would be painted cluster 0');
-      c = cols[lab];
+      c = asPaper[lab] ? [255, 255, 255] : cols[lab];
     }
     out[i * 3] = c[0]; out[i * 3 + 1] = c[1]; out[i * 3 + 2] = c[2];
   }
-  return { data: out, width: w, height: h, colors: cols.map((c) => c.map(Math.round)) };
+  // Report only the colours the picture actually shows — a cluster merged into
+  // paper is not one of its fills.
+  return {
+    data: out, width: w, height: h,
+    colors: cols.filter((c, j) => !asPaper[j]).map((c) => c.map(Math.round)),
+  };
 }
+
+/** How much of a picture is line, at a fixed reference threshold.
+ *  The yardstick both sides of the calibration are measured against. */
+async function inkShare(buf, width) {
+  let s = sharp(buf).flatten({ background: '#ffffff' }).removeAlpha();
+  if (width) s = s.resize(width, width, { fit: 'fill' });
+  const { data, info } = await s.raw().toBuffer({ resolveWithObject: true });
+  const N = info.width * info.height;
+  let n = 0;
+  for (let i = 0; i < N; i++) {
+    if (0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2] < DEFAULTS.ink) n++;
+  }
+  return { share: n / N, width: info.width };
+}
+
+/** Trace with the ink threshold CHOSEN so the drawn line weight matches the
+ *  source, instead of accepting whatever the default gives.
+ *
+ *  `ink` decides where a soft edge stops being a line, so it sets the stroke
+ *  weight of the whole drawing — and the error it produces is smooth and
+ *  monotonic in it. Measured on a strawberry at a 205px cell: +14.1% at ink
+ *  130, +10.5% at 124, +8.7% at 118, +5.7% at 110, +1.6% at 100. An acorn
+ *  crosses zero around 108. So there is nothing fundamental about landing a few
+ *  percent heavy; the fixed default was simply one guess for every picture.
+ *
+ *  Two probes fix a line through (ink, error), and the root of that line is the
+ *  next guess — a secant search. Three traces instead of one, and the trace is
+ *  free, so the only cost is a few seconds.
+ */
+async function calibrate(input, o) {
+  const want = await inkShare(input);
+  const at = async (ink) => {
+    const out = await vectorize(input, { ...o, ink });
+    const got = await inkShare(Buffer.from(out.svg), want.width);
+    return { ink, err: (got.share - want.share) / want.share, out };
+  };
+  let a = await at(o.ink);
+  if (Math.abs(a.err) <= o.inkTol) return { ...a.out, ink: a.ink, inkErr: a.err, probes: 1 };
+  // Step toward the answer using the slope measured above: about 0.9% of line
+  // weight per unit of threshold, from the sweep. Bracketing first would cost
+  // an extra trace for nothing.
+  let b = await at(clampInk(Math.round(a.ink - a.err / 0.009)));
+  for (let i = 0; i < o.inkSteps; i++) {
+    const best = Math.abs(b.err) < Math.abs(a.err) ? b : a;
+    if (Math.abs(best.err) <= o.inkTol) break;
+    if (a.ink === b.ink || a.err === b.err) break;
+    const next = clampInk(Math.round(b.ink - b.err * (b.ink - a.ink) / (b.err - a.err)));
+    if (next === b.ink || next === a.ink) break;
+    a = b; b = await at(next);
+  }
+  const best = Math.abs(b.err) < Math.abs(a.err) ? b : a;
+  return { ...best.out, ink: best.ink, inkErr: best.err, probes: 2 + o.inkSteps };
+}
+
+const clampInk = (v) => Math.max(80, Math.min(200, v));
 
 /** A flat-colour PNG/JPEG/WEBP buffer -> { svg, colors, ms }. */
 async function vectorize(input, opts = {}) {
   const o = { ...DEFAULTS, ...opts };
+  if (o.ink === 'auto') return calibrate(input, { ...o, ink: DEFAULTS.ink });
   const t0 = Date.now();
   const flat = await flatten(input, o);
   const png = await sharp(flat.data, { raw: { width: flat.width, height: flat.height, channels: 3 } })
@@ -626,4 +760,4 @@ async function slice(input, cols = 2, rows = 2) {
   return out;
 }
 
-module.exports = { vectorize, flatten, cutout, slice, gutters, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels };
+module.exports = { vectorize, calibrate, inkShare, flatten, cutout, slice, gutters, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels };
