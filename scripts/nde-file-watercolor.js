@@ -56,7 +56,11 @@ function splitPrompt(rec) {
     await bucket.file(dest).makePublic();
     const url = `https://storage.googleapis.com/${BUCKET}/${dest}`;
     const label = labels[rec.id] || rec.id;
-    items.push({ ...splitPrompt(rec), url, label, id: rec.id });
+    // The caption is the tile's model · quality line, and it must come off the
+    // render record — a hardcoded string silently mislabels the moment a batch
+    // runs at a different quality.
+    const caption = `gpt-image-2 · ${rec.quality}`;
+    items.push({ ...splitPrompt(rec), url, label, caption, id: rec.id });
     console.log(`  up  ${rec.id} → ${url}`);
   }
 
@@ -67,7 +71,7 @@ function splitPrompt(rec) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         assetsOnly: true, chat: CHAT, url: it.url,
-        description: it.label, prompt: 'gpt-image-2 · medium',
+        description: it.label, prompt: it.caption,
       }),
     });
     console.log(`  tile ${it.id}: ${r.status}`);
