@@ -1120,6 +1120,20 @@ function markSeen(name){
   var g=groups()[name]; if(!g||!g.length) return;
   seen[name]=g[g.length-1].created||'';
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
+  // …and tell the SERVER, because the home-screen widget cannot read this
+  // (Aug 2026). `seen` is localStorage inside the web view; a widget is a
+  // separate process with its own container, so without this the widget's
+  // count is everything-since-the-✓ (14) while the Update tab shows
+  // everything-since-she-last-looked (2) — the same idea disagreeing with
+  // itself on two screens.
+  //
+  // Opening a chat ALREADY clears its Update card, so this changes no
+  // behaviour she can see in the app; it just moves the same fact somewhere
+  // the widget can read it. Fire-and-forget: a failed write only means the
+  // widget counts one extra until the next open or the ✓.
+  api('/api/chatfeed/notif-seen',{method:'POST',
+    body:JSON.stringify({chat:name,seen:true})}).catch(function(){});
+  chats[name]=chats[name]||{}; chats[name].notifSeenAt=new Date().toISOString();
 }
 
 function editAbout(chat, row, current){

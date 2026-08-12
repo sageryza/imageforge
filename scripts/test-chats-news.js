@@ -327,8 +327,28 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats')
     .catch(() => fail('an account tab did not leave the Update view'));
 
-  // 5c. a thumb opens its chat (its Assets tab)
+  // 5b2. OPENING a chat tells the server too, so the home-screen widget's
+  //      count agrees with the tab's (the widget cannot read localStorage)
+  const before = notifPosts.length;
   await page.click('#accrow .acctab[data-acct="new"]');
+  await page.waitForSelector('.nwcard', { timeout: 4000 });
+  await page.click('.nwcard[data-chat="chat-oven"] .crow');
+  await page.waitForFunction(() => document.getElementById('thread').style.display !== 'none',
+    null, { timeout: 4000 }).catch(() => fail('the card row never opened the chat'));
+  await page.waitForFunction((n) => true, null, { timeout: 200 }).catch(() => {});
+  if (!notifPosts.slice(before).some((p) => p.chat === 'chat-oven' && p.seen !== false)) {
+    fail('opening a chat did not stamp notifSeenAt for the widget');
+  }
+  await page.click('#back');
+  await page.waitForFunction(() => document.getElementById('thread').style.display === 'none',
+    null, { timeout: 4000 }).catch(() => {});
+
+  // 5c. a thumb opens its chat (its Assets tab).
+  //     The tab TOGGLES, so only tap it if we are not already on Update —
+  //     coming back from a chat lands there already.
+  if ((await page.textContent('#htxt')) !== 'Update') {
+    await page.click('#accrow .acctab[data-acct="new"]');
+  }
   await page.waitForSelector('.nwcard', { timeout: 4000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   const thumb = await page.$('.nwcard .nwimg');
