@@ -42,6 +42,22 @@
    standing rule), so a chat reads them back with
    GET /api/chatfeed/verdict?chat=&sheet=.
 
+   V2 (Aug 2026, Sophie, after using v1):
+   - **Opening a chapter must NOT move the page.** v1 scrolled the row to the
+     top, which threw her place away every time she opened or closed one.
+     Nothing scrolls now; the body simply appears under the row she tapped.
+   - **The level switch is the account-tabs hairline**, not chips — three
+     labels over a hairline with a 2px line that SLIDES to the open one
+     (`.acctabs` in chats.html, ported verbatim). Her ask, and it is the
+     app's established "these are the same thing, pick one" pattern.
+   - **Titles are the sans, caps, not bold** — the chat-row voice
+     (`.cr-name`), not the serif masthead voice.
+   - **A chapter carries its KIND as a colour dot**: lesson pink,
+     experiment yellow, build mint, research blue. Fixed colours, like the
+     Chats row's ⊖ — the dot sits on cream in both themes.
+   - **Level 3 is the CHAT MESSAGE style**, collapsible the same way: a long
+     message shows two lines until tapped, short ones show whole.
+
    Style: compare.css tokens only — they are also what keeps the injected
    autoscroll pill from rendering black. The chapter list is [data-nostop]
    because its ordinary content is tappable: a tap there PAUSES a running
@@ -52,26 +68,39 @@
   var css = document.createElement('style');
   css.textContent =
     '.cx{max-width:680px;margin:0 auto;}' +
-    /* one chapter = a row that opens */
+    /* one chapter = a row that opens. The KIND dot leads it. */
     '.cx-ch{border-top:1px solid var(--line);}' +
     '.cx-ch:last-child{border-bottom:1px solid var(--line);}' +
-    '.cx-head{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;' +
-    ' background:none;border:0;padding:13px 0;cursor:pointer;color:var(--ink);}' +
-    '.cx-n{font:500 11px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
-    ' letter-spacing:.06em;min-width:20px;flex:none;}' +
-    '.cx-t{flex:1;min-width:0;font:600 15px/1.3 Georgia,serif;}' +
-    '.cx-ch.on .cx-t{color:var(--chg);}' +
-    '.cx-when{flex:none;font:500 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
+    '.cx-head{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;' +
+    ' background:none;border:0;padding:13px 0;cursor:pointer;color:var(--ink);' +
+    ' -webkit-tap-highlight-color:transparent;}' +
+    '.cx-dot{flex:none;width:8px;height:8px;border-radius:50%;align-self:center;}' +
+    '.cx-n{font:400 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
+    ' letter-spacing:.06em;flex:none;}' +
+    '.cx-k-lesson{background:#e39ab4;}' +      /* her colours: lessons pink */
+    '.cx-k-experiment{background:#e3c25c;}' +  /* experiments yellow */
+    '.cx-k-build{background:#8fc7ae;}' +       /* everything else: mint */
+    '.cx-k-research{background:#94b4d6;}' +    /* and light blue */
+    /* the title is the CHAT-ROW voice: sans, caps, tracked, NOT bold */
+    '.cx-t{flex:1;min-width:0;font-family:-apple-system,sans-serif;font-size:13.5px;' +
+    ' font-weight:400;letter-spacing:.04em;text-transform:uppercase;line-height:1.3;}' +
+    '.cx-ch.on .cx-t{color:var(--ink);}' +
+    '.cx-when{flex:none;font:400 10px/1.4 -apple-system,sans-serif;color:var(--ink2);' +
     ' letter-spacing:.05em;white-space:nowrap;}' +
     '.cx-body{padding:0 0 18px;}' +
-    /* the horizontal axis */
-    '.cx-lv{display:flex;gap:6px;padding:0 0 12px;}' +
-    '.cx-lv button{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.09em;' +
-    ' text-transform:uppercase;padding:7px 10px;border-radius:6px;border:1px solid var(--line);' +
-    ' background:var(--surface);color:var(--ink2);cursor:pointer;}' +
-    '.cx-lv button.on{border-color:var(--chg);color:var(--chg);' +
-    ' background:color-mix(in srgb, var(--chg) 8%, var(--surface));}' +
-    '.cx-lv button .cx-num{opacity:.55;padding-right:4px;}' +
+    /* the horizontal axis — the account-tabs hairline, ported verbatim */
+    '.cx-lv{position:relative;display:flex;border-bottom:1px solid var(--line);' +
+    ' margin:0 0 14px;}' +
+    '.cx-lv button{flex:1 1 0;min-width:0;padding:7px 4px 9px;border:none;background:none;' +
+    ' cursor:pointer;font-family:-apple-system,sans-serif;font-size:10px;' +
+    ' letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);' +
+    ' -webkit-tap-highlight-color:transparent;}' +
+    '.cx-lv button.on{color:var(--ink);}' +   /* the sliding line says which — no bold */
+    '.cx-lv::after{content:"";position:absolute;left:0;bottom:-1px;height:2px;' +
+    ' width:33.3333%;background:var(--ink);transform:translateX(0);' +
+    ' transition:transform .2s ease;}' +
+    '.cx-lv[data-on="2"]::after{transform:translateX(100%);}' +
+    '.cx-lv[data-on="3"]::after{transform:translateX(200%);}' +
     /* levels 1 and 2 */
     '.cx-l1{font:400 15px/1.55 Georgia,serif;margin:0 0 2px;}' +
     '.cx-l2{list-style:none;padding:12px 0 0;margin:0;}' +
@@ -80,25 +109,35 @@
     '.cx-l2 li:before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;' +
     ' border-radius:50%;background:var(--ink2);}' +
     '.cx-l2 li b{font-weight:700;}' +
-    /* level 3 — the real messages */
-    '.cx-raw{padding:2px 0 0;}' +
-    '.cx-msg{padding:11px 0;border-bottom:1px solid var(--line);}' +
+    /* level 3 — the CHAT MESSAGE style (chats.html .msg / .m-chat / .m-full) */
+    '.cx-msg{padding:14px 0;border-bottom:1px solid var(--line);}' +
     '.cx-msg:last-child{border-bottom:0;}' +
-    '.cx-who{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.1em;' +
-    ' text-transform:uppercase;color:var(--ink2);padding-bottom:5px;display:block;}' +
-    '.cx-msg.me .cx-who{color:var(--chg);}' +
-    '.cx-text{white-space:pre-wrap;font:400 14px/1.55 -apple-system,sans-serif;' +
-    ' word-break:break-word;}' +
-    '.cx-msg.me .cx-text{color:var(--ink);}' +
-    '.cx-msg.them .cx-text{color:var(--ink2);}' +
-    '.cx-att{display:inline-block;font:500 11px/1 -apple-system,sans-serif;' +
+    '.cx-mhead{display:flex;gap:8px;align-items:baseline;}' +
+    '.cx-who{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:.1em;' +
+    ' text-transform:uppercase;color:var(--ink2);}' +
+    '.cx-msg.me .cx-who{color:var(--rose);}' +
+    '.cx-time{font-family:-apple-system,sans-serif;font-size:10px;color:var(--ink2);}' +
+    '.cx-more{display:none;font-family:-apple-system,sans-serif;font-size:10px;' +
+    ' letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-left:auto;}' +
+    '.cx-msg.long .cx-more{display:inline;}' +
+    '.cx-prev{font-size:16.5px;line-height:1.5;cursor:pointer;display:-webkit-box;' +
+    ' -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}' +
+    '.cx-text{font-size:16.5px;line-height:1.6;white-space:pre-wrap;' +
+    ' overflow-wrap:anywhere;}' +
+    '.cx-msg.long .cx-text{display:none;}' +
+    '.cx-msg.long.open .cx-text{display:block;}' +
+    '.cx-msg.long.open .cx-prev{display:none;}' +
+    '.cx-msg.long:not(.open) .cx-prev{display:-webkit-box;}' +
+    '.cx-msg:not(.long) .cx-prev{display:none;}' +
+    '.cx-att{display:inline-block;font:400 11px/1 -apple-system,sans-serif;' +
     ' color:var(--ink2);border:1px solid var(--line);border-radius:6px;' +
     ' padding:4px 7px;margin:2px 4px 2px 0;background:var(--surface);}' +
-    '.cx-count{font:500 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
+    '.cx-count{font:400 10px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
     ' text-transform:uppercase;color:var(--ink2);padding:0 0 8px;}';
   document.head.appendChild(css);
 
   var LEVELS = [['1', 'gist'], ['2', 'deeper'], ['3', 'raw']];
+  var KINDS = { lesson: 1, experiment: 1, build: 1, research: 1 };
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -149,7 +188,9 @@
 
       var head = document.createElement('button');
       head.className = 'cx-head';
-      head.innerHTML = '<span class="cx-n">' + String(i + 1).padStart(2, '0') + '</span>' +
+      var kind = KINDS[ch.kind] ? ch.kind : 'build';
+      head.innerHTML = '<span class="cx-dot cx-k-' + kind + '"></span>' +
+        '<span class="cx-n">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="cx-t">' + esc(ch.title) + '</span>' +
         '<span class="cx-when">' + esc(ch.when || '') + '</span>';
       el.appendChild(head);
@@ -161,10 +202,10 @@
 
       function paint() {
         var lv = level[ch.id] || 1;
-        var h = '<div class="cx-lv">';
+        var h = '<div class="cx-lv" data-on="' + lv + '">';
         LEVELS.forEach(function (L) {
           h += '<button data-lv="' + L[0] + '"' + (String(lv) === L[0] ? ' class="on"' : '') +
-            '><span class="cx-num">' + L[0] + '</span>' + L[1] + '</button>';
+            '>' + L[1] + '</button>';
         });
         h += '</div>';
         if (lv < 3) {
@@ -175,41 +216,62 @@
             h += '</ul>';
           }
         } else {
+          /* The CHAT MESSAGE style, collapsible the same way: a long message
+             shows two lines until tapped. Short ones show whole — collapsing
+             a one-line message would be a tap that reveals nothing. */
           var msgs = ch.msgs || [];
-          h += '<div class="cx-count">' + msgs.length + ' messages</div><div class="cx-raw">';
+          h += '<div class="cx-count">' + msgs.length + ' messages</div>';
           msgs.forEach(function (m) {
             var me = m.who === 'sophie';
-            h += '<div class="cx-msg ' + (me ? 'me' : 'them') + '">' +
-              '<span class="cx-who">' + (me ? 'me' : 'claude') + ' · ' + esc(when(m.at)) + '</span>' +
-              '<div class="cx-text">' + body(m.text || '') + '</div></div>';
+            var txt = body(m.text || '');
+            var long = (m.text || '').length > 220;
+            h += '<div class="cx-msg ' + (me ? 'me' : 'them') + (long ? ' long' : '') + '">' +
+              '<div class="cx-mhead"><span class="cx-who">' + (me ? 'me' : 'claude') + '</span>' +
+              '<span class="cx-time">' + esc(when(m.at)) + '</span>' +
+              '<span class="cx-more">more</span></div>' +
+              '<div class="cx-prev">' + txt + '</div>' +
+              '<div class="cx-text">' + txt + '</div></div>';
           });
-          h += '</div>';
         }
         bodyEl.innerHTML = h;
         bodyEl.querySelectorAll('.cx-lv button').forEach(function (b) {
           b.onclick = function (ev) {
             ev.stopPropagation();
             level[ch.id] = Number(b.getAttribute('data-lv'));
-            paint();
+            hold(paint);                       // switching level must not move the page either
           };
+        });
+        bodyEl.querySelectorAll('.cx-msg.long').forEach(function (mEl) {
+          mEl.onclick = function () { mEl.classList.toggle('open'); };
         });
       }
 
+      /* KEEP THE PAGE WHERE IT IS (Sophie, v2: "I don't like how it jumps
+         around when I open and close a tab"). An accordion moves everything
+         below AND above the change, so pinning is not "don't scroll" — it is
+         measure the tapped row, mutate, then put that row back under her
+         finger. */
+      function hold(fn) {
+        var before = el.getBoundingClientRect().top;
+        fn();
+        var after = el.getBoundingClientRect().top;
+        if (after !== before) window.scrollBy(0, after - before);
+      }
+
       head.onclick = function () {
-        if (open === el) {                       // tapping the open one closes it
-          el.classList.remove('on'); bodyEl.hidden = true; open = null; return;
-        }
-        if (open) {                              // the rest collapse — her spec
-          open.classList.remove('on');
-          open.querySelector('.cx-body').hidden = true;
-        }
-        open = el;
-        el.classList.add('on');
-        paint();
-        bodyEl.hidden = false;
-        if (window.__scrollStop) window.__scrollStop();
-        var top = el.getBoundingClientRect().top + window.scrollY - 8;
-        window.scrollTo(0, top);
+        hold(function () {
+          if (open === el) {                     // tapping the open one closes it
+            el.classList.remove('on'); bodyEl.hidden = true; open = null; return;
+          }
+          if (open) {                            // the rest collapse — her spec
+            open.classList.remove('on');
+            open.querySelector('.cx-body').hidden = true;
+          }
+          open = el;
+          el.classList.add('on');
+          paint();
+          bodyEl.hidden = false;
+        });
       };
 
       mount.appendChild(el);
