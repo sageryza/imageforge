@@ -58,8 +58,14 @@ def gutters(arr, cols, rows):
     return x, y, len(mx) + len(my)
 
 
-def cutout(cell):
-    """Paper -> transparent, fragments dropped, trimmed to the drawing."""
+def cutout(cell, white=True):
+    """Trim to the drawing, on white paper (or transparent when white=False).
+
+    The flood fill is what finds the paper, so it still runs either way — it
+    gives the trim box and it is what erases a fragment that has intruded from
+    a neighbouring cell. With `white` it paints the paper pure white and leaves
+    every drawn pixel exactly as the model made it, rather than cutting it out.
+    """
     h, w = cell.shape[:2]
     near = (cell[..., 0] >= 255 - TOL) & (cell[..., 1] >= 255 - TOL) & (cell[..., 2] >= 255 - TOL)
     bg = np.zeros((h, w), bool)
@@ -118,13 +124,18 @@ def cutout(cell):
     y0 = max(0, y0 - pad); x0 = max(0, x0 - pad)
     y1 = min(h - 1, y1 + pad); x1 = min(w - 1, x1 + pad)
 
+    if white:
+        out = cell.copy()
+        out[~fg] = 255            # paper and any intruder -> clean white
+        return out[y0:y1 + 1, x0:x1 + 1]
+
     out = np.zeros((h, w, 4), np.uint8)
     out[..., :3] = cell
     out[..., 3] = np.where(fg, 255, 0)
     return out[y0:y1 + 1, x0:x1 + 1]
 
 
-def cut(path, cols, rows, outdir, stem):
+def cut(path, cols, rows, outdir, stem, white=True):
     arr = np.array(Image.open(path).convert('RGB'))
     x, y, missed = gutters(arr, cols, rows)
     os.makedirs(outdir, exist_ok=True)
@@ -133,12 +144,12 @@ def cut(path, cols, rows, outdir, stem):
         for c in range(cols):
             k = r * cols + c + 1
             cell = arr[y[r]:y[r + 1], x[c]:x[c + 1]]
-            piece = cutout(cell)
+            piece = cutout(cell, white=white)
             if piece is None:
                 blank.append(k)
                 continue
             name = f'{stem}-{k:02d}.png'
-            Image.fromarray(piece, 'RGBA').save(os.path.join(outdir, name))
+            Image.fromarray(piece, 'RGB' if white else 'RGBA').save(os.path.join(outdir, name))
             made.append({'n': k, 'row': r + 1, 'col': c + 1,
                          'file': name, 'w': piece.shape[1], 'h': piece.shape[0]})
     return {'sheet': stem, 'grid': [cols, rows], 'missedGutters': missed,
