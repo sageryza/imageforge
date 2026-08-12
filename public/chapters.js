@@ -196,8 +196,11 @@
       var head = document.createElement('button');
       head.className = 'cx-head';
       var kind = KINDS[ch.kind] ? ch.kind : 'build';
-      // an icon when the page supplied one for this kind, else the old dot
-      var icon = (opts.icons || {})[kind];
+      // A chapter's OWN icon wins (Sophie, Aug 2026: "the icons you picked for
+      // each one not Snake for all of them — use all the icons you made"), then
+      // a per-kind icon, then the coloured dot. So a page can give every row
+      // its own drawing and still fall back for rows that have none.
+      var icon = ch.icon || (opts.icons || {})[kind];
       head.innerHTML = (icon
           ? '<img class="cx-ico" src="' + esc(icon) + '" alt="' + esc(kind) + '">'
           : '<span class="cx-dot cx-k-' + kind + '"></span>') +

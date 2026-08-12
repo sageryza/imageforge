@@ -53,6 +53,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>chapters test</title>
   <div class="eyebrow">TEST</div><h1>Chapters</h1>
   <div id="chapters"></div>
   <div id="chapters2"></div>
+  <div id="chapters3"></div>
 </div>
 <script src="/compare.js"></script>
 <script src="/chapters.js"></script>
@@ -153,6 +154,21 @@ window.addEventListener('error', function(e){
     ok(!r2[0].querySelector('.cx-dot'), 'the coloured dot is gone when an icon is shown');
     ok(/icon-snake/.test(r2[1].querySelector('.cx-ico').getAttribute('src')),
        'each kind gets its own icon');
+
+    // 5d — a chapter's OWN icon beats the per-kind one, so every row can differ
+    window.__chapters({ chat:'t', sheet:'chapters3', mount:'#chapters3',
+      icons:{ lesson:'/icon-snake.webp' },
+      chapters:[
+        { id:'p', title:'Its own', when:'Jul 28', kind:'lesson', icon:'/li-08-astrology.webp',
+          l1:'g', l2:['a'], msgs:[{ who:'sophie', at:'2026-07-28T18:25:00Z', text:'hi' }] },
+        { id:'q', title:'Falls back', when:'Jul 28', kind:'lesson',
+          l1:'g', l2:['a'], msgs:[{ who:'sophie', at:'2026-07-28T18:26:00Z', text:'ho' }] },
+      ]});
+    var r3 = document.querySelectorAll('#chapters3 .cx-ico');
+    ok(/li-08-astrology/.test(r3[0].getAttribute('src')),
+       "a chapter's own icon wins over the kind icon");
+    ok(/icon-snake/.test(r3[1].getAttribute('src')),
+       'a chapter with no icon of its own still falls back to the kind icon');
     // it must NOT become a lightbox target — a tap on the row opens the chapter
     ok(!ico.matches('img.zoom, .imgrow img, .duo img'),
        'the icon is not a lightbox target, so tapping the row still opens it');
