@@ -4439,13 +4439,30 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   that span (background job, content-addressed cache
   `search-clips/words-*`), with ▶ + a download button on the result (share
   bridge in the app / same-origin attachment `GET /clip-file?u=&n=` in a
-  browser). Rules: an INTERVIEW goes through `editor.buildClip` (loudnorm,
-  clip cache — identical to an episode clip); a MEMO is HER VOICE, never
-  loudnormed — fresh-listen + snap + micro-fades only, bytes downloaded
-  server-side via `memos.memoAudioToFile` (memo audio is not public). A
-  memo's anchor is PROPORTIONAL (memo chunks carry no clock): the chunk's
-  place in the transcript maps to time, and the listen window slides once
-  each way when the phrase isn't where the estimate said.
+  browser). Rules: BOTH kinds cut through ONE path, `cutInWindow` in
+  search.js (fresh window listen + `edgeSpan` + clampBounds + silence snap +
+  micro-fades) — an INTERVIEW gets the loudnorm every episode clip gets; a
+  MEMO is HER VOICE, never loudnormed, bytes downloaded server-side via
+  `memos.memoAudioToFile` (memo audio is not public). A memo's anchor is
+  PROPORTIONAL (memo chunks carry no clock): the chunk's place in the
+  transcript maps to time, and the listen window slides once each way when
+  the phrase isn't where the estimate said.
+  - **`edgeSpan` exists because the pick text and the cut come from
+    DIFFERENT transcripts** (index words vs the fresh listen): `phraseSpan`
+    trims unmatched edge words as never-said — right same-transcript, wrong
+    here, where a fresh-listen disagreement on an edge word would silently
+    cut picked words off. Each edge anchors on its own 6-word sub-phrase and
+    reclaims disagreed edge words by position. Its pick tokens are
+    AUDIO-SHAPED (first normWords piece per spoken word) — raw `normWords`
+    splits contractions ("it's" → it, s), overshoots the audio span, and the
+    reclaim then opened clips one word early (measured live).
+  - **Verifying a clip by raw-transcribing it LIES about its first words
+    (Aug 2026, measured — cost a needless fix cycle).** Whisper drops the
+    fast opening words of an abruptly-starting clip, so a correct cut reads
+    as "starts late". Pad ~1s of silence on the front before transcribing,
+    or locate the clip in its source by RMS envelope correlation against
+    word timestamps (the settling measurement both times). Same rule in the
+    `sophie-audio` skill.
 - **A hit's Play NEVER points at the banked interview audio.** Those files are
   what yt-dlp downloaded — webm/opus, one object per whole interview (the
   Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once

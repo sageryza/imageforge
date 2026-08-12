@@ -933,7 +933,7 @@ router.post('/clip-words', async (req, res) => {
     if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
 
     const key = crypto.createHash('sha1')
-      .update(`v2|${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
+      .update(`v3|${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
       .digest('hex').slice(0, 16);
     const dest = `${CLIP_PREFIX}words-${key}.mp3`;
     const b = bucket();
@@ -974,15 +974,21 @@ router.post('/clip-words', async (req, res) => {
 });
 
 // Locate the pick in FRESH window words. The pick's text comes from the
-// INDEX transcript while the window is a fresh listen, and the two disagree
-// on the odd word — phraseSpan trims unmatched EDGE words as "never said"
-// (its own earned rule), which here dropped real leading words ("now it's
-// verified. But I saw…" cut as "But I saw…" — caught in live verification,
-// Aug 2026). So each edge anchors on its own sub-phrase, and edge words the
-// fresh pass heard differently are reclaimed BY POSITION — they exist in the
-// audio as some word; clampBounds + the silence snap tidy any overshoot.
+// INDEX transcript while the window is a fresh listen, and the two can
+// disagree on an edge word — phraseSpan trims unmatched EDGE words as
+// "never said" (its own earned rule), which cross-transcript would silently
+// cut real picked words off. So each edge anchors on its own sub-phrase,
+// and edge words the fresh pass heard differently are reclaimed BY POSITION
+// — they exist in the audio as some word; clampBounds + the silence snap
+// tidy any overshoot.
+// The pick tokens are AUDIO-SHAPED — one token per spoken word, the first
+// normWords piece — because phraseSpan maps each audio word to ONE token
+// while normWords splits a contraction ("it's" → it, s): raw normWords made
+// the pick count overshoot the audio span and the reclaim pulled in a stray
+// word before the pick (measured live, Aug 2026: "now it's verified…"
+// opened on the "but" before it).
 function edgeSpan(words, text) {
-  const pw = editor.normWords(text);
+  const pw = String(text).split(/\s+/).map((w) => editor.normWords(w)[0]).filter(Boolean);
   const full = editor.phraseSpan(words, text);
   if (pw.length <= 9) return full;
   const headN = 6; const tailN = 6;
