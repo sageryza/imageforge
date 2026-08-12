@@ -30,3 +30,6 @@ docs/cannon-language/*.log
 # generated art output — the pictures are banked in Firebase Storage
 # (raw, cutout and on-sky), so this folder is disposable
 .artout/
+
+# test fixtures downloaded on demand (scripts/test-vectorize.js)
+.cache/
