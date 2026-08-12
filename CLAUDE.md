@@ -677,10 +677,31 @@ lifted into a standalone tool later.
   `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
   background — the Grand Tour card is the live example), and the Assets tab
   dedupes by FILENAME, so a v2 needs a new *filename*, not just a new folder.
+- **CHANGE ITS COLOURS AFTER THE FACT — `POST /api/vector/recolor`, free
+  (Aug 2026, Sophie).** Hex or a CSS colour NAME (`salmon`, `steel blue`), as
+  a list parallel to the palette or a map keyed by source hex / slot; `ink`
+  and `paper` too. No colours at all = it answers with the palette and writes
+  nothing. **It is NOT a find-and-replace and must never be turned into one:**
+  vtracer writes a 4-colour palette out as 21 hex values (shapes come back
+  slightly shifted, plus thin blend layers at every seam), so swapping exact
+  matches recolours a 0.08% sliver and leaves a fringe of the old colour round
+  every edge. Every fill is mapped by where it sits between its two nearest
+  anchors. Recolouring nothing returns the identical file, byte for byte.
+- **The front is `/vector` (`public/vector.html`), iOS tile "Vector" under the
+  PICTURES filter (Aug 2026, Sophie: "make a new tool in the image tab").**
+  `tool.css` step flow: describe drawings (the one starred, paid control) or
+  trace a picture you already have (free) -> tap a drawing -> **one text box
+  per colour**, prefilled with its hex, plus LINE and PAPER left blank (empty
+  means leave it). Filter-only like the Test Station — it is deliberately not
+  on the default home. Its glyph is the bundled `Vector` asset (a bezier curve
+  with its two anchor points); `deckfactory://vector` opens it.
 - Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
   (no invented colour, no dropped colour, line weight, structure), not against
   the Python it was ported from. It deliberately does NOT catch small
   localised wrong-colour patches; that class is caught by looking.
+  `node scripts/test-vector-recolor.js` is the recolour gate (measured on the
+  rendered picture, not on the file), and `node scripts/test-vector-page.js`
+  drives the real page end to end against a local server — both free to run.
 
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
@@ -1219,8 +1240,14 @@ lifted into a standalone tool later.
   to a tappable one-line summary), `.btn` that hugs its text, `.btn.star` for
   anything that spends a model call, and a `?` circle holding the explanation
   that used to be a paragraph. Link it, set `body class="tool"`, don't
-  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`
-  and `report.html` follow.
+  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`,
+  `report.html` and `vector.html` follow.
+  **The rail and EVERY step caption reserve the pill's corner (Aug 2026)** —
+  `padding-right:56px`, not just the header. The injected pill is fixed over
+  roughly x 324-374 / y 14-192, which is the header AND the first two step
+  rows, so a caption's one-line summary rendered UNDER it (caught on /vector:
+  step 1 read "4 draw…"). It costs 56px off a summary that is ellipsised
+  anyway, and it fixed the same latent collision on every other tool page.
 - **A gated page hosted inside a native tool must be asked for with
   `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
   `.app-header` — its brand row duplicated the native nav-bar title, and its
@@ -3882,6 +3909,15 @@ lifted into a standalone tool later.
   card sits two inches below it stopped earning its slot once the film tools
   left and the grid got short. That is the one duplicate she did want gone;
   Chats stays in both places.
+  **The squares are 60pt with a 26pt icon (Aug 2026, Sophie: "the icons are
+  too small — they were set when there were six and now there's only five,
+  make them fill out the space a little better").** 48 was sized for SIX on a
+  375pt phone; five left a quarter of the row as gap. The arithmetic, so the
+  next change needn't guess: usable row = width - 32, gap = (usable - 5 x
+  side) / 4 — at 375 that is **10.8pt**, at 390 **14.5**, at 430 **24.5**.
+  375 is the floor. It makes the row ~12pt taller and pushes the cards down;
+  she said that is fine. `squareSide` / `squareIcon` in RootView are the only
+  copies of those numbers.
   **They are SQUARES, and the lit state is a thicker gold outline over a
   light gold tint** (`Theme.accent.opacity(0.14)`, 2.5pt stroke, icon stays
   gold) — v1 stretched them into rectangles by sharing the row width out,
