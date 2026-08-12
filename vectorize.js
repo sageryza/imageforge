@@ -76,11 +76,19 @@ const WHITE_MERGE = 8;
 const DEFAULTS = {
   fills: 0,        // 0 = work the count out from the picture
   ink: 130,        // luminance below this is line
-  paper: 243,      // luminance above this is paper
+  // `paper` is no longer how the flatten decides what is background — that is
+  // `bgTol`, a distance to the sampled background COLOUR. It survives as the
+  // shared definition of "too bright to be a fill" that the test uses to build
+  // its own comparison mask, so the two agree on which pixels are being judged.
+  paper: 243,
   band: 3,         // px of anti-aliased collar to keep out of the palette
   median: 3,       // paper-grain filter, applied AFTER the upscale
   upscale: 3,
   smooth: 9,       // median filter on the LABEL map
+  // How close to the background colour a pixel must be to count as paper. Has
+  // to clear a white suit (~5 from white) without swallowing a cream face
+  // (~34). 15 sits in that gap.
+  bgTol: 15,
   speckle: 10,
   // `ink: 'auto'` picks the threshold per drawing so the traced line weight
   // matches the source, rather than taking whatever the fixed default gives.
@@ -397,54 +405,45 @@ async function flatten(input, opts = {}) {
   const w = info.width, h = info.height, N = w * h;
 
   const lum = new Float64Array(N);
-  const inkm = new Uint8Array(N), bright = new Uint8Array(N);
+  const inkm = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
     const l = 0.299 * raw[i * 3] + 0.587 * raw[i * 3 + 1] + 0.114 * raw[i * 3 + 2];
     lum[i] = l;
-    if (l < o.ink) inkm[i] = 1; else if (l > o.paper) bright[i] = 1;
+    if (l < o.ink) inkm[i] = 1;
   }
-  // PAPER IS THE BACKGROUND, NOT MERELY THE BRIGHT. Treating every pixel over
-  // the threshold as paper puts a knife-edge through any pale FILL that happens
-  // to sit near it, and the fill then breaks into white blotches. Measured on
-  // an alarm clock whose cream face lands at luminance 242-246 against a
-  // threshold of 243: 3,144 pixels of one smooth face crossed to pure white
-  // while 1,825 stayed cream, which is exactly the "weird cream spots in the
-  // white area" Sophie reported. So paper is the bright region a BORDER can
-  // reach — the same reasoning as the cut-out's flood fill. An interior white
-  // (a clock face, an eye, a badge) is a fill and gets painted like one.
-  // The fill CONDUCTS through anything that is not ink, but only MARKS the
-  // bright. Conducting through `bright` alone gets walled off by the
-  // anti-aliased ridge between two close shapes, so pockets of real background
-  // become fills and the tracer has to outline them all — measured on the wind
-  // card, a dense band of arrows: 5 fills / 95KB became 6 fills / 410KB, the
-  // extra one a (252,252,252) "colour" that is just trapped paper. Conducting
-  // through not-ink lets the collar pass the fill along, while a region truly
-  // enclosed by a closed outline (a clock face, an eye) still stays a fill.
-  const paperm = new Uint8Array(N);
+  // PAPER IS WHAT MATCHES THE BACKGROUND COLOUR, not merely what is bright.
+  //
+  // A plain brightness threshold puts a knife-edge through any pale FILL that
+  // happens to sit near it. Measured on an alarm clock whose cream face spans
+  // luminance 242-246 against a threshold of 243: 3,144 pixels of one smooth
+  // face crossed to pure white while 1,825 stayed cream — the "weird cream
+  // spots in the white area" Sophie reported. Comparing to the background
+  // COLOUR separates them cleanly: that cream sits 34 from white, while a white
+  // spacesuit or a white badge sits about 5 and is genuinely paper.
+  //
+  // A border-connected flood fill was tried first and is worse. It classifies
+  // every enclosed white — a suit, an eye — as a FILL, which floods the
+  // clustering population with near-white pixels and crowds out small saturated
+  // details: a lantern lost its gold candle flame (247,202,106) entirely, and
+  // the wind card's SVG tripled. Distance to the background costs nothing and
+  // has neither problem.
+  const bg = [0, 0, 0];
   {
-    const seen = new Uint8Array(N);
-    const st = [];
-    const push = (i) => {
-      if (seen[i] || inkm[i]) return;
-      seen[i] = 1; st.push(i);
-      if (bright[i]) paperm[i] = 1;
-    };
-    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
-    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
-    while (st.length) {
-      const i = st.pop(), x = i % w, y = (i / w) | 0;
-      if (x > 0) push(i - 1);
-      if (x < w - 1) push(i + 1);
-      if (y > 0) push(i - w);
-      if (y < h - 1) push(i + w);
+    const edgeIdx = [];
+    for (let x = 0; x < w; x += 2) { edgeIdx.push(x); edgeIdx.push((h - 1) * w + x); }
+    for (let y = 0; y < h; y += 2) { edgeIdx.push(y * w); edgeIdx.push(y * w + w - 1); }
+    for (let c = 0; c < 3; c++) {
+      const v = edgeIdx.map((i) => raw[i * 3 + c]).sort((a, b) => a - b);
+      bg[c] = v.length ? v[v.length >> 1] : 255;
     }
-    // A drawing that fills its frame leaves no border background to start from.
-    // Falling through with almost no paper would make the whole picture fills,
-    // so in that case the plain threshold is the better answer.
-    let np = 0;
-    for (let i = 0; i < N; i++) if (paperm[i]) np++;
-    if (np < N * 0.005) paperm.set(bright);
   }
+  const paperm = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    if (inkm[i]) continue;
+    const dr = raw[i * 3] - bg[0], dg = raw[i * 3 + 1] - bg[1], db = raw[i * 3 + 2] - bg[2];
+    if (Math.sqrt(dr * dr + dg * dg + db * db) <= o.bgTol) paperm[i] = 1;
+  }
+
   const edge = dilate(inkm, w, h, o.band);            // see (1)
   const solid = new Uint8Array(N);
   let ns = 0;
@@ -514,6 +513,9 @@ async function flatten(input, opts = {}) {
   return {
     data: out, width: w, height: h,
     colors: cols.filter((c, j) => !asPaper[j]).map((c) => c.map(Math.round)),
+    // The ink the drawing was actually painted in — sampled, not assumed, so a
+    // recolour can treat it as an anchor like any fill (see `recolor`).
+    inkColor: inkCol,
   };
 }
 
@@ -601,7 +603,7 @@ async function vectorize(input, opts = {}) {
     svg = svg.replace(`width="${flat.width}" height="${flat.height}"`,
       `viewBox="0 0 ${flat.width} ${flat.height}" width="${flat.width}" height="${flat.height}"`);
   }
-  return { svg, colors: flat.colors, flatPng: png, ms: Date.now() - t0 };
+  return { svg, colors: flat.colors, inkColor: flat.inkColor, flatPng: png, ms: Date.now() - t0 };
 }
 
 /** Lift a drawing off its paper: flood-fill the near-white in from all four
@@ -760,4 +762,145 @@ async function slice(input, cols = 2, rows = 2) {
   return out;
 }
 
-module.exports = { vectorize, calibrate, inkShare, flatten, cutout, slice, gutters, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels };
+// ── recolouring ────────────────────────────────────────────────────────────
+// THE WHOLE POINT OF A VECTOR — change a colour by editing the file, no model
+// call, no re-trace, nothing to pay. But a find-and-replace of the palette hex
+// codes does NOT do it, and that is the trap this exists to avoid.
+//
+// Measured on the `weight` card: the flatten reduces it to FOUR fills, and the
+// SVG vtracer writes carries TWENTY-ONE distinct hex values. Two reasons:
+//   1. the fills come back slightly SHIFTED — the palette lilac is ddd4ea, and
+//      the big lilac shape in the SVG is dbd2e8. Replacing ddd4ea recolours a
+//      0.08% sliver and leaves the 5.97% shape alone.
+//   2. vtracer stacks thin BLEND layers where two colours meet (9e9aa8 is
+//      lilac sliding into ink, f6f4f9 is lilac sliding into paper). Rendered,
+//      4.5% of the picture is more than 12 away from every palette entry.
+// Replace only the exact matches and you get the new colour with a fringe of
+// the old one around every edge — worse than not recolouring at all.
+//
+// So every fill is mapped by WHERE IT SITS between the two nearest anchors,
+// and rebuilt at the same position between their replacements. A fill sitting
+// on an anchor lands exactly on the new colour; a blend stays a blend.
+
+// Hex, [r,g,b], or a CSS colour NAME — Sophie asked to be able to type either
+// ("specific color names or hex codes"). The 148 CSS names, no more: an unknown
+// name is an ERROR, never a guess, because silently drawing the wrong colour is
+// worse than saying "I don't know that one".
+const NAMES = require('color-name');
+const toRgb = (c) => {
+  if (Array.isArray(c)) return c.map((v) => Math.max(0, Math.min(255, Math.round(v))));
+  const raw = String(c).trim();
+  const named = NAMES[raw.toLowerCase().replace(/[\s_-]+/g, '')];
+  if (named) return named.slice();
+  const h = raw.replace(/^#/, '');
+  const s = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+  if (!/^[0-9a-fA-F]{6}$/.test(s)) throw new Error(`not a colour: ${c}`);
+  return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
+};
+/** Every colour name that can be typed, for a picker or an error message. */
+const colorNames = () => Object.keys(NAMES);
+const toHex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const lumOf = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+/** Every distinct `fill="#…"` in an SVG, as hex, in first-seen order.
+ *  Reported as-is: these are the raw fills, anchors and blends together, NOT
+ *  a palette. The palette is what the TRACE reported — see the header. */
+function svgFills(svg) {
+  const seen = new Map();
+  for (const m of String(svg).matchAll(/fill="(#[0-9a-fA-F]{3,6})"/g)) {
+    const hex = toHex(toRgb(m[1]));
+    seen.set(hex, (seen.get(hex) || 0) + 1);
+  }
+  return [...seen.keys()];
+}
+
+/** The drawing's LINE and its BACKGROUND, read off the SVG: the darkest fill
+ *  and the lightest. Unambiguous in a way no mid-palette colour is, which is
+ *  why these two can be found rather than having to be told. */
+function edgeAnchors(svg) {
+  const fills = svgFills(svg).map(toRgb);
+  if (!fills.length) return { ink: null, paper: null };
+  return {
+    ink: fills.reduce((a, b) => (lumOf(b) < lumOf(a) ? b : a)),
+    paper: fills.reduce((a, b) => (lumOf(b) > lumOf(a) ? b : a)),
+  };
+}
+
+// A fill this close to an anchor IS that anchor, not a blend.
+//
+// Measured across the fixtures: most palette colours come back out of vtracer
+// EXACTLY (shift 0.0), the rest land 1.4-3.5 away, and paper is consistently
+// 1.7 off pure white. So 4 covers every anchor the tracer actually paints.
+//
+// The big shifts — weight's pink at 18.7, hole's lilac at 15.7 — are all on
+// colours covering under 1% of the picture, i.e. bands thin enough that
+// vtracer really did paint them as a blend with their surroundings. Those are
+// NOT anchors to snap; projecting them keeps the band as muted as the original
+// drew it, which is the faithful answer. Don't raise this to swallow them.
+const ANCHOR_EXACT = 4;
+// How far an auto-added ink/paper anchor must sit from the given ones before it
+// is worth adding — a dark navy FILL and the ink line are otherwise two anchors
+// on top of each other, and a recolour of one would drag the other.
+const ANCHOR_APART = 30;
+
+/** Recolour a traced SVG. Free, instant, no re-trace.
+ *
+ *  `from` = the anchors, i.e. the palette the trace reported (`trace.colors`).
+ *  `to`   = the same slots, new colours; `null` leaves a slot where it is.
+ *  Both take hex strings or [r,g,b].
+ *
+ *  The drawing's INK and PAPER are anchors too, or a lilac-into-ink blend has
+ *  nowhere sensible to land. Pass them in `from`/`to` to change them; leave
+ *  them out and they are found in the SVG (darkest and lightest fill) and held
+ *  fixed. Returns the new SVG string. */
+function recolor(svg, from, to, { extra = true } = {}) {
+  const src = (from || []).map(toRgb);
+  const dst = (to || []).map((c, i) => (c == null ? src[i] : toRgb(c)));
+  if (dst.length !== src.length) throw new Error(`recolor: ${src.length} anchors but ${dst.length} replacements`);
+  if (!src.length) throw new Error('recolor: no anchors — pass the palette the trace reported');
+
+  if (extra) {
+    const { ink, paper } = edgeAnchors(svg);
+    for (const c of [ink, paper]) {
+      if (c && src.every((a) => dist(a, c) > ANCHOR_APART)) { src.push(c); dst.push(c); }
+    }
+  }
+
+  const same = (i) => dist(src[i], dst[i]) === 0;
+
+  const map = (c) => {
+    let i0 = 0, i1 = -1, d0 = Infinity, d1 = Infinity;
+    for (let i = 0; i < src.length; i++) {
+      const d = dist(c, src[i]);
+      if (d < d0) { i1 = i0; d1 = d0; i0 = i; d0 = d; }
+      else if (d < d1) { i1 = i; d1 = d; }
+    }
+    // NOTHING ASKED HERE, SO NOTHING MOVES. Without this a "recolour" that
+    // changes one slot still nudges every fill belonging to the others by a
+    // point or two, because the projection below rounds them onto the line
+    // between their anchors. Recolouring nothing must return the file it was
+    // given, byte for byte, and a test pins exactly that.
+    if (i1 < 0 || (same(i0) && (d0 <= ANCHOR_EXACT || same(i1)))) return c;
+    if (d0 <= ANCHOR_EXACT) return dst[i0];
+    const A = src[i0], B = src[i1];
+    const ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const len2 = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+    if (!len2) return dst[i0];
+    const t = Math.max(0, Math.min(1, ((c[0] - A[0]) * ab[0] + (c[1] - A[1]) * ab[1] + (c[2] - A[2]) * ab[2]) / len2));
+    // The blend is rebuilt at the same position between the NEW anchors, and
+    // whatever the fill sat off that line is carried across unchanged — so a
+    // sliver keeps its own character instead of being flattened onto the line.
+    return [0, 1, 2].map((k) => dst[i0][k] + t * (dst[i1][k] - dst[i0][k]) + (c[k] - (A[k] + t * ab[k])));
+  };
+
+  // The ORIGINAL text is kept whenever the colour does not move — vtracer
+  // writes its hex in upper case and toHex writes lower, so rebuilding every
+  // attribute would rewrite the whole file to say the same thing.
+  return String(svg).replace(/fill="(#[0-9a-fA-F]{3,6})"/g, (m, h) => {
+    const c = toRgb(h), out = toHex(map(c));
+    return out === toHex(c) ? m : `fill="${out}"`;
+  });
+}
+
+module.exports = { vectorize, calibrate, inkShare, flatten, cutout, slice, gutters, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels, recolor, svgFills, edgeAnchors, toRgb, toHex, colorNames };

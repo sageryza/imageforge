@@ -228,6 +228,57 @@ POST /api/vector/sheet { "name": "...", "sheet": "<the sheet url>", "cells": [ .
 POST /api/vector/trace { "urls": ["https://…/thing.png"], "cutout": true, "name": "thing" }
 ```
 
+**Change the colours** — free, instant, no re-trace. This is the thing a vector
+buys that a PNG cannot.
+
+Ask what there is to change (writes nothing, costs nothing):
+
+```
+POST /api/vector/recolor { "job": "sh-…", "item": "teacup" }
+-> { from: ["#ddd4ea", "#fac4d9", "#c7e4db", "#d1cbd1"], fills: 21 }
+```
+
+Then name the new ones. Two shapes, whichever reads better — a LIST parallel to
+the palette with `null` for "leave it", or a MAP keyed by the source hex or the
+slot number:
+
+```
+POST /api/vector/recolor
+{ "job": "sh-…", "item": "teacup", "colors": ["cornflowerblue", null, "#e07a5f", null] }
+
+POST /api/vector/recolor
+{ "job": "sh-…", "item": "teacup", "colors": { "#ddd4ea": "cornflowerblue", "2": "salmon" } }
+
+-> { ok, svg: "<url>", png: "<url>", from: [...], to: [...], cost: 0 }
+```
+
+- **Hex or a CSS colour NAME**, either way (`salmon`, `steel blue`, `#3f6fd8`).
+  The 148 CSS names and no more — an unknown name is an error, never a guess.
+- **`ink` and `paper`** change the line and the background. Left out they hold
+  still; they are found in the SVG itself (darkest fill, lightest fill), so
+  they only need naming when you want them changed.
+- **Without a job**, pass `{ svg }` or `{ url }` **plus `from`** — the palette
+  it was traced with. There is no way to recover a palette from an SVG alone
+  (see below), so a drawing traced elsewhere cannot be recoloured reliably.
+
+**Why this is not a find-and-replace, and why doing it that way looks fine in
+the diff and terrible on the page.** vtracer writes a FOUR-colour palette out
+as **twenty-one** hex values: the shapes come back slightly shifted (the
+palette lilac is `#ddd4ea`, the big lilac shape in the file is `#dbd2e8`) and
+thin BLEND layers sit wherever two colours meet — rendered, 4.5% of the picture
+is more than 12 away from every palette entry. Swap the exact matches only and
+you recolour a 0.08% sliver while leaving the 5.97% shape alone, with a fringe
+of the old colour round every edge. So `recolor` maps every fill by **where it
+sits between the two nearest anchors** and rebuilds it at the same position
+between their replacements, carrying the off-line residual across. Measured:
+the old colour drops from 6.14% of the page to 0.019%, the new one lands on
+exactly the area the old one held, and everything not named is pixel-identical
+apart from the antialiased seam.
+
+**Recolouring nothing returns the identical file, byte for byte** — pinned by a
+test, because the projection would otherwise nudge every other fill by a point
+or two while claiming to have changed one colour.
+
 `GET /api/vector/jobs` lists recent runs. `GET /api/vector/status` reports
 whether the tracer binary, Firebase and the OpenAI key are all present.
 
@@ -308,11 +359,71 @@ off by more than 4). They agree exactly on 8 of the 13 Gravity Lock cards and
 differ by one marginal colour — 0.04% to 0.3% of the card — on the rest.
 Neither answer is the right one.
 
+## How it compares to an off-the-shelf tracer (measured 2026-08-12)
+
+Sophie asked whether this beats the vectorisers on the web. Measured on four
+drawings cut from the 5x5 sheet (clock, cassette, strawberry, bicycle), three
+tracers each, line weight against the source drawing:
+
+- **vtracer with its own defaults** (the SAME engine this module calls, just
+  with no pre-pass): 25-92KB, **58-159 distinct fills**, lines **+6.3% to
+  +26.3%** fat. It traces the anti-aliased ramp beside every line as its own
+  thin colour layers, which is where the fill count and the muddy halo come
+  from.
+- **imagetracerjs** (a genuinely different engine, pure JS): 56-124KB, 6-15
+  fills, lines **+3.2% to +41.4%**. It quantises to few colours, so the counts
+  look right, but the outlines come out crunchy and speckled and on the
+  bicycle it **dropped the green frame entirely** (6 fills).
+- **ours**: 21-65KB, 14-16 fills, lines **−0.4% to +0.6%**.
+
+**But a REAL free web tool is competitive, and the first version of this note
+was wrong to imply otherwise.** vectorizer.com (free, no account) was run on
+the same four drawings. Whole-image difference from the source, theirs against
+ours: clock **5.77 / 6.78**, cassette **8.47 / 6.98**, strawberry
+**3.45 / 4.58**, bicycle **5.66 / 5.60**. Two each — it is a **tie**, and their
+files are 3x smaller (10-28KB against 21-65KB).
+
+Where each one wins is consistent and worth knowing:
+
+- **Theirs keeps fine detail better.** All twelve of the clock's tick marks
+  survive; ours loses several and thickens the rest. Same with the strawberry's
+  small dashes. That is OUR defaults, not the approach — `speckle: 10` and the
+  paper-grain median are tuned for a small file. Measured on the clock:
+  speckle 10 → 34KB, diff 6.78; speckle 2 → 57KB, 6.16; speckle 0 + upscale 4
+  → 153KB, **4.89** with every tick back. There is a detail-vs-size knob here
+  and the default sits at the small-file end.
+- **Ours holds line WEIGHT** (−0.4% to +0.6% against their −8% to −21%; they
+  draw everything thin) and keeps interior detail on flat shapes — the
+  cassette's reel spokes survive ours and are gone in theirs.
+- **Ours reports a PALETTE of 4-5 named fills; theirs is 21 hex values with no
+  way to tell an anchor from a blend.** That is the difference that matters for
+  `/recolor` — recolouring their file has nothing reliable to key on.
+
+**What is actually ours.** Not the engine: vtracer is MIT, imagetracerjs is
+Unlicense, and whatever vectorizer.com runs is theirs. Ours is the PRE-PASS —
+flatten to real flat colours (k-means with the anti-aliased collar excluded,
+labels filled by exact EDT), the ink-threshold calibration, the gutter-aware
+slicing, and the palette that comes out the other end. That is a narrow win on
+one kind of input (flat pastel ink art cut from a grid) and worthless on a
+photo or a gradient.
+
+**Still NOT tested: Vectorizer.AI** (its API needs a paid account). Do not
+imply a result for it.
+
+**How the free tool was driven, since a browser cannot be** (a headless
+Chromium in a chat sandbox has no outbound network at all — measured, it
+cannot even reach example.com): its own page calls `POST /api/upload`
+(multipart `file`) → `POST /api/convert/<sid>/<fid>` → poll
+`GET /api/status/<sid>/<fid>` → `GET /files/<sid>/<fid>/<fid>.svg`. Send a
+browser `user-agent` and a `referer`. Undocumented, so treat it as a one-off
+benchmark, not something to build on.
+
 ## Testing
 
     node scripts/test-vectorize.js          # all thirteen fixtures
     node scripts/test-vectorize.js weight   # one
     node scripts/test-vector-prompt.js      # the house prompt, no network needed
+    node scripts/test-vector-recolor.js     # recolouring, measured on the render
 
 `test-vector-prompt.js` rebuilds the sheet-A prompt from its four descriptions
 and asserts it is **byte-identical** to the one banked in
@@ -339,10 +450,11 @@ them.
 
 ## Where things are
 
-- `vectorize.js` — the engine (no HTTP): `vectorize`, `flatten`, `cutout`, `slice`
+- `vectorize.js` — the engine (no HTTP): `vectorize`, `flatten`, `cutout`, `slice`, `recolor`
 - `vector.js` — the router `/api/vector`, the `HOUSE` style, the background job
 - `scripts/vectorize-card.py` — the original CLI and the readable reference
 - `scripts/test-vectorize.js` — the trace quality gate
+- `scripts/test-vector-recolor.js` — the recolour gate
 - `scripts/test-vector-prompt.js` — the prompt-drift gate
 - `docs/gravity-lock/vector/*.svg` — thirteen traced cards, the worked example
 - `@neplex/vectorizer` — native vtracer bindings, an optionalDependency so a

@@ -2296,7 +2296,26 @@ lifted into a standalone tool later.
   are the review surface. Build a page only when Sophie asks for one or the
   set genuinely can't be reviewed as tiles. And when you DO build one, lay the
   images out in **rows of TWO**, never one full-width image per row.
-  **MINIMAL TEXT, and compared things SIDE BY SIDE (Aug 2026, Sophie — asked
+  **THE TITLE, AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie: "get rid of
+  the gold top part of the top and just make it the name… everything but the
+  title, including the tagline and the top thing with the date or
+  whatever").** A Compare page opens with its `<h1>` and goes straight into
+  the thing. **No `.eyebrow`** (the gold CHAT NAME · DATE line — she already
+  knows which chat she is in and when she asked for it) and **no `.sub`**
+  tagline. Both classes stay in `compare.css` for older pages; a NEW page
+  simply does not use them, and `compare-shell.html` no longer has them.
+  **PREFER NOT SCROLLING, AND WHEN THERE ARE TWO KINDS OF THING USE THE
+  HAIRLINE TABS (Aug 2026, Sophie's standing rule).** A page she has to
+  scroll to reach the controls is a page where the thing and the controls are
+  never on screen together. So: fit what she is looking at on ONE screen, and
+  when a page carries two different kinds of thing — a picture and its
+  inputs, a shape and the buttons that drive it — split them with the
+  `.acctabs` hairline pattern (two half-width labels over a hairline, the
+  line sliding under the one she is reading) instead of stacking them down
+  the page. The tab row sits near the top, so it needs the pill's 56px corner
+  reserve and a sliding line of `calc((100% - 56px)/N)` — an abspos child
+  resolves its percentage against the PADDING box.
+    **MINIMAL TEXT, and compared things SIDE BY SIDE (Aug 2026, Sophie — asked
   for on page after page).** A review page is a VISUAL reference, not an
   extension of the chat: title, ONE line under it, labels on the pictures —
   no paragraphs. And the things being compared sit NEXT TO each other (the

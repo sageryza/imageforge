@@ -47,7 +47,7 @@ const sharp = require('sharp');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 
-const { vectorize, cutout, slice } = require('./vectorize');
+const { vectorize, cutout, slice, recolor, svgFills, edgeAnchors, toRgb, toHex } = require('./vectorize');
 
 const router = express.Router();
 const JOBS = 'forge-vector';
@@ -400,6 +400,100 @@ router.post('/trace', async (req, res) => {
   await patch(id, { id, kind: 'trace', status: 'running', step: 'starting', createdAt: new Date().toISOString() });
   runTrace(id, req.body);
   res.json({ ok: true, id, poll: `/api/vector/job/${id}`, cost: 0 });
+});
+
+/** Change the colours of a drawing that has already been traced. FREE — no
+ *  model call, no re-trace, no re-cut; it edits the fills in the SVG file.
+ *
+ *  Say WHICH drawing three ways: `{ job, item }` (a previous job's drawing —
+ *  the easy one, since the job doc already carries its palette), `{ svg, from }`
+ *  or `{ url, from }` (any SVG plus the palette it was traced with).
+ *
+ *  Say the new colours as `colors`, either parallel to the palette with null
+ *  for "leave it" — `["blue", null, "#e07a5f", null]` — or as a map keyed by
+ *  the source hex or the slot number: `{ "#ddd4ea": "blue", "2": "salmon" }`.
+ *  Hex or a CSS colour name, either way. `ink` and `paper` change the line and
+ *  the background; left out, they stay put.
+ *
+ *  Called with no colours it just answers with the palette and writes nothing,
+ *  which is how you find out what there is to change.
+ */
+router.post('/recolor', async (req, res) => {
+  const b = req.body || {};
+  try {
+    let svg = b.svg ? String(b.svg) : null;
+    let from = Array.isArray(b.from) ? b.from : null;
+    let name = b.name;
+
+    if (b.job) {
+      const d = await db().collection(JOBS).doc(String(b.job)).get();
+      if (!d.exists) return res.status(404).json({ error: 'no such job' });
+      const items = d.data().items || [];
+      const it = b.item != null
+        ? items.find((x, i) => x.id === b.item || String(i) === String(b.item))
+        : (items.length === 1 ? items[0] : null);
+      if (!it) return res.status(400).json({ error: `item required — that job has: ${items.map((x) => x.id).join(', ')}` });
+      svg = String(await fetchBuf(it.svg));
+      from = from || it.colors;
+      name = name || `${it.id}-recolor`;
+    } else if (!svg && b.url) {
+      svg = String(await fetchBuf(String(b.url)));
+    }
+    if (!svg) return res.status(400).json({ error: 'svg, url, or job required' });
+    if (!from || !from.length) {
+      return res.status(400).json({ error: 'from required — the palette the drawing was traced with (a job carries it already; pass `job` instead)' });
+    }
+
+    const palette = from.map((c) => toHex(toRgb(c)));
+    // No colours asked for = the discovery call. Nothing is written.
+    const asked = b.colors != null || b.ink != null || b.paper != null;
+    if (!asked) return res.json({ ok: true, from: palette, fills: svgFills(svg).length, cost: 0 });
+
+    // Two shapes for `colors`, because one reads better per case: a list when
+    // you are replacing most of them, a map when you mean "the pink one".
+    let to;
+    if (Array.isArray(b.colors)) {
+      if (b.colors.length !== palette.length) {
+        return res.status(400).json({ error: `colors must have ${palette.length} entries (use null to keep one), or be a map keyed by hex or slot` });
+      }
+      to = b.colors.slice();
+    } else {
+      to = palette.map(() => null);
+      for (const [k, v] of Object.entries(b.colors || {})) {
+        let i = /^\d+$/.test(k) ? Number(k) : palette.indexOf(toHex(toRgb(k)));
+        if (i < 0 || i >= palette.length) {
+          return res.status(400).json({ error: `no slot ${k} — the palette is ${palette.join(' ')}` });
+        }
+        to[i] = v;
+      }
+    }
+
+    const src = from.slice(), dst = to.slice();
+    // Ink and paper ride as ordinary anchors; recolor() finds them in the SVG
+    // itself when they are not named here, so passing them is only needed to
+    // CHANGE them.
+    const edge = (b.ink != null || b.paper != null) ? edgeAnchors(svg) : {};
+    if (b.ink != null && edge.ink) { src.push(edge.ink); dst.push(b.ink); }
+    if (b.paper != null && edge.paper) { src.push(edge.paper); dst.push(b.paper); }
+
+    const out = recolor(svg, src, dst);
+    const slug = String(name || `recolor-${Date.now().toString(36)}`).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
+    const base = `vector/recolor/${slug}-${Date.now().toString(36)}`;
+    const svgUrl = await put(Buffer.from(out), `${base}.svg`, 'image/svg+xml');
+    const render = Math.max(256, Math.min(4096, Number(b.render) || 2048));
+    const pngUrl = await put(
+      await sharp(Buffer.from(out), { density: 96 }).resize(render, render, { fit: 'inside' }).png().toBuffer(),
+      `${base}.png`, 'image/png');
+    res.json({
+      ok: true, svg: svgUrl, png: pngUrl, cost: 0,
+      from: palette,
+      to: dst.slice(0, palette.length).map((c, i) => (c == null ? palette[i] : toHex(toRgb(c)))),
+      ...(b.ink != null ? { ink: toHex(toRgb(b.ink)) } : {}),
+      ...(b.paper != null ? { paper: toHex(toRgb(b.paper)) } : {}),
+    });
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) });
+  }
 });
 
 router.get('/job/:id', async (req, res) => {

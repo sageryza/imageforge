@@ -26,6 +26,17 @@ contract — it applies to everything.
 
 Two rules on every review page, both Sophie's, both asked for repeatedly:
 
+- **THE TITLE, AND NOTHING ELSE AT THE TOP** (Aug 2026, Sophie). No
+  `.eyebrow` chat/date line, no `.sub` tagline — the `<h1>` then straight into
+  the thing. Both classes remain in compare.css for older pages; new pages
+  don't use them.
+- **PREFER NOT SCROLLING; TWO KINDS OF THING = THE HAIRLINE TABS** (Aug 2026,
+  Sophie). Fit what she is looking at on one screen. When a page carries two
+  different kinds of thing — a picture and its inputs, a shape and the
+  buttons that drive it — split them with the `.acctabs` pattern (two
+  half-width labels over a hairline, the line sliding under the one she is
+  reading) rather than stacking them down the page. That row needs the pill's
+  56px corner reserve, and the sliding line `calc((100% - 56px)/N)`.
 - **MINIMAL TEXT.** The page is a VISUAL reference, not an extension of the
   chat — she had to ask for less text on page after page (the dice chat
   progression). Title, ONE line under it, labels on the pictures. No
