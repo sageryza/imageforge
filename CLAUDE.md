@@ -4286,6 +4286,15 @@ lifted into a standalone tool later.
   tap never needs to be precise, edges land in real silences. **A planned
   "manual mode" (cut at the exact tapped millisecond, no snapping) is PARKED
   by request — not in v1.**
+  **Every real cut RE-LISTENS first (Aug 2026, earned):** the stored words
+  come from the 75s-chunked whole-recording pass, which is chips-only
+  accuracy — Sophie's first clip started at "yeah" and grabbed the "he said"
+  before it, because the bulk pass timed "yeah" early. `cutSection` and the
+  render's cut-outs therefore extract a small window, take FRESH whisper
+  word timestamps, and locate the span with `phraseSpan` (buildClip's exact
+  precision path); the bulk timings survive only as the fallback. Never cut
+  from the stored words directly. Clip entries carry `wi0`/`wi1` so a clip
+  can be re-cut.
 - **Pause detection = vo-remove-pauses.js's two passes** (word-timing +
   relative-energy breath pauses, room-tone runs — silencedetect alone CANNOT
   find noisy pauses, see docs/nde-precise-cutting.md). Detection only; nothing
