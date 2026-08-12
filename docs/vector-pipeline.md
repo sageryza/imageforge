@@ -179,9 +179,18 @@ whether the tracer binary, Firebase and the OpenAI key are all present.
 - **Firestore refuses an array inside an array**, which is why `colors` are hex
   strings. The very first live run failed on exactly that, *after* the sheet had
   been paid for.
-- **A cell drawing that leans into its neighbour's quarter loses a limb** — the
-  sheet is cut on a straight quarter line. The "wide gutters / nothing crossing"
-  wording in the grid clause is what prevents it; do not trim it.
+- **The sheet is cut on its REAL gutters, not on exact fractions** — and that
+  was a bug before it was a feature. Cutting at exact thirds looks right and is
+  not: the model does not place drawings on a perfect grid, so a boundary can
+  land on ink, which does two visible things at once — clips the drawing it
+  cuts through, and leaves the severed piece in the NEIGHBOURING cell as a
+  stray mark. Sophie caught both on a 3x3: the second row cut fell at y=682
+  while the real gutter was 622-674, so the sailboat came out with a dot
+  floating above its flag (the tail of the balloons' string from the cell
+  above). `gutters()` now finds the widest clear run near each boundary and
+  cuts through its middle, and `cutout()` drops a border-touching blob smaller
+  than 15% of the main drawing. The "wide gutters / nothing crossing" wording
+  in the grid clause still matters — it is what makes a clear run exist to find.
 - **webp costs the trace NOTHING — do not re-render a sheet to PNG hoping for a
   better trace.** This module asks for PNG, but the reason first written here
   ("webp's ringing is noise the flattener spends a cluster on") was reasoning
