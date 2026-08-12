@@ -76,11 +76,19 @@ const WHITE_MERGE = 8;
 const DEFAULTS = {
   fills: 0,        // 0 = work the count out from the picture
   ink: 130,        // luminance below this is line
-  paper: 243,      // luminance above this is paper
+  // `paper` is no longer how the flatten decides what is background — that is
+  // `bgTol`, a distance to the sampled background COLOUR. It survives as the
+  // shared definition of "too bright to be a fill" that the test uses to build
+  // its own comparison mask, so the two agree on which pixels are being judged.
+  paper: 243,
   band: 3,         // px of anti-aliased collar to keep out of the palette
   median: 3,       // paper-grain filter, applied AFTER the upscale
   upscale: 3,
   smooth: 9,       // median filter on the LABEL map
+  // How close to the background colour a pixel must be to count as paper. Has
+  // to clear a white suit (~5 from white) without swallowing a cream face
+  // (~34). 15 sits in that gap.
+  bgTol: 15,
   speckle: 10,
   // `ink: 'auto'` picks the threshold per drawing so the traced line weight
   // matches the source, rather than taking whatever the fixed default gives.
@@ -397,54 +405,45 @@ async function flatten(input, opts = {}) {
   const w = info.width, h = info.height, N = w * h;
 
   const lum = new Float64Array(N);
-  const inkm = new Uint8Array(N), bright = new Uint8Array(N);
+  const inkm = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
     const l = 0.299 * raw[i * 3] + 0.587 * raw[i * 3 + 1] + 0.114 * raw[i * 3 + 2];
     lum[i] = l;
-    if (l < o.ink) inkm[i] = 1; else if (l > o.paper) bright[i] = 1;
+    if (l < o.ink) inkm[i] = 1;
   }
-  // PAPER IS THE BACKGROUND, NOT MERELY THE BRIGHT. Treating every pixel over
-  // the threshold as paper puts a knife-edge through any pale FILL that happens
-  // to sit near it, and the fill then breaks into white blotches. Measured on
-  // an alarm clock whose cream face lands at luminance 242-246 against a
-  // threshold of 243: 3,144 pixels of one smooth face crossed to pure white
-  // while 1,825 stayed cream, which is exactly the "weird cream spots in the
-  // white area" Sophie reported. So paper is the bright region a BORDER can
-  // reach — the same reasoning as the cut-out's flood fill. An interior white
-  // (a clock face, an eye, a badge) is a fill and gets painted like one.
-  // The fill CONDUCTS through anything that is not ink, but only MARKS the
-  // bright. Conducting through `bright` alone gets walled off by the
-  // anti-aliased ridge between two close shapes, so pockets of real background
-  // become fills and the tracer has to outline them all — measured on the wind
-  // card, a dense band of arrows: 5 fills / 95KB became 6 fills / 410KB, the
-  // extra one a (252,252,252) "colour" that is just trapped paper. Conducting
-  // through not-ink lets the collar pass the fill along, while a region truly
-  // enclosed by a closed outline (a clock face, an eye) still stays a fill.
-  const paperm = new Uint8Array(N);
+  // PAPER IS WHAT MATCHES THE BACKGROUND COLOUR, not merely what is bright.
+  //
+  // A plain brightness threshold puts a knife-edge through any pale FILL that
+  // happens to sit near it. Measured on an alarm clock whose cream face spans
+  // luminance 242-246 against a threshold of 243: 3,144 pixels of one smooth
+  // face crossed to pure white while 1,825 stayed cream — the "weird cream
+  // spots in the white area" Sophie reported. Comparing to the background
+  // COLOUR separates them cleanly: that cream sits 34 from white, while a white
+  // spacesuit or a white badge sits about 5 and is genuinely paper.
+  //
+  // A border-connected flood fill was tried first and is worse. It classifies
+  // every enclosed white — a suit, an eye — as a FILL, which floods the
+  // clustering population with near-white pixels and crowds out small saturated
+  // details: a lantern lost its gold candle flame (247,202,106) entirely, and
+  // the wind card's SVG tripled. Distance to the background costs nothing and
+  // has neither problem.
+  const bg = [0, 0, 0];
   {
-    const seen = new Uint8Array(N);
-    const st = [];
-    const push = (i) => {
-      if (seen[i] || inkm[i]) return;
-      seen[i] = 1; st.push(i);
-      if (bright[i]) paperm[i] = 1;
-    };
-    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
-    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
-    while (st.length) {
-      const i = st.pop(), x = i % w, y = (i / w) | 0;
-      if (x > 0) push(i - 1);
-      if (x < w - 1) push(i + 1);
-      if (y > 0) push(i - w);
-      if (y < h - 1) push(i + w);
+    const edgeIdx = [];
+    for (let x = 0; x < w; x += 2) { edgeIdx.push(x); edgeIdx.push((h - 1) * w + x); }
+    for (let y = 0; y < h; y += 2) { edgeIdx.push(y * w); edgeIdx.push(y * w + w - 1); }
+    for (let c = 0; c < 3; c++) {
+      const v = edgeIdx.map((i) => raw[i * 3 + c]).sort((a, b) => a - b);
+      bg[c] = v.length ? v[v.length >> 1] : 255;
     }
-    // A drawing that fills its frame leaves no border background to start from.
-    // Falling through with almost no paper would make the whole picture fills,
-    // so in that case the plain threshold is the better answer.
-    let np = 0;
-    for (let i = 0; i < N; i++) if (paperm[i]) np++;
-    if (np < N * 0.005) paperm.set(bright);
   }
+  const paperm = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    if (inkm[i]) continue;
+    const dr = raw[i * 3] - bg[0], dg = raw[i * 3 + 1] - bg[1], db = raw[i * 3 + 2] - bg[2];
+    if (Math.sqrt(dr * dr + dg * dg + db * db) <= o.bgTol) paperm[i] = 1;
+  }
+
   const edge = dilate(inkm, w, h, o.band);            // see (1)
   const solid = new Uint8Array(N);
   let ns = 0;
