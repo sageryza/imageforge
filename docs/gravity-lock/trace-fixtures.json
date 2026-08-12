@@ -1,0 +1,15 @@
+{
+ "capture": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/capture.png",
+ "coorbit": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/coorbit.png",
+ "escape": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/escape.png",
+ "hole": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/hole.png",
+ "inverse": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/inverse.png",
+ "kepler": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/kepler.png",
+ "mirror": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/mirror.png",
+ "portal": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/portal.png",
+ "repel": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/repel.png",
+ "slingshot": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/slingshot.png",
+ "tour": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/tour.png",
+ "weight": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/weight.png",
+ "wind": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/gravity-lock/trace-fixtures/wind.png"
+}

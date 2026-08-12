@@ -308,6 +308,11 @@ loadConfig().then(() => {
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
+  // one surface whose output is resolution-free, so a drawing can go on a
+  // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
+  // hydrated OPENAI_API_KEY before the module reads it.
+  app.use('/api/vector', require('./vector').router);
   // Voice Studio — Sophie's ElevenLabs voices on a page (mounted here so the
   // config-loader has hydrated ELEVENLABS_API_KEY before the module reads it).
   app.use('/api/voicelab', require('./voicelab').router);

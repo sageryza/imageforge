@@ -628,6 +628,39 @@ lifted into a standalone tool later.
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
 
+## Vector pipeline (`/api/vector`) — described drawings → art that scales
+- **Making vector art, or touching `vector.js` / `vectorize.js`? Read
+  `docs/vector-pipeline.md` FIRST** — Sophie asked for it written down so any
+  chat she points there can use it without re-deriving the recipe. It carries
+  the exact style (prompt wording, model, refs, size, quality), the routes, the
+  gotchas and the test.
+- **What it does:** describe 1-4 drawings → ONE gpt-image-2 sheet in the pastel
+  house style (~6¢, the only cost) → cut into cells → lift each off its paper →
+  trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
+  drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
+  just the tracing half on any flat-colour image URL, for nothing. `POST
+  /prompt` shows the literal prompt and spends nothing.
+- **Reach for it when something has to be BIG, PRINTED, or CUT** — a poster, a
+  shirt, a die-cut sticker (the outline IS the cut line). On a phone screen a
+  PNG is already fine, so a vector library for its own sake doesn't earn its
+  keep. **Flat art only:** ink lines and solid colour trace beautifully;
+  shading, texture, a watercolour wash or a photo do not. That's why the style
+  is fixed and a caller only says what is IN each drawing.
+- **The style is the Gravity Lock card recipe verbatim** (`HOUSE` in
+  `vector.js`) — the same two Witch School style refs the pastel house style
+  uses, the same grid clause, the same no-text suffix. Don't let prompts
+  drift; add a NAMED style if a different look is needed.
+- **Re-cutting a sheet you already paid for is free** — pass its url back as
+  `sheet`. Tuning the trace must never re-bill the model.
+- **Two gotchas that cost real time:** a dark-background drawing needs
+  `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
+  background — the Grand Tour card is the live example), and the Assets tab
+  dedupes by FILENAME, so a v2 needs a new *filename*, not just a new folder.
+- Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
+  (no invented colour, no dropped colour, line weight, structure), not against
+  the Python it was ported from. It deliberately does NOT catch small
+  localised wrong-colour patches; that class is caught by looking.
+
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
   surface with **no opinion**. Every other one wraps her words in a house style
