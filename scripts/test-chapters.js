@@ -50,7 +50,7 @@ if (!chrome) { console.log('no Chromium found — skipping (set CHROME_PATH to r
 const PAGE = `<!doctype html><meta charset="utf-8"><title>chapters test</title>
 <link rel="stylesheet" href="/compare.css">
 <div class="wrap">
-  <div class="eyebrow">TEST</div><h1>Chapters</h1>
+  <div class="eyebrow">TEST</div><h1>Chapters</h1><div class="sub">a tagline</div>
   <div id="chapters"></div>
   <div id="chapters2"></div>
   <div id="chapters3"></div>
@@ -194,6 +194,18 @@ window.addEventListener('error', function(e){
     // 6 — the standing rule
     ok(!!m.querySelector('.cmp-note-box') || !!m.querySelector('[data-item] .cmp-note'),
        'every chapter carries a note affordance');
+
+    // 7b — v4: the icon is the row's picture, not a bullet beside the title
+    var ic = document.querySelector('.cx-ico');   // the icon mounts are #chapters2/3
+    ok(!!ic && Math.round(ic.getBoundingClientRect().width) >= 30,
+       'the row icon is big (' + Math.round(ic.getBoundingClientRect().width) + 'px)');
+    // 7c — v4: the title alone; no gold eyebrow, no tagline
+    var eb = document.querySelector('.wrap > .eyebrow'), sb = document.querySelector('.wrap > .sub');
+    ok(!!eb && !!sb, '(setup) the page really carries an eyebrow and a sub');
+    ok(getComputedStyle(eb).display === 'none' && getComputedStyle(sb).display === 'none',
+       'a chapters page hides the eyebrow and the tagline, keeping the h1');
+    ok(getComputedStyle(document.querySelector('.wrap > h1')).display !== 'none',
+       'the title itself stays');
 
     // 8 — v3, Sophie: "get rid of the numbers"
     ok(!m.querySelector('.cx-n') && !/^\s*\d\d\b/.test(rows[0].querySelector('.cx-t').textContent),
