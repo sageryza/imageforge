@@ -102,6 +102,14 @@ async function check(id, url) {
   // the paper and the anti-aliased collar beside every line are not fills and
   // are painted separately. Counting the collar here was the first version's
   // mistake and it read as a 10-19% failure on every card.
+  //
+  // PAPER counts as an explanation. The flatten's output is fills + ink +
+  // paper, so a source pixel painted white is accounted for even though no
+  // FILL is near it. Leaving white out failed the mirror card at 2.30% once
+  // near-white fills started being merged into paper — and every one of those
+  // 229 pixels was pale (within 45 of white) and correctly painted. Checked
+  // before changing this, because loosening a test to make it pass is how a
+  // real regression gets waved through.
   const inkm = new Uint8Array(N), paperm = new Uint8Array(N);
   for (let i = 0; i < N; i++) {
     const l = lumOf(S.data, i);
@@ -112,7 +120,7 @@ async function check(id, url) {
   for (let i = 0; i < N; i++) {
     if (inkm[i] || paperm[i] || edge[i]) continue;
     solid++;
-    let best = Infinity;
+    let best = Math.max(255 - S.data[i * 3], 255 - S.data[i * 3 + 1], 255 - S.data[i * 3 + 2]);
     for (const c of trace.colors) {
       const d = Math.max(Math.abs(S.data[i * 3] - c[0]), Math.abs(S.data[i * 3 + 1] - c[1]), Math.abs(S.data[i * 3 + 2] - c[2]));
       if (d < best) best = d;
@@ -137,6 +145,8 @@ async function check(id, url) {
   return { id, fills: trace.colors.length, kb: Math.round(trace.svg.length / 1024), ink: rel, mad, unexplained: share, ms, bad };
 }
 
+let failedAuto = false;
+
 (async () => {
   const only = process.argv[2];
   const map = JSON.parse(fs.readFileSync(FIXTURES, 'utf8'));
@@ -153,7 +163,23 @@ async function check(id, url) {
     }
   }
 
-  let failed = 0;
+  // The per-card checks below run at the FIXED default threshold on purpose —
+  // that is what makes them a regression detector for the flattener. What ships
+  // is `ink: 'auto'`, so prove separately that calibration lands where it says.
+  {
+    const { vectorize: vec, inkShare } = require('../vectorize');
+    const one = ids.includes('weight') ? 'weight' : ids[0];
+    const png = path.join(CACHE, one + '.png');
+    if (fs.existsSync(png)) {
+      const src = fs.readFileSync(png);
+      const auto = await vec(src, { ink: 'auto' });
+      const good = Math.abs(auto.inkErr) <= 0.02;
+      console.log(`${good ? 'ok  ' : 'FAIL'} ink:auto on ${one} — ink ${auto.ink}, ${(auto.inkErr * 100).toFixed(1)}% off the source (cap 2%)`);
+      if (!good) failedAuto = true;
+    }
+  }
+
+  let failed = failedAuto ? 1 : 0;
   for (const id of ids) {
     const r = await check(id, map[id]);
     console.log(`${r.bad.length ? 'FAIL' : 'ok  '} ${id.padEnd(10)} ${r.fills} fills  ` +

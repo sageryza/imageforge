@@ -250,8 +250,14 @@ async function patch(id, fields) {
 
 /** One picture -> the pair of files everything downstream wants: the SVG (the
  *  deliverable) and a big PNG render of it (what a gallery tile shows). */
-async function traceOne(png, base, { fills = 0, render = 2048 } = {}) {
-  const out = await vectorize(png, { fills });
+async function traceOne(png, base, { fills = 0, render = 2048, ink = 'auto' } = {}) {
+  // `ink: 'auto'` by default — the threshold is chosen per drawing so the traced
+  // line weight matches the source. A fixed threshold is one guess for every
+  // picture and it lands a few percent heavy on anything with fine repeated
+  // detail: a strawberry's seeded surface came out +14.1%, an acorn's
+  // cross-hatch +12.7%. Calibrated they are +0.5% and +1.2%. It costs about
+  // three traces instead of one, and a trace is free.
+  const out = await vectorize(png, { fills, ink });
   const svgUrl = await put(Buffer.from(out.svg), `${base}.svg`, 'image/svg+xml');
   // Rasterised at 2048 on purpose: a tile shown at ~110pt on a 3x phone is
   // ~330px, but she opens it, and a 1024 preview was the limiting factor the
@@ -264,7 +270,10 @@ async function traceOne(png, base, { fills = 0, render = 2048 } = {}) {
   // first end-to-end run AFTER the sheet had been paid for. Hex is also what a
   // caller wants for a swatch or a recolour.
   const colors = out.colors.map((c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''));
-  return { svg: svgUrl, png: pngUrl, colors, kb: Math.round(out.svg.length / 1024), ms: out.ms };
+  return {
+    svg: svgUrl, png: pngUrl, colors, kb: Math.round(out.svg.length / 1024), ms: out.ms,
+    ...(out.ink != null ? { ink: out.ink, inkErr: Math.round(out.inkErr * 1000) / 10 } : {}),
+  };
 }
 
 async function runSheet(id, body) {
@@ -306,7 +315,10 @@ async function runSheet(id, body) {
         try { cell = await cutout(cellPngs[i]); } catch (e) { /* keep the raw cell */ }
       }
       const cutUrl = await put(await sharp(cell).png().toBuffer(), `${base}/${slug}-cut.png`, 'image/png');
-      const traced = await traceOne(cell, `${base}/${slug}`, { fills: Number(cells[i].fills) || 0 });
+      const traced = await traceOne(cell, `${base}/${slug}`, {
+        fills: Number(cells[i].fills) || 0,
+        ink: cells[i].ink != null ? cells[i].ink : 'auto',
+      });
       items.push({ id: slug, draw: String(cells[i].draw || cells[i]), cell: at[i], cut: cutUrl, ...traced });
       await patch(id, { items });
     }
@@ -326,7 +338,9 @@ async function runTrace(id, body) {
       let buf = await fetchBuf(urls[i]);
       if (body.cutout) buf = await cutout(buf);
       const slug = urls.length > 1 ? `${name}-${i + 1}` : name;
-      items.push({ id: slug, source: urls[i], ...await traceOne(buf, `vector/traced/${slug}`, { fills: Number(body.fills) || 0 }) });
+      items.push({ id: slug, source: urls[i], ...await traceOne(buf, `vector/traced/${slug}`, {
+        fills: Number(body.fills) || 0, ink: body.ink != null ? body.ink : 'auto',
+      }) });
       await patch(id, { items });
     }
     await patch(id, { status: 'done', step: '', items, finishedAt: new Date().toISOString() });
