@@ -23,21 +23,20 @@
 // line weight lands within 4.8% / 7.4% / 6.4% of the source, all inside the 8%
 // the 2x2 cards are held to. Nothing degrades.
 //
-// What DOES change is the drawing, not the trace: at 3x3 the model draws
-// SIMPLER objects, because each one is smaller. Measured over the same set,
-// fills per drawing averaged 2.9 at 3x3 against 4.75 at 2x2. So a 3x3 is right
-// for simple objects and icons, and a 2x2 is right when each drawing needs
-// detail. That is the real trade — pick the grid by how much is in each
-// picture, not by how many you want.
+// What DOES change with the grid is the drawing, not the trace: a smaller cell
+// gets a simpler drawing from the model (fills per drawing averaged 2.9 at 3x3
+// against 4.75 at 2x2), and trace error scales with how fine a drawing's detail
+// is relative to its cell. Measured on the SAME subjects at two sizes: a
+// strawberry's seeded surface went +14.1% at 205px to +9.0% at 256px, an acorn's
+// cross-hatch +12.7% to +8.6%, while a bicycle sat in the noise at both. Cell
+// size moves the worst case, not the average (mean ~4.3% at 5x5, ~4.4% at 4x4).
+// See docs/vector-pipeline.md for the full table.
 //
-// THE STYLE IS FIXED AND IS THE POINT. `HOUSE` below is the exact recipe the
-// Gravity Lock cards were drawn with, down to the wording — the same two Witch
-// School style references the pastel house style uses, the same grid clause,
-// the same no-text suffix. A caller supplies only what is IN each drawing.
-// That is deliberate: flat ink-and-pastel is what vectorises cleanly, and a
-// caller free to describe shading would quietly produce art this pipeline
-// cannot trace. If you need a different look, add a NAMED style here rather
-// than letting prompts drift.
+// `HOUSE` below is the style, and it is the recipe the Gravity Lock cards were
+// drawn with, down to the wording. It is here as ONE technical constraint plus
+// one convenience: the tracer needs flat colour (a gradient has no flat colours
+// to find), and a fixed prompt keeps a set consistent. It is not a view about
+// what the art should look like — change HOUSE to change the look.
 //
 // Everything slow is a BACKGROUND JOB on a Firestore doc (house rule): the POST
 // returns an id in well under a second, the caller polls, and a finished sheet

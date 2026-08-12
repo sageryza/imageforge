@@ -640,12 +640,13 @@ lifted into a standalone tool later.
   drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
   just the tracing half on any flat-colour image URL, for nothing. `POST
   /prompt` shows the literal prompt and spends nothing.
-- **Reach for it when something has to be BIG, PRINTED, or CUT** — a poster, a
-  shirt, a die-cut sticker (the outline IS the cut line). On a phone screen a
-  PNG is already fine, so a vector library for its own sake doesn't earn its
-  keep. **Flat art only:** ink lines and solid colour trace beautifully;
-  shading, texture, a watercolour wash or a photo do not. That's why the style
-  is fixed and a caller only says what is IN each drawing.
+- **What a vector buys:** sharp at any size from one ~100KB file, recolourable
+  by editing a fill, and its outline IS the cut line for a die-cut sticker. On
+  a phone screen a PNG already looks the same.
+- **The one hard limit is GRADIENTS** — the tracer reduces a picture to a few
+  flat colours, so a wash, a soft shadow or a photo has none to find and comes
+  out bigger AND worse than the PNG. Ink lines and solid fills are what it
+  handles. That is a limit of the tracer, not art direction.
 - **The style is the Gravity Lock card recipe verbatim** (`HOUSE` in
   `vector.js`) — the same two Witch School style refs the pastel house style
   uses, the same grid clause, the same no-text suffix. Don't let prompts
