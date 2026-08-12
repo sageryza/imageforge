@@ -8,8 +8,11 @@
  *   1. every chapter is a row; opening one shows its body
  *   2. opening another COLLAPSES the first ("when I open one, the rest of
  *      them collapse") and tapping the open one closes it
- *   3. the horizontal axis: 1 gist → 2 deeper → 3 raw, and each level shows
- *      what it promises (level 3 = the real messages, both sides)
+ *   3. the horizontal axis: 1 gist → 2 deeper → 3 raw as the account-tabs
+ *      hairline (a sliding line, no chips), and each level shows what it
+ *      promises (level 3 = the real messages, both sides, in the chat style)
+ *   3b. OPENING A CHAPTER DOES NOT MOVE THE PAGE (Sophie's v2 pain point:
+ *      "I don't like how it jumps around when I open and close a tab")
  *   4. a message reaches the page VERBATIM — a chapter's raw text is the
  *      transcript slice, never a summary of it
  *   5. an attachment path renders as a chip carrying the real filename
@@ -64,11 +67,11 @@ window.addEventListener('error', function(e){
   function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
   var VERBATIM = "it's the genes — <not> a spectrum";
   window.__chapters({ chat:'t', sheet:'chapters', chapters:[
-    { id:'a', title:'The research', when:'Jul 28',
+    { id:'a', title:'The research', when:'Jul 28', kind:'research',
       l1:'the gist of it', l2:['a **decided** thing','a shipped thing'],
       msgs:[ { who:'sophie', at:'2026-07-28T18:25:00Z', text:VERBATIM },
              { who:'claude', at:'2026-07-28T18:26:00Z', text:'the reply' } ] },
-    { id:'b', title:'The astrology one', when:'Jul 28',
+    { id:'b', title:'The astrology one', when:'Jul 28', kind:'lesson',
       l1:'second gist', l2:['another line'],
       msgs:[ { who:'sophie', at:'2026-07-28T21:12:00Z',
                text:'here it is @"/root/.claude/uploads/sid/abc123def-IMG_8170.png" have a look' } ] },
@@ -95,8 +98,11 @@ window.addEventListener('error', function(e){
     // 3 — the horizontal axis
     rows[0].querySelector('.cx-head').click();
     var b0=body(0);
-    ok(!!b0.querySelector('.cx-l1') && !b0.querySelector('.cx-l2') && !b0.querySelector('.cx-raw'),
+    ok(!!b0.querySelector('.cx-l1') && !b0.querySelector('.cx-l2') && !b0.querySelector('.cx-msg'),
        'level 1 is the gist alone');
+    ok(b0.querySelector('.cx-lv').getAttribute('data-on')==='1',
+       'the hairline underline sits on the open level');
+    ok(!b0.querySelector('.cx-lv button .cx-num'), 'the level switch is tabs, not numbered chips');
     ok(b0.querySelector('.cx-lv button[data-lv="1"]').classList.contains('on'),
        'a chapter opens at level 1');
     lvl(0,2); b0=body(0);
@@ -104,6 +110,7 @@ window.addEventListener('error', function(e){
     ok(!!b0.querySelector('.cx-l1') && lis.length===2 && !!lis[0].querySelector('b'),
        'level 2 keeps the gist and adds the detail lines');
     lvl(0,3); b0=body(0);
+    ok(b0.querySelector('.cx-lv').getAttribute('data-on')==='3', 'the line slides to level 3');
     var msgs=b0.querySelectorAll('.cx-msg');
     ok(msgs.length===2 && msgs[0].classList.contains('me') && msgs[1].classList.contains('them'),
        'level 3 is the real messages, both sides');
@@ -112,6 +119,9 @@ window.addEventListener('error', function(e){
     // 4 — verbatim, and safely (a < in her words is text, never markup)
     ok(msgs[0].querySelector('.cx-text').textContent===VERBATIM,
        'a message reaches the page verbatim, escaped not interpreted');
+    ok(!!msgs[0].querySelector('.cx-mhead .cx-who') && !!msgs[0].querySelector('.cx-prev'),
+       'level 3 wears the chat message shape (head + preview + full)');
+    ok(!msgs[0].classList.contains('long'), 'a short message is not collapsed');
 
     // 5 — an attachment renders as a chip carrying the real filename
     rows[1].querySelector('.cx-head').click(); lvl(1,3);
@@ -120,6 +130,21 @@ window.addEventListener('error', function(e){
     ok(att && att.textContent==='IMG_8170.png', 'an attachment path renders as a named chip');
     ok(txt.indexOf('here it is')===0 && txt.indexOf('have a look')>0 && txt.indexOf('/root/')<0,
        'the words around the attachment are untouched');
+
+    // 5b — the kind reads as a colour dot
+    ok(rows[0].querySelector('.cx-dot.cx-k-research') && rows[1].querySelector('.cx-dot.cx-k-lesson'),
+       'each chapter carries its kind as a colour dot');
+
+    // 3b — opening and closing must not move the page under her
+    document.body.style.height='4000px';
+    window.scrollTo(0, 600);
+    var y0=window.scrollY;
+    rows[0].querySelector('.cx-head').click();     // opens (and collapses row 1)
+    var y1=window.scrollY;
+    rows[0].querySelector('.cx-head').click();     // closes it again
+    var y2=window.scrollY;
+    ok(Math.abs(y1-y0)<=2 && Math.abs(y2-y0)<=2,
+       'opening and closing keeps the tapped row where it was (' + y0 + '→' + y1 + '→' + y2 + ')');
 
     // 6 — the standing rule
     ok(!!m.querySelector('.cmp-note-box') || !!m.querySelector('[data-item] .cmp-note'),
