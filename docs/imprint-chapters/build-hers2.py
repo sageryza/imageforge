@@ -121,10 +121,10 @@ page = f'''<!doctype html>
 <style>{CSS}</style>
 
 <div class="wrap">
-  <div class="eyebrow">IMPRINT &middot; JUL 28 &ndash; AUG 12, 2026</div>
+  <!-- No eyebrow, no tagline (Sophie, Aug 2026: "keep the title, but get
+       rid of the gold text above it and the tagline below it"). chapters.js
+       also hides both, which is what takes them off pages already posted. -->
   <h1>The chapters, in your words</h1>
-  <div class="sub">The same chapters, but every level is you: {kept_total} of your
-    messages kept, {len(dropped)} left out and listed at the bottom.</div>
   <div id="chapters"></div>
 
   <section class="hz">

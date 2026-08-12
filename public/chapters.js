@@ -70,6 +70,14 @@
 
   var css = document.createElement('style');
   css.textContent =
+    /* THE TITLE ALONE (Sophie, Aug 2026: "keep the title, but get rid of the
+       gold text above it and the tagline below it"). A chapters page is a
+       spine she scrolls — the gold eyebrow and the one-line sub were two rows
+       of chrome before the first chapter, restating what the title says.
+       Scoped to pages that load THIS file, so every other Compare page keeps
+       the shared header; the builders no longer emit either, and this rule is
+       what takes them off pages already posted. */
+    '.wrap > .eyebrow, .wrap > .sub{display:none;}' +
     '.cx{max-width:680px;margin:0 auto;}' +
     /* one chapter = a row that opens. The KIND dot leads it. */
     '.cx-ch{border-top:1px solid var(--line);}' +
@@ -83,7 +91,10 @@
        per kind via the `icons` option — the engine ships none, so a page that
        supplies nothing falls back to the coloured dot it always had. */
     '.cx-dot{flex:none;width:8px;height:8px;border-radius:50%;align-self:center;}' +
-    '.cx-ico{flex:none;width:22px;height:22px;align-self:center;display:block;' +
+    /* 32px, not 22 (Sophie, Aug 2026: "make the icons bigger so they take up
+       more space on the line"). The drawing is the row's one picture — at 22
+       it read as a bullet beside the title rather than the thing itself. */
+    '.cx-ico{flex:none;width:32px;height:32px;align-self:center;display:block;' +
     ' object-fit:contain;mix-blend-mode:multiply;}' +
     '.cx-k-lesson{background:#e39ab4;}' +      /* her colours: lessons pink */
     '.cx-k-experiment{background:#e3c25c;}' +  /* experiments yellow */

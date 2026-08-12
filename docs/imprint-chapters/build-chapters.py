@@ -49,9 +49,10 @@ page = '''<!doctype html>
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
-  <div class="eyebrow">IMPRINT &middot; JUL 28 &ndash; AUG 12, 2026</div>
+  <!-- No eyebrow, no tagline (Sophie, Aug 2026: "keep the title, but get
+       rid of the gold text above it and the tagline below it"). chapters.js
+       also hides both, which is what takes them off pages already posted. -->
   <h1>The chapters</h1>
-  <div class="sub">Each chapter wears its own icon from the pastel sheet.</div>
   <div id="chapters"></div>
 </div>
 
