@@ -12,6 +12,49 @@ def stamp(iso):
     return MONTH[int(iso[5:7])-1] + ' ' + str(int(iso[8:10]))
 
 ICON = SourceFileLoader('ci', 'chapters-icons.py').load_module().ICON
+# THE NEW COPY, per chapter number — the 4th level (Sophie: "add one more
+# section so there's four, where the new copy will go so I can read it first
+# before you add it to the cards"). v7: EVERY lesson recopied from her own
+# words (Substack essays, the Read People booklet, her chat dictations) —
+# the coffee was already hers ("that one's already in my words"). Each
+# lesson sits on the chapter where it was born; a chapter carrying several
+# lessons separates them with heading cards (kicker 'the lesson' + title).
+ALL_COPY = {}
+for _f in ('copy-batch1a.py', 'copy-batch1b.py', 'copy-batch2a.py',
+           'copy-batch2b.py', 'copy-batch3.py'):
+    ALL_COPY.update(SourceFileLoader(_f[:-3].replace('-', '_'), _f)
+                    .load_module().LESSONS)
+
+def deck(title):
+    return ALL_COPY[title]          # KeyError = a title typo; fail loud
+
+def multi(*titles):
+    cards = []
+    for t in titles:
+        cards.append({'kicker': 'the lesson', 'h': t})
+        cards += deck(t)
+    return cards
+
+COPY = {
+    3: deck('Astrology — is it stupid, and how it works'),
+    4: deck('ADHD & Autism — cluster, spectrum, genes'),
+    5: multi('General Dysphoria', 'Synthetic Learning Syndrome'),
+    6: multi('God Only Works in Mysterious Ways',
+             'My Experiment with Manifestation',
+             'In Case You’re Curious (Manifestation, Part II)',
+             'For the Hate of the Game',
+             'Animal Magic', 'Art Is Forgiving', 'Instrumentalism, Part I'),
+    7: deck('What’s the Difference Between OCD and Witchcraft?'),
+    8: multi('Inside & Outside Thoughts', 'What Do You Want to Wake Up To?',
+             'Two Questions, Not One'),
+    9: deck('The Metaphor Machine'),
+    10: multi('How to Read People — I. Actions & Intentions',
+              'How to Read People — II. The Pattern Collector',
+              'How to Read People — III. Expert Mode'),
+    11: SourceFileLoader('cc', 'coffee-copy.py').load_module().CARDS,
+    14: deck('Where Do You Crop Art?'),
+}
+assert len(ALL_COPY) == 20, 'expected 20 recopied lessons, got %d' % len(ALL_COPY)
 IBASE = ('https://storage.googleapis.com/'
          'deckfactory-43176.firebasestorage.app/lesson-icons/')
 
@@ -31,6 +74,8 @@ for i,(start, title, l1, l2) in enumerate(chs):
     }
     if (i+1) in ICON:
         row['icon'] = IBASE + ICON[i+1] + '.webp'
+    if (i+1) in COPY:
+        row['copy'] = {'cards': COPY[i+1]}
     out.append(row)
 
 missing = sorted(set(ICON) - {int(c['id'][2:]) for c in out})
@@ -45,7 +90,7 @@ print('payload:', round(len(data)/1e6, 2), 'MB')
 page = '''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Imprint — the chapters v5</title>
+<title>Imprint — the chapters v7</title>
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">

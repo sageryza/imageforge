@@ -48,3 +48,16 @@ committed — this repo is public and they are the whole conversation.
   at runtime — changing it reaches all three artifacts with no repost, and
   posting a duplicate page just to record the change would clutter the
   Compare tab that superseding exists to keep clean.
+
+## The recopy (v7) — every lesson in her own words
+
+`copy-batch1a/1b/2a/2b/3.py` hold the 20 recopied lessons (the coffee,
+`coffee-copy.py`, was already hers). Sources: her Substack essays, the Read
+People booklet PDF, and her chat dictations. The marking contract lives in
+`coffee-copy.py`'s docstring — `[[..]]` = my words (rendered red + starred),
+unmarked = hers verbatim; a card with no her-words on record keeps its old
+copy wrapped WHOLE in `[[..]]` (all-red = still all me). Each lesson sits on
+the chapter where it was born (`COPY` in `build-chapters.py`); a chapter
+carrying several lessons separates them with heading cards (kicker
+"the lesson"). This is the review copy ONLY — the real lesson decks change
+only after Sophie approves it.

@@ -60,6 +60,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>chapters test</title>
   <div id="chapters2"></div>
   <div id="chapters3"></div>
   <div id="chapters4"></div>
+  <div id="chapters5"></div>
 </div>
 <script src="/compare.js"></script>
 <script src="/chapters.js"></script>
@@ -333,6 +334,40 @@ window.addEventListener('error', function(e){
     var b4b = m4.querySelectorAll('.cx-ch')[1].querySelector('.cx-body');
     ok(b4b.textContent.indexOf('No new copy') !== -1,
        'a chapter without copy says so instead of a blank body');
+
+
+    // 13 — the COPY-ONLY shape: one row per LESSON, no level bar at all
+    //      (Sophie, Aug 2026: "split up all the lessons so they're each their
+    //      own little thingy, and for now hide everything that's not a
+    //      lesson"). Three of four tabs would lead to an empty body here, so
+    //      the bar is not built — decided by the DATA, never a flag.
+    window.__chapters({ chat:'t', sheet:'lessons-copy', mount:'#chapters5',
+      chapters:[
+        { id:'ls-01', title:'Wake Up To', when:'2 cards · 1 mine', kind:'lesson',
+          icon:'/li-15.webp',
+          copy:{ cards:[
+            { h:'A party on a train', body:'you wake up and [[there is]] a party' },
+            { h:'The beach', body:'we would always go to the beach' },
+          ]} },
+        { id:'ls-02', title:'Animal Magic', when:'1 card · all yours', kind:'lesson',
+          icon:'/li-10.webp',
+          copy:{ cards:[{ h:'The snake', body:'a snake came to me' }] } },
+      ]});
+    var m5 = document.getElementById('chapters5');
+    ok(!m5.querySelector(':scope > .cx-lv'),
+       'a copy-only page builds NO level bar (nothing to switch between)');
+    ok(m5.querySelectorAll('.cx-ch').length === 2, 'every lesson is its own row');
+    m5.querySelector('.cx-ch .cx-head').click();
+    var b5 = m5.querySelector('.cx-ch .cx-body');
+    ok(b5.querySelectorAll('.cx-cp').length === 2,
+       'a lesson row opens STRAIGHT into its copy, no tab to find first');
+    ok(!!b5.querySelector('.cx-mine') && b5.textContent.indexOf('[[') === -1,
+       'the red marks still render on a copy-only page');
+    ok(m5.querySelectorAll('.cx-ico').length === 2,
+       'each lesson wears its own drawing');
+    // and the four-tab page above is untouched by any of it
+    ok(bar4.querySelectorAll('button').length === 4,
+       'the chapters page on the same document keeps its four tabs');
 
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
   }, 500);
