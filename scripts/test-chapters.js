@@ -113,8 +113,10 @@ window.addEventListener('error', function(e){
        'the level switch is ONE bar for the whole page, not a copy per chapter');
     lvl(0,2); b0=body(0);
     var lis=b0.querySelectorAll('.cx-l2 li');
-    ok(!!b0.querySelector('.cx-l1') && lis.length===2 && !!lis[0].querySelector('b'),
-       'level 2 keeps the gist and adds the detail lines');
+    ok(lis.length===2 && !!lis[0].querySelector('b'), 'level 2 is the detail lines');
+    // v5 — every level shows something DIFFERENT, so 2 does not repeat the gist
+    ok(!b0.querySelector('.cx-l1'),
+       'level 2 drops the one-sentence gist rather than restating it above the detail');
     lvl(0,3); b0=body(0);
     ok(bar().getAttribute('data-on')==='3', 'the line slides to level 3');
     var msgs=b0.querySelectorAll('.cx-msg');
@@ -195,10 +197,26 @@ window.addEventListener('error', function(e){
     ok(!!m.querySelector('.cmp-note-box') || !!m.querySelector('[data-item] .cmp-note'),
        'every chapter carries a note affordance');
 
-    // 7b — v4: the icon is the row's picture, not a bullet beside the title
+    // 7b — v5: the drawing sits in a pastel tile and owns the row
     var ic = document.querySelector('.cx-ico');   // the icon mounts are #chapters2/3
-    ok(!!ic && Math.round(ic.getBoundingClientRect().width) >= 30,
+    ok(!!ic && Math.round(ic.getBoundingClientRect().width) >= 40,
        'the row icon is big (' + Math.round(ic.getBoundingClientRect().width) + 'px)');
+    var tile = ic.closest('.cx-tile');
+    var tw = tile && Math.round(tile.getBoundingClientRect().width);
+    ok(!!tile && tw >= 50, 'the icon sits in a tile (' + tw + 'px)');
+    var bg = getComputedStyle(tile).backgroundColor;
+    ok(bg.indexOf('rgb') === 0 && bg !== 'rgba(0, 0, 0, 0)', 'the tile is a real colour (' + bg + ')');
+    ok(parseFloat(getComputedStyle(tile).borderRadius) >= 6, 'the tile is a rounded square');
+    // the tile takes most of the row's height
+    var rowH = tile.closest('.cx-head').getBoundingClientRect().height;
+    ok(tw / rowH > 0.6, 'the tile owns most of the line (' + tw + ' of ' + Math.round(rowH) + ')');
+    // adjacent rows never share a colour, and a row with no drawing still tiles
+    var tiles = [].slice.call(document.querySelectorAll('#chapters2 .cx-tile'));
+    var clash = tiles.some(function(t,ix){ return ix && getComputedStyle(t).backgroundColor
+      === getComputedStyle(tiles[ix-1]).backgroundColor; });
+    ok(!clash, 'no two touching rows wear the same pastel');
+    var dotTile = document.querySelector('#chapters .cx-tile .cx-dot');  // that mount supplies no icons
+    ok(!!dotTile, 'a chapter with no drawing still gets a tile, with its dot inside');
     // 7c — v4: the title alone; no gold eyebrow, no tagline
     var eb = document.querySelector('.wrap > .eyebrow'), sb = document.querySelector('.wrap > .sub');
     ok(!!eb && !!sb, '(setup) the page really carries an eyebrow and a sub');
