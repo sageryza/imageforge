@@ -4281,6 +4281,17 @@ lifted into a standalone tool later.
   cut out / save-send). Tap a pause chip → cut it (rose, struck; tap again to
   keep). "Tighten" cuts every pause in one tap. MARK drops a pin at the word
   being spoken. Cut-out words show struck-through; tapping them offers restore.
+  **A picked section STAYS picked after save/send** (Aug 2026, Sophie) — she
+  saves AND sends the same span without re-picking; only the ✕ (or cutting it
+  out) lets go.
+- **The room is TWO hairline tabs — TRANSCRIPT | CLIPS (Aug 2026, Sophie:
+  "the scrolling is pretty brutal")** — saved clips and renders live behind
+  the second tab instead of below the transcript. Long-recording navigation
+  on the transcript tab: **chapter notches** down the left edge (every 5 min,
+  10 for >1hr; tap = jump the page to that minute) for recordings over 8 min,
+  and a **find-a-word** magnifier in the tools row (live matches highlighted,
+  next-arrow cycles; commits on blur — she dictates). Tab row reserves the
+  pill's 56px corner; the sliding line is `calc((100% - 56px)/2)`.
 - **Cuts are the Episode Editor's cutter** (imported from editor.js —
   `clampBounds` + `detectSilences` + `snapToSilence`, ONE implementation): a
   tap never needs to be precise, edges land in real silences. **A planned
