@@ -57,6 +57,28 @@ const NOPILL_PAGE = `<meta charset="utf-8">
 </div>
 <script src="/compare.js"></script>`;
 
+// A CHAPTERS artifact, built by the real public/chapters.js — its controls are
+// buttons/inputs, so the shared exempt list should handle them while a tap on
+// the prose still toggles the scroll (Aug 2026, Sophie: "only the pill works to
+// scroll… add tapping back, just exempt the places to open and close things").
+const CHAPTERS_PAGE = `<!doctype html><meta charset="utf-8"><title>chapters</title>
+<link rel="stylesheet" href="/compare.css">
+<div class="wrap"><h1>Chapters</h1><div id="chapters"></div>
+  ${'<p>filler so the iframe can scroll</p>'.repeat(60)}
+</div>
+<script src="/compare.js"></script>
+<script src="/chapters.js"></script>
+<script>
+window.__chapters({ chat:'t', sheet:'s', chapters:[
+  { id:'a', title:'One', when:'Jul 28', kind:'lesson', l1:'the gist line',
+    l2:['a detail line','another one'],
+    msgs:[{ who:'sophie', at:'2026-07-28T18:25:00Z', text:'${'long '.repeat(80)}' },
+          { who:'sophie', at:'2026-07-28T18:26:00Z', text:'short' }] },
+  { id:'b', title:'Two', when:'Jul 29', kind:'build', l1:'g2', l2:['d2'],
+    msgs:[{ who:'sophie', at:'2026-07-29T18:25:00Z', text:'hi' }] },
+]});
+</script>`;
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -65,7 +87,9 @@ const server = http.createServer((req, res) => {
     return send('text/html; charset=utf-8', fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
   }
   if (p.startsWith('/api/chatfeed/page/')) {
-    return send('text/html; charset=utf-8', p.indexOf('nopill') !== -1 ? NOPILL_PAGE : EMBED_PAGE);
+    if (p.indexOf('nopill') !== -1) return send('text/html; charset=utf-8', NOPILL_PAGE);
+    if (p.indexOf('chapters') !== -1) return send('text/html; charset=utf-8', CHAPTERS_PAGE);
+    return send('text/html; charset=utf-8', EMBED_PAGE);
   }
   if (p === '/api/chatfeed') {
     const t = new Date(Date.now() - 3600000).toISOString();
@@ -80,6 +104,7 @@ const server = http.createServer((req, res) => {
       pages: [
         { id: 'demo', title: 'embed test', created: new Date().toISOString() },
         { id: 'nopill', title: 'no pill test', created: new Date().toISOString() },
+        { id: 'chapters', title: 'chapters test', created: new Date().toISOString() },
       ],
     }));
   }
@@ -189,6 +214,46 @@ const server = http.createServer((req, res) => {
     return f && f.contentWindow ? f.contentWindow.scrollY : -1;
   });
   ok(afterY === beforeY, 'a tap on such a page never starts a scroll');
+
+  // ── a CHAPTERS artifact: prose scrolls, controls don't ────────────────
+  await page.click('.pv-back');
+  await page.waitForTimeout(300);
+  await page.waitForSelector('.pagerow', { timeout: 8000 });
+  const rows2 = await page.$$('.pagerow');
+  await rows2[2].click();
+  await page.waitForSelector('.pv-frame', { timeout: 8000 });
+  const cf = page.frames().find((f) => f.url().indexOf('/chapters') !== -1);
+  await cf.waitForSelector('.cx-ch');
+  await page.waitForTimeout(200);
+  const ctap = (sel) => cf.$eval(sel, (el) => {
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+
+  await ctap('.wrap > p');
+  ok(await playing(), 'chapters: a tap on the prose starts the scroll');
+  await ctap('.wrap > p');
+  ok(!(await playing()), 'chapters: a second tap stops it');
+
+  await ctap('.cx-ch:nth-child(2) .cx-head');
+  ok(await cf.$eval('.cx-ch:nth-child(2) .cx-body', (b) => !b.hidden),
+     'chapters: tapping a row opens the chapter');
+  ok(!(await playing()), 'chapters: opening a chapter never starts the scroll');
+
+  await ctap('#chapters > .cx-lv button[data-lv="3"]');
+  ok(!!(await cf.$('.cx-msg')), 'chapters: the level bar switched to raw');
+  ok(!(await playing()), 'chapters: tapping the level bar never starts the scroll');
+
+  await ctap('.cx-msg.long');
+  ok(await cf.$eval('.cx-msg.long', (m) => m.classList.contains('open')),
+     'chapters: tapping a long message opens it');
+  ok(!(await playing()), 'chapters: opening a long message never starts the scroll');
+
+  // and the any-tap PAUSE rule still holds on every one of those controls
+  await ctap('.wrap > p');
+  ok(await playing(), '(setup) chapters scroll running');
+  await ctap('.cx-ch:nth-child(2) .cx-head');
+  ok(!(await playing()), 'chapters: a row tap PAUSES a running scroll');
 
   await browser.close();
   server.close();
