@@ -4,7 +4,7 @@
 `vector.js` / `vectorize.js`.** Sophie asked for it to be written down so any
 chat she points here can use it without re-deriving the recipe.
 
-    describe 1-9 drawings
+    describe 1-25 drawings
       -> ONE gpt-image-2 sheet in the pastel house style   (~6c, the only cost)
       -> cut into cells, lift each off its paper
       -> trace each to SVG                                  (free, local, ~1.3s)
@@ -95,6 +95,7 @@ much is IN each picture:
 
 - **2x2** — a drawing that needs detail (a figure doing something, a scene).
 - **3x3** — simple objects and icons. 0.7c a drawing instead of 1.5c.
+- **5x5** — a lot of simple icons at once, 0.24c each. See the caveat below.
 
 **5x5 traces fine — and the 8% number is NOT a quality cliff.** Measured on a
 real 21-icon 5x5 sheet another chat made: 204px cells, drawings 111-206px, and
@@ -107,16 +108,31 @@ and the magnifying glass are identical to the eye, the target is a hair heavier
 in the ring outlines and arguably crisper for it. Judge a batch by looking, and
 use the percentage only to catch a change.
 
-So the tracer is not what limits a 5x5. Two honest caveats before anyone leans
-on it: it is ONE sheet, and it was drawn by another pipeline — **this module has
-never drawn a 5x5 itself**, so whether the model reliably places 25 described
-drawings from this prompt is untested. That, not the trace, is why the route
-still caps at 9. Settling it costs one 6c sheet.
+**A 5x5 drawn by THIS module: 25 for 25, every drawing in the right cell.**
+The open question used to be whether the model would place 25 described
+drawings correctly from this prompt; it does, and the route now allows up to
+25. Past three columns the instruction stops naming positions ("UPPER FAR LEFT"
+is a mouthful and an invitation to misplace) and becomes a row-by-row list —
+`ROW 1 of 5, left to right: …` — which is a shape models follow well for long
+sets. Drawings came out 147-203px, line weight mean 4.3%, 3 of 25 over 8%.
 
-Layouts are 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3). **5, 7 and 8 do not
-tile** — they take the next layout up and the spare cells are drawn and thrown
-away. The sheet costs the same either way, so ask for 4, 6 or 9 to waste
-nothing. `POST /prompt` reports the `layout` and how many cells are `wasted`.
+**And this is where the percentage DOES start to mean something.** The two
+worst — a strawberry at +14.1% and an acorn at +12.7% — are visibly heavier
+than their sources, and both in the same way: **fine repeated detail
+thickens.** The strawberry's seeds go chunky, the acorn cap's cross-hatching
+muddies. Nothing is broken and both still read correctly, but you can see it.
+Everything under about 10% remains indistinguishable (the cassette at +9.8% is
+identical to its source, and a bicycle's spokes survive at 200px).
+
+So the rule for a 5x5 is about the SUBJECT, not the count: simple shapes are
+excellent, and a drawing whose character lives in fine repeated texture —
+seeds, hatching, stippling, scales — should get a bigger cell.
+
+Layouts run 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3), 12 (4x3), 16 (4x4),
+20 (5x4), 25 (5x5). **A count that does not tile** takes the next layout up and
+the spare cells are drawn and thrown away — the sheet costs the same either
+way, so those numbers waste nothing. `POST /prompt` reports the `layout` and
+how many cells are `wasted`.
 
 ### Quality
 
