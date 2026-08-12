@@ -2315,9 +2315,18 @@ lifted into a standalone tool later.
 - **iOS side** (`PushDelegate.swift` + `aps-environment` in the
   entitlements): permission asked once at launch, token POSTed with the
   studio token, notifications SUPPRESSED while the app is foregrounded (the
-  Update tab is the notification there), and a **tap opens the Chats screen
-  on the Update tab** (`/chats?view=news` — the page consumes and strips the
-  param, so checkBuild reloads can't drag her back). TestFlight rides the
+  Update tab is the notification there), and a **tap opens THE CHAT IT CAME
+  FROM** (`/chats?chat=<slug>`).
+  - **v1 always opened the Update tab and she rejected it** ("I click on the
+    notification, it lands me in the updates tab, but that notification is
+    already gone because clicking the notification gets rid of it"): iOS
+    consumes the banner on tap, so landing on a LIST leaves her no way to
+    tell which chat just spoke. The payload always carried `chat`; now it
+    routes. A push naming no chat (the `/test` send) still lands on Update.
+  - **BOTH params are stripped at boot** (`?chat=` and `?view=news`) —
+    checkBuild reloads the page on every deploy and keeps the URL, so a
+    leftover param would re-open that thread over whatever she is reading,
+    on every deploy, forever. Pinned by `test-chats-build-reload.js`. TestFlight rides the
   PRODUCTION APNs host. Apple-managed CI signing registers the push
   capability on the App ID automatically (same as the App Group did).
 - **THE HOME-SCREEN WIDGET (Aug 2026, Sophie: "I'd like the widget")** —

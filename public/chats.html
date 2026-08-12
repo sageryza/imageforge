@@ -4428,7 +4428,13 @@ function poll(){
 // __openThread above, for the same link followed in a browser rather than
 // inside the app. Honoured by whichever paint lands first (cache or fetch).
 var wantChat='';
-try{ wantChat=new URLSearchParams(location.search).get('chat')||''; }catch(_){}
+try{
+  wantChat=new URLSearchParams(location.search).get('chat')||'';
+  // STRIP IT, like ?view=news (Aug 2026): checkBuild reloads the page on every
+  // deploy and keeps the URL, so a leftover ?chat= would re-open that thread
+  // over whatever she was reading, forever.
+  if(wantChat) history.replaceState(null,'',location.pathname);
+}catch(_){}
 function openWanted(){
   if(!wantChat) return false;
   if(!chats[wantChat]) return false;   // not loaded yet — the next paint tries

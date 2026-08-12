@@ -18,10 +18,21 @@ import UserNotifications
 /// notification, and a banner over it would be noise.
 final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
-    /// Set before the UI reacts to a tap; ChatFeedView consumes it when
-    /// building the /chats URL (→ ?view=news). A static flag rather than a
-    /// published object because the cold-start tap arrives before any SwiftUI
-    /// view exists to observe anything.
+    /// Set before the UI reacts to a tap; ChatFeedView consumes these when it
+    /// builds the /chats URL. Static rather than published because the
+    /// cold-start tap arrives before any SwiftUI view exists to observe
+    /// anything.
+    ///
+    /// A TAP OPENS THE CHAT IT CAME FROM (Aug 2026, Sophie: "I click on the
+    /// notification, it lands me in the updates tab, but that notification is
+    /// already gone because clicking the notification gets rid of it"). v1
+    /// always opened the Update tab, on the reasoning that the push is that
+    /// tab's doorbell — but iOS consumes the banner on tap, so landing on a
+    /// LIST left her with no way to tell which chat had just spoken. The
+    /// payload has always carried the chat; now it is used. The Update tab is
+    /// still one tap away, and it is the fallback when a push predates this
+    /// (no `chat` in its payload).
+    static var pendingChat: String?
     static var pendingUpdateTab = false
 
     func application(_ application: UIApplication,
@@ -72,7 +83,11 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        Self.pendingUpdateTab = true
+        let chat = response.notification.request.content.userInfo["chat"] as? String
+        // "push-test" is the /api/push/test send, which belongs to no chat —
+        // that one still lands on the Update tab.
+        Self.pendingChat = (chat == "push-test") ? nil : chat
+        Self.pendingUpdateTab = (Self.pendingChat == nil)
         NotificationCenter.default.post(name: .forgePushOpenUpdate, object: nil)
         completionHandler()
     }
