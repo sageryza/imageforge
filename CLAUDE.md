@@ -4298,7 +4298,16 @@ lifted into a standalone tool later.
   bytes; clips get micro-fades on the edges only.
 - **Hand-offs:** save → clip file + a `forge-audio` doc (batch
   `cutting-room`, track `cutroom`, content-hash deduped, no second copy of
-  bytes) so it lists on `/audio`; **Story Room** → clip cut here, then
+  bytes). **Do NOT point Sophie at `/audio` to find a clip** — that page is
+  an UPLOADER whose list shows only the batch typed in its box (defaults to
+  today's date), so a `cutting-room` clip is invisible there (Aug 2026, bit
+  for real). The review surface is the room's own Sections list, and every
+  clip/render row carries a **download** button (Apple's arrow-into-box
+  glyph): in a browser it's a same-origin attachment
+  (`GET /:id/file?u=<storage url>&n=<name>` — validated to the recording's
+  own folder), in the app the `cutroomShare` WKScriptMessage bridge fetches
+  the file natively and opens the iOS share sheet (Save to Files/AirDrop);
+  **Story Room** → clip cut here, then
   `scratchpad.attachVoiceUrl(padId, beatId, url)` (a normal voice take —
   every take kept); **Episode Editor** → NO audio is cut: the recording gets
   a `forge-nde-videos` doc (`cr-<id>`, segments grouped from our words) and

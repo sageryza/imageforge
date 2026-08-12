@@ -576,6 +576,31 @@ router.get('/:id/words', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// A clip or render as a same-origin ATTACHMENT — the Storage URL alone just
+// plays inline, so "download to my phone" needs this: Safari's download
+// manager takes the disposition, and the app's share bridge fetches the same
+// bytes. `u` must be one of THIS recording's own Storage files.
+router.get('/:id/file', async (req, res) => {
+  try {
+    const doc = await loadDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'no such recording' });
+    let p = '';
+    try {
+      p = decodeURIComponent(new URL(String(req.query.u || '')).pathname).replace(/^\/[^/]+\//, '');
+    } catch { /* not a url */ }
+    if (!p.startsWith(`${STORAGE_FOLDER}/${req.params.id}/`)) {
+      return res.status(400).json({ error: "not this recording's file" });
+    }
+    const name = String(req.query.n || 'clip')
+      .replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'clip';
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Disposition', `attachment; filename="${name}.mp3"`);
+    bucket().file(p).createReadStream()
+      .on('error', (e) => { console.warn('cutroom: download stream —', e.message); try { res.destroy(); } catch { /* closed */ } })
+      .pipe(res);
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/:id/job', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
