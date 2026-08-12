@@ -59,14 +59,56 @@ router.use(express.json({ limit: '64kb' }));
 // three likely shapes (raw PEM, base64 of the whole file — the ASC_KEY_P8
 // convention next door — and PEM whose newlines arrived as literal "\n")
 // should all just work rather than fail with an opaque signing error.
-function apnsKey() {
-  let k = String(process.env.APNS_KEY || '').trim();
+function normalizeKey(raw) {
+  let k = String(raw || '').trim();
   if (!k) return null;
   if (!k.includes('BEGIN')) {
     try { k = Buffer.from(k, 'base64').toString('utf8'); } catch (e) { /* fall through */ }
   }
   if (!k.includes('BEGIN')) return null;
   return k.replace(/\\n/g, '\n');
+}
+// A RENDER SECRET FILE IS THE OTHER (better) HOME FOR THE KEY (Aug 2026,
+// Sophie's ask — a private key belongs in the secret-file store, not in an
+// env var, and a multi-line PEM pastes more safely there).
+//
+// Any `.p8` in the usual mount points is taken, so the file Apple downloads
+// (AuthKey_<KEYID>.p8) can be uploaded under its own name with nothing else
+// to get right. `APNS_KEY_FILE` overrides with an explicit path. Render
+// mounts secret files at BOTH /etc/secrets and the project root, and which
+// one is documented has changed — so look in all of them rather than betting
+// on one.
+const KEY_DIRS = ['/etc/secrets', '/opt/render/project/src', process.cwd()];
+// Cached once found (a send must not stat the disk every time), but a MISS is
+// only cached for 30s: the whole point of reading lazily is that the key can
+// land after the deploy and start working on its own.
+const keyFile = { key: null, at: 0 };
+function keyFromFile() {
+  if (keyFile.key) return keyFile.key;
+  if (Date.now() - keyFile.at < 30000) return null;
+  keyFile.at = Date.now();
+  const fs = require('fs');
+  const path = require('path');
+  const tries = [];
+  if (process.env.APNS_KEY_FILE) tries.push(process.env.APNS_KEY_FILE);
+  for (const dir of KEY_DIRS) {
+    try {
+      for (const f of fs.readdirSync(dir)) {
+        if (f.toLowerCase().endsWith('.p8')) tries.push(path.join(dir, f));
+      }
+    } catch (e) { /* dir absent — normal off Render */ }
+  }
+  for (const p of tries) {
+    try {
+      const k = normalizeKey(fs.readFileSync(p, 'utf8'));
+      if (k) { keyFile.key = k; return k; }
+    } catch (e) { /* unreadable — try the next */ }
+  }
+  return null;
+}
+// Env var first (it wins everywhere else in this repo), then the secret file.
+function apnsKey() {
+  return normalizeKey(process.env.APNS_KEY) || keyFromFile();
 }
 function configured() {
   return !!(apnsKey() && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID);
@@ -184,11 +226,33 @@ function notifyChat(chat, title, body) {
 }
 
 // ---- Routes ----------------------------------------------------------------
+// WHICH PIECE IS MISSING, not just "not configured" (Aug 2026 — the setup is
+// four separate things pasted into two different places on a phone, and a bare
+// `configured:false` sends everyone guessing). Booleans and FILENAMES only:
+// no key material, no ids, so this stays safe on an open route.
 router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   let devices = 0;
   try { devices = (await loadDevices()).length; } catch (e) { /* firestore down */ }
-  res.json({ ok: true, configured: configured(), devices });
+  const fs = require('fs');
+  const seen = {};
+  for (const dir of KEY_DIRS) {
+    try { seen[dir] = fs.readdirSync(dir).filter((f) => /\.p8$/i.test(f)); }
+    catch (e) { seen[dir] = null; }   // null = no such directory here
+  }
+  res.json({
+    ok: true,
+    configured: configured(),
+    devices,
+    has: {
+      key: !!apnsKey(),                             // env var OR secret file
+      keyFromEnv: !!normalizeKey(process.env.APNS_KEY),
+      keyId: !!process.env.APNS_KEY_ID,
+      teamId: !!process.env.APNS_TEAM_ID,
+    },
+    p8Files: seen,          // where a .p8 was found, by directory
+    topic: process.env.APNS_TOPIC || TOPIC_DEFAULT,
+  });
 });
 
 // The app re-registers on every launch — tokens can rotate, and an upsert

@@ -140,6 +140,19 @@ const titleOf = (page) => page.textContent('#htxt');
     && document.getElementById('htxt').textContent === 'Update', null, { timeout: 5000 })
     .catch(() => fail('?view=news did not open the Update tab'));
   if ((await pushed.evaluate(() => location.search)) !== '') fail('?view=news not stripped after boot');
+  await pushed.close();
+
+  // 6. …and a push that names its chat opens THAT CHAT (Aug 2026, Sophie:
+  //    tapping the banner consumes it, so a list left her with no way to tell
+  //    which chat spoke). Same stripping rule: a leftover ?chat= would
+  //    re-open the thread on every deploy reload, forever.
+  const toChat = await browser.newPage({ viewport: { width: 390, height: 780 } });
+  await toChat.goto(base + '/chats?chat=chat-oven');
+  await toChat.waitForFunction(() => document.getElementById('thread')
+    && document.getElementById('thread').style.display !== 'none', null, { timeout: 5000 })
+    .catch(() => fail('?chat= did not open that chat'));
+  if ((await toChat.evaluate(() => location.search)) !== '') fail('?chat= not stripped after boot');
+  await toChat.close();
 
   await browser.close();
   server.close();

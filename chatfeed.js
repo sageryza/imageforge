@@ -493,15 +493,29 @@ router.get('/thread', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { chat, title, text, audio, tldr, url, account, session, explicit, turn, working,
-            head, tail } = req.body || {};
+            head, tail, created } = req.body || {};
     if (!chat || !text) return res.status(400).json({ error: 'chat and text required' });
+    // `created` = when the reply was actually written. Normally the server
+    // stamps NOW, which is right for a live post — but a BACKFILL of an old
+    // conversation has to keep its real times or the thread reads wrong: the
+    // app sorts by `created`, so every backfilled reply would pile up at the
+    // top above the messages it was answering. Same guard as /reply (hers has
+    // accepted this since July 2026): honoured only when it parses and isn't
+    // in the future, so a bad clock can't push a message to the top forever.
+    // `postedAt` below is untouched — the delta poll ranges over that, and it
+    // must stay monotonic or a backfilled message is never delivered.
+    let madeAt = new Date().toISOString();
+    if (created) {
+      const t = new Date(created).getTime();
+      if (!isNaN(t) && t <= Date.now() + 60000) madeAt = new Date(t).toISOString();
+    }
     const doc = {
       chat: String(chat).slice(0, 60),
       title: String(title || '').slice(0, 120),
       text: String(text).slice(0, 20000),
       tldr: String(tldr || '').slice(0, 1000),
       from: 'claude',
-      created: new Date().toISOString(),
+      created: madeAt,
       // Same monotonic write stamp as /reply — it's what the delta poll ranges
       // over, so nothing can be skipped for having an older `created`.
       postedAt: new Date().toISOString(),
@@ -766,6 +780,85 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// DELETE a chat — the second option beside Archive (Aug 2026, Sophie: "I'd
+// like there to be a delete button as a second option to archive so I can
+// delete this chat so it doesn't keep confusing things ... and I'd like
+// deleted chats to go to a trash that I can empty").
+//
+// TWO STAGES, deliberately. `deletedAt` on the registry doc takes the chat off
+// every list and nothing is destroyed; only emptying the trash removes data.
+// So a mis-tap costs one tap to undo, and the irreversible step is its own
+// explicit act rather than a consequence of the first one.
+//
+// It is NOT a self-clearing stamp (the `hiddenAt` pattern) and it is NOT
+// cleared by /reply the way `archived` is: a deleted chat must never resurrect
+// itself because something posted into it. Presence of the field is the whole
+// test — `deletedAt` also records WHEN, which is what the trash sorts by.
+router.post('/delete', async (req, res) => {
+  try {
+    const { chat, deleted } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const gone = deleted !== false;
+    await regRef(chat).set({
+      deletedAt: gone ? new Date().toISOString() : admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+    res.json({ ok: true, deleted: gone });
+  } catch (err) { fail(res, err); }
+});
+
+// Firestore caps a batch at 500 writes, and a long-running chat can hold
+// thousands of messages — so delete in chunks rather than one doomed batch.
+async function deleteAll(snap) {
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = db().batch();
+    docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  return docs.length;
+}
+
+// EMPTY THE TRASH — the irreversible half. For every chat carrying
+// `deletedAt`: its messages, its Compare pages, its asset records and its
+// registry doc all go.
+//
+// What this deliberately does NOT touch is the image BYTES in Storage. The
+// same picture is in her iOS gallery and can be referenced by another chat, so
+// clearing a chat's records must never reach through and destroy the pictures
+// themselves. Asset VOTES are left too — they're keyed by sha1(chat|url), so
+// they can't be queried by chat, and an orphaned vote doc is a few bytes that
+// nothing reads.
+//
+// `chat` in the body empties just that one; without it, the whole trash.
+router.post('/trash/empty', async (req, res) => {
+  try {
+    const only = req.body && req.body.chat ? String(req.body.chat).slice(0, 60) : null;
+    const reg = await db().collection(REG).get();
+    const names = reg.docs
+      .filter((d) => d.id !== SETTINGS_DOC && d.get('deletedAt'))
+      .map((d) => d.id)
+      .filter((n) => !only || n === only);
+    if (!names.length) return res.json({ ok: true, chats: 0, messages: 0, pages: 0, assets: 0 });
+
+    let messages = 0; let pages = 0; let assets = 0;
+    for (const chat of names) {
+      const [m, p, a] = await Promise.all([
+        db().collection(MSGS).where('chat', '==', chat).get(),
+        db().collection(PAGES).where('chat', '==', chat).get(),
+        db().collection(ASSETS).where('chat', '==', chat).get(),
+      ]);
+      messages += await deleteAll(m);
+      pages += await deleteAll(p);
+      assets += await deleteAll(a);
+      // The registry doc goes LAST — while it exists the chat is still listed
+      // in the trash, so a failure partway through leaves something she can
+      // see and re-empty rather than a half-erased chat that has vanished.
+      await regRef(chat).delete();
+    }
+    res.json({ ok: true, chats: names.length, messages, pages, assets });
+  } catch (err) { fail(res, err); }
+});
+
 // Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
 // the chat list. A hidden chat leaves the list so she can see the rest, and
 // waits behind the bar.
@@ -929,6 +1022,55 @@ router.post('/status', async (req, res) => {
 //
 // 200 chars is the cap because her own notes run 26-66. A field that can
 // hold a paragraph invites one.
+// THE WIDGET's feed (Aug 2026, Sophie: "I'd like the widget") — the Update
+// tab in one small JSON, for a home-screen widget that refreshes on iOS's
+// timeline and must never pull the real feed (~500KB) to do it.
+//
+// It answers the same question the tab does — which chats have something she
+// hasn't checked off — with ONE difference that is forced and worth knowing:
+// the tab's floor is `notifSeenAt` OR the per-device `seen` mark in the
+// phone's localStorage, and a widget process can't read the web view's
+// storage. So this uses `notifSeenAt` alone: the ✓ she taps on a card settles
+// the widget too, but merely opening a chat does not. Erring toward showing
+// one row too many is the right way round for a glance surface.
+//
+// Cost: the registry (5-min cached) + ONE capped message read. Nothing
+// per-chat, so a widget refresh is cheap however many chats exist.
+router.get('/widget', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const limit = Math.min(6, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const [reg, snap] = await Promise.all([
+      registry(),
+      db().collection(MSGS).orderBy('created', 'desc').limit(200).get(),
+    ]);
+    const newest = new Map();          // chat → its newest non-sophie message
+    snap.docs.forEach((d) => {
+      const m = d.data() || {};
+      if (m.from === 'sophie' || m.working) return;   // hers, and live drafts
+      if (!m.chat || newest.has(m.chat)) return;
+      newest.set(m.chat, m);
+    });
+    const rows = [];
+    for (const [chat, m] of newest) {
+      const r = reg.chats[chat] || {};
+      if (r.archived) continue;
+      if (r.notifSeenAt && r.notifSeenAt >= (m.created || '')) continue;
+      rows.push({
+        chat,
+        name: r.displayName || chat,
+        // the same one line the home row shows: her note wins, then the
+        // chat's status card, then its TLDR
+        line: String(r.sophieNote || r.statusNeed || r.statusDoing || m.tldr
+          || (m.text || '').split('\n').find((l) => l.trim()) || '').replace(/[*_`#]/g, '').slice(0, 90),
+        at: m.created || '',
+      });
+    }
+    rows.sort((a, b) => (a.at < b.at ? 1 : -1));
+    res.json({ ok: true, count: rows.length, rows: rows.slice(0, limit) });
+  } catch (err) { fail(res, err); }
+});
+
 // THE UPDATE CARD — the three lines behind the ⌄ on a card in the UPDATE tab
 // (Aug 2026, Sophie: "I wonder if it would be a good idea to have a chat have
 // like a TLDR in their update — not fully in the message, because it would
@@ -965,6 +1107,44 @@ router.post('/update', async (req, res) => {
     if (next !== undefined) patch.updNext = updLine(next) || del;
     await regRef(resolved).set(patch, { merge: true });
     res.json({ ok: true, chat: resolved });
+  } catch (err) { fail(res, err); }
+});
+
+// CHAPTERS — headings inside a long thread (Aug 2026, Sophie: a few chats ran
+// for weeks and re-reading them means scrolling past everything). A chapter is
+// just { title, at }: `at` is an ISO time, and the chapter owns every message
+// from there until the next one starts. The thread draws a heading where the
+// chapter changes; nothing is moved, renamed or re-keyed, so getting the
+// boundaries wrong costs one more POST and never touches a message.
+//
+// Stored on the registry doc, which the feed already loads whole — so chapters
+// reach the app with NO extra request, and a chat without them renders exactly
+// as before. Send `[]` to clear.
+router.post('/chapters', async (req, res) => {
+  try {
+    const { chat, chapters } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!Array.isArray(chapters)) return res.status(400).json({ error: 'chapters must be an array' });
+    const clean = [];
+    for (const c of chapters.slice(0, 40)) {
+      const title = String((c && c.title) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      const t = new Date((c && c.at) || '').getTime();
+      // a chapter with no title or an unparseable time is dropped, not guessed
+      if (!title || isNaN(t)) continue;
+      clean.push({ title, at: new Date(t).toISOString() });
+    }
+    clean.sort((a, b) => (a.at < b.at ? -1 : 1));
+    const target = await followMoves(chat);
+    // Refuse a chat that doesn't exist. Firestore's set({},{merge:true}) WRITES
+    // a missing doc, and sortedChatNames lists every registry key — so a typo
+    // here would put a phantom row in her chat list that only the Admin SDK
+    // could remove. That has happened before; the registry read is already
+    // cached by followMoves, so the guard costs nothing.
+    if (!(await registry()).chats[target]) return res.status(404).json({ error: 'no such chat' });
+    await regRef(target).set({
+      chapters: clean.length ? clean : admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+    res.json({ ok: true, chat: target, chapters: clean });
   } catch (err) { fail(res, err); }
 });
 

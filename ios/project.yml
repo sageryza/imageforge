@@ -48,6 +48,8 @@ targets:
         product: FirebaseFirestore
       - target: DumpShare
         embed: true
+      - target: ForgeWidget
+        embed: true
 
   # "Send to Deck Factory" — the share-sheet way into the Dump, so dumping
   # works from Photos, Files, Safari, anywhere. Uploads run through a
@@ -76,6 +78,43 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
+
+  # The home-screen widget (Aug 2026, Sophie: "I'd like the widget") — the
+  # Update tab's count + the newest chats, refreshed on iOS's own timeline
+  # from ONE small endpoint (/api/chatfeed/widget), never the real feed.
+  ForgeWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ForgeWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge.widget
+        PRODUCT_NAME: ForgeWidget
+        # NO ENTITLEMENTS FILE, deliberately (Aug 2026 — the first build failed
+        # exactly here): Apple-managed signing registers a NEW App ID for this
+        # extension but does NOT enable the App GROUP on it, so the profile it
+        # generates has no app-groups entitlement and the archive dies with
+        # "profile doesn't match the entitlements file's value for
+        # com.apple.security.application-groups". DumpShare's group was
+        # enabled long before, which is why that target has never hit this.
+        # Consequence: the widget cannot read the app's shared settings, so it
+        # calls the DEFAULT server unauthenticated — fine while STUDIO_TOKEN is
+        # off (it is), and it fails loudly ("can't reach the feed") rather than
+        # showing a wrong number if that ever changes. To restore the group:
+        # enable App Groups on com.sageryza.imageforge.widget in the developer
+        # portal ONCE, then add the entitlements file back here.
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ForgeWidget/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: "Deck Factory"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+
   # Secretly a Witch — the public witchy app as its own tiny native shell
   # (WKWebView on the deployed /witch page + native SF-Symbols tab bar).
   # No Firebase, no CI patching: display name / compliance / icon / launch

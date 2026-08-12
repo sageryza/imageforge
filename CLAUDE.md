@@ -238,6 +238,12 @@ each opens a focused workflow that shares the same house styles.
   hook-equipped sessions. Still post manually (below) when the hook is absent,
   for non-image types, per-image prompts/styles, or true generation times on
   a backfill.
+  **It also scans the turn's RAW tool activity, so an image a chat merely
+  TOUCHED (read, verified, copied a url of) can be filed into that chat
+  unlabelled — see `docs/wip-asset-filing.md`** for the mechanism, how to spot
+  one (no `description`, caption reads `from <chat>`), the measurement, and
+  the options for fixing it. Not fixed as of Aug 2026; `POST
+  /api/gallery/asset-cleanup` (with `dry` first) removes strays.
 - **NO contact sheets — review happens IN the gallery, labeled (July 2026,
   Sophie's rule).** Every image deliverable goes into the gallery / the chat's
   Assets tab **individually and LABELED** (the label is its `description` — what
@@ -621,6 +627,60 @@ lifted into a standalone tool later.
 - A ChatGPT run's images are requested in parallel and each lands on the doc as
   it finishes (`status:'ready'`, then `'done'`), so the grid fills in as they
   arrive. One failed call costs its image, not the run.
+
+## Vector pipeline (`/api/vector`) — described drawings → art that scales
+- **Making vector art, or touching `vector.js` / `vectorize.js`? Read
+  `docs/vector-pipeline.md` FIRST** — Sophie asked for it written down so any
+  chat she points there can use it without re-deriving the recipe. It carries
+  the exact style (prompt wording, model, refs, size, quality), the routes, the
+  gotchas and the test.
+- **What it does:** describe 1-25 drawings → ONE gpt-image-2 sheet in the pastel
+  house style (~6¢, the only cost) → cut into cells → lift each off its paper →
+  trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
+  drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
+  just the tracing half on any flat-colour image URL, for nothing. `POST
+  /prompt` shows the literal prompt and spends nothing.
+- **What a vector buys:** sharp at any size from one ~100KB file, recolourable
+  by editing a fill, and its outline IS the cut line for a die-cut sticker. On
+  a phone screen a PNG already looks the same.
+- **The one hard limit is GRADIENTS** — the tracer reduces a picture to a few
+  flat colours, so a wash, a soft shadow or a photo has none to find and comes
+  out bigger AND worse than the PNG. Ink lines and solid fills are what it
+  handles. That is a limit of the tracer, not art direction.
+- **The style is the Gravity Lock card recipe verbatim** (`HOUSE` in
+  `vector.js`) — the same two Witch School style refs the pastel house style
+  uses, the same grid clause, the same no-text suffix. Don't let prompts
+  drift; add a NAMED style if a different look is needed.
+- **Re-cutting a sheet you already paid for is free** — pass its url back as
+  `sheet`. Tuning the trace must never re-bill the model.
+- **Pick the grid by how much is IN each drawing, not by how many you want
+  (measured Aug 2026, 3x3 drawn at all three qualities).** Nine fits and the
+  tracer does not care — 341px cells trace within 4.8/7.4/6.4% of the source,
+  inside the 8% the 2x2 cards are held to. What changes is the MODEL: at 3x3 it
+  draws simpler objects (2.9 fills a drawing against 4.75 at 2x2). So 2x2 for a
+  drawing with detail, 3x3 for simple objects and icons (0.7¢ each). 5/7/8
+  don't tile — the spare cells are drawn and binned, so ask for 4, 6 or 9.
+  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly. **Nothing about the
+  tracer is tuned per quality or per grid** — they are inputs, the defaults are
+  untouched; the only per-drawing options are `fills` and `darkBackground`.
+  **5x5 TRACES FINE** — on a real 21-icon sheet (204px cells) 3 of 21 drew lines
+  8.6-9.3% fat, but put those three beside their sources and they are
+  indistinguishable: the 8% figure is a regression detector calibrated on the
+  2x2 cards, NOT a threshold of visible badness. An earlier note here called
+  5x5 "past the edge" and that was wrong. The route still caps at 9 for a
+  different reason — this module has never DRAWN a 5x5, so the model placing
+  25 described drawings from this prompt is untested. And **webp
+  costs the trace nothing** — measured same-sheet against PNG, max 7.0% vs
+  7.4%; the "PNG traces better" claim was reasoning and it was wrong, so never
+  re-render a sheet hoping to improve a trace.
+- **Two gotchas that cost real time:** a dark-background drawing needs
+  `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
+  background — the Grand Tour card is the live example), and the Assets tab
+  dedupes by FILENAME, so a v2 needs a new *filename*, not just a new folder.
+- Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
+  (no invented colour, no dropped colour, line weight, structure), not against
+  the Python it was ported from. It deliberately does NOT catch small
+  localised wrong-colour patches; that class is caught by looking.
 
 ## Freeform (`/freeform`) — your own refs, your own words, NOTHING added
 - `freeform.js` (`/api/freeform`, page at `public/freeform.html`) — the one image
@@ -1294,6 +1354,55 @@ lifted into a standalone tool later.
   Firestore needs no composite index). Before that route existed the bookmark
   button wrote a flag NOTHING ever read — a bookmark could only be found by
   scrolling to that exact message in its own thread.
+  **DELETE + THE TRASH (Aug 2026, Sophie: "a delete button as a second option
+  to archive so I can delete this chat so it doesn't keep confusing things
+  rather than just archive it, and I'd like deleted chats to go to a trash
+  that I can empty").** `deletedAt` on the registry doc
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
+  thread header after Archive and Hide, and the trash itself.
+  - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
+    trash in archive and make it just a picture of a trashcan I guess").**
+    It shipped as a fifth WORD in the masthead and that broke the header:
+    measured at 390px, `.hctl` started at **x=48** while the word "Chats"
+    occupies **x=20-96**, so the bookmark button sat under the visible title
+    and won the tap — **tapping "Chats" opened Bookmarks**. Five controls
+    plus a long title do not fit on her phone. So `#trashlink` is an ICON
+    (~26px against the word's ~56px), `display:none` unless
+    `homeView==='archive'||'trash'`, and leaving the trash returns to the
+    ARCHIVE it opened from rather than all the way home. Its own class
+    `.trashbtn`, never `.bmk` — that rule's `.on svg{fill:currentColor}`
+    floods a stroke glyph into a blob (the `.stbtn` trap).
+    **The lesson for the next control:** the masthead is FULL. Anything new
+    there must be an icon, must be view-scoped, or must go somewhere else —
+    and `node scripts/test-chats-title-back.js` is what catches it, because
+    it hit-tests every header control under every title.
+  - **TWO STAGES, and the split is the whole point.** Deleting only stamps
+    `deletedAt` — nothing is destroyed, and every row in the trash carries
+    **Restore**. `POST /trash/empty` is the irreversible half (`{chat}` empties
+    one, no body empties all) and it says so in much stronger words than the
+    first confirm: a mis-tap on Delete costs one tap to undo, so the two must
+    not read alike.
+  - **`deletedAt` is NOT a self-clearing stamp and `/reply` never clears it**,
+    which is exactly where it differs from its two neighbours: `hiddenAt` pops
+    back when the chat answers, and `archived` is cleared by her messaging the
+    chat. A deleted chat must never resurrect itself because something posted
+    into it. Presence of the field is the whole test.
+  - **The exclusion lives in ONE place — `sortedChatNames()`** — because every
+    pile derives from it (live, hidden, ★, archive, the category chips, the
+    account tabs). A filter per pile is how a new pile silently forgets;
+    deleting is stronger than archiving, so a chat that is both must show in
+    neither. Pinned by a test that was verified failing without it.
+  - **Empty deletes the chat's messages, Compare pages, asset records and its
+    registry doc — never the image BYTES in Storage.** The same picture is in
+    her iOS gallery and can be referenced by another chat, so clearing a
+    chat's records must not reach through and destroy the pictures. Asset
+    VOTES are left too (keyed `sha1(chat|url)`, so unqueryable by chat, and a
+    few orphaned bytes nothing reads). The registry doc goes LAST, so a
+    failure partway leaves a row she can see and re-empty rather than a
+    half-erased chat that has vanished.
+  - Firestore caps a batch at 500 writes and a long chat holds thousands of
+    messages, so the delete runs in chunks of 400.
+  - Tests: `node scripts/test-chats-trash.js`.
   **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
   Sophie: "when I message a chat that I archived, can it automatically come
   out of the archive").** Archive means "away for good" — and going back to
@@ -1948,6 +2057,36 @@ lifted into a standalone tool later.
   and ARCHIVE each stay put and toggle: tap to go, tap again to come back.
   The lit state and the big serif title say which view she is in. The old
   "← Chats" relabel is gone.
+- **CHAPTERS inside one long thread (Aug 2026, Sophie: "divide the moon milk
+  chat into chapters — aim for somewhere around five but it's OK if there's
+  like four or seven").** A few chats ran for weeks, and re-reading one meant
+  scrolling past everything. `POST /api/chatfeed/chapters { chat, chapters:
+  [{title, at}] }` stores them on the REGISTRY doc; the thread draws a small
+  hairline heading where the chapter changes.
+  - **A chapter is just `{title, at}` and it MOVES NOTHING.** `at` is an ISO
+    time and the chapter owns every message from there until the next one
+    starts — no message is re-keyed, re-timed or copied, so a wrong boundary
+    costs one more POST and can never damage a thread. Send `[]` to clear.
+  - **On the registry, deliberately** — the feed already loads that doc whole
+    (`registry()` hands the client the entire doc), so chapters reach the app
+    with NO extra request and a chat without them renders exactly as before.
+  - **`chapterPlan()` in chats.html is the whole client rule**, and it is a
+    pure function so it can be tested. The thread paints NEWEST FIRST, so a
+    heading is drawn where the chapter CHANGES on the way down — which lands
+    it on that chapter's newest message, i.e. at the TOP of its block.
+    Messages older than the first chapter get NO heading (silence, not a
+    guess) and the dividers hide while the in-thread search filters rows —
+    a heading naming a block that has been filtered away is a lie.
+  - **The route refuses a chat that doesn't exist (404).** Firestore's
+    `set({},{merge:true})` WRITES a missing doc and `sortedChatNames` lists
+    every registry key, so a typo would put a phantom row in her list that
+    only the Admin SDK could remove — that has happened before. The registry
+    read is already cached by `followMoves`, so the guard costs nothing.
+  - A chapter with no title or an unparseable `at` is DROPPED, never guessed
+    at; the stored list is sorted by time whatever order it arrived in.
+  - Tests: `node scripts/test-chats-chapters.js` (the real route against a
+    stubbed Firestore + `chapterPlan` lifted out of the page and executed;
+    verified failing on both halves separately).
 - **Compare pages (July 2026) — publish comparison artifacts INTO the app, not
   as claude.ai artifacts.** When Sophie asks for a comparison sheet, options
   board, side-by-side, or any custom viewing page, POST it to
@@ -2119,7 +2258,6 @@ lifted into a standalone tool later.
     hand-roll a bigger one on a new page — it lives in `/compare.js` +
     `/compare.css`, so every page (including ones posted before this) gets it
     at runtime.
-<<<<<<< HEAD
   - **ANSWER HER ON THE NOTE ITSELF, AND IT RENDERS AS A THREAD (Aug 2026,
     Sophie: "respond to my notes on the note itself so I can respond there
     also — otherwise I forget what we're talking about", then, having used
@@ -2141,17 +2279,6 @@ lifted into a standalone tool later.
       different coloured rules and a tiny ME / CLAUDE label.
     - Keep answers short (the field caps at 2000 chars) and don't re-answer
       a note that already carries your line.
-=======
-  - **ANSWER HER ON THE NOTE ITSELF (Aug 2026, Sophie: "respond to my notes
-    on the note itself so I can respond there also — otherwise I forget what
-    we're talking about, I can't keep it on my mind at once").** A note is a
-    conversation, not a comment box she files into the void. Read the sheet
-    (`GET /verdict` → `texts`), append your answer to the SAME field —
-    `<her words>\n\n— Claude: <short answer>` — and POST the whole field
-    back; the shown note keeps its line breaks, so both voices sit on the
-    item and she writes back under yours. Keep answers short (the field caps
-    at 2000 chars) and don't re-answer a note that already carries your line.
->>>>>>> origin/main
   - **Votes and notes are SEPARATE FIELDS on the same verdict doc** — `ok`
     for the vote, `text` for the note — so writing one never clears the other
     (that is why the route has both). Read them back together with
@@ -2251,24 +2378,76 @@ lifted into a standalone tool later.
   and on a **new Compare page**. Debounce: one push per chat per 10 min +
   60s global gap — the pushes are the Update tab's doorbell, not its
   replacement, so dropped ones are never lost news.
-- **Dormant until the APNs key exists**: `APNS_KEY` (the .p8 — raw PEM,
-  base64, or literal-\n all accepted), `APNS_KEY_ID`, `APNS_TEAM_ID`,
-  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`). Set in
-  Render env (or `config/pipeline` — they're MANAGED_KEYS). Read lazily at
-  send time, so a key landing needs no deploy. **Only Sophie can mint the
-  key** (Apple developer portal → Keys); never paste it into a chat — it
-  goes straight into Render env.
+- **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
+  optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
+  key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all
+  accepted) **OR — the better home, her ask — as a RENDER SECRET FILE**: any
+  `*.p8` in `/etc/secrets`, the project root or cwd is picked up by
+  extension, so Apple's own `AuthKey_<KEYID>.p8` can be uploaded unchanged
+  with no name to get right (`APNS_KEY_FILE` overrides with a path). Env
+  wins; a file MISS is re-checked every 30s, so a key uploaded after the
+  deploy starts working on its own. Everything is read lazily at send time,
+  so a key landing needs no redeploy. **Only Sophie can mint the key** (Apple
+  developer portal → Keys, environment **Sandbox & Production** — TestFlight
+  rides production); never paste it into a chat.
+  **Her ids, for reference: Key ID `G8WMZDR4KK`, Team ID `5XR23N2CBH`** —
+  neither is a credential (the .p8 is), and having them here saves a
+  screenshot hunt next time.
 - **`POST /api/push/test {title?, body?}`** (gated) sends a real push to
   every registered device with per-device results — the end-to-end check.
   `GET /status` → `{configured, devices}`.
 - **iOS side** (`PushDelegate.swift` + `aps-environment` in the
   entitlements): permission asked once at launch, token POSTed with the
   studio token, notifications SUPPRESSED while the app is foregrounded (the
-  Update tab is the notification there), and a **tap opens the Chats screen
-  on the Update tab** (`/chats?view=news` — the page consumes and strips the
-  param, so checkBuild reloads can't drag her back). TestFlight rides the
+  Update tab is the notification there), and a **tap opens THE CHAT IT CAME
+  FROM** (`/chats?chat=<slug>`).
+  - **v1 always opened the Update tab and she rejected it** ("I click on the
+    notification, it lands me in the updates tab, but that notification is
+    already gone because clicking the notification gets rid of it"): iOS
+    consumes the banner on tap, so landing on a LIST leaves her no way to
+    tell which chat just spoke. The payload always carried `chat`; now it
+    routes. A push naming no chat (the `/test` send) still lands on Update.
+  - **BOTH params are stripped at boot** (`?chat=` and `?view=news`) —
+    checkBuild reloads the page on every deploy and keeps the URL, so a
+    leftover param would re-open that thread over whatever she is reading,
+    on every deploy, forever. Pinned by `test-chats-build-reload.js`. TestFlight rides the
   PRODUCTION APNs host. Apple-managed CI signing registers the push
   capability on the App ID automatically (same as the App Group did).
+- **THE HOME-SCREEN WIDGET (Aug 2026, Sophie: "I'd like the widget")** —
+  `ios/ForgeWidget/`, a WidgetKit extension: the Update count big, plus the
+  newest chats (names at small, name + line at medium), tap opens
+  `deckfactory://chats`. Flat paper palette, no gradients.
+  - It reads **`GET /api/chatfeed/widget?limit=`** — one small JSON — and
+    must NEVER pull the real feed (~500KB on a refresh timer). Cost is the
+    cached registry + one capped message read, nothing per-chat.
+  - **Its floor is `notifSeenAt`, and OPENING A CHAT NOW WRITES THAT STAMP
+    TOO** (`markSeen` POSTs `/notif-seen`, Aug 2026). Without it the widget
+    counted everything-since-the-✓ while the tab counted
+    everything-since-she-last-looked — measured live the hour it shipped:
+    **14 against 2**, the same idea disagreeing with itself on two screens,
+    because `seen` is localStorage inside the web view and a widget is a
+    separate process with its own container. Opening a chat already cleared
+    its Update card, so this changed no visible behaviour in the app; it
+    just put the same fact where the widget can read it.
+  - **IT HAS NO ENTITLEMENTS FILE, and that is load-bearing — the first
+    build died on exactly this.** Apple-managed CI signing registers a NEW
+    App ID for the extension but does NOT enable the App GROUP on it, so
+    asking for `com.apple.security.application-groups` fails the archive:
+    *"provisioning profile … doesn't match the entitlements file's value for
+    the com.apple.security.application-groups entitlement"*. DumpShare's
+    group was enabled long before, which is why that target never hits this
+    — **do not copy DumpShare's entitlements into a NEW extension and expect
+    it to build.** Consequence: the widget can't read the settings the app
+    writes (`ImageForgeApp.shareSettingsWithWidget` still writes them), so it
+    calls the DEFAULT server unauthenticated. Fine while STUDIO_TOKEN is off
+    (it is). To restore the group: enable App Groups on
+    `com.sageryza.imageforge.widget` in the developer portal ONCE, then add
+    the entitlements file back — the Swift side already reads the group, so
+    there is no code change.
+  - A failed fetch says "can't reach the feed" rather than showing 0:
+    "nothing new" and "couldn't ask" must never look the same.
+  - Tests: `node scripts/test-widget-feed.js` (drives the real route against
+    a stubbed Firestore).
 - **A dead token self-heals**: 410/`Unregistered` deletes the device doc.
   Tests: `node scripts/test-push.js` (key-paste shapes, verifiable ES256
   JWT, wire format against a local h2c server; Apple itself is only
@@ -3089,6 +3268,28 @@ lifted into a standalone tool later.
   keeps `img` as the untouched full-res original. Costs nothing to re-run.
 
 ## Secretly a Witch (public witchy app)
+- **SHIPPING IT IS ALL CI — no Mac, and that now includes the App Store
+  listing text (Aug 2026).** Three workflows in `memory-library-react`, which
+  is where the App Store Connect secrets live; every one of them takes the
+  bundle id `com.sageryza.secretlyawitch` (the app builds from the
+  `SecretlyAWitch` target in THIS repo's `ios/`, and the workflow checks this
+  repo out — `imageforge_ref` picks the branch):
+  - **Secretly a Witch TestFlight** — build + upload.
+  - **ASC edit metadata** (`ci/asc_metadata.py`) — description, keywords,
+    subtitle, promotional text, What's New, and the App Review contact /
+    demo account / notes. **Run it with `dry_run` ON first**: it prints every
+    current value plus the app and version a write would land on, so nobody
+    edits the wrong app. Fields with no input of their own (supportUrl,
+    marketingUrl, privacyPolicyUrl, demo account…) go through `fields_json`,
+    where `""` CLEARS a field. Edits save on the version but do NOT submit.
+  - **ASC submit release** (`ci/asc_submit_release.py`) — attach the build,
+    set What's New, submit. `resubmit:true` cancels an in-queue submission
+    first so a newer build can take its place.
+  So a rejected version is reworked entirely from a chat: fix the metadata,
+  then submit. **The two things that still need Sophie** are the reviewer's
+  rejection text and any Resolution Center reply — Apple exposes neither in
+  the public API, so paste the message in rather than guessing at it.
+  Screenshots are API-able in principle but that flow is NOT built.
 - **School + quiz art is served as WEBP, never the PNG originals (Aug 2026).**
   `SW_IMG` points at `witch-school/webp/` and every reference goes through
   `SW_EXT`, never a hard-coded `.png`; `QZ_IMG` is the SAME folder (the `qz-*`
