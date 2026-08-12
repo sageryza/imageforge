@@ -686,6 +686,9 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// Vector: describe drawings -> art that scales, and change its colours after
+// the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
+app.get('/vector', serveGated('vector.html', { pill: true }));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
