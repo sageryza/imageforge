@@ -32,6 +32,7 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    header that's in a bigger font green also"). Both titles say "you are
    somewhere other than the chat list", in that place's own colour. */
 #htitle.arch{color:#5d7a5a;}
+#htitle.trash{color:var(--chg);}
 /* A shade smaller than the thread's h1: this row also carries TO DO, ARCHIVE,
    the bookmark and the account switch, inside the pill's 56px reserve.
    Measured across 375/390/430 — at 2.3em the word "Chats" needed 88px and only
@@ -294,6 +295,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    colours — like the row's ⊖ and ✓, they sit on cream in both themes. */
 .archlink.arch-g{color:#5d7a5a;}
 .archlink.hide-r{color:#b3443f;}
+/* Delete reads in the same red as Hide — both take the chat off the list —
+   but it sits last in the row, after the bigger-sounding green Archive. */
+.archlink.del-r{color:#b3443f;}
+/* The trash's own bar: the count on the left, the one irreversible control on
+   the right. Same lit-chip look as the hidden bar (red outline over a light
+   red tint) so the two "this is not the normal list" places match. */
+.trashbar{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin:0 0 10px; padding:9px 12px; border-radius:6px;
+  border:1px solid var(--chg); background:var(--chg-bg, rgba(179,68,63,.08));
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--chg);}
+.tbtn.danger{color:#fff; background:var(--chg); border-color:var(--chg);}
 /* Bookmark LEFT of the word (Sophie), and ALWAYS filled red — it reads as the
    bookmark thing at a glance. Which view is open is the title's job, so this
    one doesn't change with state. Selector is `.bmk.hdrbmk`, not `.hdrbmk`: the
@@ -854,6 +867,7 @@ body.ontop > .float{display:none !important;}
           <button id="bmklink" class="bmk hdrbmk" aria-label="Bookmarked messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           <button id="todolink" class="archlink">To do</button>
           <button id="archlink" class="archlink">Archive</button>
+          <button id="trashlink" class="archlink">Trash</button>
           <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
         </div>
       </div>
@@ -1250,10 +1264,23 @@ function iconHtml(name, cls, blank){
   return '<span class="t-blank'+(cls?' '+cls:'')+'"><span>'+esc((dispName(name)||'?').slice(0,1).toUpperCase())+'</span></span>';
 }
 
+// A deleted chat is in the trash. Unlike `hiddenAt` this never self-clears and
+// unlike `archived` nothing takes it back out on its own — she deleted it, so
+// only Restore or Empty decides what happens next.
+function chatDeleted(n){ return !!(chats[n] && chats[n].deletedAt); }
+function trashNames(){
+  return Object.keys(chats).filter(chatDeleted).sort(function(a,b){
+    return (chats[b].deletedAt||'').localeCompare(chats[a].deletedAt||'');  // newest binned first
+  });
+}
 function sortedChatNames(g){
   // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
   Object.keys(chats).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
+  // EVERY list of chats comes through here — live, hidden, ★, archive, the
+  // category chips, the account tabs — so the trash is excluded once, in the
+  // one place, instead of a filter per pile that a new pile could forget.
+  names=names.filter(function(n){ return !chatDeleted(n); });
   names.sort(function(a,b){
     var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
     return la<lb?1:-1;
@@ -1300,9 +1327,15 @@ function paintHomeChrome(){
   document.getElementById('htxt').textContent = inHidden ? 'Hidden'
     : homeView==='archive' ? 'Archive' : homeView==='bookmarks' ? 'Bookmarks'
     : homeView==='status' ? 'Status' : homeView==='todo' ? 'To do'
-    : homeView==='news' ? 'Update' : 'Chats';
+    : homeView==='news' ? 'Update' : homeView==='trash' ? 'Trash' : 'Chats';
   t.classList.toggle('hid', inHidden);
   t.classList.toggle('arch', homeView==='archive');
+  // The trash wears the same red as the hidden bar — it is the one place on
+  // this screen where a tap destroys something.
+  t.classList.toggle('trash', homeView==='trash');
+  var tr=document.getElementById('trashlink');
+  tr.classList.toggle('on', homeView==='trash');
+  tr.setAttribute('aria-label', homeView==='trash' ? 'Back to all chats' : 'Show deleted chats');
   // The words never change and never disappear (Aug 2026, Sophie: "when I
   // press hidden or archive it just takes me back to chats rather than having
   // a button that says chats and a back arrow — get rid of that button"). Each
@@ -1352,7 +1385,11 @@ function paintHomeChrome(){
 var searchOpen=false;
 // The views that are NOT a list of chats — no category chips, no select.
 function otherView(){
-  return homeView==='bookmarks'||homeView==='status'||homeView==='todo'||homeView==='news';
+  // The trash is a list of CHATS, but not of hers to sort — the category chips
+  // and account tabs mean nothing in there, so it folds its chrome away like
+  // the other non-list views.
+  return homeView==='bookmarks'||homeView==='status'||homeView==='todo'
+      ||homeView==='news'||homeView==='trash';
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
@@ -2463,6 +2500,7 @@ function renderHome(){
   paintCatRow(g);
   document.getElementById('selbtn').classList.toggle('on', selMode);
   paintSelBar();
+  if(homeView==='trash'){ renderTrash(el); return; }
   if(homeView==='news'){ renderNews(el); return; }
   if(homeView==='todo'){ renderTodo(el); return; }
   if(homeView==='bookmarks'){ renderBookmarks(el); return; }
@@ -2696,6 +2734,63 @@ function renderTiles(el,g,names){
     grid.appendChild(b);
   });
 }
+// THE TRASH (Aug 2026, Sophie: "I'd like deleted chats to go to a trash that I
+// can empty"). Deleting is reversible right up until she empties it, so every
+// row carries Restore and the only destructive control is the one at the top,
+// behind a confirm that names what it is about to destroy.
+function renderTrash(el){
+  el.innerHTML='';
+  var names=trashNames();
+  if(!names.length){
+    el.innerHTML='<div class="state">The trash is empty.</div>';
+    return;
+  }
+  var bar=document.createElement('div'); bar.className='trashbar';
+  var n=document.createElement('span');
+  n.textContent=names.length+(names.length===1?' chat':' chats');
+  var em=document.createElement('button'); em.className='tbtn danger'; em.textContent='Empty trash';
+  em.onclick=function(){
+    // Name the cost out loud — this is the one tap on the screen that cannot
+    // be undone, so it must never read like the reversible Delete that put
+    // things here in the first place.
+    askFirst('Permanently delete '+names.length+(names.length===1?' chat':' chats')
+      +' and all their messages? This cannot be undone.', 'Delete forever', function(ok){
+      if(!ok) return;
+      api('/api/chatfeed/trash/empty',{method:'POST',body:JSON.stringify({})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          names.forEach(function(x){ delete chats[x]; });
+          toast('Deleted '+d.chats+(d.chats===1?' chat':' chats'));
+          homeView='live'; renderHome();
+        })
+        .catch(function(){ toast('Couldn’t empty the trash'); });
+    });
+  };
+  bar.appendChild(n); bar.appendChild(em); el.appendChild(bar);
+
+  var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
+  names.forEach(function(name){
+    var row=document.createElement('div'); row.className='crow';
+    row.innerHTML=acctHtml(name)+iconHtml(name,'cr-ic')
+      +'<span class="cr-body"><span class="cr-name">'+esc(dispName(name))+'</span>'
+      +'<span class="cr-note">deleted '+ago(chats[name].deletedAt)+'</span></span>';
+    var rb=document.createElement('button');
+    rb.className='archlink arch-g'; rb.textContent='Restore';
+    rb.onclick=function(e){
+      e.stopPropagation();
+      api('/api/chatfeed/delete',{method:'POST',body:JSON.stringify({chat:name, deleted:false})})
+        .then(function(r){return r.json()})
+        .then(function(d){ if(!d.ok) throw 0;
+          delete chats[name].deletedAt;
+          toast('Restored'); renderHome();
+        })
+        .catch(function(){ toast('Couldn’t restore that'); });
+    };
+    row.appendChild(rb);
+    wrap.appendChild(row);
+  });
+}
+
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
   names.forEach(function(name){
@@ -3010,6 +3105,36 @@ function openChat(name, keepScroll, focusId, noFetch){
       goHome();
     };
     head.querySelector('.no').appendChild(hb);
+  })();
+  // DELETE, the second option beside Archive (Aug 2026, Sophie: "a delete
+  // button as a second option to archive so I can delete this chat so it
+  // doesn't keep confusing things"). Archive is "away for good but still
+  // mine"; this is "stop existing" — the chat leaves every list, including the
+  // archive and the ★ pile, and waits in the trash.
+  //
+  // Nothing is destroyed here, so one plain confirm is enough; the
+  // irreversible tap lives in the trash and says so in much stronger words.
+  (function(){
+    var db=document.createElement('button');
+    db.className='archlink del-r';
+    db.textContent='Delete';
+    db.onclick=function(){
+      askFirst('Delete '+dispName(name)+'? It goes to the trash — you can restore it until you empty it.',
+        'Delete', function(ok){
+        if(!ok) return;
+        api('/api/chatfeed/delete',{method:'POST',body:JSON.stringify({chat:name})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw 0;
+            chats[name]=chats[name]||{}; chats[name].deletedAt=new Date().toISOString();
+            toast('Moved to the trash');
+            // Deleting ends with leaving, the way archiving does — the chat is
+            // no longer on the list she lands on.
+            goHome();
+          })
+          .catch(function(){ toast('Couldn’t delete that'); });
+      });
+    };
+    head.querySelector('.no').appendChild(db);
   })();
   // STAR — keep this one for later. It is the only place the star is a
   // control; everywhere else it is just the red mark on the row.
@@ -4009,6 +4134,7 @@ window.__setSearchOpen=setSearchOpen;
 document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
+document.getElementById('trashlink').onclick=function(){ setHomeView('trash'); };
 document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 

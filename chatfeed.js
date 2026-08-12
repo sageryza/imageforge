@@ -780,6 +780,85 @@ router.post('/archive', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// DELETE a chat — the second option beside Archive (Aug 2026, Sophie: "I'd
+// like there to be a delete button as a second option to archive so I can
+// delete this chat so it doesn't keep confusing things ... and I'd like
+// deleted chats to go to a trash that I can empty").
+//
+// TWO STAGES, deliberately. `deletedAt` on the registry doc takes the chat off
+// every list and nothing is destroyed; only emptying the trash removes data.
+// So a mis-tap costs one tap to undo, and the irreversible step is its own
+// explicit act rather than a consequence of the first one.
+//
+// It is NOT a self-clearing stamp (the `hiddenAt` pattern) and it is NOT
+// cleared by /reply the way `archived` is: a deleted chat must never resurrect
+// itself because something posted into it. Presence of the field is the whole
+// test — `deletedAt` also records WHEN, which is what the trash sorts by.
+router.post('/delete', async (req, res) => {
+  try {
+    const { chat, deleted } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const gone = deleted !== false;
+    await regRef(chat).set({
+      deletedAt: gone ? new Date().toISOString() : admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+    res.json({ ok: true, deleted: gone });
+  } catch (err) { fail(res, err); }
+});
+
+// Firestore caps a batch at 500 writes, and a long-running chat can hold
+// thousands of messages — so delete in chunks rather than one doomed batch.
+async function deleteAll(snap) {
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = db().batch();
+    docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  return docs.length;
+}
+
+// EMPTY THE TRASH — the irreversible half. For every chat carrying
+// `deletedAt`: its messages, its Compare pages, its asset records and its
+// registry doc all go.
+//
+// What this deliberately does NOT touch is the image BYTES in Storage. The
+// same picture is in her iOS gallery and can be referenced by another chat, so
+// clearing a chat's records must never reach through and destroy the pictures
+// themselves. Asset VOTES are left too — they're keyed by sha1(chat|url), so
+// they can't be queried by chat, and an orphaned vote doc is a few bytes that
+// nothing reads.
+//
+// `chat` in the body empties just that one; without it, the whole trash.
+router.post('/trash/empty', async (req, res) => {
+  try {
+    const only = req.body && req.body.chat ? String(req.body.chat).slice(0, 60) : null;
+    const reg = await db().collection(REG).get();
+    const names = reg.docs
+      .filter((d) => d.id !== SETTINGS_DOC && d.get('deletedAt'))
+      .map((d) => d.id)
+      .filter((n) => !only || n === only);
+    if (!names.length) return res.json({ ok: true, chats: 0, messages: 0, pages: 0, assets: 0 });
+
+    let messages = 0; let pages = 0; let assets = 0;
+    for (const chat of names) {
+      const [m, p, a] = await Promise.all([
+        db().collection(MSGS).where('chat', '==', chat).get(),
+        db().collection(PAGES).where('chat', '==', chat).get(),
+        db().collection(ASSETS).where('chat', '==', chat).get(),
+      ]);
+      messages += await deleteAll(m);
+      pages += await deleteAll(p);
+      assets += await deleteAll(a);
+      // The registry doc goes LAST — while it exists the chat is still listed
+      // in the trash, so a failure partway through leaves something she can
+      // see and re-empty rather than a half-erased chat that has vanished.
+      await regRef(chat).delete();
+    }
+    res.json({ ok: true, chats: names.length, messages, pages, assets });
+  } catch (err) { fail(res, err); }
+});
+
 // Hide / unhide a chat (Aug 2026, Sophie) — the red HIDDEN bar at the top of
 // the chat list. A hidden chat leaves the list so she can see the rest, and
 // waits behind the bar.
