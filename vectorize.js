@@ -60,6 +60,10 @@ function tracer() {
   return vtracer;
 }
 
+// A border-touching blob smaller than this share of the main drawing is a
+// neighbour's severed piece, not part of this drawing.
+const STRAY_SHARE = 0.15;
+
 const DEFAULTS = {
   fills: 0,        // 0 = work the count out from the picture
   ink: 130,        // luminance below this is line
@@ -500,6 +504,43 @@ async function cutout(input, { tol = 22, pad = 0.04 } = {}) {
     }
   }
   if (x1 < 0) throw new Error('the whole cell is background — nothing was drawn in it');
+
+  // Drop a fragment that has intruded from a neighbouring cell. Gutter-aware
+  // slicing makes this rare, but a sheet whose drawings genuinely touch has no
+  // clear cut and the severed piece lands here. The test is deliberately narrow
+  // — SMALL and TOUCHING THE BORDER — because that is what an intrusion is: a
+  // drawing's own small parts (a seed, a grass tuft, a dot over an i) sit
+  // inside the frame and are kept, and a big drawing that fills its cell is the
+  // largest component and is kept whatever it touches.
+  const comp = new Int32Array(N).fill(-1);
+  const sizes = [], touches = [];
+  for (let s0 = 0; s0 < N; s0++) {
+    if (bg[s0] || comp[s0] >= 0) continue;
+    const id = sizes.length; let n = 0, edge = false;
+    const st = [s0]; comp[s0] = id;
+    while (st.length) {
+      const i = st.pop(); n++;
+      const x = i % w, y = (i / w) | 0;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) edge = true;
+      if (x > 0 && !bg[i - 1] && comp[i - 1] < 0) { comp[i - 1] = id; st.push(i - 1); }
+      if (x < w - 1 && !bg[i + 1] && comp[i + 1] < 0) { comp[i + 1] = id; st.push(i + 1); }
+      if (y > 0 && !bg[i - w] && comp[i - w] < 0) { comp[i - w] = id; st.push(i - w); }
+      if (y < h - 1 && !bg[i + w] && comp[i + w] < 0) { comp[i + w] = id; st.push(i + w); }
+    }
+    sizes.push(n); touches.push(edge);
+  }
+  const biggest = Math.max(...sizes);
+  const drop = sizes.map((n, j) => touches[j] && n < biggest * STRAY_SHARE);
+  if (drop.some(Boolean)) {
+    x0 = w; y0 = h; x1 = -1; y1 = -1;
+    for (let i = 0; i < N; i++) {
+      if (!bg[i] && drop[comp[i]]) { bg[i] = 1; out[i * 4 + 3] = 0; continue; }
+      if (bg[i]) continue;
+      const x = i % w, y = (i / w) | 0;
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  }
   const cw = x1 - x0 + 1, chh = y1 - y0 + 1;
   const side = Math.round(Math.max(cw, chh) * (1 + pad * 2));
   // Trim to the ink then re-pad SQUARE, so every card in a set reads the same
@@ -515,17 +556,74 @@ async function cutout(input, { tol = 22, pad = 0.04 } = {}) {
   return trimmed;
 }
 
-/** Slice a 2x2 sheet into its four cells, in reading order. */
+/** Where a sheet's real gutters are, one boundary at a time.
+ *
+ * Cutting on exact fractions LOOKS right and is not: the model does not place
+ * its drawings on a perfect grid, and a boundary that lands on ink does two
+ * visible things at once — it clips the drawing it cuts through, and it leaves
+ * the severed piece behind in the NEIGHBOURING cell as a stray mark. Both
+ * shipped: on a 3x3 sheet the second row cut fell at y=682 while the real
+ * gutter was 622-674, so the bottom row's drawings lost their tops and the
+ * sailboat came out with a dot floating above its flag — the tail of the
+ * balloons' string from the cell above.
+ *
+ * So: project the ink onto each axis, and for every interior boundary take the
+ * WIDEST run of completely clear pixels near where the boundary should be,
+ * cutting through its middle. With no clear run the fraction is used after all
+ * — there is no better answer when the drawings genuinely touch — and the
+ * caller is told, because that sheet needs looking at.
+ */
+async function gutters(input, cols, rows) {
+  const { data, info } = await sharp(input).flatten({ background: '#ffffff' })
+    .removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  const colInk = new Float64Array(W), rowInk = new Float64Array(H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 3;
+      if (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2] < 245) { colInk[x]++; rowInk[y]++; }
+    }
+  }
+  const cutsOn = (ink, n, len) => {
+    const at = [0], missed = [];
+    for (let k = 1; k < n; k++) {
+      const want = Math.round((k * len) / n);
+      // Search a third of a cell either side — enough to find a gutter the
+      // model nudged, not so much that it can find the NEXT gutter along.
+      const reach = Math.floor(len / n / 3);
+      let best = null;
+      for (let x = Math.max(1, want - reach); x <= Math.min(len - 2, want + reach); x++) {
+        if (ink[x] !== 0) continue;
+        let e = x;
+        while (e + 1 < len && ink[e + 1] === 0) e++;
+        if (!best || e - x > best[1] - best[0]) best = [x, e];
+        x = e;
+      }
+      if (best) at.push(Math.round((best[0] + best[1]) / 2));
+      else { at.push(want); missed.push(want); }
+    }
+    at.push(len);
+    return { at, missed };
+  };
+  const cx = cutsOn(colInk, cols, W), cy = cutsOn(rowInk, rows, H);
+  return { x: cx.at, y: cy.at, missed: cx.missed.length + cy.missed.length };
+}
+
+/** Slice a sheet into its cells, in reading order, cutting on the real gutters.
+ *  Returns the buffers; `slice.report` on the result carries what it did. */
 async function slice(input, cols = 2, rows = 2) {
-  const meta = await sharp(input).metadata();
-  const cw = Math.floor(meta.width / cols), chh = Math.floor(meta.height / rows);
+  const g = await gutters(input, cols, rows);
   const out = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      out.push(await sharp(input).extract({ left: c * cw, top: r * chh, width: cw, height: chh }).png().toBuffer());
+      out.push(await sharp(input).extract({
+        left: g.x[c], top: g.y[r],
+        width: g.x[c + 1] - g.x[c], height: g.y[r + 1] - g.y[r],
+      }).png().toBuffer());
     }
   }
+  out.report = { x: g.x, y: g.y, missed: g.missed };
   return out;
 }
 
-module.exports = { vectorize, flatten, cutout, slice, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels };
+module.exports = { vectorize, flatten, cutout, slice, gutters, DEFAULTS, kmeans, pickFills, edt, dilate, medianLabels };
