@@ -662,8 +662,13 @@ lifted into a standalone tool later.
   Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly. **Nothing about the
   tracer is tuned per quality or per grid** — they are inputs, the defaults are
   untouched; the only per-drawing options are `fills` and `darkBackground`.
-  **5x5 is past the edge** (measured on a real 21-icon sheet: 204px cells, 3 of
-  21 drew lines 8.6-9.3% fat), which is why the route caps at 9. And **webp
+  **5x5 TRACES FINE** — on a real 21-icon sheet (204px cells) 3 of 21 drew lines
+  8.6-9.3% fat, but put those three beside their sources and they are
+  indistinguishable: the 8% figure is a regression detector calibrated on the
+  2x2 cards, NOT a threshold of visible badness. An earlier note here called
+  5x5 "past the edge" and that was wrong. The route still caps at 9 for a
+  different reason — this module has never DRAWN a 5x5, so the model placing
+  25 described drawings from this prompt is untested. And **webp
   costs the trace nothing** — measured same-sheet against PNG, max 7.0% vs
   7.4%; the "PNG traces better" claim was reasoning and it was wrong, so never
   re-render a sheet hoping to improve a trace.

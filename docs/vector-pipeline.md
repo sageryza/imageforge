@@ -96,13 +96,22 @@ much is IN each picture:
 - **2x2** — a drawing that needs detail (a figure doing something, a scene).
 - **3x3** — simple objects and icons. 0.7c a drawing instead of 1.5c.
 
-**5x5 is past the edge.** Measured on a real 21-icon 5x5 sheet another chat
-made: 204px cells, drawings 111-206px, and **3 of the 21 drew their lines
-8.6-9.3% heavier than the source** — just past the 8% the cards are held to,
-always in the FAT direction, which is what less pixel evidence of a line's edge
-looks like. The rest were fine. So 25 is usable for icons you will look at, and
-not something to trust unattended; the route caps at 9 for that reason. (That
-sheet was a webp, and webp is NOT a handicap — see the gotcha below.)
+**5x5 traces fine — and the 8% number is NOT a quality cliff.** Measured on a
+real 21-icon 5x5 sheet another chat made: 204px cells, drawings 111-206px, and
+3 of the 21 drew their lines 8.6-9.3% heavier than the source. That was first
+written up here as "past the edge", which was wrong, and the correction matters
+because the number is easy to misread: **8% is a REGRESSION DETECTOR calibrated
+on the 2x2 cards, not a threshold of visible badness.** Put the three worst
+side by side with their source cells and they are indistinguishable — the key
+and the magnifying glass are identical to the eye, the target is a hair heavier
+in the ring outlines and arguably crisper for it. Judge a batch by looking, and
+use the percentage only to catch a change.
+
+So the tracer is not what limits a 5x5. Two honest caveats before anyone leans
+on it: it is ONE sheet, and it was drawn by another pipeline — **this module has
+never drawn a 5x5 itself**, so whether the model reliably places 25 described
+drawings from this prompt is untested. That, not the trace, is why the route
+still caps at 9. Settling it costs one 6c sheet.
 
 Layouts are 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3). **5, 7 and 8 do not
 tile** — they take the next layout up and the spare cells are drawn and thrown
