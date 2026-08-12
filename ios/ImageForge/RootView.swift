@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector
     var id: String { rawValue }
 
     var title: String {
@@ -37,6 +37,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "Characters"
         case .films:     return "Films"
         case .freeform:  return "Freeform"
+        case .vector:    return "Vector"
         }
     }
 
@@ -70,6 +71,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "The recurring people — cards that keep faces consistent."
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
+        case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         }
     }
 
@@ -107,6 +109,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "film.stack"
         // A loose scribble — the page with no house style.
         case .freeform:  return "scribble.variable"
+        // fallback; .vector uses a custom asset (see customIcon)
+        case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
         }
     }
 
@@ -119,6 +123,7 @@ enum Tool: String, CaseIterable, Identifiable {
         switch self {
         case .test:       return "TestTube"
         case .playground: return "Playground"
+        case .vector:     return "Vector"
         default:          return nil
         }
     }
@@ -158,6 +163,11 @@ enum Tool: String, CaseIterable, Identifiable {
         // Page owns its whole header (Aug 2026 v2 design rule) — a bare
         // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
         case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
+        // Native bar + chevron, like the other eyebrow-and-title tool pages —
+        // only a page owning its WHOLE chrome (Chats, Story Room) gets a bare
+        // host. See the headers design rule.
+        case .vector:    GatedWebTool(path: "/vector", name: "Vector", icon: "circle.hexagongrid")
+                            .forgeToolBar("Vector")
         }
     }
 }
@@ -455,6 +465,8 @@ struct RootView: View {
             if t == .scratchpad { return false }
             // Freeform is a web page with its own injected pill too.
             if t == .freeform { return false }
+            // Vector is a web page with its own injected pill too.
+            if t == .vector { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.
@@ -546,7 +558,7 @@ private struct HomeGrid: View {
     /// test tube beside the masthead. Playground and **Freeform** also sit on
     /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
     /// this filter narrows to them, it doesn't own them.
-    private static let imageTools: [Tool] = [.playground, .test, .freeform]
+    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {
@@ -590,7 +602,7 @@ private struct HomeGrid: View {
         // deep links and history. Story Room itself is pinned FIRST and is
         // NOT a film tool (her call — it came out of the movie tab).
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
-                                            && $0 != .song
+                                            && $0 != .song && $0 != .vector
                                             && !$0.isBusiness && !$0.isCraft
                                             && !Self.movieTools.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
@@ -650,12 +662,29 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Side of a shortcut button. Sized when the row held SIX and they fit the
-    /// narrowest phone we care about (375pt wide: 6 x 48 = 288 inside 343 of
-    /// usable row), so the five it holds now have room to spare. The square is
-    /// a FIXED size centred in an equal-width flexible cell — never a share of
-    /// the row width, which is what stretched them into rectangles in v1.
-    private static let squareSide: CGFloat = 48
+    /// Side of a shortcut button, and the icon inside it.
+    ///
+    /// **60, up from 48 (Aug 2026, Sophie: "the icons are too small — they
+    /// were set when there were six and now there's only five, make them fill
+    /// out the space a little better").** 48 was sized for SIX squares on the
+    /// narrowest phone (375pt: 6 x 48 = 288 inside 343 of usable row), and the
+    /// row has held five since the Dump square came off — so a quarter of the
+    /// row was gap.
+    ///
+    /// The arithmetic, so the next change does not have to guess. Usable row =
+    /// screen width - 32 (the row's own 16pt padding each side); five squares
+    /// leave (usable - 5 x side) / 4 between them:
+    ///
+    ///     375pt phone   343 usable   gap 10.8    (was 20.6 at 48)
+    ///     390pt phone   358 usable   gap 14.5    (was 24.4)
+    ///     430pt phone   398 usable   gap 24.5    (was 34.4)
+    ///
+    /// 375 is the floor we hold to, and 60 still leaves a real gap there. This
+    /// makes the row ~12pt taller, which pushes the module cards down — Sophie
+    /// said that is fine.
+    private static let squareSide: CGFloat = 60
+    /// The glyph inside, scaled with the square (48/21 ≈ 60/26).
+    private static let squareIcon: CGFloat = 26
 
     /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
     /// opens a tool (Chats); the other four are filters on the cards below —
@@ -671,21 +700,21 @@ private struct HomeGrid: View {
     private var shortcutRow: some View {
         HStack(spacing: 0) {
             square(lit: false, label: "Chats") { open(.chats) } icon: {
-                Image(systemName: Tool.chats.icon).font(.system(size: 21))
+                Image(systemName: Tool.chats.icon).font(.system(size: Self.squareIcon))
             }
             // Deliberately NOT the generate star: that glyph is reserved for
             // controls that spend a model call, and a filter spends nothing.
             square(lit: filter == .image, label: "Pictures") { toggle(.image) } icon: {
-                Image(systemName: "photo").font(.system(size: 21))
+                Image(systemName: "photo").font(.system(size: Self.squareIcon))
             }
             square(lit: filter == .business, label: "Business") { toggle(.business) } icon: {
-                Image(systemName: "briefcase").font(.system(size: 21))
+                Image(systemName: "briefcase").font(.system(size: Self.squareIcon))
             }
             square(lit: filter == .crafts, label: "Old fashioned") { toggle(.crafts) } icon: {
-                quiltGlyph(21)
+                quiltGlyph(Self.squareIcon)
             }
             square(lit: filter == .movie, label: "Movies & sound") { toggle(.movie) } icon: {
-                Image(systemName: "film").font(.system(size: 21))
+                Image(systemName: "film").font(.system(size: Self.squareIcon))
             }
         }
         .padding(.horizontal, 16)
