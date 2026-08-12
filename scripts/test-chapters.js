@@ -17,8 +17,13 @@
  *      transcript slice, never a summary of it
  *   5. an attachment path renders as a chip carrying the real filename
  *   6. every chapter carries a note box (the standing rule)
- *   7. the list is [data-nostop] — taps pause a running autoscroll, never
- *      start one (the embedded-iframe contract)
+ *   7. tapping the PROSE toggles the autoscroll like any other page, while
+ *      every control is exempt — the row buttons, the level bar and the note
+ *      box by the shared PILL_SKIP list, a long message by its own
+ *      [data-nostop] (its expander is a .onclick property, which PILL_SKIP
+ *      cannot see). The toggle itself only exists in the app's embedded
+ *      viewer, so it is proven in scripts/test-page-embed.js; here we pin the
+ *      MARKUP that decides it.
  *
  * Same harness as test-judge.js: headless Chromium, tiny server, the page
  * reports its verdict over HTTP. Skips with exit 0 if no Chromium.
@@ -88,7 +93,13 @@ window.addEventListener('error', function(e){
 
     // 1 — rows, and the vertical axis
     ok(rows.length===2 && body(0).hidden && body(1).hidden, 'every chapter is a row, all closed to start');
-    ok(m.hasAttribute('data-nostop'), 'the list is data-nostop (taps never START the scroll)');
+    // v5, Sophie: "only the pill works to scroll — add tapping back, just
+    // exempt the places to open and close things". The blanket opt-out on the
+    // whole list is what made the pill the only way to start it.
+    ok(!m.hasAttribute('data-nostop'),
+       'the list is NOT blanket data-nostop, so a tap on the prose can scroll');
+    ok(!!m.querySelector('.cx-head') && m.querySelector('.cx-head').tagName === 'BUTTON',
+       'a chapter row is a real <button>, so the shared exempt list covers it');
 
     rows[0].querySelector('.cx-head').click();
     ok(!body(0).hidden && rows[0].classList.contains('on'), 'tapping a chapter opens it');
@@ -166,7 +177,9 @@ window.addEventListener('error', function(e){
       icons:{ lesson:'/icon-snake.webp' },
       chapters:[
         { id:'p', title:'Its own', when:'Jul 28', kind:'lesson', icon:'/li-08-astrology.webp',
-          l1:'g', l2:['a'], msgs:[{ who:'sophie', at:'2026-07-28T18:25:00Z', text:'hi' }] },
+          l1:'g', l2:['a'], msgs:[
+            { who:'sophie', at:'2026-07-28T18:25:00Z', text:'x'.repeat(300) },
+            { who:'sophie', at:'2026-07-28T18:26:00Z', text:'hi' }] },
         { id:'q', title:'Falls back', when:'Jul 28', kind:'lesson',
           l1:'g', l2:['a'], msgs:[{ who:'sophie', at:'2026-07-28T18:26:00Z', text:'ho' }] },
       ]});
@@ -224,6 +237,16 @@ window.addEventListener('error', function(e){
        'a chapters page hides the eyebrow and the tagline, keeping the h1');
     ok(getComputedStyle(document.querySelector('.wrap > h1')).display !== 'none',
        'the title itself stays');
+
+    // the tap opt-out, on the mount that actually carries a long message
+    var m3 = document.getElementById('chapters3');
+    m3.querySelector('.cx-ch .cx-head').click();
+    m3.querySelector(':scope > .cx-lv button[data-lv="3"]').click();
+    var lm = m3.querySelector('.cx-msg.long'), sm = m3.querySelector('.cx-msg:not(.long)');
+    ok(!!lm && lm.hasAttribute('data-nostop'),
+       'a LONG message is data-nostop — its expander is a .onclick property');
+    ok(!!sm && !sm.hasAttribute('data-nostop'),
+       'a short message has no handler, so it is left tappable-to-scroll');
 
     // 8 — v3, Sophie: "get rid of the numbers"
     ok(!m.querySelector('.cx-n') && !/^\s*\d\d\b/.test(rows[0].querySelector('.cx-t').textContent),

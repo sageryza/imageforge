@@ -62,9 +62,10 @@
      message shows two lines until tapped, short ones show whole.
 
    Style: compare.css tokens only — they are also what keeps the injected
-   autoscroll pill from rendering black. The chapter list is [data-nostop]
-   because its ordinary content is tappable: a tap there PAUSES a running
-   scroll but never starts one (the embedded-iframe contract). */
+   autoscroll pill from rendering black. TAPPING THE PROSE STARTS/STOPS THE
+   AUTOSCROLL like any other page (v5) — the controls are real buttons and
+   inputs, so the shared exempt list handles them; only a long message needs
+   its own [data-nostop], since its expander is a .onclick property. */
 (function () {
   if (window.__chapters) return;
 
@@ -236,7 +237,20 @@
     var mount = document.getElementById(opts.mount ? opts.mount.replace('#', '') : 'chapters');
     if (!mount) return;
     mount.className = 'cx';
-    mount.setAttribute('data-nostop', '');
+    /* TAP THE PAGE TO SCROLL (Sophie, Aug 2026: "right now only the pill
+       works to scroll, but usually I can just tap the page — add that back,
+       just exempt the places to open and close the things").
+       v1 marked the WHOLE list [data-nostop], which in the app's embedded
+       viewer means "pause a running scroll, never start one" — so the pill
+       was the only way to start it. That blanket was over-broad: every
+       control here is already a real <button>, <textarea> or <input>, and
+       the shared exempt list (a,button,summary,details,input,textarea,
+       select,label,video,audio,[onclick]) covers those by itself. So the
+       chapter rows, the level bar and the note box do their own job without
+       toggling the scroll, and a tap on the PROSE between them scrolls.
+       The one gap the shared list cannot see is a long message: its expander
+       is a `.onclick` PROPERTY, not an `[onclick]` attribute, so those rows
+       are marked individually below. */
 
     var open = null;                       // one at a time — her spec
     var level = 1;                         // ONE level for the page, session-only
@@ -334,7 +348,11 @@
             var me = m.who === 'sophie';
             var txt = body(m.text || '');
             var long = (m.text || '').length > 220;
-            h += '<div class="cx-msg ' + (me ? 'me' : 'them') + (long ? ' long' : '') + '">' +
+            // a LONG message opens on tap, and its handler is a .onclick
+            // PROPERTY — invisible to the shared [onclick] exempt — so mark it
+            // pause-only by hand. A short one has no handler and scrolls.
+            h += '<div class="cx-msg ' + (me ? 'me' : 'them') + (long ? ' long' : '') +
+              '"' + (long ? ' data-nostop' : '') + '>' +
               '<div class="cx-mhead"><span class="cx-who">' + (me ? 'me' : 'claude') + '</span>' +
               '<span class="cx-time">' + esc(when(m.at)) + '</span>' +
               '<span class="cx-more">more</span></div>' +
