@@ -54,42 +54,42 @@ const tileBg = (img) => (img && BG[img]) ? BG[img] : '#efe9df';
 // sections: standalone grids.  [title, compare-page id, tile image id]
 const SECTIONS = [
   { cat:'Understanding yourself', items:[
-    ['ADHD & Autism','wkAeaIbOHrrs1lfyiY2G','nd-web'],
-    ['General Dysphoria','RlRnbsyCDrWFvgfjMMSH','gd-mask-v2'],
-    ['Two Questions, Not One','CHWhYZyH5eTR2DTRNyGx','gx-field'],
-    ['Inside & Outside Thoughts','c4WWSdgGZwKawuj8AJ1e','cv-vehicle'],
+    ['ADHD & Autism','ByXo6x0LfW00489NDQdo','nd-web'],
+    ['General Dysphoria','Q3xwGW2fiQsAVrzggPGZ','gd-mask-v2'],
+    ['Two Questions, Not One','SC69qxFZx0RDiq6KwTKB','gx-field'],
+    ['Inside & Outside Thoughts','9E7N0EeYW5jgt2x5G7mv','cv-vehicle'],
   ]},
   { cat:'Meaning & art', items:[
-    ['The Metaphor Machine','XIulCQGAkr2IaHW79e9z','mm-machine'],
-    ['Where Do You Crop Art?','u10reFkKkeV7DDLfwcsG','na-process'],
-    ['Art Is Forgiving','zUiF9vF3v31tM9EHiX5E','af-garage-v2'],
+    ['The Metaphor Machine','YIDcvSj3JuwVBkrwMjVz','mm-machine'],
+    ['Where Do You Crop Art?','UuJEyuuwSCLDa1TCiXls','na-process'],
+    ['Art Is Forgiving','mNNXWmK9vhpwOU4uEjql','af-garage-v2'],
   ]},
   { cat:'Magic & belief', items:[
-    ['Astrology','pfkJX461R7lKDZN9rsiT','zw-cast'],
-    ['Instrumentalism, Part I','V9n5OdTOVz2TsslNhBuz','in-secretcode'],
-    ['Animal Magic','gDIYNqnLaODjlnWs6gzp','an-snake'],
-    ['OCD & Witchcraft','lLLfRpf29cdGbInr0dIV','oc-witchkit'],
-    ['God Only Works in Mysterious Ways','Y8kNK5EkTN0AFHGW6bDr','gm-constellation'],
+    ['Astrology','JySQT9LBXLcoT7QKvUVR','zw-cast'],
+    ['Instrumentalism, Part I','3cPVrYrQU0Qm5zAcRGSz','in-secretcode'],
+    ['Animal Magic','NXBSZmtfTFK9IfrweazO','an-snake'],
+    ['OCD & Witchcraft','SoIPg25agA0UpiV1Lw4z','oc-witchkit'],
+    ['God Only Works in Mysterious Ways','lP9vCQrnuMuUSIU35rw2','gm-constellation'],
   ]},
   { cat:'Life & culture', items:[
-    ['Synthetic Learning Syndrome','CKttNQvZyt8y54vWg2MA','sl-donut'],
-    ['For the Hate of the Game','zLN3YvU4Ad2klIS0bjpK','ht-loft-v2'],
-    ['What Do You Want to Wake Up To?','zBftSk1m7zjU6jTPccXC','md-bubble'],
+    ['Synthetic Learning Syndrome','9JzrwsuJLoKdGdn81VAd','sl-donut'],
+    ['For the Hate of the Game','4R00zgEqu61ZGHkjPBWs','ht-loft-v2'],
+    ['What Do You Want to Wake Up To?','LeMPACG1D5PiXf8VfMqZ','md-bubble'],
   ]},
   { cat:'Stories', items:[
-    ['Valued Customer','YtPdWSAiIUT2ttey17ME',''],
+    ['Valued Customer','PRu8pIG8ghQDMeMlgEWH',''],
   ]},
 ];
 // series: connected paths.  [title, compare-page id, tile image id]
 const SERIES = [
   { cat:'How to Read People', steps:[
-    ['I. Actions & Intentions','Z1Swmoud4qxBNgQmKu8y','hr-scatter'],
-    ['II. The Pattern Collector','2kBUIEuBEZzzb43GSNIE','hr-safespace-v2'],
-    ['III. Expert Mode','Aefj0WBAVygRyWXXXjIQ',''],
+    ['I. Actions & Intentions','VaRqHn91AQtVB3Qp4EZ1','hr-scatter'],
+    ['II. The Pattern Collector','QWCJgo1gWDjiCv7ECWcv','hr-safespace-v2'],
+    ['III. Expert Mode','G5FKnJySIONoAlYiumra',''],
   ]},
   { cat:'Manifestation', steps:[
-    ['My Experiment with Manifestation','TYSnJ3xHQImDCgrQ1hFh','mf-bed'],
-    ['In Case You’re Curious (Part II)','vmdVVWn0tHMSmtjS1My6','c2-herbalist-v2'],
+    ['My Experiment with Manifestation','aOjLrh2UHjHxaNaIY6xU','mf-bed'],
+    ['In Case You’re Curious (Part II)','XIiEZIBn24YPVZJl4Yth','c2-herbalist-v2'],
   ]},
 ];
 
