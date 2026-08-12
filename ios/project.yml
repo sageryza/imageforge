@@ -78,13 +78,10 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
+
   # The home-screen widget (Aug 2026, Sophie: "I'd like the widget") — the
   # Update tab's count + the newest chats, refreshed on iOS's own timeline
-  # from ONE small endpoint (/api/chatfeed/widget). It reads the server URL
-  # and studio token out of the App Group below, which the app writes at
-  # launch: a widget extension has its own container and cannot see the app's
-  # UserDefaults. Signing needs nothing new — Apple-managed CI signing
-  # registers this extension's App ID the same way it did DumpShare's.
+  # from ONE small endpoint (/api/chatfeed/widget), never the real feed.
   ForgeWidget:
     type: app-extension
     platform: iOS
@@ -94,7 +91,19 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sageryza.imageforge.widget
         PRODUCT_NAME: ForgeWidget
-        CODE_SIGN_ENTITLEMENTS: ForgeWidget/ForgeWidget.entitlements
+        # NO ENTITLEMENTS FILE, deliberately (Aug 2026 — the first build failed
+        # exactly here): Apple-managed signing registers a NEW App ID for this
+        # extension but does NOT enable the App GROUP on it, so the profile it
+        # generates has no app-groups entitlement and the archive dies with
+        # "profile doesn't match the entitlements file's value for
+        # com.apple.security.application-groups". DumpShare's group was
+        # enabled long before, which is why that target has never hit this.
+        # Consequence: the widget cannot read the app's shared settings, so it
+        # calls the DEFAULT server unauthenticated — fine while STUDIO_TOKEN is
+        # off (it is), and it fails loudly ("can't reach the feed") rather than
+        # showing a wrong number if that ever changes. To restore the group:
+        # enable App Groups on com.sageryza.imageforge.widget in the developer
+        # portal ONCE, then add the entitlements file back here.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: ForgeWidget/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: "Deck Factory"

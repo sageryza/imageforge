@@ -2282,11 +2282,21 @@ lifted into a standalone tool later.
     per-device `seen` mark in the web view's localStorage — a widget process
     can't read that. So the ✓ settles the widget; merely opening a chat does
     not. Erring toward one row too many is the right way round for a glance.
-  - **The app hands it the server URL + studio token through the App GROUP**
-    (`ImageForgeApp.shareSettingsWithWidget`, on launch and on every
-    foreground). A widget extension has its own container and cannot see the
-    app's UserDefaults — without this it can only hit the default server
-    unauthenticated, which breaks the day STUDIO_TOKEN is switched on.
+  - **IT HAS NO ENTITLEMENTS FILE, and that is load-bearing — the first
+    build died on exactly this.** Apple-managed CI signing registers a NEW
+    App ID for the extension but does NOT enable the App GROUP on it, so
+    asking for `com.apple.security.application-groups` fails the archive:
+    *"provisioning profile … doesn't match the entitlements file's value for
+    the com.apple.security.application-groups entitlement"*. DumpShare's
+    group was enabled long before, which is why that target never hits this
+    — **do not copy DumpShare's entitlements into a NEW extension and expect
+    it to build.** Consequence: the widget can't read the settings the app
+    writes (`ImageForgeApp.shareSettingsWithWidget` still writes them), so it
+    calls the DEFAULT server unauthenticated. Fine while STUDIO_TOKEN is off
+    (it is). To restore the group: enable App Groups on
+    `com.sageryza.imageforge.widget` in the developer portal ONCE, then add
+    the entitlements file back — the Swift side already reads the group, so
+    there is no code change.
   - A failed fetch says "can't reach the feed" rather than showing 0:
     "nothing new" and "couldn't ask" must never look the same.
   - Tests: `node scripts/test-widget-feed.js` (drives the real route against

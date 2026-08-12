@@ -7,10 +7,18 @@ import SwiftUI
 // there. Tapping anywhere opens Deck Factory on the Chats screen.
 //
 // It reads ONE small endpoint (GET /api/chatfeed/widget) rather than the real
-// feed, which is ~500KB and would be absurd on a refresh timer. Everything it
-// needs to make that call — the server URL and the studio token — is written
-// into the shared App Group by the app at launch, because a widget extension
-// has its own container and cannot see the app's UserDefaults.
+// feed, which is ~500KB and would be absurd on a refresh timer.
+//
+// IT TALKS TO THE DEFAULT SERVER UNAUTHENTICATED, and that is a signing
+// constraint rather than a choice (Aug 2026 — the first build failed on it):
+// this extension gets a NEW App ID from Apple-managed CI signing, which does
+// not enable the App GROUP on it, so an app-groups entitlement here fails the
+// archive outright. Without the group it cannot read the settings the app
+// writes. Fine today — STUDIO_TOKEN is off on the live server — and the
+// failure mode if that changes is the honest one: "can't reach the feed",
+// never a wrong number. The lookup below is left intact so restoring the
+// group (enable App Groups on com.sageryza.imageforge.widget in the developer
+// portal once, re-add the entitlements file) needs no code change at all.
 
 private let APP_GROUP = "group.com.sageryza.imageforge"
 private let DEFAULT_SERVER = "https://imageforge-q125.onrender.com"
