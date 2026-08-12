@@ -1110,6 +1110,44 @@ router.post('/update', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// CHAPTERS — headings inside a long thread (Aug 2026, Sophie: a few chats ran
+// for weeks and re-reading them means scrolling past everything). A chapter is
+// just { title, at }: `at` is an ISO time, and the chapter owns every message
+// from there until the next one starts. The thread draws a heading where the
+// chapter changes; nothing is moved, renamed or re-keyed, so getting the
+// boundaries wrong costs one more POST and never touches a message.
+//
+// Stored on the registry doc, which the feed already loads whole — so chapters
+// reach the app with NO extra request, and a chat without them renders exactly
+// as before. Send `[]` to clear.
+router.post('/chapters', async (req, res) => {
+  try {
+    const { chat, chapters } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!Array.isArray(chapters)) return res.status(400).json({ error: 'chapters must be an array' });
+    const clean = [];
+    for (const c of chapters.slice(0, 40)) {
+      const title = String((c && c.title) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      const t = new Date((c && c.at) || '').getTime();
+      // a chapter with no title or an unparseable time is dropped, not guessed
+      if (!title || isNaN(t)) continue;
+      clean.push({ title, at: new Date(t).toISOString() });
+    }
+    clean.sort((a, b) => (a.at < b.at ? -1 : 1));
+    const target = await followMoves(chat);
+    // Refuse a chat that doesn't exist. Firestore's set({},{merge:true}) WRITES
+    // a missing doc, and sortedChatNames lists every registry key — so a typo
+    // here would put a phantom row in her chat list that only the Admin SDK
+    // could remove. That has happened before; the registry read is already
+    // cached by followMoves, so the guard costs nothing.
+    if (!(await registry()).chats[target]) return res.status(404).json({ error: 'no such chat' });
+    await regRef(target).set({
+      chapters: clean.length ? clean : admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+    res.json({ ok: true, chat: target, chapters: clean });
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/chatnote', async (req, res) => {
   try {
     const { chat, note } = req.body || {};

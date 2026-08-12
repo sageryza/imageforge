@@ -800,6 +800,14 @@ body.selecting .ckbtn,body.selecting .hidebtn{display:none;}
    the home screen's search-all-chats bar. Collapsed by default behind the
    magnifier in the tab row, so it costs no space until she wants it; it reuses
    .asearch's shape so both in-thread searches look like one control. */
+/* A chapter heading inside a thread. The app's LABEL voice — sans, caps, a
+   little tracking, NOT bold (see the sans rule in CLAUDE.md) — sitting on a
+   hairline so it reads as a division rather than another message. */
+.chapdiv{display:flex; align-items:center; gap:10px; margin:26px 0 14px;}
+.chapdiv:first-child{margin-top:4px;}
+.chapdiv::before,.chapdiv::after{content:''; flex:1; height:1px; background:var(--line);}
+.chapdiv span{font-family:-apple-system,sans-serif; font-size:10.5px; font-weight:400;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--ink2); white-space:nowrap;}
 .msgsearch{display:none; position:relative; margin:0 0 14px;}
 .msgsearch.open{display:block;}
 .msgcount{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em;
@@ -1231,6 +1239,29 @@ function groups(){
   msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?-1:1; })
     .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
   return g;
+}
+// CHAPTERS — headings inside one long thread (POST /api/chatfeed/chapters,
+// stored on the registry doc, so they ride the feed read the page already
+// makes). A chapter owns every message from its `at` until the next one
+// starts. `rendered` arrives NEWEST FIRST — the order the thread paints — so
+// a heading belongs where the chapter CHANGES on the way down, which puts it
+// at the TOP of that chapter's block and reads correctly downward.
+// Returns one entry per message: its heading, or null.
+// A chat with no chapters gets all nulls, so the thread renders exactly as it
+// always did — silence, never a guess (the same rule the working tint follows).
+function chapterPlan(rendered, chaps){
+  var out=(rendered||[]).map(function(){ return null; });
+  if(!chaps||!chaps.length) return out;
+  var last=null;
+  for(var i=0;i<rendered.length;i++){
+    var t=(rendered[i]&&rendered[i].created)||'';
+    var ix=-1;
+    // Chapters arrive sorted, so the LAST one that has already begun owns it.
+    for(var c=0;c<chaps.length;c++){ if(chaps[c].at<=t) ix=c; }
+    if(ix>=0&&ix!==last) out[i]=chaps[ix].title;
+    last=ix;
+  }
+  return out;
 }
 // The label Sophie sees for a chat. Defaults to the underlying chat key
 // (branch-derived); a custom displayName set in-app overrides it. Messages
@@ -3249,7 +3280,17 @@ function openChat(name, keepScroll, focusId, noFetch){
   // Each row is indexed once against the text it was built from, not re-read
   // out of the DOM on every keystroke.
   var mrows=[];
-  list.slice().reverse().forEach(function(m){
+  var chaprows=[];
+  var rendered=list.slice().reverse();
+  var plan=chapterPlan(rendered, ((chats[name]||{}).chapters)||[]);
+  rendered.forEach(function(m,i){
+    if(plan[i]){
+      var h=document.createElement('div');
+      h.className='chapdiv';
+      h.innerHTML='<span>'+esc(plan[i])+'</span>';
+      chatPanel.appendChild(h);
+      chaprows.push(h);
+    }
     var row=renderMsg(m);
     if(m.id&&wasOpen[m.id]) row.classList.add('open');
     mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
@@ -3258,6 +3299,10 @@ function openChat(name, keepScroll, focusId, noFetch){
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
     sclr.style.display=q?'':'none';
+    // A chapter heading labels the block under it, so it has no meaning over a
+    // filtered list — the messages it named are mostly gone. Hide them while
+    // she is searching and bring them back when she clears the box.
+    chaprows.forEach(function(h){ h.style.display=q?'none':''; });
     if(!q){
       mrows.forEach(function(r){ r.row.style.display=''; });
       scount.style.display='none';
