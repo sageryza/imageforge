@@ -82,20 +82,41 @@
     /* one chapter = a row that opens. The KIND dot leads it. */
     '.cx-ch{border-top:1px solid var(--line);}' +
     '.cx-ch:last-child{border-bottom:1px solid var(--line);}' +
-    '.cx-head{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;' +
-    ' background:none;border:0;padding:13px 0;cursor:pointer;color:var(--ink);' +
+    /* CENTRED, not baseline — the tile is 54px tall and dominates the row, so
+       the title and date sit against its middle rather than its feet. */
+    '.cx-head{display:flex;align-items:center;gap:12px;width:100%;text-align:left;' +
+    ' background:none;border:0;padding:9px 0;cursor:pointer;color:var(--ink);' +
     ' -webkit-tap-highlight-color:transparent;}' +
     /* THE KIND IS A DRAWING, NOT A COLOURED DOT (Sophie, Aug 2026: "replace
        the little dots in different colors with the icons you picked"). A dot
        needs a legend; a magnifying glass says research by itself. Pass icons
        per kind via the `icons` option — the engine ships none, so a page that
        supplies nothing falls back to the coloured dot it always had. */
-    '.cx-dot{flex:none;width:8px;height:8px;border-radius:50%;align-self:center;}' +
-    /* 32px, not 22 (Sophie, Aug 2026: "make the icons bigger so they take up
-       more space on the line"). The drawing is the row's one picture — at 22
-       it read as a bullet beside the title rather than the thing itself. */
-    '.cx-ico{flex:none;width:32px;height:32px;align-self:center;display:block;' +
-    ' object-fit:contain;mix-blend-mode:multiply;}' +
+    /* THE DRAWING SITS IN A PASTEL TILE AND OWNS THE ROW (Sophie, Aug 2026:
+       "the icons are still too small — make them take up most of the line…
+       could you put little coloured rounded square boxes around them,
+       different colours, pastels"). 22px → 32px → a 54px tile: at the smaller
+       sizes it read as a bullet beside the title instead of the row's picture.
+
+       WHY MULTIPLY WORKS OVER A COLOURED TILE (measured, not assumed): the
+       icons are opaque RGB cut from the pastel lesson sheet, corners pure
+       #ffffff — so white × pastel leaves the pastel untouched and only the
+       ink darkens. No transparent PNGs needed, and no halo. */
+    '.cx-tile{flex:none;width:54px;height:54px;border-radius:10px;display:flex;' +
+    ' align-items:center;justify-content:center;overflow:hidden;}' +
+    '.cx-ico{width:44px;height:44px;display:block;object-fit:contain;' +
+    ' mix-blend-mode:multiply;}' +
+    '.cx-dot{width:12px;height:12px;border-radius:50%;}' +
+    /* Flat pastels, no gradients — three of them are her own words for the
+       palette she picked ("lilac, pastel pink, mint green"). Seven, assigned
+       by row order, so a colour never lands next to itself. */
+    '.cx-p0{background:#ddd3ea;}' +   /* lilac */
+    '.cx-p1{background:#f0d4dd;}' +   /* pastel pink */
+    '.cx-p2{background:#cfe6d8;}' +   /* mint green */
+    '.cx-p3{background:#f0e4bf;}' +   /* butter */
+    '.cx-p4{background:#cfdcea;}' +   /* powder blue */
+    '.cx-p5{background:#f2ddcb;}' +   /* peach */
+    '.cx-p6{background:#dbe3cf;}' +   /* sage */
     '.cx-k-lesson{background:#e39ab4;}' +      /* her colours: lessons pink */
     '.cx-k-experiment{background:#e3c25c;}' +  /* experiments yellow */
     '.cx-k-build{background:#8fc7ae;}' +       /* everything else: mint */
@@ -247,7 +268,9 @@
     });
     mount.appendChild(bar);
 
-    list.forEach(function (ch) {
+    var PALETTE = 7;                       // cx-p0 … cx-p6
+
+    list.forEach(function (ch, i) {
       var el = document.createElement('div');
       el.className = 'cx-ch';
       el.setAttribute('data-item', ch.id);  // her note keys off this
@@ -260,9 +283,15 @@
       // a per-kind icon, then the coloured dot. So a page can give every row
       // its own drawing and still fall back for rows that have none.
       var icon = ch.icon || (opts.icons || {})[kind];
-      head.innerHTML = (icon
+      /* EVERY row gets a tile, drawing or not — a bare kind-dot beside a
+         column of 54px tiles reads as a broken row, so a chapter with no
+         drawing of its own shows its dot centred in the tile instead. */
+      head.innerHTML =
+        '<span class="cx-tile cx-p' + (i % PALETTE) + '">' +
+        (icon
           ? '<img class="cx-ico" src="' + esc(icon) + '" alt="' + esc(kind) + '">'
           : '<span class="cx-dot cx-k-' + kind + '"></span>') +
+        '</span>' +
         // No 01/02/03 (Sophie, Aug 2026: "get rid of the numbers"). The order
         // is the page, and a number on every row is a column of nothing.
         '<span class="cx-t">' + esc(ch.title) + '</span>' +
@@ -277,12 +306,23 @@
       function paint() {
         var lv = level;                      // the page's one level, not this row's
         var h = '';
-        if (lv < 3) {
+        /* EACH LEVEL SHOWS SOMETHING DIFFERENT (Sophie, Aug 2026: "for the
+           medium level of detail get rid of the one-sentence summary, because
+           it ruins the rule of them having all different inputs"). v2 drew the
+           gist again above the bullets, so 'deeper' was 'gist plus' rather
+           than its own view — and the sentence she had just read sat in the
+           way of the detail she tapped for. 1 is the gist, 2 is the detail,
+           3 is the raw. Nothing repeats. */
+        if (lv === 1) {
           h += '<p class="cx-l1">' + line(ch.l1 || '') + '</p>';
-          if (lv === 2 && (ch.l2 || []).length) {
+        } else if (lv === 2) {
+          if ((ch.l2 || []).length) {
             h += '<ul class="cx-l2">';
             ch.l2.forEach(function (x) { h += '<li>' + line(x) + '</li>'; });
             h += '</ul>';
+          } else {
+            // no detail written — say so rather than showing a blank body
+            h += '<p class="cx-l1">' + line(ch.l1 || '') + '</p>';
           }
         } else {
           /* The CHAT MESSAGE style, collapsible the same way: a long message
