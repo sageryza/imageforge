@@ -906,6 +906,125 @@ router.get('/clip-span', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ─── a clip of PICKED WORDS from one hit ────────────────────────────
+// Sophie's ask (Aug 2026): "if I just want one clip and not the whole
+// recording… pick the words from that step." Tap first/last word on a hit's
+// passage → this cuts JUST that span, word-precisely, without opening (or
+// transcribing) the whole recording. Cutting per the sophie-audio skill: an
+// INTERVIEW goes through editor.buildClip (fresh window listen + snap + the
+// loudnorm every episode clip gets, banked in the clip cache); a MEMO is HER
+// VOICE, never loudnormed — same fresh listen + snap, micro-fades only. Memo
+// bytes aren't public, so that path downloads the file server-side; its
+// anchor is estimated proportionally from the chunk's place in the
+// transcript (memo chunks carry no clock), and the listen window slides once
+// each way if the phrase isn't where the estimate said.
+const WORDS_MAX = 400; // a pick is a passage, not a chapter
+router.post('/clip-words', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const srcId = String(req.body.src || '');
+    const text = String(req.body.text || '').replace(/\s+/g, ' ').trim();
+    const chunkText = String(req.body.chunk || '');
+    const timeSec = Number(req.body.timeSec);
+    if (!srcId || !text) return res.status(400).json({ error: 'src and text required' });
+    if (text.split(' ').length > WORDS_MAX) return res.status(400).json({ error: 'that span is too long for a clip' });
+    const index = await loadIndex();
+    const source = index.sources[`v:${srcId}`] || index.sources[`m:${srcId}`];
+    if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+
+    const key = crypto.createHash('sha1')
+      .update(`${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
+      .digest('hex').slice(0, 16);
+    const dest = `${CLIP_PREFIX}words-${key}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(503).json({ error: 'Storage unavailable' });
+    const [exists] = await b.file(dest).exists();
+    if (exists) return res.json({ status: 'ready', url: publicUrl(dest) });
+
+    const state = clipJobs.get(dest);
+    if (state && state.error) { clipJobs.delete(dest); return res.json({ status: 'failed', error: state.error }); }
+    if (state) return res.json({ status: 'making' });
+    clipJobs.set(dest, 'making');
+    (async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'words-clip-'));
+      try {
+        let out;
+        if (source.k === 'nde') {
+          out = await editor.buildClip(
+            { id: `sw-${key}`, name: text.slice(0, 40), videoId: srcId, text, timeSec: Number.isFinite(timeSec) ? timeSec : 0 },
+            { videoId: srcId, audioUrl: source.audioUrl, timeSec: 0 },
+            { dir, log: [], downloads: new Map() });
+        } else {
+          out = await cutMemoWords(srcId, text, chunkText, dir);
+        }
+        await editor.uploadPublic(out, dest, 'audio/mpeg', 'public, max-age=31536000, immutable');
+        clipJobs.delete(dest);
+      } catch (err) {
+        console.warn('words clip failed:', err.message);
+        clipJobs.set(dest, { error: err.message });
+      } finally {
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+      }
+    })();
+    res.json({ status: 'making' });
+  } catch (err) { fail(res, err); }
+});
+
+// Her voice: fresh-listen precision, NO loudnorm (micro-fades only).
+async function cutMemoWords(memoId, text, chunkText, dir) {
+  const local = path.join(dir, 'memo-src');
+  const memo = await memos.memoAudioToFile(memoId, local);
+  const dur = Number(memo.dur) || (await editor.audioDuration(local)) || 0;
+  if (!dur) throw new Error("couldn't read the recording's length");
+  const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  const t = collapse(memo.transcript || '');
+  let frac = 0;
+  const probe = collapse(chunkText || text).slice(0, 160);
+  if (t && probe) {
+    const at = t.indexOf(probe);
+    if (at >= 0) frac = at / t.length;
+  }
+  const estLen = Math.max(3, editor.normWords(text).length / 2.6);
+  const winDur = Math.min(240, estLen + 120);
+  const base = Math.max(0, Math.min(Math.max(0, dur - 5), frac * dur - 30));
+  const tries = [...new Set([base, Math.max(0, base - winDur + 40), Math.min(Math.max(0, dur - winDur), base + winDur - 40)])];
+  for (const winStart of tries) {
+    const win = path.join(dir, `w-${Math.round(winStart)}.mp3`);
+    await editor.run(editor.FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', local, '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '3', win], 300000);
+    let words;
+    try { words = await editor.whisperWords(win); } catch { continue; }
+    const span = editor.phraseSpan(words, text);
+    if (!span) continue;
+    let [rs, re] = editor.clampBounds(words, span.start, span.end);
+    const nxt = words.find((w) => w.start > re + 0.02);
+    const silences = await editor.detectSilences(win);
+    [rs, re] = editor.snapToSilence(rs, re, silences, nxt ? nxt.start : null);
+    rs = Math.max(0, rs); re = Math.min(winDur, re);
+    const cut = path.join(dir, 'cut.mp3');
+    await editor.run(editor.FFMPEG, ['-y', '-ss', String(rs), '-to', String(re), '-i', win, '-c:a', 'libmp3lame', '-q:a', '3', cut], 180000);
+    const out = path.join(dir, 'clip.mp3');
+    await editor.run(editor.FFMPEG, ['-y', '-i', cut, '-af',
+      'afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse',
+      '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
+    return out;
+  }
+  throw new Error("couldn't find those words in the recording — open it in the Cutting Room instead");
+}
+
+// A finished clip as a same-origin ATTACHMENT (the download button — the
+// Storage url alone just plays inline). Restricted to search-clips objects.
+router.get('/clip-file', async (req, res) => {
+  try {
+    let p = '';
+    try { p = decodeURIComponent(new URL(String(req.query.u || '')).pathname).replace(/^\/[^/]+\//, ''); } catch { /* not a url */ }
+    if (!p.startsWith(CLIP_PREFIX)) return res.status(400).json({ error: 'not a search clip' });
+    const name = String(req.query.n || 'clip').replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'clip';
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Disposition', `attachment; filename="${name}.mp3"`);
+    bucket().file(p).createReadStream().on('error', () => { try { res.destroy(); } catch { /* closed */ } }).pipe(res);
+  } catch (err) { fail(res, err); }
+});
+
 // One memo's audio. See the header — this serves ANY category, unlike
 // /api/memos/audio/:id which is dream-only; both sit behind the studio gate.
 router.get('/audio/:id', async (req, res) => {

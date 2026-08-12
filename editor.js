@@ -1461,4 +1461,6 @@ module.exports = {
   // primitives, so its cuts sound identical to an episode's
   detectSilences, whisperWords, extractWindow, audioDuration, uploadPublic,
   listEpisodes, addExternalSnippet,
+  // exported for Search's clip-from-a-hit — one ffmpeg resolution, one runner
+  run, FFMPEG,
 };

@@ -4402,7 +4402,22 @@ lifted into a standalone tool later.
   **interview → Episode Editor** (`editor.addExternalSnippet` — a snippet card
   lands in an episode and the editor re-cuts it natively), **memo → Cutting
   Room** (`POST /api/cutroom/open` with the recording's url). Search cuts no
-  audio of its own; both paths feed the ONE cutter in `editor.js`.
+  audio of its own except `/clip-words` below; every path feeds the ONE
+  cutter in `editor.js`.
+- **CLIP-THESE-WORDS on a hit (Aug 2026, Sophie: "pick the words from that
+  step if I just want one clip and not the whole recording").** The scissors
+  Clip button puts the hit's passage in pick mode — tap first word, tap last
+  word, ✓ — and `POST /clip-words {src, text, chunk, timeSec}` cuts JUST
+  that span (background job, content-addressed cache
+  `search-clips/words-*`), with ▶ + a download button on the result (share
+  bridge in the app / same-origin attachment `GET /clip-file?u=&n=` in a
+  browser). Rules: an INTERVIEW goes through `editor.buildClip` (loudnorm,
+  clip cache — identical to an episode clip); a MEMO is HER VOICE, never
+  loudnormed — fresh-listen + snap + micro-fades only, bytes downloaded
+  server-side via `memos.memoAudioToFile` (memo audio is not public). A
+  memo's anchor is PROPORTIONAL (memo chunks carry no clock): the chunk's
+  place in the transcript maps to time, and the listen window slides once
+  each way when the phrase isn't where the estimate said.
 - **A hit's Play NEVER points at the banked interview audio.** Those files are
   what yt-dlp downloaded — webm/opus, one object per whole interview (the
   Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once
