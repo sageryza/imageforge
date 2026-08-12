@@ -2102,6 +2102,34 @@ lifted into a standalone tool later.
   `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
+## NDE movies — the watercolour look and the nine character cards (Aug 2026)
+**Making watercolour art for the Anthony Chene NDE montages? Read
+`docs/nde-watercolor.md` FIRST** — the recipe is settled and the headline rule
+is counter-intuitive: **write NO style description at all.** It is the Evan
+recipe (`docs/evan-film-style.md`): gpt-image-2 **edits**,
+`refs/sage-sandy-mirror.png` attached FIRST as a pure style reference, quality
+**medium**, **1024x1536**. The v4 "STYLE CORE" wording in
+`refs/nde-style-prompt.md` belongs to the older colored-pencil generation —
+do not pull it into these renders. The pastel stills-videos are SCRAPPED.
+- **The nine experiencer character cards are BUILT and public** —
+  Storage `nde-refs/cards/<surname>.webp`, deliberately beside the photo each
+  was drawn from (`nde-refs/people/<surname>.jpg`). Hugenot, Wittbrodt,
+  Wright, Barker, Hensley, Rynes, Dennis, Nair, Anthony.
+  `nde-refs/cards/manifest.json` (mirrored in the repo at
+  `docs/nde-character-cards.json`) carries every card's full name, both URLs
+  and the EXACT prompt that made it. **Do not re-derive them.**
+- **Using one:** style ref first, that person's card second, then the scene.
+  **Say nothing about the face** — a "same face, same hair" preserve-list
+  over-weights it and the drawing comes out as a rendered photograph. The
+  likeness line is ONE sentence and must not grow back.
+- **A portrait needs no background line** — measured, the style ref draws on
+  white paper whether the prompt says so or not.
+- **Only nine people have an approved likeness.** The other ~30 experiencers
+  across the montages have no reference photo, and new ones cannot be grabbed
+  from a cloud session (YouTube bot-blocks datacenter IPs). Standing rule:
+  **never invent a face for a real person** — draw them from behind, from
+  above, or far enough back that the face is not the subject.
+
 ## Anthony Chene NDE moments database
 - `nde.js` (`/api/nde`) — pipeline that reads Anthony Chene's near-death-
   experience YouTube interviews and extracts a database of specific,
