@@ -47,6 +47,14 @@
              grows the page a 4th tab; [[words]] in any field = words that
              are MINE, not hers, rendered red with a star.
 
+   A COPY-ONLY page — every row carrying `copy` and NOTHING carrying
+   l1/l2/msgs — is a second shape of the same engine (Sophie, Aug 2026:
+   "split up all the lessons so they're each their own little thingy, and
+   for now hide everything that's not a lesson"): one row per LESSON, the
+   level bar not built at all, opening straight into the copy. It is
+   decided by the data, so no page needs a flag and the chapters artifacts
+   are untouched.
+
    Notes ride the same verdict doc every reviewable surface uses (the
    standing rule), so a chat reads them back with
    GET /api/chatfeed/verdict?chat=&sheet=.
@@ -299,6 +307,19 @@
     var hasCopy = list.some(function (c) { return c.copy && (c.copy.cards || []).length; });
     var levels = hasCopy ? LEVELS.concat([['4', 'copy']]) : LEVELS;
 
+    /* A COPY-ONLY page has NO BAR AT ALL (Sophie, Aug 2026: "split up all the
+       lessons so they're each their own little thingy, and for now hide
+       everything that's not a lesson"). When every row is a lesson's rewritten
+       copy and nothing carries gist/deeper/raw, three of the four tabs lead to
+       an empty body — a control whose only job would be to show her nothing.
+       So the page opens straight into the copy and the bar is never built.
+       Decided by DATA, never a flag: the chapters artifacts all carry msgs, so
+       they keep their four tabs with no repost. */
+    var copyOnly = hasCopy && !list.some(function (c) {
+      return (c.msgs || []).length || c.l1 || (c.l2 || []).length;
+    });
+    if (copyOnly) level = 4;
+
     /* The sticky bar, built once and living above the list. It is present
        even with nothing open: tapping a level then sets the depth the next
        chapter opens at, which is what "for the whole thing" means. */
@@ -323,7 +344,7 @@
       };
       bar.appendChild(b);
     });
-    mount.appendChild(bar);
+    if (!copyOnly) mount.appendChild(bar);
 
     var PALETTE = 7;                       // cx-p0 … cx-p6
 
