@@ -96,6 +96,23 @@ much is IN each picture:
 - **2x2** — a drawing that needs detail (a figure doing something, a scene).
 - **3x3** — simple objects and icons. 0.7c a drawing instead of 1.5c.
 
+**5x5 traces fine — and the 8% number is NOT a quality cliff.** Measured on a
+real 21-icon 5x5 sheet another chat made: 204px cells, drawings 111-206px, and
+3 of the 21 drew their lines 8.6-9.3% heavier than the source. That was first
+written up here as "past the edge", which was wrong, and the correction matters
+because the number is easy to misread: **8% is a REGRESSION DETECTOR calibrated
+on the 2x2 cards, not a threshold of visible badness.** Put the three worst
+side by side with their source cells and they are indistinguishable — the key
+and the magnifying glass are identical to the eye, the target is a hair heavier
+in the ring outlines and arguably crisper for it. Judge a batch by looking, and
+use the percentage only to catch a change.
+
+So the tracer is not what limits a 5x5. Two honest caveats before anyone leans
+on it: it is ONE sheet, and it was drawn by another pipeline — **this module has
+never drawn a 5x5 itself**, so whether the model reliably places 25 described
+drawings from this prompt is untested. That, not the trace, is why the route
+still caps at 9. Settling it costs one 6c sheet.
+
 Layouts are 1, 2 (2x1), 3 (3x1), 4 (2x2), 6 (3x2), 9 (3x3). **5, 7 and 8 do not
 tile** — they take the next layout up and the spare cells are drawn and thrown
 away. The sheet costs the same either way, so ask for 4, 6 or 9 to waste
@@ -171,13 +188,26 @@ whether the tracer binary, Firebase and the OpenAI key are all present.
 - **Firestore refuses an array inside an array**, which is why `colors` are hex
   strings. The very first live run failed on exactly that, *after* the sheet had
   been paid for.
-- **A cell drawing that leans into its neighbour's quarter loses a limb** — the
-  sheet is cut on a straight quarter line. The "wide gutters / nothing crossing"
-  wording in the grid clause is what prevents it; do not trim it.
-- **The sheet is requested as PNG, not webp.** Everywhere else in the app asks
-  for webp at compression 80 because a person is looking at it; this one hands
-  the image straight to a tracer that clusters flat colours, and webp's ringing
-  around a hard ink line is noise the flattener then spends a cluster on.
+- **The sheet is cut on its REAL gutters, not on exact fractions** — and that
+  was a bug before it was a feature. Cutting at exact thirds looks right and is
+  not: the model does not place drawings on a perfect grid, so a boundary can
+  land on ink, which does two visible things at once — clips the drawing it
+  cuts through, and leaves the severed piece in the NEIGHBOURING cell as a
+  stray mark. Sophie caught both on a 3x3: the second row cut fell at y=682
+  while the real gutter was 622-674, so the sailboat came out with a dot
+  floating above its flag (the tail of the balloons' string from the cell
+  above). `gutters()` now finds the widest clear run near each boundary and
+  cuts through its middle, and `cutout()` drops a border-touching blob smaller
+  than 15% of the main drawing. The "wide gutters / nothing crossing" wording
+  in the grid clause still matters — it is what makes a clear run exist to find.
+- **webp costs the trace NOTHING — do not re-render a sheet to PNG hoping for a
+  better trace.** This module asks for PNG, but the reason first written here
+  ("webp's ringing is noise the flattener spends a cluster on") was reasoning
+  and it is wrong. Measured on the same 3x3 sheet: PNG 933KB and webp-80 53KB
+  trace to the same line weight within noise — max 7.4% against 7.0%, mean 3.6%
+  against 3.3%, the webp marginally better. PNG stays only because it is free to
+  keep. A sheet made by `/api/generate/housestyle` (which saves webp) is a
+  perfectly good input to `/trace`.
 - **Filing the results:** the Assets tab dedupes by FILENAME, not URL. Two
   versions of a drawing at `…/v1/moth.png` and `…/v2/moth.png` weld into one
   tile and one of the labels wins. Give a new version a new *filename*

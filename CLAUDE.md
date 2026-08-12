@@ -659,7 +659,19 @@ lifted into a standalone tool later.
   draws simpler objects (2.9 fills a drawing against 4.75 at 2x2). So 2x2 for a
   drawing with detail, 3x3 for simple objects and icons (0.7¢ each). 5/7/8
   don't tile — the spare cells are drawn and binned, so ask for 4, 6 or 9.
-  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly.
+  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly. **Nothing about the
+  tracer is tuned per quality or per grid** — they are inputs, the defaults are
+  untouched; the only per-drawing options are `fills` and `darkBackground`.
+  **5x5 TRACES FINE** — on a real 21-icon sheet (204px cells) 3 of 21 drew lines
+  8.6-9.3% fat, but put those three beside their sources and they are
+  indistinguishable: the 8% figure is a regression detector calibrated on the
+  2x2 cards, NOT a threshold of visible badness. An earlier note here called
+  5x5 "past the edge" and that was wrong. The route still caps at 9 for a
+  different reason — this module has never DRAWN a 5x5, so the model placing
+  25 described drawings from this prompt is untested. And **webp
+  costs the trace nothing** — measured same-sheet against PNG, max 7.0% vs
+  7.4%; the "PNG traces better" claim was reasoning and it was wrong, so never
+  re-render a sheet hoping to improve a trace.
 - **Two gotchas that cost real time:** a dark-background drawing needs
   `darkBackground:true` (the cut-out is a corner flood-fill and would eat the
   background — the Grand Tour card is the live example), and the Assets tab
