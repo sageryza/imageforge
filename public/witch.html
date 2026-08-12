@@ -4887,8 +4887,27 @@
   // always pointing at the same place. Nothing started yet → the first course.
   // Reads the same schoolProgress()/courseProgress() the School tab does, so
   // the two can never disagree.
+  // A reader who has never opened a lesson is offered SYNCHRONICITY first —
+  // the lesson that teaches the thing the boxes directly above it are asking
+  // her to do (Aug 2026, Sophie: "since we have a synchronicity lesson now
+  // that could be the first lesson that shows underneath the synchronicity
+  // area"). It is the app's own front page argument: the coincidence journal
+  // is the point, and the school explains it.
+  // Only the FIRST-EVER state is overridden. The moment she has opened any
+  // lesson the card goes back to following her through the curriculum, or
+  // this would keep pulling a returning reader back to lesson one.
+  const HOME_FIRST_LESSON = 'sync';
+  function schoolNeverStarted() {
+    const p = schoolProgress();
+    for (const k in p) { const e = p[k]; if (e && (e.done || e.seen > 0)) return false; }
+    return true;
+  }
   function schoolHomePick() {
     if (typeof SCHOOL_COURSES === 'undefined') return null;
+    if (schoolNeverStarted()) {
+      const c = SCHOOL_COURSES.find(x => x.lessons.includes(HOME_FIRST_LESSON));
+      if (c) return { c, p: courseProgress(c), lesson: HOME_FIRST_LESSON };
+    }
     let started = null, fresh = null;
     for (const c of SCHOOL_COURSES) {
       const p = courseProgress(c);
@@ -4906,8 +4925,10 @@
     const { c, p } = pick;
     const prog = schoolProgress();
     // Same "where am I" rule the course path uses: a lesson opened but not
-    // finished wins, else the first unfinished one.
-    const nextKey = c.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0)
+    // finished wins, else the first unfinished one. pick.lesson overrides it
+    // for the never-started reader (Synchronicity — see schoolHomePick).
+    const nextKey = pick.lesson
+      || c.lessons.find(k => prog[k] && !prog[k].done && prog[k].seen > 0)
       || c.lessons.find(k => !(prog[k] && prog[k].done));
     const titles = (typeof LESSON_TITLES !== 'undefined') ? LESSON_TITLES : {};
     const done = p.done >= p.total;
@@ -4919,16 +4940,26 @@
     const covers = $('sch-home-covers');
     if (covers) {
       const start = SCHOOL_COURSES.findIndex(x => x.id === c.id);
-      const pick = [0, 1].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
-      covers.innerHTML = pick.map(x =>
-        `<img src="${SW_IMG}${x.cover}${SW_EXT}" alt="" loading="lazy">`).join('');
+      const two = [0, 1].map(k => SCHOOL_COURSES[(Math.max(0, start) + k) % SCHOOL_COURSES.length]);
+      // On the Synchronicity offer the FIRST picture is that lesson's own
+      // opening card, not its course cover — the card is offering a lesson
+      // there, so it should show the lesson.
+      const lessonArt = pick.lesson && LESSONS[pick.lesson] && LESSONS[pick.lesson][0]
+        ? LESSONS[pick.lesson][0].img : null;
+      const imgs = lessonArt ? [lessonArt, two[1] && two[1].cover] : two.map(x => x && x.cover);
+      covers.innerHTML = imgs.filter(Boolean).map(id =>
+        `<img src="${SW_IMG}${id}${SW_EXT}" alt="" loading="lazy">`).join('');
     }
     const moons = $('sch-home-moons');
     if (moons) moons.innerHTML = (typeof courseMoon === 'function') ? courseMoon(p.done, p.total, 15) : '';
-    $('sch-home-prog').textContent = p.done
-      ? `${p.done} of ${p.total} lessons done`
-      : `${p.total} ${p.total === 1 ? 'lesson' : 'lessons'} · start any time`;
-    $('sch-home-btn').textContent = p.done && !done ? 'Keep going' : (done ? 'Open the school' : 'Start the course');
+    $('sch-home-prog').textContent = pick.lesson
+      ? `${SCHOOL_LESSON_COUNT} lessons across ${SCHOOL_COURSES.length} courses`
+      : (p.done
+        ? `${p.done} of ${p.total} lessons done`
+        : `${p.total} ${p.total === 1 ? 'lesson' : 'lessons'} · start any time`);
+    $('sch-home-btn').textContent = pick.lesson
+      ? 'Read this lesson'
+      : (p.done && !done ? 'Keep going' : (done ? 'Open the school' : 'Start the course'));
   }
   // The whole card is the tap target, and the button inside it must not fire
   // the handler twice.
@@ -4940,6 +4971,11 @@
       go('school');
       if (pick) { schoolCourse = pick.c.id; try { renderSchoolPath(); } catch (e) {} }
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      // The Synchronicity offer opens that lesson itself — the card names one
+      // lesson, so landing on a course list would not be what it promised.
+      // The course path is still underneath it, so closing the lesson lands
+      // somewhere sensible rather than back on Home.
+      if (pick && pick.lesson) { try { openLesson(pick.lesson); } catch (e) {} }
     };
     card.addEventListener('click', open);
     card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
@@ -6517,6 +6553,7 @@
     // A device whose saved schoolCourse was 'living' falls back to the
     // catalog on its own — renderCoursePath() already handles a missing id.
   ];
+  const SCHOOL_LESSON_COUNT = SCHOOL_COURSES.reduce((n, c) => n + c.lessons.length, 0);
   let schoolCourse = null; // null = catalog; a course id = that course's path
   function schoolProgress() { try { return JSON.parse(localStorage.getItem('witch_school_progress') || '{}'); } catch { return {}; } }
   function saveSchoolProgress(p) { try { localStorage.setItem('witch_school_progress', JSON.stringify(p)); } catch {} cloudSyncSoon(); }
