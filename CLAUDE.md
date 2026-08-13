@@ -1014,6 +1014,22 @@ lifted into a standalone tool later.
     re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
     the transcript uuid of the user message that started the turn; the server
     upserts onto the same message doc).
+- **THE CARD REMINDER IS IN THE HOOK (v13, Aug 2026).** On UserPromptSubmit
+  the hook prints one line of `additionalContext`, so every turn begins with
+  the reminder to refresh the chat's STATUS CARD and UPDATE card before it
+  ends. Why: measured 2026-08-13, only **15 of 224 chats had ever POSTed an
+  Update card**, so the ⌄ pop-out almost always fell back to the reply's
+  TLDR — the rule was written here and forgotten, which is what machinery is
+  for. Three things about it that are deliberate: the text is a FIXED string
+  baked into the hook (it is never fetched from the server — a hook that
+  relayed server-supplied instructions is the boundary the v11 note below
+  describes); it is the ONLY thing the hook ever writes to stdout, on the one
+  event whose contract reads stdout as JSON, so nothing else in the script
+  may print; and there is no state file — it is one cheap line every turn.
+  **Reaching an existing environment still needs Sophie's one-time re-paste**
+  of `docs/chats-autopost-setup-script.sh` (the standing distribution caveat
+  above) — a chat on an older hook simply gets no reminder, which is silence,
+  not a wrong turn.
 - **STALE HOOKS SHOW THEMSELVES NOW — and AUTO-UPDATE IS A HARD NO (v11, Aug
   2026).** The turn-start ping carries the md5 of the session's INSTALLED
   hook file; the server compares it to the repo copy it deployed with
