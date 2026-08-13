@@ -2,7 +2,7 @@
 /**
  * Stitch a Darius film: the cut interview audio + the art, one file.
  *
- *   node scripts/darius-stitch.js <heart|proof> [--out film.mp4]
+ *   node scripts/darius-stitch.js <heart|proof> [--out film.mp4] [--still]
  *
  * Reads .darius-film/<set>.json (the shots and their clip urls, written by
  * darius-film.js) and the ORDER below, and gives every shot's pictures an
@@ -35,6 +35,14 @@ const MEDIUM = {
   proof: ['/home/user/out/darius-proof-medium'],
 }[SET];
 const W = 1024, H = 1536;
+const ANIM = path.join(DIR, 'anim-' + SET);
+const STILL = process.argv.includes('--still');   // ignore the animation clips
+/* A wan draft clip is 5s of real motion at 512x768. A shot's hold is longer
+   than that, so the clip is SLOWED to fill it, up to 2x, and the last frame is
+   held for whatever is left. Slow suits watercolour and a contemplative
+   narration; beyond 2x it stops reading as movement and starts reading as a
+   fault, so the remainder is an honest freeze instead. */
+const MAX_SLOW = 2.0;
 
 // ffmpeg-static exports the path as a bare STRING; ffprobe-static exports
 // { path }. Handle both rather than assuming they match.
@@ -79,6 +87,12 @@ const ORDER = ORDERS[SET];
 
 /* Medium if it landed, else the panel cut out of the low sheet — Sophie's rule
    for this pass: re-render the ones worth it, use the low panel where not. */
+/* The animated clip for a picture, if this pass made one. */
+function animFor(panel) {
+  const f = path.join(ANIM, panel + '.mp4');
+  return fs.existsSync(f) ? f : null;
+}
+
 function pictureFor(panel) {
   // BOTH suffixes: a panel lifted out of a 2x2 sheet is re-rendered as
   // "<panel>-m.webp", but a picture drawn straight at medium (one that never
@@ -87,11 +101,11 @@ function pictureFor(panel) {
   for (const dir of MEDIUM) {
     for (const name of [panel + '-m.webp', panel + '.webp']) {
       const f = path.join(dir, name);
-      if (fs.existsSync(f)) return { file: f, quality: 'medium' };
+      if (fs.existsSync(f)) return { file: f, quality: 'medium', panel };
     }
   }
   const low = path.join(PANELS, panel + '.png');
-  if (fs.existsSync(low)) return { file: low, quality: 'low panel' };
+  if (fs.existsSync(low)) return { file: low, quality: 'low panel', panel };
   return null;
 }
 
@@ -99,7 +113,10 @@ async function main() {
   const out = (() => { const i = process.argv.indexOf('--out'); return i > -1 ? process.argv[i + 1] : path.join(DIR, SET + '-v1.mp4'); })();
   const st = JSON.parse(fs.readFileSync(path.join(DIR, SET + '.json'), 'utf8'));
   const work = fs.mkdtempSync(path.join(DIR, 'stitch-'));
-  const audioDir = path.join(DIR, 'audio-' + SET);
+  // The v2 folder is the second tightening pass — use it when it exists, or the
+  // film ships with the clipped heads Sophie caught.
+  const v2 = path.join(DIR, 'audio-' + SET + '-v2');
+  const audioDir = fs.existsSync(v2) ? v2 : path.join(DIR, 'audio-' + SET);
   fs.mkdirSync(audioDir, { recursive: true });
 
   const wavs = [], segs = [], record = [];
@@ -110,6 +127,7 @@ async function main() {
     if (!url) { console.log('  skip', shot.id, '— no audio'); continue; }
     const mp3 = path.join(audioDir, shot.id + '.mp3');
     if (!fs.existsSync(mp3)) fs.writeFileSync(mp3, Buffer.from(await (await fetch(url)).arrayBuffer()));
+    void url;
 
     // Decode to a common PCM format so the eleven join sample-exact.
     const wav = path.join(work, shot.id + '.wav');
@@ -128,15 +146,45 @@ async function main() {
 
     for (const p of panels) {
       const seg = path.join(work, `v${String(++n).padStart(3, '0')}.mp4`);
-      // Pad rather than crop: a 2:3 picture already fits, and padding can never
-      // cut the top off a drawing if one ever arrives a different shape.
-      run(FFMPEG, ['-y', '-loop', '1', '-i', p.file, '-t', each.toFixed(3),
-        '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
-        '-r', '24', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', seg]);
+      const fit = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`;
+      const clip = STILL ? null : animFor(p.panel);
+
+      if (clip) {
+        const cd = dur(clip);
+        const slow = Math.min(MAX_SLOW, each / cd);
+        const moving = cd * slow;
+        // setpts stretches the motion; anything past 2x is held on the last
+        // frame rather than smeared further.
+        const parts = [`[0:v]setpts=${(slow).toFixed(4)}*PTS,${fit}[m]`];
+        if (each - moving > 0.04) {
+          parts.push(`[1:v]${fit},trim=duration=${(each - moving).toFixed(3)},setpts=PTS-STARTPTS[h]`,
+            '[m][h]concat=n=2:v=1[v]');
+        } else parts.push('[m]null[v]');
+        // The freeze holds the CLIP'S OWN LAST FRAME. Holding the original
+        // still instead looked right on paper — it is 1024x1536 where the clip
+        // is 512x768, so the picture would sharpen the moment it stopped — and
+        // was wrong in the film: the animation MOVES things, so cutting back to
+        // the untouched still snapped the picture back to its starting state
+        // (the widening slice of light jumped shut). Continuity beats sharpness.
+        const last = path.join(work, `l${String(n).padStart(3, '0')}.png`);
+        run(FFMPEG, ['-y', '-sseof', '-0.12', '-i', clip, '-frames:v', '1', last]);
+        const args = ['-y', '-i', clip];
+        args.push('-loop', '1', '-i', last);
+        args.push('-filter_complex', parts.join(';'), '-map', '[v]',
+          '-t', each.toFixed(3), '-r', '24', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', seg);
+        run(FFMPEG, args);
+        p.motion = +moving.toFixed(2);
+      } else {
+        // Pad rather than crop: a 2:3 picture already fits, and padding can
+        // never cut the top off a drawing if one arrives a different shape.
+        run(FFMPEG, ['-y', '-loop', '1', '-i', p.file, '-t', each.toFixed(3),
+          '-vf', fit, '-r', '24', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', seg]);
+      }
       segs.push(seg);
     }
-    record.push({ shot: shot.id, name: shot.name, seconds: +D.toFixed(2), pictures: panels.map((p) => ({ file: path.basename(p.file), quality: p.quality })) });
-    console.log(`  ${shot.id}  ${D.toFixed(1).padStart(5)}s  ${panels.length} pic  ${panels.map((p) => p.quality === 'medium' ? 'M' : 'l').join('')}  ${shot.name.slice(0, 44)}`);
+    record.push({ shot: shot.id, name: shot.name, seconds: +D.toFixed(2), pictures: panels.map((p) => ({ file: path.basename(p.file), quality: p.quality, motion: p.motion || 0 })) });
+    const marks = panels.map((p) => (p.motion ? '~' : p.quality === 'medium' ? 'M' : 'l')).join('');
+    console.log(`  ${shot.id}  ${D.toFixed(1).padStart(5)}s  ${panels.length} pic  ${marks}  ${shot.name.slice(0, 42)}`);
   }
 
   const list = (files, f) => { fs.writeFileSync(f, files.map((x) => `file '${x}'`).join('\n') + '\n'); return f; };
