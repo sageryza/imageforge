@@ -3,7 +3,7 @@
  * Post a Darius film's Compare page: the film at the top as a line with a play
  * button, then its shots in order with a note box on each.
  *
- *   node scripts/darius-page.js <heart|proof> [--dry-run]
+ *   node scripts/darius-page.js <heart|proof> [--v 2] [--dry-run]
  *
  * The page follows the house rules the shell carries: the title and nothing
  * above it (no eyebrow, no tagline), /compare.css and /compare.js linked so the
@@ -23,11 +23,16 @@ const CHAT = 'darius-interview-videos';
 const SESSION = '01UYkBwduk918fNXj7uDjBLh';
 const SET = process.argv.find((a) => a === 'heart' || a === 'proof') || 'heart';
 const DRY = process.argv.includes('--dry-run');
+/* A new version is a NEW page pointing at NEW version-numbered media — never an
+   edit of the old one, so she can always see which cut a note was left on. */
+const V = (() => { const i = process.argv.indexOf('--v'); return i > -1 ? process.argv[i + 1] : '1'; })();
 
-const TITLES = {
-  heart: 'The heart — how an out-of-body experience works (v1)',
-  proof: 'The proof — what Darius says can be checked (v1)',
+const NAMES = {
+  heart: 'The heart — how an out-of-body experience works',
+  proof: 'The proof — what Darius says can be checked',
 };
+const NOTE = { 2: ' (v2 — moving, and the clips re-cut)' };
+const TITLES = { heart: NAMES.heart + (NOTE[V] || ' (v' + V + ')'), proof: NAMES.proof + (NOTE[V] || ' (v' + V + ')') };
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, '.darius-film');
@@ -71,16 +76,16 @@ ${cards}
 <script src="/compare.js"><\/script>
 <script>
 (function () {
-  window.__filmRow({ url: ${JSON.stringify(store + SET + '-v1.mp4')},
-    label: ${JSON.stringify(TITLES[SET].replace(/ \(v1\)$/, '') + ' — v1')},
+  window.__filmRow({ url: ${JSON.stringify(store + SET + '-v' + V + '.mp4')},
+    label: ${JSON.stringify(NAMES[SET] + ' — v' + V)},
     meta: ${JSON.stringify(mmss(film.seconds))}, mount: '#film' });
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)},
-    sheet: ${JSON.stringify(SET + '-film-v1-s' + film.shots.length)} });
+    sheet: ${JSON.stringify(SET + '-film-v' + V + '-s' + film.shots.length)} });
 })();
 <\/script>
 `;
 
-const out = path.join(DIR, SET + '-page.html');
+const out = path.join(DIR, SET + '-page-v' + V + '.html');
 fs.writeFileSync(out, html);
 console.log(path.relative(ROOT, out), html.length, 'bytes ·', film.shots.length, 'cards');
 if (DRY) process.exit(0);
