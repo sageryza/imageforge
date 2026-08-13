@@ -2141,6 +2141,14 @@ lifted into a standalone tool later.
     `/compare.js` has them right by construction. Tests:
     `node scripts/test-compare-shell.js` (drives real taps against the real
     injected pill in headless Chromium; skips if no Chromium).
+  **THE POST ANSWERS `warnings` WHEN A PAGE SKIPS THE KIT (Aug 2026).**
+  `POST /page` inspects the HTML and returns `warnings:[…]` — no `/compare.js`,
+  no `/compare.css` and not all five tokens, an embedded `<video>` — alongside
+  the usual `ok`/`id`/`url` (also stored as `kitWarnings` on the page doc). It
+  NEVER blocks the post. **If your post comes back with a warning, fix the page
+  and re-post it before you finish the turn** — that is the whole point of
+  telling the chat that can still fix it. Tests:
+  `node scripts/test-page-kit-warnings.js`.
   **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
   styled differently — there should be one style").** Start every new page
   from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
