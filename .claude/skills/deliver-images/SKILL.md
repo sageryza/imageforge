@@ -67,6 +67,19 @@ tiles and label + caption each (match to your originals by md5 of the bytes).
 Avoid creating the problem: send ORIGINAL bytes, not re-encoded copies — a
 converted copy (webp→png) defeats both dedupe layers.
 
+## Before you finish the turn — check your own filing
+
+One command, read-only, no server writes:
+
+```
+node scripts/sweep-asset-captions.js --chat <your chat slug>
+```
+
+It pages your whole Assets tab and names every image short of a label, a
+MODEL · QUALITY caption, a filed prompt, or sitting there as an unlabeled
+`claude-deliveries/*` stray. Run it while you still remember the run — you
+are the only chat that can honestly file what it finds.
+
 ## Re-rolls and batches
 
 - A re-roll gets a **NEW id**; the old version STAYS in the gallery labeled
