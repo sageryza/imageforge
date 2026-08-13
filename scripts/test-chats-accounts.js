@@ -189,10 +189,23 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   if (!same(hid, ['two-hid'])) fail('hidden pile not narrowed to the account: ' + hid.join(','));
   await page.click('#grid .hidebar');
 
-  // 4b. the ARCHIVE view
+  // 4b. the ARCHIVE is the ONE list of chats the tabs do NOT narrow (Aug 2026,
+  //     Sophie: "I noticed there's an update and account one account two tab
+  //     in the archive"). It grew its own BUILT / OTHER hairline row, and two
+  //     stacked tab rows was one question too many — so the account row is
+  //     hidden there, and the filter goes with it rather than becoming a
+  //     silent one. Both accounts' archived chats show.
   await page.click('#archlink');
   rows = await listed(page);
-  if (!same(rows, ['two-arch'])) fail('archive not narrowed to the account: ' + rows.join(','));
+  if (!same(rows, ['one-arch', 'two-arch'])) fail('archive should show BOTH accounts: ' + rows.join(','));
+  const accVisible = await page.evaluate(() => {
+    const n = document.getElementById('accrow');
+    return !!(n && getComputedStyle(n).display !== 'none');
+  });
+  if (accVisible) fail('the account row is still showing in the archive');
+  const tabRows = await page.$$eval('.acctabs', (ns) => ns.filter(
+    (n) => getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0).length);
+  if (tabRows !== 1) fail('the archive should show exactly ONE tab row, saw ' + tabRows);
   await page.click('#archlink');
 
   // 4c. the ★ pile (which reaches into the archive, so it must still narrow)

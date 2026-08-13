@@ -1450,14 +1450,27 @@ function paintHomeChrome(){
   document.getElementById('catrow').style.display = other ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   // The account tabs split a list of CHATS, so they belong on the chat list
-  // and the archive and nowhere else — bookmarks and to-dos are not chats,
-  // and Status is deliberately unfiltered (it is the everything-at-once
-  // view, like it is for categories).
+  // and nowhere else — bookmarks and to-dos are not chats, and Status is
+  // deliberately unfiltered (it is the everything-at-once view, like it is
+  // for categories).
   // The ROW itself always stays on the UPDATE view, though — it is what the
   // third tab lives in, and hiding it would leave that view with no way out
   // except the title.
+  // NOT IN THE ARCHIVE (Aug 2026, Sophie: "I noticed there's an update and
+  // account one account two tab in the archive"). The archive has its own
+  // hairline row now — BUILT / OTHER — and two of them stacked 37px apart
+  // was one question too many on a screen she opens to triage. UPDATE was
+  // the incoherent half regardless: it is a whole VIEW, not a way of
+  // narrowing the chats underneath it.
+  // The archive is therefore NOT account-filtered anymore (see renderHome) —
+  // hiding the row while still filtering by it would be the silent filter
+  // this app keeps warning about. Losing the split there costs little: the
+  // archive is the away-for-good pile, where which Claude account a chat ran
+  // on is the least interesting thing about it, and the error is in the safe
+  // direction — she sees MORE than before, never less.
   var acc=document.getElementById('accrow');
-  if(acc) acc.style.display = (other && homeView!=='news') ? 'none' : '';
+  var accOff = (other && homeView!=='news') || homeView==='archive';
+  if(acc) acc.style.display = accOff ? 'none' : '';
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -2642,8 +2655,13 @@ function renderHome(){
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
   // ONE ACCOUNT AT A TIME (Sophie, Aug 2026). Applied to `all` up front, so
-  // every pile below it — live, hidden, ★, archive — is that account's.
-  var all=sortedChatNames(g).filter(acctMatch);
+  // every pile below it — live, hidden, ★ — is that account's.
+  // The ARCHIVE is the exception (Aug 2026): its own BUILT / OTHER row
+  // replaced the account tabs there, so it reads the UNFILTERED list. A pile
+  // narrowed by a control that is no longer on screen is exactly the silent
+  // filter this app keeps getting burned by.
+  var everyone=sortedChatNames(g);
+  var all=everyone.filter(acctMatch);
   // ★ is its own pile and it reaches INTO the archive: these are chats she has
   // finished with and put away, so stopping at `archived` would hide most of
   // them. It replaces the whole list rather than narrowing it.
@@ -2674,7 +2692,8 @@ function renderHome(){
   // for good" pile, and filtering it down to the unfiled ones would leave a
   // filed+archived chat reachable only by lighting the right chip first. A
   // chip still narrows it.
-  var arch=all.filter(function(n){ return chats[n]&&chats[n].archived; });
+  // …from `everyone`, not `all`: the archive shows both accounts (above).
+  var arch=everyone.filter(function(n){ return chats[n]&&chats[n].archived; });
   if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
   paintHomeChrome();
   paintAcctTabs(g);
@@ -2689,7 +2708,7 @@ function renderHome(){
   // ARCHIVE is a VIEW, not a fold at the bottom of the live list: the word at
   // the top of the screen swaps the grid over to the archived chats and back.
   if(homeView==='archive'){
-    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived on account '+acctFilter()+'.</div>'; return; }
+    if(!arch.length){ el.innerHTML='<div class="state">Nothing archived.</div>'; return; }
     renderArchive(el,g,arch);
     return;
   }

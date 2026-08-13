@@ -1503,10 +1503,27 @@ lifted into a standalone tool later.
     put it behind the red bar. One button per row; two makes the wrong one the
     easy tap.
   - **The tab row needs NO 56px pill reserve** — it is drawn at the top of
-    `#grid`, below the account row and the hidden bar, so it clears the pill's
-    y 14–192 band. Move it higher and it needs the reserve plus
-    `width:calc((100% - 56px)/2)`. No count badges: the red one elsewhere means
-    "something answered you", which an archived chat doing is not.
+    `#grid`, below the hidden bar, so it clears the pill's y 14–192 band. Move
+    it higher and it needs the reserve plus `width:calc((100% - 56px)/2)`. No
+    count badges: the red one elsewhere means "something answered you", which
+    an archived chat doing is not.
+  - **THE ACCOUNT TABS ARE HIDDEN IN THE ARCHIVE, AND THE ARCHIVE IS NO
+    LONGER SPLIT BY ACCOUNT (Aug 2026, Sophie: "I noticed there's an update
+    and account one account two tab in the archive").** `#accrow` had always
+    shown there; adding BUILT / OTHER underneath left two hairline rows
+    stacked 37px apart, and UPDATE was incoherent in that row regardless — it
+    is a whole VIEW, not a way of narrowing the chats below it. So the
+    archive shows ONE row, its own.
+    **The filter had to go with the row**, not just the row: a pile still
+    narrowed by a control no longer on screen is the silent filter this file
+    keeps warning about. `renderHome` therefore builds `arch` from
+    `everyone` (unfiltered) while every other pile still comes from `all`.
+    The cost is small and the error is in the safe direction — she sees MORE
+    archived chats than before, never fewer — and the archive is the
+    away-for-good pile, where which Claude account a chat ran on is the least
+    interesting thing about it. `test-chats-accounts.js` asserts this
+    exception (both accounts listed, one visible tab row); it previously
+    asserted the opposite.
   - Session-only, every page load opening on BUILT. A first pass of 16 chats
     was flagged 2026-08-13 from the thread contents (empty one-message chats,
     diagnostics, dead ends she had already noted as failed, and sign-in/env
