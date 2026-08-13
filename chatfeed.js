@@ -960,6 +960,39 @@ router.post('/star', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// BOOKMARK A CHAT — "keep this forever" (Aug 2026, Sophie, splitting the two
+// marks apart: "bookmarking a chat is when I want to keep it in my history and
+// go back to it, like if it has useful information — there's only a handful of
+// chats like that … starring chats is more of a temporary thing, like a chat
+// I'm currently working on. Bookmarks stay forever").
+//
+// The two had been ONE mark since Aug 2026 — a starred chat filled the Chats
+// tab of the Bookmarks pile — on the reasoning that a second per-chat flag
+// would make her remember which of two piles a chat went into. She wants both,
+// because they answer different questions:
+//   `starred`    — what she is on RIGHT NOW. Temporary; comes off when done.
+//                  The red star at the front of a row and the ★ chip.
+//   `bookmarked` — the handful worth keeping: the dating-book chat the Writing
+//                  Room came out of, the moon milk films, Imprint. Permanent.
+//                  This is what fills the Bookmarks pile's CHATS tab.
+// Both are plain booleans on the registry doc; nothing newer clears either.
+//
+// Same phantom-row guard as /archive-kind: a merge-set on a missing doc CREATES
+// it, and every pile derives from the registry keys.
+router.post('/chat-bookmark', async (req, res) => {
+  try {
+    const { chat, bookmarked } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = bookmarked !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { bookmarked: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, bookmarked: on });
+  } catch (err) { fail(res, err); }
+});
+
 // SPLIT THE ARCHIVE IN TWO (Aug 2026, Sophie: "right now the archive is a
 // single list — I want to split it using the hairline pattern into two piles,
 // one of things where we built something and something was accomplished and
@@ -1439,7 +1472,10 @@ router.get('/bookmarks', async (req, res) => {
       };
     })).concat(Object.keys(reg.chats).filter((slug) => {
       const r = reg.chats[slug] || {};
-      return r.starred && !r.movedTo;          // never a tombstone
+      // BOOKMARKED, not starred (Aug 2026 — the two were split apart; see
+      // POST /chat-bookmark). A star is what she is working on THIS WEEK and
+      // has no business in a keep-forever pile.
+      return r.bookmarked && !r.movedTo;       // never a tombstone
     }).map((slug) => {
       const r = reg.chats[slug] || {};
       return {

@@ -1797,10 +1797,13 @@ lifted into a standalone tool later.
     rather than narrowing it, and clears the category filter.
   - Setting it is the **star button in the thread header**, beside Archive and
     Hide — the only place the star is a control.
-  - **A starred chat IS a kept chat**: it fills the **CHATS tab of the
-    Bookmarks pile** (Aug 2026 — see "THE KEEP-PILE IS THREE TABS"). Star and
-    bookmark are one mark on purpose; do NOT add a second per-chat keep-flag,
-    or she has to remember which of two piles a chat went into.
+  - **A starred chat is NOT a kept chat anymore (Aug 2026, Sophie split
+    them).** `starred` now means "a chat I'm currently working on" and comes
+    off when she's done; **`bookmarked` is the keep-forever mark** and is what
+    fills the CHATS tab of the Bookmarks pile. See "THE KEEP-PILE IS THREE
+    TABS" for both halves. The description above — "important, work I want to
+    refer back to, but I'm not actively using them" — is the BOOKMARK's
+    meaning now, not the star's.
 - **A BOOKMARK CARRIES A NOTE (Aug 2026, Sophie: "when I bookmark messages I
   want to leave a note or title the message so I remember what it was and why
   I bookmarked it").** `bookmarkNote` on the MESSAGE doc;
@@ -1839,13 +1842,34 @@ lifted into a standalone tool later.
     which is why that badge stays while the chat/artifact ones went: it
     splits things WITHIN a tab, where the tab overhead can't. Ask her before
     reviving the filter as a sub-row.
-  - **A kept CHAT is a STARRED chat — the same mark, deliberately.**
-    `starred` already meant "important, work I want to refer back to", so a
-    second per-chat keep-flag would only make her remember which of two
-    piles a chat went into. The **star button in the thread header is still
-    the only setter**; the Chats tab reads it. The ★ chip on the category
-    row shows the same set, and that duplicate is fine ("it can be in two
-    places, silly").
+  - **A kept CHAT is BOOKMARKED, NOT starred — the two were SPLIT APART (Aug
+    2026, Sophie: "bookmarking a chat is when I want to keep it in my history
+    and go back to it, like if it has useful information — there's only a
+    handful of chats like that, such as the dating book chat where we made the
+    Writing Room, the moon milk experiments, the Imprint chat… starring chats
+    is more of a temporary thing, like a chat I'm currently working on.
+    Bookmarks stay forever").** They had been ONE flag, and this file argued
+    for that ("a second per-chat keep-flag would only make her remember which
+    of two piles a chat went into") — she overruled it, because they answer
+    different questions:
+    - **`starred`** = what she is on RIGHT NOW, temporary, comes off when
+      done. The red star at the front of a row, the ★ chip, `POST /star`.
+    - **`bookmarked`** = the handful worth keeping forever. Permanent. Fills
+      the Bookmarks pile's **CHATS tab**, `POST /chat-bookmark {chat,
+      bookmarked}` (404s on a chat that doesn't exist — the phantom-row
+      guard). The row mark is the **filled bookmark glyph** beside the star.
+    - **Both controls sit side by side in the thread header** — the bookmark
+      then the star — so the difference is a choice she makes in one place.
+      The keep button is `.bmk.chatbmk`, written that way and never
+      `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules sit LATER
+      and win at equal specificity). Measured at 375/390/430 — five controls
+      on that row still fit on one line with none of them buried.
+    - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
+      were copied to `bookmarked` and their stars cleared, so nothing was
+      lost and the star starts empty under its new meaning. She prunes the
+      bookmark list down to her handful.
+    - The ★ chip still reaches into the archive. That was justified by the
+      old meaning; it is harmless under the new one and was left alone.
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.

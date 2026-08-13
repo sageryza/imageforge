@@ -321,6 +321,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    would win and the icon came out grey. */
 .bmk.hdrbmk{flex:none; padding:6px 4px; color:var(--chg);}
 .bmk.hdrbmk svg{fill:currentColor;}
+/* KEEP THIS CHAT — the thread header's bookmark, beside the star (Aug 2026,
+   Sophie split keeping from starring). Written `.bmk.chatbmk`, never
+   `.chatbmk`: the generic `.bmk` rules sit LATER in the file and would win at
+   equal specificity — the same trap `.bmk.hdrbmk` is written around. Unlike
+   the masthead's, this one HAS a state, so it is grey until it is set and
+   fills in red when it is, exactly like the star it sits next to. */
+.bmk.chatbmk{flex:none; padding:6px 4px; color:var(--line);}
+.bmk.chatbmk svg{width:16px; height:16px; display:block;}
+.bmk.chatbmk.on{color:var(--chg);}
+.bmk.chatbmk.on svg{fill:currentColor;}
 .msg.open .m-preview{display:none;}
 .msg.open .m-full{display:block;}
 .m-tools{display:flex; gap:8px; margin:6px 0; align-items:center;}
@@ -470,6 +480,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .starbtn.on{color:var(--chg);}
 .cr-star{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-star svg{width:14px; height:14px; display:block;}
+/* the keep-forever mark, beside the star. Same red, and FILLED so the two are
+   told apart at a glance on a row that carries both. */
+.cr-kept{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
+.cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
 .catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
 .catchip.starchip svg{width:14px; height:14px; display:block;}
 .catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
@@ -1338,8 +1352,13 @@ function statusLinesHtml(name, fallback){
 // The star sits on the LEFT, beside the account digit (her spec). Drawn only
 // when the chat is starred — an empty slot on every other row would be a
 // column of nothing running down the whole list.
+// A KEPT chat carries the bookmark glyph beside the star (Aug 2026, Sophie —
+// the two marks were split apart, see chatKept). Both are drawn only when set
+// and both can be on one row: "I am working on this" and "this is a keeper"
+// are different sentences and a chat can be both.
 function starHtml(name){
-  return chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '';
+  return (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
+       + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
 }
 function acctHtml(name){
   var a=(chats[name]&&chats[name].account)||'';
@@ -1589,7 +1608,7 @@ function paintBookmarks(el){
   if(!items.length){
     var s=document.createElement('div'); s.className='state';
     s.textContent = bmkTab==='chat'
-      ? 'No chats kept yet — tap the star in a chat’s header to keep it here.'
+      ? 'No chats kept yet — tap the bookmark in a chat’s header to keep it here.'
       : bmkTab==='page'
       ? 'No artifacts kept yet — tap the bookmark beside a page in a chat’s Compare tab.'
       : 'No messages kept yet — tap the bookmark under a message.';
@@ -2438,6 +2457,11 @@ window.__setAcct=function(v){ acctTab=v||''; renderHome(); };
 // using them" (Sophie, Aug 2026). A permanent judgement about the chat, so a
 // plain boolean like `archived`, never a self-clearing stamp.
 function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
+// KEPT FOREVER — the other half of the split (Aug 2026, Sophie: "bookmarking a
+// chat is when I want to keep it in my history and go back to it… bookmarks
+// stay forever", against a star for "a chat I'm currently working on"). It is
+// what fills the Bookmarks pile's CHATS tab; the star no longer does.
+function chatKept(name){ return !!(chats[name]&&chats[name].bookmarked); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -3402,8 +3426,36 @@ function openChat(name, keepScroll, focusId, noFetch){
     };
     head.querySelector('.no').appendChild(db);
   })();
-  // STAR — keep this one for later. It is the only place the star is a
-  // control; everywhere else it is just the red mark on the row.
+  // BOOKMARK — keep this chat forever (Aug 2026, Sophie: "bookmarking a chat
+  // is when I want to keep it in my history and go back to it, like if it has
+  // useful information — there's only a handful of chats like that"). It sits
+  // beside the star deliberately: the two marks are next to each other so the
+  // difference between "I'm on this now" and "this is a keeper" is one she
+  // makes in one place. This is the only place it is a control; on a row it is
+  // just the mark. It fills the Bookmarks pile's CHATS tab.
+  (function(){
+    var bb=document.createElement('button');
+    bb.className='bmk chatbmk'+(chatKept(name)?' on':'');
+    bb.innerHTML=BMK_SVG;
+    function paintB(){
+      bb.classList.toggle('on', chatKept(name));
+      bb.setAttribute('aria-label', chatKept(name)?'Stop keeping this chat':'Keep this chat');
+    }
+    paintB();
+    bb.onclick=function(){
+      var was=chatKept(name);
+      chats[name]=chats[name]||{}; chats[name].bookmarked=!was;
+      paintB(); toast(was?'No longer kept':'Kept');
+      api('/api/chatfeed/chat-bookmark',{method:'POST',body:JSON.stringify({chat:name, bookmarked:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].bookmarked=was; paintB(); toast('Couldn’t save that'); });
+    };
+    head.querySelector('.no').appendChild(bb);
+  })();
+  // STAR — what she is working on right now, and it comes off when she's done
+  // (Aug 2026: "starring chats is more of a temporary thing"). It is the only
+  // place the star is a control; everywhere else it is just the red mark on
+  // the row, and the ★ chip on the home list is its filter.
   (function(){
     var sb=document.createElement('button');
     sb.className='starbtn'+(chatStar(name)?' on':'');
