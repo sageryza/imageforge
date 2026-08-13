@@ -2,7 +2,7 @@
 /**
  * Animate a Darius film's pictures with Replicate's wan-2.2-i2v-fast (480p).
  *
- *   node scripts/darius-animate.js <heart|proof> [--only id,id] [--dry-run]
+ *   node scripts/darius-animate.js <heart|proof> [--only id,id] [--res 720p] [--dry-run]
  *
  * One clip per picture, ~$0.06 each at 81 frames (VIDEO_MODELS.draft in
  * movies.js). The motion line for each comes from darius-motion.json and names
@@ -26,7 +26,10 @@ const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > -1 ? 
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, '.darius-film');
-const OUT = path.join(DIR, 'anim-' + SET);
+const RES = (() => { const i = process.argv.indexOf('--res'); return i > -1 ? process.argv[i + 1] : '480p'; })();
+// 720p lands in its own folder so a finer pass never overwrites the draft one
+// and the two can be compared side by side.
+const OUT = path.join(DIR, 'anim-' + SET + (RES === '480p' ? '' : '-' + RES));
 const MOTION = require('./nde-watercolor/darius-motion.json');
 const TOKEN = process.env.REPLICATE_API_TOKEN;
 
@@ -85,7 +88,7 @@ async function one(pic) {
   if (!url) throw new Error('no uploaded still for ' + pic);
 
   const p = await predict({
-    image: url, prompt, resolution: '480p',
+    image: url, prompt, resolution: RES,
     num_frames: 81, frames_per_second: 16, interpolate_output: true, go_fast: true,
   });
   const out = await wait(p.id);
@@ -104,7 +107,7 @@ async function one(pic) {
 
   fs.mkdirSync(OUT, { recursive: true });
   const todo = pics.filter((p) => !fs.existsSync(path.join(OUT, p + '.mp4')));
-  console.log(`${SET}: ${pics.length} pictures · ${todo.length} to animate · ~$${(todo.length * 0.06).toFixed(2)}`);
+  console.log(`${SET} @ ${RES}: ${pics.length} pictures · ${todo.length} to animate · ~$${(todo.length * (RES === '480p' ? 0.06 : 0.13)).toFixed(2)}`);
   if (DRY) return;
 
   const queue = [...pics];

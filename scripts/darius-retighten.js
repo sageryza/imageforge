@@ -55,6 +55,15 @@ const MAXLEAD = arg('maxlead', 1.5);
    shots can never grow into each other and play the same words twice. */
 const MAXBACK = arg('maxback', 5.0);
 const PHRASE = !process.argv.includes('--no-phrase');
+/* TAIL TRIM (default on). The head fix left the ends where the editor put them,
+   and Sophie's next listen caught what that leaves: seven of eighteen clips run
+   past the end of the thought into the first words of the next one — "And this
+   is in every…", "So there's", "Because…". Symmetric to the head: pull the end
+   back to the last real pause, bounded, so a clip finishes on a finished
+   sentence. Bounded because an unbounded search would happily lop off the last
+   proper sentence of a clip to find a pause. */
+const MAXTRIM = arg('maxtrim', 2.6);
+const TAILCUT = !process.argv.includes('--no-tailcut');
 
 /* Two clips the automatic rule cannot get right, because Darius pauses INSIDE
    the sentence: "I spent, [pause] I would say, about three years" and "and when
@@ -65,6 +74,15 @@ const PHRASE = !process.argv.includes('--no-phrase');
 const OVERRIDES = {
   'proof:s01': 374.31,   // "I spent" begins 374.56 — the words Sophie named
   'heart:s04': 282.60,   // "And when you're in this state" begins 282.84
+};
+
+/* Three tails the pause rule cannot land, because he pauses AFTER the hanging
+   word rather than before it — so the last real silence sits past "which",
+   "So" and "And this is". Ends read off whisper word timestamps. */
+const TAIL_OVERRIDES = {
+  'heart:s03': 275.53,   // ends on "...panic, anxiety, fear" (fear ends 275.28)
+  'heart:s07': 864.64,   // ends on "...the entirety of the field" (864.34)
+  'proof:s02': 483.58,   // ends on "...you're seeing the truth" (483.28)
 };
 
 const ROOT = path.join(__dirname, '..');
@@ -190,7 +208,19 @@ function silences(file, ss, t) {
       .filter((o) => o !== shot && o.videoId === shot.videoId && (placed[o.id] || {}).end <= t0)
       .reduce((a, o) => Math.max(a, placed[o.id].end + 0.05), 0);
     start = Math.max(start, floor);
-    const end = t0 + clipDur + TRAIL;
+    let end = t0 + clipDur + TRAIL;
+    let trimmed = 0;
+    if (TAILCUT) {
+      const tw = silences(src, end - MAXTRIM - 0.4, MAXTRIM + 1.0)
+        .filter(([a, b]) => a <= end - 0.05 && a >= end - MAXTRIM && (b - a) >= 0.22);
+      if (tw.length) {
+        const [a, b] = tw[tw.length - 1];
+        const cut = a + Math.min(0.18, Math.max(0.05, (b - a) * 0.4));
+        if (cut > start + 1.5) { trimmed = end - cut; end = cut; }
+      }
+    }
+    const forcedEnd = TAIL_OVERRIDES[SET + ':' + shot.id];
+    if (forcedEnd != null) { trimmed = (t0 + clipDur + TRAIL) - forcedEnd; end = forcedEnd; }
     placed[shot.id] = { start, end };
 
     const dest = path.join(out, shot.id + '.mp3');
@@ -199,8 +229,9 @@ function silences(file, ss, t) {
       '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '3', dest]);
 
     const gained = (t0 - start);
+    void trimmed;
     report.push({ id: shot.id, r: +r.toFixed(3), at: +t0.toFixed(2), lead: +gained.toFixed(3), was: +clipDur.toFixed(2), now: +dur(dest).toFixed(2) });
-    console.log(`  ${shot.id}  r=${r.toFixed(3)}  at ${t0.toFixed(1)}s  +${gained.toFixed(2)}s lead  ${clipDur.toFixed(1)}s → ${dur(dest).toFixed(1)}s`);
+    console.log(`  ${shot.id}  r=${r.toFixed(3)}  +${gained.toFixed(2)}s head  -${trimmed.toFixed(2)}s tail  ${clipDur.toFixed(1)}s → ${dur(dest).toFixed(1)}s`);
   }
 
   fs.writeFileSync(path.join(DIR, SET + '-retighten.json'), JSON.stringify(report, null, 1));
