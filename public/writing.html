@@ -89,6 +89,16 @@ mark{background:none; color:var(--chg);}
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
 #spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+/* The pill's glyphs must survive any HOST page's global svg rules — a page
+   that declares `svg{fill:none}` (editor.html, cuttingroom.html) was
+   hollowing the play triangle (Sophie: "the play arrow is normally filled
+   in, but the one I see on yours is hollow"). CSS beats an SVG's own
+   presentation attributes, so reassert each glyph's attributes at higher
+   specificity than any bare-`svg` page rule can reach. */
+.float svg{fill:none; stroke:currentColor; stroke-width:1.8; width:auto; height:auto;}
+.float svg[fill="currentColor"]{fill:currentColor;}
+.float svg[stroke-width="1"]{stroke-width:1;}
+.float svg:not([stroke]){stroke:none;}
 
 .fbtn:focus-visible{outline:2px solid var(--rose);}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
@@ -2315,6 +2325,20 @@ document.querySelectorAll('section.date .tabs').forEach(function(tabs){
 });
 
 
+// A page that scrolls ITSELF opts out with <body data-nopill> (Aug 2026,
+// Sophie: on the pausing tool the pill covered a control AND fought the
+// read-along's own centring). The pill takes itself off the page and every
+// hook below becomes a no-op, so page code that calls __scrollStop still
+// works and never has to know whether a pill exists.
+// Declared EITHER as <meta name="forge-pill" content="off"> (head-safe, and
+// the reliable one — an inline script before any content runs while
+// document.body is still null) or as <body data-nopill>.
+if (document.querySelector('meta[name="forge-pill"][content="off"]') ||
+    (document.body && document.body.hasAttribute('data-nopill'))) {
+  var _f=document.querySelector('.float'); if(_f) _f.remove();
+  window.__scrollStop=function(){}; window.__scrollTap=function(){};
+  window.__pillInteractive=function(){ return false; };
+} else {
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
@@ -2359,7 +2383,22 @@ function scrollStop(){ playing=false; if(raf) cancelAnimationFrame(raf); paintPi
 window.__scrollStop=scrollStop;
 window.__scrollStart=scrollStart;
 window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
-window.__scrollTap=function(){ playing? scrollStop() : scrollStart(1); };
+// A tap that lands on something INTERACTIVE belongs to the page, not to the
+// pill: a <summary>/<details> toggle, link, button, form field or media
+// control must do its own thing, so the tap gesture ignores the event
+// entirely (no toggle, no preventDefault, no stopPropagation).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+function pillInteractive(t){
+  try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
+}
+window.__pillInteractive=pillInteractive;
+// Content-tap gesture (a page calls __scrollTap from its own tap handler,
+// passing the event when it has one): a plain toggle — tap stops, tap starts
+// again (at the current speed; default Fast). Speed changes stay on the −/+.
+window.__scrollTap=function(e){
+  if(e && pillInteractive(e.target||e.srcElement)) return;
+  playing? scrollStop() : scrollStart(1);
+};
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
 vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
@@ -2368,6 +2407,7 @@ vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
 window.addEventListener('pagehide',scrollStop);
 paintPill();
+}
 
 document.querySelector('.wrap').addEventListener('click',function(e){
   if(e.target.closest('.notebox')) return;
