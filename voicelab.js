@@ -102,8 +102,23 @@ const OFFERED_VOICE_IDS = [
   'FuJyIifktGclboKz9PFi', // Miriam
   'eCJN3vIzJhxIxE216PIO', // Alpha
   'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
-  'uwiJrK8cKQowhzGEHM3b', // Sandy
 ];
+// One flat pastel per person, so the picker is a row of coloured squares she
+// reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
+// Jonathan blue, Sean yellow, Michael purple, the rest my pick). Flat only —
+// no gradients, ever. A voice with no entry falls through to PALETTE by
+// position, so a new clone still gets a colour without an edit here.
+const VOICE_COLORS = {
+  UTkHGl2ImiT6gwtAFCql: '#e0a8c0', // Sophie — morning — pink, and first in line
+  '15zm3wIS3FnEV3LX1Aa5': '#9fbcd8', // Jonathan (annoyed) — blue
+  abAxVEBvVZF5ZLCb4HTw: '#e0c97a', // Sean (mad) — yellow
+  XnL2M6RBESG5keWHuX0d: '#b9a4d4', // Michael White — violet
+  FuJyIifktGclboKz9PFi: '#8f95c9', // Miriam — indigo
+  Ai0X93qaXBDloK1HAn87: '#e6a877', // Steve Herrington — orange
+  eCJN3vIzJhxIxE216PIO: '#a7c4a0', // Alpha — green
+};
+const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
+
 // Cached 10 minutes — the list changes when she trains a clone, not per load.
 let voicesCache = { at: 0, list: null };
 router.get('/voices', async (req, res) => {
@@ -122,7 +137,8 @@ router.get('/voices', async (req, res) => {
           .filter((v) => v.category !== 'premade')
           .filter((v) => !OFFERED_VOICE_IDS.length || OFFERED_VOICE_IDS.includes(v.voice_id))
           .map((v) => ({ voiceId: v.voice_id, name: v.name, category: v.category, description: v.description || '' }))
-          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)),
+          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+          .map((v, i) => ({ ...v, color: VOICE_COLORS[v.voiceId] || PALETTE[i % PALETTE.length] })),
       };
     }
     res.json({ voices: voicesCache.list });
