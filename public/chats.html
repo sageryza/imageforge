@@ -729,6 +729,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   text-transform:uppercase; border-radius:6px; padding:9px 14px; cursor:pointer; border:1px solid var(--line);
   background:var(--barbg); color:var(--ink2); margin:0;}
 .askrow button.go{background:var(--ink); border-color:var(--ink); color:var(--paper);}
+/* The archive sheet's two extras (Aug 2026, Sophie): what it saves under, and
+   which pile. The name box is the serif, because it holds the chat's NAME and
+   that is prose, not a label; the tab row is the same hairline pattern as the
+   archive she is about to put it in, so the choice looks like its destination.
+   It sits INSIDE a 320px sheet, nowhere near the pill, so it needs no corner
+   reserve — just the half-width sliding line for two tabs. */
+.arcname{width:100%; box-sizing:border-box; margin:0 0 12px; padding:8px 10px;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
+  font-family:'EBGaramond',Georgia,serif; font-size:17px;}
+.arcname:focus{outline:none; border-color:var(--ink2);}
+.acctabs.arctabs{margin:0 0 14px;}
+.acctabs.arctabs::after{width:50%;}
 /* Archive as words, beside the name — not a button, still tappable. */
 /* Vertical padding is the tap target, not decoration: as bare 11px text this
    was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
@@ -3349,8 +3361,33 @@ function openChat(name, keepScroll, focusId, noFetch){
     var ab=document.createElement('button');
     ab.textContent=isArch? 'Unarchive' : 'Archive';
     ab.onclick=function(){
-      if(!isArch){ askFirst('Archive '+dispName(name)+'?', 'Archive', function(ok){ if(ok) doArchive(); }); }
-      else doArchive();
+      // Archiving asks which pile and what to call it (Aug 2026, Sophie);
+      // taking one OUT is a single gesture and asks nothing.
+      if(!isArch){
+        askArchive(name, function(r){
+          if(!r.ok) return;
+          // The rename and the pile are filed BEFORE the archive, so the chat
+          // lands in the archive already named and already in its pile —
+          // never sitting on BUILT for a moment under its old name. Each is
+          // independent: a failed rename must not stop the archive.
+          if(r.title!==null){
+            api('/api/chatfeed/rename',{method:'POST',body:JSON.stringify({chat:name, name:r.title})})
+              .then(function(x){return x.json()})
+              .then(function(d){ if(d.ok){ chats[name]=chats[name]||{}; chats[name].displayName=r.title||null; } })
+              .catch(function(){ toast('Couldn’t rename it'); });
+          }
+          if(r.kind==='other'){
+            chats[name]=chats[name]||{}; chats[name].archiveKind='other';
+            api('/api/chatfeed/archive-kind',{method:'POST',body:JSON.stringify({chat:name, kind:'other'})})
+              .then(function(x){return x.json()})
+              .then(function(d){ if(!d.ok) throw 0; })
+              .catch(function(){ chats[name].archiveKind=null; toast('Couldn’t file it under Other'); });
+          }
+          doArchive();
+        });
+        return;
+      }
+      doArchive();
     };
     function doArchive(){
       api('/api/chatfeed/archive',{method:'POST',body:JSON.stringify({chat:name, archived:!isArch})})
@@ -4151,6 +4188,70 @@ function askFirst(question, okLabel, cb){
   box.onclick=function(e){ e.stopPropagation(); };
   row.appendChild(no); row.appendChild(yes);
   box.appendChild(q); box.appendChild(row); wrap.appendChild(box);
+  document.body.appendChild(wrap); document.body.style.overflow='hidden';
+}
+
+// ARCHIVING ASKS WHICH PILE, AND WHAT TO CALL IT (Aug 2026, Sophie: "the
+// archive should have an option to add it into the built or other pile and
+// also give an option to type a text box as a title for what it saves under
+// … there's already a pop-up for archive so you can just add it to the top").
+//
+// It rides the existing askFirst sheet rather than being a new kind of
+// overlay, and the two new controls sit ABOVE the question, in the order she
+// meets them: what it's called, then which pile.
+//
+// The pile picker is the SAME hairline tab row she will land in — `.acctabs`,
+// no boxes, the line sliding under the one she picked — so the choice she
+// makes here looks like the place it puts the chat. BUILT is preselected,
+// which is also what happens if she never opens this sheet at all.
+//
+// The name box is PREFILLED with what the chat is called now (the /vector
+// precedent: a box carrying its real current value, not example text — the
+// "text boxes ship empty" rule is about examples). Leaving it alone renames
+// nothing; clearing it drops back to the chat's own slug.
+//
+// Hands back {ok, kind, title} — the caller does the writes, so a failed
+// rename can't take the archive down with it.
+function askArchive(name, cb){
+  scrollStop();
+  var kind='built', current=dispName(name);
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+
+  var inp=document.createElement('input');
+  inp.type='text'; inp.className='arcname'; inp.value=current;
+  inp.setAttribute('aria-label','What this chat is called');
+
+  var tabs=document.createElement('div');
+  tabs.className='acctabs arctabs'; tabs.dataset.on='0';
+  [['built','Built'],['other','Other']].forEach(function(t,i){
+    var b=document.createElement('button');
+    b.className='acctab'+(i===0?' on':'');
+    b.textContent=t[1];
+    b.onclick=function(e){
+      e.stopPropagation();
+      kind=t[0]; tabs.dataset.on=String(i);
+      [].forEach.call(tabs.children, function(c,j){ c.classList.toggle('on', j===i); });
+    };
+    tabs.appendChild(b);
+  });
+
+  var q=document.createElement('p'); q.textContent='Archive this chat?';
+  var row=document.createElement('div'); row.className='askrow';
+  var no=document.createElement('button'); no.textContent='Cancel';
+  var yes=document.createElement('button'); yes.className='go'; yes.textContent='Archive';
+  function close(ok){
+    var title=inp.value.trim();
+    wrap.remove(); document.body.style.overflow='';
+    cb(ok ? { ok:true, kind:kind, title:(title===current ? null : title) } : { ok:false });
+  }
+  no.onclick=function(e){ e.stopPropagation(); close(false); };
+  yes.onclick=function(e){ e.stopPropagation(); close(true); };
+  wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
+  box.onclick=function(e){ e.stopPropagation(); };
+  row.appendChild(no); row.appendChild(yes);
+  box.appendChild(inp); box.appendChild(tabs); box.appendChild(q); box.appendChild(row);
+  wrap.appendChild(box);
   document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }
 

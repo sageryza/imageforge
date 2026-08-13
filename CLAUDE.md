@@ -1524,6 +1524,26 @@ lifted into a standalone tool later.
     interesting thing about it. `test-chats-accounts.js` asserts this
     exception (both accounts listed, one visible tab row); it previously
     asserted the opposite.
+  - **ARCHIVING ASKS WHICH PILE, AND WHAT TO CALL IT (Aug 2026, Sophie: "the
+    archive should have an option to add it into the built or other pile and
+    also give an option to type a text box as a title for what it saves
+    under… there's already a pop-up for archive so you can just add it to the
+    top").** `askArchive()` in chats.html — the existing `askFirst` sheet
+    with two controls added ABOVE the question: a name box, then the pile.
+    - **The pile picker is `.acctabs` — the SAME hairline row she is about to
+      land in**, so the choice looks like its destination. BUILT preselected,
+      which is also what happens if she never opens the sheet.
+    - **The name box is PREFILLED with the chat's current name** (the /vector
+      precedent — a box holding its real current value, not example text; the
+      "text boxes ship empty" rule is about examples). Untouched, it renames
+      nothing: `askArchive` answers `title:null` unless she actually changed
+      it, so an unchanged box never fires `POST /rename`.
+    - **The rename and the pile are written BEFORE the archive**, so the chat
+      lands already named and already filed rather than sitting on BUILT for
+      a moment under its old name. Each write is independent — a failed
+      rename must not stop the archive.
+    - Taking a chat OUT still asks nothing; that gesture is one decision.
+    - Tests: `node scripts/test-chats-archive-sheet.js`.
   - Session-only, every page load opening on BUILT. A first pass of 16 chats
     was flagged 2026-08-13 from the thread contents (empty one-message chats,
     diagnostics, dead ends she had already noted as failed, and sign-in/env
