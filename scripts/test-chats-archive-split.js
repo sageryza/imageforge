@@ -203,7 +203,9 @@ const CHATS = {
   // already archived when this shipped carry nothing, and they must read as
   // BUILT with no backfill.
   'we-built-it': { account: '1', lastSeen: MSGS[1].created, archived: true },
-  'also-built': { account: '1', lastSeen: MSGS[3].created, archived: true },
+  // account 2 on purpose: the archive is not account-filtered, so this one
+  // must show while the app is on the account-1 tab
+  'also-built': { account: '2', lastSeen: MSGS[3].created, archived: true },
   'computer-wont-turn-on': { account: '1', lastSeen: MSGS[2].created, archived: true, archiveKind: 'other' },
 };
 
@@ -276,9 +278,21 @@ async function pageTests() {
 
     // landing tab + the no-backfill rule
     ok('it lands on BUILT', await page.evaluate(() => window.__archTab() === 'built'));
+    // ONE tab row in the archive (Aug 2026, Sophie): the account tabs are
+    // hidden here, so BUILT / OTHER is the only question on screen — and the
+    // account FILTER goes with the row rather than becoming a silent one.
+    const shown = await page.$$eval('.acctabs', (ns) => ns.filter(
+      (n) => getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0)
+      .map((n) => n.id || n.className));
+    ok('exactly one tab row in the archive', shown.length === 1, shown.join(' | '));
+    ok('…and it is the pile row, not the account row',
+      /archtabs/.test(shown[0] || ''), shown.join(' | '));
+
     let r = await rows();
     ok('an UNMARKED archived chat is on BUILT (no backfill needed)',
       r.indexOf('we-built-it') >= 0 && r.indexOf('also-built') >= 0, r.join(','));
+    ok('…including one on the OTHER account — the archive is not split by account',
+      r.indexOf('also-built') >= 0, r.join(','));
     ok('a marked chat is NOT on BUILT',
       r.indexOf('computer-wont-turn-on') < 0, r.join(','));
     ok('a live chat is in neither pile', r.indexOf('live-one') < 0, r.join(','));
