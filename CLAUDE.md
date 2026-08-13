@@ -3670,6 +3670,16 @@ lifted into a standalone tool later.
   bytes; a backfill of 18 such tiles is what surfaced this). Until the
   server unions by content hash instead of filename, this sweep is the only
   thing that keeps the Assets tab fully captioned.
+  **THE SWEEP IS ONE COMMAND NOW —
+  `node scripts/sweep-asset-captions.js --chat <your chat slug>` (Aug 2026).**
+  It pages the whole Assets tab and names every image short of a label, a
+  MODEL · QUALITY caption, a filed prompt, or sitting there as an unlabeled
+  `claude-deliveries/*` stray. **A chat that delivered images runs it on
+  ITSELF before finishing the turn** — that is the only moment the missing
+  captions can still be filed honestly. Default sweeps recently active chats,
+  `--active <days>` widens it, `--all` is every chat, `--json` for a reader.
+  It is READ-ONLY and stays that way (a test pins it): a caption a later chat
+  invents is worse than a blank one — see the measurement above.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:
