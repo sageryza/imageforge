@@ -913,6 +913,33 @@ router.post('/notif-seen', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// PIN an Update card (Aug 2026, Sophie: "a pin button so I can pin it and then
+// open it but it'll still be there"). Every other mark on this screen is a
+// self-clearing STAMP — a card leaves the moment she opens the chat or taps
+// the ✓ — which is right for news and wrong for the one thing she is actually
+// carrying around. So `pinned` is a plain BOOLEAN, deliberately: nothing
+// newer, nothing she reads, and no passage of time may clear it. Only she
+// does, with the pin again or the ✓ (which unpins as it clears — "done" has
+// to mean done, or the check would look broken on a pinned card).
+//
+// NAMED `newsPinned`, on its own route, because `pinned` + POST /pin were
+// ALREADY TAKEN by the pinned DELIVERABLE (the film at the top of a thread),
+// which stores an OBJECT there. Reusing either would have shadowed that
+// route — Express takes the first match — and made every chat with a pinned
+// film look like a pinned card, with the ✓ deleting the film.
+router.post('/news-pin', async (req, res) => {
+  try {
+    const { chat, pinned } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = pinned !== false;
+    await regRef(await followMoves(chat)).set(
+      { newsPinned: on ? true : admin.firestore.FieldValue.delete() },
+      { merge: true },
+    );
+    res.json({ ok: true, pinned: on });
+  } catch (err) { fail(res, err); }
+});
+
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
 // original Anthony Chene chat were the two she named. A starred chat wears a
@@ -930,6 +957,53 @@ router.post('/star', async (req, res) => {
     await regRef(chat)
       .set({ starred: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, starred: on });
+  } catch (err) { fail(res, err); }
+});
+
+// SPLIT THE ARCHIVE IN TWO (Aug 2026, Sophie: "right now the archive is a
+// single list — I want to split it using the hairline pattern into two piles,
+// one of things where we built something and something was accomplished and
+// everything worked out, and then another one that's pretty much trash but
+// I'm just keeping it for bookkeeping"). Her own examples of the second pile:
+// the chat where her computer wouldn't turn on (fixed, but not important) and
+// the one about Google Takeout failing on her email.
+//
+// ONE field, `archiveKind`, and only the SECOND pile is ever stored. Absent =
+// built = the left tab = the landing tab, so the 81 chats already archived
+// need no backfill and read correctly the moment this ships; she only ever
+// marks the throwaways, which is the smaller pile and the easier judgement.
+//
+// It is a plain permanent judgement about the chat, like `starred` and unlike
+// `hiddenAt`/`notifSeenAt` — nothing newer clears it. It is also deliberately
+// INDEPENDENT of `archived`: a chat marked here and then pulled back out of
+// the archive keeps the mark, so re-archiving it doesn't ask her twice.
+//
+// Bulk-capable for the same reason /category is: triaging a pile is a
+// several-at-a-time gesture, and it is how a chat backfills a first pass.
+//
+// A name that has no registry doc is SKIPPED, never written. `set(…, merge)`
+// on a missing doc CREATES it, and sortedChatNames lists every registry key —
+// so one typo would put a phantom row in her list that only the Admin SDK can
+// remove. That has happened here before; the read is cheap next to the cost.
+router.post('/archive-kind', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const other = String(body.kind || '') === 'other';
+    const val = other ? 'other' : admin.firestore.FieldValue.delete();
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(
+      resolved.map((n) => db().collection(REG).doc(n).get()));
+    const live = resolved.filter((n, i) => snaps[i].exists);
+    const missing = resolved.filter((n, i) => !snaps[i].exists);
+    if (live.length) {
+      const batch = db().batch();
+      live.forEach((n) => batch.set(regRef(n), { archiveKind: val }, { merge: true }));
+      await batch.commit();
+    }
+    res.json({ ok: true, chats: live, missing, kind: other ? 'other' : 'built' });
   } catch (err) { fail(res, err); }
 });
 
@@ -1494,6 +1568,29 @@ function kitWarnings(html) {
   if (/<video[\s>]/i.test(s)) {
     out.push('An embedded <video>: a film is a line of text with a play button '
       + 'via window.__filmRow({url,label,meta,mount}), never an embedded player.');
+  }
+  // THE TITLE, ONCE, AND NOTHING ABOVE IT (Aug 2026, Sophie — asked for on
+  // page after page, and the shells themselves taught the opposite until she
+  // caught it). The gold CHAT NAME · DATE eyebrow and the tagline under the
+  // title are the two rows she keeps having removed by hand. Both classes
+  // still exist in compare.css so pages posted before the rule render, which
+  // is exactly why a NEW page has to be told.
+  if (/class\s*=\s*["'][^"']*\beyebrow\b/i.test(s)) {
+    out.push('An .eyebrow line above the title: the page opens with its <h1> '
+      + 'and nothing above it — no chat/date line (she knows which chat she '
+      + 'is in). Delete it.');
+  }
+  if (/class\s*=\s*["'][^"']*\bsub\b/i.test(s)) {
+    out.push('A .sub tagline under the title: the title is the only text at '
+      + 'the top. Anything worth explaining goes behind the "?" — '
+      + 'window.__compareHelp({ html: "…" }).');
+  }
+  // TEXT BOXES SHIP EMPTY (Aug 2026, Sophie: "whenever there's a text box
+  // there should not be anything in it, no example text… I prefer nothing").
+  // An example she has to clear before typing is work.
+  if (/<(?:input|textarea)\b[^>]*\bplaceholder\s*=\s*["'][^"']/i.test(s)) {
+    out.push('Example text in a box (placeholder=): text boxes ship EMPTY. '
+      + 'If an example is genuinely needed, put it behind the "?" instead.');
   }
   return out;
 }

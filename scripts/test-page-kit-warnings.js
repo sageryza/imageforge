@@ -134,6 +134,16 @@ body{background:var(--paper);color:var(--ink)}</style>
 const WITH_VIDEO = SHELL.replace('<div class="wrap">',
   '<div class="wrap">\n  <video src="https://example.com/cut-v2.mp4" controls playsinline></video>');
 
+// (e) the shell wearing the two rows Sophie keeps having removed by hand — the
+// gold chat/date eyebrow above the title and the tagline under it — plus a box
+// carrying example text she would have to clear before typing.
+const WITH_CHROME = SHELL.replace('<div class="wrap">',
+  '<div class="wrap">\n  <div class="eyebrow">A CHAT · 13 AUG</div>')
+  // anchored on the real title text — the shell MENTIONS <h1> in its comment
+  // block first, and comments are stripped before anything is read
+  .replace('<h1>Title states', '<div class="sub">One line about the page.</div>\n  <h1>Title states')
+  .replace('</div>\n</div>', '<textarea placeholder="a cat in a teacup"></textarea></div>\n</div>');
+
 (async () => {
   console.log('POST /api/chatfeed/page — kit warnings');
 
@@ -190,6 +200,19 @@ const WITH_VIDEO = SHELL.replace('<div class="wrap">',
     const w = out.json.warnings;
     ok('an embedded <video> is warned about', Array.isArray(w) && w.length === 1, JSON.stringify(w));
     ok('…and it names __filmRow as the fix', has(w, '__filmrow'), JSON.stringify(w));
+  }
+
+  { // (e) the title-and-nothing-else rules: no eyebrow, no tagline, no example
+    // text in a box. All three are things she has asked to have removed by hand.
+    const { out } = await postPage({ chat: 'a-chat', title: 'Dressed up', html: WITH_CHROME });
+    const w = out.json.warnings || [];
+    ok('an .eyebrow above the title is warned about', has(w, 'eyebrow'), JSON.stringify(w));
+    ok('a .sub tagline is warned about', has(w, 'tagline'), JSON.stringify(w));
+    ok('…and it names the "?" as where an explanation goes',
+      has(w, '__comparehelp'), JSON.stringify(w));
+    ok('example text in a box is warned about', has(w, 'placeholder'), JSON.stringify(w));
+    ok('…and the page is still POSTED, never blocked',
+      out.status === 200 && out.json.ok === true, JSON.stringify(out.json));
   }
 
   { // comments are stripped before anything is read — the shell keeps the rules

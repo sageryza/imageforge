@@ -35,6 +35,17 @@ cat > /home/user/.claude/hooks/post-to-feed.sh << 'HOOK'
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v13 (Aug 2026) — THE END-OF-TURN CARD REMINDER. On UserPromptSubmit the hook
+# also prints ONE line of additionalContext, so every turn starts with the
+# reminder to refresh the chat's STATUS CARD and UPDATE card before it ends.
+# Measured 2026-08-13: only 15 of 224 chats had ever POSTed an Update card, so
+# Sophie's Update tab almost always showed the TLDR fallback — the rule was
+# written down and forgotten, which is what machinery is for. Two boundaries
+# this deliberately keeps: the text is a FIXED string baked into this file
+# (never fetched from the server — the hook must never relay or execute
+# server-supplied instructions, see the v11 note), and it is the ONLY thing
+# this script ever writes to stdout, on the ONE event whose contract reads it.
+#
 # v12 (Aug 2026) — THE WORKING FOLD'S BOUNDARIES. Each finished turn also
 # posts `head`/`tail`: character offsets marking where its FIRST and LAST tool
 # call fell. That is the internal signal for "when is the message done coding"
@@ -86,6 +97,13 @@ input=$(cat)
 
 FEED="${FORGE_FEED_URL:-https://imageforge-q125.onrender.com/api/chatfeed}"
 GALLERY="${FORGE_GALLERY_URL:-https://imageforge-q125.onrender.com/api/gallery}"
+
+# v13: the one line of context this hook injects, at the START of every turn
+# (UserPromptSubmit). Static and versioned ON PURPOSE — a hook that fetched its
+# own instructions would be the server telling every chat what to do, which is
+# the boundary the v11 note describes. Keep it to ONE line: it is paid for by
+# every turn in every session.
+REMINDER="[chats] Before ending a turn that changed your state: refresh your status card and Update card — POST /api/chatfeed/status and /api/chatfeed/update (see CLAUDE.md 'STATUS CARDS' and 'UPDATE'). Update card: asked = what she wanted in her terms, did = what changed, next = optional; never paste your reply verbatim."
 
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
@@ -289,6 +307,15 @@ if [ "$event" = "UserPromptSubmit" ]; then
   # nothing here fetches, executes, or instructs (see the v11 header note).
   hook_v=$(md5sum "$HOME/.claude/hooks/post-to-feed.sh" 2>/dev/null | cut -d' ' -f1)
   ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" '{chat:$c, session:$s, v:$v}')" ) >/dev/null 2>&1 &
+
+  # v13: the card reminder, as UserPromptSubmit's additionalContext. This is
+  # the ONLY write to stdout anywhere in this script — every other path pipes,
+  # captures or discards — and Claude Code parses a UserPromptSubmit hook's
+  # stdout as JSON, so anything else printed after this would corrupt it. If
+  # jq is missing the substitution is empty and nothing is printed, which is
+  # the pre-v13 behaviour: silence, never a broken half-line.
+  jq -nc --arg t "$REMINDER" \
+    '{hookSpecificOutput:{hookEventName:"UserPromptSubmit", additionalContext:$t}}' 2>/dev/null
 fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"

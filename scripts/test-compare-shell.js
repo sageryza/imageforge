@@ -10,6 +10,8 @@
  *      unconditional stop repaints the glyphs mid-press and eats the click)
  *   3. opening an image stops the scroll, locks the page, and closing restores
  *      the exact scroll position
+ * plus the note box, the film row, and the "?" that holds anything a page
+ * would otherwise print as instructions down its top.
  *
  * Uses headless Chromium directly (no playwright dependency): it serves the
  * page, runs an in-page script that drives the taps, and the page POSTs its
@@ -156,6 +158,29 @@ __PILL__
       ok(Math.abs(window.scrollY - fy) < 2 && document.body.style.overflow === ''
          && !v.getAttribute('src'),
          'closing restores the position and tears the video down');
+
+      // 6. THE "?" — the one place instructions may live (Sophie, Aug 2026:
+      // "they can put it behind a ? so I can tap it if I don't know what's
+      // going on"). It rides on the title, clear of the pill's corner, and
+      // the card FLOATS so opening it can't push the page down under her.
+      var yBefore = document.body.scrollHeight;
+      window.__compareHelp({ html: '<b>What this is.</b> One line.' });
+      var q = document.querySelector('.cmp-help');
+      var qb = q && q.getBoundingClientRect();
+      ok(!!q && q.parentNode === document.querySelector('h1') && qb.right < 324,
+         'the "?" rides on the title, clear of the pill corner');
+      var card = document.querySelector('.cmp-helpcard');
+      ok(!!card && card.hidden, 'the card starts closed — nothing to read until she asks');
+      q.click();
+      ok(card && !card.hidden && getComputedStyle(card).position === 'fixed'
+         && document.body.scrollHeight === yBefore,
+         'tapping it floats the card without moving the page');
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      ok(card && card.hidden, 'a tap anywhere puts it away');
+      window.__compareHelp({ html: 'again' });
+      ok(document.querySelectorAll('.cmp-help').length === 1
+         && document.querySelectorAll('.cmp-helpcard').length === 1,
+         'calling it twice replaces, never stacks');
 
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
     }, 120);

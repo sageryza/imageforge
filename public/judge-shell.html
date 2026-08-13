@@ -17,9 +17,15 @@
      compare-and-choose case (medium vs high of the same portrait, a PDF page
      next to its text): use `pair` instead of `img`.
 
-     MINIMAL TEXT (Sophie's rule): the page is a visual reference, not an
-     extension of the chat. Title, ONE line under it, and per-item labels —
-     no paragraphs, no explanations. She knows what's going on from the chat.
+     THE TITLE, ONCE, AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie — this
+     shell taught the opposite until she caught it): no eyebrow chat/date
+     line above the <h1>, no tagline under it, and NO instructions on the
+     page. How-to-use words live behind the "?" — /judge.js already draws one
+     on every judge page, so pass `help:` and say it there. Per-item labels
+     and the title are the only text a judge page carries.
+
+     A BUTTON IS ONLY AS WIDE AS ITS WORDS, and a text box ships EMPTY (no
+     example text) — the two other rules she keeps having to repeat.
 
      Reading her answers back:
        GET /api/chatfeed/verdict?chat=&sheet=
@@ -36,9 +42,7 @@
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
-  <div class="eyebrow">CHAT NAME · DATE</div>
   <h1>Title states the version and what she is choosing</h1>
-  <div class="sub">One line, then the pictures. Nothing else.</div>
   <div id="judge"></div>
 </div>
 
@@ -49,6 +53,9 @@
   window.__judge({
     chat: 'CHAT NAME',
     sheet: 'SHEET NAME',
+    // Anything she might need told — it leads the "?" card. Drop the line
+    // entirely if the page explains itself (most do).
+    help: 'One sentence, only if this set needs it.',
     items: [
       // one picture, judged on its own
       { id: 'penny-01', label: 'Penny — the blue Kleenex', img: 'https://…/penny-01.webp' },

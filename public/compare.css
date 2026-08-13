@@ -19,15 +19,23 @@
    Standard skeleton (see CLAUDE.md "Compare pages"):
      <link rel="stylesheet" href="/compare.css">
      <div class="wrap">
-       <div class="eyebrow">CHAT NAME · DATE</div>
        <h1>Title states the version and what it is</h1>
-       <div class="sub">One-line subtitle.</div>
        ... .card / .big / .imgrow blocks ...
      </div>
-     <script>
-       document.addEventListener('pointerdown', function(){
-         if(window.__scrollStop) window.__scrollStop(); }, true);
-     </script>
+     <script src="/compare.js"></script>
+
+   THE TITLE, ONCE, AND NOTHING ABOVE IT (Aug 2026, Sophie — she has asked
+   for this on page after page, and this comment block used to teach the
+   opposite, which is where the extra rows kept coming from). The page opens
+   with its <h1> and goes straight into the thing: NO .eyebrow chat/date line
+   above it, NO .sub tagline under it. Both classes are kept below only so
+   pages posted before the rule still render; a NEW page must not use them.
+
+   AND NO INSTRUCTIONS ON THE PAGE. A list of how-to-use-this lines is the
+   other thing she keeps asking to have removed. If a page genuinely needs
+   explaining, it goes BEHIND A "?" — window.__compareHelp({ html: '…' }) in
+   /compare.js puts the circle on the title and floats the card over the page
+   on a tap. Nothing to read until she asks.
 */
 
 :root {
@@ -154,12 +162,40 @@ video {
   border-radius: 6px; background: #000;
 }
 
-/* Buttons (rare on Compare pages) — rounded rectangles, flat */
+/* Buttons (rare on Compare pages) — rounded rectangles, flat.
+   A BUTTON IS ONLY AS WIDE AS ITS WORDS (Aug 2026, Sophie: "there's no reason
+   to make buttons longer than they need to be to hold the text"). They are
+   inline-flex and hug: never `width:100%`, never `flex:1`, never a full-width
+   slab across the card. If two buttons sit together they sit side by side,
+   each its own width. */
 button, .btn {
+  display: inline-flex; align-items: center; gap: 6px; width: auto;
   font: 600 14px/1 -apple-system, 'Helvetica Neue', sans-serif;
   border: 1.5px solid var(--gold); color: var(--gold);
-  background: var(--surface); border-radius: 6px; padding: 9px 14px;
+  background: var(--surface); border-radius: 6px; padding: 9px 13px;
 }
+
+/* THE "?" — where an explanation lives (Aug 2026, Sophie: instructions on the
+   page are clutter she reads every visit; "they can put it behind a ? so I can
+   tap it if I don't know what's going on"). Built by /compare.js's
+   window.__compareHelp(); the circle rides at the end of the title and the
+   card FLOATS (fixed) so opening it never pushes the page down under her
+   finger. Same idea, same look as the tool pages' #help / .helpcard. */
+.cmp-help {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; margin-left: 9px;
+  border-radius: 50%; border: 1px solid var(--gold);
+  font: 600 13px/1 -apple-system, sans-serif; color: var(--gold);
+  background: transparent; vertical-align: middle; cursor: pointer;
+}
+.cmp-helpcard {
+  position: fixed; top: 14px; left: 14px; right: 14px; z-index: 60;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 14px 16px; font-size: 15px; line-height: 1.5; color: var(--ink2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .13);
+  max-height: 70vh; overflow: auto;
+}
+.cmp-helpcard b { color: var(--ink); }
 
 /* Notes on an item (Aug 2026, Sophie's standing rule — every reviewable
    thing takes a note). The markup is built by /compare.js's

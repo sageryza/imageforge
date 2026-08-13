@@ -43,10 +43,28 @@
          window.__filmRow({ url: '…/cut-v2.mp4', label: 'Mason — the shape',
                             meta: '4:56', mount: '#film' });
 
-     MINIMAL TEXT (Aug 2026, Sophie — asked for on page after page): this is
-     a VISUAL reference, not an extension of the chat. Title, ONE line under
-     it, labels on the pictures — no paragraphs, no explanations, no recap of
-     the conversation. She knows what's going on from the chat.
+     THE FOUR RULES SHE HAS ASKED FOR OVER AND OVER (Aug 2026). Every one of
+     them is about the same thing: the page is a place to LOOK at the work,
+     not to read about it.
+
+     1. THE TITLE, ONCE, AND NOTHING ABOVE IT. No eyebrow chat/date line, no
+        tagline under it. Straight from the <h1> into the thing. (Inside a
+        native tool the nav bar already carries the name — then the page does
+        not repeat it at all.)
+     2. NO INSTRUCTIONS ON THE PAGE. If the page needs explaining, it goes
+        BEHIND A "?": window.__compareHelp({ html: '…' }) puts the circle on
+        the title and floats the card on a tap. "That's a much better idea."
+     3. TEXT BOXES SHIP EMPTY — no example text, not even as a placeholder.
+        An example she has to clear is work. If one is truly needed, it goes
+        behind the "?" too.
+     4. A BUTTON IS ONLY AS WIDE AS ITS WORDS. Never full-width, never
+        `flex:1` — "there's no reason to make buttons longer than they need
+        to be to hold the text."
+
+     MINIMAL TEXT (asked for on page after page): this is a VISUAL reference,
+     not an extension of the chat. Title, labels on the pictures — no
+     paragraphs, no recap of the conversation. She knows what's going on from
+     the chat.
 
      THE THINGS BEING COMPARED SIT SIDE BY SIDE — never stacked so she
      scrolls between them. Use `.duo` (labels ON TOP: "medium" / "high") for
@@ -62,7 +80,9 @@
 
 <div class="wrap">
   <!-- THE TITLE AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie): no eyebrow
-       chat/date line, no tagline. Straight from the title into the thing.
+       chat/date line, no tagline, and no how-to-use lines under it — those
+       go behind the "?" at the bottom of this file. Straight from the title
+       into the thing.
        And PREFER NOT SCROLLING — if the page carries two different kinds of
        thing (a picture and its inputs, a shape and the buttons that drive
        it), split them with the .acctabs hairline tabs instead of stacking
@@ -95,6 +115,11 @@
   // types, reloads what she wrote last time, and survives leaving the page.
   // Add this to EVERY page with reviewable items (Sophie's standing rule).
   window.__compareNotes({ chat: 'CHAT NAME', sheet: 'SHEET NAME' });
+
+  // THE "?" — the ONLY place instructions may live. Delete this call if the
+  // page needs no explaining (most don't); never put the words on the page.
+  window.__compareHelp({ html: '<b>What this is.</b> One or two sentences, '
+    + 'only if the page genuinely needs them.' });
 
   // Votes, if the page has them. A Compare page must NEVER post to
   // /api/chatfeed/reply — what she writes here is not a chat message, and the

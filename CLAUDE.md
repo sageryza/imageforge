@@ -695,6 +695,13 @@ lifted into a standalone tool later.
   means leave it). Filter-only like the Test Station — it is deliberately not
   on the default home. Its glyph is the bundled `Vector` asset (a bezier curve
   with its two anchor points); `deckfactory://vector` opens it.
+  **v1 broke three house rules by copying its neighbours, and the fix went
+  into the KIT, not just this page (Aug 2026, Sophie).** It said "VECTOR"
+  twice (its own eyebrow under the native bar's title — `GatedWebTool` now
+  appends `?embed=1` for every tool and `serveGated` hides `.tool-eyebrow`),
+  it shipped example drawings sitting in its text box (now empty; the example
+  moved into the `?` card), and its buttons were longer than their words. See
+  the four rules in the tool.css note above.
 - Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
   (no invented colour, no dropped colour, line weight, structure), not against
   the Python it was ported from. It deliberately does NOT catch small
@@ -770,7 +777,7 @@ lifted into a standalone tool later.
   chat's tile appeared on its own (verified live).
 - **SKILLS load in every session via the SAME setup script (v9, Aug 2026).**
   The repo's `.claude/skills/` (witch-copy, deliver-images, new-page,
-  new-module, sophie-audio, …) are only discovered by Claude Code once a chat
+  new-module, new-tool, sophie-audio, …) are only discovered by Claude Code once a chat
   is already working inside this repo — the same starting-folder gotcha as
   the hook — so the setup script SYMLINKS them to `/home/user/.claude/skills`
   and they load from the first turn. A symlink, never a copy: sessions always
@@ -1014,6 +1021,22 @@ lifted into a standalone tool later.
     re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
     the transcript uuid of the user message that started the turn; the server
     upserts onto the same message doc).
+- **THE CARD REMINDER IS IN THE HOOK (v13, Aug 2026).** On UserPromptSubmit
+  the hook prints one line of `additionalContext`, so every turn begins with
+  the reminder to refresh the chat's STATUS CARD and UPDATE card before it
+  ends. Why: measured 2026-08-13, only **15 of 224 chats had ever POSTed an
+  Update card**, so the ⌄ pop-out almost always fell back to the reply's
+  TLDR — the rule was written here and forgotten, which is what machinery is
+  for. Three things about it that are deliberate: the text is a FIXED string
+  baked into the hook (it is never fetched from the server — a hook that
+  relayed server-supplied instructions is the boundary the v11 note below
+  describes); it is the ONLY thing the hook ever writes to stdout, on the one
+  event whose contract reads stdout as JSON, so nothing else in the script
+  may print; and there is no state file — it is one cheap line every turn.
+  **Reaching an existing environment still needs Sophie's one-time re-paste**
+  of `docs/chats-autopost-setup-script.sh` (the standing distribution caveat
+  above) — a chat on an older hook simply gets no reminder, which is silence,
+  not a wrong turn.
 - **STALE HOOKS SHOW THEMSELVES NOW — and AUTO-UPDATE IS A HARD NO (v11, Aug
   2026).** The turn-start ping carries the md5 of the session's INSTALLED
   hook file; the server compares it to the repo copy it deployed with
@@ -1242,6 +1265,25 @@ lifted into a standalone tool later.
   that used to be a paragraph. Link it, set `body class="tool"`, don't
   hand-roll a per-page variant. `studio.html` is the reference; `blog.html`,
   `report.html` and `vector.html` follow.
+  **THE FOUR RULES SHE KEEPS REPEATING, now baked into the kit (Aug 2026,
+  after /vector broke three of them on day one).** They live as comments at
+  the top of `tool.css`, in the `new-page` / `new-tool` skills, and — for
+  Compare pages — as `warnings` on `POST /api/chatfeed/page`:
+  1. **The tool's name appears ONCE.** The native bar carries it, so the page
+     must not. `?embed=1` hides the page's own title row — and **the server
+     now does that itself** (it injects the style for BOTH `.app-header` and
+     `.tool-eyebrow` plus `document.body.classList.add('embed')`), because
+     the old rule lived in tool.css behind a `body.embed` that only
+     studio.html's hand-written JS ever set. **`GatedWebTool` appends
+     `embed=1` to every path** rather than each call site remembering —
+     /vector shipped without it and read "VECTOR" twice down the screen.
+  2. **No instructions on the page** — behind the `?` (`#help`/`.helpcard`).
+  3. **Text boxes ship EMPTY**, not even a `placeholder`: "whenever there's a
+     text box there should not be anything in it… I prefer nothing." An
+     example belongs in the `?` card.
+  4. **A button is only as wide as its words** — never `width:100%` or
+     `flex:1`; `.btn` says `width:auto; flex:0 0 auto` out loud so someone
+     else's flex row can't stretch it.
   **The rail and EVERY step caption reserve the pill's corner (Aug 2026)** —
   `padding-right:56px`, not just the header. The injected pill is fixed over
   roughly x 324-374 / y 14-192, which is the header AND the first two step
@@ -1329,6 +1371,12 @@ lifted into a standalone tool later.
     Each entry identifies its image by `"url"` (exact) or `"match"` (a substring
     of the url OR of the label shown in the app — easier, since a chat remembers
     what it called an image). `FORGE_BASE` overrides the server.
+  - **CONTENT is the side the overlay opens on (Aug 2026, Sophie: "right now
+    the style is the default and I want it to be the content, so I don't have
+    to click all the time").** What the picture is OF is what she opens the
+    overlay for; the style half is the same house prefix across most of a
+    batch, so Style-first charged her a tap on every image to reach the half
+    that differs. Style still wins when content is the only half missing.
   - An image with no prompt on file shows **no PROMPT button at all** — never
     write "no prompt filed" anywhere; empty is silent by design.
   - These instructions live HERE only. There used to be a "How to post prompts"
@@ -1430,6 +1478,42 @@ lifted into a standalone tool later.
   - Firestore caps a batch at 500 writes and a long chat holds thousands of
     messages, so the delete runs in chunks of 400.
   - Tests: `node scripts/test-chats-trash.js`.
+  **THE ARCHIVE IS TWO PILES — BUILT · OTHER (Aug 2026, Sophie: "right now
+  the archive is a single list, I want to split it using the hairline pattern
+  into two piles, one of things where we built something and something was
+  accomplished and everything worked out, and then another one that's pretty
+  much trash but I'm just keeping it for bookkeeping").** Her own examples of
+  the second pile: the chat where her computer wouldn't turn on ("yeah I did
+  fix it but it's not really important") and the one about Google Takeout
+  failing on her email. `.acctabs.archtabs` at the top of the archive grid,
+  `archiveKind` on the registry doc, `POST /api/chatfeed/archive-kind
+  {chat|chats:[…], kind:'built'|'other'}`.
+  - **ABSENT MEANS BUILT, and that is the load-bearing half.** 81 chats were
+    already archived the day this shipped, so storing only the second pile
+    means no backfill — and no risk of the left tab opening empty and reading
+    as the archive having been wiped. Only the throwaways carry a mark, which
+    is also the smaller and easier judgement.
+  - **It is INDEPENDENT of `archived`** and permanent like `starred`, not a
+    self-clearing stamp: a chat marked `other` and then pulled back out of the
+    archive keeps the mark, so re-archiving it never asks her twice.
+  - **The row's button in the archive MOVES the chat, it does not hide it**
+    (↓ / ↺, the Compare list's supersede idiom). It replaced the hide ⊖ there,
+    which was a dead control and always had been — the hidden pile is derived
+    from `live`, which excludes every archived chat, so hiding one could never
+    put it behind the red bar. One button per row; two makes the wrong one the
+    easy tap.
+  - **The tab row needs NO 56px pill reserve** — it is drawn at the top of
+    `#grid`, below the account row and the hidden bar, so it clears the pill's
+    y 14–192 band. Move it higher and it needs the reserve plus
+    `width:calc((100% - 56px)/2)`. No count badges: the red one elsewhere means
+    "something answered you", which an archived chat doing is not.
+  - Session-only, every page load opening on BUILT. A first pass of 16 chats
+    was flagged 2026-08-13 from the thread contents (empty one-message chats,
+    diagnostics, dead ends she had already noted as failed, and sign-in/env
+    troubleshooting); a starred chat, or one with an outstanding `need`, was
+    never flagged. Tests: `node scripts/test-chats-archive-split.js` (the real
+    route against a stubbed Firestore + the real page in headless Chromium;
+    verified failing against an inverted default).
   **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
   Sophie: "when I message a chat that I archived, can it automatically come
   out of the archive").** Archive means "away for good" — and going back to
@@ -1951,7 +2035,33 @@ lifted into a standalone tool later.
     - **The FALLBACK when a chat has never written one is its reply's TLDR
       under "What I did"** — honest, and it means the ⌄ is not a button that
       appears and vanishes down the list for no visible reason.
-  - Tests: `node scripts/test-chats-news.js`.
+  - **THE CARD'S TOP ROW: name · pin · ⌄ · TIME · ✓ (Aug 2026, Sophie: the ⌄
+    "is a little bit close to the check box so I'm worried I'll tap that by
+    accident — maybe just move it on the other side of the clock time").**
+    The timestamp is lifted OUT of the inner `.crow` and rendered as a
+    sibling in `.nwtop` precisely so it sits BETWEEN the expand arrow and the
+    clearing ✓; the row gap also went 3px → 9px. Measured at 390px: 68px now
+    separates ⌄ from ✓, against 3px before. Anything added to that row must
+    keep the ✓ alone on the far side of the time — it is the one tap that
+    makes a card disappear.
+  - **THE PIN — `newsPinned`, a plain BOOLEAN (Aug 2026, Sophie: "a pin
+    button so I can pin it and then open it but it'll still be there").**
+    Every other mark on this screen is a self-clearing stamp; this is the one
+    thing she keeps, so NOTHING clears it — not opening the chat, not a newer
+    reply, not time. Only the pin again, or the ✓ (which unpins as it clears,
+    or the check would look broken on a pinned card). Pinned cards sort
+    FIRST, and a card that is on the screen only because it is pinned
+    (`pinnedOnly`) is removed the moment she unpins it.
+    - **`newsPinned` / `POST /news-pin` are named around a COLLISION, not by
+      preference: `pinned` + `POST /pin` were already taken** by the pinned
+      DELIVERABLE (the film at the top of a thread), which stores an OBJECT
+      there. Reusing either would have shadowed that route (Express takes the
+      first match) and made every chat with a pinned film read as a pinned
+      card — with the ✓ deleting the film. Two different features, two
+      fields; don't merge them.
+  - Tests: `node scripts/test-chats-news.js`, and
+    `node scripts/test-chats-news-pin.js` (hit-measures the ⌄/✓ gap and
+    drives a pinned card through being opened).
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
   know — it brings me out automatically, and then I have to go back to the
@@ -2339,6 +2449,27 @@ lifted into a standalone tool later.
   knows which chat she is in and when she asked for it) and **no `.sub`**
   tagline. Both classes stay in `compare.css` for older pages; a NEW page
   simply does not use them, and `compare-shell.html` no longer has them.
+  **The rule kept coming back because THE TEMPLATES TAUGHT THE OPPOSITE
+  (fixed Aug 2026):** `judge-shell.html` and `picker-shell.html` both opened
+  with an eyebrow + tagline, and compare.css's own skeleton comment listed
+  them — so a chat starting from the right file still copied the wrong shape.
+  All three are corrected, and `POST /page` now answers a `warning` naming
+  the eyebrow / the tagline.
+  **INSTRUCTIONS GO BEHIND A "?" — never down the top of the page (Aug 2026,
+  Sophie: "every chat seems to include a long list of instructions… if they
+  do want to put instructions they can put it behind a ? so I can tap it if I
+  don't know what's going on. That's a much better idea").** One line:
+  `window.__compareHelp({ html: '…' })` in `/compare.js` — the circle rides
+  at the end of the title (the pill owns the top-right corner), the card is
+  `position:fixed` so it can't push the page down under her finger, and any
+  tap closes it. A judge page passes `help:` to `__judge`; a tool page uses
+  tool.css's `#help`. Most pages need none at all.
+  **TEXT BOXES SHIP EMPTY, and BUTTONS HUG THEIR WORDS (Aug 2026, Sophie).**
+  No example text in a box, not even a `placeholder` ("I prefer nothing") —
+  it belongs in the `?` card if anywhere. And "there's no reason to make
+  buttons longer than they need to be to hold the text": compare.css's
+  `button,.btn` is `inline-flex; width:auto`, never a full-width slab.
+  `POST /page` warns about a `placeholder=` too.
   **PREFER NOT SCROLLING, AND WHEN THERE ARE TWO KINDS OF THING USE THE
   HAIRLINE TABS (Aug 2026, Sophie's standing rule).** A page she has to
   scroll to reach the controls is a page where the thing and the controls are
@@ -3654,6 +3785,16 @@ lifted into a standalone tool later.
   bytes; a backfill of 18 such tiles is what surfaced this). Until the
   server unions by content hash instead of filename, this sweep is the only
   thing that keeps the Assets tab fully captioned.
+  **THE SWEEP IS ONE COMMAND NOW —
+  `node scripts/sweep-asset-captions.js --chat <your chat slug>` (Aug 2026).**
+  It pages the whole Assets tab and names every image short of a label, a
+  MODEL · QUALITY caption, a filed prompt, or sitting there as an unlabeled
+  `claude-deliveries/*` stray. **A chat that delivered images runs it on
+  ITSELF before finishing the turn** — that is the only moment the missing
+  captions can still be filed honestly. Default sweeps recently active chats,
+  `--active <days>` widens it, `--all` is every chat, `--json` for a reader.
+  It is READ-ONLY and stays that way (a test pins it): a caption a later chat
+  invents is worse than a blank one — see the measurement above.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:

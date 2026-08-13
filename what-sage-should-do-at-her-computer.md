@@ -63,6 +63,52 @@ time.
 
 ## Backlog (other computer-only tasks — add here)
 
+## Turn on the automatic derived-files check (1 minute) — added Aug 12, 2026
+
+- **Why:** the "dagster-pipeline-tool" chat shipped two forgot-to-rebuild fixes
+  (PRs [#1095](https://github.com/sageryza/imageforge/pull/1095) and
+  [#1096](https://github.com/sageryza/imageforge/pull/1096)). The checker works
+  by hand today, but making GitHub run it automatically on every change needs
+  one file moved into `.github/workflows/` — and chat sessions' GitHub tokens
+  are barred from that folder. Your own account isn't. One paste finishes it.
+- **Option 1 — paste straight into Terminal:**
+
+  ```
+  cd ~/imageforge
+  git checkout main && git pull origin main
+  git mv scripts/check-derived.workflow.yml .github/workflows/check-derived.yml
+  git commit -m "Turn on the derived-files check"
+  git push origin main
+  ```
+
+- **Option 2 — send this to a Claude chat connected to this Mac** (safer — it
+  checks the repo's state first):
+
+  ```
+  In ~/imageforge, please turn on the derived-files auto-check. First check
+  git status: if the repo has uncommitted changes or is sitting on another
+  chat's branch, don't discard or switch anything - stop and tell me what's
+  there instead. If it's clean, run:
+
+  git checkout main && git pull origin main
+  git mv scripts/check-derived.workflow.yml .github/workflows/check-derived.yml
+  git commit -m "Turn on the derived-files check"
+  git push origin main
+
+  This push is tiny, so the big-upload stall shouldn't apply. Afterwards,
+  confirm the file shows on GitHub at .github/workflows/check-derived.yml.
+  This works from the Mac and not from cloud chats because GitHub only lets
+  my own account place automation files.
+  ```
+
+- **Done when** this link works:
+  https://github.com/sageryza/imageforge/blob/main/.github/workflows/check-derived.yml
+  (A Mac chat already tried once, hit an issue and disconnected before
+  finishing — re-sending is safe, nothing landed.)
+- **From:** the chat **dagster-pipeline-tool** in the Chats app — it may be in
+  the archive, search the name. Session link:
+  https://claude.ai/code/session_011CiLW2x1f9qS3ny1MayHSN
+
 _Chats: add items below with a one-line reason._
 
 - **NDE supercut — ONE computer session banks everything (July 2026 flow).**
