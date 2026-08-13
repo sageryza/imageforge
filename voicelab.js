@@ -104,6 +104,8 @@ const OFFERED_VOICE_IDS = [
   'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
   'esVJEBbgfINGxR9bUuYQ', // Doug
   'ws4szZn8cc3SmgDP6TlK', // Gilad
+  'Kvw6tPclr4WMpfwDrCe7', // Richard
+  'RMHCDmd78OJFe4tkgMIM', // Sophie — doctor
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -122,6 +124,8 @@ const VOICE_COLORS = {
   // ("pick your own colours for now"), kept clear of every one of hers.
   esVJEBbgfINGxR9bUuYQ: '#c98f86', // Doug — terracotta
   ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
+  Kvw6tPclr4WMpfwDrCe7: '#a8a49c', // Richard — stone
+  RMHCDmd78OJFe4tkgMIM: '#d9a6b4', // Sophie — doctor — a second pink, next to her own
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 
