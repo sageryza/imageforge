@@ -467,6 +467,11 @@ struct RootView: View {
             if t == .freeform { return false }
             // Vector is a web page with its own injected pill too.
             if t == .vector { return false }
+            // Voice Studio is served with { pill: true } as well — it was the
+            // one injected-pill page missing from this list, so both pills
+            // drew and the speed label read "Fast" twice (Sophie's
+            // screenshot, Aug 2026).
+            if t == .voice { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.

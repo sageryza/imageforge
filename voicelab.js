@@ -84,10 +84,26 @@ router.get('/status', async (req, res) => {
   res.json(out);
 });
 
-// Only the voices Sophie wants offered right now (Aug 2026: just her new
-// professional clone — she asked for the rest to come off for the time being).
-// To offer more again, add ids here; empty = every non-premade account voice.
-const OFFERED_VOICE_IDS = ['UTkHGl2ImiT6gwtAFCql']; // "Sophie — morning"
+// Only the voices Sophie wants offered right now. Her own clone leads (rank()
+// sorts any /sophie/i name first), then the people she cloned from voicemails
+// and recordings in Aug 2026.
+//
+// Deliberately an explicit ALLOWLIST, not an empty array: empty means "every
+// non-premade account voice", which sweeps in the dozen Voice Library
+// professionals (Jack John, Thorne, Reva…) and the generated ones. Those are
+// noise on a picker whose whole point is HER people. Cloning someone new =
+// add the id here; deleting a voice just drops it from the list on its own,
+// since the account query no longer returns it.
+const OFFERED_VOICE_IDS = [
+  'UTkHGl2ImiT6gwtAFCql', // Sophie — morning (her professional clone)
+  '15zm3wIS3FnEV3LX1Aa5', // Jonathan (annoyed)
+  'XnL2M6RBESG5keWHuX0d', // Michael White
+  'Ai0X93qaXBDloK1HAn87', // Steve Herrington
+  'FuJyIifktGclboKz9PFi', // Miriam
+  'eCJN3vIzJhxIxE216PIO', // Alpha
+  'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
+  'uwiJrK8cKQowhzGEHM3b', // Sandy
+];
 // Cached 10 minutes — the list changes when she trains a clone, not per load.
 let voicesCache = { at: 0, list: null };
 router.get('/voices', async (req, res) => {
