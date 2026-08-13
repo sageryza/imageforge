@@ -1,0 +1,15 @@
+[
+ {"id":"card-wright-datestyle",
+  "styleRefs":["docs/dating-book/reference/date-watercolors/pavel.jpg"],
+  "refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg"],
+  "preamble":"Use the FIRST TWO attached images as style references. Only use their style, not their content — do not copy anything depicted in them. You do not have to copy their colors.",
+  "likeness":"The THIRD attached image is a photograph of a real person, Darius J. Wright. Keep their likeness — same face, same hair, same age, same skin tone. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."},
+
+ {"id":"card-dennis-datestyle",
+  "styleRefs":["docs/dating-book/reference/date-watercolors/pavel.jpg"],
+  "refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/dennis.png"],
+  "preamble":"Use the FIRST TWO attached images as style references. Only use their style, not their content — do not copy anything depicted in them. You do not have to copy their colors.",
+  "likeness":"The THIRD attached image is a photograph of a real person, Landon Dennis. Keep their likeness — same face, same hair, same age. Do not redesign the person.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, calm and open-faced, against a plain pale background. No text or lettering anywhere."}
+]

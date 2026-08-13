@@ -109,7 +109,17 @@ li::before { content: '•'; position: absolute; left: 4px; color: #c9b48f; }
 
 /* Images — rows of two by default (Sophie's Compare rule); .three for dense
    overview grids when she asks for more per row. Always webp display copies,
-   never raw generated PNGs. */
+   never raw generated PNGs.
+
+   EVERY <img> MUST CARRY width="" height="" ATTRIBUTES (its real pixel size —
+   the CSS below still scales it to the column). Without them a not-yet-loaded
+   image is a ZERO-height box: measured at 390px wide, one card image reserved
+   115x0px and its row was 88px tall, against 115x173px and 607px with the
+   attributes. On a page of lazy images that collapses the whole document below
+   the viewport height, so the autoscroll pill has nothing to scroll AND the
+   lazy images never load because nothing scrolls — the page just sits there.
+   Sophie hit exactly this on the character-card comparison. Same failure the
+   `video` rule below fixes for portrait clips. */
 .imgrow {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;
 }

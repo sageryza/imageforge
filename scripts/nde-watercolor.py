@@ -38,11 +38,18 @@ STYLE_MANY = ("Use the FIRST attached image as a style reference. Only use its s
 
 def build_prompt(job):
     n_extra = len(job.get("refs") or [])
-    parts = [STYLE_ONE if not n_extra else STYLE_MANY]
+    # "preamble" lets a job state its own style sentence — needed when it attaches
+    # more than one style reference, since the settled wording names ONE image.
+    parts = [job.get("preamble") or (STYLE_ONE if not n_extra else STYLE_MANY)]
     if job.get("likeness"):
         parts.append(job["likeness"])
     parts.append("Draw: " + job["scene"])
     return "\n\n".join(parts)
+
+
+def ref_list(job):
+    """Style refs first (the main one, then any extra), then character refs."""
+    return [STYLE_REF] + list(job.get("styleRefs") or []) + list(job.get("refs") or [])
 
 
 def read_ref(src):
@@ -62,7 +69,8 @@ def mime_for(src):
     return "image/jpeg"
 
 
-def generate(prompt, refs):
+def generate(prompt, refs, size="1024x1536", quality=None):
+    quality = quality or QUALITY
     boundary = uuid.uuid4().hex
     parts = []
 
@@ -72,8 +80,8 @@ def generate(prompt, refs):
 
     field("model", "gpt-image-2")
     field("prompt", prompt)
-    field("size", "1024x1536")
-    field("quality", QUALITY)
+    field("size", size)
+    field("quality", quality)
     field("output_format", "webp")
     for i, src in enumerate(refs):
         parts.append((f"--{boundary}\r\nContent-Disposition: form-data; name=\"image[]\"; "
@@ -98,16 +106,18 @@ def is_refusal(msg):
 
 def run(job, outdir):
     prompt = build_prompt(job)
-    refs = [STYLE_REF] + list(job.get("refs") or [])
+    refs = ref_list(job)
     dest = os.path.join(outdir, job["id"] + ".webp")
+    size = job.get("size", "1024x1536")
+    quality = job.get("quality", QUALITY)
     for attempt in range(3):
         try:
-            img = generate(prompt, refs)
+            img = generate(prompt, refs, size, quality)
             with open(dest, "wb") as f:
                 f.write(img)
             print(f"  OK  {job['id']}: {len(img)//1024} KB")
-            return {"id": job["id"], "file": dest, "prompt": prompt,
-                    "refs": refs, "quality": QUALITY, "size": "1024x1536"}
+            return {"id": job["id"], "file": dest, "prompt": prompt, "refs": refs,
+                    "quality": quality, "size": size, "split": job.get("split")}
         except Exception as e:
             msg = str(e)[:200]
             # A safety refusal is deterministic — retrying only burns time (CLAUDE.md).

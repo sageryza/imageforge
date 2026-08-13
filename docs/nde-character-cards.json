@@ -1,0 +1,79 @@
+{
+ "what": "Watercolour character cards for the nine Anthony Chene NDE experiencers.",
+ "howToUse": "Attach refs/sage-sandy-mirror.png FIRST as the style reference, then this person's card as the character reference, then draw the scene. Restate nothing about the face — a preserve-list over-weights it. See docs/nde-watercolor.md.",
+ "recipe": {
+  "model": "gpt-image-2",
+  "endpoint": "images/edits",
+  "styleRef": "refs/sage-sandy-mirror.png",
+  "quality": "medium",
+  "size": "1024x1536",
+  "noStyleDescription": "Never write one. Every style block tested made it worse."
+ },
+ "builtAt": "2026-08-12T23:39:25.807Z",
+ "cards": [
+  {
+   "key": "hugenot",
+   "name": "Dr. Alan Hugenot",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/hugenot.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/hugenot.jpg",
+   "note": "Photo is him at ~80; his story is from age 17, so the card is drawn young.",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person drawn as he was at seventeen, a teenage boy, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "wittbrodt",
+   "name": "Penny Wittbrodt",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wittbrodt.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wittbrodt.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "wright",
+   "name": "Darius J. Wright",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wright.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "barker",
+   "name": "Tricia Barker",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/barker.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/barker.png",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "hensley",
+   "name": "Dr. Mary Helen Hensley",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/hensley.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/hensley.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "rynes",
+   "name": "Nancy Rynes",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/rynes.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/rynes.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "dennis",
+   "name": "Landon Dennis",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/dennis.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/dennis.png",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "nair",
+   "name": "Malcolm Nair",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/nair.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/nair.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  },
+  {
+   "key": "anthony",
+   "name": "Peter Anthony",
+   "card": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/anthony.webp",
+   "photo": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/anthony.jpg",
+   "promptSent": "Use the FIRST attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nThe SECOND attached image is a photograph of the person to draw.\n\nDraw: a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."
+  }
+ ]
+}

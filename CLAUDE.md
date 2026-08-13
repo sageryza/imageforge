@@ -2141,6 +2141,14 @@ lifted into a standalone tool later.
     `/compare.js` has them right by construction. Tests:
     `node scripts/test-compare-shell.js` (drives real taps against the real
     injected pill in headless Chromium; skips if no Chromium).
+  **THE POST ANSWERS `warnings` WHEN A PAGE SKIPS THE KIT (Aug 2026).**
+  `POST /page` inspects the HTML and returns `warnings:[…]` — no `/compare.js`,
+  no `/compare.css` and not all five tokens, an embedded `<video>` — alongside
+  the usual `ok`/`id`/`url` (also stored as `kitWarnings` on the page doc). It
+  NEVER blocks the post. **If your post comes back with a warning, fix the page
+  and re-post it before you finish the turn** — that is the whole point of
+  telling the chat that can still fix it. Tests:
+  `node scripts/test-page-kit-warnings.js`.
   **ONE STYLE for every Compare page (Aug 2026, Sophie: "every artifact is
   styled differently — there should be one style").** Start every new page
   from the shared stylesheet: `<link rel="stylesheet" href="/compare.css">`
@@ -4001,6 +4009,34 @@ lifted into a standalone tool later.
   `refs/dream-mystery.jpg` (gpt-image edits) then animate with Wan (`VIDEO_MODELS`
   in `movies.js`). See also `what-sage-should-do-at-her-computer.md`.
 
+## NDE movies — the watercolour look and the nine character cards (Aug 2026)
+**Making watercolour art for the Anthony Chene NDE montages? Read
+`docs/nde-watercolor.md` FIRST** — the recipe is settled and the headline rule
+is counter-intuitive: **write NO style description at all.** It is the Evan
+recipe (`docs/evan-film-style.md`): gpt-image-2 **edits**,
+`refs/sage-sandy-mirror.png` attached FIRST as a pure style reference, quality
+**medium**, **1024x1536**. The v4 "STYLE CORE" wording in
+`refs/nde-style-prompt.md` belongs to the older colored-pencil generation —
+do not pull it into these renders. The pastel stills-videos are SCRAPPED.
+- **The nine experiencer character cards are BUILT and public** —
+  Storage `nde-refs/cards/<surname>.webp`, deliberately beside the photo each
+  was drawn from (`nde-refs/people/<surname>.jpg`). Hugenot, Wittbrodt,
+  Wright, Barker, Hensley, Rynes, Dennis, Nair, Anthony.
+  `nde-refs/cards/manifest.json` (mirrored in the repo at
+  `docs/nde-character-cards.json`) carries every card's full name, both URLs
+  and the EXACT prompt that made it. **Do not re-derive them.**
+- **Using one:** style ref first, that person's card second, then the scene.
+  **Say nothing about the face** — a "same face, same hair" preserve-list
+  over-weights it and the drawing comes out as a rendered photograph. The
+  likeness line is ONE sentence and must not grow back.
+- **A portrait needs no background line** — measured, the style ref draws on
+  white paper whether the prompt says so or not.
+- **Only nine people have an approved likeness.** The other ~30 experiencers
+  across the montages have no reference photo, and new ones cannot be grabbed
+  from a cloud session (YouTube bot-blocks datacenter IPs). Standing rule:
+  **never invent a face for a real person** — draw them from behind, from
+  above, or far enough back that the face is not the subject.
+
 ## Anthony Chene NDE moments database
 - `nde.js` (`/api/nde`) — pipeline that reads Anthony Chene's near-death-
   experience YouTube interviews and extracts a database of specific,
@@ -4402,7 +4438,39 @@ lifted into a standalone tool later.
   **interview → Episode Editor** (`editor.addExternalSnippet` — a snippet card
   lands in an episode and the editor re-cuts it natively), **memo → Cutting
   Room** (`POST /api/cutroom/open` with the recording's url). Search cuts no
-  audio of its own; both paths feed the ONE cutter in `editor.js`.
+  audio of its own except `/clip-words` below; every path feeds the ONE
+  cutter in `editor.js`.
+- **CLIP-THESE-WORDS on a hit (Aug 2026, Sophie: "pick the words from that
+  step if I just want one clip and not the whole recording").** The scissors
+  Clip button puts the hit's passage in pick mode — tap first word, tap last
+  word, ✓ — and `POST /clip-words {src, text, chunk, timeSec}` cuts JUST
+  that span (background job, content-addressed cache
+  `search-clips/words-*`), with ▶ + a download button on the result (share
+  bridge in the app / same-origin attachment `GET /clip-file?u=&n=` in a
+  browser). Rules: BOTH kinds cut through ONE path, `cutInWindow` in
+  search.js (fresh window listen + `edgeSpan` + clampBounds + silence snap +
+  micro-fades) — an INTERVIEW gets the loudnorm every episode clip gets; a
+  MEMO is HER VOICE, never loudnormed, bytes downloaded server-side via
+  `memos.memoAudioToFile` (memo audio is not public). A memo's anchor is
+  PROPORTIONAL (memo chunks carry no clock): the chunk's place in the
+  transcript maps to time, and the listen window slides once each way when
+  the phrase isn't where the estimate said.
+  - **`edgeSpan` exists because the pick text and the cut come from
+    DIFFERENT transcripts** (index words vs the fresh listen): `phraseSpan`
+    trims unmatched edge words as never-said — right same-transcript, wrong
+    here, where a fresh-listen disagreement on an edge word would silently
+    cut picked words off. Each edge anchors on its own 6-word sub-phrase and
+    reclaims disagreed edge words by position. Its pick tokens are
+    AUDIO-SHAPED (first normWords piece per spoken word) — raw `normWords`
+    splits contractions ("it's" → it, s), overshoots the audio span, and the
+    reclaim then opened clips one word early (measured live).
+  - **Verifying a clip by raw-transcribing it LIES about its first words
+    (Aug 2026, measured — cost a needless fix cycle).** Whisper drops the
+    fast opening words of an abruptly-starting clip, so a correct cut reads
+    as "starts late". Pad ~1s of silence on the front before transcribing,
+    or locate the clip in its source by RMS envelope correlation against
+    word timestamps (the settling measurement both times). Same rule in the
+    `sophie-audio` skill.
 - **A hit's Play NEVER points at the banked interview audio.** Those files are
   what yt-dlp downloaded — webm/opus, one object per whole interview (the
   Darius one is **62MB**). Play asks the server to cut THAT PASSAGE to mp3 once

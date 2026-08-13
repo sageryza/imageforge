@@ -624,10 +624,21 @@ async function streamMemoAudio(id, req, res, { dreamsOnly = false } = {}) {
   }
 }
 
+// Download one memo's audio to a local file — for tools that need to CUT it
+// (Search's clip-from-a-hit), since memo bytes are not public and ffmpeg
+// can't seek the gated stream. Returns the memo record alongside the path.
+async function memoAudioToFile(id, destPath) {
+  const { manifest } = await readManifest();
+  const memo = manifest.memos.find(m => m.id === id || m.file === id);
+  if (!memo) throw new Error('not in the archive');
+  await (await bucket()).file(`${PREFIX}/${memo.file}`).download({ destination: destPath });
+  return memo;
+}
+
 // readManifest is exported so Search can index the archive's transcripts
 // without a second copy of the manifest contract.
 module.exports = {
   router, init, fileIntoArchive, md5Of, audioHash, transcriptTwin,
   unstampedRecords, restampRecord,
-  readManifest, writeManifest, streamMemoAudio,
+  readManifest, writeManifest, streamMemoAudio, memoAudioToFile,
 };

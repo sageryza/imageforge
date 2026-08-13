@@ -47,22 +47,80 @@ drift on every image. The character-anchor path is validated twice in-house
 it is what "watercolor" means here anyway: Sophie's scan as a style reference
 through gpt-image-2, not the WTR look.
 
-So: photo → watercolour portrait (style ref first, photo second, "keep their
-likeness") → that portrait rides as the character reference on every scene the
-person appears in, restating the preserve list.
+So: photo → watercolour portrait (style ref first, photo second) → that portrait
+rides as the character reference on every scene the person appears in.
+
+### The settled card prompt (Aug 2026) — every word of it is Sophie's call
+
+    Use the FIRST attached image as a style reference. Only use its style, not
+    its content — do not copy anything depicted in it. You do not have to copy
+    its colors.
+
+    The SECOND attached image is a photograph of the person to draw.
+
+    Draw: a head-and-shoulders portrait of that person, facing the viewer, on a
+    white background. No text or lettering anywhere.
+
+Two things I wrote into that scene line and did NOT flag, both of which she
+caught and removed — the lesson being to name every word that is mine when I
+hand the result over:
+
+- `calm and open-faced` — my aesthetic call, never asked for. Removing it
+  changed nothing about the expression (a smiling photo still draws a smiling
+  face), so it was only ever imposing a mood.
+- `against a plain pale background` — "pale" was a vaguer word doing no work.
+  Nothing post-processes these images, so it should always have said white.
+  Then Sophie asked the better question: is the line needed at all? **It is
+  not.** Rendered on Darius with and against, the corner pixels came back
+  254,254,252 without the line and 254,254,253 with it — the style reference
+  draws on white paper whether or not the prompt says so. So a portrait needs
+  NO background line; the nine live cards carry one and are none the worse for
+  it, but new prompts should leave it out.
+
+### The likeness line is ONE sentence — do not grow it back
+
+    The SECOND attached image is a photograph of the person to draw.
+
+(`THIRD` when a second style reference rides along.) That is the whole line.
+It reached that shape in three steps, each one Sophie's call, and each step
+visibly loosened the drawing:
+
+- v1 said `Keep their likeness — same face, same hair, same age. Do not
+  redesign the person.` The cards came out as rendered photographs. This was a
+  mistake on arrival — `docs/in-the-hospital-film/shot-list.md` already
+  records **"Do not add 'same face and same hair' … it over-weights the face
+  and hair specifically instead of letting the whole reference carry."**
+- v2 dropped the preserve-list clause.
+- v3 dropped `Do not redesign the person.` and the person's NAME — the name
+  buys nothing when the photograph is right there, and a name in the prompt
+  pulls on whatever the model thinks that name looks like.
+
+The realism was never mainly the style reference; it was the photograph plus
+these instructions. Adding preserve-list wording back will undo it.
 
 ## The nine cards
 
 Built from the reference photos at Storage `nde-refs/people/`, the set Sophie
-approved on the Face check page. Cards live at
-`nde-watercolor/cards/card-<surname>.webp`.
+approved on the **Face check — the real people** Compare page (in the
+`anthony-chene-nde-pipeline` chat — nine faces embedded as data URIs, which is
+why searching Storage by filename never turns it up). Cards live at
+`nde-watercolor/cards/card-<surname>-v3.webp`.
 
 Hugenot, Wittbrodt, Wright, Barker, Hensley, Rynes, Dennis, Nair, Anthony.
 
+**ONE style reference — `refs/sage-sandy-mirror.png`, nothing else.** A date-book
+watercolour (`pavel.jpg`) was tried as a second style ref and rejected (Sophie,
+Aug 2026). It did loosen the drawing, but so did trimming the likeness line, and
+the trimmed line got there without a second reference.
+
 One caveat carried over from the Face check page: **Hugenot's photo is him now
-(~80) and his story is from age 17**, so his card is drawn young from his own
-facial structure. The render reads closer to mid-twenties than seventeen — good
-enough to anchor a likeness, worth a re-roll if his panels want a boy.
+(~80) and his story is from age 17**. The age note goes in the SCENE half —
+"drawn as he was at seventeen, a teenage boy" — never in the likeness line,
+which stays one sentence. v1 put it in the likeness line and read closer to
+mid-twenties; v3 reads properly young.
+
+Older versions are kept in the Assets tab labelled "vN — superseded"; nothing
+is deleted.
 
 ## The gap that is not solved
 

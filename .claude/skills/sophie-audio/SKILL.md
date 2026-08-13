@@ -76,6 +76,15 @@ widen that phrase to the word after the laugh, or cut that one shot by hand.
 - Removing something from the MIDDLE of speech is a splice, and a splice is
   approved by ear, not shipped invisibly (the reason pause removal lives in
   the Cutting Room, not inside the Episode Editor's render).
+- **Whisper on a SHORT CLIP drops the opening words — pad before you judge
+  (Aug 2026, measured).** A clip that opens abruptly mid-speech transcribes
+  with its first fast words MISSING ("but now it's verified But I saw…" came
+  back as "But I saw…"), so raw-transcribing a cut to verify it reads as
+  "starts late" when the audio is complete — that false diagnosis cost a
+  full fix-PR cycle before anyone measured. Verify a clip's edges by (1)
+  prepending ~1s of silence (`adelay`) before transcribing, and (2) when it
+  still matters, locating the clip's true offset in its source by RMS
+  envelope correlation and comparing against the source's word timestamps.
 - **Before delivering a cut, RUN `node scripts/vo-verify.js cut.mp4
   [--script script.txt]`.** It checks both things and exits non-zero on
   either. "The code removed them" is not verification — the Evan cut proved

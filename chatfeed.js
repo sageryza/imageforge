@@ -1456,15 +1456,59 @@ router.delete('/todo/:id', async (req, res) => {
 // so viewing stays same-origin and gated with the rest of the feed.
 const PAGES = 'forge-chat-pages';
 
+// KIT WARNINGS — checked AT THE MOMENT OF POSTING, answered to the chat that
+// can still fix it (Aug 2026). Chats keep hand-rolling Compare pages that skip
+// the shared kit, and every skip re-ships the same long-fixed bugs on Sophie's
+// phone: a pill styled black on transparent, taps that don't pause the
+// autoscroll, a video slab parked at the top. Nothing is ever BLOCKED — the
+// page is stored either way; the warnings just ride back on the POST response
+// (and onto the doc as `kitWarnings`) so the posting chat sees them in its own
+// tool output and can repost fixed.
+//
+// Cheap string checks only — no parser, no network.
+function kitWarnings(html) {
+  // COMMENTS ARE STRIPPED FIRST, and that is load-bearing: compare-shell.html
+  // carries the rules in its own comment block — including the literal
+  // "<video>" and "/compare.js" — so reading the raw text both warns a shell
+  // page about a player it hasn't got and lets a commented-out script pass.
+  const s = String(html || '').replace(/<!--[\s\S]*?-->/g, ' ');
+  // Only a full self-contained PAGE is what these rules are about. A fragment
+  // gets nothing, and neither does a page carrying its OWN pill (`id="vtop"` —
+  // the same marker GET /page/:id reads to skip injecting the shared one).
+  const isPage = /<!doctype|<html[\s>]|<head[\s>]|<body[\s>]|<meta\s|<title[\s>]/i.test(s);
+  if (!isPage || s.includes('id="vtop"')) return [];
+  const out = [];
+  if (!/(?:src|href)\s*=\s*["'][^"']*\/compare\.js/i.test(s)) {
+    out.push('No /compare.js: taps won\'t pause the autoscroll, and the lightbox '
+      + 'and external-link contracts are missing — start from '
+      + 'public/compare-shell.html or add <script src="/compare.js"></script>.');
+  }
+  const hasCss = /href\s*=\s*["'][^"']*\/compare\.css/i.test(s);
+  // --ink2 must not satisfy --ink, hence the word boundary.
+  const tokens = ['--ink', '--paper', '--chg', '--ink2', '--rose'];
+  if (!hasCss && !tokens.every((t) => new RegExp(t + '\\b').test(s))) {
+    out.push('No /compare.css and not all five tokens (--ink, --paper, --chg, '
+      + '--ink2, --rose): the injected pill will render black on transparent — '
+      + 'link /compare.css or define the five :root tokens.');
+  }
+  if (/<video[\s>]/i.test(s)) {
+    out.push('An embedded <video>: a film is a line of text with a play button '
+      + 'via window.__filmRow({url,label,meta,mount}), never an embedded player.');
+  }
+  return out;
+}
+
 router.post('/page', async (req, res) => {
   try {
     const { chat, title, html } = req.body || {};
     if (!chat || !title || !html) return res.status(400).json({ error: 'chat, title and html required' });
+    const warnings = kitWarnings(html);
     const doc = {
       chat: String(chat).slice(0, 60),
       title: String(title).slice(0, 140),
       created: new Date().toISOString(),
     };
+    if (warnings.length) doc.kitWarnings = warnings;
     const ref = db().collection(PAGES).doc();
     const bucket = admin.storage().bucket();
     const file = bucket.file(`chat-pages/${ref.id}.html`);
@@ -1481,7 +1525,9 @@ router.post('/page', async (req, res) => {
       const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
       require('./push').notifyChat(doc.chat, name, doc.title);
     } catch (e) { /* push must never fail a post */ }
-    res.json({ ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` });
+    const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
+    if (warnings.length) body.warnings = warnings;   // never blocks the post
+    res.json(body);
   } catch (err) { fail(res, err); }
 });
 

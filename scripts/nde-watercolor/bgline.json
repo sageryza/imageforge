@@ -1,0 +1,11 @@
+[
+ {"id":"card-wright-noline","quality":"medium",
+  "refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg"],
+  "likeness":"The SECOND attached image is a photograph of the person to draw.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer. No text or lettering anywhere."},
+
+ {"id":"card-wright-withline","quality":"medium",
+  "refs":["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg"],
+  "likeness":"The SECOND attached image is a photograph of the person to draw.",
+  "scene":"a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere."}
+]

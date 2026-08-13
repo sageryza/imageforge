@@ -73,6 +73,11 @@
   .hit .meta{font-size:12px; color:var(--soft); margin-bottom:8px}
   .hit .passage{font-size:15.5px; line-height:1.72}
   .hit mark{background:var(--hit); color:inherit; border-radius:3px; padding:1px 2px}
+  /* clip-these-words pick mode */
+  .pw{border-radius:3px; padding:1px 1px; cursor:pointer}
+  .pw.sel{background:#E7EFE2}
+  .pw.selend{background:#D9E7D2}
+  .pickhint{font-size:12px; color:var(--soft); margin-right:auto}
   .hit .acts{display:flex; gap:7px; margin-top:11px; flex-wrap:wrap; align-items:center}
   .hit .more{font-size:12px; color:var(--soft); margin-left:auto}
   .kind{font-size:10px; letter-spacing:1.5px; font-weight:700; color:var(--soft)}
@@ -251,7 +256,74 @@ const ICON = {
   stop: '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="14" rx="1.5"/></svg>',
   send: '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  cut: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  dl: '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 11 12 15 16 11"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
 };
+
+// ── clip-these-words: tap first word, tap last word, get JUST that clip ──
+// (Sophie, Aug 2026 — no more opening the whole recording for one span.)
+let pick = null;   // { hitId, a, b } while a hit's passage is in pick mode
+function passageWords(hit) { return hit.text.replace(/\s+/g, ' ').trim().split(' '); }
+function enterPick(hitEl, hit) {
+  exitPick();
+  pick = { hitId: hit.id, a: null, b: null };
+  const words = passageWords(hit);
+  hitEl.querySelector('.passage').innerHTML =
+    words.map((w, i) => '<span class="pw" data-i="' + i + '">' + esc(w) + '</span>').join(' ');
+  hitEl.querySelector('.acts').innerHTML =
+    '<span class="pickhint">tap the first word, then the last</span>'
+    + '<button class="btn" data-act="pickgo" disabled>' + ICON.check + '</button>'
+    + '<button class="btn plain" data-act="pickx">✕</button>';
+}
+function exitPick() {
+  if (!pick) return;
+  const el = document.querySelector('.hit[data-id="' + pick.hitId + '"]');
+  pick = null;
+  if (el) redrawHit(el);
+}
+function redrawHit(hitEl) {
+  const hit = render.hits[hitEl.dataset.id];
+  if (!hit) return;
+  hitEl.querySelector('.passage').innerHTML = highlight(hit.text);
+  const sendLabel = hit.kind === 'nde' ? 'Episode Editor' : 'Cutting Room';
+  hitEl.querySelector('.acts').innerHTML =
+    '<button class="btn" data-act="play">' + ICON.play + '<span>Play</span></button>'
+    + '<button class="btn" data-act="pick">' + ICON.cut + '<span>Clip</span></button>'
+    + '<button class="btn" data-act="send">' + ICON.send + '<span>' + sendLabel + '</span></button>'
+    + '<button class="btn plain" data-act="copy">' + ICON.copy + '</button>'
+    + (hit.more ? '<span class="more">+' + hit.more + ' more here</span>' : '');
+}
+async function makeWordClip(hitEl, hit) {
+  const words = passageWords(hit);
+  const text = words.slice(pick.a, pick.b + 1).join(' ');
+  const name = words.slice(pick.a, pick.a + 6).join(' ');
+  const acts = hitEl.querySelector('.acts');
+  acts.innerHTML = '<span class="pickhint">cutting “' + esc(name) + '…”</span>';
+  pick = null;
+  const body = JSON.stringify({ src: hit.source, text, chunk: hit.text, timeSec: hit.timeSec || 0 });
+  try {
+    for (let i = 0; i < 40; i++) {
+      const r = await api('/clip-words', { method: 'POST', body });
+      if (r.status === 'ready') {
+        const dl = API + '/clip-file?u=' + encodeURIComponent(r.url) + '&n=' + encodeURIComponent(name)
+          + (TOKEN && TOKEN[0] !== '_' ? '&token=' + encodeURIComponent(TOKEN) : '');
+        acts.innerHTML =
+          '<button class="btn" data-act="playclip" data-u="' + esc(r.url) + '">' + ICON.play + '<span>Clip</span></button>'
+          + '<a class="btn dlclip" data-u="' + esc(r.url) + '" data-n="' + esc(name) + '" href="' + esc(dl) + '" download>' + ICON.dl + '</a>'
+          + '<button class="btn plain" data-act="pickagain">' + ICON.cut + '</button>';
+        toast('Clip ready');
+        return;
+      }
+      if (r.status === 'failed') throw new Error(r.error || 'the cut failed');
+      await new Promise((ok) => setTimeout(ok, 2500));
+    }
+    throw new Error('still cutting — tap Clip again in a moment');
+  } catch (err) {
+    toast(err.message);
+    redrawHit(hitEl);
+  }
+}
 
 function render(data) {
   const hits = data.hits || [];
@@ -271,6 +343,7 @@ function render(data) {
       + '<div class="passage">' + highlight(h.text) + '</div>'
       + '<div class="acts">'
       +   '<button class="btn" data-act="play">' + ICON.play + '<span>Play</span></button>'
+      +   '<button class="btn" data-act="pick">' + ICON.cut + '<span>Clip</span></button>'
       +   '<button class="btn" data-act="send">' + ICON.send + '<span>' + sendLabel + '</span></button>'
       +   '<button class="btn plain" data-act="copy">' + ICON.copy + '</button>'
       +   (h.more ? '<span class="more">+' + h.more + ' more here</span>' : '')
@@ -346,11 +419,59 @@ function showIndex(counts, builtAt) {
 
 // ── actions ─────────────────────────────────────────────────────────
 $('results').addEventListener('click', async (e) => {
+  // a tapped word while a hit is in pick mode
+  const pw = e.target.closest('.pw');
+  if (pw && pick) {
+    const hitEl = pw.closest('.hit');
+    if (hitEl.dataset.id !== String(pick.hitId)) return;
+    const i = Number(pw.dataset.i);
+    if (pick.a === null || pick.b !== null) {
+      hitEl.querySelectorAll('.pw.sel').forEach((x) => x.classList.remove('sel', 'selend'));
+      pick.a = i; pick.b = null;
+      pw.classList.add('sel', 'selend');
+    } else {
+      pick.b = i;
+      if (pick.b < pick.a) { const t = pick.a; pick.a = pick.b; pick.b = t; }
+      hitEl.querySelectorAll('.pw').forEach((x) => {
+        const k = Number(x.dataset.i);
+        x.classList.toggle('sel', k >= pick.a && k <= pick.b);
+        x.classList.toggle('selend', k === pick.a || k === pick.b);
+      });
+      hitEl.querySelector('[data-act="pickgo"]').disabled = false;
+    }
+    return;
+  }
+  // the download link hands the file to the app's share sheet when bridged
+  const dlc = e.target.closest('.dlclip');
+  if (dlc && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cutroomShare) {
+    e.preventDefault();
+    window.webkit.messageHandlers.cutroomShare.postMessage({ url: dlc.dataset.u, name: dlc.dataset.n });
+    toast('Getting the file…');
+    return;
+  }
+
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
-  const hit = render.hits[btn.closest('.hit').dataset.id];
+  const hitEl = btn.closest('.hit');
+  const hit = render.hits[hitEl.dataset.id];
   if (!hit) return;
   const act = btn.dataset.act;
+
+  if (act === 'pick' || act === 'pickagain') { enterPick(hitEl, hit); return; }
+  if (act === 'pickx') { exitPick(); return; }
+  if (act === 'pickgo') {
+    if (!pick || pick.a === null || pick.b === null) return;
+    makeWordClip(hitEl, hit);
+    return;
+  }
+  if (act === 'playclip') {
+    const p = $('player');
+    if (p.src === btn.dataset.u && !p.paused) { p.pause(); return; }
+    playing = null; paintPlay();
+    p.src = btn.dataset.u;
+    p.play().catch(() => toast("couldn't play"));
+    return;
+  }
 
   if (act === 'copy') {
     try { await navigator.clipboard.writeText(hit.text); toast('Copied'); }
