@@ -913,6 +913,33 @@ router.post('/notif-seen', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// PIN an Update card (Aug 2026, Sophie: "a pin button so I can pin it and then
+// open it but it'll still be there"). Every other mark on this screen is a
+// self-clearing STAMP — a card leaves the moment she opens the chat or taps
+// the ✓ — which is right for news and wrong for the one thing she is actually
+// carrying around. So `pinned` is a plain BOOLEAN, deliberately: nothing
+// newer, nothing she reads, and no passage of time may clear it. Only she
+// does, with the pin again or the ✓ (which unpins as it clears — "done" has
+// to mean done, or the check would look broken on a pinned card).
+//
+// NAMED `newsPinned`, on its own route, because `pinned` + POST /pin were
+// ALREADY TAKEN by the pinned DELIVERABLE (the film at the top of a thread),
+// which stores an OBJECT there. Reusing either would have shadowed that
+// route — Express takes the first match — and made every chat with a pinned
+// film look like a pinned card, with the ✓ deleting the film.
+router.post('/news-pin', async (req, res) => {
+  try {
+    const { chat, pinned } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = pinned !== false;
+    await regRef(await followMoves(chat)).set(
+      { newsPinned: on ? true : admin.firestore.FieldValue.delete() },
+      { merge: true },
+    );
+    res.json({ ok: true, pinned: on });
+  } catch (err) { fail(res, err); }
+});
+
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
 // original Anthony Chene chat were the two she named. A starred chat wears a

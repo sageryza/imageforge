@@ -2009,7 +2009,33 @@ lifted into a standalone tool later.
     - **The FALLBACK when a chat has never written one is its reply's TLDR
       under "What I did"** — honest, and it means the ⌄ is not a button that
       appears and vanishes down the list for no visible reason.
-  - Tests: `node scripts/test-chats-news.js`.
+  - **THE CARD'S TOP ROW: name · pin · ⌄ · TIME · ✓ (Aug 2026, Sophie: the ⌄
+    "is a little bit close to the check box so I'm worried I'll tap that by
+    accident — maybe just move it on the other side of the clock time").**
+    The timestamp is lifted OUT of the inner `.crow` and rendered as a
+    sibling in `.nwtop` precisely so it sits BETWEEN the expand arrow and the
+    clearing ✓; the row gap also went 3px → 9px. Measured at 390px: 68px now
+    separates ⌄ from ✓, against 3px before. Anything added to that row must
+    keep the ✓ alone on the far side of the time — it is the one tap that
+    makes a card disappear.
+  - **THE PIN — `newsPinned`, a plain BOOLEAN (Aug 2026, Sophie: "a pin
+    button so I can pin it and then open it but it'll still be there").**
+    Every other mark on this screen is a self-clearing stamp; this is the one
+    thing she keeps, so NOTHING clears it — not opening the chat, not a newer
+    reply, not time. Only the pin again, or the ✓ (which unpins as it clears,
+    or the check would look broken on a pinned card). Pinned cards sort
+    FIRST, and a card that is on the screen only because it is pinned
+    (`pinnedOnly`) is removed the moment she unpins it.
+    - **`newsPinned` / `POST /news-pin` are named around a COLLISION, not by
+      preference: `pinned` + `POST /pin` were already taken** by the pinned
+      DELIVERABLE (the film at the top of a thread), which stores an OBJECT
+      there. Reusing either would have shadowed that route (Express takes the
+      first match) and made every chat with a pinned film read as a pinned
+      card — with the ✓ deleting the film. Two different features, two
+      fields; don't merge them.
+  - Tests: `node scripts/test-chats-news.js`, and
+    `node scripts/test-chats-news-pin.js` (hit-measures the ⌄/✓ gap and
+    drives a pinned card through being opened).
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
   know — it brings me out automatically, and then I have to go back to the
