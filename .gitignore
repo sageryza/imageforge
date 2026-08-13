@@ -33,3 +33,8 @@ docs/cannon-language/*.log
 
 # test fixtures downloaded on demand (scripts/test-vectorize.js)
 .cache/
+
+# Darius page builder: transcript cache + generated HTML (both rebuildable
+# from scripts/darius-*.json — the pages themselves live in Firestore)
+.darius-cache/
+.darius-pages/
