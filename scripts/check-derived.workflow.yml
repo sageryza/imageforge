@@ -1,0 +1,47 @@
+# ── NOT INSTALLED YET — copy this file to .github/workflows/check-derived.yml ──
+# It could not be committed there from the session that wrote it: GitHub refuses
+# any push that adds or edits a file under .github/workflows/ unless the token
+# carries the `workflow` scope, and this repo's chat sessions push with a token
+# that has `repo` but not `workflow` (the Contents API is blocked for the same
+# path). So the workflow lives here until someone with that scope moves it:
+#
+#     git mv scripts/check-derived.workflow.yml .github/workflows/check-derived.yml
+#
+# Nothing else needs to change — it is the finished file, not a draft.
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# The repo's "re-run script X after you edit Y" rules, checked on every PR.
+#
+# Several files here are BUILT from another file (the chats setup script from
+# the hook, the injected pill from pill.py, the Writing Room page from the
+# drafts) and several strings are deliberately duplicated in two places (the
+# Scratch Pad's art prompt, the tarot deck, the SetPyramid glyph). Both rely on
+# whoever edits the source doing the second step, and it keeps getting skipped
+# — public/writing.html shipped for weeks carrying a pill older than
+# scripts/pill.py. The checker rebuilds each generator in a temp copy and
+# diffs, so forgetting is caught here instead of in Sophie's app.
+#
+# No secrets, no API keys, nothing paid: every generator it runs reads only
+# repo-local files. Anything that needs unavailable deps is SKIPPED with the
+# reason printed in the log.
+name: Derived files in sync
+
+on:
+  pull_request:
+
+jobs:
+  check-derived:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Check derived files and duplicated copies
+        run: node scripts/check-derived.js
