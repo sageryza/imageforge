@@ -42,8 +42,12 @@ let t = 0;
 const cards = film.shots.map((sh) => {
   const at = mmss(t); t += sh.seconds;
   const imgs = sh.pictures.map((p) => {
-    const id = p.file.replace(/-m\.webp$/, '');
-    return `      <img src="${store}${id}-m.webp" alt="${esc(labels[id] || id)}">`;
+    // The URL uses the file's REAL name — a panel re-render is "<id>-m.webp"
+    // and a straight-to-medium picture is "<id>.webp", and rebuilding the name
+    // from a stripped id gets one of the two wrong. The stripped id is only
+    // ever used to look the label up.
+    const id = p.file.replace(/(-m)?\.webp$/, '');
+    return `      <img src="${store}${p.file}" alt="${esc(labels[id] || id)}">`;
   }).join('\n');
   return `  <div class="card" data-item="${sh.shot}">\n`
     + `    <h2>${at} · ${esc(sh.name)}</h2>\n`

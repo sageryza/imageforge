@@ -80,9 +80,15 @@ const ORDER = ORDERS[SET];
 /* Medium if it landed, else the panel cut out of the low sheet — Sophie's rule
    for this pass: re-render the ones worth it, use the low panel where not. */
 function pictureFor(panel) {
+  // BOTH suffixes: a panel lifted out of a 2x2 sheet is re-rendered as
+  // "<panel>-m.webp", but a picture drawn straight at medium (one that never
+  // had a sheet) is just "<panel>.webp". Checking only the first silently
+  // dropped nine of proof's pictures and left one still per span.
   for (const dir of MEDIUM) {
-    const m = path.join(dir, panel + '-m.webp');
-    if (fs.existsSync(m)) return { file: m, quality: 'medium' };
+    for (const name of [panel + '-m.webp', panel + '.webp']) {
+      const f = path.join(dir, name);
+      if (fs.existsSync(f)) return { file: f, quality: 'medium' };
+    }
   }
   const low = path.join(PANELS, panel + '.png');
   if (fs.existsSync(low)) return { file: low, quality: 'low panel' };
@@ -111,8 +117,13 @@ async function main() {
     wavs.push(wav);
 
     const D = dur(wav);
-    const panels = (ORDER[shot.id] || []).map(pictureFor).filter(Boolean);
-    if (!panels.length) throw new Error('no picture for ' + shot.id);
+    // A missing picture is LOUD. Filtering silently is what let nine
+    // suffix-mismatched pictures vanish into a film that still built.
+    const want = ORDER[shot.id] || [];
+    const panels = want.map(pictureFor);
+    const gone = want.filter((_, i) => !panels[i]);
+    if (gone.length) throw new Error(`${shot.id}: no picture for ${gone.join(', ')}`);
+    if (!panels.length) throw new Error('no pictures listed for ' + shot.id);
     const each = D / panels.length;
 
     for (const p of panels) {
