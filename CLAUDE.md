@@ -1345,6 +1345,12 @@ lifted into a standalone tool later.
     Each entry identifies its image by `"url"` (exact) or `"match"` (a substring
     of the url OR of the label shown in the app — easier, since a chat remembers
     what it called an image). `FORGE_BASE` overrides the server.
+  - **CONTENT is the side the overlay opens on (Aug 2026, Sophie: "right now
+    the style is the default and I want it to be the content, so I don't have
+    to click all the time").** What the picture is OF is what she opens the
+    overlay for; the style half is the same house prefix across most of a
+    batch, so Style-first charged her a tap on every image to reach the half
+    that differs. Style still wins when content is the only half missing.
   - An image with no prompt on file shows **no PROMPT button at all** — never
     write "no prompt filed" anywhere; empty is silent by design.
   - These instructions live HERE only. There used to be a "How to post prompts"
@@ -1446,6 +1452,42 @@ lifted into a standalone tool later.
   - Firestore caps a batch at 500 writes and a long chat holds thousands of
     messages, so the delete runs in chunks of 400.
   - Tests: `node scripts/test-chats-trash.js`.
+  **THE ARCHIVE IS TWO PILES — BUILT · OTHER (Aug 2026, Sophie: "right now
+  the archive is a single list, I want to split it using the hairline pattern
+  into two piles, one of things where we built something and something was
+  accomplished and everything worked out, and then another one that's pretty
+  much trash but I'm just keeping it for bookkeeping").** Her own examples of
+  the second pile: the chat where her computer wouldn't turn on ("yeah I did
+  fix it but it's not really important") and the one about Google Takeout
+  failing on her email. `.acctabs.archtabs` at the top of the archive grid,
+  `archiveKind` on the registry doc, `POST /api/chatfeed/archive-kind
+  {chat|chats:[…], kind:'built'|'other'}`.
+  - **ABSENT MEANS BUILT, and that is the load-bearing half.** 81 chats were
+    already archived the day this shipped, so storing only the second pile
+    means no backfill — and no risk of the left tab opening empty and reading
+    as the archive having been wiped. Only the throwaways carry a mark, which
+    is also the smaller and easier judgement.
+  - **It is INDEPENDENT of `archived`** and permanent like `starred`, not a
+    self-clearing stamp: a chat marked `other` and then pulled back out of the
+    archive keeps the mark, so re-archiving it never asks her twice.
+  - **The row's button in the archive MOVES the chat, it does not hide it**
+    (↓ / ↺, the Compare list's supersede idiom). It replaced the hide ⊖ there,
+    which was a dead control and always had been — the hidden pile is derived
+    from `live`, which excludes every archived chat, so hiding one could never
+    put it behind the red bar. One button per row; two makes the wrong one the
+    easy tap.
+  - **The tab row needs NO 56px pill reserve** — it is drawn at the top of
+    `#grid`, below the account row and the hidden bar, so it clears the pill's
+    y 14–192 band. Move it higher and it needs the reserve plus
+    `width:calc((100% - 56px)/2)`. No count badges: the red one elsewhere means
+    "something answered you", which an archived chat doing is not.
+  - Session-only, every page load opening on BUILT. A first pass of 16 chats
+    was flagged 2026-08-13 from the thread contents (empty one-message chats,
+    diagnostics, dead ends she had already noted as failed, and sign-in/env
+    troubleshooting); a starred chat, or one with an outstanding `need`, was
+    never flagged. Tests: `node scripts/test-chats-archive-split.js` (the real
+    route against a stubbed Firestore + the real page in headless Chromium;
+    verified failing against an inverted default).
   **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
   Sophie: "when I message a chat that I archived, can it automatically come
   out of the archive").** Archive means "away for good" — and going back to
