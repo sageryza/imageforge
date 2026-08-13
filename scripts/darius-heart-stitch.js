@@ -32,7 +32,11 @@ const PANELS = path.join(DIR, 'panels');
 const MEDIUM = ['/home/user/out/darius-heart-medium', '/home/user/out/darius-heart-medium-2'];
 const W = 1024, H = 1536;
 
-const bin = (pkg, name) => { try { return require(pkg).path; } catch (_) { return name; } };
+// ffmpeg-static exports the path as a bare STRING; ffprobe-static exports
+// { path }. Handle both rather than assuming they match.
+const bin = (pkg, name) => {
+  try { const m = require(pkg); return typeof m === 'string' ? m : m.path; } catch (_) { return name; }
+};
 const FFMPEG = process.env.FFMPEG_PATH || bin('ffmpeg-static', 'ffmpeg');
 const FFPROBE = process.env.FFPROBE_PATH || bin('ffprobe-static', 'ffprobe');
 const run = (b, a) => execFileSync(b, a, { stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28 });
