@@ -72,6 +72,18 @@ private struct GatedWebView: UIViewRepresentable {
     let refreshTick: Int
     @Binding var failed: Bool
 
+    /// Every page hosted here is inside a native tool screen, so it is always
+    /// asked for with `?embed=1` — the server then hides the page's own title
+    /// row (`.app-header` / `.tool-eyebrow`) and its "← Hub" button, which
+    /// would otherwise duplicate the nav bar's title and navigate the web view
+    /// out of the tool. Doing it HERE and not at each call site is the point:
+    /// /vector shipped without the param and showed "VECTOR" twice, because
+    /// remembering to type it is exactly the kind of thing that gets missed.
+    static func embedded(_ path: String) -> String {
+        if path.contains("embed=") { return path }
+        return path + (path.contains("?") ? "&" : "?") + "embed=1"
+    }
+
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         // Generated audio (voice renders, song mixes) plays inline on tap.
@@ -84,7 +96,7 @@ private struct GatedWebView: UIViewRepresentable {
         // forge.css --bg, so the page's own paper shows while it loads.
         web.backgroundColor = UIColor(red: 0.980, green: 0.976, blue: 0.969, alpha: 1)
         web.allowsBackForwardNavigationGestures = true
-        if let url = URL(string: MovieService.serverURL + path) {
+        if let url = URL(string: MovieService.serverURL + Self.embedded(path)) {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
         return web

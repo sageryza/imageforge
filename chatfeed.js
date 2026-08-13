@@ -1495,6 +1495,29 @@ function kitWarnings(html) {
     out.push('An embedded <video>: a film is a line of text with a play button '
       + 'via window.__filmRow({url,label,meta,mount}), never an embedded player.');
   }
+  // THE TITLE, ONCE, AND NOTHING ABOVE IT (Aug 2026, Sophie — asked for on
+  // page after page, and the shells themselves taught the opposite until she
+  // caught it). The gold CHAT NAME · DATE eyebrow and the tagline under the
+  // title are the two rows she keeps having removed by hand. Both classes
+  // still exist in compare.css so pages posted before the rule render, which
+  // is exactly why a NEW page has to be told.
+  if (/class\s*=\s*["'][^"']*\beyebrow\b/i.test(s)) {
+    out.push('An .eyebrow line above the title: the page opens with its <h1> '
+      + 'and nothing above it — no chat/date line (she knows which chat she '
+      + 'is in). Delete it.');
+  }
+  if (/class\s*=\s*["'][^"']*\bsub\b/i.test(s)) {
+    out.push('A .sub tagline under the title: the title is the only text at '
+      + 'the top. Anything worth explaining goes behind the "?" — '
+      + 'window.__compareHelp({ html: "…" }).');
+  }
+  // TEXT BOXES SHIP EMPTY (Aug 2026, Sophie: "whenever there's a text box
+  // there should not be anything in it, no example text… I prefer nothing").
+  // An example she has to clear before typing is work.
+  if (/<(?:input|textarea)\b[^>]*\bplaceholder\s*=\s*["'][^"']/i.test(s)) {
+    out.push('Example text in a box (placeholder=): text boxes ship EMPTY. '
+      + 'If an example is genuinely needed, put it behind the "?" instead.');
+  }
   return out;
 }
 

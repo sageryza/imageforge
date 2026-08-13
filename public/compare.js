@@ -258,6 +258,71 @@
   window.__compareShell.closeVideo = closeVideo;
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeVideo(); });
 
+  /* 5b — THE "?" (Aug 2026, Sophie: pages keep arriving with a list of
+     instructions at the top, and "if they do want to put instructions… they
+     can put it behind a ? so I can tap it if I don't know what's going on").
+
+     So: a page carries NO explanatory text. Anything a reader might need
+     goes here, one line, after the title is in the DOM:
+
+       window.__compareHelp({ html: '<b>Tap a picture</b> to see it big. ' +
+                                    'The + in the corner leaves a note.' });
+
+     The circle rides at the END OF THE TITLE — the pill owns the top-right
+     corner (x 324-374 / y 14-192), so nothing may be placed there — and the
+     card is FIXED, so opening it never pushes the page down under her finger.
+     Tap anywhere to close. Only ever ONE circle, so calling this twice (a
+     reload of a resumed page) replaces rather than stacks. */
+  function ensureHelpCSS() {
+    if (document.getElementById('cmp-help-css')) return;
+    if (document.querySelector('link[href*="/compare.css"]')) return;  // it's in there
+    var st = document.createElement('style');
+    st.id = 'cmp-help-css';
+    st.textContent = '.cmp-help{display:inline-flex;align-items:center;justify-content:center;'
+      + 'width:22px;height:22px;padding:0;margin-left:9px;border-radius:50%;'
+      + 'border:1px solid var(--chg,#a8845c);font:600 13px/1 -apple-system,sans-serif;'
+      + 'color:var(--chg,#a8845c);background:transparent;vertical-align:middle;cursor:pointer}'
+      + '.cmp-helpcard{position:fixed;top:14px;left:14px;right:14px;z-index:60;'
+      + 'background:var(--paper,#fffdf8);border:1px solid var(--line,#e7dfd0);border-radius:6px;'
+      + 'padding:14px 16px;font-size:15px;line-height:1.5;color:var(--ink2,#6b6255);'
+      + 'box-shadow:0 6px 24px rgba(0,0,0,.13);max-height:70vh;overflow:auto}';
+    document.head.appendChild(st);
+  }
+
+  window.__compareHelp = function (opts) {
+    opts = opts || {};
+    var host = opts.mount ? document.querySelector(opts.mount)
+                          : document.querySelector('h1');
+    if (!host) return null;
+    ensureHelpCSS();
+    var old = document.querySelector('.cmp-help');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var card = document.querySelector('.cmp-helpcard');
+    if (card && card.parentNode) card.parentNode.removeChild(card);
+
+    card = document.createElement('div');
+    card.className = 'cmp-helpcard';
+    card.hidden = true;
+    if (opts.html) card.innerHTML = opts.html;
+    else card.textContent = opts.text || '';
+    document.body.appendChild(card);
+
+    var b = document.createElement('button');
+    b.className = 'cmp-help';
+    b.type = 'button';
+    b.textContent = '?';
+    b.setAttribute('aria-label', opts.label || 'what this page is');
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      card.hidden = !card.hidden;
+    });
+    host.appendChild(b);
+    // Tap anywhere (including the card) to put it away — the Cutting Room's
+    // gesture, so the whole app answers a "?" the same way.
+    document.addEventListener('click', function () { card.hidden = true; });
+    return b;
+  };
+
   /* 6 — NOTES ON ANYTHING (Aug 2026, Sophie's standing rule: "whenever
      applicable notes should be able to be added"). Reviewing is not only
      yes/no — she needs to say WHY, or what to change, next to the thing
