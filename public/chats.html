@@ -382,6 +382,21 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    those are relative to the line's own width, which is now correct. */
 .acctabs.bmktabs{padding-right:56px;}
 .acctabs.bmktabs::after{width:calc((100% - 56px)/3);}
+/* THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) — BUILT on the left, OTHER on
+   the right. Same row as the account tabs, so it can never drift from them;
+   TWO tabs, so the sliding line is half-width and rides the shared
+   [data-on="1"] step. It needs NO 56px corner reserve: it is drawn at the top
+   of #grid, which sits below the account row and the hidden bar and therefore
+   clears the pill's y 14–192 band. Move it higher and it needs the reserve
+   plus width:calc((100% - 56px)/2), like .bmktabs. */
+.acctabs.archtabs::after{width:50%;}
+/* Move one chat across, on its row. Replaces the hide ⊖ in the archive — see
+   renderList: hiding an archived chat is a dead control there, because the
+   hidden pile is derived from the LIVE list, which excludes the archived. */
+.archbtn{flex:none; margin-left:2px; border:0; background:none; color:var(--ink2);
+  font-size:15px; line-height:1; width:31px; height:31px; padding:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent;}
 .sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
@@ -2232,6 +2247,25 @@ var cat='';
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
+// "One of things where we built something and something was accomplished and
+// everything worked out, and then another one that's pretty much trash but I'm
+// just keeping it for bookkeeping." BUILT on the left and landing there;
+// OTHER on the right.
+//
+// ABSENT means BUILT, and that is the load-bearing half: 81 chats were already
+// archived when this shipped, so anything else would have needed a backfill —
+// or shown her an empty left pile and read as the archive having been wiped.
+// Only the throwaways carry a mark, which is also the smaller judgement.
+//
+// NEVER PERSISTED — every page load opens the archive on BUILT, like every
+// other filter here: a sticky OTHER would open the archive one morning showing
+// only the junk. Not a third state either — a chat is in one pile or the other.
+var ARCH_TABS=[['built','Built'],['other','Other']];
+var archTab='built';
+function chatArch(name){
+  return (chats[name]&&chats[name].archiveKind)==='other' ? 'other' : 'built';
+}
 // ---- ACCOUNT 1 / ACCOUNT 2 (Aug 2026, Sophie) ------------------------------
 // The home shows ONE account at a time, switched by the witch app's
 // Description/Reviews tab pair above the list. Unlike a category chip (which
@@ -2576,7 +2610,7 @@ function renderHome(){
   // the top of the screen swaps the grid over to the archived chats and back.
   if(homeView==='archive'){
     if(!arch.length){ el.innerHTML='<div class="state">Nothing archived on account '+acctFilter()+'.</div>'; return; }
-    if(view==='list') renderList(el,g,arch); else renderTiles(el,g,arch);
+    renderArchive(el,g,arch);
     return;
   }
   // An empty screen must never look like the chats are gone — with the
@@ -2731,6 +2765,10 @@ function paintLive(){
 // test that sets that assigns a stray global and silently proves nothing.
 window.__repaintLive=paintLive;
 window.__setTint=function(v){ TINT=!!v; };
+// Test hook: the archive's pile tabs (the page script is an IIFE, so archTab
+// is not reachable from outside otherwise).
+window.__setArchTab=function(v){ archTab = (v==='other'?'other':'built'); renderHome(); };
+window.__archTab=function(){ return archTab; };
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
   ck.innerHTML=CK; ck.setAttribute('aria-label','Mark answered');
@@ -2858,6 +2896,61 @@ function renderTrash(el){
   });
 }
 
+// THE ARCHIVE'S TWO PILES (Aug 2026, Sophie). The hairline tab row, then that
+// pile's rows. The tabs are ALWAYS drawn, even when one side is empty: the
+// archive is a place with two halves, and hiding the row until something is
+// marked would leave her no way to find the mark she is looking for.
+//
+// No count badges here on purpose. The account tabs carry a red one because it
+// means "something answered you over there"; an archived chat answering is not
+// that, and she asked for the plain totals off the category chips already.
+function renderArchive(el,g,arch){
+  var tabs=document.createElement('div');
+  tabs.className='acctabs archtabs';
+  tabs.dataset.on=String(ARCH_TABS.map(function(t){return t[0];}).indexOf(archTab));
+  ARCH_TABS.forEach(function(t){
+    var b=document.createElement('button');
+    b.className='acctab'+(archTab===t[0]?' on':'');
+    b.textContent=t[1];
+    b.onclick=function(){ archTab=t[0]; renderHome(); window.scrollTo(0,0); };
+    tabs.appendChild(b);
+  });
+  el.appendChild(tabs);
+  var pile=arch.filter(function(n){ return chatArch(n)===archTab; });
+  if(!pile.length){
+    var s=document.createElement('div'); s.className='state';
+    s.textContent = archTab==='other'
+      ? 'Nothing in here yet — tap the ↓ on an archived chat to move it across.'
+      : 'Nothing built on this side.';
+    el.appendChild(s); return;
+  }
+  if(view==='list') renderList(el,g,pile); else renderTiles(el,g,pile);
+}
+// Move ONE chat across, from its own row — the Compare list's ↓ / ↺ idiom, so
+// "send it to the other pile / bring it back" reads the same in both places.
+function mkArchKind(name){
+  var other=chatArch(name)==='other';
+  var b=document.createElement('button'); b.className='archbtn';
+  b.textContent = other ? '↺' : '↓';
+  b.setAttribute('aria-label', other ? 'Move back to Built' : 'Move to Other');
+  b.title = b.getAttribute('aria-label');
+  b.onclick=function(e){ e.stopPropagation(); moveArch(name,!other); };
+  return b;
+}
+// Optimistic with rollback and a full repaint, like toggleHide: the row leaves
+// the pile she is looking at, so there is nothing to patch in place.
+function moveArch(name,toOther){
+  var prev=(chats[name]&&chats[name].archiveKind)||null;
+  chats[name]=chats[name]||{};
+  chats[name].archiveKind = toOther ? 'other' : null;
+  renderHome();
+  toast(toOther? 'Moved to Other' : 'Moved to Built');
+  api('/api/chatfeed/archive-kind',{method:'POST',
+      body:JSON.stringify({chat:name, kind: toOther?'other':'built'})})
+    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    .catch(function(){ chats[name].archiveKind=prev; renderHome(); toast('Couldn’t save that'); });
+}
+
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
   names.forEach(function(name){
@@ -2880,7 +2973,12 @@ function renderList(el,g,names){
       +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    row.appendChild(mkHide(name,last));
+    // In the ARCHIVE the row's button moves the chat between the two piles
+    // instead of hiding it. The hide ⊖ is a dead control there and always was:
+    // the hidden pile is derived from `live`, which excludes every archived
+    // chat, so hiding one could never put it behind the red bar. One button on
+    // the row either way — two would make the wrong one the easy tap.
+    row.appendChild(homeView==='archive' ? mkArchKind(name) : mkHide(name,last));
     if(selMode){ row.classList.toggle('picked', !!picked[name]); row.appendChild(mkPick(name)); }
     row.onclick=function(){ if(selMode) togglePick(name,row); else openChat(name); };
     wrap.appendChild(row);
@@ -3922,8 +4020,13 @@ function lightbox(url, asset){
     var sb=document.createElement('button'); sb.textContent='Style';
     var cb=document.createElement('button'); cb.textContent='Content';
     var txt=document.createElement('div'); txt.className='lbptext';
-    // Start on whichever side was filed; Style wins when both are.
-    var side=asset.promptStyle?'style':'content';
+    // CONTENT IS THE DEFAULT SIDE (Aug 2026, Sophie: "right now the style is
+    // the default and I want it to be the content, so I don't have to click
+    // all the time"). What the picture is OF is what she opens the overlay
+    // for; the style half is the same house prefix on most of a batch, so it
+    // was a tap she paid on every image to reach the half that differs.
+    // Style still wins when content is the only half missing.
+    var side=asset.promptContent?'content':'style';
     function paintSide(){
       sb.classList.toggle('on', side==='style');
       cb.classList.toggle('on', side==='content');

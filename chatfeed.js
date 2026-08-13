@@ -933,6 +933,53 @@ router.post('/star', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// SPLIT THE ARCHIVE IN TWO (Aug 2026, Sophie: "right now the archive is a
+// single list — I want to split it using the hairline pattern into two piles,
+// one of things where we built something and something was accomplished and
+// everything worked out, and then another one that's pretty much trash but
+// I'm just keeping it for bookkeeping"). Her own examples of the second pile:
+// the chat where her computer wouldn't turn on (fixed, but not important) and
+// the one about Google Takeout failing on her email.
+//
+// ONE field, `archiveKind`, and only the SECOND pile is ever stored. Absent =
+// built = the left tab = the landing tab, so the 81 chats already archived
+// need no backfill and read correctly the moment this ships; she only ever
+// marks the throwaways, which is the smaller pile and the easier judgement.
+//
+// It is a plain permanent judgement about the chat, like `starred` and unlike
+// `hiddenAt`/`notifSeenAt` — nothing newer clears it. It is also deliberately
+// INDEPENDENT of `archived`: a chat marked here and then pulled back out of
+// the archive keeps the mark, so re-archiving it doesn't ask her twice.
+//
+// Bulk-capable for the same reason /category is: triaging a pile is a
+// several-at-a-time gesture, and it is how a chat backfills a first pass.
+//
+// A name that has no registry doc is SKIPPED, never written. `set(…, merge)`
+// on a missing doc CREATES it, and sortedChatNames lists every registry key —
+// so one typo would put a phantom row in her list that only the Admin SDK can
+// remove. That has happened here before; the read is cheap next to the cost.
+router.post('/archive-kind', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const other = String(body.kind || '') === 'other';
+    const val = other ? 'other' : admin.firestore.FieldValue.delete();
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(
+      resolved.map((n) => db().collection(REG).doc(n).get()));
+    const live = resolved.filter((n, i) => snaps[i].exists);
+    const missing = resolved.filter((n, i) => !snaps[i].exists);
+    if (live.length) {
+      const batch = db().batch();
+      live.forEach((n) => batch.set(regRef(n), { archiveKind: val }, { merge: true }));
+      await batch.commit();
+    }
+    res.json({ ok: true, chats: live, missing, kind: other ? 'other' : 'built' });
+  } catch (err) { fail(res, err); }
+});
+
 // File chats under a category — the chips where the LIST/TILES toggle used to
 // be (Aug 2026, Sophie: "category tags, the first two I can think of are
 // stories and tech"). One field on the registry doc, so it rides the cached
