@@ -107,6 +107,7 @@ const OFFERED_VOICE_IDS = [
   'Kvw6tPclr4WMpfwDrCe7', // Richard
   'RMHCDmd78OJFe4tkgMIM', // Sophie — doctor
   'ujnBQ7fLtwPbmA1LqLPI', // Richard v2 (separated by loudness)
+  'T9Hb8IjCmtu9eiwmHocH', // Richard v3 (word-exact — pitch AND loudness must agree)
   'EYB97SPMtZYwRMBdkH7a', // Sophie — doctor v2 (separated by transcript)
   'ZOw6P0YnswJ6JNjpj9wF', // Steve Ryza (her dad — NOT Steve Herrington, a different person)
 ];
@@ -129,7 +130,8 @@ const VOICE_COLORS = {
   ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
   Kvw6tPclr4WMpfwDrCe7: '#a8a49c', // Richard — stone
   RMHCDmd78OJFe4tkgMIM: '#d9a6b4', // Sophie — doctor — a second pink, next to her own
-  ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate, a shade off v1's stone
+  ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate
+  T9Hb8IjCmtu9eiwmHocH: '#6b7379', // Richard v3 — a darker slate, a shade off v1's stone
   EYB97SPMtZYwRMBdkH7a: '#e3b3bd', // Sophie — doctor v2
   ZOw6P0YnswJ6JNjpj9wF: '#6f8fa8', // Steve Ryza — steel blue. Deliberately NOT in the orange
   // family: orange is Steve Herrington, a different man, and pairing the two colours was
