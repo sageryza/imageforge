@@ -74,6 +74,7 @@ const TAILCUT = !process.argv.includes('--no-tailcut');
 const OVERRIDES = {
   'proof:s01': 374.31,   // "I spent" begins 374.56 — the words Sophie named
   'heart:s04': 282.60,   // "And when you're in this state" begins 282.84
+  'spec:s03': 1388.00,   // opens "The things that they've built…" (the@1388.44)
 };
 
 /* Three tails the pause rule cannot land, because he pauses AFTER the hanging
@@ -83,6 +84,8 @@ const TAIL_OVERRIDES = {
   'heart:s03': 275.53,   // ends on "...panic, anxiety, fear" (fear ends 275.28)
   'heart:s07': 864.64,   // ends on "...the entirety of the field" (864.34)
   'proof:s02': 483.58,   // ends on "...you're seeing the truth" (483.28)
+  'spec:s05': 897.30,    // ends on "...the very waters of life down there too" (897.16)
+  'spec:s09': 1059.95,   // ends on "...so much more advanced back then" (1059.72)
 };
 
 const ROOT = path.join(__dirname, '..');
