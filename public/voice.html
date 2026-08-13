@@ -23,11 +23,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em; padding
 /* Voice picker: a row of rounded SQUARES, one per person, read by colour
    (Sophie, Aug 2026 — a scrolling list of names was too slow to use). The
    dropdown under it is the fallback for "who is who". No pills: 6px. */
-.vrow{display:flex; flex-wrap:wrap; gap:10px; padding-right:56px;}
-.vbtn{width:52px; height:52px; flex:none; border-radius:6px; border:1.5px solid transparent;
+/* ONE ROW, always (Sophie, Aug 2026: "a lot smaller and definitely all fit
+   on one row"). The squares FLEX instead of carrying a fixed width, so any
+   number of people fits whatever the phone: nowrap + flex:1 1 0 shares the
+   row out, aspect-ratio keeps them square, and max-width stops three voices
+   from becoming three slabs. At 375px (5vw padding each side, 56px reserved
+   for the pill) that lands 7 squares at ~35px. */
+.vrow{display:flex; flex-wrap:nowrap; gap:6px; padding-right:56px;}
+.vbtn{flex:1 1 0; min-width:0; max-width:40px; aspect-ratio:1;
+  border-radius:6px; border:1.5px solid transparent;
   display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
   background:var(--line); position:relative;}
-.vbtn svg{width:24px; height:24px; stroke:#fff; fill:none; stroke-width:1.9;
+.vbtn svg{width:56%; height:56%; stroke:#fff; fill:none; stroke-width:1.9;
   stroke-linecap:round; stroke-linejoin:round;}
 /* Selected: an ink ring with a paper gap, so it reads on any pastel. */
 .vbtn.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--paper) inset;}
