@@ -1,237 +1,349 @@
 {
-  "_note": "Candidate spans pulled from the TWO Darius J. Wright interviews (Aug 2026).\n  D1 = _aHCQnpJWMo 'The nature of reality - With Darius J. Wright' (58:09)\n  D2 = ysBQgv1gpYI 'The nature of our soul' (42:00) — MULTI-SPEAKER: Darius\n       speaks 0:17-3:48 and 7:06-end; the stretches between are his students.\n       Every span listed here is Darius himself.\n  ctx0/ctx1 = the transcript window shown on the picker page (seconds).\n  pick0/pick1 = the span seeded as an editable pick inside that window.\n  Build the pages with: node scripts/build-darius-pages.js",
-  "sources": {
-    "D1": {
-      "videoId": "_aHCQnpJWMo",
-      "title": "The nature of reality"
-    },
-    "D2": {
-      "videoId": "ysBQgv1gpYI",
-      "title": "The nature of our soul"
-    }
+ "_note": "Candidate spans pulled from the TWO Darius J. Wright interviews (Aug 2026).\n  D1 = _aHCQnpJWMo 'The nature of reality - With Darius J. Wright' (58:09)\n  D2 = ysBQgv1gpYI 'The nature of our soul' (42:00) — MULTI-SPEAKER: Darius\n       speaks 0:17-3:48 and 7:06-end; the stretches between are his students.\n       Every span listed here is Darius himself.\n  ctx0/ctx1 = the transcript window shown on the picker page (seconds).\n  pick0/pick1 = the span seeded as an editable pick inside that window.\n  Build the pages with: node scripts/build-darius-pages.js",
+ "sources": {
+  "D1": {
+   "videoId": "_aHCQnpJWMo",
+   "title": "The nature of reality"
   },
-  "proof": [
-    {
-      "id": "p-whiteboard",
-      "src": "D1",
-      "label": "The whiteboard test — five days straight, and in a group",
-      "why": "A repeatable protocol, not an anecdote: someone writes a number he cannot see, he leaves the body, reads it, comes back and calls them.",
-      "ctx0": 440,
-      "ctx1": 500,
-      "pick0": 452,
-      "pick1": 486
-    },
-    {
-      "id": "p-disprove",
-      "src": "D1",
-      "label": "Three years trying to disprove himself",
-      "why": "The frame a proof reel needs — he set out to catch himself hallucinating and started targeting things he could check.",
-      "ctx0": 368,
-      "ctx1": 406,
-      "pick0": 373,
-      "pick1": 402
-    },
-    {
-      "id": "p-kelly",
-      "src": "D1",
-      "label": "Kelly watches her son in the military",
-      "why": "A second person's verified account, checked by phone straight after.",
-      "ctx0": 398,
-      "ctx1": 432,
-      "pick0": 403,
-      "pick1": 429
-    },
-    {
-      "id": "p-paper",
-      "src": "D2",
-      "label": "A number on a piece of paper, verified in group settings",
-      "why": "The same test told tighter than D1's, and it says other people reproduced it.",
-      "ctx0": 124,
-      "ctx1": 152,
-      "pick0": 130,
-      "pick1": 146
-    },
-    {
-      "id": "p-cia",
-      "src": "D2",
-      "label": "Why the CIA spent millions on remote viewing",
-      "why": "Institutional corroboration — a different flavour of proof from a personal anecdote.",
-      "ctx0": 144,
-      "ctx1": 180,
-      "pick0": 148,
-      "pick1": 174
-    },
-    {
-      "id": "p-84",
-      "src": "D2",
-      "label": "Eighty-four witness accounts",
-      "why": "The count. Ends before the speaker changes at 3:48.",
-      "ctx0": 200,
-      "ctx1": 232,
-      "pick0": 204,
-      "pick1": 229
-    },
-    {
-      "id": "p-pyramid-tunnels",
-      "src": "D2",
-      "label": "He described the tunnels under the pyramids BEFORE they were confirmed",
-      "why": "The strongest proof in either interview: a claim he says he made publicly, on the record, in advance — then the tunnels were found. Not a private anecdote.",
-      "ctx0": 906,
-      "ctx1": 948,
-      "pick0": 912,
-      "pick1": 940
-    }
-  ],
-  "heart": [
-    {
-      "id": "h-generator",
-      "src": "D1",
-      "label": "The heart is not a pump — it is an electromagnetic generator",
-      "why": "The thesis. The field is what glues the soul into the body; lower the field and you come out. Dying and going out on purpose are the same mechanism.",
-      "ctx0": 210,
-      "ctx1": 254,
-      "pick0": 214,
-      "pick1": 249
-    },
-    {
-      "id": "h-paralysis",
-      "src": "D1",
-      "label": "Sleep paralysis is the doorway — delta waves and a very low heart rate",
-      "why": "The how-to. Panic raises the brainwave, which raises the heart rate, which raises the field, which snaps you back awake.",
-      "ctx0": 242,
-      "ctx1": 282,
-      "pick0": 245,
-      "pick1": 278
-    },
-    {
-      "id": "h-deeper",
-      "src": "D1",
-      "label": "Going further down until you come right out",
-      "why": "The last step of the method, and that he taught himself to do it at will.",
-      "ctx0": 280,
-      "ctx1": 316,
-      "pick0": 283,
-      "pick1": 300
-    },
-    {
-      "id": "h-onepercent",
-      "src": "D2",
-      "label": "Five senses, one percent of the light spectrum",
-      "why": "The cleanest statement of the limit — you cannot see a radio signal, and that is the whole argument in one line.",
-      "ctx0": 56,
-      "ctx1": 118,
-      "pick0": 60,
-      "pick1": 113
-    },
-    {
-      "id": "h-physical",
-      "src": "D1",
-      "label": "The soul is physical — you look at your hands",
-      "why": "What happens the moment you are out, and why he says it is more real, not less.",
-      "ctx0": 302,
-      "ctx1": 350,
-      "pick0": 305,
-      "pick1": 346
-    },
-    {
-      "id": "h-animals",
-      "src": "D1",
-      "label": "Cats see more of the spectrum, and there is equipment that does too",
-      "why": "His bridge from the claim to something testable with hardware.",
-      "ctx0": 630,
-      "ctx1": 662,
-      "pick0": 635,
-      "pick1": 657
-    },
-    {
-      "id": "h-internet",
-      "src": "D1",
-      "label": "The body is the computer, the field is the internet",
-      "why": "His own analogy for what you are reading when you read someone — the picture practically draws itself.",
-      "ctx0": 826,
-      "ctx1": 872,
-      "pick0": 830,
-      "pick1": 866
-    },
-    {
-      "id": "h-rice",
-      "src": "D1",
-      "label": "Water holds memory — the rice experiment",
-      "why": "The most literally illustratable science-z claim in either interview: two jars, thirty days.",
-      "ctx0": 1024,
-      "ctx1": 1048,
-      "pick0": 1027,
-      "pick1": 1044
-    },
-    {
-      "id": "h-toroid",
-      "src": "D1",
-      "label": "The heart is a toroidal field, and the body mirrors the construct",
-      "why": "Ties the heart back to the shape of everything else — a diagram moment.",
-      "ctx0": 1972,
-      "ctx1": 2000,
-      "pick0": 1975,
-      "pick1": 1995
-    },
-    {
-      "id": "h-house",
-      "src": "D1",
-      "label": "An empty house rots — so does an empty body",
-      "why": "His argument that the soul generates the vessel, made with something everyone has seen.",
-      "ctx0": 2582,
-      "ctx1": 2636,
-      "pick0": 2586,
-      "pick1": 2632
-    },
-    {
-      "id": "h-telepathy",
-      "src": "D2",
-      "label": "Telepathy is the same field, turned up",
-      "why": "Connects the heart mechanism to an ability, which is what the video is arguing.",
-      "ctx0": 782,
-      "ctx1": 826,
-      "pick0": 786,
-      "pick1": 822
-    },
-    {
-      "id": "h-zeropoint",
-      "src": "D2",
-      "label": "Zero point energy, the domes on old churches, and the balloon",
-      "why": "A copper wire round a balloon, a grounding rod, and you pull energy out of the air. He offers it as something you can actually do.",
-      "ctx0": 544,
-      "ctx1": 620,
-      "pick0": 548,
-      "pick1": 617
-    },
-    {
-      "id": "h-water",
-      "src": "D2",
-      "label": "Moving water makes a field — and baptism was reprogramming it",
-      "why": "The science-z reading of a ritual, which is exactly the register you asked for.",
-      "ctx0": 614,
-      "ctx1": 654,
-      "pick0": 618,
-      "pick1": 650
-    },
-    {
-      "id": "h-telomere",
-      "src": "D2",
-      "label": "Immortal genes, telomere caps and the placebo effect",
-      "why": "Where he reaches hardest for real biology — worth having even if it only survives as a line.",
-      "ctx0": 676,
-      "ctx1": 748,
-      "pick0": 680,
-      "pick1": 744
-    },
-    {
-      "id": "h-dna12",
-      "src": "D1",
-      "label": "Twelve-strand DNA and twelve structures in the brain",
-      "why": "The hinge between this video and the speculative one — put it in whichever it suits.",
-      "ctx0": 1258,
-      "ctx1": 1288,
-      "pick0": 1262,
-      "pick1": 1283
-    }
-  ]
+  "D2": {
+   "videoId": "ysBQgv1gpYI",
+   "title": "The nature of our soul"
+  }
+ },
+ "proof": [
+  {
+   "id": "p-whiteboard",
+   "src": "D1",
+   "label": "The whiteboard test — five days straight, and in a group",
+   "why": "A repeatable protocol, not an anecdote: someone writes a number he cannot see, he leaves the body, reads it, comes back and calls them.",
+   "ctx0": 440,
+   "ctx1": 500,
+   "pick0": 452,
+   "pick1": 486
+  },
+  {
+   "id": "p-disprove",
+   "src": "D1",
+   "label": "Three years trying to disprove himself",
+   "why": "The frame a proof reel needs — he set out to catch himself hallucinating and started targeting things he could check.",
+   "ctx0": 368,
+   "ctx1": 406,
+   "pick0": 373,
+   "pick1": 402
+  },
+  {
+   "id": "p-kelly",
+   "src": "D1",
+   "label": "Kelly watches her son in the military",
+   "why": "A second person's verified account, checked by phone straight after.",
+   "ctx0": 398,
+   "ctx1": 432,
+   "pick0": 403,
+   "pick1": 429
+  },
+  {
+   "id": "p-paper",
+   "src": "D2",
+   "label": "A number on a piece of paper, verified in group settings",
+   "why": "The same test told tighter than D1's, and it says other people reproduced it.",
+   "ctx0": 124,
+   "ctx1": 152,
+   "pick0": 130,
+   "pick1": 146
+  },
+  {
+   "id": "p-cia",
+   "src": "D2",
+   "label": "Why the CIA spent millions on remote viewing",
+   "why": "Institutional corroboration — a different flavour of proof from a personal anecdote.",
+   "ctx0": 144,
+   "ctx1": 180,
+   "pick0": 148,
+   "pick1": 174
+  },
+  {
+   "id": "p-84",
+   "src": "D2",
+   "label": "Eighty-four witness accounts",
+   "why": "The count. Ends before the speaker changes at 3:48.",
+   "ctx0": 200,
+   "ctx1": 232,
+   "pick0": 204,
+   "pick1": 229
+  },
+  {
+   "id": "p-pyramid-tunnels",
+   "src": "D2",
+   "label": "He described the tunnels under the pyramids BEFORE they were confirmed",
+   "why": "The strongest proof in either interview: a claim he says he made publicly, on the record, in advance — then the tunnels were found. Not a private anecdote.",
+   "ctx0": 906,
+   "ctx1": 948,
+   "pick0": 912,
+   "pick1": 940
+  }
+ ],
+ "heart": [
+  {
+   "id": "h-generator",
+   "src": "D1",
+   "label": "The heart is not a pump — it is an electromagnetic generator",
+   "why": "The thesis. The field is what glues the soul into the body; lower the field and you come out. Dying and going out on purpose are the same mechanism.",
+   "ctx0": 210,
+   "ctx1": 254,
+   "pick0": 214,
+   "pick1": 249
+  },
+  {
+   "id": "h-paralysis",
+   "src": "D1",
+   "label": "Sleep paralysis is the doorway — delta waves and a very low heart rate",
+   "why": "The how-to. Panic raises the brainwave, which raises the heart rate, which raises the field, which snaps you back awake.",
+   "ctx0": 242,
+   "ctx1": 282,
+   "pick0": 245,
+   "pick1": 278
+  },
+  {
+   "id": "h-deeper",
+   "src": "D1",
+   "label": "Going further down until you come right out",
+   "why": "The last step of the method, and that he taught himself to do it at will.",
+   "ctx0": 280,
+   "ctx1": 316,
+   "pick0": 283,
+   "pick1": 300
+  },
+  {
+   "id": "h-onepercent",
+   "src": "D2",
+   "label": "Five senses, one percent of the light spectrum",
+   "why": "The cleanest statement of the limit — you cannot see a radio signal, and that is the whole argument in one line.",
+   "ctx0": 56,
+   "ctx1": 118,
+   "pick0": 60,
+   "pick1": 113
+  },
+  {
+   "id": "h-physical",
+   "src": "D1",
+   "label": "The soul is physical — you look at your hands",
+   "why": "What happens the moment you are out, and why he says it is more real, not less.",
+   "ctx0": 302,
+   "ctx1": 350,
+   "pick0": 305,
+   "pick1": 346
+  },
+  {
+   "id": "h-animals",
+   "src": "D1",
+   "label": "Cats see more of the spectrum, and there is equipment that does too",
+   "why": "His bridge from the claim to something testable with hardware.",
+   "ctx0": 630,
+   "ctx1": 662,
+   "pick0": 635,
+   "pick1": 657
+  },
+  {
+   "id": "h-internet",
+   "src": "D1",
+   "label": "The body is the computer, the field is the internet",
+   "why": "His own analogy for what you are reading when you read someone — the picture practically draws itself.",
+   "ctx0": 826,
+   "ctx1": 872,
+   "pick0": 830,
+   "pick1": 866
+  },
+  {
+   "id": "h-rice",
+   "src": "D1",
+   "label": "Water holds memory — the rice experiment",
+   "why": "The most literally illustratable science-z claim in either interview: two jars, thirty days.",
+   "ctx0": 1024,
+   "ctx1": 1048,
+   "pick0": 1027,
+   "pick1": 1044
+  },
+  {
+   "id": "h-toroid",
+   "src": "D1",
+   "label": "The heart is a toroidal field, and the body mirrors the construct",
+   "why": "Ties the heart back to the shape of everything else — a diagram moment.",
+   "ctx0": 1972,
+   "ctx1": 2000,
+   "pick0": 1975,
+   "pick1": 1995
+  },
+  {
+   "id": "h-house",
+   "src": "D1",
+   "label": "An empty house rots — so does an empty body",
+   "why": "His argument that the soul generates the vessel, made with something everyone has seen.",
+   "ctx0": 2582,
+   "ctx1": 2636,
+   "pick0": 2586,
+   "pick1": 2632
+  },
+  {
+   "id": "h-telepathy",
+   "src": "D2",
+   "label": "Telepathy is the same field, turned up",
+   "why": "Connects the heart mechanism to an ability, which is what the video is arguing.",
+   "ctx0": 782,
+   "ctx1": 826,
+   "pick0": 786,
+   "pick1": 822
+  },
+  {
+   "id": "h-zeropoint",
+   "src": "D2",
+   "label": "Zero point energy, the domes on old churches, and the balloon",
+   "why": "A copper wire round a balloon, a grounding rod, and you pull energy out of the air. He offers it as something you can actually do.",
+   "ctx0": 544,
+   "ctx1": 620,
+   "pick0": 548,
+   "pick1": 617
+  },
+  {
+   "id": "h-water",
+   "src": "D2",
+   "label": "Moving water makes a field — and baptism was reprogramming it",
+   "why": "The science-z reading of a ritual, which is exactly the register you asked for.",
+   "ctx0": 614,
+   "ctx1": 654,
+   "pick0": 618,
+   "pick1": 650
+  },
+  {
+   "id": "h-telomere",
+   "src": "D2",
+   "label": "Immortal genes, telomere caps and the placebo effect",
+   "why": "Where he reaches hardest for real biology — worth having even if it only survives as a line.",
+   "ctx0": 676,
+   "ctx1": 748,
+   "pick0": 680,
+   "pick1": 744
+  },
+  {
+   "id": "h-dna12",
+   "src": "D1",
+   "label": "Twelve-strand DNA and twelve structures in the brain",
+   "why": "The hinge between this video and the speculative one — put it in whichever it suits.",
+   "ctx0": 1258,
+   "ctx1": 1288,
+   "pick0": 1262,
+   "pick1": 1283
+  }
+ ],
+ "spec": [
+  {
+   "id": "s-firmament",
+   "src": "D1",
+   "label": "The firmament, NASA composites, and Operation Fishbowl",
+   "why": "The construct as he draws it: a plane, a dome, the waters above.",
+   "ctx0": 1672,
+   "ctx1": 1732,
+   "pick0": 1682,
+   "pick1": 1722
+  },
+  {
+   "id": "s-heavens",
+   "src": "D2",
+   "label": "Twelve heavens, not seven — and he names the ladder",
+   "why": "A vertical stack of twelve, each rung labelled in his own words.",
+   "ctx0": 438,
+   "ctx1": 502,
+   "pick0": 448,
+   "pick1": 492
+  },
+  {
+   "id": "s-pyramids",
+   "src": "D1",
+   "label": "The pyramids were machines — and airports",
+   "why": "A pyramid drawn as equipment: aligned to stars, wired into the ground.",
+   "ctx0": 1362,
+   "ctx1": 1446,
+   "pick0": 1372,
+   "pick1": 1436
+  },
+  {
+   "id": "s-tunnels",
+   "src": "D2",
+   "label": "The tunnels beneath the pyramids, and the halls of Amenti",
+   "why": "Cutaway: the pyramid above, the deep shafts and coils below.",
+   "ctx0": 886,
+   "ctx1": 946,
+   "pick0": 896,
+   "pick1": 936
+  },
+  {
+   "id": "s-underground",
+   "src": "D2",
+   "label": "Cities underneath, entrances blocked, mountains that are buried pyramids",
+   "why": "A grassy hill in cross-section with a pyramid inside it.",
+   "ctx0": 828,
+   "ctx1": 908,
+   "pick0": 838,
+   "pick1": 898
+  },
+  {
+   "id": "s-antarctica",
+   "src": "D1",
+   "label": "Antarctica: the treaty, the pyramids, the bodies",
+   "why": "Ice with structures under it, and a treaty page full of signatures.",
+   "ctx0": 1556,
+   "ctx1": 1606,
+   "pick0": 1566,
+   "pick1": 1596
+  },
+  {
+   "id": "s-giants",
+   "src": "D2",
+   "label": "Giants — including one he says was shot in Afghanistan",
+   "why": "Scale: a human figure against the thing he is describing.",
+   "ctx0": 1086,
+   "ctx1": 1140,
+   "pick0": 1096,
+   "pick1": 1130
+  },
+  {
+   "id": "s-trees",
+   "src": "D1",
+   "label": "The mountains are tree stumps",
+   "why": "A flat-topped mesa with a tree's growth rings across the top. Uluru.",
+   "ctx0": 1334,
+   "ctx1": 1372,
+   "pick0": 1344,
+   "pick1": 1362
+  },
+  {
+   "id": "s-atlantis",
+   "src": "D2",
+   "label": "Atlantis, the Mayans, dragons, and flying craft in old pictures",
+   "why": "A medieval painting with the craft in it circled.",
+   "ctx0": 980,
+   "ctx1": 1068,
+   "pick0": 990,
+   "pick1": 1058
+  },
+  {
+   "id": "s-lookingglass",
+   "src": "D1",
+   "label": "Project Looking Glass — reading time instead of predicting it",
+   "why": "Branching paths seen from above rather than a straight line.",
+   "ctx0": 1418,
+   "ctx1": 1472,
+   "pick0": 1428,
+   "pick1": 1462
+  },
+  {
+   "id": "s-markers",
+   "src": "D2",
+   "label": "Fixed event markers, and the freedom point he says is coming",
+   "why": "Whatever route you take, the same point on the map.",
+   "ctx0": 1280,
+   "ctx1": 1340,
+   "pick0": 1290,
+   "pick1": 1330
+  }
+ ]
 }

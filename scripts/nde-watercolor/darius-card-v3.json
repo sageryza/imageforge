@@ -1,0 +1,84 @@
+[
+ {
+  "id": "wright-v3-d",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-a.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND, THIRD and FOURTH attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-e",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-a.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND, THIRD and FOURTH attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-f",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-tight.jpg"
+  ],
+  "likeness": "The SECOND attached image is a photograph of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-g",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND attached image is a photograph of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-h",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-a.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND, THIRD and FOURTH attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person turned slightly to one side, looking towards the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-i",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND and THIRD attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "medium"
+ },
+ {
+  "id": "wright-v3-hi1",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-a.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND, THIRD and FOURTH attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "high"
+ },
+ {
+  "id": "wright-v3-hi2",
+  "refs": [
+   "/home/user/imageforge/.darius-film/ref-dw-b.jpg",
+   "/home/user/imageforge/.darius-film/ref-dw-c.jpg"
+  ],
+  "likeness": "The SECOND and THIRD attached images are photographs of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, on a white background. No text or lettering anywhere.",
+  "quality": "high"
+ }
+]

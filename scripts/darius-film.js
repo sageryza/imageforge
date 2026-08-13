@@ -9,7 +9,7 @@
  * PREVIEW each snippet, which is the same cut a render makes and is banked in
  * the permanent clip cache, so it is paid for once ever.
  *
- *   node scripts/darius-film.js <heart|proof> make     # episode + snippets
+ *   node scripts/darius-film.js <heart|proof|spec> make  # episode + snippets
  *   node scripts/darius-film.js <heart|proof> cut      # cut every snippet
  *   node scripts/darius-film.js <heart|proof> report   # urls + durations
  *
@@ -54,6 +54,25 @@ const FILMS = {
   'p-kelly',           // Kelly watches her son, and checks it by phone
   'p-cia',             // why the CIA spent millions on remote viewing
   'p-pyramid-tunnels', // the tunnels, described publicly before they were found
+ ] },
+ /* VIDEO 2 — the strange half (Sophie, Aug 2026: the two videos are the
+    science one and "the pyramids and the seven heavens etc". PROOF was never
+    one of them; that material is audio clips for her Evan project.)
+    Twenty topics is 19 minutes of quoted material, so this takes ONE quote
+    from each of eleven and builds outward: the shape of the world, then what
+    is under it, then who was here, then what he says is coming. */
+ spec: { list: 'spec', title: 'The pyramids and the heavens — what Darius says is out there (v1)', shots: [
+  's-firmament',    // the dome over the plane, and what hit it
+  's-heavens',      // twelve, not seven, and he names the ladder
+  's-pyramids',     // machines, and airports
+  's-tunnels',      // the shafts beneath, and the halls of Amenti
+  's-underground',  // cities below, entrances blocked
+  's-antarctica',   // the treaty, the pyramids, the bodies
+  's-giants',       // giants, including one he says was shot
+  's-trees',        // the mountains are stumps
+  's-atlantis',     // Atlantis, the Mayans, craft in old pictures
+  's-lookingglass', // reading time instead of predicting it
+  's-markers',      // fixed markers, and the freedom point coming
  ] },
 };
 
