@@ -106,6 +106,9 @@ const OFFERED_VOICE_IDS = [
   'ws4szZn8cc3SmgDP6TlK', // Gilad
   'Kvw6tPclr4WMpfwDrCe7', // Richard
   'RMHCDmd78OJFe4tkgMIM', // Sophie — doctor
+  'ujnBQ7fLtwPbmA1LqLPI', // Richard v2 (separated by loudness)
+  'EYB97SPMtZYwRMBdkH7a', // Sophie — doctor v2 (separated by transcript)
+  'ZOw6P0YnswJ6JNjpj9wF', // Steve — recorded (full-bandwidth, not the voicemail)
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -126,6 +129,9 @@ const VOICE_COLORS = {
   ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
   Kvw6tPclr4WMpfwDrCe7: '#a8a49c', // Richard — stone
   RMHCDmd78OJFe4tkgMIM: '#d9a6b4', // Sophie — doctor — a second pink, next to her own
+  ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate, a shade off v1's stone
+  EYB97SPMtZYwRMBdkH7a: '#e3b3bd', // Sophie — doctor v2
+  ZOw6P0YnswJ6JNjpj9wF: '#d18f5a', // Steve — recorded — a deeper orange than his voicemail
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 
