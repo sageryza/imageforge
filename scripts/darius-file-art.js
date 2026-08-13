@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * File THE HEART film's art into the chat's Assets tab: upload, label, caption
+ * File a Darius film's art into the chat's Assets tab: upload, label, caption
  * and — for every single picture — the EXACT prompt that made it.
  *
- *   node scripts/darius-file-heart-art.js [--dry-run]
+ *   node scripts/darius-file-art.js <heart|proof> [--dry-run]
  *
  * Reads the renderer's own prompts.json out of each output directory, so the
  * style half filed here is the literal text sent to gpt-image-2, never a
@@ -21,9 +21,13 @@ const admin = require('firebase-admin');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'darius-interview-videos';
-const DIRS = ['/home/user/out/darius-heart-medium', '/home/user/out/darius-heart-medium-2'];
+const SET = process.argv.find((a) => a === 'heart' || a === 'proof') || 'heart';
+const DIRS = {
+  heart: ['/home/user/out/darius-heart-medium', '/home/user/out/darius-heart-medium-2'],
+  proof: ['/home/user/out/darius-proof-medium'],
+}[SET];
 const DRY = process.argv.includes('--dry-run');
-const LABELS = require('./nde-watercolor/darius-heart-labels.json');
+const LABELS = require(`./nde-watercolor/darius-${SET}-labels.json`);
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
@@ -58,7 +62,7 @@ function split(rec) {
     const key = r.id.replace(/-m$/, '');
     const label = LABELS[key];
     if (!label) { console.log('  NO LABEL', r.id, '— skipped, an unlabelled tile is worse than none'); continue; }
-    const dest = `darius-heart/${r.id}.webp`;
+    const dest = `darius-${SET}/${r.id}.webp`;
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     if (DRY) { console.log('  would file', r.id, '·', label); items.push({ url, ...split(r) }); continue; }
 
