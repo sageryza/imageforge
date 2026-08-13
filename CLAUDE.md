@@ -695,6 +695,13 @@ lifted into a standalone tool later.
   means leave it). Filter-only like the Test Station — it is deliberately not
   on the default home. Its glyph is the bundled `Vector` asset (a bezier curve
   with its two anchor points); `deckfactory://vector` opens it.
+  **v1 broke three house rules by copying its neighbours, and the fix went
+  into the KIT, not just this page (Aug 2026, Sophie).** It said "VECTOR"
+  twice (its own eyebrow under the native bar's title — `GatedWebTool` now
+  appends `?embed=1` for every tool and `serveGated` hides `.tool-eyebrow`),
+  it shipped example drawings sitting in its text box (now empty; the example
+  moved into the `?` card), and its buttons were longer than their words. See
+  the four rules in the tool.css note above.
 - Tests: `node scripts/test-vectorize.js` — asserts against the SOURCE card
   (no invented colour, no dropped colour, line weight, structure), not against
   the Python it was ported from. It deliberately does NOT catch small
@@ -770,7 +777,7 @@ lifted into a standalone tool later.
   chat's tile appeared on its own (verified live).
 - **SKILLS load in every session via the SAME setup script (v9, Aug 2026).**
   The repo's `.claude/skills/` (witch-copy, deliver-images, new-page,
-  new-module, sophie-audio, …) are only discovered by Claude Code once a chat
+  new-module, new-tool, sophie-audio, …) are only discovered by Claude Code once a chat
   is already working inside this repo — the same starting-folder gotcha as
   the hook — so the setup script SYMLINKS them to `/home/user/.claude/skills`
   and they load from the first turn. A symlink, never a copy: sessions always
@@ -1258,6 +1265,25 @@ lifted into a standalone tool later.
   that used to be a paragraph. Link it, set `body class="tool"`, don't
   hand-roll a per-page variant. `studio.html` is the reference; `blog.html`,
   `report.html` and `vector.html` follow.
+  **THE FOUR RULES SHE KEEPS REPEATING, now baked into the kit (Aug 2026,
+  after /vector broke three of them on day one).** They live as comments at
+  the top of `tool.css`, in the `new-page` / `new-tool` skills, and — for
+  Compare pages — as `warnings` on `POST /api/chatfeed/page`:
+  1. **The tool's name appears ONCE.** The native bar carries it, so the page
+     must not. `?embed=1` hides the page's own title row — and **the server
+     now does that itself** (it injects the style for BOTH `.app-header` and
+     `.tool-eyebrow` plus `document.body.classList.add('embed')`), because
+     the old rule lived in tool.css behind a `body.embed` that only
+     studio.html's hand-written JS ever set. **`GatedWebTool` appends
+     `embed=1` to every path** rather than each call site remembering —
+     /vector shipped without it and read "VECTOR" twice down the screen.
+  2. **No instructions on the page** — behind the `?` (`#help`/`.helpcard`).
+  3. **Text boxes ship EMPTY**, not even a `placeholder`: "whenever there's a
+     text box there should not be anything in it… I prefer nothing." An
+     example belongs in the `?` card.
+  4. **A button is only as wide as its words** — never `width:100%` or
+     `flex:1`; `.btn` says `width:auto; flex:0 0 auto` out loud so someone
+     else's flex row can't stretch it.
   **The rail and EVERY step caption reserve the pill's corner (Aug 2026)** —
   `padding-right:56px`, not just the header. The injected pill is fixed over
   roughly x 324-374 / y 14-192, which is the header AND the first two step
@@ -2423,6 +2449,27 @@ lifted into a standalone tool later.
   knows which chat she is in and when she asked for it) and **no `.sub`**
   tagline. Both classes stay in `compare.css` for older pages; a NEW page
   simply does not use them, and `compare-shell.html` no longer has them.
+  **The rule kept coming back because THE TEMPLATES TAUGHT THE OPPOSITE
+  (fixed Aug 2026):** `judge-shell.html` and `picker-shell.html` both opened
+  with an eyebrow + tagline, and compare.css's own skeleton comment listed
+  them — so a chat starting from the right file still copied the wrong shape.
+  All three are corrected, and `POST /page` now answers a `warning` naming
+  the eyebrow / the tagline.
+  **INSTRUCTIONS GO BEHIND A "?" — never down the top of the page (Aug 2026,
+  Sophie: "every chat seems to include a long list of instructions… if they
+  do want to put instructions they can put it behind a ? so I can tap it if I
+  don't know what's going on. That's a much better idea").** One line:
+  `window.__compareHelp({ html: '…' })` in `/compare.js` — the circle rides
+  at the end of the title (the pill owns the top-right corner), the card is
+  `position:fixed` so it can't push the page down under her finger, and any
+  tap closes it. A judge page passes `help:` to `__judge`; a tool page uses
+  tool.css's `#help`. Most pages need none at all.
+  **TEXT BOXES SHIP EMPTY, and BUTTONS HUG THEIR WORDS (Aug 2026, Sophie).**
+  No example text in a box, not even a `placeholder` ("I prefer nothing") —
+  it belongs in the `?` card if anywhere. And "there's no reason to make
+  buttons longer than they need to be to hold the text": compare.css's
+  `button,.btn` is `inline-flex; width:auto`, never a full-width slab.
+  `POST /page` warns about a `placeholder=` too.
   **PREFER NOT SCROLLING, AND WHEN THERE ARE TWO KINDS OF THING USE THE
   HAIRLINE TABS (Aug 2026, Sophie's standing rule).** A page she has to
   scroll to reach the controls is a page where the thing and the controls are

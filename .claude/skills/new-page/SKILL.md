@@ -24,12 +24,42 @@ contract — it applies to everything.
 - **Cut picker** (`picker-shell.html`) — she picks SPANS of a recording.
 - **Tool page** — a new `public/*.html` served by a route (a new room/tool).
 
-Two rules on every review page, both Sophie's, both asked for repeatedly:
+## The four rules she keeps having to repeat — read these first
 
-- **THE TITLE, AND NOTHING ELSE AT THE TOP** (Aug 2026, Sophie). No
-  `.eyebrow` chat/date line, no `.sub` tagline — the `<h1>` then straight into
-  the thing. Both classes remain in compare.css for older pages; new pages
-  don't use them.
+Every one of them says the same thing: the page is a place to LOOK at the
+work, not to read about it. She has asked for each more than once, most
+recently on `/vector` (Aug 2026), so treat them as the shape of a page, not
+as polish. `POST /api/chatfeed/page` now answers `warnings` for the first
+three — if your post comes back with one, fix the page and re-post it before
+you finish the turn.
+
+1. **THE TITLE, ONCE, AND NOTHING ABOVE IT.** No `.eyebrow` chat/date line
+   above the `<h1>`, no `.sub` tagline under it. The classes remain in
+   compare.css for older pages; a new page does not use them. **Inside a
+   native tool the nav bar already carries the name, so the page must not
+   repeat it at all** — that is what `?embed=1` + `.tool-eyebrow` do (see
+   Tool pages below), and /vector shipped saying "VECTOR" twice because it
+   was missed.
+2. **NO INSTRUCTIONS ON THE PAGE — they go behind a "?"** (Aug 2026, Sophie:
+   "if they do want to put instructions… they can put it behind a ? so I can
+   tap it if I don't know what's going on. That's a much better idea").
+   Compare page: `window.__compareHelp({ html: '…' })` — the circle rides at
+   the end of the title, the card floats over the page and any tap closes it.
+   Judge page: pass `help:` to `__judge`. Tool page: `#help` / `.helpcard`
+   from tool.css. A list of how-to lines down the top of the page is the
+   thing being replaced, every time.
+3. **TEXT BOXES SHIP EMPTY** (Aug 2026, Sophie: "whenever there's a text box
+   there should not be anything in it, no example text… I prefer nothing").
+   Not even a `placeholder` — an example she has to clear before typing is
+   work. If an example genuinely helps, it goes in the "?" card.
+4. **A BUTTON IS ONLY AS WIDE AS ITS WORDS** ("there's no reason to make
+   buttons longer than they need to be to hold the text"). Never
+   `width:100%`, never `flex:1`, never a full-width slab; two buttons sit
+   side by side, each its own width. compare.css and tool.css both hug by
+   default — don't override them.
+
+Two more, same source:
+
 - **PREFER NOT SCROLLING; TWO KINDS OF THING = THE HAIRLINE TABS** (Aug 2026,
   Sophie). Fit what she is looking at on one screen. When a page carries two
   different kinds of thing — a picture and its inputs, a shape and the
@@ -39,8 +69,8 @@ Two rules on every review page, both Sophie's, both asked for repeatedly:
   56px corner reserve, and the sliding line `calc((100% - 56px)/N)`.
 - **MINIMAL TEXT.** The page is a VISUAL reference, not an extension of the
   chat — she had to ask for less text on page after page (the dice chat
-  progression). Title, ONE line under it, labels on the pictures. No
-  paragraphs, no explanations, no recap of the conversation.
+  progression). Title, labels on the pictures. No paragraphs, no
+  explanations, no recap of the conversation.
 - **Compared things sit SIDE BY SIDE, never stacked** so she scrolls between
   them. Use `.duo` (labels ON TOP — "medium" / "high") for every A-vs-B
   pair; `.imgrow` is only for plain sets that aren't versus.
@@ -55,8 +85,9 @@ halves and carries the rules as comments. Post with
   Do NOT hand-roll a fresh look per page or override the tokens. Skeleton
   blocks are documented at the top of that file.
 - `/compare.js` = the one house behaviour: tap-pauses-autoscroll (pill
-  exempt), the image lightbox (freezes the page, saves/restores scrollY), and
-  `window.__compareNotes()`. A page that includes it has all three right by
+  exempt), the image lightbox (freezes the page, saves/restores scrollY),
+  `window.__compareHelp()` (the "?"), and `window.__compareNotes()`. A page
+  that includes it has all of them right by
   construction — never re-implement them.
 - **Notes on everything reviewable** (Sophie's standing rule): mark each item
   `data-item="<id>"` and call `window.__compareNotes({ chat, sheet })` once
@@ -178,11 +209,17 @@ your own pill and never re-implement its script.** The contract:
 
 - Serve via `serveGated` — it sends `Cache-Control: no-cache, must-revalidate`
   (without it the iOS WKWebView serves stale cached copies; this shipped a
-  broken page for real) and honors `?embed=1` (hides `.app-header` when
-  hosted inside a native tool — pass it on every new `GatedWebTool` path).
+  broken page for real) and honors `?embed=1`, which hides the page's own
+  title row (`.app-header` OR `.tool-eyebrow`) and sets `body.embed`.
+  `GatedWebTool` now appends `embed=1` to every path itself, so a new tool
+  can't forget — but the page must wear `class="eyebrow tool-eyebrow"` on its
+  title for the rule to find it. **The name appears once**: the native bar
+  says it, so the page doesn't.
 - Use the shared kits: `public/tool.css` for step-flow tool pages
-  (`studio.html` is the reference), the shared header pieces for page-owned
-  headers (Chats is the reference look). Don't hand-roll per-page variants.
+  (`studio.html` and `vector.html` are the references), the shared header
+  pieces for page-owned headers (Chats is the reference look). Don't
+  hand-roll per-page variants. The four rules at the top of this skill apply
+  here too: title once, explanation behind `#help`, boxes empty, buttons hug.
 - **iOS wrapper: a NEW web tool ships with the native bar + chevron** — copy
   `EpisodeEditorView.swift` (forgeToolBar, chevron asks `window.__navBack`
   first, `__nativeNavBar` injected so the page hides its own back button via

@@ -51,11 +51,12 @@
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
-  <div class="eyebrow">CHAT NAME · DATE</div>
+  <!-- THE TITLE, ONCE, AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie): no
+       eyebrow chat/date line, and the how-to-use paragraph that used to sit
+       here now lives behind the "?" (window.__compareHelp, at the bottom of
+       this file). Instructions on the page are read once and clutter every
+       visit after that. -->
   <h1>Pick the cuts — passage name (v1)</h1>
-  <div class="sub">Tap a first word, then a last word. Tap a pick to remove
-    it. Every pick gets a play button, and the tiles under the text reorder
-    with the arrows. It all saves as you go.</div>
 
   <!-- One mount per source. Several sources on one page = several mounts,
        each its own __cutPicker call with its own id. -->
@@ -80,6 +81,11 @@
     shade: [/* {a, z} spans already in the film — shaded grey */],
     seed: [/* {a, z} spans you suggest — land as editable picks */],
   });
+
+  // The "?" — the one place instructions may live on a page (Sophie's rule).
+  window.__compareHelp({ html: '<b>Tap a first word, then a last word</b> to '
+    + 'make a pick. Tap a pick to remove it. Every pick has a play button, '
+    + 'the tiles reorder with the arrows, and it all saves as you go.' });
 
   // The picker owns notes per PICK. If the page has OTHER reviewable items
   // (a rendered cut to vote on, a set of stills), give them data-item ids and

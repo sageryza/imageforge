@@ -268,7 +268,12 @@
     function showHelp() {
       var h = document.createElement('div');
       h.className = 'jg-help';
-      h.innerHTML = '<div><b>THE BUTTONS</b><br>♥ love it · ✕ pass ·'
+      // A page's OWN explanation belongs here and nowhere else (Aug 2026,
+      // Sophie: instructions on the page are clutter — "they can put it
+      // behind a ? so I can tap it if I don't know what's going on"). Pass
+      // `help: '…'` to __judge and it leads the card, above the buttons key.
+      h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
+        + '<b>THE BUTTONS</b><br>♥ love it · ✕ pass ·'
         + ' dashed circle = maybe (its own pile) · arrow = sort it later.<br>'
         + 'Top row: undo the last one, the grid shows every pile —'
         + ' tap any picture there to judge it again.</div>';

@@ -38,9 +38,11 @@
   <button id="help" aria-label="what this does">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Describe a few drawings</b> and they come back as vectors — sharp at any
+  <b>Describe a few drawings</b> — one per line, like <i>a cat curled asleep
+  inside an oversized teacup</i> — and they come back as vectors: sharp at any
   size, and the outline is the cut line for a sticker.
-  <b>Already have a picture?</b> Trace it instead: free.
+  <b>Already have a picture?</b> Trace it instead — paste its web address, one
+  per line: free.
   <b>Colours</b> can be changed after the fact by typing a name or a hex —
   also free, and the old version is never overwritten.
   <br><br>Flat ink-and-colour art only. A gradient or a photo has no flat
@@ -62,7 +64,9 @@
 
       <div id="paneDraw">
         <label>One drawing per line, up to 25</label>
-        <textarea id="cells" rows="6" placeholder="a cat curled asleep inside an oversized teacup&#10;a round kettle with a curl of steam&#10;a big soft moth on an open matchbox"></textarea>
+        <!-- EMPTY, and it stays empty (Aug 2026, Sophie): no example text in
+             a box she then has to clear. The example lives in the "?" card. -->
+        <textarea id="cells" rows="6"></textarea>
         <label>Quality</label>
         <div class="chips">
           <div class="chip" data-q="low">low</div>
@@ -77,7 +81,7 @@
 
       <div id="paneTrace" hidden>
         <label>Picture URL, one per line</label>
-        <textarea id="urls" rows="3" placeholder="https://…/thing.png"></textarea>
+        <textarea id="urls" rows="3"></textarea>
         <div class="row">
           <button class="btn" id="trace">Trace</button>
           <span class="note">free</span>

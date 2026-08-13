@@ -630,8 +630,16 @@ function serveGated(file, opts = {}) {
     // brand row duplicated the title, and its "← Hub" button navigated the
     // web view to the web hub, stranding her outside the tool with no way back.
     // One rule here covers every gated page (they all share .app-header).
+    // The page's own title row goes too, whichever kit it uses: .app-header
+    // (forge.css pages) or .tool-eyebrow (tool.css pages). /vector shipped
+    // showing "VECTOR" twice — the native bar's title and the page's own —
+    // because the class rule for it lived in tool.css behind a body.embed
+    // that only studio.html's hand-written JS ever set. Doing BOTH here (the
+    // class and the styles) means a new tool page can't forget, and the
+    // helpcard's embed offset comes along with the class.
     if (req.query.embed === '1') {
-      out += '<style>.app-header{display:none !important}</style>';
+      out += '<style>.app-header,.tool-eyebrow{display:none !important}</style>'
+        + '<script>document.body.classList.add("embed")</script>';
     }
     if (opts.pill) out += require('./chatfeed').pillInject();
     res.type('html').send(out);
