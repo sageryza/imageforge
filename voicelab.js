@@ -102,6 +102,8 @@ const OFFERED_VOICE_IDS = [
   'FuJyIifktGclboKz9PFi', // Miriam
   'eCJN3vIzJhxIxE216PIO', // Alpha
   'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
+  'esVJEBbgfINGxR9bUuYQ', // Doug
+  'ws4szZn8cc3SmgDP6TlK', // Gilad
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -116,6 +118,10 @@ const VOICE_COLORS = {
   FuJyIifktGclboKz9PFi: '#8f95c9', // Miriam — indigo
   Ai0X93qaXBDloK1HAn87: '#e6a877', // Steve Herrington — orange
   eCJN3vIzJhxIxE216PIO: '#a7c4a0', // Alpha — green
+  // Sophie picked the seven above by name; these two are mine for now
+  // ("pick your own colours for now"), kept clear of every one of hers.
+  esVJEBbgfINGxR9bUuYQ: '#c98f86', // Doug — terracotta
+  ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 
