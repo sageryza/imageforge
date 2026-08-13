@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Stitch THE HEART film: the cut interview audio + the panel art, one file.
+ * Stitch a Darius film: the cut interview audio + the art, one file.
  *
- *   node scripts/darius-heart-stitch.js [--out film.mp4]
+ *   node scripts/darius-stitch.js <heart|proof> [--out film.mp4]
  *
- * Reads .darius-film/heart.json (the shots and their clip urls, written by
- * darius-heart-film.js) and the ORDER below, and gives every shot's pictures an
+ * Reads .darius-film/<set>.json (the shots and their clip urls, written by
+ * darius-film.js) and the ORDER below, and gives every shot's pictures an
  * equal share of THAT shot's audio — so the picture always changes on the
  * sentence it belongs to, never on a clock.
  *
@@ -29,7 +29,11 @@ const { execFileSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, '.darius-film');
 const PANELS = path.join(DIR, 'panels');
-const MEDIUM = ['/home/user/out/darius-heart-medium', '/home/user/out/darius-heart-medium-2'];
+const SET = process.argv.find((a) => a === 'heart' || a === 'proof') || 'heart';
+const MEDIUM = {
+  heart: ['/home/user/out/darius-heart-medium', '/home/user/out/darius-heart-medium-2'],
+  proof: ['/home/user/out/darius-proof-medium'],
+}[SET];
 const W = 1024, H = 1536;
 
 // ffmpeg-static exports the path as a bare STRING; ffprobe-static exports
@@ -49,7 +53,7 @@ const dur = (f) => +run(FFPROBE, ['-v', 'error', '-show_entries', 'format=durati
    widen it), and a file listing can't hold that.
    Each shot's audio is divided equally between its pictures, so the count here
    is also the pacing — no shot may hold one still for its whole span. */
-const ORDER = {
+const ORDERS = { heart: {
   s01: ['dp-heart-spectrum-a', 'dp-heart-spectrum-b', 'dp-heart-mechanism-d'],
   s02: ['dp-heart-mechanism-a', 'dp-heart-mechanism-b'],
   s03: ['dp-heart-paralysis-a', 'dp-heart-paralysis-b', 'dp-heart-paralysis-c'],
@@ -61,7 +65,17 @@ const ORDER = {
   s09: ['dp-heart-field-analogies-c', 'dp-heart-more-a-c', 'dp-heart-more-b-c'],
   s10: ['dp-heart-field-analogies-d', 'dp-heart-more-a-d', 'dp-heart-more-b-d'],
   s11: ['dp-heart-energy-c', 'dp-heart-energy-d', 'dp-heart-energy-a'],
-};
+}, proof: {
+  s01: ['dp-proof-accounts-c', 'dp-proof-friends-tv', 'dp-proof-overheard'],
+  s02: ['dp-proof-whiteboard-a', 'dp-proof-whiteboard-b', 'dp-proof-whiteboard-c'],
+  s03: ['dp-proof-whiteboard-d', 'dp-proof-group-slip'],
+  s04: ['dp-proof-science-empty-chair', 'dp-proof-statements', 'dp-proof-accounts-d'],
+  s05: ['dp-proof-accounts-a', 'dp-proof-son-camp', 'dp-proof-accounts-b'],
+  s06: ['dp-proof-agency-window', 'dp-proof-viewing-room', 'dp-proof-files'],
+  s07: ['dp-pyramid-tunnels-a', 'dp-pyramid-tunnels-b', 'dp-pyramid-tunnels-c', 'dp-pyramid-tunnels-d'],
+} };
+
+const ORDER = ORDERS[SET];
 
 /* Medium if it landed, else the panel cut out of the low sheet — Sophie's rule
    for this pass: re-render the ones worth it, use the low panel where not. */
@@ -76,10 +90,10 @@ function pictureFor(panel) {
 }
 
 async function main() {
-  const out = (() => { const i = process.argv.indexOf('--out'); return i > -1 ? process.argv[i + 1] : path.join(DIR, 'heart-v1.mp4'); })();
-  const st = JSON.parse(fs.readFileSync(path.join(DIR, 'heart.json'), 'utf8'));
+  const out = (() => { const i = process.argv.indexOf('--out'); return i > -1 ? process.argv[i + 1] : path.join(DIR, SET + '-v1.mp4'); })();
+  const st = JSON.parse(fs.readFileSync(path.join(DIR, SET + '.json'), 'utf8'));
   const work = fs.mkdtempSync(path.join(DIR, 'stitch-'));
-  const audioDir = path.join(DIR, 'audio');
+  const audioDir = path.join(DIR, 'audio-' + SET);
   fs.mkdirSync(audioDir, { recursive: true });
 
   const wavs = [], segs = [], record = [];
@@ -125,7 +139,7 @@ async function main() {
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out]);
 
   const total = dur(out);
-  fs.writeFileSync(path.join(DIR, 'film.json'), JSON.stringify({ out, seconds: +total.toFixed(2), shots: record }, null, 1));
+  fs.writeFileSync(path.join(DIR, SET + '-film.json'), JSON.stringify({ out, seconds: +total.toFixed(2), shots: record }, null, 1));
   fs.rmSync(work, { recursive: true, force: true });
   console.log(`\n${out} · ${Math.floor(total / 60)}:${String(Math.round(total % 60)).padStart(2, '0')} · ${segs.length} pictures`);
 }

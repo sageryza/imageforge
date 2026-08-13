@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build THE HEART film — Darius on how an out-of-body experience works.
+ * Build one of the Darius films: cut its spans out of the two interviews.
  *
  * Audio comes from the Episode Editor, which owns the ONE precise cutter
  * (docs/nde-precise-cutting.md): the span's words are located in the real
@@ -9,12 +9,12 @@
  * PREVIEW each snippet, which is the same cut a render makes and is banked in
  * the permanent clip cache, so it is paid for once ever.
  *
- *   node scripts/darius-heart-film.js make     # create the episode + snippets
- *   node scripts/darius-heart-film.js cut      # preview every snippet, poll
- *   node scripts/darius-heart-film.js report   # per-clip urls + durations
+ *   node scripts/darius-film.js <heart|proof> make     # episode + snippets
+ *   node scripts/darius-film.js <heart|proof> cut      # cut every snippet
+ *   node scripts/darius-film.js <heart|proof> report   # urls + durations
  *
- * The running ORDER is the argument the film makes, not the order the spans
- * happen to fall in the interviews — see SHOTS below.
+ * The running ORDER is the argument each film makes, not the order the spans
+ * happen to fall in the interviews — see FILMS below.
  */
 const fs = require('fs');
 const path = require('path');
@@ -23,13 +23,13 @@ const { execFileSync } = require('child_process');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const ROOT = path.join(__dirname, '..');
 const SPEC = require('./darius-moments.json');
-const STATE = path.join(ROOT, '.darius-film', 'heart.json');
+const SET = process.argv[2] || 'heart';
 const CACHE = path.join(ROOT, '.darius-cache');
 
-/* The argument, in order. Each entry is a heart-span id from darius-moments.json.
-   It opens on the limit of the senses, states the mechanism, teaches the method,
-   says what it is like to be out, then widens to what the field explains. */
-const SHOTS = [
+/* The argument each film makes, in order. Every entry is a span id from
+   darius-moments.json; `list` says which half of that file it comes from. */
+const FILMS = {
+ heart: { list: 'heart', title: 'The heart — how an out-of-body experience works (v1)', shots: [
   'h-onepercent',   // five senses, one percent — why you cannot see it from here
   'h-generator',    // the heart is not a pump; the field glues the soul in
   'h-paralysis',    // sleep paralysis is the doorway; panic snaps you back
@@ -41,7 +41,26 @@ const SHOTS = [
   'h-rice',         // water holds memory
   'h-house',        // an empty house rots
   'h-toroid',       // the heart is a toroidal field, and so is everything
-];
+ ] },
+ /* Proof opens on him trying to DISPROVE himself — the only honest way in —
+    then the repeatable test, then other people reproducing it, then the count,
+    then a second person's account, then institutions, and it lands on the one
+    claim he says he made publicly BEFORE it was confirmed. */
+ proof: { list: 'proof', title: 'The proof — what Darius says can be checked (v1)', shots: [
+  'p-disprove',        // three years trying to catch himself hallucinating
+  'p-whiteboard',      // the protocol: a number he cannot see, five days running
+  'p-paper',           // the same test in a group, reproduced by other people
+  'p-84',              // eighty-four witness accounts
+  'p-kelly',           // Kelly watches her son, and checks it by phone
+  'p-cia',             // why the CIA spent millions on remote viewing
+  'p-pyramid-tunnels', // the tunnels, described publicly before they were found
+ ] },
+};
+
+const FILM = FILMS[SET];
+if (!FILM) { console.error('no such film: ' + SET + ' (have ' + Object.keys(FILMS).join(', ') + ')'); process.exit(1); }
+const SHOTS = FILM.shots;
+const STATE = path.join(ROOT, '.darius-film', SET + '.json');
 
 const ffprobe = () => {
   try { return require('ffprobe-static').path; } catch (_) { return 'ffprobe'; }
@@ -66,8 +85,8 @@ function shots() {
   const W = {};
   for (const k of Object.keys(SPEC.sources)) W[k] = words(SPEC.sources[k].videoId);
   return SHOTS.map((id, i) => {
-    const m = SPEC.heart.find((x) => x.id === id);
-    if (!m) throw new Error('no such heart span: ' + id);
+    const m = SPEC[FILM.list].find((x) => x.id === id);
+    if (!m) throw new Error(`no such ${FILM.list} span: ` + id);
     const text = W[m.src].filter((x) => x.t >= m.pick0 && x.t <= m.pick1).map((x) => x.w).join(' ');
     return {
       id: 's' + String(i + 1).padStart(2, '0'),
@@ -102,7 +121,7 @@ async function make() {
   const { episode } = await api('/', {
     method: 'POST',
     body: JSON.stringify({
-      title: 'The heart — how an out-of-body experience works (v1)',
+      title: FILM.title,
       sources,
       snippets: sn.map(({ id, name, videoId, text, timeSec }) => ({ id, name, videoId, text, timeSec })),
       sequence: sn.map((s) => ({ type: 'clip', snippetId: s.id })),
@@ -152,7 +171,10 @@ async function cut() {
 
 async function report() {
   const st = readState();
-  const dir = path.join(ROOT, '.darius-film', 'audio');
+  // Per-SET, and that is load-bearing: shot ids restart at s01 for every film,
+  // so one shared folder made proof's report probe the heart film's clips and
+  // hand back the heart's durations for a completely different set of words.
+  const dir = path.join(ROOT, '.darius-film', 'audio-' + SET);
   fs.mkdirSync(dir, { recursive: true });
   let total = 0;
   for (const s of st.shots) {
@@ -170,5 +192,5 @@ async function report() {
   fs.writeFileSync(STATE, JSON.stringify(st, null, 1));
 }
 
-const cmd = process.argv[2] || 'make';
+const cmd = process.argv[3] || 'make';
 ({ make, cut, report })[cmd]().catch((e) => { console.error(e.message); process.exit(1); });

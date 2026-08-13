@@ -22,13 +22,14 @@ const fs = require('fs');
 const path = require('path');
 
 const SHEETS = require('./nde-watercolor/darius-panels-01.json');
-const OUT = path.join(__dirname, 'nde-watercolor', 'darius-heart-medium.json');
+const SET = process.argv.find((a) => a === 'heart' || a === 'proof') || 'heart';
+const OUT = path.join(__dirname, 'nde-watercolor', `darius-${SET}-medium.json`);
 
 const SLOT = { a: 'TOP LEFT', b: 'TOP RIGHT', c: 'BOTTOM LEFT', d: 'BOTTOM RIGHT' };
 
-/* The film's running order. Each entry is <sheet>-<slot>, and the shot it
-   serves — the shot ids are the SHOTS list in darius-heart-film.js. */
-const PICKS = [
+/* Each film's picks: <sheet>-<slot>, and the shot it serves. The shot ids are
+   the film's own SHOTS list in darius-film.js. */
+const SETS = { heart: [
   ['dp-heart-spectrum-a', 's01'],
   ['dp-heart-spectrum-b', 's01'],
   ['dp-heart-mechanism-a', 's02'],
@@ -50,7 +51,22 @@ const PICKS = [
   ['dp-heart-energy-c', 's11'],
   ['dp-heart-energy-d', 's11'],
   ['dp-heart-energy-a', 's11'],
-];
+], proof: [
+  ['dp-proof-accounts-c', 's01'],        // the notebook of ticks and crosses
+  ['dp-proof-whiteboard-a', 's02'],      // the number written in an empty room
+  ['dp-proof-whiteboard-b', 's02'],      // out of the body, reading it
+  ['dp-proof-whiteboard-c', 's02'],      // back in the body, saying it down the phone
+  ['dp-proof-whiteboard-d', 's03'],      // five whiteboards, five days running
+  ['dp-proof-accounts-d', 's04'],        // the crowd of witnesses
+  ['dp-proof-accounts-a', 's05'],        // Kelly above the camp
+  ['dp-proof-accounts-b', 's05'],        // Kelly on the phone, confirmed
+  ['dp-pyramid-tunnels-a', 's07'],
+  ['dp-pyramid-tunnels-b', 's07'],
+  ['dp-pyramid-tunnels-c', 's07'],
+  ['dp-pyramid-tunnels-d', 's07'],
+] };
+
+const PICKS = SETS[SET];
 
 /* Six panels open on a back-reference to the panel BESIDE them ("the same
    field", "the calm version instead") — true on a 2x2 sheet, adrift the moment
@@ -91,15 +107,21 @@ function split(id) {
 
 /* Pull one panel's sentence out of the sheet prompt. The label is dropped, so
    "TOP LEFT panel: a cat looking…" becomes "A cat looking…" — a standalone
-   scene with the sheet's own words inside it. */
+   scene with the sheet's own words inside it.
+   The no-text rule is taken from THAT SHEET's own last paragraph rather than
+   hard-coded: dp-proof-whiteboard's reads "No words or lettering anywhere
+   except those single handwritten numerals", and pasting the generic line over
+   it would ban the very numeral the whole test is about. */
 function panelScene(sheet, slot) {
   const label = SLOT[slot];
-  const re = new RegExp(`${label} panel:\\s*([\\s\\S]*?)(?=\\n\\n(?:TOP|BOTTOM) |\\n\\nNo text)`, 'i');
-  const m = String(sheet.scene).match(re);
-  if (!m) throw new Error(`no ${label} panel in ${sheet.id}`);
-  let s = m[1].trim().replace(/\s+/g, ' ');
+  const paras = String(sheet.scene).split(/\n\n+/).map((x) => x.trim()).filter(Boolean);
+  const hit = paras.find((x) => x.toUpperCase().startsWith(label + ' PANEL:'));
+  if (!hit) throw new Error(`no ${label} panel in ${sheet.id}`);
+  const last = paras[paras.length - 1];
+  if (!/^No\b/i.test(last)) throw new Error(`${sheet.id}: last paragraph is not a no-text rule`);
+  let s = hit.slice(hit.indexOf(':') + 1).trim().replace(/\s+/g, ' ');
   s = s.charAt(0).toUpperCase() + s.slice(1);
-  return s + '\n\nNo text or lettering anywhere.';
+  return s + '\n\n' + last;
 }
 
 const jobs = PICKS.map(([id, shot]) => {
@@ -119,7 +141,7 @@ const jobs = PICKS.map(([id, shot]) => {
 
 if (process.argv.includes('--list')) {
   jobs.forEach((j) => console.log(j.shot, j.id, (j.refs || []).length + 'r', '·', j.scene.slice(0, 96)));
-  console.log(`\n${jobs.length} panels · ~$${(jobs.length * 0.06).toFixed(2)} at medium`);
+  console.log(`\n${SET}: ${jobs.length} panels · ~$${(jobs.length * 0.06).toFixed(2)} at medium`);
 } else {
   fs.writeFileSync(OUT, JSON.stringify(jobs, null, 1) + '\n');
   console.log('wrote', path.relative(process.cwd(), OUT), '·', jobs.length, 'jobs');
