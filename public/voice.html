@@ -20,8 +20,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em; padding
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
 .credits{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em; color:var(--ink2); margin:-0.8em 0 1.4em; padding-right:56px;}
 .sect{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.24em; color:var(--ink2); text-transform:uppercase; margin:1.8em 0 .7em;}
-/* Voice picker: one rounded-rectangle row per voice (no pills — 6px). */
-.vrow{display:flex; flex-direction:column; gap:8px;}
+/* Voice picker: a row of rounded SQUARES, one per person, read by colour
+   (Sophie, Aug 2026 — a scrolling list of names was too slow to use). The
+   dropdown under it is the fallback for "who is who". No pills: 6px. */
+.vrow{display:flex; flex-wrap:wrap; gap:10px; padding-right:56px;}
+.vbtn{width:52px; height:52px; flex:none; border-radius:6px; border:1.5px solid transparent;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+  background:var(--line); position:relative;}
+.vbtn svg{width:24px; height:24px; stroke:#fff; fill:none; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;}
+/* Selected: an ink ring with a paper gap, so it reads on any pastel. */
+.vbtn.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--paper) inset;}
+.vbtn:focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
+.vsel{display:block; width:100%; box-sizing:border-box; margin-top:10px; max-width:22em;
+  font-family:'EBGaramond',Georgia,serif; font-size:1em; color:var(--ink);
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:9px 11px;}
+.vname{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em;
+  color:var(--ink2); margin-top:8px; min-height:1.2em;}
 .voice{display:flex; align-items:baseline; gap:8px; text-align:left; width:100%; box-sizing:border-box;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
   font-family:'EBGaramond',Georgia,serif; font-size:1.05em; padding:10px 56px 10px 12px; cursor:pointer;}
@@ -57,6 +72,8 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 
   <div class="sect">Voice</div>
   <div class="vrow" id="voices"><div class="state">Loading your voices&hellip;</div></div>
+  <select class="vsel" id="vsel" aria-label="Pick a voice by name"></select>
+  <div class="vname" id="vname"></div>
 
   <div class="sect">Words</div>
   <textarea id="text" placeholder="Type what she should say&hellip;"></textarea>
@@ -86,22 +103,31 @@ fetch(API+'/status').then(function(r){return r.json()}).then(function(s){
 
 // ── voices ──
 var picked=null;
+// Lucide `user` — one white glyph on every square; the colour says who it is.
+var USER_SVG='<svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 fetch(API+'/voices').then(function(r){return r.json()}).then(function(d){
   var box=document.getElementById('voices'); box.innerHTML='';
+  var sel=document.getElementById('vsel'), nm=document.getElementById('vname');
   var vs=(d&&d.voices)||[];
-  if(!vs.length){ box.innerHTML='<div class="state">No voices found on the account.</div>'; return; }
+  if(!vs.length){ box.innerHTML='<div class="state">No voices found on the account.</div>'; sel.style.display='none'; return; }
+  function choose(v,i){
+    picked=v;
+    box.querySelectorAll('.vbtn').forEach(function(x,k){ x.classList.toggle('on',k===i); });
+    sel.selectedIndex=i;
+    nm.textContent=v.name;
+    paintGo();
+  }
   vs.forEach(function(v,i){
-    var b=document.createElement('button'); b.className='voice';
-    b.innerHTML='<span>'+esc(v.name)+'</span><span class="vcat">'+esc(v.category)+'</span>';
-    b.onclick=function(){
-      picked=v;
-      box.querySelectorAll('.voice').forEach(function(x){ x.classList.remove('on'); });
-      b.classList.add('on');
-      paintGo();
-    };
+    var b=document.createElement('button'); b.className='vbtn'; b.type='button';
+    b.style.background=v.color||'var(--line)';
+    b.title=v.name; b.setAttribute('aria-label',v.name);
+    b.innerHTML=USER_SVG;
+    b.onclick=function(){ choose(v,i); };
     box.appendChild(b);
-    if(i===0) b.onclick();   // her top voice starts selected
+    var o=document.createElement('option'); o.textContent=v.name; sel.appendChild(o);
   });
+  sel.onchange=function(){ choose(vs[sel.selectedIndex], sel.selectedIndex); };
+  choose(vs[0],0);   // her top voice starts selected
 }).catch(function(){ document.getElementById('voices').innerHTML='<div class="state">Couldn’t load voices.</div>'; });
 
 // ── words + render button ──
