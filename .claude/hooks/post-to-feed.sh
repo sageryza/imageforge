@@ -175,8 +175,25 @@ if [ "$event" = "PostToolUse" ]; then
     dp=$(NAME="$name" CLAUDE_URL="$claude_url" SESSION_KEY="$session_key" EXPLICIT="$explicit" \
       DSTATE="$HOME/.claude/forge-draft-${sid}" \
       python3 - "$transcript" 2>/dev/null << 'PYDRAFT'
-import json, sys, os
+import json, sys, os, re
 path = sys.argv[1]
+# A turn is started by something SOPHIE said. Machinery arrives as a "user"
+# record too — wake events, task notifications, webhook activity — and letting
+# any of it move the boundary shifts the turn key mid-turn, which is how a
+# reply ended up merged into the previous message with no key at all (Aug
+# 2026, after a burst of three GitHub wakes landed on a turn boundary). Keep
+# this list in step with NOISE in the final parser below.
+MACHINE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
+                     r'''|<task-notification|<github-webhook-activity|<command-name'''
+                     r'''|<wake\s|<wake>'''
+                     r'''|<local-command-stdout|Caveat: The messages below)''')
+def machinery(rec, c):
+    if rec.get('isMeta'):
+        return True
+    t = c if isinstance(c, str) else ' '.join(
+        b.get('text', '') for b in (c or []) if isinstance(b, dict) and b.get('type') == 'text')
+    t = re.sub(r'(?is)<system-reminder>.*?</system-reminder>', '', t or '').strip()
+    return (not t) or bool(MACHINE.match(t))
 turnkey = None; parts = []
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -190,10 +207,11 @@ with open(path, encoding='utf-8') as f:
         if role == 'user':
             isres = isinstance(c, list) and any(
                 isinstance(b, dict) and b.get('type') == 'tool_result' for b in c)
-            if not isres:
-                # same turn boundary the final parser uses: ANY non-tool-result
-                # user record starts a new segment, and its uuid is the key the
-                # Stop post will carry — that's what lands both on ONE doc
+            if not isres and not machinery(r, c):
+                # same turn boundary the final parser uses: a non-tool-result
+                # user record that is really HERS starts a new segment, and its
+                # uuid is the key the Stop post will carry — that's what lands
+                # both on ONE doc. Machinery must not move it (see MACHINE).
                 turnkey = r.get('uuid'); parts = []
             continue
         if role != 'assistant':
@@ -341,6 +359,7 @@ queued = []     # …and the ones she sent MID-TURN, which arrive a different wa
 REMINDER = re.compile(r'(?is)<system-reminder>.*?</system-reminder>')
 NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
                    r'''|<task-notification|<github-webhook-activity|<command-name'''
+                   r'''|<wake\s|<wake>'''
                    r'''|<local-command-stdout|Caveat: The messages below)''')
 def her_words(rec, txt):
     if rec.get('isMeta'):
@@ -391,6 +410,12 @@ with open(path, encoding='utf-8') as f:
         role = (r.get('message') or {}).get('role')
         if role == 'user':
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
+                # Only something SHE said ends a turn. A wake event or a task
+                # notification arrives as a user record too, and treating one
+                # as a boundary re-keys the turn mid-flight — that is what
+                # merged a whole reply into the previous message (Aug 2026).
+                if not her_words(r, gettext(r)):
+                    continue
                 flush()           # end of the previous assistant turn
                 cur_turnkey = r.get('uuid')
                 last_user = idx
