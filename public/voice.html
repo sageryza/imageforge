@@ -60,6 +60,14 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   display:flex; align-items:center; gap:8px;}
 .gobtn svg{width:17px; height:17px;}
 .gobtn:disabled{opacity:.4;}
+/* Clearing is DELIBERATE (Sophie, Aug 2026: the words stay in the box unless
+   she clears them). Only shows when there is something to clear, and it hugs
+   its word — never a slab beside Render. */
+.clrbtn{width:auto; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:9px 14px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;}
+.clrbtn:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+[hidden]{display:none !important;}
 .count{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.04em;}
 /* A render: label (her words), meta line, the native player. */
 .render{border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:12px; margin-bottom:12px;}
@@ -83,12 +91,13 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   <div class="vname" id="vname"></div>
 
   <div class="sect">Words</div>
-  <textarea id="text" placeholder="Type what she should say&hellip;"></textarea>
+  <textarea id="text"></textarea>
   <div class="renderrow">
     <button class="gobtn" id="go" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
       Render
     </button>
+    <button class="clrbtn" id="clr" hidden>Clear</button>
     <span class="count" id="count"></span>
   </div>
 
@@ -139,12 +148,22 @@ fetch(API+'/voices').then(function(r){return r.json()}).then(function(d){
 
 // ── words + render button ──
 var ta=document.getElementById('text'), go=document.getElementById('go'), count=document.getElementById('count');
+var clr=document.getElementById('clr');
+// Her words STAY (Sophie, Aug 2026: "text stays in the text box unless I clear
+// it intentionally"). She re-renders the same line across voices constantly, so
+// a render must not empty the box and neither must leaving the page — the text
+// rides in localStorage and comes back. Clear is the ONLY thing that empties it.
+var TKEY='voicelab_text';
 function paintGo(){
   var n=(ta.value||'').trim().length;
   count.textContent=n?n.toLocaleString()+' characters = '+n.toLocaleString()+' credits':'';
   go.disabled=!(picked && n);
+  clr.hidden=!(ta.value||'').length;
 }
-ta.addEventListener('input', paintGo);
+function saveText(){ try{ localStorage.setItem(TKEY, ta.value||''); }catch(e){} }
+try{ var kept=localStorage.getItem(TKEY); if(kept) ta.value=kept; }catch(e){}
+ta.addEventListener('input', function(){ paintGo(); saveText(); });
+clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
 
 // ── renders: history + live jobs. Pending ids survive leaving the page. ──
 var rbox=document.getElementById('renders');
@@ -193,7 +212,7 @@ go.onclick=function(){
     .then(function(r){return r.json()})
     .then(function(d){
       if(!d.id) throw new Error(d.error||'failed');
-      ta.value=''; paintGo();
+      paintGo();   // the box KEEPS her words — she renders the same line voice after voice
       setPending(pendingIds().concat([d.id]));
       card({id:d.id, voiceName:picked.name, chars:text.length, text:text, status:'rendering'});
       poll(d.id);
