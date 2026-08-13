@@ -40,8 +40,10 @@ const MSGS = [
   { id: 'm1', chat: 'chat-plain', from: 'claude', text: 'an ordinary reply', tldr: 'plain', created: iso(T0 - 3600000), postedAt: iso(T0 - 3600000) },
   { id: 'm2', chat: 'chat-star', from: 'claude', text: 'the good one', tldr: 'starred', created: iso(T0 - 7200000), postedAt: iso(T0 - 7200000) },
   { id: 'm3', chat: 'chat-arch', from: 'claude', text: 'archived but starred', tldr: 'imprint', created: iso(T0 - 10800000), postedAt: iso(T0 - 10800000) },
+  { id: 'm4', chat: 'chat-keep', from: 'claude', text: 'the keeper', tldr: 'kept forever', created: iso(T0 - 14400000), postedAt: iso(T0 - 14400000) },
 ];
 const starPosts = [];
+const keptPosts = [];
 const bmkPosts = [];
 
 const server = http.createServer((req, res) => {
@@ -58,6 +60,9 @@ const server = http.createServer((req, res) => {
         'chat-star': { lastSeen: MSGS[1].created, starred: true },
         // starred AND archived — the pile has to reach in here
         'chat-arch': { lastSeen: MSGS[2].created, starred: true, archived: true },
+        // KEPT, not starred — the two marks were split apart (Aug 2026), so
+        // this one must draw the bookmark glyph and NOT the star
+        'chat-keep': { lastSeen: MSGS[3].created, bookmarked: true },
       },
       settings: {}, truncated: [],
       messages: since ? [] : MSGS, delta: !!since,
@@ -65,6 +70,9 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/chatfeed/star' && req.method === 'POST') {
     return body((p) => { starPosts.push(p); json({ ok: true, starred: !!p.starred }); });
+  }
+  if (url.pathname === '/api/chatfeed/chat-bookmark' && req.method === 'POST') {
+    return body((p) => { keptPosts.push(p); json({ ok: true, bookmarked: !!p.bookmarked }); });
   }
   if (url.pathname === '/api/chatfeed/bookmark' && req.method === 'POST') {
     return body((p) => { bmkPosts.push(p); json({ ok: true }); });
@@ -129,6 +137,44 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => document.querySelector('#thread .starbtn').classList.contains('on'),
     null, { timeout: 4000 }).catch(() => fail('the header star did not light'));
   if (!starPosts.some((p) => p.chat === 'chat-plain' && p.starred === true)) fail('POST /star never fired');
+
+  // 3b. KEEPING A CHAT IS A DIFFERENT MARK FROM STARRING IT (Aug 2026, Sophie:
+  //     "bookmarking a chat is when I want to keep it in my history and go back
+  //     to it… bookmarks stay forever", against a star for "a chat I'm
+  //     currently working on"). The two used to be one flag.
+  await page.click('#back');
+  await page.waitForSelector('#grid > .clist .crow[data-chat="chat-keep"]');
+  const marks = await page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => ({
+    chat: n.dataset.chat,
+    star: !!n.querySelector('.cr-star'),
+    kept: !!n.querySelector('.cr-kept'),
+  })));
+  const keep = marks.find((r) => r.chat === 'chat-keep');
+  const starOnly = marks.find((r) => r.chat === 'chat-star');
+  if (!keep || !keep.kept) fail('a kept chat drew no bookmark on its row');
+  if (keep && keep.star) fail('a kept chat also drew a star — the marks are not separate');
+  if (starOnly && starOnly.kept) fail('a starred chat drew the keep mark — the marks are not separate');
+
+  //     …and the header carries BOTH controls, side by side
+  await page.click('#grid > .clist .crow[data-chat="chat-keep"]');
+  await page.waitForSelector('#thread .bmk.chatbmk');
+  if (!(await page.$('#thread .starbtn'))) fail('the thread header lost its star');
+  if (!(await page.$eval('#thread .bmk.chatbmk', (n) => n.classList.contains('on'))))
+    fail('the keep button is not lit on a kept chat');
+  await page.click('#thread .bmk.chatbmk');
+  await page.waitForFunction(() => !document.querySelector('#thread .bmk.chatbmk').classList.contains('on'),
+    null, { timeout: 4000 }).catch(() => fail('the keep button did not unlight'));
+  if (!keptPosts.some((p) => p.chat === 'chat-keep' && p.bookmarked === false))
+    fail('POST /chat-bookmark never fired: ' + JSON.stringify(keptPosts));
+  //     starring it must NOT touch the keep flag
+  const keptBefore = keptPosts.length;
+  await page.click('#thread .starbtn');
+  await page.waitForTimeout(200);
+  if (keptPosts.length !== keptBefore) fail('the star button also wrote the keep flag');
+  await page.click('#back');
+  await page.waitForSelector('#grid > .clist .crow[data-chat="chat-plain"]');
+  await page.click('#grid > .clist .crow[data-chat="chat-plain"]');
+  await page.waitForSelector('#thread .msg');
 
   // 4. bookmarking opens the note box, and typing saves only the note
   await page.click('#thread .msg .bmk');

@@ -34,10 +34,11 @@ const PAGES = [
   { id: 'p2', title: 'Pausing tool', created: iso(T0 - 9e5), superseded: false },
   { id: 'p3', title: 'Cutting blocks v5 (s96)', created: iso(T0 - 12e5), superseded: true },
 ];
-// one starred chat (= a kept chat) and one ordinary one
+// one KEPT chat (bookmarked — Aug 2026 the keep flag was split off the star)
+// and one ordinary one
 const CHATS = {
   'chat-a': { lastSeen: iso(T0 - 36e5) },
-  'chat-keep': { lastSeen: iso(T0 - 2e5), starred: true, displayName: 'Imprint',
+  'chat-keep': { lastSeen: iso(T0 - 2e5), bookmarked: true, displayName: 'Imprint',
                  sophieNote: 'research it, karaoke, tabs', statusNeed: 'pick a palette' },
 };
 const bmk = {};                     // page id -> {bookmarked, note}
@@ -91,7 +92,7 @@ const server = http.createServer((req, res) => {
       id: x.id, chat: 'chat-a', from: '', created: x.created,
       title: x.title, snippet: x.title,
       note: (bmk[x.id] && bmk[x.id].note) || '', kind: 'page', superseded: x.superseded,
-    }))).concat(Object.keys(CHATS).filter((c) => CHATS[c].starred).map((c) => ({
+    }))).concat(Object.keys(CHATS).filter((c) => CHATS[c].bookmarked).map((c) => ({
       id: c, chat: c, from: '', created: CHATS[c].lastSeen,
       title: CHATS[c].displayName || c,
       snippet: CHATS[c].statusNeed || '', note: CHATS[c].sophieNote || '', kind: 'chat',
@@ -173,7 +174,7 @@ const server = http.createServer((req, res) => {
 
   // CHATS
   await openTab(0);
-  ok(await page.$$eval('#grid .bmkrow', (n) => n.length) === 1, 'Chats shows the starred chat');
+  ok(await page.$$eval('#grid .bmkrow', (n) => n.length) === 1, 'Chats shows the kept chat');
   ok(/Imprint/.test(await page.$eval('#grid .bmkrow .sr-chat', (n) => n.textContent)), 'under the name she gave it');
   ok((await page.$eval('#grid .bmkrow .sr-note-in', (n) => n.value)) === 'research it, karaoke, tabs',
      'carrying her existing note for that chat');
