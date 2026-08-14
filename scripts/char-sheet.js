@@ -46,14 +46,24 @@ const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i !== -
 const has = (n) => process.argv.includes(`--${n}`);
 
 const cfg = JSON.parse(fs.readFileSync(CHARS, 'utf8'));
+const SHAPE = arg('shape', 'three');   // three | one
 const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
 const saveState = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
 
-function buildPrompt(book, option) {
-  const hair = option && option.hair
-    ? ` Her hair is ${option.hair}.`
-    : '';
-  const scene = `${cfg.sheetShape} ${book.brief}${hair} In all three views ${book.who} wears the same clothes: ${book.outfit}`;
+// SHAPE: three views on one page (the default — a head-on-only card taught the
+// model head-on framing on every Marla page) or ONE view, which Sophie asked
+// to see for comparison.
+//
+// The brief is PHYSICAL FACTS ONLY. Anything about who the character is, what
+// the book does, or what their face expresses belongs nowhere near this — see
+// briefRule in characters.json.
+function buildPrompt(book, option, shape) {
+  const one = shape === 'one';
+  const hairFrom = (option && option.hair) || book.hair;
+  const hair = hairFrom ? ` Her hair is ${hairFrom}.` : '';
+  const wears = one ? `${book.who} wears` : `In all three views ${book.who} wears the same clothes:`;
+  const outfit = one ? book.outfit.charAt(0).toLowerCase() + book.outfit.slice(1) : book.outfit;
+  const scene = `${one ? cfg.sheetShapeOne : cfg.sheetShape} ${book.brief}${hair} ${wears} ${outfit}`;
   return { prompt: [STYLE_LINE, '', `Draw: ${scene}`, '', NO_TEXT].join('\n'), scene };
 }
 
@@ -114,20 +124,23 @@ async function upload(buf, dest) {
 
   // A book with configured options uses them (Baby, whose hair varies); any
   // other book is the same brief run --n times.
-  const opts = book.options
-    ? book.options
-    : Array.from({ length: Number(arg('n', '3')) }, (_, i) => ({ tag: String.fromCharCode(97 + i) }));
+  const tags = arg('tags');
+  const opts = tags
+    ? tags.split(',').map((t) => ({ tag: t.trim() }))
+    : book.options
+      ? book.options
+      : Array.from({ length: Number(arg('n', '3')) }, (_, i) => ({ tag: String.fromCharCode(97 + i) }));
 
   console.log(`${book.title} — ${book.who}, age ${book.age} — ${opts.length} sheet(s)`);
   console.log(`about $${(opts.length * 0.06).toFixed(2)} · ${MODEL} · ${QUALITY} · ${SIZE}`);
-  if (has('dry-run')) { console.log('\n' + buildPrompt(book, opts[0]).prompt); return; }
+  if (has('dry-run')) { console.log('\n' + buildPrompt(book, opts[0], SHAPE).prompt); return; }
   if (!process.env.OPENAI_API_KEY) throw new Error('No OPENAI_API_KEY.');
   initAdmin();
 
   if (!state[key]) state[key] = {};
   for (const o of opts) {
     if (state[key][o.tag]?.url && !has('force')) { console.log(`  ${o.tag}: already drawn`); continue; }
-    const { prompt, scene } = buildPrompt(book, o);
+    const { prompt, scene } = buildPrompt(book, o, SHAPE);
     process.stdout.write(`  ${o.tag}${o.hair ? ' (' + o.hair + ')' : ''} … `);
     try {
       const buf = await drawWithRetry(prompt, o.tag);
