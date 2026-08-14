@@ -1,0 +1,13 @@
+[
+ {
+  "id": "sheet-2",
+  "file": "/home/user/out/fruit2/sheet-2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a 3 by 3 grid of nine separate fruit drawings, evenly spaced in three rows of three, each fruit drawn on its own with clear white space around it \u2014 none of them touching or overlapping. Top row, left to right: a cherimoya, a small pile of dates, a persimmon. Middle row, left to right: a guava, a passion fruit cut in half, a lychee. Bottom row, left to right: a starfruit, a wedge of honeydew melon, a grapefruit cut in half. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "high",
+  "size": "1024x1024",
+  "split": null
+ }
+]
