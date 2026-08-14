@@ -87,6 +87,14 @@ around them change, so verify the labels and use these for the URL.
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
 - **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Cloud environment on ACCOUNT 1 — there is exactly ONE, so the Setup
+  script has no wrong box to land in (measured 2026-08-14 via
+  `list_environments` on an iOS-origin session).** `env_011CUK6hCggHt2xBmWdmSdND`,
+  name "Default", description empty, created 2025-10-20. The two-identical-
+  Defaults trap below is an ACCOUNT 2 problem only — don't repeat that warning
+  to her when she is pasting on account 1, it just adds a decision that
+  doesn't exist. A chat settles which account and environment it is on by
+  calling `get_session` on its own session id and reading `environment_id`.
 - **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
   and only one is used (measured 2026-08-10 via `list_environments` +
   `list_sessions`/`get_session`).** Telling them apart matters, because the
