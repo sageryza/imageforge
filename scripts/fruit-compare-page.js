@@ -1,29 +1,41 @@
-// fruit-compare-page.js — post the whole fruit deck into the chat's Compare tab.
+// fruit-compare-page.js — post the fruit and vegetable decks into the Compare tab.
 //
 //   node scripts/fruit-compare-page.js [--chat favorite-fruit-chart] [--dry]
+//                                      [--supersede <pageId>]
 //
 // Built from public/compare-shell.html: /compare.css + /compare.js only, no
-// hand-rolled look and no hand-rolled pill. Every fruit carries data-item, so
+// hand-rolled look and no hand-rolled pill. Every item carries data-item, so
 // __compareNotes gives each one its own note box — that is how "redo the
 // banana" gets said on the banana.
 //
-// The two groups are kept apart on purpose. They were made differently and
-// they are not the same resolution, which is the one thing worth deciding
-// from this page, so the headings say which is which rather than mixing them
-// into one wall of fruit.
+// THE LINKS SIT AT THE TOP, WRITTEN OUT AS URLS (Aug 2026, Sophie: "put the
+// link in the compare page with the URL so it reads as what it is"). The
+// pickers are ordinary web pages, not something this page can embed: the
+// Compare tab drives its own autoscroll and a tap is how it pauses, so a
+// deck's own taps and drags would fight it. A link costs nothing and works.
 
 const fs = require('fs');
+const path = require('path');
 
 const args = process.argv.slice(2);
 const flag = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : d; };
 const CHAT = flag('chat', 'favorite-fruit-chart');
 const BASE = flag('base', 'https://imageforge-q125.onrender.com');
-const SHEET = 'all-fruit-v1';
+const SUPERSEDE = flag('supersede');
+const SHEET = 'all-food-v2';
 const DRY = args.includes('--dry');
 
-const singles = JSON.parse(fs.readFileSync(__dirname + '/fruit-chart/uploaded.json', 'utf8'));
-const cells = JSON.parse(fs.readFileSync('/home/user/out/fruit2/uploaded.json', 'utf8'));
-const GRID = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/sheets/sheet-2.webp';
+const read = f => JSON.parse(fs.readFileSync(path.join(__dirname, f), 'utf8'));
+const RETIRED = new Set(['27-dragonfruit']);
+
+function deck(sources) {
+  const byId = new Map();
+  for (const s of sources) for (const f of read(s)) byId.set(f.id, f);
+  for (const id of RETIRED) byId.delete(id);
+  return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+}
+const fruits = deck(['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json']);
+const veg = deck(['fruit-chart/veg-uploaded.json']);
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -35,27 +47,34 @@ const fig = f => `<figure data-item="${esc(f.id)}">`
   + `<img src="${esc(f.url)}" alt="${esc(f.name)}" width="512" height="512" loading="lazy">`
   + `<figcaption>${esc(f.name)}</figcaption></figure>`;
 
+const LINKS = [
+  ['Fruit', `${BASE}/fruit?p=fruit-test&who=b3d9753954d3`],
+  ['Vegetables', `${BASE}/fruit?p=veg-test&who=aebd6ca1cd7a`],
+  ['The chart', `${BASE}/fruitchart?p=fridge-fruit`],
+];
+
 const html = `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>All 36 fruits — the swipe deck</title>
+<title>The decks — ${fruits.length} fruit, ${veg.length} vegetables</title>
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
-  <h1>All 36 fruits — the swipe deck</h1>
+  <h1>The decks — ${fruits.length} fruit, ${veg.length} vegetables</h1>
 
   <div class="card">
-    <h2>The grid sheet — nine at once</h2>
-    <div class="imgrow"><img src="${esc(GRID)}" alt="the nine-fruit grid sheet" width="1024" height="1024"></div>
+    ${LINKS.map(([label, url]) =>
+      `<p style="margin:0 0 12px"><b>${esc(label)}</b><br>`
+      + `<a href="${esc(url)}" style="word-break:break-all">${esc(url)}</a></p>`).join('')}
   </div>
 
   <div class="card">
-    <h2>Cut from that grid — about 290px each</h2>
-    <div class="imgrow three">${cells.map(fig).join('')}</div>
+    <h2>Vegetables — two per sheet, cut apart</h2>
+    <div class="imgrow three">${veg.map(fig).join('')}</div>
   </div>
 
   <div class="card">
-    <h2>Drawn one at a time — 1024px each</h2>
-    <div class="imgrow three">${singles.map(fig).join('')}</div>
+    <h2>Fruit</h2>
+    <div class="imgrow three">${fruits.map(fig).join('')}</div>
   </div>
 </div>
 
@@ -63,17 +82,31 @@ const html = `<meta charset="utf-8">
 <script>
 (function () {
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(SHEET)} });
-  window.__compareHelp({ html: '<b>Every fruit in the deck.</b> The nine at the '
-    + 'top were drawn as one grid and cut apart; the rest were drawn one at a '
-    + 'time, which is why they are sharper. Tap the + under any fruit to say '
-    + 'what to redo.' });
+  window.__compareHelp({ html: '<b>Every card in both decks.</b> The links at '
+    + 'the top open the real pickers — they are ordinary web pages, so they '
+    + 'cannot live inside this one. Tap the + under any picture to say what to '
+    + 'redo.' });
 })();
 </script>`;
 
-if (DRY) { fs.writeFileSync('/home/user/out/fruit2/compare.html', html); console.log('wrote /home/user/out/fruit2/compare.html (' + html.length + ' bytes)'); return; }
+if (DRY) {
+  fs.writeFileSync('/home/user/out/veg/compare.html', html);
+  console.log(`wrote /home/user/out/veg/compare.html (${html.length} bytes) · ${fruits.length} fruit, ${veg.length} veg`);
+  return;
+}
 
-fetch(`${BASE}/api/chatfeed/page`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ chat: CHAT, title: 'All 36 fruits — the swipe deck', html }),
-}).then(r => r.json()).then(d => console.log(JSON.stringify(d, null, 1)));
+(async () => {
+  const r = await fetch(`${BASE}/api/chatfeed/page`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat: CHAT, title: `The decks — ${fruits.length} fruit, ${veg.length} vegetables`, html }),
+  });
+  const d = await r.json();
+  console.log(JSON.stringify(d, null, 1));
+  // A new version is a NEW page; the one it replaces is superseded, never
+  // deleted (compare-pages contract).
+  if (SUPERSEDE) {
+    const s = await fetch(`${BASE}/api/chatfeed/page/${SUPERSEDE}/supersede`, { method: 'POST' });
+    console.log('superseded', SUPERSEDE, s.status);
+  }
+})();
