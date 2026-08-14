@@ -1691,6 +1691,40 @@ lifted into a standalone tool later.
     screen would be blank with nothing to tap. One consequence to expect:
     the ⊕ inside the pile takes a chat out of the PILE immediately, and the
     list it rejoins is the one waiting when she leaves the hidden area.
+  - **A PARK IS CLEARED BY A FINISHED REPLY THAT LANDED AFTER IT — compare
+    `postedAt`, NEVER `created` (Aug 2026, Sophie: chats "end up in the
+    hidden and then they never come out of it so I never know when they're
+    done and I forget about them").** `unparked()` in chats.html is the one
+    rule, read by BOTH `chatHidden` and `chatBack`.
+    - **Why `created` is the wrong field, and it is not obvious:** a turn's
+      message doc is CREATED BY ITS FIRST LIVE DRAFT, so `created` is when
+      the chat started WRITING, while every park stamp is written when
+      something LANDS. So anything that parks a chat mid-turn — her own
+      message sent while it works, or a `<wake …>` envelope on a stale hook
+      — always out-stamps the very reply that answers it, and the chat can
+      never come back on its own. `postedAt` is monotonic and bumped on
+      every write, so it answers the honest question: did this chat write
+      anything after I parked it?
+    - **Measured 2026-08-14: 30 chats stuck in the pile**, two of them
+      holding full replies she had never seen — "Baby gets a boost" posted a
+      5,233-character draft at 04:47:01 and was buried by a stamp at
+      04:48:18, 77 seconds later. **16 were visible to her; the other 14
+      were FILED, so they were invisible on the main list AND absent from
+      the hidden bar**, reachable only by lighting the right chip. When she
+      says a count looks low, check the filed ones before doubting her.
+    - **FINISHED, not merely newer — her call, asked directly ("only when
+      it's finished").** A live draft (`working:true`) keeps the chat
+      parked: it is still typing, and parking means "not now", so it returns
+      when it is done rather than the moment it starts.
+    - **Her own message can never un-park the chat it just parked** —
+      `/reply` writes her message's `postedAt` BEFORE stamping `hiddenAt`,
+      so the stamp is always strictly later. Pinned by a test; keep that
+      write order if either is ever touched.
+    - Tests: `node scripts/test-chats-unpark.js` (lifts the real functions
+      out of chats.html and runs them — no browser). Clearing a chat that is
+      already stuck needs `POST /hide {chat, hidden:false}`; deleting the
+      message that parked it does NOT, because the stamp lives on the
+      registry.
   - **`hiddenAt` is a self-clearing STAMP on the registry doc**
     (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
     `answeredAt`: a chat stays hidden only while nothing newer has arrived,

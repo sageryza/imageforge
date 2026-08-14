@@ -2599,9 +2599,14 @@ function chatAnswered(name,last){
 // 2026-08-10 (`node scripts/backfill-filedat.js`), so a missing stamp now
 // means the chat is not filed at all.
 // The chat NEVER leaves its folder — this only adds it to the main list too.
+// Filing parks a chat the same way hiding does, so it comes back the same way
+// — see `unparked` above for why this cannot compare against `created`. Same
+// measurement, same fix: 14 of the 30 chats stuck on 2026-08-14 were filed
+// ones, invisible BOTH on the main list and in the hidden bar, reachable only
+// by lighting the right chip.
 function chatBack(name,last){
   var f=(chats[name]&&chats[name].filedAt)||'';
-  return !!f && !!last && last.from!=='sophie' && (last.created||'')>f;
+  return !!f && !!last && last.from!=='sophie' && unparked(f,last);
 }
 // The chips carry a COUNT, and a dot when something in there is unread.
 // Filing takes a chat OUT of the main list, so without those two the chats she
@@ -2873,8 +2878,35 @@ function chatMuted(name,last){ return chatDone(name,last); }
 // chats she hid on the day v1 shipped were stuck behind the bar forever. Every
 // one was migrated onto a stamp on 2026-08-09 (`POST /hide` rewrites both
 // fields), so reading it back would only keep the trap alive.
+// A PARK IS CLEARED BY A FINISHED REPLY THAT LANDED AFTER IT (Aug 2026,
+// Sophie: chats "end up in the hidden and then they never come out of it so I
+// never know when they're done and I forget about them").
+//
+// It cannot compare against `created`, and that is the whole bug. A turn's
+// message doc is CREATED BY ITS FIRST LIVE DRAFT, so `created` is when the
+// chat started writing — while every park stamp is written when something
+// LANDS. So anything that parks a chat mid-turn (her own message sent while it
+// works, or a `<wake …>` envelope on a stale hook) always out-stamps the very
+// reply that answers it, and the chat can never come back on its own.
+// Measured 2026-08-14: 30 chats stuck in the pile, including two whose full
+// replies she had simply never seen — "Baby gets a boost" had posted a 5,233
+// character draft 77 seconds before the stamp that buried it.
+// `postedAt` is monotonic and set on EVERY write, so it answers the honest
+// question: did this chat write anything after I parked it?
+//
+// FINISHED, not merely newer — her call, asked directly ("only when it's
+// finished"): a live draft means it is still typing, and parking means "not
+// now", so a chat pops back onto the list when it is done rather than the
+// moment it starts. `working` is cleared by the end-of-turn post.
+function unparked(stamp,last){
+  if(!stamp) return true;                    // never parked
+  if(!last) return false;                    // parked, nothing has landed since
+  if(last.working) return false;             // still writing — not done yet
+  return (last.postedAt||last.created||'') > stamp;
+}
 function chatHidden(name,last){
-  return stampActive((chats[name]&&chats[name].hiddenAt)||'', last);
+  var a=(chats[name]&&chats[name].hiddenAt)||'';
+  return !!a && !unparked(a,last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
