@@ -1,0 +1,47 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new illustration in that style. ",
+  "end": " Draw NO people and no faces. Generous empty white space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "whiten": true,
+  "cards": [
+    {
+      "id": "cl-01",
+      "prompt": "A leaf, a mushroom and an apple in a row, each with a thin line leading to its own small round magnifying circle above it, and inside every circle the same pattern of tiny rounded boxes packed together. Flat and simple."
+    },
+    {
+      "id": "cl-02",
+      "prompt": "An old brass microscope on a table beside a thin curling shaving of cork bark, with one large round magnified circle floating next to them showing a honeycomb of small empty six-sided boxes. Flat and simple."
+    },
+    {
+      "id": "cl-03",
+      "prompt": "A tiny handheld single-lens microscope the size of a spoon, a glass dish holding a drop of pond water, and a large round magnified circle above showing several small swimming creatures with tails. Flat and simple."
+    },
+    {
+      "id": "cl-04",
+      "prompt": "A single grain of sand drawn large, with a neat row of about twelve tiny circles lined up along its edge to show scale, and beside it one very long thin branching cell stretching across the picture. Flat and simple."
+    },
+    {
+      "id": "cl-05",
+      "prompt": "A wide open glass jar filled to the brim with hundreds of tiny identical rounded cells, a few spilling over the rim onto the surface below. Flat and simple."
+    },
+    {
+      "id": "cl-06",
+      "prompt": "A simple two-pan balance scale hanging level and even, with a heap of small rod-shaped bacteria in the left pan and a heap of round cells in the right pan, both heaps the same size. Flat and simple."
+    },
+    {
+      "id": "cl-07",
+      "prompt": "A chain of cell division read left to right: one round cell, then the same cell pinched into two, then four smaller cells, then eight, each joined to the next by a short arrow. Flat and simple."
+    },
+    {
+      "id": "cl-09",
+      "prompt": "A geometric twenty-sided virus with a straight tail and thin spider legs, drawn small, floating beside a much larger round cell with a nucleus inside it, a clear gap of white paper between them. Flat and simple."
+    },
+    {
+      "id": "cl-10",
+      "prompt": "A thin slice of onion held up flat against a bright window pane, its rings and grain showing through the light, with a leaf and a small hand mirror resting on the sill below. Flat and simple."
+    }
+  ]
+}

@@ -40,7 +40,30 @@ HP=highpass=f=70              # Handling rumble only. The ONLY spectral change.
 # loud recording and guts a quiet one.
 THRESH=$(python3 -c "print('%.0f' % ($TARGET - 20))")
 
-st=$("$FF" -v info -nostats -i "$in" -af "${HP},volumedetect" -f null - 2>&1)
+# MEASURE=speech measures the RMS of the SPEECH ONLY, by throwing the silence
+# away first. It changes nothing about what is applied — the gain is still one
+# fixed number over the whole file — only what that number is derived from.
+#
+# It exists because mean_volume averages over the WHOLE file, silence included,
+# so a recording that is mostly pauses measures far quieter than it sounds and
+# the gain cap drops it. Measured on the 33-minute "Evan/Charlie" memo
+# (2026-07-09), which is 79% silence: whole-file RMS -35.9 dBFS asks for
+# +12.9 dB and SKIPs, while its speech sits at -29.3 dBFS and needs +6.0 dB —
+# inside the cap, and the file is perfectly usable.
+#
+# Default stays `whole` so the settled August 2026 training set (42 -> 36 -> 30
+# files, see docs/voice-cloning.md) keeps reproducing exactly. Reach for
+# `speech` on a sparse recording — a read-aloud take, a memo full of thinking
+# pauses — where the cap is rejecting silence rather than a quiet voice.
+MEASURE=${MEASURE:-whole}
+
+case "$MEASURE" in
+  whole)  probe="${HP},volumedetect" ;;
+  speech) probe="${HP},silenceremove=stop_periods=-1:stop_duration=0.3:stop_threshold=${THRESH}dB:detection=rms:window=0.03,volumedetect" ;;
+  *) echo "MEASURE must be 'whole' or 'speech', got: $MEASURE" >&2; exit 1 ;;
+esac
+
+st=$("$FF" -v info -nostats -i "$in" -af "$probe" -f null - 2>&1)
 rms=$(printf '%s' "$st" | grep mean_volume | awk '{print $(NF-1)}')
 [ -n "$rms" ] || { echo "measurement failed: $in" >&2; exit 1; }
 

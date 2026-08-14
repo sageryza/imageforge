@@ -1,0 +1,264 @@
+[
+  {
+    "subject": "haircut",
+    "style": "watercolor",
+    "quality": "low",
+    "error": "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_f2fa23fc74c74587adb3f7f47bbf4c44. safety_violations=[self-harm]."
+  },
+  {
+    "subject": "haircut",
+    "style": "dream",
+    "quality": "low",
+    "error": "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_3bb97ebc9b604bff9f9069d2281d4e2b. safety_violations=[self-harm]."
+  },
+  {
+    "subject": "haircut",
+    "style": "pastel",
+    "quality": "low",
+    "error": "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_3a5684b0b94d4030964581d0cc10dfe7. safety_violations=[self-harm]."
+  },
+  {
+    "subject": "dinner",
+    "subjectLabel": "Six at a small table",
+    "stress": "a crowd — overlapping bodies, arms that belong to someone",
+    "style": "watercolor",
+    "styleLabel": "Watercolor — sage sandy mirror",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "sage-sandy-mirror.png"
+    ],
+    "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\n[content]\n\nDo not include any text in the image.",
+    "promptContent": "Six people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nSix people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.\n\nDo not include any text in the image.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/dinner__watercolor.webp",
+    "bytes": 363946,
+    "ms": 22665,
+    "createdAt": 1786736224698
+  },
+  {
+    "subject": "dinner",
+    "subjectLabel": "Six at a small table",
+    "stress": "a crowd — overlapping bodies, arms that belong to someone",
+    "style": "dream",
+    "styleLabel": "Dream mystery — diary comic",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "dream-mystery.jpg"
+    ],
+    "promptStyle": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "promptContent": "Six people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.",
+    "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nSix people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/dinner__dream.webp",
+    "bytes": 615966,
+    "ms": 16498,
+    "createdAt": 1786736241196
+  },
+  {
+    "subject": "dinner",
+    "subjectLabel": "Six at a small table",
+    "stress": "a crowd — overlapping bodies, arms that belong to someone",
+    "style": "pastel",
+    "styleLabel": "Pastel — Witch School house",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "promptStyle": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\n[content]\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "promptContent": "Six people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.",
+    "fullPrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\nSix people crowded around a small round restaurant table passing dishes to one another, one of them half standing to reach across, and a waiter squeezing past behind them with a loaded tray held above his head.\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/dinner__pastel.webp",
+    "bytes": 116250,
+    "ms": 27379,
+    "createdAt": 1786736268575
+  },
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "watercolor",
+    "styleLabel": "Watercolor — sage sandy mirror",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "sage-sandy-mirror.png"
+    ],
+    "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\n[content]\n\nDo not include any text in the image.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nDo not include any text in the image.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/bicycle__watercolor.webp",
+    "bytes": 240380,
+    "ms": 22532,
+    "createdAt": 1786736291107
+  },
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "dream",
+    "styleLabel": "Dream mystery — diary comic",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "dream-mystery.jpg"
+    ],
+    "promptStyle": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/bicycle__dream.webp",
+    "bytes": 513676,
+    "ms": 20740,
+    "createdAt": 1786736311847
+  },
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "pastel",
+    "styleLabel": "Pastel — Witch School house",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "promptStyle": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\n[content]\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/bicycle__pastel.webp",
+    "bytes": 106248,
+    "ms": 20969,
+    "createdAt": 1786736332817
+  },
+  {
+    "subject": "terrarium",
+    "subjectLabel": "Three lizards, one through the glass",
+    "stress": "transparency and a count that has to stay right",
+    "style": "watercolor",
+    "styleLabel": "Watercolor — sage sandy mirror",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "sage-sandy-mirror.png"
+    ],
+    "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\n[content]\n\nDo not include any text in the image.",
+    "promptContent": "A glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.\n\nDo not include any text in the image.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/terrarium__watercolor.webp",
+    "bytes": 406500,
+    "ms": 21775,
+    "createdAt": 1786736354592
+  },
+  {
+    "subject": "terrarium",
+    "subjectLabel": "Three lizards, one through the glass",
+    "stress": "transparency and a count that has to stay right",
+    "style": "dream",
+    "styleLabel": "Dream mystery — diary comic",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "dream-mystery.jpg"
+    ],
+    "promptStyle": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "promptContent": "A glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.",
+    "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nA glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/terrarium__dream.webp",
+    "bytes": 704752,
+    "ms": 20735,
+    "createdAt": 1786736375327
+  },
+  {
+    "subject": "terrarium",
+    "subjectLabel": "Three lizards, one through the glass",
+    "stress": "transparency and a count that has to stay right",
+    "style": "pastel",
+    "styleLabel": "Pastel — Witch School house",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "promptStyle": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\n[content]\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "promptContent": "A glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.",
+    "fullPrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\nA glass terrarium on a windowsill holding three small lizards, one of them clinging to the far wall of the glass so it is seen through two panes at once, heavy rain streaking down the window behind it.\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/terrarium__pastel.webp",
+    "bytes": 114914,
+    "ms": 17215,
+    "createdAt": 1786736392542
+  },
+  {
+    "subject": "braid",
+    "subjectLabel": "Braiding her hair in the mirror",
+    "stress": "both hands working behind the head + a face that has to match its reflection",
+    "style": "watercolor",
+    "styleLabel": "Watercolor — sage sandy mirror",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "sage-sandy-mirror.png"
+    ],
+    "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\n[content]\n\nDo not include any text in the image.",
+    "promptContent": "A woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.\n\nDo not include any text in the image.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/braid__watercolor.webp",
+    "bytes": 246158,
+    "ms": 25552,
+    "createdAt": 1786736425320
+  },
+  {
+    "subject": "braid",
+    "subjectLabel": "Braiding her hair in the mirror",
+    "stress": "both hands working behind the head + a face that has to match its reflection",
+    "style": "dream",
+    "styleLabel": "Dream mystery — diary comic",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "dream-mystery.jpg"
+    ],
+    "promptStyle": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "promptContent": "A woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.",
+    "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nA woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/braid__dream.webp",
+    "bytes": 531784,
+    "ms": 20865,
+    "createdAt": 1786736446186
+  },
+  {
+    "subject": "braid",
+    "subjectLabel": "Braiding her hair in the mirror",
+    "stress": "both hands working behind the head + a face that has to match its reflection",
+    "style": "pastel",
+    "styleLabel": "Pastel — Witch School house",
+    "quality": "low",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "promptStyle": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\n[content]\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "promptContent": "A woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.",
+    "fullPrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\nA woman kneeling on a bathroom floor braiding her long hair into a plait with both hands raised behind her head, her face reflected in the mirror above the sink behind her, hairpins scattered across the tiles around her.\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/low/braid__pastel.webp",
+    "bytes": 107016,
+    "ms": 20533,
+    "createdAt": 1786736466719
+  }
+]
