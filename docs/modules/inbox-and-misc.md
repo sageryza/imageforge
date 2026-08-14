@@ -83,28 +83,6 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   `POST /upload-file` (raw body — the iOS path), `POST /upload-zip`,
   `PATCH /bundle` (label a whole album at once), `DELETE /items/:id`.
 
-- **Voice Memos — ONE library, and every path files into it.** membry Storage
-  `memo-audio/` + a manifest (`memos.js`, `/api/memos`); the Mac push, the iOS
-  share sheet, Story Room pastes and a chat with a pasted file all funnel through
-  `memos.fileIntoArchive()`. **A chat files a pasted recording with ONE call —
-  never hand-build the stamp:** `POST /api/memos/ingest?title=&dur=&ext=m4a` with
-  the raw bytes as the body. Transcription is unconditional. Dedupe is three
-  layers (file md5, date-zeroed audio fingerprint, transcript backstop) because
-  iOS rewrites an m4a's dates on every share — so identical audio has different
-  bytes. **A shared stamp is NOT a duplicate** and never dedupes anything.
-  **Full details: `docs/modules/audio-and-film.md`.**
-- **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
-  tabs: SPEAK (TTS, stock v2 defaults, no settings by design) and CHANGE
-  (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
-  and swaps only the voice). Her words stay in the box after a render.
-  **Full details: `docs/modules/audio-and-film.md`.**
-- **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
-  off her phone: dump first, label afterwards, files keyed by byte md5, readable
-  Storage paths because these URLs get pasted into other tools by hand. The iOS
-  share sheet routes audio here. **Do NOT point Sophie at the `/audio` PAGE to
-  find a clip** — it is an uploader whose list only shows the batch typed in its
-  box. **Full details: `docs/modules/audio-and-film.md`.**
-
 ## Push notifications (the Update tab's doorbell — Aug 2026)
 - **`push.js` (`/api/push`) sends real APNs lock-screen notifications**, raw
   HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app

@@ -324,18 +324,3 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
     unpacked; set the app URL + STUDIO_TOKEN + batch/keyword in the popup. The
     image-grab (`collectMidjourneyImageUrls`/`toFullRes` in `content.js`) needs a
     first-run calibration pass against MJ's live DOM (it logs what it finds).
-
-- **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
-  ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
-  ffmpeg stitch, ~$1.35 for a 12-scene film. Also holds **Dreams** (the staged
-  dream -> comic pipeline, where a gpt-image-2 SAFETY REFUSAL is terminal and the
-  page is redrawn with its narrative softened — never retried), the character
-  anchor, dream-bridge clips, the zine, and quick-animate. Editing is free
-  server-side ffmpeg; every re-roll is kept.
-  **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
-  videos? `docs/movies/sophies-movie-pipeline.md` first.
-- **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
-  comes a produced track with HER actual voice (resemble-enhance -> musicgen
-  melody conditioning -> ffmpeg mix). ~$0.11 per 30s chunk. **It has no tile
-  anywhere by request** — see the deliberately-unlinked pages note.
-  **Full details: `docs/modules/audio-and-film.md`.**
