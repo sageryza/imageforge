@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking
     var id: String { rawValue }
 
     var title: String {
@@ -38,6 +38,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "Films"
         case .freeform:  return "Freeform"
         case .vector:    return "Vector"
+        case .chunking:  return "Chunking"
         }
     }
 
@@ -72,6 +73,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
+        case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
         }
     }
 
@@ -111,6 +113,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .freeform:  return "scribble.variable"
         // fallback; .vector uses a custom asset (see customIcon)
         case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
+        // A strip cut into pieces — the library of PARTS, not of films. (Not
+        // rectangle.grid.2x2: .lessons already wears that one.)
+        case .chunking:  return "rectangle.split.3x1"
         }
     }
 
@@ -171,6 +176,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // host. See the headers design rule.
         case .vector:    GatedWebTool(path: "/vector", name: "Vector", icon: "circle.hexagongrid")
                             .forgeToolBar("Vector")
+        // Chunking: the clip library. A shelf + a search box, so the native
+        // bar carries the name and the page never repeats it (?embed=1).
+        case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "rectangle.grid.2x2")
+                            .forgeToolBar("Chunking")
         }
     }
 }
@@ -470,6 +479,10 @@ struct RootView: View {
             if t == .freeform { return false }
             // Vector is a web page with its own injected pill too.
             if t == .vector { return false }
+            // Chunking has NO pill at all — its sticky search row occupies the
+            // corner the pill would need (see the /chunking route in server.js),
+            // so the native one must not draw over it either.
+            if t == .chunking { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills
             // drew and the speed label read "Fast" twice (Sophie's
@@ -559,7 +572,7 @@ private struct HomeGrid: View {
     ///   altogether". The tool, its page and `deckfactory://song` all still
     ///   work; it simply has no card anywhere now.
     private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
-                                             .voice, .search, .character]
+                                             .voice, .search, .character, .chunking]
 
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the
