@@ -3,6 +3,24 @@
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v14 (Aug 2026) — A TURN STARTED BY A BACKGROUND EVENT IS STILL A TURN.
+# Sophie, across several chats in one week: "your last message didn't show up
+# in my chat app." The pattern was exact — every turn that answered HER posted,
+# and every turn that answered a wake event / task notification did not.
+# v13 had filtered machinery out of the TURN BOUNDARY as well as out of "is
+# this Sophie talking", so a reply to a background event stayed keyed to the
+# PREVIOUS turn; the server's doc id is sha1(session|turn), so it upserted onto
+# that already-finished message, inherited its `created`, never rose in the
+# thread, and read as missing. The live-draft pass was worse: it re-marked that
+# finished reply `working:true`, which is why those chats also sat parked in
+# the hidden pile waiting for a reply she had already been given.
+# The two questions are SEPARATE and must stay that way:
+#   boundary  = ANY non-tool-result user record (machinery included)
+#   her words = only what Sophie really said (`her_words`) — machinery is a
+#               boundary but NEVER a message, which is what v13 got right and
+#               is preserved here.
+# See turnkey_of() in both parsers; pinned by scripts/test-chats-turn-boundary.js.
+#
 # v13 (Aug 2026) — THE END-OF-TURN CARD REMINDER. On UserPromptSubmit the hook
 # also prints ONE line of additionalContext, so every turn starts with the
 # reminder to refresh the chat's STATUS CARD and UPDATE card before it ends.
@@ -177,23 +195,25 @@ if [ "$event" = "PostToolUse" ]; then
       python3 - "$transcript" 2>/dev/null << 'PYDRAFT'
 import json, sys, os, re
 path = sys.argv[1]
-# A turn is started by something SOPHIE said. Machinery arrives as a "user"
-# record too — wake events, task notifications, webhook activity — and letting
-# any of it move the boundary shifts the turn key mid-turn, which is how a
-# reply ended up merged into the previous message with no key at all (Aug
-# 2026, after a burst of three GitHub wakes landed on a turn boundary). Keep
-# this list in step with NOISE in the final parser below.
-MACHINE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
-                     r'''|<task-notification|<github-webhook-activity|<command-name'''
-                     r'''|<wake\s|<wake>'''
-                     r'''|<local-command-stdout|Caveat: The messages below)''')
-def machinery(rec, c):
-    if rec.get('isMeta'):
-        return True
-    t = c if isinstance(c, str) else ' '.join(
-        b.get('text', '') for b in (c or []) if isinstance(b, dict) and b.get('type') == 'text')
-    t = re.sub(r'(?is)<system-reminder>.*?</system-reminder>', '', t or '').strip()
-    return (not t) or bool(MACHINE.match(t))
+# EVERY non-tool-result user record starts a new assistant turn — machinery
+# (wake events, task notifications, webhook activity) included, because a wake
+# really does begin a turn and that turn's reply is a message of its own.
+#
+# This is deliberately NOT the same question as "is this Sophie talking". Those
+# two were conflated once and each half broke the feed in its own way: filtering
+# machinery out of the BOUNDARY left the reply keyed to the PREVIOUS turn, so it
+# upserted onto that finished message (same key → same deterministic doc id),
+# kept its old `created`, never rose in the thread, and read as simply missing.
+# Filtering it nowhere posted the wake envelope as one of HER messages. So the
+# boundary takes everything and `her_words` (final parser) decides what is hers.
+def turnkey_of(rec):
+    # Stable across re-parses: the hook re-reads the whole transcript on every
+    # event, so a key derived from anything volatile would fork the turn's doc.
+    if rec.get('uuid'):
+        return rec['uuid']
+    if rec.get('timestamp'):
+        return 'w:' + str(rec['timestamp'])
+    return None
 turnkey = None; parts = []
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -207,12 +227,13 @@ with open(path, encoding='utf-8') as f:
         if role == 'user':
             isres = isinstance(c, list) and any(
                 isinstance(b, dict) and b.get('type') == 'tool_result' for b in c)
-            if not isres and not machinery(r, c):
-                # same turn boundary the final parser uses: a non-tool-result
-                # user record that is really HERS starts a new segment, and its
-                # uuid is the key the Stop post will carry — that's what lands
-                # both on ONE doc. Machinery must not move it (see MACHINE).
-                turnkey = r.get('uuid'); parts = []
+            if not isres:
+                # same turn boundary the final parser uses, so the draft and the
+                # end-of-turn post carry the SAME key and land on ONE doc. A key
+                # we can't derive stably leaves turnkey None, which exits below
+                # rather than letting this turn's draft overwrite the previous
+                # turn's finished message and re-mark it "still writing".
+                turnkey = turnkey_of(r); parts = []
             continue
         if role != 'assistant':
             continue
@@ -361,6 +382,15 @@ NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
                    r'''|<task-notification|<github-webhook-activity|<command-name'''
                    r'''|<wake\s|<wake>'''
                    r'''|<local-command-stdout|Caveat: The messages below)''')
+# Kept in step with the draft parser's copy — the two must agree on a turn's
+# key or the draft and the final post land on two different docs.
+def turnkey_of(rec):
+    if rec.get('uuid'):
+        return rec['uuid']
+    if rec.get('timestamp'):
+        return 'w:' + str(rec['timestamp'])
+    return None
+
 def her_words(rec, txt):
     if rec.get('isMeta'):
         return ''
@@ -410,14 +440,15 @@ with open(path, encoding='utf-8') as f:
         role = (r.get('message') or {}).get('role')
         if role == 'user':
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
-                # Only something SHE said ends a turn. A wake event or a task
-                # notification arrives as a user record too, and treating one
-                # as a boundary re-keys the turn mid-flight — that is what
-                # merged a whole reply into the previous message (Aug 2026).
-                if not her_words(r, gettext(r)):
-                    continue
+                # ANY non-tool-result user record ends the previous turn — a
+                # wake event or a task notification begins a real turn whose
+                # reply deserves its own message. Skipping the boundary for
+                # machinery is what silently merged that reply into the message
+                # above it (see the note on turnkey_of in the draft parser).
+                # Whether it was HER talking is a separate question, answered by
+                # her_words below — machinery is a boundary but never a message.
                 flush()           # end of the previous assistant turn
-                cur_turnkey = r.get('uuid')
+                cur_turnkey = turnkey_of(r)
                 last_user = idx
                 raw_since = []
                 mine = her_words(r, gettext(r))
