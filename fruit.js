@@ -344,8 +344,16 @@ router.post('/invite', async (req, res) => {
     const b = req.body || {};
     const pollId = slug(b.poll);
     if (!pollId) return res.status(400).json({ error: 'poll required' });
-    if (!process.env.BREVO_API_KEY) return res.status(400).json({ error: 'BREVO_API_KEY not set on this server' });
-    if (!process.env.BREVO_FROM_EMAIL && !b.dryRun) return res.status(400).json({ error: 'BREVO_FROM_EMAIL not set (must be a sender verified in Brevo)' });
+    // A dry run sends nothing, so it must not require the credentials — the
+    // whole point is to read the exact email and recipient list BEFORE any key
+    // exists. Gating it on the key made the guard useless on a fresh server,
+    // which is the only time it matters.
+    if (!b.dryRun) {
+      const missing = [];
+      if (!process.env.BREVO_API_KEY) missing.push('BREVO_API_KEY');
+      if (!process.env.BREVO_FROM_EMAIL) missing.push('BREVO_FROM_EMAIL (a sender verified in Brevo)');
+      if (missing.length) return res.status(400).json({ error: 'not set on this server: ' + missing.join(' and ') });
+    }
 
     const ref = db().collection(POLLS).doc(pollId);
     const snap = await ref.get();
