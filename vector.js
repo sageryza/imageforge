@@ -42,6 +42,10 @@
 // returns an id in well under a second, the caller polls, and a finished sheet
 // is never lost by walking away.
 const express = require('express');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFile } = require('child_process');
 const admin = require('firebase-admin');
 const sharp = require('sharp');
 const fetch = require('node-fetch');
@@ -69,16 +73,24 @@ const HOUSE = {
   // and flat fills are what the TRACER needs, and those are unchanged in every
   // palette. `pastel` reproduces the original prefix byte for byte, so an
   // existing caller (and the Gravity Lock cards) is untouched.
+  //
+  // `none` says nothing about colour at all and is NOT the same as a default —
+  // it is the honest control, the only way to see what the style references
+  // pull on their own.
   palettes: {
     pastel: 'a soft pastel palette of lilac, pastel pink, mint and pale yellow',
     natural: 'ordinary natural colours — real skin tones, denim blue, wood brown, '
       + 'leaf green, warm red, whatever colour the thing actually is, still flat and unshaded',
+    nineties: 'a saturated 1990s palette — goldenrod, royal red, primary blue, '
+      + 'emerald green, deep purple, full-strength colours straight from the tin',
+    none: '',
   },
   prefixFor(palette) {
-    const line = this.palettes[palette] || this.palettes.pastel;
+    const key = Object.prototype.hasOwnProperty.call(this.palettes, palette) ? palette : 'pastel';
+    const line = this.palettes[key];
     return 'Use the attached images ONLY as a STYLE reference for the linework: '
       + 'bold confident black ink outlines, flat colors with NO gradients and minimal shading, '
-      + `${line}, on a plain white background, `
+      + `${line ? line + ', ' : ''}on a plain white background, `
       + 'playful modern editorial illustration.';
   },
   // Wide gutters and "nothing crossing between the cells" are load-bearing: the
@@ -268,30 +280,51 @@ async function patch(id, fields) {
 
 /** One picture -> the pair of files everything downstream wants: the SVG (the
  *  deliverable) and a big PNG render of it (what a gallery tile shows). */
+/** Trace one drawing IN ITS OWN PROCESS, then upload the results.
+ *
+ *  The child is not an optimisation, it is the fix for a real stall: the native
+ *  tracer retains ~23MB per cell and never releases it (measured 2026-08-14 —
+ *  nine traces took RSS 83MB -> 288MB, the renders after them only +65MB), so
+ *  on a 512MB instance a sheet was OOM-killed around its fifth or sixth cell
+ *  and the job doc sat on `running` forever with no error. A process boundary
+ *  is the only thing that reclaims native memory; see scripts/vector-trace-worker.js.
+ *
+ *  A crashed child therefore REJECTS with its stderr, so the job fails loudly
+ *  instead of hanging — which is the other half of what went wrong. */
 async function traceOne(png, base, { fills = 0, render = 2048, ink = 'auto' } = {}) {
-  // `ink: 'auto'` by default — the threshold is chosen per drawing so the traced
-  // line weight matches the source. A fixed threshold is one guess for every
-  // picture and it lands a few percent heavy on anything with fine repeated
-  // detail: a strawberry's seeded surface came out +14.1%, an acorn's
-  // cross-hatch +12.7%. Calibrated they are +0.5% and +1.2%. It costs about
-  // three traces instead of one, and a trace is free.
-  const out = await vectorize(png, { fills, ink });
-  const svgUrl = await put(Buffer.from(out.svg), `${base}.svg`, 'image/svg+xml');
-  // Rasterised at 2048 on purpose: a tile shown at ~110pt on a 3x phone is
-  // ~330px, but she opens it, and a 1024 preview was the limiting factor the
-  // last time round.
-  const rendered = await sharp(Buffer.from(out.svg), { density: 96 })
-    .resize(render, render, { fit: 'inside' }).png().toBuffer();
-  const pngUrl = await put(rendered, `${base}.png`, 'image/png');
-  // Hex, not [r,g,b] triples: Firestore refuses an array inside an array
-  // ("Property array contains an invalid nested entity"), which failed the very
-  // first end-to-end run AFTER the sheet had been paid for. Hex is also what a
-  // caller wants for a swatch or a recolour.
-  const colors = out.colors.map((c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''));
-  return {
-    svg: svgUrl, png: pngUrl, colors, kb: Math.round(out.svg.length / 1024), ms: out.ms,
-    ...(out.ink != null ? { ink: out.ink, inkErr: Math.round(out.inkErr * 1000) / 10 } : {}),
-  };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vec-'));
+  const inFile = path.join(dir, 'in.png');
+  const outBase = path.join(dir, 'out');
+  fs.writeFileSync(inFile, png);
+  try {
+    const meta = await new Promise((resolve, reject) => {
+      const child = execFile(process.execPath,
+        [path.join(__dirname, 'scripts', 'vector-trace-worker.js')],
+        { maxBuffer: 8 << 20, timeout: 5 * 60 * 1000 },
+        (err, stdout, stderr) => {
+          if (err) return reject(new Error(`trace worker failed: ${String(stderr || err.message).slice(0, 400)}`));
+          try { resolve(JSON.parse(stdout)); } catch (e) { reject(new Error(`trace worker gave no result: ${String(stdout).slice(0, 200)}`)); }
+        });
+      child.stdin.end(JSON.stringify({ in: inFile, out: outBase, fills, ink, render }));
+    });
+    const svg = fs.readFileSync(`${outBase}.svg`);
+    const svgUrl = await put(svg, `${base}.svg`, 'image/svg+xml');
+    // Rasterised at 2048 on purpose: a tile shown at ~110pt on a 3x phone is
+    // ~330px, but she opens it, and a 1024 preview was the limiting factor the
+    // last time round.
+    const pngUrl = await put(fs.readFileSync(`${outBase}.png`), `${base}.png`, 'image/png');
+    // Hex, not [r,g,b] triples: Firestore refuses an array inside an array
+    // ("Property array contains an invalid nested entity"), which failed the very
+    // first end-to-end run AFTER the sheet had been paid for. Hex is also what a
+    // caller wants for a swatch or a recolour.
+    const colors = meta.colors.map((c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''));
+    return {
+      svg: svgUrl, png: pngUrl, colors, kb: Math.round(meta.svgBytes / 1024), ms: meta.ms,
+      ...(meta.ink != null ? { ink: meta.ink, inkErr: Math.round(meta.inkErr * 1000) / 10 } : {}),
+    };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 async function runSheet(id, body) {
