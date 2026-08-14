@@ -64,6 +64,23 @@ const HOUSE = {
     + 'bold confident black ink outlines, flat colors with NO gradients and minimal shading, '
     + 'a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, '
     + 'playful modern editorial illustration.',
+  // The palette is the ONE part of the house recipe a caller may swap, because
+  // the pastel line is art direction rather than machinery — the ink outlines
+  // and flat fills are what the TRACER needs, and those are unchanged in every
+  // palette. `pastel` reproduces the original prefix byte for byte, so an
+  // existing caller (and the Gravity Lock cards) is untouched.
+  palettes: {
+    pastel: 'a soft pastel palette of lilac, pastel pink, mint and pale yellow',
+    natural: 'ordinary natural colours — real skin tones, denim blue, wood brown, '
+      + 'leaf green, warm red, whatever colour the thing actually is, still flat and unshaded',
+  },
+  prefixFor(palette) {
+    const line = this.palettes[palette] || this.palettes.pastel;
+    return 'Use the attached images ONLY as a STYLE reference for the linework: '
+      + 'bold confident black ink outlines, flat colors with NO gradients and minimal shading, '
+      + `${line}, on a plain white background, `
+      + 'playful modern editorial illustration.';
+  },
   // Wide gutters and "nothing crossing between the cells" are load-bearing: the
   // sheet is cut on a straight grid line, so a drawing that leans into its
   // neighbour's cell loses a limb.
@@ -139,9 +156,10 @@ router.use(express.json({ limit: '40mb' }));
 
 /** Build the sheet prompt exactly the way the Gravity Lock cards were built.
  *  Exported so a caller (or a test) can see the literal text before spending. */
-function sheetPrompt(cells) {
+function sheetPrompt(cells, palette) {
   const say = (c) => String(c.draw || c).trim().replace(/\.$/, '');
-  if (cells.length === 1) return `${HOUSE.prefix} ${HOUSE.single} ${say(cells[0])}. ${HOUSE.suffix}`;
+  const pre = HOUSE.prefixFor(palette);
+  if (cells.length === 1) return `${pre} ${HOUSE.single} ${say(cells[0])}. ${HOUSE.suffix}`;
   const [cols, rows] = LAYOUT[cells.length];
   let parts;
   if (cols <= 3) {
@@ -161,7 +179,7 @@ function sheetPrompt(cells) {
       parts.push(`ROW ${r + 1} of ${rows}, left to right: ${row.map(say).join('; ')}.`);
     }
   }
-  return `${HOUSE.prefix} ${HOUSE.grid(cols, rows)} ${parts.join(' ')} ${HOUSE.suffix}`;
+  return `${pre} ${HOUSE.grid(cols, rows)} ${parts.join(' ')} ${HOUSE.suffix}`;
 }
 
 async function put(buf, path, contentType) {
@@ -280,7 +298,8 @@ async function runSheet(id, body) {
   const cells = body.cells;
   const name = String(body.name || id).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
   const quality = QUALITIES.includes(body.quality) ? body.quality : HOUSE.quality;
-  const prompt = sheetPrompt(cells);
+  const palette = HOUSE.palettes[body.palette] ? body.palette : 'pastel';
+  const prompt = sheetPrompt(cells, palette);
   const base = `vector/${name}`;
   try {
     // `sheet` lets a caller re-cut and re-trace a sheet that was ALREADY drawn,
@@ -293,7 +312,7 @@ async function runSheet(id, body) {
       sheetUrl = String(body.sheet);
       sheetPng = await fetchBuf(sheetUrl);
     } else {
-      await patch(id, { step: 'drawing the sheet', prompt, quality });
+      await patch(id, { step: 'drawing the sheet', prompt, quality, palette });
       sheetPng = await drawSheet(prompt, { quality });
       sheetUrl = await put(sheetPng, `${base}/sheet.png`, 'image/png');
     }
@@ -370,7 +389,11 @@ router.post('/prompt', (req, res) => {
     return res.status(400).json({ error: `cells must be 1-${MAX_CELLS} descriptions` });
   }
   const [cols, rows] = LAYOUT[cells.length];
-  res.json({ prompt: sheetPrompt(cells), layout: `${cols}x${rows}`, wasted: cols * rows - cells.length });
+  const palette = HOUSE.palettes[req.body.palette] ? req.body.palette : 'pastel';
+  res.json({
+    prompt: sheetPrompt(cells, palette), palette,
+    layout: `${cols}x${rows}`, wasted: cols * rows - cells.length,
+  });
 });
 
 router.post('/sheet', async (req, res) => {
