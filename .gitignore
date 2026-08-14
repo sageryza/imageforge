@@ -26,3 +26,24 @@ clips/
 # lines themselves stay local; shots.json keeps citations and timings.
 docs/cannon-language/lines.local.json
 docs/cannon-language/*.log
+
+# generated art output — the pictures are banked in Firebase Storage
+# (raw, cutout and on-sky), so this folder is disposable
+.artout/
+
+# test fixtures downloaded on demand (scripts/test-vectorize.js)
+.cache/
+
+# Darius page builder: transcript cache + generated HTML (both rebuildable
+# from scripts/darius-*.json — the pages themselves live in Firestore)
+.darius-cache/
+.darius-pages/
+
+# Sophie's own story text + the book's build state. This repo is PUBLIC and her
+# unpublished fiction is not ours to publish — the plan and state are banked to
+# membry Storage (storybook/marla/, private objects) instead.
+docs/marla/
+
+# Her unpublished stories — same reason as docs/marla/. Banked to membry
+# Storage at storybooks/ instead.
+docs/storybooks/

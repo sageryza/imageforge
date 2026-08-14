@@ -1,0 +1,7 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "nd-helix", "prompt": "A single clean, simple, iconic DNA double helix standing vertically — two twisting strands connected by short rungs like a spiraling ladder. Minimal and clear, one clear subject. Flat house colors, bold outlines, generous cream space. No text, no letters, no numbers." },
+    { "id": "nd-populations", "prompt": "Two simple overlapping bell-curve humps side by side, each drawn as a smooth rounded hill filled with a different flat solid color, partly overlapping in the middle where they blend into a shared middle zone — two populations whose ranges overlap rather than being separate. Flat solid fills, absolutely no gradients. Bold outlines, cream space. No text, no letters, no numbers." }
+  ]
+}

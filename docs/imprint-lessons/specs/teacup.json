@@ -1,0 +1,7 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "whiten": true,
+  "style": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink and mint, on a plain white background, playful modern editorial illustration. ",
+  "end": " Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    { "id":"na-teacup", "prompt":"A 2x2 grid of four simple panels divided by thin black lines, each showing a teacup viewed from above with tea grounds settled at the bottom. Top-left: loose scattered tea grounds. Top-right: the grounds clumping into a few vague little shapes. Bottom-left: one clump clearly forming a small animal. Bottom-right: another clump clearly forming a little chair. Reading meaning into random tea leaves. Bold black outlines, flat pastel colors, no gradients, plain white." }
+  ] }

@@ -47,6 +47,20 @@ PILL_HTML = """
 """
 
 PILL_JS = """
+// A page that scrolls ITSELF opts out with <body data-nopill> (Aug 2026,
+// Sophie: on the pausing tool the pill covered a control AND fought the
+// read-along's own centring). The pill takes itself off the page and every
+// hook below becomes a no-op, so page code that calls __scrollStop still
+// works and never has to know whether a pill exists.
+// Declared EITHER as <meta name="forge-pill" content="off"> (head-safe, and
+// the reliable one — an inline script before any content runs while
+// document.body is still null) or as <body data-nopill>.
+if (document.querySelector('meta[name="forge-pill"][content="off"]') ||
+    (document.body && document.body.hasAttribute('data-nopill'))) {
+  var _f=document.querySelector('.float'); if(_f) _f.remove();
+  window.__scrollStop=function(){}; window.__scrollTap=function(){};
+  window.__pillInteractive=function(){ return false; };
+} else {
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
 var vtop=document.getElementById('vtop'), vmid=document.getElementById('vmid'), vbot=document.getElementById('vbot');
@@ -115,4 +129,5 @@ vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
 window.addEventListener('pagehide',scrollStop);
 paintPill();
+}
 """

@@ -70,6 +70,42 @@
   .badge{display:inline-flex; align-items:center; gap:5px; color:var(--goldline); font-size:12px; font-weight:600}
   .badge svg{width:13px; height:13px}
 
+  /* TRANSCRIPT | CLIPS — the hairline tab pattern (two labels over a rule,
+     the line sliding under the one she is reading). Near the top of the
+     screen, so the row reserves the pill's corner and the line is a third
+     of the REMAINING width. */
+  .acctabs{display:flex; border-bottom:1px solid var(--line); margin-top:12px;
+    padding-right:56px; position:relative}
+  .acctabs button{flex:1; background:none; border:none; padding:11px 0 10px;
+    font-size:12px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--soft); font-weight:400; font-family:inherit}
+  .acctabs button.on{color:var(--ink)}
+  /* The line MEASURES the lit tab (`tabLine` below) — never a share of the row
+     per tab count. Chats carried that shape and a row ended up with the wrong
+     count from a clean merge alone (Aug 2026); measured, there is no count to
+     be wrong, and the 56px pill reserve stops needing to be in the width. */
+  .acctabs .tline{position:absolute; bottom:-1px; left:0; width:var(--tw,0);
+    height:2px; background:var(--ink); transform:translateX(var(--tx,0))}
+  .acctabs.tl .tline{transition:transform .18s, width .18s}
+
+  /* find-a-word (the magnifier in the tools row) */
+  #findrow{display:flex; gap:8px; align-items:center; margin-top:10px}
+  #findrow input{flex:1; min-width:0; font:inherit; font-size:15px; background:var(--card);
+    border:1px solid var(--line); border-radius:6px; padding:9px 11px}
+  #findrow .cnt{font-size:12px; color:var(--soft); white-space:nowrap}
+  #findrow .btn{padding:9px 11px}
+  #findx{background:transparent; border:none; color:var(--soft); font-size:16px; padding:6px 8px}
+  .w.hit{background:#F3E8C9}
+
+  /* chapter notches — a slim left rail on long recordings: tap a notch to
+     jump the transcript to that minute (navigation, not playback) */
+  #rail{position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:6;
+    display:flex; flex-direction:column; gap:10px; padding:8px 3px}
+  #rail button{background:none; border:none; color:var(--soft); font-size:9px;
+    display:flex; align-items:center; gap:3px; padding:5px 2px; font-family:inherit}
+  #rail button::before{content:""; width:9px; height:1.5px; background:var(--goldline)}
+  body.railed .wrap{padding-left:34px}
+
   /* the transcript */
   #tr{background:var(--card); border:1px solid var(--line); border-radius:6px;
     padding:16px 14px; font-size:19px; line-height:2.15; margin-top:12px}
@@ -212,13 +248,32 @@
         <svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg>
         <span class="n" id="renderN" hidden></span>
       </button>
+      <button class="btn" id="find" title="Find a word">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
       <span class="tiny" id="jobnote" style="margin-left:auto"></span>
       <button id="help" aria-label="how this works">?</button>
+    </div>
+
+    <div class="acctabs" id="roomtabs">
+      <button id="tabtr" class="on">Transcript</button>
+      <button id="tabclips">Clips</button>
+      <span class="tline"></span>
+    </div>
+
+    <div id="findrow" hidden>
+      <input id="findq" type="search" placeholder="find a word" autocomplete="off">
+      <span class="cnt" id="findcnt"></span>
+      <button class="btn" id="findnext" title="Next">
+        <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button id="findx" aria-label="close">✕</button>
     </div>
 
     <div id="tr"></div>
 
     <div id="outs">
+      <div class="muted" id="outsempty" style="margin-top:14px" hidden>Nothing saved from this recording yet — pick a section in the transcript and tap the share button.</div>
       <div id="rendersWrap" hidden>
         <h2 class="sec">Cuts</h2>
         <div id="renders"></div>
@@ -230,6 +285,8 @@
     </div>
   </div>
 </div>
+
+<div id="rail" hidden></div>
 
 <!-- section bar -->
 <div id="secbar" hidden>
@@ -261,7 +318,7 @@
     <div class="qmeta" id="sheetmeta"></div>
     <div class="srow" data-act="save">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
-      <div class="tx"><b>Save as a clip</b><span>lands in your audio library with its own link</span></div>
+      <div class="tx"><b>Save as a clip</b><span>its own file — listed under Sections below, with a download button</span></div>
       <div class="go"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
     </div>
     <div class="srow" data-act="editor">
@@ -288,6 +345,9 @@
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>pin the word being spoken, so you can find it again</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with all your cuts — the original is never touched</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span><span>play — with a section picked, it plays just that section</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 11 12 15 16 11"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span>download a clip or cut to your phone (Save to Files, AirDrop…)</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span>find a word in the transcript and jump to it</span></div>
+  <div class="hrow"><span class="hic" style="font-size:9px">5&thinsp;10</span><span>on a long recording, the notches down the left edge jump to that minute</span></div>
 </div>
 
 <!-- confirm -->
@@ -382,6 +442,9 @@ async function showHome() {
   $('back').hidden = true;
   $('home').hidden = false;
   document.body.classList.add('at-home');
+  document.body.classList.remove('railed');
+  $('rail').hidden = true;
+  $('findrow').hidden = true;
   $('htitle').textContent = 'Cutting Room';
   $('hmeta').textContent = '';
   try {
@@ -487,8 +550,110 @@ async function buildRoom() {
   updateTools();
   renderOuts();
   setupAudio();
+  buildRail();
+  setTab(1);
   if (doc.job && doc.job.status === 'running') watchJob();
 }
+
+// ── TRANSCRIPT | CLIPS tabs ─────────────────────────────────────────
+// The sliding line, measured off the lit tab — see the CSS note. The first
+// measurement lands instantly; the slide switches on a frame later, so the room
+// opens with the line already in place and only a tap animates it.
+function tabLine() {
+  var row = $('roomtabs'); if (!row) return;
+  var on = row.querySelector('button.on'), line = row.querySelector('.tline');
+  if (!on || !line) return;
+  var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
+  if (!t.width) return;
+  row.style.setProperty('--tw', t.width + 'px');
+  row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
+  if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
+}
+// A resize SNAPS (only a tap slides): dropping `.tl` turns the transition off
+// for this measurement, and tabLine turns it back on a frame later.
+// It waits a FRAME because `resize` fires BEFORE the new layout is committed —
+// measured 2026-08-13: read inside the handler, a tab still reports its old
+// width and the line lands one viewport behind. rAF is after layout.
+window.addEventListener('resize', function () {
+  var row = $('roomtabs'); if (row) { row.classList.remove('tl'); row.__tl = 0; }
+  requestAnimationFrame(tabLine);
+}, { passive: true });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
+function setTab(n) {
+  $('tabtr').classList.toggle('on', n === 1);
+  $('tabclips').classList.toggle('on', n === 2);
+  tabLine();
+  $('tr').hidden = n !== 1;
+  $('findrow').hidden = n !== 1 || !findOpen;
+  $('outs').hidden = n !== 2;
+  $('rail').hidden = n !== 1 || !railReady;
+}
+$('tabtr').onclick = () => setTab(1);
+$('tabclips').onclick = () => setTab(2);
+
+// ── chapter notches: a slim left rail on long recordings ────────────
+let railReady = false;
+function buildRail() {
+  const rail = $('rail');
+  rail.innerHTML = '';
+  railReady = false;
+  document.body.classList.remove('railed');
+  const total = doc.seconds || 0;
+  if (total < 480 || !words.length) { rail.hidden = true; return; }
+  const step = total > 3600 ? 600 : 300;   // every 5 min; 10 for the very long
+  for (let t = 0; t < total; t += step) {
+    let lo = 0; let hi = words.length - 1; let at = 0;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (words[mid].start >= t) { at = mid; hi = mid - 1; } else lo = mid + 1; }
+    const b = document.createElement('button');
+    b.textContent = t === 0 ? '0' : String(Math.round(t / 60));
+    b.onclick = () => { wordEl(at)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    rail.appendChild(b);
+  }
+  railReady = true;
+  document.body.classList.add('railed');
+  rail.hidden = false;
+}
+
+// ── find a word ─────────────────────────────────────────────────────
+let findOpen = false;
+let hits = [];
+let hitAt = -1;
+function clearHits() {
+  hits.forEach((i) => wordEl(i)?.classList.remove('hit'));
+  hits = []; hitAt = -1;
+  $('findcnt').textContent = '';
+}
+function runFind() {
+  clearHits();
+  const q = $('findq').value.trim().toLowerCase();
+  if (q.length < 2) return;
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].word.toLowerCase().includes(q)) { hits.push(i); wordEl(i)?.classList.add('hit'); }
+  }
+  if (hits.length) jumpHit(0);
+  else $('findcnt').textContent = 'not here';
+}
+function jumpHit(n) {
+  if (!hits.length) return;
+  hitAt = ((n % hits.length) + hits.length) % hits.length;
+  $('findcnt').textContent = (hitAt + 1) + ' · ' + hits.length;
+  wordEl(hits[hitAt])?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+let findT = null;
+$('find').onclick = () => {
+  findOpen = !findOpen;
+  setTab(1);
+  $('findrow').hidden = !findOpen;
+  if (findOpen) $('findq').focus();
+  else { clearHits(); $('findq').value = ''; }
+};
+$('findq').addEventListener('input', () => { clearTimeout(findT); findT = setTimeout(runFind, 350); });
+// dictation ends with a tap elsewhere, not a return key — commit on blur too
+$('findq').addEventListener('blur', runFind);
+$('findq').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runFind(); } });
+$('findnext').onclick = () => jumpHit(hitAt + 1);
+$('findx').onclick = () => { findOpen = false; $('findrow').hidden = true; clearHits(); $('findq').value = ''; };
 
 // word index → pause chip after it (precomputed)
 function chipPositions() {
@@ -672,17 +837,30 @@ const DESTICON = {
   editor: '<svg viewBox="0 0 24 24"><line x1="3" y1="9" x2="3" y2="15"/><line x1="7.5" y1="6" x2="7.5" y2="18"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="16.5" y1="7" x2="16.5" y2="17"/><line x1="21" y1="10" x2="21" y2="14"/></svg>',
 };
 const PLAYSVG = '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-const OPENSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+// Apple's save glyph — the share box with the arrow pointing DOWN into it.
+const DLSVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 11 12 15 16 11"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+// In the app a same-origin download can't reach the Files app from a web
+// view, so the wrapper injects a share bridge: the button hands the file to
+// the iOS share sheet (Save to Files / AirDrop / anywhere) instead.
+const SHARE_BRIDGE = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cutroomShare);
+function dlHref(url, name) {
+  return API + '/' + doc.id + '/file?u=' + encodeURIComponent(url) + '&n=' + encodeURIComponent(name)
+    + (TOKEN && TOKEN[0] !== '_' ? '&token=' + encodeURIComponent(TOKEN) : '');
+}
+function dlBtn(url, name) {
+  return '<a class="btn dl" data-u="' + esc(url) + '" data-n="' + esc(name) + '" href="' + esc(dlHref(url, name)) + '" download>' + DLSVG + '</a>';
+}
 
 function renderOuts() {
   const renders = doc.renders || [];
+  $('outsempty').hidden = !!(renders.length + (doc.clips || []).length);
   $('rendersWrap').hidden = !renders.length;
   $('renders').innerHTML = renders.map((r, i) =>
     '<div class="card outrow row">'
     + '<button class="btn" data-play="' + esc(r.url) + '">' + PLAYSVG + '</button>'
     + '<div class="grow"><div class="lbl">' + fmt(r.seconds) + ' · −' + Math.round(r.removed) + 's</div>'
     + '<div class="tiny">' + r.edits + ' edits · ' + fmtDate(r.at) + '</div></div>'
-    + '<button class="btn" data-open="' + esc(r.url) + '">' + OPENSVG + '</button>'
+    + dlBtn(r.url, (doc.title || 'recording') + ' cut')
     + '</div>').join('');
   const clips = (doc.clips || []).slice().reverse();
   $('clipsWrap').hidden = !clips.length;
@@ -691,9 +869,9 @@ function renderOuts() {
     + (k.url ? '<button class="btn" data-play="' + esc(k.url) + '">' + PLAYSVG + '</button>' : '')
     + '<div class="grow"><div class="lbl clip1">' + esc(k.name) + '</div>'
     + '<div class="tiny">' + (k.sec ? fmt(k.sec) + ' · ' : '')
-    + (k.dest === 'editor' ? 'in “' + esc(k.episodeTitle || 'episode') + '”' : k.dest === 'story' ? 'a beat’s voice' : 'audio library')
+    + (k.dest === 'editor' ? 'in “' + esc(k.episodeTitle || 'episode') + '”' : k.dest === 'story' ? 'a beat’s voice' : 'saved clip')
     + ' · ' + fmtDate(k.at) + '</div></div>'
-    + '<span style="color:var(--goldline)">' + (DESTICON[k.dest] || '') + '</span>'
+    + (k.url ? dlBtn(k.url, k.name) : '<span style="color:var(--goldline)">' + (DESTICON[k.dest] || '') + '</span>')
     + '</div>').join('');
   $('outs').onclick = (e) => {
     const p = e.target.closest('[data-play]');
@@ -705,8 +883,14 @@ function renderOuts() {
       outP.play().catch(() => toast('couldn’t play'));
       return;
     }
-    const o = e.target.closest('[data-open]');
-    if (o) window.open(o.dataset.open, '_blank');
+    const d = e.target.closest('.dl');
+    if (d && SHARE_BRIDGE) {
+      // In the app: hand the file to the iOS share sheet (Save to Files etc.)
+      e.preventDefault();
+      window.webkit.messageHandlers.cutroomShare.postMessage({ url: d.dataset.u, name: d.dataset.n });
+      toast('Getting the file…', 1800);
+    }
+    // In a browser the <a download> href does the real download itself.
   };
 }
 
@@ -825,7 +1009,7 @@ $('sheetmain').onclick = async (e) => {
   if (act === 'save') {
     try {
       await post('/' + doc.id + '/section', { wi0: sheetSel.a, wi1: sheetSel.b, action: 'save' });
-      closeSheet(); clearSel();
+      closeSheet();   // the words STAY picked (Sophie's ask) — ✕ lets go
       toast('Cutting the section…');
       watchJob();
     } catch (err) { toast(err.message); }
@@ -858,7 +1042,7 @@ async function pickEpisode() {
         wi0: sheetSel.a, wi1: sheetSel.b, action: 'editor',
         episodeId: epId === '__new__' ? null : epId,
       });
-      closeSheet(); clearSel();
+      closeSheet();   // selection stays for the next thing she does with it
       await refreshDoc(doc.id); renderOuts();
       toast('Sent to “' + (r.episode && r.episode.title || 'the episode') + '”');
     } catch (err) { toast(err.message); }
@@ -905,7 +1089,7 @@ async function pickBeat(padId) {
         wi0: sheetSel.a, wi1: sheetSel.b, action: 'story',
         padId, beatId: cell.dataset.beat,
       });
-      closeSheet(); clearSel();
+      closeSheet();   // selection stays for the next thing she does with it
       toast('Cutting the section…');
       watchJob();
     } catch (err) { toast(err.message); }

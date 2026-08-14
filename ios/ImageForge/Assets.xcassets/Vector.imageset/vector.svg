@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#000" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+  <g class="norm" transform="translate(-4.8802 -4.8802) scale(1.15431)">
+  <!-- The Vector tool: a curve with its anchor points, which is what a vector
+       IS — the shape kept as a path instead of as pixels. Same stroke idiom as
+       the other hand-drawn glyphs. Run scripts/normalize-glyphs.py after ANY
+       edit here or this icon renders a different size from the ones beside it.
+       NOTE: the comment lives INSIDE <svg> on purpose — the normalizer matches
+       the opening tag from the start of the file. -->
+  <path d="M13 48C21 21 43 43 51 16"/>
+  <rect x="7" y="42" width="12" height="12" rx="2" fill="#000" stroke="none"/>
+  <rect x="45" y="10" width="12" height="12" rx="2" fill="#000" stroke="none"/>
+</g>
+</svg>

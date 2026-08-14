@@ -46,6 +46,15 @@ struct ChatFeedView: View {
                     .ignoresSafeArea(edges: .bottom)
             }
         }
+        // A tapped push reloads the page onto the Update tab. Bumping the key
+        // recreates the web view, whose URL builder consumes the pending flag
+        // (?view=news — the page strips the param after reading it, so a later
+        // natural reload can't drag her back there). Covers warm AND cold
+        // starts: on a cold start the flag is set before this view first
+        // builds, and the URL builder checks it directly.
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+            reloadKey += 1
+        }
     }
 }
 
@@ -65,7 +74,23 @@ private struct ChatFeedWebView: UIViewRepresentable {
         web.isOpaque = false
         web.backgroundColor = UIColor(red: 0.965, green: 0.949, blue: 0.914, alpha: 1) // page paper
         web.allowsBackForwardNavigationGestures = false
-        if let url = URL(string: MovieService.serverURL + "/chats") {
+        // A pending push tap opens THE CHAT it came from (Sophie: tapping the
+        // banner consumed it, so landing on a list left her with no way to
+        // tell which chat had spoken). A push that names no chat — the
+        // /api/push/test send — still lands on the Update tab. Both flags are
+        // one-shot, and chats.html strips either query param after honouring
+        // it, so a later reload can't re-open the same thread.
+        var path = "/chats"
+        if let chat = PushDelegate.pendingChat, !chat.isEmpty {
+            PushDelegate.pendingChat = nil
+            PushDelegate.pendingUpdateTab = false
+            let slug = chat.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? chat
+            path = "/chats?chat=" + slug
+        } else if PushDelegate.pendingUpdateTab {
+            PushDelegate.pendingUpdateTab = false
+            path = "/chats?view=news"
+        }
+        if let url = URL(string: MovieService.serverURL + path) {
             web.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
         }
         context.coordinator.stopAutoscrollOnScreenChange(web)

@@ -91,6 +91,10 @@ private struct SearchWebView: UIViewRepresentable {
         config.userContentController.addUserScript(WKUserScript(
             source: "window.__nativeNavBar = true",
             injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // The clip download buttons post here (same bridge name the Cutting
+        // Room uses): a web view can't reach the Files app, so the native
+        // side fetches the clip and hands it to the iOS share sheet.
+        config.userContentController.add(context.coordinator, name: "cutroomShare")
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -111,10 +115,39 @@ private struct SearchWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: SearchWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: SearchWebView) { self.parent = parent }
+
+        // Clip download → fetch the file → iOS share sheet (Save to Files /
+        // AirDrop). Same contract as CuttingRoomView's handler.
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "cutroomShare",
+                  let body = message.body as? [String: Any],
+                  let urlStr = body["url"] as? String,
+                  let url = URL(string: urlStr) else { return }
+            let raw = (body["name"] as? String) ?? "clip"
+            let safe = raw.components(separatedBy: CharacterSet(charactersIn: "/\\:?%*|\"<>…")).joined()
+                .trimmingCharacters(in: .whitespaces)
+            let filename = (safe.isEmpty ? "clip" : String(safe.prefix(60))) + ".mp3"
+            URLSession.shared.downloadTask(with: url) { tmp, _, _ in
+                guard let tmp = tmp else { return }
+                let dest = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try? FileManager.default.removeItem(at: dest)
+                try? FileManager.default.moveItem(at: tmp, to: dest)
+                DispatchQueue.main.async {
+                    let share = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                    let windows = UIApplication.shared.connectedScenes
+                        .compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }
+                    guard let root = (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController else { return }
+                    var top = root
+                    while let presented = top.presentedViewController { top = presented }
+                    share.popoverPresentationController?.sourceView = top.view
+                    top.present(share, animated: true)
+                }
+            }.resume()
+        }
 
         // This web view stays alive (hidden) when Sophie switches tabs, so a
         // playing passage would keep talking out of a screen she can't see.

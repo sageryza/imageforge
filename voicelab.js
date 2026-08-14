@@ -25,13 +25,16 @@
 //   GET    /voices       → the account's voices, Sophie's clones first
 //   POST   /render       → { voiceId, text } → { id }
 //   GET    /render/:id   → the job doc (status: rendering | done | failed)
-//   GET    /history      → newest 30 renders
+//   POST   /change       → raw audio body, ?voiceId=&voiceName=&ext=&name=
+//                          → { id }  (the VOICE CHANGER — speech to speech)
+//   GET    /history?kind= → newest 30 renders ('tts' | 'sts' | omitted = both)
 //   DELETE /render/:id   → remove a render (doc + audio)
 
 const express = require('express');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
+const FormData = require('form-data');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -39,6 +42,16 @@ const path = require('path');
 const COL = 'forge-voicelab';
 const STORAGE_FOLDER = 'voice-lab';
 const MODEL_ID = 'eleven_multilingual_v2';
+// The voice CHANGER (Aug 2026, Sophie: "a separate hairline tab… a place to
+// record a voice or an option to upload a file or Voice Memo"). Speech to
+// speech keeps the PERFORMANCE — timing, emphasis, where a laugh lands — and
+// swaps only the voice, which is the whole reason it isn't just TTS.
+// `eleven_multilingual_sts_v2` is the v2-family conversion model (verified
+// live against /v1/models: can_do_voice_conversion, 29 languages). There is
+// no v3 here and there must never be — same rule as her TTS.
+const STS_MODEL = 'eleven_multilingual_sts_v2';
+const SOURCE_FOLDER = 'voice-lab/sources';
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 const VOICE_SETTINGS = { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true };
 const MAX_CHARS = 5000;
 const EL_BASE = 'https://api.elevenlabs.io/v1';
@@ -84,10 +97,61 @@ router.get('/status', async (req, res) => {
   res.json(out);
 });
 
-// Only the voices Sophie wants offered right now (Aug 2026: just her new
-// professional clone — she asked for the rest to come off for the time being).
-// To offer more again, add ids here; empty = every non-premade account voice.
-const OFFERED_VOICE_IDS = ['UTkHGl2ImiT6gwtAFCql']; // "Sophie — morning"
+// Only the voices Sophie wants offered right now. Her own clone leads (rank()
+// sorts any /sophie/i name first), then the people she cloned from voicemails
+// and recordings in Aug 2026.
+//
+// Deliberately an explicit ALLOWLIST, not an empty array: empty means "every
+// non-premade account voice", which sweeps in the dozen Voice Library
+// professionals (Jack John, Thorne, Reva…) and the generated ones. Those are
+// noise on a picker whose whole point is HER people. Cloning someone new =
+// add the id here; deleting a voice just drops it from the list on its own,
+// since the account query no longer returns it.
+const OFFERED_VOICE_IDS = [
+  'UTkHGl2ImiT6gwtAFCql', // Sophie — morning (her professional clone)
+  '15zm3wIS3FnEV3LX1Aa5', // Jonathan (annoyed)
+  'XnL2M6RBESG5keWHuX0d', // Michael White
+  'Ai0X93qaXBDloK1HAn87', // Steve Herrington
+  'FuJyIifktGclboKz9PFi', // Miriam
+  'eCJN3vIzJhxIxE216PIO', // Alpha
+  'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
+  'esVJEBbgfINGxR9bUuYQ', // Doug
+  'ws4szZn8cc3SmgDP6TlK', // Gilad
+  'Kvw6tPclr4WMpfwDrCe7', // Richard
+  'RMHCDmd78OJFe4tkgMIM', // Sophie — doctor
+  'ujnBQ7fLtwPbmA1LqLPI', // Richard v2 (separated by loudness)
+  'T9Hb8IjCmtu9eiwmHocH', // Richard v3 (word-exact — pitch AND loudness must agree)
+  'EYB97SPMtZYwRMBdkH7a', // Sophie — doctor v2 (separated by transcript)
+  'ZOw6P0YnswJ6JNjpj9wF', // Steve Ryza (her dad — NOT Steve Herrington, a different person)
+];
+// One flat pastel per person, so the picker is a row of coloured squares she
+// reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
+// Jonathan blue, Sean yellow, Michael purple, the rest my pick). Flat only —
+// no gradients, ever. A voice with no entry falls through to PALETTE by
+// position, so a new clone still gets a colour without an edit here.
+const VOICE_COLORS = {
+  UTkHGl2ImiT6gwtAFCql: '#e0a8c0', // Sophie — morning — pink, and first in line
+  '15zm3wIS3FnEV3LX1Aa5': '#9fbcd8', // Jonathan (annoyed) — blue
+  abAxVEBvVZF5ZLCb4HTw: '#e0c97a', // Sean (mad) — yellow
+  XnL2M6RBESG5keWHuX0d: '#b9a4d4', // Michael White — violet
+  FuJyIifktGclboKz9PFi: '#8f95c9', // Miriam — indigo
+  Ai0X93qaXBDloK1HAn87: '#e6a877', // Steve Herrington — orange
+  eCJN3vIzJhxIxE216PIO: '#a7c4a0', // Alpha — green
+  // Sophie picked the seven above by name; these two are mine for now
+  // ("pick your own colours for now"), kept clear of every one of hers.
+  esVJEBbgfINGxR9bUuYQ: '#c98f86', // Doug — terracotta
+  ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
+  Kvw6tPclr4WMpfwDrCe7: '#a8a49c', // Richard — stone
+  RMHCDmd78OJFe4tkgMIM: '#d9a6b4', // Sophie — doctor — a second pink, next to her own
+  ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate
+  T9Hb8IjCmtu9eiwmHocH: '#6b7379', // Richard v3 — a darker slate, a shade off v1's stone
+  EYB97SPMtZYwRMBdkH7a: '#e3b3bd', // Sophie — doctor v2
+  ZOw6P0YnswJ6JNjpj9wF: '#6f8fa8', // Steve Ryza — steel blue. Deliberately NOT in the orange
+  // family: orange is Steve Herrington, a different man, and pairing the two colours was
+  // the visual version of the mistake that put them in one comparison (Aug 2026).
+};
+const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
+
 // Cached 10 minutes — the list changes when she trains a clone, not per load.
 let voicesCache = { at: 0, list: null };
 router.get('/voices', async (req, res) => {
@@ -106,7 +170,8 @@ router.get('/voices', async (req, res) => {
           .filter((v) => v.category !== 'premade')
           .filter((v) => !OFFERED_VOICE_IDS.length || OFFERED_VOICE_IDS.includes(v.voice_id))
           .map((v) => ({ voiceId: v.voice_id, name: v.name, category: v.category, description: v.description || '' }))
-          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name)),
+          .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+          .map((v, i) => ({ ...v, color: VOICE_COLORS[v.voiceId] || PALETTE[i % PALETTE.length] })),
       };
     }
     res.json({ voices: voicesCache.list });
@@ -152,6 +217,94 @@ async function renderJob(id, voiceId, voiceName, text) {
   }
 }
 
+// ── the voice changer ───────────────────────────────────────────────
+// Her recording in, the same performance in someone else's voice out.
+//
+// The SOURCE is kept, on purpose (Sophie: "the recorded voice will also save
+// to firebase") — it goes to Storage before the conversion is even attempted,
+// so a failed or refused conversion still leaves her the take she recorded.
+async function changeJob(id, voiceId, voiceName, tmp, ext) {
+  const doc = admin.firestore().collection(COL).doc(id);
+  const bucket = admin.storage().bucket();
+  const srcDest = `${SOURCE_FOLDER}/${id}.${ext}`;
+  try {
+    await bucket.upload(tmp, { destination: srcDest, metadata: { contentType: mimeFor(ext) } });
+    await bucket.file(srcDest).makePublic();
+    const sourceUrl = `https://storage.googleapis.com/${bucket.name}/${srcDest}`;
+    await doc.update({ sourceUrl });
+
+    // `form-data` (not the WHATWG FormData) because node-fetch v2 only knows
+    // how to set the multipart boundary for that one; and a STREAM, so a
+    // 25MB memo is never read into memory a second time.
+    const body = new FormData();
+    body.append('model_id', STS_MODEL);
+    body.append('voice_settings', JSON.stringify(VOICE_SETTINGS));
+    body.append('audio', fs.createReadStream(tmp), { filename: `source.${ext}`, contentType: mimeFor(ext) });
+    const audio = await (await elFetch(`/speech-to-speech/${voiceId}?output_format=mp3_44100_192`, {
+      method: 'POST', headers: { accept: 'audio/mpeg' }, body, timeout: 300000,
+    })).buffer();
+    if (!audio.length) throw new Error('ElevenLabs returned empty audio');
+
+    const outTmp = path.join(os.tmpdir(), `${id}-out.mp3`);
+    fs.writeFileSync(outTmp, audio);
+    const dest = `${STORAGE_FOLDER}/${id}.mp3`;
+    await bucket.upload(outTmp, { destination: dest, metadata: { contentType: 'audio/mpeg' } });
+    await bucket.file(dest).makePublic();
+    fs.unlink(outTmp, () => {});
+    await doc.update({
+      status: 'done',
+      url: `https://storage.googleapis.com/${bucket.name}/${dest}`,
+      doneAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    await doc.update({ status: 'failed', error: String(err.message || err).slice(0, 400) }).catch(() => {});
+  } finally {
+    fs.unlink(tmp, () => {});
+  }
+}
+
+function mimeFor(ext) {
+  return { mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', wav: 'audio/wav',
+    webm: 'audio/webm', ogg: 'audio/ogg', caf: 'audio/x-caf', aac: 'audio/aac' }[ext] || 'audio/mpeg';
+}
+
+// Raw body, not base64 in JSON — a voice memo is megabytes and base64 inflates
+// it by a third for no reason (the `audio.js` /upload-file precedent), and XHR
+// can report real progress on a phone this way.
+router.post('/change', express.raw({ type: '*/*', limit: '26mb' }), async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    if (!elKey()) return res.status(503).json({ error: 'ELEVENLABS_API_KEY is not set' });
+    const voiceId = String(req.query.voiceId || '').trim();
+    const voiceName = String(req.query.voiceName || '').slice(0, 120);
+    const name = String(req.query.name || '').slice(0, 200);
+    const ext = String(req.query.ext || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp3';
+    if (!/^[A-Za-z0-9]{10,40}$/.test(voiceId)) return res.status(400).json({ error: 'voiceId required' });
+    const buf = req.body;
+    if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ error: 'send the audio as the request body' });
+    if (buf.length > MAX_SOURCE_BYTES) {
+      return res.status(413).json({ error: `that recording is ${(buf.length / 1048576).toFixed(1)}MB — the cap is 25MB` });
+    }
+    const id = `vl${crypto.randomBytes(6).toString('hex')}`;
+    // Written to disk BEFORE the response, so the background job never holds
+    // the whole recording in memory alongside the next request's.
+    const tmp = path.join(os.tmpdir(), `${id}.${ext}`);
+    fs.writeFileSync(tmp, buf);
+    await admin.firestore().collection(COL).doc(id).set({
+      id, kind: 'sts', voiceId, voiceName,
+      text: name || 'a recording',
+      sourceName: name, sourceExt: ext, bytes: buf.length,
+      model: STS_MODEL,
+      status: 'rendering',
+      createdAt: new Date().toISOString(),
+    });
+    changeJob(id, voiceId, voiceName, tmp, ext); // fire and forget — the doc is the state
+    res.json({ id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/render', express.json({ limit: '1mb' }), async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
@@ -191,9 +344,15 @@ router.get('/render/:id', async (req, res) => {
 
 router.get('/history', async (req, res) => {
   try {
+    // Filtered in MEMORY, not in the query: `kind` only exists on docs written
+    // since the changer shipped, so a where() would silently hide every render
+    // she made before it. Absent means 'tts' — that is what they all were.
+    const kind = String(req.query.kind || '').trim();
     const snap = await admin.firestore().collection(COL)
-      .orderBy('createdAt', 'desc').limit(30).get();
-    res.json({ renders: snap.docs.map((d) => d.data()) });
+      .orderBy('createdAt', 'desc').limit(kind ? 90 : 30).get();
+    let rows = snap.docs.map((d) => d.data());
+    if (kind) rows = rows.filter((r) => (r.kind || 'tts') === kind).slice(0, 30);
+    res.json({ renders: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

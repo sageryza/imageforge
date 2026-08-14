@@ -58,13 +58,20 @@
 //   GET  /reindex         → { job } — poll the rebuild
 //   POST /embed           → embed every passage for meaning search (~$0.05,
 //                           background job); GET /embed reports state+staleness
+//   GET  /clip-span?src=&t0=&t1=
+//                         → cut an EXACT span to mp3, once, and bank it —
+//                           what the shared cut picker's play buttons call
 //   GET  /audio/:id       → stream one memo's audio (range-capable)
 //   POST /to-editor       → { src, timeSec, text, episodeId?, episodeTitle? }
 //                           → a snippet card in the Episode Editor
+//   POST /picks-to-editor → { src, title?, picks:[{text, timeSec, name?}] }
+//                           → ONE new episode holding every pick, in order —
+//                           the cut picker's send button
 //   POST /to-cutroom      → { src } → { url } to open in the Cutting Room
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -823,6 +830,243 @@ router.get('/clip', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ─── exact spans, for the shared cut picker ─────────────────────────
+// GET /clip-span?src=&t0=&t1= — cut EXACTLY [t0, t1] of a source to mp3,
+// once, and bank it. This is what makes a pick on a Compare-page cut picker
+// (public/picker.js) playable the moment she makes it, instead of waiting for
+// a chat to wake up and render — the whole pain the four cutting chats shared
+// (Aug 2026). Same background-job + immutable-cache pattern as /clip above;
+// same transcoder (editor.extractWindow) underneath.
+//
+// `src` is either an indexed interview id (resolved through the search index,
+// like /clip) or a full https URL — but URLs are restricted to this app's own
+// Storage hosts. This route runs ffmpeg against whatever it is handed, so an
+// open "fetch any URL" would let anyone burn the instance's CPU on arbitrary
+// files; every audio source a picker legitimately plays already lives in
+// Storage.
+const SPAN_MAX_SEC = 180;      // a pick is a passage, not a download service
+const spanOkUrl = (u) => {
+  try {
+    const p = new URL(u);
+    return p.protocol === 'https:' &&
+      (p.hostname === 'storage.googleapis.com' ||
+       p.hostname === 'firebasestorage.googleapis.com' ||
+       p.hostname.endsWith('.firebasestorage.app'));
+  } catch (_) { return false; }
+};
+
+router.get('/clip-span', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const src = String(req.query.src || '');
+    // hundredth-of-a-second grid so equal asks share one cache object
+    const t0 = Math.max(0, Math.round((Number(req.query.t0) || 0) * 100) / 100);
+    const t1 = Math.round((Number(req.query.t1) || 0) * 100) / 100;
+    if (!src) return res.status(400).json({ error: 'src required' });
+    if (!(t1 > t0)) return res.status(400).json({ error: 't1 must be after t0' });
+    if (t1 - t0 > SPAN_MAX_SEC) return res.status(400).json({ error: `span is capped at ${SPAN_MAX_SEC}s` });
+
+    let url = src;
+    if (!/^https?:\/\//.test(src)) {
+      const index = await loadIndex();
+      const source = index.sources[`v:${src}`];
+      if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+      url = source.audioUrl;
+    } else if (!spanOkUrl(src)) {
+      return res.status(400).json({ error: 'src must be a Storage url or an indexed recording id' });
+    }
+
+    const key = crypto.createHash('sha1').update(url).digest('hex').slice(0, 12);
+    const dest = `${CLIP_PREFIX}span-${key}-${Math.round(t0 * 100)}-${Math.round(t1 * 100)}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(503).json({ error: 'Storage unavailable' });
+    const [exists] = await b.file(dest).exists();
+    if (exists) return res.json({ status: 'ready', url: publicUrl(dest) });
+
+    const state = clipJobs.get(dest);
+    if (state && state.error) { clipJobs.delete(dest); return res.json({ status: 'failed', error: state.error }); }
+    if (state) return res.json({ status: 'making' });
+
+    clipJobs.set(dest, 'making');
+    (async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'span-clip-'));
+      const out = path.join(dir, 'clip.mp3');
+      try {
+        await editor.extractWindow(url, t0, t1 - t0, out, { log: [], dir, downloads: new Map() });
+        await editor.uploadPublic(out, dest, 'audio/mpeg', 'public, max-age=31536000, immutable');
+        clipJobs.delete(dest);
+      } catch (err) {
+        console.warn('span clip failed:', err.message);
+        clipJobs.set(dest, { error: err.message });
+      } finally {
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+      }
+    })();
+    res.json({ status: 'making' });
+  } catch (err) { fail(res, err); }
+});
+
+// ─── a clip of PICKED WORDS from one hit ────────────────────────────
+// Sophie's ask (Aug 2026): "if I just want one clip and not the whole
+// recording… pick the words from that step." Tap first/last word on a hit's
+// passage → this cuts JUST that span, word-precisely, without opening (or
+// transcribing) the whole recording. Cutting per the sophie-audio skill: an
+// INTERVIEW goes through editor.buildClip (fresh window listen + snap + the
+// loudnorm every episode clip gets, banked in the clip cache); a MEMO is HER
+// VOICE, never loudnormed — same fresh listen + snap, micro-fades only. Memo
+// bytes aren't public, so that path downloads the file server-side; its
+// anchor is estimated proportionally from the chunk's place in the
+// transcript (memo chunks carry no clock), and the listen window slides once
+// each way if the phrase isn't where the estimate said.
+const WORDS_MAX = 400; // a pick is a passage, not a chapter
+router.post('/clip-words', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const srcId = String(req.body.src || '');
+    const text = String(req.body.text || '').replace(/\s+/g, ' ').trim();
+    const chunkText = String(req.body.chunk || '');
+    const timeSec = Number(req.body.timeSec);
+    if (!srcId || !text) return res.status(400).json({ error: 'src and text required' });
+    if (text.split(' ').length > WORDS_MAX) return res.status(400).json({ error: 'that span is too long for a clip' });
+    const index = await loadIndex();
+    const source = index.sources[`v:${srcId}`] || index.sources[`m:${srcId}`];
+    if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+
+    const key = crypto.createHash('sha1')
+      .update(`v3|${source.k}:${srcId}|${editor.normWords(text).join(' ')}`)
+      .digest('hex').slice(0, 16);
+    const dest = `${CLIP_PREFIX}words-${key}.mp3`;
+    const b = bucket();
+    if (!b) return res.status(503).json({ error: 'Storage unavailable' });
+    const [exists] = await b.file(dest).exists();
+    if (exists) return res.json({ status: 'ready', url: publicUrl(dest) });
+
+    const state = clipJobs.get(dest);
+    if (state && state.error) { clipJobs.delete(dest); return res.json({ status: 'failed', error: state.error }); }
+    if (state) return res.json({ status: 'making' });
+    clipJobs.set(dest, 'making');
+    (async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'words-clip-'));
+      try {
+        let out;
+        if (source.k === 'nde') {
+          const anchor = Number.isFinite(timeSec) ? Math.max(0, timeSec) : 0;
+          const estLen = Math.max(3, editor.normWords(text).length / 2.6);
+          const winDur = Math.min(300, estLen + 90);
+          const win = path.join(dir, 'win.mp3');
+          await editor.extractWindow(source.audioUrl, Math.max(0, anchor - 12), winDur, win, { log: [], dir, downloads: new Map() });
+          out = await cutInWindow(win, winDur, text, dir, true);
+          if (!out) throw new Error("couldn't find those words in the interview");
+        } else {
+          out = await cutMemoWords(srcId, text, chunkText, dir);
+        }
+        await editor.uploadPublic(out, dest, 'audio/mpeg', 'public, max-age=31536000, immutable');
+        clipJobs.delete(dest);
+      } catch (err) {
+        console.warn('words clip failed:', err.message);
+        clipJobs.set(dest, { error: err.message });
+      } finally {
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+      }
+    })();
+    res.json({ status: 'making' });
+  } catch (err) { fail(res, err); }
+});
+
+// Locate the pick in FRESH window words. The pick's text comes from the
+// INDEX transcript while the window is a fresh listen, and the two can
+// disagree on an edge word — phraseSpan trims unmatched EDGE words as
+// "never said" (its own earned rule), which cross-transcript would silently
+// cut real picked words off. So each edge anchors on its own sub-phrase,
+// and edge words the fresh pass heard differently are reclaimed BY POSITION
+// — they exist in the audio as some word; clampBounds + the silence snap
+// tidy any overshoot.
+// The pick tokens are AUDIO-SHAPED — one token per spoken word, the first
+// normWords piece — because phraseSpan maps each audio word to ONE token
+// while normWords splits a contraction ("it's" → it, s): raw normWords made
+// the pick count overshoot the audio span and the reclaim pulled in a stray
+// word before the pick (measured live, Aug 2026: "now it's verified…"
+// opened on the "but" before it).
+function edgeSpan(words, text) {
+  const pw = String(text).split(/\s+/).map((w) => editor.normWords(w)[0]).filter(Boolean);
+  const full = editor.phraseSpan(words, text);
+  if (pw.length <= 9) return full;
+  const headN = 6; const tailN = 6;
+  const head = editor.phraseSpan(words, pw.slice(0, headN).join(' '));
+  const tail = editor.phraseSpan(words, pw.slice(-tailN).join(' '));
+  if (head && tail && tail.end >= head.start
+      && (tail.end - head.start) <= pw.length * 1.8 + 10) {
+    const start = Math.max(0, head.start - Math.max(0, headN - (head.end - head.start + 1)));
+    const end = Math.min(words.length - 1, tail.end + Math.max(0, tailN - (tail.end - tail.start + 1)));
+    return { start, end, score: Math.min(head.score, tail.score) };
+  }
+  return full;
+}
+
+// One window → one precise cut (or null when the words aren't in it).
+// loudnorm only for interview audio — a memo is her voice and keeps its own
+// dynamics (micro-fades only).
+async function cutInWindow(win, winDur, text, dir, loudnormFlag) {
+  let words;
+  try { words = await editor.whisperWords(win); } catch { return null; }
+  const span = edgeSpan(words, text);
+  if (!span) return null;
+  let [rs, re] = editor.clampBounds(words, span.start, span.end);
+  const nxt = words.find((w) => w.start > re + 0.02);
+  const silences = await editor.detectSilences(win);
+  [rs, re] = editor.snapToSilence(rs, re, silences, nxt ? nxt.start : null);
+  rs = Math.max(0, rs); re = Math.min(winDur, re);
+  const cut = path.join(dir, `cut-${Math.round(rs * 10)}.mp3`);
+  await editor.run(editor.FFMPEG, ['-y', '-ss', String(rs), '-to', String(re), '-i', win, '-c:a', 'libmp3lame', '-q:a', '3', cut], 180000);
+  const out = path.join(dir, `clip-${Math.round(rs * 10)}.mp3`);
+  const af = (loudnormFlag ? 'loudnorm=I=-16:TP=-1.5:LRA=11,' : '')
+    + 'afade=t=in:d=0.03,areverse,afade=t=in:d=0.10,areverse';
+  await editor.run(editor.FFMPEG, ['-y', '-i', cut, '-af', af,
+    '-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '2', out], 180000);
+  return out;
+}
+
+// Her voice: fresh-listen precision, NO loudnorm (micro-fades only).
+async function cutMemoWords(memoId, text, chunkText, dir) {
+  const local = path.join(dir, 'memo-src');
+  const memo = await memos.memoAudioToFile(memoId, local);
+  const dur = Number(memo.dur) || (await editor.audioDuration(local)) || 0;
+  if (!dur) throw new Error("couldn't read the recording's length");
+  const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  const t = collapse(memo.transcript || '');
+  let frac = 0;
+  const probe = collapse(chunkText || text).slice(0, 160);
+  if (t && probe) {
+    const at = t.indexOf(probe);
+    if (at >= 0) frac = at / t.length;
+  }
+  const estLen = Math.max(3, editor.normWords(text).length / 2.6);
+  const winDur = Math.min(240, estLen + 120);
+  const base = Math.max(0, Math.min(Math.max(0, dur - 5), frac * dur - 30));
+  const tries = [...new Set([base, Math.max(0, base - winDur + 40), Math.min(Math.max(0, dur - winDur), base + winDur - 40)])];
+  for (const winStart of tries) {
+    const win = path.join(dir, `w-${Math.round(winStart)}.mp3`);
+    await editor.run(editor.FFMPEG, ['-y', '-ss', String(winStart), '-t', String(winDur), '-i', local, '-ac', '1', '-c:a', 'libmp3lame', '-q:a', '3', win], 300000);
+    const out = await cutInWindow(win, winDur, text, dir, false);
+    if (out) return out;
+  }
+  throw new Error("couldn't find those words in the recording — open it in the Cutting Room instead");
+}
+
+// A finished clip as a same-origin ATTACHMENT (the download button — the
+// Storage url alone just plays inline). Restricted to search-clips objects.
+router.get('/clip-file', async (req, res) => {
+  try {
+    let p = '';
+    try { p = decodeURIComponent(new URL(String(req.query.u || '')).pathname).replace(/^\/[^/]+\//, ''); } catch { /* not a url */ }
+    if (!p.startsWith(CLIP_PREFIX)) return res.status(400).json({ error: 'not a search clip' });
+    const name = String(req.query.n || 'clip').replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'clip';
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Disposition', `attachment; filename="${name}.mp3"`);
+    bucket().file(p).createReadStream().on('error', () => { try { res.destroy(); } catch { /* closed */ } }).pipe(res);
+  } catch (err) { fail(res, err); }
+});
+
 // One memo's audio. See the header — this serves ANY category, unlike
 // /api/memos/audio/:id which is dream-only; both sit behind the studio gate.
 router.get('/audio/:id', async (req, res) => {
@@ -857,6 +1101,44 @@ router.post('/to-editor', async (req, res) => {
       experiencer: source.who || source.title,
     });
     res.json({ ok: true, ...out });
+  } catch (err) { fail(res, err); }
+});
+
+// A whole SET of picks → one new episode (Aug 2026, Sophie: "let's
+// definitely add a send to episode thingy"). The cut picker's send button
+// posts every pick in her order; each becomes a snippet card in ONE fresh
+// episode, in that order, and the editor re-cuts them natively — narration
+// cards, gaps and the render all live there. A new send makes a NEW episode
+// on purpose (the new-version-is-a-new-thing house rule); an unwanted one is
+// one delete in the editor.
+router.post('/picks-to-editor', async (req, res) => {
+  try {
+    const src = String(req.body.src || '');
+    const title = String(req.body.title || '').trim().slice(0, 120) || 'From the cut picker';
+    const picks = Array.isArray(req.body.picks) ? req.body.picks.slice(0, 80) : [];
+    if (!src) return res.status(400).json({ error: 'src required' });
+    if (!picks.length) return res.status(400).json({ error: 'no picks to send' });
+    const index = await loadIndex();
+    const source = index.sources[`v:${src}`];
+    if (!source) return res.status(404).json({ error: 'that recording is not in the index' });
+    let epId = null, out = null;
+    for (const p of picks) {
+      const text = String(p.text || '').trim();
+      if (!text) continue;
+      out = await editor.addExternalSnippet({
+        episodeId: epId,
+        episodeTitle: title,
+        name: String(p.name || '').trim() || undefined,
+        videoId: src,
+        audioUrl: source.audioUrl,
+        text,
+        timeSec: Number(p.timeSec) || 0,
+        experiencer: source.who || source.title,
+      });
+      epId = out.id;
+    }
+    if (!out) return res.status(400).json({ error: 'no usable picks' });
+    res.json({ ok: true, id: out.id, title: out.title, count: picks.length });
   } catch (err) { fail(res, err); }
 });
 

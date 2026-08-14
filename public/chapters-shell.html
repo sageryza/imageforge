@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- ===========================================================================
+     THE CHAPTERS PAGE SHELL — cataloguing a long chat (Aug 2026, Sophie).
+
+     Copy this file, fill in the chapters, POST it like any Compare page:
+
+       POST /api/chatfeed/page  { chat: "<your-chat-name>", title: "…", html }
+
+     WHAT IT IS: a long chat divided into what it actually WAS, so she can go
+     back to any piece of it. Two axes, both hers:
+
+       VERTICAL   the chapters — the research at the start, then each thing
+                  made, with any big stretch of experimentation as its own
+                  chapter. Accordion: opening one collapses the rest.
+       HORIZONTAL progressive expansion / contraction inside a chapter —
+                  1 gist (refresh my memory) → 2 deeper (what was decided and
+                  built) → 3 raw (the ACTUAL messages of that stretch).
+
+     LEVEL 3 IS THE POINT. Slice the real transcript
+     (/root/.claude/projects/<project>/<session>.jsonl) — her `user` records
+     and the assistant's text blocks, in order, verbatim. A catalog she can't
+     verify is a story about the work, not a record of it. Never write level 3
+     from memory, and never paraphrase a message into it.
+
+     WRITING THE LEVELS: level 1 is one short paragraph. Level 2 is a few
+     short lines — what was decided, what shipped, what rule came out of it —
+     not a transcript retelling. Name the real numbers and the real outcomes;
+     that is what makes a catalog worth reopening.
+
+     Everything a Compare page needs still applies (see compare-shell.html):
+     the pill is injected by the server; /compare.css carries its tokens;
+     /compare.js carries tap-pauses-scroll + the lightbox; wrap your script in
+     an IIFE. The chapter list marks itself [data-nostop], so taps on it pause
+     a running autoscroll but never start one.
+=========================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chat name — the chapters</title>
+<link rel="stylesheet" href="/compare.css">
+
+<div class="wrap">
+  <div class="eyebrow">CHAT NAME · DATE RANGE</div>
+  <h1>The chapters</h1>
+  <div class="sub">One line saying what this chat was.</div>
+  <div id="chapters"></div>
+</div>
+
+<script src="/compare.js"></script>
+<script src="/chapters.js"></script>
+<script>
+(function () {
+  window.__chapters({
+    chat: 'your-chat-name',
+    sheet: 'chapters',          // her note per chapter lands on this verdict doc
+    chapters: [
+      {
+        id: 'research',
+        title: 'What the chapter was',
+        when: 'Jul 28',
+        l1: 'One short paragraph: enough to remember what this stretch was.',
+        l2: [
+          'What was decided.',
+          'What shipped, with the real numbers.',
+          'The rule that came out of it, if one did.'
+        ],
+        msgs: [
+          { who: 'sophie', at: '2026-07-28T18:25:00Z', text: 'her message, verbatim' },
+          { who: 'claude', at: '2026-07-28T18:26:00Z', text: 'the reply, verbatim' }
+        ]
+      }
+    ]
+  });
+})();
+</script>

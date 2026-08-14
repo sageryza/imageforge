@@ -10,6 +10,8 @@
  *      unconditional stop repaints the glyphs mid-press and eats the click)
  *   3. opening an image stops the scroll, locks the page, and closing restores
  *      the exact scroll position
+ * plus the note box, the film row, and the "?" that holds anything a page
+ * would otherwise print as instructions down its top.
  *
  * Uses headless Chromium directly (no playwright dependency): it serves the
  * page, runs an in-page script that drives the taps, and the page POSTs its
@@ -52,6 +54,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>pending</title>
   <div class="imgrow">
     <img id="pic" alt="a" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23c99'/%3E%3C/svg%3E">
   </div>
+  <div id="film"></div>
   ${'<div class="card"><p>more filler</p></div>'.repeat(60)}
 </div>
 <script src="/compare.js"></script>
@@ -99,17 +102,86 @@ __PILL__
     var opener = note && note.querySelector('.cmp-note-open');
     var box = note && note.querySelector('.cmp-note-box');
     ok(!!(note && opener && box), 'every [data-item] gets a note box');
+    // the affordance is a small + pinned in the item's corner and costs the
+    // page no height (Sophie, Aug 2026) — the opener stays visible when open
+    var ob = opener && opener.getBoundingClientRect();
+    var hb = host && host.getBoundingClientRect();
+    ok(!!ob && ob.width <= 26 && ob.height <= 26 &&
+       getComputedStyle(opener).position === 'absolute',
+       'the note affordance is a small + in the corner');
+    // BOTTOM-right, not top (Sophie, Aug 2026: "put the plus for a note at
+    // the bottom not the top")
+    ok(!!ob && ob.bottom > hb.bottom - 26 && ob.right > hb.right - 26,
+       'the + is in the BOTTOM-right corner');
+    ok(note && note.getBoundingClientRect().height < 1, 'a collapsed note costs no height');
     if (opener) opener.click();
-    ok(note && note.classList.contains('open') && opener.hidden, 'tapping "+ note" opens the box');
+    ok(note && note.classList.contains('open') && !opener.hidden, 'tapping the + opens the box');
     if (box) {
       box.value = 'this one drifts';
       box.dispatchEvent(new Event('blur'));           // blur flushes immediately
     }
+    // a written note SHOWS as her words, folded out of the textarea (Sophie,
+    // Aug 2026: "if I left a note, make it show"), as a tagged message in the
+    // thread — never as raw text she would have to edit around
+    var shown = note && note.querySelector('.cmp-note-text');
+    var msg = shown && shown.querySelector('.cmp-msg.me .cmp-msg-t');
+    ok(!!msg && note.classList.contains('has') && !note.classList.contains('open') &&
+       msg.textContent === 'this one drifts' &&
+       getComputedStyle(box).display === 'none',
+       'a written note shows as her words, not as an open textarea');
     setTimeout(function () {
       var p = posts.filter(function (x) { return x.u.indexOf('/api/chatfeed/verdict') === 0; }).pop();
       var body = p ? JSON.parse(p.b) : null;
-      ok(!!body && body.text === 'this one drifts' && body.item === 'thing-1' && body.ok === undefined,
+      // saved as a tagged message, so hers and the chat's never merge into
+      // one paragraph she has to type inside of
+      ok(!!body && body.text === '— me: this one drifts' && body.item === 'thing-1' && body.ok === undefined,
          'a note saves to the verdict doc as text, leaving the vote alone');
+
+      // 5. the FILM ROW — a line of text with a play button, never a <video>
+      // parked in the page (Sophie, Aug 2026). Same overlay contract as an
+      // image, plus the video must be torn down so it can't play on behind.
+      window.__filmRow({ url: '/nope.mp4', label: 'the cut', meta: '4:56', mount: '#film' });
+      var row = document.querySelector('#film .cmp-film');
+      ok(!!row && row.tagName === 'BUTTON' && !document.querySelector('.wrap video'),
+         'the film row is a play button, not an embedded video');
+      window.scrollTo(0, 700);
+      var fy = window.scrollY;
+      window.__scrollStart(1);
+      row.click();
+      var v = document.querySelector('.cmp-vlb video');
+      ok(!!v && !document.querySelector('.cmp-vlb').hasAttribute('hidden')
+         && document.body.style.overflow === 'hidden'
+         && !document.querySelector('.vseg button.on'),
+         'the film opens over the page, scroll stopped and locked');
+      window.scrollBy(0, 300);
+      document.querySelector('.cmp-vlb').click();      // backdrop closes it
+      ok(Math.abs(window.scrollY - fy) < 2 && document.body.style.overflow === ''
+         && !v.getAttribute('src'),
+         'closing restores the position and tears the video down');
+
+      // 6. THE "?" — the one place instructions may live (Sophie, Aug 2026:
+      // "they can put it behind a ? so I can tap it if I don't know what's
+      // going on"). It rides on the title, clear of the pill's corner, and
+      // the card FLOATS so opening it can't push the page down under her.
+      var yBefore = document.body.scrollHeight;
+      window.__compareHelp({ html: '<b>What this is.</b> One line.' });
+      var q = document.querySelector('.cmp-help');
+      var qb = q && q.getBoundingClientRect();
+      ok(!!q && q.parentNode === document.querySelector('h1') && qb.right < 324,
+         'the "?" rides on the title, clear of the pill corner');
+      var card = document.querySelector('.cmp-helpcard');
+      ok(!!card && card.hidden, 'the card starts closed — nothing to read until she asks');
+      q.click();
+      ok(card && !card.hidden && getComputedStyle(card).position === 'fixed'
+         && document.body.scrollHeight === yBefore,
+         'tapping it floats the card without moving the page');
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      ok(card && card.hidden, 'a tap anywhere puts it away');
+      window.__compareHelp({ html: 'again' });
+      ok(document.querySelectorAll('.cmp-help').length === 1
+         && document.querySelectorAll('.cmp-helpcard').length === 1,
+         'calling it twice replaces, never stacks');
+
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
     }, 120);
   }, 400);

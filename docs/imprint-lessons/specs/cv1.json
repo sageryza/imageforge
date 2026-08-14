@@ -1,0 +1,6 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "cv-keepout", "prompt": "A single closed wooden door with a large sturdy padlock locking it shut, and a hand raised flat, palm-out, in front of the door in a clear 'stop, do not enter' gesture — private, keep out. Simple and iconic, one clear subject, generous cream space. Flat house colors, bold outlines. No text, no letters, no numbers." }
+  ]
+}

@@ -31,6 +31,47 @@
      Layout notes: mobile first; images in ROWS OF TWO (`.imgrow`), never one
      full-width image per row. Skeleton blocks live at the top of compare.css.
      Notes she types here must go to POST /api/chatfeed/verdict, never /reply.
+
+     DELIVERING A FILM? It is a LINE OF TEXT WITH A PLAY BUTTON at the TOP of
+     the page — never an embedded <video> (Aug 2026, Sophie: "never put a
+     whole video when it's gonna be opened as a lightbox anyway… so I don't
+     just scroll through the whole thing"). A player parked at the top is a
+     black slab she scrolls past every time, and tapping it goes fullscreen
+     regardless. One line, and the overlay contract comes with it:
+
+         <div id="film"></div>
+         window.__filmRow({ url: '…/cut-v2.mp4', label: 'Mason — the shape',
+                            meta: '4:56', mount: '#film' });
+
+     THE FOUR RULES SHE HAS ASKED FOR OVER AND OVER (Aug 2026). Every one of
+     them is about the same thing: the page is a place to LOOK at the work,
+     not to read about it.
+
+     1. THE TITLE, ONCE, AND NOTHING ABOVE IT. No eyebrow chat/date line, no
+        tagline under it. Straight from the <h1> into the thing. (Inside a
+        native tool the nav bar already carries the name — then the page does
+        not repeat it at all.)
+     2. NO INSTRUCTIONS ON THE PAGE. If the page needs explaining, it goes
+        BEHIND A "?": window.__compareHelp({ html: '…' }) puts the circle on
+        the title and floats the card on a tap. "That's a much better idea."
+     3. TEXT BOXES SHIP EMPTY — no example text, not even as a placeholder.
+        An example she has to clear is work. If one is truly needed, it goes
+        behind the "?" too.
+     4. A BUTTON IS ONLY AS WIDE AS ITS WORDS. Never full-width, never
+        `flex:1` — "there's no reason to make buttons longer than they need
+        to be to hold the text."
+
+     MINIMAL TEXT (asked for on page after page): this is a VISUAL reference,
+     not an extension of the chat. Title, labels on the pictures — no
+     paragraphs, no recap of the conversation. She knows what's going on from
+     the chat.
+
+     THE THINGS BEING COMPARED SIT SIDE BY SIDE — never stacked so she
+     scrolls between them. Use `.duo` (labels ON TOP: "medium" / "high") for
+     every A-vs-B pair; `.imgrow` is for plain sets that aren't versus.
+
+     Picking/choosing across a set instead of reading a comparison? That is
+     the JUDGE page — start from judge-shell.html, not this file.
 =========================================================================== -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -38,19 +79,30 @@
 <link rel="stylesheet" href="/compare.css">
 
 <div class="wrap">
-  <div class="eyebrow">CHAT NAME · DATE</div>
+  <!-- THE TITLE AND NOTHING ELSE AT THE TOP (Aug 2026, Sophie): no eyebrow
+       chat/date line, no tagline, and no how-to-use lines under it — those
+       go behind the "?" at the bottom of this file. Straight from the title
+       into the thing.
+       And PREFER NOT SCROLLING — if the page carries two different kinds of
+       thing (a picture and its inputs, a shape and the buttons that drive
+       it), split them with the .acctabs hairline tabs instead of stacking
+       them down the page. -->
   <h1>Title states the version and what it is</h1>
-  <div class="sub">One line on what she is looking at and what to decide.</div>
 
   <!-- Every REVIEWABLE item carries data-item="<id>" — that is all it takes
        to get a note box on it (wired at the bottom). -->
   <div class="card" data-item="thing-1">
-    <h2>A section</h2>
-    <p>Prose goes here.</p>
-    <!-- Images two to a row. Tapping one opens the lightbox — no wiring needed. -->
+    <h2>A short label, not a paragraph</h2>
+    <!-- An A-vs-B pair is a .duo: side by side, labels ON TOP. Tapping an
+         image opens the lightbox — no wiring needed. -->
+    <div class="duo">
+      <figure><span class="tag">medium</span><img src="https://…/one-med.webp" alt="Penny — medium"></figure>
+      <figure><span class="tag">high</span><img src="https://…/one-high.webp" alt="Penny — high"></figure>
+    </div>
+    <!-- A plain set (not versus) is an .imgrow, two to a row. -->
     <div class="imgrow">
-      <img src="https://…/one.png" alt="what this one is">
-      <img src="https://…/two.png" alt="what this one is">
+      <img src="https://…/one.webp" alt="what this one is">
+      <img src="https://…/two.webp" alt="what this one is">
     </div>
   </div>
 </div>
@@ -63,6 +115,11 @@
   // types, reloads what she wrote last time, and survives leaving the page.
   // Add this to EVERY page with reviewable items (Sophie's standing rule).
   window.__compareNotes({ chat: 'CHAT NAME', sheet: 'SHEET NAME' });
+
+  // THE "?" — the ONLY place instructions may live. Delete this call if the
+  // page needs no explaining (most don't); never put the words on the page.
+  window.__compareHelp({ html: '<b>What this is.</b> One or two sentences, '
+    + 'only if the page genuinely needs them.' });
 
   // Votes, if the page has them. A Compare page must NEVER post to
   // /api/chatfeed/reply — what she writes here is not a chat message, and the

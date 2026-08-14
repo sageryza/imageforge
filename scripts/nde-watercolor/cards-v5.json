@@ -1,0 +1,29 @@
+[
+ {
+  "id": "card-barker-v5",
+  "quality": "medium",
+  "refs": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/barker.png"
+  ],
+  "likeness": "The SECOND attached image is a photograph of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, against a plain off-white paper background. No text or lettering anywhere."
+ },
+ {
+  "id": "card-wright-v5",
+  "quality": "medium",
+  "refs": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/wright.jpg"
+  ],
+  "likeness": "The SECOND attached image is a photograph of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer, against a plain off-white paper background. No text or lettering anywhere."
+ },
+ {
+  "id": "card-hugenot-v5",
+  "quality": "medium",
+  "refs": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/people/hugenot.jpg"
+  ],
+  "likeness": "The SECOND attached image is a photograph of the person to draw.",
+  "scene": "a head-and-shoulders portrait of that person drawn as he was at seventeen, a teenage boy, facing the viewer, against a plain off-white paper background. No text or lettering anywhere."
+ }
+]

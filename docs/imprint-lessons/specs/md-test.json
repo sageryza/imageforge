@@ -1,0 +1,4 @@
+{ "refs": ["storage:witch-school/refs/style-1.png","storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id":"md-bubble-test", "char": true, "prompt":"The recurring woman gently blowing one big glowing soap bubble from a bubble wand, a fresh idea taking shape inside the shimmering bubble as it grows. A bubble wand, not a pump." }
+  ] }

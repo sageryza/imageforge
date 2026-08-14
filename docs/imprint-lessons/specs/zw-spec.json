@@ -1,0 +1,9 @@
+{
+  "refs": ["storage:witch-school/refs/style-1.png", "storage:witch-school/refs/style-2.png"],
+  "cards": [
+    { "id": "zw-wheels", "prompt": "A clean flat diagram of two nested circular wheels, one wheel inside the other, each wheel divided into twelve equal pie-slice wedges by simple thin black spokes radiating from the center. The outer ring and the inner ring read as two separate concentric wheels that could turn independently. A tiny four-point star sits at the very center. Plain empty wedges only — absolutely no symbols, no glyphs, no zodiac signs, no pictures inside the wedges. One clear centered subject." },
+    { "id": "zw-spin", "prompt": "A single simple planet Earth drawn as a flat round globe with soft golden-yellow continents on a salmon-and-orange sphere, and one bold black curved arrow looping around it to show it spinning on its own axis. Just the Earth and the one rotation arrow, centered, lots of empty cream space. One clear subject." },
+    { "id": "zw-orbit", "prompt": "A simple flat diagram: a golden-yellow sun with a small four-point-star sparkle at its center in the middle, and one small planet Earth traveling along a thin black circular orbit line that loops around the sun, with a single bold arrow on the orbit path showing the direction of travel. Only two objects — the sun in the middle and the little earth on its ring. Centered, generous cream space." },
+    { "id": "zw-bind", "char": true, "prompt": "The woman seen from behind, drawn small along the bottom, gazing up at two large nested wheels turning in a dark starry night sky above her: the dark sky is broken into pie-slice wedges that resolve into two clean concentric rings of wedges. A golden crescent moon and small scattered four-point stars fill the dark sky. She looks calm and wondering. The two wheels up in the night sky are the clear main subject." }
+  ]
+}

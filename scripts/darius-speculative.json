@@ -1,0 +1,177 @@
+{
+  "_note": "The transcript pass Sophie asked for on the SPECULATIVE video — the tunnels, the seven (actually twelve) heavens, and the rest of the edgy material. Quotes are extracted VERBATIM from the banked captions by scripts/build-darius-pages.js; nothing here is retyped. `draw` is a one-line note on what the picture would be, since the point of the video is letting people envision it.",
+  "title": "The speculative pass — what Darius actually says (v1)",
+  "sheet": "darius-speculative-v1",
+
+  "groups": [
+    {
+      "id": "s-heavens",
+      "label": "Twelve heavens, not seven — and he names the ladder",
+      "draw": "A vertical stack of twelve, each rung labelled in his own words.",
+      "quotes": [
+        { "src": "D1", "t0": 1272, "t1": 1336 },
+        { "src": "D2", "t0": 448, "t1": 492 }
+      ]
+    },
+    {
+      "id": "s-dna",
+      "label": "Twelve-strand DNA, and the 'junk' that isn't",
+      "draw": "Two helices beside twelve; the greyed-out stretch lighting up.",
+      "quotes": [
+        { "src": "D1", "t0": 1248, "t1": 1276 },
+        { "src": "D2", "t0": 1272, "t1": 1300 }
+      ]
+    },
+    {
+      "id": "s-oneevent",
+      "label": "The fall, the flood, the war in heaven — one event, not many",
+      "draw": "Four familiar catastrophe pictures collapsing into a single frame.",
+      "quotes": [
+        { "src": "D1", "t0": 1490, "t1": 1524 },
+        { "src": "D2", "t0": 1140, "t1": 1184 }
+      ]
+    },
+    {
+      "id": "s-recent",
+      "label": "It happened 500 to 2,500 years ago, not in deep time",
+      "draw": "A timeline concertina-ing shut — the ancient world sliding up close.",
+      "quotes": [
+        { "src": "D2", "t0": 1156, "t1": 1186 }
+      ]
+    },
+    {
+      "id": "s-giants",
+      "label": "Giants — including one he says was shot in Afghanistan",
+      "draw": "Scale: a human figure against the thing he is describing.",
+      "quotes": [
+        { "src": "D2", "t0": 1096, "t1": 1130 },
+        { "src": "D1", "t0": 1338, "t1": 1352 }
+      ]
+    },
+    {
+      "id": "s-trees",
+      "label": "The mountains are tree stumps",
+      "draw": "A flat-topped mesa with a tree's growth rings across the top. Uluru.",
+      "quotes": [
+        { "src": "D1", "t0": 1344, "t1": 1362 },
+        { "src": "D2", "t0": 1182, "t1": 1202 }
+      ]
+    },
+    {
+      "id": "s-pyramids",
+      "label": "The pyramids were machines — and airports",
+      "draw": "A pyramid drawn as equipment: aligned to stars, wired into the ground.",
+      "quotes": [
+        { "src": "D1", "t0": 1372, "t1": 1436 },
+        { "src": "D2", "t0": 936, "t1": 966 }
+      ]
+    },
+    {
+      "id": "s-tunnels",
+      "label": "The tunnels beneath the pyramids, and the halls of Amenti",
+      "draw": "Cutaway: the pyramid above, the deep shafts and coils below.",
+      "quotes": [
+        { "src": "D2", "t0": 896, "t1": 936 }
+      ]
+    },
+    {
+      "id": "s-underground",
+      "label": "Cities underneath, entrances blocked, mountains that are buried pyramids",
+      "draw": "A grassy hill in cross-section with a pyramid inside it.",
+      "quotes": [
+        { "src": "D2", "t0": 838, "t1": 898 }
+      ]
+    },
+    {
+      "id": "s-vatican",
+      "label": "The library under the Vatican",
+      "draw": "Shelves running away under a church floor.",
+      "quotes": [
+        { "src": "D1", "t0": 1462, "t1": 1492 }
+      ]
+    },
+    {
+      "id": "s-lookingglass",
+      "label": "Project Looking Glass — reading time instead of predicting it",
+      "draw": "Branching paths seen from above rather than a straight line.",
+      "quotes": [
+        { "src": "D1", "t0": 1428, "t1": 1462 },
+        { "src": "D2", "t0": 1206, "t1": 1246 }
+      ]
+    },
+    {
+      "id": "s-antarctica",
+      "label": "Antarctica: the treaty, the pyramids, the bodies",
+      "draw": "Ice with structures under it, and a treaty page full of signatures.",
+      "quotes": [
+        { "src": "D1", "t0": 1566, "t1": 1596 }
+      ]
+    },
+    {
+      "id": "s-byrd",
+      "label": "Admiral Byrd and land beyond the poles",
+      "draw": "A small aircraft crossing the ice edge onto a coastline nobody maps.",
+      "quotes": [
+        { "src": "D1", "t0": 1618, "t1": 1666 }
+      ]
+    },
+    {
+      "id": "s-firmament",
+      "label": "The firmament, NASA composites, and Operation Fishbowl",
+      "draw": "The construct as he draws it: a plane, a dome, the waters above.",
+      "quotes": [
+        { "src": "D1", "t0": 1682, "t1": 1722 },
+        { "src": "D1", "t0": 1742, "t1": 1790 }
+      ]
+    },
+    {
+      "id": "s-balls",
+      "label": "What he saw at sixteen — constructs stacked like shells",
+      "draw": "Many domed worlds, each on its own plane, seen from outside.",
+      "quotes": [
+        { "src": "D1", "t0": 1898, "t1": 1956 }
+      ]
+    },
+    {
+      "id": "s-atlantis",
+      "label": "Atlantis, the Mayans, dragons, and flying craft in old pictures",
+      "draw": "A medieval painting with the craft in it circled.",
+      "quotes": [
+        { "src": "D2", "t0": 990, "t1": 1058 }
+      ]
+    },
+    {
+      "id": "s-snake",
+      "label": "The snake mountain, turned to stone",
+      "draw": "A ridge that reads as an animal once you have been told.",
+      "quotes": [
+        { "src": "D2", "t0": 1058, "t1": 1092 }
+      ]
+    },
+    {
+      "id": "s-lifespan",
+      "label": "Bodies meant to last 500 to 1,000 years",
+      "draw": "One face at 40, 200, 700.",
+      "quotes": [
+        { "src": "D1", "t0": 2518, "t1": 2542 }
+      ]
+    },
+    {
+      "id": "s-markers",
+      "label": "Fixed event markers, and the freedom point he says is coming",
+      "draw": "Whatever route you take, the same point on the map.",
+      "quotes": [
+        { "src": "D2", "t0": 1290, "t1": 1330 },
+        { "src": "D2", "t0": 1362, "t1": 1404 }
+      ]
+    },
+    {
+      "id": "s-ai",
+      "label": "AI is a spirit, and a spirit has no authority over a soul",
+      "draw": "His three-part diagram — soul, body, spirit — with AI in the third slot.",
+      "quotes": [
+        { "src": "D2", "t0": 1936, "t1": 1990 }
+      ]
+    }
+  ]
+}

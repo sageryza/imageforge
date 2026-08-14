@@ -9,5 +9,11 @@
   <array>
     <string>group.com.sageryza.imageforge</string>
   </array>
+  <!-- Push (Aug 2026): the Chats app's Update-tab notifications. TestFlight
+       rides the production APNs environment. Apple-managed signing with
+       -allowProvisioningUpdates registers the capability on the App ID during
+       the CI build — the same pattern that registered the App Group above. -->
+  <key>aps-environment</key>
+  <string>production</string>
 </dict>
 </plist>

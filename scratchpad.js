@@ -40,6 +40,11 @@
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
 //                          three-line text box; 5000 chars max)
+//   POST /episode        → { episodeId, remove? } — link/unlink an Episode
+//                          Editor episode to this story; GET / returns the
+//                          linked episodes' newest renders as `audios`, and
+//                          the story page shows a listen row for each (the
+//                          NDE montages on their NDE stories, Aug 2026)
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -53,6 +58,10 @@ const path = require('path');
 const COL = 'forge-scratchpad';
 const DOC = 'pad';
 const PROMPTLAB = 'forge-promptlab';
+// The Episode Editor's episodes (same Firestore project). A story doc may
+// carry `episodes: [episodeId, …]` — audio made FROM this story's material
+// (the NDE montages were cut there), listenable from the story page.
+const EDITOR = 'forge-editor';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
@@ -157,8 +166,39 @@ async function readPad(padId) {
   return {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
+    inbox: Array.isArray(v.inbox) ? v.inbox : null,
+    // "About this story" — what Sophie said about it, in her own words
+    // (verbatim, written by a chat; never paraphrased). When what she said
+    // is a recording, descriptionAudio carries it instead of text; voiceover
+    // is her narration/read-aloud where a story has one.
+    description: v.description || '',
+    descriptionAudio: v.descriptionAudio || null,
+    voiceover: v.voiceover || null,
+    episodes: Array.isArray(v.episodes) ? v.episodes : [],
     updatedAt: v.updatedAt || 0,
   };
+}
+
+// Resolve a story's linked episodes to playable audio, live — the URL is the
+// episode's NEWEST render (renders[0]; editor.js prepends), so a re-render in
+// the Episode Editor reaches the story page with no re-link. An episode with
+// no render yet (or a deleted one) simply doesn't show; the link is kept.
+async function episodeAudios(ids) {
+  if (!Array.isArray(ids) || !ids.length) return [];
+  const refs = ids.slice(0, 30).map((id) => db().collection(EDITOR).doc(String(id)));
+  const snaps = await db().getAll(...refs);
+  const out = [];
+  snaps.forEach((s) => {
+    if (!s.exists) return;
+    const v = s.data() || {};
+    const r = (Array.isArray(v.renders) && v.renders[0]) || null;
+    if (!r || !r.url) return;
+    out.push({
+      episodeId: s.id, title: v.title || 'Untitled episode',
+      url: r.url, seconds: r.seconds || null, at: r.at || null,
+    });
+  });
+  return out;
 }
 
 const router = express.Router();
@@ -180,7 +220,32 @@ router.get('/', async (req, res) => {
   try {
     const pid = padIdOf(req);
     res.set('Cache-Control', 'no-store');
-    res.json({ ...(await readPad(pid)), pad: pid });
+    const pad = await readPad(pid);
+    res.json({ ...pad, audios: await episodeAudios(pad.episodes), pad: pid });
+  } catch (e) { fail(res, e); }
+});
+
+// Link (or unlink) an Episode Editor episode to this story. Like /category,
+// deliberately NO updatedAt bump: connecting audio that already exists is not
+// a story edit, so it must not stale the film or reshuffle the shelf.
+router.post('/episode', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const epId = String(req.body.episodeId || '').trim();
+    if (!epId) return res.status(400).json({ error: 'episodeId required' });
+    if (!req.body.remove) {
+      const snap = await db().collection(EDITOR).doc(epId).get();
+      if (!snap.exists) return res.status(400).json({ error: 'no such episode' });
+    }
+    const episodes = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().episodes)) ? snap.data().episodes : [];
+      const next = cur.filter((x) => x !== epId);
+      if (!req.body.remove) next.push(epId);
+      tx.set(padRef(pid), { episodes: next }, { merge: true });
+      return next;
+    });
+    res.json({ ok: true, pad: pid, episodes });
   } catch (e) { fail(res, e); }
 });
 
@@ -195,9 +260,17 @@ router.get('/pads', async (req, res) => {
       const v = d.data() || {};
       const beats = Array.isArray(v.beats) ? v.beats : [];
       const withArt = beats.find((b) => b.url);
+      // A seeded story keeps its art in its own inbox until it is placed on
+      // the timeline, so the shelf cover falls back there — a tile is a real
+      // picture from the story, never a blank (the survey prototype's rule).
+      const inbox = Array.isArray(v.inbox) ? v.inbox : [];
+      const inboxArt = inbox.find((it) => it && it.url);
       return {
         id: d.id, title: v.title || '', beats: beats.length,
-        cover: withArt ? withArt.url : null, updatedAt: v.updatedAt || 0,
+        // Sophie can pin a cover from a beat's popup (POST /cover); the
+        // pinned one wins over the first-art derivation.
+        cover: v.cover || (withArt ? withArt.url : (inboxArt ? inboxArt.url : null)),
+        category: v.category || null, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
@@ -213,11 +286,53 @@ router.post('/pads', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// The inbox: every Playground image Sophie hearted, newest run first. Votes
-// live on the run docs, so this is a pure read — nothing is copied anywhere.
+// Which shelf chip a story answers to (personal / lessons / nde). Set by the
+// seed script or a chat — the page files a story with none under Personal, so
+// a brand-new story is never invisible. Deliberately does NOT bump updatedAt:
+// filing a story must not reshuffle the shelf's newest-first order.
+router.post('/pads/category', async (req, res) => {
+  try {
+    const pid = String(req.body.pad || '').trim();
+    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
+    await padRef(pid).set({ category: category || null }, { merge: true });
+    res.json({ ok: true, pad: pid, category: category || null });
+  } catch (e) { fail(res, e); }
+});
+
+// Pin a story's shelf cover to one beat's art (Sophie's pick — the shelf
+// otherwise shows the FIRST art, which isn't always the story's face; the
+// meditation lesson led with Mason when it should lead with her waking up).
+// `id` = a beat id; empty/absent clears the pin back to the derivation.
+// Like /category, deliberately does NOT bump updatedAt.
+router.post('/cover', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const beatId = String(req.body.id || '').trim();
+    if (!beatId) {
+      await padRef(pid).set({ cover: null }, { merge: true });
+      return res.json({ ok: true, pad: pid, cover: null });
+    }
+    const pad = await readPad(pid);
+    const beat = (pad.beats || []).find((b) => b.id === beatId);
+    if (!beat || !beat.url) return res.status(400).json({ error: 'that beat has no art' });
+    await padRef(pid).set({ cover: beat.url }, { merge: true });
+    res.json({ ok: true, pad: pid, cover: beat.url });
+  } catch (e) { fail(res, e); }
+});
+
+// The inbox. A story that carries its OWN inbox shows that instead of the
+// Playground hearts (Aug 2026, Sophie): the art a story already has —
+// gathered from the chats that made it — is what she wants to place on the
+// timeline, not whatever she last hearted in the Playground. A pad with no
+// inbox of its own behaves exactly as before, so nothing that exists breaks.
 router.get('/inbox', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
+    const own = (await readPad(padIdOf(req))).inbox;
+    if (own && own.length) {
+      return res.json({ count: own.length, items: own, source: 'story' });
+    }
     const q = await db().collection(PROMPTLAB)
       .orderBy('createdAt', 'desc').limit(300).get();
     const items = [];
@@ -234,7 +349,34 @@ router.get('/inbox', async (req, res) => {
         });
       });
     });
-    res.json({ count: items.length, items });
+    res.json({ count: items.length, items, source: 'playground' });
+  } catch (e) { fail(res, e); }
+});
+
+// Fill a story's own inbox — the art it already has, gathered from wherever it
+// was made. `items` is [{url, prompt?, model?, quality?, style?, src?}];
+// `replace:false` appends and skips urls already there.
+router.post('/inbox', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const incoming = (Array.isArray(req.body.items) ? req.body.items : [])
+      .filter((x) => x && typeof x.url === 'string' && /^https?:\/\//.test(x.url))
+      .slice(0, 600)
+      .map((x) => ({
+        url: x.url,
+        prompt: x.prompt == null ? null : String(x.prompt).slice(0, 600),
+        model: x.model == null ? null : String(x.model).slice(0, 80),
+        quality: x.quality == null ? null : String(x.quality).slice(0, 40),
+        style: x.style == null ? null : String(x.style).slice(0, 60),
+        src: x.src == null ? null : String(x.src).slice(0, 80),
+        at: Number(x.at) || null,
+      }));
+    const cur = (await readPad(pid)).inbox || [];
+    const keep = req.body.replace ? [] : cur;
+    const seen = new Set(keep.map((x) => x.url));
+    const merged = keep.concat(incoming.filter((x) => !seen.has(x.url) && seen.add(x.url)));
+    await padRef(pid).set({ inbox: merged, updatedAt: Date.now() }, { merge: true });
+    res.json({ ok: true, pad: pid, count: merged.length, added: merged.length - keep.length });
   } catch (e) { fail(res, e); }
 });
 

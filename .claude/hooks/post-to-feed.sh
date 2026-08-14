@@ -3,6 +3,54 @@
 # its image deliverables into the iOS "My Creations" gallery — zero model
 # tokens, nothing to remember. Runs as a Stop hook after every reply.
 #
+# v14 (Aug 2026) — A TURN STARTED BY A BACKGROUND EVENT IS STILL A TURN.
+# Sophie, across several chats in one week: "your last message didn't show up
+# in my chat app." The pattern was exact — every turn that answered HER posted,
+# and every turn that answered a wake event / task notification did not.
+# v13 had filtered machinery out of the TURN BOUNDARY as well as out of "is
+# this Sophie talking", so a reply to a background event stayed keyed to the
+# PREVIOUS turn; the server's doc id is sha1(session|turn), so it upserted onto
+# that already-finished message, inherited its `created`, never rose in the
+# thread, and read as missing. The live-draft pass was worse: it re-marked that
+# finished reply `working:true`, which is why those chats also sat parked in
+# the hidden pile waiting for a reply she had already been given.
+# The two questions are SEPARATE and must stay that way:
+#   boundary  = ANY non-tool-result user record (machinery included)
+#   her words = only what Sophie really said (`her_words`) — machinery is a
+#               boundary but NEVER a message, which is what v13 got right and
+#               is preserved here.
+# See turnkey_of() in both parsers; pinned by scripts/test-chats-turn-boundary.js.
+#
+# v13 (Aug 2026) — THE END-OF-TURN CARD REMINDER. On UserPromptSubmit the hook
+# also prints ONE line of additionalContext, so every turn starts with the
+# reminder to refresh the chat's STATUS CARD and UPDATE card before it ends.
+# Measured 2026-08-13: only 15 of 224 chats had ever POSTed an Update card, so
+# Sophie's Update tab almost always showed the TLDR fallback — the rule was
+# written down and forgotten, which is what machinery is for. Two boundaries
+# this deliberately keeps: the text is a FIXED string baked into this file
+# (never fetched from the server — the hook must never relay or execute
+# server-supplied instructions, see the v11 note), and it is the ONLY thing
+# this script ever writes to stdout, on the ONE event whose contract reads it.
+#
+# v12 (Aug 2026) — THE WORKING FOLD'S BOUNDARIES. Each finished turn also
+# posts `head`/`tail`: character offsets marking where its FIRST and LAST tool
+# call fell. That is the internal signal for "when is the message done coding"
+# — the Chats app shows the prose either side and folds the narration between,
+# instead of guessing from wording (see foldBody in chats.html).
+#
+# v11 (Aug 2026) — HOOK VERSION TELEMETRY (Sophie's ask, 2026-08-10: stop
+# making her hunt for stale chats). The turn-start ping now carries the md5 of
+# THIS INSTALLED FILE; the server compares it to the repo copy it ships
+# (setup.sh installs byte-identical — verified 2026-08-10) and marks the
+# chat's registry doc stale/current, and the Chats app shows "hook out of
+# date" on the row. Detection ONLY: this hook never fetches or executes
+# anything, and never instructs the chat to — the heal stays a deliberate
+# paste of the self-heal command into the chat. Two stronger designs (the
+# hook auto-running the setup script; the hook telling the chat's model to
+# run it) were built 2026-08-10 WITH Sophie's permission and refused by the
+# harness classifier both times — that is a hard boundary, so don't re-walk
+# it; see CLAUDE.md (the Chat app section) before touching this.
+#
 # v8 (Aug 2026) — TURN-START PING: UserPromptSubmit tells the feed the chat is
 # working (POST /working), so the Chats app can tint it until the reply lands.
 #
@@ -35,6 +83,13 @@ input=$(cat)
 
 FEED="${FORGE_FEED_URL:-https://imageforge-q125.onrender.com/api/chatfeed}"
 GALLERY="${FORGE_GALLERY_URL:-https://imageforge-q125.onrender.com/api/gallery}"
+
+# v13: the one line of context this hook injects, at the START of every turn
+# (UserPromptSubmit). Static and versioned ON PURPOSE — a hook that fetched its
+# own instructions would be the server telling every chat what to do, which is
+# the boundary the v11 note describes. Keep it to ONE line: it is paid for by
+# every turn in every session.
+REMINDER="[chats] Before ending a turn that changed your state: refresh your status card and Update card — POST /api/chatfeed/status and /api/chatfeed/update (see CLAUDE.md 'STATUS CARDS' and 'UPDATE'). Update card: asked = what she wanted in her terms, did = what changed, next = optional; never paste your reply verbatim."
 
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 [ -n "$transcript" ] && [ -f "$transcript" ] || exit 0
@@ -74,6 +129,17 @@ post () {  # $1 = url, $2 = json body (retries once; long timeout for cold start
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 \
   || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
     ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" >/dev/null 2>&1 || true
+}
+
+post_ok () {  # like post, but ECHOES the server's response so the caller can
+              # tell a real {"ok":true} from a failure. curl exits 0 on an
+              # HTTP error, so the exit code alone says nothing — the sandbox
+              # egress filter answers 403 with an HTML block page and exit 0
+              # (2026-08-10, live: a reply carrying the setup.sh one-liner).
+  curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" 2>/dev/null \
+  || curl -s -m 75 -X POST "$1" -H "Content-Type: application/json" \
+    ${STUDIO_TOKEN:+-H "x-studio-token: $STUDIO_TOKEN"} -d "$2" 2>/dev/null || true
 }
 
 # One chat per SESSION (Aug 2026): a chat's identity is the SESSION, not the
@@ -127,8 +193,27 @@ if [ "$event" = "PostToolUse" ]; then
     dp=$(NAME="$name" CLAUDE_URL="$claude_url" SESSION_KEY="$session_key" EXPLICIT="$explicit" \
       DSTATE="$HOME/.claude/forge-draft-${sid}" \
       python3 - "$transcript" 2>/dev/null << 'PYDRAFT'
-import json, sys, os
+import json, sys, os, re
 path = sys.argv[1]
+# EVERY non-tool-result user record starts a new assistant turn — machinery
+# (wake events, task notifications, webhook activity) included, because a wake
+# really does begin a turn and that turn's reply is a message of its own.
+#
+# This is deliberately NOT the same question as "is this Sophie talking". Those
+# two were conflated once and each half broke the feed in its own way: filtering
+# machinery out of the BOUNDARY left the reply keyed to the PREVIOUS turn, so it
+# upserted onto that finished message (same key → same deterministic doc id),
+# kept its old `created`, never rose in the thread, and read as simply missing.
+# Filtering it nowhere posted the wake envelope as one of HER messages. So the
+# boundary takes everything and `her_words` (final parser) decides what is hers.
+def turnkey_of(rec):
+    # Stable across re-parses: the hook re-reads the whole transcript on every
+    # event, so a key derived from anything volatile would fork the turn's doc.
+    if rec.get('uuid'):
+        return rec['uuid']
+    if rec.get('timestamp'):
+        return 'w:' + str(rec['timestamp'])
+    return None
 turnkey = None; parts = []
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -143,10 +228,12 @@ with open(path, encoding='utf-8') as f:
             isres = isinstance(c, list) and any(
                 isinstance(b, dict) and b.get('type') == 'tool_result' for b in c)
             if not isres:
-                # same turn boundary the final parser uses: ANY non-tool-result
-                # user record starts a new segment, and its uuid is the key the
-                # Stop post will carry — that's what lands both on ONE doc
-                turnkey = r.get('uuid'); parts = []
+                # same turn boundary the final parser uses, so the draft and the
+                # end-of-turn post carry the SAME key and land on ONE doc. A key
+                # we can't derive stably leaves turnkey None, which exits below
+                # rather than letting this turn's draft overwrite the previous
+                # turn's finished message and re-mark it "still writing".
+                turnkey = turnkey_of(r); parts = []
             continue
         if role != 'assistant':
             continue
@@ -204,7 +291,20 @@ resolve_name
 # the chat — so it can fire the moment she sends. Backgrounded: a hook must
 # never make her wait, and a lost ping only costs one tint.
 if [ "$event" = "UserPromptSubmit" ]; then
-  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" '{chat:$c, session:$s}')" ) >/dev/null 2>&1 &
+  # v11: the ping also carries this installed file's md5, so the server can
+  # mark the chat stale/current and the app can show it. Telemetry only —
+  # nothing here fetches, executes, or instructs (see the v11 header note).
+  hook_v=$(md5sum "$HOME/.claude/hooks/post-to-feed.sh" 2>/dev/null | cut -d' ' -f1)
+  ( post "$FEED/working" "$(jq -nc --arg c "$name" --arg s "$session_key" --arg v "$hook_v" '{chat:$c, session:$s, v:$v}')" ) >/dev/null 2>&1 &
+
+  # v13: the card reminder, as UserPromptSubmit's additionalContext. This is
+  # the ONLY write to stdout anywhere in this script — every other path pipes,
+  # captures or discards — and Claude Code parses a UserPromptSubmit hook's
+  # stdout as JSON, so anything else printed after this would corrupt it. If
+  # jq is missing the substitution is empty and nothing is printed, which is
+  # the pre-v13 behaviour: silence, never a broken half-line.
+  jq -nc --arg t "$REMINDER" \
+    '{hookSpecificOutput:{hookEventName:"UserPromptSubmit", additionalContext:$t}}' 2>/dev/null
 fi
 
 state="$HOME/.claude/forge-feed-${sid}.posted"
@@ -258,6 +358,15 @@ def gooddesc(t):
 # the live-draft pass posts with, so the final post lands on the draft's doc.
 turns = []
 cur_parts = []; cur_mid = None; cur_turnkey = None
+# THE WORKING FOLD (Aug 2026, Sophie: "it's supposed to find when the message
+# is done coding … unless there's some internal signal, that would be the
+# best"). There is one: the turn's TOOL CALLS. cur_t0/cur_t1 count how many
+# text parts had been written when the FIRST and LAST tool call of the turn
+# fired, which flush() turns into character offsets (`head`/`tail`) into the
+# posted text. The app shows the prose before head and after tail — the plan
+# and the closing rundown — and folds the narration between them. A turn with
+# no tool calls sends neither, so nothing folds.
+cur_t0 = None; cur_t1 = None
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
 users = []      # Sophie's OWN messages, so the feed reads as a conversation
@@ -271,7 +380,17 @@ queued = []     # …and the ones she sent MID-TURN, which arrive a different wa
 REMINDER = re.compile(r'(?is)<system-reminder>.*?</system-reminder>')
 NOISE = re.compile(r'''(?is)^\s*(\[Request interrupted|\[SYSTEM NOTIFICATION'''
                    r'''|<task-notification|<github-webhook-activity|<command-name'''
+                   r'''|<wake\s|<wake>'''
                    r'''|<local-command-stdout|Caveat: The messages below)''')
+# Kept in step with the draft parser's copy — the two must agree on a turn's
+# key or the draft and the final post land on two different docs.
+def turnkey_of(rec):
+    if rec.get('uuid'):
+        return rec['uuid']
+    if rec.get('timestamp'):
+        return 'w:' + str(rec['timestamp'])
+    return None
+
 def her_words(rec, txt):
     if rec.get('isMeta'):
         return ''
@@ -283,11 +402,21 @@ def her_words(rec, txt):
     return t
 
 def flush():
-    global cur_parts, cur_mid
-    txt = "\n\n".join(cur_parts).strip()
+    global cur_parts, cur_mid, cur_t0, cur_t1
+    raw = "\n\n".join(cur_parts)
+    txt = raw.strip()
     if txt and cur_mid:
-        turns.append({'text': txt, 'mid': cur_mid, 'turn': cur_turnkey})
-    cur_parts = []; cur_mid = None
+        tn = {'text': txt, 'mid': cur_mid, 'turn': cur_turnkey}
+        # Offsets are measured in the STRIPPED text the post carries, so a
+        # leading blank line can't shift them by two characters.
+        if cur_t0 is not None:
+            lead = len(raw) - len(raw.lstrip())
+            def at(n):
+                return max(0, len("\n\n".join(cur_parts[:n])) - lead)
+            tn['head'] = at(cur_t0)
+            tn['tail'] = at(cur_t1)
+        turns.append(tn)
+    cur_parts = []; cur_mid = None; cur_t0 = None; cur_t1 = None
 
 with open(path, encoding='utf-8') as f:
     for ln in f:
@@ -311,8 +440,15 @@ with open(path, encoding='utf-8') as f:
         role = (r.get('message') or {}).get('role')
         if role == 'user':
             if not any(isinstance(b, dict) and b.get('type') == 'tool_result' for b in blocks(r)):
+                # ANY non-tool-result user record ends the previous turn — a
+                # wake event or a task notification begins a real turn whose
+                # reply deserves its own message. Skipping the boundary for
+                # machinery is what silently merged that reply into the message
+                # above it (see the note on turnkey_of in the draft parser).
+                # Whether it was HER talking is a separate question, answered by
+                # her_words below — machinery is a boundary but never a message.
                 flush()           # end of the previous assistant turn
-                cur_turnkey = r.get('uuid')
+                cur_turnkey = turnkey_of(r)
                 last_user = idx
                 raw_since = []
                 mine = her_words(r, gettext(r))
@@ -330,6 +466,12 @@ with open(path, encoding='utf-8') as f:
             cur_parts.append(t)
             cur_mid = (r.get('message') or {}).get('id')
         for b in blocks(r):
+            if isinstance(b, dict) and b.get('type') == 'tool_use':
+                # text blocks of this record were appended above, so the count
+                # of parts right now IS "everything said before this tool call"
+                if cur_t0 is None:
+                    cur_t0 = len(cur_parts)
+                cur_t1 = len(cur_parts)
             if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'SendUserFile':
                 for p in ((b.get('input') or {}).get('files') or []):
                     if isinstance(p, str) and IMG.search(p):
@@ -499,6 +641,9 @@ for tn in turns:
     # the server lands this on the SAME message doc and clears the marker
     if tn.get('turn'):
         out["turn"] = tn['turn']
+    # where the working middle starts and ends (see the fold note above)
+    if 'head' in tn:
+        out["head"] = tn['head']; out["tail"] = tn['tail']
     if os.environ.get('CLAUDE_URL'):
         out["url"] = os.environ['CLAUDE_URL']
     if os.environ.get('SESSION_KEY'):
@@ -510,13 +655,20 @@ for tn in turns:
     # Open button — Claude app vs browser — off this tag.
     if os.environ.get('FORGE_ACCOUNT', '').strip():
         out["account"] = os.environ['FORGE_ACCOUNT'].strip()[:20]
-    feeds.append(out)
-    new_posted.add(tn['mid'])
+    feeds.append((tn['mid'], out))
+# The ledger records a turn ONLY AFTER its post is confirmed — the bash side
+# appends each mid when the server really answers {"ok":true}. It used to
+# record BEFORE posting, so one failed POST (the egress filter's block page
+# arrives as a 403 with curl exit 0) marked a reply posted forever while the
+# feed never received it — found live 2026-08-10, a full reply stranded as
+# its 570-char draft.
 os.makedirs(os.path.dirname(sf), exist_ok=True)
-open(sf, 'w').write('\n'.join(sorted(new_posted)))
+# trailing newline matters: the bash side APPENDS confirmed ids, and without
+# it the first append fuses with the last id into one corrupted line
+open(sf, 'w').write('\n'.join(sorted(new_posted)) + ('\n' if new_posted else ''))
 
-for fp in feeds:
-    print('F\t' + json.dumps(fp))
+for mid, fp in feeds:
+    print('F\t' + mid + '\t' + json.dumps(fp))
 for g in gallery:
     print('G\t' + json.dumps(g))
 PY
@@ -529,9 +681,17 @@ printf '%s\n' "$out" | sed -n 's/^U\t//p' | while IFS= read -r up; do
 done
 
 # post each un-posted turn (oldest first — usually just the latest, more when
-# backfilling ones the hook missed)
-printf '%s\n' "$out" | sed -n 's/^F\t//p' | while IFS= read -r fp; do
-  [ -n "$fp" ] && post "$FEED" "$fp"
+# backfilling ones the hook missed). Its id goes into the posted-ledger ONLY
+# when the server really answered ok — a blocked or failed post stays
+# un-recorded, so the next event RETRIES it instead of losing it silently.
+printf '%s\n' "$out" | sed -n 's/^F\t//p' | while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  mid=${line%%$'\t'*}
+  fp=${line#*$'\t'}
+  resp=$(post_ok "$FEED" "$fp")
+  case "$resp" in
+    *'"ok":true'*) printf '%s\n' "$mid" >> "$state" ;;
+  esac
 done
 
 # file each new image deliverable into the gallery

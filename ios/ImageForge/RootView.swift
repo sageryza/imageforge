@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector
     var id: String { rawValue }
 
     var title: String {
@@ -37,6 +37,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "Characters"
         case .films:     return "Films"
         case .freeform:  return "Freeform"
+        case .vector:    return "Vector"
         }
     }
 
@@ -70,6 +71,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .character: return "The recurring people — cards that keep faces consistent."
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
+        case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         }
     }
 
@@ -107,6 +109,8 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "film.stack"
         // A loose scribble — the page with no house style.
         case .freeform:  return "scribble.variable"
+        // fallback; .vector uses a custom asset (see customIcon)
+        case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
         }
     }
 
@@ -119,6 +123,7 @@ enum Tool: String, CaseIterable, Identifiable {
         switch self {
         case .test:       return "TestTube"
         case .playground: return "Playground"
+        case .vector:     return "Vector"
         default:          return nil
         }
     }
@@ -151,13 +156,21 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      DumpView().forgeToolBar("Dump")
         case .playground: PlaygroundView()
         case .scratchpad: ScratchPadView()
-        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform").forgeToolBar("Voice Studio")
+        // mic: the Voice Studio's CHANGE tab records a take in the page
+        // (Aug 2026). Without this the WKWebView denies getUserMedia and the
+        // record button dead-ends — the file picker still works either way.
+        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform", mic: true).forgeToolBar("Voice Studio")
         case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true).forgeToolBar("Song Station")
         case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle").forgeToolBar("Characters")
         case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack").forgeToolBar("Films")
         // Page owns its whole header (Aug 2026 v2 design rule) — a bare
         // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
         case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
+        // Native bar + chevron, like the other eyebrow-and-title tool pages —
+        // only a page owning its WHOLE chrome (Chats, Story Room) gets a bare
+        // host. See the headers design rule.
+        case .vector:    GatedWebTool(path: "/vector", name: "Vector", icon: "circle.hexagongrid")
+                            .forgeToolBar("Vector")
         }
     }
 }
@@ -334,6 +347,11 @@ struct RootView: View {
         // ://business (the second home grid). Opens
         // Deck Factory straight to that tab. Scheme registered in Info.plist.
         .onOpenURL { url in handleDeepLink(url) }
+        // A tapped push lands on the Chats screen; ChatFeedView hears the same
+        // notification and reloads its page onto the Update tab (?view=news).
+        .onReceive(NotificationCenter.default.publisher(for: .forgePushOpenUpdate)) { _ in
+            if screen != .tool(.chats) { setScreen(.tool(.chats)) }
+        }
         // CI screenshot hook: launch with FORGE_SCREEN=<dest> to open straight
         // to a screen (the simulator screenshot workflow relaunches per screen).
         // Never set in production, so it's inert there.
@@ -450,6 +468,13 @@ struct RootView: View {
             if t == .scratchpad { return false }
             // Freeform is a web page with its own injected pill too.
             if t == .freeform { return false }
+            // Vector is a web page with its own injected pill too.
+            if t == .vector { return false }
+            // Voice Studio is served with { pill: true } as well — it was the
+            // one injected-pill page missing from this list, so both pills
+            // drew and the speed label read "Fast" twice (Sophie's
+            // screenshot, Aug 2026).
+            if t == .voice { return false }
             // The Story Room (pushed inside the movies tool) is a web page
             // with its own in-page pill — showing the native one too would
             // stack two pills on top of each other.
@@ -519,13 +544,29 @@ private struct HomeGrid: View {
 
     /// The film filter's set — everything that makes or cuts moving pictures
     /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
+    ///
+    /// **These tools are HIDDEN from the default home** — `tools` below
+    /// subtracts this list, so the film chip works exactly like the quilt and
+    /// the briefcase. That was Sophie's fix for the asymmetry she spotted
+    /// ("the quilt hides the modules but the movies tab doesn't"): she wanted
+    /// them off the home screen and in the movie tab, not in both places.
+    ///
+    /// TWO tools were deliberately taken OUT of this set:
+    /// - **Story Room** lives on the DEFAULT home (pinned first, below) and
+    ///   nowhere else — "story room is no longer movies, so just keep it on
+    ///   default and take it out of the movies tab".
+    /// - **Song Station** is gone from every grid — "get rid of song station
+    ///   altogether". The tool, its page and `deckfactory://song` all still
+    ///   work; it simply has no card anywhere now.
     private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
-                                             .story, .song, .voice, .search, .character]
+                                             .voice, .search, .character]
 
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the
-    /// test tube beside the masthead.
-    private static let imageTools: [Tool] = [.playground, .test, .freeform]
+    /// test tube beside the masthead. Playground and **Freeform** also sit on
+    /// the DEFAULT home (Sophie, Aug 2026: "put Freeform in the default") —
+    /// this filter narrows to them, it doesn't own them.
+    private static let imageTools: [Tool] = [.playground, .test, .freeform, .vector]
 
     /// What the cards show: the normal list, or one filter's slice.
     private var shown: [Tool] {
@@ -538,32 +579,43 @@ private struct HomeGrid: View {
         }
     }
 
-    // Sophie's home order: Story Room pinned first; greeting cards, stickers,
-    // storybooks, and coloring pages pinned last; everything in between rotates
-    // by most-recent use.
+    // Sophie's home order: Story Room pinned first, everything after it rotates
+    // by most-recent use. Nothing is pinned to the BOTTOM anymore — the three
+    // that were (Voice Studio, Characters, Films) are film tools and now live
+    // under that filter.
     private var tools: [Tool] {
-        // Voice Studio, Characters and Films at the end of the list — Sophie's
-        // call: present, but at the bottom. (The four staples that used to be
-        // pinned here sit behind the quilt filter now.)
+        // THE FILM FILTER NOW HIDES ITS TOOLS FROM THE DEFAULT HOME, the same
+        // way the quilt and briefcase always have (Aug 2026, Sophie, resolving
+        // the asymmetry she spotted: "leave the stuff off the home screen,
+        // just put it in the movie tab"). So Movies, Films, Cutting Room, Cut
+        // Marks, Episode Editor, Voice Studio, Search and Characters live in
+        // the film tab ONLY — and the old `pinnedBottom` trio (Voice Studio,
+        // Characters, Films) is gone with them, since every one of those three
+        // was a film tool sitting at the bottom of this list.
         //
-        // Song Station is NOT here: she asked for it off the home screen
-        // (Aug 2026). It is not deleted — the tool, its page and its deep link
-        // all still work, and it still appears under the FILM filter (which
-        // covers sound too), so it's one tap away rather than on the grid.
-        let pinnedBottom: [Tool] = [.voice, .character, .films]
+        // The PICTURES filter is deliberately still a pure narrowing: Sophie
+        // asked for Freeform on the default home, so Playground and Freeform
+        // are cards here AND under the photo chip. Only the Test Station is
+        // filter-only there.
+        //
+        // Song Station has NO card anywhere (Aug 2026, "get rid of song
+        // station altogether") — not here, not under the film filter.
+        // Deliberately not deleted: the case, the view and
+        // `deckfactory://song` still work, so bringing it back is one line.
+        //
         // Chats and Test Station aren't grid cards — they're the two corner
-        // icons beside the masthead. (The Test Station does get a card under
-        // the pictures filter, which is the only place it has one.)
-        // .scratchpad is hidden: the pad IS the Story Room now (the .story
-        // tile's /storyroom page serves it), so two tiles would be the same
-        // tool twice. The case and view stay for deep links and history.
-        // Business and old-fashioned tools show under their own filters.
+        // icons beside the masthead. .scratchpad is hidden because the pad IS
+        // the Story Room now (the .story tile's /storyroom page serves it), so
+        // two tiles would be the same tool twice; its case and view stay for
+        // deep links and history. Story Room itself is pinned FIRST and is
+        // NOT a film tool (her call — it came out of the movie tab).
         let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
-                                            && $0 != .song
-                                            && !$0.isBusiness && !$0.isCraft && !pinnedBottom.contains($0) }
+                                            && $0 != .song && $0 != .vector
+                                            && !$0.isBusiness && !$0.isCraft
+                                            && !Self.movieTools.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
-        return [.story] + ranked + rest + pinnedBottom
+        return [.story] + ranked + rest
     }
 
     var body: some View {
@@ -618,38 +670,59 @@ private struct HomeGrid: View {
         .background(Theme.bg.ignoresSafeArea())
     }
 
-    /// Side of a shortcut button. Six of these plus even gaps fit the narrowest
-    /// phone we care about (375pt wide: 6 x 48 = 288 inside 343 of usable row).
-    private static let squareSide: CGFloat = 48
+    /// Side of a shortcut button, and the icon inside it.
+    ///
+    /// **60, up from 48 (Aug 2026, Sophie: "the icons are too small — they
+    /// were set when there were six and now there's only five, make them fill
+    /// out the space a little better").** 48 was sized for SIX squares on the
+    /// narrowest phone (375pt: 6 x 48 = 288 inside 343 of usable row), and the
+    /// row has held five since the Dump square came off — so a quarter of the
+    /// row was gap.
+    ///
+    /// The arithmetic, so the next change does not have to guess. Usable row =
+    /// screen width - 32 (the row's own 16pt padding each side); five squares
+    /// leave (usable - 5 x side) / 4 between them:
+    ///
+    ///     375pt phone   343 usable   gap 10.8    (was 20.6 at 48)
+    ///     390pt phone   358 usable   gap 14.5    (was 24.4)
+    ///     430pt phone   398 usable   gap 24.5    (was 34.4)
+    ///
+    /// 375 is the floor we hold to, and 60 still leaves a real gap there. This
+    /// makes the row ~12pt taller, which pushes the module cards down — Sophie
+    /// said that is fine.
+    private static let squareSide: CGFloat = 60
+    /// The glyph inside, scaled with the square (48/21 ≈ 60/26).
+    private static let squareIcon: CGFloat = 26
 
-    /// Six rounded SQUARES across, icons only (Sophie: "just the icon"). Two
-    /// open a tool; the other four are filters on the cards below — the lit one
-    /// clears back to everything when tapped again. Chats is here AND in its
-    /// top-right corner on purpose ("it can be in two places, silly"), which is
-    /// why the row is six rather than the five it started as.
+    /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
+    /// opens a tool (Chats); the other four are filters on the cards below —
+    /// the lit one clears back to everything when tapped again. Chats is here
+    /// AND in its top-right corner on purpose ("it can be in two places,
+    /// silly"), so don't "fix" that duplicate.
+    ///
+    /// **The DUMP square came off (Aug 2026, Sophie: "we can get rid of the
+    /// dump button in the row at the top since it's now in the main home
+    /// screen as the default").** It was a shortcut to a tool that is a card
+    /// two inches below it — worth the slot back when the film tools left and
+    /// the default grid got short. The Dump still opens on SORT from its card.
     private var shortcutRow: some View {
         HStack(spacing: 0) {
-            // The Dump's inbox — opens on SORT, since sorting what's already
-            // in is the half she comes here for.
-            square(lit: false, label: "Dump") { open(.dump) } icon: {
-                ToolGlyph(tool: .dump, size: 21)
-            }
             square(lit: false, label: "Chats") { open(.chats) } icon: {
-                Image(systemName: Tool.chats.icon).font(.system(size: 21))
+                Image(systemName: Tool.chats.icon).font(.system(size: Self.squareIcon))
             }
             // Deliberately NOT the generate star: that glyph is reserved for
             // controls that spend a model call, and a filter spends nothing.
             square(lit: filter == .image, label: "Pictures") { toggle(.image) } icon: {
-                Image(systemName: "photo").font(.system(size: 21))
+                Image(systemName: "photo").font(.system(size: Self.squareIcon))
             }
             square(lit: filter == .business, label: "Business") { toggle(.business) } icon: {
-                Image(systemName: "briefcase").font(.system(size: 21))
+                Image(systemName: "briefcase").font(.system(size: Self.squareIcon))
             }
             square(lit: filter == .crafts, label: "Old fashioned") { toggle(.crafts) } icon: {
-                quiltGlyph(21)
+                quiltGlyph(Self.squareIcon)
             }
             square(lit: filter == .movie, label: "Movies & sound") { toggle(.movie) } icon: {
-                Image(systemName: "film").font(.system(size: 21))
+                Image(systemName: "film").font(.system(size: Self.squareIcon))
             }
         }
         .padding(.horizontal, 16)
