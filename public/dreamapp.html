@@ -39,20 +39,25 @@
                  color:var(--inkp); font:14px -apple-system, sans-serif; padding:12px 16px; }
   .scrim { position:fixed; inset:0; z-index:19; background:transparent; }
 
-  /* How it works — the same card in two places: once at the top of the feed
-     for a first visit, and from the gear forever after. Someone arriving on a
-     link she sent has no idea a dream is private until they share it, or that
-     the words and each drawing are separate choices. */
-  .how { background:var(--card); color:var(--ink); margin:16px -16px 0; padding:18px 16px 16px; }
-  .how h3 { font-family:Georgia, "Times New Roman", serif; font-weight:400; font-size:19px;
-            color:var(--fuchsia); margin-bottom:10px; }
+  /* How it works — a POP-UP, in a plain style (Sophie): a cream card, black
+     text, a normal font. Nothing fuchsia, nothing serif — it is the one screen
+     that is only explaining, so it should look like a note, not like the app.
+     It lays OVER the feed rather than sitting in it: first visit, then from the
+     gear forever after. Someone arriving on a link she sent has no idea a dream
+     is private until they share it, or that the words and each drawing are
+     separate choices. */
+  .howwrap { position:fixed; inset:0; z-index:45; background:#0e0e1180;
+             display:flex; align-items:center; justify-content:center; padding:20px; }
+  .how { background:var(--paper); color:var(--inkp); border-radius:6px; width:100%;
+         max-width:400px; max-height:100%; overflow:auto; padding:22px 20px 18px;
+         font:14px -apple-system, sans-serif; }
+  .how h3 { font:600 15px -apple-system, sans-serif; margin-bottom:12px; }
   .how ol { list-style:none; counter-reset:s; }
-  .how li { counter-increment:s; position:relative; padding-left:26px; margin-top:11px;
-            font-size:13.5px; line-height:1.6; color:var(--ink); }
-  .how li::before { content:counter(s); position:absolute; left:0; top:0; color:var(--fuchsia);
-                    font-family:Georgia, serif; font-size:14px; }
-  .how .close { display:block; margin:16px auto 0; background:none; border:1px solid var(--line);
-                color:var(--dim); border-radius:6px; padding:9px 18px; font:13px -apple-system, sans-serif; }
+  .how li { counter-increment:s; position:relative; padding-left:24px; margin-top:12px;
+            line-height:1.55; }
+  .how li::before { content:counter(s) '.'; position:absolute; left:0; top:0; }
+  .how .close { display:block; margin:18px auto 0; background:none; border:1px solid #0e0e1140;
+                color:var(--inkp); border-radius:6px; padding:9px 18px; font:14px -apple-system, sans-serif; }
 
   main { padding:0 16px; }
   /* Buttons stay quiet — outlined, never solid blocks of fuchsia. */
@@ -308,7 +313,8 @@ async function api(path, opts){
    Written for someone who just followed a link, so it says the two things the
    screen cannot: a dream is PRIVATE until shared, and sharing is per-piece. */
 var HOW_SEEN = 'dreamapp_how_seen';
-function howCard(dismissable){
+var howY = 0;
+function howCard(){
   return '<div class="how">' +
     '<h3>How this works</h3><ol>' +
     '<li>Write a dream down. It saves to <b>my dreams</b>, private — nobody else can see it.</li>' +
@@ -316,17 +322,35 @@ function howCard(dismissable){
     '<li>Then you choose what to share, piece by piece: your words, and each drawing on its own. Anything you leave private stays private.</li>' +
     '<li>What you share joins the day in the feed. Dreams sit under their date with no names on them.</li>' +
     '</ol>' +
-    (dismissable ? '<button class="close" data-howclose>got it</button>' : '') +
+    '<button class="close" data-howclose>got it</button>' +
     '</div>';
 }
-function wireHow(root){
-  var b = root.querySelector('[data-howclose]');
-  if (!b) return;
-  b.addEventListener('click', function(){
-    try { localStorage.setItem(HOW_SEEN, '1'); } catch (e) {}
-    var card = b.closest('.how');
-    if (card) card.remove();
+// The overlay keeps the lightbox's contract: stop the autoscroll, lock the page
+// behind it, and put her back exactly where she was on close.
+function openHow(){
+  if (document.getElementById('howwrap')) return;
+  howY = window.scrollY;
+  if (window.__scrollStop) window.__scrollStop();
+  var w = document.createElement('div');
+  w.className = 'howwrap'; w.id = 'howwrap';
+  w.innerHTML = howCard();
+  document.body.appendChild(w);
+  document.body.style.overflow = 'hidden';
+  w.addEventListener('click', function(e){
+    if (e.target === w || (e.target.closest && e.target.closest('[data-howclose]'))) closeHow();
   });
+}
+// Marking it seen on CLOSE, not on open: someone who leaves the page without
+// reading it hasn't read it, and should get it again next time.
+function closeHow(){
+  var w = document.getElementById('howwrap');
+  if (!w) return;
+  w.remove();
+  try { localStorage.setItem(HOW_SEEN, '1'); } catch (e) {}
+  if (document.getElementById('lb').hidden) {
+    document.body.style.overflow = '';
+    window.scrollTo(0, howY);
+  }
 }
 function howSeen(){ try { return localStorage.getItem(HOW_SEEN) === '1'; } catch (e) { return false; } }
 
@@ -357,7 +381,7 @@ document.addEventListener('click', function(e){
   if (img) { openLightbox(img.src); return; }
   if (e.target.closest && e.target.closest('.lb')) closeLightbox();
 });
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLightbox(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeLightbox(); closeHow(); } });
 
 /* ── panels: three to a row; more than three folds behind "see more" ── */
 function panelBlock(panels){
@@ -531,9 +555,6 @@ function go(which){
 /* ── feed ── */
 async function renderFeed(){
   var el = scr.feed;
-  // Shown once, at the top of the feed, on a first visit — and again whenever
-  // she asks for it from the gear.
-  var how = howSeen() ? '' : howCard(true);
   try {
     var f = await api('/feed');
     if (f.sealed) {
@@ -554,8 +575,8 @@ async function renderFeed(){
       return;
     }
     if (!f.dreams.length) {
-      el.innerHTML = how + '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
-      wireHow(el);
+      el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
+      if (!howSeen()) openHow();
       return;
     }
     // Group under the day they were shared, newest day first; no names. Inside
@@ -568,14 +589,14 @@ async function renderFeed(){
       byDay[k].push(d);
     });
     days.sort().reverse();
-    el.innerHTML = how + days.map(function(k){
+    el.innerHTML = days.map(function(k){
       return '<div class="dayhead">' + dayLabel(k) + '</div>' + groupsFor(byDay[k]).map(function(g){
         return '<article class="post">' + g.map(dreamBlock).join('') + '</article>';
       }).join('');
     }).join('');
-    wireHow(el);
     wirePanels(el);
     wireDreams(el);
+    if (!howSeen()) openHow();
   } catch (e) {
     el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
   }
@@ -816,8 +837,7 @@ async function boot(){
     scrim.addEventListener('click', closeMenu);
     document.getElementById('howBtn').addEventListener('click', function(){
       closeMenu();
-      try { localStorage.removeItem(HOW_SEEN); } catch (e) {}
-      renderFeed(); go('feed');
+      openHow();
     });
     document.getElementById('signOut').addEventListener('click', function(){
       closeMenu(); fbAuth.signOut();
