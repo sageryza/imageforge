@@ -3,16 +3,12 @@
     "storage:witch-school/refs/sophie-snake.png",
     "storage:witch-school/refs/sophie-animals.png"
   ],
-  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading, and generous negative space. Do NOT copy their colors. Use instead a flat limited palette of FOREST GREEN #2C5F3E and TERRACOTTA #C05B3B with black ink, all on a warm IVORY CREAM background #F4EDDF. ",
-  "end": " Subject centered with lots of empty ivory space around it. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited palette of FOREST GREEN #2C5F3E and TERRACOTTA #C05B3B with black ink, all on a warm IVORY CREAM background #F4EDDF. Draw a brand-new illustration in that style. ",
+  "end": " Generous empty ivory space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
   "cards": [
     {
-      "id": "pal-f",
-      "prompt": "A single round cell seen from directly above: one clear circular outline, a solid round nucleus inside it slightly off centre, and five small simple organelle shapes of different kinds scattered around the nucleus, plus one small four-point star beside the cell. One clear subject, generous empty space, flat and simple."
-    },
-    {
-      "id": "pal-f2",
-      "prompt": "A DNA double helix standing upright: two smooth ribbons twisting around each other in a regular spiral, joined all the way up by evenly spaced straight rungs, with one small four-point star beside it. No people. One clear subject, generous empty space, flat and simple."
+      "id": "pal-f3",
+      "prompt": "A scientist standing at a laboratory bench in a lab coat, leaning to look into a microscope, with a rack of test tubes and an open notebook on the bench beside them, a shelf of flasks and stoppered bottles on the wall behind, and one small four-point star in the air. Flat and simple."
     }
   ]
 }
