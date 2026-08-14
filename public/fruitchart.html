@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Favorite fruit</title>
+<style>
+/* Flat colour only — NO gradients (house rule). The fruit pictures carry the
+   identity of each series, so this page needs no categorical palette at all;
+   every count is also written as a number, so size is never the only encoding. */
+:root{
+  --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:Georgia,'Times New Roman',serif;
+  padding:16px 16px 40px;
+}
+[hidden]{display:none !important}
+
+header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+h1{margin:0;font-size:20px;font-weight:400;letter-spacing:.01em}
+.qmark{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);font-size:12px;line-height:20px;
+  text-align:center;cursor:pointer;padding:0;font-family:inherit;flex:0 0 auto;
+}
+#waiting{margin-left:auto;font-size:12px;color:var(--ink2)}
+#helpcard{
+  position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
+  display:flex;align-items:center;justify-content:center;padding:26px;
+}
+#helpcard div{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
+}
+
+/* The hairline tab row — it MEASURES its own underline, so adding a design
+   later needs no count anywhere (house rule). */
+.acctabs{position:relative;display:flex;border-bottom:1px solid var(--line);margin:0 0 16px}
+.acctab{
+  flex:1 1 0;min-width:0;padding:7px 4px 9px;border:none;background:none;cursor:pointer;
+  font-family:-apple-system,system-ui,sans-serif;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink2);
+}
+.acctab.on{color:var(--ink)}
+.acctabs::after{
+  content:'';position:absolute;left:0;bottom:-1px;height:2px;
+  width:var(--tw,0);background:var(--ink);transform:translateX(var(--tx,0));
+}
+.acctabs.tl::after{transition:transform .2s ease,width .2s ease}
+
+.empty{color:var(--ink2);font-size:15px;line-height:1.6;padding:20px 0}
+
+/* ── 1. EVERYONE — one group per person ───────────────────────────────── */
+.person{margin:0 0 26px}
+.person h2{
+  margin:0 0 8px;font-size:15px;font-weight:400;letter-spacing:.02em;
+  padding-bottom:5px;border-bottom:1px solid var(--line);
+}
+.person .none{font-size:13px;color:var(--ink2)}
+.picks{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.pick{width:78px;text-align:center}
+.pick.first{width:118px}
+.pick img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.pick span{display:block;font-size:11px;color:var(--ink2);margin-top:2px}
+.pick.first span{font-size:13px;color:var(--ink)}
+.crown{display:block;font-size:9px;letter-spacing:.12em;color:var(--rose)}
+
+/* ── 2. CHART — fruit down the side, people across ────────────────────── */
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;font-size:13px;min-width:100%}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:center;vertical-align:middle}
+thead th{
+  font-family:-apple-system,system-ui,sans-serif;font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink2);font-weight:400;padding-bottom:7px;
+}
+tbody th{text-align:left;font-weight:400;white-space:nowrap}
+tbody th img{width:30px;height:30px;object-fit:contain;vertical-align:middle;margin-right:7px}
+.mark{color:var(--rose);font-size:14px}
+.mark.top{font-size:15px}
+.dash{color:var(--line)}
+td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
+
+/* ── 3. POPULAR — the most-picked are the biggest ─────────────────────── */
+.cloud{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.blob{text-align:center}
+.blob img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.blob b{display:block;font-size:13px;font-weight:400;margin-top:2px}
+.blob i{
+  display:block;font-style:normal;font-size:11px;color:var(--ink2);
+  font-variant-numeric:tabular-nums;
+}
+
+@media print{
+  body{background:#fff;padding:0}
+  .acctabs,.qmark,#waiting{display:none !important}
+  .view{display:block !important;page-break-after:always}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Favorite fruit</h1>
+  <button class="qmark" id="q" aria-label="About this chart">?</button>
+  <span id="waiting"></span>
+</header>
+
+<div class="acctabs" id="tabs">
+  <button class="acctab on" data-v="people">Everyone</button>
+  <button class="acctab" data-v="chart">Chart</button>
+  <button class="acctab" data-v="popular">Popular</button>
+</div>
+
+<div id="people" class="view"></div>
+<div id="chart" class="view" hidden></div>
+<div id="popular" class="view" hidden></div>
+
+<div id="helpcard" hidden><div>
+  Three ways to read the same answers. <b>Everyone</b> gives each person their
+  own row, biggest picture first — that's their number one. <b>Chart</b> is the
+  grid: a mark where somebody liked that fruit, a filled one for their
+  favorite. <b>Popular</b> sizes each fruit by how many people picked it.
+  Printing gives you all three, one per page.
+</div></div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '/api/fruit';
+  var POLL = new URLSearchParams(location.search).get('p') || '';
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* The tab row measures its own underline — never a declared count. */
+  function tabLine(row) {
+    var on = row.querySelector('.acctab.on'); if (!on) return;
+    var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    row.style.setProperty('--tw', t.width + 'px');
+    row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
+  }
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.acctab'); if (!b) return;
+    [].forEach.call(tabs.children, function (c) { c.classList.toggle('on', c === b); });
+    ['people', 'chart', 'popular'].forEach(function (v) {
+      document.getElementById(v).hidden = (v !== b.dataset.v);
+    });
+    tabs.classList.add('tl');
+    tabLine(tabs);
+  });
+  window.addEventListener('resize', function () { tabLine(tabs); });
+
+  document.getElementById('q').addEventListener('click', function () {
+    document.getElementById('helpcard').hidden = false;
+  });
+  document.getElementById('helpcard').addEventListener('click', function () { this.hidden = true; });
+
+  function empty(msg) {
+    ['people', 'chart', 'popular'].forEach(function (v) {
+      document.getElementById(v).innerHTML = '<p class="empty">' + esc(msg) + '</p>';
+    });
+  }
+
+  if (!POLL) { empty('No poll in the link — add ?p=<poll id>.'); return; }
+
+  fetch(API + '/results/' + encodeURIComponent(POLL))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.error) return empty(d.error);
+      document.getElementById('title').textContent = (d.poll && d.poll.title) || 'Favorite fruit';
+
+      var byId = {};
+      (d.fruits || []).forEach(function (f) { byId[f.id] = f; });
+      var answered = (d.ballots || []).filter(function (b) { return b.done; });
+
+      document.getElementById('waiting').textContent = d.waiting && d.waiting.length
+        ? 'waiting on ' + d.waiting.join(', ')
+        : (answered.length ? 'all in' : '');
+
+      if (!answered.length) {
+        empty(d.waiting && d.waiting.length
+          ? 'No answers yet — waiting on ' + d.waiting.join(', ') + '.'
+          : 'No answers yet.');
+        tabLine(tabs);
+        return;
+      }
+
+      /* ── 1. EVERYONE ────────────────────────────────────────────────── */
+      document.getElementById('people').innerHTML = answered.map(function (b) {
+        var first = byId[b.top];
+        var rest = (b.likes || []).filter(function (id) { return id !== b.top; })
+          .map(function (id) { return byId[id]; }).filter(Boolean);
+        var cards = '';
+        if (first) {
+          cards += '<div class="pick first"><img src="' + esc(first.url) + '" alt="">'
+            + '<span class="crown">FAVORITE</span><span>' + esc(first.name) + '</span></div>';
+        }
+        cards += rest.map(function (f) {
+          return '<div class="pick"><img src="' + esc(f.url) + '" alt=""><span>' + esc(f.name) + '</span></div>';
+        }).join('');
+        return '<div class="person"><h2>' + esc(b.name) + '</h2>'
+          + (cards ? '<div class="picks">' + cards + '</div>' : '<p class="none">Liked nothing on the whole deck.</p>')
+          + '</div>';
+      }).join('');
+
+      /* ── 2. CHART ───────────────────────────────────────────────────── */
+      // Only fruits somebody actually picked — 27 empty rows is not a chart.
+      var picked = (d.fruits || []).filter(function (f) { return f.likes > 0 || f.tops > 0; });
+      var head = '<tr><th></th>' + answered.map(function (b) {
+        return '<th>' + esc(b.name) + '</th>';
+      }).join('') + '<th>All</th></tr>';
+      var rows = picked.map(function (f) {
+        var cells = answered.map(function (b) {
+          if (b.top === f.id) return '<td><span class="mark top" title="favorite">★</span></td>';
+          if ((b.likes || []).indexOf(f.id) >= 0) return '<td><span class="mark">♥</span></td>';
+          return '<td><span class="dash">·</span></td>';
+        }).join('');
+        return '<tr><th><img src="' + esc(f.url) + '" alt="">' + esc(f.name) + '</th>'
+          + cells + '<td class="n">' + f.likes + '</td></tr>';
+      }).join('');
+      document.getElementById('chart').innerHTML =
+        '<div class="wrap"><table><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>';
+
+      /* ── 3. POPULAR ─────────────────────────────────────────────────── */
+      // Size encodes magnitude by AREA (width ∝ √count), and every fruit also
+      // carries its count as a number — size is never the only encoding.
+      var max = picked.reduce(function (m, f) { return Math.max(m, f.likes); }, 1);
+      var MIN = 74, MAX = 210;
+      document.getElementById('popular').innerHTML = '<div class="cloud">' + picked.map(function (f) {
+        var w = Math.round(MIN + (MAX - MIN) * Math.sqrt(f.likes / max));
+        var who = f.likes + (f.likes === 1 ? ' pick' : ' picks')
+          + (f.tops ? ' · ' + f.tops + ' ★' : '');
+        return '<div class="blob" style="width:' + w + 'px">'
+          + '<img src="' + esc(f.url) + '" alt="">'
+          + '<b>' + esc(f.name) + '</b><i>' + who + '</i></div>';
+      }).join('') + '</div>';
+
+      tabLine(tabs);
+    })
+    .catch(function (e) { empty('Could not load: ' + (e.message || e)); });
+})();
+</script>
+</body>
+</html>
