@@ -28,12 +28,19 @@ if (!ok.length) { console.error('nothing generated'); process.exit(1); }
 const ORDER = ['watercolor', 'dream', 'pastel'];
 const TAGS = { watercolor: 'watercolor', dream: 'dream mystery', pastel: 'pastel' };
 
+// Row order is fixed too — the manifest grows in whatever order subjects were
+// (re-)run, and a re-run must not shuffle the page under her.
+const ROWS = ['braid', 'dinner', 'bicycle', 'terrarium'];
 const subjects = [];
 for (const m of ok) {
   let s = subjects.find((x) => x.id === m.subject);
   if (!s) { s = { id: m.subject, label: m.subjectLabel, stress: m.stress, cols: {} }; subjects.push(s); }
   s.cols[m.style] = m;
 }
+subjects.sort((a, b) => {
+  const ia = ROWS.indexOf(a.id), ib = ROWS.indexOf(b.id);
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+});
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const SHEET = `styles3-${QUALITY}-s${subjects.length}`;
