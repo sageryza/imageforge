@@ -4161,6 +4161,7 @@ function mkPagePill(getWin){
 // inject its own in-page pill (this parent pill drives it instead).
 function openPage(p){
   scrollStop();
+  var pvY=window.scrollY;   // the house overlay rule — restored by __close below
   var v=document.createElement('div'); v.className='pageview';
   var bar=document.createElement('div'); bar.className='pv-bar';
   bar.innerHTML='<button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span>';
@@ -4234,7 +4235,8 @@ function openPage(p){
   // body the same way. A half-teardown leaves the page scroll-locked.
   v.__close=function(){
     if(pill._stop) pill._stop(); v.remove();
-    document.body.style.overflow=''; document.body.classList.remove('ontop'); };
+    document.body.style.overflow=''; document.body.classList.remove('ontop');
+    window.scrollTo(0,pvY); };
   bar.querySelector('.pv-back').onclick=function(){
     try{
       var w=frame.contentWindow;
@@ -4339,6 +4341,13 @@ function askArchive(name, cb){
 // Image lightbox — freezes the page behind it (design rule)
 function lightbox(url, asset){
   scrollStop();
+  // The house overlay rule: stop the autoscroll, lock the background, and
+  // restore the EXACT scroll position on close. The restore is load-bearing
+  // HERE because of the NOTE BOX: focusing an input inside a position:fixed
+  // overlay makes iOS scroll the DOCUMENT underneath to reveal the caret
+  // (overflow:hidden does not stop that), so leaving a comment on an image
+  // used to close onto a completely different part of the tab.
+  var lbY=window.scrollY;
   var lb=document.getElementById('clightbox');
   lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
   lb.classList.remove('hastalk');   // last image's thread must not shrink this one
@@ -4473,8 +4482,15 @@ function lightbox(url, asset){
   if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
-  lb.onclick=function(){ if(asset) asset._lbPaint=null; lb.style.display='none'; lb.innerHTML='';
-    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop'); };
+  lb.onclick=function(){ if(asset) asset._lbPaint=null;
+    // Blur FIRST: a still-focused note box makes iOS scroll again as the
+    // keyboard leaves, which would land after our restore and undo it.
+    var f=document.activeElement; if(f && f.blur) f.blur();
+    lb.style.display='none'; lb.innerHTML='';
+    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop');
+    window.scrollTo(0,lbY);
+    // …and again next frame, for the keyboard-dismissal scroll that lands late.
+    requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
 }
 function goHome(){
   // Leaving a chat lands on a clean list — including the search bar folded
