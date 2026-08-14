@@ -2557,6 +2557,36 @@ lifted into a standalone tool later.
   the Bookmarks view's **ARTIFACTS** tab, alongside her kept chats and
   messages — see "THE KEEP-PILE IS THREE TABS" above. One more reason never
   to delete a superseded page: she may have kept it.
+  **THE REFERENCE SHELF — a comparison whose answer stays true is SAVED, and
+  every chat reads the shelf before rebuilding one (Aug 2026, Sophie: "we
+  should save compare pages if they're comparing things that often need to be
+  re-referenced — for example the different qualities of images like high,
+  medium and low, or the different styles").**
+  - **Posting one:** `POST /page { …, reference:true, topic:"image quality" }`,
+    or after the fact `POST /page/:id/reference { reference, topic }`. The
+    topic is the QUESTION it answers, plain and reusable — `image quality`,
+    `styles`, `lora scale`, `sheet grid` — never the page's own title; it is
+    what groups the shelf. Lower-cased and trimmed server-side, 40 chars.
+  - **READ IT BEFORE YOU BUILD ONE: `GET /api/chatfeed/references[?topic=]`**
+    → every reference page across every chat, newest first, with the url that
+    opens it, plus `topics`. If the comparison she is asking for is already on
+    the shelf, hand her that link instead of spending her money and her
+    attention re-rendering it. This is the half that pays for the feature.
+  - **It is the CHATS' flag, `bookmarked` is HERS** — the same split as
+    `starred` vs `bookmarked` on a chat. A reference page shows in the
+    Bookmarks pile's **ARTIFACTS** tab with no keep-tap from her (the tab
+    heads two piles, REFERENCE over KEPT, and only when both exist); its row
+    wears its topic and a small **↓** that takes it off the shelf. Nothing
+    ever takes one off by itself.
+  - **What earns a place:** a comparison that will be asked again — quality
+    ladders, style sets, LoRA scale rungs, grid/cell sizes. NOT a one-off
+    decision ("which cut", "old tracer vs new", a settled voice A/B). When in
+    doubt leave it off; she can't be asked to prune a shelf.
+  - Twelve existing pages were seeded 2026-08-14 by
+    `node scripts/mark-reference-pages.js` (`--dry-run` first, idempotent) —
+    scattered across eight chats, and only 4 of the 333 pages on file had ever
+    been bookmarked, which is why her own keep-tap was never going to gather
+    them. Tests: `node scripts/test-chats-references.js`.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
