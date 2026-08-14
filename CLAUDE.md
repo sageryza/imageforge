@@ -1795,6 +1795,38 @@ lifted into a standalone tool later.
     both themes so a fixed red is right there.
     Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
     stub feed; skips without playwright).
+  **MORE — the far end of the list, folded at SEVEN DAYS (Aug 2026, Sophie:
+  "if there's a chat that I haven't touched in over seven days, can you add a
+  new section underneath all the chats called more, and it's just an arrow
+  that opens up the rest").** `chatStale`/`renderMoreBar` in chats.html,
+  `STALE_DAYS=7`. The live list splits: what she has touched recently, then a
+  quiet hairline bar under it that opens the rest in place.
+  - **"Untouched" is read off the SAME timestamp the row already shows** (the
+    last message's `postedAt`/`created`), so the fold can never disagree with
+    the "9d ago" beside it. A chat with **no message at all** counts as
+    untouched; a chat that is **WORKING right now** never does, whatever its
+    last message says — folding one away mid-turn is the one case that would
+    read as a bug.
+  - **The bar carries the unread count** ("More 12 · 2 new"), the same reason
+    the hidden bar names what is behind it: a reply she never opened must not
+    go silent behind a fold.
+  - **Deliberately QUIET, and that is the whole difference from the hidden
+    bar above it.** Hidden is an alarm and a pile she PUT things in; this is
+    the far end of the same list — ink on a hairline, no tint, sitting UNDER
+    the chats, and opening it APPENDS rows rather than taking over the screen
+    (the hidden pile's whole-screen contract is deliberately not copied here;
+    she asked for "underneath all the chats").
+  - **Session-only, always starting CLOSED**, like the hidden pile and every
+    other filter here: a fold that remembered itself would hide half her
+    chats one morning with no memory of having asked.
+  - **The split happens in `renderHome`, not inside `renderList`** — so the
+    hidden pile, the archive, ★ and Status keep showing their piles whole.
+    Those are places she went on purpose, and a second fold inside one is a
+    filter on a filter. A category chip DOES narrow it, like everything else
+    on the live list.
+  - Tests: `node scripts/test-chats-more.js` (verified failing without the
+    split; covers the boundary, the count, the bar's position under the list,
+    open/close, the working exemption, and no bar when nothing is stale).
   **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
   2026, Sophie).** She stopped using the tile view, so the toggle was two taps
   of nothing: the home is always the list (`view='list'` — **`renderTiles()`
