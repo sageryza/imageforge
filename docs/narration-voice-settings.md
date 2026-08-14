@@ -22,6 +22,21 @@ these values; this file is the human record.
   why the narration cache key carries `NARRATION_REV` (`EDITOR_NARRATION_REV`,
   default `2026-08-04`); bump it after a retrain or old takes are served
   forever.
+- **The instant clones are separate voices, not versions of her professional
+  one.** Newest is **Sophie — instant (Aug 14)**, `t5WywHVtMw3aenhWkKCz`, made
+  from a single 3:36 phone voice memo with its two long pauses (12.4s and 17.9s)
+  cut out — 3:07 of speech in, one file. It renders on the same
+  `eleven_multilingual_v2` + settings of record as everything else. Earlier
+  instants (`Sophie — instant (Aug 3)`, `— Evan/Charlie (instant)`, the doctor
+  pair) are still on the account and untouched; an instant clone is created, not
+  retrained, so making a new one destroys nothing.
+- **Cutting pauses out of clone SOURCE audio: measure against SPEECH, not a
+  fixed floor** — the same rule as everywhere else in `docs/nde-precise-cutting.md`.
+  On that memo, speech sat at −17.5dB and the room floor at −58dB, so a run
+  quieter than `speech85 − 20dB` for ≥3s is a real pause; 0.4s of it is left at
+  each end of a cut with 12ms edge fades, so the joins don't click. Verify the
+  removed spans held no **sustained** voicing before trusting the cut (both here
+  peaked ≥17dB under speech, i.e. dead).
 - **A retrain is destructive at ElevenLabs' end**: the previous model is gone,
   and the only surviving trace of how the voice used to sound is audio already
   rendered from it. Those files are archived at `voice-archive/` in Storage —
