@@ -1,0 +1,56 @@
+[
+ {
+  "id": "28-cherimoya",
+  "name": "Cherimoya",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/28-cherimoya-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/28-cherimoya-v2.webp"
+ },
+ {
+  "id": "29-dates",
+  "name": "Dates",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/29-dates-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/29-dates-v2.webp"
+ },
+ {
+  "id": "30-persimmon",
+  "name": "Persimmon",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/30-persimmon-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/30-persimmon-v2.webp"
+ },
+ {
+  "id": "31-guava",
+  "name": "Guava",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/31-guava-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/31-guava-v2.webp"
+ },
+ {
+  "id": "32-passionfruit",
+  "name": "Passion fruit",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/32-passionfruit-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/32-passionfruit-v2.webp"
+ },
+ {
+  "id": "33-lychee",
+  "name": "Lychee",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/33-lychee-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/33-lychee-v2.webp"
+ },
+ {
+  "id": "34-starfruit",
+  "name": "Starfruit",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/34-starfruit-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/34-starfruit-v2.webp"
+ },
+ {
+  "id": "35-honeydew",
+  "name": "Honeydew",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/35-honeydew-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/35-honeydew-v2.webp"
+ },
+ {
+  "id": "36-grapefruit",
+  "name": "Grapefruit",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/36-grapefruit-v2.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/36-grapefruit-v2.webp"
+ }
+]

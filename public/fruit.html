@@ -11,7 +11,7 @@
    is ever served with one. NO GRADIENTS anywhere (house rule). */
 :root{
   --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
-  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --green:#5c7d5a;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --green:#5c7d5a; --amber:#b08434;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden}
@@ -73,6 +73,9 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
 }
 .stamp.yes{left:16px;color:var(--green);border-color:var(--green);transform:rotate(-11deg)}
 .stamp.no{right:16px;color:var(--rose);border-color:var(--rose);transform:rotate(11deg)}
+/* The middle answer has no direction to be dragged in, so its stamp sits
+   centred and is raised by the ○ button rather than by the drag. */
+.stamp.mid{left:50%;margin-left:-34px;color:var(--amber);border-color:var(--amber)}
 
 /* ── the controls: circular icon buttons (the named exception) ────────── */
 #controls{
@@ -85,7 +88,11 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   cursor:pointer;padding:0;color:var(--ink);
 }
 .round.small{width:40px;height:40px}
-.round.no{color:var(--rose)} .round.yes{color:var(--green)}
+.round.no{color:var(--rose)} .round.yes{color:var(--green)} .round.mid{color:var(--amber)}
+/* Three answers now, so the row is tighter and the middle one sits between
+   them at the same weight — it is a real answer, not a skip. */
+#controls{gap:16px}
+.round.mid{width:52px;height:52px}
 .round:disabled{opacity:.3;cursor:default}
 .round svg{width:24px;height:24px;stroke-width:1.8;fill:none;stroke:currentColor}
 .round.small svg{width:17px;height:17px}
@@ -143,18 +150,22 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   <button class="round small" id="undo" aria-label="Undo" disabled>
     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
   </button>
-  <button class="round no" id="nope" aria-label="No thanks">
+  <button class="round no" id="nope" aria-label="Not my favourite">
     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
   </button>
-  <button class="round yes" id="like" aria-label="Like it">
+  <button class="round mid" id="ok" aria-label="It's OK">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+  </button>
+  <button class="round yes" id="like" aria-label="Love it">
     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
   </button>
 </div>
 
 <div id="helpcard" hidden><div>
-  Swipe each fruit right if you like it, left if you don't — or use the ♥ and ✕
-  buttons. At the end you pick your number one. Your answers save as you go, so
-  you can close this and come back to the same link.
+  Three answers per fruit: <b>♥</b> love it, <b>–</b> it's OK, <b>✕</b> not my
+  favourite. You can also swipe the picture right to love it or left to refuse
+  it. At the end you pick your number one out of the ones you loved. Your
+  answers save as you go, so you can close this and come back to the same link.
 </div></div>
 
 <span id="saving" hidden>saving…</span>
@@ -176,10 +187,14 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   var elSaving = document.getElementById('saving');
   var bUndo = document.getElementById('undo');
   var bNope = document.getElementById('nope');
+  var bOk = document.getElementById('ok');
   var bLike = document.getElementById('like');
 
-  var fruits = [], i = 0, likes = [], nopes = [], top = null, history = [];
+  var fruits = [], i = 0, loves = [], oks = [], nopes = [], top = null, history = [];
   var busy = false;
+  // One place that knows which bucket each answer goes in, so undo and the
+  // crown step can never disagree with the swipe about what was chosen.
+  function bucket(v) { return v === 'love' ? loves : v === 'ok' ? oks : nopes; }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -193,7 +208,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   /* ── saving ─────────────────────────────────────────────────────────── */
   var pending = null, inflight = false;
   function save(done) {
-    pending = { likes: likes, nopes: nopes, top: top, done: !!done };
+    pending = { loves: loves, oks: oks, nopes: nopes, top: top, done: !!done };
     flush();
   }
   function flush() {
@@ -219,7 +234,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
       var f = shown[n];
       var c = document.createElement('div');
       c.className = 'card ' + (n === 0 ? 'top' : n === 1 ? 'under' : 'under2');
-      c.innerHTML = '<span class="stamp yes">LIKE</span><span class="stamp no">NOPE</span>'
+      c.innerHTML = '<span class="stamp yes">LOVE</span><span class="stamp no">NOPE</span><span class="stamp mid">IT\'S OK</span>'
         + '<img src="' + esc(f.url) + '" alt="' + esc(f.name) + '" draggable="false">'
         + '<b>' + esc(f.name) + '</b>';
       deck.appendChild(c);
@@ -252,7 +267,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
       if (!down) return;
       down = false;
       card.style.transition = 'transform .22s, opacity .22s';
-      if (Math.abs(dx) > 80) { fly(card, dx > 0); }
+      if (Math.abs(dx) > 80) { fly(card, dx > 0 ? 'love' : 'nope'); }
       else {
         card.style.transform = '';
         yes.style.opacity = 0; no.style.opacity = 0;
@@ -262,25 +277,32 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     card.addEventListener('pointercancel', end);
   }
 
-  function fly(card, liked) {
+  // verdict is 'love' | 'ok' | 'nope'. The middle one has no direction to fly
+  // in, so it drops straight down — a card that slid sideways for "it's OK"
+  // would read as one of the two ends.
+  function fly(card, verdict) {
     if (busy) return;
     busy = true;
+    var stamp = card.querySelector('.stamp.' + (verdict === 'love' ? 'yes' : verdict === 'ok' ? 'mid' : 'no'));
+    if (stamp) stamp.style.opacity = '1';
     card.style.transition = 'transform .24s, opacity .24s';
-    card.style.transform = 'translate(' + (liked ? 460 : -460) + 'px,40px) rotate(' + (liked ? 22 : -22) + 'deg)';
+    card.style.transform = verdict === 'ok'
+      ? 'translateY(560px)'
+      : 'translate(' + (verdict === 'love' ? 460 : -460) + 'px,40px) rotate(' + (verdict === 'love' ? 22 : -22) + 'deg)';
     card.style.opacity = '0';
     // 130ms, not the animation's full 240 — the guard exists to stop ONE tap
     // committing twice, and any dead window longer than a fast tap silently
     // swallows the second tap instead (measured: at 120ms apart, nearly half
     // were lost). Deliberate tapping is 250ms+, so this drops none of it while
     // still being impossible to double-fire.
-    setTimeout(function () { commit(liked); busy = false; }, 130);
+    setTimeout(function () { commit(verdict); busy = false; }, 130);
   }
 
-  function commit(liked) {
+  function commit(verdict) {
     var f = fruits[i];
     if (!f) return;
-    (liked ? likes : nopes).push(f.id);
-    history.push(liked ? 'like' : 'nope');
+    bucket(verdict).push(f.id);
+    history.push(verdict);
     i++;
     save(false);
     if (i >= fruits.length) crown(); else render();
@@ -291,7 +313,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     var was = history.pop();
     i--;
     var id = fruits[i].id;
-    var arr = was === 'like' ? likes : nopes;
+    var arr = bucket(was);
     var at = arr.lastIndexOf(id);
     if (at >= 0) arr.splice(at, 1);
     if (top === id) top = null;
@@ -300,12 +322,12 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     render();
   }
 
-  bNope.addEventListener('click', function () {
-    var c = deck.querySelector('.card.top'); if (c) fly(c, false);
-  });
-  bLike.addEventListener('click', function () {
-    var c = deck.querySelector('.card.top'); if (c) fly(c, true);
-  });
+  function tap(verdict) {
+    return function () { var c = deck.querySelector('.card.top'); if (c) fly(c, verdict); };
+  }
+  bNope.addEventListener('click', tap('nope'));
+  bOk.addEventListener('click', tap('ok'));
+  bLike.addEventListener('click', tap('love'));
   bUndo.addEventListener('click', undo);
 
   /* ── crown your number one ──────────────────────────────────────────── */
@@ -313,12 +335,15 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     document.getElementById('controls').hidden = true;
     elCount.textContent = '';
     elBar.style.width = '100%';
-    // Nobody liked anything? Then the whole deck is the shortlist, so there is
-    // still a #1 to give — an empty chart column helps no one.
-    var pool = likes.length ? fruits.filter(function (f) { return likes.indexOf(f.id) >= 0; }) : fruits.slice();
+    // The shortlist is what they LOVED. Loved nothing? Fall back to the OKs,
+    // then to the whole deck — there is always a #1 to give, because an empty
+    // chart column helps no one.
+    var pool = loves.length ? fruits.filter(function (f) { return loves.indexOf(f.id) >= 0; })
+      : oks.length ? fruits.filter(function (f) { return oks.indexOf(f.id) >= 0; })
+      : fruits.slice();
     var p = document.createElement('div');
     p.className = 'panel';
-    p.innerHTML = '<h2>' + (likes.length ? 'Which one is your favorite?' : 'Nothing yet — which is closest?') + '</h2>'
+    p.innerHTML = '<h2>' + (loves.length ? 'Which one is your favorite?' : 'Nothing loved — which is closest?') + '</h2>'
       + '<div id="grid"></div>'
       + '<div class="row"><button class="btn" id="finish" disabled>That\'s my answer</button>'
       + '<button class="btn ghost" id="back">Back</button></div>';
@@ -360,7 +385,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
       + '<div class="row" style="justify-content:center"><button class="btn ghost" id="again">Do it again</button></div>'
       + '</div>';
     document.getElementById('again').addEventListener('click', function () {
-      i = 0; likes = []; nopes = []; top = null; history = [];
+      i = 0; loves = []; oks = []; nopes = []; top = null; history = [];
       document.getElementById('controls').hidden = false;
       save(false); render();
     });
@@ -389,10 +414,11 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     elTitle.textContent = me ? me.name + ', pick your fruit' : (poll.title || 'Favorite fruit');
     document.title = poll.title || 'Favorite fruit';
 
-    likes = ballot.likes || []; nopes = ballot.nopes || []; top = ballot.top || null;
+    loves = ballot.loves || []; oks = ballot.oks || []; nopes = ballot.nopes || [];
+    top = ballot.top || null;
     // Resume where they stopped: everything already judged is behind them.
     var judged = {};
-    likes.concat(nopes).forEach(function (id) { judged[id] = 1; });
+    loves.concat(oks, nopes).forEach(function (id) { judged[id] = 1; });
     i = 0;
     while (i < fruits.length && judged[fruits[i].id]) i++;
     // A finished ballot reopens on the crown step, not back at card one.
