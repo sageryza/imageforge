@@ -642,8 +642,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
 .t-tldr.t-note{font-style:italic;}
-/* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
-.noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
+/* Her note on a chat, editable at the top of its thread. Quiet until tapped.
+   The QUESTIONS button rides the same row (Aug 2026, Sophie: "there's hardly
+   any room on that screen so I wouldn't put it there [the tab row] — I would
+   just put a little button underneath it somewhere that says questions"), so
+   it costs no vertical space at all: the note takes the line, the button sits
+   at its right end. */
+.noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 1em; font-size:15px; line-height:1.4;}
+.noterow .notewrap{flex:1 1 auto; min-width:0;}
+.noterow .qbtn{flex:none; margin-top:1px;}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
@@ -651,6 +658,30 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .noterow .noteshow.has{color:var(--ink);}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
+/* ---- QUESTIONS (Aug 2026) ---------------------------------------------------
+   Her questions in this chat, each with the answer that came back. Full-screen
+   over the thread rather than a fourth tab — the tab row had no room, and this
+   is a thing she opens when she is looking for an answer, not a view she reads
+   against the others.
+   The whole point is the SHAPE: her question verbatim and bold, the answer
+   plainly underneath. Nothing else on the line. */
+#qfull{position:fixed; inset:0; z-index:120; background:var(--bg); overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 40px);}
+#qfull .qhead{display:flex; align-items:baseline; gap:10px; margin:0 0 1.2em;}
+#qfull .qhead h2{flex:1; min-width:0; margin:0; font-size:1.5em; font-weight:700; color:var(--ink);}
+#qfull .qhead .x{flex:none; width:34px; height:34px; border-radius:6px; border:1px solid var(--line);
+  background:var(--barbg); color:var(--ink2); font-size:19px; line-height:1; cursor:pointer;}
+#qfull .qitem{margin:0 0 1.7em; padding:0 0 1.5em; border-bottom:1px solid var(--line);}
+#qfull .qitem:last-child{border-bottom:0;}
+/* Bold, and her words exactly as she said them. */
+#qfull .qq{font-weight:700; color:var(--ink); font-size:17px; line-height:1.35; margin:0 0 .45em;}
+/* NOT bold — that contrast is the entire feature. */
+#qfull .qa{font-weight:400; color:var(--ink); font-size:16px; line-height:1.5; white-space:pre-wrap;}
+#qfull .qa a{color:var(--rose);}
+#qfull .qwait{font-style:italic; color:var(--ink2); font-size:15px;}
+#qfull .qwhen{font-family:-apple-system,sans-serif; font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted,#888); margin:.55em 0 0;}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
 /* ---- The UPDATE tab's cards (Aug 2026, Sophie) -------------------------------
    "A daily notifications thing, basically — so it includes a little more
@@ -3563,6 +3594,57 @@ function openPinned(pin){
   w.appendChild(v); w.appendChild(x);
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
+// QUESTIONS — every question she asked in this chat, each with the answer that
+// came back (Aug 2026: "sometimes I ask questions to chat and then it's hard to
+// find the answer cause it's buried under other stuff").
+//
+// Nothing here is filed by a chat: the server DERIVES the pairs from the thread
+// it already stores (questions.js), so the list is complete over the chat's
+// whole history the day it ships and no chat has to remember anything. Fetched
+// on tap, never on load — an unopened list costs nothing.
+//
+// Full-screen, and it follows the house overlay rule like every other one: stop
+// the autoscroll, lock the background, restore the EXACT scroll position on
+// close (overflow:hidden alone does not stop window.scrollBy).
+function openQuestions(name){
+  scrollStop();
+  var y=window.scrollY;
+  var w=document.createElement('div'); w.id='qfull';
+  w.innerHTML='<div class="qhead"><h2>Questions</h2>'
+    +'<button class="x" aria-label="Close">&times;</button></div>'
+    +'<div class="qlist"><div class="state">Loading…</div></div>';
+  function close(){ w.remove(); document.body.style.overflow=''; window.scrollTo(0,y);
+    document.removeEventListener('keydown',esckey); }
+  function esckey(e){ if(e.key==='Escape') close(); }
+  w.querySelector('.x').onclick=close;
+  document.addEventListener('keydown',esckey);
+  document.body.appendChild(w); document.body.style.overflow='hidden';
+  api('/api/chatfeed/questions?chat='+encodeURIComponent(name)+'&_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var qs=(d&&d.questions)||[];
+      var list=w.querySelector('.qlist');
+      if(!qs.length){
+        list.innerHTML='<div class="state">No questions from you in this chat yet.</div>';
+        return;
+      }
+      list.innerHTML='';
+      qs.forEach(function(q){
+        var it=document.createElement('div'); it.className='qitem';
+        // Her question BOLD and verbatim, the answer plainly underneath — the
+        // shape is the whole feature, so don't dress either line up.
+        var h='<div class="qq">'+esc(q.question)+'</div>';
+        h+= q.answer ? '<div class="qa">'+md(q.answer)+'</div>'
+                     : '<div class="qwait">No answer yet.</div>';
+        if(q.at) h+='<div class="qwhen">'+esc(ago(q.at))+'</div>';
+        it.innerHTML=h;
+        list.appendChild(it);
+      });
+    })
+    .catch(function(){
+      w.querySelector('.qlist').innerHTML='<div class="state">Couldn’t load your questions.</div>';
+    });
+}
 function openChat(name, keepScroll, focusId, noFetch){
   if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
@@ -3786,16 +3868,27 @@ function openChat(name, keepScroll, focusId, noFetch){
   // A chat never clears it; she edits or clears it right here (save on
   // tap-away, empty clears).
   var nrow=document.createElement('div'); nrow.className='noterow';
+  // The note owns the line; the Questions button sits at its right end, so
+  // opening her questions costs no vertical space on a screen that had none.
+  var nwrap=document.createElement('div'); nwrap.className='notewrap';
+  nrow.appendChild(nwrap);
+  (function(){
+    var qb=document.createElement('button');
+    qb.className='tbtn qbtn'; qb.textContent='Questions';
+    qb.setAttribute('aria-label','Your questions in this chat, with the answers');
+    qb.onclick=function(){ openQuestions(name); };
+    nrow.appendChild(qb);
+  })();
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
-    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
-    nrow.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+    nwrap.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
+    nwrap.querySelector('.noteshow').onclick=function(){ editChatNote(); };
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
     ta.placeholder='A note to yourself about this chat';
-    nrow.innerHTML=''; nrow.appendChild(ta); ta.focus();
+    nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
     var done=false;
     function save(){
       if(done) return; done=true;
