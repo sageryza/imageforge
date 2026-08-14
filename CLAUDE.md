@@ -2470,19 +2470,10 @@ lifted into a standalone tool later.
   once something is superseded**, so a chat with three pages still looks like
   three pages. Every row carries a small ↓ / ↺ so she can move one across
   herself.
-  **The row is `.acctabs.cmptabs`, and the class is load-bearing (Aug 2026,
-  Sophie: "the words in the middle and on the edge rather than under the
-  line").** It shipped on the BARE `.acctabs`, which is the THREE-tab
-  geometry — a 33.33% line stepping 100%/200% — under TWO tabs, so the line
-  sat a third wide under the middle third (Superseded) or the right third
-  (Current) while the words centred on halves. Measured at 390px:
-  SUPERSEDED's word at x=107 with the line at 195, CURRENT's at 283 with the
-  line at 312. `cmptabs` sets `width:50%` and `data-on` is now the plain
-  SLOT INDEX (0 = Superseded, 1 = Current), the same convention as
-  `.archtabs`/`.arctabs`. **Any new two-tab row needs its own half-width
-  class** — the bare class will always lay it out for three.
-  Tests: `node scripts/test-chats-superseded.js` measures the ::after's real
-  rect against each word's at 375/390/430 (verified failing before the fix).
+  **The row is `.acctabs.cmptabs`; `data-on` is the plain SLOT INDEX (0 =
+  Superseded, 1 = Current), like every other row. It carries NO width — see
+  "THE HAIRLINE ROWS' SLIDING LINE MEASURES ITS TAB" under Design rules,
+  which is where this bug was closed for good.**
   **A chat posting a new version should supersede the one it
   replaces** — that is what keeps eleven drafts of one tool out of her way
   WITHOUT deleting the history.
@@ -4105,6 +4096,57 @@ lifted into a standalone tool later.
     flipping it back has to be deliberate. **Two chats were editing these
     rows the same evening — check the newest instruction before changing
     them.**
+- **THE HAIRLINE ROWS' SLIDING LINE MEASURES ITS TAB — no row anywhere
+  declares a tab count (Aug 2026, Sophie: "close it so it can't happen
+  again").** The `.acctabs` pattern (two or three labels over a rule, the
+  line sliding under the one she is reading) used to size the line as a
+  PERCENTAGE of the row — a width per row class — and move it with a
+  `translateX` step per slot. So the tab count lived in the CSS *and* in the
+  markup, and the two drifted.
+  - **How it drifted, because it was nobody's mistake and that is the
+    point.** The Compare row was written against the two-tab rule on its own
+    branch, correct as authored. A third tab (UPDATE) landed on main from
+    another chat and made the shared rule 33.33%. The Compare branch merged
+    **four minutes later** (`a576e08` → `38aa56e`, 2026-08-11): different
+    lines, clean merge, no test failure — and the line sat a third wide under
+    the middle of a two-tab row until she spotted it two days on ("the words
+    in the middle and on the edge rather than under the line"). Measured at
+    390px: SUPERSEDED's word at x=107 with the line at 195; CURRENT's at 283
+    with the line at 312.
+  - **So the count now lives nowhere.** `tabLine()` reads the `.acctab.on`
+    element's real rect and writes `--tw` / `--tx`. Add a tab, remove one,
+    change a padding: the line is still under the word, because it asked.
+    It also retires the traps that rode with the percentage — the pill's 56px
+    reserve (an abspos child resolves percentages against the PADDING box, so
+    a row near the top needed `calc((100% - 56px)/N)`), and a tab made wider
+    than its neighbours by a two-digit badge, which no percentage could ever
+    follow. The reserve is still needed for the TAPS, just not for the line.
+  - **Three things about it are load-bearing.** An unmeasured row draws NO
+    line (`var(--tw,0)`) rather than a guessed one. The slide is switched on
+    a frame AFTER a row's first measurement (`.tl`), so a screen opens with
+    the line already in place and only a tap animates it. And the repaint
+    must never write the style attribute unconditionally — the observer that
+    drives it watches `style`, so an unguarded write is an rAF loop forever.
+  - **A resize snaps and measures a FRAME LATER.** `resize` fires before the
+    new layout is committed: measured 2026-08-13, a tab read inside the
+    handler still reports its old width and the line lands one viewport
+    behind (at 390 it kept 375's 140.75px). Anything asserting on the line
+    after a resize has to settle a frame first — that is a real property of
+    the mechanism, not a flaky test.
+  - **Ported to every page that uses the `.acctabs` idiom**: chats.html (all
+    five rows), voice.html (SPEAK · CHANGE), cuttingroom.html (TRANSCRIPT ·
+    CLIPS, whose line is a real `.tline` span rather than an `::after`).
+    **NOT ported, deliberately:** the witch app's `.ps-tabs` (its own visual
+    system, one row in one file, and its count sits beside its markup rather
+    than in a class shared across rows) and `chapters.js` (which already
+    switches to a `/4` rule when a copy level exists). Both are fine; neither
+    can drift the way a shared rule did.
+  - Tests: `node scripts/test-chats-tab-lines.js` drives all five chats rows
+    at 375/390/430 and asserts the line's real rect against the lit tab's,
+    plus the no-line default and the no-loop guard. Verified failing when one
+    row is put back on a fixed percentage (it reported the line 56–64px wide
+    of the tab and 225px adrift). `test-voice-changer` and
+    `test-cutroom-handoff` cover the other two pages.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's

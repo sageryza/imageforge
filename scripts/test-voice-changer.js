@@ -207,6 +207,12 @@ const ok = (m) => console.log('  ok — ' + m);
   // 6 — both tabs really tappable, and the line is a TAB wide
   for (const w of [375, 390, 430]) {
     await page.setViewportSize({ width: w, height: 844 });
+    // The line MEASURES the lit tab now rather than being a fixed share of the
+    // row, so it is correct on the first painted frame after a resize, not
+    // inside the resize event — `resize` fires before the new layout is
+    // committed. Settle a frame before asking, or this reads the old viewport's
+    // width and calls a correct line wrong.
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     const hit = await page.evaluate(() => {
       const out = {};
       ['tab-say', 'tab-change'].forEach((id) => {

@@ -77,13 +77,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    It sits directly ABOVE the hidden bar (Sophie, Aug 2026), which is what
    lets it run FULL WIDTH: down here the row clears the autoscroll pill's
    band (the pill covers x 324–374, y 14–192, and this lands well below it),
-   so neither the 56px corner reserve nor a short hairline is needed. The
-   test hit-tests both tabs at 375/390/430 rather than trusting that — if
-   the row is ever moved back up, it needs `padding-right:56px` again AND a
-   sliding line of `calc((100% - 56px)/2)`, since an absolutely-positioned
-   child measures against the PADDING box and a plain 50% would then
-   overhang the tab it underlines. translateX(100%) moves the line by its
-   own width, i.e. exactly one tab.
+   so the 56px corner reserve is not needed. The test hit-tests both tabs at
+   375/390/430 rather than trusting that — if the row is ever moved back up
+   it needs `padding-right:56px` again (for the TAPS; the line looks after
+   itself, see below).
 
    THREE tabs since Aug 2026 — UPDATE · ACCOUNT 1 · ACCOUNT 2 (Sophie: "I
    wanna make one more tab, and this is like a daily notifications thing",
@@ -91,9 +88,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    call it update"). UPDATE is not an account, it is a VIEW (see renderNews),
    which is why it lights up on its own and the two account words go quiet
    under it — and it leads the row because it is the screen she opens first.
-   The sliding line is one tab wide, so its width and the translate steps are
-   the tab count, and the steps follow the MARKUP order below — move a tab and
-   move its step with it. */
+
+   THE SLIDING LINE MEASURES THE LIT TAB — it is never told a tab count, and
+   that is the whole point (Aug 2026, Sophie: "close it so it can't happen
+   again"). It used to be a percentage of the row plus a translateX step per
+   slot, so every row had to declare its own count in CSS and every new row
+   had to remember to. The Compare row didn't — not by carelessness: it was
+   written against the two-tab rule on its own branch and merged four minutes
+   after a third tab landed on main from another chat (a576e08 → 38aa56e,
+   2026-08-11). Nothing conflicted, nothing failed, and the line sat a third
+   wide under the middle of a two-tab row until she spotted it two days later.
+   A count that lives in two places drifts; so now it lives in none. `tabLine`
+   reads the `.acctab.on` element's real rect, which also makes the whole
+   family of traps under it moot — the 56px pill reserve, a padding-box
+   percentage, a tab that is wider because its badge has two digits. Add a
+   tab, remove a tab, change a padding: the line is still exactly under the
+   word, because it asked. */
 .acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
   margin:-5px 0 10px;}
 .acctab{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:5px;
@@ -101,12 +111,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .acctab.on{color:var(--ink);}   /* the sliding line says which one — no bold needed */
+/* --tw / --tx are written by tabLine(). The 0 default means a row that has
+   not been measured yet draws NO line rather than a wrong one.
+   The SLIDE only starts once a row has been measured (`.tl`, added on the
+   frame after its first measurement) — otherwise every row that appears would
+   animate its line out from nothing, which is not what she has ever seen: the
+   line is simply THERE when a screen opens, and slides only when she taps. */
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
-  width:33.3333%; background:var(--ink);
-  transform:translateX(0); transition:transform .2s ease;}
-/* slot 0 is UPDATE (the row's default), then the two accounts */
-.acctabs[data-on="1"]::after{transform:translateX(100%);}
-.acctabs[data-on="2"]::after{transform:translateX(200%);}
+  width:var(--tw,0); background:var(--ink);
+  transform:translateX(var(--tx,0));}
+.acctabs.tl::after{transition:transform .2s ease, width .2s ease;}
 /* The red badge = chats in THAT account that answered her and she hasn't
    opened. Same shape and reason as the category chips' one: without it, the
    account she is not looking at would be completely silent. */
@@ -385,30 +399,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    class adds ONE thing, and it is load-bearing: unlike the account row (which
    sits low, above the hidden bar) this row is near the TOP of the screen,
    inside the autoscroll pill's band (x 324–374, y 14–192) — so the right-hand
-   tab's own centre would land under the pill and eat the tap.
-   The sliding line then has to measure the CONTENT width: an abspos child's
-   percentages resolve against the PADDING box, so the inherited 33.33% would
-   sit wider than a tab and drift right. translateX steps stay 100%/200% —
-   those are relative to the line's own width, which is now correct. */
+   tab's own centre would land under the pill and eat the tap. The reserve is
+   about the TAPS only; the line measures the lit tab, so it follows the
+   narrower tabs by itself (see tabLine). */
 .acctabs.bmktabs{padding-right:56px;}
-.acctabs.bmktabs::after{width:calc((100% - 56px)/3);}
 /* THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) — BUILT on the left, OTHER on
-   the right. Same row as the account tabs, so it can never drift from them;
-   TWO tabs, so the sliding line is half-width and rides the shared
-   [data-on="1"] step. It needs NO 56px corner reserve: it is drawn at the top
-   of #grid, which sits below the account row and the hidden bar and therefore
-   clears the pill's y 14–192 band. Move it higher and it needs the reserve
-   plus width:calc((100% - 56px)/2), like .bmktabs. */
-.acctabs.archtabs::after{width:50%;}
-/* The Compare tab's SUPERSEDED · CURRENT row. TWO tabs, so it needs the
-   half-width line for the same reason .archtabs does — it shipped on the
-   BARE .acctabs, which is the THREE-tab geometry (a 33.33% line stepping
-   100%/200%), so the line sat under the middle third for the left tab and
-   the right third for the right one while the words centred on halves.
-   Sophie, Aug 2026: "the words in the middle and on the edge rather than
-   under the line." Slots are plain indexes here (0 = Superseded), so the
-   shared [data-on="1"] step is the one it rides. */
-.acctabs.cmptabs::after{width:50%;}
+   the right. Same row as the account tabs, so it can never drift from them.
+   It needs NO 56px corner reserve: it is drawn at the top of #grid, which
+   sits below the account row and the hidden bar and therefore clears the
+   pill's y 14–192 band. Move it higher and it needs the reserve. */
+/* The Compare tab's SUPERSEDED · CURRENT row is `.cmptabs`. Neither class
+   carries a width anymore — that is what the Aug 2026 fix removed; see the
+   tabLine note at the top. */
 /* Move one chat across, on its row. Replaces the hide ⊖ in the archive — see
    renderList: hiding an archived chat is a dead control there, because the
    hidden pile is derived from the LIVE list, which excludes the archived. */
@@ -743,13 +745,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    that is prose, not a label; the tab row is the same hairline pattern as the
    archive she is about to put it in, so the choice looks like its destination.
    It sits INSIDE a 320px sheet, nowhere near the pill, so it needs no corner
-   reserve — just the half-width sliding line for two tabs. */
+   reserve. */
 .arcname{width:100%; box-sizing:border-box; margin:0 0 12px; padding:8px 10px;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
   font-family:'EBGaramond',Georgia,serif; font-size:17px;}
 .arcname:focus{outline:none; border-color:var(--ink2);}
 .acctabs.arctabs{margin:0 0 14px;}
-.acctabs.arctabs::after{width:50%;}
 /* Archive as words, beside the name — not a button, still tappable. */
 /* Vertical padding is the tap target, not decoration: as bare 11px text this
    was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
@@ -1019,6 +1020,76 @@ document.addEventListener('click', function(e){
   else fallback();
 });
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── The hairline tab rows' sliding line ──────────────────────────────────
+// It measures `.acctab.on` and writes the line's real width and offset. NO row
+// declares a tab count anywhere, which is the point: the count used to live in
+// a CSS width per row AND in a translateX step per slot, and a count kept in
+// two places drifts. See the long note above `.acctabs` for how that shipped.
+//
+// Measuring also retires the traps that rode along with the percentage — the
+// pill's 56px reserve (an abspos child resolves percentages against the PADDING
+// box), and a tab made wider than its neighbours by a two-digit badge.
+function tabLine(row){
+  if(!row) return;
+  var on=row.querySelector('.acctab.on'); if(!on) return;
+  var r=row.getBoundingClientRect(), t=on.getBoundingClientRect();
+  // A row with no layout (its view is display:none, or it is not in the
+  // document yet) measures 0 — keep the last good numbers rather than
+  // collapsing the line, and repaint when it comes back on screen.
+  if(!t.width) return;
+  // `left:0` on the ::after resolves against the PADDING box, so the origin is
+  // the border-box left plus the left border. These rows have only a bottom
+  // border, but clientLeft costs nothing and cannot be wrong.
+  var w=t.width+'px', x=(t.left-r.left-row.clientLeft)+'px';
+  // ONLY write when something actually moved. The observer below watches the
+  // style attribute, and setProperty writes it whether or not the value
+  // changed — so an unconditional write would wake the observer, which would
+  // write again, once per frame forever.
+  if(row.style.getPropertyValue('--tw')===w && row.style.getPropertyValue('--tx')===x) return;
+  row.style.setProperty('--tw', w);
+  row.style.setProperty('--tx', x);
+  // A row's FIRST measurement lands instantly; the slide is switched on a
+  // frame later, so opening a screen shows the line already in place and only
+  // a tap animates it. A rebuilt row is a new element, so it starts instant
+  // again — which is right, that is a screen appearing, not a tab changing.
+  if(!row.__tl){ row.__tl=1; requestAnimationFrame(function(){ row.classList.add('tl'); }); }
+}
+function tabLines(){
+  Array.prototype.forEach.call(document.querySelectorAll('.acctabs'), tabLine);
+}
+// Automatic, because "remember to call it" is the failure this replaces. A row
+// being built, a tab lighting up, a panel un-hiding and the window resizing all
+// end in one rAF-coalesced pass over the rows on screen.
+(function(){
+  var queued=false;
+  function soon(){
+    if(queued) return; queued=true;
+    requestAnimationFrame(function(){ queued=false; tabLines(); });
+  }
+  window.__tabLines=soon;
+  if(window.MutationObserver){
+    new MutationObserver(soon).observe(document.documentElement,
+      {childList:true, subtree:true, attributes:true, attributeFilter:['class','style']});
+  }
+  // A RESIZE snaps; only a tap slides. Dropping `.tl` turns the transition off
+  // for this measurement and the first-measure branch turns it back on a frame
+  // later, so a rotation doesn't send the line gliding across the row.
+  // The measuring itself waits a FRAME: `resize` fires before the new layout is
+  // committed, so a tab measured inside the handler still reports its old width
+  // and the line lands one viewport behind (measured 2026-08-13 — at 390 it kept
+  // 375's 140.75px). rAF is after layout, so it reads what was actually laid out.
+  window.addEventListener('resize', function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.acctabs'), function(r){
+      r.classList.remove('tl'); r.__tl=0;
+    });
+    soon();
+  }, {passive:true});
+  // The tabs are set in -apple-system at 10px with tracking; a late font swap
+  // changes their widths, and the observer sees no mutation for that.
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(soon);
+  soon();
+})();
 // Light markdown for the full message view: escape FIRST (safe), then style.
 // Bold/italics/inline code render for real; fenced code becomes a quiet <pre>;
 // heading marks become bold lines. Everything else stays plain text.

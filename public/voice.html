@@ -90,10 +90,16 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .acctab.on{color:var(--ink);}   /* the sliding line says which one — no bold */
+/* The line MEASURES the lit tab (`tabLine` below) — it is never told a tab
+   count. Chats had the same row as a percentage per tab count plus a step per
+   slot, and a row ended up carrying the wrong count without anyone writing
+   anything wrong (two branches, clean merge, Aug 2026). A count kept in CSS
+   and in markup drifts; measured, there is nothing to disagree with — and the
+   56px pill reserve stops needing to appear in the width at all. */
 .acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
-  width:calc((100% - 56px)/2); background:var(--ink);
-  transform:translateX(0); transition:transform .2s ease;}
-.acctabs[data-on="1"]::after{transform:translateX(100%);}
+  width:var(--tw,0); background:var(--ink);
+  transform:translateX(var(--tx,0));}
+.acctabs.tl::after{transition:transform .2s ease, width .2s ease;}
 /* The recorder. A round record button (the one circle this page has — the
    no-pills rule exempts circular icon buttons), then the file picker beside
    it as plain words, because "or a file" is the fallback, not the headline. */
@@ -314,14 +320,38 @@ go.onclick=function(){
 // means the same thing on both sides (words to say / voice to become).
 var tabs=document.getElementById('tabs');
 var paneSay=document.getElementById('pane-say'), paneCh=document.getElementById('pane-change');
+// The sliding line, measured off the lit tab — see the CSS note. The first
+// measurement lands instantly and the slide switches on a frame later, so the
+// page opens with the line already in place and only a tap animates it.
+function tabLine(){
+  var on=tabs.querySelector('.acctab.on'); if(!on) return;
+  var r=tabs.getBoundingClientRect(), t=on.getBoundingClientRect();
+  if(!t.width) return;
+  tabs.style.setProperty('--tw', t.width+'px');
+  tabs.style.setProperty('--tx', (t.left-r.left-tabs.clientLeft)+'px');
+  if(!tabs.__tl){ tabs.__tl=1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
+}
+// A resize SNAPS (only a tap slides): dropping `.tl` turns the transition off
+// for this measurement, and tabLine turns it back on a frame later.
+// It waits a FRAME because `resize` fires BEFORE the new layout is committed —
+// measured 2026-08-13: read inside the handler, a tab still reports its old
+// width and the line lands one viewport behind. rAF is after layout.
+window.addEventListener('resize', function(){
+  tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(tabLine);
+}, {passive:true});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(tabLine);
 function showTab(i){
   tabs.dataset.on=String(i);
   document.getElementById('tab-say').classList.toggle('on', i===0);
   document.getElementById('tab-change').classList.toggle('on', i===1);
   paneSay.hidden = i!==0; paneCh.hidden = i!==1;
+  tabLine();
 }
 document.getElementById('tab-say').onclick=function(){ showTab(0); };
 document.getElementById('tab-change').onclick=function(){ showTab(1); };
+// SPEAK is lit in the markup and showTab does not run at boot, so the line has
+// to be measured once here or the page would open with no line under anything.
+tabLine();
 
 var take=null;                 // {blob, name, ext, seconds}
 var chgo=document.getElementById('chgo'), chcount=document.getElementById('chcount');

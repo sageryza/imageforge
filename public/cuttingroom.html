@@ -80,9 +80,13 @@
     font-size:12px; letter-spacing:.04em; text-transform:uppercase;
     color:var(--soft); font-weight:400; font-family:inherit}
   .acctabs button.on{color:var(--ink)}
-  .acctabs .tline{position:absolute; bottom:-1px; left:0; width:calc((100% - 56px)/2);
-    height:2px; background:var(--ink); transition:transform .18s}
-  .acctabs.t2 .tline{transform:translateX(100%)}
+  /* The line MEASURES the lit tab (`tabLine` below) — never a share of the row
+     per tab count. Chats carried that shape and a row ended up with the wrong
+     count from a clean merge alone (Aug 2026); measured, there is no count to
+     be wrong, and the 56px pill reserve stops needing to be in the width. */
+  .acctabs .tline{position:absolute; bottom:-1px; left:0; width:var(--tw,0);
+    height:2px; background:var(--ink); transform:translateX(var(--tx,0))}
+  .acctabs.tl .tline{transition:transform .18s, width .18s}
 
   /* find-a-word (the magnifier in the tools row) */
   #findrow{display:flex; gap:8px; align-items:center; margin-top:10px}
@@ -552,10 +556,34 @@ async function buildRoom() {
 }
 
 // ── TRANSCRIPT | CLIPS tabs ─────────────────────────────────────────
+// The sliding line, measured off the lit tab — see the CSS note. The first
+// measurement lands instantly; the slide switches on a frame later, so the room
+// opens with the line already in place and only a tap animates it.
+function tabLine() {
+  var row = $('roomtabs'); if (!row) return;
+  var on = row.querySelector('button.on'), line = row.querySelector('.tline');
+  if (!on || !line) return;
+  var r = row.getBoundingClientRect(), t = on.getBoundingClientRect();
+  if (!t.width) return;
+  row.style.setProperty('--tw', t.width + 'px');
+  row.style.setProperty('--tx', (t.left - r.left - row.clientLeft) + 'px');
+  if (!row.__tl) { row.__tl = 1; requestAnimationFrame(function () { row.classList.add('tl'); }); }
+}
+// A resize SNAPS (only a tap slides): dropping `.tl` turns the transition off
+// for this measurement, and tabLine turns it back on a frame later.
+// It waits a FRAME because `resize` fires BEFORE the new layout is committed —
+// measured 2026-08-13: read inside the handler, a tab still reports its old
+// width and the line lands one viewport behind. rAF is after layout.
+window.addEventListener('resize', function () {
+  var row = $('roomtabs'); if (row) { row.classList.remove('tl'); row.__tl = 0; }
+  requestAnimationFrame(tabLine);
+}, { passive: true });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
 function setTab(n) {
-  $('roomtabs').classList.toggle('t2', n === 2);
   $('tabtr').classList.toggle('on', n === 1);
   $('tabclips').classList.toggle('on', n === 2);
+  tabLine();
   $('tr').hidden = n !== 1;
   $('findrow').hidden = n !== 1 || !findOpen;
   $('outs').hidden = n !== 2;
