@@ -578,6 +578,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    row drops its own border so the two never stack into a double line. */
 .hbsep{height:1px; background:var(--line); margin:0 0 10px;}
 .hidelist .clist .crow:last-child{border-bottom:none;}
+/* MORE — the chats she hasn't touched in over a week (Aug 2026, Sophie: "if
+   there's a chat that I haven't touched in over seven days, add a new section
+   underneath all the chats called more, and it's just an arrow that opens up
+   the rest").
+   Deliberately QUIET, and that is the whole difference from the hidden bar
+   above it: hidden is an alarm (red, a pile she PUT things in), this is just
+   the far end of the same list. So it is ink-on-paper with a hairline, no
+   tint, no colour — and it sits UNDER the chats rather than over them.
+   It carries the unread count for the same reason the hidden bar does: a
+   reply she never opened must never go silent behind a fold. */
+.morebar{display:flex; align-items:center; gap:8px; width:100%; margin:2px 0 8px; padding:7px 2px;
+  background:none; color:var(--ink2); border:none; border-top:1px solid var(--line);
+  cursor:pointer; text-align:left;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:400; -webkit-tap-highlight-color:transparent;}
+.morebar svg{width:15px; height:15px; flex:none; display:block;}
+.morebar .mb-n{flex:1; min-width:0;}
+.morebar .mb-new{color:var(--chg); letter-spacing:.04em; text-transform:none;}
+.morebar .mb-chev{transition:transform .16s ease;}
+.morebar.open .mb-chev{transform:rotate(180deg);}
+.morelist{margin:0 0 6px;}
 /* ---- The running to-do list ---------------------------------------------- */
 /* The add row RESERVES THE PILL'S CORNER. On this view the tool row and the
    search bar are hidden, so the add row rides up into the pill's band (y
@@ -2440,7 +2461,29 @@ function renderNews(el){
 // The bar only exists when something is hidden. There is nothing to explain
 // when the pile is empty, and the way in is the ⊖ on any chat, not the bar.
 var hideOpen=false;
+// MORE — the far end of the list, folded (Aug 2026, Sophie: "a chat I haven't
+// touched in over seven days"). Session-only and always starting CLOSED, the
+// same rule as the hidden pile: a fold that remembers itself would hide half
+// her chats one morning with no memory of having asked.
+var moreOpen=false;
+var STALE_DAYS=7;
 function lastOf(g,name){ var l=g[name]||[]; return l.length? l[l.length-1] : null; }
+// "Haven't touched" = nothing has LANDED in this chat for a week — the same
+// time the row itself already shows ("9d ago"), so the fold can never disagree
+// with the timestamp beside it.
+//   * a chat with no message at all counts as stale (there is nothing to be
+//     fresh about), and
+//   * a chat that is WORKING right now never does, whatever its last message
+//     says — it is being touched at this second, and folding it away while it
+//     types is the one case that would read as a bug.
+function chatStale(name,last){
+  if(chatWorking(name,last)) return false;
+  var t=last && (last.postedAt||last.created);
+  if(!t) return true;
+  var ms=Date.parse(t);
+  if(!ms) return true;
+  return (Date.now()-ms) > STALE_DAYS*86400000;
+}
 
 // ---- Categories ------------------------------------------------------------
 // Chips where the LIST/TILES toggle used to be (Aug 2026, Sophie: "category
@@ -2781,6 +2824,33 @@ function renderHiddenBar(el,g,hid){
   if(view==='list') renderList(box,g,hid); else renderTiles(box,g,hid);
   sep();   // the line closes the whole block, so it goes AFTER the open pile
 }
+// MORE — the stale chats, folded under the list (Sophie, Aug 2026).
+// Three things about it are deliberate:
+//   * it is drawn AFTER the list, and opening it appends underneath rather
+//     than replacing the screen the way the hidden pile does — she asked for
+//     "underneath all the chats", i.e. the same list continuing, not a place
+//     to go;
+//   * the count of unread replies rides on the bar, so nothing behind the
+//     fold can answer her in silence;
+//   * with the fold OPEN the rows are the ordinary list, so every control on
+//     them (hide, filing, select mode) works exactly as it does above.
+function renderMoreBar(el,g,old){
+  if(!old.length) return;
+  var fresh=old.filter(function(n){
+    var last=lastOf(g,n);
+    return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
+  }).length;
+  var bar=document.createElement('button'); bar.className='morebar'+(moreOpen?' open':'');
+  bar.setAttribute('aria-expanded', moreOpen?'true':'false');
+  bar.innerHTML='<span class="mb-n">More '+old.length
+    +(fresh? ' <span class="mb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV.replace('hb-chev','mb-chev');
+  bar.onclick=function(){ moreOpen=!moreOpen; renderHome(); };
+  el.appendChild(bar);
+  if(!moreOpen) return;
+  var box=document.createElement('div'); box.className='morelist';
+  el.appendChild(box);
+  if(view==='list') renderList(box,g,old); else renderTiles(box,g,old);
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
@@ -2868,7 +2938,15 @@ function renderHome(){
         : 'Everything is filed — tap a category to see it.'}));
     return;
   }
-  if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+  // MORE (Aug 2026, Sophie). The list splits in two at seven days: what she
+  // has touched recently, then a fold. The split happens HERE, not inside
+  // renderList, so the hidden pile / archive / ★ / Status all keep showing
+  // their piles whole — those are already places she went on purpose, and a
+  // second fold inside one would be a filter on a filter.
+  var recent=names.filter(function(n){ return !chatStale(n, lastOf(g,n)); });
+  var old=names.filter(function(n){ return chatStale(n, lastOf(g,n)); });
+  if(recent.length){ if(view==='list') renderList(el,g,recent); else renderTiles(el,g,recent); }
+  renderMoreBar(el,g,old);
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
@@ -3022,6 +3100,11 @@ function paintLive(){
 // test that sets that assigns a stray global and silently proves nothing.
 window.__repaintLive=paintLive;
 window.__setTint=function(v){ TINT=!!v; };
+// Test hooks for the MORE fold. `__setMoreOpen` drives the fold without a tap,
+// and `__chatStale` is the rule itself, so a test can assert the seven-day
+// boundary without building a whole feed either side of it.
+window.__setMoreOpen=function(v){ moreOpen=!!v; renderHome(); };
+window.__chatStale=function(n,last){ return chatStale(n,last); };
 // Test hook: the archive's pile tabs (the page script is an IIFE, so archTab
 // is not reachable from outside otherwise).
 window.__setArchTab=function(v){ archTab = (v==='other'?'other':'built'); renderHome(); };
