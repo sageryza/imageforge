@@ -400,6 +400,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    clears the pill's y 14–192 band. Move it higher and it needs the reserve
    plus width:calc((100% - 56px)/2), like .bmktabs. */
 .acctabs.archtabs::after{width:50%;}
+/* The Compare tab's SUPERSEDED · CURRENT row. TWO tabs, so it needs the
+   half-width line for the same reason .archtabs does — it shipped on the
+   BARE .acctabs, which is the THREE-tab geometry (a 33.33% line stepping
+   100%/200%), so the line sat under the middle third for the left tab and
+   the right third for the right one while the words centred on halves.
+   Sophie, Aug 2026: "the words in the middle and on the edge rather than
+   under the line." Slots are plain indexes here (0 = Superseded), so the
+   shared [data-on="1"] step is the one it rides. */
+.acctabs.cmptabs::after{width:50%;}
 /* Move one chat across, on its row. Replaces the hide ⊖ in the archive — see
    renderList: hiding an archived chat is a dead control there, because the
    hidden pile is derived from the LIVE list, which excludes the archived. */
@@ -3897,9 +3906,10 @@ function openChat(name, keepScroll, focusId, noFetch){
         var tabs=null;
         if(old.length){
           // Superseded on the LEFT, Current on the RIGHT — and Current is
-          // still where she lands (Sophie's ask). data-on='2' starts the
-          // sliding underline under the right-hand tab.
-          tabs=document.createElement('div'); tabs.className='acctabs'; tabs.dataset.on='2';
+          // still where she lands (Sophie's ask). data-on is the tab's SLOT
+          // INDEX, as on every other two-tab row: 0 = Superseded, 1 = Current,
+          // so the half-width line under .cmptabs lands under the word.
+          tabs=document.createElement('div'); tabs.className='acctabs cmptabs'; tabs.dataset.on='1';
           tabs.innerHTML='<button class="acctab">Superseded</button>'+
                          '<button class="acctab on">Current</button>';
           comparePanel.appendChild(tabs);
@@ -3908,9 +3918,9 @@ function openChat(name, keepScroll, focusId, noFetch){
         comparePanel.appendChild(list);
         function paint(which){
           list.innerHTML='';
-          var set = which==='1' ? old : live;          // tab 1 = Superseded, tab 2 = Current
+          var set = which==='0' ? old : live;          // slot 0 = Superseded, slot 1 = Current
           if(!set.length){ list.appendChild(Object.assign(document.createElement('div'),
-            {className:'state',textContent: which==='1' ? 'Nothing superseded yet.' : 'Nothing current — everything is superseded.'})); return; }
+            {className:'state',textContent: which==='0' ? 'Nothing superseded yet.' : 'Nothing current — everything is superseded.'})); return; }
           set.forEach(function(p){
             var row=document.createElement('div'); row.className='pagerow';
             row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
@@ -3956,12 +3966,12 @@ function openChat(name, keepScroll, focusId, noFetch){
         }
         if(tabs) tabs.onclick=function(e){
           var b=e.target.closest('.acctab'); if(!b) return;
-          var i=[].indexOf.call(tabs.querySelectorAll('.acctab'), b)+1;
+          var i=[].indexOf.call(tabs.querySelectorAll('.acctab'), b);
           tabs.dataset.on=String(i);
           [].forEach.call(tabs.querySelectorAll('.acctab'), function(x){ x.classList.toggle('on', x===b); });
           paint(String(i));
         };
-        paint(tabs ? '2' : '2');
+        paint('1');   // Current, tabs or not
       })
       .catch(function(){ comparePanel.innerHTML='<div class="state">Couldn\u2019t load pages.</div>'; });
   }
