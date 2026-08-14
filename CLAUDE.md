@@ -1050,6 +1050,40 @@ lifted into a standalone tool later.
     re-POSTing the full text to /api/chatfeed with the turn's key (`turn` =
     the transcript uuid of the user message that started the turn; the server
     upserts onto the same message doc).
+- **A TURN STARTED BY A BACKGROUND EVENT IS STILL A TURN (v14, Aug 2026).**
+  Sophie, across several chats in one week: "your last message didn't show up
+  in my chat app." The pattern was exact — every turn that answered HER
+  posted, every turn that answered a wake event / task notification did not.
+  **The two questions the hook asks about a user record are SEPARATE and must
+  stay that way:**
+  - **the TURN BOUNDARY takes everything** — ANY non-tool-result user record
+    ends the previous turn, machinery included, because a wake really does
+    begin a turn whose reply deserves its own message;
+  - **`her_words` decides what is POSTED as hers** — machinery is a boundary
+    but never a message.
+  Merging them (the first fix for the wake-envelopes-as-her-messages bug)
+  left a background-event reply keyed to the PREVIOUS turn. The message doc
+  id is `sha1(session|turn)`, so it UPSERTED onto that already-finished
+  message, inherited its `created` (the upsert preserves it deliberately),
+  never rose in the thread, and read as gone. The live-draft pass was worse:
+  it re-marked that delivered reply `working:true`, which is why those chats
+  ALSO sat parked in the hidden pile waiting for a reply she already had —
+  one cause, two symptoms, and worth remembering when the next "it's parked
+  and silent" report arrives. `turnkey_of()` (both parsers, kept in step)
+  also gives a machinery record with no uuid a STABLE key off its timestamp
+  rather than silently inheriting the previous turn's — stable because the
+  hook re-parses the whole transcript on every event, so a volatile key
+  would fork the doc. Tests: `node scripts/test-chats-turn-boundary.js`
+  (drives the REAL hook against a capture server; verified failing on the
+  unpatched hook, 9 of 17).
+  **THE TWO SYMPTOMS ARE OPPOSITE SIDES OF ONE ROLLOUT, which is why this
+  read as "various reasons" (measured 2026-08-14):** a chat on the OLD hook
+  files `<wake …>` envelopes into her feed AS HER MESSAGES but posts its
+  turns fine; a chat on the in-between hook posts no wake-turn replies at
+  all. Diagnose by which hook the chat carries before theorising. The
+  population that day: **1 of 235 chats had EVER reported a hook md5**
+  (`hookV`, v11+), i.e. essentially every session was on a pre-v11 snapshot,
+  and the chats that lost turns were the few recently healed by hand.
 - **THE CARD REMINDER IS IN THE HOOK (v13, Aug 2026).** On UserPromptSubmit
   the hook prints one line of `additionalContext`, so every turn begins with
   the reminder to refresh the chat's STATUS CARD and UPDATE card before it
