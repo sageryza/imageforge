@@ -1005,6 +1005,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   docs), name the exact current labels, and when a deep link needs an account/app
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
+- **MINIMIZE THE SCROLLING — fit it on ONE SCREEN (Aug 2026, Sophie).** If a
+  surface can fit on one screen, it fits on one screen. When it can't, it gets a
+  **hairline tab row — never a taller page.**
+  - **The test for splitting into tabs is REFERENCE, not length:** "is it
+    something that's going to be referred to? Are you gonna have to switch
+    between the different views often?" Two views she reads against each other
+    are two tabs; a long page nobody cross-references is just a long page, and
+    tabbing it only hides things.
+  - Her worked example, the Episode Editor: "you need to switch between the
+    clips and between the raw transcript so you can take things from the
+    transcript, add it to the clips, and then go back and add more things. Back
+    and forth, back and forth, back and forth. So to make that easy — a
+    hairline pattern, 2 tabs."
+  - The rows measure their own underline, so adding a tab costs no layout work
+    — `.acctabs` in `docs/design-rules.md`.
+- **PROGRESSIVE EXPANSION AND CONTRACTION (Aug 2026, Sophie: "this has to do
+  with the abstraction principle").** A surface opens at the level of
+  abstraction she needs and expands only where she goes into it — so the first
+  thing on screen is the shape of the whole thing, not its contents. Her worked
+  example, the Story Room: organize by projects and by level of completion,
+  with the LAST hairline tab holding the ones she wants to start on.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's
