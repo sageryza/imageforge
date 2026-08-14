@@ -1,17 +1,28 @@
 # BABY GETS A BOOST BY BEING BAD
 
-*Picture book manuscript — draft 1, Aug 2026*
+*Picture book manuscript — draft 2, Aug 2026*
 
-**The engine:** Baby is the smallest kid in the second grade and nobody can see
-her. Every bad thing she does makes her literally, physically GROW. That's the
-"boost." The badness escalates, the growth escalates, and the last spread is
-her enormous in a river with the whole second grade climbing her like a hill.
+**What changed from draft 1:** the growing is gone. Draft 1 had Baby physically
+grow with each crime; Sophie cut it. Nothing magic happens in this version.
 
-**Length:** 23 text pages — a 40-page picture book, or a tight 32 if a few of
-the short ones share a spread (see the trim notes at the bottom).
+**The engine:** Baby gets away with it. That's all. Nothing happens to her, and
+nothing happening is the best thing that has ever happened to her — so the next
+one has to be bigger. The "boost" is the feeling, and the feeling has a
+tolerance.
 
-**Tone:** deadpan. The narrator never once says any of this is wrong. Every
-joke lands because the book refuses to editorialize.
+**The other thread:** at the start nobody can see Baby, because being good makes
+you furniture. By the ice cream truck the whole second grade is chanting her
+name. That's what she's actually chasing, and the book never says so.
+
+**Length:** 23 text pages — a 40-page picture book, or a tight 32 with the trim
+notes at the bottom.
+
+**Tone:** deadpan. The narrator never says any of this is wrong. Every joke
+lands because the book refuses to editorialize.
+
+**The refrain:** *"Nothing happened."* It comes back after each crime, and it's
+the load-bearing beat of the whole book. Don't soften it and don't vary it much
+— the flatness is the point.
 
 ---
 
@@ -21,17 +32,15 @@ This is Baby.
 
 Baby was good.
 
-> *Art: Baby, tiny, hands folded, dead center of a huge empty page.*
+> *Art: Baby, hands folded, dead center of a huge empty page.*
 
 ## 2
 
 Baby was so good that when the class went quiet, the quiet was mostly her.
 
-She was also the smallest person in the second grade.
+Nobody could see Baby.
 
-Nobody could see her over the drinking fountain.
-
-Nobody could see her at all.
+Not because she was hiding. Being good makes you furniture.
 
 > *Art: the class photo. You have to look for her.*
 
@@ -51,21 +60,20 @@ Nothing happened.
 
 No alarm. No principal. No hand on her shoulder.
 
-Just a little sound, way down inside her, like a door coming unstuck.
-
-And Baby grew one inch.
+Baby walked out of the cafeteria with somebody else's milk and the sun was out
+and the buses were lined up and the whole world just let her.
 
 ## 5
 
-One inch is not much.
+She thought about it for four days.
 
-One inch is a pencil eraser. A bottle cap. The top of a thumb.
+She thought about it in math.
 
-But Baby could see over the drinking fountain now.
+She thought about it at her grandmother's.
 
-And the water tasted incredible.
+It was the most interesting thing that had ever belonged to her.
 
-> *Art: Baby at the fountain, eyes closed, transported.*
+> *Art: Baby at a dinner table, glowing, absolutely elsewhere.*
 
 ## 6
 
@@ -75,10 +83,9 @@ There was a gate.
 
 The gate had a latch.
 
-The latch was — Baby noticed — exactly at the height of a girl who was one
-inch taller than she used to be.
+Baby stood next to the latch for a long, long time.
 
-> *Art: the latch, huge, and one small hand.*
+> *Art: the latch, huge, and one small hand not touching it yet.*
 
 ## 7
 
@@ -89,24 +96,25 @@ A llama in the gift shop.
 Ninety-one ducks going the wrong way down the highway, honking, and every
 single car honking back.
 
-> *Art: the big chaos spread. Baby standing calmly in the middle of it.*
+> *Art: the big chaos spread. Baby standing perfectly still in the middle of it.*
 
 ## 8
 
-And Baby grew a foot.
+Nothing happened.
 
-## 9
-
-A foot is a lot.
-
-Baby's sleeves quit. Her shoes gave up.
-
-She could see the tops of grown-ups' heads, which are not as impressive as
-grown-ups think.
+Nobody asked Baby a single question.
 
 Nobody suspected Baby.
 
 Baby was good.
+
+## 9
+
+But this one didn't last four days.
+
+This one was gone by Friday.
+
+> *Art: Baby lying on her bed, staring at the ceiling, already bored.*
 
 ## 10
 
@@ -117,12 +125,14 @@ and nobody in it,
 
 and the little song still going.
 
-> *Art: the truck. The empty driver's seat. Baby's reflection in the chrome,
-> already too big for the frame.*
+> *Art: the truck. The empty driver's seat. The open door.*
 
 ## 11
 
 Baby took the truck.
+
+*(The book does not explain how Baby drove the truck. The book will not be
+explaining that.)*
 
 ## 12
 
@@ -134,27 +144,21 @@ Choco Tacos for the crossing guard.
 
 Two of everything for the kid who never gets picked.
 
-They cheered for her. They chanted her name.
-
-Baby had never been chanted before.
-
-> *Art: mob of delighted kids, sticky, worshipful.*
+> *Art: mob of delighted, sticky, worshipful children.*
 
 ## 13
 
-And Baby grew, and grew, and grew —
+They cheered for her.
 
-up past the stop sign,
+They chanted her name.
 
-up past the flagpole,
+Nobody had ever chanted Baby before. Nobody had ever *seen* Baby before.
 
-up to where the birds go.
+And Baby thought: *this is nothing. Wait.*
 
 ## 14
 
-"One more thing," said Baby, from up there.
-
-"It's a game."
+"One more thing," said Baby. "It's a game."
 
 She had rope.
 
@@ -165,7 +169,7 @@ She had been carrying rope for a while now.
 The whole second grade got tied up nice and neat and stacked in the back of the
 truck like popsicles in a box, giggling, absolutely delighted,
 
-because when the biggest kid says it's a game,
+because when the kid with the ice cream truck says it's a game,
 
 it's a game.
 
@@ -173,20 +177,26 @@ it's a game.
 
 Baby drove to the river.
 
-> *Art: the truck, small, on a long road. Baby's head out the sunroof because
-> she does not fit.*
+> *Art: the truck, small, on a long road. Twenty-one heads in the little window.*
 
 ## 17
 
-Baby backed the truck right up to the water,
+There was a boat ramp.
 
-lifted the front end with one enormous hand,
+Baby backed the truck down the boat ramp — slowly, carefully, the way you are
+supposed to do things —
 
-and tipped.
+until the back wheels went in,
+
+and the front end came up,
+
+and up,
+
+and up.
 
 ## 18
 
-> *Wordless spread: the entire second grade, mid-air, upside down — rope and
+> *Wordless spread: the entire second grade mid-air, upside down — rope and
 > sprinkles and Bomb Pop wrappers and one flying shoe — going into the river.*
 
 ## 19
@@ -214,21 +224,19 @@ open —
 
 ## 22
 
-And Baby, who was now taller than the water tower,
+And that was the boost.
 
-and who had never once in her whole life been asked to do anything again,
+Not the milk. Not the ducks. Not the truck.
 
-got so big
+Twenty-one wet children in a river, screaming for Baby to do it one more time.
 
-so fast
-
-that she had to sit down.
+Nobody had ever asked Baby to do anything again.
 
 ## 23
 
-> *Final spread: Baby, enormous, sitting in the river. The whole second grade
-> climbing her like a hill. The ice cream truck floating on its side. The
-> ninety-one ducks arriving.*
+> *Final spread: the second grade dripping up the boat ramp, climbing back into
+> the truck, shoving to be first. Baby holding the door. The ninety-one ducks
+> arriving.*
 
 Baby was bad.
 
@@ -242,20 +250,23 @@ Baby had never felt better.
 
 ## Notes for the next pass
 
-**The alternate ending**, if you want it colder. Replace 20–23 with: the class
-comes up laughing, and it's the laughing that does it — Baby shrinks, one inch
-at a time, all the way back down, until she's standing in the shallows the
-exact size she started, and nobody in the water can see her. Last line: *"Baby
-was good again."* It's a sadder, better-behaved book. The current ending is
-funnier and sets up a sequel; this one has a bruise in it. Your call.
+**The alternate ending**, if you want it colder. Replace 20–23: the class comes
+up laughing, and Baby stands on the bank watching them laugh — and they're
+laughing *with each other*, in the water, together, the way they always do, and
+Baby is on the bank the way she always is. She got their attention for about
+forty seconds. Last line: *"Nothing happened."* The refrain turning on her at
+the end is a real ending. It's sadder and it's better-behaved. The one above is
+funnier and sets up a sequel.
 
-**Trim to 32 pages** by combining: 4+5, 8+9, 11 into 12, 16+17. That loses the
-best thing the book does, which is the hard page-turn before each growth — so
-only do it if the printer forces it.
+**Trim to 32 pages** by combining: 4+5, 8+9, 11 into 12, 16+17. That costs you
+the hard page-turn before each "Nothing happened," which is the book's whole
+rhythm — so only do it if the printer forces it.
 
 **Things to decide**
 - Is "Baby" her name, a nickname, or what her family calls the youngest? The
   text works either way right now, which may be the right amount of unexplained.
-- Does she stay big? The sequel title assumes yes.
-- The rope on page 14 is the load-bearing joke. It only works if she is never
-  shown carrying it before that page. Worth telling the illustrator explicitly.
+- Page 11's aside — the narrator stepping in to refuse to explain the driving —
+  is the one place the book breaks its own deadpan. It's funny, but it's a
+  different voice. Cut it if you want the flatness pure.
+- The rope on page 14 is the load-bearing joke. It only works if the
+  illustrator never shows her carrying it before that page. Tell them out loud.
