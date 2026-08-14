@@ -372,6 +372,7 @@ loadConfig().then(() => {
   // hit into work — interview → Episode Editor, memo → Cutting Room.
   app.use('/api/search', require('./search').router);
   app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
+  app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -487,6 +488,20 @@ app.get('/lessons', (req, res) => { res.set('Cache-Control', 'no-cache, must-rev
 // Sticker Day — the self-care sheet. Public/ungated: nothing leaves the phone,
 // the day's progress lives in localStorage.
 app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.html'); });
+
+// The favorite-fruit poll. BOTH pages are PUBLIC and ungated on purpose: /fruit
+// is opened from an email by Sophie's family, who have no studio token and
+// never will, and the person id in the link is the only identity there is.
+// no-cache for the same reason every other page here has it — a cached deck
+// would keep showing fruit that has since been re-drawn.
+app.get('/fruit', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/fruit.html');
+});
+app.get('/fruitchart', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/fruitchart.html');
+});
 
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
 // Public + ungated; reuses the open /api/generate/* and /api/witch/* endpoints.

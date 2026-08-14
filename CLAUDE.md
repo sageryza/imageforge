@@ -1380,6 +1380,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   person.** **Full details: `docs/modules/nde.md`.**
 
 ### The inbox, the doorbell, and odds and ends
+- **Favorite fruit poll** (`fruit.js`, `/api/fruit`, pages `/fruit` + `/fruitchart`)
+  — the chart for Sophie's fridge. 27 fruits drawn in her ink-and-watercolour
+  look (`refs/sage-sandy-mirror.png` through gpt-image-2 edits, medium,
+  1024x1024, `scripts/fruit-chart/fruits.json`) become a **Tinder-style swipe
+  deck**: ♥/✕ one fruit at a time, then crown a #1. **BOTH PAGES ARE PUBLIC AND
+  UNGATED, and that is the design** — they are opened from an email by her
+  family, who have no studio token, so the unguessable `who=` token in the link
+  IS the identity. Emails live only on the poll doc and the public read strips
+  them, so one person's link can never enumerate the others'. A ballot doc is
+  content-addressed (`<poll>__<person>`), so swiping twice updates one ballot
+  and "close it, come back" works; only `done:true` counts as an answer, so an
+  abandoned half-deck never lands in the chart. `/fruitchart` renders the same
+  answers three ways (per person · a grid · sized by how many picked it) and
+  prints one design per page. **Sending needs `BREVO_API_KEY` +
+  `BREVO_FROM_EMAIL`, and as of Aug 2026 NEITHER IS SET** — not in Render env,
+  not in `config/pipeline` (measured 2026-08-14: `/api/tarot-email/status`
+  answers `brevo:false`). `POST /invite` refuses with which one is missing
+  rather than half-sending; run it with `dryRun:true` first, the same guard the
+  App Store metadata workflow gets. Tests: `node scripts/test-fruit.js`.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
