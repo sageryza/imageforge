@@ -347,14 +347,27 @@ one meal, read as instructions being recycled. ✦
 
 ---
 
+## Decided (Sophie, 2026-08-09)
+
+- **NO recurring woman.** The Witch School character does not appear here. Cards
+  are objects and diagrams. A different main character may be chosen later, and
+  that would need its OWN reference images — do not reuse
+  `witch-school/refs/sophie-snake.png` + `sophie-animals.png` as a character
+  source, only as a LINE reference (the prompts say "do not copy their colors";
+  they should also never be asked for a person).
+- **Its own separate site / app**, not a course inside the existing School.
+- **It must look VERY SIMILAR to the witch one — no changes unless Sophie asks
+  for them.** Same card engine, same tap-through, same progress dashes, same
+  quiz + After card, same header. The palette is the deliberate difference; do
+  not take the separate-site decision as licence to redesign anything else.
+
 ## Still to decide
 
-- **Palette** — Sophie is choosing between pastel, blues/greens, and an
-  ink-plus-one-colour field-guide look. Samples rendered separately.
-- **Where it lives.** A separate app/page, or a course inside the existing
-  School? Not decided. The card engine is reusable either way.
-- **Whether the recurring woman appears.** Witch School's `char: true` cards
-  carry her through every lesson. A science school could keep her (continuity,
-  and Sophie's style refs already draw her) or be objects and diagrams only.
+- **Palette.** Sophie's own suggestion (a note on the pastel sample she also
+  hearted): *"try one with ivory cream, royal purple and burnt orange amber"* —
+  that's `pal-d`. Rendered alongside the pastel set and two more on ivory
+  (indigo/ochre, forest/terracotta). Specs are committed under
+  `palette-*-spec.json` so the chosen one is reusable verbatim.
+- **Who the main character is**, if there is one at all.
 - Lessons 5–11 of the path are listed in the chat: Division and Why You Age,
   Inheritance, Evolution, Deep Time, Energy, Your Immune System, Microbes.

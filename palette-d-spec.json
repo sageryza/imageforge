@@ -1,0 +1,14 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited palette of ROYAL PURPLE #5B3A9B and BURNT ORANGE AMBER #C8701F with black ink, all on a warm IVORY CREAM background #F6EFE0. Draw a brand-new illustration in that style. ",
+  "end": " Generous empty ivory space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "cards": [
+    {
+      "id": "pal-d3",
+      "prompt": "A scientist standing at a laboratory bench in a lab coat, leaning to look into a microscope, with a rack of test tubes and an open notebook on the bench beside them, a shelf of flasks and stoppered bottles on the wall behind, and one small four-point star in the air. Flat and simple."
+    }
+  ]
+}
