@@ -4028,7 +4028,11 @@ function openPage(p){
         // and the toggle ALSO started the scroll behind it; tapping the dark
         // backdrop to close toggled it again. A tap on an image is the page's
         // own, everywhere.
-        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb')){ if(pill._stop) pill._stop(); return; }
+        // `.cmp-vlb` is the VIDEO overlay and it was missing from this list
+        // while `.cmp-lb` (the image one) was on it — so pressing play inside
+        // a film lightbox toggled the page scrolling behind it, on every tap
+        // of the transport (Sophie, Aug 2026, on the takes pages).
+        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb,.cmp-vlb')){ if(pill._stop) pill._stop(); return; }
         // this tap's own pointerdown just paused a running scroll — the tap
         // meant PAUSE, not toggle-back-on
         if(paused) return;

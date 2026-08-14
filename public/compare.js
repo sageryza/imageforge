@@ -167,6 +167,10 @@
     if (vlb) return vlb;
     vlb = document.createElement('div');
     vlb.className = 'cmp-vlb';
+    // Every tap inside the film overlay is the page's own — never the gesture
+    // that toggles the autoscroll. Marking it here fixes pages already posted,
+    // since they load this script at runtime.
+    vlb.setAttribute('data-nostop', '');
     vlb.setAttribute('hidden', '');
     vlb.innerHTML = '<button class="cmp-vlb-x" aria-label="Close">✕</button>'
       + '<video controls playsinline preload="metadata"></video>';
