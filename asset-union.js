@@ -73,6 +73,26 @@ function joinKeys(rec) {
   const sha = String(rec.hash || '').trim().toLowerCase();
   if (md5) keys.push('m:' + md5);
   if (sha) keys.push('s:' + sha);
+  // FILENAME ONLY WHEN THERE IS NO CONTENT HASH — which is what the note at the
+  // top of this file always said this key was for ("for every record that
+  // carries no hash of either kind"), but the code added it unconditionally and
+  // a filename then OUTVOTED the bytes.
+  //
+  // Measured live 2026-08-14: the vector pipeline writes every sheet to
+  // `vector/<name>/sheet.png`, so SEVEN different sheets — six objects, nine
+  // heads, private scenes, four palettes of the same nine moments — collapsed
+  // into ONE tile carrying one label, with the other six hidden as `alts`.
+  // Sophie reported it as her images not posting; the posts had all succeeded.
+  // Union-find is transitive, so one shared basename pulls the whole family in.
+  //
+  // A shared filename is a GUESS that two records are one picture; a differing
+  // md5 is proof they are not. So the guess only gets a vote when there is no
+  // evidence to weigh it against. Records filed before Aug 2026 carry no hash
+  // at all and still join each other exactly as they used to, and the
+  // two-paths-one-picture case this module was built for is unaffected —
+  // a claude-deliveries copy is named `<ms>-<random>.<ext>` and never matched
+  // by filename anyway, which is the whole reason content hashing was added.
+  if (md5 || sha) return keys;
   const f = filenameKey(rec.url);
   if (f) keys.push('f:' + f);
   return keys;

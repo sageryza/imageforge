@@ -164,10 +164,39 @@ t('an md5 is never compared against a sha256', () => {
   // sharing a namespace would have silently failed to group and, worse, looked
   // like it worked. Namespaced keys make that impossible.
   const keys = joinKeys({ url: `${DECK}/a/b.png`, md5: 'ff00', hash: 'ff00' });
-  assert.deepStrictEqual(keys, ['m:ff00', 's:ff00', 'f:b.png']);
+  // No 'f:' key: a record that carries a content hash is joined on its BYTES
+  // only — see the filename-collision test below for why.
+  assert.deepStrictEqual(keys, ['m:ff00', 's:ff00']);
   const a = assetRecord({ url: `${DECK}/a/one.png`, md5: 'ff00', created: '2026-08-14T00:00:00.000Z' });
   const b = assetRecord({ url: `${DECK}/a/two.png`, hash: 'ff00', created: '2026-08-14T00:00:01.000Z' });
   assert.strictEqual(tiles([a, b]).length, 2, 'same string, different algorithms: not a match');
+});
+
+t('different pictures sharing a filename stay different tiles', () => {
+  // Found live 2026-08-14. The vector pipeline writes every sheet to
+  // `vector/<name>/sheet.png`, so seven DIFFERENT sheets — six objects, nine
+  // heads, private scenes, four palettes of the same nine moments — collapsed
+  // into ONE tile with one label and six hidden `alts`. Sophie reported it as
+  // her images not posting; every post had succeeded. Union-find is transitive,
+  // so a single shared basename pulls in the whole family.
+  //
+  // A shared filename is a guess that two records are one picture; differing
+  // md5s are proof they are not.
+  const sheets = ['polaroids', 'polaroid-heads', 'polaroid-scenes', 'polaroid-guideline',
+    'polaroid-people', 'polaroid-people-natural', 'polaroid-people-90s']
+    .map((name, i) => assetRecord({
+      url: `${DECK}/vector/${name}/sheet.png`, md5: `hash${i}`,
+      created: `2026-08-14T00:00:0${i}.000Z`,
+    }));
+  assert.strictEqual(tiles(sheets).length, 7, 'seven different sheets, seven tiles');
+});
+
+t('legacy records with no hash still join by filename', () => {
+  // The other half of the same rule: everything filed before Aug 2026 carries
+  // no hash of either kind, and filename is all those records have.
+  const a = assetRecord({ url: `${DECK}/one/pic.png`, created: '2026-07-01T00:00:00.000Z' });
+  const b = assetRecord({ url: `${DECK}/two/pic.png`, created: '2026-07-01T00:00:01.000Z' });
+  assert.strictEqual(tiles([a, b]).length, 1, 'no hashes: filename is still the only join');
 });
 
 /* ── 4. a ♥ or a note left on EITHER path is still found ────────────────── */
