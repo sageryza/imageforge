@@ -634,6 +634,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* the stale-hook mark — the hide bar's red, dimmed: it is a maintenance flag,
    not an alarm, and it must not shout over her own notes */
 .cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
+/* The archive wrap-up's expander. Sits under its row as a sibling (a row is a
+   button, so it cannot nest) and costs one small glyph of height when shut. */
+.wrapmore{display:block; margin:-6px 0 0 auto; padding:2px 10px 6px; background:none;
+  border:0; color:var(--ink2); font-size:15px; line-height:1; cursor:pointer;}
+.wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
+  color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
+.wrapfull[hidden]{display:none;}
 .t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
 .noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
@@ -1424,6 +1431,12 @@ function statusLines(name){
     need:String(r.statusNeed||'').trim(),
     doing:String(r.statusDoing||'').trim(),
     note:String(r.sophieNote||'').trim(),
+    // THE ARCHIVE WRAP-UP (Aug 2026) — what the chat was about, one line, with
+    // the full account behind a tap. Written by the chat (POST /wrapup) or
+    // frozen from its Update card as it is archived. Measured the day she asked
+    // for it: 73 of 88 archived chats showed nothing but a name.
+    wrap:String(r.wrapLine||'').trim(),
+    wrapFull:String(r.wrapUp||'').trim(),
   };
 }
 // ONE line under the name, in ONE look (Aug 2026, Sophie: "I want them the
@@ -1436,7 +1449,11 @@ function statusLines(name){
 // else the auto TLDR so a card-less chat in the Status view isn't blank.
 function statusLinesHtml(name, fallback){
   var st=statusLines(name);
-  var line=st.note || st.need || st.doing || fallback || '';
+  // HER note still wins, exactly as before — a wrap-up a chat wrote must never
+  // supersede a line she wrote herself, which is why it is its own field and
+  // not stored in `sophieNote`. It sits ABOVE need/doing because an archived
+  // chat has no live ask worth reading.
+  var line=st.note || st.wrap || st.need || st.doing || fallback || '';
   var out=line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
   // v11 hook telemetry (Aug 2026): the turn-start ping carries the installed
   // hook's md5 and the server marks the chat stale when it isn't the current
@@ -3265,6 +3282,32 @@ function renderArchive(el,g,arch){
     el.appendChild(s); return;
   }
   if(view==='list') renderList(el,g,pile); else renderTiles(el,g,pile);
+  if(view==='list') paintWrapUps(el);
+}
+// THE FULL WRAP-UP, behind a tap (Aug 2026, Sophie: one line on the row, the
+// whole account when she wants it). A row is a <button>, so the toggle cannot
+// live inside one — it is appended as a SIBLING after the row, which also means
+// tapping it can never open the chat by bubbling.
+// Archive view only: this is the pile she reads to remember what a chat was.
+function paintWrapUps(el){
+  [].forEach.call(el.querySelectorAll('.crow[data-chat]'), function(row){
+    var r=chats[row.dataset.chat]||{};
+    var full=String(r.wrapUp||'').trim();
+    // Nothing to expand when the row line already IS the whole thing.
+    if(!full || full===String(r.wrapLine||'').trim()) return;
+    var tog=document.createElement('button');
+    tog.className='wrapmore'; tog.textContent='⌄';
+    tog.setAttribute('aria-label','What this chat was about');
+    var body=document.createElement('div');
+    body.className='wrapfull'; body.hidden=true; body.textContent=full;
+    tog.onclick=function(e){
+      e.stopPropagation();
+      body.hidden=!body.hidden;
+      tog.textContent=body.hidden?'⌄':'⌃';
+    };
+    row.insertAdjacentElement('afterend', body);
+    row.insertAdjacentElement('afterend', tog);
+  });
 }
 // Move ONE chat across, from its own row — the Compare list's ↓ / ↺ idiom, so
 // "send it to the other pile / bring it back" reads the same in both places.
