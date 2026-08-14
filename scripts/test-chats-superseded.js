@@ -67,12 +67,48 @@ const server=http.createServer((req,res)=>{
   await page.waitForTimeout(500);
   ok(await page.$$eval('#thread .acctabs',n=>n.length)===1,'the tabs appear once one is superseded');
   ok(await page.$$eval('.pagerow',n=>n.length)===2,'it leaves the current list');
-  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='2','Current is the tab she lands on');
+  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='1','Current is the tab she lands on');
   ok((await page.$eval('#thread .acctab',n=>n.textContent)).indexOf('Superseded')>=0,'Superseded is the LEFT tab');
+
+  // THE LINE GOES UNDER THE WORD (Sophie, Aug 2026: "the words in the middle
+  // and on the edge rather than under the line"). This row shipped on the
+  // BARE .acctabs — three-tab geometry, a 33.33% line stepping 100%/200% —
+  // under TWO tabs, so the line sat a third wide under the middle or the
+  // right edge while the words centred on halves. Measured, not eyeballed:
+  // the ::after is read through getComputedStyle so the transform is real,
+  // and it runs at three widths because the line is a percentage.
+  async function lineUnderWord(which){
+    return await page.$eval('#thread .acctabs',(row,i)=>{
+      const rr=row.getBoundingClientRect();
+      const cs=getComputedStyle(row,'::after');
+      const w=parseFloat(cs.width);
+      const m=new DOMMatrixReadOnly(cs.transform==='none'?'':cs.transform);
+      const x0=rr.left+parseFloat(cs.left||0)+m.m41;
+      const t=row.querySelectorAll('.acctab')[i].getBoundingClientRect();
+      return {lineMid:x0+w/2, lineL:x0, lineR:x0+w, tabMid:(t.left+t.right)/2, w, rowW:rr.width};
+    },which);
+  }
+  for(const width of [375,390,430]){
+    await page.setViewportSize({width,height:800});
+    await page.waitForTimeout(120);
+    for(const [i,label] of [[0,'Superseded'],[1,'Current']]){
+      await page.$$eval('#thread .acctab',(ns,j)=>ns[j].click(),i);
+      await page.waitForTimeout(280);
+      const g=await lineUnderWord(i);
+      ok(Math.abs(g.lineMid-g.tabMid)<=1.5,
+        'the line is centred under '+label+' at '+width+' (line '+Math.round(g.lineMid)+', word '+Math.round(g.tabMid)+')');
+      const word=await page.$$eval('#thread .acctab',(ns,j)=>{
+        const r=ns[j].querySelector('*')?null:ns[j].getBoundingClientRect(); return r?{l:r.left,r:r.right}:null;},i);
+      ok(word && word.l>=g.lineL-0.5 && word.r<=g.lineR+0.5,
+        label+"'s word sits inside the line's span at "+width);
+    }
+  }
+  await page.setViewportSize({width:390,height:800});
+  await page.waitForTimeout(150);
   await page.$$eval('#thread .acctab',ns=>ns[0].click());
   await page.waitForTimeout(300);
   ok(await page.$$eval('.pagerow',n=>n.length)===1,'and the superseded one is on the left tab');
-  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='1','the underline slid to the left');
+  ok((await page.$eval('#thread .acctabs',n=>n.dataset.on))==='0','the underline slid to the left');
   ok(Math.round(await page.$eval('.pagerow',n=>parseFloat(getComputedStyle(n).fontSize)))===13,'a row keeps the button font size');
   // THE SERIF, not the sans (Sophie's LATER word, Aug 2026: "I actually
   // prefer the other font for the updates page and the compare pages"). These

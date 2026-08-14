@@ -2469,7 +2469,21 @@ lifted into a standalone tool later.
   labels over a hairline with a sliding underline) and the tabs **only appear
   once something is superseded**, so a chat with three pages still looks like
   three pages. Every row carries a small ↓ / ↺ so she can move one across
-  herself. **A chat posting a new version should supersede the one it
+  herself.
+  **The row is `.acctabs.cmptabs`, and the class is load-bearing (Aug 2026,
+  Sophie: "the words in the middle and on the edge rather than under the
+  line").** It shipped on the BARE `.acctabs`, which is the THREE-tab
+  geometry — a 33.33% line stepping 100%/200% — under TWO tabs, so the line
+  sat a third wide under the middle third (Superseded) or the right third
+  (Current) while the words centred on halves. Measured at 390px:
+  SUPERSEDED's word at x=107 with the line at 195, CURRENT's at 283 with the
+  line at 312. `cmptabs` sets `width:50%` and `data-on` is now the plain
+  SLOT INDEX (0 = Superseded, 1 = Current), the same convention as
+  `.archtabs`/`.arctabs`. **Any new two-tab row needs its own half-width
+  class** — the bare class will always lay it out for three.
+  Tests: `node scripts/test-chats-superseded.js` measures the ::after's real
+  rect against each word's at 375/390/430 (verified failing before the fix).
+  **A chat posting a new version should supersede the one it
   replaces** — that is what keeps eleven drafts of one tool out of her way
   WITHOUT deleting the history.
   **Every row (both tabs) also carries a BOOKMARK** that sends the page to
