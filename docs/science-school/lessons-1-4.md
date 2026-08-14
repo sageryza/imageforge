@@ -361,13 +361,58 @@ one meal, read as instructions being recycled. ✦
   quiz + After card, same header. The palette is the deliberate difference; do
   not take the separate-site decision as licence to redesign anything else.
 
+## The palette is SETTLED: pastel A (Sophie, 2026-08-14)
+
+Eight palettes were drawn and reviewed in the Assets tab. Her verdict, read
+off her own votes: **pastel A hearted three times** (the cell, the helix and
+the scientist), **palette D — her own ivory/purple/amber suggestion —
+rejected**, everything else unvoted. So the school is:
+
+> flat limited PASTEL palette: mint green `#B6E5CF`, powder blue `#AFC9E8`,
+> pale butter yellow `#F6E7A8`, soft blush pink `#F6C6DA`, and black, on a
+> PLAIN WHITE background
+
+The full art prompt is committed as **`cell-lesson-spec.json`** — reuse it
+verbatim for lessons 2–4 rather than rewriting the style block. It is the
+witch-school recipe with the colours swapped: gpt-image-2 **edits**, the two
+Witch School refs attached as a LINE reference only (`do NOT copy their
+colors`), quality **medium**, `whiten: true`. Every prompt also says
+**draw NO people and no faces** — see the decision below.
+
+Worth knowing before re-opening the question: the four-colour experiments (G =
+forest green + terracotta + ochre gold + slate blue, H = the same pair +
+butter yellow + dusty teal, both banked as `palette-g/h-spec.json`) came out of
+her note on F, *"I like this image the best, but I think you should add two
+more colors"* — she then picked pastel anyway. The pastel set is already four
+colours, which is probably what that note was really asking for.
+
+## The page (built 2026-08-14)
+
+**`public/science.html`, served at `/science`** — a separate school, public and
+ungated like `/witch`, with **Lesson 1 (The Cell) complete**: 10 cards, 9
+illustrated (`cl-01`…`cl-10`, minus the quiz slot), the `know` quiz at card 8,
+the After card last.
+
+- The deck engine is ported from `witch.html` **declaration for declaration**
+  (deck-top, dashes, `.tcard`, `.deck-text`'s auto-margin centring, the ⓘ FAQ,
+  the flip quiz, the tap zones) so the two can be diffed against each other.
+  Her rule stands: the palette is the ONLY deliberate difference — do not take
+  the separate-page decision as licence to redesign anything else.
+- The accent token is still called `--gold` on purpose, for that diff. Its
+  value is a slate blue `#3f7290`, because the pastels themselves are
+  unreadable as text on white: the pastels are the ART, the slate is the ink.
+- Art rides the **school** webp set (`witch-school/assets/` →
+  `witch-school/webp/`), because `witch-school-cards.js` writes there. So after
+  drawing new cards run `node scripts/webp-assets.js school` and then
+  `node scripts/webp-assets-verify.js` before deploying — a card with no webp
+  is a visibly broken picture.
+- Lessons 2–4 are listed on the path, dimmed, captioned "written, not yet
+  drawn". Building one = draw its cards from `cell-lesson-spec.json`'s style
+  block, add a `LESSONS` entry, and un-dim the row.
+- Tests: `node scripts/test-science-school.js`.
+
 ## Still to decide
 
-- **Palette.** Sophie's own suggestion (a note on the pastel sample she also
-  hearted): *"try one with ivory cream, royal purple and burnt orange amber"* —
-  that's `pal-d`. Rendered alongside the pastel set and two more on ivory
-  (indigo/ochre, forest/terracotta). Specs are committed under
-  `palette-*-spec.json` so the chosen one is reusable verbatim.
 - **Who the main character is**, if there is one at all.
 - Lessons 5–11 of the path are listed in the chat: Division and Why You Age,
   Inheritance, Evolution, Deep Time, Energy, Your Immune System, Microbes.
