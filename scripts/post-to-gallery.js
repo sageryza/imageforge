@@ -48,6 +48,7 @@
  *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js \
  *     --file ./image.png --prompt "Kitchen Witchery — hero image" \
  *     [--type image] [--style "Lavender Witch"] [--uid <deviceUid>] [--source claude]
+ *     [--model gpt-image-2] [--quality medium]
  *   # or post an already-hosted URL
  *   GALLERY_UID=<deviceUid> node scripts/post-to-gallery.js --url https://…/image.png --prompt "…"
  */
@@ -108,6 +109,12 @@ async function main() {
 
   const type = arg('type', 'image');
   const style = arg('style');
+  // Opening a creation shows MODEL · QUALITY at the top of its caption, read
+  // from these two fields (CLAUDE.md); `style` is only the legacy single-label
+  // fallback for docs written before they existed. Without a way to pass them
+  // here, everything filed by a chat landed with the fallback or nothing.
+  const model = arg('model');
+  const quality = arg('quality');
   const uid = arg('uid', process.env.GALLERY_UID);
   if (!uid) { console.error('Missing gallery uid: pass --uid or set GALLERY_UID.'); process.exit(1); }
   const source = arg('source', 'claude');
@@ -125,6 +132,8 @@ async function main() {
     source,
   };
   if (style) doc.style = style;
+  if (model) doc.model = model;
+  if (quality) doc.quality = quality;
 
   const ref = await db.collection('users').doc(uid).collection('creations').add(doc);
   console.log(`gallery doc ${ref.id} → users/${uid}/creations  @ ${new Date(createdMs).toISOString()}`);

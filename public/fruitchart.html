@@ -231,9 +231,18 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
       /* ── 3. POPULAR ─────────────────────────────────────────────────── */
       // Size encodes magnitude by AREA (width ∝ √count), and every fruit also
       // carries its count as a number — size is never the only encoding.
-      var max = picked.reduce(function (m, f) { return Math.max(m, f.likes); }, 1);
-      var MIN = 74, MAX = 210;
-      document.getElementById('popular').innerHTML = '<div class="cloud">' + picked.map(function (f) {
+      // Sorted by the SAME number the size draws, so position and size can
+      // never disagree: the results feed leads with ★ count, which put a
+      // 1-pick favorite above a 3-pick fruit while drawing it smaller.
+      var bySize = picked.slice().sort(function (a, b) {
+        return (b.likes - a.likes) || (b.tops - a.tops) || a.name.localeCompare(b.name);
+      });
+      var max = bySize.reduce(function (m, f) { return Math.max(m, f.likes); }, 1);
+      // MAX stays under half the phone's width so the big ones sit SIDE BY SIDE
+      // and can be compared — at 210px each one owned its own row and the view
+      // read as a list instead of a size comparison.
+      var MIN = 62, MAX = 150;
+      document.getElementById('popular').innerHTML = '<div class="cloud">' + bySize.map(function (f) {
         var w = Math.round(MIN + (MAX - MIN) * Math.sqrt(f.likes / max));
         var who = f.likes + (f.likes === 1 ? ' pick' : ' picks')
           + (f.tops ? ' · ' + f.tops + ' ★' : '');

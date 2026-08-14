@@ -340,6 +340,13 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
   }
 
   function thanks() {
+    // Self-sufficient, because this is reached two ways: straight from the
+    // crown step (which already hid the controls) AND on reopening a finished
+    // ballot, where nothing has hidden them — a ✕/♥ pair sitting under "Thank
+    // you" swipes a deck that is no longer there.
+    document.getElementById('controls').hidden = true;
+    elCount.textContent = '';
+    elBar.style.width = '100%';
     var name = (fruits.find(function (f) { return f.id === top; }) || {}).name || '';
     deck.innerHTML = '<div class="panel" id="done">'
       + '<p>Thank you.</p>'
@@ -384,7 +391,7 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     i = 0;
     while (i < fruits.length && judged[fruits[i].id]) i++;
     // A finished ballot reopens on the crown step, not back at card one.
-    if (i >= fruits.length) { if (ballot.done) { render(); thanks(); } else crown(); }
+    if (i >= fruits.length) { if (ballot.done) thanks(); else crown(); }
     else render();
 
     // Warm the next few images so a swipe never lands on a blank card.
