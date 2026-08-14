@@ -1186,6 +1186,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   server-side ffmpeg; every re-roll is kept.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
+- **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
+  alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
+  self-contained piece the app has made, on one shelf, four to a row, so a
+  re-cut reuses clips instead of re-paying for them. **It generates and stitches
+  nothing and costs nothing.** Harvest reads movie scene clips (+ their re-rolls
+  and bridges) and quick-animates out of Firestore, then SWEEPS Storage for the
+  shorts chats built into their own prefixes — 350 clips on the first real build
+  (2026-08-14), 296 of them from the sweep. **The skip list is the load-bearing
+  half** and was corrected by RUNNING it: whole interviews, finished films, Cut
+  Marks renders, the Dump and the pad's still-encode cache are not clips, and a
+  swept file over 180s is hidden as a video. Search is the whole interface — a
+  real boolean grammar (AND, `OR`, `-term`, `"phrases"`, `tag:`/`title:`/`from:`/
+  `prompt:`/`note:`) over the name, tags, source film, the generation PROMPT and
+  her notes; semantic search is deliberately not built yet. **Her edits always
+  win** — a re-harvest never overwrites a field she touched. Posters read the
+  bytes via the Admin SDK, NOT the url (ffmpeg can't reach the sandbox's HTTPS
+  proxy — all 350 failed that way first). Tests: `node scripts/test-clips.js`.
+  **Full details: `docs/modules/audio-and-film.md`.**
 - **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
   comes a produced track with HER actual voice (resemble-enhance -> musicgen
   melody conditioning -> ffmpeg mix). ~$0.11 per 30s chunk. **It has no tile

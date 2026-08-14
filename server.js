@@ -372,6 +372,11 @@ loadConfig().then(() => {
   // hit into work — interview → Episode Editor, memo → Cutting Room.
   app.use('/api/search', require('./search').router);
   app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
+  // Chunking: the clip library — every short self-contained piece the app has
+  // made (movie scene clips, quick-animates, the chats' own shorts swept out of
+  // Storage), searchable, so a re-cut reuses clips instead of re-paying for
+  // them. Nothing here generates anything; it is a shelf and a search box.
+  app.use('/api/clips', require('./clips').router);
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -2674,6 +2679,12 @@ app.get('/search', serveGated('search.html', { pill: true }));
 // (video or audio, no transcript), drop pieces, render a fresh file. Engine
 // is /api/cutmarks (cutmarks.js). Same gate; same shared pill.
 app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
+// Chunking: the clip library — a shelf of every short self-contained piece the
+// app has made, four to a row, with search as the whole interface. Engine is
+// /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
+// Sophie picked for the tile, and both serve the same page.
+app.get('/chunking', serveGated('clips.html', { pill: true }));
+app.get('/clips', serveGated('clips.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
