@@ -418,6 +418,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   font-size:15px; line-height:1; width:31px; height:31px; padding:0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
+/* The ARTIFACTS tab's two piles — REFERENCE over KEPT (Aug 2026, Sophie).
+   Sans, caps, not bold, like every other label in this app. Drawn only when
+   both piles exist, so a one-kind tab still reads as a plain list. */
+.bmkgrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); padding:14px 2px 5px;}
+.bmkgrp:first-child{padding-top:6px;}
 .sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
@@ -572,6 +578,27 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    row drops its own border so the two never stack into a double line. */
 .hbsep{height:1px; background:var(--line); margin:0 0 10px;}
 .hidelist .clist .crow:last-child{border-bottom:none;}
+/* MORE — the chats she hasn't touched in over a week (Aug 2026, Sophie: "if
+   there's a chat that I haven't touched in over seven days, add a new section
+   underneath all the chats called more, and it's just an arrow that opens up
+   the rest").
+   Deliberately QUIET, and that is the whole difference from the hidden bar
+   above it: hidden is an alarm (red, a pile she PUT things in), this is just
+   the far end of the same list. So it is ink-on-paper with a hairline, no
+   tint, no colour — and it sits UNDER the chats rather than over them.
+   It carries the unread count for the same reason the hidden bar does: a
+   reply she never opened must never go silent behind a fold. */
+.morebar{display:flex; align-items:center; gap:8px; width:100%; margin:2px 0 8px; padding:7px 2px;
+  background:none; color:var(--ink2); border:none; border-top:1px solid var(--line);
+  cursor:pointer; text-align:left;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:400; -webkit-tap-highlight-color:transparent;}
+.morebar svg{width:15px; height:15px; flex:none; display:block;}
+.morebar .mb-n{flex:1; min-width:0;}
+.morebar .mb-new{color:var(--chg); letter-spacing:.04em; text-transform:none;}
+.morebar .mb-chev{transition:transform .16s ease;}
+.morebar.open .mb-chev{transform:rotate(180deg);}
+.morelist{margin:0 0 6px;}
 /* ---- The running to-do list ---------------------------------------------- */
 /* The add row RESERVES THE PILL'S CORNER. On this view the tool row and the
    search bar are hidden, so the add row rides up into the pill's band (y
@@ -638,12 +665,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .nwtop{display:flex; align-items:center; gap:9px;}
 /* The time left the inner row, so it needs its own breathing room here. */
 .nwtime{flex:none; margin:0 1px;}
-/* PIN — a kept card. Lit = the same red every other keep-mark uses (bookmark,
-   star), NOT a fill: flooding a stroke glyph turns it into a blob. */
-.nwpin{border:none; background:none; cursor:pointer; padding:6px 1px; display:flex; align-items:center;
-  color:var(--ink2); flex:none; -webkit-tap-highlight-color:transparent;}
-.nwpin svg{width:16px; height:16px; display:block;}
-.nwpin.on{color:var(--chg);}
+/* (There was a PIN here. Every card is kept now — see newsFloor — so the
+   button had nothing left to do and came out, Aug 2026.) */
 /* the home row's own layout, minus its rule — the card is the boundary now */
 .nwcard .crow{border-bottom:none; flex:1; min-width:0; padding:7px 0;}
 /* A picture and a page belong to the CARD, so they run its full width and the
@@ -1277,20 +1300,13 @@ function markSeen(name){
   var g=groups()[name]; if(!g||!g.length) return;
   seen[name]=g[g.length-1].created||'';
   try{ localStorage.setItem('chats-seen-v1',JSON.stringify(seen)); }catch(e){}
-  // …and tell the SERVER, because the home-screen widget cannot read this
-  // (Aug 2026). `seen` is localStorage inside the web view; a widget is a
-  // separate process with its own container, so without this the widget's
-  // count is everything-since-the-✓ (14) while the Update tab shows
-  // everything-since-she-last-looked (2) — the same idea disagreeing with
-  // itself on two screens.
-  //
-  // Opening a chat ALREADY clears its Update card, so this changes no
-  // behaviour she can see in the app; it just moves the same fact somewhere
-  // the widget can read it. Fire-and-forget: a failed write only means the
-  // widget counts one extra until the next open or the ✓.
-  api('/api/chatfeed/notif-seen',{method:'POST',
-    body:JSON.stringify({chat:name,seen:true})}).catch(function(){});
-  chats[name]=chats[name]||{}; chats[name].notifSeenAt=new Date().toISOString();
+  // `seen` is the UNREAD DOT's mark and nothing else now. It used to also
+  // stamp notifSeenAt on the server so the widget's count agreed with the
+  // Update tab — but that was back when opening a chat cleared its Update
+  // card. It doesn't any more (Aug 2026, Sophie: a card stays until she taps
+  // the ✓), and the ✓ is the only thing that may write that stamp, so this
+  // no longer touches it. The widget already counted off notifSeenAt alone,
+  // so the two screens agree by construction instead of by a second write.
 }
 
 function editAbout(chat, row, current){
@@ -1706,7 +1722,36 @@ function paintBookmarks(el){
       : 'No messages kept yet — tap the bookmark under a message.';
     el.appendChild(s); return;
   }
-  items.forEach(function(m){
+  // THE ARTIFACTS TAB IS TWO PILES WHEN IT HAS TO BE — REFERENCE then KEPT
+  // (Aug 2026, Sophie: "we should save compare pages if they're comparing
+  // things that often need to be re-referenced… the different qualities of
+  // images like high, medium and low, or the different styles").
+  // A reference page is a standing answer, not a decision she made once, so
+  // it leads. The headings appear ONLY when both piles exist — the same rule
+  // the Compare tab's CURRENT/SUPERSEDED tabs follow, so a tab holding one
+  // kind of thing still looks like a plain list.
+  if(bmkTab==='page'){
+    var refs=items.filter(function(m){ return m.reference; });
+    var kept=items.filter(function(m){ return !m.reference; });
+    if(refs.length && kept.length){
+      el.appendChild(bmkGroup('Reference'));
+      refs.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+      el.appendChild(bmkGroup('Kept'));
+      kept.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+    } else {
+      refs.concat(kept).forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+    }
+    return;
+  }
+  items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+}
+function bmkGroup(word){
+  var h=document.createElement('div'); h.className='bmkgrp'; h.textContent=word; return h;
+}
+// One row, whichever pile it lands in. `el` is the grid it lives in, so a row
+// that removes itself (taking a page off the reference shelf) can repaint.
+function bmkRow(m, el){
+  {
     // The row is a wrapper, not a bare button, because the note is EDITABLE
     // right here (Sophie: naming a backlog of old bookmarks one at a time by
     // opening each message was a round trip per bookmark). An <input> cannot
@@ -1751,9 +1796,40 @@ function paintBookmarks(el){
     // Only `code` earns a badge now — it splits things WITHIN the Messages
     // tab. A chat or an artifact needs none: the tab overhead already says
     // which pile she is in.
+    // A reference page wears its TOPIC where the code badge sits — what it
+    // answers ("image quality", "styles") is the thing she is scanning for,
+    // and it is what the shelf is organised by.
     head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +(kind==='code'?'<span class="sr-kind">code</span>':'')
+      +(m.reference&&m.topic?'<span class="sr-kind">'+esc(m.topic)+'</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>';
+    // Taking one OFF the shelf — the Compare list's move idiom (↓), one
+    // control, no confirm: it un-files a page, it never deletes anything, and
+    // a chat can always put it back.
+    if(m.reference){
+      var off=document.createElement('button'); off.className='pr-sup';
+      off.textContent='↓';
+      off.title='Take off the reference shelf';
+      off.setAttribute('aria-label','Take off the reference shelf');
+      off.onclick=function(ev){
+        ev.stopPropagation();
+        m.reference=false;
+        // A page that is ALSO bookmarked stays in the pile (it is hers now,
+        // not the shelf's); one that was only here as a reference leaves.
+        if(!m.bookmarked) bmkCache=bmkCache.filter(function(x){ return x!==m; });
+        paintBookmarks(el);
+        api('/api/chatfeed/page/'+encodeURIComponent(m.id)+'/reference',{method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({reference:false})})
+          .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+          .catch(function(){
+            m.reference=true;
+            if(bmkCache.indexOf(m)<0) bmkCache.push(m);
+            paintBookmarks(el); toast('Couldn’t save that');
+          });
+      };
+      head.querySelector('.sr-top').appendChild(off);
+    }
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
     row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
@@ -1767,8 +1843,8 @@ function paintBookmarks(el){
       if(kind==='chat'){ openChat(m.chat); return; }
       openChat(m.chat, false, m.id);
     };
-    el.appendChild(row);
-  });
+    return row;
+  }
 }
 function renderBookmarks(el){
   el.innerHTML='<div class="state">Loading…</div>';
@@ -2055,11 +2131,13 @@ function renderStatus(el){
 //   • WHAT COUNTS AS NEW is the newest of three arrivals — a reply that isn't
 //     hers, a Compare page, an image — because a chat can deliver without
 //     saying anything, and the artifact is the point.
-//   • A CARD LEAVES ON ITS OWN when she opens the chat (`seen`, the same
-//     local mark the unread dot reads) or when she taps the ✓
-//     (`notifSeenAt` on the registry). Both are STAMPS compared against that
-//     arrival time, never booleans — which is the whole answer to her oven
-//     example: checking off v3 cannot silence v4, and nothing has to
+//   • A CARD ONLY LEAVES ON THE ✓ (`notifSeenAt` on the registry). Aug 2026,
+//     Sophie: "make the default behavior that it's pinned until I mark the
+//     checkmark and get rid of the pin" — so every card is kept by default,
+//     opening the chat does not clear it, and there is no pin because there
+//     is nothing left for a pin to say. It is still a STAMP compared against
+//     the arrival time, never a boolean — which is the whole answer to her
+//     oven example: checking off v3 cannot silence v4, and nothing has to
 //     un-check anything when v4 lands.
 //   • IT IGNORES THE ACCOUNT TABS, like Status does. This is the
 //     what-happened-while-I-was-away screen; splitting it in half would mean
@@ -2075,13 +2153,23 @@ function newsIndex(){
   (stCache.pages||[]).forEach(function(p){ if(p.chat) (pgs[p.chat]=pgs[p.chat]||[]).push(p); });
   return { imgs:imgs, pgs:pgs };
 }
-// The floor a card has to clear: whichever of the two "I know about this"
-// marks is later. `seen` is per-DEVICE (localStorage) and notifSeenAt is on
-// the registry, so the ✓ she taps on the phone also settles the card on the
-// laptop, while simply reading a chat settles it where she read it.
+// The floor a card has to clear: THE ✓, and only the ✓ (Aug 2026, Sophie —
+// "make the default behavior that it's pinned until I mark the checkmark and
+// get rid of the pin"). Every card is now what a pinned card used to be, so
+// the pin is gone; this one line is the whole feature.
+//
+// It used to be the later of TWO marks — this stamp and the per-device `seen`
+// written when she opens a chat — which meant reading a thread quietly cleared
+// its card, and the pin existed to opt out of that one card at a time. Opening
+// is not checking off: she opens a chat precisely to deal with it later.
+// `seen` still drives the unread dot; it just has no say here.
+//
+// notifSeenAt lives on the registry, so the ✓ she taps on the phone settles
+// the card on the laptop too — and the widget, which could never read the
+// localStorage half, has always counted off this stamp alone. Same floor
+// everywhere now.
 function newsFloor(name){
-  var s=seen[name]||'', n=(chats[name]&&chats[name].notifSeenAt)||'';
-  return s>n ? s : n;
+  return (chats[name]&&chats[name].notifSeenAt)||'';
 }
 // WHICH PAGES A CARD SHOWS — v3, and this one answers both of her rules at
 // once (Aug 2026).
@@ -2176,29 +2264,16 @@ function newsItems(g){
     if(last && last.from!=='sophie') bump(last.created||'');
     pics.forEach(function(p){ bump(p.created||''); });
     pages.forEach(function(p){ bump(p.created||''); });
-    // A PINNED chat is always here, whatever the floor says — that is the
-    // whole point of the pin ("pin it and then open it but it'll still be
-    // there"). Everything else on this screen clears itself; this doesn't.
-    var pinned=!!(chats[name]&&chats[name].newsPinned);
-    var fresh=!!at && at>floor;
-    if(!fresh && !pinned) return;
-    out.push({ chat:name, list:list, last:last, pics:pics, pages:pages,
-      at:at, pinned:pinned, pinnedOnly:(pinned && !fresh) });
+    // Nothing since the ✓ means nothing to show. Nothing else takes a card
+    // off this screen any more — see newsFloor.
+    if(!at || at<=floor) return;
+    out.push({ chat:name, list:list, last:last, pics:pics, pages:pages, at:at });
   });
-  // Pinned first — she pinned it to keep it in front of her, so it must not
-  // sink as newer cards arrive. Within each group, newest first as before.
-  out.sort(function(a,b){
-    if(!!a.pinned !== !!b.pinned) return a.pinned? -1 : 1;
-    return a.at<b.at?1:-1;
-  });
+  out.sort(function(a,b){ return a.at<b.at?1:-1; });   // newest first
   return out;
 }
 var NWCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 var NWDN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
-// Lucide `pin`. It stays a STROKE glyph when lit — the lit state is the red
-// the app already uses for a kept thing (bookmark, star). Never fill it: the
-// `.stbtn` trap — `fill:currentColor` floods a stroke glyph into a blob.
-var NWPIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
 // THE UPDATE BEHIND A TAP (Aug 2026, Sophie: "I wonder if it would be a good
 // idea to have a chat have like a TLDR in their update — not fully in the
 // message, because it would crowd things, but more as like a button I could
@@ -2277,15 +2352,14 @@ function newsCard(it){
   // The TIME comes OUT of the row here (Aug 2026, Sophie: the ⌄ "is a little
   // bit close to the check box so I'm worried I'll tap that by accident —
   // maybe just move it on the other side of the clock time"). So the card's
-  // top row reads: name/line · pin · ⌄ · TIME · ✓ — the two harmless taps
-  // together, and the one that clears the card alone behind the timestamp.
+  // top row reads: name/line · ⌄ · TIME · ✓ — the harmless tap on one side,
+  // and the one that clears the card alone behind the timestamp.
   row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(it.chat))+'</span>'
     +statusLinesHtml(it.chat, statusFor(it.list))+'</span>';
   row.onclick=function(){ openChat(it.chat); };
   top.appendChild(row);
   var upd=newsUpdate(it);
-  top.appendChild(newsPin(it,card));
   if(upd) top.appendChild(newsMore(card));
   var tm=document.createElement('span'); tm.className='cr-time nwtime';
   tm.textContent=ago(it.at||(it.last&&it.last.created)||'');
@@ -2329,59 +2403,17 @@ function newsCard(it){
 // clearing a screen and a card that lingers for a round-trip reads as a
 // missed tap. The tab's badge is repainted with it, or the number would still
 // be counting the card she just cleared.
-// PIN — "so I can pin it and then open it but it'll still be there" (Aug
-// 2026, Sophie). Everything else on this screen is a self-clearing stamp;
-// this is the one thing she keeps, so it survives opening the chat, reading
-// the reply and the passage of time. Optimistic like its neighbours, and the
-// card STAYS on the tap either way: unpinning something that has nothing new
-// behind it removes the card, because that card only existed for the pin.
-function newsPin(it, card){
-  var b=document.createElement('button'); b.className='nwpin';
-  b.innerHTML=NWPIN;
-  function paint(){
-    var on=!!(chats[it.chat]&&chats[it.chat].newsPinned);
-    b.classList.toggle('on',on);
-    b.setAttribute('aria-pressed',on?'true':'false');
-    b.setAttribute('aria-label',on?'Unpin this card':'Pin this card so it stays');
-  }
-  paint();
-  b.onclick=function(e){
-    e.stopPropagation();
-    var prev=!!(chats[it.chat]&&chats[it.chat].newsPinned);
-    var next=!prev;
-    chats[it.chat]=chats[it.chat]||{};
-    if(next) chats[it.chat].newsPinned=true; else delete chats[it.chat].newsPinned;
-    paint(); saveCache();
-    // it.pinnedOnly: the card is on this screen ONLY because it was pinned,
-    // so unpinning is the same gesture as clearing it.
-    if(!next && it.pinnedOnly){ card.remove(); paintAcctTabs(groups()); newsEmptyCheck(); }
-    api('/api/chatfeed/news-pin',{method:'POST',body:JSON.stringify({chat:it.chat, pinned:next})})
-      .then(function(r){return r.json()})
-      .then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){
-        if(prev) chats[it.chat].newsPinned=true; else delete chats[it.chat].newsPinned;
-        paint(); saveCache(); toast('Couldn’t save that');
-        if(homeView==='news') renderHome();
-      });
-  };
-  return b;
-}
+// It is now the ONLY way a card leaves — nothing else on this screen clears
+// itself, so a missed ✓ is the difference between the list being right and
+// being a lie. That is why the rollback below matters more than it used to.
 function newsCheck(it, card){
   var b=document.createElement('button'); b.className='nwck'; b.innerHTML=NWCK;
   b.setAttribute('aria-label','I have checked this — take it off the list');
   b.onclick=function(e){
     e.stopPropagation();
     var prev=(chats[it.chat]&&chats[it.chat].notifSeenAt)||null;
-    var wasPinned=!!(chats[it.chat]&&chats[it.chat].newsPinned);
     chats[it.chat]=chats[it.chat]||{};
     chats[it.chat].notifSeenAt=new Date().toISOString();
-    // ✓ means done, so it releases the pin too — otherwise the card would
-    // come straight back on the next paint and the check would look broken.
-    if(wasPinned){
-      delete chats[it.chat].newsPinned;
-      api('/api/chatfeed/news-pin',{method:'POST',body:JSON.stringify({chat:it.chat, pinned:false})})
-        .catch(function(){});
-    }
     card.remove();
     paintAcctTabs(groups());
     newsEmptyCheck();
@@ -2390,7 +2422,6 @@ function newsCheck(it, card){
       .then(function(d){ if(!d.ok) throw 0; if(d.notifSeenAt) chats[it.chat].notifSeenAt=d.notifSeenAt; })
       .catch(function(){
         if(prev) chats[it.chat].notifSeenAt=prev; else delete chats[it.chat].notifSeenAt;
-        if(wasPinned) chats[it.chat].newsPinned=true;
         toast('Couldn’t save'); if(homeView==='news') renderHome();
       });
   };
@@ -2430,7 +2461,29 @@ function renderNews(el){
 // The bar only exists when something is hidden. There is nothing to explain
 // when the pile is empty, and the way in is the ⊖ on any chat, not the bar.
 var hideOpen=false;
+// MORE — the far end of the list, folded (Aug 2026, Sophie: "a chat I haven't
+// touched in over seven days"). Session-only and always starting CLOSED, the
+// same rule as the hidden pile: a fold that remembers itself would hide half
+// her chats one morning with no memory of having asked.
+var moreOpen=false;
+var STALE_DAYS=7;
 function lastOf(g,name){ var l=g[name]||[]; return l.length? l[l.length-1] : null; }
+// "Haven't touched" = nothing has LANDED in this chat for a week — the same
+// time the row itself already shows ("9d ago"), so the fold can never disagree
+// with the timestamp beside it.
+//   * a chat with no message at all counts as stale (there is nothing to be
+//     fresh about), and
+//   * a chat that is WORKING right now never does, whatever its last message
+//     says — it is being touched at this second, and folding it away while it
+//     types is the one case that would read as a bug.
+function chatStale(name,last){
+  if(chatWorking(name,last)) return false;
+  var t=last && (last.postedAt||last.created);
+  if(!t) return true;
+  var ms=Date.parse(t);
+  if(!ms) return true;
+  return (Date.now()-ms) > STALE_DAYS*86400000;
+}
 
 // ---- Categories ------------------------------------------------------------
 // Chips where the LIST/TILES toggle used to be (Aug 2026, Sophie: "category
@@ -2771,6 +2824,33 @@ function renderHiddenBar(el,g,hid){
   if(view==='list') renderList(box,g,hid); else renderTiles(box,g,hid);
   sep();   // the line closes the whole block, so it goes AFTER the open pile
 }
+// MORE — the stale chats, folded under the list (Sophie, Aug 2026).
+// Three things about it are deliberate:
+//   * it is drawn AFTER the list, and opening it appends underneath rather
+//     than replacing the screen the way the hidden pile does — she asked for
+//     "underneath all the chats", i.e. the same list continuing, not a place
+//     to go;
+//   * the count of unread replies rides on the bar, so nothing behind the
+//     fold can answer her in silence;
+//   * with the fold OPEN the rows are the ordinary list, so every control on
+//     them (hide, filing, select mode) works exactly as it does above.
+function renderMoreBar(el,g,old){
+  if(!old.length) return;
+  var fresh=old.filter(function(n){
+    var last=lastOf(g,n);
+    return last && last.from!=='sophie' && (seen[n]||'')<(last.created||'');
+  }).length;
+  var bar=document.createElement('button'); bar.className='morebar'+(moreOpen?' open':'');
+  bar.setAttribute('aria-expanded', moreOpen?'true':'false');
+  bar.innerHTML='<span class="mb-n">More '+old.length
+    +(fresh? ' <span class="mb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV.replace('hb-chev','mb-chev');
+  bar.onclick=function(){ moreOpen=!moreOpen; renderHome(); };
+  el.appendChild(bar);
+  if(!moreOpen) return;
+  var box=document.createElement('div'); box.className='morelist';
+  el.appendChild(box);
+  if(view==='list') renderList(box,g,old); else renderTiles(box,g,old);
+}
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
@@ -2858,7 +2938,15 @@ function renderHome(){
         : 'Everything is filed — tap a category to see it.'}));
     return;
   }
-  if(view==='list') renderList(el,g,names); else renderTiles(el,g,names);
+  // MORE (Aug 2026, Sophie). The list splits in two at seven days: what she
+  // has touched recently, then a fold. The split happens HERE, not inside
+  // renderList, so the hidden pile / archive / ★ / Status all keep showing
+  // their piles whole — those are already places she went on purpose, and a
+  // second fold inside one would be a filter on a filter.
+  var recent=names.filter(function(n){ return !chatStale(n, lastOf(g,n)); });
+  var old=names.filter(function(n){ return chatStale(n, lastOf(g,n)); });
+  if(recent.length){ if(view==='list') renderList(el,g,recent); else renderTiles(el,g,recent); }
+  renderMoreBar(el,g,old);
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // A chat is "answered" (green check) while its answeredAt stamp is >= its latest
@@ -3012,6 +3100,11 @@ function paintLive(){
 // test that sets that assigns a stray global and silently proves nothing.
 window.__repaintLive=paintLive;
 window.__setTint=function(v){ TINT=!!v; };
+// Test hooks for the MORE fold. `__setMoreOpen` drives the fold without a tap,
+// and `__chatStale` is the rule itself, so a test can assert the seven-day
+// boundary without building a whole feed either side of it.
+window.__setMoreOpen=function(v){ moreOpen=!!v; renderHome(); };
+window.__chatStale=function(n,last){ return chatStale(n,last); };
 // Test hook: the archive's pile tabs (the page script is an IIFE, so archTab
 // is not reachable from outside otherwise).
 window.__setArchTab=function(v){ archTab = (v==='other'?'other':'built'); renderHome(); };
@@ -3453,8 +3546,9 @@ function openChat(name, keepScroll, focusId, noFetch){
   // POST /api/chatfeed/pin; the field rides the registry doc the feed already
   // reads, so this costs no extra request.
   (function(){
-    // NB `pinned` (an object: the film) is a DIFFERENT field from the Update
-    // tab's `newsPinned` (a boolean: keep this card). Don't merge them.
+    // NB `pinned` here is an OBJECT (the film). The Update tab's old
+    // `newsPinned` boolean is gone — its cards are all kept now — so this is
+    // the only pin left in the app.
     var pin=chats[name]&&chats[name].pinned;
     if(!pin||!pin.url) return;
     var b=document.createElement('button');

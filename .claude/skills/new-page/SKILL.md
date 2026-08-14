@@ -77,6 +77,16 @@ Two more, same source:
 
 ## Compare pages: START FROM THE SHELL, and don't hand-roll ANYTHING
 
+**Before you build a comparison, check whether it already exists:
+`GET /api/chatfeed/references`** — the reference shelf (Aug 2026, Sophie:
+"we should save compare pages if they're comparing things that often need to
+be re-referenced"). Quality ladders, style sets, LoRA scale rungs and the like
+get asked for again by a different chat every week; if the page is on the
+shelf, hand her that link instead of paying to re-render it. And when the page
+you ARE building is one of those standing comparisons, post it with
+`reference:true` + a plain reusable `topic` ("image quality", "styles") so the
+next chat finds it. One-off decisions ("which cut") stay off the shelf.
+
 **Copy `public/compare-shell.html` and fill it in** — it links the two shared
 halves and carries the rules as comments. Post with
 `POST /api/chatfeed/page { chat, title, html }`.

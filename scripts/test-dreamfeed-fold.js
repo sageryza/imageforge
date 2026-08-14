@@ -99,6 +99,33 @@ const check = (name, ok, detail) => {
 
   const box = (sel) => page.locator(sel).first().boundingBox();
 
+  // "How this works" is a POP-UP now, in a plain style — cream card, black
+  // text, a normal font (Sophie). It greets a first visit and has to be gone
+  // before anything else on the page can be measured or tapped.
+  check('a first visit gets the explainer as a pop-up', await page.locator('#howwrap .how').isVisible());
+  const howLook = await page.evaluate(() => {
+    const w = getComputedStyle(document.querySelector('#howwrap'));
+    const c = getComputedStyle(document.querySelector('.how'));
+    const h = getComputedStyle(document.querySelector('.how h3'));
+    return { pos: w.position, bg: c.backgroundColor, fg: c.color, font: c.fontFamily, head: h.fontFamily,
+             locked: getComputedStyle(document.body).overflow };
+  });
+  const isDark = (c) => { const n = c.match(/\d+/g).map(Number); return n[0] + n[1] + n[2] < 160; };
+  check('it lays OVER the page, not in the feed', howLook.pos === 'fixed', howLook.pos);
+  check('the card is cream with black text', !isDark(howLook.bg) && isDark(howLook.fg),
+    `${howLook.bg} / ${howLook.fg}`);
+  check('and it is a normal font, not the serif or the app voice',
+    !/Georgia|Times/i.test(howLook.font) && !/Georgia|Times/i.test(howLook.head), howLook.font);
+  check('the page behind the pop-up is locked', howLook.locked === 'hidden', howLook.locked);
+  await page.locator('#howwrap [data-howclose]').click();
+  check('"got it" puts it away', (await page.locator('#howwrap').count()) === 0);
+  check('and the page is usable again',
+    (await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden');
+  // Dismissed means dismissed: re-rendering the feed must not bring it back.
+  await page.locator('#nav-feed').click();
+  await page.waitForTimeout(150);
+  check('a dismissed explainer stays dismissed', (await page.locator('#howwrap').count()) === 0);
+
   // 1. same amount of scrolling, whatever the dream's length
   const hLong = (await box('.dream[data-id="long"]')).height;
   const hAlso = (await box('.dream[data-id="alsolong"]')).height;
@@ -160,6 +187,12 @@ const check = (name, ok, detail) => {
   check('the gear is there', await page.locator('#gearBtn').isVisible());
   await page.locator('#gearBtn').click();
   check('the gear opens a menu holding sign out', await page.locator('#gearMenu #signOut').isVisible());
+  check('the gear can bring the explainer back', await page.locator('#gearMenu #howBtn').isVisible());
+  await page.locator('#gearMenu #howBtn').click();
+  check('and it opens as the same pop-up', await page.locator('#howwrap .how').isVisible());
+  await page.locator('#howwrap').click({ position: { x: 5, y: 5 } });
+  check('a tap outside the card closes it', (await page.locator('#howwrap').count()) === 0);
+  await page.locator('#gearBtn').click();
   await page.locator('#gearScrim').click({ position: { x: 5, y: 5 } });
   check('tapping away puts it back', (await page.locator('#gearMenu').count()) === 0);
 

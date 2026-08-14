@@ -899,6 +899,13 @@ router.post('/hide', async (req, res) => {
 // localStorage when she opens a chat) and from `answeredAt`: checking a
 // notification off says "I know about this", not "I have read the thread" and
 // not "this chat is done".
+//
+// Since Aug 2026 it is also the ONLY thing that takes a card off the Update
+// tab — she asked for cards to stay put until she checks them, which retired
+// the pin that used to opt one card out of auto-clearing. So the app must
+// write this stamp on the ✓ and on nothing else: opening a chat used to POST
+// here too, purely so the widget's count matched, and that would now silently
+// clear cards she never checked.
 router.post('/notif-seen', async (req, res) => {
   try {
     const { chat, seen } = req.body || {};
@@ -913,32 +920,14 @@ router.post('/notif-seen', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// PIN an Update card (Aug 2026, Sophie: "a pin button so I can pin it and then
-// open it but it'll still be there"). Every other mark on this screen is a
-// self-clearing STAMP — a card leaves the moment she opens the chat or taps
-// the ✓ — which is right for news and wrong for the one thing she is actually
-// carrying around. So `pinned` is a plain BOOLEAN, deliberately: nothing
-// newer, nothing she reads, and no passage of time may clear it. Only she
-// does, with the pin again or the ✓ (which unpins as it clears — "done" has
-// to mean done, or the check would look broken on a pinned card).
-//
-// NAMED `newsPinned`, on its own route, because `pinned` + POST /pin were
-// ALREADY TAKEN by the pinned DELIVERABLE (the film at the top of a thread),
-// which stores an OBJECT there. Reusing either would have shadowed that
-// route — Express takes the first match — and made every chat with a pinned
-// film look like a pinned card, with the ✓ deleting the film.
-router.post('/news-pin', async (req, res) => {
-  try {
-    const { chat, pinned } = req.body || {};
-    if (!chat) return res.status(400).json({ error: 'chat required' });
-    const on = pinned !== false;
-    await regRef(await followMoves(chat)).set(
-      { newsPinned: on ? true : admin.firestore.FieldValue.delete() },
-      { merge: true },
-    );
-    res.json({ ok: true, pinned: on });
-  } catch (err) { fail(res, err); }
-});
+// (POST /news-pin lived here — the Update card's pin, a `newsPinned` boolean
+// on the registry. Removed Aug 2026: an Update card is now kept until the ✓
+// whatever happens, so the pin had nothing left to opt out of. Stale
+// `newsPinned:true` fields may still sit on old registry docs; nothing reads
+// them. Note for whoever adds the next route here — `pinned` and POST /pin
+// are TAKEN by the pinned DELIVERABLE, the film at the top of a thread, which
+// stores an OBJECT there; Express takes the first match, so a route named
+// `pin` here would shadow it.)
 
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
@@ -1134,12 +1123,12 @@ router.post('/status', async (req, res) => {
 // timeline and must never pull the real feed (~500KB) to do it.
 //
 // It answers the same question the tab does — which chats have something she
-// hasn't checked off — with ONE difference that is forced and worth knowing:
-// the tab's floor is `notifSeenAt` OR the per-device `seen` mark in the
-// phone's localStorage, and a widget process can't read the web view's
-// storage. So this uses `notifSeenAt` alone: the ✓ she taps on a card settles
-// the widget too, but merely opening a chat does not. Erring toward showing
-// one row too many is the right way round for a glance surface.
+// hasn't checked off — off the SAME floor: `notifSeenAt`, the ✓ and nothing
+// else. That used to be a forced compromise (the tab also counted the
+// per-device `seen` mark, which a widget process cannot read out of the web
+// view's storage, so this route was deliberately one row too generous). Since
+// Aug 2026 the tab keeps every card until the ✓ as well, so the two surfaces
+// agree exactly and the widget's count is the tab's count.
 //
 // Cost: the registry (5-min cached) + ONE capped message read. Nothing
 // per-chat, so a widget refresh is cheap however many chats exist.
@@ -1437,10 +1426,21 @@ function bookmarkKind(text) {
 // memory: still no composite index, the same discipline as everything here.
 router.get('/bookmarks', async (req, res) => {
   try {
-    const [msgs, pages] = await Promise.all([
+    const [msgs, keptPages, refPages] = await Promise.all([
       db().collection(MSGS).where('bookmarked', '==', true).limit(500).get(),
       db().collection(PAGES).where('bookmarked', '==', true).limit(500).get(),
+      // The REFERENCE SHELF rides in the ARTIFACTS tab without her keep-tap
+      // (see POST /page): a standing comparison is kept by definition, and
+      // only 4 of 333 pages had ever been bookmarked, so waiting for the tap
+      // would have left the shelf empty on the screen she looks at.
+      db().collection(PAGES).where('reference', '==', true).limit(500).get(),
     ]);
+    // A page can be BOTH (she kept one that is also on the shelf) — two
+    // equality queries can't be OR'd in Firestore, so the union is done here,
+    // by doc id, and it must be: a duplicated row is a row she taps twice.
+    const seenPage = new Set();
+    const pageDocs = keptPages.docs.concat(refPages.docs)
+      .filter((d) => (seenPage.has(d.id) ? false : seenPage.add(d.id)));
     const reg = await registry();
     const items = msgs.docs.map((d) => {
       const m = d.data() || {};
@@ -1454,7 +1454,7 @@ router.get('/bookmarks', async (req, res) => {
         note: m.bookmarkNote || '',
         kind: bookmarkKind(m.text),
       };
-    }).concat(pages.docs.map((d) => {
+    }).concat(pageDocs.map((d) => {
       const p = d.data() || {};
       // A page's TITLE is genuinely descriptive ("Cutting blocks v6 (s96) —
       // …"), unlike a message's first line — so it fills the snippet slot and
@@ -1469,6 +1469,11 @@ router.get('/bookmarks', async (req, res) => {
         note: p.bookmarkNote || '',
         kind: 'page',
         superseded: !!p.superseded,
+        // both flags ride along: the client has to know whether a page taken
+        // off the shelf still belongs in the pile (she kept it) or leaves it.
+        bookmarked: !!p.bookmarked,
+        reference: !!p.reference,
+        topic: p.refTopic || '',
       };
     })).concat(Object.keys(reg.chats).filter((slug) => {
       const r = reg.chats[slug] || {};
@@ -1631,9 +1636,40 @@ function kitWarnings(html) {
   return out;
 }
 
+// THE REFERENCE SHELF (Aug 2026, Sophie: "we should save compare pages if
+// they're comparing things that often need to be re-referenced — for example
+// the different qualities of images like high, medium and low, or the
+// different styles").
+//
+// Most Compare pages answer ONE question once: which cut, which cover, which
+// of these six. A few answer a question that gets asked again every week by a
+// different chat — what low/medium/high actually look like, what the five
+// styles look like side by side, what LoRA scale 1 / 1.2 / 1.4 does. Those are
+// REFERENCE pages, and until now they were indistinguishable from the one-offs:
+// findable only by remembering which chat happened to make one.
+//
+// Measured 2026-08-14 over all 333 pages on file: ~34 carry a comparison title
+// and the reusable ones are scattered across a dozen unrelated chats
+// ("Quality ladder — low vs medium vs high" in hospital-story-images, "3x3
+// sheet — low vs medium vs high" in netlify-site-review, "Style tests — side
+// by side" in chatgpt-image-style-reference). Only FOUR pages in the whole
+// collection had ever been bookmarked, so her own keep-tap was never going to
+// gather them.
+//
+// Two halves, and the second is the one that saves money:
+//   • `reference` + `refTopic` on the page doc; reference pages surface in the
+//     Bookmarks pile's ARTIFACTS tab without her having to tap anything.
+//   • GET /references — the cross-chat shelf ANY chat can read before it
+//     builds (and pays for) a comparison that already exists.
+// It is deliberately SEPARATE from `bookmarked`: that flag is hers, this one
+// is the chats' (the same split as `starred` vs `bookmarked` on a chat). She
+// can always take one off the shelf; nothing takes one off by itself.
+const REF_TOPIC_MAX = 40;
+function refTopic(t) { return String(t == null ? '' : t).trim().toLowerCase().slice(0, REF_TOPIC_MAX); }
+
 router.post('/page', async (req, res) => {
   try {
-    const { chat, title, html } = req.body || {};
+    const { chat, title, html, reference, topic } = req.body || {};
     if (!chat || !title || !html) return res.status(400).json({ error: 'chat, title and html required' });
     const warnings = kitWarnings(html);
     const doc = {
@@ -1641,6 +1677,14 @@ router.post('/page', async (req, res) => {
       title: String(title).slice(0, 140),
       created: new Date().toISOString(),
     };
+    // A chat that KNOWS it is publishing a standing reference says so here —
+    // the topic is what groups it on the shelf, so keep it plain and reusable
+    // ("image quality", "styles", "lora scale"), never this page's own title.
+    if (reference) {
+      doc.reference = true;
+      const t = refTopic(topic);
+      if (t) doc.refTopic = t;
+    }
     if (warnings.length) doc.kitWarnings = warnings;
     const ref = db().collection(PAGES).doc();
     const bucket = admin.storage().bucket();
@@ -1676,6 +1720,8 @@ router.get('/pages', async (req, res) => {
         superseded: !!d.data().superseded,
         bookmarked: !!d.data().bookmarked,
         bookmarkNote: d.data().bookmarkNote || '',
+        reference: !!d.data().reference,
+        topic: d.data().refTopic || '',
       }))
       .sort((a, b) => (a.created < b.created ? 1 : -1));
     res.json({ pages });
@@ -1727,6 +1773,64 @@ router.post('/page/:id/bookmark', async (req, res) => {
     if (!doc.exists) return res.status(404).json({ error: 'no such page' });
     await ref.set(patch, { merge: true });
     res.json({ ok: true, id, bookmarked: patch.bookmarked, note });
+  } catch (err) { fail(res, err); }
+});
+
+// Put a page ON the reference shelf, or take it off (see the REFERENCE SHELF
+// note above POST /page). Same field-for-field contract as the bookmark route
+// beside it: `topic` sent alone edits ONLY the topic, so renaming what a page
+// files under can never quietly take it off the shelf. `topic:''` clears the
+// topic; `reference:false` takes the page off and leaves the topic alone, so
+// putting it back keeps what it was filed under.
+router.post('/page/:id/reference', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').slice(0, 60);
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { reference, topic } = req.body || {};
+    const patch = {};
+    if (reference !== undefined) patch.reference = !!reference;
+    if (topic !== undefined) {
+      const t = refTopic(topic);
+      patch.refTopic = t || admin.firestore.FieldValue.delete();
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    const ref = db().collection(PAGES).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'no such page' });
+    await ref.set(patch, { merge: true });
+    res.json({ ok: true, id, reference: patch.reference, topic: refTopic(topic) });
+  } catch (err) { fail(res, err); }
+});
+
+// THE SHELF ITSELF — every reference page across every chat, newest first.
+// READ THIS BEFORE BUILDING A COMPARISON that sounds like one somebody has
+// already made and paid for (quality ladders, style sets, LoRA scale rungs):
+// pointing Sophie at the page that exists costs nothing, and re-rendering it
+// costs her money and her attention.
+// ONE equality filter, sorted in memory — no composite index, the same
+// discipline as /bookmarks and the crystals/audio queries. `topics` comes back
+// alongside so a caller can see what the shelf is organised by without
+// paging it.
+router.get('/references', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const want = refTopic(req.query.topic);
+    const snap = await db().collection(PAGES).where('reference', '==', true).limit(500).get();
+    let pages = snap.docs.map((d) => {
+      const p = d.data() || {};
+      return {
+        id: d.id,
+        chat: p.chat || '',
+        title: String(p.title || ''),
+        topic: p.refTopic || '',
+        created: p.created || '',
+        superseded: !!p.superseded,
+        url: `/api/chatfeed/page/${d.id}`,
+      };
+    }).sort((a, b) => (a.created < b.created ? 1 : -1));
+    const topics = Array.from(new Set(pages.map((p) => p.topic).filter(Boolean))).sort();
+    if (want) pages = pages.filter((p) => p.topic === want);
+    res.json({ pages, topics });
   } catch (err) { fail(res, err); }
 });
 
