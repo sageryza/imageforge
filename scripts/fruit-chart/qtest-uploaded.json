@@ -34,5 +34,23 @@
   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-broccoli-low.webp",
   "quality": "low",
   "subject": "broccoli"
+ },
+ {
+  "id": "q-strawberry-medium",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-strawberry-medium.webp",
+  "quality": "medium",
+  "subject": "strawberry"
+ },
+ {
+  "id": "q-pomegranate-medium",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-pomegranate-medium.webp",
+  "quality": "medium",
+  "subject": "pomegranate"
+ },
+ {
+  "id": "q-broccoli-medium",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-broccoli-medium.webp",
+  "quality": "medium",
+  "subject": "broccoli"
  }
 ]
