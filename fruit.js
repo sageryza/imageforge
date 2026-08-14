@@ -9,6 +9,13 @@
 // favorite. That produces structured answers — a like set, a nope set, and a
 // #1 — which is what a chart needs.
 //
+// THREE ANSWERS, NOT TWO (Aug 2026, Sophie: "I like apples but I don't love
+// them, but I love mangoes"). Every fruit is loved, tolerated, or refused —
+// ♥ / ○ / ✕ — and then one of them is crowned. Two buckets flattened exactly
+// the distinction the chart is for, since a fruit somebody merely puts up with
+// scored the same as their favourite. The old two-way `likes` field is read as
+// `loves` wherever it survives, so no ballot written before this is lost.
+//
 // THE LINK IS THE IDENTITY. Each person gets `/fruit?p=<poll>&who=<personId>`
 // in their email; there is no login, because the people filling this in are
 // Sophie's family and a password would simply end the experiment. The person
@@ -40,7 +47,7 @@
 //   GET  /status                      → { ok, firebase, brevo, sender }  (open)
 //   GET  /poll/:id                    → poll + fruits, NO emails          (open)
 //   GET  /ballot/:poll/:person        → that person's saved ballot        (open)
-//   POST /ballot/:poll/:person        → { likes, nopes, top, done }       (open, rate-limited)
+//   POST /ballot/:poll/:person        → { loves, oks, nopes, top, done }  (open, rate-limited)
 //   GET  /results/:poll               → tallies + per-person answers      (open)
 //   POST /poll                        → create/replace a poll            (gated)
 //   GET  /poll/:id/people             → people WITH emails + links       (gated)
@@ -204,9 +211,14 @@ router.get('/poll/:id/people', async (req, res) => {
 router.get('/ballot/:poll/:person', async (req, res) => {
   try {
     const snap = await db().collection(VOTES).doc(ballotId(req.params.poll, req.params.person)).get();
-    if (!snap.exists) return res.json({ likes: [], nopes: [], top: null, done: false, fresh: true });
+    if (!snap.exists) return res.json({ loves: [], oks: [], nopes: [], top: null, done: false, fresh: true });
     const d = snap.data();
-    res.json({ likes: d.likes || [], nopes: d.nopes || [], top: d.top || null, done: Boolean(d.done), fresh: false });
+    res.json({
+      // `likes` was the two-way field before the middle option existed. A
+      // ballot written then is read as loves, so nobody has to re-swipe.
+      loves: d.loves || d.likes || [], oks: d.oks || [], nopes: d.nopes || [],
+      top: d.top || null, done: Boolean(d.done), fresh: false,
+    });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e).slice(0, 200) });
   }
@@ -231,14 +243,17 @@ router.post('/ballot/:poll/:person', async (req, res) => {
     const valid = new Set((poll.fruits || []).map(f => f.id));
     const clean = a => [...new Set((Array.isArray(a) ? a : []).map(String))].filter(x => valid.has(x)).slice(0, 200);
     const b = req.body || {};
-    const likes = clean(b.likes), nopes = clean(b.nopes);
+    const loves = clean(b.loves != null ? b.loves : b.likes), oks = clean(b.oks), nopes = clean(b.nopes);
     const top = valid.has(String(b.top)) ? String(b.top) : null;
 
     await db().collection(VOTES).doc(ballotId(pollId, personId)).set({
       poll: pollId, person: personId, name: person.name,
-      likes, nopes, top, done: Boolean(b.done), updatedAt: Date.now(),
+      loves, oks, nopes, top, done: Boolean(b.done), updatedAt: Date.now(),
+      // The old two-way field is cleared, not left behind: a stale `likes`
+      // would out-vote `loves` for any reader still falling back to it.
+      likes: admin.firestore.FieldValue.delete(),
     }, { merge: true });
-    res.json({ ok: true, likes: likes.length, nopes: nopes.length, top, done: Boolean(b.done) });
+    res.json({ ok: true, loves: loves.length, oks: oks.length, nopes: nopes.length, top, done: Boolean(b.done) });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e).slice(0, 200) });
   }
@@ -258,21 +273,28 @@ router.get('/results/:poll', async (req, res) => {
     const ballots = qs.docs.map(d => d.data())
       .map(d => ({
         person: d.person, name: d.name || '',
-        likes: d.likes || [], nopes: d.nopes || [],
+        loves: d.loves || d.likes || [], oks: d.oks || [], nopes: d.nopes || [],
         top: d.top || null, done: Boolean(d.done), updatedAt: d.updatedAt || 0,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const answered = ballots.filter(b => b.done);
     const tally = new Map();
-    for (const f of poll.fruits || []) tally.set(f.id, { ...f, likes: 0, nopes: 0, tops: 0, likedBy: [], topBy: [] });
+    for (const f of poll.fruits || []) {
+      tally.set(f.id, { ...f, loves: 0, oks: 0, nopes: 0, tops: 0, lovedBy: [], okBy: [], topBy: [] });
+    }
     for (const b of answered) {
-      for (const id of b.likes) { const t = tally.get(id); if (t) { t.likes++; t.likedBy.push(b.name); } }
+      for (const id of b.loves) { const t = tally.get(id); if (t) { t.loves++; t.lovedBy.push(b.name); } }
+      for (const id of b.oks) { const t = tally.get(id); if (t) { t.oks++; t.okBy.push(b.name); } }
       for (const id of b.nopes) { const t = tally.get(id); if (t) t.nopes++; }
       if (b.top) { const t = tally.get(b.top); if (t) { t.tops++; t.topBy.push(b.name); } }
     }
+    // ORDER IS BY LOVES, the same number the Popular view draws its size from,
+    // so position and size can never disagree. `oks` breaks a tie but never
+    // outranks a love — a fruit three people merely tolerate is not more
+    // popular than one somebody loves, on a chart about favourites.
     const fruits = [...tally.values()].sort((a, b) =>
-      (b.tops - a.tops) || (b.likes - a.likes) || a.name.localeCompare(b.name));
+      (b.loves - a.loves) || (b.oks - a.oks) || (b.tops - a.tops) || a.name.localeCompare(b.name));
 
     res.json({
       poll: publicPoll(pollSnap.id, poll),

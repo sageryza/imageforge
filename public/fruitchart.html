@@ -11,7 +11,7 @@
    every count is also written as a number, so size is never the only encoding. */
 :root{
   --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
-  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --amber:#b08434;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
@@ -68,7 +68,12 @@ h1{margin:0;font-size:20px;font-weight:400;letter-spacing:.01em}
 .pick img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
 .pick span{display:block;font-size:11px;color:var(--ink2);margin-top:2px}
 .pick.first span{font-size:13px;color:var(--ink)}
+.pick.ok{width:60px;opacity:.72}
 .crown{display:block;font-size:9px;letter-spacing:.12em;color:var(--rose)}
+.oklabel{
+  margin:12px 0 4px;font-family:-apple-system,system-ui,sans-serif;font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
+}
 
 /* ── 2. CHART — fruit down the side, people across ────────────────────── */
 .wrap{overflow-x:auto}
@@ -82,6 +87,7 @@ tbody th{text-align:left;font-weight:400;white-space:nowrap}
 tbody th img{width:30px;height:30px;object-fit:contain;vertical-align:middle;margin-right:7px}
 .mark{color:var(--rose);font-size:14px}
 .mark.top{font-size:15px}
+.mark.mid{color:var(--amber);font-size:15px}
 .dash{color:var(--line)}
 td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
 
@@ -122,10 +128,11 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
 
 <div id="helpcard" hidden><div>
   Three ways to read the same answers. <b>Everyone</b> gives each person their
-  own row, biggest picture first — that's their number one. <b>Chart</b> is the
-  grid: a mark where somebody liked that fruit, a filled one for their
-  favorite. <b>Popular</b> sizes each fruit by how many people picked it.
-  Printing gives you all three, one per page.
+  own row, biggest picture first — that's their number one — with the ones they
+  only thought were OK underneath. <b>Chart</b> is the grid: ★ favourite,
+  ♥ loved, – it's OK. <b>Popular</b> sizes each fruit by how many people
+  <i>loved</i> it, with the OK count written alongside. Printing gives you all
+  three, one per page.
 </div></div>
 
 <script>
@@ -195,35 +202,47 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
       /* ── 1. EVERYONE ────────────────────────────────────────────────── */
       document.getElementById('people').innerHTML = answered.map(function (b) {
         var first = byId[b.top];
-        var rest = (b.likes || []).filter(function (id) { return id !== b.top; })
-          .map(function (id) { return byId[id]; }).filter(Boolean);
+        var lookup = function (ids) {
+          return (ids || []).filter(function (id) { return id !== b.top; })
+            .map(function (id) { return byId[id]; }).filter(Boolean);
+        };
+        var loved = lookup(b.loves), okd = lookup(b.oks);
         var cards = '';
         if (first) {
           cards += '<div class="pick first"><img src="' + esc(first.url) + '" alt="">'
             + '<span class="crown">FAVORITE</span><span>' + esc(first.name) + '</span></div>';
         }
-        cards += rest.map(function (f) {
+        cards += loved.map(function (f) {
           return '<div class="pick"><img src="' + esc(f.url) + '" alt=""><span>' + esc(f.name) + '</span></div>';
         }).join('');
+        // The merely-OK sit behind their own small heading rather than mixed in
+        // with the loved ones — that separation is the whole point of the third
+        // answer, and losing it here would flatten it straight back to two.
+        var ok = okd.length
+          ? '<p class="oklabel">it\'s OK</p><div class="picks">' + okd.map(function (f) {
+            return '<div class="pick ok"><img src="' + esc(f.url) + '" alt=""><span>' + esc(f.name) + '</span></div>';
+          }).join('') + '</div>'
+          : '';
         return '<div class="person"><h2>' + esc(b.name) + '</h2>'
-          + (cards ? '<div class="picks">' + cards + '</div>' : '<p class="none">Liked nothing on the whole deck.</p>')
-          + '</div>';
+          + (cards ? '<div class="picks">' + cards + '</div>' : '<p class="none">Loved nothing on the whole deck.</p>')
+          + ok + '</div>';
       }).join('');
 
       /* ── 2. CHART ───────────────────────────────────────────────────── */
       // Only fruits somebody actually picked — 27 empty rows is not a chart.
-      var picked = (d.fruits || []).filter(function (f) { return f.likes > 0 || f.tops > 0; });
+      var picked = (d.fruits || []).filter(function (f) { return f.loves > 0 || f.oks > 0 || f.tops > 0; });
       var head = '<tr><th></th>' + answered.map(function (b) {
         return '<th>' + esc(b.name) + '</th>';
-      }).join('') + '<th>All</th></tr>';
+      }).join('') + '<th>♥</th></tr>';
       var rows = picked.map(function (f) {
         var cells = answered.map(function (b) {
           if (b.top === f.id) return '<td><span class="mark top" title="favorite">★</span></td>';
-          if ((b.likes || []).indexOf(f.id) >= 0) return '<td><span class="mark">♥</span></td>';
+          if ((b.loves || []).indexOf(f.id) >= 0) return '<td><span class="mark">♥</span></td>';
+          if ((b.oks || []).indexOf(f.id) >= 0) return '<td><span class="mark mid" title="it\'s OK">–</span></td>';
           return '<td><span class="dash">·</span></td>';
         }).join('');
         return '<tr><th><img src="' + esc(f.url) + '" alt="">' + esc(f.name) + '</th>'
-          + cells + '<td class="n">' + f.likes + '</td></tr>';
+          + cells + '<td class="n">' + f.loves + '</td></tr>';
       }).join('');
       document.getElementById('chart').innerHTML =
         '<div class="wrap"><table><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>';
@@ -234,17 +253,23 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
       // Sorted by the SAME number the size draws, so position and size can
       // never disagree: the results feed leads with ★ count, which put a
       // 1-pick favorite above a 3-pick fruit while drawing it smaller.
+      // Size is driven by LOVES alone, not a blend of loves and OKs. A blend
+      // would need a weighting nobody chose, and it would let a fruit three
+      // people merely tolerate outgrow one somebody loves — on a chart about
+      // favourites. The OK count rides along as text instead.
       var bySize = picked.slice().sort(function (a, b) {
-        return (b.likes - a.likes) || (b.tops - a.tops) || a.name.localeCompare(b.name);
+        return (b.loves - a.loves) || (b.oks - a.oks) || a.name.localeCompare(b.name);
       });
-      var max = bySize.reduce(function (m, f) { return Math.max(m, f.likes); }, 1);
+      var max = bySize.reduce(function (m, f) { return Math.max(m, f.loves); }, 1);
       // MAX stays under half the phone's width so the big ones sit SIDE BY SIDE
       // and can be compared — at 210px each one owned its own row and the view
       // read as a list instead of a size comparison.
       var MIN = 62, MAX = 150;
       document.getElementById('popular').innerHTML = '<div class="cloud">' + bySize.map(function (f) {
-        var w = Math.round(MIN + (MAX - MIN) * Math.sqrt(f.likes / max));
-        var who = f.likes + (f.likes === 1 ? ' pick' : ' picks')
+        // A fruit nobody loves still has to be drawn, so √0 gets a floor.
+        var w = Math.round(MIN + (MAX - MIN) * Math.sqrt(Math.max(f.loves, 0) / max));
+        var who = (f.loves ? f.loves + ' ♥' : 'no ♥')
+          + (f.oks ? ' · ' + f.oks + ' OK' : '')
           + (f.tops ? ' · ' + f.tops + ' ★' : '');
         return '<div class="blob" style="width:' + w + 'px">'
           + '<img src="' + esc(f.url) + '" alt="">'
