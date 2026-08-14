@@ -49,9 +49,11 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — TLDR first · answer her questions before anything else ·
-small question, short answer · full clickable links · no markdown tables · times
-in 12-hour Pacific · files and images LAST · working links at the very bottom.
+**Writing the reply** — TLDR first · answer her questions before anything else,
+each one **repeated verbatim in bold with the answer plainly underneath** (see
+*Answering a question*) · small question, short answer · full clickable links ·
+no markdown tables · times in 12-hour Pacific · files and images LAST · working
+links at the very bottom.
 
 ## Where everything is
 
@@ -660,6 +662,41 @@ them off the reference sheet, not off the old filenames.
     build sends.** The `app:true` requirement did exactly that: the phone
     keeps a cached page for days, so her own edit was refused with
     "couldn't be saved" while the note she was trying to fix stayed put.
+- **ANSWERING A QUESTION — repeat it verbatim in bold, answer plainly
+  underneath (Aug 2026, Sophie: "sometimes I ask questions to chat and then
+  it's hard to find the answer cause it's buried under other stuff … I want
+  something where my question is repeated verbatim and bold and then the
+  answer is right underneath it not bold").** This is a WRITING rule, and it
+  costs nothing — it is how the answers get written, not something to file.
+  - **Verbatim means verbatim** — her sentence as she said it, dictation
+    quirks and all. Don't tidy it, don't shorten it, don't turn two questions
+    into one. One bold line per question, on its own line, with the answer as
+    ordinary text under it. Nothing else on either line.
+  - It goes at the TOP of the reply, before any work report — that rule
+    already existed; this one says what the answer should look like when it
+    gets there.
+  - **The QUESTIONS button reads these.** Under a chat's header, on the note
+    row, a small button opens every question she has asked in that chat with
+    the answer beside it (`#qfull` in `chats.html`). It is **DERIVED, never
+    filed**: `questions.js` reads the thread the feed already stores — her
+    messages (`from:'sophie'`) paired with the reply that followed — so no
+    chat has to remember anything and the list was complete over her whole
+    history the day it shipped. That was the deliberate choice against a
+    POSTed card: 15 of 224 chats had ever written an Update card, so a filed
+    Questions list would have been empty for the same reason.
+  - **What the bold line buys is EXACTNESS.** With it, the button shows the
+    block you wrote under her question. Without it the answer falls back to
+    your TLDR, and measured against her real threads that reads badly ("Lots
+    here. Let me start the quality test rendering first") — a non-answer
+    sitting under her question forever.
+  - Her dictation often carries **no question mark at all** ("I'm wondering if
+    this should be part of the message"), so the detector keys off phrasing
+    too. Don't assume a question needs a `?` to reach the list.
+  - `GET /api/chatfeed/questions?chat=` returns them, newest first. An
+    unanswered one is listed saying so rather than hidden.
+  - Tests: `node scripts/test-questions.js` (the extraction, pure, no
+    network) and `node scripts/test-chats-questions.js` (the real page,
+    headless).
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
@@ -1152,7 +1189,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   never before or in the middle. Write the explanation first, deliver last.
 - **Answer questions FIRST.** If Sophie's message contains a question, answer
   it at the top of the reply, before doing or reporting on any tasks from the
-  same message.
+  same message — **her question repeated verbatim in bold, the answer plainly
+  underneath it** (full rule + the Questions button that reads them: *Answering
+  a question* in the Chats app section).
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
