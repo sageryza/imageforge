@@ -378,6 +378,17 @@ cur_parts = []; cur_mid = None; cur_turnkey = None
 # and the closing rundown — and folds the narration between them. A turn with
 # no tool calls sends neither, so nothing folds.
 cur_t0 = None; cur_t1 = None
+# Read the already-posted turn ids BEFORE parsing: the turn-boundary rule below
+# needs to know whether the reply above a machine record has already gone out.
+sf = os.environ['STATEFILE']
+first_feed = not os.path.exists(sf)
+posted = set()
+if not first_feed:
+    try:
+        posted = set(x for x in open(sf).read().split('\n') if x)
+    except Exception:
+        pass
+
 sends = []; idx = 0; last_user = -1
 raw_since = []  # raw records of the CURRENT (latest) turn — for wip gallery
 users = []      # Sophie's OWN messages, so the feed reads as a conversation
@@ -447,6 +458,21 @@ with open(path, encoding='utf-8') as f:
                 # as a boundary re-keys the turn mid-flight — that is what
                 # merged a whole reply into the previous message (Aug 2026).
                 if not her_words(r, gettext(r)):
+                    # A machine record (task notification, wake event) is not
+                    # something she said, so it is never posted as her message
+                    # and never re-keys a turn IN FLIGHT — that re-keying is
+                    # what once merged a whole reply into the previous message.
+                    # But when the reply above it has ALREADY been posted, this
+                    # record is what STARTED the next turn, and refusing to
+                    # break here welds the new reply onto the end of a message
+                    # she has already read: no new message, no unread dot, no
+                    # notification. Measured 2026-08-14 — a reply sat at
+                    # character 4,862 of a 6,056-character message she had read
+                    # the day before, and she reported it as never arriving.
+                    if cur_mid and cur_mid in posted:
+                        flush()
+                        cur_turnkey = r.get('uuid')
+                        raw_since = []
                     continue
                 flush()           # end of the previous assistant turn
                 cur_turnkey = r.get('uuid')
@@ -614,14 +640,6 @@ os.makedirs(os.path.dirname(gf), exist_ok=True)
 open(gf, 'w').write('\n'.join(sorted(done)))
 
 # ── feed payloads (every turn not yet posted; backfills missed ones) ──
-sf = os.environ['STATEFILE']
-first_feed = not os.path.exists(sf)
-posted = set()
-if not first_feed:
-    try:
-        posted = set(x for x in open(sf).read().split('\n') if x)
-    except Exception:
-        pass
 new_posted = set(posted)
 if first_feed:
     # brand-new session: baseline the whole history, post only the latest turn,
