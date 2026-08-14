@@ -239,11 +239,40 @@ each opens a focused workflow that shares the same house styles.
   for non-image types, per-image prompts/styles, or true generation times on
   a backfill.
   **It also scans the turn's RAW tool activity, so an image a chat merely
-  TOUCHED (read, verified, copied a url of) can be filed into that chat
+  TOUCHED (read, verified, copied a url of) used to be filed into that chat
   unlabelled — see `docs/wip-asset-filing.md`** for the mechanism, how to spot
-  one (no `description`, caption reads `from <chat>`), the measurement, and
-  the options for fixing it. Not fixed as of Aug 2026; `POST
-  /api/gallery/asset-cleanup` (with `dry` first) removes strays.
+  one (no `description`, caption reads `from <chat>`) and the measurements.
+  **GUARDED SERVER-SIDE SINCE AUG 2026 (`asset-guard.js`, in the `assetsOnly`
+  branch of `POST /api/gallery`)** — so it reaches every chat, including ones
+  on ancient hooks, with nothing to re-paste. Three rules, and they judge ONLY
+  a background catch (that door, plus no description and no curated caption):
+  a **prose** delivery and any **labeled** filing are never touched, so "it
+  can be in two places" and a chat curating a photo into its own tab both work
+  exactly as before.
+  - **Labeled elsewhere → refused.** A catch may not create a tile for a url
+    already filed WITH a label in a DIFFERENT chat (matched by url, then by
+    md5 when that misses — which catches a renamed copy and costs no extra
+    Storage read). 144 of the 759 catches on file are this.
+  - **A server-derived display copy → refused** (`thumbs/`, `drops/_thumb/`).
+    A thumbnail is labeled in no chat, so the rule above can never see it —
+    and investigating the first stray filed a thumb of it straight back in.
+  - **A Dump photo → LABELED, never refused.** It files carrying its album's
+    name ("Dump — Dinner party #3"), read from `forge-drops`. **Refusing
+    these was built first and reversed by measurement**: all 90 `drops/`
+    records are unlabeled background catches, the 18 in the dinner-party chat
+    included, and those are a review workflow Sophie uses — her pull and a
+    stray are the same POST. The problem was never that they were filed, it
+    was that they tiled nameless.
+  - **The safety net is intact for anything a chat MAKES** — a picture labeled
+    nowhere still files (523 of the 759), including the unlabeled source sheet
+    behind a batch of labeled cut-outs.
+  - Still true, and not bugs: the guard needs the deliberate filing to land
+    FIRST (a catch that beats it leaves both records — the md5 union and the
+    sweep clean up after that), and a RE-ENCODED copy is different bytes under
+    a different name, so nothing joins it. `POST /api/gallery/asset-cleanup`
+    (with `dry` first) still removes strays.
+  - Tests: `node scripts/test-asset-guard.js` (the whole decision table with
+    fixtures, no network).
 - **NO contact sheets — review happens IN the gallery, labeled (July 2026,
   Sophie's rule).** Every image deliverable goes into the gallery / the chat's
   Assets tab **individually and LABELED** (the label is its `description` — what
@@ -3890,6 +3919,13 @@ lifted into a standalone tool later.
   `--active <days>` widens it, `--all` is every chat, `--json` for a reader.
   It is READ-ONLY and stays that way (a test pins it): a caption a later chat
   invents is worse than a blank one — see the measurement above.
+  **It does NOT ask a photo out of one of her own SOURCE LIBRARIES for a
+  prompt or a MODEL · QUALITY caption (Aug 2026)** — the Dump, the crystal
+  photos, her Midjourney exports (`asset-guard.js`'s
+  `SOURCE_LIBRARY_PREFIXES`, ONE copy read by the sweep and the guard). Nobody
+  typed words to make a phone photo and no model drew it, so counting those
+  sent chats hunting something that never existed. A missing **label** is
+  still a finding for them — and a Dump photo now arrives with one by itself.
 - **Do NOT dump image-link lists at the bottom of replies (Sophie, Aug 2026).**
   She reviews images in the Assets tab, not in chat — a stack of markdown links
   is clutter. Deliver images by filing them directly instead:

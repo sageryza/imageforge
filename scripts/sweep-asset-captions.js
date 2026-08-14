@@ -62,8 +62,18 @@ const DEFAULT_ACTIVE_DAYS = 7;
  *             tab's filename union cannot join it to the captioned original
  *             and it lands as its own unlabeled tile. `alts` is checked too,
  *             because a tile that DID merge carries its other paths there.
+ *
+ * ONE EXCEPTION, AND IT IS ABOUT HONESTY: a picture out of one of Sophie's own
+ * SOURCE LIBRARIES — the Dump, the crystal photos, her Midjourney exports —
+ * was never generated from words, so "no filed prompt" and "no MODEL · QUALITY
+ * caption" are not findings against it. There is no model and there was no
+ * prompt; counting them told a chat to go and file something that does not
+ * exist. A missing LABEL is still a finding: a phone photo in an Assets tab
+ * needs saying what it is as much as anything else does. The prefix list is
+ * asset-guard.js's SOURCE_LIBRARY_PREFIXES — ONE copy, read here and there.
  */
 const DELIVERIES = /\/claude-deliveries\//;
+const { sourceLibraryPrefix } = require('../asset-guard');
 
 function classifyAsset(asset) {
   const a = asset || {};
@@ -72,10 +82,16 @@ function classifyAsset(asset) {
   const caption = typeof a.prompt === 'string' ? a.prompt.trim() : '';
   const paths = [url].concat(Array.isArray(a.alts) ? a.alts.filter(x => typeof x === 'string') : []);
 
+  // Judged over every path, not just the primary one: a merged tile can carry
+  // the library photo on `url` and a re-uploaded copy in `alts`, or the other
+  // way round, and it is one phone photo either way.
+  const library = paths.some(p => !!sourceLibraryPrefix(p));
+
   const noLabel = !label;
   // A middle dot is what "gpt-image-2 · medium" has and "from <chat>" hasn't.
-  const noCaption = !caption.includes('·');
-  const noPrompt = !String(a.promptStyle || '').trim() && !String(a.promptContent || '').trim();
+  const noCaption = !library && !caption.includes('·');
+  const noPrompt = !library
+    && !String(a.promptStyle || '').trim() && !String(a.promptContent || '').trim();
   const stray = noLabel && paths.some(p => DELIVERIES.test(p));
 
   const missing = [];
@@ -83,7 +99,7 @@ function classifyAsset(asset) {
   if (noCaption) missing.push('caption');
   if (noPrompt) missing.push('prompt');
 
-  return { url, label, caption, noLabel, noCaption, noPrompt, stray, missing };
+  return { url, label, caption, library, noLabel, noCaption, noPrompt, stray, missing };
 }
 
 /* ─────────────────────────────── the sweep ─────────────────────────────── */

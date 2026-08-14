@@ -107,6 +107,45 @@ t('a path merely containing the word is not a delivery path', () => {
   assert.strictEqual(r.stray, false, 'the match is on the /claude-deliveries/ folder');
 });
 
+/* ── her own source libraries: no model, no prompt, so neither is a finding ─ */
+t('a Dump photo WITH a label is clean — nobody typed a prompt for it', () => {
+  // A phone photo was not generated from words and no model drew it, so
+  // counting a missing prompt or MODEL · QUALITY caption against it sent a
+  // chat off to file something that does not exist.
+  const r = classifyAsset({
+    url: `${S}/drops/_/aa11bb22cc33dd44.jpg`,
+    description: 'Dump — Dinner party #3',
+  });
+  assert.strictEqual(r.library, true);
+  assert.deepStrictEqual(r.missing, []);
+  assert.strictEqual(r.noCaption, false);
+  assert.strictEqual(r.noPrompt, false);
+});
+
+t('a Dump photo with NO label is short of exactly one thing', () => {
+  const r = classifyAsset({ url: `${S}/drops/_/aa11bb22cc33dd44.jpg`, prompt: 'from dinner-party' });
+  assert.deepStrictEqual(r.missing, ['label'], 'a nameless tile is still a finding');
+});
+
+t('every source library counts, and only those', () => {
+  for (const p of ['drops/_/a.jpg', 'crystals/aug/pink/1-0-x.jpg', 'ingest/b/kw__1.png']) {
+    assert.strictEqual(classifyAsset({ url: `${S}/${p}`, description: 'x' }).library, true, p);
+  }
+  // the Cutting Room writes real deliverables into audio/, so it is not one
+  assert.strictEqual(classifyAsset({ url: `${S}/audio/cutting-room/01-clip.m4a` }).library, false);
+  assert.strictEqual(classifyAsset({ ...good }).library, false);
+});
+
+t('a library photo is recognised through alts as well as url', () => {
+  const r = classifyAsset({
+    url: `${S}/claude-deliveries/aa11bb.jpg`,
+    alts: [`${S}/drops/_/aa11bb22cc33dd44.jpg`],
+    description: 'Dump — Dinner party #3',
+  });
+  assert.strictEqual(r.library, true, 'one phone photo whichever copy leads the tile');
+  assert.deepStrictEqual(r.missing, []);
+});
+
 /* ── prompts ─────────────────────────────────────────────────────────────── */
 t('either half of the prompt counts as filed', () => {
   assert.strictEqual(classifyAsset({ ...good, promptStyle: '', promptContent: 'a crow' }).noPrompt, false);

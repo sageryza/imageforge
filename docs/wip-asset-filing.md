@@ -1,7 +1,10 @@
 # Why an image can land in the wrong chat's Assets tab (Aug 2026)
 
-Findings and options for the next chat that picks this up. Nothing here is
-built yet — this is the investigation, not a fix.
+**BUILT 2026-08-14 — the server-side guard is live** (`asset-guard.js`, called
+from `POST /api/gallery`'s `assetsOnly` branch in `server.js`). What follows is
+the original investigation, then a "What shipped" section at the bottom with the
+three rules as built, the measurement that reversed one of them, and the limits
+that remain. Read the bottom first if you are here to change something.
 
 **Symptom (Sophie spotted it, 2026-08-11).** The UPDATE tab showed the "Moon
 milk experiments" card with three thumbnails, and the first one was a **Jonas**
@@ -159,3 +162,110 @@ because a loose `urlContains` can match a whole chat's assets:
 
 It removes the caption record only — the image itself stays in Storage, and the
 correctly-filed copy in its own chat is untouched.
+
+---
+
+# What shipped (2026-08-14)
+
+Option 1 above, plus the thumbs rule — with one rule REVERSED by measurement
+before it went in. The whole decision is `asset-guard.js`, a pure module the
+route calls; `scripts/test-asset-guard.js` pins the table with fixtures and no
+network.
+
+## The door the rules stand at
+
+The hook posts its two scans through two different doors, and only one of them
+is judged:
+
+- **scan 1, the reply's PROSE** — `{url, prompt, description?}`, **no**
+  `assetsOnly`. Takes the full gallery path. A deliberate delivery; the guard
+  never sees it.
+- **scan 2, the RAW TOOL ACTIVITY** — `{'wip': u}` → `{url,
+  prompt:"from <chat>", assetsOnly:true}`, no description. This is the door.
+
+A filing at that door is a **background catch** only when it also carries no
+description and no curated caption. A chat's own
+`POST {assetsOnly:true, …, description}` comes through the same door and is
+never touched — that is what keeps "it can be in two places" working.
+
+## The three rules
+
+1. **Labeled elsewhere → refused.** An unlabeled background catch may not
+   CREATE a tile for a url already filed **with a label in a different chat**.
+   One `where('url','==',…)` query, and — only when that finds no label — one
+   `where('md5','==',…)`, which catches a renamed copy of a labeled deliverable
+   and costs **no extra Storage read** (that md5 is read for the new doc
+   anyway). Both single-field, so no composite index.
+2. **Derived copy → refused.** `thumbs/` (server.js `thumbName`) and
+   `drops/_thumb/` (`scripts/crystal-thumbs.js`). Server-made display copies,
+   never anybody's deliverable. Deliberately narrow: `selfcare-thumbs`' copy is
+   a filename SUFFIX and can't be a prefix rule, and `witch-school/webp/` was
+   left out because those are also the pictures the page serves.
+3. **A Dump photo → LABELED, never refused.** The catch files with a generated
+   description naming its album — "Dump — Dinner party #3", "Dump — style
+   references" — looked up in `forge-drops`. Both layouts are handled: today's
+   content-addressed `drops/_/<md5>.<ext>` by its `hash`, and the
+   pre-2026-07-28 `drops/<session>/<album>/…` by its `url` (8 of 8 sampled
+   resolved live). No record found still files, as "Dump photo".
+
+## Rule 3 was designed as a REFUSAL, and measuring it is what changed it
+
+The design was the same shape as Rule 2: a chat cannot create a file under
+`drops/`, so an unlabeled catch of one must be something it merely looked at.
+
+The measurement (2026-08-14, all 4,229 `forge-chat-assets` docs) says
+otherwise. **Every one of the 90 `drops/` records in the collection carries
+`wip:true`, `prompt:"from <chat>"` and no label** — including the 18 in the
+dinner-party chat, which Sophie says were pulled in DELIBERATELY for her to
+review, in a chat with no Compare pages, reviewed in its Assets tab. Her
+review-pull and a stray arrive as the same POST, through the same door, with
+the same fields. Nothing server-side separates them, so the refusal would have
+deleted a workflow she uses.
+
+The problem was never that the photo was filed. It was that it tiled nameless.
+So Rule 3 fixes that instead — and the tiles stop counting as unlabeled in the
+sweep by themselves.
+
+## What the guard would do to the data that already exists
+
+Replayed over every background catch on file (2026-08-14, 759 of the 4,229
+records are in that shape):
+
+```
+  523  filed   new              ← the safety net, untouched
+  144  REFUSED labeled-elsewhere
+   88  filed   dump-photo       ← now with a label; 82 get a real album/folder name
+    4  REFUSED derived-copy
+```
+
+Nothing was rewritten: that is a simulation of what the rules would have done,
+not a migration. Existing strays stay until the sweep or a cleanup call names
+them.
+
+## The sweep stopped asking library photos for things they never had
+
+`scripts/sweep-asset-captions.js`'s `classifyAsset` no longer counts a missing
+prompt or MODEL · QUALITY caption against a picture from one of her own source
+libraries (`drops/`, `crystals/`, `ingest/` — the list is
+`asset-guard.js`'s `SOURCE_LIBRARY_PREFIXES`, **one copy, two readers**). Nobody
+typed words to make a phone photo and no model drew it, so telling a chat to go
+and file them sent it after something that does not exist. A missing **label**
+is still a finding for them.
+
+## The limits that remain — do not read these as bugs to be surprised by
+
+- **ORDERING.** Rule 1 needs the deliberate filing to land FIRST. If the
+  background catch beats it, both records exist and the guard does not go back
+  and remove the stray — collapsing identical bytes is `asset-union.js`'s job
+  and naming the leftovers is the sweep's. Pinned as a test so the limit stays
+  deliberate rather than accidental.
+- **A RE-ENCODED copy** (a webp→png conversion for chat preview) is different
+  bytes under a different name, so neither the url nor the md5 finds it. Still
+  the one case a chat has to avoid by hand — send the original file.
+- **`crystals/` and `ingest/`** get no auto-label: only the Dump has a record
+  to read one from. They file exactly as before.
+
+## Cleaning up strays that already exist
+
+Unchanged — `POST /api/gallery/asset-cleanup`, `dry` first. See the recipe
+above.

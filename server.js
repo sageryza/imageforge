@@ -1783,6 +1783,47 @@ async function bucketNamed(name) {
   return null;
 }
 const assetMd5 = (url) => assetHash.readMd5(url, bucketNamed, { cache: assetMd5Cache });
+
+// ─── The guard on the hook's background catches ──────────────────────
+// The Stop hook's second scan files every Firebase url that merely PASSED
+// THROUGH a turn's tool calls, so an image a chat only looked at lands in that
+// chat's Assets tab unlabeled. asset-guard.js holds the whole decision (and
+// the reasoning); this is the one query it needs — every record already filed
+// at this url, and, only when that misses, at these same bytes. Both are
+// single-field equality queries, so no composite index. Best-effort: a lookup
+// that fails must never block a filing.
+const assetGuard = require('./asset-guard');
+async function assetsFiledAt(url, md5) {
+  const col = admin.firestore().collection('forge-chat-assets');
+  const out = [];
+  const collect = async (q) => {
+    try {
+      const snap = await q.limit(20).get();
+      snap.forEach((d) => out.push({ chat: d.get('chat'), description: d.get('description') }));
+    } catch (e) { /* a guard lookup failing must never block filing */ }
+  };
+  await collect(col.where('url', '==', url));
+  // A renamed copy of a labeled deliverable can't be found by url. The md5 is
+  // read on this path anyway (it goes on the new doc), so this costs one more
+  // Firestore query and NO extra Storage read — and only when the url missed.
+  if (md5 && !out.some((r) => String(r.description || '').trim())) {
+    await collect(col.where('md5', '==', md5));
+  }
+  return out;
+}
+// Rule 3's lookup: the Dump photo behind a `drops/…` url. asset-guard says
+// WHICH field finds it — the content address in the filename for today's
+// layout, the url itself for the pre-2026-07-28 one — and either way it is one
+// equality query. A miss is fine; the label just falls back.
+async function dumpRecordFor(url) {
+  const look = assetGuard.dumpLookup(url);
+  if (!look) return null;
+  try {
+    const snap = await admin.firestore().collection('forge-drops')
+      .where(look.by, '==', look.value).limit(1).get();
+    return snap.empty ? null : snap.docs[0].data();
+  } catch (e) { return null; }
+}
 app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1842,17 +1883,42 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         }
         return res.json({ ok: true, deduped: true, url: wipUrl, description: existing.data().description || '' });
       }
+      // Nothing is filed at this url in this chat yet, so this POST would
+      // CREATE a tile — the one moment the guard gets to speak. A prose
+      // delivery never reaches here (it has no assetsOnly), and a filing that
+      // carries a label or a curated caption is deliberate and always allowed;
+      // see asset-guard.js for the rules and what they deliberately don't do.
+      const filing = { chat: chatName, url: wipUrl, wip: true, description, prompt };
+      let wipMd5 = null;
+      if (assetGuard.needsDumpRecord(filing)) {
+        filing.dump = await dumpRecordFor(wipUrl);          // Rule 3: name its album
+      } else if (assetGuard.needsElsewhereQuery(filing)) {
+        wipMd5 = await assetMd5(wipUrl);            // needed for the doc below anyway
+        filing.others = await assetsFiledAt(wipUrl, wipMd5);
+      }
+      const verdict = assetGuard.guardFiling(filing);
+      if (verdict.block) {
+        // ok:true on purpose — the hook ignores the response, and a refusal is
+        // not an error. The marker is what makes the behaviour observable.
+        return res.json({ ok: true, skipped: verdict.reason, url: wipUrl });
+      }
+      // Rule 3's auto-label, never over a description the caller sent.
+      const autoDescription = (!description && verdict.description) ? verdict.description : '';
       const wipDoc = {
         chat: chatName, url: wipUrl, urlKey: canonicalAssetUrl(wipUrl),
         prompt: String(prompt || '').slice(0, 500),
         created: new Date(createdMs).toISOString(), wip: true,
       };
-      const wipMd5 = await assetMd5(wipUrl);
+      if (wipMd5 === null) wipMd5 = await assetMd5(wipUrl);
       if (wipMd5) wipDoc.md5 = wipMd5;
       if (kind) wipDoc.kind = kind;
-      if (description) wipDoc.description = description;
+      if (description || autoDescription) wipDoc.description = description || autoDescription;
       await acol.add(wipDoc);
-      return res.json({ ok: true, assetsOnly: true, url: wipUrl, description });
+      return res.json({
+        ok: true, assetsOnly: true, url: wipUrl,
+        description: description || autoDescription,
+        ...(autoDescription ? { autoLabeled: verdict.reason } : {}),
+      });
     }
     await storyDb();
     if (!storyApp) return res.status(503).json({ error: 'membry credential not configured' });
