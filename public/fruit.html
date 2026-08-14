@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Favorite fruit</title>
+<style>
+/* The five tokens the shared pill styles itself from, kept even though this
+   page opts out of the pill — a public page must never render it black if it
+   is ever served with one. NO GRADIENTS anywhere (house rule). */
+:root{
+  --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --green:#5c7d5a; --amber:#b08434;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Georgia,'Times New Roman',serif;
+  display:flex; flex-direction:column;
+  height:100dvh;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+[hidden]{display:none !important}
+
+/* ── header: the title once, the "?" at its end ───────────────────────── */
+header{
+  flex:0 0 auto; display:flex; align-items:center; gap:10px;
+  padding:14px 18px 8px;
+}
+h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
+#count{margin-left:auto;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.qmark{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);font-size:12px;line-height:20px;
+  text-align:center;cursor:pointer;padding:0;font-family:inherit;flex:0 0 auto;
+}
+#helpcard{
+  position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
+  display:flex;align-items:center;justify-content:center;padding:26px;
+}
+#helpcard div{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
+}
+
+/* ── the progress hairline ────────────────────────────────────────────── */
+#bar{flex:0 0 auto;height:2px;background:var(--line);margin:0 18px}
+#bar i{display:block;height:100%;background:var(--ink);width:0;transition:width .18s}
+
+/* ── the deck ─────────────────────────────────────────────────────────── */
+#deck{
+  flex:1 1 auto; position:relative; margin:12px 18px 0;
+  touch-action:none; min-height:0;
+}
+.card{
+  position:absolute; inset:0; background:var(--card);
+  border:1px solid var(--line); border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:14px; user-select:none;
+}
+.card img{max-width:100%;max-height:calc(100% - 34px);object-fit:contain;pointer-events:none;display:block}
+.card b{margin-top:8px;font-size:17px;font-weight:400;letter-spacing:.02em}
+.card.top{cursor:grab;z-index:3}
+.card.top:active{cursor:grabbing}
+.card.under{transform:scale(.965) translateY(8px);z-index:2}
+.card.under2{transform:scale(.93) translateY(16px);z-index:1}
+/* The verdict stamps that fade in as the card is dragged. */
+.stamp{
+  position:absolute;top:16px;font-size:13px;letter-spacing:.14em;
+  border:2px solid;border-radius:6px;padding:5px 10px;opacity:0;
+}
+.stamp.yes{left:16px;color:var(--green);border-color:var(--green);transform:rotate(-11deg)}
+.stamp.no{right:16px;color:var(--rose);border-color:var(--rose);transform:rotate(11deg)}
+/* The middle answer has no direction to be dragged in, so its stamp sits
+   centred and is raised by the ○ button rather than by the drag. */
+.stamp.mid{left:50%;margin-left:-34px;color:var(--amber);border-color:var(--amber)}
+
+/* ── the controls: circular icon buttons (the named exception) ────────── */
+#controls{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  gap:22px; padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+}
+.round{
+  width:58px;height:58px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;color:var(--ink);
+}
+.round.small{width:40px;height:40px}
+.round.no{color:var(--rose)} .round.yes{color:var(--green)} .round.mid{color:var(--amber)}
+/* Three answers now, so the row is tighter and the middle one sits between
+   them at the same weight — it is a real answer, not a skip. */
+#controls{gap:16px}
+.round.mid{width:52px;height:52px}
+.round:disabled{opacity:.3;cursor:default}
+.round svg{width:24px;height:24px;stroke-width:1.8;fill:none;stroke:currentColor}
+.round.small svg{width:17px;height:17px}
+
+/* ── the crown + done panels (share the deck's box) ───────────────────── */
+.panel{
+  position:absolute; inset:0; background:var(--paper);
+  display:flex; flex-direction:column; z-index:5;
+}
+.panel h2{margin:0 0 10px;font-size:17px;font-weight:400;letter-spacing:.01em;flex:0 0 auto}
+#grid{
+  flex:1 1 auto; overflow-y:auto; display:grid; gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(84px,1fr));
+  align-content:start; padding-bottom:4px;
+}
+#grid button{
+  border:1px solid var(--line);background:var(--card);border-radius:6px;
+  padding:6px;cursor:pointer;font-family:inherit;display:block;
+}
+#grid button.picked{border-color:var(--ink);border-width:2px;padding:5px}
+#grid img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+#grid span{display:block;font-size:11px;color:var(--ink2);margin-top:3px;text-align:center}
+
+/* A text button is only as wide as its words — never full width. */
+.btn{
+  border:1px solid var(--ink);background:var(--ink);color:var(--card);
+  border-radius:6px;padding:11px 18px;font-family:inherit;font-size:15px;
+  cursor:pointer;align-self:flex-start;
+}
+.btn.ghost{background:var(--card);color:var(--ink)}
+.btn:disabled{opacity:.35;cursor:default}
+.row{display:flex;gap:10px;flex:0 0 auto;padding-top:12px;flex-wrap:wrap}
+
+#done{align-items:center;justify-content:center;text-align:center;padding:20px}
+#done p{margin:0 0 6px;font-size:17px;line-height:1.5}
+#done small{color:var(--ink2);font-size:13px}
+#saving{
+  position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);font-size:12px;color:var(--ink2);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Favorite fruit</h1>
+  <button class="qmark" id="q" aria-label="How this works">?</button>
+  <span id="count"></span>
+</header>
+<div id="bar"><i></i></div>
+
+<div id="deck"></div>
+
+<div id="controls">
+  <button class="round small" id="undo" aria-label="Undo" disabled>
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+  </button>
+  <button class="round no" id="nope" aria-label="Not my favourite">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+  </button>
+  <button class="round mid" id="ok" aria-label="It's OK">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+  </button>
+  <button class="round yes" id="like" aria-label="Love it">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+  </button>
+</div>
+
+<div id="helpcard" hidden><div>
+  Three answers per fruit: <b>♥</b> love it, <b>–</b> it's OK, <b>✕</b> not my
+  favourite. You can also swipe the picture right to love it or left to refuse
+  it. At the end you pick your number one out of the ones you loved. Your
+  answers save as you go, so you can close this and come back to the same link.
+</div></div>
+
+<span id="saving" hidden>saving…</span>
+
+<script>
+/* Wrapped in an IIFE: the shared pill runs in global scope and a page-level
+   `let`/`const` collides with it at parse time (new-page skill, rule 3). */
+(function () {
+  'use strict';
+  var API = '/api/fruit';
+  var qs = new URLSearchParams(location.search);
+  var POLL = qs.get('p') || '';
+  var WHO = qs.get('who') || '';
+
+  var deck = document.getElementById('deck');
+  var elCount = document.getElementById('count');
+  var elBar = document.querySelector('#bar i');
+  var elTitle = document.getElementById('title');
+  var elSaving = document.getElementById('saving');
+  var bUndo = document.getElementById('undo');
+  var bNope = document.getElementById('nope');
+  var bOk = document.getElementById('ok');
+  var bLike = document.getElementById('like');
+
+  var fruits = [], i = 0, loves = [], oks = [], nopes = [], top = null, history = [];
+  var busy = false;
+  // One place that knows which bucket each answer goes in, so undo and the
+  // crown step can never disagree with the swipe about what was chosen.
+  function bucket(v) { return v === 'love' ? loves : v === 'ok' ? oks : nopes; }
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function fail(msg) {
+    deck.innerHTML = '<div class="panel" style="align-items:center;justify-content:center;text-align:center;padding:24px">'
+      + '<p style="font-size:16px;line-height:1.5">' + esc(msg) + '</p></div>';
+    document.getElementById('controls').hidden = true;
+  }
+
+  /* ── saving ─────────────────────────────────────────────────────────── */
+  var pending = null, inflight = false;
+  function save(done) {
+    pending = { loves: loves, oks: oks, nopes: nopes, top: top, done: !!done };
+    flush();
+  }
+  function flush() {
+    if (inflight || !pending) return;
+    var body = pending; pending = null; inflight = true;
+    elSaving.hidden = false;
+    fetch(API + '/ballot/' + encodeURIComponent(POLL) + '/' + encodeURIComponent(WHO), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).catch(function () {
+      // A dropped save is re-sent by the next one; the deck never blocks on it.
+      if (!pending) pending = body;
+    }).then(function () {
+      inflight = false; elSaving.hidden = true;
+      if (pending) flush();
+    });
+  }
+
+  /* ── the deck ───────────────────────────────────────────────────────── */
+  function render() {
+    deck.innerHTML = '';
+    var shown = fruits.slice(i, i + 3);
+    for (var n = shown.length - 1; n >= 0; n--) {
+      var f = shown[n];
+      var c = document.createElement('div');
+      c.className = 'card ' + (n === 0 ? 'top' : n === 1 ? 'under' : 'under2');
+      c.innerHTML = '<span class="stamp yes">LOVE</span><span class="stamp no">NOPE</span><span class="stamp mid">IT\'S OK</span>'
+        + '<img src="' + esc(f.url) + '" alt="' + esc(f.name) + '" draggable="false">'
+        + '<b>' + esc(f.name) + '</b>';
+      deck.appendChild(c);
+    }
+    var t = deck.querySelector('.card.top');
+    if (t) drag(t);
+    elCount.textContent = Math.min(i + 1, fruits.length) + ' of ' + fruits.length;
+    elBar.style.width = (i / fruits.length * 100) + '%';
+    bUndo.disabled = !history.length;
+  }
+
+  function drag(card) {
+    var x0 = 0, y0 = 0, dx = 0, down = false;
+    var yes = card.querySelector('.stamp.yes'), no = card.querySelector('.stamp.no');
+    card.addEventListener('pointerdown', function (e) {
+      if (busy) return;
+      down = true; x0 = e.clientX; y0 = e.clientY; dx = 0;
+      card.setPointerCapture(e.pointerId);
+      card.style.transition = 'none';
+    });
+    card.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      dx = e.clientX - x0;
+      var dy = e.clientY - y0;
+      card.style.transform = 'translate(' + dx + 'px,' + dy * 0.25 + 'px) rotate(' + dx / 22 + 'deg)';
+      yes.style.opacity = dx > 0 ? Math.min(1, dx / 90) : 0;
+      no.style.opacity = dx < 0 ? Math.min(1, -dx / 90) : 0;
+    });
+    function end() {
+      if (!down) return;
+      down = false;
+      card.style.transition = 'transform .22s, opacity .22s';
+      if (Math.abs(dx) > 80) { fly(card, dx > 0 ? 'love' : 'nope'); }
+      else {
+        card.style.transform = '';
+        yes.style.opacity = 0; no.style.opacity = 0;
+      }
+    }
+    card.addEventListener('pointerup', end);
+    card.addEventListener('pointercancel', end);
+  }
+
+  // verdict is 'love' | 'ok' | 'nope'. The middle one has no direction to fly
+  // in, so it drops straight down — a card that slid sideways for "it's OK"
+  // would read as one of the two ends.
+  function fly(card, verdict) {
+    if (busy) return;
+    busy = true;
+    var stamp = card.querySelector('.stamp.' + (verdict === 'love' ? 'yes' : verdict === 'ok' ? 'mid' : 'no'));
+    if (stamp) stamp.style.opacity = '1';
+    card.style.transition = 'transform .24s, opacity .24s';
+    card.style.transform = verdict === 'ok'
+      ? 'translateY(560px)'
+      : 'translate(' + (verdict === 'love' ? 460 : -460) + 'px,40px) rotate(' + (verdict === 'love' ? 22 : -22) + 'deg)';
+    card.style.opacity = '0';
+    // 130ms, not the animation's full 240 — the guard exists to stop ONE tap
+    // committing twice, and any dead window longer than a fast tap silently
+    // swallows the second tap instead (measured: at 120ms apart, nearly half
+    // were lost). Deliberate tapping is 250ms+, so this drops none of it while
+    // still being impossible to double-fire.
+    setTimeout(function () { commit(verdict); busy = false; }, 130);
+  }
+
+  function commit(verdict) {
+    var f = fruits[i];
+    if (!f) return;
+    bucket(verdict).push(f.id);
+    history.push(verdict);
+    i++;
+    save(false);
+    if (i >= fruits.length) crown(); else render();
+  }
+
+  function undo() {
+    if (!history.length || busy) return;
+    var was = history.pop();
+    i--;
+    var id = fruits[i].id;
+    var arr = bucket(was);
+    var at = arr.lastIndexOf(id);
+    if (at >= 0) arr.splice(at, 1);
+    if (top === id) top = null;
+    document.getElementById('controls').hidden = false;
+    save(false);
+    render();
+  }
+
+  function tap(verdict) {
+    return function () { var c = deck.querySelector('.card.top'); if (c) fly(c, verdict); };
+  }
+  bNope.addEventListener('click', tap('nope'));
+  bOk.addEventListener('click', tap('ok'));
+  bLike.addEventListener('click', tap('love'));
+  bUndo.addEventListener('click', undo);
+
+  /* ── crown your number one ──────────────────────────────────────────── */
+  function crown() {
+    document.getElementById('controls').hidden = true;
+    elCount.textContent = '';
+    elBar.style.width = '100%';
+    // The shortlist is what they LOVED. Loved nothing? Fall back to the OKs,
+    // then to the whole deck — there is always a #1 to give, because an empty
+    // chart column helps no one.
+    var pool = loves.length ? fruits.filter(function (f) { return loves.indexOf(f.id) >= 0; })
+      : oks.length ? fruits.filter(function (f) { return oks.indexOf(f.id) >= 0; })
+      : fruits.slice();
+    var p = document.createElement('div');
+    p.className = 'panel';
+    p.innerHTML = '<h2>' + (loves.length ? 'Which one is your favorite?' : 'Nothing loved — which is closest?') + '</h2>'
+      + '<div id="grid"></div>'
+      + '<div class="row"><button class="btn" id="finish" disabled>That\'s my answer</button>'
+      + '<button class="btn ghost" id="back">Back</button></div>';
+    deck.innerHTML = '';
+    deck.appendChild(p);
+
+    var grid = p.querySelector('#grid');
+    var finish = p.querySelector('#finish');
+    pool.forEach(function (f) {
+      var b = document.createElement('button');
+      b.innerHTML = '<img src="' + esc(f.url) + '" alt=""><span>' + esc(f.name) + '</span>';
+      if (top === f.id) { b.className = 'picked'; finish.disabled = false; }
+      b.addEventListener('click', function () {
+        top = f.id;
+        [].forEach.call(grid.children, function (c) { c.className = ''; });
+        b.className = 'picked';
+        finish.disabled = false;
+        save(false);
+      });
+      grid.appendChild(b);
+    });
+    finish.addEventListener('click', function () { save(true); thanks(); });
+    p.querySelector('#back').addEventListener('click', undo);
+  }
+
+  function thanks() {
+    // Self-sufficient, because this is reached two ways: straight from the
+    // crown step (which already hid the controls) AND on reopening a finished
+    // ballot, where nothing has hidden them — a ✕/♥ pair sitting under "Thank
+    // you" swipes a deck that is no longer there.
+    document.getElementById('controls').hidden = true;
+    elCount.textContent = '';
+    elBar.style.width = '100%';
+    var name = (fruits.find(function (f) { return f.id === top; }) || {}).name || '';
+    deck.innerHTML = '<div class="panel" id="done">'
+      + '<p>Thank you.</p>'
+      + (name ? '<p style="color:var(--ink2)">' + esc(name) + ' it is.</p>' : '')
+      + '<small>You can change your mind — this link still works.</small>'
+      + '<div class="row" style="justify-content:center"><button class="btn ghost" id="again">Do it again</button></div>'
+      + '</div>';
+    document.getElementById('again').addEventListener('click', function () {
+      i = 0; loves = []; oks = []; nopes = []; top = null; history = [];
+      document.getElementById('controls').hidden = false;
+      save(false); render();
+    });
+  }
+
+  document.getElementById('q').addEventListener('click', function () {
+    document.getElementById('helpcard').hidden = false;
+  });
+  document.getElementById('helpcard').addEventListener('click', function () {
+    this.hidden = true;
+  });
+
+  /* ── boot ───────────────────────────────────────────────────────────── */
+  if (!POLL || !WHO) { fail('This link is missing its code. Use the link from the email.'); return; }
+
+  Promise.all([
+    fetch(API + '/poll/' + encodeURIComponent(POLL)).then(function (r) { return r.json(); }),
+    fetch(API + '/ballot/' + encodeURIComponent(POLL) + '/' + encodeURIComponent(WHO)).then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var poll = res[0], ballot = res[1];
+    if (poll.error) return fail(poll.error);
+    fruits = poll.fruits || [];
+    if (!fruits.length) return fail('This poll has no fruit in it yet.');
+
+    var me = (poll.people || []).find(function (p) { return p.id === WHO; });
+    elTitle.textContent = me ? me.name + ', pick your fruit' : (poll.title || 'Favorite fruit');
+    document.title = poll.title || 'Favorite fruit';
+
+    loves = ballot.loves || []; oks = ballot.oks || []; nopes = ballot.nopes || [];
+    top = ballot.top || null;
+    // Resume where they stopped: everything already judged is behind them.
+    var judged = {};
+    loves.concat(oks, nopes).forEach(function (id) { judged[id] = 1; });
+    i = 0;
+    while (i < fruits.length && judged[fruits[i].id]) i++;
+    // A finished ballot reopens on the crown step, not back at card one.
+    if (i >= fruits.length) { if (ballot.done) thanks(); else crown(); }
+    else render();
+
+    // Warm the next few images so a swipe never lands on a blank card.
+    fruits.slice(0, 6).forEach(function (f) { var im = new Image(); im.src = f.url; });
+  }).catch(function (e) { fail('Could not load: ' + (e.message || e)); });
+})();
+</script>
+</body>
+</html>

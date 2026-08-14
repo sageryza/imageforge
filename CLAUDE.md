@@ -15,6 +15,14 @@ The numbers are measured, not guessed.
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Say what you spent and what it cost**, in words, in the reply.
 
+**When the work WRAPS UP (not every turn)**
+3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
+   text}`. `line` = the one line her archive row shows (≤200); `text` = the
+   full what-this-was (≤2000). This is what she reads months later to remember
+   what a chat was, so it earns more care than the status card. *Measured
+   2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
+   cannot be asked for it later — you are asleep by the time she archives.
+
 **Delivering an image — every single one, including a test**
 4. **Label it.** `[Penny — the blue Kleenex](url)`, never `[p01](url)` or a bare
    URL. The label becomes what she reviews by.
@@ -561,6 +569,29 @@ them off the reference sheet, not off the old filenames.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **THE ARCHIVE WRAP-UP — what the chat was about and what went down (Aug
+  2026, Sophie: "whenever I'm about to archive a chat the last message of the
+  chat is them explaining what the chat was about … and that could go into the
+  note at the top").** Measured that day: **73 of her 88 archived chats showed
+  nothing but a name.**
+  - **A chat is ASLEEP by the time she archives it**, so it cannot summarise
+    itself then — the whole design follows from that. Written ahead, frozen on
+    the way past. Best source first: the chat's own `POST /wrapup`; failing
+    that, archiving freezes its **Update card** into one (free, instant —
+    `updAsked`/`updDid` already answer the same question); failing both it
+    stays blank rather than inventing something.
+  - **Two fields, and NEITHER is `sophieNote`** (`wrapLine` + `wrapUp` on the
+    registry). Her own note still wins the row — a chat must never overwrite a
+    line she wrote, which is why this did not reuse her note field even though
+    she described it as "the note at the top". Row: `note || wrapLine || need
+    || doing`.
+  - **There is NO rule that only she may write her note** — `POST /chatnote`
+    has never had a permission check. It was only ever a style guideline
+    (her length, her shape). Don't reintroduce one.
+  - The expander is a **sibling** of the row, not a child: a row is a
+    `<button>`, so a nested button is invalid and the tap would bubble into
+    opening the chat.
+  - Tests: `node scripts/test-chats-wrapup.js`.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1005,6 +1036,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   docs), name the exact current labels, and when a deep link needs an account/app
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
+- **MINIMIZE THE SCROLLING — fit it on ONE SCREEN (Aug 2026, Sophie).** If a
+  surface can fit on one screen, it fits on one screen. When it can't, it gets a
+  **hairline tab row — never a taller page.**
+  - **The test for splitting into tabs is REFERENCE, not length:** "is it
+    something that's going to be referred to? Are you gonna have to switch
+    between the different views often?" Two views she reads against each other
+    are two tabs; a long page nobody cross-references is just a long page, and
+    tabbing it only hides things.
+  - Her worked example, the Episode Editor: "you need to switch between the
+    clips and between the raw transcript so you can take things from the
+    transcript, add it to the clips, and then go back and add more things. Back
+    and forth, back and forth, back and forth. So to make that easy — a
+    hairline pattern, 2 tabs."
+  - The rows measure their own underline, so adding a tab costs no layout work
+    — `.acctabs` in `docs/design-rules.md`.
+- **PROGRESSIVE EXPANSION AND CONTRACTION (Aug 2026, Sophie: "this has to do
+  with the abstraction principle").** A surface opens at the level of
+  abstraction she needs and expands only where she goes into it — so the first
+  thing on screen is the shape of the whole thing, not its contents. Her worked
+  example, the Story Room: organize by projects and by level of completion,
+  with the LAST hairline tab holding the ones she wants to start on.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's
@@ -1186,6 +1238,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   server-side ffmpeg; every re-roll is kept.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
+- **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
+  alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
+  self-contained piece the app has made, on one shelf, four to a row, so a
+  re-cut reuses clips instead of re-paying for them. **It generates and stitches
+  nothing and costs nothing.** Harvest reads movie scene clips (+ their re-rolls
+  and bridges) and quick-animates out of Firestore, then SWEEPS Storage for the
+  shorts chats built into their own prefixes — 350 clips on the first real build
+  (2026-08-14), 296 of them from the sweep. **The skip list is the load-bearing
+  half** and was corrected by RUNNING it: whole interviews, finished films, Cut
+  Marks renders, the Dump and the pad's still-encode cache are not clips, and a
+  swept file over 180s is hidden as a video. Search is the whole interface — a
+  real boolean grammar (AND, `OR`, `-term`, `"phrases"`, `tag:`/`title:`/`from:`/
+  `prompt:`/`note:`) over the name, tags, source film, the generation PROMPT and
+  her notes; semantic search is deliberately not built yet. **Her edits always
+  win** — a re-harvest never overwrites a field she touched. Posters read the
+  bytes via the Admin SDK, NOT the url (ffmpeg can't reach the sandbox's HTTPS
+  proxy — all 350 failed that way first). Tests: `node scripts/test-clips.js`.
+  **Full details: `docs/modules/audio-and-film.md`.**
 - **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
   comes a produced track with HER actual voice (resemble-enhance -> musicgen
   melody conditioning -> ffmpeg mix). ~$0.11 per 30s chunk. **It has no tile
@@ -1380,6 +1450,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   person.** **Full details: `docs/modules/nde.md`.**
 
 ### The inbox, the doorbell, and odds and ends
+- **Favorite fruit poll** (`fruit.js`, `/api/fruit`, pages `/fruit` + `/fruitchart`)
+  — the chart for Sophie's fridge. 27 fruits drawn in her ink-and-watercolour
+  look (`refs/sage-sandy-mirror.png` through gpt-image-2 edits, medium,
+  1024x1024, `scripts/fruit-chart/fruits.json`) become a **Tinder-style swipe
+  deck**: ♥/✕ one fruit at a time, then crown a #1. **BOTH PAGES ARE PUBLIC AND
+  UNGATED, and that is the design** — they are opened from an email by her
+  family, who have no studio token, so the unguessable `who=` token in the link
+  IS the identity. Emails live only on the poll doc and the public read strips
+  them, so one person's link can never enumerate the others'. A ballot doc is
+  content-addressed (`<poll>__<person>`), so swiping twice updates one ballot
+  and "close it, come back" works; only `done:true` counts as an answer, so an
+  abandoned half-deck never lands in the chart. `/fruitchart` renders the same
+  answers three ways (per person · a grid · sized by how many picked it) and
+  prints one design per page. **Sending needs `BREVO_API_KEY` +
+  `BREVO_FROM_EMAIL`, and as of Aug 2026 NEITHER IS SET** — not in Render env,
+  not in `config/pipeline` (measured 2026-08-14: `/api/tarot-email/status`
+  answers `brevo:false`). `POST /invite` refuses with which one is missing
+  rather than half-sending; run it with `dryRun:true` first, the same guard the
+  App Store metadata workflow gets. Tests: `node scripts/test-fruit.js`.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,

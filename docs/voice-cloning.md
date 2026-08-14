@@ -142,8 +142,116 @@ Signs it is gated: `is_allowed_to_fine_tune: false`, and
   training samples, and reading a line more than once instead of reading it once
   and pressing Stop.
 
+## Instant clones from ONE recording (2026-08-14)
+
+The stage 1–3 pipeline above assembles many memos into hours of training audio
+for the PVC slot. An IVC is a different job: one recording, a few minutes, a
+spare voice slot. The conditioning rules do not change — no loudnorm, no
+denoise, one fixed gain — but two things about a single file bite.
+
+**Built this way: `Sophie — Evan/Charlie (instant)`, `KwYQwzMAtZ3ePyBmyLKc`.**
+Source is the memo she calls the Evan/Charlie recording,
+`2026-07-09_0456_2026-07-09T11_56_09Z` — her reading her own piece about the
+phone call from Evan, coincidence and belief, ending on Charlie. 33m44s,
+mono 48kHz 63kbps AAC. Filed under category `conversation`, but the transcript
+is one speaker throughout; the `conversation` label and the manifest's
+"a conversation between the speaker and their friend Evan" are both
+`gpt-4o-mini`'s reading of a piece written in reported speech. **Check the
+transcript before trusting a category** — a genuine second speaker would
+disqualify the file.
+
+### A sparse recording mismeasures its own level
+
+This memo is **79% silence** — 7 minutes of speech in 34 minutes, because she
+reads in takes with long pauses. `volumedetect` averages over the whole file,
+so it reported -35.9 dBFS and `prep-voice-training.sh` dropped the file at
+`SKIP needs 12.9dB`. The speech itself is at -29.3 dBFS and needs +6.0 dB.
+
+Hence **`MEASURE=speech`** on the prep script: it removes the silence before
+measuring, and changes nothing about what is applied. Default is still `whole`
+so the August 2026 set reproduces exactly.
+
+**It still SKIPs this file, at `needs 6.2dB`** — 0.2 dB over the cap. That is
+the cap working, not a bug, and the cap was not moved. The delivered sample
+applies the capped **+6.0 dB** and lands at -23.3 dBFS RMS / -23.5 LUFS, 0.3 dB
+shy of the -23.0 target. Taking the cap and accepting the shortfall is fine;
+raising `MAX_GAIN` to make a file fit is not.
+
+### The QC numbers for this build
+
+Measured on the silence-removed material, before vs after the +6 dB:
+
+- Noise floor -51.03 → -45.01 dB = **+6.02 dB**, exactly the gain applied.
+- Speech mean -29.3 → -23.3 dB = **+6.0 dB**. Floor and speech moved together,
+  so nothing applied dynamics.
+- **LRA 6.1 LU → 6.1 LU.** Unchanged range is the strongest single proof.
+- Peak -9.4 → -3.4 dBFS; the -3 dBFS limiter never engaged.
+- Noise floor -55 dB against -29 dB speech in the raw file = **~26 dB SNR**,
+  which is why `remove_background_noise` stayed off.
+
+### alimiter auto-levels unless you tell it not to
+
+`alimiter` defaults to `level=enabled`, which normalises the output — a gain
+change on top of the fixed gain, exactly the thing this document exists to
+prevent. A first build of this sample used `alimiter=limit=-3dB` alone and came
+out **3 dB hotter than the gain applied**, peaking at -0.4 dBFS instead of -3.
+`prep-voice-training.sh` has always had `level=disabled`; anyone hand-rolling a
+chain has to remember it. If the output is louder than input+gain, this is why.
+
+### Replacing an IVC's audio keeps the voice_id
+
+`POST /v1/voices/{id}/edit` (same multipart shape as `/v1/voices/add`) adds new
+samples to an existing instant voice, so a re-conditioned sample does not cost
+a new id or a new slot. **It ADDS — the old sample stays attached and the clone
+is rebuilt from both**, which is the same blend-two-voices trap as stage 4.
+Delete the superseded one (`DELETE /v1/voices/{id}/samples/{sample_id}`) and
+confirm exactly one sample remains.
+
+## Finding her storytelling memos without listening to any of them (2026-08-14)
+
+An instant clone copies the REGISTER of what it is fed, not just the timbre —
+so "which recordings" is the question that decides how the clone sounds, and
+Sophie should never have to audition 1,137 memos to answer it. Ranking the
+manifest's transcripts does it for free, no model call:
+
+- Score each transcript for narrative markers — `and then`, `he said`,
+  `I was like`, `we went`, `turns out`, `the first time` — as a count PER 1,000
+  characters, not a raw count, or long memos win purely by being long.
+- Drop category `conversation` (a second speaker disqualifies a file),
+  plus `empty`, `toolong` and `cover`.
+- **The `dream` category dominates the top of the ranking, and that is not an
+  accident** — a dream memo is her narrating events out loud to nobody, which
+  is structurally the same performance as telling a story. 115 candidates,
+  20.6 hours, from a 1,137-memo archive.
+- Then screen on MEASUREMENT (stage 1's rules), never by ear. Of the 8-file
+  2026 shortlist, `prep-voice-training.sh` SKIPped exactly one at
+  `needs 8.3dB` — recorded across the room, correctly dropped rather than
+  boosted.
+
+**A memo can be too LOUD, and the fix is the same fixed gain going the other
+way.** Five of the seven survivors needed NEGATIVE gain (−0.5 to −4.6 dB), and
+so did the Jonathan memo at −3.5 dB — the first instant clone off it was
+trained on audio 3.5 dB hot because it was cut for pauses but never levelled.
+Cutting silences is not conditioning; run the prep script even on a single-file
+IVC.
+
+**Built this way: `Sophie — instant v2 (Aug 14, stories)`,
+`7Se81wBB6ZL5kXV2XKu5`.** 12 minutes — the conditioned Jonathan memo in full
+plus 75s out of each of seven 2026 dream memos, 0.3s of silence between pieces,
+~34dB SNR. **Uploaded as TWO files because IVC refuses anything over 11MB per
+file** (`upload_file_size_exceeded`); the multi-file form of `/v1/voices/add`
+takes repeated `files=` parts and that is the clean way around it, not a
+bitrate cut.
+
 ## Where things are kept
 
 - Training chunks: `voice-training/morning-2026-08-v2/` (membry Storage).
 - Previous voice's samples: `voice-backup/sage3-pvc-2026-08/`.
 - Source recordings: the memo archive itself, untouched.
+- The Evan/Charlie IVC sample and its test renders:
+  `voice-clones/evan-charlie/` (deckfactory Storage). The audio is deliberately
+  NOT in this repo — it is a personal recording and this repo is public.
+- The Aug 14 instant clones: `voice-clones/2026-08-14-jonathan-memo/` (v1) and
+  `voice-clones/2026-08-14-stories-v2/` (v2, with its prep measurements and the
+  shortlist it was built from). Source audio private, test renders public, and
+  none of it in this repo — same rule as above.

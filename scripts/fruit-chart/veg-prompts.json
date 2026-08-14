@@ -1,0 +1,156 @@
+[
+ {
+  "id": "pair-01",
+  "file": "/home/user/out/veg/pair-01.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a bundle of asparagus spears. On the right: a head of broccoli. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-02",
+  "file": "/home/user/out/veg/pair-02.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a carrot with its green tops. On the right: an ear of corn with the husk peeled back. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-03",
+  "file": "/home/user/out/veg/pair-03.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a ripe tomato on the vine. On the right: a cucumber. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-04",
+  "file": "/home/user/out/veg/pair-04.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a red bell pepper. On the right: a yellow onion. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-05",
+  "file": "/home/user/out/veg/pair-05.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a potato. On the right: a sweet potato. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-06",
+  "file": "/home/user/out/veg/pair-06.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a bunch of spinach leaves. On the right: a bunch of curly kale. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-07",
+  "file": "/home/user/out/veg/pair-07.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a head of cauliflower. On the right: a few pea pods, one split open showing the peas. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-08",
+  "file": "/home/user/out/veg/pair-08.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a small handful of green beans. On the right: a mushroom. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-09",
+  "file": "/home/user/out/veg/pair-09.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a zucchini. On the right: a beet with its stems. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-10",
+  "file": "/home/user/out/veg/pair-10.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a few radishes with their leaves. On the right: a bunch of celery. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-11",
+  "file": "/home/user/out/veg/pair-11.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a bulb of garlic. On the right: a butternut squash. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-12",
+  "file": "/home/user/out/veg/pair-12.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a few Brussels sprouts. On the right: a globe artichoke with its stem and leaves still attached. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-13",
+  "file": "/home/user/out/veg/pair-13.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: an eggplant. On the right: a leek. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pair-14",
+  "file": "/home/user/out/veg/pair-14.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate vegetable drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a head of green cabbage. On the right: a head of butter lettuce. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]
