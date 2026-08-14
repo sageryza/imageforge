@@ -76,6 +76,55 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
 .render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
+/* TWO TABS — SPEAK and CHANGE (Aug 2026, Sophie: "a separate hairline tab in
+   the voice studio"). The witch-shop / chats `.acctabs` pattern verbatim: no
+   boxes, two half-width labels over a hairline, the line sliding under the one
+   she is reading. It sits near the TOP of the page, inside the injected pill's
+   x 324-374 / y 14-192 band, so it reserves the 56px corner AND the sliding
+   line is calc((100% - 56px)/2) — an abspos child resolves its percentage
+   against the PADDING box, so an inherited 50% would sit wider than a tab and
+   drift right. */
+.acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
+  margin:0 0 14px; padding-right:56px;}
+.acctab{flex:1 1 0; min-width:0; padding:7px 4px 9px; border:none; background:none; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.acctab.on{color:var(--ink);}   /* the sliding line says which one — no bold */
+.acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
+  width:calc((100% - 56px)/2); background:var(--ink);
+  transform:translateX(0); transition:transform .2s ease;}
+.acctabs[data-on="1"]::after{transform:translateX(100%);}
+/* The recorder. A round record button (the one circle this page has — the
+   no-pills rule exempts circular icon buttons), then the file picker beside
+   it as plain words, because "or a file" is the fallback, not the headline. */
+.recrow{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.recbtn{width:52px; height:52px; flex:0 0 auto; border-radius:50%; cursor:pointer;
+  border:1.5px solid var(--ink); background:var(--barbg);
+  display:flex; align-items:center; justify-content:center; padding:0;}
+.recbtn .dot{width:20px; height:20px; border-radius:50%; background:var(--chg);
+  transition:border-radius .15s, width .15s, height .15s;}
+.recbtn.rec .dot{width:16px; height:16px; border-radius:3px;}  /* recording: a stop square */
+.recbtn.rec{border-color:var(--chg);}
+.recbtn:focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
+.rectime{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.1em; color:var(--ink2);}
+.rectime.live{color:var(--chg);}
+.filebtn{width:auto; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:9px 14px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;}
+.filebtn:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+/* The take she is about to change: its name, a player, and a way to drop it. */
+.take{border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:12px; margin-top:14px;}
+.take .tkname{font-size:1.02em; line-height:1.3;}
+.take .tkmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink2); margin:6px 0 8px;}
+.take audio{width:100%; display:block;}
+.take .tkdrop{margin-top:10px; border:none; background:none; cursor:pointer; padding:0;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--chg);}
+.bar{height:3px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:10px;}
+.bar i{display:block; height:100%; background:var(--ink); width:0;}
+.render .rsrc{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink2); margin:8px 0 4px;}
 </style>
 <div class="wrap">
   <header>
@@ -85,24 +134,53 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
     <div class="rule"></div>
   </header>
 
+  <div class="acctabs" id="tabs" data-on="0">
+    <button class="acctab on" id="tab-say" type="button">Speak</button>
+    <button class="acctab" id="tab-change" type="button">Change</button>
+  </div>
+
   <div class="sect">Voice</div>
   <div class="vrow" id="voices"><div class="state">Loading your voices&hellip;</div></div>
   <select class="vsel" id="vsel" aria-label="Pick a voice by name"></select>
   <div class="vname" id="vname"></div>
 
-  <div class="sect">Words</div>
-  <textarea id="text"></textarea>
-  <div class="renderrow">
-    <button class="gobtn" id="go" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
-      Render
-    </button>
-    <button class="clrbtn" id="clr" hidden>Clear</button>
-    <span class="count" id="count"></span>
+  <div id="pane-say">
+    <div class="sect">Words</div>
+    <textarea id="text"></textarea>
+    <div class="renderrow">
+      <button class="gobtn" id="go" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+        Render
+      </button>
+      <button class="clrbtn" id="clr" hidden>Clear</button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="sect">Renders</div>
+    <div id="renders"><div class="state">Nothing rendered yet.</div></div>
   </div>
 
-  <div class="sect">Renders</div>
-  <div id="renders"><div class="state">Nothing rendered yet.</div></div>
+  <div id="pane-change" hidden>
+    <div class="sect">Recording</div>
+    <div class="recrow">
+      <button class="recbtn" id="rec" type="button" aria-label="Record"><span class="dot"></span></button>
+      <span class="rectime" id="rectime"></span>
+      <button class="filebtn" id="pick" type="button">Choose a file</button>
+      <input type="file" id="file" accept="audio/*" hidden>
+    </div>
+    <div class="take" id="take" hidden></div>
+    <div class="renderrow">
+      <button class="gobtn" id="chgo" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+        Change
+      </button>
+      <span class="count" id="chcount"></span>
+    </div>
+    <div class="bar" id="upbar" hidden><i></i></div>
+
+    <div class="sect">Changed</div>
+    <div id="changes"><div class="state">Nothing changed yet.</div></div>
+  </div>
 </div>
 <script>
 var API='/api/voicelab';
@@ -155,6 +233,7 @@ var clr=document.getElementById('clr');
 // rides in localStorage and comes back. Clear is the ONLY thing that empties it.
 var TKEY='voicelab_text';
 function paintGo(){
+  if(typeof paintCh==='function') paintCh();   // the picker feeds both panes
   var n=(ta.value||'').trim().length;
   count.textContent=n?n.toLocaleString()+' characters = '+n.toLocaleString()+' credits':'';
   go.disabled=!(picked && n);
@@ -166,7 +245,9 @@ ta.addEventListener('input', function(){ paintGo(); saveText(); });
 clr.onclick=function(){ ta.value=''; saveText(); paintGo(); ta.focus(); };
 
 // ── renders: history + live jobs. Pending ids survive leaving the page. ──
-var rbox=document.getElementById('renders');
+var rbox=document.getElementById('renders'), cbox=document.getElementById('changes');
+// A doc written before the changer shipped has no `kind` — it was a render.
+function boxFor(r){ return (r&&r.kind==='sts') ? cbox : rbox; }
 function pendingIds(){ try{ return JSON.parse(localStorage.getItem('voicelab.pending')||'[]'); }catch(_){ return []; } }
 function setPending(ids){ localStorage.setItem('voicelab.pending', JSON.stringify(ids)); }
 var cards={};
@@ -175,9 +256,10 @@ function card(r){
   if(!el){
     el=document.createElement('div'); el.className='render'; el.dataset.id=r.id;
     cards[r.id]=el;
-    var first=rbox.querySelector('.render');
-    var st=rbox.querySelector('.state'); if(st) st.remove();
-    rbox.insertBefore(el, first||null);
+    var box=boxFor(r);
+    var first=box.querySelector('.render');
+    var st=box.querySelector('.state'); if(st) st.remove();
+    box.insertBefore(el, first||null);
   }
   // No delete button on a render — Sophie's request (an accidental tap could
   // lose one; a chat can still remove strays via DELETE /render/:id).
@@ -187,6 +269,10 @@ function card(r){
     +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
     +'</div>';
   if(r.status==='done' && r.url) body+='<audio controls preload="metadata" src="'+esc(r.url)+'"></audio>';
+  if(r.kind==='sts' && r.sourceUrl){
+    body+='<div class="rsrc">what went in</div>'
+      +'<audio controls preload="none" src="'+esc(r.sourceUrl)+'"></audio>';
+  }
   if(r.status==='failed') body+='<div class="rerr">'+esc(r.error||'render failed')+'</div>';
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
@@ -198,10 +284,12 @@ function poll(id){
     else setPending(pendingIds().filter(function(x){ return x!==id; }));
   }).catch(function(){ setTimeout(function(){ poll(id); }, 4000); });  // cold start / offline: keep trying
 }
-fetch(API+'/history').then(function(r){return r.json()}).then(function(d){
-  ((d&&d.renders)||[]).slice().reverse().forEach(card);
-  pendingIds().forEach(poll);   // resume anything still rendering from last visit
-}).catch(function(){});
+['tts','sts'].forEach(function(k){
+  fetch(API+'/history?kind='+k).then(function(r){return r.json()}).then(function(d){
+    ((d&&d.renders)||[]).slice().reverse().forEach(card);
+  }).catch(function(){});
+});
+pendingIds().forEach(poll);   // resume anything still working from last visit
 
 go.onclick=function(){
   var text=(ta.value||'').trim();
@@ -218,5 +306,139 @@ go.onclick=function(){
       poll(d.id);
     })
     .catch(function(e){ alert(e.message||'Couldn’t start the render'); paintGo(); });
+};
+
+// ── the voice changer ───────────────────────────────────────────────
+// Her recording, the same performance, someone else's voice. The tabs swap
+// only the LOWER half — the voice picker is shared, because "which voice"
+// means the same thing on both sides (words to say / voice to become).
+var tabs=document.getElementById('tabs');
+var paneSay=document.getElementById('pane-say'), paneCh=document.getElementById('pane-change');
+function showTab(i){
+  tabs.dataset.on=String(i);
+  document.getElementById('tab-say').classList.toggle('on', i===0);
+  document.getElementById('tab-change').classList.toggle('on', i===1);
+  paneSay.hidden = i!==0; paneCh.hidden = i!==1;
+}
+document.getElementById('tab-say').onclick=function(){ showTab(0); };
+document.getElementById('tab-change').onclick=function(){ showTab(1); };
+
+var take=null;                 // {blob, name, ext, seconds}
+var chgo=document.getElementById('chgo'), chcount=document.getElementById('chcount');
+var takeBox=document.getElementById('take'), upbar=document.getElementById('upbar');
+var takeUrl=null;
+
+function paintCh(){
+  chgo.disabled = !(picked && take);
+  chcount.textContent = take ? ((take.blob.size/1048576).toFixed(1)+' MB') : '';
+}
+function setTake(t){
+  if(takeUrl){ URL.revokeObjectURL(takeUrl); takeUrl=null; }
+  take=t;
+  if(!t){ takeBox.hidden=true; takeBox.innerHTML=''; paintCh(); return; }
+  takeUrl=URL.createObjectURL(t.blob);
+  takeBox.hidden=false;
+  takeBox.innerHTML='<div class="tkname">'+esc(t.name)+'</div>'
+    +'<div class="tkmeta">'+esc(t.ext)+' · '+(t.blob.size/1048576).toFixed(1)+' MB</div>'
+    +'<audio controls preload="metadata" src="'+takeUrl+'"></audio>'
+    +'<button class="tkdrop" type="button">Drop this take</button>';
+  takeBox.querySelector('.tkdrop').onclick=function(){ setTake(null); };
+  paintCh();
+}
+
+// Recording. iOS Safari has no WebM — `audio/mp4` is what it can record, so
+// ask for what the browser says it supports rather than assuming a container.
+function recMime(){
+  var want=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'];
+  for(var i=0;i<want.length;i++){
+    try{ if(window.MediaRecorder && MediaRecorder.isTypeSupported(want[i])) return want[i]; }catch(e){}
+  }
+  return '';
+}
+function extFor(mime){
+  if(/mp4|m4a|aac/.test(mime)) return 'm4a';
+  if(/webm/.test(mime)) return 'webm';
+  if(/ogg/.test(mime)) return 'ogg';
+  if(/wav/.test(mime)) return 'wav';
+  return 'mp3';
+}
+var mr=null, chunks=[], t0=0, tick=null;
+var recBtn=document.getElementById('rec'), recTime=document.getElementById('rectime');
+recBtn.onclick=function(){
+  if(mr && mr.state==='recording'){ mr.stop(); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){
+    alert('This browser can’t record — use “Choose a file” instead.'); return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var mime=recMime();
+    mr = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+    chunks=[];
+    mr.ondataavailable=function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop=function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      clearInterval(tick); tick=null;
+      recBtn.classList.remove('rec'); recTime.classList.remove('live');
+      var type=(mr.mimeType||mime||'audio/mp4').split(';')[0];
+      var blob=new Blob(chunks,{type:type});
+      var secs=Math.round((Date.now()-t0)/1000);
+      recTime.textContent='';
+      if(!blob.size){ alert('That take came back empty.'); return; }
+      setTake({blob:blob, ext:extFor(type), seconds:secs,
+               name:'Recorded take · '+secs+'s'});
+    };
+    mr.start();
+    t0=Date.now();
+    recBtn.classList.add('rec'); recTime.classList.add('live');
+    recTime.textContent='0:00';
+    tick=setInterval(function(){
+      var s=Math.round((Date.now()-t0)/1000);
+      recTime.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+    },250);
+  }).catch(function(){
+    alert('Couldn’t reach the microphone — use “Choose a file” instead.');
+  });
+};
+
+// The other way in: a file, which on a phone is where a Voice Memo lives once
+// it has been saved to Files or shared.
+var fileIn=document.getElementById('file');
+document.getElementById('pick').onclick=function(){ fileIn.click(); };
+fileIn.onchange=function(){
+  var f=fileIn.files && fileIn.files[0];
+  fileIn.value='';
+  if(!f) return;
+  var ext=(f.name.split('.').pop()||'mp3').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5);
+  setTake({blob:f, ext:ext||'mp3', name:f.name});
+};
+
+chgo.onclick=function(){
+  if(!picked || !take) return;
+  chgo.disabled=true;
+  var q='?voiceId='+encodeURIComponent(picked.voiceId)
+       +'&voiceName='+encodeURIComponent(picked.name)
+       +'&ext='+encodeURIComponent(take.ext)
+       +'&name='+encodeURIComponent(take.name);
+  // XHR, not fetch: a Voice Memo is megabytes over a phone uplink and this is
+  // the only way to show her it is actually moving.
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST', API+'/change'+q);
+  xhr.setRequestHeader('content-type','application/octet-stream');
+  var fill=upbar.querySelector('i');
+  upbar.hidden=false; fill.style.width='0%';
+  xhr.upload.onprogress=function(e){
+    if(e.lengthComputable) fill.style.width=Math.round(e.loaded/e.total*100)+'%';
+  };
+  xhr.onload=function(){
+    upbar.hidden=true; fill.style.width='0%';
+    var d={}; try{ d=JSON.parse(xhr.responseText||'{}'); }catch(e){}
+    if(!d.id){ alert(d.error||'Couldn’t start the change'); paintCh(); return; }
+    setPending(pendingIds().concat([d.id]));
+    card({id:d.id, kind:'sts', voiceName:picked.name, text:take.name,
+          chars:0, status:'rendering'});
+    poll(d.id);
+    paintCh();   // the take STAYS — she runs the same recording through voice after voice
+  };
+  xhr.onerror=function(){ upbar.hidden=true; alert('Couldn’t reach the server'); paintCh(); };
+  xhr.send(take.blob);
 };
 </script>

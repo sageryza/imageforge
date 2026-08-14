@@ -3270,6 +3270,55 @@ lifted into a standalone tool later.
   into the archive. Note phase A landed AFTER two of the three Aug duplicates,
   so the md5 layer wasn't even present when they were filed.
 
+## Voice Studio (`voicelab.js`, `/voice`) — her ElevenLabs voices, two tabs
+- Pick a voice, type words, tap Render — TTS without leaving Deck Factory.
+  Deliberately NO settings: every render is the stock v2 defaults (stability
+  0.5, similarity 0.75, style 0, speaker boost), `eleven_multilingual_v2`.
+  Background job on a `forge-voicelab` doc, audio to Storage `voice-lab/`.
+- **The voice picker is a row of coloured SQUARES, one per person, ALL ON ONE
+  ROW** (Sophie, Aug 2026: "a lot smaller and definitely all fit on one row").
+  `.vbtn` is `flex:1 1 0` with `max-width:40px` and `aspect-ratio:1`, so any
+  number of people fits any phone; the dropdown under it is the who-is-who
+  fallback. **`OFFERED_VOICE_IDS` is an explicit ALLOWLIST** — empty would
+  sweep in every Voice Library professional on the account. Cloning someone
+  new = add the id + a colour there.
+- **Her words STAY in the box** (Sophie, Aug 2026): a render does not empty it
+  and neither does leaving the page (`localStorage['voicelab_text']`), because
+  she runs the same line through voice after voice. **Clear** is the only
+  thing that empties it, and it only shows when there is something to clear.
+- **TWO TABS — SPEAK · CHANGE (Aug 2026, Sophie: "a separate hairline tab in
+  the voice studio").** The house `.acctabs` hairline pattern. The tabs swap
+  only the LOWER half; **the voice picker is SHARED**, because "which voice"
+  means the same thing on both sides (words to say / voice to become).
+  - **CHANGE is speech-to-speech** — `POST /v1/speech-to-speech/{voice}` on
+    **`eleven_multilingual_sts_v2`** (verified live against `/v1/models`:
+    `can_do_voice_conversion`, 29 languages). It keeps the PERFORMANCE —
+    timing, emphasis, where a laugh lands — and swaps only the voice, which
+    is the whole reason it isn't just TTS. **No v3 here either**, same rule
+    as her TTS.
+  - **Two ways in: record in the page, or choose a file** (a Voice Memo, once
+    it is in Files). `recMime()` asks the browser what it can record —
+    **iOS Safari has no WebM, `audio/mp4` is what it records**, so never
+    assume a container. Recording needs `mic: true` on the `/voice`
+    `GatedWebTool`; the file picker works with no build.
+  - **The SOURCE is uploaded to Storage BEFORE the conversion is attempted**
+    (`voice-lab/sources/<id>.<ext>`, her ask: "the recorded voice will also
+    save to firebase"), so a failed or refused conversion still leaves her
+    the take. A finished change plays BOTH halves.
+  - **The take SURVIVES the send**, the same reason her words do.
+  - `POST /change?voiceId=&voiceName=&ext=&name=` takes the audio as the
+    **RAW body** (base64 in JSON inflates a memo by a third — the
+    `audio.js` `/upload-file` precedent) and the page sends it with XHR so a
+    phone upload shows real progress. Cap 25MB. It writes the body to tmp
+    BEFORE responding, so the background job never holds a whole recording
+    in memory beside the next request's.
+  - `GET /history?kind=tts|sts` filters **in memory, not in the query** — a
+    `where()` would silently hide every render made before `kind` existed.
+    Absent means `tts`, which is what they all were.
+- Tests: `node scripts/test-voice-changer.js` (drives the real page headless
+  against a stub API — the tabs, the take, the raw-body send, which list a
+  card lands in, and a hit-test of both tabs at 375/390/430).
+
 ## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
 - `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for
   audio. Nothing else did that job: `/api/story/voiceover` attaches ONE
