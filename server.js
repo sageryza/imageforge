@@ -1741,7 +1741,48 @@ async function findChatAsset(chat, { hash, url } = {}) {
 }
 // Audio assets (Aug 2026): the Assets tab holds sound too. An asset is audio
 // when the chat filing it says so (kind:'audio') or its url plainly is.
-const AUDIO_URL_RE = /\.(mp3|m4a|wav|ogg|aac|flac)([?#]|$)/i;
+// ONE copy of that rule, shared with the union below.
+const assetUnion = require('./asset-union');
+const AUDIO_URL_RE = assetUnion.AUDIO_URL_RE;
+
+// ─── The content hash that keeps one picture on one tile ─────────────
+// A picture filed twice under two filenames (its storage object, and the
+// claude-deliveries copy the hook makes when the same image is also sent as a
+// chat FILE) used to land as two tiles — the labeled original and an unlabeled
+// twin, because the Assets tab could only join copies by filename. So every
+// filing now records the Storage object's own md5, read from its METADATA:
+// no bytes are downloaded, and `GET /api/gallery/assets` joins on it (see
+// asset-union.js). Best-effort throughout — an external url, a missing object
+// or a slow metadata call files exactly as before, with no `md5`.
+const assetHash = require('./asset-hash');
+const assetMd5Cache = new Map();
+// The same picture can live in EITHER project's bucket (deckfactory-43176 or
+// membry-df528) and a credential for one cannot read the other, so the bucket
+// named in the url picks the app — never whichever app happens to be handy.
+async function bucketNamed(name) {
+  if (!name) return null;
+  const apps = [];
+  if (admin.apps.length) apps.push(admin.app());
+  if (!storyApp && process.env.STORY_FIREBASE_SERVICE_ACCOUNT) {
+    try { await storyDb(); } catch (e) { /* membry stays unavailable */ }
+  }
+  if (storyApp) apps.push(storyApp);
+  for (const app of apps) {
+    try { const b = app.storage().bucket(); if (b && b.name === name) return b; } catch (e) { /* no bucket */ }
+  }
+  // Older objects sit in the same project's `<id>.appspot.com` bucket rather
+  // than `<id>.firebasestorage.app`; the project prefix still identifies the
+  // credential that can read it.
+  const project = String(name).split('.')[0];
+  for (const app of apps) {
+    try {
+      const b = app.storage().bucket();
+      if (b && String(b.name).split('.')[0] === project) return app.storage().bucket(name);
+    } catch (e) { /* not this app's project */ }
+  }
+  return null;
+}
+const assetMd5 = (url) => assetHash.readMd5(url, bucketNamed, { cache: assetMd5Cache });
 app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -1788,6 +1829,13 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         }
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
+        // An older record filed before content-joining existed: give it its
+        // md5 now, so it can collapse with the copy that arrives under a
+        // different filename.
+        if (!existing.data().md5) {
+          const md5 = await assetMd5(wipUrl);
+          if (md5) patch.md5 = md5;
+        }
         if (Object.keys(patch).length) {
           await existing.ref.update(patch);
           return res.json({ ok: true, updated: true, deduped: true, url: wipUrl, description: description || existing.data().description || '' });
@@ -1799,6 +1847,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         prompt: String(prompt || '').slice(0, 500),
         created: new Date(createdMs).toISOString(), wip: true,
       };
+      const wipMd5 = await assetMd5(wipUrl);
+      if (wipMd5) wipDoc.md5 = wipMd5;
       if (kind) wipDoc.kind = kind;
       if (description) wipDoc.description = description;
       await acol.add(wipDoc);
@@ -1858,6 +1908,10 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           if (bytesHash && !cur.hash) patch.hash = bytesHash;
           if (!cur.urlKey) patch.urlKey = canonicalAssetUrl(cur.url);
           if (cur.wip) patch.wip = false;   // it's a finished deliverable now
+          if (!cur.md5) {
+            const md5 = await assetMd5(cur.url || finalUrl);
+            if (md5) patch.md5 = md5;
+          }
           if (Object.keys(patch).length) await assetDoc.ref.update(patch);
         } else {
           const aDoc = {
@@ -1867,6 +1921,11 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
           };
           if (description) aDoc.description = description;
           if (bytesHash) aDoc.hash = bytesHash;
+          // The Storage object's own md5 (metadata only, no download) — what
+          // lets this record collapse with the same bytes filed under any
+          // other filename. See asset-union.js.
+          const md5 = await assetMd5(finalUrl);
+          if (md5) aDoc.md5 = md5;
           await acol.add(aDoc);
         }
       } catch (e) { /* per-chat record is best-effort */ }
@@ -1913,72 +1972,20 @@ app.get('/api/gallery/assets', async (req, res) => {
     const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 300));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     await storyDb();
-    const seen = new Map();
-    // ONE picture can sit at two storage paths — where it was generated
-    // (…/witch-school/assets/<id>.png) and the copy the server made when the
-    // same image was also sent as a file (…/claude-deliveries/<id>.png). The
-    // bytes are identical and the filename is carried across, so the FILENAME
-    // is the identity; keying on the full url gave two tiles for one picture,
-    // one of them carrying the label and prompt and the other blank.
-    const keyOf = (url) => {
-      const clean = String(url).split('?')[0].split('#')[0];
-      // decodeURIComponent THROWS on malformed %-sequences, and one bad url in
-      // the collection used to abort the whole union mid-forEach — a chat's
-      // Assets tab silently showed almost nothing (a literal "%s.webp" template
-      // string the hook had filed as an image did exactly this, Aug 2026).
-      const raw = clean.split('/').pop() || '';
-      let base;
-      try { base = decodeURIComponent(raw).toLowerCase(); }
-      catch { base = raw.toLowerCase(); }
-      return base || clean;
-    };
-    const add = (url, ms, prompt, description, style, content, kind) => {
-      if (!url) return;
-      // Audio rides the same records as images; an untagged doc (filed before
-      // the kind field existed) is still recognised by its url.
-      if (!kind && AUDIO_URL_RE.test(String(url))) kind = 'audio';
-      const k = keyOf(url);
-      const existing = seen.get(k);
-      if (!existing) {
-        seen.set(k, { url, ms: ms || 0, prompt: prompt || '', description: description || '',
-          promptStyle: style || '', promptContent: content || '', kind: kind || '', alts: [] });
-        return;
-      }
-      if (kind && !existing.kind) existing.kind = kind;
-      // Same picture arriving by its other path: keep every field that has
-      // something in it, whichever copy carried it.
-      if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
-      // Checked BEFORE the merge below — afterwards every copy looks "rich",
-      // and the preferred-url swap could never fire.
-      const richer = !!(description || style || content);
-      const hasOwn = !!(existing.description || existing.promptStyle || existing.promptContent);
-      if (style && !existing.promptStyle) existing.promptStyle = style;
-      if (content && !existing.promptContent) existing.promptContent = content;
-      // A curated tag (e.g. "gpt-image-2 · medium") beats a generic "from <chat>"
-      // label for the same image, so the model/quality caption wins.
-      if (prompt && !/^from /.test(prompt) && /^from /.test(existing.prompt || '')) {
-        existing.prompt = prompt;
-      }
-      if (description && !existing.description) existing.description = description;
-      // Show the copy her curation is attached to: the one that came with a
-      // label or a prompt. Otherwise keep the first (newest) url.
-      if (richer && !hasOwn) {
-        if (existing.alts.indexOf(existing.url) < 0) existing.alts.push(existing.url);
-        existing.url = url;
-      }
-      if ((ms || 0) > existing.ms) existing.ms = ms;
-    };
+    // ONE picture, ONE tile. A picture reaches this tab by more than one road
+    // — the storage object where it was generated, and the claude-deliveries
+    // copy the server makes when the same image is also sent as a chat FILE —
+    // so records are joined by CONTENT (the Storage object's md5, or the
+    // sha256 of bytes that arrived inline) as well as by filename. The whole
+    // rule, and why it is transitive, lives in asset-union.js.
+    const records = [];
     // (a) iOS gallery creations this chat filed (prompt === "from <chat>")
     if (storyApp) {
       try {
         const uid = await galleryUid();
         const snap = await storyApp.firestore().collection('users').doc(uid)
           .collection('creations').where('prompt', '==', 'from ' + chat).get();
-        snap.docs.forEach((d) => {
-          const c = d.data();
-          const ms = c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0;
-          add(c.url, ms, c.prompt);
-        });
+        snap.docs.forEach((d) => records.push(assetUnion.creationRecord(d.data())));
       } catch (e) { /* uid discovery unavailable */ }
     }
     // (b) forge-chat-assets (deckfactory) — clean per-chat tags
@@ -1986,13 +1993,10 @@ app.get('/api/gallery/assets', async (req, res) => {
       try {
         const asnap = await admin.firestore().collection('forge-chat-assets')
           .where('chat', '==', chat).get();
-        asnap.docs.forEach((d) => {
-          const a = d.data();
-          add(a.url, Date.parse(a.created) || 0, a.prompt, a.description, a.promptStyle, a.promptContent, a.kind);
-        });
+        asnap.docs.forEach((d) => records.push(assetUnion.assetRecord(d.data())));
       } catch (e) { /* best effort */ }
     }
-    const ordered = Array.from(seen.values()).sort((x, y) => y.ms - x.ms);
+    const ordered = assetUnion.unionAssets(records).sort((x, y) => y.ms - x.ms);
     const total = ordered.length;
     const assets = ordered.slice(offset, offset + limit)
       .map((a) => {
@@ -2079,8 +2083,9 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
     const limit = Math.min(60, Math.max(1, parseInt(req.query.limit, 10) || 24));
     // Over-fetch: audio rides the same collection, and one picture can be
     // filed at two storage paths (where it was generated + the server's
-    // claude-deliveries copy) — dedupe by FILENAME the way the per-chat
-    // union does, then cut to `limit`.
+    // claude-deliveries copy) — dedupe the way the per-chat union does, by
+    // CONTENT (the object's md5, or a sha256 of bytes that arrived inline)
+    // as well as by filename, then cut to `limit`.
     const snap = await admin.firestore().collection('forge-chat-assets')
       .orderBy('created', 'desc').limit(limit * 4).get();
     const seen = new Set();
@@ -2089,14 +2094,12 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
       const a = d.data() || {};
       const url = String(a.url || '');
       if (!url || a.kind === 'audio' || AUDIO_URL_RE.test(url)) continue;
-      const clean = url.split('?')[0].split('#')[0];
-      let key = clean.split('/').pop() || clean;
-      // decodeURIComponent throws on malformed %-sequences (a literal
-      // "%s.webp" template string has really been filed as an image) —
-      // fall back to the raw name rather than aborting the whole list.
-      try { key = decodeURIComponent(key).toLowerCase(); } catch (e) { key = key.toLowerCase(); }
-      if (seen.has(key)) continue;
-      seen.add(key);
+      // This strip walks newest-first and keeps the first copy it meets, so a
+      // per-key Set is enough here — the transitive grouping the per-chat tab
+      // needs only matters when copies must be MERGED into one row.
+      const keys = assetUnion.joinKeys(a);
+      if (keys.some((k) => seen.has(k))) continue;
+      keys.forEach((k) => seen.add(k));
       const o = { url, chat: a.chat || '', created: a.created || '' };
       if (a.description) o.description = a.description;
       out.push(o);

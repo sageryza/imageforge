@@ -60,12 +60,16 @@ later.
 ## After sending files (SendUserFile)
 
 The Stop hook auto-files sent images as `claude-deliveries/<random>` copies
-with NO label and NO caption, and they don't merge with your captioned tile
-(different filename). After any reply that sent image files: sweep
-`GET /api/gallery/assets?chat=<name>` for caption-less `claude-deliveries/*`
-tiles and label + caption each (match to your originals by md5 of the bytes).
-Avoid creating the problem: send ORIGINAL bytes, not re-encoded copies — a
-converted copy (webp→png) defeats both dedupe layers.
+with no label and no caption. **A byte-identical copy now merges onto your
+captioned tile by itself** — the Assets tab joins on the Storage object's md5,
+not just the filename (`asset-union.js`, Aug 2026), so there is nothing to
+clean up afterwards.
+
+What still bites: **a RE-ENCODED copy is different bytes**, so no hash can join
+it and it lands as an unlabeled tile beside the original. Send ORIGINAL bytes,
+not converted ones (webp→png for preview). If you genuinely had to convert,
+sweep `GET /api/gallery/assets?chat=<name>` for caption-less
+`claude-deliveries/*` tiles afterwards and label + caption each.
 
 ## Before you finish the turn — check your own filing
 
