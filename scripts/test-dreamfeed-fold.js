@@ -163,8 +163,11 @@ const check = (name, ok, detail) => {
   await page.locator('#gearScrim').click({ position: { x: 5, y: 5 } });
   check('tapping away puts it back', (await page.locator('#gearMenu').count()) === 0);
 
-  // lightbox: a tapped panel opens big, locks the page, and gives back the spot
-  await page.evaluate(() => window.scrollTo(0, 600));
+  // lightbox: a tapped panel opens big, locks the page, and gives back the spot.
+  // The panel has to be ON SCREEN before the position is read — a click scrolls
+  // its target into view, so measuring first would compare against a scroll
+  // position the tap itself moved.
+  await page.locator('.dream[data-id="pics"] .pgrid img').first().scrollIntoViewIfNeeded();
   const beforeY = await page.evaluate(() => window.scrollY);
   await page.locator('.dream[data-id="pics"] .pgrid img').first().click();
   check('a tapped panel opens the lightbox', await page.locator('#lb').isVisible());

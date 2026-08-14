@@ -39,6 +39,21 @@
                  color:var(--inkp); font:14px -apple-system, sans-serif; padding:12px 16px; }
   .scrim { position:fixed; inset:0; z-index:19; background:transparent; }
 
+  /* How it works — the same card in two places: once at the top of the feed
+     for a first visit, and from the gear forever after. Someone arriving on a
+     link she sent has no idea a dream is private until they share it, or that
+     the words and each drawing are separate choices. */
+  .how { background:var(--card); color:var(--ink); margin:16px -16px 0; padding:18px 16px 16px; }
+  .how h3 { font-family:Georgia, "Times New Roman", serif; font-weight:400; font-size:19px;
+            color:var(--fuchsia); margin-bottom:10px; }
+  .how ol { list-style:none; counter-reset:s; }
+  .how li { counter-increment:s; position:relative; padding-left:26px; margin-top:11px;
+            font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .how li::before { content:counter(s); position:absolute; left:0; top:0; color:var(--fuchsia);
+                    font-family:Georgia, serif; font-size:14px; }
+  .how .close { display:block; margin:16px auto 0; background:none; border:1px solid var(--line);
+                color:var(--dim); border-radius:6px; padding:9px 18px; font:13px -apple-system, sans-serif; }
+
   main { padding:0 16px; }
   /* Buttons stay quiet — outlined, never solid blocks of fuchsia. */
   .btn { display:block; width:100%; background:none; color:var(--fuchsia); border:1px solid var(--fuchsia);
@@ -289,6 +304,32 @@ async function api(path, opts){
   return j;
 }
 
+/* ── how it works ──
+   Written for someone who just followed a link, so it says the two things the
+   screen cannot: a dream is PRIVATE until shared, and sharing is per-piece. */
+var HOW_SEEN = 'dreamapp_how_seen';
+function howCard(dismissable){
+  return '<div class="how">' +
+    '<h3>How this works</h3><ol>' +
+    '<li>Write a dream down. It saves to <b>my dreams</b>, private — nobody else can see it.</li>' +
+    '<li>Tap <b>draw it</b> and it gets illustrated as comic pages. That takes a few minutes; you can leave and come back.</li>' +
+    '<li>Then you choose what to share, piece by piece: your words, and each drawing on its own. Anything you leave private stays private.</li>' +
+    '<li>What you share joins the day in the feed. Dreams sit under their date with no names on them.</li>' +
+    '</ol>' +
+    (dismissable ? '<button class="close" data-howclose>got it</button>' : '') +
+    '</div>';
+}
+function wireHow(root){
+  var b = root.querySelector('[data-howclose]');
+  if (!b) return;
+  b.addEventListener('click', function(){
+    try { localStorage.setItem(HOW_SEEN, '1'); } catch (e) {}
+    var card = b.closest('.how');
+    if (card) card.remove();
+  });
+}
+function howSeen(){ try { return localStorage.getItem(HOW_SEEN) === '1'; } catch (e) { return false; } }
+
 /* ── lightbox: a tapped panel opens big ──
    The house rule has two halves and BOTH matter: lock the page behind it, and
    remember where she was, because locking alone doesn't stop the page moving —
@@ -340,13 +381,18 @@ function wireFold(btn, anchor, apply, moreLabel){
     btn.classList.toggle('stuck', open);
   }
   btn.addEventListener('click', function(){
-    var top = anchor.getBoundingClientRect().top;
     open = !open;
     apply(open);
     paint();
-    // Content above the anchor didn't move, so this lands its top just under
-    // the header no matter how much height the collapse took away.
-    if (!open && top < 0) window.scrollBy(0, top - 8);
+    // Measure AFTER the collapse, never before. Closing a very long dream can
+    // shorten the page past the scroll position the browser is holding, so it
+    // CLAMPS — and a delta computed from the old layout then lands the dream
+    // off the bottom of the screen. Reading the new rect and scrolling to it
+    // is right whether or not the clamp bites.
+    if (!open) {
+      var r = anchor.getBoundingClientRect();
+      if (r.top < 0 || r.top > window.innerHeight - 40) window.scrollTo(0, window.scrollY + r.top - 8);
+    }
   });
   paint();
 }
@@ -485,6 +531,9 @@ function go(which){
 /* ── feed ── */
 async function renderFeed(){
   var el = scr.feed;
+  // Shown once, at the top of the feed, on a first visit — and again whenever
+  // she asks for it from the gear.
+  var how = howSeen() ? '' : howCard(true);
   try {
     var f = await api('/feed');
     if (f.sealed) {
@@ -505,7 +554,8 @@ async function renderFeed(){
       return;
     }
     if (!f.dreams.length) {
-      el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
+      el.innerHTML = how + '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
+      wireHow(el);
       return;
     }
     // Group under the day they were shared, newest day first; no names. Inside
@@ -518,11 +568,12 @@ async function renderFeed(){
       byDay[k].push(d);
     });
     days.sort().reverse();
-    el.innerHTML = days.map(function(k){
+    el.innerHTML = how + days.map(function(k){
       return '<div class="dayhead">' + dayLabel(k) + '</div>' + groupsFor(byDay[k]).map(function(g){
         return '<article class="post">' + g.map(dreamBlock).join('') + '</article>';
       }).join('');
     }).join('');
+    wireHow(el);
     wirePanels(el);
     wireDreams(el);
   } catch (e) {
@@ -536,7 +587,8 @@ function openCompose(){
     '<div class="h2" style="margin-top:18px">What did you dream last night?</div>' +
     '<textarea id="cap" placeholder="I dreamt…"></textarea>' +
     '<button class="btn" id="saveBtn">save dream</button>' +
-    '<div class="quiet">It saves to my dreams first — sharing is its own step.</div>';
+    '<div class="quiet">Saves privately to my dreams. The next screen is where you draw it, ' +
+    'and where you choose what to share.</div>';
   go('compose');
   document.getElementById('saveBtn').addEventListener('click', async function(){
     var t = document.getElementById('cap').value.trim();
@@ -759,9 +811,14 @@ async function boot(){
     scrim.className = 'scrim'; scrim.id = 'gearScrim';
     var menu = document.createElement('div');
     menu.className = 'menu'; menu.id = 'gearMenu';
-    menu.innerHTML = '<button id="signOut">sign out</button>';
+    menu.innerHTML = '<button id="howBtn">how this works</button><button id="signOut">sign out</button>';
     document.body.appendChild(scrim); document.body.appendChild(menu);
     scrim.addEventListener('click', closeMenu);
+    document.getElementById('howBtn').addEventListener('click', function(){
+      closeMenu();
+      try { localStorage.removeItem(HOW_SEEN); } catch (e) {}
+      renderFeed(); go('feed');
+    });
     document.getElementById('signOut').addEventListener('click', function(){
       closeMenu(); fbAuth.signOut();
     });
