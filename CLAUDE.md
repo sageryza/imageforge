@@ -1382,7 +1382,9 @@ lifted into a standalone tool later.
   - These instructions live HERE only. There used to be a "How to post prompts"
     fold at the top of every Assets tab, but chats read this file, not that
     page — so it was clutter only Sophie ever saw, and it's been removed.
-  - **The tab is PAGED and dedupes by filename (July 2026).**
+  - **The tab is PAGED, and it dedupes by CONTENT HASH as well as by filename
+    (Aug 2026 — the fail-safe that replaced "sweep for the duplicates
+    afterwards").**
     `GET /api/gallery/assets?chat=&limit=&offset=` returns `{assets, total,
     offset, limit}`; the app loads 150 and pulls the next page as she scrolls.
     It used to be a single capped request, which was a hard truncate — a chat
@@ -1390,10 +1392,34 @@ lifted into a standalone tool later.
     sent). **One picture can live at two storage paths** (where it was
     generated, e.g. `witch-school/assets/<id>.png`, and the copy the server
     makes when the same image is also sent as a file,
-    `claude-deliveries/<id>.png`), so the union keys on the FILENAME, not the
-    url: the copies collapse into one tile, every field is merged, the url kept
-    is the one carrying the label/prompt, the others ride along as `alts`, and a
-    ♥/note left on either path is still found.
+    `claude-deliveries/<random>.png`): the copies collapse into one tile, every
+    field is merged, the url kept is the one carrying the label/prompt, the
+    others ride along as `alts`, and a ♥/note left on either path is still
+    found. **`asset-union.js` is the whole rule** and it joins on three keys:
+    - **`md5`** — the Storage object's own md5, read from object METADATA at
+      filing time (`asset-hash.js`; bytes are NEVER downloaded, the
+      `drop-dedupe.js` technique). This is what finally kills the
+      claude-deliveries twin, whose random filename could never match.
+    - **`hash`** — the sha256 `POST /api/gallery` already computes when bytes
+      arrive inline. A DIFFERENT algorithm on purpose, so it lives in its own
+      key namespace: md5 is free from Storage, sha256 is free from bytes in
+      hand, and neither is worth a download to convert into the other.
+    - **the filename**, exactly as before, for every record carrying neither.
+    **The join is TRANSITIVE (union-find), and it has to be** — A can share an
+    md5 with B while B shares a filename with C, and all three are one picture;
+    a per-key pass would leave that chain as two tiles.
+    **The bucket comes from the URL, never from whichever app is handy** —
+    the same picture can sit in deckfactory-43176 or membry-df528 and a
+    credential for one cannot read the other. Reading the md5 is best-effort
+    everywhere (external url, deleted object, slow call → file with no `md5`,
+    exactly as before): a dedupe hint must never fail or stall a filing.
+    **Old records need `node scripts/backfill-asset-hashes.js`** (`--dry-run`
+    first, `--chat <slug>` for one, idempotent, only ever ADDS `md5`) — until a
+    record is hashed it still falls back to the filename, so duplicates already
+    in a tab collapse once it has run over them.
+    Tests: `node scripts/test-asset-hash-union.js` (the real union against
+    fixture records — no network; verified failing against a filename-only
+    join).
   - **The Assets tab has a search bar** that filters the tiles as she types,
     matching an image's label, its model/quality caption, BOTH halves of its
     prompt, and every message in its note thread — so a filed prompt is what
@@ -3779,14 +3805,17 @@ lifted into a standalone tool later.
   Assets-tab description (what Sophie reviews by). ALWAYS write a meaningful
   label — `[Penny — the blue Kleenex](url)` — NEVER `[p01](url)`, `[image](url)`,
   or a bare URL. Applies to every image in a finished reply.
-  - **A RE-ENCODED copy defeats BOTH dedupe layers and lands as an unlabeled
-    duplicate tile (Aug 2026 — this bit Sophie during the style-ref
-    experiments).** The hook auto-files every image sent with SendUserFile;
-    identical bytes collapse onto the labeled tile by content hash, and same
-    filenames union in the tab — but a converted copy (webp→png for chat
-    preview) has NEW bytes AND a NEW random filename, so it files as a fresh
-    tile with NO label, next to the labeled original. Labeling only the
-    storage URL is therefore NOT enough. Avoid it: send the ORIGINAL file
+  - **AN IDENTICAL copy can no longer duplicate — a RE-ENCODED one still can
+    (Aug 2026, updated).** The hook auto-files every image sent with
+    SendUserFile. **Byte-identical copies now collapse onto the labeled tile
+    whatever they are called**, because the tab joins on the Storage object's
+    md5 (see "dedupes by CONTENT HASH" above) — that is the fail-safe, and it
+    needs nothing from you. **A CONVERTED copy is the case it cannot catch:**
+    a webp→png re-encode for chat preview has NEW bytes AND a new random
+    filename, so nothing on the record ties it to the original and it files as
+    a fresh tile with NO label beside it. No hash can fix that one — different
+    bytes are a different picture as far as any hash is concerned. Labeling
+    only the storage URL is therefore still NOT enough. Avoid it: send the ORIGINAL file
     (bytes untouched) whenever the image already lives in Storage; if a
     conversion is genuinely needed for chat, then AFTER the reply finishes,
     sweep `GET /api/gallery/assets?chat=` for new unlabeled tiles and label
@@ -3835,17 +3864,22 @@ lifted into a standalone tool later.
   generated it. If you are backfilling your OWN older images, derive the value
   from your filed prompt or your own run records; where neither exists, leave
   it empty and say so.
-  **THE HOLE EVERY CHAT FALLS IN (Aug 2026, found on the hospital film):
-  images you send as chat FILES get auto-filed by the hook as
-  `claude-deliveries/<random>` copies with NO label and NO quality caption,
-  and they DON'T merge with your captioned tile (different filename, so the
-  filename union can't join them).** So captioning only what you POST is not
-  enough — after any SendUserFile that includes images, sweep
-  `GET /api/gallery/assets?chat=` for caption-less `claude-deliveries/*`
-  tiles and caption them too (match them to your originals by md5 of the
-  bytes; a backfill of 18 such tiles is what surfaced this). Until the
-  server unions by content hash instead of filename, this sweep is the only
-  thing that keeps the Assets tab fully captioned.
+  **THE HOLE EVERY CHAT FELL IN IS CLOSED — the server unions by CONTENT HASH
+  now (Aug 2026; the hole was found on the hospital film).** Images you send as
+  chat FILES are auto-filed by the hook as `claude-deliveries/<random>` copies
+  with no label and no quality caption, and the filename union could never join
+  them to your captioned tile — so Sophie saw her portraits twice. The Assets
+  tab now joins on the Storage object's md5 as well (see "dedupes by CONTENT
+  HASH" in the Chats section, and `asset-union.js`), so a byte-identical copy
+  collapses onto the labeled tile **by itself, whatever it is called** — no
+  sweep, no cleanup, nothing to remember. Two things that still hold:
+  - **Old records need the backfill before their duplicates merge** —
+    `node scripts/backfill-asset-hashes.js --dry-run` then without the flag.
+    A record with no `md5` on file still falls back to its filename.
+  - **A RE-ENCODED copy is not the same bytes**, so no hash joins it (see the
+    LABEL rule above). That case is still yours to avoid.
+  The sweep below remains for the things no hash can recover — labels, MODEL ·
+  QUALITY captions and filed prompts.
   **THE SWEEP IS ONE COMMAND NOW —
   `node scripts/sweep-asset-captions.js --chat <your chat slug>` (Aug 2026).**
   It pages the whole Assets tab and names every image short of a label, a
