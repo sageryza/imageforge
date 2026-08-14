@@ -1,0 +1,8 @@
+[
+ { "id": "q-strawberry-high", "size": "1024x1024", "quality": "high", "scene": "a single ripe strawberry. No text or lettering anywhere." },
+ { "id": "q-strawberry-low",  "size": "1024x1024", "quality": "low",  "scene": "a single ripe strawberry. No text or lettering anywhere." },
+ { "id": "q-pomegranate-high","size": "1024x1024", "quality": "high", "scene": "a pomegranate broken open to show the seeds. No text or lettering anywhere." },
+ { "id": "q-pomegranate-low", "size": "1024x1024", "quality": "low",  "scene": "a pomegranate broken open to show the seeds. No text or lettering anywhere." },
+ { "id": "q-broccoli-high",   "size": "1024x1024", "quality": "high", "scene": "a head of broccoli. No text or lettering anywhere." },
+ { "id": "q-broccoli-low",    "size": "1024x1024", "quality": "low",  "scene": "a head of broccoli. No text or lettering anywhere." }
+]

@@ -167,6 +167,13 @@ router.post('/poll', async (req, res) => {
       intro: clip(b.intro, 600),
       fruits,
       people,
+      // Where to send them when they finish (Aug 2026, Sophie: "there could be
+      // a button to take the vegetables quiz"). Stored as the NEXT POLL'S ID,
+      // never a url — the same person has a different token in each poll, so
+      // the link has to be resolved per person at the end. See GET /next.
+      next: b.next && slug(b.next.poll)
+        ? { poll: slug(b.next.poll), label: clip(b.next.label, 60) || 'Keep going' }
+        : (prev.exists ? (prev.data().next || null) : null),
       createdAt: prev.exists ? prev.data().createdAt : Date.now(),
       updatedAt: Date.now(),
     };
@@ -202,6 +209,29 @@ router.get('/poll/:id/people', async (req, res) => {
       ...p, link: personLink(snap.id, p.id),
     }));
     res.json({ id: snap.id, people });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e).slice(0, 200) });
+  }
+});
+
+/* ── where this person goes next ───────────────────────────────────────── */
+// The same human has a DIFFERENT token in each poll, so "now do the vegetables"
+// cannot be a fixed url on the poll — it has to be resolved per person. Matched
+// by NAME, which is the only thing the two polls share; an unmatched name (or
+// no next poll) answers {} and the page simply shows no button rather than
+// sending them to somebody else's ballot.
+router.get('/next/:poll/:person', async (req, res) => {
+  try {
+    const snap = await db().collection(POLLS).doc(String(req.params.poll)).get();
+    if (!snap.exists) return res.json({});
+    const poll = snap.data();
+    const me = (poll.people || []).find(p => p.id === String(req.params.person));
+    if (!me || !poll.next || !poll.next.poll) return res.json({});
+    const nextSnap = await db().collection(POLLS).doc(poll.next.poll).get();
+    if (!nextSnap.exists) return res.json({});
+    const them = (nextSnap.data().people || []).find(p => slug(p.name) === slug(me.name));
+    if (!them) return res.json({});
+    res.json({ url: personLink(nextSnap.id, them.id), label: poll.next.label || 'Keep going' });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e).slice(0, 200) });
   }

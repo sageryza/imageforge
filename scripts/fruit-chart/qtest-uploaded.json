@@ -1,0 +1,38 @@
+[
+ {
+  "id": "q-strawberry-high",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-strawberry-high.webp",
+  "quality": "high",
+  "subject": "strawberry"
+ },
+ {
+  "id": "q-strawberry-low",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-strawberry-low.webp",
+  "quality": "low",
+  "subject": "strawberry"
+ },
+ {
+  "id": "q-pomegranate-high",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-pomegranate-high.webp",
+  "quality": "high",
+  "subject": "pomegranate"
+ },
+ {
+  "id": "q-pomegranate-low",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-pomegranate-low.webp",
+  "quality": "low",
+  "subject": "pomegranate"
+ },
+ {
+  "id": "q-broccoli-high",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-broccoli-high.webp",
+  "quality": "high",
+  "subject": "broccoli"
+ },
+ {
+  "id": "q-broccoli-low",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/qtest/q-broccoli-low.webp",
+  "quality": "low",
+  "subject": "broccoli"
+ }
+]
