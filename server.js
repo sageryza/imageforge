@@ -499,6 +499,11 @@ app.get('/witch', (req, res) => { res.sendFile(__dirname + '/public/witch.html')
 // there was nothing to send. Serves the same app page on BOTH hosts; the page
 // reads the key off the path (and also accepts ?lesson= / #lesson-).
 app.get('/lesson/:key', (req, res) => { res.sendFile(__dirname + '/public/witch.html'); });
+// Science School — a SEPARATE school, not a course inside the witch one
+// (Sophie's decision, docs/science-school/lessons-1-4.md). Same deck engine
+// and the same tap-through, its own pastel palette; public + ungated like
+// /witch, since nothing here reads or writes anything of hers.
+app.get('/science', (req, res) => { res.sendFile(__dirname + '/public/science.html'); });
 // Public privacy policy (App Store requires a reachable privacy URL).
 app.get('/witch/privacy', (req, res) => { res.sendFile(__dirname + '/public/witch-privacy.html'); });
 // Public support page (App Store requires a reachable SUPPORT url too).

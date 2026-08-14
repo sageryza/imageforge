@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>Science School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── SCIENCE SCHOOL ──────────────────────────────────────────────────────
+     Sophie's decision (docs/science-school/lessons-1-4.md): it must look VERY
+     SIMILAR to Witch School — same tap-through deck, same progress dashes,
+     same quiz + After card. THE PALETTE IS THE ONLY DELIBERATE DIFFERENCE, so
+     don't redesign anything else here.
+
+     The palette is her hearted "pastel A": mint / powder blue / butter /
+     blush on PLAIN WHITE, which is also exactly what the card art is drawn in
+     (cell-lesson-spec.json). The UI accent is a deeper slate blue because the
+     pastels themselves are unreadable as text on white — the pastels are the
+     art and the decoration, the slate is the ink that has to be legible.
+     NO GRADIENTS anywhere (house rule).                                    */
+  :root {
+    --bg: #ffffff;
+    --bg-2: #f6faf8;
+    --surface: #ffffff;
+    --surface-2: #f4f8fb;
+    --panel: #f1f7f4;
+    --border: #dfe8ea;
+    --border-soft: #ecf2f3;
+    --gold: #3f7290;        /* the accent — named `gold` so the ported deck
+                               CSS stays declaration-for-declaration the same
+                               as witch.html's and can be diffed against it */
+    --gold-dim: #7ba3b8;
+    --mint: #b6e5cf;
+    --blue: #afc9e8;
+    --butter: #f6e7a8;
+    --blush: #f6c6da;
+    --text: #26313a;
+    --text-dim: #5f6f7a;
+    --text-faint: #9aa9b2;
+    --radius: 6px;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+  }
+  * { touch-action: manipulation; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  body.lesson-open { overflow: hidden; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 22px 20px 18vh; }
+
+  /* ── The path ── */
+  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+  h1 { font-family: var(--serif); font-size: 34px; font-weight: 500; margin: 6px 0 4px; }
+  .sub { font-size: 14.5px; line-height: 1.5; color: var(--text-dim); margin: 0 0 22px; }
+  .course-hd { font-family: var(--serif); font-size: 22px; font-weight: 500; margin: 26px 0 2px; }
+  .course-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+  .les {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    font-family: inherit; text-align: left; padding: 12px 13px; cursor: pointer;
+  }
+  .les + .les { margin-top: 9px; }
+  .les:hover { border-color: var(--gold-dim); }
+  .les-cv { width: 52px; height: 52px; flex: none; border-radius: 4px; object-fit: contain; background: var(--panel); }
+  .les .lt { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
+  .les .ld { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+  .les-go { margin-left: auto; color: var(--gold-dim); line-height: 0; }
+  .les-go svg { width: 18px; height: 18px; }
+  .les.soon { opacity: .55; cursor: default; }
+  .les.soon:hover { border-color: var(--border); }
+
+  /* ── Full-screen lesson deck — ported from witch.html, palette aside ── */
+  #school-lesson {
+    position: fixed; inset: 0; z-index: 90;
+    background: #ffffff;                     /* fallback; each card sets its own */
+    display: flex; flex-direction: column;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  }
+  .deck-top { display: flex; align-items: center; gap: 12px; padding: 4px 16px 10px; }
+  .deck-prog { display: flex; gap: 4px; flex: 1; }
+  .deck-seg { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background .2s ease; }
+  .deck-seg.on { background: var(--gold); }
+  .les-back { background: none; border: none; padding: 2px 0 10px; color: var(--gold); cursor: pointer; line-height: 0; }
+  .les-back svg { width: 21px; height: 21px; }
+  .deck-stage { flex: 1; display: flex; flex-direction: column; min-height: 0; cursor: pointer; -webkit-user-select: none; user-select: none; overflow: hidden; }
+  @keyframes tcardIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+  #deck-stage .tcard { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: stretch; overflow: hidden; animation: tcardIn .22s ease; }
+  .tcard-img { width: 100%; height: auto; flex: 999 9 42vh; min-height: 110px; max-height: min(42vh, 430px); object-fit: contain; display: block; }
+  .deck-head { flex: none; padding: 10px 24px 4px; }
+  .deck-text { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 8px 24px 0; overflow-y: auto; }
+  .deck-text > :first-child { margin-top: auto; }
+  .deck-text > :last-child { margin-bottom: auto; }
+  .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+  .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
+  .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
+  .tcard-body b { font-weight: 600; }
+  .tap-arrow { text-align: center; margin-top: 14px; opacity: 0; animation: tapArrowIn .8s ease 4s forwards, tapArrowNudge 1.4s ease 4.8s infinite; }
+  .tap-arrow svg { width: 28px; height: 28px; color: var(--gold); }
+  @keyframes tapArrowIn { to { opacity: 1; } }
+  @keyframes tapArrowNudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(3px); } 75% { transform: translateX(-3px); } }
+
+  /* The ⓘ FAQ — a card's obvious follow-ups, answered in place. */
+  .faq-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 7px; padding: 0; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; vertical-align: middle; }
+  .faq-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; }
+  .faq-btn:hover, .faq-btn.on { color: var(--gold); }
+  .faq-wrap { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; z-index: 6; }
+  .faq-wrap.on { display: flex; }
+  .faq-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 15px 16px 14px; max-height: 100%; overflow-y: auto; text-align: left; box-shadow: 0 10px 30px rgba(38, 49, 58, .13); }
+  .faq-card .faq-hd { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+  .faq-card .faq-q { font-size: 14px; font-weight: 600; margin-top: 13px; }
+  .faq-card .faq-q:first-of-type { margin-top: 0; }
+  .faq-card .faq-a { font-size: 14px; line-height: 1.5; margin-top: 3px; }
+  .faq-card .faq-close { font-size: 11px; color: var(--gold-dim); text-align: center; margin-top: 14px; }
+
+  /* "Check your knowing" — a wrong tap flips the card and warmly tells you. */
+  .know { width: min(340px, 88vw); margin: 0 auto; perspective: 900px; }
+  .know-n { text-align: center; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+  .know-flip { position: relative; width: 100%; transform-style: preserve-3d; transition: transform .55s ease; min-height: 280px; }
+  .know-flip.flipped { transform: rotateY(180deg); }
+  .know-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--border); border-radius: 10px; padding: 18px 16px; background: var(--surface); display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+  .know-face.back { transform: rotateY(180deg); text-align: center; }
+  .know-q { font-size: 16px; line-height: 1.5; text-align: center; margin-bottom: 2px; }
+  .know-opt { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 14px; padding: 11px 12px; cursor: pointer; text-align: left; }
+  .know-opt:hover { border-color: var(--gold); }
+  .know-verdict { font-size: 15px; color: var(--gold); }
+  .know-tell { font-size: 14.5px; line-height: 1.55; }
+  .know-hint { font-size: 11px; color: var(--text-faint); }
+
+  .deck-nav { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 20px 0; }
+  .deck-prev { background: none; border: none; color: var(--gold-dim); font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 6px 0; }
+  .deck-prev svg { width: 15px; height: 15px; }
+  .btn { border: 1px solid var(--gold); border-radius: var(--radius); background: var(--gold); color: #fff; font-family: inherit; font-size: 15px; padding: 9px 18px; cursor: pointer; width: auto; }
+  .deck-next { margin-left: auto; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="path">
+  <div class="eyebrow">Science School</div>
+  <h1>The living world</h1>
+  <p class="sub">One idea a card. Every lesson names the experiment — who did it, when, and what they actually did.</p>
+
+  <div class="course-hd">Biology</div>
+  <div class="course-sub">Starts with the cell, because everything after it stands on that.</div>
+  <div id="course-list"></div>
+</div>
+
+<!-- Lesson reader: tap-based deck (cards injected by JS) -->
+<div id="school-lesson" style="display:none;">
+  <div class="deck-top">
+    <button class="les-back" id="lesson-back" aria-label="Back to lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div class="deck-prog" id="deck-prog"></div>
+  </div>
+  <div class="deck-stage" id="deck-stage"></div>
+  <div class="deck-nav">
+    <button class="deck-prev" id="deck-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Back</button>
+    <button class="btn deck-next" id="deck-next">Continue</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+
+  /* The art is served as WEBP, never the ~1MB PNG originals (house rule).
+     The cards are written by scripts/witch-school-cards.js into
+     witch-school/assets/ and converted by `node scripts/webp-assets.js school`,
+     so they share the school folder — hence the same base as witch.html.
+     Reach art through SCI_IMG + SCI_EXT, never a hard-coded extension. */
+  var SCI_IMG = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-school/webp/';
+  var SCI_EXT = '.webp';
+
+  /* ── Lesson 1 — The Cell (text: docs/science-school/lessons-1-4.md) ──
+     Card shape is Witch School's: { img, bg, kicker, h, body, faq? }, plus a
+     `know` quiz card after the facts it tests, and an "After" card last.
+     The After card is an OBSERVATION, not a feature — a science lesson has no
+     app feature to point at, so there is no CTA. */
+  var CELL_CARDS = [
+    { img: 'cl-01', bg: '#ffffff', kicker: 'The Cell', h: 'Everything is made of these',
+      body: 'Every living thing you have ever seen — the oak, the mould on the bread, the person next to you — is either one cell or a great many stuck together. There is no exception anyone has found. This is the first lesson because the next three are all about what happens inside one. We\'ll go one idea at a time.' },
+    { img: 'cl-02', bg: '#ffffff', kicker: 'London, 1665', h: 'A slice of cork',
+      body: '<b>Robert Hooke</b> put a shaving of cork under his own microscope and saw it was not solid at all: it was a honeycomb of tiny empty boxes. He needed a word, and the boxes reminded him of the small bare rooms monks slept in — <i>cells</i>. He published the drawing in <i>Micrographia</i> the same year. He was looking at the dead walls of plant cells, which is why they looked empty.',
+      faq: [
+        { q: 'Did Hooke know they had been alive?', a: 'No. Cork is dead tissue, so what he drew was the empty walls left behind. That living things are <i>made</i> of cells took another 170 years to state properly.' },
+        { q: 'What was Micrographia?', a: 'His book of what he saw through the microscope — fleas, a fly\'s eye, the point of a needle — drawn at a size nobody had seen before. It was a bestseller; Samuel Pepys sat up until two in the morning with it.' },
+        { q: 'Whose microscope was it?', a: 'His own compound design, two lenses in a tube with an oil lamp and a water flask to throw light on the sample. It magnified about 50x — good enough for cork walls, not for anything swimming.' }
+      ] },
+    { img: 'cl-03', bg: '#ffffff', kicker: 'Delft, 1670s', h: 'The first living ones',
+      body: '<b>Antonie van Leeuwenhoek</b> ground his own lenses, better than anyone else\'s, and turned them on pond water, scrapings from his teeth, rainwater from a gutter. He found things swimming. He called them <b>animalcules</b> and wrote to the Royal Society about them for fifty years. Nobody had known that a drop of water was full of life.',
+      faq: [
+        { q: 'How did his lenses beat everyone\'s?', a: 'A single tiny bead of glass, ground and polished by hand, held in a brass plate you squinted through. Simpler than Hooke\'s two-lens tube and far sharper — up to about 270x. He never told anyone his method.' },
+        { q: 'Was he a scientist?', a: 'He was a draper. He had no university training and no Latin, and wrote his letters in Dutch. The Royal Society had them translated for fifty years.' },
+        { q: 'Did people believe him?', a: 'Not at first — the Society sent people to Delft to check. His lens-making was so far ahead that nobody matched his images for over a century.' }
+      ] },
+    { img: 'cl-04', bg: '#ffffff', kicker: 'The scale', h: 'How small, exactly',
+      body: 'A typical cell in your body is about a hundredth of a millimetre across — you could line up roughly a hundred of them along the edge of a grain of sand. That is why nobody knew about them until lenses got good. Not every cell is small: a single nerve cell can run from the base of your spine to your toe, and an ostrich egg is one cell.' },
+    { img: 'cl-05', bg: '#ffffff', kicker: 'The count', h: 'Thirty-seven trillion',
+      body: 'The most careful estimate of how many cells a human body contains — done by adding up organ by organ rather than guessing — is about <b>37 trillion</b> (Bianconi and colleagues, 2013). Written out, that is 37 followed by twelve zeroes. They are being replaced constantly; the estimate is a snapshot of a population, not a fixed number.' },
+    { img: 'cl-06', bg: '#ffffff', kicker: 'The correction', h: 'You are not outnumbered ten to one',
+      body: 'You will still read that bacterial cells outnumber your own by ten to one. That figure came from a back-of-envelope calculation in 1972 and was repeated for forty years. When it was finally checked properly (<b>Sender, Fuchs and Milo, 2016</b>) the real ratio came out at roughly <b>one to one</b> — about 38 trillion bacteria to 30 trillion human cells. A number can survive a long time on being repeated.',
+      faq: [
+        { q: 'Where did the ten-to-one come from?', a: 'A 1972 paper estimating bacteria per gram of gut contents and multiplying up. It was offered as a rough order of magnitude, not a measurement, and the caveat fell off as it was quoted.' },
+        { q: 'How was it checked?', a: 'By measuring what is actually in the colon — the only part of you holding bacteria in real numbers — and counting human cells by organ. Red blood cells turn out to be about 84% of you by count.' },
+        { q: 'Does the ratio change?', a: 'Yes, by a lot, over the course of a day. A single visit to the toilet shifts it measurably, which is another reason a fixed ratio was always the wrong shape of answer.' }
+      ] },
+    { img: 'cl-07', bg: '#ffffff', kicker: 'The rule', h: 'Cells come from cells',
+      body: 'Schleiden and Schwann proposed in 1838–39 that all plants and all animals are made of cells. <b>Rudolf Virchow</b> added the part that mattered most in 1855: <i>omnis cellula e cellula</i> — every cell comes from a cell that was already alive. No cell has ever been seen to assemble itself from scratch. Your cells are an unbroken line of division going back billions of years.' },
+    { know: { qs: [
+        { q: 'Hooke named the cell after…', a: ['the small rooms monks slept in', 'the shape of a honeycomb', 'the Latin for "seed"'], ok: 0,
+          tell: 'He was looking at dead cork, a honeycomb of empty boxes, and reached for a word that fit the shape.' },
+        { q: 'The bacteria-to-human-cell ratio is closest to…', a: ['ten to one', 'one to one', 'a hundred to one'], ok: 1,
+          tell: 'The famous ten-to-one came from a rough 1972 estimate and stood unchecked for forty years. Measured properly in 2016: about 38 trillion to 30 trillion.' },
+        { q: 'Virchow\'s addition to cell theory was that…', a: ['plants and animals are both made of cells', 'every cell comes from another cell', 'cells can be seen with a microscope'], ok: 1,
+          tell: 'Not that cells exist — that none has ever been seen to start from nothing.' }
+      ] }, bg: '#ffffff', kicker: 'Try it', h: 'Check your knowing' },
+    { img: 'cl-09', bg: '#ffffff', kicker: 'The exception', h: 'The things that aren\'t cells',
+      body: 'A virus is not a cell. It has genetic material and a coat and nothing else — no machinery of its own, no way to make a copy of itself without borrowing a cell\'s equipment. This is why "is a virus alive?" has no agreed answer: it fails the definition biology built around the cell.',
+      faq: [
+        { q: 'So is a virus alive or not?', a: 'There is no settled answer, and that is the honest state of it. It carries genes and evolves, which looks alive; it has no metabolism and cannot copy itself alone, which does not.' },
+        { q: 'How much smaller than a cell?', a: 'Typically 20–300 nanometres against a 10,000-nanometre cell — so a few hundred to a few thousand would fit across one. Most are far too small for a light microscope; they were only seen once the electron microscope arrived in the 1930s.' },
+        { q: 'Are there other in-between things?', a: 'Yes. Viroids are a loop of RNA with no coat at all, and prions are a misfolded protein with no genetic material — both spread, neither is a cell.' }
+      ] },
+    { img: 'cl-10', bg: '#ffffff', kicker: 'After', h: 'Tonight',
+      body: 'Look at something living with your eyes as close as they will go — the edge of a leaf, the skin on your forearm, a slice of onion held to a window. You will not see cells. What you <i>can</i> see is the point: this whole layer of the world was invisible until 1665, and everything in the next three lessons happens down there.<br><br><b>Tonight:</b> find the smallest living thing you can actually see.' }
+  ];
+
+  var LESSONS = { cell: CELL_CARDS };
+  var LESSON_TITLES = { cell: 'The Cell' };
+  var COURSE = { title: 'Biology', lessons: [
+    { key: 'cell', title: 'The Cell', sub: 'Everything is made of these', cover: 'cl-01' },
+    { key: null, title: 'What\'s Inside One', sub: 'Written, not yet drawn' },
+    { key: null, title: 'DNA', sub: 'Written, not yet drawn' },
+    { key: null, title: 'Reading the Code', sub: 'Written, not yet drawn' }
+  ] };
+
+  /* ── The path ── */
+  var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  function renderPath() {
+    $('course-list').innerHTML = COURSE.lessons.map(function (l) {
+      var cover = l.cover ? '<img class="les-cv" src="' + SCI_IMG + l.cover + SCI_EXT + '" alt="" loading="lazy">'
+                          : '<span class="les-cv"></span>';
+      return '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
+        cover + '<div><div class="lt">' + esc(l.title) + '</div><div class="ld">' + esc(l.sub) + '</div></div>' +
+        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('course-list').querySelectorAll('[data-lesson]'), function (b) {
+      b.addEventListener('click', function () { openLesson(b.dataset.lesson); });
+    });
+  }
+
+  /* ── The deck ── */
+  var deckCards = CELL_CARDS, deckIdx = 0, deckKey = 'cell';
+  var preloaded = {};
+  function preload(cards) {
+    cards.forEach(function (c) {
+      if (!c.img || preloaded[c.img]) return;
+      preloaded[c.img] = 1; var im = new Image(); im.src = SCI_IMG + c.img + SCI_EXT;
+    });
+  }
+  var FAQ_BTN = '<button class="faq-btn" id="faq-btn" type="button" aria-label="More about this"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>';
+  function faqPanel(faq) {
+    return '<div class="faq-wrap" id="faq-wrap"><div class="faq-card">' +
+      '<div class="faq-hd">More about this</div>' +
+      faq.map(function (f) { return '<div class="faq-q">' + esc(f.q) + '</div><div class="faq-a">' + f.a + '</div>'; }).join('') +
+      '<div class="faq-close">tap anywhere to close</div></div></div>';
+  }
+  var TAP_HINT = '<div class="tap-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>';
+
+  // A wrong tap flips the card and warmly tells you the answer. No score, no
+  // timer, nothing red — you always finish.
+  function renderKnowStage(c) {
+    var qs = c.know.qs, qi = 0;
+    $('deck-stage').innerHTML = '<div class="tcard">' +
+      '<div class="deck-head"><div class="tcard-kicker">' + esc(c.kicker) + '</div>' +
+      '<div class="tcard-h">' + esc(c.h) + '</div></div>' +
+      '<div class="know"><div class="know-n" id="know-n"></div><div class="know-flip" id="know-flip"></div></div></div>';
+    var flip = $('know-flip'), nEl = $('know-n');
+    function renderQ() {
+      var q = qs[qi];
+      nEl.textContent = (qi + 1) + ' of ' + qs.length;
+      flip.className = 'know-flip';
+      flip.innerHTML = '<div class="know-face front"><div class="know-q">' + esc(q.q) + '</div>' +
+        q.a.map(function (t, i) { return '<button class="know-opt" data-ki="' + i + '" type="button">' + esc(t) + '</button>'; }).join('') +
+        '</div><div class="know-face back" id="know-back"></div>';
+      Array.prototype.forEach.call(flip.querySelectorAll('.know-opt'), function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var right = +btn.dataset.ki === q.ok;
+          $('know-back').innerHTML = '<div class="know-verdict">' + (right ? '✦ Just so.' : 'Actually —') + '</div>' +
+            '<div class="know-tell">' + esc(q.tell) + '</div>' +
+            '<div class="know-hint">tap the card to keep going</div>';
+          flip.classList.add('flipped');
+        });
+      });
+    }
+    flip.addEventListener('click', function (e) {
+      if (!flip.classList.contains('flipped')) return;
+      e.stopPropagation(); qi++;
+      if (qi >= qs.length) { deckNext(); return; }
+      renderQ();
+    });
+    renderQ();
+  }
+
+  function renderDeckCard() {
+    var c = deckCards[deckIdx];
+    $('school-lesson').style.background = c.bg || '#ffffff';
+    $('deck-prog').innerHTML = deckCards.map(function (_, i) {
+      return '<span class="deck-seg' + (i <= deckIdx ? ' on' : '') + '"></span>'; }).join('');
+    if (c.know) { renderKnowStage(c); }
+    else {
+      $('deck-stage').innerHTML = '<div class="tcard">' +
+        '<div class="deck-head"><div class="tcard-kicker">' + esc(c.kicker) + '</div>' +
+        '<div class="tcard-h">' + esc(c.h) + (c.faq ? FAQ_BTN : '') + '</div></div>' +
+        '<img class="tcard-img" src="' + SCI_IMG + c.img + SCI_EXT + '" alt="">' +
+        '<div class="deck-text"><div class="tcard-body">' + c.body + '</div>' +
+        (deckIdx === 0 ? TAP_HINT : '') + '</div>' +
+        (c.faq ? faqPanel(c.faq) : '') + '</div>';
+    }
+    // The ⓘ and its panel live inside the tap-zone stage, so both swallow the
+    // tap — otherwise opening the FAQ would also turn the card.
+    var faqBtn = $('faq-btn'), faqWrap = $('faq-wrap');
+    if (faqBtn && faqWrap) {
+      faqBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var on = faqWrap.classList.toggle('on');
+        faqBtn.classList.toggle('on', on);
+      });
+      faqWrap.addEventListener('click', function (e) {
+        e.stopPropagation();
+        faqWrap.classList.remove('on'); faqBtn.classList.remove('on');
+      });
+    }
+    $('deck-next').textContent = deckIdx >= deckCards.length - 1 ? 'Done' : 'Continue';
+  }
+
+  function openLesson(key) {
+    deckKey = LESSONS[key] ? key : 'cell';
+    deckCards = LESSONS[deckKey]; preload(deckCards); deckIdx = 0;
+    $('school-lesson').style.display = ''; document.body.classList.add('lesson-open');
+    renderDeckCard();
+  }
+  function closeLesson() {
+    $('school-lesson').style.display = 'none';
+    document.body.classList.remove('lesson-open');
+  }
+  function deckNext() {
+    if (deckIdx < deckCards.length - 1) { deckIdx++; renderDeckCard(); }
+    else { closeLesson(); }
+  }
+  function deckPrev() { if (deckIdx > 0) { deckIdx--; renderDeckCard(); } }
+
+  $('lesson-back').addEventListener('click', closeLesson);
+  $('deck-next').addEventListener('click', deckNext);
+  $('deck-prev').addEventListener('click', deckPrev);
+  // Imprint-style tap zones: the left edge steps back, the rest advances.
+  $('deck-stage').addEventListener('click', function (e) {
+    var r = this.getBoundingClientRect();
+    if (e.clientX - r.left < r.width * 0.24) deckPrev(); else deckNext();
+  });
+
+  renderPath();
+  preload(CELL_CARDS.slice(0, 2));
+  // Test hooks — the headless test drives the real page, never a copy.
+  window.__sci = { openLesson: openLesson, closeLesson: closeLesson,
+    next: deckNext, prev: deckPrev, at: function () { return deckIdx; },
+    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES };
+})();
+</script>
+</body>
+</html>
