@@ -1036,6 +1036,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   docs), name the exact current labels, and when a deep link needs an account/app
   ID you can't see, say so and ask her to paste the address-bar URL so you can
   build the exact link — don't invent a path.
+- **MINIMIZE THE SCROLLING — fit it on ONE SCREEN (Aug 2026, Sophie).** If a
+  surface can fit on one screen, it fits on one screen. When it can't, it gets a
+  **hairline tab row — never a taller page.**
+  - **The test for splitting into tabs is REFERENCE, not length:** "is it
+    something that's going to be referred to? Are you gonna have to switch
+    between the different views often?" Two views she reads against each other
+    are two tabs; a long page nobody cross-references is just a long page, and
+    tabbing it only hides things.
+  - Her worked example, the Episode Editor: "you need to switch between the
+    clips and between the raw transcript so you can take things from the
+    transcript, add it to the clips, and then go back and add more things. Back
+    and forth, back and forth, back and forth. So to make that easy — a
+    hairline pattern, 2 tabs."
+  - The rows measure their own underline, so adding a tab costs no layout work
+    — `.acctabs` in `docs/design-rules.md`.
+- **PROGRESSIVE EXPANSION AND CONTRACTION (Aug 2026, Sophie: "this has to do
+  with the abstraction principle").** A surface opens at the level of
+  abstraction she needs and expands only where she goes into it — so the first
+  thing on screen is the shape of the whole thing, not its contents. Her worked
+  example, the Story Room: organize by projects and by level of completion,
+  with the LAST hairline tab holding the ones she wants to start on.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's
@@ -1217,6 +1238,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   server-side ffmpeg; every re-roll is kept.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
+- **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
+  alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
+  self-contained piece the app has made, on one shelf, four to a row, so a
+  re-cut reuses clips instead of re-paying for them. **It generates and stitches
+  nothing and costs nothing.** Harvest reads movie scene clips (+ their re-rolls
+  and bridges) and quick-animates out of Firestore, then SWEEPS Storage for the
+  shorts chats built into their own prefixes — 350 clips on the first real build
+  (2026-08-14), 296 of them from the sweep. **The skip list is the load-bearing
+  half** and was corrected by RUNNING it: whole interviews, finished films, Cut
+  Marks renders, the Dump and the pad's still-encode cache are not clips, and a
+  swept file over 180s is hidden as a video. Search is the whole interface — a
+  real boolean grammar (AND, `OR`, `-term`, `"phrases"`, `tag:`/`title:`/`from:`/
+  `prompt:`/`note:`) over the name, tags, source film, the generation PROMPT and
+  her notes; semantic search is deliberately not built yet. **Her edits always
+  win** — a re-harvest never overwrites a field she touched. Posters read the
+  bytes via the Admin SDK, NOT the url (ffmpeg can't reach the sandbox's HTTPS
+  proxy — all 350 failed that way first). Tests: `node scripts/test-clips.js`.
+  **Full details: `docs/modules/audio-and-film.md`.**
 - **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
   comes a produced track with HER actual voice (resemble-enhance -> musicgen
   melody conditioning -> ffmpeg mix). ~$0.11 per 30s chunk. **It has no tile
