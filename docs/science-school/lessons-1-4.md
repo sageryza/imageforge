@@ -409,7 +409,37 @@ the After card last.
 - Lessons 2–4 are listed on the path, dimmed, captioned "written, not yet
   drawn". Building one = draw its cards from `cell-lesson-spec.json`'s style
   block, add a `LESSONS` entry, and un-dim the row.
-- Tests: `node scripts/test-science-school.js`.
+- **The chrome is PINK and carries no blue** (Sophie, 2026-08-14: *"can you
+  make the dashes at the top pink or at least match the pastel theme, no blue
+  — this is science school for girls not boys"*). v1's accent was a slate blue
+  chosen only for legibility, and the neutrals were mixed toward blue-grey to
+  match it, so the screen read cool and clinical. The accent is now a deep
+  rose `#b34a72` and every border, panel and ink tone is mixed toward blush.
+  The token is still NAMED `--gold` so the ported deck CSS still diffs against
+  witch.html's. The ART keeps its powder blue — that is her palette.
+- **A NOTE PER LESSON** (same message: *"since we're still iterating, can you
+  add a note field so I can add notes to each of the lessons"*). Three states,
+  the Compare-page shape: nothing written → a small "+ note"; written → her
+  words under the row; writing → the box, folding back on blur. Clearing the
+  box DELETES the note rather than storing a blank.
+  - Every lesson takes one, **including the ones that are only written** —
+    that is when a note is most useful ("do this one next").
+  - **Read what she wrote with one call:**
+    `curl https://imageforge-q125.onrender.com/api/science/notes` →
+    `{ notes: { cell: {text, at}, … } }`. Sweep it whenever Sophie messages,
+    the same snail-mail rhythm as the notes on an image — NOT on a timer.
+  - It has **its own open route** (`science.js`) instead of the Compare pages'
+    `/api/chatfeed/verdict`, and that is deliberate: `/api/chatfeed` sits
+    behind STUDIO_TOKEN. The gate is off today, so a verdict POST would work —
+    and would start 401ing silently the day it goes on, losing notes typed on
+    a PUBLIC page. The write is bounded instead: lesson key validated, 2000
+    chars, 60 writes an hour per IP.
+  - Her words are mirrored to `localStorage` the moment she types, so a failed
+    save is never a lost note — the row says "kept on this phone — not saved
+    yet" rather than pretending.
+- Tests: `node scripts/test-science-school.js` (the page, including the
+  no-blue rule and the whole note flow) and `node scripts/test-science-notes.js`
+  (the route against a stubbed Firestore — no network, no credentials).
 
 ## Still to decide
 
