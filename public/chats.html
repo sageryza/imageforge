@@ -418,6 +418,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   font-size:15px; line-height:1; width:31px; height:31px; padding:0; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
+/* The ARTIFACTS tab's two piles — REFERENCE over KEPT (Aug 2026, Sophie).
+   Sans, caps, not bold, like every other label in this app. Drawn only when
+   both piles exist, so a one-kind tab still reads as a plain list. */
+.bmkgrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); padding:14px 2px 5px;}
+.bmkgrp:first-child{padding-top:6px;}
 .sr-kind{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; flex:none;}
 /* Chat-name results sit above message hits — the name reads at full size. */
@@ -1706,7 +1712,36 @@ function paintBookmarks(el){
       : 'No messages kept yet — tap the bookmark under a message.';
     el.appendChild(s); return;
   }
-  items.forEach(function(m){
+  // THE ARTIFACTS TAB IS TWO PILES WHEN IT HAS TO BE — REFERENCE then KEPT
+  // (Aug 2026, Sophie: "we should save compare pages if they're comparing
+  // things that often need to be re-referenced… the different qualities of
+  // images like high, medium and low, or the different styles").
+  // A reference page is a standing answer, not a decision she made once, so
+  // it leads. The headings appear ONLY when both piles exist — the same rule
+  // the Compare tab's CURRENT/SUPERSEDED tabs follow, so a tab holding one
+  // kind of thing still looks like a plain list.
+  if(bmkTab==='page'){
+    var refs=items.filter(function(m){ return m.reference; });
+    var kept=items.filter(function(m){ return !m.reference; });
+    if(refs.length && kept.length){
+      el.appendChild(bmkGroup('Reference'));
+      refs.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+      el.appendChild(bmkGroup('Kept'));
+      kept.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+    } else {
+      refs.concat(kept).forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+    }
+    return;
+  }
+  items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+}
+function bmkGroup(word){
+  var h=document.createElement('div'); h.className='bmkgrp'; h.textContent=word; return h;
+}
+// One row, whichever pile it lands in. `el` is the grid it lives in, so a row
+// that removes itself (taking a page off the reference shelf) can repaint.
+function bmkRow(m, el){
+  {
     // The row is a wrapper, not a bare button, because the note is EDITABLE
     // right here (Sophie: naming a backlog of old bookmarks one at a time by
     // opening each message was a round trip per bookmark). An <input> cannot
@@ -1751,9 +1786,40 @@ function paintBookmarks(el){
     // Only `code` earns a badge now — it splits things WITHIN the Messages
     // tab. A chat or an artifact needs none: the tab overhead already says
     // which pile she is in.
+    // A reference page wears its TOPIC where the code badge sits — what it
+    // answers ("image quality", "styles") is the thing she is scanning for,
+    // and it is what the shelf is organised by.
     head.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span>'
       +(kind==='code'?'<span class="sr-kind">code</span>':'')
+      +(m.reference&&m.topic?'<span class="sr-kind">'+esc(m.topic)+'</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>';
+    // Taking one OFF the shelf — the Compare list's move idiom (↓), one
+    // control, no confirm: it un-files a page, it never deletes anything, and
+    // a chat can always put it back.
+    if(m.reference){
+      var off=document.createElement('button'); off.className='pr-sup';
+      off.textContent='↓';
+      off.title='Take off the reference shelf';
+      off.setAttribute('aria-label','Take off the reference shelf');
+      off.onclick=function(ev){
+        ev.stopPropagation();
+        m.reference=false;
+        // A page that is ALSO bookmarked stays in the pile (it is hers now,
+        // not the shelf's); one that was only here as a reference leaves.
+        if(!m.bookmarked) bmkCache=bmkCache.filter(function(x){ return x!==m; });
+        paintBookmarks(el);
+        api('/api/chatfeed/page/'+encodeURIComponent(m.id)+'/reference',{method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({reference:false})})
+          .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+          .catch(function(){
+            m.reference=true;
+            if(bmkCache.indexOf(m)<0) bmkCache.push(m);
+            paintBookmarks(el); toast('Couldn’t save that');
+          });
+      };
+      head.querySelector('.sr-top').appendChild(off);
+    }
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
     row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
@@ -1767,8 +1833,8 @@ function paintBookmarks(el){
       if(kind==='chat'){ openChat(m.chat); return; }
       openChat(m.chat, false, m.id);
     };
-    el.appendChild(row);
-  });
+    return row;
+  }
 }
 function renderBookmarks(el){
   el.innerHTML='<div class="state">Loading…</div>';
