@@ -1,0 +1,35 @@
+[
+ {
+  "id": "q-strawberry-medium",
+  "file": "/home/user/out/qtest/q-strawberry-medium.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single ripe strawberry. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "q-pomegranate-medium",
+  "file": "/home/user/out/qtest/q-pomegranate-medium.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a pomegranate broken open to show the seeds. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "q-broccoli-medium",
+  "file": "/home/user/out/qtest/q-broccoli-medium.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a head of broccoli. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ }
+]

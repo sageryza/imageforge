@@ -1,0 +1,5 @@
+[
+ { "id": "q-strawberry-medium", "size": "1024x1024", "quality": "medium", "scene": "a single ripe strawberry. No text or lettering anywhere." },
+ { "id": "q-pomegranate-medium","size": "1024x1024", "quality": "medium", "scene": "a pomegranate broken open to show the seeds. No text or lettering anywhere." },
+ { "id": "q-broccoli-medium",   "size": "1024x1024", "quality": "medium", "scene": "a head of broccoli. No text or lettering anywhere." }
+]
