@@ -1621,6 +1621,38 @@ lifted into a standalone tool later.
     interesting thing about it. `test-chats-accounts.js` asserts this
     exception (both accounts listed, one visible tab row); it previously
     asserted the opposite.
+  - **EVERY CHAT LEAVES A WRAP-UP BEHIND — what it was about and what went
+    down (Aug 2026, Sophie: "whenever I'm about to archive a chat the last
+    message of the chat is them explaining what the chat was about and what
+    went down … and that could go into the note at the top").** Measured the
+    day she asked: **73 of her 88 archived chats showed nothing but a name**,
+    so the archive was a list she could not read.
+    - **The obstacle that shapes the whole design: a chat is ASLEEP by the
+      time she archives it**, so it cannot be asked to summarise itself at
+      that moment. The wrap-up is therefore written AHEAD and frozen on the
+      way past. Three sources, best first: the chat writes its own
+      (`POST /api/chatfeed/wrapup {chat, session, line, text}`); failing
+      that, archiving freezes its **Update card** into one, free and instant,
+      because `updAsked`/`updDid` already answer the same question; failing
+      both, it stays blank rather than inventing something.
+    - **WRITE YOUR OWN WHEN THE WORK WRAPS UP** — not every turn. This is
+      what she reads months later to remember what a chat was, so it is worth
+      more care than the status card: `line` is the ONE line the row shows
+      (≤200 chars, keep the archive scannable), `text` is the full account
+      behind a tap (≤2000). Sending only `text` derives the line from its
+      first sentence.
+    - **TWO FIELDS, and NEITHER is `sophieNote`** (`wrapLine` + `wrapUp` on
+      the registry). Her own note still wins the row — a chat must never
+      overwrite a line she wrote, which is exactly why this did not reuse her
+      note field even though she described it as "the note at the top". Row
+      order is `note || wrapLine || need || doing`.
+    - **The expander is a SIBLING of the row, not a child** — a row is a
+      `<button>`, so a nested button is invalid and a tap would bubble into
+      opening the chat. `paintWrapUps` appends it after each row, archive
+      view only.
+    - Freezing happens only on the way IN; un-archiving re-freezes nothing.
+    - Tests: `node scripts/test-chats-wrapup.js` (the real freeze rule and the
+      real row-line function, lifted and run — no browser).
   - **ARCHIVING ASKS WHICH PILE, AND WHAT TO CALL IT (Aug 2026, Sophie: "the
     archive should have an option to add it into the built or other pile and
     also give an option to type a text box as a title for what it saves

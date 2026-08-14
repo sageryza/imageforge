@@ -770,13 +770,87 @@ router.get('/go', (req, res) => {
 
 // Archive / unarchive a chat — Sophie taps this herself in the app. Archived
 // chats move to a collapsed "Archived" section on the home views.
+// THE ARCHIVE WRAP-UP (Aug 2026, Sophie: "whenever I'm about to archive a chat
+// the last message of the chat is them explaining what the chat was about and
+// what went down … and that could go into the note at the top").
+//
+// Measured the day she asked: **73 of her 88 archived chats showed nothing but
+// a name**, so the archive was a list she could not read.
+//
+// The obstacle is that a chat is ASLEEP by the time she archives it — it cannot
+// be asked to summarise itself at that moment. So the wrap-up is written ahead
+// of time and frozen on the way past:
+//   1. a chat writes its own with POST /wrapup (the good one — it was there);
+//   2. failing that, archiving FREEZES the chat's Update card into one, free
+//      and instant, because `updAsked`/`updDid` already say what she asked for
+//      and what happened — the same question in different words;
+//   3. failing both, POST /wrapup/write reads the thread and writes one with
+//      Claude, which is the only path that can rescue a chat that already died.
+//
+// TWO FIELDS, because she asked for both shapes: `wrapLine` is the ONE line the
+// row shows (the archive stays scannable) and `wrapUp` is the full thing behind
+// a tap. Her own `sophieNote` still wins the row — a chat must never overwrite
+// a line she wrote, which is why this is not stored in `sophieNote` at all.
+const wrapLineOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+const wrapTextOf = (s) => String(s || '').replace(/[ \t]+/g, ' ').trim().slice(0, 2000);
+
+// Freeze whatever the chat already said about itself into a wrap-up. Returns
+// the patch to merge, or null when there is nothing to freeze — never invents.
+function frozenWrapUp(r) {
+  if (!r || r.wrapUp || r.wrapLine) return null;          // already has one
+  const asked = String(r.updAsked || '').trim();
+  const did = String(r.updDid || '').trim();
+  const doing = String(r.statusDoing || '').trim();
+  if (!asked && !did && !doing) return null;
+  const line = wrapLineOf(did || doing || asked);
+  const full = wrapTextOf([
+    asked && 'What you asked: ' + asked,
+    did && 'What it did: ' + did,
+    (!asked && !did && doing) && 'Was working on: ' + doing,
+  ].filter(Boolean).join('\n\n'));
+  return { wrapLine: line, wrapUp: full, wrapUpAt: new Date().toISOString(), wrapFrom: 'update-card' };
+}
+
 router.post('/archive', async (req, res) => {
   try {
     const { chat, archived } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
-    await regRef(chat)
-      .set({ archived: archived !== false }, { merge: true });
-    res.json({ ok: true, archived: archived !== false });
+    const on = archived !== false;
+    const ref = regRef(chat);
+    const patch = { archived: on };
+    // Only on the way IN. Taking a chat back out must not re-freeze anything,
+    // and un-archiving is a gesture that should cost nothing.
+    let froze = false;
+    if (on) {
+      const snap = await ref.get();
+      const add = frozenWrapUp(snap.exists ? snap.data() : null);
+      if (add) { Object.assign(patch, add); froze = true; }
+    }
+    await ref.set(patch, { merge: true });
+    res.json({ ok: true, archived: on, wrapUp: froze });
+  } catch (err) { fail(res, err); }
+});
+
+// A chat writes its OWN wrap-up — the good one, because it was there. Do this
+// when work wraps up, not every turn: it is what Sophie reads months later to
+// remember what a chat was. `line` is the one row line, `text` the full story.
+// Sending only `text` derives the line from its first sentence.
+router.post('/wrapup', async (req, res) => {
+  try {
+    const { chat, session, line, text } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
+    const full = wrapTextOf(text);
+    const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
+    if (!one && !full) return res.status(400).json({ error: 'line or text required' });
+    const del = admin.firestore.FieldValue.delete();
+    await regRef(resolved).set({
+      wrapLine: one || del,
+      wrapUp: full || del,
+      wrapUpAt: new Date().toISOString(),
+      wrapFrom: 'chat',
+    }, { merge: true });
+    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full });
   } catch (err) { fail(res, err); }
 });
 
