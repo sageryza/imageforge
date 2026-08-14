@@ -17,29 +17,37 @@
 
      The palette is her hearted "pastel A": mint / powder blue / butter /
      blush on PLAIN WHITE, which is also exactly what the card art is drawn in
-     (cell-lesson-spec.json). The UI accent is a deeper slate blue because the
-     pastels themselves are unreadable as text on white — the pastels are the
-     art and the decoration, the slate is the ink that has to be legible.
-     NO GRADIENTS anywhere (house rule).                                    */
+     (cell-lesson-spec.json).
+
+     THE CHROME IS PINK AND CARRIES NO BLUE AT ALL (Aug 2026, Sophie: "can you
+     make the dashes at the top pink or at least match the pastel theme, no
+     blue — this is science school for girls not boys"). v1's accent was a
+     slate blue picked purely for legibility, and every neutral around it was
+     mixed toward blue-grey to match, so the screen read cool and clinical.
+     Now the accent is a deep rose and every border, panel and ink tone is
+     mixed toward blush instead — deep enough to read as text on white, which
+     the blush pastel itself is far too pale to do. The ART still has powder
+     blue in it; that is her palette and it stays. NO GRADIENTS (house rule). */
   :root {
     --bg: #ffffff;
-    --bg-2: #f6faf8;
+    --bg-2: #fdf6f9;
     --surface: #ffffff;
-    --surface-2: #f4f8fb;
-    --panel: #f1f7f4;
-    --border: #dfe8ea;
-    --border-soft: #ecf2f3;
-    --gold: #3f7290;        /* the accent — named `gold` so the ported deck
-                               CSS stays declaration-for-declaration the same
-                               as witch.html's and can be diffed against it */
-    --gold-dim: #7ba3b8;
+    --surface-2: #fdf4f7;
+    --panel: #fbf1f5;
+    --border: #ecdfe5;
+    --border-soft: #f5ecf0;
+    --gold: #b34a72;        /* the accent — still NAMED `gold` so the ported
+                               deck CSS stays declaration-for-declaration the
+                               same as witch.html's and can be diffed against
+                               it. Its VALUE is the rose. */
+    --gold-dim: #cf88a8;
     --mint: #b6e5cf;
     --blue: #afc9e8;
     --butter: #f6e7a8;
     --blush: #f6c6da;
-    --text: #26313a;
-    --text-dim: #5f6f7a;
-    --text-faint: #9aa9b2;
+    --text: #33272e;
+    --text-dim: #6d5c65;
+    --text-faint: #a8969e;
     --radius: 6px;
     --serif: 'Cormorant Garamond', Georgia, serif;
   }
@@ -74,6 +82,18 @@
   .les-go svg { width: 18px; height: 18px; }
   .les.soon { opacity: .55; cursor: default; }
   .les.soon:hover { border-color: var(--border); }
+  /* A lesson's note. Empty, it is one small word — written, it shows what she
+     wrote. The row is a wrapper because a <textarea> cannot live inside the
+     <button> that opens the lesson (the Bookmarks-row finding). */
+  .lesrow + .lesrow { margin-top: 9px; }
+  .les + .les, .lesrow .les { margin-top: 0; }
+  .noteslot { padding: 3px 2px 0 4px; }
+  .note-add { background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--gold-dim); cursor: pointer; }
+  .note-add:hover { color: var(--gold); }
+  .note-txt { font-size: 13px; line-height: 1.45; color: var(--text-dim); cursor: text; padding: 2px 0; border-left: 2px solid var(--blush); padding-left: 8px; }
+  .note-box { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; color: var(--text); background: var(--surface-2); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 8px 9px; resize: vertical; }
+  .note-say { font-size: 11px; color: var(--text-faint); min-height: 13px; padding-left: 1px; }
+  .note-say.warn { color: var(--gold); }
 
   /* ── Full-screen lesson deck — ported from witch.html, palette aside ── */
   #school-lesson {
@@ -237,25 +257,105 @@
 
   var LESSONS = { cell: CELL_CARDS };
   var LESSON_TITLES = { cell: 'The Cell' };
+  /* `note` is the lesson's key in the notes store and is INDEPENDENT of `key`
+     (which is only set once a lesson is built) — so she can leave a note on a
+     lesson that is still only written, which is exactly when a note is most
+     useful. Never renumber or reuse a note key: it is what her words hang on. */
   var COURSE = { title: 'Biology', lessons: [
-    { key: 'cell', title: 'The Cell', sub: 'Everything is made of these', cover: 'cl-01' },
-    { key: null, title: 'What\'s Inside One', sub: 'Written, not yet drawn' },
-    { key: null, title: 'DNA', sub: 'Written, not yet drawn' },
-    { key: null, title: 'Reading the Code', sub: 'Written, not yet drawn' }
+    { key: 'cell', note: 'cell', title: 'The Cell', sub: 'Everything is made of these', cover: 'cl-01' },
+    { key: null, note: 'inside', title: 'What\'s Inside One', sub: 'Written, not yet drawn' },
+    { key: null, note: 'dna', title: 'DNA', sub: 'Written, not yet drawn' },
+    { key: null, note: 'code', title: 'Reading the Code', sub: 'Written, not yet drawn' }
   ] };
+
+  /* ── Notes on a lesson ─────────────────────────────────────────────────
+     Sophie's line to whoever is building that lesson, kept while the school
+     is being iterated on. Three states, the same shape as the note affordance
+     on a Compare page: nothing written → just a small "+ note"; written → HER
+     WORDS show under the row; writing → the box, folding back on blur. An
+     empty note is never a stored blank — clearing the box takes it back.
+
+     It saves to /api/science/note, which is open BY DESIGN (see science.js):
+     this page is public, so a note must not depend on the studio token. The
+     words are also mirrored to localStorage the moment she types, so a failed
+     save can never be a lost note — the box comes back holding what she
+     wrote, with a line saying it hasn't reached the server. */
+  var NOTES = {}, NOTE_LOCAL = 'science_notes';
+  function notesLocal() { try { return JSON.parse(localStorage.getItem(NOTE_LOCAL) || '{}'); } catch (e) { return {}; } }
+  function notesLocalSet(k, v) {
+    try { var a = notesLocal(); if (v) a[k] = v; else delete a[k]; localStorage.setItem(NOTE_LOCAL, JSON.stringify(a)); } catch (e) {}
+  }
+  function loadNotes() {
+    var local = notesLocal();
+    Object.keys(local).forEach(function (k) { NOTES[k] = local[k]; });
+    renderPath();
+    fetch('/api/science/notes').then(function (r) { return r.json(); }).then(function (d) {
+      // The server is the record; a local copy only survives where the save
+      // never landed, so it must not overwrite what came back.
+      Object.keys(d.notes || {}).forEach(function (k) { NOTES[k] = d.notes[k].text; notesLocalSet(k, null); });
+      renderPath();
+    }).catch(function () {});
+  }
+  function saveNote(key, text) {
+    var t = String(text || '').slice(0, 2000);
+    if (t) NOTES[key] = t; else delete NOTES[key];
+    notesLocalSet(key, t);                       // held until the save lands
+    // Fold back to her words IMMEDIATELY, before the network — the box closing
+    // must not wait on a request, and renderPath refuses to rebuild while a
+    // box is open, so the caller has to have removed it already.
+    renderPath();
+    var say = function (msg, warn) {
+      var s = $('course-list').querySelector('[data-slot="' + key + '"] .note-say');
+      if (s) { s.textContent = msg; s.className = 'note-say' + (warn ? ' warn' : ''); }
+    };
+    say('saving…');
+    fetch('/api/science/note', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ lesson: key, text: t }) })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); notesLocalSet(key, null); say(''); })
+      .catch(function () { say('kept on this phone — not saved yet', true); });
+  }
+  function noteSlot(l) {
+    var k = l.note, has = !!NOTES[k];
+    return '<div class="noteslot" data-slot="' + k + '">' +
+      (has ? '<div class="note-txt" data-noteedit="' + k + '">' + esc(NOTES[k]) + '</div>'
+           : '<button class="note-add" data-noteedit="' + k + '" type="button">+ note</button>') +
+      '<div class="note-say"></div></div>';
+  }
+  function openNoteBox(k) {
+    var slot = $('course-list').querySelector('[data-slot="' + k + '"]');
+    if (!slot || slot.querySelector('textarea')) return;
+    slot.innerHTML = '<textarea class="note-box" rows="3"></textarea><div class="note-say"></div>';
+    var ta = slot.querySelector('textarea');
+    ta.value = NOTES[k] || '';
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.addEventListener('blur', function () {
+      var v = ta.value;
+      ta.remove();               // the row is no longer being typed in, so
+      saveNote(k, v);            // renderPath may rebuild it
+    });
+  }
 
   /* ── The path ── */
   var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
   function renderPath() {
+    // Never rebuild the row she is typing in — that would drop the box (and
+    // the keyboard) mid-sentence when a save answers.
+    var typing = $('course-list').querySelector('textarea');
+    if (typing) return;
     $('course-list').innerHTML = COURSE.lessons.map(function (l) {
       var cover = l.cover ? '<img class="les-cv" src="' + SCI_IMG + l.cover + SCI_EXT + '" alt="" loading="lazy">'
                           : '<span class="les-cv"></span>';
-      return '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
+      return '<div class="lesrow">' +
+        '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
         cover + '<div><div class="lt">' + esc(l.title) + '</div><div class="ld">' + esc(l.sub) + '</div></div>' +
-        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>';
+        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>' +
+        noteSlot(l) + '</div>';
     }).join('');
     Array.prototype.forEach.call($('course-list').querySelectorAll('[data-lesson]'), function (b) {
       b.addEventListener('click', function () { openLesson(b.dataset.lesson); });
+    });
+    Array.prototype.forEach.call($('course-list').querySelectorAll('[data-noteedit]'), function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); openNoteBox(b.dataset.noteedit); });
     });
   }
 
@@ -370,12 +470,13 @@
     if (e.clientX - r.left < r.width * 0.24) deckPrev(); else deckNext();
   });
 
-  renderPath();
+  loadNotes();
   preload(CELL_CARDS.slice(0, 2));
   // Test hooks — the headless test drives the real page, never a copy.
   window.__sci = { openLesson: openLesson, closeLesson: closeLesson,
     next: deckNext, prev: deckPrev, at: function () { return deckIdx; },
-    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES };
+    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES,
+    notes: function () { return NOTES; }, openNote: openNoteBox };
 })();
 </script>
 </body>
