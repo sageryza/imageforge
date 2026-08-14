@@ -268,7 +268,12 @@ h1{margin:0;font-size:19px;font-weight:400;letter-spacing:.01em}
     card.style.transition = 'transform .24s, opacity .24s';
     card.style.transform = 'translate(' + (liked ? 460 : -460) + 'px,40px) rotate(' + (liked ? 22 : -22) + 'deg)';
     card.style.opacity = '0';
-    setTimeout(function () { commit(liked); busy = false; }, 190);
+    // 130ms, not the animation's full 240 — the guard exists to stop ONE tap
+    // committing twice, and any dead window longer than a fast tap silently
+    // swallows the second tap instead (measured: at 120ms apart, nearly half
+    // were lost). Deliberate tapping is 250ms+, so this drops none of it while
+    // still being impossible to double-fire.
+    setTimeout(function () { commit(liked); busy = false; }, 130);
   }
 
   function commit(liked) {
