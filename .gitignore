@@ -43,3 +43,7 @@ docs/cannon-language/*.log
 # unpublished fiction is not ours to publish — the plan and state are banked to
 # membry Storage (storybook/marla/, private objects) instead.
 docs/marla/
+
+# Her unpublished stories — same reason as docs/marla/. Banked to membry
+# Storage at storybooks/ instead.
+docs/storybooks/

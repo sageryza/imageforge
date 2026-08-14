@@ -38,7 +38,13 @@ const PLAN = path.join(ROOT, 'docs/marla/pages.json');
 const REV = path.join(ROOT, 'docs/marla/revisions.json');
 const STATE = path.join(ROOT, 'docs/marla/state.json');
 const STYLE_REF = path.join(ROOT, 'refs/sage-sandy-mirror.png');
-const SHEET = path.join(os.tmpdir(), 'marla-sheet-v2.png');
+// The round tag versions every artefact this run writes — the sheet, the art,
+// the page, and the state key. A redraw must never overwrite the picture a
+// previous round already filed in the Assets tab: that tile is labelled and she
+// may have left a note on it, and silently swapping the bytes underneath it
+// makes her note describe a picture that no longer exists.
+const TAG = (process.argv.indexOf('--tag') !== -1 && process.argv[process.argv.indexOf('--tag') + 1]) || 'v2';
+const SHEET = path.join(os.tmpdir(), `marla-sheet-${TAG}.png`);
 
 const QUALITY = 'medium', MODEL = 'gpt-image-2', SIZE = '1024x1536', W = 1024, H = 1536;
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
@@ -157,11 +163,11 @@ async function upload(buf, dest, ct) {
 
 async function buildSheet() {
   const prompt = [STYLE_ONE, '', `Draw: ${rev.character.sheetScene}`, '', NO_TEXT].join('\n');
-  console.log('drawing Marla character sheet v2…');
+  console.log(`drawing Marla character sheet ${TAG}…`);
   const buf = await drawWithRetry(prompt, [], 'sheet');
   fs.writeFileSync(SHEET, buf);
-  const url = await upload(buf, 'storybook/marla/refs/marla-v2.png', 'image/png');
-  state.marlaSheetV2 = { url, prompt, at: Date.now() };
+  const url = await upload(buf, `storybook/marla/refs/marla-${TAG}.png`, 'image/png');
+  state[`marlaSheet_${TAG}`] = { url, prompt, at: Date.now() };
   saveState();
   console.log(`   sheet ✓  ${url}`);
   return SHEET;
@@ -169,8 +175,8 @@ async function buildSheet() {
 
 async function ensureSheet() {
   if (fs.existsSync(SHEET)) return SHEET;
-  if (state.marlaSheetV2?.url) {
-    const r = await fetch(state.marlaSheetV2.url);
+  if (state[`marlaSheet_${TAG}`]?.url) {
+    const r = await fetch(state[`marlaSheet_${TAG}`].url);
     fs.writeFileSync(SHEET, Buffer.from(await r.arrayBuffer()));
     return SHEET;
   }
@@ -183,6 +189,12 @@ async function ensureTommy() {
     fs.writeFileSync(f, Buffer.from(await r.arrayBuffer()));
   }
   return f;
+}
+
+function bucket() {
+  const k = TAG === 'v2' ? 'v2' : TAG;
+  if (!state[k]) state[k] = {};
+  return state[k];
 }
 
 async function main() {
@@ -200,7 +212,7 @@ async function main() {
 
   console.log(`redrawing ${only.length} page(s) · about $${(only.length * 0.06).toFixed(2)}`);
   for (const n of only) {
-    if (state.v2[n]?.pageUrl && !force) { console.log(`page ${n}: already redrawn`); continue; }
+    if (bucket()[n]?.pageUrl && !force) { console.log(`page ${n}: already redrawn`); continue; }
     const page = plan.pages.find((p) => p.n === n);
     const names = (plan.cast[String(n)] || []).filter((w) => w === 'marla' || w === 'tommy');
     const cards = names.map((w) => (w === 'marla' ? marlaCard : tommyCard));
@@ -209,9 +221,9 @@ async function main() {
     try {
       const art = await drawWithRetry(prompt, cards, `page ${n}`);
       const stamp = String(n).padStart(2, '0');
-      const artUrl = await upload(art, `storybook/marla/art/p${stamp}-v2.png`, 'image/png');
-      const pageUrl = await upload(await captionPage(art, page.words), `storybook/marla/pages/p${stamp}-v2.webp`, 'image/webp');
-      state.v2[n] = { n, prompt, scene: sceneFor(n), artUrl, pageUrl, cards: names, at: Date.now() };
+      const artUrl = await upload(art, `storybook/marla/art/p${stamp}-${TAG}.png`, 'image/png');
+      const pageUrl = await upload(await captionPage(art, page.words), `storybook/marla/pages/p${stamp}-${TAG}.webp`, 'image/webp');
+      bucket()[n] = { n, prompt, scene: sceneFor(n), artUrl, pageUrl, cards: names, at: Date.now() };
       saveState();
       console.log(`   ✓ ${pageUrl}`);
     } catch (e) {
@@ -233,13 +245,13 @@ async function repoint(nums) {
 
   let moved = 0;
   for (const n of nums) {
-    const v2 = state.v2[n];
+    const v2 = bucket()[n];
     if (!v2?.pageUrl) continue;
     const doc = byPage.get(n);
     if (!doc) { console.log(`page ${n}: no creation doc, skipped`); continue; }
     const v1Url = doc.get('url');
     if (v1Url === v2.pageUrl) continue;
-    await doc.ref.update({ url: v2.pageUrl, version: 2, supersededUrl: v1Url });
+    await doc.ref.update({ url: v2.pageUrl, version: TAG, supersededUrl: v1Url });
     // History: relabel the old picture in Assets, then file the new one.
     await fetch(`${BASE}/api/gallery`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -252,11 +264,11 @@ async function repoint(nums) {
     await fetch(`${BASE}/api/gallery`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v2.pageUrl,
-        description: `Page ${n} v2 — ${short}`, prompt: 'gpt-image-2 · medium' }),
+        description: `Page ${n} ${TAG} — ${short}`, prompt: 'gpt-image-2 · medium' }),
     });
     const style = v2.prompt.replace(`Draw: ${v2.scene}`, 'Draw: [content]')
       + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
-      + (v2.cards.length ? `, then the ${v2.cards.join(' and ')} character card${v2.cards.length > 1 ? 's' : ''} (Marla is the v2 three-view sheet)` : '')
+      + (v2.cards.length ? `, then the ${v2.cards.join(' and ')} character card${v2.cards.length > 1 ? 's' : ''} (Marla is the ${TAG} three-view sheet)` : '')
       + '. gpt-image-2 edits, size 1024x1536, quality medium.';
     await fetch(`${BASE}/api/gallery/assets/prompt`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
