@@ -899,6 +899,13 @@ router.post('/hide', async (req, res) => {
 // localStorage when she opens a chat) and from `answeredAt`: checking a
 // notification off says "I know about this", not "I have read the thread" and
 // not "this chat is done".
+//
+// Since Aug 2026 it is also the ONLY thing that takes a card off the Update
+// tab — she asked for cards to stay put until she checks them, which retired
+// the pin that used to opt one card out of auto-clearing. So the app must
+// write this stamp on the ✓ and on nothing else: opening a chat used to POST
+// here too, purely so the widget's count matched, and that would now silently
+// clear cards she never checked.
 router.post('/notif-seen', async (req, res) => {
   try {
     const { chat, seen } = req.body || {};
@@ -913,32 +920,14 @@ router.post('/notif-seen', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// PIN an Update card (Aug 2026, Sophie: "a pin button so I can pin it and then
-// open it but it'll still be there"). Every other mark on this screen is a
-// self-clearing STAMP — a card leaves the moment she opens the chat or taps
-// the ✓ — which is right for news and wrong for the one thing she is actually
-// carrying around. So `pinned` is a plain BOOLEAN, deliberately: nothing
-// newer, nothing she reads, and no passage of time may clear it. Only she
-// does, with the pin again or the ✓ (which unpins as it clears — "done" has
-// to mean done, or the check would look broken on a pinned card).
-//
-// NAMED `newsPinned`, on its own route, because `pinned` + POST /pin were
-// ALREADY TAKEN by the pinned DELIVERABLE (the film at the top of a thread),
-// which stores an OBJECT there. Reusing either would have shadowed that
-// route — Express takes the first match — and made every chat with a pinned
-// film look like a pinned card, with the ✓ deleting the film.
-router.post('/news-pin', async (req, res) => {
-  try {
-    const { chat, pinned } = req.body || {};
-    if (!chat) return res.status(400).json({ error: 'chat required' });
-    const on = pinned !== false;
-    await regRef(await followMoves(chat)).set(
-      { newsPinned: on ? true : admin.firestore.FieldValue.delete() },
-      { merge: true },
-    );
-    res.json({ ok: true, pinned: on });
-  } catch (err) { fail(res, err); }
-});
+// (POST /news-pin lived here — the Update card's pin, a `newsPinned` boolean
+// on the registry. Removed Aug 2026: an Update card is now kept until the ✓
+// whatever happens, so the pin had nothing left to opt out of. Stale
+// `newsPinned:true` fields may still sit on old registry docs; nothing reads
+// them. Note for whoever adds the next route here — `pinned` and POST /pin
+// are TAKEN by the pinned DELIVERABLE, the film at the top of a thread, which
+// stores an OBJECT there; Express takes the first match, so a route named
+// `pin` here would shadow it.)
 
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
@@ -1134,12 +1123,12 @@ router.post('/status', async (req, res) => {
 // timeline and must never pull the real feed (~500KB) to do it.
 //
 // It answers the same question the tab does — which chats have something she
-// hasn't checked off — with ONE difference that is forced and worth knowing:
-// the tab's floor is `notifSeenAt` OR the per-device `seen` mark in the
-// phone's localStorage, and a widget process can't read the web view's
-// storage. So this uses `notifSeenAt` alone: the ✓ she taps on a card settles
-// the widget too, but merely opening a chat does not. Erring toward showing
-// one row too many is the right way round for a glance surface.
+// hasn't checked off — off the SAME floor: `notifSeenAt`, the ✓ and nothing
+// else. That used to be a forced compromise (the tab also counted the
+// per-device `seen` mark, which a widget process cannot read out of the web
+// view's storage, so this route was deliberately one row too generous). Since
+// Aug 2026 the tab keeps every card until the ✓ as well, so the two surfaces
+// agree exactly and the widget's count is the tab's count.
 //
 // Cost: the registry (5-min cached) + ONE capped message read. Nothing
 // per-chat, so a widget refresh is cheap however many chats exist.

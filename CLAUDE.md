@@ -2186,10 +2186,28 @@ lifted into a standalone tool later.
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
     not silence v4, so the card is gone only while nothing newer has landed
     and the next version brings it back by itself. Nothing has to un-check
-    anything. A card also leaves when she OPENS the chat (`seen`, the
-    localStorage mark the unread dot reads), so the floor is whichever of the
-    two is later. Both are deliberately separate from `answeredAt` — "I know
-    about this" is not "this chat is done".
+    anything. It is deliberately separate from `answeredAt` — "I know about
+    this" is not "this chat is done".
+  - **THE ✓ IS THE ONLY THING THAT TAKES A CARD OFF THIS SCREEN (Aug 2026,
+    Sophie: "make the default behavior that it's pinned until I mark the
+    checkmark and get rid of the pin").** `newsFloor` is `notifSeenAt` and
+    nothing else. It used to be the LATER of that stamp and the per-device
+    `seen` mark (localStorage, written when she opens a chat) — so reading a
+    thread quietly cleared its card, and a PIN existed to opt one card out of
+    that. Every card is kept by default now, so the pin is gone; `seen` still
+    drives the unread dot and has no say here.
+    - **`markSeen` must NOT post `/notif-seen`.** It used to, purely so the
+      widget's count matched the tab's, and that was harmless while opening
+      a chat already cleared its card. It would now clear a card she never
+      checked. The widget has always counted off `notifSeenAt` alone, so the
+      two surfaces agree by construction — that is what `test-chats-news.js`
+      §5b2 asserts.
+    - **`newsPinned` / `POST /news-pin` are REMOVED.** Stale
+      `newsPinned:true` fields may still sit on old registry docs; nothing
+      reads them. If you add a route here later, note that `pinned` + `POST
+      /pin` are TAKEN by the pinned DELIVERABLE (the film at the top of a
+      thread), which stores an OBJECT there — Express takes the first match,
+      so a route named `pin` would shadow it and the ✓ would delete the film.
   - **It ignores the account tabs**, like Status does: this is the
     what-happened-while-I-was-away screen, and splitting it in half would mean
     checking two screens to know she is caught up. The card carries the
@@ -2227,33 +2245,20 @@ lifted into a standalone tool later.
     - **The FALLBACK when a chat has never written one is its reply's TLDR
       under "What I did"** — honest, and it means the ⌄ is not a button that
       appears and vanishes down the list for no visible reason.
-  - **THE CARD'S TOP ROW: name · pin · ⌄ · TIME · ✓ (Aug 2026, Sophie: the ⌄
-    "is a little bit close to the check box so I'm worried I'll tap that by
+  - **THE CARD'S TOP ROW: name · ⌄ · TIME · ✓ (Aug 2026, Sophie: the ⌄ "is a
+    little bit close to the check box so I'm worried I'll tap that by
     accident — maybe just move it on the other side of the clock time").**
     The timestamp is lifted OUT of the inner `.crow` and rendered as a
     sibling in `.nwtop` precisely so it sits BETWEEN the expand arrow and the
     clearing ✓; the row gap also went 3px → 9px. Measured at 390px: 68px now
-    separates ⌄ from ✓, against 3px before. Anything added to that row must
-    keep the ✓ alone on the far side of the time — it is the one tap that
-    makes a card disappear.
-  - **THE PIN — `newsPinned`, a plain BOOLEAN (Aug 2026, Sophie: "a pin
-    button so I can pin it and then open it but it'll still be there").**
-    Every other mark on this screen is a self-clearing stamp; this is the one
-    thing she keeps, so NOTHING clears it — not opening the chat, not a newer
-    reply, not time. Only the pin again, or the ✓ (which unpins as it clears,
-    or the check would look broken on a pinned card). Pinned cards sort
-    FIRST, and a card that is on the screen only because it is pinned
-    (`pinnedOnly`) is removed the moment she unpins it.
-    - **`newsPinned` / `POST /news-pin` are named around a COLLISION, not by
-      preference: `pinned` + `POST /pin` were already taken** by the pinned
-      DELIVERABLE (the film at the top of a thread), which stores an OBJECT
-      there. Reusing either would have shadowed that route (Express takes the
-      first match) and made every chat with a pinned film read as a pinned
-      card — with the ✓ deleting the film. Two different features, two
-      fields; don't merge them.
+    separates ⌄ from ✓, against 3px before — the pin sat to the LEFT of the ⌄,
+    so removing it left that gap alone (67px measured after). Anything added
+    to that row must keep the ✓ alone on the far side of the time — it is the
+    one tap that makes a card disappear.
   - Tests: `node scripts/test-chats-news.js`, and
-    `node scripts/test-chats-news-pin.js` (hit-measures the ⌄/✓ gap and
-    drives a pinned card through being opened).
+    `node scripts/test-chats-news-sticky.js` (hit-measures the ⌄/✓ gap, and
+    drives a card through being opened to prove only the ✓ clears it). It
+    replaced `test-chats-news-pin.js`, which asserted the opposite contract.
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
   know — it brings me out automatically, and then I have to go back to the
