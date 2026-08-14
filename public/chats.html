@@ -4017,7 +4017,14 @@ function openPage(p){
       if(doc) doc.addEventListener('click', function(e){
         var paused=pausedThisTap; pausedThisTap=false;
         var t=e.target;
-        if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
+        // ANY tap pauses a running scroll, before anything else is considered.
+        // This used to `return` for interactive elements WITHOUT pausing, so a
+        // tap on a play button, a link, an audio transport or a form field left
+        // the page creeping (Sophie, Aug 2026: "every time I press play it also
+        // scrolls the page"). Pausing first makes every element type safe
+        // without having to enumerate them.
+        if(pill._playing && pill._playing()){ if(pill._stop) pill._stop(); return; }
+        if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,option,video,audio,[onclick],[contenteditable]:not([contenteditable="false"]),[role="button"],[role="link"],[role="checkbox"],[role="slider"],[role="tab"]')) return;
         // `[data-nostop]` is compare.js's documented opt-out, and the EMBEDDED
         // path used to ignore it — so on a page whose content is itself
         // tappable (a word picker), every tap toggled the scroll on. A marked
@@ -4032,7 +4039,7 @@ function openPage(p){
         // while `.cmp-lb` (the image one) was on it — so pressing play inside
         // a film lightbox toggled the page scrolling behind it, on every tap
         // of the transport (Sophie, Aug 2026, on the takes pages).
-        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb,.cmp-vlb')){ if(pill._stop) pill._stop(); return; }
+        if(t && t.closest && t.closest('[data-nostop],img,picture,figure,svg,canvas,iframe,embed,object,.cmp-lb,.cmp-vlb')){ if(pill._stop) pill._stop(); return; }
         // this tap's own pointerdown just paused a running scroll — the tap
         // meant PAUSE, not toggle-back-on
         if(paused) return;
