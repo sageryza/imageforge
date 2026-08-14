@@ -58,4 +58,28 @@ ok('the default note says what the ask is and how long it takes', () => {
   assert(/fridge/i.test(html) && /minute/i.test(html), 'default copy lost its point');
 });
 
+/* The /invite guard's shape, without booting the router: a dry run must be
+   possible with no credentials at all, and a real send must name BOTH missing
+   pieces rather than failing on the first one. */
+function guard(dryRun, env) {
+  if (dryRun) return null;
+  const missing = [];
+  if (!env.BREVO_API_KEY) missing.push('BREVO_API_KEY');
+  if (!env.BREVO_FROM_EMAIL) missing.push('BREVO_FROM_EMAIL (a sender verified in Brevo)');
+  return missing.length ? 'not set on this server: ' + missing.join(' and ') : null;
+}
+
+ok('a dry run needs no credentials', () => {
+  assert.strictEqual(guard(true, {}), null);
+});
+
+ok('a real send names EVERY missing piece, not just the first', () => {
+  const e = guard(false, {});
+  assert(e.includes('BREVO_API_KEY') && e.includes('BREVO_FROM_EMAIL'), e);
+});
+
+ok('a real send passes once both are set', () => {
+  assert.strictEqual(guard(false, { BREVO_API_KEY: 'k', BREVO_FROM_EMAIL: 'a@b.c' }), null);
+});
+
 console.log(`\n${pass} passed`);
