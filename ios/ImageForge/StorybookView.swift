@@ -346,9 +346,12 @@ struct StorybookView: View {
 
     private func loadPages() async {
         loading = true
-        if let all = try? await ForgeService.shared.fetchCreations(limit: 90) {
-            // Creations come newest-first; a book reads oldest-first.
-            pages = all.filter { $0.type == "storybook" }.reversed()
+        // Ask for the storybook pages themselves, oldest-first (the order a book
+        // reads in). This used to take the newest 90 creations and filter them,
+        // which meant an ordinary week of other work pushed a finished book out
+        // of its own tool — see fetchCreations(ofType:).
+        if let all = try? await ForgeService.shared.fetchCreations(ofType: "storybook") {
+            pages = all
             current = max(0, (pages.count - 1) / 2)   // last spread
         }
         loading = false

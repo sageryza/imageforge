@@ -440,9 +440,48 @@ final class ForgeService {
     }
 
     /// The first page only — for the screens that want a fixed recent slice
-    /// (Storybook, Instagram) rather than something to scroll back through.
+    /// (Instagram) rather than something to scroll back through.
     func fetchCreations(limit: Int = 60) async throws -> [Creation] {
         try await fetchCreationPage(limit: limit).items
+    }
+
+    /// EVERY creation of one `type`, oldest-first — for a screen whose content
+    /// is a SET rather than a recent slice (Storybook: a book is all of its
+    /// pages or it is not a book).
+    ///
+    /// Storybook used to take the newest 90 creations and filter them down,
+    /// which is the same hard truncate the gallery and the Assets tab each had:
+    /// ~55 creations land in a normal day, so a 36-page book fell out of its own
+    /// tool inside two days and read as the book having been lost. Nothing was
+    /// ever deleted — it just stopped being asked for.
+    ///
+    /// ONE equality filter and the sort done IN MEMORY, deliberately: adding
+    /// `.order(by: "createdAt")` to a `whereField` on another field needs a
+    /// composite index, and the house pattern across this codebase is to avoid
+    /// one. A book is hundreds of docs at most, so the sort is free.
+    func fetchCreations(ofType type: String) async throws -> [Creation] {
+        try await ensureSignedIn()
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let snap = try await Firestore.firestore()
+            .collection("users").document(uid).collection("creations")
+            .whereField("type", isEqualTo: type)
+            .getDocuments()
+        return snap.documents.compactMap { doc -> (Date, Creation)? in
+            let data = doc.data()
+            guard let urlStr = data["url"] as? String, let url = URL(string: urlStr) else { return nil }
+            let at = (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast
+            return (at, Creation(
+                id: doc.documentID,
+                type: (data["type"] as? String) ?? "image",
+                url: url,
+                prompt: data["prompt"] as? String,
+                model: data["model"] as? String,
+                quality: data["quality"] as? String,
+                style: data["style"] as? String
+            ))
+        }
+        .sorted { $0.0 < $1.0 }          // oldest first — the order a book reads in
+        .map(\.1)
     }
 
     /// Recovery: if a sticker generation's on-screen call dropped (e.g. the app

@@ -38,3 +38,8 @@ docs/cannon-language/*.log
 # from scripts/darius-*.json — the pages themselves live in Firestore)
 .darius-cache/
 .darius-pages/
+
+# Sophie's own story text + the book's build state. This repo is PUBLIC and her
+# unpublished fiction is not ours to publish — the plan and state are banked to
+# membry Storage (storybook/marla/, private objects) instead.
+docs/marla/
