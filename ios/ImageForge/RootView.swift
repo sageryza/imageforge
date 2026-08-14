@@ -156,7 +156,10 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dump:      DumpView().forgeToolBar("Dump")
         case .playground: PlaygroundView()
         case .scratchpad: ScratchPadView()
-        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform").forgeToolBar("Voice Studio")
+        // mic: the Voice Studio's CHANGE tab records a take in the page
+        // (Aug 2026). Without this the WKWebView denies getUserMedia and the
+        // record button dead-ends — the file picker still works either way.
+        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform", mic: true).forgeToolBar("Voice Studio")
         case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true).forgeToolBar("Song Station")
         case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle").forgeToolBar("Characters")
         case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack").forgeToolBar("Films")
