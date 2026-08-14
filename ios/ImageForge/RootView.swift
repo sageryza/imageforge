@@ -479,7 +479,9 @@ struct RootView: View {
             if t == .freeform { return false }
             // Vector is a web page with its own injected pill too.
             if t == .vector { return false }
-            // Chunking is served with { pill: true } as well.
+            // Chunking has NO pill at all — its sticky search row occupies the
+            // corner the pill would need (see the /chunking route in server.js),
+            // so the native one must not draw over it either.
             if t == .chunking { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills

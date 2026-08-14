@@ -760,7 +760,11 @@ router.get('/', async (req, res) => {
       limit: Math.min(Number(req.query.limit) || 120, 400),
       offset: Number(req.query.offset) || 0,
     });
-    res.json({ ...out, facets: facetsOf(all, { hidden }), library: all.length });
+    // `library` is what the shelf holds under the SAME hidden rule the results
+    // used, so "24 of 337" compares two numbers that mean the same thing —
+    // counting every doc here made the total jump by the hidden ones.
+    const library = hidden ? all.length : all.filter((c) => !c.hidden).length;
+    res.json({ ...out, facets: facetsOf(all, { hidden }), library });
   } catch (err) { fail(res, err); }
 });
 
