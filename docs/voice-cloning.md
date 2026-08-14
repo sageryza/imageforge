@@ -207,6 +207,42 @@ is rebuilt from both**, which is the same blend-two-voices trap as stage 4.
 Delete the superseded one (`DELETE /v1/voices/{id}/samples/{sample_id}`) and
 confirm exactly one sample remains.
 
+## Finding her storytelling memos without listening to any of them (2026-08-14)
+
+An instant clone copies the REGISTER of what it is fed, not just the timbre —
+so "which recordings" is the question that decides how the clone sounds, and
+Sophie should never have to audition 1,137 memos to answer it. Ranking the
+manifest's transcripts does it for free, no model call:
+
+- Score each transcript for narrative markers — `and then`, `he said`,
+  `I was like`, `we went`, `turns out`, `the first time` — as a count PER 1,000
+  characters, not a raw count, or long memos win purely by being long.
+- Drop category `conversation` (a second speaker disqualifies a file),
+  plus `empty`, `toolong` and `cover`.
+- **The `dream` category dominates the top of the ranking, and that is not an
+  accident** — a dream memo is her narrating events out loud to nobody, which
+  is structurally the same performance as telling a story. 115 candidates,
+  20.6 hours, from a 1,137-memo archive.
+- Then screen on MEASUREMENT (stage 1's rules), never by ear. Of the 8-file
+  2026 shortlist, `prep-voice-training.sh` SKIPped exactly one at
+  `needs 8.3dB` — recorded across the room, correctly dropped rather than
+  boosted.
+
+**A memo can be too LOUD, and the fix is the same fixed gain going the other
+way.** Five of the seven survivors needed NEGATIVE gain (−0.5 to −4.6 dB), and
+so did the Jonathan memo at −3.5 dB — the first instant clone off it was
+trained on audio 3.5 dB hot because it was cut for pauses but never levelled.
+Cutting silences is not conditioning; run the prep script even on a single-file
+IVC.
+
+**Built this way: `Sophie — instant v2 (Aug 14, stories)`,
+`7Se81wBB6ZL5kXV2XKu5`.** 12 minutes — the conditioned Jonathan memo in full
+plus 75s out of each of seven 2026 dream memos, 0.3s of silence between pieces,
+~34dB SNR. **Uploaded as TWO files because IVC refuses anything over 11MB per
+file** (`upload_file_size_exceeded`); the multi-file form of `/v1/voices/add`
+takes repeated `files=` parts and that is the clean way around it, not a
+bitrate cut.
+
 ## Where things are kept
 
 - Training chunks: `voice-training/morning-2026-08-v2/` (membry Storage).
@@ -215,3 +251,7 @@ confirm exactly one sample remains.
 - The Evan/Charlie IVC sample and its test renders:
   `voice-clones/evan-charlie/` (deckfactory Storage). The audio is deliberately
   NOT in this repo — it is a personal recording and this repo is public.
+- The Aug 14 instant clones: `voice-clones/2026-08-14-jonathan-memo/` (v1) and
+  `voice-clones/2026-08-14-stories-v2/` (v2, with its prep measurements and the
+  shortlist it was built from). Source audio private, test renders public, and
+  none of it in this repo — same rule as above.
