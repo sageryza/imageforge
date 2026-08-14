@@ -29,7 +29,18 @@ these values; this file is the human record.
   `eleven_multilingual_v2` + settings of record as everything else. Earlier
   instants (`Sophie — instant (Aug 3)`, `— Evan/Charlie (instant)`, the doctor
   pair) are still on the account and untouched; an instant clone is created, not
-  retrained, so making a new one destroys nothing.
+  retrained, so making a new one destroys nothing. **`Sophie — instant v2 (Aug
+  14, stories)`, `7Se81wBB6ZL5kXV2XKu5`**, supersedes it for narration: 12
+  minutes of her telling stories rather than one memo, and properly conditioned.
+  How its recordings were chosen is in `docs/voice-cloning.md`.
+- **The app's sliders are NOT the voice's saved settings (measured 2026-08-14).**
+  Every one of her voices has `stability 0.5 / similarity_boost 0.75 / style 0 /
+  speaker_boost true` saved on it — identical to the API default — yet her app
+  generations that day went out at `0.77 / 1.0`, a combination appearing nowhere
+  else in her history. The ElevenLabs app holds slider positions per session, so
+  a render made there can differ from the same voice called through the API with
+  nothing on the voice to explain it. Read the `settings` on the HISTORY ITEM,
+  not the voice, when reproducing a take.
 - **Cutting pauses out of clone SOURCE audio: measure against SPEECH, not a
   fixed floor** — the same rule as everywhere else in `docs/nde-precise-cutting.md`.
   On that memo, speech sat at −17.5dB and the room floor at −58dB, so a run
