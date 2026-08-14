@@ -36,10 +36,13 @@ def main():
     end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
                len(lines))
 
-    # carve the section into blocks: the heading/preamble, then one per bullet
+    # Carve the section into blocks: the heading/preamble, then one per bullet.
+    # `###` starts a block too — otherwise a sub-heading written AFTER a bullet
+    # attaches to that bullet and is silently carried off when it moves. That
+    # really happened: a pointer heading ended up inside docs/compare-pages.md.
     blocks, cur = [], [lines[start]]
     for l in lines[start + 1:end]:
-        if l.startswith("- "):
+        if l.startswith("- ") or l.startswith("### "):
             blocks.append(cur)
             cur = [l]
         else:
