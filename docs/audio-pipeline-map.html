@@ -1,0 +1,386 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The audio pipeline</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* The blush board + road language is the content pipeline's (v8, the
+     s-curve-content-pipeline chat). This is its AUDIO sibling: the same road,
+     the same cut-out drawings, exploded out of that map's three audio stops
+     (CUTTING BLOCKS / SLICE IN / POLISH) into the ten the audio actually
+     walks. Keep the two looking like one family — if the road changes there,
+     change it here. */
+  :root {
+    --blush: #f7ebe7; --blush2: #ecd7d2; --track: #e0c6bf;
+    --road: #f1dfda; --edge: #d9bcb4;
+    --goldfill: #c9a961; --blushink: #6f5450;
+  }
+  h1 {
+    font: 600 21px/1.25 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .045em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  /* the hairline tabs (the account-row pattern). The 56px reserve is
+     load-bearing — this row sits inside the pill's band (x 324-374,
+     y 14-192); the sliding line measures (100% - 56px)/3 because an abspos
+     child resolves against the PADDING box, and there are THREE tabs. */
+  .tabs {
+    position: relative; display: flex; border-bottom: 1px solid #e6d2cd;
+    margin: 0 0 14px; padding-right: 56px;
+  }
+  .tab {
+    flex: 1 1 0; min-width: 0; padding: 7px 4px 9px;
+    border: none; background: none; cursor: pointer;
+    font: 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.on { color: var(--ink); }
+  .tabs::after {
+    content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
+    width: calc((100% - 56px) / 3); background: var(--ink);
+    transform: translateX(0); transition: transform .2s ease;
+  }
+  .tabs[data-on="1"]::after { transform: translateX(100%); }
+  .tabs[data-on="2"]::after { transform: translateX(200%); }
+  .board {
+    position: relative; background: var(--blush); border: 1px solid #e6d2cd;
+    border-radius: 6px; padding: 8px 2px 10px;
+  }
+  .board svg { display: block; width: 100%; height: auto; }
+  /* the STOPS tab — one row per stage, tap = go there */
+  .stoplist { display: flex; flex-direction: column; gap: 6px; }
+  .seg {
+    font: 600 10px/1 -apple-system, sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; color: #8a6238; margin: 10px 2px 2px;
+  }
+  .stop {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--blush); border: 1.5px solid var(--track);
+    border-radius: 6px; padding: 9px 30px 9px 10px;
+    color: inherit; text-decoration: none;
+  }
+  .stop svg.g { flex: 0 0 40px; width: 40px; height: 40px; }
+  .stop .nm {
+    font: 600 11px/1.2 -apple-system, sans-serif; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--blushink);
+  }
+  .stop .what { font: 12px/1.35 Georgia, serif; color: var(--ink2); }
+  /* a stage with no tool behind it reads differently — dashed, and it says so */
+  .stop.none { border-style: dashed; }
+  .stop .tag {
+    font: 700 8.5px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--rose); border: 1px solid var(--rose);
+    border-radius: 3px; padding: 2px 4px; margin-left: 6px; display: inline-block;
+    vertical-align: 1px;
+  }
+  /* the GAPS tab — one row per feature, with who has it */
+  .gap { border: 1.5px solid var(--track); border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
+  .gap .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .gap .who { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .gap .w {
+    font: 600 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--blushink);
+    border: 1px solid var(--track); border-radius: 3px; padding: 3px 5px;
+  }
+  .gap .w.no { color: var(--rose); border-color: var(--rose); }
+  .gap.hole { border-color: var(--rose); }
+</style>
+
+<div class="wrap">
+  <h1>The audio pipeline</h1>
+
+  <div class="tabs" id="tabs" data-on="0" data-nostop>
+    <button class="tab on" data-tab="0" type="button">The map</button>
+    <button class="tab" data-tab="1" type="button">The stops</button>
+    <button class="tab" data-tab="2" type="button">The gaps</button>
+  </div>
+
+  <div id="view-map">
+    <div class="board" data-item="audio-map" data-nostop>
+      <svg id="path" viewBox="0 0 400 545" role="img" aria-label="the audio pipeline map"></svg>
+    </div>
+  </div>
+
+  <div id="view-stops" hidden>
+    <div class="stoplist" id="stoplist" data-nostop></div>
+  </div>
+
+  <div id="view-gaps" hidden>
+    <div id="gaplist" data-nostop></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var SVG = 'http://www.w3.org/2000/svg';
+  var C = { node: '#ecd7d2', road: '#f1dfda', edge: '#d9bcb4',
+            gold: '#c9a961', ink: '#6f5450' };
+
+  /* Every stop on the road, in walking order — the path one piece of audio
+     takes, from the recording to the polished cut. href = where tapping it
+     goes; the map is an access point, not just a picture (her v6 spec).
+     `none:true` = the stage is real but NOTHING is built for it yet. */
+  var STOPS = [
+    { id: 'capture', label: 'CAPTURE',    art: 'inbox',
+      what: 'voice memos, the drop, the share sheet — one library, everything files into it' },
+    { id: 'script',  label: 'SCRIPT',     art: 'chat', none: 'no tool',
+      what: 'your memo + your instructions become a script — a chat does this by hand today' },
+    { id: 'blocks',  label: 'BLOCKS',     art: 'blocks', none: 'artifact only',
+      href: '/api/chatfeed/page/ePKqeMJOATGCz7MJa9lA',
+      what: 'the script cut into sentence-level blocks — v14, still a Compare page' },
+    { id: 'arrange', label: 'ARRANGE',    art: 'window',
+      href: '/api/chatfeed/page/ePKqeMJOATGCz7MJa9lA',
+      what: 'move them, meld two into one, split one in two, drop some, add some' },
+    { id: 'slice',   label: 'SLICE IN',   art: 'scissors', href: '/search',
+      what: 'pull words in from any other recording — 77 interviews, 1,100 memos' },
+    { id: 'voice',   label: 'VOICE',      art: 'curve', href: '/voice',
+      what: 'a new line spoken in your voice, or somebody else’s voice on your take' },
+    { id: 'words',   label: 'WORD CUT',   art: 'book', href: '/editor',
+      what: 'the exact words out of a long transcript, edges landing in real silence' },
+    { id: 'exact',   label: 'EXACT CUT',  art: 'screen', href: '/cutmarks',
+      what: 'tap the spot on the playhead, nudge it by a tenth — audio or video' },
+    { id: 'polish',  label: 'POLISH',     art: 'wave', href: '/cuttingroom',
+      what: 'pauses out, filler out, one tap each — the last pass' },
+    { id: 'cut',     label: 'THE CUT',    art: 'reel',
+      what: 'the finished audio' },
+  ];
+
+  /* what flows INTO the first stop (v8's left-gutter inputs) */
+  var SOURCES = ['mic', 'chat', 'clapper', 'journal'];
+
+  function el(n, a) {
+    var e = document.createElementNS(SVG, n);
+    for (var k in a) e.setAttribute(k, a[k]);
+    return e;
+  }
+
+  /* ── the road ──────────────────────────────────────────────────────────
+     v8's path verbatim — bowls joined at the centre line, tangent horizontal
+     at every join and vertical at every extreme, drawn as a ROAD (the same
+     path stroked twice, edges under surface). Only B changed: ten stops need
+     less height than thirteen, so the bowls are flatter and less of the map
+     scrolls. Do NOT re-derive the sweep flags — moving the start alone
+     leaves the bowls curling the old way and the S comes out backwards. */
+  var CX = 232, A = 140, B = 44, Y0 = 58, R = 22;
+  var D = 'M' + (CX - A) + ' ' + Y0
+        + 'A' + A + ' ' + B + ' 0 0 0 ' + CX + ' ' + (Y0 + B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 3 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 5 * B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 7 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 9 * B)
+        + 'A' + A + ' ' + B + ' 0 0 1 ' + (CX + A) + ' ' + (Y0 + 10 * B);
+  var svg = document.getElementById('path');
+
+  /* The drawings are the content pipeline's own cut-outs — already made,
+     already paid for, transparent background (the cell lifted off its paper
+     by corner flood-fill, then traced). `preserveAspectRatio: xMidYMid meet`
+     fits one inside its node without ever cropping it. Reusing them is what
+     makes this map read as the same pipeline seen closer up. */
+  var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
+  var CUT = V + 'pipeline-icons-cut/';
+  var CUT2 = V + 'pipeline-icons-2-cut/';
+  var ART = {
+    inbox: CUT + 'inbox-cut.png',   blocks: CUT + 'blocks-cut.png',
+    window: CUT + 'window-cut.png', scissors: CUT + 'scissors-cut.png',
+    book: CUT + 'book-cut.png',     reel: CUT + 'reel-cut.png',
+    clapper: CUT + 'clapper-cut.png',
+    chat: CUT2 + 'chat-cut.png',    curve: CUT2 + 'curve-cut.png',
+    screen: CUT2 + 'screen-cut.png', wave: CUT2 + 'wave-cut.png',
+    mic: CUT2 + 'mic-cut.png',      journal: CUT2 + 'journal-cut.png',
+  };
+
+  // a cut-out drawing, fitted inside a box of side `s` and never cropped
+  function cell(g, url, cx, cy, s) {
+    g.appendChild(el('image', {
+      href: url, x: cx - s / 2, y: cy - s / 2, width: s, height: s,
+      preserveAspectRatio: 'xMidYMid meet',
+    }));
+  }
+
+  function node(g, st, p, r) {
+    var R2 = r || R;
+    // a stage with nothing built behind it wears a dashed ring, so the map
+    // shows the holes as well as the road
+    if (st.none) g.appendChild(el('rect', {
+      x: p.x - R2, y: p.y - R2, width: R2 * 2, height: R2 * 2, rx: 5,
+      fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    cell(g, ART[st.art], p.x, p.y, R2 * 2.1);
+  }
+
+  function label(p, txt) {
+    // the wide S puts stops close to both edges, so a long label centred on
+    // one would run off the board — clamp where the TEXT is centred, not the
+    // stop, and the label slides inward instead of clipping
+    var lx = Math.max(52, Math.min(348, p.x));
+    var t = el('text', { x: lx, y: p.y + R + 13, 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    t.style.font = '600 9.5px -apple-system, sans-serif';
+    t.style.letterSpacing = '.07em';
+    t.textContent = txt;
+    return t;
+  }
+
+  function draw() {
+    svg.textContent = '';
+    // road: edges then surface
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.edge, 'stroke-width': 27, 'stroke-linecap': 'round' }));
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.road, 'stroke-width': 22, 'stroke-linecap': 'round' }));
+
+    var track = el('path', { d: D, fill: 'none', stroke: 'none' });
+    svg.appendChild(track);
+    var L = track.getTotalLength(), PAD = 14, N = STOPS.length;
+    var pts = [];
+    for (var i = 0; i < N; i++) {
+      var p = track.getPointAtLength(PAD + i * (L - 2 * PAD) / (N - 1));
+      pts.push({ x: p.x, y: p.y });
+    }
+
+    /* THE INPUTS COME IN FROM THE LEFT (her v8 call), not down from the top —
+       a column in the left gutter uses space the first bowl leaves empty
+       anyway and costs the map nothing vertically. */
+    var p0 = pts[0], SX = 26, SR = 15;
+    var src = [{ y: p0.y - 26 }, { y: p0.y + 12 }, { y: p0.y + 50 }, { y: p0.y + 88 }];
+    src.forEach(function (s) {
+      svg.appendChild(el('path', {
+        d: 'M' + (SX + SR + 1) + ' ' + s.y + 'Q' + (p0.x - 26) + ' ' + s.y + ' ' + (p0.x - R - 1) + ' ' + p0.y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    });
+    src.forEach(function (s, i) {
+      var g = el('g', {});
+      cell(g, ART[SOURCES[i]], SX, s.y, SR * 2.1);
+      svg.appendChild(g);
+    });
+
+    STOPS.forEach(function (st, i) {
+      var g = el('g', { 'data-go': st.href || '' });
+      if (st.href) g.style.cursor = 'pointer';
+      node(g, st, pts[i]);
+      svg.appendChild(g);
+      svg.appendChild(label(pts[i], st.label));
+    });
+  }
+
+  // a tap on a stop goes to its tool — the map is the access point
+  svg.addEventListener('click', function (e) {
+    var g = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+    if (g && g.getAttribute('data-go')) location.href = g.getAttribute('data-go');
+  });
+
+  /* ── the stops tab ─────────────────────────────────────────────────── */
+  var SEGS = { capture: 'In', script: 'Make the script',
+               slice: 'Fill it out', words: 'Cut it exactly', cut: 'Out' };
+  var list = document.getElementById('stoplist');
+  STOPS.forEach(function (st) {
+    if (SEGS[st.id]) {
+      var h = document.createElement('div');
+      h.className = 'seg'; h.textContent = SEGS[st.id];
+      list.appendChild(h);
+    }
+    var row = document.createElement(st.href ? 'a' : 'div');
+    row.className = 'stop' + (st.none ? ' none' : '');
+    row.setAttribute('data-item', 'stop-' + st.id);
+    if (st.href) row.href = st.href;
+    var gs = document.createElementNS(SVG, 'svg');
+    // r=17 centred at 18,18 draws a 35.7px cell — an exact fit for a 36 box.
+    // (v8 rescales to -6 -6 48 48 instead because its node() draws at R=22.)
+    gs.setAttribute('viewBox', '0 0 36 36'); gs.setAttribute('class', 'g');
+    var gg = el('g', {});
+    node(gg, st, { x: 18, y: 18 }, 17);
+    gs.appendChild(gg);
+    row.appendChild(gs);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    var nm = tx.querySelector('.nm');
+    nm.textContent = st.label;
+    if (st.none) {
+      var tag = document.createElement('span');
+      tag.className = 'tag'; tag.textContent = st.none;
+      nm.appendChild(tag);
+    }
+    tx.querySelector('.what').textContent = st.what;
+    row.appendChild(tx);
+    list.appendChild(row);
+  });
+
+  /* ── the gaps tab ──────────────────────────────────────────────────────
+     Measured by reading the four cutting surfaces, Aug 2026: the Cutting
+     blocks artifact (v14), editor.js + editor.html, cuttingroom.js +
+     cuttingroom.html, cutmarks.js + cutmarks.html, and search.js. A row is
+     one thing you can DO to audio; the tags say which rooms can do it. */
+  var GAPS = [
+    { f: 'Split one line into two', has: ['blocks'], hole: 1 },
+    { f: 'Meld two lines into one', has: ['blocks'], hole: 1 },
+    { f: 'Locked in / not sure / out', has: ['blocks'], hole: 1,
+      note: 'every other room is keep-or-cut, no maybe' },
+    { f: 'Hear the whole thing as marked, before rendering', has: ['blocks'], hole: 1 },
+    { f: 'Say who said it — you, or TTS', has: ['blocks'], hole: 1 },
+    { f: 'Reorder the pieces', has: ['blocks', 'episode editor'] },
+    { f: 'Add a typed line, spoken in your voice', has: ['blocks', 'episode editor'] },
+    { f: 'Undo', has: ['blocks', 'cut marks'], hole: 1,
+      note: 'the episode editor and the cutting room have none' },
+    { f: 'Nudge an edge by a tenth of a second', has: ['cut marks'], hole: 1,
+      note: 'the cutting room’s manual mode is parked' },
+    { f: 'Cut at the exact tapped moment', has: ['cut marks'], hole: 1 },
+    { f: 'Pauses and filler out', has: ['cutting room'], hole: 1 },
+    { f: 'Mark it on the transcript', has: ['cutting room', 'episode editor'] },
+    { f: 'Video, not just audio', has: ['cut marks'], hole: 1 },
+    { f: 'Pull words in from another recording', has: ['search', 'episode editor'] },
+    { f: 'Search every recording you have', has: ['search'] },
+    { f: 'Turn a memo + your notes into a script', has: [], hole: 1 },
+    { f: 'Carry one project across the rooms', has: [], hole: 1,
+      note: 'each room is keyed to its own source url, so marks, labels and order never travel' },
+  ];
+  var gl = document.getElementById('gaplist');
+  GAPS.forEach(function (g, i) {
+    var d = document.createElement('div');
+    d.className = 'gap' + (g.hole ? ' hole' : '');
+    d.setAttribute('data-item', 'gap-' + i);
+    var f = document.createElement('div');
+    f.className = 'f'; f.textContent = g.f;
+    d.appendChild(f);
+    if (g.note) {
+      var n = document.createElement('div');
+      n.className = 'what';
+      n.style.font = '12px/1.35 Georgia, serif';
+      n.style.color = 'var(--ink2)';
+      n.style.marginTop = '3px';
+      n.textContent = g.note;
+      d.appendChild(n);
+    }
+    var w = document.createElement('div');
+    w.className = 'who';
+    if (!g.has.length) {
+      var none = document.createElement('span');
+      none.className = 'w no'; none.textContent = 'nothing has it';
+      w.appendChild(none);
+    } else g.has.forEach(function (h) {
+      var s = document.createElement('span');
+      s.className = 'w'; s.textContent = h;
+      w.appendChild(s);
+    });
+    d.appendChild(w);
+    gl.appendChild(d);
+  });
+
+  /* ── tabs ──────────────────────────────────────────────────────────── */
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    var n = b.getAttribute('data-tab');
+    tabs.setAttribute('data-on', n);
+    tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t === b); });
+    document.getElementById('view-map').hidden = n !== '0';
+    document.getElementById('view-stops').hidden = n !== '1';
+    document.getElementById('view-gaps').hidden = n !== '2';
+  });
+
+  draw();
+  if (window.__compareHelp) window.__compareHelp({ html:
+    '<p>The road is the path one piece of audio walks, top to bottom.</p>' +
+    '<p>Tap a stop to go to its tool. A dashed ring means the stage is real but nothing is built for it yet.</p>' +
+    '<p><b>The stops</b> names each one. <b>The gaps</b> is every thing you can do to audio and which room can do it — the rose ones live in exactly one room, or in none.</p>' +
+    '<p>Leave a note on anything with the + in its corner.</p>' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'audio-pipeline-tool', sheet: 'audio-pipeline-v1' });
+})();
+</script>
+<style>[hidden]{display:none !important}</style>

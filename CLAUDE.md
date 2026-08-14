@@ -15,6 +15,14 @@ The numbers are measured, not guessed.
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Say what you spent and what it cost**, in words, in the reply.
 
+**When the work WRAPS UP (not every turn)**
+3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
+   text}`. `line` = the one line her archive row shows (≤200); `text` = the
+   full what-this-was (≤2000). This is what she reads months later to remember
+   what a chat was, so it earns more care than the status card. *Measured
+   2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
+   cannot be asked for it later — you are asleep by the time she archives.
+
 **Delivering an image — every single one, including a test**
 4. **Label it.** `[Penny — the blue Kleenex](url)`, never `[p01](url)` or a bare
    URL. The label becomes what she reviews by.
@@ -561,6 +569,29 @@ them off the reference sheet, not off the old filenames.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **THE ARCHIVE WRAP-UP — what the chat was about and what went down (Aug
+  2026, Sophie: "whenever I'm about to archive a chat the last message of the
+  chat is them explaining what the chat was about … and that could go into the
+  note at the top").** Measured that day: **73 of her 88 archived chats showed
+  nothing but a name.**
+  - **A chat is ASLEEP by the time she archives it**, so it cannot summarise
+    itself then — the whole design follows from that. Written ahead, frozen on
+    the way past. Best source first: the chat's own `POST /wrapup`; failing
+    that, archiving freezes its **Update card** into one (free, instant —
+    `updAsked`/`updDid` already answer the same question); failing both it
+    stays blank rather than inventing something.
+  - **Two fields, and NEITHER is `sophieNote`** (`wrapLine` + `wrapUp` on the
+    registry). Her own note still wins the row — a chat must never overwrite a
+    line she wrote, which is why this did not reuse her note field even though
+    she described it as "the note at the top". Row: `note || wrapLine || need
+    || doing`.
+  - **There is NO rule that only she may write her note** — `POST /chatnote`
+    has never had a permission check. It was only ever a style guideline
+    (her length, her shape). Don't reintroduce one.
+  - The expander is a **sibling** of the row, not a child: a row is a
+    `<button>`, so a nested button is invalid and the tap would bubble into
+    opening the chat.
+  - Tests: `node scripts/test-chats-wrapup.js`.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1398,6 +1429,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   person.** **Full details: `docs/modules/nde.md`.**
 
 ### The inbox, the doorbell, and odds and ends
+- **Favorite fruit poll** (`fruit.js`, `/api/fruit`, pages `/fruit` + `/fruitchart`)
+  — the chart for Sophie's fridge. 27 fruits drawn in her ink-and-watercolour
+  look (`refs/sage-sandy-mirror.png` through gpt-image-2 edits, medium,
+  1024x1024, `scripts/fruit-chart/fruits.json`) become a **Tinder-style swipe
+  deck**: ♥/✕ one fruit at a time, then crown a #1. **BOTH PAGES ARE PUBLIC AND
+  UNGATED, and that is the design** — they are opened from an email by her
+  family, who have no studio token, so the unguessable `who=` token in the link
+  IS the identity. Emails live only on the poll doc and the public read strips
+  them, so one person's link can never enumerate the others'. A ballot doc is
+  content-addressed (`<poll>__<person>`), so swiping twice updates one ballot
+  and "close it, come back" works; only `done:true` counts as an answer, so an
+  abandoned half-deck never lands in the chart. `/fruitchart` renders the same
+  answers three ways (per person · a grid · sized by how many picked it) and
+  prints one design per page. **Sending needs `BREVO_API_KEY` +
+  `BREVO_FROM_EMAIL`, and as of Aug 2026 NEITHER IS SET** — not in Render env,
+  not in `config/pipeline` (measured 2026-08-14: `/api/tarot-email/status`
+  answers `brevo:false`). `POST /invite` refuses with which one is missing
+  rather than half-sending; run it with `dryRun:true` first, the same guard the
+  App Store metadata workflow gets. Tests: `node scripts/test-fruit.js`.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,

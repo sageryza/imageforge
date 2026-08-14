@@ -177,6 +177,44 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     scattered across eight chats, and only 4 of the 333 pages on file had ever
     been bookmarked, which is why her own keep-tap was never going to gather
     them. Tests: `node scripts/test-chats-references.js`.
+  **THE SURVEY, 2026-08-14 — all 336 pages read, and what it settles.** Sophie
+  asked for "a comprehensive survey of compare pages… to see if we can pull
+  anything out that is actually serving as a good compare page". The seed above
+  had been built from TITLES; this pass pulled the whole `forge-chat-pages`
+  collection, shortlisted every comparison-shaped title (57), and OPENED each
+  one — structure read, every image and audio URL HEAD-checked. The numbers,
+  so nobody re-counts them:
+  - **336 pages across 66 chats. 112 are superseded** (33%) — version churn is
+    the collection's dominant shape, not comparison: `cutting-blocks-artifact`
+    is 15 drafts of one tool, `evan-story-visual-summary` 20, and
+    `deck-factory-story-room`'s 58 are mostly one page per lesson.
+  - **Only ~20 pages actually compare like-for-like variants of one thing**,
+    and about half of those answer a question that recurs. The rest of the 336
+    are deliverables, prototypes, running orders and pick-one boards — good
+    pages, but each one finished when its question was answered.
+  - **Nothing is rotting: every media URL checked answered 200.** An old page
+    is still a working page, so age is not a reason to leave one off.
+  - **A TITLE IS NOT EVIDENCE — open the page before shelving it.** One of the
+    twelve seeded entries did not survive being opened: "Playground v4 —
+    Watercolor + Hoonie styles" is a MOCKUP of the Playground screen (its `h1`
+    is "Playground", it has a Generate button) with **zero images on it**.
+    Nothing is compared. It is off the shelf, and it is why the script now
+    carries a `DROP` list beside its `WANT` list.
+  - **Eight pages no title-scan could rank were added**, because what makes
+    them reusable is inside them — the reference sheet with every style ref
+    beside what it feeds, the drawing-vs-photo scale/wording pair, our tracer
+    measured against the off-the-shelf ones, the three-clones-by-every-setting
+    voice grid, 352 prompts each beside the picture it made, and the same hero
+    square vs landscape. The shelf grew 12 → 19, across 9 topics.
+  - **The gap the survey found: nothing compared ONE prompt across the house
+    styles.** Every style page on file tests a single reference (the scan, the
+    pastel pair) against itself, so "what do sage sandy mirror / dream mystery
+    / pastel do to the same picture" had no page. `compare-page-style-variants`
+    shipped "Three styles, one prompt — low (v1)" the same day and it is now
+    on the shelf. Still missing, if anyone wants them: the **seven Replicate
+    LoRA styles** on one subject (only `public/samples/*.webp` exists, and
+    those are tiles, not a comparison), and an aspect-ratio set beyond the
+    blog heroes.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
