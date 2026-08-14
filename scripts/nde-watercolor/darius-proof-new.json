@@ -1,0 +1,60 @@
+[
+ {
+  "id": "dp-proof-friends-tv",
+  "shot": "s01",
+  "quality": "medium",
+  "refs": ["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wright.webp"],
+  "likeness": "The SECOND attached image is the character in this scene.",
+  "scene": "That man, luminous and out of his body, standing unnoticed in the middle of somebody else's living room while two friends sit watching television — he is looking at what is on the screen, and neither of them knows he is in the room.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-overheard",
+  "shot": "s01",
+  "quality": "medium",
+  "refs": ["https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wright.webp"],
+  "likeness": "The SECOND attached image is the character in this scene.",
+  "scene": "Two friends talking across a kitchen table mid-sentence, and that man standing luminous and out of his body directly between them, close enough to hear every word, entirely unseen by either of them.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-group-slip",
+  "shot": "s03",
+  "quality": "medium",
+  "scene": "A hand folding a small slip of paper with a single numeral written on it and closing it inside a fist, and behind that hand a room of people sitting in a loose circle watching it happen — the test being set in front of witnesses.\n\nNo words or lettering anywhere except that single handwritten numeral.\n"
+ },
+ {
+  "id": "dp-proof-science-empty-chair",
+  "shot": "s04",
+  "quality": "medium",
+  "scene": "A laboratory bench arranged in a half circle around one ordinary empty chair, every instrument, lens and sensor aimed carefully at the seat — a great apparatus pointed at nothing, measuring something that is not there to be measured.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-statements",
+  "shot": "s04",
+  "quality": "medium",
+  "scene": "A deep stack of handwritten statements on a plain desk, dozens of loose pages each covered in a different person's handwriting, the pile square and heavy and drawn as a record that has been kept.\n\nNo lettering that can be read — the handwriting is only the texture of writing.\n"
+ },
+ {
+  "id": "dp-proof-son-camp",
+  "shot": "s05",
+  "quality": "medium",
+  "scene": "A young soldier seen from behind at dusk, alone between the tents of a distant camp, doing something small and ordinary — carrying a mug, head down — unaware that anyone is watching him at all.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-agency-window",
+  "shot": "s06",
+  "quality": "medium",
+  "scene": "A large plain government building at night, flat and anonymous and enormous, every window dark except one lit square high up on its face.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-viewing-room",
+  "shot": "s06",
+  "quality": "medium",
+  "scene": "A bare room with a table, a chair, a notepad and a stopwatch — one person sitting with their eyes closed and their hands flat on the table, and a second person opposite them writing down what is said, the whole thing drawn as a procedure being carried out rather than anything mystical.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-proof-files",
+  "shot": "s06",
+  "quality": "medium",
+  "scene": "A long room of grey filing cabinets standing in rows under a low ceiling, one drawer pulled right out and packed tight with folders — an enormous amount of money spent, kept as paper.\n\nNo text or lettering anywhere."
+ }
+]

@@ -1,0 +1,70 @@
+[
+ {
+  "id": "dp-heart-more-a-a-m",
+  "shot": "s07",
+  "quality": "medium",
+  "scene": "A single desktop computer standing alone on a bare floor with nothing plugged into it at all, its cable lying loose and unconnected on the ground beside it — a machine that works but knows only itself.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-a-b-m",
+  "shot": "s08",
+  "quality": "medium",
+  "scene": "Two people standing far apart in an empty landscape, each with a faint glow at the chest, and between the two glows a single taut line of light running the whole distance — nothing else connects them and neither one is speaking.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-a-c-m",
+  "shot": "s09",
+  "quality": "medium",
+  "scene": "A very close view of the mouth of one glass jar of water, and the water inside drawn as though it is holding the shape of a spoken word — faint concentric rings frozen mid-spread across its surface.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-a-d-m",
+  "shot": "s10",
+  "quality": "medium",
+  "scene": "The inside of a house with no one in it — furniture still in place, dust thick on every surface, damp climbing the wallpaper and a slow buckle in the floorboards, the decay drawn as something that happened because the rooms were empty.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-b-a-m",
+  "shot": "s07",
+  "quality": "medium",
+  "scene": "An enormous web of lines and nodes filling the whole panel like a night map of a continent, and one tiny human figure standing inside it with the lines running straight through and past them in every direction — the whole thing at once, and one person in it.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-b-b-m",
+  "shot": "s08",
+  "quality": "medium",
+  "scene": "A crowded street of ordinary people walking, and above and between their heads a dense weather of soft floating shapes drifting from person to person, the shapes not seen by anybody in the picture.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-b-c-m",
+  "shot": "s09",
+  "quality": "medium",
+  "scene": "Two open glass jars of cooked rice photographed the way a record is kept, thirty days on — the left jar pale and intact, the right jar dark and furred over and collapsing in on itself.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-more-b-d-m",
+  "shot": "s10",
+  "quality": "medium",
+  "scene": "A human figure lying on a bed drawn in the same state as a long-abandoned room — the body still whole but the air around it dusty and still, the light through the window flat and grey, everything drawn as slowly running down.\n\nNo text or lettering anywhere."
+ },
+ {
+  "id": "dp-heart-mechanism-d-m",
+  "shot": "s01",
+  "quality": "medium",
+  "scene": "The luminous figure standing beside a bed, fully separate, looking down at his own sleeping body lying there — the field around the body almost gone.\n\nNo text or lettering anywhere.",
+  "refs": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wright.webp"
+  ],
+  "likeness": "The SECOND attached image is the character in this scene."
+ },
+ {
+  "id": "dp-heart-soul-physical-d-m",
+  "shot": "s05",
+  "quality": "medium",
+  "scene": "That man face to face with an older figure who has died — the two of them standing close in an ordinary hallway, the encounter drawn as plainly physical, two people meeting, not a vision.\n\nNo text or lettering anywhere.",
+  "refs": [
+   "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/nde-refs/cards/wright.webp"
+  ],
+  "likeness": "The SECOND attached image is the character in this scene."
+ }
+]

@@ -38,3 +38,4 @@ docs/cannon-language/*.log
 # from scripts/darius-*.json — the pages themselves live in Firestore)
 .darius-cache/
 .darius-pages/
+.darius-film/
