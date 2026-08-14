@@ -3596,10 +3596,20 @@ function openChat(name, keepScroll, focusId, noFetch){
     if(!pin||!pin.url) return;
     var b=document.createElement('button');
     b.className='pinned';
-    b.innerHTML='<span class="pl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg></span>'
-      +'<span class="ti">'+esc(pin.title||'The latest cut')+'</span>';
-    b.setAttribute('aria-label','Play '+(pin.title||'the latest cut'));
-    b.onclick=function(){ openPinned(pin); };
+    // A LINK pin is a page, not a recording, so it wears a link glyph and
+    // OPENS — putting a page url in a <video> renders a black box that never
+    // loads, which is what a play triangle here would be promising.
+    var isLink=pin.kind==='link';
+    var glyph=isLink
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg>';
+    var label=pin.title||(isLink?'Open the page':'The latest cut');
+    b.innerHTML='<span class="pl">'+glyph+'</span><span class="ti">'+esc(label)+'</span>';
+    b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label);
+    b.onclick=function(){
+      if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
+      openPinned(pin);
+    };
     head.appendChild(b);
   })();
   // Archive sits beside the chat's NAME, above the tab bar, and reads as plain

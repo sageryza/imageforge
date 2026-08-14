@@ -1340,6 +1340,15 @@ router.post('/chatnote', async (req, res) => {
 // she should not have to open a Compare page to get at the thing she asked
 // for. One field on the registry doc, same shape as the status card, so it
 // rides the feed's already-cached read. Empty url clears it.
+//
+// `kind:'link'` PINS A PAGE rather than a recording (Aug 2026, Sophie, on the
+// fruit picker: "there was a chat that once pinned the URL to the top of the
+// chat screen… if it works we could do that for lots of chats"). The pin was
+// media-only and the app built a <video> straight from the url, so pinning a
+// web page rendered a play button that opened a black box — the deliverable a
+// chat most often wants at the top is a PAGE, and it could not say so. A link
+// pin wears a link glyph and opens the page instead of embedding it.
+const PIN_KINDS = new Set(['audio', 'video', 'link']);
 router.post('/pin', async (req, res) => {
   try {
     const { chat, session, title, url, kind } = req.body || {};
@@ -1352,7 +1361,9 @@ router.post('/pin', async (req, res) => {
       pinned: u ? {
         url: u,
         title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
-        kind: kind === 'audio' ? 'audio' : 'video',
+        // Unknown kinds still fall back to video, so nothing that pinned a film
+        // before this existed changes behaviour.
+        kind: PIN_KINDS.has(kind) ? kind : 'video',
         at: new Date().toISOString(),
       } : del,
     }, { merge: true });

@@ -25,27 +25,38 @@ const DRY = args.includes('--dry');
 const RETIRED = new Set(['27-dragonfruit']);
 
 // Oldest first — a later record replaces an earlier one with the same id.
-const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json'];
+// v3 carries the cherimoya redrawn cut-open (it read as an artichoke whole)
+// plus mulberries and kumquat, the two Sophie asked for.
+const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json'];
+const VEG_SOURCES = ['fruit-chart/veg-uploaded.json'];
 
 const POLLS = {
   'fridge-fruit': { title: 'Favorite fruit', people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }] },
   'fruit-test': { title: 'Favorite fruit (test)', people: [{ name: 'Sophie' }] },
+  'fridge-veg': { title: 'Favorite vegetable', deck: 'veg', people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }] },
+  'veg-test': { title: 'Favorite vegetable (test)', deck: 'veg', people: [{ name: 'Sophie' }] },
 };
 
-const byId = new Map();
-for (const src of SOURCES) {
-  for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, src), 'utf8'))) {
-    byId.set(f.id, { id: f.id, name: f.name, url: f.url });
+function build(sources) {
+  const byId = new Map();
+  for (const src of sources) {
+    for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, src), 'utf8'))) {
+      byId.set(f.id, { id: f.id, name: f.name, url: f.url });
+    }
   }
+  for (const id of RETIRED) byId.delete(id);
+  return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
-for (const id of RETIRED) byId.delete(id);
-const fruits = [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+const DECKS = { fruit: build(SOURCES), veg: build(VEG_SOURCES) };
 
 const want = flag('poll');
 const targets = want ? [want] : Object.keys(POLLS);
 
-console.log(`${fruits.length} fruits · retired: ${[...RETIRED].join(', ') || 'none'}`);
-if (DRY) { console.log(fruits.map(f => f.name).join(', ')); process.exit(0); }
+console.log(`${DECKS.fruit.length} fruits · ${DECKS.veg.length} vegetables · retired: ${[...RETIRED].join(', ') || 'none'}`);
+if (DRY) {
+  for (const [k, v] of Object.entries(DECKS)) console.log(`\n${k}: ` + v.map(f => f.name).join(', '));
+  process.exit(0);
+}
 
 (async () => {
   for (const id of targets) {
@@ -54,7 +65,7 @@ if (DRY) { console.log(fruits.map(f => f.name).join(', ')); process.exit(0); }
     const r = await fetch(`${BASE}/api/fruit/poll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title: cfg.title, fruits, people: cfg.people }),
+      body: JSON.stringify({ id, title: cfg.title, fruits: DECKS[cfg.deck || 'fruit'], people: cfg.people }),
     });
     const d = await r.json();
     console.log(`  ${id} → ${d.fruits} fruits · ${(d.people || []).map(p => p.name + ' ' + p.id).join(', ')}`);
