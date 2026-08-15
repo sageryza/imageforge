@@ -26,44 +26,63 @@ const SUBJECT = pick('--subject', 'bicycle');
 const VERSION = pick('--version', 'v1');
 const DRY = process.argv.includes('--dry-run');
 
-const LADDER = ['low', 'medium', 'high'];
+// FOUR rungs (Aug 2026, Sophie: "the quality should include the low quality
+// which is quarter of a sheet medium"). The cheapest option is not `low` — it
+// is a QUARTER of a medium 2x2 sheet, which costs a quarter of one medium
+// render and is the thing she is actually deciding whether to use. Ordered by
+// what an image really costs, cheapest first, so the row reads as a ladder.
+const LADDER = [
+  { key: 'sheetmed', tag: '¼ sheet · med', manifest: 'manifest-sheet-medium.json', quality: 'medium', cost: '~1.5¢ (a medium sheet ÷ 4)' },
+  { key: 'low', tag: 'low', manifest: 'manifest-low.json', quality: 'low', cost: '~2¢' },
+  { key: 'medium', tag: 'medium', manifest: 'manifest-medium.json', quality: 'medium', cost: '~6¢' },
+  { key: 'high', tag: 'high', manifest: 'manifest-high.json', quality: 'high', cost: '~25¢' },
+];
 const STYLES = ['watercolor', 'dream', 'pastel'];
 const STYLE_LABEL = {
   watercolor: 'Watercolor — sage sandy mirror',
   dream: 'Dream mystery — diary comic',
   pastel: 'Pastel — Witch School',
 };
-// Rough per-image cost, so the page says what a rung actually buys.
-const COST = { low: '~2¢', medium: '~6¢', high: '~25¢' };
 
-// Pull this subject out of each quality's SOLO manifest (never the sheet one).
-const byQuality = {};
-for (const q of LADDER) {
-  const f = path.join(ROOT, 'out', 'style-triptych', `manifest-${q}.json`);
-  if (!fs.existsSync(f)) { console.error(`missing ${f} — run style-triptych.js ${q} --subjects=${SUBJECT}`); process.exit(1); }
-  byQuality[q] = JSON.parse(fs.readFileSync(f, 'utf8')).filter((m) => m.url && m.subject === SUBJECT);
+const byRung = {};
+for (const r of LADDER) {
+  const f = path.join(ROOT, 'out', 'style-triptych', r.manifest);
+  if (!fs.existsSync(f)) { console.error(`missing ${f}`); process.exit(1); }
+  byRung[r.key] = JSON.parse(fs.readFileSync(f, 'utf8')).filter((m) => m.url && m.subject === SUBJECT);
 }
 
 const missing = [];
 const rows = STYLES.map((st) => {
   const cells = [];
-  for (const q of LADDER) {
-    const m = byQuality[q].find((x) => x.style === st);
-    if (!m) { missing.push(`${st}/${q}`); continue; }
+  for (const r of LADDER) {
+    const m = byRung[r.key].find((x) => x.style === st);
+    if (!m) { missing.push(`${st}/${r.key}`); continue; }
+    // The ¼-sheet rung is genuinely a different SHAPE of thing — a crop of a
+    // 2x2, drawn alongside three other subjects — so its panel says so rather
+    // than letting it read as just another quality setting.
+    const size = m.cellSize ? `${m.cellSize} (a quarter of a ${m.sheetSize} sheet)` : m.size;
     cells.push({
-      key: q,
-      tag: q,
+      key: r.key,
+      tag: r.tag,
       url: m.url,
-      alt: `${m.subjectLabel} — ${STYLE_LABEL[st]} — ${q}`,
-      // The prompt text is IDENTICAL down a row — only the API parameter moves,
-      // which is the whole point — so the panel names the settings explicitly
-      // rather than letting three identical prompts look like a mistake.
-      promptStyle: `${m.promptStyle}\n\nSent at: ${m.model}, size ${m.size}, quality ${q} (${COST[q]} per image). `
-        + 'The prompt text is identical at all three rungs — quality is an API parameter, not part of the prompt.',
+      alt: `${m.subjectLabel} — ${STYLE_LABEL[st]} — ${r.tag}`,
+      // The prompt text is IDENTICAL down a row for the three solo rungs —
+      // only the API parameter moves, which is the whole point — so the panel
+      // names the settings rather than letting identical prompts look like a
+      // mistake. The sheet rung's prompt really is different (it asked for a
+      // grid of four), and that difference is exactly what she is judging.
+      promptStyle: `${m.promptStyle}\n\nSent at: ${m.model}, size ${size}, quality ${m.quality} `
+        + `(${r.cost} per image).`
+        + (m.fromSheet
+          ? ' This one was NOT drawn on its own — it is one quarter of a 2x2 sheet that drew all '
+            + 'four subjects in a single call, which is why it costs a quarter of a medium and comes '
+            + 'out a quarter of the size.'
+          : ' Drawn on its own, one call for this one picture. Quality is an API parameter, not part '
+            + 'of the prompt text.'),
       promptContent: m.promptContent,
     });
   }
-  const any = byQuality.low.find((x) => x.style === st) || {};
+  const any = byRung.low.find((x) => x.style === st) || {};
   return { id: st, label: STYLE_LABEL[st] || st, cells, subjectLabel: any.subjectLabel };
 }).filter((r) => r.cells.length);
 
@@ -73,13 +92,15 @@ if (!rows.length) { console.error('nothing to build'); process.exit(1); }
 const subjectLabel = rows[0].subjectLabel || SUBJECT;
 const title = `${subjectLabel} — quality ladder (${VERSION})`;
 const help = [
-  `<b>One picture, three qualities.</b> Every cell is the same subject in the same `
-  + `style at the same size — only the quality setting changes, left to right: `
-  + `low (${COST.low}), medium (${COST.medium}), high (${COST.high}).`,
-  'These are full 1024x1536 solo renders, NOT cells cut out of a 2x2 sheet — a sheet cell '
-  + 'is a quarter of the page, so mixing the two would compare the method instead of the quality.',
-  `This subject was chosen because it is the one that visibly breaks: the drivetrain, `
-  + `the chain and the tools are where a rung either buys something or does not.`,
+  '<b>One picture, four ways of paying for it.</b> Same subject, same style, cheapest first: '
+  + LADDER.map((r) => `${r.tag} (${r.cost})`).join(', ') + '.',
+  '<b>The first one is not a quality setting</b> — it is a quarter of a medium 2x2 sheet that drew '
+  + 'all four subjects in one call. That is why it costs a quarter of a medium and comes out about '
+  + 'a quarter of the size. The other three are full 1024x1536 renders drawn on their own.',
+  'So the question this page answers: is a quarter of a medium sheet better or worse than a whole '
+  + 'low render, for less money?',
+  'This subject was chosen because it is the one that visibly breaks — the drivetrain, the chain '
+  + 'and the tools are where a rung either buys something or does not.',
   'Tap <b>prompt</b> under any picture for the exact text that drew it.',
 ].join('<br><br>');
 
