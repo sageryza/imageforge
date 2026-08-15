@@ -27,8 +27,10 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    lit candle and a different starting spot, then moves through the house
    until, inevitably, everyone converges. There is a prize, and terms are
    negotiated in advance.
-   *Image: the whole group meeting on the stairs, out of breath, each holding
-   a single tea light, darkness everywhere except the stairwell. Portrait.*
+   *Image (v2): everyone ARRIVING at the stairs mid-rush from different
+   directions — breathless, laughing, mid-game, cupping their tea light
+   flames — not standing around. Darkness everywhere except the stairwell.
+   Portrait.*
 
 2. **Loud Elevator** — Be as loud as possible in the elevator — stomping,
    hollering — and the instant a stranger steps in, total silence. Resume the
@@ -37,17 +39,21 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    closing (or just opening on an unsuspecting rider). Square.*
 
 3. **Threshold** (placeholder title) — See how close you can get to needing
-   to pee without actually peeing. Invented at a beer pong night, reportedly
-   for no reason.
-   *Image: a row of players standing very still at a party, cups in hand,
-   every face a study in concentration. Landscape.*
+   to pee without actually peeing. Played in a halfhearted semicircle on a
+   dark balcony at night, beer pong going on behind.
+   *Image (v2): the dark balcony semicircle — very still, knees together,
+   faces in desperate concentration, beer pong in the warm doorway behind.
+   Landscape.*
 
-4. **Nice to Meet You** — At any recurring-strangers event (a meetup, a
-   pool), greet the same people warmly every single time as if meeting for
-   the first time: handshake, "hey, nice to meet you." If they ask "how are
-   you," the only legal answer is "good, how are you" — which loops.
-   *Image: two pairs mid-handshake, one stranger's face caught between
-   politeness and déjà vu. Landscape.*
+4. **Nice to Meet You** — At any recurring-strangers event, greet the same
+   people warmly every single time as if meeting for the first time:
+   handshake, "hey, nice to meet you." If they ask "how are you," the only
+   legal answer is "good, how are you" — which loops. Original venue: a dark
+   arcade bar, glowing machines on the periphery, played on strangers who
+   were introducing themselves over and over anyway.
+   *Image (v2): the arcade-bar handshake loop, machines glowing around the
+   edges. Landscape. (The first, poolside version of this image is being
+   reassigned to a different game — Sophie picks which.)*
 
 5. **The Search** (placeholder title, solo) — Go into a supermarket and ask
    staff to help you find a very specific item that does not exist. Your
@@ -60,8 +66,32 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    be drowning ("help me!"); everyone rushes over in maximum concern — "oh my
    gosh, are you OK?!" — whereupon they turn out to be completely fine. Then
    it's someone else's turn to drown.
-   *Image: everyone gathered in the water around the "drowning" player
-   mid-splash, faces of enormous concern, the victim visibly fine. Landscape.*
+   *Image (v2): the victim in full pretend distress — arm flailing, mouth
+   mid-cry — with everyone surging to the rescue, hands almost touching her.
+   Landscape.*
+
+7. **Groundhog Day** (real — remembered Aug 2026) — A party that restarts
+   from the top every hour. Everyone must remember what they said, who they
+   talked to, and what they did, and do it again — exactly. Some guests know
+   the night is looping; some don't, and whatever they got stuck doing in
+   hour one is now their whole night. Prompting other players with their own
+   lines is legal and eventually necessary.
+   *Image idea: the same small party scene shown twice in a row like two
+   film frames, identical poses mid-toast, one tiny detail off. Wide.*
+
+8. **Pooping Partners** (real — remembered Aug 2026) — You and your partners
+   text each other when you're pooping. That's the game.
+   *Image idea: two people in two different bathrooms, shown side by side,
+   each happily texting; nothing else explains itself. Square.*
+
+9. **Group Dream Journal** (real — remembered Aug 2026) — A shared document
+   where everyone writes their dreams. You can read everyone else's dreams,
+   but you don't always know whose dream you're reading — and sometimes
+   people you know talk to you inside their dreams, so you find out what
+   your friends' versions of you have been up to.
+   *Image idea: several sleepers in a row of beds, their dream clouds
+   overlapping into one shared cloud with figures wandering between them.
+   Landscape.*
 
 ## The proposed games (Claude, 2026-08-15 — awaiting Sophie's cuts/keeps)
 
@@ -87,18 +117,17 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    writing, the toasts stay vague ("to finally doing it"; "we never doubted
    you"). Nobody will say what they did. They must accept the honor
    gracefully — and eventually give a speech about it.
+   (Sophie has real stories in this territory — a not-their-birthday
+   birthday party, and wrong-occasion greetings that escalated — hers to
+   write on this page.)
    *Image: the honoree under a blank CONGRATULATIONS banner, cake in hands,
    glasses raised all around, their face exactly halfway between delight and
    panic. Landscape.*
 
-4. **The Hour** — Phones go in a drawer; every clock gets a dish towel.
-   Everyone has exactly one chance all night to announce "it has been exactly
-   one hour." Closest wins, but nobody finds out who until the phones come
-   back out at the end. The real game is what a party feels like when no one
-   knows what time it is.
-   *Image: a wall clock draped with a dish towel, phones stacked in the fruit
-   bowl, lamplight, one person mid-announcement with a finger raised.
-   Portrait.*
+4. **The Hour** — CUT (Sophie, Aug 2026: game not fun enough; the image is
+   being reused for a different game — options offered, her pick pending).
+   Was: phones in a drawer, clocks under dish towels, one chance each to
+   announce "it has been exactly one hour."
 
 5. **Museum Hours** — The host gives a full docent tour of their own home:
    provenance, period, artistic significance, "please, no flash." Guests are
@@ -110,10 +139,11 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
 
 6. **The Interpreter** — Two people are declared mutually unintelligible for
    the night and may only communicate through a third person standing between
-   them, who translates English into identical English ("she says she's
-   having a nice time"). The interpreter's translations are final.
-   *Image: three on a couch — the outer two turned hopefully toward the
-   middle, the interpreter worn thin, mid-relay. Landscape.*
+   them — and the interpreter may not speak: every message is relayed in
+   pantomime only, charades-style (Sophie's improvement, Aug 2026). The
+   interpreter's translations are final.
+   *Image (v2): three on a couch — the outer two watching intently, the
+   interpreter mid-charade, arms wild, face exaggerated. Landscape.*
 
 7. **Slow Race** — A race across the room where the LAST one to touch the far
    wall wins — but you may never fully stop moving, and a judge watches for
@@ -143,12 +173,10 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
     party, a few wrong details (the same toast mid-air, different snacks; one
     room in hats for no reason). Wide landscape.*
 
-11. **Regulars** — Walk into a diner none of you has ever set foot in and
-    behave like beloved regulars. Order "the usual." Sit in "our booth."
-    Whatever they bring, that IS your usual now, and you tip like regulars
-    do.
-    *Image: a booth of beaming friends, the waitress's pen stopped over her
-    pad, coffee mid-pour. Landscape.*
+11. **Regulars** — CUT (Sophie, Aug 2026: game not fun enough; she likes the
+    picture — three replacement games that fit it were offered, her pick
+    pending). Was: walk into a diner you've never entered and behave like
+    beloved regulars, order "the usual."
 
 12. **The Ceremony** — Choose something mundane — opening a bag of chips,
     plugging in a phone — and give it everything: a procession, candles,
@@ -163,6 +191,31 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
     *Image: the player mid-enthusiastic-wave at the curb, three passing
     drivers waving back with three different levels of certainty that they
     know her. Landscape.*
+
+## Image reassignments pending Sophie's pick (Aug 2026)
+Three finished pictures outlived their games; each has replacement-game
+options on offer, and the tile gets relabeled once she picks:
+- **The poolside handshakes** (was Nice to Meet You, which moved to its true
+  arcade-bar setting): (a) *Old Friends* — greet strangers as long-lost
+  friends and commit until they "remember" you; (b) *The Reunion* — attend a
+  gathering of strangers as if it's your ten-year reunion; (c) *Diplomats* —
+  introduce your friend to everyone with escalating invented titles.
+- **The diner booth** (was Regulars, cut): (a) *Menu Roulette* — everyone
+  orders for the person to their left, no vetoes; (b) *Same Order* — the
+  whole table orders the identical thing in identical words, deadpan, one
+  after another; (c) *The Anniversary* — inform the staff it's a special
+  occasion that makes no sense ("our three-and-a-half-month friendaversary")
+  and see what the restaurant does.
+- **The draped clock / phones in the fruit bowl** (was The Hour, cut):
+  (a) *The Announcement* — every twenty minutes someone must stand and
+  formally announce nothing ("I have an announcement: I am switching
+  seats"), and everyone reacts like it's momentous; (b) *Midnight* — no one
+  knows when midnight is; each person counts down from ten out loud whenever
+  they personally believe it has arrived; (c) *Breaking News* — one guest
+  periodically delivers urgent bulletins about events at the party.
+
+Also flagged by Sophie, awaiting her story before deciding: the **one-day
+marriage experiment** (asked her about it, Aug 2026).
 
 ## The cover — "the game that never happened"
 One invented composite game carrying a piece of every real one, not any single
