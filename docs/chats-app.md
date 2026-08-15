@@ -713,8 +713,9 @@
     back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
     2026, her ask) so the pair says which is the bigger decision at a glance;
     fixed colours, like the row's ⊖ and ✓, since that row is cream in both
-    themes. **HIDE is a PICTURE of an eye now** — see *The bell and the two
-    picture buttons* below; it keeps the red. The **"chats" crumb that used to
+    themes. **HIDE is a grey PICTURE of an eye now** — see *The bell and the
+    two picture buttons* below; it goes red only once the chat really is
+    hidden, and wears the cross then too. The **"chats" crumb that used to
     lead the row is gone** ("that seems redundant") — the back chevron already
     says where she is — and `#thread header .no` is
     `justify-content:flex-end`, which is what the crumb's `flex:1` used to do
@@ -1008,19 +1009,39 @@
     until she taps a bell, which is her sentence read literally and also the
     safe failure direction (a caller that forgets the flag goes quiet rather
     than buzzing her). It compares `notify === true`, never truthiness.
-  - **It does not FILL when lit, unlike the star and the bookmark beside it.**
-    Filling Lucide's bell fills its clapper arc into a lens and the glyph
-    stops reading as a bell, so the state is carried by colour alone — grey
-    `--line` off, `--chg` red on, the same red its two neighbours use. Its
-    class is `.bellbtn`, kept out of `.bmk` on purpose: the generic
-    `.bmk.on svg{fill:currentColor}` is exactly the rule that would flood it.
+  - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
+    pass, same week: "change the bell colour to yellow and make it filled in
+    rather than just the outline"). It shipped stroked, with a comment here
+    claiming a filled bell "stops reading as a bell" — **that was reasoned,
+    not looked at**, and one screenshot of the candidates at 16px on both
+    papers settled it the other way: filled reads BETTER at that size, where
+    the outline's 1.8px walls close up into a blob. The half that was true is
+    narrow — filling *Lucide's* path leaves its clapper as a detached crescent
+    — so `BELL_SVG` is a hand-drawn pair instead, one closed dome and a small
+    tab, which is also the `bell.fill` silhouette her phone already knows. It
+    is filled in BOTH states; grey `--line` vs gold is the state, exactly like
+    the star. Its class is `.bellbtn`, kept out of `.bmk` on purpose (the
+    generic `.bmk` rules sit later in the file and win at equal specificity).
+    - **`--bell` is the one colour on that row with TWO values**, where the
+      ⊖'s red and ARCHIVE's green are fixed across both themes. Measured: no
+      single yellow clears 3:1 against BOTH papers — a gold dark enough for
+      cream (3.05:1 at `#b5820a`) goes muddy on the dark one, and a yellow
+      bright enough for dark sits at 1.9:1 on cream. So it is a token in all
+      four theme blocks: `#b5820a` light, `#e8b53a` dark.
   - **The eye carries the HIDE state the word used to.** Open eye = this chat
     is on the list; crossed eye (`eye-off`) = it is parked in the hidden pile,
-    which is what "In hidden" said before. Both stay `#b3443f` red — the
-    decision family didn't change, only its picture.
+    which is what "In hidden" said before.
   - **The trash can is the masthead's own glyph** (`TRASH_SVG`, the same
     `trash-2` path `#trashlink` draws), so the button and the pile it sends
     things to read as one idea. `.trashbtn.delbtn`, again never `.bmk`.
+  - **NEITHER OF THOSE TWO IS RED AT REST** (Sophie, second pass: "make the
+    trash not red until I click it and the hidden icon should also not be red
+    until I click it"). They shipped carrying the red their *words* had, and
+    two red glyphs in the header read as a warning about a chat with nothing
+    wrong with it. Both are `--ink2` at rest now; the eye turns `#b3443f`
+    **with its crossing stroke** (the state, not a hover), and the can turns
+    red only on `:active`, because deleting has no resting state to show — the
+    chat leaves the screen.
   - **The row got NARROWER, not wider, even with a control added** — measured
     at 390px after the change, the six children run x=75→315 inside a 351px
     row with `scrollWidth === clientWidth` and no horizontal body scroll. Two
@@ -1028,8 +1049,13 @@
     it the same way before adding a seventh.
   - Tests: `node scripts/test-chats-bell.js` (the real page, headless — the
     bell's two POSTs, the roll-back on a failed save, both eye states, no
-    words left in the row, and a hit-test on all three) and the bell half of
-    `node scripts/test-push-gate.js`.
+    words left in the row, a hit-test on all three, and the COMPUTED colours:
+    the bell filled and gold when lit, neither the eye nor the can red at
+    rest, the eye red only when crossed) and the bell half of
+    `node scripts/test-push-gate.js`. The colours are asserted off
+    `getComputedStyle`, not the markup — a stray `.bmk`-style rule landing on
+    one of these is exactly the failure worth catching, and it shows up
+    nowhere else.
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.
