@@ -118,8 +118,9 @@ const server = http.createServer((req, res) => {
     //           title), but OLDER than her ✓ on this chat: gone as old news,
     //           without anyone parsing its title.
     // chat-deck delivers TWO genuinely different pages and says nothing at
-    // all — both must show ("if they give me a different page, why would I
-    // want it to not be shown?"), and a chat CAN deliver without a reply.
+    // all — only the NEWER shows (Sophie, Aug 2026: "I only want the newest
+    // compare page or whatever they posted on that turn"), and a chat CAN
+    // earn a card with pages alone, having never posted a reply.
     return res.end(JSON.stringify({ pages: [
       { id: 'p1', title: 'Oven artifact v4 (s96) — tightest cut', chat: 'chat-oven', created: iso(T0 - 90 * 60000) },
       { id: 'p3', title: 'Oven artifact v3 (s96) — link mode in the strip', chat: 'chat-oven', created: iso(T0 - 100 * 60000) },
@@ -239,9 +240,10 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   }
   const pgTitles = await page.$$eval('.nwcard[data-chat="chat-oven"] .pr-title', ns => ns.map(n => n.textContent));
   if (!pgTitles.some(t => t.indexOf('Oven artifact v4') >= 0)) fail('the newest Compare page is not on the oven card');
-  // 1. a version pair inside one unchecked stretch collapses to the newer
-  //    (Sophie: "if there's one version and then a new one comes out it should
-  //    just replace that one — it says v6 and then v5")
+  // 1. an older page in the same unchecked stretch never shows — the newest
+  //    is the card's whole deliverable (Sophie: "if there's one version and
+  //    then a new one comes out it should just replace that one", then "I only
+  //    want the newest compare page")
   if (pgTitles.some(t => t.indexOf('v3') >= 0)) fail('the superseded v3 is still on the card: ' + pgTitles.join(' | '));
   // 2. …and a page older than her ✓ is gone as OLD NEWS, with nobody parsing
   //    its title — this is the one that beat the title rule twice ("I think it
@@ -250,12 +252,13 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     fail('a page older than her check-off survived: ' + pgTitles.join(' | '));
   }
   if (pgTitles.length !== 1) fail('the oven card should carry exactly its current artifact: ' + pgTitles.join(' | '));
-  // 3. but TWO genuinely different pages from one chat both show (Sophie,
-  //    correcting the one-page-only rule: "wait, if they give me a different
-  //    page, why would I want it to not be shown?"), and that chat never
-  //    posted a message — the pages alone earn it a card
+  // 3. TWO genuinely different pages from one chat show as the NEWEST alone
+  //    (Sophie, Aug 2026: "I only want the newest compare page or whatever
+  //    they posted on that turn" — reversing the v3 rule that showed both),
+  //    and that chat never posted a message: the pages alone earn it a card
   const deck = await page.$$eval('.nwcard[data-chat="chat-deck"] .pr-title', ns => ns.map(n => n.textContent));
-  if (deck.length !== 2) fail('two different pages from one chat did not both show: ' + deck.join(' | '));
+  if (deck.length !== 1) fail('a card should carry ONE page, its newest: ' + deck.join(' | '));
+  if (deck[0].indexOf('full-size cards') < 0) fail('the page shown is not the newest one: ' + deck.join(' | '));
 
   // THE ⌄ POP-OUT (Sophie, Aug 2026: "a TLDR in their update — not fully in
   // the message, because it would crowd things, but more as like a button I
@@ -291,29 +294,8 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     return n && getComputedStyle(n).display === 'none';
   }, null, { timeout: 4000 }).catch(() => fail('tapping the ⌄ again did not close the update'));
 
-  // the version-collapsing half, on real titles from her feed: WHERE the
-  // version sits decides what the family is, so re-cuts of one thing collapse
-  // while different pages under one project name do not
-  const fam = await page.evaluate(() => {
-    const f = window.__pageFamily;
-    return {
-      v6: f('Cutting blocks v6 (s96) — tap empty space to deselect'),
-      v5: f('Cutting blocks v5 (s96) — link mode in the strip, paragraph links'),
-      cut: f('Short 1 cut 3 — tightest'),
-      cut2: f('Short 1 cut 4'),
-      ev1: f('Evan — v11, the art from your notes'),
-      ev2: f('Evan — pick the pauses (v6)'),
-      ev3: f('Evan — the two floors, side by side'),
-      mon1: f('Monsters — full-size cards, quality ladder v1'),
-      mon2: f('Monsters — info backs, 3 samples v1'),
-      bare: f('v2'),
-    };
-  });
-  if (fam.v6 !== fam.v5) fail('v6 and v5 of the same page are not one family: ' + fam.v6 + ' / ' + fam.v5);
-  if (fam.cut !== fam.cut2) fail('cut 3 and cut 4 are not one family: ' + fam.cut + ' / ' + fam.cut2);
-  const proj = [fam.ev1, fam.ev2, fam.ev3, fam.mon1, fam.mon2];
-  if (new Set(proj).size !== proj.length) fail('different pages under one project collapsed: ' + proj.join(' | '));
-  if (!fam.bare) fail('a title that is only a version marker lost its identity');
+  // (The version-collapsing family parser lived here — deleted with v4 of the
+  // page rule: one page shows, so nothing reads a title any more.)
   const thumbs = await page.$$('.nwcard[data-chat="chat-pics"] .nwimg');
   if (thumbs.length !== 3) fail('expected the last THREE pictures, got ' + thumbs.length);
 
