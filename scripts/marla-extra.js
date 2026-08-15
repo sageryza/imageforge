@@ -103,6 +103,9 @@ async function upload(buf, dest) {
 }
 
 const LABELS = {
+  '3d': 'Page 3 split — the bathtub with gold feet, tiles, and the city rising higher',
+  '32g': 'Page 32 — the diagram with each circle pointing at the thing it shows',
+  '3c': 'Page 3 split — Marla at the window, storm drawn large enough to read',
   '3a': 'Page 3 split — the city sitting in a real bathtub, on its own',
   '3b': "Page 3 split — Marla at the window with the storm on her chest, on its own",
   '3c': "Page 3 split — Marla at the window, storm drawn large enough to read",
