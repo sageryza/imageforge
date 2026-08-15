@@ -24,3 +24,21 @@ Content half of the prompt, exactly as sent:
 > one particular instrument out of a neat flat lay of surgical tools — scalpel,
 > forceps, scissors, clamps, retractor — arranged in a tidy row on a
 > cloth-covered tray, seen from directly overhead.
+
+## v2 — `surgeon-tool-flatlay-v2-weird.webp`
+
+Same recipe, but the tools are invented rather than real — Sophie's follow-up
+ask. gpt-image-2 · medium · 1024x1024 · ~6¢ · 57s.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1786831135356-rco38r.webp
+
+Content half of the prompt, exactly as sent:
+
+> A surgeon's gloved hand reaching down from the top of the frame and lifting
+> one particular instrument out of a neat flat lay of invented, absurd surgical
+> tools arranged in a tidy row on a cloth-covered tray, seen from directly
+> overhead. None of them are real surgical instruments — they are silly
+> inventions with odd features: a tiny butterfly net on a scalpel handle, a
+> bubble wand puffing out a little burst of confetti, forceps that end in a
+> small grabbing hand, a clamp topped with a spinning windmill, a corkscrew
+> with a bell on it, a long spoon with a curly spiral tail, a pair of scissors
+> whose blades are tiny leaves.
