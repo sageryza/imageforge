@@ -78,6 +78,28 @@ in 12-hour Pacific · files and images LAST · working links at the very bottom.
   the watcher just tells you when it's live.
 
 ## Claims about OTHER sessions or the environment: MEASURE, never reason
+**A SECOND CASE, and the same shape (2026-08-14): "a repo-committed hook never
+loads (verified live 2026-07-15)".** That sentence sat in
+`scripts/build-chats-setup.py` for a year and was true of ONE layout — sessions
+starting at `/home/user`, the folder holding the repos, where
+`/home/user/.claude/settings.json` really is the project settings file. But a
+web session on a SINGLE repo starts INSIDE it (`/home/user/<repo>`), one level
+down, where that file registers nothing. Found live: **memory-library-react had
+never posted a single turn, ever** — not intermittent, total — and the quoted
+sentence is why nobody looked there. **A dated measurement can go stale when the
+environment changes underneath it; re-measure before trusting one to rule
+something out.** Both repos now also commit their own `.claude/settings.json`
+registering the hook (imageforge #1069, memory-library-react #316), and
+belt-and-braces is right: double registration is harmless because the server
+upserts on `sha1(session|turn)`. **Any new repo whose sessions start inside it
+needs its own copy, and the failure is SILENT.** Two related facts measured the
+same day, neither a bug: `$HOME` is `/root`, so the hook's `forge-*` ledgers land
+in `/root/.claude` while the setup script provisions `/home/user/.claude` (self-
+consistent — the hook reads and writes the same `$HOME`, and losing the ledger
+re-baselines rather than floods); and `/home/user/.claude/skills` is a symlink
+into the imageforge checkout, so it dangles in any layout that puts imageforge
+somewhere else.
+
 **(Sophie asked for this as a case study, 2026-08-10, so it can't happen
 again.)** A chat can test its own page, its own hook, its own container — but
 any claim about what the OTHER ~190 sessions or the environment do (which hook

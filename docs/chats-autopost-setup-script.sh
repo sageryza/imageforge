@@ -1,9 +1,21 @@
 #!/bin/bash
 # Deck Factory Chats auto-filer — the cloud environment's Setup script fetches
-# this from /setup.sh (curl | bash). Why not a repo hook: sessions start at
-# /home/user (the folder HOLDING the four repos), and Claude Code only loads
-# .claude/settings.json from the starting folder — so a repo-committed hook
-# never loads (verified live 2026-07-15). This writes the hook to
+# this from /setup.sh (curl | bash). Claude Code loads project settings from the
+# folder the session STARTS in, so this writes /home/user/.claude/settings.json
+# for sessions that start at /home/user (the folder holding the repos).
+# **IT IS NOT THE WHOLE STORY, and the sentence that used to sit here — "a
+# repo-committed hook never loads (verified live 2026-07-15)" — was a
+# measurement of ONE layout that later stopped being the only one.** Web
+# sessions on a single repo start INSIDE it (/home/user/<repo>), one level down,
+# where this file is not the project settings file and registers nothing: found
+# live 2026-08-14, memory-library-react had NEVER posted a single turn, and the
+# quoted sentence is why nobody looked there for a year. So each repo ALSO
+# commits its own `.claude/settings.json` registering the same hook — imageforge
+# since #1069, memory-library-react since #316 — and belt-and-braces is correct
+# here, because double registration is harmless (the server upserts on
+# sha1(session|turn), so two firings land on one message). A repo whose sessions
+# start inside it and which commits no settings file posts nothing at all, and
+# that failure is SILENT. This writes the hook to
 # /home/user/.claude/ before Claude Code launches; the environment snapshot
 # carries it into every future session. v3: also files image deliverables
 # into the iOS gallery via POST /api/gallery. v4: tags each post with the
