@@ -862,6 +862,18 @@ them off the reference sheet, not off the old filenames.
     prompt, and every message in its note thread — so a filed prompt is what
     makes an image findable later. It stacks with the New/♥/Hide ✕ filter and
     runs client-side over the already-loaded tiles (no request per keystroke).
+- **EVERY SEARCH BOX SPEAKS ONE GRAMMAR, AND SEARCHES AS SHE DICTATES (Aug
+  2026).** Bare words are AND'd **within one message/image** (`witch keywords`
+  = both, any order — her ask: two words she knows shared one message where one
+  of them appears in hundreds of others), `OR` takes either, `-word` excludes,
+  `"quoted"` keeps words adjacent (the old whole-field-as-one-phrase
+  behaviour). Parsed in ONE place, `search-grammar.js`, shared with the
+  Chunking clip library; matching stays per-caller on purpose (the feed anchors
+  terms at a word start against raw text, the clip library normalises). And
+  every box runs through `liveInput` — **iOS dictation can fill a field without
+  firing `input`**, so the boxes poll the value while focused rather than
+  waiting for the keyboard's ✓. Tests: `node scripts/test-search-grammar.js`,
+  `node scripts/test-chats-live-search.js`.
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does

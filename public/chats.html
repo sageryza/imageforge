@@ -1075,6 +1075,81 @@ document.addEventListener('click', function(e){
 });
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── The house search grammar, client side ────────────────────────────────
+// The same grammar the server parses in `search-grammar.js`, so all four boxes
+// (all chats, this chat's messages, this chat's images, the clip library)
+// answer the same way: bare words AND, `OR` between them, `-word` excludes,
+// "quoted" keeps words adjacent. Sophie's case is the AND — two words she
+// knows shared one message, where one of them appears in hundreds of others.
+// Each term is anchored at a word START, so "aries" doesn't find "boundaries"
+// while the prefix "bound" still does.
+function qparse(q){
+  var groups=[], re=/(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext=false, notNext=false;
+  while((m=re.exec(String(q||'')))){
+    var quoted=m[2]!==undefined, raw=quoted?m[2]:m[3], bare=!m[1]&&!quoted;
+    if(bare&&/^or$/i.test(raw)){ orNext=true; continue; }
+    if(bare&&/^and$/i.test(raw)) continue;
+    if(bare&&/^not$/i.test(raw)){ notNext=true; continue; }
+    var v=String(raw==null?'':raw).toLowerCase().replace(/\s+/g,' ').trim();
+    if(!v) continue;
+    var rx=null;
+    try{ rx=new RegExp((/^[a-z0-9]/i.test(v)?'\\b':'')
+      +v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+'),'i'); }catch(_){ rx=null; }
+    if(!rx) continue;
+    var neg=!!m[1]||notNext, last=groups[groups.length-1];
+    if(orNext&&last&&!last.neg&&!neg) last.terms.push(rx);
+    else groups.push({neg:neg, terms:[rx]});
+    orNext=false; notNext=false;
+  }
+  return groups;
+}
+function qmatch(hay, groups){
+  for(var i=0;i<groups.length;i++){
+    var g=groups[i], hit=false;
+    for(var j=0;j<g.terms.length;j++){ if(g.terms[j].test(hay)){ hit=true; break; } }
+    if(g.neg?hit:!hit) return false;
+  }
+  return true;
+}
+// The words worth BOLDING in a hit: what she typed, minus the grammar. An
+// excluded term is never in the snippet, and OR/AND are operators.
+function qterms(q){
+  var out=[], re=/(-|!)?(?:"([^"]*)"|(\S+))/g, m;
+  while((m=re.exec(String(q||'')))){
+    if(m[1]) continue;
+    var v=(m[2]!==undefined?m[2]:m[3])||'';
+    if(m[2]===undefined){
+      if(/^(or|and|not)$/i.test(v)) continue;
+      v=v.replace(/^[a-zA-Z]+:/,'');         // a field prefix isn't part of the word
+    }
+    if(v) out.push(v);
+  }
+  return out;
+}
+
+// ── Search as she types, INCLUDING when she dictates ─────────────────────
+// Sophie never types — she talks into the field — and iOS dictation can hold
+// its text in the input without firing `input` until she taps the ✓ that ends
+// dictation. An `oninput`-only search box therefore sat there doing nothing
+// through the whole sentence, which is exactly what she reported (Aug 2026:
+// "can you change it so that it starts searching as soon as I type it in
+// without having to press the checkmark"). So every search box goes through
+// here: the events dictation DOES send are wired, and while the field has
+// focus the value is polled — one string compare every 150ms, only while she
+// is actually in the box, and the callback fires only when the value really
+// changed. Cheap, and it cannot miss a way the text arrives.
+function liveInput(el, fn){
+  var last=el.value, timer=null;
+  function fire(){ if(el.value===last) return; last=el.value; fn(); }
+  ['input','change','compositionupdate','compositionend','keyup','paste']
+    .forEach(function(ev){ el.addEventListener(ev, function(){ setTimeout(fire,0); }); });
+  el.addEventListener('focus', function(){ clearInterval(timer); timer=setInterval(fire,150); });
+  el.addEventListener('blur', function(){ clearInterval(timer); timer=null; fire(); });
+  // Clearing the box in code (the ✕, leaving a chat) must not then fire as if
+  // she had typed it.
+  return { sync:function(){ last=el.value; } };
+}
+
 // ── The hairline tab rows' sliding line ──────────────────────────────────
 // It measures `.acctab.on` and writes the line's real width and offset. NO row
 // declares a tab count anywhere, which is the point: the count used to live in
@@ -3902,17 +3977,17 @@ function openChat(name, keepScroll, focusId, noFetch){
       scount.style.display='none';
       return;
     }
-    var hits=0;
+    var hits=0, groups=qparse(q);
     mrows.forEach(function(r){
-      var on=r.hay.indexOf(q)>=0;
+      var on=groups.length? qmatch(r.hay, groups) : true;
       r.row.style.display=on?'':'none';
       if(on) hits++;
     });
     scount.style.display='';
     scount.textContent=hits? (hits+' message'+(hits===1?'':'s')) : 'No messages match that';
   }
-  sinp.oninput=applyMsgFilter;
-  sclr.onclick=function(){ sinp.value=''; applyMsgFilter(); sinp.focus(); };
+  var sinpLive=liveInput(sinp, applyMsgFilter);
+  sclr.onclick=function(){ sinp.value=''; sinpLive.sync(); applyMsgFilter(); sinp.focus(); };
   // ---- Questions, in the messages' place ----------------------------------
   // The button on the note row swaps the two boxes and swaps them back — no
   // overlay, no ✕, nothing to dismiss. Lit (`.tbtn.on`) while the questions
@@ -4024,13 +4099,13 @@ function openChat(name, keepScroll, focusId, noFetch){
           return it._hay;
         }
         function applyFilter(){
-          var shown=0;
+          var shown=0, groups=q?qparse(q):[];
           cells.forEach(function(c){
             var v=c.it.vote||null, show=true;
             if(filter==='new') show=!v;
             else if(filter==='like') show=(v==='like');
             else if(filter==='nox') show=(v!=='dislike');
-            if(show && q) show=haystack(c.it).indexOf(q)>=0;
+            if(show && groups.length) show=qmatch(haystack(c.it), groups);
             if(c.it._broken) show=false;   // a dead image stays hidden
             c.cell.style.display=show?'':'none';
             if(show) shown++;
@@ -4059,12 +4134,12 @@ function openChat(name, keepScroll, focusId, noFetch){
         si.autocapitalize='none'; si.autocorrect='off';
         var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
         sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
-        si.oninput=function(){
+        var siLive=liveInput(si, function(){
           q=(si.value||'').trim().toLowerCase();
           sx.style.display=q?'':'none';
           applyFilter();
-        };
-        sx.onclick=function(){ si.value=''; q=''; sx.style.display='none'; applyFilter(); si.focus(); };
+        });
+        sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
         srow.appendChild(si); srow.appendChild(sx);
         assetsPanel.appendChild(srow);
         var none=document.createElement('div'); none.className='state';
@@ -4785,10 +4860,17 @@ document.getElementById('back').onclick=goHome;
   // bar is open, because it doubles as the way to fold the bar away), so
   // nothing here touches its display.
   window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
+  // ONE pass over the snippet with every term alternated — bolding term by
+  // term would let a later term match inside the <b> a previous one wrote.
   function hl(snip,q){
-    var e=esc(snip||'');
-    try{ var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'); return e.replace(rx,'<b>$1</b>'); }
-    catch(_){ return e; }
+    var e=esc(snip||''), ts=qterms(q);
+    if(!ts.length) return e;
+    try{
+      var rx=new RegExp('('+ts.map(function(v){
+        return v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+      }).join('|')+')','ig');
+      return e.replace(rx,'<b>$1</b>');
+    }catch(_){ return e; }
   }
   function run(q){
     q=(q||'').trim();
@@ -4820,7 +4902,9 @@ document.getElementById('back').onclick=goHome;
       })
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
-  qi.addEventListener('input', function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  var _reset=window._resetSearch;
+  window._resetSearch=function(){ _reset(); live.sync(); };
   // One control, two jobs: with words in the field it clears them; on an
   // empty field there is nothing left to clear, so it folds the bar back to
   // its glass. That is the way out of a search without a second button.
