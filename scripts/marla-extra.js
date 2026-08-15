@@ -40,9 +40,24 @@ const NO_TEXT = 'Do not put any text, words, letters, numbers, captions or water
 
 const hasMarla = (scene) => /\bgirl\b|\bMarla\b|\bher\b/i.test(scene);
 
-function buildPrompt(scene, card) {
+// A variant key carries its page number ("32e" -> 32), so a beach variant gets
+// the same sun-hat continuity line the numbered page would. Without this, 32e
+// drew her bare-headed on the sand while page 32 itself wears the hat — the
+// kind of drift that is invisible until the two sit side by side.
+const pageOf = (key) => Number(String(key).replace(/[a-z]+$/i, '')) || null;
+function extraLines(key, scene) {
+  const out = [];
+  if (hasMarla(scene)) {
+    out.push(rev.character.line);
+    const n = pageOf(key);
+    if (n && (rev.beachPages || []).includes(n) && rev.beachHat) out.push(rev.beachHat);
+  }
+  return out.filter(Boolean);
+}
+
+function buildPrompt(scene, card, key) {
   return [card ? STYLE_MANY : STYLE_ONE, card ? CARD_LINE : '', '', `Draw: ${scene}`,
-    card ? rev.character.line : '', '', NO_TEXT]
+    ...(card ? extraLines(key, scene) : []), '', NO_TEXT]
     .join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
@@ -90,6 +105,8 @@ async function upload(buf, dest) {
 const LABELS = {
   '3a': 'Page 3 split — the city sitting in a real bathtub, on its own',
   '3b': "Page 3 split — Marla at the window with the storm on her chest, on its own",
+  '3c': "Page 3 split — Marla at the window, storm drawn large enough to read",
+  '32f': 'Page 32 — the diagram with your three circles, and her sun hat back on',
   '32e': 'Page 32 — the diagram with your three circles: rain, ocean, and her eye with a tear starting',
 };
 
@@ -97,7 +114,7 @@ const LABELS = {
   const only = (arg('only') || Object.keys(rev.scenes).filter((k) => /[a-z]$/.test(k))).split(',').map((s) => s.trim());
   if (!process.env.OPENAI_API_KEY) throw new Error('No OPENAI_API_KEY.');
   console.log(`${only.length} drawing(s) · about $${(only.length * 0.06).toFixed(2)} · gpt-image-2 medium 1024x1536`);
-  if (DRY) { for (const k of only) console.log(`\n--- ${k} ---\n` + buildPrompt(rev.scenes[k], !NO_CARD && hasMarla(rev.scenes[k]) ? {} : null)); return; }
+  if (DRY) { for (const k of only) console.log(`\n--- ${k} ---\n` + buildPrompt(rev.scenes[k], !NO_CARD && hasMarla(rev.scenes[k]) ? {} : null, k)); return; }
 
   initAdmin();
   const cardBuf = Buffer.from(await (await fetch(SHEET.url)).arrayBuffer());
@@ -107,7 +124,7 @@ const LABELS = {
     const scene = rev.scenes[k];
     if (!scene) { console.log(`${k}: no scene on file`); continue; }
     const useCard = !NO_CARD && hasMarla(scene);
-    const prompt = buildPrompt(scene, useCard ? cardBuf : null);
+    const prompt = buildPrompt(scene, useCard ? cardBuf : null, k);
     process.stdout.write(`\n${k} … `);
     try {
       const art = await drawWithRetry(prompt, useCard ? cardBuf : null, k);
