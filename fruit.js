@@ -336,11 +336,15 @@ router.get('/results/:poll', async (req, res) => {
       if (b.top) { const t = tally.get(b.top); if (t) { t.tops++; t.topBy.push(b.name); } }
     }
     // ORDER IS BY LOVES, the same number the Popular view draws its size from,
-    // so position and size can never disagree. `oks` breaks a tie but never
-    // outranks a love — a fruit three people merely tolerate is not more
-    // popular than one somebody loves, on a chart about favourites.
+    // so position and size can never disagree.
+    //
+    // A TIE IS BROKEN BY FEWER "IT'S OK" (Aug 2026, Sophie: "if people inflate
+    // the likes, maybe just use the maybe as a dislike"). Measured on the real
+    // ballots and she is right: across two finished decks nobody used the X at
+    // all on fruit — 0 refusals in 74 cards — so "it's OK" IS this family's
+    // negative, and counting it toward a fruit ranked the lukewarm ones up.
     const fruits = [...tally.values()].sort((a, b) =>
-      (b.loves - a.loves) || (b.oks - a.oks) || (b.tops - a.tops) || a.name.localeCompare(b.name));
+      (b.loves - a.loves) || (a.oks - b.oks) || (b.tops - a.tops) || a.name.localeCompare(b.name));
 
     res.json({
       poll: publicPoll(pollSnap.id, poll),

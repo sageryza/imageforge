@@ -139,7 +139,9 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
   own row, biggest picture first — that's their number one — with the ones they
   only thought were OK underneath. <b>Chart</b> is the grid: ★ favourite,
   ♥ loved, – it's OK. <b>Popular</b> sizes each fruit by how many people
-  <i>loved</i> it, with the OK count written alongside. A deck someone is still
+  <i>loved</i> it, with the OK count written alongside — and because nobody
+  here uses the ✕, "it's OK" is read as the lukewarm end, so it breaks ties
+  <i>against</i> a fruit rather than for it. A deck someone is still
   part-way through counts too, marked with how far they got — a card they have
   not reached yet is left blank rather than shown as a no. Printing gives you
   all three, one per page.
@@ -279,8 +281,10 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
       // would need a weighting nobody chose, and it would let a fruit three
       // people merely tolerate outgrow one somebody loves — on a chart about
       // favourites. The OK count rides along as text instead.
+      // Same tiebreak as the server: fewer "it's OK" wins. With nobody using
+      // the X, OK is the real negative, so it must not lift a fruit.
       var bySize = picked.slice().sort(function (a, b) {
-        return (b.loves - a.loves) || (b.oks - a.oks) || a.name.localeCompare(b.name);
+        return (b.loves - a.loves) || (a.oks - b.oks) || a.name.localeCompare(b.name);
       });
       var max = bySize.reduce(function (m, f) { return Math.max(m, f.loves); }, 1);
       // MAX stays under half the phone's width so the big ones sit SIDE BY SIDE

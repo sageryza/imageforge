@@ -1,0 +1,13 @@
+[
+ {
+  "id": "12-raspberries",
+  "file": "/home/user/out/high1/12-raspberries.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a small handful of raspberries. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "high",
+  "size": "1024x1024",
+  "split": null
+ }
+]
