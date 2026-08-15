@@ -1,0 +1,57 @@
+[
+ {
+  "id": "meet-in-the-middle-v3",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v4/meet-in-the-middle-v3.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: four young adults just arriving at the same staircase landing from different directions in a dark house at night, breathless and serious, not laughing, mid-game \u2014 a young woman, a Puerto Rican young man with green eyes and longish curly black hair, a heavier-built tall young man about six foot two wearing glasses, and a tall lanky young man with straight blonde hair and bangs \u2014 each protecting the flame of a small tea light candle with a cupped hand, the stairwell glowing warmly while the rest of the house falls into darkness. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "the-interpreter-v3",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v4/the-interpreter-v3.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: three people on a couch: the two on the outside are communicating entirely through wild hand gestures and pantomime, arms mid-motion, mouths closed, while the person seated between them speaks the messages out loud, mouth open mid-sentence, looking from one to the other. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "nice-to-meet-you-arcade-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v4/nice-to-meet-you-arcade-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: inside a crowded dark arcade bar at night, glowing game machines all around and many people filling the room \u2014 players hunched over cabinets, drinkers at high tables, a busy background \u2014 while in the foreground two friends enthusiastically shake hands with the same two awkward strangers they have clearly met several times already, greeting them like perfect strangers, the strangers' faces caught between politeness and confusion. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "threshold-v3",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v4/threshold-v3.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a dark apartment balcony at night, a halfhearted semicircle of young adults in visible agony from holding it in \u2014 knees pressed together, legs crossed, one bent slightly forward with a hand pressed against the front of his jeans, another gripping the balcony railing, faces screwed up with desperate concentration, red plastic cups in hand \u2014 while behind them through the doorway other partygoers play beer pong in the warm light of the apartment. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "the-search-h-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v4/the-search-h-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: inside a supermarket aisle, three clearly different employees holding up wrong items toward a woman customer as possible answers to what she is looking for \u2014 a tall thin young man holding up a bottle of white school glue, an older heavyset bearded man holding up a honey bear squeeze bottle, a woman with curly hair holding up a carton of milk \u2014 while the customer studies them all doubtfully. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]
