@@ -48,6 +48,31 @@ const has = (n) => process.argv.includes(`--${n}`);
 const cfg = JSON.parse(fs.readFileSync(CHARS, 'utf8'));
 const SHAPE = arg('shape', 'three');   // three | one
 const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
+
+// Label + MODEL · QUALITY caption + the exact prompt split, in the Assets tab.
+const CHAT = 'marlas-eyes-fishbowl-storybook';
+const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
+async function fileSheet(book, key, o, rec) {
+  const label = `${book.who} character sheet ${o.tag} — ${SHAPE === 'one' ? 'one view' : 'three views'}`
+    + (o.hair ? `, ${o.hair}` : '');
+  try {
+    await fetch(`${BASE}/api/gallery`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: rec.url, description: label, prompt: `${MODEL} \u00b7 ${QUALITY}` }),
+    });
+    await fetch(`${BASE}/api/gallery/assets/prompt`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, url: rec.url,
+        style: rec.prompt.replace(`Draw: ${rec.scene}`, 'Draw: [content]')
+          + `\n\nAttached: refs/sage-sandy-mirror.png as the style reference (no character card). ${MODEL} edits, size ${SIZE}, quality ${QUALITY}.`,
+        content: rec.scene }),
+    });
+  } catch (e) {
+    // A filing failure must be LOUD — silence is how a whole batch went missing.
+    console.log(`   ! ${o.tag} drew but did not file: ${e.message}`);
+  }
+}
+
 const saveState = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
 
 // SHAPE: three views on one page (the default — a head-on-only card taught the
@@ -147,6 +172,12 @@ async function upload(buf, dest) {
       const url = await upload(buf, `storybooks/${key}/refs/${key}-${o.tag}.png`);
       state[key][o.tag] = { url, prompt, scene, hair: o.hair || null, at: Date.now() };
       saveState();
+      // FILE IT NOW. This script drew sheets for weeks without ever filing
+      // one, so every option reached Sophie only if a chat remembered to POST
+      // it by hand — and the caption sweep cannot catch the miss, because it
+      // only inspects images already in the tab. Same lesson as
+      // marla-revise.js: an unfiled picture is one she never sees.
+      await fileSheet(book, key, o, state[key][o.tag]);
       console.log('✓');
     } catch (e) { console.log('FAILED —', e.message); }
   }
