@@ -23,7 +23,10 @@
 // FORGE_BASE overrides the server. Idempotent: a chat that already has a
 // folder is skipped by the server, so re-running only picks up what is left.
 
-const fetch = require('node-fetch');
+// Node 18+ has fetch built in; the dependency is the fallback. This script is
+// run from a chat's container, which does not always have node_modules
+// installed — and a backfill that can't start is a backfill nobody runs.
+const fetch = globalThis.fetch || require('node-fetch');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const args = process.argv.slice(2);
