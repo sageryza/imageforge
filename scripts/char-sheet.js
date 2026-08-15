@@ -73,7 +73,24 @@ async function fileSheet(book, key, o, rec) {
   }
 }
 
-const saveState = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
+// MERGE ON WRITE, never stamp the whole file. Two of these scripts running at
+// once each read state at startup and wrote their whole in-memory copy back,
+// so the last writer silently dropped the other's entries — the pictures were
+// safe in Storage and in the Assets tab, but the bookkeeping lost them. A
+// deep-ish merge (one level per bucket) is enough: every writer only ever adds
+// leaves, never removes one.
+function mergeInto(target, src) {
+  for (const [k, v] of Object.entries(src)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && target[k] && typeof target[k] === 'object' && !Array.isArray(target[k])) {
+      Object.assign(target[k], v);
+    } else target[k] = v;
+  }
+  return target;
+}
+const saveState = () => {
+  const disk = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : {};
+  fs.writeFileSync(STATE, JSON.stringify(mergeInto(disk, state), null, 2) + '\n');
+};
 
 // SHAPE: three views on one page (the default — a head-on-only card taught the
 // model head-on framing on every Marla page) or ONE view, which Sophie asked

@@ -123,6 +123,19 @@ const LABELS = {
   '32e': 'Page 32 — the diagram with your three circles: rain, ocean, and her eye with a tear starting',
 };
 
+// MERGE ON WRITE, never stamp the whole file. Two of these scripts running at
+// once each read state.json at startup and wrote their whole in-memory copy
+// back, so the last writer silently dropped the other's entries — 3d, 32g and
+// 23w vanished from the bookkeeping while the pictures themselves sat safely
+// in Storage and in the Assets tab. Re-read immediately before writing.
+function saveExtra(key, rec) {
+  const f = path.join(ROOT, 'docs/marla/state.json');
+  const disk = JSON.parse(fs.readFileSync(f, 'utf8'));
+  if (!disk.extra) disk.extra = {};
+  disk.extra[key] = rec;
+  fs.writeFileSync(f, JSON.stringify(disk, null, 2) + '\n');
+}
+
 (async () => {
   const only = (arg('only') || Object.keys(rev.scenes).filter((k) => /[a-z]$/.test(k))).split(',').map((s) => s.trim());
   if (!process.env.OPENAI_API_KEY) throw new Error('No OPENAI_API_KEY.');
@@ -143,7 +156,7 @@ const LABELS = {
       const art = await drawWithRetry(prompt, useCard ? cardBuf : null, k);
       const url = await upload(art, `storybook/marla/extra/${k}.png`);
       state.extra[k] = { k, prompt, scene, url, card: useCard, at: Date.now() };
-      fs.writeFileSync(path.join(ROOT, 'docs/marla/state.json'), JSON.stringify(state, null, 2) + '\n');
+      saveExtra(k, state.extra[k]);
       console.log('✓');
       // file it NOW — an unfiled picture is one she never sees
       await fetch(`${BASE}/api/gallery`, {

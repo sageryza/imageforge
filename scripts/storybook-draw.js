@@ -107,7 +107,11 @@ async function upload(buf, dest) {
       const art = await drawWithRetry(prompt, cardBuf, k);
       const url = await upload(art, `storybooks/${BOOK}/pages/p${String(k).padStart(2, '0')}.png`);
       state[BOOK][k] = { k, prompt, scene, url, at: Date.now() };
-      fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n');
+      // merge on write — a concurrent run must not drop the other's entries
+      const disk = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : {};
+      if (!disk[BOOK]) disk[BOOK] = {};
+      disk[BOOK][k] = state[BOOK][k];
+      fs.writeFileSync(statePath, JSON.stringify(disk, null, 2) + '\n');
       console.log('✓');
       const label = `${book.title} — ${scene.split(/[.,]/)[0].slice(0, 70)}`;
       await fetch(`${BASE}/api/gallery`, {
