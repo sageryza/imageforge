@@ -1,0 +1,581 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The image pipeline</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* The blush board + road language is the content pipeline's (v8, the
+     s-curve-content-pipeline chat), and this is its THIRD sibling after
+     docs/audio-pipeline-map.html. Same road, same cut-out drawings. Keep the
+     three looking like one family — if the road changes there, change it here.
+
+     THE ONE THING THIS MAP HAS THAT THE OTHER TWO DO NOT: a lap. The audio
+     road is a walk — you pass each stop once. Here the road walks into a loop
+     (FOUR-UP -> READ -> REWRITE) and goes round it until the prompt is right,
+     and only then carries on. The loop is the free part; everything after it
+     costs real money, so drawing it as a lap IS the argument. */
+  :root {
+    --blush: #f7ebe7; --blush2: #ecd7d2; --track: #e0c6bf;
+    --road: #f1dfda; --edge: #d9bcb4;
+    --goldfill: #c9a961; --blushink: #6f5450;
+  }
+  h1 {
+    font: 600 21px/1.25 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .045em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  /* the hairline tabs (the account-row pattern). The 56px reserve is
+     load-bearing — this row sits inside the pill's band — and the sliding line
+     measures (100% - 56px)/4 because an abspos child resolves against the
+     PADDING box, and there are FOUR tabs. */
+  .tabs {
+    position: relative; display: flex; border-bottom: 1px solid #e6d2cd;
+    margin: 0 0 14px; padding-right: 56px;
+  }
+  .tab {
+    flex: 1 1 0; min-width: 0; padding: 7px 4px 9px;
+    border: none; background: none; cursor: pointer;
+    font: 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.on { color: var(--ink); }
+  .tabs::after {
+    content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
+    width: calc((100% - 56px) / 4); background: var(--ink);
+    transform: translateX(0); transition: transform .2s ease;
+  }
+  .tabs[data-on="1"]::after { transform: translateX(100%); }
+  .tabs[data-on="2"]::after { transform: translateX(200%); }
+  .tabs[data-on="3"]::after { transform: translateX(300%); }
+  .board {
+    position: relative; background: var(--blush); border: 1px solid #e6d2cd;
+    border-radius: 6px; padding: 8px 2px 10px;
+  }
+  .board svg { display: block; width: 100%; height: auto; }
+  .stoplist { display: flex; flex-direction: column; gap: 6px; }
+  .seg {
+    font: 600 10px/1 -apple-system, sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; color: #8a6238; margin: 10px 2px 2px;
+  }
+  .stop {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--blush); border: 1.5px solid var(--track);
+    border-radius: 6px; padding: 9px 30px 9px 10px;
+    color: inherit; text-decoration: none;
+  }
+  .stop svg.g { flex: 0 0 40px; width: 40px; height: 40px; }
+  .stop .nm {
+    font: 600 11px/1.2 -apple-system, sans-serif; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--blushink);
+  }
+  .stop .what { font: 12px/1.35 Georgia, serif; color: var(--ink2); }
+  /* a stage with no tool behind it reads differently — dashed, and it says so */
+  .stop.none { border-style: dashed; }
+  /* a TRIBUTARY is inset and carries a join mark, so the list reads the way the
+     map does: these two flow INTO the split, they are not stops after it */
+  .stop.feed { margin-left: 20px; }
+  .stop.feed::before {
+    content: ''; position: absolute; left: -14px; top: 50%;
+    width: 12px; height: 1.5px; background: var(--track);
+  }
+  /* the three stops inside the lap carry a spine down their left edge, so the
+     list says what the arrow says on the map */
+  .stop.lap { margin-left: 20px; }
+  .stop.lap::before {
+    content: ''; position: absolute; left: -12px; top: -4px; bottom: -4px;
+    width: 1.5px; background: var(--goldfill);
+  }
+  .stop .tag {
+    font: 700 8.5px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--rose); border: 1px solid var(--rose);
+    border-radius: 3px; padding: 2px 4px; margin-left: 6px; display: inline-block;
+    vertical-align: 1px;
+  }
+  /* the COSTS tab — one row per way of buying a picture, cheapest first */
+  /* the 30px on the right is the note button's lane — compare.js drops a + into
+     the corner of anything carrying data-item, and without the reserve it lands
+     on top of the words */
+  .cost {
+    display: flex; align-items: baseline; gap: 10px;
+    border: 1.5px solid var(--track); border-radius: 6px;
+    padding: 9px 30px 9px 10px; margin: 6px 0;
+  }
+  .cost.free { border-color: var(--goldfill); }
+  .cost .n {
+    flex: 0 0 62px; text-align: right;
+    font: 700 15px/1.1 Georgia, serif; color: var(--blushink);
+  }
+  .cost.free .n { color: #8a6238; }
+  .cost .t { flex: 1 1 auto; }
+  .cost .t b { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .cost .t span { display: block; font: 12px/1.35 Georgia, serif; color: var(--ink2); margin-top: 2px; }
+  /* the HOLES tab */
+  .hole { border: 1.5px solid var(--rose); border-radius: 6px; padding: 9px 30px 9px 10px; margin: 6px 0; }
+  .hole.ok { border-color: var(--track); }
+  .hole .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .hole .what { font: 12px/1.4 Georgia, serif; color: var(--ink2); margin-top: 4px; }
+  .hole .who { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .hole .w {
+    font: 600 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--blushink);
+    border: 1px solid var(--track); border-radius: 3px; padding: 3px 5px;
+  }
+  .hole .w.no { color: var(--rose); border-color: var(--rose); }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 2px; }
+  .pick {
+    flex: 1 1 calc(50% - 4px); min-width: 0;
+    border: 1.5px solid var(--track); border-radius: 6px;
+    background: var(--blush); padding: 6px 6px 22px; text-align: center;
+  }
+  .pick img { display: block; width: 100%; height: auto; }
+  .pick b { display: block; font: 600 9.5px/1.3 -apple-system, sans-serif;
+            letter-spacing: .06em; text-transform: uppercase; color: var(--blushink); }
+</style>
+
+<div class="wrap">
+  <h1>The image pipeline</h1>
+
+  <div class="tabs" id="tabs" data-on="0" data-nostop>
+    <button class="tab on" data-tab="0" type="button">Map</button>
+    <button class="tab" data-tab="1" type="button">Stops</button>
+    <button class="tab" data-tab="2" type="button">Costs</button>
+    <button class="tab" data-tab="3" type="button">Holes</button>
+  </div>
+
+  <div id="view-map">
+    <div class="board" data-item="image-map" data-nostop>
+      <svg id="path" viewBox="0 0 440 545" role="img" aria-label="the image pipeline map"></svg>
+    </div>
+  </div>
+
+  <div id="view-stops" hidden>
+    <div class="stoplist" id="stoplist" data-nostop></div>
+  </div>
+
+  <div id="view-costs" hidden>
+    <div id="costlist" data-nostop></div>
+  </div>
+
+  <div id="view-holes" hidden>
+    <div id="holelist" data-nostop></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var SVG = 'http://www.w3.org/2000/svg';
+  var C = { node: '#ecd7d2', road: '#f1dfda', edge: '#d9bcb4',
+            gold: '#c9a961', ink: '#6f5450' };
+
+  /* Every stop on the ROAD, in walking order, with `at` = where it sits along
+     the path as a FRACTION of total length.
+
+     THE POSITIONS ARE CHOSEN, NOT EVENLY SPREAD — the same rule as the audio
+     map, for the same reason. The four road extremes land on exactly 0.2 /
+     0.4 / 0.6 / 0.8, and at an extreme the road is vertical with a clear
+     gutter beside it. THE SPLIT is pinned to 0.40 (the LEFT extreme) because
+     it is the only stop anything flows into, and its two tributaries need that
+     left lane. Everything after it reuses the audio map's proven spacing.
+
+     `none` = the stage is real but nothing is BUILT for it; the string says
+     what is there instead. */
+  var STOPS = [
+    { id: 'subjects', label: 'SUBJECTS', art: 'blocks', at: 0.01, none: 'no tool',
+      what: 'the list of things to draw — a SET, never one picture, because the cheap rung draws four at a time and a set is what re-renders when the direction changes' },
+    { id: 'split',    label: 'THE SPLIT', art: 'scissors', at: 0.40, none: 'no editor',
+      what: 'content and style written as two halves BEFORE anything is drawn — content survives a change of direction, style is a column' },
+    { id: 'fourup',   label: 'FOUR-UP',  art: 'window', at: 0.51, none: 'script only',
+      href: '/vector', lap: 1,
+      what: 'one low 2x2 sheet, four subjects in a single call — 2¢ the sheet, HALF A CENT a frame, cut on the real gutters' },
+    { id: 'read',     label: 'READ',     art: 'wooden', at: 0.60, none: 'on the image, not the prompt',
+      href: '/chats', lap: 1,
+      what: 'write down what half a cent bought — onto the PROMPT, so the finding outlives the picture' },
+    { id: 'rewrite',  label: 'REWRITE',  art: 'journal', at: 0.70, none: 'no tool',
+      href: '/writing', lap: 1,
+      what: 'v2 with the changed words marked, then round again. Free. Four laps of four frames is 8¢' },
+    { id: 'spread',   label: 'SPREAD',   art: 'reel',   at: 0.80, none: 'script only',
+      href: '/playground',
+      what: 'the survivor drawn in every style — one sheet each. Three styles across four subjects is twelve pictures for 6¢' },
+    { id: 'ladder',   label: 'LADDER',   art: 'curve',  at: 0.90, none: 'script only',
+      what: '¼ sheet 1.5¢ → low 2¢ → medium 6¢ → high 25¢. Nothing climbs a rung without a mark against it at the rung below' },
+    { id: 'picture',  label: 'THE PICTURE', art: 'gold', at: 0.99, href: '/gallery',
+      what: 'labeled, filed, with its exact prompt and its MODEL · QUALITY caption — then out to vector, animate, print, or a page' },
+  ];
+
+  /* THE PATH IS NOT A STRICT LINE. Two rooms are not stages a picture passes
+     THROUGH — they are places the STYLE half of a prompt comes FROM, so they
+     join the road at THE SPLIT and the walk continues from there. */
+  var FEEDS = [
+    { id: 'shelf', label: 'THE SHELF', art: 'brush', href: '/freeform', dy: -44,
+      what: 'the references and their written recipes — sage sandy mirror, dream mystery, sophie snake + animals, hoonies, scarry, the wtr LoRA. A style is a reference PLUS a prefix PLUS a suffix, and those live in four different places today' },
+    { id: 'character', label: 'CHARACTER', art: 'screen', href: '/character', dy: 44,
+      what: 'the consistency anchor — sophie book, evan, the nine approved NDE faces. A third axis: content × style × character' },
+  ];
+
+  /* what flows INTO the first stop — where a subject comes from */
+  var SOURCES = ['journal', 'mic', 'book', 'chat'];
+
+  function el(n, a) {
+    var e = document.createElementNS(SVG, n);
+    for (var k in a) e.setAttribute(k, a[k]);
+    return e;
+  }
+
+  /* ── the road ──────────────────────────────────────────────────────────
+     v8's path verbatim, by way of the audio map — bowls joined at the centre
+     line, tangent horizontal at every join and vertical at every extreme,
+     drawn as a ROAD (the same path stroked twice, edges under surface). Do NOT
+     re-derive the sweep flags: moving the start alone leaves the bowls curling
+     the old way and the S comes out backwards. */
+  var CX = 270, A = 140, B = 44, Y0 = 58, R = 22;
+  var D = 'M' + (CX - A) + ' ' + Y0
+        + 'A' + A + ' ' + B + ' 0 0 0 ' + CX + ' ' + (Y0 + B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 3 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 5 * B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 7 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 9 * B)
+        + 'A' + A + ' ' + B + ' 0 0 1 ' + (CX + A) + ' ' + (Y0 + 10 * B);
+  var svg = document.getElementById('path');
+
+  /* The drawings are the content pipeline's own cut-outs — already made,
+     already paid for, transparent background. Reusing them is what makes this
+     map read as the same pipeline seen from a different side.
+     `fourup` is the FOUR-PANE WINDOW, picked because it shows four things and
+     flagged by Sophie as provisional — four replacements were drawn on the
+     pipeline's own cheapest rung (job sh-mstwaqid-bnejd, a low 2x2 vector
+     sheet, 2¢, half a cent each) and sit on the Holes tab. Swap this one line
+     when she picks. */
+  var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
+  var CUT = V + 'pipeline-icons-cut/';
+  var CUT2 = V + 'pipeline-icons-2-cut/';
+  var ART = {
+    blocks: CUT + 'blocks-cut.png',   scissors: CUT + 'scissors-cut.png',
+    window: CUT + 'window-cut.png',   wooden: CUT + 'wooden-cut.png',
+    gold: CUT + 'gold-cut.png',       reel: CUT + 'reel-cut.png',
+    book: CUT + 'book-cut.png',
+    journal: CUT2 + 'journal-cut.png', curve: CUT2 + 'curve-cut.png',
+    brush: CUT2 + 'brush-cut.png',    screen: CUT2 + 'screen-cut.png',
+    mic: CUT2 + 'mic-cut.png',        chat: CUT2 + 'chat-cut.png',
+  };
+
+  // a cut-out drawing, fitted inside a box of side `s` and never cropped
+  function cell(g, url, cx, cy, s) {
+    g.appendChild(el('image', {
+      href: url, x: cx - s / 2, y: cy - s / 2, width: s, height: s,
+      preserveAspectRatio: 'xMidYMid meet',
+    }));
+  }
+
+  function node(g, st, p, r) {
+    var R2 = r || R;
+    if (st.none) g.appendChild(el('rect', {
+      x: p.x - R2, y: p.y - R2, width: R2 * 2, height: R2 * 2, rx: 5,
+      fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    cell(g, ART[st.art], p.x, p.y, R2 * 2.1);
+  }
+
+  function label(p, txt) {
+    // the wide S puts stops close to both edges, so clamp where the TEXT is
+    // centred rather than the stop — the label slides inward instead of clipping
+    var lx = Math.max(52, Math.min(388, p.x));
+    var t = el('text', { x: lx, y: p.y + R + 13, 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    t.style.font = '600 9.5px -apple-system, sans-serif';
+    t.style.letterSpacing = '.07em';
+    t.textContent = txt;
+    return t;
+  }
+
+  function draw() {
+    svg.textContent = '';
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.edge, 'stroke-width': 27, 'stroke-linecap': 'round' }));
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.road, 'stroke-width': 22, 'stroke-linecap': 'round' }));
+
+    var track = el('path', { d: D, fill: 'none', stroke: 'none' });
+    svg.appendChild(track);
+    var L = track.getTotalLength();
+    var pts = STOPS.map(function (st) {
+      var p = track.getPointAtLength(st.at * L);
+      return { x: p.x, y: p.y };
+    });
+
+    /* THE INPUTS COME IN FROM THE LEFT, not down from the top — a column in the
+       left gutter uses space the first bowl leaves empty anyway. */
+    var p0 = pts[0], SX = 26, SR = 15;
+    var src = [{ y: p0.y - 26 }, { y: p0.y + 12 }, { y: p0.y + 50 }, { y: p0.y + 88 }];
+    src.forEach(function (s) {
+      svg.appendChild(el('path', {
+        d: 'M' + (SX + SR + 1) + ' ' + s.y + 'Q' + (p0.x - 26) + ' ' + s.y + ' ' + (p0.x - R - 1) + ' ' + p0.y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    });
+    src.forEach(function (s, i) {
+      var g = el('g', {});
+      cell(g, ART[SOURCES[i]], SX, s.y, SR * 2.1);
+      svg.appendChild(g);
+    });
+
+    /* the two tributaries, joining the road AT THE SPLIT. Drawn BEFORE the
+       stops so a node always sits over its line. */
+    var si = 0;
+    STOPS.forEach(function (st, i) { if (st.id === 'split') si = i; });
+    var sp = pts[si], FX = 42, FR = 15;
+    FEEDS.forEach(function (f) {
+      svg.appendChild(el('path', {
+        d: 'M' + (FX + FR + 1) + ' ' + (sp.y + f.dy)
+         + 'Q' + (FX + 46) + ' ' + (sp.y + f.dy) + ' ' + (sp.x - R - 1) + ' ' + sp.y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    });
+    FEEDS.forEach(function (f) {
+      var g = el('g', { 'data-go': f.href || '' });
+      if (f.href) g.style.cursor = 'pointer';
+      cell(g, ART[f.art], FX, sp.y + f.dy, FR * 2.1);
+      svg.appendChild(g);
+      var t = el('text', { x: FX, y: sp.y + f.dy + FR + 11, 'text-anchor': 'middle',
+        fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+      t.style.font = '600 8.5px -apple-system, sans-serif';
+      t.style.letterSpacing = '.06em';
+      t.textContent = f.label;
+      svg.appendChild(t);
+    });
+
+    /* ── THE LAP ─────────────────────────────────────────────────────────
+       The return arc from REWRITE back to FOUR-UP, which is what makes this
+       an image pipeline rather than an audio one. It is drawn in the space
+       INSIDE the S — the road bulges RIGHT between those two stops and LEFT
+       both above and below, so a curve bowing left to about x=205 at the
+       mid-height sits in genuinely empty board. Dashed and gold, the same
+       language as an unbuilt stop, because the lap is the unbuilt part. */
+    var fi = 0, ri = 0;
+    STOPS.forEach(function (st, i) {
+      if (st.id === 'fourup') fi = i;
+      if (st.id === 'rewrite') ri = i;
+    });
+    var fp = pts[fi], rp = pts[ri];
+    var midY = (fp.y + rp.y) / 2;
+    var bow = Math.min(fp.x, rp.x) - 80;
+    svg.appendChild(el('path', {
+      class: 'lap',                     // the test selects it by this, not by shape
+      d: 'M' + rp.x + ' ' + (rp.y - R + 2) + 'Q' + bow + ' ' + midY + ' ' + fp.x + ' ' + (fp.y + R - 2),
+      fill: 'none', stroke: C.gold, 'stroke-width': 1.8, 'stroke-dasharray': '5 4' }));
+    // the arrowhead, pointing back INTO four-up
+    svg.appendChild(el('path', {
+      d: 'M' + (fp.x - 5) + ' ' + (fp.y + R + 4)
+       + 'L' + fp.x + ' ' + (fp.y + R - 3)
+       + 'L' + (fp.x + 5) + ' ' + (fp.y + R + 4),
+      fill: 'none', stroke: C.gold, 'stroke-width': 1.8,
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    var lt = el('text', { x: bow + 6, y: midY - 4, 'text-anchor': 'middle',
+      fill: '#8a6238', 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    lt.style.font = '600 8px -apple-system, sans-serif';
+    lt.style.letterSpacing = '.08em';
+    lt.textContent = 'ROUND AGAIN';
+    svg.appendChild(lt);
+
+    STOPS.forEach(function (st, i) {
+      var g = el('g', { 'data-go': st.href || '' });
+      if (st.href) g.style.cursor = 'pointer';
+      node(g, st, pts[i]);
+      svg.appendChild(g);
+      svg.appendChild(label(pts[i], st.label));
+    });
+  }
+
+  // a tap on a stop goes to its tool — the map is the access point
+  svg.addEventListener('click', function (e) {
+    var g = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+    if (g && g.getAttribute('data-go')) location.href = g.getAttribute('data-go');
+  });
+
+  /* ── the stops tab ─────────────────────────────────────────────────── */
+  var SEGS = { subjects: 'Before anything is drawn',
+               fourup: 'The lap — half a cent a look',
+               spread: 'Only for a survivor',
+               picture: 'Out' };
+  var list = document.getElementById('stoplist');
+  function stopRow(st, kind) {
+    var row = document.createElement(st.href ? 'a' : 'div');
+    row.className = 'stop' + (st.none ? ' none' : '') + (kind ? ' ' + kind : '');
+    row.setAttribute('data-item', 'stop-' + st.id);
+    if (st.href) row.href = st.href;
+    var gs = document.createElementNS(SVG, 'svg');
+    // r=17 centred at 18,18 draws a 35.7px cell — an exact fit for a 36 box
+    gs.setAttribute('viewBox', '0 0 36 36'); gs.setAttribute('class', 'g');
+    var gg = el('g', {});
+    node(gg, st, { x: 18, y: 18 }, 17);
+    gs.appendChild(gg);
+    row.appendChild(gs);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    var nm = tx.querySelector('.nm');
+    nm.textContent = st.label;
+    if (st.none) {
+      var tag = document.createElement('span');
+      tag.className = 'tag'; tag.textContent = st.none;
+      nm.appendChild(tag);
+    }
+    tx.querySelector('.what').textContent = st.what;
+    row.appendChild(tx);
+    list.appendChild(row);
+  }
+  STOPS.forEach(function (st) {
+    if (SEGS[st.id]) {
+      var h = document.createElement('div');
+      h.className = 'seg'; h.textContent = SEGS[st.id];
+      list.appendChild(h);
+    }
+    stopRow(st, st.lap ? 'lap' : '');
+    // the two tributaries sit directly under the stop they flow into
+    if (st.id === 'split') FEEDS.forEach(function (f) { stopRow(f, 'feed'); });
+  });
+
+  /* ── the costs tab ─────────────────────────────────────────────────────
+     Every way this repo can buy a picture, cheapest first. The sheet numbers
+     are the measured ones: out/style-triptych/manifest-sheet-low.json and
+     -medium.json (24 of 24 cells found their real seams, none fell back to a
+     midpoint), and vector.js's own 3x3 measurement (traced line weight within
+     4.8% / 7.4% / 6.4% of source at low / medium / high).
+
+     `id` is STABLE and content-derived on purpose — never renumber, or a note
+     she left on a row silently re-points at different content. */
+  var COSTS = [
+    { id: 'sheet9low', n: '0.22¢', f: 'A drawing off a LOW 3x3 sheet',
+      w: 'nine in one call for the same 2¢. vector.js measured nothing degrading at nine — what changes is the DRAWING, not the trace: a smaller cell gets a simpler drawing out of the model. Objects and icons, not faces' },
+    { id: 'sheet4low', n: '0.5¢', f: 'A frame off a LOW 2x2 sheet',
+      w: 'the rung this pipeline is built on. 2¢ the sheet, cut on the real gutters by slice()' },
+    { id: 'sheet4med', n: '1.5¢', f: 'A frame off a MEDIUM 2x2 sheet',
+      w: 'a quarter of a medium render, and it holds legible faces at 468x727' },
+    { id: 'low', n: '2¢', f: 'A whole LOW render, on its own', w: '1024x1536, one call for one picture' },
+    { id: 'medium', n: '6¢', f: 'A whole MEDIUM render', w: 'the house default nearly everywhere' },
+    { id: 'high', n: '25¢', f: 'A whole HIGH render', w: 'the last rung, and only for something already chosen' },
+    { id: 'rewrite', n: 'free', free: 1, f: 'Rewriting the prompt', w: 'the treasure costs nothing to improve — which is the entire argument for the lap' },
+    { id: 'recut', n: 'free', free: 1, f: 'Re-cutting a sheet you already paid for',
+      w: 'different cell sizes, different crops, no new call' },
+    { id: 'trace', n: 'free', free: 1, f: 'Tracing a drawing to SVG', w: 'local, ~1.3s, and the outline IS the cut line' },
+    { id: 'recolor', n: 'free', free: 1, f: 'Recolouring a traced drawing',
+      w: 'POST /api/vector/recolor edits the fills — no model call' },
+    { id: 'lap4', n: '8¢', f: 'Four laps of four frames', w: 'sixteen looks at an idea, for less than two medium renders' },
+    { id: 'spread12', n: '6¢', f: 'Four subjects in three styles', w: 'twelve pictures, one low sheet per style' },
+  ];
+  var cl = document.getElementById('costlist');
+  COSTS.forEach(function (c) {
+    var d = document.createElement('div');
+    d.className = 'cost' + (c.free ? ' free' : '');
+    d.setAttribute('data-item', 'cost-' + c.id);
+    var n = document.createElement('div');
+    n.className = 'n'; n.textContent = c.n;
+    var t = document.createElement('div');
+    t.className = 't';
+    var b = document.createElement('b'); b.textContent = c.f;
+    var s = document.createElement('span'); s.textContent = c.w;
+    t.appendChild(b); t.appendChild(s);
+    d.appendChild(n); d.appendChild(t);
+    cl.appendChild(d);
+  });
+
+  /* ── the holes tab ─────────────────────────────────────────────────────
+     The three structural ones first — the same shape as the audio pipeline's
+     three, and none of them is a missing button — then the icon question. */
+  var HOLES = [
+    { id: 'library', f: 'There is no prompt library',
+      w: 'A prompt exists only as two fields hanging off an IMAGE (promptStyle / promptContent on forge-chat-assets), plus whatever each tool keeps on its own run doc. You cannot search prompts across chats, version one, fork one, or say "draw this content in that style". The Assets search does match filed prompts — inside one chat only. This is the hole the whole framing is about.',
+      has: [] },
+    { id: 'set', f: 'Nothing carries a SET across the rooms',
+      w: 'Every picture surface is addressed by its own run — the Playground by its run doc, Freeform by its, Vector by its job, the sheet scripts by a hard-coded array. Four subjects therefore get retyped in each, and a change of direction means retyping them again.',
+      has: [] },
+    { id: 'cheapest', f: 'The cheapest rung is not a tool',
+      w: 'No module, no page, no tile, no doc of its own — scripts/style-triptych-sheet.js, run by hand. Exactly the shape of the audio pipeline’s BLOCKS being a Compare artifact, and it is the rung everything else is supposed to sit on.',
+      has: ['a script'] },
+    { id: 'certify', f: 'A style has to be certified before it can ride the cheap rung',
+      w: 'Two real constraints. gutters() needs a seam of luma ≥ 245 to find it, so a style rendering on cream paper is expected to miss and fall back to midpoints — measured zero misses on the runs on file, but the risk is in the method, not the luck. And dream mystery’s shipped suffix is an ANTI-GRID line, which contradicts a 2x2 outright: the sheet run replaces it, so for one style in three the cheap rung is quietly a different recipe from the one that ships.',
+      has: ['measured'] },
+    { id: 'findings', f: 'A finding dies with the picture it was learned from',
+      w: '♥/✘ and note threads attach to an IMAGE. Half a cent buys information about the prompt, and the information scrolls away with the tile — so the next chat re-learns it, at the same price.',
+      has: [] },
+    { id: 'promotion', f: 'Nothing enforces the promotion rule',
+      w: 'What keeps the whole pipeline near free is that nothing climbs a rung without a mark against it at the rung below. Today any surface will draw a 25¢ high render of an untested prompt.',
+      has: [] },
+  ];
+  var hl = document.getElementById('holelist');
+  HOLES.forEach(function (h) {
+    var d = document.createElement('div');
+    d.className = 'hole' + (h.has.length ? ' ok' : '');
+    d.setAttribute('data-item', 'hole-' + h.id);
+    var f = document.createElement('div');
+    f.className = 'f'; f.textContent = h.f;
+    var w = document.createElement('div');
+    w.className = 'what'; w.textContent = h.w;
+    var who = document.createElement('div');
+    who.className = 'who';
+    if (!h.has.length) {
+      var no = document.createElement('span');
+      no.className = 'w no'; no.textContent = 'nothing has it';
+      who.appendChild(no);
+    } else h.has.forEach(function (x) {
+      var s = document.createElement('span');
+      s.className = 'w'; s.textContent = x;
+      who.appendChild(s);
+    });
+    d.appendChild(f); d.appendChild(w); d.appendChild(who);
+    hl.appendChild(d);
+  });
+
+  /* the icon question, answered on the pipeline's own cheapest rung: four
+     candidates off ONE low 2x2 vector sheet, 2¢, half a cent each */
+  /* WEBP, not the raw cell PNGs the job wrote — those are 1.3MB for the four
+     and webp with alpha is 360KB for the same pictures. The house rule is
+     never to serve a generated PNG to a page; the PNGs and the SVGs are in
+     out/pipeline-icons/ and in Storage beside these. */
+  var J = V + 'sh-mstwaqid-bnejd/';
+  var PICKS = [
+    { id: 'peel', nm: 'Peeled cell', png: J + 'cell-1.webp' },
+    { id: 'stamps', nm: 'Four stamps', png: J + 'cell-2.webp' },
+    { id: 'press', nm: 'Press sheet', png: J + 'cell-3.webp' },
+    { id: 'scissors', nm: 'Cutting it up', png: J + 'cell-4.webp' },
+  ];
+  var ih = document.createElement('div');
+  ih.className = 'hole ok';
+  ih.setAttribute('data-item', 'hole-icon');
+  ih.innerHTML = '<div class="f">The four-up stop is wearing the window</div>'
+    + '<div class="what">Picked because it shows four things, and flagged as provisional. '
+    + 'These four replacements were drawn on the pipeline’s own cheapest rung — ONE low 2x2 '
+    + 'vector sheet, 2¢, half a cent each. Leave a note saying which one.</div>';
+  var pk = document.createElement('div');
+  pk.className = 'picks';
+  PICKS.forEach(function (p) {
+    var d = document.createElement('div');
+    d.className = 'pick';
+    d.setAttribute('data-item', 'icon-' + p.id);
+    var im = document.createElement('img');
+    im.src = p.png; im.alt = p.nm; im.loading = 'lazy';
+    var b = document.createElement('b'); b.textContent = p.nm;
+    d.appendChild(im); d.appendChild(b);
+    pk.appendChild(d);
+  });
+  ih.appendChild(pk);
+  hl.appendChild(ih);
+
+  /* ── tabs ──────────────────────────────────────────────────────────── */
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    var n = b.getAttribute('data-tab');
+    tabs.setAttribute('data-on', n);
+    tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t === b); });
+    document.getElementById('view-map').hidden = n !== '0';
+    document.getElementById('view-stops').hidden = n !== '1';
+    document.getElementById('view-costs').hidden = n !== '2';
+    document.getElementById('view-holes').hidden = n !== '3';
+  });
+
+  draw();
+  if (window.__compareHelp) window.__compareHelp({ html:
+    '<p>The road is the path an IDEA walks — not a picture. The prompt is what grows along it; the pictures are bought as cheaply as possible so you can look at the idea and throw them away.</p>' +
+    '<p><b>The gold dashed loop</b> is the lap. Four-up, read, rewrite, round again — that part is half a cent a look and free to improve. Everything after it costs real money, and nothing gets there without a mark against it.</p>' +
+    '<p>The two on the left — the shelf and the character — are not stops you pass through. They are where the STYLE half of a prompt comes from, so they flow into the split.</p>' +
+    '<p>Tap anything to go to its tool. A dashed ring means the stage is real but nothing is built for it yet, and on this road that is nearly all of them.</p>' +
+    '<p><b>Stops</b> names each one. <b>Costs</b> is every way this repo can buy a picture, cheapest first. <b>Holes</b> is what is missing — and the four candidate icons for the four-up stop, drawn on the cheap rung itself.</p>' +
+    '<p>Leave a note on anything with the + in its corner.</p>' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'image-pipeline-design', sheet: 'image-pipeline-s8' });
+})();
+</script>
+<style>[hidden]{display:none !important}</style>

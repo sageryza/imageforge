@@ -17,6 +17,13 @@ pipeline's already-paid-for icon cut-outs
 (`vector/pipeline-icons-cut/`, `vector/pipeline-icons-2-cut/`) rather than
 re-rendering a sheet.
 
+**There is now a THIRD in the family: `docs/image-pipeline.md` and its map.**
+Same board, same road, same cut-outs — and it is the mirror image of this one.
+Audio is **subtractive** (the recording already holds everything, and every
+stop removes something); the image road starts with nothing, and what grows
+along it is the PROMPT. It is also the only one of the three with a **lap** in
+it. If the road changes here, change it there.
+
 **Editing the map's geometry?** The stops sit at CHOSEN fractions of the path,
 not evenly spread. The four road extremes land on exactly 0.2 / 0.4 / 0.6 / 0.8
 (a quarter plus n halves over 2.5 full ellipse perimeters), and at an extreme

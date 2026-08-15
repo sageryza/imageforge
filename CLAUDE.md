@@ -69,6 +69,12 @@ links at the very bottom.
 - **`.claude/skills/`** = the rituals: `deliver-images`, `new-tool`, `new-page`,
   `new-module`, `sophie-audio`, `witch-copy`. They load themselves when relevant;
   read the matching one BEFORE starting that kind of work.
+- **The pipeline maps** — the road a piece of work actually walks, one doc plus
+  one Compare page each, all three drawn as the same blush S-curve:
+  `docs/audio-pipeline.md` (subtractive — the recording already holds
+  everything) and `docs/image-pipeline.md` (**the prompt is the treasure, the
+  image is a throwaway probe** — read it before building any picture surface).
+  Each doc also names that pipeline's three structural holes.
 - Deep dives that already had their own doc: `docs/nde-precise-cutting.md`,
   `docs/witch-school-lessons.md`, `docs/vector-pipeline.md`,
   `docs/evan-film-style.md`, `docs/nde-watercolor.md`,
