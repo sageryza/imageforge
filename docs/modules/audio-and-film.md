@@ -177,6 +177,25 @@ Story-Room-style shelf: poster tiles four to a row, serif names underneath,
 a search bar on top, kind chips (scenes · bridges · quick · shorts), and a
 lightbox that plays the clip and edits its name/tags/note.
 
+**A CHUNK is the unit Sophie named the tool for (Aug 2026):** a named,
+tagged SECTION of a finished video — footage and voiceover together — that
+she would reuse whole in a different video. Her examples: the Sheldrake
+telepathy bridge inside the Evan video (reusable anywhere she talks about
+telepathy); the manifestation trio — the chocolate bars, the cat, the third
+thing she visualized at night (reusable in any witchcraft video about
+manifestation); the shirt she imagined and saw the next day; the envelope in
+El Salvador. Chunks are kind `chunk` on the same shelf, chip first. File one
+with `POST /api/clips/chunk { url, start, end, title, vo?, tags?, from? }`
+(or `node scripts/make-chunk.js --url … --start … --end … --title …`): the
+doc is content-addressed by url+span (re-filing converges, a failed bake
+retries safely) and the BAKE runs in the background on the chunk's own doc —
+Admin-SDK download, accurate trim with 12ms audio edge fades (the cutmarks
+recipe), poster, its own file under `clip-library/chunks/`. `vo` holds the
+span's voiceover text and is searchable (`vo:telepathy`); the span cap is
+600s — a chunk is a section, not the video. The harvest never touches
+chunks, and PATCH lets her (or a chat) fix title/tags/note/vo/hidden with
+the same her-edits-win protection.
+
 **Two sources, one harvest** (`runHarvest` in `clips.js`; CLI
 `node scripts/harvest-clips.js [--dry]`, server `POST /api/clips/harvest`
 as a background job on the meta doc, polled by the page):
