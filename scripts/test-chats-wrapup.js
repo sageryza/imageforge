@@ -110,5 +110,36 @@ console.log('the row line');
   ok('nothing to say stays blank', pick('a') === '');
 }
 
+// ── what was still OPEN, the second half of her ask ────────────────────────
+// Sophie, 2026-08-15: "a quick summary of what we accomplished in that chat,
+// and if there were still any questions that were open". The open half is
+// DERIVED from the thread (questions.js pairs every question she asked with the
+// reply that followed) and handed to the model as fact, so the line names
+// questions that provably went unanswered instead of plausible-sounding ones.
+console.log('the open-questions half');
+{
+  const route = src.slice(src.indexOf("router.post('/wrapup/write'"));
+  ok('the route asks for an `open` field', /"open":/.test(WRAP_SYS_TEXT()));
+  ok('and tells it to leave that empty rather than invent a loose end',
+     /Empty string when the chat genuinely ended settled/.test(WRAP_SYS_TEXT()));
+  ok('the unanswered questions are derived, not read out of the digest',
+     /buildQuestions\(msgs\)\.filter\(\(q\) => !q\.answer\)/.test(route));
+  ok('they are handed over as facts, labelled',
+     /Questions Sophie asked that nobody ever answered/.test(route));
+  ok('a rewrite CLEARS a stale loose end instead of leaving it',
+     /wrapOpen: open \|\| admin\.firestore\.FieldValue\.delete\(\)/.test(route));
+
+  // The row line is untouched by it: `wrapOpen` lives behind the expander, so
+  // her note and the summary line keep their old precedence exactly.
+  chats = { a: { wrapLine: 'built the button', wrapOpen: 'which field it lands in' } };
+  ok('the row line is still the summary, never the loose end', pick('a') === 'built the button');
+  chats = { a: { sophieNote: 'mine', wrapLine: 'built the button', wrapOpen: 'x' } };
+  ok('and HER note still wins over both', pick('a') === 'mine');
+}
+function WRAP_SYS_TEXT() {
+  const i = src.indexOf('const WRAP_SYS =');
+  return src.slice(i, src.indexOf('`;', i));
+}
+
 console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');
 process.exit(fails ? 1 : 0);
