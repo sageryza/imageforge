@@ -124,19 +124,42 @@ function videoUrlOf(r) {
     || (typeof r.video === 'string' ? r.video : null);
 }
 
+// Each family names its own wrapper key AND its own image fields, and none of
+// it is guessable — read GET /v2/models rather than trying shapes against the
+// generate route (see the 130-credit note above).
+const FAMILIES = [
+  {
+    match: /^seedance/, key: 'seedanceParams', start: 'start_image', end: 'end_image',
+    res: r => r,
+    extra: p => { p.aspect_ratio = aspect; p.camera_fixed = true; },
+  },
+  {
+    // wan-2.7 is the one with REAL first-last-frame conditioning, which is why
+    // it is worth its higher price when the clip has to land on a given card.
+    // It has no camera_fixed and no aspect_ratio — the shape follows the input
+    // image — and 480p is not one of its resolutions.
+    match: /^wan-2\.7/, key: 'wan27Params', start: 'image', end: 'last_frame',
+    res: r => (r === '480p' ? '720p' : r),
+    extra: () => {},
+  },
+];
+
 (async () => {
-  const params = { resolution, duration: secs, aspect_ratio: aspect, start_image: ART + startId + '.png' };
-  if (endId) params.end_image = ART + endId + '.png';
-  // The camera is not the thing moving — the drawing is.
-  params.camera_fixed = true;
+  const fam = FAMILIES.find(f => f.match.test(model));
+  if (!fam) throw new Error(`no parameter shape known for "${model}" — check GET /v2/models and add one`);
+  const res = fam.res(resolution);
+  const params = { resolution: res, duration: secs };
+  params[fam.start] = ART + startId + '.png';
+  if (endId) params[fam.end] = ART + endId + '.png';
+  fam.extra(params);
 
   const before = (await api('/me')).team.credits;
   console.log(`credits before: ${before}`);
-  console.log(`${model} · ${resolution} · ${aspect} · ${secs}s · ${startId}${endId ? ' → ' + endId : ''}`);
+  console.log(`${model} · ${res} · ${secs}s · ${startId}${endId ? ' → ' + endId : ''}`);
 
   const r = await api('/videos/generate', {
     method: 'POST',
-    body: { prompt: prompt + ART_LOCK, model, seedanceParams: params },
+    body: { prompt: prompt + ART_LOCK, model, [fam.key]: params },
   });
   const id = r.jobId || r.id || r.task_id;
   if (!id) throw new Error('no job id: ' + JSON.stringify(r).slice(0, 200));
