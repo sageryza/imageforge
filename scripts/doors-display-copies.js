@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Room art originals → the display copies public/doors/ serves.
+ * Room art originals → the display copies public/door-rooms/ serves.
  *
  * The renderer (scripts/nde-watercolor.py) writes 1024x1536 webp at ~1.8MB
  * each. Twenty-one of those is ~38MB, which is neither something to put in a
@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
-const OUT = path.join(__dirname, '..', 'public', 'doors');
+const OUT = path.join(__dirname, '..', 'public', 'door-rooms');
 const WIDTH = 640;
 const dirs = process.argv.slice(2);
 if (!dirs.length) { console.error('usage: doors-display-copies.js <srcdir> [...]'); process.exit(1); }
@@ -42,5 +42,5 @@ fs.mkdirSync(OUT, { recursive: true });
       console.log(`  ${file}  ${Math.round(kb / 1024)}KB`);
     }
   }
-  console.log(`\n${n} display copies → public/doors/  (${(bytes / 1048576).toFixed(1)}MB total)`);
+  console.log(`\n${n} display copies → public/door-rooms/  (${(bytes / 1048576).toFixed(1)}MB total)`);
 })().catch((e) => { console.error(e); process.exit(1); });

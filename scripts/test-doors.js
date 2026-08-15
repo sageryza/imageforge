@@ -16,9 +16,37 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+let failures = 0;
+function ok(cond, label) {
+  console.log((cond ? '  ok   ' : '  FAIL ') + label);
+  if (!cond) failures++;
+}
+
+// Runs FIRST and needs no browser, because this is the bug that actually
+// shipped: public/doors/ was added as the room-art folder, and
+// express.static — registered long before any route — answers a request for a
+// DIRECTORY with a 301 to its trailing-slash form. So /doors stopped serving
+// the page and started redirecting to an empty folder listing. Any tool whose
+// route name matches a folder in public/ dies the same way, silently.
+console.log('routes vs folders in public/');
+{
+  const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const pub = path.join(__dirname, '..', 'public');
+  const routes = [...server.matchAll(/app\.get\(\s*'\/([a-z0-9-]+)'\s*,\s*serveGated/g)].map((m) => m[1]);
+  const clash = routes.filter((r) => {
+    try { return fs.statSync(path.join(pub, r)).isDirectory(); } catch (_) { return false; }
+  });
+  ok(routes.length > 5, `found the served routes (${routes.length})`);
+  ok(clash.length === 0, 'no served route is shadowed by a public/ folder' +
+    (clash.length ? ` — express.static will 301 these: ${clash.join(', ')}` : ''));
+}
+
 let chromium;
 try { ({ chromium } = require('playwright-core')); }
-catch (_) { console.log('no playwright-core — skipping (npm i playwright-core to run)'); process.exit(0); }
+catch (_) {
+  console.log('\nno playwright-core — skipping the browser half (npm i playwright-core to run)');
+  process.exit(failures ? 1 : 0);
+}
 
 const CANDIDATES = [
   process.env.CHROME_PATH,
@@ -27,7 +55,10 @@ const CANDIDATES = [
   '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome',
 ].filter(Boolean);
 const chrome = CANDIDATES.find((p) => { try { fs.accessSync(p); return true; } catch (_) { return false; } });
-if (!chrome) { console.log('no Chromium found — skipping (set CHROME_PATH to run)'); process.exit(0); }
+if (!chrome) {
+  console.log('\nno Chromium found — skipping the browser half (set CHROME_PATH to run)');
+  process.exit(failures ? 1 : 0);
+}
 
 const ROOT = path.join(__dirname, '..', 'public');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript' };
@@ -37,12 +68,6 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
   res.end(fs.readFileSync(file));
 });
-
-let failures = 0;
-function ok(cond, label) {
-  console.log((cond ? '  ok   ' : '  FAIL ') + label);
-  if (!cond) failures++;
-}
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
@@ -81,7 +106,7 @@ function ok(cond, label) {
   const art = await page.locator('#roomImg').evaluate((n) => ({
     src: n.getAttribute('src'), w: n.naturalWidth, alt: n.alt,
   }));
-  ok(/^\/doors\/[a-z0-9-]+\.webp$/.test(art.src || ''), 'it points at a display copy — got: ' + art.src);
+  ok(/^\/door-rooms\/[a-z0-9-]+\.webp$/.test(art.src || ''), 'it points at a display copy — got: ' + art.src);
   ok(art.w > 0, 'the picture actually loaded');
   ok(art.alt === frags[1].trim(), 'the picture is described by its fragment');
 
