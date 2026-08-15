@@ -1104,31 +1104,31 @@
     opening that chat's Assets tab. On top sits the home list's own row
     (name, her note or the chat's status line, how long ago), so the two
     screens read as one app.
-  - **WHICH PAGES A CARD SHOWS — v3, and it answers both of her rules at once
-    (Aug 2026).** `freshPages`/`pageFamily` in chats.html. The two rules:
-    "if there's one version and then a new one comes out it should just
-    replace that one" (v6 sitting above v5), and — correcting v2, which
-    showed only the newest page at all — **"wait, if they give me a different
-    page, why would I want it to not be shown?"** Hiding a genuinely
-    different deliverable was a trade she never asked for.
-    So TWO filters, and the load-bearing one parses nothing:
-    1. **NEWER THAN THE FLOOR.** The ✓ she taps (and opening the chat) IS the
-       superseded marker — "I have seen the state of this chat as of now" —
-       so a page older than that mark never comes back whatever its title
-       says. This is what kills "Cutting blocks (s96) — moved from the Evan
-       chat", the page with no version number that beat v1 twice: it was
+  - **WHICH PAGES A CARD SHOWS — v4: THE NEWEST ONE, full stop (Aug 2026,
+    Sophie: "I only want the newest compare page or whatever they posted on
+    that turn").** `freshPages` in chats.html, and it is now one filter with
+    NO title parsing:
+    1. **NEWER THAN THE FLOOR.** The ✓ she taps — or her own reply — IS the
+       superseded marker ("I have seen the state of this chat as of now"), so
+       a page older than that mark never comes back whatever its title says.
+       This is what kills "Cutting blocks (s96) — moved from the Evan chat",
+       the page with no version number that beat the v1 rule twice: it was
        never a version question, it was an old-news question.
-    2. **…then versions collapse among what is left**, so a rapid v5 → v6
-       pair inside one unchecked stretch shows as v6 alone. `pageFamily`
-       reads WHERE the version sits: in the HEAD ("Cutting blocks v6 (s96) —
-       tap empty space to deselect") the head is the thing and the subtitle
-       is that version's notes; in the SUBTITLE or absent ("Evan — v11, the
-       art from your notes" / "Evan — pick the pauses (v6)") the head is a
-       PROJECT and the subtitle IS the deliverable, so those stay separate.
-       That half is title parsing and CAN be tricked — but a miss now costs
-       one extra row in a card she has not checked yet, never a stale
-       artifact that survives every check.
-    Cap 2 per card. **The PICTURES are deliberately not floor-filtered** —
+    2. **…then the newest survivor**, and only it.
+    **v3's `pageFamily` title parser is DELETED, and that is the win.** v3
+    kept up to two and collapsed versions by reading WHERE the version sat in
+    the title (head vs subtitle) — real machinery with real tests, and the one
+    half of this that a title could trick. With one page shown there is
+    nothing left for it to decide: the newest wins whether or not it is a new
+    cut of the same thing.
+    **This reverses her own v3 correction** ("wait, if they give me a
+    different page, why would I want it to not be shown?") — she asked for it
+    directly after living with both. So two different pages inside one
+    unchecked stretch now show as the newer alone. Nothing is hidden from the
+    CHAT: the Compare tab still holds every page; this is only what the
+    notification carries. The rule has gone v2 → v3 → v4; the parser is in git
+    history (PR #1182) if a fifth turn ever wants it back.
+    One page per card. **The PICTURES are deliberately not floor-filtered** —
     she asked for "the last three pictures… to be easily reminded what
     they're doing", which is context, and a row of one picture with two
     blanks is worse at that job.
@@ -1136,7 +1136,10 @@
     isn't hers, a Compare page, an image — because **a chat can deliver
     without saying anything**, and a feed keyed on messages alone would miss
     exactly the picture batches she asked to see. Cards sort by that arrival,
-    not by the chat's last message.
+    not by the chat's last message — **so a card whose page is replaced by a
+    newer version JUMPS TO THE TOP** rather than holding its old place (Sophie
+    asked, Aug 2026: "does it go to the top or stay where it was"). The card
+    is one per chat and updates in place; a chat can never stack up two.
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must

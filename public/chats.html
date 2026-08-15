@@ -2221,76 +2221,39 @@ function newsIndex(){
 function newsFloor(name){
   return (chats[name]&&chats[name].notifSeenAt)||'';
 }
-// WHICH PAGES A CARD SHOWS — v3, and this one answers both of her rules at
-// once (Aug 2026).
-//   • "if there's one version and then a new one comes out it should just
-//     replace that one" (v6 sitting above v5), and
-//   • "if they give me a different page, why would I want it to not be shown?"
-//     — which is the correction to v2, where only the newest page showed at
-//     all. Hiding a genuinely different deliverable was a trade she never
-//     asked for and it was wrong to take it on her behalf.
+// WHICH PAGES A CARD SHOWS — v4: THE NEWEST ONE, and nothing else (Aug 2026,
+// Sophie: "I only want the newest compare page or whatever they posted on that
+// turn"). One card per chat carries one deliverable — the latest thing it
+// handed her.
 //
-// So TWO filters, and the load-bearing one needs no string parsing at all:
+// It is now ONE filter and NO string parsing:
 //
-//   1. NEWER THAN THE FLOOR. The ✓ she taps (and opening the chat) is the
-//      real superseded marker — "I have seen the state of this chat as of
-//      now" — so a page older than that mark never comes back, whatever its
-//      title says. This is what kills "Cutting blocks (s96) — moved from the
-//      Evan chat", the page with no version number that beat v1: it is not a
-//      version question, it is an old-news question.
-//   2. …then versions collapse among what is left, so a rapid v5 → v6 pair
-//      inside one unchecked stretch shows as v6 alone. That half IS title
-//      parsing and it can be tricked — but now the cost of a miss is one
-//      extra row in a card she has not checked yet, not a stale artifact
-//      that survives every check.
-var PL_VER=/\b(?:v|ver|version|cut|take|pass|round|draft|rev)\s*\.?\s*\d+(?:\.\d+)?\b/;
-function stripVer(t){
-  return t
-    .replace(new RegExp(PL_VER.source,'g'),' ')
-    .replace(/\(\s*[a-z]?\d+\s*\)/g,' ')     // a build/session marker like (s96)
-    .replace(/#\d+/g,' ')
-    .replace(/[^a-z0-9]+/g,' ').trim();
-}
-// WHERE THE VERSION SITS decides what the family is, and both shapes are real
-// in her feed (measured 2026-08-11 against the live pages):
-//   • "Cutting blocks v6 (s96) — tap empty space to deselect" — the version is
-//     in the HEAD, so the head is the thing and everything after the dash is
-//     that version's own notes. Family = "cutting blocks", v5 collapses.
-//   • "Evan — v11, the art from your notes" / "Evan — pick the pauses (v6)" /
-//     "Monsters — info backs, 3 samples v1" — the head is a PROJECT and the
-//     subtitle is the deliverable, so the whole title (minus version tokens)
-//     is the family and those stay separate.
-// Cutting at the dash unconditionally was v1 of this rule and it collapsed
-// three different Evan pages into one — the case that made the two shapes
-// worth telling apart.
-function pageFamily(title){
-  var t=String(title||'').toLowerCase();
-  var parts=t.split(/\s+[—–-]\s+/);
-  if(parts.length>1 && PL_VER.test(parts[0])){
-    var head=stripVer(parts[0]);
-    if(head) return head;
-  }
-  // a title that was ONLY a version marker keeps its own identity rather than
-  // collapsing every such page into one empty family
-  return stripVer(t) || t.replace(/[^a-z0-9]+/g,' ').trim();
-}
-function newestPerVersion(pages){
-  var byFam={}, out=[];
-  // sorted here rather than trusting the caller: "newest wins" is the whole
-  // rule, so it must not depend on the order the server happened to send
-  pages.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
-    .forEach(function(p){
-      var k=pageFamily(p.title);
-      if(byFam[k]) return;                   // an older cut of the same thing
-      byFam[k]=1; out.push(p);
-    });
-  return out;
-}
-window.__pageFamily=pageFamily;   // the tests check the tricky titles directly
-
-// Everything newer than the floor, versions collapsed, newest first, cap 2.
+//   1. NEWER THAN THE FLOOR — the ✓ she taps, or her own reply (see
+//      newsFloor). A page older than that mark never comes back, whatever its
+//      title says. This is what killed "Cutting blocks (s96) — moved from the
+//      Evan chat", the page with no version number that beat the old title
+//      rule twice: it was never a version question, it was an old-news one.
+//   2. …then the newest survivor, full stop.
+//
+// v3 kept up to TWO and collapsed versions by parsing the title into a
+// "family" (v6 sitting above v5, while genuinely different pages under one
+// project name stayed separate). That machinery is GONE — with one page shown
+// there is nothing for it to decide, because the newest wins whether or not it
+// is a new cut of the same thing. Its deletion is the point, not a side
+// effect: the family rule was the one half of this that could be tricked by a
+// title, and now nothing here reads a title at all.
+//
+// Two consequences worth knowing before flipping this back (v2 → v3 → v4; the
+// title parser is in git history if a fourth turn needs it):
+//   • two genuinely DIFFERENT pages posted in one unchecked stretch show as
+//     the newest one only — she asked for that explicitly, reversing "if they
+//     give me a different page, why would I want it to not be shown?"
+//   • nothing is hidden from the chat itself: the Compare tab still holds
+//     every page. This is only what the notification carries.
 function freshPages(pages, floor){
-  return newestPerVersion(pages.filter(function(p){ return (p.created||'')>floor; })).slice(0,2);
+  return pages.filter(function(p){ return (p.created||'')>floor; })
+    .sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+    .slice(0,1);
 }
 function newsItems(g){
   var ix=newsIndex(), out=[], done={};
