@@ -246,8 +246,131 @@
       body: 'Look at something living with your eyes as close as they will go — the edge of a leaf, the skin on your forearm, a slice of onion held to a window. You will not see cells. What you <i>can</i> see is the point: this whole layer of the world was invisible until 1665, and everything in the next three lessons happens down there.<br><br><b>Tonight:</b> find the smallest living thing you can actually see.' }
   ];
 
-  var LESSONS = { cell: CELL_CARDS };
-  var LESSON_TITLES = { cell: 'The Cell' };
+
+  /* ── Lesson 2 — What's Inside One ── */
+  var INSIDE_CARDS = [
+    { img: 'in-01', bg: '#ffffff', kicker: 'Inside a cell', h: 'Not a bag of soup',
+      body: 'A cell is not one substance. Inside its outer membrane there are separate pieces of machinery, each walled off, each doing one job — the way a kitchen has an oven and a sink and a bin rather than one all-purpose surface. They are called <b>organelles</b>, little organs.' },
+    { img: 'in-02', bg: '#ffffff', kicker: 'The office', h: 'The nucleus',
+      body: 'The largest thing in most of your cells is the <b>nucleus</b>, a sphere with its own double membrane holding the DNA. Nothing comes out of it but copies — instructions are transcribed inside and the copy is sent out to be used. The original never leaves the room. Lesson 4 is about what happens to those copies.' },
+    { img: 'in-03', bg: '#ffffff', kicker: 'The floor', h: 'Ribosomes',
+      body: '<b>Ribosomes</b> are the machines that build proteins, and there are millions of them in a single cell — some drifting loose, some studding the folded membranes around the nucleus. They are the smallest thing in this lesson and the busiest.' },
+    { img: 'in-04', bg: '#ffffff', kicker: 'The power', h: 'Mitochondria',
+      body: '<b>Mitochondria</b> are bean-shaped and there may be a handful in one cell or thousands, depending on how hard it works — heart muscle is packed with them. They take sugar and oxygen and produce the chemical the rest of the cell spends, ATP. The next card is why they are strange.' },
+    { img: 'in-05', bg: '#ffffff', kicker: 'The strange part', h: 'They have their own DNA',
+      body: 'Mitochondria carry their <b>own DNA</b>, separate from the DNA in the nucleus — in humans a small circular loop of 16,569 letters. They have their own ribosomes. They divide on their own schedule rather than when the cell does. And you inherited yours from your mother only; your father\'s contributed nothing. None of that is how an organelle should behave.',
+      faq: [
+        { q: 'Why only from your mother?', a: 'The egg brings its own mitochondria into the new cell and the sperm\'s are destroyed shortly after fertilisation. So that small loop is a copy of your mother\'s, and hers of her mother\'s, back and back.' },
+        { q: 'Can something go wrong with it?', a: 'Yes — mitochondrial diseases are inherited down the maternal line and often hit the tissues that need the most energy: muscle, nerve, heart, eye.' },
+        { q: 'How many letters is that, next to yours?', a: '16,569 against about three billion in the nucleus. So it is a tiny fraction of your total DNA, and you cannot live without it.' }
+      ] },
+    { img: 'in-06', bg: '#ffffff', kicker: 'Boston, 1967', h: 'The paper nobody would take',
+      body: '<b>Lynn Margulis</b> had an explanation: mitochondria were once free-living bacteria that got swallowed by a larger cell and were never digested — both sides did better, and they stayed. She wrote it up as <i>On the Origin of Mitosing Cells</i>. It was rejected by <b>fifteen journals</b>, some without being read, before the <i>Journal of Theoretical Biology</i> published it. She was thirty and publishing under a married name, Lynn Sagan.',
+      faq: [
+        { q: 'Why was it so unwelcome?', a: 'It said a major step in evolution happened by one organism swallowing another and keeping it, rather than by gradual change. That was outside how the field was thinking, and she had no way yet to prove it.' },
+        { q: 'Was the idea hers originally?', a: 'The suggestion had been floated around 1905 by Konstantin Mereschkowski and largely forgotten. Margulis assembled the evidence and argued it properly, which is what made it stick.' },
+        { q: 'What happened to her afterwards?', a: 'She kept working on symbiosis for forty years, was elected to the National Academy of Sciences, and received the National Medal of Science in 1999.' }
+      ] },
+    { img: 'in-07', bg: '#ffffff', kicker: 'The verdict', h: 'She was right',
+      body: 'When DNA sequencing arrived it settled the argument. Read a mitochondrion\'s genes and its closest living relatives are not any part of you — they are a group of bacteria. The same is true of chloroplasts, the green parts of plants, which were once free-living photosynthetic bacteria. <b>Endosymbiosis</b> is now in every textbook.' },
+    { know: { qs: [
+        { q: 'Which of these is the giveaway that mitochondria were once separate organisms?', a: ['they are bean-shaped', 'they have their own DNA and divide on their own schedule', 'there are thousands of them'], ok: 1,
+          tell: 'A normal organelle is built by the cell to order. These carry their own genes, their own ribosomes, and their own timing.' },
+        { q: 'Margulis\'s paper was rejected by…', a: ['two journals', 'fifteen journals', 'nobody — it was taken at once'], ok: 1,
+          tell: 'Some without reading it. The Journal of Theoretical Biology published it in 1967.' },
+        { q: 'You inherit your mitochondria from…', a: ['both parents equally', 'your mother only', 'whichever parent you resemble'], ok: 1,
+          tell: 'Which is why mitochondrial DNA is used to trace maternal lines back through thousands of years.' }
+      ] }, bg: '#ffffff', kicker: 'Try it', h: 'Check your knowing' },
+    { img: 'in-09', bg: '#ffffff', kicker: 'The consequence', h: 'Two kinds of cell',
+      body: 'Cells that keep their DNA in a nucleus are called <b>eukaryotes</b> — you, oak trees, yeast, amoebae. Cells that don\'t are <b>prokaryotes</b> — bacteria and archaea, which are older and enormously more numerous. The swallowing Margulis described is roughly where the first group came from.' },
+    { img: 'in-10', bg: '#ffffff', kicker: 'After', h: 'Tonight',
+      body: 'Mitochondria are the reason you breathe. Every breath you take is oxygen going to trillions of former bacteria so they can finish burning your last meal, and the carbon dioxide coming back out is their exhaust. Notice one breath with that in mind.<br><br><b>Tonight:</b> one breath, followed all the way down.' }
+  ];
+
+  /* ── Lesson 3 — DNA ── */
+  var DNA_CARDS = [
+    { img: 'dn-01', bg: '#ffffff', kicker: 'DNA', h: 'The instructions',
+      body: 'Every cell in your body carries the same set of instructions, written in a molecule called <b>DNA</b>, and the copy in a cell in your foot is identical to the copy in a cell behind your eye. What differs is which parts each cell is reading. This lesson is what the molecule is; the next is how a cell reads it.' },
+    { img: 'dn-02', bg: '#ffffff', kicker: 'Tübingen, 1869', h: 'Found in bandages',
+      body: '<b>Friedrich Miescher</b> was studying white blood cells and getting them from the pus-soaked bandages of a nearby hospital. He isolated something from the nuclei that was not protein and not fat, and called it <b>nuclein</b>. That was DNA, found eighty-four years before anyone worked out what it looked like or what it did.',
+      faq: [
+        { q: 'Why bandages?', a: 'He needed white blood cells in quantity, and surgical dressings from the clinic next door were the richest source available in 1869. He washed them off the cloth.' },
+        { q: 'Did he know what he had?', a: 'No. He knew it was a new substance, rich in phosphorus, that came out of the nucleus specifically — which is why he named it after the nucleus.' },
+        { q: 'What took eighty-four years?', a: 'Chemistry good enough to work out what it was made of, and X-ray crystallography good enough to see its shape. Both arrived in the 1940s and 50s.' }
+      ] },
+    { img: 'dn-03', bg: '#ffffff', kicker: 'The doubt', h: 'Nobody thought it was the answer',
+      body: 'For decades DNA was assumed to be too boring to carry heredity — only four different units, where proteins had twenty. Most biologists expected genes to turn out to be proteins. <b>Avery, MacLeod and McCarty</b> showed in 1944 that it was DNA after all, and the field still took years to be convinced.' },
+    { img: 'dn-04', bg: '#ffffff', kicker: 'London, 1952', h: 'Photograph 51',
+      body: '<b>Rosalind Franklin</b>\'s laboratory produced an X-ray image of DNA fibres so clean that its cross-shaped pattern could only mean a helix — and the spacing in it gave the dimensions. The exposure took around a hundred hours. It is the single most important piece of evidence for the structure, and it is a photograph of something far too small to see.',
+      faq: [
+        { q: 'How does a cross mean a helix?', a: 'X-rays bouncing off a spiral scatter into an X shape; the angle of the arms gives the pitch of the spiral and the spacing of the spots gives the distance between the rungs. What the film records is the shadow the molecule casts, not the molecule.' },
+        { q: 'Who actually took it?', a: 'Raymond Gosling, her PhD student, working on her equipment and under her direction on a method she had refined.' },
+        { q: 'Did she know it had been shown to them?', a: 'There is no evidence she did. Wilkins showed it to Watson without asking her, and the 1953 paper credits her work only as "unpublished results".' }
+      ] },
+    { img: 'dn-05', bg: '#ffffff', kicker: 'Cambridge, 1953', h: 'The double helix',
+      body: 'Watson and Crick published the structure in <i>Nature</i> in April 1953: two strands winding round each other, joined down the middle by pairs of chemical letters. Franklin\'s photograph had been shown to them without her knowledge. She died of ovarian cancer in 1958 at 37; the Nobel was awarded in 1962, and is not given posthumously.' },
+    { img: 'dn-06', bg: '#ffffff', kicker: 'The letters', h: 'A pairs with T',
+      body: 'There are four letters: <b>A, T, C, G</b>. A only ever pairs with T, and C only ever pairs with G. That is the whole reason the molecule can copy itself — unzip the two strands and each one carries enough information to rebuild its missing partner exactly. Watson and Crick\'s paper noted this in one famously understated sentence.' },
+    { img: 'dn-07', bg: '#ffffff', kicker: 'The length', h: 'Two metres, coiled',
+      body: 'The DNA in a single one of your cells is about <b>two metres</b> long if it were pulled straight, wound down into a nucleus a few thousandths of a millimetre across. It manages that by wrapping around protein spools, which is also how the cell controls what can be read: tightly wound is unreadable, loosened is open for business.' },
+    { know: { qs: [
+        { q: 'DNA was first isolated in…', a: ['1869', '1928', '1953'], ok: 0,
+          tell: 'By Friedrich Miescher, out of the pus on hospital bandages — eighty-four years before its structure was known.' },
+        { q: 'The evidence that settled the helix was…', a: ['a chemical test', 'an X-ray photograph', 'a microscope image'], ok: 1,
+          tell: 'Photograph 51, from Rosalind Franklin\'s lab, took around a hundred hours of exposure.' },
+        { q: 'A pairs only with T, and C only with G. The consequence is…', a: ['the molecule is very stable', 'each strand contains enough to rebuild the other', 'there are only four kinds of gene'], ok: 1,
+          tell: 'Which is how a cell copies its instructions before it divides.' }
+      ] }, bg: '#ffffff', kicker: 'Try it', h: 'Check your knowing' },
+    { img: 'dn-09', bg: '#ffffff', kicker: 'The size of it', h: 'Three billion letters',
+      body: 'Your genome is about <b>three billion</b> letter-pairs long. Printed at ordinary book size it would run to hundreds of thousands of pages. The Human Genome Project took thirteen years and finished a draft in 2003; the same job now takes about a day.' },
+    { img: 'dn-10', bg: '#ffffff', kicker: 'The surprise', h: 'Most of it is not genes',
+      body: 'Only about <b>1 to 2 per cent</b> of your genome is instructions for building proteins — roughly 20,000 genes, which is around the same number a nematode worm has. What the rest does is still being worked out: some of it controls when genes switch on, some is the wreckage of ancient viruses, and some may do nothing at all. Expecting "more complex animal, more genes" turned out to be wrong.' },
+    { img: 'dn-11', bg: '#ffffff', kicker: 'After', h: 'This week',
+      body: 'Two metres of it in every cell, three billion letters long, and the copy in your thumb is the same as the copy in your heart. Find one trait you share with a parent — an eye colour, a way your hands look, the shape of an ear — and know that you are looking at a passage of text that was copied, letter for letter, into you.<br><br><b>This week:</b> find the one you inherited.' }
+  ];
+
+  /* ── Lesson 4 — Reading the Code ── */
+  var CODE_CARDS = [
+    { img: 'cd-01', bg: '#ffffff', kicker: 'The code', h: 'From letters to a body',
+      body: 'DNA is a list of instructions, but an instruction does nothing until something reads it. This lesson is the reading: how a sequence of four repeating letters becomes a physical object — an enzyme, a hair, the pigment in an iris.' },
+    { img: 'cd-02', bg: '#ffffff', kicker: 'Two steps', h: 'Copy, then build',
+      body: 'It happens in two moves. <b>Transcription</b>: inside the nucleus a stretch of DNA is copied into a portable single-stranded version called mRNA, and the copy leaves. <b>Translation</b>: out in the cell a ribosome runs along that copy and builds a protein to match. Crick named the overall flow the <i>central dogma</i> in 1957.' },
+    { img: 'cd-03', bg: '#ffffff', kicker: 'The unit', h: 'Three letters at a time',
+      body: 'The ribosome reads in <b>threes</b>. Each group of three letters — a <b>codon</b> — specifies one amino acid, and amino acids strung in order make a protein. Three letters from an alphabet of four gives 64 possible codons for 20 amino acids, so most amino acids have more than one codon that calls them.' },
+    { img: 'cd-04', bg: '#ffffff', kicker: 'Bethesda, 1961', h: 'Three in the morning',
+      body: 'Nobody knew which codon meant what until <b>Heinrich Matthaei</b>, working with <b>Marshall Nirenberg</b>, made an artificial RNA of nothing but U, added it to a cell extract, and at three in the morning on 27 May found one of his twenty tubes had built a protein of nothing but phenylalanine. <b>UUU means phenylalanine.</b> It was the first word anyone translated, and the rest of the code followed within five years.',
+      faq: [
+        { q: 'Why twenty tubes?', a: 'One per amino acid. Each tube had a different amino acid tagged so it could be detected, and whichever tube built something told them what UUU meant.' },
+        { q: 'How was the rest cracked?', a: 'By making RNAs of known repeating patterns and, later, short defined triplets — about five years of grinding through combinations until all 64 were assigned.' },
+        { q: 'Did they get the Nobel?', a: 'Nirenberg shared it in 1968 with Holley and Khorana. Matthaei, who ran the experiment that night, did not.' }
+      ] },
+    { img: 'cd-05', bg: '#ffffff', kicker: 'The punctuation', h: 'Start and stop',
+      body: 'The code has punctuation. <b>AUG</b> means start — and also means the amino acid methionine, so every protein begins with one. Three codons mean stop and specify no amino acid at all; the ribosome reaches one and releases what it has built.' },
+    { img: 'cd-06', bg: '#ffffff', kicker: 'The universality', h: 'The same code in everything',
+      body: 'Here is the part that carries the weight: the codon table is very nearly <b>identical in every living thing</b> — bacteria, yeast, oak, whale, you. UUU means phenylalanine in all of them. The simplest explanation is that the code was fixed once, in a shared ancestor, and has barely moved since.' },
+    { img: 'cd-07', bg: '#ffffff', kicker: 'The proof of it', h: 'Bacteria that make insulin',
+      body: 'That shared code is not a theory you have to take on trust — it is manufacturing. In 1978 the human gene for insulin was put into <i>E. coli</i>, and the bacteria read it and built human insulin, because to them it was just an instruction in a language they already spoke. It reached patients in 1982. Most insulin in the world is made this way now.',
+      faq: [
+        { q: 'What did people use before 1982?', a: 'Insulin extracted from pig and cow pancreases collected at slaughterhouses. It worked, but it was a slightly different molecule and some people reacted to it.' },
+        { q: 'How do you get a gene into a bacterium?', a: 'On a plasmid — a small ring of DNA bacteria pass around anyway. Cut the ring, drop the gene in, close it, and let the bacteria take it up.' },
+        { q: 'Is anything else made this way?', a: 'Growth hormone, clotting factors, several vaccines, and most of the enzymes in washing powder.' }
+      ] },
+    { know: { qs: [
+        { q: 'A codon is…', a: ['one letter of DNA', 'three letters of DNA or RNA', 'a whole gene'], ok: 1,
+          tell: 'Read in threes, each group naming one amino acid. Four letters in groups of three gives 64 combinations.' },
+        { q: 'The first codon to be cracked was…', a: ['AUG, in 1953', 'UUU, in 1961', 'nobody cracked one — it was deduced'], ok: 1,
+          tell: 'Matthaei and Nirenberg\'s artificial poly-U RNA built a protein of pure phenylalanine — at three in the morning.' },
+        { q: 'Bacteria can be made to produce human insulin because…', a: ['they are taught to', 'the genetic code is the same in both', 'insulin is a simple molecule'], ok: 1,
+          tell: 'The gene is an instruction in a language E. coli already reads. Human insulin has been made this way since 1982.' }
+      ] }, bg: '#ffffff', kicker: 'Try it', h: 'Check your knowing' },
+    { img: 'cd-09', bg: '#ffffff', kicker: 'When it goes wrong', h: 'One letter',
+      body: 'Change a single letter and the effect ranges from nothing at all to everything. Many changes land on a codon that still calls the same amino acid, and nothing happens. Sickle cell disease is one letter — a single A becoming a T, one amino acid swapped, and the shape of the haemoglobin molecule changes enough to deform the whole red blood cell.' },
+    { img: 'cd-10', bg: '#ffffff', kicker: 'After', h: 'Tonight',
+      body: 'Your body is running this right now, in every cell, millions of times a second: a copy leaves a nucleus, a ribosome reads it in threes, a protein comes out folded and working. Eat something with protein in it and you are taking apart someone else\'s version of the same process to build your own.<br><br><b>Tonight:</b> one meal, read as instructions being recycled.' }
+  ];
+
+  var LESSONS = { cell: CELL_CARDS, inside: INSIDE_CARDS, dna: DNA_CARDS, code: CODE_CARDS };
+  var LESSON_TITLES = { cell: 'The Cell', inside: 'What\'s Inside One', dna: 'DNA', code: 'Reading the Code' };
   /* Notes on a lesson live in the CHAT'S COMPARE TAB, not on this page
      (Aug 2026, Sophie: "just put it in the compare tab where it belongs").
      The page posted there uses these same keys as its item ids — cell /
@@ -256,9 +379,9 @@
      reuse one: it is what her words hang on. */
   var COURSE = { title: 'Biology', lessons: [
     { key: 'cell', note: 'cell', title: 'The Cell', sub: 'Everything is made of these', cover: 'cl-01' },
-    { key: null, note: 'inside', title: 'What\'s Inside One', sub: 'Written, not yet drawn' },
-    { key: null, note: 'dna', title: 'DNA', sub: 'Written, not yet drawn' },
-    { key: null, note: 'code', title: 'Reading the Code', sub: 'Written, not yet drawn' }
+    { key: 'inside', note: 'inside', title: 'What\'s Inside One', sub: 'The machinery, and the one that used to be a bacterium', cover: 'in-04' },
+    { key: 'dna', note: 'dna', title: 'DNA', sub: 'Two metres of instructions, in every cell', cover: 'dn-05' },
+    { key: 'code', note: 'code', title: 'Reading the Code', sub: 'How four letters become a body', cover: 'cd-03' }
   ] };
 
   /* ── The path ── */

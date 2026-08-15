@@ -406,9 +406,22 @@ the After card last.
   drawing new cards run `node scripts/webp-assets.js school` and then
   `node scripts/webp-assets-verify.js` before deploying — a card with no webp
   is a visibly broken picture.
-- Lessons 2–4 are listed on the path, dimmed, captioned "written, not yet
-  drawn". Building one = draw its cards from `cell-lesson-spec.json`'s style
-  block, add a `LESSONS` entry, and un-dim the row.
+- **ALL FOUR LESSONS ARE BUILT** (2026-08-15). The Cell 10 cards, What's Inside
+  One 10, DNA 11, Reading the Code 10 — 37 cards, 28 of them drawn in one run
+  from `cell-lesson-spec.json`'s style block (medium, ~$1.68), specs banked as
+  `inside/dna/code-lesson-spec.json`. A fifth lesson is the same three steps:
+  write its cards here, copy a spec and swap the prompts, add a `LESSONS` entry
+  plus a `COURSE` row.
+- **Watch the voice in the ⓘ FAQs** — that prose is written fresh, not lifted
+  from this doc, so it is where the AI-tells creep in. Two were caught and
+  rewritten before shipping: a negation-pivot reframe ("not the molecule, the
+  shadow it casts") and a crafted closer ("a rounding error by size and
+  indispensable by function"). Re-read `docs/witch-school-lessons.md`'s voice
+  rules against any new FAQ.
+- **No people and no faces in any prompt.** Hooke, Leeuwenhoek, Miescher,
+  Franklin, Margulis, Matthaei are all real people, and the standing rule is
+  never to invent a face for one — so their cards draw the instrument, the
+  bench, the photograph, the stack of rejection envelopes.
 - **The pink is the ART'S OWN PINK, `#f6c6da`** (Sophie, 2026-08-14: "make the
   pink the same shade as the pink in the lessons. There might be a hex code
   somewhere" — there was: the blush out of the palette the cards are drawn in).
