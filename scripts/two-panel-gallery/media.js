@@ -42,7 +42,7 @@ function poster(clip, out) {
 
 (async () => {
   const jobs = [];
-  for (const dir of ['clips', 'clips2']) {
+  for (const dir of ['clips', 'clips2', 'clips3']) {
     const d = path.join(SCRATCH, dir);
     if (!fs.existsSync(d)) continue;
     for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.mp4'))) jobs.push(path.join(d, f));
