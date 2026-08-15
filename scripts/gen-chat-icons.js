@@ -75,10 +75,22 @@ async function runSheet(n, cells, recut) {
   // The cell ids are POSITIONAL, never the chat name: the route slugifies an
   // id, and a chat called "Voice Memos" would collide with a slug that is
   // already "voice-memos". Items come back in order, so position is the map.
+  // `--ink <n>` pins the trace threshold instead of letting it probe. An icon
+  // only ever needs the CUT — the SVG is a free side product here — and the
+  // auto probe runs about three traces per cell, which is where sheet 2 hung:
+  // a shelf of small repeated objects, stuck on one cell for half an hour with
+  // the other 24 already done. A fixed threshold is one trace, so a re-cut
+  // gets past it. `--fills <n>` caps the colour count for the same reason.
+  const ink = val('--ink');
+  const fills = val('--fills');
   const body = {
     name,
     quality: QUALITY,
-    cells: cells.map((c, i) => ({ id: `c${String(i + 1).padStart(2, '0')}`, draw: c.draw })),
+    cells: cells.map((c, i) => Object.assign(
+      { id: `c${String(i + 1).padStart(2, '0')}`, draw: c.draw },
+      ink ? { ink: Number(ink) } : {},
+      fills ? { fills: Number(fills) } : {},
+    )),
   };
   if (recut) {
     if (!banked || !banked.sheet) throw new Error(`sheet ${n} has never been drawn — nothing to re-cut`);
