@@ -2172,14 +2172,18 @@ function renderStatus(el){
 //   • WHAT COUNTS AS NEW is the newest of three arrivals — a reply that isn't
 //     hers, a Compare page, an image — because a chat can deliver without
 //     saying anything, and the artifact is the point.
-//   • A CARD ONLY LEAVES ON THE ✓ (`notifSeenAt` on the registry). Aug 2026,
-//     Sophie: "make the default behavior that it's pinned until I mark the
-//     checkmark and get rid of the pin" — so every card is kept by default,
-//     opening the chat does not clear it, and there is no pin because there
-//     is nothing left for a pin to say. It is still a STAMP compared against
-//     the arrival time, never a boolean — which is the whole answer to her
-//     oven example: checking off v3 cannot silence v4, and nothing has to
-//     un-check anything when v4 lands.
+//   • A CARD LEAVES ON THE ✓ — OR ON HER REPLY (`notifSeenAt` on the
+//     registry). Aug 2026, Sophie: "make the default behavior that it's pinned
+//     until I mark the checkmark and get rid of the pin" — so every card is
+//     kept by default, OPENING the chat clears nothing, and there is no pin
+//     because there is nothing left for a pin to say. Then, having lived with
+//     that: "is it possible to make it so that if I actually replied to the
+//     message that does get rid of the notification" — so POST /reply stamps
+//     the same field the ✓ does (server-side, since her reply arrives from the
+//     Claude app with no page open). It is still a STAMP compared against the
+//     arrival time, never a boolean — which is the whole answer to her oven
+//     example: checking off (or answering) v3 cannot silence v4, and the reply
+//     her message prompts brings the card straight back carrying it.
 //   • IT IGNORES THE ACCOUNT TABS, like Status does. This is the
 //     what-happened-while-I-was-away screen; splitting it in half would mean
 //     checking two screens to know she is caught up. The card still carries
@@ -2194,94 +2198,62 @@ function newsIndex(){
   (stCache.pages||[]).forEach(function(p){ if(p.chat) (pgs[p.chat]=pgs[p.chat]||[]).push(p); });
   return { imgs:imgs, pgs:pgs };
 }
-// The floor a card has to clear: THE ✓, and only the ✓ (Aug 2026, Sophie —
-// "make the default behavior that it's pinned until I mark the checkmark and
-// get rid of the pin"). Every card is now what a pinned card used to be, so
-// the pin is gone; this one line is the whole feature.
+// The floor a card has to clear: ONE stamp, written by the ✓ and by her REPLY
+// (Aug 2026, Sophie — "make the default behavior that it's pinned until I mark
+// the checkmark and get rid of the pin", then "if I actually replied to the
+// message that does get rid of the notification"). Every card is now what a
+// pinned card used to be, so the pin is gone; this one line is the whole
+// feature, and answering a chat needed no second field — `POST /reply` writes
+// this same stamp, because her reply lands from the Claude app with no page
+// open anywhere.
 //
 // It used to be the later of TWO marks — this stamp and the per-device `seen`
 // written when she opens a chat — which meant reading a thread quietly cleared
 // its card, and the pin existed to opt out of that one card at a time. Opening
-// is not checking off: she opens a chat precisely to deal with it later.
-// `seen` still drives the unread dot; it just has no say here.
+// is STILL not clearing, and replying is not a back door to it: she opens a
+// chat precisely to deal with it later, and she replies having dealt with it.
+// `seen` drives the unread dot; it has no say here.
 //
 // notifSeenAt lives on the registry, so the ✓ she taps on the phone settles
 // the card on the laptop too — and the widget, which could never read the
 // localStorage half, has always counted off this stamp alone. Same floor
-// everywhere now.
+// everywhere now, including the reply she never made on this device.
 function newsFloor(name){
   return (chats[name]&&chats[name].notifSeenAt)||'';
 }
-// WHICH PAGES A CARD SHOWS — v3, and this one answers both of her rules at
-// once (Aug 2026).
-//   • "if there's one version and then a new one comes out it should just
-//     replace that one" (v6 sitting above v5), and
-//   • "if they give me a different page, why would I want it to not be shown?"
-//     — which is the correction to v2, where only the newest page showed at
-//     all. Hiding a genuinely different deliverable was a trade she never
-//     asked for and it was wrong to take it on her behalf.
+// WHICH PAGES A CARD SHOWS — v4: THE NEWEST ONE, and nothing else (Aug 2026,
+// Sophie: "I only want the newest compare page or whatever they posted on that
+// turn"). One card per chat carries one deliverable — the latest thing it
+// handed her.
 //
-// So TWO filters, and the load-bearing one needs no string parsing at all:
+// It is now ONE filter and NO string parsing:
 //
-//   1. NEWER THAN THE FLOOR. The ✓ she taps (and opening the chat) is the
-//      real superseded marker — "I have seen the state of this chat as of
-//      now" — so a page older than that mark never comes back, whatever its
-//      title says. This is what kills "Cutting blocks (s96) — moved from the
-//      Evan chat", the page with no version number that beat v1: it is not a
-//      version question, it is an old-news question.
-//   2. …then versions collapse among what is left, so a rapid v5 → v6 pair
-//      inside one unchecked stretch shows as v6 alone. That half IS title
-//      parsing and it can be tricked — but now the cost of a miss is one
-//      extra row in a card she has not checked yet, not a stale artifact
-//      that survives every check.
-var PL_VER=/\b(?:v|ver|version|cut|take|pass|round|draft|rev)\s*\.?\s*\d+(?:\.\d+)?\b/;
-function stripVer(t){
-  return t
-    .replace(new RegExp(PL_VER.source,'g'),' ')
-    .replace(/\(\s*[a-z]?\d+\s*\)/g,' ')     // a build/session marker like (s96)
-    .replace(/#\d+/g,' ')
-    .replace(/[^a-z0-9]+/g,' ').trim();
-}
-// WHERE THE VERSION SITS decides what the family is, and both shapes are real
-// in her feed (measured 2026-08-11 against the live pages):
-//   • "Cutting blocks v6 (s96) — tap empty space to deselect" — the version is
-//     in the HEAD, so the head is the thing and everything after the dash is
-//     that version's own notes. Family = "cutting blocks", v5 collapses.
-//   • "Evan — v11, the art from your notes" / "Evan — pick the pauses (v6)" /
-//     "Monsters — info backs, 3 samples v1" — the head is a PROJECT and the
-//     subtitle is the deliverable, so the whole title (minus version tokens)
-//     is the family and those stay separate.
-// Cutting at the dash unconditionally was v1 of this rule and it collapsed
-// three different Evan pages into one — the case that made the two shapes
-// worth telling apart.
-function pageFamily(title){
-  var t=String(title||'').toLowerCase();
-  var parts=t.split(/\s+[—–-]\s+/);
-  if(parts.length>1 && PL_VER.test(parts[0])){
-    var head=stripVer(parts[0]);
-    if(head) return head;
-  }
-  // a title that was ONLY a version marker keeps its own identity rather than
-  // collapsing every such page into one empty family
-  return stripVer(t) || t.replace(/[^a-z0-9]+/g,' ').trim();
-}
-function newestPerVersion(pages){
-  var byFam={}, out=[];
-  // sorted here rather than trusting the caller: "newest wins" is the whole
-  // rule, so it must not depend on the order the server happened to send
-  pages.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
-    .forEach(function(p){
-      var k=pageFamily(p.title);
-      if(byFam[k]) return;                   // an older cut of the same thing
-      byFam[k]=1; out.push(p);
-    });
-  return out;
-}
-window.__pageFamily=pageFamily;   // the tests check the tricky titles directly
-
-// Everything newer than the floor, versions collapsed, newest first, cap 2.
+//   1. NEWER THAN THE FLOOR — the ✓ she taps, or her own reply (see
+//      newsFloor). A page older than that mark never comes back, whatever its
+//      title says. This is what killed "Cutting blocks (s96) — moved from the
+//      Evan chat", the page with no version number that beat the old title
+//      rule twice: it was never a version question, it was an old-news one.
+//   2. …then the newest survivor, full stop.
+//
+// v3 kept up to TWO and collapsed versions by parsing the title into a
+// "family" (v6 sitting above v5, while genuinely different pages under one
+// project name stayed separate). That machinery is GONE — with one page shown
+// there is nothing for it to decide, because the newest wins whether or not it
+// is a new cut of the same thing. Its deletion is the point, not a side
+// effect: the family rule was the one half of this that could be tricked by a
+// title, and now nothing here reads a title at all.
+//
+// Two consequences worth knowing before flipping this back (v2 → v3 → v4; the
+// title parser is in git history if a fourth turn needs it):
+//   • two genuinely DIFFERENT pages posted in one unchecked stretch show as
+//     the newest one only — she asked for that explicitly, reversing "if they
+//     give me a different page, why would I want it to not be shown?"
+//   • nothing is hidden from the chat itself: the Compare tab still holds
+//     every page. This is only what the notification carries.
 function freshPages(pages, floor){
-  return newestPerVersion(pages.filter(function(p){ return (p.created||'')>floor; })).slice(0,2);
+  return pages.filter(function(p){ return (p.created||'')>floor; })
+    .sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+    .slice(0,1);
 }
 function newsItems(g){
   var ix=newsIndex(), out=[], done={};
