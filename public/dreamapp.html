@@ -109,7 +109,9 @@
   .post + .post { position:relative; margin-top:29px; }
   .post + .post::before { content:''; position:absolute; left:0; right:0; top:-15px;
                           height:1px; background:var(--linep); }
-  .dream + .dream { margin-top:20px; padding-top:18px; border-top:1px solid #ffffff1f; }
+  /* A night that held more than one dream runs on inside the SAME entry; the
+     faint rule parts them, where the black line above parts different people. */
+  .wtext .part + .part { margin-top:14px; padding-top:13px; border-top:1px solid #ffffff1f; }
   .post .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                font-size:19px; font-weight:400; }
   .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
@@ -153,6 +155,8 @@
   /* panels: three to a row, a lone panel stays one-third width */
   .pgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; margin-top:11px; }
   .pgrid img { width:100%; display:block; border-radius:6px; background:#1a1a20; }
+  /* The cover is ONE picture, shown big — it is the night's face. */
+  .pgrid.cover { grid-template-columns:1fr; }
   .morep { width:100%; background:none; border:none; color:var(--dim); font:12.5px -apple-system, sans-serif;
            display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 0 0; }
   /* Opened, the button STICKS to the bottom of the screen for as long as the
@@ -218,8 +222,12 @@
      restores the exact scroll position on close, so she lands back where she
      opened it however the page moved underneath. */
   .lb { position:fixed; inset:0; z-index:40; background:#0e0e11f5;
-        display:flex; align-items:center; justify-content:center; padding:14px; }
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:14px; padding:14px; }
   .lb img { max-width:100%; max-height:100%; border-radius:6px; display:block; }
+  #lbfeat { background:none; border:1px solid var(--line); color:var(--ink); border-radius:6px;
+            padding:9px 18px; font:14px -apple-system, sans-serif; flex:none; }
+  #lbfeat[disabled] { opacity:.5; }
   .pgrid img { cursor:zoom-in; }
 
   .toast { position:fixed; left:50%; bottom:108px; transform:translateX(-50%); z-index:30;
@@ -260,7 +268,7 @@
   </nav>
 </div>
 
-<div class="lb" id="lb" hidden><img id="lbimg" alt=""></div>
+<div class="lb" id="lb" hidden><img id="lbimg" alt=""><button id="lbfeat" hidden></button></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -353,39 +361,76 @@ function closeHow(){
    remember where she was, because locking alone doesn't stop the page moving —
    she has to land back exactly where she opened it. */
 var lbY = 0;
-function openLightbox(src){
+function openLightbox(img){
   lbY = window.scrollY;
   if (window.__scrollStop) window.__scrollStop();
-  document.getElementById('lbimg').src = src;
+  document.getElementById('lbimg').src = img.src;
   document.getElementById('lb').hidden = false;
   document.body.style.overflow = 'hidden';
+  // FEATURE THIS ONE — offered here rather than on the tile, because choosing
+  // the night's face is a decision you make having seen the picture big, and
+  // because a tap on a tile already means "open it". Owner only, and only when
+  // there is more than one to choose between.
+  var night = img.closest('.dream'), btn = document.getElementById('lbfeat');
+  var many = night && night.querySelectorAll('.pgrid img').length > 1;
+  var already = !!img.closest('.pgrid.cover');
+  btn.hidden = !(night && night.dataset.mine && many && !already);
+  btn.textContent = 'feature this one';
+  btn.disabled = false;
+  btn.onclick = function(){
+    btn.disabled = true;
+    api('/nights/' + night.dataset.id + '/cover',
+        { body: { dreamId: img.dataset.dream, i: Number(img.dataset.i) } })
+      .then(function(){ closeLightbox(); renderFeed(); toast('featured'); })
+      .catch(function(e){ btn.disabled = false; toast(e.message); });
+  };
 }
 function closeLightbox(){
   var lb = document.getElementById('lb');
   if (lb.hidden) return;
   lb.hidden = true;
   document.getElementById('lbimg').removeAttribute('src');
+  document.getElementById('lbfeat').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, lbY);
 }
 // Delegated, so panels drawn later (a feed refresh, a dream that just finished
 // drawing) need no wiring of their own.
 document.addEventListener('click', function(e){
+  if (e.target.id === 'lbfeat') return;   // the button lives inside the lightbox
   var img = e.target.closest ? e.target.closest('.pgrid img') : null;
-  if (img) { openLightbox(img.src); return; }
+  if (img) { openLightbox(img); return; }
   if (e.target.closest && e.target.closest('.lb')) closeLightbox();
 });
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeLightbox(); closeHow(); } });
 
 /* ── panels: three to a row; more than three folds behind "see more" ── */
-function panelBlock(panels){
+/* ── the night's pictures: ONE cover, the rest behind the fold ──
+   Sophie: "it only shows pictures for one and you can see the rest. People can
+   decide to feature a photo if they don't like the one that's chronologically
+   first, but that's the default." So the entry costs the same scroll whatever
+   the night held, and the cover is a CHOICE the dreamer can make rather than an
+   accident of which dream got written down first. */
+// Every page, three across — the private view of your own dream.
+function plainGrid(panels){
   if (!panels.length) return '';
-  var cell = function(p){ return '<img src="' + p.url + '" alt="" loading="lazy">'; };
-  if (panels.length <= 3) return '<div class="pgrid">' + panels.map(cell).join('') + '</div>';
-  var extra = panels.length - 3;
-  return '<div class="pgrid">' + panels.slice(0, 3).map(cell).join('') + '</div>' +
-    '<div class="pgrid" data-rest hidden>' + panels.slice(3).map(cell).join('') + '</div>' +
-    '<button class="morep" data-more data-label="see more · ' + extra + '"></button>';
+  return '<div class="pgrid">' +
+    panels.map(function(p){ return '<img src="' + p.url + '" alt="" loading="lazy">'; }).join('') +
+    '</div>';
+}
+
+function panelBlock(panels, cover){
+  if (!panels.length) return '';
+  var cell = function(p){
+    return '<img src="' + p.url + '" alt="" loading="lazy" data-dream="' + p.dreamId + '" data-i="' + p.i + '">';
+  };
+  var head = cover || panels[0];
+  var rest = panels.filter(function(p){ return !(p.dreamId === head.dreamId && p.i === head.i); });
+  var out = '<div class="pgrid cover">' + cell(head) + '</div>';
+  if (!rest.length) return out;
+  return out +
+    '<div class="pgrid" data-rest hidden>' + rest.map(cell).join('') + '</div>' +
+    '<button class="morep" data-more data-label="see more · ' + rest.length + '"></button>';
 }
 
 /* ── ONE fold, used by the words and by the extra panels ──
@@ -422,25 +467,17 @@ function wirePanels(root){
   });
 }
 
-/* ── one day's dreams, gathered per dreamer ──
-   Two dreams from the same person on the same day belong in one post. The
-   groups keep the order the day already had (newest first), and a person's
-   own dreams keep their order inside their group. */
-function groupsFor(dreams){
-  var out = [], at = {};
-  dreams.forEach(function(d){
-    var k = d.by || d.id;               // no tag (an older doc) = its own group
-    if (at[k] === undefined) { at[k] = out.length; out.push([]); }
-    out[at[k]].push(d);
-  });
-  return out;
-}
-
-/* ── one dream: title, words-or-pictures, heart, comments ── */
-function dreamBlock(d){
-  var hasWords = !!d.words, hasPics = !!(d.panels && d.panels.length);
+/* ── ONE NIGHT IS ONE ENTRY (Sophie, Aug 2026) ──
+   "Generally people only have one dream per night, or the ones they had are
+   basically one dream. They shouldn't be separate entries." So a person's whole
+   night is one block: one title, one heart, one comment thread, one cover
+   photo. Where the night held more than one dream its words run on inside the
+   same entry, parted by a faint rule — the server hands them over in order. */
+function dreamBlock(n){
+  var parts = (n.dreams || []).filter(function(d){ return !!d.words; });
+  var hasWords = parts.length > 0, hasPics = !!(n.panels && n.panels.length);
   // The toggle only exists where there is something to toggle BETWEEN; words
-  // open first, and a dream with only pictures opens on those.
+  // open first, and a night with only pictures opens on those.
   var pane = hasWords ? 'words' : 'pics';
   var tabs = (hasWords && hasPics)
     ? '<div class="tabs" data-on="' + pane + '">' +
@@ -448,15 +485,18 @@ function dreamBlock(d){
         '<button class="tab' + (pane === 'pics' ? ' on' : '') + '" data-t="pics">pictures</button>' +
       '</div>'
     : '';
-  return '<div class="dream" data-id="' + d.id + '">' +
-    '<div class="ttl">' + esc(d.title) + '</div>' + tabs +
+  // ONE clamp over the whole night, so an entry costs the same scroll whether
+  // the night was one dream or four.
+  var words = parts.map(function(d){ return '<div class="part">' + esc(d.words) + '</div>'; }).join('');
+  return '<div class="dream" data-id="' + n.id + '"' + (n.mine ? ' data-mine="1"' : '') + '>' +
+    '<div class="ttl">' + esc(n.title) + '</div>' + tabs +
     (hasWords ? '<div class="words" data-pane="words"' + (pane === 'words' ? '' : ' hidden') + '>' +
-        '<div class="wtext clamped">' + esc(d.words) + '</div>' +
+        '<div class="wtext clamped">' + words + '</div>' +
         '<button class="morep" data-wmore hidden></button></div>' : '') +
-    (hasPics ? '<div data-pane="pics"' + (pane === 'pics' ? '' : ' hidden') + '>' + panelBlock(d.panels) + '</div>' : '') +
+    (hasPics ? '<div data-pane="pics"' + (pane === 'pics' ? '' : ' hidden') + '>' + panelBlock(n.panels, n.cover) + '</div>' : '') +
     '<div class="acts">' +
-      '<button class="act heart' + (d.felt ? ' on' : '') + '">' + HEART + '<span>' + d.feltCount + '</span></button>' +
-      '<button class="act cmt">' + BUBBLE + '<span>' + (d.commentCount || 0) + '</span></button>' +
+      '<button class="act heart' + (n.felt ? ' on' : '') + '">' + HEART + '<span>' + n.feltCount + '</span></button>' +
+      '<button class="act cmt">' + BUBBLE + '<span>' + (n.commentCount || 0) + '</span></button>' +
     '</div><div class="thread" hidden></div></div>';
 }
 
@@ -568,23 +608,24 @@ async function renderFeed(){
       document.getElementById('gateGo').addEventListener('click', function(){ openCompose(); });
       return;
     }
-    if (!f.dreams.length) {
+    var nights = f.nights || [];
+    if (!nights.length) {
       el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
       return;
     }
-    // Group under the day they were shared, newest day first; no names. Inside
-    // a day, one person's dreams stay together (`by`), in the order they were
-    // written down — so a night that produced two dreams reads as one night.
+    // Group under the day they were shared, newest day first; no names. The
+    // server has already gathered each person's night into ONE entry, so a day
+    // is simply its nights.
     var byDay = {}, days = [];
-    f.dreams.forEach(function(d){
-      var k = d.publicOn || String(d.createdAt || '').slice(0, 10);
+    nights.forEach(function(n){
+      var k = n.publicOn || String(n.createdAt || '').slice(0, 10);
       if (!byDay[k]) { byDay[k] = []; days.push(k); }
-      byDay[k].push(d);
+      byDay[k].push(n);
     });
     days.sort().reverse();
     el.innerHTML = days.map(function(k){
-      return '<div class="dayhead">' + dayLabel(k) + '</div>' + groupsFor(byDay[k]).map(function(g){
-        return '<article class="post">' + g.map(dreamBlock).join('') + '</article>';
+      return '<div class="dayhead">' + dayLabel(k) + '</div>' + byDay[k].map(function(n){
+        return '<article class="post">' + dreamBlock(n) + '</article>';
       }).join('');
     }).join('');
     wirePanels(el);
@@ -638,7 +679,10 @@ async function renderDream(){
       '<div class="pgrid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>' +
       '<div class="quiet">You can leave — the drawing will be here when it’s done.</div>';
   } else if (d.panels.length) {
-    drawBlock = panelBlock(d.panels);
+    // Your OWN dream, before you have shared it: every page at once. The
+    // one-cover rule is about the FEED — here you are choosing what to share,
+    // so hiding pages behind a fold would hide the thing you came to decide.
+    drawBlock = plainGrid(d.panels);
   } else {
     drawBlock = '<button class="btn sub" id="drawBtn"><span class="star" style="color:var(--fuchsia)">' + STAR + '</span> draw it</button>' +
       (failed ? '<div class="err">' + esc(d.drawJob.error) + '</div>' : '');

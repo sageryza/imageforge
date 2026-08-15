@@ -29,15 +29,30 @@ const PUB = path.join(__dirname, '..', 'public');
 const T0 = 1786000000000;
 const para = (n) => Array.from({ length: n }, (_, i) => `sentence number ${i} of this dream, long enough to wrap.`).join(' ');
 
+// One entry per person per NIGHT (Sophie) — the server hands over `nights`,
+// each already holding that person's dreams for the day in order.
+const night = (id, extra) => ({
+  id, by: id.toUpperCase(), mine: false, feltCount: 0, felt: false, commentCount: 0,
+  publicOn: '2026-08-08', panels: [], cover: null, ...extra,
+});
 const FEED = {
   sealed: false,
   today: '2026-08-08',
-  dreams: [
-    { id: 'long', title: 'The Long One', by: 'A', words: para(60), panels: [], feltCount: 3, felt: false, commentCount: 0, publicOn: '2026-08-08', createdAt: new Date(T0).toISOString() },
-    { id: 'alsolong', title: 'Also Long', by: 'B', words: para(200), panels: [], feltCount: 1, felt: false, commentCount: 0, publicOn: '2026-08-08', createdAt: new Date(T0 - 60000).toISOString() },
-    { id: 'short', title: 'The Short One', by: 'C', words: 'a bus. it kept going.', panels: [], feltCount: 0, felt: false, commentCount: 0, publicOn: '2026-08-08', createdAt: new Date(T0 - 120000).toISOString() },
-    { id: 'pics', title: 'Many Panels', by: 'D', words: para(3), feltCount: 0, felt: false, commentCount: 0, publicOn: '2026-08-08', createdAt: new Date(T0 - 180000).toISOString(),
-      panels: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ i, url: '/px.png?i=' + i, captions: [] })) },
+  nights: [
+    night('long', { title: 'The Long One', feltCount: 3, createdAt: new Date(T0).toISOString(),
+      dreams: [{ id: 'long', title: 'The Long One', words: para(60) }] }),
+    // A night of TWO dreams: one entry, one heart, both sets of words inside it.
+    night('alsolong', { title: 'Also Long', feltCount: 1, createdAt: new Date(T0 - 60000).toISOString(),
+      dreams: [
+        { id: 'alsolong', title: 'Also Long', words: para(120) },
+        { id: 'alsolong2', title: 'And Then', words: para(80) },
+      ] }),
+    night('short', { title: 'The Short One', createdAt: new Date(T0 - 120000).toISOString(),
+      dreams: [{ id: 'short', title: 'The Short One', words: 'a bus. it kept going.' }] }),
+    night('pics', { title: 'Many Panels', mine: true, createdAt: new Date(T0 - 180000).toISOString(),
+      dreams: [{ id: 'pics', title: 'Many Panels', words: para(3) }],
+      panels: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ dreamId: 'pics', i, url: '/px.png?i=' + i, captions: [] })),
+      cover: { dreamId: 'pics', i: 0, url: '/px.png?i=0', captions: [] } }),
   ],
 };
 
@@ -51,6 +66,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/witch/firebase-config') return send(200, 'application/json', JSON.stringify({ apiKey: 'stub', authDomain: 'stub', projectId: 'stub' }));
   if (url.pathname === '/api/dreamapp/feed') return send(200, 'application/json', JSON.stringify(FEED));
   if (url.pathname === '/api/dreamapp/dreams') return send(200, 'application/json', JSON.stringify({ dreams: [] }));
+  if (/\/api\/dreamapp\/nights\/.*\/cover$/.test(url.pathname)) return send(200, 'application/json', JSON.stringify({ ok: true }));
   if (url.pathname === '/dreamfeed') return send(200, 'text/html', fs.readFileSync(path.join(PUB, 'dreamapp.html')));
   return send(404, 'text/plain', 'no');
 });
@@ -146,14 +162,34 @@ const check = (name, ok, detail) => {
   const reclamped = (await box('.dream[data-id="alsolong"]')).height;
   check('and it is collapsed again', Math.abs(reclamped - hAlso) < 1);
 
-  // the panels fold shares wireFold — same close behaviour. A dream opens on
-  // its words, so the pictures have to be asked for first.
+  // A night of two dreams is ONE entry (Sophie): one heart, one comment count,
+  // both dreams' words inside it, parted by a rule.
+  const twoNight = page.locator('.dream[data-id="alsolong"]');
+  check('two dreams from one night are one entry', (await page.locator('.dream').count()) === FEED.nights.length,
+    `${await page.locator('.dream').count()} entries for ${FEED.nights.length} nights`);
+  check('that entry carries one heart', (await twoNight.locator('.heart').count()) === 1);
+  check('and both dreams\' words are inside it', (await twoNight.locator('.wtext .part').count()) === 2);
+  const ruled = await twoNight.evaluate((el) =>
+    parseFloat(getComputedStyle(el.querySelectorAll('.wtext .part')[1]).borderTopWidth));
+  check('with a faint rule between them', ruled === 1, `${ruled}px`);
+
+  // Pictures: ONE cover, the rest behind the fold, so an entry costs the same
+  // scroll however many pictures the night produced.
   await page.locator('.dream[data-id="pics"] .tab[data-t="pics"]').click();
+  const picsNight = page.locator('.dream[data-id="pics"]');
+  check('the night shows ONE cover picture', (await picsNight.locator('.pgrid.cover img').count()) === 1);
+  const coverSrc = await picsNight.locator('.pgrid.cover img').getAttribute('src');
+  check('and the cover is the chronologically first', /i=0$/.test(coverSrc), coverSrc);
+  const shown = await picsNight.locator('.pgrid:not([hidden]) img').count();
+  check('the rest are folded away', shown === 1, `${shown} visible`);
   const picsBtn = page.locator('.dream[data-id="pics"] [data-more]');
   check('the extra panels offer a fold', await picsBtn.isVisible());
+  check('and the fold names how many', /7/.test(await picsBtn.innerText()), await picsBtn.innerText());
   await picsBtn.click();
   const picsStuck = await picsBtn.evaluate((el) => getComputedStyle(el).position);
   check('the opened panels button is sticky too', picsStuck === 'sticky', picsStuck);
+  check('opened, every picture of the night is there',
+    (await picsNight.locator('.pgrid img').count()) === 8);
   await picsBtn.click();
   const restHidden = await page.locator('.dream[data-id="pics"] [data-rest]').isHidden();
   check('and it closes the extra panels again', restHidden);
@@ -206,6 +242,22 @@ const check = (name, ok, detail) => {
   check('tapping it closes', await page.locator('#lb').isHidden());
   const afterY = await page.evaluate(() => window.scrollY);
   check('and she lands back where she opened it', Math.abs(afterY - beforeY) < 2, `${beforeY} -> ${afterY}`);
+
+  // FEATURE A PHOTO — the dreamer picks the night's face, having seen it big.
+  // Offered on any picture but the one already featured, and only on your own.
+  check('the cover itself is not offered as a feature', await page.locator('#lbfeat').isHidden());
+  await page.locator('.dream[data-id="pics"] [data-more]').click();
+  await page.locator('.dream[data-id="pics"] [data-rest] img').first().scrollIntoViewIfNeeded();
+  await page.locator('.dream[data-id="pics"] [data-rest] img').first().click();
+  check('another picture of your own night offers "feature this one"',
+    await page.locator('#lbfeat').isVisible());
+  await page.locator('#lb').click({ position: { x: 5, y: 5 } });
+  // Someone ELSE's night never offers it, however many pictures it has.
+  const mineOff = await page.evaluate(() => {
+    const el = document.querySelector('.dream[data-id="long"]');
+    return el ? !el.dataset.mine : false;
+  });
+  check('someone else\'s night is not yours to feature', mineOff);
 
   // the two surfaces: black entries sitting on cream, a black line between
   await page.evaluate(() => window.scrollTo(0, 0));
