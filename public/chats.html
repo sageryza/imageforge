@@ -665,7 +665,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    against the others.
    The whole point is the SHAPE: her question verbatim and bold, the answer
    plainly underneath. Nothing else on the line. */
-#qfull{position:fixed; inset:0; z-index:120; background:var(--bg); overflow-y:auto;
+/* THE PAGE'S BACKGROUND TOKEN IS `--paper`, NOT `--bg` (Sophie, 2026-08-14:
+   "oopsie", with a screenshot of the thread showing straight through the
+   list). `var(--bg)` is defined nowhere in this page, so the declaration was
+   dropped and the overlay rendered TRANSPARENT — every line of it sitting on
+   top of the messages behind it. An undefined custom property fails silently:
+   there is no console error and the rule simply does not exist. */
+#qfull{position:fixed; inset:0; z-index:120; background:var(--paper); overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 40px);}
 #qfull .qhead{display:flex; align-items:baseline; gap:10px; margin:0 0 1.2em;}
@@ -3613,12 +3619,20 @@ function openQuestions(name){
   w.innerHTML='<div class="qhead"><h2>Questions</h2>'
     +'<button class="x" aria-label="Close">&times;</button></div>'
     +'<div class="qlist"><div class="state">Loading…</div></div>';
-  function close(){ w.remove(); document.body.style.overflow=''; window.scrollTo(0,y);
+  function close(){ w.remove();
+    document.body.style.overflow=''; document.body.classList.remove('ontop');
+    window.scrollTo(0,y);
     document.removeEventListener('keydown',esckey); }
   function esckey(e){ if(e.key==='Escape') close(); }
   w.querySelector('.x').onclick=close;
   document.addEventListener('keydown',esckey);
-  document.body.appendChild(w); document.body.style.overflow='hidden';
+  // `body.ontop` is what every full-screen overlay here sets, and it does two
+  // jobs: it hides this page's autoscroll pill (promoted to its own layer by
+  // translateZ, which iOS paints ABOVE the overlay whatever the z-index says —
+  // that is the pill sitting over the list in her screenshot), and it tells
+  // checkBuild() not to reload the page out from under her while she reads.
+  document.body.appendChild(w);
+  document.body.style.overflow='hidden'; document.body.classList.add('ontop');
   api('/api/chatfeed/questions?chat='+encodeURIComponent(name)+'&_='+Date.now())
     .then(function(r){return r.json()})
     .then(function(d){
