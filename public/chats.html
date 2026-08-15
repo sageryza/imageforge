@@ -381,7 +381,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .searchrow.on #qsearch{display:block; flex:1; min-width:0; padding-right:14px;}
 .searchrow.on .qclear{display:flex; align-items:center; justify-content:center;
   position:static; transform:none; flex:none;}
-.searchrow.on #searchbtn{display:none;}
+/* THE GLASS STAYS BESIDE THE OPEN BAR (Aug 2026) — one control per action:
+   the ✕ on the right LEAVES the search, the glass on the left starts a NEW
+   one (empties the box, keeps the keyboard). It was hidden while open when
+   the ✕ did both jobs. It keeps the exact spot it holds when folded, so the
+   bar simply grows out to the right of it and nothing moves under her thumb. */
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
@@ -1757,6 +1761,19 @@ function paintSearch(){
   if(park){ if(btn.parentNode!==tools) tools.insertBefore(btn, ref); }
   else if(btn.parentNode!==row) row.insertBefore(btn, row.firstChild);
   row.style.display = (todoing || park) ? 'none' : '';
+  // ONE CONTROL PER ACTION (Aug 2026, Sophie: "once I press the X on the search
+  // I think the search bar should just disappear so it's one tap to get out of
+  // search … there could be another button to clear the text and write new
+  // text"). The ✕ used to do both jobs in sequence — clear, then close — so
+  // leaving a search she could still see cost two taps, and the first one
+  // looked like it had done nothing but wipe her words. Now:
+  //   ✕ (right)     → leave. Always, words or no words, one tap.
+  //   glass (left)  → a NEW search: empty the box, keyboard stays up.
+  // The glass is the same button in the same place that opened the bar, so
+  // "tap the glass to search" reads the same whether one is already running.
+  btn.setAttribute('aria-label', open ? 'Clear the search and start a new one' : 'Search all chats');
+  var qc=document.getElementById('qclear');
+  if(qc) qc.setAttribute('aria-label','Close the search');
 }
 function setSearchOpen(on){
   searchOpen=!!on;
@@ -4932,13 +4949,10 @@ document.getElementById('back').onclick=function(){ goHome(); };
   var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
   var _reset=window._resetSearch;
   window._resetSearch=function(){ _reset(); live.sync(); };
-  // One control, two jobs: with words in the field it clears them; on an
-  // empty field there is nothing left to clear, so it folds the bar back to
-  // its glass. That is the way out of a search without a second button.
-  qc.onclick=function(){
-    if(qi.value){ window._resetSearch(); qi.focus(); return; }
-    setSearchOpen(false);
-  };
+  // THE ✕ IS THE WAY OUT, and only that (see paintSearch for her ask). It used
+  // to clear first and close on the second tap; leaving a search she could
+  // still see therefore cost two taps and the first read as "it ate my words".
+  qc.onclick=function(){ setSearchOpen(false); };
 })();
 
 // Floating audio bar: while a message's audio is in play, a tappable bar pins
@@ -5035,7 +5049,18 @@ document.getElementById('back').onclick=function(){ goHome(); };
   window.__jumpsRecheck=function(){ requestAnimationFrame(upd); };
   upd();
 })();
-document.getElementById('searchbtn').onclick=function(){ setSearchOpen(true); };
+// The glass opens a search — and while one is open it starts the NEXT one:
+// the words go, the bar and the keyboard stay, so a second search is one tap
+// from the first. (Closing still throws the query away, so either route ends
+// at an empty box; this is the route that doesn't cost the keyboard.)
+document.getElementById('searchbtn').onclick=function(){
+  if(searchOpen){
+    if(window._resetSearch) window._resetSearch();
+    var i=document.getElementById('qsearch'); if(i) i.focus();
+    return;
+  }
+  setSearchOpen(true);
+};
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
 // Refresh drops the delivered cache too (Aug 2026) \u2014 with the UPDATE tab reading

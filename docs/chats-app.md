@@ -1282,9 +1282,25 @@
     `otherView()` is the one predicate for "not a list of chats"; both
     `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
     can never disagree about which state they are in.
-  - **The ✕ is the only way out, and it does two jobs**: with words in the
-    field it clears them (bar stays open); on an empty field it folds the
-    bar away. One control, no second button to discover.
+  - **ONE CONTROL PER ACTION — the ✕ LEAVES, the glass starts a NEW search
+    (Aug 2026, Sophie: "once I press the X on the search I think the search
+    bar should just disappear so it's one tap to get out of search, but it
+    has to be intentional as opposed to be for where it was automatic … there
+    could be another button to clear the text and write new text").** The ✕
+    used to do both jobs in sequence — clear on the first tap, close on the
+    second — so leaving a search she could still see cost two taps and the
+    first read as "it ate my words".
+    - **✕ (right): leave.** One tap, words or no words. The query is thrown
+      away with it, so reopening is always a fresh box.
+    - **Glass (left): a new search.** It STAYS beside the open bar now (it
+      used to hide) and empties the box with the keyboard still up — the
+      same button, in the same place, that opened the search in the first
+      place, so "tap the glass to search" reads the same whether one is
+      already running. No new glyph was invented for this.
+    - It costs the box 38px of width. Measured 2026-08-15: **208px at 375,
+      221px at 390** (her iPhone 13), against ~246/259 before —
+      `test-chats-search-archive.js` A3b pins it at ≥200 so a future control
+      in that row can't quietly squeeze the field to a slot.
   - **The row reserves the pill's corner AND lays the ✕ out as a real flex
     child** rather than the absolutely-positioned overlay `.qclear` is
     elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
