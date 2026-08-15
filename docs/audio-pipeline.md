@@ -225,39 +225,74 @@ Two measurements, both load-bearing for anything built on the Cannon books:
   never loads the whole file** — `extractWindow` seeks a ±150s window with
   ffmpeg over HTTP and cuts from that (`WINDOW_RADIUS = 150`). Long-form is
   already solved in exactly one room, and it is the one this belongs in.
-- **Use `edgeSpan`, NEVER `phraseSpan`, to locate a pick in audiobook audio.**
-  The book's text and the narrator's reading are two DIFFERENT transcripts —
-  narrators drop and alter words, editions differ, and what we hold may be a
-  session transcript rather than the printed page. `phraseSpan` trims unmatched
-  edge words as never-said, which is correct within one transcript and **wrong
-  across two**: it would silently clip words off the ends of her picks.
-  `search.js`'s `edgeSpan` exists for precisely this case (its own header says
-  so — "the pick text and the cut come from DIFFERENT transcripts"), anchoring
-  each edge on its own 6-word sub-phrase and reclaiming disagreed edge words by
-  position. The plumbing is built; point it at the new library.
+- **Which span-finder depends on where the picked TEXT came from.** Inside one
+  transcript — picks taken from the same indexed transcript the cut comes out
+  of — `phraseSpan` is correct, and that is the normal case here (see below).
+  It is only when the words were pasted from a printed EDITION the narrator did
+  not read that the two sides disagree: `phraseSpan` trims unmatched edge words
+  as never-said, which would silently clip the ends off a pick. `search.js`'s
+  `edgeSpan` exists for exactly that (its header: "the pick text and the cut
+  come from DIFFERENT transcripts"), anchoring each edge on its own 6-word
+  sub-phrase. Both are built; pick by provenance, not by habit.
 
-**Two constraints before anyone starts:**
+**IT IS ALREADY DONE — measured 2026-08-15, and this replaces the cost
+estimate that used to sit here.** The previous version of this section asked
+Sophie which books she had and warned that transcription would be ~$3.60 each,
+over the ask-first line. **That was a question nobody needed to ask.** Seven
+Dolores Cannon audiobooks were ingested through the NDE grabber in June 2026
+and have been sitting in `forge-nde-videos` — the Episode Editor's own source
+collection — ever since:
 
-- **Cost is an ASK, per book.** Whisper is ~$0.006/min, so a 10-hour audiobook
-  is ~600 min ≈ **$3.60** — over the $3 line. If the book's TEXT is already in
-  hand, forced alignment is cheaper than transcription and the NDE project
-  already has the pattern (`nde-align-cache/<videoId>_<winStart>.json`). Price
-  it properly before committing to a library of them.
-- **Whose voice SHIPS is a separate question from whose voice she picks by.**
-  An audiobook is a commercial narrator's recorded performance. Hearing it while
-  choosing is one thing; baking it into a film is another. The pipeline already
-  has the better answer for the render — narration in HER voice, which is what
-  the Episode Editor's narration cards and the Voice Studio already do. So:
-  audiobook as the reference track while picking, her voice on the output.
+    IJZVNv5O6rA  The Horns Of The Goddess, Part 1        2026-06-08
+    wwQcSKbqfoQ  The Horns Of The Goddess, Part 2        2026-06-08
+    mMLQaQ7jsts  The Custodians, Part 1                  2026-06-03
+    L0TSZDqQlnU  The Custodians, Part 2                  2026-06-03
+    VXO-C9w3TDw  Keepers of the Garden, Part 1           2026-06-09
+    rvfOUg4zVc0  Keepers of the Garden, Part 2           2026-06-09
+    qzQ1P5fRPKA  The Three Waves of Volunteers, Part 1   2026-06-10
 
-**One latent bug, do not copy it.** The Cannon picker saves every pick —
-including each pick's full TEXT — as ONE verdict field, and
-`POST /api/chatfeed/verdict` hard-truncates `text` at **2000 chars**
-(`chatfeed.js`, the `patch.texts` line). Measured live: her two sheets hold 5
-and 6 picks at 659 and 810 chars, so **nothing is lost today** — but at ~130
-chars a pick she starts silently losing them around 15. This is exactly the bug
-the shared picker was built to avoid, which is why `/picker.js` saves **one
-field per pick**. Anything built for SCRIPT uses the shared picker's save model.
+All seven are transcribed, chunked into the Search index, embedded, and
+findable by WORDS and by MEANING today. **Cost to use them: nothing. It was
+paid in June.**
+
+**`editor.js` was already taught to handle them.** `loadVideo`'s own comment
+says it: *"A multi-hour audiobook's transcript is too big for a Firestore doc,
+so the grabber banks it as JSON in Storage and leaves a pointer — inflate it
+here so every reader sees the same shape."* There is no interviews-only filter
+anywhere in the module; it takes any `videoId` in the collection.
+
+**Verified end to end 2026-08-15**, not reasoned: `GET /api/search/clip?src=
+VXO-C9w3TDw&t=1576` was called live, went `making` → `ready`, and produced
+`search-clips/VXO-C9w3TDw-1576.mp3`. A Cannon audiobook passage cuts on demand
+with the machinery that is already deployed.
+
+So the prognosis simplifies one more time. The Cannon picker is not "the
+Episode Editor pointed at a library it could reach" — it is pointed at a
+library **the Episode Editor already reads**. Nothing needs ingesting,
+transcribing, aligning or plumbing. The only real gap is that the picker is a
+standalone Compare page that does not know the editor exists: anything picked
+in it could be an editor episode today, cut natively, with the clip cache and
+the precise cutter behind it.
+
+Two smaller notes that survive:
+
+- **`edgeSpan` vs `phraseSpan` only matters if a pick comes from the printed
+  BOOK text.** Where the picked words came from this same transcript — and
+  spot-checking the picker's text against the indexed transcript of
+  `VXO-C9w3TDw`, they match — it is a same-transcript job and `phraseSpan` is
+  correct. Reach for `edgeSpan` only when the text was pasted from an edition
+  the narrator did not read.
+- **Whose voice ships is still a real question.** These are a narrator's
+  commercial recordings. Fine as the reference track while choosing; the render
+  should be her own voice, which the editor's narration cards already do.
+
+**And the process lesson, because this is the second time in one conversation:**
+"are the audiobooks transcribed?" is a question about the ENVIRONMENT, and
+CLAUDE.md's standing rule is to MEASURE those, never reason about them and
+never hand them back to Sophie as homework. Two API calls answered it —
+`GET /api/search/sources` and one keyword search for a distinctive word from
+the passage ("chronometers", exactly one hit, straight to the book). Cost:
+seconds. The wrong version of this section asked her instead.
 
 ## "Where the pictures fall" is not an audio tool
 
