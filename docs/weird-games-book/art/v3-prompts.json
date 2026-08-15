@@ -1,0 +1,68 @@
+[
+ {
+  "id": "meet-in-the-middle-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/meet-in-the-middle-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: four friends just arriving at the same staircase landing from different directions in a dark house at night, caught mid-rush and out of breath, laughing, hair and clothes still in motion, each protecting the flame of a small tea light candle with a cupped hand, the stairwell glowing warmly while the rest of the house falls into darkness. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "the-search-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/the-search-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: inside a supermarket aisle, three clearly different employees searching the shelves for something that does not exist \u2014 a tall thin young man on a step ladder checking the top shelf, an older heavyset man with a beard crouched at the bottom shelf, a woman with curly hair studying a clipboard \u2014 while a woman customer points helpfully at an empty spot on the shelf. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "not-drowning-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/not-drowning-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: in a swimming pool, one swimmer theatrically pretending to be in distress, mouth open mid-cry, one arm flailing above the water, while three friends surge through the water to her rescue with arms outstretched, hands almost touching her, water splashing everywhere. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "the-interpreter-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/the-interpreter-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: three people on a couch, the two on the outside turned hopefully toward the person in the middle, who is relaying a message entirely in wild pantomime \u2014 arms mid-charade, face exaggerated \u2014 while the outer two watch the gestures intently and do not look at each other. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "threshold-v2",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/threshold-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a dark apartment balcony at night, a halfhearted semicircle of young adults standing very still with knees pressed together and faces deep in desperate concentration, red plastic cups in hand, while behind them through the doorway other partygoers play beer pong in the warm light of the apartment. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "nice-to-meet-you-arcade-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v3/nice-to-meet-you-arcade-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: inside a dark arcade bar at night, glowing game machines scattered around the edges of the room, two friends enthusiastically shaking hands with the same two awkward strangers they have clearly met several times already, greeting them like perfect strangers, the strangers' faces caught between politeness and confusion. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]

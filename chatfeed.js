@@ -16,7 +16,14 @@
 //   POST /api/chatfeed/status    → { chat, session, need?, doing? } — the chat's
 //                                  living status card, shown under its name on
 //                                  the home list ("" clears a field)
+//   POST /api/chatfeed/pin      → { chat, session, url, title, kind? } — THE
+//                                  PINNED LINK at the top of the thread: the
+//                                  page this chat is building or the film it
+//                                  keeps re-cutting. Re-POST it whenever you
+//                                  update what's behind it — that lights the
+//                                  "current" tag. Empty url clears it.
 //   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
+//                                  + whatever this chat has pinned
 //   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
 //                                  chats read it, only the app writes it)
 //   GET  /api/chatfeed/search?q= → search across every message (in-memory
@@ -42,6 +49,10 @@
 //                                  the ✓ on a card in the NEW tab. A self-
 //                                  clearing stamp: anything newer brings the
 //                                  card back on its own.
+//   POST /api/chatfeed/news-queue → { chats:[…], queue:'later'|'soon'|'never'
+//                                  |'' } — the boxes on the Update screen:
+//                                  "later", "in a minute", "maybe never".
+//                                  One field per chat.
 //   GET  /api/chatfeed/questions?chat= → her questions in that chat, each with
 //                                  the answer that came back. DERIVED from the
 //                                  thread (questions.js), never filed by a chat.
@@ -60,6 +71,8 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
+const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
+const chatSort = require('./chat-sort');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -653,6 +666,13 @@ router.post('/', async (req, res) => {
     const hd = num(head), tl = num(tail);
     if (hd !== null && tl !== null && tl >= hd) { doc.head = hd; doc.tail = tl; }
     let msgId;
+    // When this turn's text FIRST landed — `doc.created` normally, but the
+    // draft's own stamp when this post is finalizing one (the patch below
+    // keeps it, so the doc's `created` is the truth and the final post's is
+    // just "now"). The push gate compares it against her newest message, and
+    // a turn that was already running when she sent must lose that comparison
+    // — so it has to be the turn's start, never the moment it was posted.
+    let bornAt = doc.created;
     const turnKey = String(turn || '').slice(0, 120);
     if (turnKey) {
       msgId = 't' + crypto.createHash('sha1')
@@ -670,6 +690,7 @@ router.post('/', async (req, res) => {
       if (prev.exists) {
         // keep the first write's `created` (it's what the unread dot keys on —
         // a draft pings once when it appears, never again as it grows/finishes)
+        bornAt = prev.get('created') || bornAt;
         const patch = {
           chat: doc.chat, text: doc.text, tldr: doc.tldr, postedAt: doc.postedAt,
           working: working ? true : admin.firestore.FieldValue.delete(),
@@ -697,24 +718,70 @@ router.post('/', async (req, res) => {
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
+    // The chat's own registry doc, read BEFORE the write below (regRef() drops
+    // the cache, so reading after would force a fresh collection read every
+    // reply). Used for the pin's turn count and for the push title; a pin
+    // written earlier in this turn already invalidated the cache, so what comes
+    // back here is current.
+    let mine = {};
+    try { mine = (await registry()).chats[doc.chat] || {}; } catch (e) { /* best effort */ }
     // A FINAL reply ends the turn: clear the turn-start mark the hook stamped
     // at UserPromptSubmit (see POST /working), so the app's pink tint drops
     // the moment the reply lands. A growing draft is still mid-turn.
-    if (!working) reg.workingAt = admin.firestore.FieldValue.delete();
-    await regRef(doc.chat).set(reg, { merge: true });
-    // …and it's the moment worth a buzz (Aug 2026): a FINISHED reply — never a
-    // draft — pushes to her phone. Fire-and-forget by contract; notifyChat
-    // debounces per chat and can never fail this route. The title is the name
-    // SHE gave the chat, when there is one.
+    // It also ages the pinned link by one turn (see pinBump) — that is what
+    // takes the "current" tag off a pin the chat stopped updating.
     if (!working) {
+      reg.workingAt = admin.firestore.FieldValue.delete();
+      const bumped = pinBump(mine.pinned);
+      if (bumped) reg.pinned = bumped;
+    }
+    // …and it MIGHT be the moment worth a buzz: a FINISHED reply that is
+    // actually ANSWERING HER (Aug 2026 — see push-gate.js for the three shapes
+    // that used to buzz her at the wrong moment, the loudest being a catch-up
+    // post landing the instant she hits send). The gate is pure and reads only
+    // fields already on the registry doc, so it costs no extra read.
+    // …and only if she has TURNED THE BELL ON for this chat (Aug 2026). The
+    // bell is the coarser question — "do I want this chat on my lock screen at
+    // all" — so it is asked before the timing one, and it is a whitelist: a
+    // chat she has never belled stays silent.
+    const gate = chatNotifies(mine)
+      ? shouldPushReply({
+        working,
+        replyCreated: bornAt,
+        lastHerAt: mine.lastHerAt,
+        pushedAt: mine.pushedAt,
+      })
+      : { push: false, why: 'bell-off' };
+    // Stamped in the SAME registry write the reply already makes — and stamped
+    // before the send, not after: the push is fire-and-forget, so waiting on it
+    // would leave a window where a second reply could push again.
+    if (gate.push) reg.pushedAt = doc.postedAt;
+    await regRef(doc.chat).set(reg, { merge: true });
+    // Fire-and-forget by contract; notifyChat can never fail this route. The
+    // title is the name SHE gave the chat, when there is one. `debounce:false`
+    // because her message is the gate now — a time window on top of it would
+    // swallow the answer to a follow-up she sent four minutes later.
+    if (gate.push) {
       try {
-        const { chats } = await registry();
-        const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
-        require('./push').notifyChat(doc.chat, name,
-          doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240));
+        require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
+          pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
+    // END OF TURN: the chat files itself (Aug 2026 — "that could be a start of
+    // turn or end of turn activity"). END, not start: at the start of a turn
+    // the newest thing in the thread is her message and the turn's work hasn't
+    // happened yet, so the sorter would be judging a chat by what it was
+    // BEFORE the thing she just asked for. A finished reply is the moment the
+    // chat is most itself.
+    //
+    // Fire-and-forget by contract, exactly like the push above: it runs after
+    // the response, and nothing it does — a model outage, a missing key, a
+    // Firestore error — can fail a chat's reply. A draft is mid-turn and never
+    // triggers it.
     res.json({ ok: true, id: msgId });
+    if (!working) {
+      sortChat(doc.chat).catch(() => { /* sorting must never fail a post */ });
+    }
   } catch (err) { fail(res, err); }
 });
 
@@ -869,6 +936,15 @@ router.get('/go', (req, res) => {
 //   3. failing both, POST /wrapup/write reads the thread and writes one with
 //      Claude, which is the only path that can rescue a chat that already died.
 //
+// THE SUMMARIZE BUTTON on the archive sheet is (3), on demand (Aug 2026,
+// Sophie: "a button on there that automatically asks the chat to give me like a
+// quick summary of what we accomplished in that chat, and if there were still
+// any questions that were open"). It cannot literally ask the chat — the
+// session is gone — so the SERVER reads the thread the app already stores and
+// writes the summary itself. From her side the difference is invisible: one tap
+// inside the pop-up she is already standing in, no going back to Claude, no
+// copying text between apps. `wrapOpen` is the loose-ends half of her ask.
+//
 // TWO FIELDS, because she asked for both shapes: `wrapLine` is the ONE line the
 // row shows (the archive stays scannable) and `wrapUp` is the full thing behind
 // a tap. Her own `sophieNote` still wins the row — a chat must never overwrite
@@ -919,20 +995,24 @@ router.post('/archive', async (req, res) => {
 // Sending only `text` derives the line from its first sentence.
 router.post('/wrapup', async (req, res) => {
   try {
-    const { chat, session, line, text } = req.body || {};
+    const { chat, session, line, text, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const full = wrapTextOf(text);
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
+    const still = wrapLineOf(open);
     if (!one && !full) return res.status(400).json({ error: 'line or text required' });
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapUp: full || del,
+      // What was still open when it stopped — the same field the Summarize
+      // button fills. A chat that knows it left something hanging says so here.
+      wrapOpen: still || del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
-    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full });
+    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full, wrapOpen: still });
   } catch (err) { fail(res, err); }
 });
 
@@ -945,12 +1025,56 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "..."}
+Return JSON: {"line": "...", "text": "...", "open": "..."}
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": 2-5 short sentences. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"text": 2-5 short sentences, under 800 characters. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
+
+// Rescue a JSON object that got CUT OFF mid-answer. Deliberately local rather
+// than folded into anthropic.parseJSON: half an object is exactly what other
+// callers must never be handed silently (a truncated Etsy listing, a half
+// storyboard), whereas here the fields are independent strings and a summary
+// missing its tail is still worth infinitely more to her than an error.
+//
+// Closes what the model left open — the string it was mid-way through, then
+// every container — and if that still won't parse, drops back to the last
+// COMPLETE key/value pair and closes there. Returns null when there is nothing
+// to rescue, so the caller can report the real error.
+function salvageJson(raw) {
+  const s = String(raw || '');
+  const a = s.indexOf('{');
+  if (a < 0) return null;
+  let inStr = false, esc = false;
+  const stack = [];
+  let lastPairEnd = -1;                      // end of the last comma at depth 1
+  for (let i = a; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === '{' || c === '[') stack.push(c === '{' ? '}' : ']');
+    else if (c === '}' || c === ']') stack.pop();
+    else if (c === ',' && stack.length === 1) lastPairEnd = i;
+  }
+  const shut = (body, open) => body + (inStr ? '"' : '')
+    + open.slice().reverse().join('');
+  const tries = [shut(s.slice(a), stack)];
+  if (lastPairEnd > a) tries.push(s.slice(a, lastPairEnd) + '}');
+  for (const t of tries) {
+    try {
+      const v = JSON.parse(t);
+      if (v && typeof v === 'object') return v;
+    } catch (_) { /* next */ }
+  }
+  return null;
+}
 
 router.post('/wrapup/write', async (req, res) => {
   try {
@@ -982,22 +1106,62 @@ router.post('/wrapup/write', async (req, res) => {
     const tail = msgs.length > 3 ? msgs.slice(-6).map(cut) : [];
     const digest = (head.join('\n\n') + (tail.length ? '\n\n[…]\n\n' + tail.join('\n\n') : ''))
       .slice(0, 9000);
-    const out = await anthropic.chatJSON({
-      system: WRAP_SYS,
+    // WHAT WAS STILL OPEN (Aug 2026, Sophie: "a quick summary of what we
+    // accomplished in that chat, and if there were still any questions that
+    // were open"). Her unanswered questions are DERIVED, not read out of the
+    // digest — `buildQuestions` already pairs every question she asked with the
+    // reply that followed it, over the WHOLE thread, so this reaches the long
+    // middle the digest deliberately drops. Handing them over as facts is also
+    // what keeps the `open` line honest: the model is naming questions that
+    // provably went unanswered instead of inventing plausible loose ends.
+    const unanswered = buildQuestions(msgs).filter((q) => !q.answer)
+      .slice(0, 5).map((q) => '- ' + String(q.question).replace(/\s+/g, ' ').slice(0, 200));
+    // RUN THE CALL RAW, so a truncated answer can still be rescued (found live
+    // 2026-08-15 on clips-chunking-library: the sheet showed "Claude did not
+    // return parseable JSON (got: {"line":"Built the Chunking clip-library
+    // tool…","text":"Sophie wanted a li)". Nothing was wrong with the summary —
+    // 600 max_tokens simply cut the JSON off mid-string, and an unclosed brace
+    // fails BOTH of parseJSON's attempts, so a perfectly good line was thrown
+    // away with it. Two fixes, because either alone still loses work: a cap
+    // with real headroom, and a salvage for the day something runs past it.
+    const rawOut = await anthropic.chat({
+      system: WRAP_SYS + '\n\nReply with STRICT JSON only — no prose, no code fences.',
       user: 'Chat name: ' + (cur.displayName || target) + '\nMessages: ' + msgs.length
+        + (unanswered.length
+          ? '\n\nQuestions Sophie asked that nobody ever answered:\n' + unanswered.join('\n')
+          : '\n\nEvery question she asked in here got a reply.')
         + '\n\n' + digest,
-      maxTokens: 500,
+      maxTokens: 1200,
     });
+    let out, salvaged = false;
+    try { out = anthropic.parseJSON(rawOut); }
+    catch (err) {
+      out = salvageJson(rawOut);
+      if (!out) throw err;                       // genuinely unusable — say so
+      salvaged = true;
+      // A rescued answer ends mid-sentence, so cut back to the last one that
+      // finished. Better a summary that stops early than one that stops "wanted
+      // a li" — and the LINE, which is written first and is what her archive row
+      // shows, almost always survived whole.
+      const t = String(out.text || '');
+      const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
+      out.text = stop > 40 ? t.slice(0, stop + 1) : '';
+    }
     const full = wrapTextOf(out && out.text);
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
+    const open = wrapLineOf(out && out.open);
     if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
     await regRef(target).set({
       wrapLine: one,
       wrapUp: full,
+      // Cleared rather than left behind: a rewrite that finds nothing open must
+      // not leave the last run's loose end sitting under the summary.
+      wrapOpen: open || admin.firestore.FieldValue.delete(),
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, messages: msgs.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapOpen: open,
+      messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -1208,6 +1372,35 @@ router.post('/chat-bookmark', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// THE BELL — notifications ON for this chat (Aug 2026, Sophie: "add a little
+// bell next to the star that I can click in. This will enable notifications
+// for this chat and un-click and it will turn them off — only the ones I
+// clicked the bell on will notify me").
+//
+// A WHITELIST, and the third per-chat mark beside `starred` and `bookmarked`:
+//   `starred`    — what she is on right now (temporary)
+//   `bookmarked` — the handful worth keeping (permanent)
+//   `notify`     — the ones allowed to buzz her phone
+// Absent = silent, so nothing pushes until she taps a bell. `push-gate.js`
+// reads it (`chatNotifies`) in front of BOTH doors — a finished reply and a
+// new Compare page.
+//
+// Same phantom-row guard as /chat-bookmark: a merge-set on a missing doc
+// CREATES it, and every pile derives from the registry keys.
+router.post('/notify', async (req, res) => {
+  try {
+    const { chat, notify } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = notify !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { notify: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, notify: on });
+  } catch (err) { fail(res, err); }
+});
+
 // SPLIT THE ARCHIVE IN TWO (Aug 2026, Sophie: "right now the archive is a
 // single list — I want to split it using the hairline pattern into two piles,
 // one of things where we built something and something was accomplished and
@@ -1255,6 +1448,54 @@ router.post('/archive-kind', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// TAGS ON AN ARCHIVED CHAT (Aug 2026, Sophie: "rather than having the
+// built/other tabs I think it would be better to have actual Tags … then I can
+// click the tag or tags that fit it best and it will be stored with those tags
+// and then those tags become a list of options at the top of the archive that I
+// can click on and filter by").
+//
+// This REPLACES the BUILT / OTHER piles, which were one binary judgement made at
+// the moment of archiving. Tags are several, they say what the chat WAS rather
+// than how well it went, and they are the filter row on the archive — so the
+// question "where's the chat where we fixed that bug" has an answer.
+//
+// A FIXED VOCABULARY (`TAGS` below), not free text. A typed tag is a typo away
+// from its own orphan pile, and the whole value here is that the same work
+// lands under the same word every time. Growing the list is a one-line change
+// when she asks for a word that is missing.
+//
+// `archiveKind` is deliberately left ALONE — it is not migrated and not deleted.
+// The old BUILT pile reads as the `built` tag by derivation in the page, so the
+// 97 chats already in there arrive tagged without a backfill, and nothing is
+// destroyed if this is ever reconsidered.
+//
+// Same phantom-row guard as /archive-kind: a merge-set on a missing doc CREATES
+// it, and every pile derives from the registry keys.
+const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
+  'images', 'film', 'audio', 'writing', 'research'];
+
+router.post('/tags', async (req, res) => {
+  try {
+    const { chat, tags } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!Array.isArray(tags)) return res.status(400).json({ error: 'tags array required' });
+    // Unknown words are dropped rather than refused: a page on an old build
+    // sending a retired tag must not fail her whole save.
+    const clean = tags.map((t) => String(t || '').trim().toLowerCase())
+      .filter((t, i, a) => TAGS.indexOf(t) > -1 && a.indexOf(t) === i).slice(0, TAGS.length);
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { tags: clean.length ? clean : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, tags: clean });
+  } catch (err) { fail(res, err); }
+});
+
+// The vocabulary itself, so the page never hard-codes a second copy that can
+// drift from the one the writes are checked against.
+router.get('/tags', (_req, res) => res.json({ tags: TAGS }));
+
 // File chats under a category — the chips where the LIST/TILES toggle used to
 // be (Aug 2026, Sophie: "category tags, the first two I can think of are
 // stories and tech"). One field on the registry doc, so it rides the cached
@@ -1285,8 +1526,16 @@ router.post('/category', async (req, res) => {
       // straight back on the main list and read as filing not working. A chat
       // taken out of every folder loses the stamp with the category.
       const stamp = category ? new Date().toISOString() : del;
+      // WHO FILED IT (Aug 2026, with auto-sorting — see chat-sort.js). This
+      // route is HER hand: the app is the only thing that calls it, and the
+      // auto-sorter writes its own field directly. So everything through here
+      // is stamped `sophie` and the sorter will never touch that chat again.
+      // Deliberately NOT a flag the page has to send: her phone runs a cached
+      // page for days, so a new-build-only flag would leave her own filing
+      // looking automatic and open to being overwritten.
       const batch = db().batch();
-      names.forEach((n) => batch.set(regRef(n), { category: val, filedAt: stamp }, { merge: true }));
+      names.forEach((n) => batch.set(regRef(n),
+        { category: val, filedAt: stamp, catBy: category ? 'sophie' : del }, { merge: true }));
       await batch.commit();
     }
     if (category) {
@@ -1294,6 +1543,169 @@ router.post('/category', async (req, res) => {
         { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
     }
     res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- AUTO-SORTING: a chat files ITSELF (Aug 2026, Sophie) ------------------
+// "I've been manually sorting all my chats, but they could sort themselves in
+// the chats app, and that could be a start of turn or end of turn activity."
+//
+// The rules, the vocabulary and every judgment live in `chat-sort.js` — read
+// its header first, especially why this is derived server-side instead of
+// posted by each chat (measured: 15 of 224 chats ever posted an Update card).
+// This half is the reads, the writes and the money.
+//
+// COST AND WHEN IT SPENDS. One small Claude call — the chat's name, her note,
+// its status card, and a head+tail digest of the thread — so well under a cent
+// each. It is asked at most once per chat per day (`catTriedAt`), never for a
+// chat that already has a folder, and the whole registry gate is answered off
+// the CACHED registry read, so the ordinary finished reply spends nothing and
+// reads nothing extra. Only a chat that is genuinely unsorted pays for its
+// thread read.
+async function sortChat(chat, { force = false, dry = false, stampNow = false } = {}) {
+  const anthropic = require('./anthropic');
+  const target = await followMoves(chat);
+  const reg = await registry();
+  const mine = reg.chats[target] || {};
+  if (!reg.chats[target]) return { chat: target, sorted: false, why: 'no-such-chat' };
+  // A global off switch with no UI: one field on __settings, so auto-sorting
+  // can be stopped dead without a deploy if it ever files something wrong.
+  const enabled = reg.settings.autoSort !== false;
+  // TWO GATES, cheap one first. This one reads only the registry (cached), so
+  // a chat that is already filed — the common case — costs nothing at all.
+  // `messages: Infinity` skips the thin-thread test, which needs a real read.
+  const pre = force
+    ? { sort: true, why: 'forced' }
+    : chatSort.shouldAutoSort(mine, { messages: Infinity, enabled });
+  if (!pre.sort) return { chat: target, sorted: false, why: pre.why };
+  if (!anthropic.available()) return { chat: target, sorted: false, why: 'no-anthropic-key' };
+
+  const cats = chatSort.sortableCategories(reg.settings, reg.chats);
+  if (!cats.length) return { chat: target, sorted: false, why: 'no-folders' };
+
+  const snap = await db().collection(MSGS).where('chat', '==', target).get();
+  const msgs = snap.docs.map((d) => d.data())
+    .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+  // …and the second gate, now that the thread is in hand.
+  const gate = force
+    ? { sort: true, why: 'forced' }
+    : chatSort.shouldAutoSort(mine, { messages: msgs.length, enabled });
+  if (!gate.sort) return { chat: target, sorted: false, why: gate.why };
+
+  const examples = chatSort.examplesFor(reg.chats, cats);
+  const { system, user } = chatSort.buildSortPrompt({ name: target, reg: mine, msgs, cats, examples });
+  let out;
+  try { out = await anthropic.chatJSON({ system, user, maxTokens: 300 }); }
+  catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
+  const pick = chatSort.pickCategory(out, cats);
+  const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (dry) return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why };
+
+  const now = new Date().toISOString();
+  // NONE writes nothing but the cooldown — no folder, no filedAt, no trace on
+  // any surface she looks at. The chat stays exactly where it was and is asked
+  // about again tomorrow, which is what makes "none" cheap enough to prefer.
+  const patch = { catTriedAt: now };
+  if (pick) {
+    patch.category = pick;
+    patch.catBy = 'auto';
+    patch.catWhy = why;          // why it went there — for her and for an audit
+    patch.catSortedAt = now;
+    // A BACKFILL stamps now (she would have filed these by hand today); a LIVE
+    // sort stamps her last message, so the reply that triggered it still pops
+    // the chat back onto the main list. chat-sort.js's filedStamp is the rule.
+    patch.filedAt = stampNow ? now : chatSort.filedStamp(mine);
+  }
+  await regRef(target).set(patch, { merge: true });
+  return { chat: target, sorted: Boolean(pick), category: pick || null, why: pick ? 'sorted' : 'none',
+    reason: why };
+}
+
+// Sort ONE chat on demand — what the backfill script drives, and the only way
+// to see the decision without taking it (`dry:true` answers with the folder it
+// would pick and changes nothing).
+router.post('/sort', async (req, res) => {
+  try {
+    const { chat, session, force, dry, stampNow } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(String(chat).slice(0, 60), String(session || '').slice(0, 120));
+    res.json(await sortChat(resolved, { force: Boolean(force), dry: Boolean(dry), stampNow: Boolean(stampNow) }));
+  } catch (err) { fail(res, err); }
+});
+
+// What the sorter is working with — her folder vocabulary, the examples each
+// one teaches, and the counts. A READ, so it is the safe way to check the
+// machinery is live (never probe a write against real data).
+router.get('/sort', async (_req, res) => {
+  try {
+    const reg = await registry();
+    const cats = chatSort.sortableCategories(reg.settings, reg.chats);
+    const examples = chatSort.examplesFor(reg.chats, cats);
+    const names = Object.keys(reg.chats).filter((n) => !reg.chats[n].deletedAt);
+    const counted = (f) => names.filter(f).length;
+    res.json({
+      enabled: reg.settings.autoSort !== false,
+      anthropic: require('./anthropic').available(),
+      categories: cats,
+      triage: chatSort.TRIAGE,
+      examples,
+      chats: names.length,
+      filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
+      filedByAuto: counted((n) => reg.chats[n].category && reg.chats[n].catBy === 'auto'),
+      unfiled: counted((n) => !reg.chats[n].category),
+    });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- THE UPDATE SCREEN'S TWO BOXES (Aug 2026, Sophie) ----------------------
+// "There's no categories on the updates page in that same style of those
+// little boxes. I'd like to add two categories, one called IN A MINUTE for
+// things I want to look at in a minute but not quite this second, and then
+// next to it on the left another category called LATER for things I want to
+// look at maybe later today or this week."
+//
+// The chips on the CHAT list file a chat forever (`category`, a folder). These
+// file ONE UPDATE, for a while — so they are their own field, `newsQueue`, and
+// they are deliberately a CLOSED set of two: she named both, and a box she can
+// type is a folder, which is what the other row already is.
+//
+// `newsQueuedAt` is the moment it went in, and it is load-bearing exactly like
+// `filedAt` on a category: an update is the newest thing a chat has handed her,
+// so when something NEWER lands the card is new news again and belongs back on
+// the main list. The app reads the pair as ONE place — main list or a box,
+// never both — so the number on a box is what she finds when she opens it.
+//
+// A name with no registry doc is SKIPPED, never written: `set(…, merge)` on a
+// missing doc creates it, and every pile derives from the registry keys, so
+// one typo would put a phantom row in her list.
+// `never` is "maybe never" — the third box, and the only one that is not also
+// a filter on the page: it shows ONLY while she is actively categorising
+// (Sophie, Aug 2026), the same rule DONE follows.
+const NEWS_QUEUES = ['later', 'soon', 'never'];
+router.post('/news-queue', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const queue = String(body.queue || '').trim().slice(0, 20);
+    if (queue && !NEWS_QUEUES.includes(queue)) {
+      return res.status(400).json({ error: `queue must be one of ${NEWS_QUEUES.join(', ')} (or empty to clear)` });
+    }
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = queue ? new Date().toISOString() : del;
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(
+      resolved.map((n) => db().collection(REG).doc(n).get()));
+    const live = resolved.filter((n, i) => snaps[i].exists);
+    const missing = resolved.filter((n, i) => !snaps[i].exists);
+    if (live.length) {
+      const batch = db().batch();
+      live.forEach((n) => batch.set(regRef(n),
+        { newsQueue: queue || del, newsQueuedAt: stamp }, { merge: true }));
+      await batch.commit();
+    }
+    res.json({ ok: true, chats: live, missing, queue: queue || null, at: queue ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -1501,6 +1913,47 @@ router.post('/chatnote', async (req, res) => {
 // chat most often wants at the top is a PAGE, and it could not say so. A link
 // pin wears a link glyph and opens the page instead of embedding it.
 const PIN_KINDS = new Set(['audio', 'video', 'link']);
+// A MISSING `kind` IS READ OFF THE URL (Aug 2026). The pin used to fall back to
+// `video` for anything it didn't recognise, which was right while only films
+// were pinned and wrong the moment pinning a PAGE became the common case: a web
+// page dropped into a <video> renders a black box that never loads. The
+// extension decides — a media url ends in one — and an explicit `kind` still
+// wins, so a film pinned the old way behaves exactly as it did.
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm)(\?|#|$)/i;
+const AUDIO_EXT = /\.(m4a|mp3|wav|aac|caf|aiff?)(\?|#|$)/i;
+function pinKind(kind, url) {
+  if (PIN_KINDS.has(kind)) return kind;
+  if (VIDEO_EXT.test(url)) return 'video';
+  if (AUDIO_EXT.test(url)) return 'audio';
+  return 'link';
+}
+// THE "current" TAG (Aug 2026, Sophie: "for the movie that gets updated to have
+// like a tag on it that says like current or recent, and it only says that if
+// the chat updated the last turn that they finished"). What a pin cannot say on
+// its own is whether what sits behind it is FRESH — a link to /science looks
+// identical whether the page moved an hour ago or last week.
+//
+// So the pin carries `turns` = how many finished replies this chat has posted
+// SINCE the pin was written, incremented by the reply post below. 0 = the turn
+// that set it hasn't ended yet; 1 = it ended, and that is the chat's most
+// recent finished turn. Either way the last finished turn updated the pin, so
+// both read as current; 2 means the chat has since finished a turn that left it
+// alone, and the tag goes out. Counting turns rather than comparing timestamps
+// is what makes this exact: a turn's `created` is the first DRAFT's time when a
+// hook posts drafts and the final post's time when it doesn't, so any
+// pin.at-vs-message-time rule is wrong for half the chats.
+//
+// Re-POSTing the same url is therefore the whole update ritual: it resets the
+// count and lights the tag again.
+const PIN_CURRENT_TURNS = 1;
+function pinBump(pinned) {
+  if (!pinned || !pinned.url) return null;             // nothing pinned
+  const turns = Number.isFinite(pinned.turns) ? pinned.turns : 0;
+  // Once it can never be current again the count stops moving — no point
+  // writing the registry doc on every reply for the rest of the chat's life.
+  if (turns > PIN_CURRENT_TURNS) return null;
+  return { ...pinned, turns: turns + 1 };
+}
 router.post('/pin', async (req, res) => {
   try {
     const { chat, session, title, url, kind } = req.body || {};
@@ -1509,17 +1962,15 @@ router.post('/pin', async (req, res) => {
     const del = admin.firestore.FieldValue.delete();
     const u = String(url || '').trim();
     if (u && !/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
-    await regRef(target).set({
-      pinned: u ? {
-        url: u,
-        title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
-        // Unknown kinds still fall back to video, so nothing that pinned a film
-        // before this existed changes behaviour.
-        kind: PIN_KINDS.has(kind) ? kind : 'video',
-        at: new Date().toISOString(),
-      } : del,
-    }, { merge: true });
-    res.json({ ok: true, chat: target, pinned: u || null });
+    const pinned = u ? {
+      url: u,
+      title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+      kind: pinKind(kind, u),
+      at: new Date().toISOString(),
+      turns: 0,
+    } : del;
+    await regRef(target).set({ pinned }, { merge: true });
+    res.json({ ok: true, chat: target, pinned: u ? pinned : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -1542,6 +1993,10 @@ router.get('/status', async (req, res) => {
       statusAt: d.statusAt || null,
       note: d.sophieNote || null,
       noteAt: d.sophieNoteAt || null,
+      // …and what it has pinned, so a chat coming back to a thread can see
+      // whether its link is still up there and whether the "current" tag is
+      // still lit (`turns` — see pinBump) without re-pinning blind.
+      pinned: (d.pinned && d.pinned.url) ? d.pinned : null,
     });
   } catch (err) { fail(res, err); }
 });
@@ -1963,11 +2418,14 @@ router.post('/page', async (req, res) => {
     await ref.set(doc);
     // A new Compare page is a delivery even when the chat says nothing — the
     // same reason the Update tab counts it as an arrival. Same debounce, so a
-    // page and the reply that follows it in one turn are one buzz.
+    // page and the reply that follows it in one turn are one buzz. And the
+    // same BELL: a chat she has not belled never reaches her lock screen, by
+    // either door.
     try {
       const { chats } = await registry();
-      const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
-      require('./push').notifyChat(doc.chat, name, doc.title);
+      const reg = chats[doc.chat] || {};
+      const name = reg.displayName || doc.chat;
+      if (chatNotifies(reg)) require('./push').notifyChat(doc.chat, name, doc.title);
     } catch (e) { /* push must never fail a post */ }
     const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
     if (warnings.length) body.warnings = warnings;   // never blocks the post
@@ -2391,7 +2849,17 @@ router.post('/reply', async (req, res) => {
     // The stamp is `postedAt` (now), never her message's `created` — same
     // reason parking uses it: `created` is her real send time and can sit
     // behind the news it is answering.
-    const patch = { workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt };
+    //
+    // HER MESSAGE IS WHAT ARMS THE PUSH (Aug 2026 — see push-gate.js). This
+    // route is both doors: the hook lifting her words out of the Claude app,
+    // and the Chats app's own reply box. `lastHerAt` is her REAL send time
+    // (`doc.created`), never `postedAt` — an old hook lifts her message
+    // minutes late, and stamping the lift time would make the reply she is
+    // waiting for look like it predates her.
+    const patch = {
+      workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt,
+      lastHerAt: doc.created,
+    };
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
     await regRef(doc.chat).set(patch, { merge: true });

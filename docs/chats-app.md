@@ -446,8 +446,9 @@
   to archive so I can delete this chat so it doesn't keep confusing things
   rather than just archive it, and I'd like deleted chats to go to a trash
   that I can empty").** `deletedAt` on the registry doc
-  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
-  thread header after Archive and Hide, and the trash itself.
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** button in the
+  thread header after Archive and Hide — **a trash can since Aug 2026**, see
+  *The bell and the two picture buttons* — and the trash itself.
   - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
     trash in archive and make it just a picture of a trashcan I guess").**
     It shipped as a fifth WORD in the masthead and that broke the header:
@@ -491,35 +492,50 @@
   - Firestore caps a batch at 500 writes and a long chat holds thousands of
     messages, so the delete runs in chunks of 400.
   - Tests: `node scripts/test-chats-trash.js`.
-  **THE ARCHIVE IS TWO PILES — BUILT · OTHER (Aug 2026, Sophie: "right now
-  the archive is a single list, I want to split it using the hairline pattern
-  into two piles, one of things where we built something and something was
-  accomplished and everything worked out, and then another one that's pretty
-  much trash but I'm just keeping it for bookkeeping").** Her own examples of
-  the second pile: the chat where her computer wouldn't turn on ("yeah I did
-  fix it but it's not really important") and the one about Google Takeout
-  failing on her email. `.acctabs.archtabs` at the top of the archive grid,
-  `archiveKind` on the registry doc, `POST /api/chatfeed/archive-kind
-  {chat|chats:[…], kind:'built'|'other'}`.
-  - **ABSENT MEANS BUILT, and that is the load-bearing half.** 81 chats were
-    already archived the day this shipped, so storing only the second pile
-    means no backfill — and no risk of the left tab opening empty and reading
-    as the archive having been wiped. Only the throwaways carry a mark, which
-    is also the smaller and easier judgement.
-  - **It is INDEPENDENT of `archived`** and permanent like `starred`, not a
-    self-clearing stamp: a chat marked `other` and then pulled back out of the
-    archive keeps the mark, so re-archiving it never asks her twice.
-  - **The row's button in the archive MOVES the chat, it does not hide it**
-    (↓ / ↺, the Compare list's supersede idiom). It replaced the hide ⊖ there,
-    which was a dead control and always had been — the hidden pile is derived
-    from `live`, which excludes every archived chat, so hiding one could never
-    put it behind the red bar. One button per row; two makes the wrong one the
-    easy tap.
-  - **The tab row needs NO 56px pill reserve** — it is drawn at the top of
-    `#grid`, below the hidden bar, so it clears the pill's y 14–192 band. Move
-    it higher and it needs the reserve plus `width:calc((100% - 56px)/2)`. No
-    count badges: the red one elsewhere means "something answered you", which
-    an archived chat doing is not.
+  **THE ARCHIVE IS FILTERED BY TAGS (Aug 2026 v2, Sophie: "rather than having
+  the built/other tabs I think it would be better to have actual Tags … then
+  those tags become a list of options at the top of the archive that I can
+  click on and filter by").** This REPLACED the BUILT / OTHER hairline piles
+  below, which were one binary judgement about how well a chat went; a tag says
+  what the chat WAS, a chat can carry several, and the row is how she finds one
+  again. `tags: []` on the registry doc, `POST /api/chatfeed/tags {chat, tags}`.
+  - **The vocabulary is FIXED and lives in two places** — `TAGS` in
+    `chatfeed.js` and `TAG_LIST` in `chats.html` (the page must not spend a
+    request to learn ten words). `node scripts/test-chats-archive-tags.js`
+    pins them equal; drift means she files a tag the server drops. Her five
+    are `bug fix · new feature · built · story · quick question`, then
+    `images · film · audio · writing · research`. Growing it is a one-line
+    change in both. **Free text was refused deliberately**: a typed tag is a
+    typo away from its own orphan pile.
+  - **A chat is tagged from the ARCHIVE SHEET, and every tap saves at once** —
+    the star, the bookmark and the tags are facts about the chat, not part of
+    the archiving decision, so Cancel means "don't archive it" rather than
+    "throw that away". There is deliberately no re-tag control on an archived
+    row yet (the ↓ pile-mover went with the piles); ask before adding one.
+  - **`archiveKind` IS NOT MIGRATED and not deleted.** A chat with no `tags`
+    of its own DERIVES one in the page (`chatTags`): archived + not marked
+    `other` reads as `built`. That is what put the 97 chats already in the
+    archive under a tag on day one with no backfill and nothing destroyed. The
+    derivation applies ONLY to archived chats — a live chat opening the sheet
+    must show nothing picked, or she archives it pre-tagged with a word she
+    never chose.
+  - **Only tags that are actually in the archive are offered**, in the
+    vocabulary's order, with ALL leading and landing. The full ten on a phone
+    would be a row she reads past to reach the two that find anything. The
+    filter is session-only like every other one here.
+
+  **(HISTORY) THE ARCHIVE WAS TWO PILES — BUILT · OTHER (Aug 2026, Sophie:
+  "right now the archive is a single list, I want to split it using the
+  hairline pattern into two piles, one of things where we built something and
+  something was accomplished and everything worked out, and then another one
+  that's pretty much trash but I'm just keeping it for bookkeeping").** Her own
+  examples of the second pile: the chat where her computer wouldn't turn on
+  ("yeah I did fix it but it's not really important") and the one about Google
+  Takeout failing on her email. Kept here because the FIELD is still live and
+  still read: `archiveKind` on the registry, `POST /api/chatfeed/archive-kind
+  {chat|chats:[…], kind:'built'|'other'}`, absent meaning built. Nothing in the
+  app writes it anymore — the tags above replaced the tabs, the row's ↓ mover
+  and the sheet's picker.
   - **THE ACCOUNT TABS ARE HIDDEN IN THE ARCHIVE, AND THE ARCHIVE IS NO
     LONGER SPLIT BY ACCOUNT (Aug 2026, Sophie: "I noticed there's an update
     and account one account two tab in the archive").** `#accrow` had always
@@ -724,10 +740,13 @@
     back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
     2026, her ask) so the pair says which is the bigger decision at a glance;
     fixed colours, like the row's ⊖ and ✓, since that row is cream in both
-    themes. The **"chats" crumb that used to lead the row is gone** ("that
-    seems redundant") — the back chevron already says where she is — and
-    `#thread header .no` is `justify-content:flex-end`, which is what the
-    crumb's `flex:1` used to do for the buttons' position.
+    themes. **HIDE is a grey PICTURE of an eye now** — see *The bell and the
+    two picture buttons* below; it goes red only once the chat really is
+    hidden, and wears the cross then too. The **"chats" crumb that used to
+    lead the row is gone** ("that seems redundant") — the back chevron already
+    says where she is — and `#thread header .no` is
+    `justify-content:flex-end`, which is what the crumb's `flex:1` used to do
+    for the buttons' position.
   - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
@@ -875,6 +894,66 @@
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".
 
+  **CHATS SORT THEMSELVES (Aug 2026, Sophie: "I've been manually sorting all
+  my chats, but they could sort themselves in the chats app, and that could be
+  a start of turn or end of turn activity").** `chat-sort.js` holds every
+  judgment and its reasoning; `sortChat()` in `chatfeed.js` holds the reads,
+  the writes and the money. The parts worth knowing before you touch it:
+  - **THE SERVER DECIDES, NOT THE CHAT** — even though her sentence describes
+    a chat doing it at the end of its turn. A chat-posted category would be
+    filed by the same ~7% that ever post an Update card (**measured: 15 of
+    224**), and the chats it missed would be the sleeping ones she most wants
+    sorted. So it is DERIVED from the thread the feed already stores, at the
+    end of a turn, through the door every chat already posts through
+    (`POST /api/chatfeed`, fire-and-forget after the response) — nothing to
+    install, nothing for a chat to remember, and it reaches ancient hooks.
+    Same call as the Questions button, and for the same measured reason.
+  - **END of turn, never start.** At the start of a turn the newest thing in
+    the thread is her message and the work hasn't happened — the sorter would
+    be judging the chat by what it was before she asked.
+  - **HER FILING IS FINAL** — `catBy` on the registry doc. Everything through
+    `POST /category` is stamped `sophie` (the app is its only caller), the
+    sorter writes `auto`, and it only ever writes into an empty field. One tap
+    from her locks a chat forever. Deliberately NOT a flag the page sends: her
+    phone runs a cached page for days, so a new-build-only flag would leave
+    her own filing looking automatic.
+  - **`filedAt` IS STAMPED AT HER LAST MESSAGE, not now** — the one thing here
+    that is easy to get wrong and expensive when you do. A sort runs when a
+    turn ends, so stamping now would file the chat the instant it finished
+    answering her and drop it off the main list with the answer inside it.
+    Stamped at `lastHerAt`, the reply that triggered the sort is newer than
+    the filing, so the chat pops straight back out — in the folder AND on the
+    list, the round trip she designed for manual filing. A BACKFILL stamps now
+    on purpose (`stampNow`): those are chats she would have filed by hand.
+  - **"none" is a real answer and locks nothing.** Filing hides a chat from
+    the list she reads, so a wrong folder costs her real work while an unfiled
+    chat costs nothing. The model is told to prefer none; none writes only
+    `catTriedAt`, and the chat is asked about again a day later.
+  - **THE VOCABULARY IS HERS, AND HER OWN FILING TEACHES IT.** The folders are
+    read live (`__settings.categories` + names in use), and each is described
+    to the model by up to 8 chats SHE filed there — so "meta" means what she
+    uses it for, and a folder she invents next month works as soon as she
+    files two chats into it, with no code change. The sorter's own answers are
+    excluded from the examples, or one early mistake would become a folder's
+    definition and compound.
+  - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
+    she wants something, not what it is; nothing outside her head can know
+    that, and guessing buries real work in a to-do folder. She still files
+    there by hand.
+  - **Cost:** one small Claude call (name + her note + status card + a
+    head/tail digest), well under a cent, at most once per chat per day
+    (`catTriedAt`). The gate is answered off the CACHED registry, so an
+    ordinary finished reply on an already-filed chat spends and reads nothing.
+  - `GET /api/chatfeed/sort` is the read — vocabulary, examples, counts, and
+    whether the key and the switch are on. `POST /api/chatfeed/sort
+    {chat, dry, force, stampNow}` sorts one; `dry:true` answers with the
+    folder it would pick and changes nothing. `__settings.autoSort === false`
+    stops it dead without a deploy (no UI — a switch she never asked for).
+  - Backfilling the ones already there:
+    `node scripts/backfill-chat-categories.js` (dry by default, `--write` to
+    file, `--limit N` for a sample). Tests: `node scripts/test-chat-sort.js`
+    (pure, no network, no key).
+
 - **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
   arrow next to it that brings me all the way down to the bottom").** `.jumps`
   holds the back-to-top arrow and its new twin. Three rules worth keeping:
@@ -988,18 +1067,82 @@
       the Bookmarks pile's **CHATS tab**, `POST /chat-bookmark {chat,
       bookmarked}` (404s on a chat that doesn't exist — the phantom-row
       guard). The row mark is the **filled bookmark glyph** beside the star.
-    - **Both controls sit side by side in the thread header** — the bookmark
-      then the star — so the difference is a choice she makes in one place.
-      The keep button is `.bmk.chatbmk`, written that way and never
-      `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules sit LATER
-      and win at equal specificity). Measured at 375/390/430 — five controls
-      on that row still fit on one line with none of them buried.
+    - **`notify`** = allowed to buzz her phone. The BELL, added Aug 2026 —
+      see *The bell and the two picture buttons* below.
+    - **All three marks sit side by side in the thread header** — the
+      bookmark, the star, then the bell — so the difference is a choice she
+      makes in one place. The keep button is `.bmk.chatbmk`, written that way
+      and never `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules
+      sit LATER and win at equal specificity). Measured at 375/390/430 — the
+      row still fits on one line with none of them buried.
     - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
       were copied to `bookmarked` and their stars cleared, so nothing was
       lost and the star starts empty under its new meaning. She prunes the
       bookmark list down to her handful.
     - The ★ chip still reaches into the archive. That was justified by the
       old meaning; it is harmless under the new one and was left alone.
+
+  **THE BELL AND THE TWO PICTURE BUTTONS (Aug 2026, Sophie: "add a little bell
+  next to the star that I can click in. This will enable notifications for this
+  chat and un-click and it will turn them off — only the ones I clicked the
+  bell on will notify me. Also, can you make the delete button a picture of a
+  trash can and the hide button a picture of an eye that's crossed out if it's
+  hidden").** Three changes to `#thread header .no`, one row:
+  - **The bell is a WHITELIST, and that is the load-bearing half.** `notify`
+    on the registry doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a
+    chat that doesn't exist — the phantom-row guard), read server-side by
+    `chatNotifies` in `push-gate.js` in front of BOTH push doors: a finished
+    reply and a new Compare page. **Absent means silent** — nothing pushes
+    until she taps a bell, which is her sentence read literally and also the
+    safe failure direction (a caller that forgets the flag goes quiet rather
+    than buzzing her). It compares `notify === true`, never truthiness.
+  - **The bell is FILLED, GOLD when lit, and NOT Lucide's** (Sophie's second
+    pass, same week: "change the bell colour to yellow and make it filled in
+    rather than just the outline"). It shipped stroked, with a comment here
+    claiming a filled bell "stops reading as a bell" — **that was reasoned,
+    not looked at**, and one screenshot of the candidates at 16px on both
+    papers settled it the other way: filled reads BETTER at that size, where
+    the outline's 1.8px walls close up into a blob. The half that was true is
+    narrow — filling *Lucide's* path leaves its clapper as a detached crescent
+    — so `BELL_SVG` is a hand-drawn pair instead, one closed dome and a small
+    tab, which is also the `bell.fill` silhouette her phone already knows. It
+    is filled in BOTH states; grey `--line` vs gold is the state, exactly like
+    the star. Its class is `.bellbtn`, kept out of `.bmk` on purpose (the
+    generic `.bmk` rules sit later in the file and win at equal specificity).
+    - **`--bell` is the one colour on that row with TWO values**, where the
+      ⊖'s red and ARCHIVE's green are fixed across both themes. Measured: no
+      single yellow clears 3:1 against BOTH papers — a gold dark enough for
+      cream (3.05:1 at `#b5820a`) goes muddy on the dark one, and a yellow
+      bright enough for dark sits at 1.9:1 on cream. So it is a token in all
+      four theme blocks: `#b5820a` light, `#e8b53a` dark.
+  - **The eye carries the HIDE state the word used to.** Open eye = this chat
+    is on the list; crossed eye (`eye-off`) = it is parked in the hidden pile,
+    which is what "In hidden" said before.
+  - **The trash can is the masthead's own glyph** (`TRASH_SVG`, the same
+    `trash-2` path `#trashlink` draws), so the button and the pile it sends
+    things to read as one idea. `.trashbtn.delbtn`, again never `.bmk`.
+  - **NEITHER OF THOSE TWO IS RED AT REST** (Sophie, second pass: "make the
+    trash not red until I click it and the hidden icon should also not be red
+    until I click it"). They shipped carrying the red their *words* had, and
+    two red glyphs in the header read as a warning about a chat with nothing
+    wrong with it. Both are `--ink2` at rest now; the eye turns `#b3443f`
+    **with its crossing stroke** (the state, not a hover), and the can turns
+    red only on `:active`, because deleting has no resting state to show — the
+    chat leaves the screen.
+  - **The row got NARROWER, not wider, even with a control added** — measured
+    at 390px after the change, the six children run x=75→315 inside a 351px
+    row with `scrollWidth === clientWidth` and no horizontal body scroll. Two
+    words became two ~25px icons, which paid for the bell twice over. Measure
+    it the same way before adding a seventh.
+  - Tests: `node scripts/test-chats-bell.js` (the real page, headless — the
+    bell's two POSTs, the roll-back on a failed save, both eye states, no
+    words left in the row, a hit-test on all three, and the COMPUTED colours:
+    the bell filled and gold when lit, neither the eye nor the can red at
+    rest, the eye red only when crossed) and the bell half of
+    `node scripts/test-push-gate.js`. The colours are asserted off
+    `getComputedStyle`, not the markup — a stray `.bmk`-style rule landing on
+    one of these is exactly the failure worth catching, and it shows up
+    nowhere else.
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.
@@ -1272,6 +1415,80 @@
     `node scripts/test-chats-news-sticky.js` (hit-measures the ⌄/✓ gap, and
     drives a card through being opened to prove only the ✓ clears it). It
     replaced `test-chats-news-pin.js`, which asserted the opposite contract.
+  - **THE TWO BOXES — LATER and IN A MINUTE (Aug 2026, Sophie: "there's no
+    categories on the updates page in that same style of those little boxes.
+    I'd like to add two categories, one called IN A MINUTE for things I want
+    to look at in a minute, but not quite this second, and then next to it on
+    the left I want another category called LATER for things I want to look at
+    maybe later today or this week. How I want to work is that I tap the item,
+    it selects it with a thicker outline, and then I tap the category and
+    that's how it gets filed in").** The chips row (`#catrow`) now stays on
+    this screen and paints two boxes instead of the chat folders —
+    **LATER on the left, IN A MINUTE beside it, her order.**
+    - **A CLOSED SET.** No New… box, no star chip: she named the boxes, and a
+      box she could type is a folder, which is what the other row already is.
+      These file ONE UPDATE for a while; a category files a CHAT forever.
+    - **MAYBE NEVER is the third box, and it shows only while she is picking**
+      (Aug 2026, Sophie: "can you make one more option called maybe never, and
+      this also only shows when I'm actively categorizing stuff") — the same
+      rule DONE follows, so the resting row stays the two boxes she browses
+      and never changes shape under a thumb reaching for one. It is therefore
+      a filing TARGET with no filter of its own: a card put there is out of
+      sight until the chat delivers something new, which pops it back onto the
+      main list like any other filing. Flagged on delivery; if she wants to
+      see inside it, the chip becomes a filter like the other two.
+    - **`newsQueue` + `newsQueuedAt` on the registry**, written by `POST
+      /api/chatfeed/news-queue { chats:[…], queue:'later'|'soon'|'' }` (the
+      same skip-a-missing-doc guard `/archive-kind` has, so a typo can never
+      plant a phantom chat).
+    - **A card is in EXACTLY ONE PLACE — the main list or a box, never both.**
+      That is the deliberate difference from a category chip, where a chat
+      rejoins the list and stays in its folder (`chatBack`). A card is the
+      newest thing a chat has handed her, so when something NEWER than
+      `newsQueuedAt` lands it is new news again and comes back out of the box
+      on its own. One place means the number on a box is exactly what she
+      finds inside it, and she never deals with the same card twice.
+    - **The tab badge counts the MAIN list only** — filing is triaging, and
+      the boxes carry their own counts.
+    - **TAP TO PICK, TAP A BOX TO FILE.** No select mode: on this screen the
+      card itself is the pick target (`.nwcard.picked` — the border goes 2px
+      in the filing green, with a pixel of padding given back so nothing
+      jumps). Tapping a box with nothing picked OPENS it instead (tap the lit
+      box to come back), and tapping the box a card is ALREADY in takes it
+      back out — that is the way home, and it needs no third chip.
+    - **A TAP ON THE CARD OPENS ITS CHAT, as it always did** — picking is the
+      ✓ box and nothing else, so nothing on this card means two things. It
+      went the other way for two builds and both were wrong: the card as the
+      pick target left no thumb-sized way in ("I don't think there's a way to
+      open the chat now cause clicking on it selects it"), and the openers
+      tried in the meantime were worse — the NAME sits mid-row, so the
+      natural tap at the card's centre landed on it, and the picture ICON is
+      a 40px target for the commonest tap on the screen. The ⌄, the ✓, a page
+      title and a thumbnail all stop the click and keep their own jobs.
+    - **THE ✓ BOX PICKS, AND THE ROW PINS (Aug 2026, Sophie: "we need the
+      buttons to become pinned to the top so I can click them — this could
+      happen only when I select something. I think the best thing would be
+      that I click the checkmark box to select it and then the buttons get
+      pinned to the top, and we just add one more, DONE, and that clears it
+      without putting it into a category — but the done button does not show
+      up unless something is actively selected").**
+      - The card's ✓ is the **select box** now: it lights, the card takes the
+        thicker outline, and tapping it again lets go.
+      - While anything is picked, `body.newspick` makes the whole tool row
+        **sticky at the top** so the boxes are always in reach — sticky, not
+        fixed, so the row keeps its place in the layout and nothing under it
+        jumps as it pins. It needs the page's own background or the cards
+        read through it.
+      - **DONE** joins the boxes on that row *only* while something is
+        picked, and it does what the ✓ used to do: `notifSeenAt`, no filing.
+        So clearing a card is two taps now (✓ then DONE) — her design, and
+        the reason the ✓ could stop being a one-tap delete on a screen where
+        every other gesture is a selection.
+      - Tests: `node scripts/test-chats-news-queue.js` covers the pin, the
+        DONE-only-while-picked rule, and DONE clearing without filing.
+        `test-chats-news.js` / `test-chats-news-sticky.js` were updated to
+        the two-tap clear.
+    - Tests: `node scripts/test-chats-news-queue.js`.
 
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
@@ -1309,9 +1526,25 @@
     `otherView()` is the one predicate for "not a list of chats"; both
     `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
     can never disagree about which state they are in.
-  - **The ✕ is the only way out, and it does two jobs**: with words in the
-    field it clears them (bar stays open); on an empty field it folds the
-    bar away. One control, no second button to discover.
+  - **ONE CONTROL PER ACTION — the ✕ LEAVES, the glass starts a NEW search
+    (Aug 2026, Sophie: "once I press the X on the search I think the search
+    bar should just disappear so it's one tap to get out of search, but it
+    has to be intentional as opposed to be for where it was automatic … there
+    could be another button to clear the text and write new text").** The ✕
+    used to do both jobs in sequence — clear on the first tap, close on the
+    second — so leaving a search she could still see cost two taps and the
+    first read as "it ate my words".
+    - **✕ (right): leave.** One tap, words or no words. The query is thrown
+      away with it, so reopening is always a fresh box.
+    - **Glass (left): a new search.** It STAYS beside the open bar now (it
+      used to hide) and empties the box with the keyboard still up — the
+      same button, in the same place, that opened the search in the first
+      place, so "tap the glass to search" reads the same whether one is
+      already running. No new glyph was invented for this.
+    - It costs the box 38px of width. Measured 2026-08-15: **208px at 375,
+      221px at 390** (her iPhone 13), against ~246/259 before —
+      `test-chats-search-archive.js` A3b pins it at ≥200 so a future control
+      in that row can't quietly squeeze the field to a slot.
   - **The row reserves the pill's corner AND lays the ✕ out as a real flex
     child** rather than the absolutely-positioned overlay `.qclear` is
     elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
@@ -1511,3 +1744,75 @@
   - Tests: `node scripts/test-chats-chapters.js` (the real route against a
     stubbed Firestore + `chapterPlan` lifted out of the page and executed;
     verified failing on both halves separately).
+
+- **THE PINNED LINK — the row above the messages, and the *current* tag on it
+  (Aug 2026, Sophie: "sometimes I'm constantly referring to a link to a page…
+  I just wanna make that pattern more clear that chats have that option and
+  make it the expected and common behavior for chats if a link is involved").**
+  What every chat must DO about it lives in `CLAUDE.md` (*THE PINNED LINK*);
+  this is how it is built.
+  - **THE RULE OVERSHOT ON ITS FIRST DAY, and the correction is the load-
+    bearing half.** It shipped reading "the expected and common behavior for
+    chats if a link is involved", which chats took as *pin something*: within
+    minutes one had pinned a GitHub markdown file and this chat had pinned
+    `/chats` itself — neither of which she goes back to. Her correction
+    (2026-08-15): *"not every chat deserves one, only the two cases I
+    mentioned — if we're actively working on the page, or if they're actively
+    giving me new versions of a movie"*, plus *"there might be other cases,
+    but I'd like them to be run by me before they're made official."*
+    - **Measured at the moment she pushed back: 8 pins across 275 chats** —
+      so the sprawl was caught early, not after it filled her app. Of those 8,
+      the qualifying ones were `/chunking`, `/fruit`, a Compare page, and two
+      chats sharing the Evan film; the ones that read as clutter were a repo
+      doc link and `/chats` itself.
+    - **An empty pin row is the correct, common state.** Anything that makes
+      "no pin" feel like a missing step is the bug — the honest default here
+      is the same shape as an empty `need` on a status card.
+    - **A new case is HERS to approve.** A chat that thinks it has a third
+      case describes it in the reply and waits; it does not pin and see
+      whether she objects.
+  - **One field on the registry doc** (`pinned:{url,title,kind,at,turns}`), so
+    it rides the feed's already-cached read and costs the app no request.
+    Written by `POST /pin`, cleared with an empty url, read back on
+    `GET /status`. The row is a sibling of the thread header, drawn in
+    `openChat`.
+  - **It started as the pinned DELIVERABLE — a film with a play button** ("a
+    play button at the top, just the title, and when I press play it opens
+    full screen"), and `kind:'link'` was added when she asked for a PAGE up
+    there. The two are one pattern now: same row, same field, a link glyph and
+    `window.open` instead of the triangle and the full-screen `<video>`.
+  - **A MISSING `kind` IS READ OFF THE URL** (`pinKind`). The old fallback was
+    `video`, which was right while only films were pinned and wrong the moment
+    pages became the common case — a page dropped into a `<video>` renders a
+    black box that never loads, i.e. the failure looks like a broken pin
+    rather than a missing argument. An explicit `kind` still wins, so nothing
+    pinned the old way moved.
+  - **THE TAG COUNTS TURNS, NOT MINUTES** ("it only says that if the chat
+    updated the last turn that they finished"). `pinBump` increments
+    `pinned.turns` on every FINISHED reply — never a draft — and the tag shows
+    while the count is ≤ 1: **0** = the turn that pinned it is still running,
+    **1** = that turn has ended and is the chat's most recent one. Both mean
+    the last finished turn updated the pin. At 2 the chat has finished a turn
+    that left it alone and the tag goes out; the count then stops moving, so
+    the reply post isn't rewriting the registry doc for the rest of the chat's
+    life.
+    - **Why not compare timestamps.** A turn's `created` is the first DRAFT's
+      time in a hook-equipped session and the FINAL post's time without one,
+      so any `pin.at`-vs-message-time rule is wrong for half the chats — the
+      same population trap this file's case study is about. A counter the
+      server owns is exact for both, and needs nothing from the hook.
+    - **A pin with no `turns` at all** (written before this shipped) gets NO
+      tag rather than a guessed one. It earns its count the next time its chat
+      pins anything.
+  - **The registry read moved ABOVE the reply's own registry write** in the
+    POST handler — `regRef()` drops the cache, so reading after it would force
+    a fresh ~200-doc collection read on every reply. The push title now reuses
+    that same read instead of taking a second one.
+  - **The tag is letter-spaced sans in rose, not a chip** — a chip here would
+    be a pill, and it is a state, not a control.
+  - Tests: `node scripts/test-pin-current.js` (`pinKind` + `pinBump` lifted out
+    of `chatfeed.js`, plus `pinCurrent` lifted out of the page so the two sides
+    can't drift) and `node scripts/test-chats-pin.js` (the real page, headless:
+    the row renders, is tappable where it is drawn, a link pin opens instead of
+    embedding, the tag shows on a fresh pin and stays off a stale one and off
+    an uncounted one — verified failing without the feature).

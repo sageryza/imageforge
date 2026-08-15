@@ -14,6 +14,15 @@ The numbers are measured, not guessed.
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Say what you spent and what it cost**, in words, in the reply.
+3a. **PIN THE LINK — but ONLY in her two cases** (`POST /api/chatfeed/pin
+   {chat, session, url, title}`): a page you are **actively working on**
+   (`/science`, `/chunking`), or a deliverable you are **actively handing her
+   new versions of** (a film, an episode). In those two, pinning is the
+   default and you re-post it every time you update what's behind it — that is
+   what lights the *current* tag. **Everything else stays out of that row**:
+   most chats should have NO pin. A third case is not yours to declare — run
+   it by Sophie first. (Full rules: *THE PINNED LINK* in the Chats app
+   section.)
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
@@ -624,18 +633,107 @@ them off the reference sheet, not off the old filenames.
     that, archiving freezes its **Update card** into one (free, instant —
     `updAsked`/`updDid` already answer the same question); failing both it
     stays blank rather than inventing something.
-  - **Two fields, and NEITHER is `sophieNote`** (`wrapLine` + `wrapUp` on the
-    registry). Her own note still wins the row — a chat must never overwrite a
-    line she wrote, which is why this did not reuse her note field even though
-    she described it as "the note at the top". Row: `note || wrapLine || need
-    || doing`.
+  - **THE SUMMARIZE BUTTON on the archive pop-up (Aug 2026, Sophie: "I want a
+    button on there that automatically asks the chat to give me like a quick
+    summary of what we accomplished in that chat, and if there were still any
+    questions that were open").** It cannot literally ask the chat — that is
+    the asleep problem above — so the SERVER reads the thread the app already
+    stores and writes the summary itself (`POST /wrapup/write`, Claude,
+    `force:true` because a deliberate tap re-writes). From her side the
+    difference is invisible: one tap inside the sheet, no trip back to the
+    Claude app, nothing to copy. It **writes as soon as it answers**, so
+    Cancel keeps the summary and archiving mid-write loses nothing — which is
+    why it is not a background job. The summary reads back in the sheet before
+    she commits. ~1-2¢ a tap.
+  - **THREE fields, and NONE is `sophieNote`** (`wrapLine` + `wrapUp` +
+    `wrapOpen` on the registry). Her own note still wins the row — a chat must
+    never overwrite a line she wrote, which is why this did not reuse her note
+    field even though she described it as "the note at the top". Row:
+    `note || wrapLine || need || doing`. **`wrapOpen` is what was still
+    unfinished or unanswered** — its own paragraph behind the expander, never
+    the row line. The unanswered questions fed to the model are DERIVED
+    (`buildQuestions` over the whole thread, `!q.answer`), not read out of the
+    digest, so the line names loose ends that provably exist; a chat writing
+    its own wrap-up can pass `open` too.
+  - **A freshly written wrap-up reaches an already-open phone on its next
+    Refresh**, not instantly: the page paints from its localStorage cache and
+    polls only for new MESSAGES (the launch block in `chats.html`). True of
+    every registry field, not just this one.
   - **There is NO rule that only she may write her note** — `POST /chatnote`
     has never had a permission check. It was only ever a style guideline
     (her length, her shape). Don't reintroduce one.
   - The expander is a **sibling** of the row, not a child: a row is a
     `<button>`, so a nested button is invalid and the tap would bubble into
     opening the chat.
-  - Tests: `node scripts/test-chats-wrapup.js`.
+  - **The sheet the button lives on asks for TAGS, not piles (Aug 2026 v3,
+    Sophie).** "Archive this chat?" is the header at the top; the name box is
+    GONE ("the chat name can only be changed from within the chat, not this
+    archive option"); and a star + bookmark toggle sit left of a row of tag
+    chips, all of which save on the tap rather than on Archive. The tags are a
+    FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
+    `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
+    archive's filter row. Full rules in `docs/chats-app.md`.
+  - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
+    her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
+    fails both of `parseJSON`'s attempts, so a finished summary line died with
+    the unfinished sentence after it. The cap is 1200 now and `salvageJson` in
+    `chatfeed.js` closes what the model left open, then trims back to the last
+    finished sentence. It is deliberately NOT in `anthropic.js`: half an object
+    is exactly what other callers must never be handed silently.
+  - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
+    the open half, the truncation rescue), `node
+    scripts/test-chats-archive-summary.js` (the button) and `node
+    scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
+    filter row) — the last two headless against the real page.
+- **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
+  "I'm constantly referring to a link to a page… I just wanna make that
+  pattern more clear that chats have that option and make it the expected and
+  common behavior for chats if a link is involved").** A pinned link sits
+  directly under the chat's name, above the messages: one row, the title she
+  gave it, one tap. Everything else about a link — where it was mentioned,
+  which turn it was in — makes her hunt for it in the scrollback.
+  `POST /api/chatfeed/pin { chat, session, url, title, kind? }`.
+  - **TWO CASES EARN A PIN, AND ONLY THOSE TWO** (Sophie, same day, after the
+    first version of this rule read as "pin whenever a link is involved" and
+    chats started pinning anything with a URL: "not every chat deserves one,
+    only the two cases I mentioned"). **Most chats should have NO pin** — an
+    empty row is the correct, common state, and a pin she does not come back
+    to is clutter at the top of a thread she reads every day.
+    - **a page this chat is ACTIVELY WORKING ON** — `/science`, `/chunking`, a
+      tool page, a Compare page's URL. Pin it the first turn it exists. The
+      test is active work, not "a link exists": a page you finished and will
+      not touch again does not need the row.
+    - **a deliverable you are ACTIVELY HANDING HER NEW VERSIONS OF** — a film,
+      an episode, an audio cut. Pin the NEWEST render; the title carries the
+      version ("Evan — the long cut v6 (4:54)"). A one-off render you will
+      never re-cut is not this.
+  - **NEVER PIN, without asking:** a PR or a GitHub file/doc link, a dashboard,
+    a page you merely referenced, the Chats app itself, a page whose work is
+    done, or your own chat's admin links. **A THIRD CASE IS NOT YOURS TO
+    DECLARE** (Sophie: "there might be other cases, but I'd like them to be
+    run by me before they're made official") — describe the case in your reply
+    and let her say yes; do not pin it and see if she objects.
+  - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
+    the re-post is the update, and it is what lights the **current** tag on
+    the row (Sophie: "a tag on it that says like current or recent, and it
+    only says that if the chat updated the last turn that they finished"). The
+    server counts the finished replies since the pin; *current* shows while
+    that count is 0 or 1 — the turn that pinned it, and that turn once it has
+    ended — and goes out the moment the chat finishes a turn that left the
+    link alone. So a lit tag means *what's behind this moved in the last thing
+    this chat did*, and nothing else. Nothing decays it on a timer.
+  - **ONE pin per chat** — pinning again replaces it. Pin the thing she comes
+    back to; when a chat has both a page and a film, the page usually wins
+    (the film's newest cut can live on the page). Clear it with `url:""`.
+  - `kind` is optional now: a url ending in `.mp4`/`.mov`/`.webm` pins as a
+    film (tap = full-screen player), `.m4a`/`.mp3`/`.wav` as audio, anything
+    else as a **link** that opens the page. Pass `kind` explicitly when the
+    url has no extension to read (a signed media url with no filename).
+  - **Read back what you have pinned** with `GET /api/chatfeed/status?chat=&
+    session=` → `pinned:{url,title,kind,at,turns}`. `turns` ≤ 1 means the tag
+    is still lit.
+  - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
+    `node scripts/test-chats-pin.js` (the real page, headless).
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -745,6 +843,19 @@ them off the reference sheet, not off the old filenames.
   - Tests: `node scripts/test-questions.js` (the extraction, pure, no
     network) and `node scripts/test-chats-questions.js` (the real page,
     headless).
+- **CHATS SORT THEMSELVES INTO HER FOLDERS — and there is NOTHING for you to
+  do (Aug 2026, Sophie: "I've been manually sorting all my chats, but they
+  could sort themselves").** Do NOT post a category, and do not add one to
+  your status card: the server files a chat at the end of its turn by reading
+  the thread it already stores (`chat-sort.js`), because a chat-posted
+  category would be filed by the same ~7% that ever post an Update card. The
+  three rules it obeys: **anything SHE filed is never touched** (`catBy`),
+  **"none" is a normal answer** (filing hides a chat from her main list, so a
+  wrong folder costs her real work), and **it never invents a folder** — her
+  vocabulary is read live and taught by her own filing. Her two WHEN folders,
+  `look at` and `come back to`, are off limits to it. Full rules in
+  `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the vocabulary and the
+  counts.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
@@ -1185,7 +1296,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `sparkles`. Not Lucide's `sparkles`, not a wand, not a per-page variant: a
   button that spends a model call must read the same in every surface. Live
   copies: `ICON_STAR` in `scripts/gen-scratchpad.py` (the Story Room's beat
-  popup) and `ICONS.sparkles` in `promptlab.html` (the Playground's Generate).
+  popup), `ICONS.sparkles` in `promptlab.html` (the Playground's Generate), and
+  `GEN_STAR` in `chats.html` (the archive sheet's Summarize — named apart from
+  that file's own `STAR`, which is the five-pointed mark on a starred chat).
   Deliberate exceptions, because they say something the star can't: the pad's
   **wand** (draw every beat that's missing art — a bulk action) and the
   Playground's **pyramid** (low·low·medium, a picture of how many — an actual
@@ -1341,6 +1454,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
   under the posters, so a re-cut reuses clips instead of re-paying for them.
+  **A CHUNK (Sophie's word, what the tool is named for) is a named, tagged
+  SECTION of a finished video — footage + voiceover together — that she'd
+  reuse whole in a different video** (her examples: the Sheldrake telepathy
+  bridge in the Evan video; the manifestation trio she visualized at night).
+  `POST /api/clips/chunk {url, start, end, title, vo?, tags?, from?}` files
+  and bakes one in the background (content-addressed by url+span; `vo` =
+  the span's voiceover text, searchable as `vo:`); the harvest never touches
+  chunks. Any chat that cuts a section of a finished video should file it.
   **Rebuilt from scratch 2026-08-15** (Sophie asked for a fresh take on the
   first build; the old `forge-clips` collection lies dormant — this one is
   `forge-clip-library`). **It generates and stitches nothing and costs
@@ -1587,9 +1708,46 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
-  **finished reply** (never a draft) and on a new Compare page, debounced to one
-  per chat per 10 min. They are the Update tab's **doorbell, not its replacement**,
-  so a dropped push is never lost news. A tap opens THE CHAT IT CAME FROM.
+  **finished reply** (never a draft) and on a new Compare page. They are the
+  Update tab's **doorbell, not its replacement**, so a dropped push is never
+  lost news. A tap opens THE CHAT IT CAME FROM.
+  **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
+  `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
+  notify me").** One field, `notify`, on the chat's registry doc beside
+  `starred`/`bookmarked`, set by the bell in a chat's thread header
+  (`POST /api/chatfeed/notify {chat, notify}`). **Absent means silent**, so
+  nothing pushes until she taps one. It is asked BEFORE the timing gate below
+  and in front of BOTH doors (a finished reply and a new Compare page), and it
+  compares `notify === true` rather than truthiness — silence is the safe
+  direction for an opt-in.
+  **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
+  Sophie: "I don't need a notification when I send a message. I need a
+  notification when they respond to my message").** Two comparisons against
+  fields already on the registry: she must have spoken since the last push
+  (`lastHerAt > pushedAt`, stamped by `POST /reply` with her REAL send time),
+  and the reply must have been written after she spoke (`created >=
+  lastHerAt`) — a reply whose text predates her message cannot answer it. That
+  kills the three shapes that buzzed her at the wrong moment: a **catch-up
+  post** (the hook's final pass runs on UserPromptSubmit, so a reply Stop
+  failed to post lands the instant she hits send), a **queued message** (the
+  turn already running finishes seconds after she sends), and a **chat
+  grinding on its own**. **The per-chat 10-minute debounce is GONE for
+  replies** — it swallowed the answer to a follow-up she sent four minutes
+  later; her message is the gate now. A chat that has never lifted one of her
+  messages keeps the old behaviour rather than going quiet.
+  **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
+  her screenshot — this, not the timing, is what she was actually reporting).**
+  Two house rules collided: *Answering a question* opens a reply with her
+  question repeated verbatim in bold on its own line, and the push body was
+  `tldr || the reply's first non-empty line` — so every answer buzzed her with
+  her own sentence, asterisks and all. Leading **entirely bold** lines are now
+  skipped (that is exactly the shape the answering rule produces; `**TLDR** —
+  …` has ordinary text after the bold and is kept), and the body is stripped
+  of markdown. Deliberately structural, not stored: comparing against her
+  message would mean carrying hundreds of characters of every chat's newest
+  message on the registry doc, which rides the feed read to her phone 276
+  chats at a time.
+  Tests: `node scripts/test-push-gate.js`, `node scripts/test-chats-bell.js`.
   Dormant until the APNs key exists — only Sophie can mint it.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
   must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**

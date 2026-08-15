@@ -80,6 +80,24 @@
 #lb .row{ margin-top:16px; }
 #lb .saved{ font-size:12px; color:var(--ok); opacity:0; transition:opacity .3s; }
 #lb .saved.show{ opacity:1; }
+
+/* the tour — dim the page, spotlight one control at a time */
+#tour{ position:fixed; inset:0; z-index:80; }
+#tour .spot{ position:absolute; border-radius:10px;
+  box-shadow:0 0 0 200vmax rgba(42,38,32,.62); transition:left .28s ease, top .28s ease,
+  width .28s ease, height .28s ease; }
+#tour .tcard{ position:absolute; left:16px; right:16px; background:var(--surface);
+  border:1px solid var(--border); border-radius:12px; padding:13px 15px;
+  box-shadow:0 6px 24px rgba(0,0,0,.16); }
+#tour .tcard p{ margin:0; font-size:14.5px; line-height:1.5; color:var(--ink); }
+#tour .tcard .tstep{ display:block; margin-top:7px; font-family:-apple-system,system-ui,sans-serif;
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); }
+#tourAsk{ position:fixed; inset:0; z-index:81; background:rgba(42,38,32,.45);
+  display:flex; align-items:center; justify-content:center; padding:24px; }
+#tourAsk .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:18px; max-width:300px; }
+#tourAsk p{ margin:0 0 14px; font-size:15px; }
+#tourAsk .row{ display:flex; gap:10px; }
 </style>
 </head>
 <body class="tool">
@@ -96,18 +114,22 @@
   </div>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Every small clip the studio has made, on one shelf.</b> Tap one to play
-  it, rename it, tag it, or leave a note — what you type is yours and a
-  re-harvest never overwrites it. HIDE takes a clip off the shelf; the
+  <b>Every reusable piece, on one shelf.</b> A <b>chunk</b> is a named
+  section of a finished video — footage and voiceover together — that you'd
+  reuse whole somewhere else (the telepathy bridge, the manifestation trio).
+  The smaller tiles are the atomic clips the films were cut from. Tap
+  anything to play it, rename it, tag it, or leave a note — what you type is
+  yours and never gets overwritten. HIDE takes one off the shelf; the
   <b>hidden</b> chip shows them again.<br><br>
   The search speaks the house grammar: bare words need <b>all</b> of them in
   one clip, <b>OR</b> takes either, <b>-word</b> excludes,
   <b>"quoted words"</b> stay together. Narrow a word to one field with
-  <b>tag:</b> <b>title:</b> <b>from:</b> (the film it came out of)
-  <b>prompt:</b> <b>note:</b> or <b>kind:</b> — e.g.
-  <b>kind:bridge waiting</b>.<br><br>
-  New clips arrive by harvest (free — it reads what the other tools already
-  made); a chat runs it after making anything new.
+  <b>tag:</b> <b>title:</b> <b>from:</b> (the video it came out of)
+  <b>vo:</b> (words in a chunk's voiceover) <b>prompt:</b> <b>note:</b> or
+  <b>kind:</b> — e.g. <b>kind:chunk telepathy</b>.<br><br>
+  New clips arrive by harvest, and chunks are filed by a chat naming a span
+  of a finished video — both free. Ask any chat to chunk a section for you.
+  <div style="margin-top:12px"><button class="btn ghost" id="tourAgain">Show the tour</button></div>
 </div>
 
 <div class="kindrow">
@@ -120,6 +142,20 @@
   <div class="shelf" id="shelf"></div>
   <div class="note stateline" id="stateline" hidden></div>
 </main>
+
+<div id="tour" hidden>
+  <div class="spot" id="tourSpot"></div>
+  <div class="tcard" id="tourCard"><p id="tourText"></p><span class="tstep" id="tourStep"></span></div>
+</div>
+<div id="tourAsk" hidden>
+  <div class="card">
+    <p>Want the ten-second tour?</p>
+    <div class="row">
+      <button class="btn" id="tourGo">Show me</button>
+      <button class="btn ghost" id="tourSkip">Skip tutorial</button>
+    </div>
+  </div>
+</div>
 
 <div id="lb">
   <div class="wrap">
@@ -166,7 +202,8 @@ function api(path, opts) {
    Same parse as search-grammar.js; matching normalises to lowercase
    alphanumerics and takes substrings — punctuation never decides a hit. */
 var FIELDS = { tag: 'tag', tags: 'tag', title: 'title', name: 'title',
-  from: 'from', source: 'from', movie: 'from', prompt: 'prompt', note: 'note', kind: 'kind' };
+  from: 'from', source: 'from', movie: 'from', prompt: 'prompt', note: 'note', kind: 'kind',
+  vo: 'vo', script: 'vo', says: 'vo' };
 function norm(s) {
   return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ').replace(/^ | $/g, '');
@@ -195,9 +232,9 @@ function hayOf(c) {
   if (!c._hay) {
     var tags = (c.tags || []).map(norm);
     c._hay = { title: norm(c.title), from: norm(c.from), prompt: norm(c.prompt),
-      note: norm(c.note), kind: norm(c.kind), tag: tags };
+      note: norm(c.note), kind: norm(c.kind), vo: norm(c.vo), tag: tags };
     c._hay.all = [c._hay.title, c._hay.from, c._hay.prompt, c._hay.note, c._hay.kind,
-      tags.join(' ')].join('  ');
+      c._hay.vo, tags.join(' ')].join('  ');
   }
   return c._hay;
 }
@@ -245,8 +282,8 @@ function esc(s) {
   });
 }
 
-var KIND_LABEL = { scene: 'scenes', bridge: 'bridges', reroll: 'earlier takes',
-  quick: 'quick', short: 'shorts' };
+var KIND_LABEL = { chunk: 'chunks', scene: 'scenes', bridge: 'bridges',
+  reroll: 'earlier takes', quick: 'quick', short: 'shorts' };
 
 function buildKinds() {
   var row = $('kinds'); row.innerHTML = '';
@@ -290,7 +327,8 @@ function render() {
     b.innerHTML = '<span class="ph">'
       + (c.poster ? '<img loading="lazy" src="' + esc(c.poster) + '" alt="">'
                   : '<span class="noart">' + FILM_ICON + '</span>')
-      + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
+      + (c.status === 'baking' ? '<span class="dur">baking…</span>'
+         : c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
       + '</span><span class="nm">' + esc(c.title) + '</span>';
     b.onclick = function () { openLb(c); };
     shelf.appendChild(b);
@@ -310,9 +348,13 @@ function openLb(c) {
   savedY = window.scrollY;
   $('lbVideo').src = c.url;
   $('lbTitle').value = c.title || '';
-  $('lbMeta').textContent = [fmtDur(c.seconds), c.kind, c.from].filter(Boolean).join(' · ');
+  var span = c.span ? fmtDur(c.span.start) + '–' + fmtDur(c.span.end) : '';
+  $('lbMeta').textContent = [fmtDur(c.seconds), c.kind, c.from, span,
+    c.status === 'baking' ? 'baking…' : '', c.status === 'error' ? 'bake failed' : '']
+    .filter(Boolean).join(' · ');
   var p = $('lbPrompt');
-  if (c.prompt) { p.textContent = c.prompt; p.hidden = false; } else p.hidden = true;
+  var ptext = [c.vo, c.prompt].filter(Boolean).join('\n\n');
+  if (ptext) { p.textContent = ptext; p.hidden = false; } else p.hidden = true;
   $('lbTags').value = (c.tags || []).join(', ');
   $('lbNote').value = c.note || '';
   $('lbHide').textContent = c.hidden ? 'Unhide' : 'Hide';
@@ -376,7 +418,7 @@ document.addEventListener('click', function (e) {
    its own taps. ── */
 document.addEventListener('click', function (e) {
   var t = e.target;
-  if (t && t.closest && t.closest('#lb')) return;
+  if (t && t.closest && (t.closest('#lb') || t.closest('#tour') || t.closest('#tourAsk'))) return;
   if (window.__pillInteractive && window.__pillInteractive(t)) {
     if (window.__scrollStop) window.__scrollStop();
     return;
@@ -389,12 +431,72 @@ document.addEventListener('focusin', function () { if (window.__scrollStop) wind
 var qLive = liveInput($('q'), render);
 $('clearq').onclick = function () { $('q').value = ''; qLive.sync(); render(); };
 
+/* ── the tour: dim the page, spotlight one control at a time ──
+   First open offers it (with Skip); "Show the tour" in the ? card replays it,
+   so she can hand the phone to a friend. Tap anywhere advances. */
+var TOUR_KEY = 'clips.tourSeen';
+var tourSteps = [], tourAt = 0, tourY = 0;
+function tourTargets() {
+  return [
+    { el: document.querySelector('.searchrow'),
+      text: 'Search everything here \u2014 type words, or narrow with tag: from: vo:' },
+    { el: $('kinds'),
+      text: 'Chunks are whole sections of a video \u2014 voiceover and all. Clips are the atoms films get cut from.' },
+    { el: document.querySelector('#shelf .clip .ph'),
+      text: 'Tap any tile to play it, rename it, tag it, or leave a note.' },
+    { el: $('help'),
+      text: 'The ? holds the rest, whenever you want it.' },
+  ].filter(function (s) { return s.el; });
+}
+function tourShow() {
+  var s = tourSteps[tourAt];
+  var r = s.el.getBoundingClientRect();
+  var pad = 6;
+  var spot = $('tourSpot');
+  spot.style.left = (r.left - pad) + 'px';
+  spot.style.top = (r.top - pad) + 'px';
+  spot.style.width = (r.width + pad * 2) + 'px';
+  spot.style.height = (r.height + pad * 2) + 'px';
+  $('tourText').textContent = s.text;
+  $('tourStep').textContent = (tourAt + 1) + ' of ' + tourSteps.length + ' \u00b7 tap to continue';
+  var card = $('tourCard');
+  var below = r.bottom + pad + 12;
+  if (below + 130 < window.innerHeight) { card.style.top = below + 'px'; card.style.bottom = 'auto'; }
+  else { card.style.top = 'auto'; card.style.bottom = (window.innerHeight - r.top + pad + 12) + 'px'; }
+}
+function tourStart() {
+  localStorage.setItem(TOUR_KEY, '1');
+  tourSteps = tourTargets();
+  if (!tourSteps.length) return;
+  tourAt = 0;
+  tourY = window.scrollY;
+  window.scrollTo(0, 0);
+  document.body.style.overflow = 'hidden';
+  $('tourAsk').hidden = true;
+  $('helpcard').hidden = true;
+  $('tour').hidden = false;
+  tourShow();
+}
+function tourEnd() {
+  $('tour').hidden = true;
+  document.body.style.overflow = '';
+  window.scrollTo(0, tourY);
+}
+$('tour').addEventListener('click', function () {
+  tourAt++;
+  if (tourAt >= tourSteps.length) tourEnd(); else tourShow();
+});
+$('tourGo').onclick = tourStart;
+$('tourSkip').onclick = function () { localStorage.setItem(TOUR_KEY, '1'); $('tourAsk').hidden = true; };
+$('tourAgain').onclick = function (e) { e.stopPropagation(); tourStart(); };
+
 /* ── load, and show a running harvest without ever starting one ── */
 function load() {
   return api(B).then(function (r) {
     if (!r.ok) { $('stateline').textContent = 'Couldn’t load the shelf.'; $('stateline').hidden = false; return; }
     all = r.body.clips || [];
     render();
+    if (!localStorage.getItem(TOUR_KEY)) $('tourAsk').hidden = false;
   });
 }
 var harvT = null;

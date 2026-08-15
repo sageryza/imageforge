@@ -256,6 +256,34 @@ your own pill and never re-implement its script.** The contract:
   `localStorage` — never a blocking spinner. Opening a page must never spend
   money (model calls are a deliberate tap, `.btn.star`).
 
+## PIN THE PAGE TO THE TOP OF YOUR CHAT — while you are working on it
+
+A page this chat is **actively working on** gets pinned to the top of its
+thread: a tool page, a public page like `/science`, a Compare page you keep
+re-posting. That is one of the two cases that earn the row (Aug 2026, Sophie:
+"I'm constantly referring to a link to a page"); otherwise the URL lives in
+whichever turn happened to mention it and she has to scroll back for it.
+
+**The test is ACTIVE WORK, not "a link exists"** — she pushed back the same day
+on chats pinning anything with a URL ("not every chat deserves one"). A sheet
+you posted once and will never revisit, a PR, a doc link: no pin. Most chats
+should have none, and a case that isn't one of the two gets **run by her
+before you pin it**.
+
+```
+POST /api/chatfeed/pin { chat, session, url: "https://…/science",
+                         title: "The science page" }
+```
+
+- **Pin it the first turn the page exists**, and **re-POST it every time you
+  change what's behind it** — same url is fine. The re-post is what lights the
+  **current** tag on the row, which tells her the page moved in the last thing
+  this chat did.
+- `kind` is optional: anything that isn't a media file pins as a link and
+  OPENS. A film pins as a film and plays full screen.
+- One pin per chat — pinning replaces. Full rules: *THE PINNED LINK* in
+  `CLAUDE.md`.
+
 ## House style (every page)
 
 - **NO gradients**, ever. Flat solid colors.

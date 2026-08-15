@@ -27,19 +27,32 @@ const RETIRED = new Set(['27-dragonfruit']);
 // Oldest first — a later record replaces an earlier one with the same id.
 // v3 carries the cherimoya redrawn cut-open (it read as an artichoke whole)
 // plus mulberries and kumquat, the two Sophie asked for.
-const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json'];
+// hq- carries the ones re-rendered at HIGH quality for their own sake, not to
+// fix anything — Sophie picking favourites she wants drawn better.
+const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json',
+  'fruit-chart/v3-uploaded.json', 'fruit-chart/hq-uploaded.json'];
 // v2 is the same 28 vegetables RECUT at the gutter rather than the midpoint —
 // the even split put a fragment of the neighbour in some cards and knocked the
 // subject off-centre (see the note in fruit-cut.js).
-const VEG_SOURCES = ['fruit-chart/veg-uploaded.json', 'fruit-chart/veg-v2-uploaded.json'];
+// v3 re-trims every card ignoring isolated specks: one stray tick was
+// stretching the box, so the subject sat off-centre and small inside its square
+// (Sophie spotted it on the beet and the radish).
+// v4 drops the trim padding from 2 mask pixels to 1 — 2 was double the
+// quantisation error and stacked on top of the 10% frame, so every card carried
+// margin nobody asked for.
+const VEG_SOURCES = ['fruit-chart/veg-uploaded.json', 'fruit-chart/veg-v2-uploaded.json',
+  'fruit-chart/veg-v3-uploaded.json', 'fruit-chart/veg-v4-uploaded.json'];
 
 // `next` sends them straight from one deck into the other when they finish
 // (Sophie: "there could be a button to take the vegetables quiz"). It names the
 // POLL, not a url — the same person holds a different token in each one.
 const POLLS = {
-  'fridge-fruit': { title: 'Favorite fruit', next: { poll: 'fridge-veg', label: 'Now the vegetables' }, people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }] },
+  // Sophie is IN the family chart — she filled both decks herself. Her answers
+  // first landed on the test polls, which are separate, so they were missing
+  // from the fridge chart entirely until she was added here.
+  'fridge-fruit': { title: 'Favorite fruit', next: { poll: 'fridge-veg', label: 'Now the vegetables' }, people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }, { name: 'Sophie' }] },
   'fruit-test': { title: 'Favorite fruit (test)', next: { poll: 'veg-test', label: 'Now the vegetables' }, people: [{ name: 'Sophie' }] },
-  'fridge-veg': { title: 'Favorite vegetable', deck: 'veg', people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }] },
+  'fridge-veg': { title: 'Favorite vegetable', deck: 'veg', people: [{ name: 'Sandy' }, { name: 'Susan' }, { name: 'Steve' }, { name: 'Sophie' }] },
   'veg-test': { title: 'Favorite vegetable (test)', deck: 'veg', people: [{ name: 'Sophie' }] },
 };
 

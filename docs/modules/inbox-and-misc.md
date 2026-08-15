@@ -88,9 +88,77 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app
   registers its device token per launch (`POST /device`, upsert), and
   `chatfeed.js` calls `notifyChat()` on a **finished reply** (never a draft)
-  and on a **new Compare page**. Debounce: one push per chat per 10 min +
-  60s global gap — the pushes are the Update tab's doorbell, not its
-  replacement, so dropped ones are never lost news.
+  and on a **new Compare page** — the pushes are the Update tab's doorbell,
+  not its replacement, so dropped ones are never lost news.
+- **THE BELL DECIDES WHICH CHATS MAY BUZZ AT ALL — a WHITELIST (`chatNotifies`
+  in `push-gate.js`, Aug 2026, Sophie: "add a little bell next to the star that
+  I can click in. This will enable notifications for this chat and un-click and
+  it will turn them off — only the ones I clicked the bell on will notify me").**
+  One field, `notify`, on the chat's registry doc, beside `starred` and
+  `bookmarked`, so it rides the feed read the app already makes. **Absent means
+  SILENT**: nothing pushes until she taps a bell, and a chat she has never
+  belled never reaches her lock screen. It is asked BEFORE the timing gate
+  below — the coarse question first — and in front of **both** doors, a
+  finished reply and a new Compare page, so there is no way to buzz her past
+  it. The control is the bell in a chat's thread header (`.bellbtn` in
+  `chats.html`, next to the ★); `POST /api/chatfeed/notify {chat, notify}`
+  writes it, 404 on a chat that does not exist (the phantom-row guard every
+  registry write carries). Comparing `notify === true`, never truthiness, is
+  deliberate — the safe failure direction for an opt-in is silence.
+- **A FINISHED REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`,
+  Aug 2026, Sophie: "I don't need a notification when I send a message. I
+  need a notification when they respond to my message").** Every finished
+  reply used to push, and three real shapes put the buzz at the wrong moment:
+  a **catch-up post** (the hook's final pass runs on UserPromptSubmit too, so
+  a reply Stop failed to post lands the instant she hits send on her next
+  message), a **queued message** (messaging a chat that is mid-turn; the turn
+  already running finishes seconds later), and a **chat grinding on its own**
+  (turn after turn nobody asked for, and with the old 60s global spacing
+  whichever one landed next after she sent was the buzz she got).
+  Two comparisons, both against fields already on the registry doc, so the
+  gate costs no extra read: she must have spoken **since the last push**
+  (`lastHerAt > pushedAt`), and the reply must have been **written after she
+  spoke** (`created >= lastHerAt`) — a reply whose text predates her message
+  cannot be an answer to it. `lastHerAt` is stamped by `POST /reply`, which
+  is both doors (the hook lifting her words out of the Claude app, and the
+  Chats app's reply box), and it carries her REAL send time, never the lift
+  time. `pushedAt` is stamped in the same registry write the reply already
+  makes.
+  - **NO TIME DEBOUNCE on a reply** (`notifyChat(..., {debounce:false})`).
+    The per-chat 10 minutes existed only because every reply pushed, and
+    measured against her real threads it broke exactly what she asked for —
+    she messaged `update-tab-messaging` at 2:07 pm and again at 2:11 pm, and
+    a 10-minute window swallows the answer to the second. Each message she
+    sends can now produce at most one buzz, from the chat she sent it to. The
+    Compare-page call keeps the old 10 min + 60s windows, and a skipped send
+    still takes the global stamp, so a page and the reply in one turn stay
+    one buzz.
+  - **A chat that has never lifted one of her messages is NOT silenced.** No
+    `lastHerAt` on file looks identical whether the session's hook is too old
+    to post her messages or she has simply never written to it, so those keep
+    the old behaviour — a missed buzz is worse than a stray one.
+  - **THE BODY IS NEVER HER OWN WORDS (`pushBody`).** Found live 2026-08-15
+    from her screenshot at 3:01 pm, and it is what she was actually reporting
+    — the timing was already right. Two house rules collided: *Answering a
+    question* opens a reply with her question repeated **verbatim in bold** on
+    its own line, and the push body was `tldr || the reply's first non-empty
+    line`. So every answer to a question buzzed her with her own sentence,
+    asterisks and all, because nothing stripped the markdown either. Leading
+    lines that are ENTIRELY bold are now skipped — that is precisely the shape
+    the answering rule produces, and `**TLDR** — …` has ordinary text after
+    the bold, so a real opening line is kept. The chosen line is then
+    flattened (emphasis, headings, quote marks, inline code, and a link
+    reduced to its text). A reply that is nothing but bolded questions still
+    sends its first line rather than a blank banner.
+    - **Structural, not stored, on purpose.** The other option was comparing
+      the line against her newest message, which means carrying a few hundred
+      characters of it on the registry doc — and the registry rides the feed
+      read to her phone 276 chats at a time.
+  - Tests: `node scripts/test-push-gate.js` (the whole decision table, the bell
+    whitelist and the body rules, pure, no network — 30 checks) and
+    `node scripts/test-chats-bell.js` (the bell + the eye + the trash can on
+    the real page, headless — 24 checks, including the painted colours: filled
+    bell, gold when lit, nothing red sitting at rest).
 - **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
   optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
   key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all

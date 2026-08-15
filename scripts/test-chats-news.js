@@ -22,11 +22,14 @@
 //      What does NOT: one she has checked off (notifSeenAt), or an archived
 //      one,
 //   3. a card carries the THING — the page's title, and up to three thumbs,
-//   4. the ✓ clears the card and POSTs /notif-seen (badge follows) — and
+//   4. the ✓ box + DONE clears the card and POSTs /notif-seen (badge follows;
+//      the ✓ picks the card since Aug 2026 and DONE does the clearing) — and
 //      opening a chat does NOT post it, or reading a thread would clear a
 //      card behind her back,
 //   5. the page title opens the full-screen Compare viewer; a thumb opens the
-//      chat; an account tab comes back to the chat list.
+//      chat; an account tab comes back to the chat list. (Picking a card for
+//      the Later / In a minute boxes is the ✓ box, never the row — see
+//      test-chats-news-queue.js.)
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-news.js
 //
@@ -299,13 +302,16 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const thumbs = await page.$$('.nwcard[data-chat="chat-pics"] .nwimg');
   if (thumbs.length !== 3) fail('expected the last THREE pictures, got ' + thumbs.length);
 
-  // 4. the ✓ clears the card, tells the server, and the badge follows
+  // 4. clearing a card is the ✓ box then DONE, and the badge follows (Aug
+  //    2026 — the ✓ picks the card now, and the pinned row's DONE is what
+  //    writes notifSeenAt; see test-chats-news-queue.js)
   await page.click('.nwcard[data-chat="chat-pics"] .nwck');
+  await page.click('#catrow .nwdone');
   await page.waitForFunction(() => !document.querySelector('.nwcard[data-chat="chat-pics"]'), null, { timeout: 4000 })
-    .catch(() => fail('the ✓ did not take the card off the list'));
+    .catch(() => fail('✓ then DONE did not take the card off the list'));
   await page.waitForFunction(
     () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '3'; },
-    null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow the ✓'));
+    null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow DONE'));
   if (!notifPosts.some(p => p.chat === 'chat-pics' && p.seen !== false)) fail('POST /notif-seen never fired');
 
   // 5a. the artifact's title opens the full-screen viewer
