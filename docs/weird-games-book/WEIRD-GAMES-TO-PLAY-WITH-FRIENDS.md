@@ -229,7 +229,13 @@ guest periodically delivers urgent bulletins about events at the party.
 Also flagged by Sophie, awaiting her story before deciding: the **one-day
 marriage experiment** (asked her about it, Aug 2026).
 
-## The proposed games, round two (Claude, 2026-08-15 — awaiting Sophie's cuts/keeps)
+## The proposed games, round two (Claude, 2026-08-15 — reviewed by Sophie on the list page, same day)
+
+Her ✓: Tourists, Getaway Driver, First Date, The Critic, Border Control, The
+Inheritance, Heavy Object, Elevator Pitch, Remember the Ferry. Reworked from
+her notes: The Package, The Photographer, The Double → **Copycat** (her
+game). Still open: Background Actors, The Alibi, the Critic/Chaperone shape,
+and the clock picture's game.
 
 1. **Background Actors** — Your group goes to a café or park and behaves like
    extras in someone else's movie: mouth full conversations without sound,
@@ -258,6 +264,8 @@ marriage experiment** (asked her about it, Aug 2026).
    date: the nerves, the good shirt, the questions they already know the
    answers to ("so… do you have siblings?"). Falling out of character loses;
    so does answering like someone who knows.
+   (Sophie has wanted exactly this — she once asked someone she'd actually
+   dated to reenact their real first date; hers to tell on this page.)
    *Image: two clearly comfortable old friends at a restaurant table leaning
    in with first-date nerves, hands almost touching, the waiter unmoved.
    Square.*
@@ -271,44 +279,56 @@ marriage experiment** (asked her about it, Aug 2026).
 6. **The Chaperone** — One friend is the evening's chaperone and must
    approve everything: another drink, a seat change, going to the bathroom
    ("I'll allow it"). The chaperone's strictness may only escalate.
+   (Sophie: similar to The Critic — keep one or combine. Proposed merge on
+   the v2 page: **The Inspector**, one guest who reviews everything in the
+   tiny notebook AND whose approval everything needs, with the
+   establishment's final grade announced at the end. Her pick pending.)
    *Image: an adult asking permission with pleading eyes, drink held just
    out of reach, while the chaperone consults a tiny notebook. Portrait.*
 
 7. **Border Control** — The kitchen doorway is an international border and
    one friend is the officer. Every crossing needs a purpose of visit, a
    declaration of goods (chips), and an arbitrary inspection. Smuggling is
-   punished by escalating paperwork.
+   punished by escalating paperwork. Guests carry paper passports, stamped
+   at every crossing (Sophie's addition).
    *Image: the kitchen doorway as a checkpoint — the officer inspecting a
    bowl of chips while the traveler stands with arms raised holding dip.
    Portrait.*
 
 8. **The Inheritance** — On arrival everyone puts one pocket item in a bowl.
    At the end of the night, a solemn candlelit reading of the will
-   redistributes them ("to you I leave… this lip balm. Use it well").
-   Grief and gratitude are mandatory.
+   redistributes them to DIFFERENT people — you never get your own item back
+   ("to you I leave… this lip balm. Use it well"). Eulogies encouraged,
+   never required. (Both points settled by Sophie's notes: different people,
+   and grief cannot be mandatory.)
    *Image: the candlelit will-reading — one friend reading from a long
    paper, another tearfully receiving a lip balm, the bowl of pocket items
    between them. Square.*
 
 9. **Heavy Object** — The group adopts a large object — a rock is
    traditional — and it comes to everything: brunch, the movies, the beach.
-   It gets a chair. It is never explained, to anyone, ever.
+   Rituals accrue around it (Sophie's call): how it is greeted, where it
+   sits, who carries it, what happens on its birthday. Outsiders' questions
+   are answered with more ritual.
    *Image: a large rock seated on its own chair at a brunch table, a plate
    set in front of it, everyone eating normally. Square.*
 
-10. **The Package** — A wrapped gift sits in the middle of the party all
-    night. Nobody knows who it's for or what's inside. It may only be opened
-    by the first person to admit out loud that they cannot stand not
-    knowing.
-    *Image: a ribboned gift box alone on a coffee table, a ring of guests
-    staring at it, one hand mid-reach and stopped. Square.*
+10. **The Package** (reworked per Sophie, Aug 2026 — her ✕ came with the
+    better version) — Several wrapped gifts sit around the party all night,
+    contents unknown. When a conversation gets really awkward, anyone may
+    seize the moment and unwrap one. The supply is finite, so mild
+    awkwardness gets rationed past in hope of worse.
+    *Image: a painfully awkward circle of guests, one person mid-unwrap with
+    visible relief, two more ribboned packages waiting on side tables.
+    Square.*
 
-11. **The Photographer** — One friend documents the night like a wildlife
-    photographer on assignment: belly-down on the carpet, unreasonable
-    lenses, holding breath for the shot of someone eating chips. The photos
-    are presented at the end as a serious exhibition.
-    *Image: someone lying flat on the carpet with a long lens, photographing
-    guests eating chips the way one photographs deer. Landscape.*
+11. **The Photographer** (reworked per Sophie, Aug 2026) — The party is
+    split exactly in half: half are documentarians — belly-down on the
+    carpet, unreasonable lenses, holding breath for the shot of someone
+    eating chips — and half are just existing. At a signal, they switch.
+    The photos are presented at the end as a serious exhibition.
+    *Image: one half of a living room lying flat with long lenses aimed at
+    the other half, who are just eating chips. Landscape.*
 
 12. **Elevator Pitch** — Whenever two people end up alone together — the
     kitchen, the hallway, the porch — one must immediately begin pitching
@@ -318,16 +338,23 @@ marriage experiment** (asked her about it, Aug 2026).
     chart mid-pitch, the other holding the fridge door like a hostage.
     Portrait.*
 
-13. **The Double** — Two friends arrive dressed identically and are never in
-    the same room at the same time. Nobody mentions it. The game is how long
-    the other guests take to say something, and what they say.
-    *Image: an identically dressed pair crossing a hallway in perfect sync
-    past a guest doing a double take. Portrait.*
+13. **Copycat** (Sophie's game, Aug 2026 — replaces The Double wholesale) —
+    Everyone secretly picks someone and copies them exactly, even from
+    across the room. Catch someone copying you and you get to tag them with
+    a giant red flag on their back: you win, and they can't copy you
+    anymore. Otherwise they can keep copying you all night. Everyone wears a
+    badge reading COPYCAT or ORIGINAL — and at some point everyone flips
+    their badge to say the opposite thing.
+    *Image: a party where pairs mirror each other exactly across the room,
+    mid-gesture, while one guest sneaks up on another with a giant red flag.
+    Landscape.*
 
 14. **Remember the Ferry** — One friend invents a shared memory ("remember
     the ferry?") and everyone builds on it — the weather, who got seasick,
     the thing the captain said — until it feels real. It is retold at the
-    next gathering as fact.
+    next gathering as fact. Invented relationships count too (Sophie's
+    addition — she once spent a whole night as pretend step-siblings with
+    someone she'd just met; hers to tell on this page).
     *Image: friends deep in a couch reverie at night, all gazing into the
     middle distance, one shared thought cloud above them holding a little
     ferry. Landscape.*
@@ -335,7 +362,9 @@ marriage experiment** (asked her about it, Aug 2026).
 15. **The Alibi** — Something minor has occurred — the houseplant is over.
     Everyone must account for their whereabouts at 9:14pm. One friend is the
     detective, the desk lamp is repositioned, and everybody is a suspect,
-    including the plant.
+    including the plant. (A real version is family-attested: a party once
+    had to solve who hadn't flushed, and nobody would confess. Hers to tell,
+    or not, on this page.)
     *Image: a kitchen-table interrogation — desk lamp aimed at a suspect,
     the detective pointing at a knocked-over houseplant. Landscape.*
 
