@@ -215,6 +215,27 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     LoRA styles** on one subject (only `public/samples/*.webp` exists, and
     those are tiles, not a comparison), and an aspect-ratio set beyond the
     blog heroes.
+  **THE DAY-AFTER PASS, 2026-08-15 — the survey re-dispatched, and what one
+  day changed.** The same survey message reached a second chat 24 hours later
+  (`compare-pages-survey-013hav`); instead of re-reading everything it measured
+  the delta: **374 pages across 74 chats** (+38 pages, +8 chats in a day),
+  **137 superseded (37%)** — the churn rate is holding, ~36 new pages a day.
+  - **The failure mode the first pass could not have seen: the shelf collects
+    superseded drafts.** A chat ships v2 of a reference page, flags it,
+    supersedes v1 — and v1 keeps its own flag, so within a day of the shelf
+    shipping, **5 of its 28 entries were stale drafts sitting beside their
+    replacements** (the ARTIFACTS tab has no superseded filter; the pile shows
+    whatever carries the flag). **The rule: superseding a reference-flagged
+    page MOVES the flag** — `POST /page/:id/reference {reference:false}` on
+    the old page in the same breath as flagging its replacement.
+  - The five were unflagged 2026-08-15; the **audio pipeline map (v3)** joined
+    the image pipeline's pages under `pipelines` (the maps are the same kind
+    of standing page, and a hole beside its sibling is inconsistency, not
+    doubt); the fruit chart's quality ladder stayed OFF — a sixth quality page
+    answers nothing five didn't, and when in doubt the shelf stays small.
+    Shelf after the pass: **24 pages, 10 topics, none superseded**.
+  - The survey's two gaps are still open: the seven Replicate LoRA styles on
+    one subject, and an aspect-ratio set beyond the blog heroes.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
