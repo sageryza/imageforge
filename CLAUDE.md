@@ -624,18 +624,41 @@ them off the reference sheet, not off the old filenames.
     that, archiving freezes its **Update card** into one (free, instant —
     `updAsked`/`updDid` already answer the same question); failing both it
     stays blank rather than inventing something.
-  - **Two fields, and NEITHER is `sophieNote`** (`wrapLine` + `wrapUp` on the
-    registry). Her own note still wins the row — a chat must never overwrite a
-    line she wrote, which is why this did not reuse her note field even though
-    she described it as "the note at the top". Row: `note || wrapLine || need
-    || doing`.
+  - **THE SUMMARIZE BUTTON on the archive pop-up (Aug 2026, Sophie: "I want a
+    button on there that automatically asks the chat to give me like a quick
+    summary of what we accomplished in that chat, and if there were still any
+    questions that were open").** It cannot literally ask the chat — that is
+    the asleep problem above — so the SERVER reads the thread the app already
+    stores and writes the summary itself (`POST /wrapup/write`, Claude,
+    `force:true` because a deliberate tap re-writes). From her side the
+    difference is invisible: one tap inside the sheet, no trip back to the
+    Claude app, nothing to copy. It **writes as soon as it answers**, so
+    Cancel keeps the summary and archiving mid-write loses nothing — which is
+    why it is not a background job. The summary reads back in the sheet before
+    she commits. ~1-2¢ a tap.
+  - **THREE fields, and NONE is `sophieNote`** (`wrapLine` + `wrapUp` +
+    `wrapOpen` on the registry). Her own note still wins the row — a chat must
+    never overwrite a line she wrote, which is why this did not reuse her note
+    field even though she described it as "the note at the top". Row:
+    `note || wrapLine || need || doing`. **`wrapOpen` is what was still
+    unfinished or unanswered** — its own paragraph behind the expander, never
+    the row line. The unanswered questions fed to the model are DERIVED
+    (`buildQuestions` over the whole thread, `!q.answer`), not read out of the
+    digest, so the line names loose ends that provably exist; a chat writing
+    its own wrap-up can pass `open` too.
+  - **A freshly written wrap-up reaches an already-open phone on its next
+    Refresh**, not instantly: the page paints from its localStorage cache and
+    polls only for new MESSAGES (the launch block in `chats.html`). True of
+    every registry field, not just this one.
   - **There is NO rule that only she may write her note** — `POST /chatnote`
     has never had a permission check. It was only ever a style guideline
     (her length, her shape). Don't reintroduce one.
   - The expander is a **sibling** of the row, not a child: a row is a
     `<button>`, so a nested button is invalid and the tap would bubble into
     opening the chat.
-  - Tests: `node scripts/test-chats-wrapup.js`.
+  - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
+    the open half) and `node scripts/test-chats-archive-summary.js` (the button,
+    headless against the real page).
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1185,7 +1208,9 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   `sparkles`. Not Lucide's `sparkles`, not a wand, not a per-page variant: a
   button that spends a model call must read the same in every surface. Live
   copies: `ICON_STAR` in `scripts/gen-scratchpad.py` (the Story Room's beat
-  popup) and `ICONS.sparkles` in `promptlab.html` (the Playground's Generate).
+  popup), `ICONS.sparkles` in `promptlab.html` (the Playground's Generate), and
+  `GEN_STAR` in `chats.html` (the archive sheet's Summarize — named apart from
+  that file's own `STAR`, which is the five-pointed mark on a starred chat).
   Deliberate exceptions, because they say something the star can't: the pad's
   **wand** (draw every beat that's missing art — a bulk action) and the
   Playground's **pyramid** (low·low·medium, a picture of how many — an actual

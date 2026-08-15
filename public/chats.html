@@ -805,6 +805,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   font-family:'EBGaramond',Georgia,serif; font-size:17px;}
 .arcname:focus{outline:none; border-color:var(--ink2);}
 .acctabs.arctabs{margin:0 0 14px;}
+/* SUMMARIZE, inside the archive sheet (Aug 2026, Sophie: "a button on there
+   that automatically asks the chat to give me like a quick summary of what we
+   accomplished in that chat, and if there were still any questions that were
+   open"). It spends a model call, so it wears the house star like every other
+   generate control, and it is a full-width row rather than a third thing in the
+   Cancel/Archive row — that row is the decision, this is the work. */
+.arcsum{display:flex; align-items:center; gap:7px; width:100%; box-sizing:border-box;
+  margin:0 0 12px; padding:9px 10px; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.08em; text-transform:uppercase;}
+.arcsum svg{width:14px; height:14px; flex:none;}
+.arcsum[disabled]{opacity:.55; cursor:default;}
+/* The summary itself, read back in the sheet before she commits — same serif,
+   same left rule as the archive expander it is about to become. */
+.arcout{margin:0 0 12px; padding:0 2px 0 10px; border-left:2px solid var(--line);
+  font-size:13.5px; line-height:1.45; color:var(--ink2); white-space:pre-wrap;
+  max-height:38vh; overflow-y:auto;}
 /* Archive as words, beside the name — not a button, still tappable. */
 /* Vertical padding is the tap target, not decoration: as bare 11px text this
    was a 20px-tall thing to hit with a thumb. The row is already 40px, so this
@@ -3158,6 +3175,13 @@ var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-widt
 // A filled star in the bookmark's red — "a red star would be nice to match the
 // bookmark colour" (Sophie). Filled, not outlined: on a row it is a state, not
 // a control; the one place it IS a control is the thread header's button.
+// THE HOUSE GENERATE GLYPH — the hand-fitted sparkles star, an exact bezier
+// match of SF Symbols `sparkles` (Aug 2026 design rule: any control that
+// spends a model call wears THIS, not Lucide's sparkles and not a wand). It is
+// a VERBATIM copy of the `STAR` const in witch.html, which is the original —
+// move both together. Named apart from this file's own `STAR`, which is the
+// five-pointed mark on a starred chat and says something completely different.
+var GEN_STAR='<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg>';
 var STAR='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 2.6 2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>';
 var CHEV='<svg class="hb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
 // Repaint the gray state + both mark buttons on a tile/row from current state.
@@ -3364,13 +3388,18 @@ function paintWrapUps(el){
   [].forEach.call(el.querySelectorAll('.crow[data-chat]'), function(row){
     var r=chats[row.dataset.chat]||{};
     var full=String(r.wrapUp||'').trim();
+    // What was still open when it stopped (Aug 2026, her ask) — its own
+    // paragraph under the summary, because that is the half she opens this
+    // looking for. A chat that ended settled has none and shows none.
+    var open=String(r.wrapOpen||'').trim();
     // Nothing to expand when the row line already IS the whole thing.
-    if(!full || full===String(r.wrapLine||'').trim()) return;
+    if((!full || full===String(r.wrapLine||'').trim()) && !open) return;
     var tog=document.createElement('button');
     tog.className='wrapmore'; tog.textContent='⌄';
     tog.setAttribute('aria-label','What this chat was about');
     var body=document.createElement('div');
-    body.className='wrapfull'; body.hidden=true; body.textContent=full;
+    body.className='wrapfull'; body.hidden=true;
+    body.textContent=(full||'')+(open?(full?'\n\n':'')+'Still open: '+open:'');
     tog.onclick=function(e){
       e.stopPropagation();
       body.hidden=!body.hidden;
@@ -4632,6 +4661,21 @@ function askFirst(question, okLabel, cb){
 // "text boxes ship empty" rule is about examples). Leaving it alone renames
 // nothing; clearing it drops back to the chat's own slug.
 //
+// SUMMARIZE rides the same sheet (Aug 2026, Sophie: "it gives me a pop-up
+// saying I'm not sure I want to archive and I want a button on there that
+// automatically asks the chat to give me like a quick summary of what we
+// accomplished in that chat, and if there were still any questions that were
+// open"). The chat itself is ASLEEP by now and cannot be asked anything, so the
+// SERVER reads the thread the app already stores and writes the summary
+// (POST /wrapup/write, Claude — reader-facing words). From here that difference
+// is invisible: one tap, no trip back to the Claude app, nothing to copy.
+//
+// It writes as soon as it answers, independently of what she does next — so
+// tapping Archive while it is still thinking loses nothing, and neither does
+// Cancel: the summary lands on the chat either way. That is what keeps this off
+// the "never make anyone watch a spinner" rule — the sheet stays live, the
+// Archive button stays armed, and nothing is riding on her waiting for it.
+//
 // Hands back {ok, kind, title} — the caller does the writes, so a failed
 // rename can't take the archive down with it.
 function askArchive(name, cb){
@@ -4643,6 +4687,39 @@ function askArchive(name, cb){
   var inp=document.createElement('input');
   inp.type='text'; inp.className='arcname'; inp.value=current;
   inp.setAttribute('aria-label','What this chat is called');
+
+  // The summary reads back INTO the sheet, so she sees what is being filed
+  // under the chat before she commits to putting it away.
+  var out=document.createElement('div'); out.className='arcout'; out.hidden=true;
+  var sum=document.createElement('button');
+  sum.className='arcsum'; sum.type='button';
+  sum.innerHTML=GEN_STAR+'<span>Summarize</span>';
+  function say(t){ out.hidden=false; out.textContent=t; }
+  sum.onclick=function(e){
+    e.stopPropagation();
+    sum.disabled=true; sum.querySelector('span').textContent='Writing…';
+    // `force` because she asked for it deliberately: a chat that already has a
+    // wrap-up is exactly the one she is re-summarising, and the route's
+    // skip-if-present guard is there for the bulk backfill, not for a tap.
+    api('/api/chatfeed/wrapup/write',{method:'POST',body:JSON.stringify({chat:name, force:true})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(!d.ok||!(d.wrapLine||d.wrapUp)) throw new Error(d.error||'nothing came back');
+        chats[name]=chats[name]||{};
+        chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
+        chats[name].wrapOpen=d.wrapOpen||'';
+        // Open questions read as their own paragraph, not a clause buried in
+        // the summary — they are the half she goes looking for.
+        say((d.wrapUp||d.wrapLine)+(d.wrapOpen?'\n\nStill open: '+d.wrapOpen:''));
+        sum.querySelector('span').textContent='Rewrite';
+        sum.disabled=false;
+      })
+      .catch(function(err){
+        say('Couldn’t write it — '+(err&&err.message||'try again'));
+        sum.querySelector('span').textContent='Summarize';
+        sum.disabled=false;
+      });
+  };
 
   var tabs=document.createElement('div');
   tabs.className='acctabs arctabs'; tabs.dataset.on='0';
@@ -4672,7 +4749,11 @@ function askArchive(name, cb){
   wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
   box.onclick=function(e){ e.stopPropagation(); };
   row.appendChild(no); row.appendChild(yes);
-  box.appendChild(inp); box.appendChild(tabs); box.appendChild(q); box.appendChild(row);
+  // In the order she meets them: what it's called, which pile, the summary it
+  // takes with it, then the decision.
+  box.appendChild(inp); box.appendChild(tabs);
+  box.appendChild(sum); box.appendChild(out);
+  box.appendChild(q); box.appendChild(row);
   wrap.appendChild(box);
   document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }

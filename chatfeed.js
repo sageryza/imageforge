@@ -869,6 +869,15 @@ router.get('/go', (req, res) => {
 //   3. failing both, POST /wrapup/write reads the thread and writes one with
 //      Claude, which is the only path that can rescue a chat that already died.
 //
+// THE SUMMARIZE BUTTON on the archive sheet is (3), on demand (Aug 2026,
+// Sophie: "a button on there that automatically asks the chat to give me like a
+// quick summary of what we accomplished in that chat, and if there were still
+// any questions that were open"). It cannot literally ask the chat — the
+// session is gone — so the SERVER reads the thread the app already stores and
+// writes the summary itself. From her side the difference is invisible: one tap
+// inside the pop-up she is already standing in, no going back to Claude, no
+// copying text between apps. `wrapOpen` is the loose-ends half of her ask.
+//
 // TWO FIELDS, because she asked for both shapes: `wrapLine` is the ONE line the
 // row shows (the archive stays scannable) and `wrapUp` is the full thing behind
 // a tap. Her own `sophieNote` still wins the row — a chat must never overwrite
@@ -919,20 +928,24 @@ router.post('/archive', async (req, res) => {
 // Sending only `text` derives the line from its first sentence.
 router.post('/wrapup', async (req, res) => {
   try {
-    const { chat, session, line, text } = req.body || {};
+    const { chat, session, line, text, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const full = wrapTextOf(text);
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
+    const still = wrapLineOf(open);
     if (!one && !full) return res.status(400).json({ error: 'line or text required' });
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapUp: full || del,
+      // What was still open when it stopped — the same field the Summarize
+      // button fills. A chat that knows it left something hanging says so here.
+      wrapOpen: still || del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
-    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full });
+    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full, wrapOpen: still });
   } catch (err) { fail(res, err); }
 });
 
@@ -945,10 +958,11 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "..."}
+Return JSON: {"line": "...", "text": "...", "open": "..."}
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
 "text": 2-5 short sentences. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
 
@@ -982,22 +996,40 @@ router.post('/wrapup/write', async (req, res) => {
     const tail = msgs.length > 3 ? msgs.slice(-6).map(cut) : [];
     const digest = (head.join('\n\n') + (tail.length ? '\n\n[…]\n\n' + tail.join('\n\n') : ''))
       .slice(0, 9000);
+    // WHAT WAS STILL OPEN (Aug 2026, Sophie: "a quick summary of what we
+    // accomplished in that chat, and if there were still any questions that
+    // were open"). Her unanswered questions are DERIVED, not read out of the
+    // digest — `buildQuestions` already pairs every question she asked with the
+    // reply that followed it, over the WHOLE thread, so this reaches the long
+    // middle the digest deliberately drops. Handing them over as facts is also
+    // what keeps the `open` line honest: the model is naming questions that
+    // provably went unanswered instead of inventing plausible loose ends.
+    const unanswered = buildQuestions(msgs).filter((q) => !q.answer)
+      .slice(0, 5).map((q) => '- ' + String(q.question).replace(/\s+/g, ' ').slice(0, 200));
     const out = await anthropic.chatJSON({
       system: WRAP_SYS,
       user: 'Chat name: ' + (cur.displayName || target) + '\nMessages: ' + msgs.length
+        + (unanswered.length
+          ? '\n\nQuestions Sophie asked that nobody ever answered:\n' + unanswered.join('\n')
+          : '\n\nEvery question she asked in here got a reply.')
         + '\n\n' + digest,
-      maxTokens: 500,
+      maxTokens: 600,
     });
     const full = wrapTextOf(out && out.text);
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
+    const open = wrapLineOf(out && out.open);
     if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
     await regRef(target).set({
       wrapLine: one,
       wrapUp: full,
+      // Cleared rather than left behind: a rewrite that finds nothing open must
+      // not leave the last run's loose end sitting under the summary.
+      wrapOpen: open || admin.firestore.FieldValue.delete(),
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, messages: msgs.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapOpen: open,
+      messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 
