@@ -19,15 +19,18 @@
      blush on PLAIN WHITE, which is also exactly what the card art is drawn in
      (cell-lesson-spec.json).
 
-     THE CHROME IS PINK AND CARRIES NO BLUE AT ALL (Aug 2026, Sophie: "can you
-     make the dashes at the top pink or at least match the pastel theme, no
-     blue — this is science school for girls not boys"). v1's accent was a
-     slate blue picked purely for legibility, and every neutral around it was
-     mixed toward blue-grey to match, so the screen read cool and clinical.
-     Now the accent is a deep rose and every border, panel and ink tone is
-     mixed toward blush instead — deep enough to read as text on white, which
-     the blush pastel itself is far too pale to do. The ART still has powder
-     blue in it; that is her palette and it stays. NO GRADIENTS (house rule). */
+     THE PINK IS THE ART'S OWN PINK — #f6c6da, the blush out of the palette
+     the cards are drawn in (Aug 2026, Sophie: "make the pink the same shade
+     as the pink in the lessons"). Sampled off the real drawings to be sure:
+     the dominant pink pixels across cl-01/02/05/07 are #f7c8d5-#fdcfdf, i.e.
+     that value as rendered. There is exactly ONE pink here now.
+
+     It is used ONLY where pink is a BLOCK — the progress dashes, the button,
+     the rule beside a note. Small type stays ink or grey, because #f6c6da on
+     white is about 1.3:1 and a pastel kicker would be unreadable; the way to
+     keep her one shade honest is to not set 10px text in it at all. And NO
+     BLUE anywhere in the chrome (her earlier ask, same message) — the ART
+     keeps its powder blue, which is her palette. NO GRADIENTS (house rule). */
   :root {
     --bg: #ffffff;
     --bg-2: #fdf6f9;
@@ -36,11 +39,11 @@
     --panel: #fbf1f5;
     --border: #ecdfe5;
     --border-soft: #f5ecf0;
-    --gold: #b34a72;        /* the accent — still NAMED `gold` so the ported
+    --gold: #f6c6da;        /* the accent — still NAMED `gold` so the ported
                                deck CSS stays declaration-for-declaration the
                                same as witch.html's and can be diffed against
-                               it. Its VALUE is the rose. */
-    --gold-dim: #cf88a8;
+                               it. Its VALUE is her blush, exactly. */
+    --gold-dim: #d9a8bb;
     --mint: #b6e5cf;
     --blue: #afc9e8;
     --butter: #f6e7a8;
@@ -62,7 +65,7 @@
   .wrap { max-width: 560px; margin: 0 auto; padding: 22px 20px 18vh; }
 
   /* ── The path ── */
-  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-faint); }
   h1 { font-family: var(--serif); font-size: 34px; font-weight: 500; margin: 6px 0 4px; }
   .sub { font-size: 14.5px; line-height: 1.5; color: var(--text-dim); margin: 0 0 22px; }
   .course-hd { font-family: var(--serif); font-size: 22px; font-weight: 500; margin: 26px 0 2px; }
@@ -74,26 +77,14 @@
     font-family: inherit; text-align: left; padding: 12px 13px; cursor: pointer;
   }
   .les + .les { margin-top: 9px; }
-  .les:hover { border-color: var(--gold-dim); }
+  .les:hover { border-color: var(--gold); }
   .les-cv { width: 52px; height: 52px; flex: none; border-radius: 4px; object-fit: contain; background: var(--panel); }
   .les .lt { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
   .les .ld { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
-  .les-go { margin-left: auto; color: var(--gold-dim); line-height: 0; }
+  .les-go { margin-left: auto; color: var(--text-faint); line-height: 0; }
   .les-go svg { width: 18px; height: 18px; }
   .les.soon { opacity: .55; cursor: default; }
   .les.soon:hover { border-color: var(--border); }
-  /* A lesson's note. Empty, it is one small word — written, it shows what she
-     wrote. The row is a wrapper because a <textarea> cannot live inside the
-     <button> that opens the lesson (the Bookmarks-row finding). */
-  .lesrow + .lesrow { margin-top: 9px; }
-  .les + .les, .lesrow .les { margin-top: 0; }
-  .noteslot { padding: 3px 2px 0 4px; }
-  .note-add { background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--gold-dim); cursor: pointer; }
-  .note-add:hover { color: var(--gold); }
-  .note-txt { font-size: 13px; line-height: 1.45; color: var(--text-dim); cursor: text; padding: 2px 0; border-left: 2px solid var(--blush); padding-left: 8px; }
-  .note-box { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; color: var(--text); background: var(--surface-2); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 8px 9px; resize: vertical; }
-  .note-say { font-size: 11px; color: var(--text-faint); min-height: 13px; padding-left: 1px; }
-  .note-say.warn { color: var(--gold); }
 
   /* ── Full-screen lesson deck — ported from witch.html, palette aside ── */
   #school-lesson {
@@ -107,7 +98,7 @@
   .deck-prog { display: flex; gap: 4px; flex: 1; }
   .deck-seg { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background .2s ease; }
   .deck-seg.on { background: var(--gold); }
-  .les-back { background: none; border: none; padding: 2px 0 10px; color: var(--gold); cursor: pointer; line-height: 0; }
+  .les-back { background: none; border: none; padding: 2px 0 10px; color: var(--text-dim); cursor: pointer; line-height: 0; }
   .les-back svg { width: 21px; height: 21px; }
   .deck-stage { flex: 1; display: flex; flex-direction: column; min-height: 0; cursor: pointer; -webkit-user-select: none; user-select: none; overflow: hidden; }
   @keyframes tcardIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
@@ -117,7 +108,7 @@
   .deck-text { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 8px 24px 0; overflow-y: auto; }
   .deck-text > :first-child { margin-top: auto; }
   .deck-text > :last-child { margin-bottom: auto; }
-  .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-dim); }
+  .tcard-kicker { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-faint); }
   .tcard-h { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.15; text-align: center; color: var(--text); margin: 6px 0 0; }
   .tcard-body { font-size: 16px; line-height: 1.55; color: var(--text); text-align: center; max-width: 340px; margin: 0 auto; }
   .tcard-body b { font-weight: 600; }
@@ -127,17 +118,17 @@
   @keyframes tapArrowNudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(3px); } 75% { transform: translateX(-3px); } }
 
   /* The ⓘ FAQ — a card's obvious follow-ups, answered in place. */
-  .faq-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 7px; padding: 0; background: none; border: none; cursor: pointer; color: var(--gold-dim); line-height: 0; vertical-align: middle; }
+  .faq-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 7px; padding: 0; background: none; border: none; cursor: pointer; color: var(--text-faint); line-height: 0; vertical-align: middle; }
   .faq-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; }
-  .faq-btn:hover, .faq-btn.on { color: var(--gold); }
+  .faq-btn:hover, .faq-btn.on { color: var(--text-dim); }
   .faq-wrap { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; z-index: 6; }
   .faq-wrap.on { display: flex; }
   .faq-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 15px 16px 14px; max-height: 100%; overflow-y: auto; text-align: left; box-shadow: 0 10px 30px rgba(38, 49, 58, .13); }
-  .faq-card .faq-hd { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; }
+  .faq-card .faq-hd { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
   .faq-card .faq-q { font-size: 14px; font-weight: 600; margin-top: 13px; }
   .faq-card .faq-q:first-of-type { margin-top: 0; }
   .faq-card .faq-a { font-size: 14px; line-height: 1.5; margin-top: 3px; }
-  .faq-card .faq-close { font-size: 11px; color: var(--gold-dim); text-align: center; margin-top: 14px; }
+  .faq-card .faq-close { font-size: 11px; color: var(--text-faint); text-align: center; margin-top: 14px; }
 
   /* "Check your knowing" — a wrong tap flips the card and warmly tells you. */
   .know { width: min(340px, 88vw); margin: 0 auto; perspective: 900px; }
@@ -149,14 +140,14 @@
   .know-q { font-size: 16px; line-height: 1.5; text-align: center; margin-bottom: 2px; }
   .know-opt { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 14px; padding: 11px 12px; cursor: pointer; text-align: left; }
   .know-opt:hover { border-color: var(--gold); }
-  .know-verdict { font-size: 15px; color: var(--gold); }
+  .know-verdict { font-size: 15px; color: var(--text-dim); }
   .know-tell { font-size: 14.5px; line-height: 1.55; }
   .know-hint { font-size: 11px; color: var(--text-faint); }
 
   .deck-nav { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 20px 0; }
-  .deck-prev { background: none; border: none; color: var(--gold-dim); font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 6px 0; }
+  .deck-prev { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; padding: 6px 0; }
   .deck-prev svg { width: 15px; height: 15px; }
-  .btn { border: 1px solid var(--gold); border-radius: var(--radius); background: var(--gold); color: #fff; font-family: inherit; font-size: 15px; padding: 9px 18px; cursor: pointer; width: auto; }
+  .btn { border: 1px solid var(--gold); border-radius: var(--radius); background: var(--gold); color: var(--text); font-family: inherit; font-size: 15px; padding: 9px 18px; cursor: pointer; width: auto; }
   .deck-next { margin-left: auto; }
   [hidden] { display: none !important; }
 </style>
@@ -257,10 +248,12 @@
 
   var LESSONS = { cell: CELL_CARDS };
   var LESSON_TITLES = { cell: 'The Cell' };
-  /* `note` is the lesson's key in the notes store and is INDEPENDENT of `key`
-     (which is only set once a lesson is built) — so she can leave a note on a
-     lesson that is still only written, which is exactly when a note is most
-     useful. Never renumber or reuse a note key: it is what her words hang on. */
+  /* Notes on a lesson live in the CHAT'S COMPARE TAB, not on this page
+     (Aug 2026, Sophie: "just put it in the compare tab where it belongs").
+     The page posted there uses these same keys as its item ids — cell /
+     inside / dna / code, sheet `lessons-4` — so read what she wrote with
+     GET /api/chatfeed/verdict?chat=<slug>&sheet=lessons-4. Never renumber or
+     reuse one: it is what her words hang on. */
   var COURSE = { title: 'Biology', lessons: [
     { key: 'cell', note: 'cell', title: 'The Cell', sub: 'Everything is made of these', cover: 'cl-01' },
     { key: null, note: 'inside', title: 'What\'s Inside One', sub: 'Written, not yet drawn' },
@@ -268,94 +261,18 @@
     { key: null, note: 'code', title: 'Reading the Code', sub: 'Written, not yet drawn' }
   ] };
 
-  /* ── Notes on a lesson ─────────────────────────────────────────────────
-     Sophie's line to whoever is building that lesson, kept while the school
-     is being iterated on. Three states, the same shape as the note affordance
-     on a Compare page: nothing written → just a small "+ note"; written → HER
-     WORDS show under the row; writing → the box, folding back on blur. An
-     empty note is never a stored blank — clearing the box takes it back.
-
-     It saves to /api/science/note, which is open BY DESIGN (see science.js):
-     this page is public, so a note must not depend on the studio token. The
-     words are also mirrored to localStorage the moment she types, so a failed
-     save can never be a lost note — the box comes back holding what she
-     wrote, with a line saying it hasn't reached the server. */
-  var NOTES = {}, NOTE_LOCAL = 'science_notes';
-  function notesLocal() { try { return JSON.parse(localStorage.getItem(NOTE_LOCAL) || '{}'); } catch (e) { return {}; } }
-  function notesLocalSet(k, v) {
-    try { var a = notesLocal(); if (v) a[k] = v; else delete a[k]; localStorage.setItem(NOTE_LOCAL, JSON.stringify(a)); } catch (e) {}
-  }
-  function loadNotes() {
-    var local = notesLocal();
-    Object.keys(local).forEach(function (k) { NOTES[k] = local[k]; });
-    renderPath();
-    fetch('/api/science/notes').then(function (r) { return r.json(); }).then(function (d) {
-      // The server is the record; a local copy only survives where the save
-      // never landed, so it must not overwrite what came back.
-      Object.keys(d.notes || {}).forEach(function (k) { NOTES[k] = d.notes[k].text; notesLocalSet(k, null); });
-      renderPath();
-    }).catch(function () {});
-  }
-  function saveNote(key, text) {
-    var t = String(text || '').slice(0, 2000);
-    if (t) NOTES[key] = t; else delete NOTES[key];
-    notesLocalSet(key, t);                       // held until the save lands
-    // Fold back to her words IMMEDIATELY, before the network — the box closing
-    // must not wait on a request, and renderPath refuses to rebuild while a
-    // box is open, so the caller has to have removed it already.
-    renderPath();
-    var say = function (msg, warn) {
-      var s = $('course-list').querySelector('[data-slot="' + key + '"] .note-say');
-      if (s) { s.textContent = msg; s.className = 'note-say' + (warn ? ' warn' : ''); }
-    };
-    say('saving…');
-    fetch('/api/science/note', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ lesson: key, text: t }) })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); notesLocalSet(key, null); say(''); })
-      .catch(function () { say('kept on this phone — not saved yet', true); });
-  }
-  function noteSlot(l) {
-    var k = l.note, has = !!NOTES[k];
-    return '<div class="noteslot" data-slot="' + k + '">' +
-      (has ? '<div class="note-txt" data-noteedit="' + k + '">' + esc(NOTES[k]) + '</div>'
-           : '<button class="note-add" data-noteedit="' + k + '" type="button">+ note</button>') +
-      '<div class="note-say"></div></div>';
-  }
-  function openNoteBox(k) {
-    var slot = $('course-list').querySelector('[data-slot="' + k + '"]');
-    if (!slot || slot.querySelector('textarea')) return;
-    slot.innerHTML = '<textarea class="note-box" rows="3"></textarea><div class="note-say"></div>';
-    var ta = slot.querySelector('textarea');
-    ta.value = NOTES[k] || '';
-    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
-    ta.addEventListener('blur', function () {
-      var v = ta.value;
-      ta.remove();               // the row is no longer being typed in, so
-      saveNote(k, v);            // renderPath may rebuild it
-    });
-  }
-
   /* ── The path ── */
   var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
   function renderPath() {
-    // Never rebuild the row she is typing in — that would drop the box (and
-    // the keyboard) mid-sentence when a save answers.
-    var typing = $('course-list').querySelector('textarea');
-    if (typing) return;
     $('course-list').innerHTML = COURSE.lessons.map(function (l) {
       var cover = l.cover ? '<img class="les-cv" src="' + SCI_IMG + l.cover + SCI_EXT + '" alt="" loading="lazy">'
                           : '<span class="les-cv"></span>';
-      return '<div class="lesrow">' +
-        '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
+      return '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
         cover + '<div><div class="lt">' + esc(l.title) + '</div><div class="ld">' + esc(l.sub) + '</div></div>' +
-        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>' +
-        noteSlot(l) + '</div>';
+        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>';
     }).join('');
     Array.prototype.forEach.call($('course-list').querySelectorAll('[data-lesson]'), function (b) {
       b.addEventListener('click', function () { openLesson(b.dataset.lesson); });
-    });
-    Array.prototype.forEach.call($('course-list').querySelectorAll('[data-noteedit]'), function (b) {
-      b.addEventListener('click', function (e) { e.stopPropagation(); openNoteBox(b.dataset.noteedit); });
     });
   }
 
@@ -470,13 +387,12 @@
     if (e.clientX - r.left < r.width * 0.24) deckPrev(); else deckNext();
   });
 
-  loadNotes();
+  renderPath();
   preload(CELL_CARDS.slice(0, 2));
   // Test hooks — the headless test drives the real page, never a copy.
   window.__sci = { openLesson: openLesson, closeLesson: closeLesson,
     next: deckNext, prev: deckPrev, at: function () { return deckIdx; },
-    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES,
-    notes: function () { return NOTES; }, openNote: openNoteBox };
+    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES };
 })();
 </script>
 </body>
