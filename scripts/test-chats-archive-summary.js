@@ -54,8 +54,6 @@ for (let i = 0; i < 6; i++) {
 
 const wrote = [];        // every /wrapup/write body the page sent
 const archived = [];     // every /archive body
-const renamed = [];      // every /rename body
-const kinds = [];        // every /archive-kind body
 let failNext = false;    // flip to make the next write fail
 
 const server = http.createServer((req, res) => {
@@ -75,8 +73,6 @@ const server = http.createServer((req, res) => {
       messages: MSGS.length, unanswered: 1 });
   });
   if (p === '/api/chatfeed/archive') return read((b) => { archived.push(b); json({ ok: true, archived: !!b.archived }); });
-  if (p === '/api/chatfeed/rename') return read((b) => { renamed.push(b); json({ ok: true }); });
-  if (p === '/api/chatfeed/archive-kind') return read((b) => { kinds.push(b); json({ ok: true }); });
   if (p === '/api/chatfeed/thread') return json({ messages: MSGS });
   if (p === '/api/chatfeed') {
     return json({ build: 't', settings: {}, truncated: [], delta: false, chats: CHATS, messages: MSGS });
@@ -163,18 +159,17 @@ const server = http.createServer((req, res) => {
   ok(wrote.length === 1, 'no second write went out behind her');
 
   // ---- 4: the sheet still does its old job --------------------------------
+  // (The name box and the BUILT / OTHER piles came OUT of this sheet in the Aug
+  // 2026 v3 pass — her tags replaced them, and renaming went back to being the
+  // pencil in the thread header only. scripts/test-chats-archive-tags.js owns
+  // what stands there now; this one stays on the Summarize button.)
   await openSheet();
-  await page.waitForSelector('.askwrap .arcsum', { timeout: 4000 });
-  ok(await page.$$eval('.askwrap .arcname', (n) => n.length) === 1, 'the name box is still there');
-  ok(await page.$$eval('.askwrap .arctabs .acctab', (n) => n.length) === 2, 'and the two pile tabs');
-  await page.fill('.askwrap .arcname', 'Archive summary');
-  await page.click('.askwrap .arctabs .acctab:nth-child(2)');
+  ok(await page.$$eval('.askwrap .arctags .catchip', (n) => n.length) > 0,
+     'the tag row stands beside it');
   await page.click('.askwrap .askrow button.go');
   await page.waitForTimeout(500);
   ok(archived.length === 1 && archived[0].chat === 'chat-a' && archived[0].archived === true,
      'Archive still archives');
-  ok(renamed.length === 1 && renamed[0].name === 'Archive summary', 'the rename still lands');
-  ok(kinds.length === 1 && kinds[0].kind === 'other', 'and the pile choice still lands');
 
   // ---- 6: a failed write says so ------------------------------------------
   failNext = true;

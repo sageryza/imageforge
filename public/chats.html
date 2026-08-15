@@ -813,17 +813,31 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   text-transform:uppercase; border-radius:6px; padding:9px 14px; cursor:pointer; border:1px solid var(--line);
   background:var(--barbg); color:var(--ink2); margin:0;}
 .askrow button.go{background:var(--ink); border-color:var(--ink); color:var(--paper);}
-/* The archive sheet's two extras (Aug 2026, Sophie): what it saves under, and
-   which pile. The name box is the serif, because it holds the chat's NAME and
-   that is prose, not a label; the tab row is the same hairline pattern as the
-   archive she is about to put it in, so the choice looks like its destination.
-   It sits INSIDE a 320px sheet, nowhere near the pill, so it needs no corner
-   reserve. */
-.arcname{width:100%; box-sizing:border-box; margin:0 0 12px; padding:8px 10px;
-  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
-  font-family:'EBGaramond',Georgia,serif; font-size:17px;}
-.arcname:focus{outline:none; border-color:var(--ink2);}
-.acctabs.arctabs{margin:0 0 14px;}
+/* The question is the sheet's HEADER (Aug 2026, Sophie: "archive this chat
+   should be at the top, that's the header"). Everything under it is what she
+   does on the way past. */
+.askbox p.archq{margin:0 0 14px;}
+/* THE MARKS AND THE TAGS (Aug 2026, Sophie: "rather than having the built/other
+   tabs I think it would be better to have actual Tags … a bookmark and a star
+   on the left that will be filled in if it's already bookmarked or star").
+   One wrapping row: the two marks, a hairline divider, then the words. The
+   chips are the house `.catchip` the home screen already uses, so a tag reads
+   the same here as it does on the filter row it becomes. */
+.arctags{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 12px;}
+.arctags .arcmark{display:inline-flex; align-items:center; justify-content:center;
+  width:30px; height:30px; padding:0; border:1.5px solid var(--line); border-radius:6px;
+  background:transparent; color:var(--ink2); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.arctags .arcmark svg{width:15px; height:15px; display:block;}
+/* Filled when it is already set — her word for it, and the only state the row
+   has to say out loud. */
+.arctags .arcmark.on{border-color:var(--chg); color:var(--chg);
+  background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+.arctags .arcdiv{width:1px; align-self:stretch; background:var(--line); margin:0 2px;}
+/* The same chips again as the archive's FILTER row (her ask: "those tags become
+   a list of options at the top of the archive"). `.catrow` is written to sit
+   inside the tool row, so standalone it needs its own bottom margin and must
+   not stretch. */
+.arctagrow{flex:none; margin:0 0 .8em;}
 /* SUMMARIZE, inside the archive sheet (Aug 2026, Sophie: "a button on there
    that automatically asks the chat to give me like a quick summary of what we
    accomplished in that chat, and if there were still any questions that were
@@ -2866,14 +2880,39 @@ function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
 // or shown her an empty left pile and read as the archive having been wiped.
 // Only the throwaways carry a mark, which is also the smaller judgement.
 //
-// NEVER PERSISTED — every page load opens the archive on BUILT, like every
-// other filter here: a sticky OTHER would open the archive one morning showing
-// only the junk. Not a third state either — a chat is in one pile or the other.
-var ARCH_TABS=[['built','Built'],['other','Other']];
-var archTab='built';
-function chatArch(name){
-  return (chats[name]&&chats[name].archiveKind)==='other' ? 'other' : 'built';
+// ---- …AND THEN THE PILES BECAME TAGS (Aug 2026, Sophie) --------------------
+// "Rather than having the built/other tabs I think it would be better to have
+// actual Tags … then those tags become a list of options at the top of the
+// archive that I can click on and filter by." A pile was ONE binary judgement
+// about how well a chat went; a tag says what it WAS, a chat can carry several,
+// and the row at the top of the archive is how she finds one again.
+//
+// THE VOCABULARY IS FIXED and matches `TAGS` in chatfeed.js — a typed tag is a
+// typo away from its own orphan pile, and the point is that the same kind of
+// work lands under the same word every time. Her five first, in her words, then
+// five that cover what this app actually spends its days on. A test pins the
+// two copies equal.
+var TAG_LIST=['bug fix','new feature','built','story','quick question',
+  'images','film','audio','writing','research'];
+// A chat with no `tags` of its own inherits ONE from the piles it used to live
+// in: the old BUILT side (which was the absence of a mark) reads as `built`.
+// That is what puts the 97 chats already in the archive under a tag on the day
+// this ships, with no backfill and nothing destroyed — `archiveKind` is left on
+// the registry untouched, exactly as the piles wrote it.
+// It is a MIGRATION, not a default: only a chat that is already ARCHIVED
+// inherits one. A live chat opening the sheet for the first time must show
+// nothing picked, or every chat she archives arrives pre-tagged with a word
+// she never chose.
+function chatTags(name){
+  var r=chats[name]||{};
+  if(Array.isArray(r.tags)) return r.tags.slice();
+  if(!r.archived) return [];
+  return r.archiveKind==='other' ? [] : ['built'];
 }
+// Session-only, like every other filter here, and '' means everything: a sticky
+// tag would open the archive one morning showing a slice she has no memory of
+// choosing.
+var archTag='';
 // ---- ACCOUNT 1 / ACCOUNT 2 (Aug 2026, Sophie) ------------------------------
 // The home shows ONE account at a time, switched by the witch app's
 // Description/Reviews tab pair above the list. Unlike a category chip (which
@@ -3469,10 +3508,10 @@ window.__setTint=function(v){ TINT=!!v; };
 // boundary without building a whole feed either side of it.
 window.__setMoreOpen=function(v){ moreOpen=!!v; renderHome(); };
 window.__chatStale=function(n,last){ return chatStale(n,last); };
-// Test hook: the archive's pile tabs (the page script is an IIFE, so archTab
-// is not reachable from outside otherwise).
-window.__setArchTab=function(v){ archTab = (v==='other'?'other':'built'); renderHome(); };
-window.__archTab=function(){ return archTab; };
+// Test hook: the archive's tag filter (the page script is an IIFE, so archTag
+// is otherwise unreachable from a test).
+window.__setArchTag=function(v){ archTag=String(v||''); renderHome(); };
+window.__archTag=function(){ return archTag; };
 function mkCheck(name,last,container){
   var ck=document.createElement('button'); ck.className='ckbtn'+(chatDone(name,last)?' on':'');
   ck.innerHTML=CK; ck.setAttribute('aria-label','Mark answered');
@@ -3600,32 +3639,37 @@ function renderTrash(el){
   });
 }
 
-// THE ARCHIVE'S TWO PILES (Aug 2026, Sophie). The hairline tab row, then that
-// pile's rows. The tabs are ALWAYS drawn, even when one side is empty: the
-// archive is a place with two halves, and hiding the row until something is
-// marked would leave her no way to find the mark she is looking for.
+// THE ARCHIVE'S TAG ROW (Aug 2026, Sophie: "those tags become a list of options
+// at the top of the archive that I can click on and filter by"). It replaced
+// the BUILT / OTHER hairline tabs — see chatTags for what happened to the piles.
+//
+// ONLY TAGS THAT ARE ACTUALLY IN THERE are offered, in the vocabulary's order.
+// The full list is ten words and this is a phone: a row of filters that mostly
+// find nothing is a row she has to read past every time. ALL leads, and it is
+// the landing state.
 //
 // No count badges here on purpose. The account tabs carry a red one because it
 // means "something answered you over there"; an archived chat answering is not
 // that, and she asked for the plain totals off the category chips already.
 function renderArchive(el,g,arch){
-  var tabs=document.createElement('div');
-  tabs.className='acctabs archtabs';
-  tabs.dataset.on=String(ARCH_TABS.map(function(t){return t[0];}).indexOf(archTab));
-  ARCH_TABS.forEach(function(t){
-    var b=document.createElement('button');
-    b.className='acctab'+(archTab===t[0]?' on':'');
-    b.textContent=t[1];
-    b.onclick=function(){ archTab=t[0]; renderHome(); window.scrollTo(0,0); };
-    tabs.appendChild(b);
+  var live=TAG_LIST.filter(function(t){
+    return arch.some(function(n){ return chatTags(n).indexOf(t)>-1; });
   });
-  el.appendChild(tabs);
-  var pile=arch.filter(function(n){ return chatArch(n)===archTab; });
+  if(live.length){
+    var row=document.createElement('div'); row.className='catrow arctagrow';
+    [''].concat(live).forEach(function(t){
+      var b=document.createElement('button');
+      b.className='catchip'+(archTag===t?' on':'');
+      b.textContent=t||'All';
+      b.onclick=function(){ archTag=t; renderHome(); window.scrollTo(0,0); };
+      row.appendChild(b);
+    });
+    el.appendChild(row);
+  }
+  var pile=archTag ? arch.filter(function(n){ return chatTags(n).indexOf(archTag)>-1; }) : arch;
   if(!pile.length){
     var s=document.createElement('div'); s.className='state';
-    s.textContent = archTab==='other'
-      ? 'Nothing in here yet — tap the ↓ on an archived chat to move it across.'
-      : 'Nothing built on this side.';
+    s.textContent = archTag ? 'Nothing tagged ' + archTag + '.' : 'Nothing archived.';
     el.appendChild(s); return;
   }
   if(view==='list') renderList(el,g,pile); else renderTiles(el,g,pile);
@@ -3661,30 +3705,11 @@ function paintWrapUps(el){
     row.insertAdjacentElement('afterend', tog);
   });
 }
-// Move ONE chat across, from its own row — the Compare list's ↓ / ↺ idiom, so
-// "send it to the other pile / bring it back" reads the same in both places.
-function mkArchKind(name){
-  var other=chatArch(name)==='other';
-  var b=document.createElement('button'); b.className='archbtn';
-  b.textContent = other ? '↺' : '↓';
-  b.setAttribute('aria-label', other ? 'Move back to Built' : 'Move to Other');
-  b.title = b.getAttribute('aria-label');
-  b.onclick=function(e){ e.stopPropagation(); moveArch(name,!other); };
-  return b;
-}
-// Optimistic with rollback and a full repaint, like toggleHide: the row leaves
-// the pile she is looking at, so there is nothing to patch in place.
-function moveArch(name,toOther){
-  var prev=(chats[name]&&chats[name].archiveKind)||null;
-  chats[name]=chats[name]||{};
-  chats[name].archiveKind = toOther ? 'other' : null;
-  renderHome();
-  toast(toOther? 'Moved to Other' : 'Moved to Built');
-  api('/api/chatfeed/archive-kind',{method:'POST',
-      body:JSON.stringify({chat:name, kind: toOther?'other':'built'})})
-    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-    .catch(function(){ chats[name].archiveKind=prev; renderHome(); toast('Couldn’t save that'); });
-}
+// The archive row used to carry a ↓ that moved a chat between the BUILT and
+// OTHER piles. The piles are gone (see chatTags), so the button went with them:
+// a chat is tagged on the way into the archive, from the sheet. The hide ⊖ does
+// not take its place — it is a dead control in here and always was, because the
+// hidden pile is derived from the LIVE list, which excludes every archived chat.
 
 function renderList(el,g,names){
   var wrap=document.createElement('div'); wrap.className='clist'; el.appendChild(wrap);
@@ -3708,12 +3733,10 @@ function renderList(el,g,names){
       +statusLinesHtml(name)+'</span>'
       +(unread?'<span class="cr-dot"></span>':'')
       +'<span class="cr-time">'+(last? ago(last.created):'')+'</span>';
-    // In the ARCHIVE the row's button moves the chat between the two piles
-    // instead of hiding it. The hide ⊖ is a dead control there and always was:
-    // the hidden pile is derived from `live`, which excludes every archived
-    // chat, so hiding one could never put it behind the red bar. One button on
-    // the row either way — two would make the wrong one the easy tap.
-    row.appendChild(homeView==='archive' ? mkArchKind(name) : mkHide(name,last));
+    // The ARCHIVE's rows carry no button at all now: hiding is dead in there
+    // (the hidden pile is derived from the LIVE list) and the pile-mover went
+    // with the piles.
+    if(homeView!=='archive') row.appendChild(mkHide(name,last));
     if(selMode){ row.classList.toggle('picked', !!picked[name]); row.appendChild(mkPick(name)); }
     row.onclick=function(){ if(selMode) togglePick(name,row); else openChat(name); };
     wrap.appendChild(row);
@@ -4032,27 +4055,10 @@ function openChat(name, keepScroll, focusId, noFetch){
       // Archiving asks which pile and what to call it (Aug 2026, Sophie);
       // taking one OUT is a single gesture and asks nothing.
       if(!isArch){
-        askArchive(name, function(r){
-          if(!r.ok) return;
-          // The rename and the pile are filed BEFORE the archive, so the chat
-          // lands in the archive already named and already in its pile —
-          // never sitting on BUILT for a moment under its old name. Each is
-          // independent: a failed rename must not stop the archive.
-          if(r.title!==null){
-            api('/api/chatfeed/rename',{method:'POST',body:JSON.stringify({chat:name, name:r.title})})
-              .then(function(x){return x.json()})
-              .then(function(d){ if(d.ok){ chats[name]=chats[name]||{}; chats[name].displayName=r.title||null; } })
-              .catch(function(){ toast('Couldn’t rename it'); });
-          }
-          if(r.kind==='other'){
-            chats[name]=chats[name]||{}; chats[name].archiveKind='other';
-            api('/api/chatfeed/archive-kind',{method:'POST',body:JSON.stringify({chat:name, kind:'other'})})
-              .then(function(x){return x.json()})
-              .then(function(d){ if(!d.ok) throw 0; })
-              .catch(function(){ chats[name].archiveKind=null; toast('Couldn’t file it under Other'); });
-          }
-          doArchive();
-        });
+        // The sheet files its own marks, tags and summary as she taps them, so
+        // there is nothing left here but the archive itself (Aug 2026 v3 — the
+        // rename came out of the sheet entirely, and the piles became tags).
+        askArchive(name, function(r){ if(r.ok) doArchive(); });
         return;
       }
       doArchive();
@@ -4917,52 +4923,102 @@ function askFirst(question, okLabel, cb){
   document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }
 
-// ARCHIVING ASKS WHICH PILE, AND WHAT TO CALL IT (Aug 2026, Sophie: "the
-// archive should have an option to add it into the built or other pile and
-// also give an option to type a text box as a title for what it saves under
-// … there's already a pop-up for archive so you can just add it to the top").
+// THE ARCHIVE SHEET (Aug 2026, Sophie, in three passes).
 //
-// It rides the existing askFirst sheet rather than being a new kind of
-// overlay, and the two new controls sit ABOVE the question, in the order she
-// meets them: what it's called, then which pile.
+// v1 asked which pile and what to call it. v2 added SUMMARIZE. v3 is this one,
+// and it moved three things at once:
+//   1. **the question is the header** — "archive this chat should be at the
+//      top, that's the header". It used to sit under the controls, which read
+//      as a caption on them rather than the decision they hang off.
+//   2. **the name box is GONE** — "let's make it impossible to change the name
+//      of the chat in this instance, so the chat name can only be changed from
+//      within the chat, not this archive option". Renaming lives on the pencil
+//      in the thread header and nowhere else now.
+//   3. **tags instead of the BUILT / OTHER piles** — "I think it would be
+//      better to have actual Tags … a bookmark and a star on the left that
+//      will be filled in if it's already bookmarked or star … next to that
+//      coming towards the right I want a list of tags … then those tags become
+//      a list of options at the top of the archive that I can click on and
+//      filter by". A pile was one binary judgement; tags are several, they say
+//      what the chat WAS, and they are the archive's filter row.
 //
-// The pile picker is the SAME hairline tab row she will land in — `.acctabs`,
-// no boxes, the line sliding under the one she picked — so the choice she
-// makes here looks like the place it puts the chat. BUILT is preselected,
-// which is also what happens if she never opens this sheet at all.
+// EVERYTHING IN HERE SAVES ON THE TAP, not on Archive. The star, the bookmark
+// and the tags are facts about the chat rather than parts of the archiving
+// decision — so a mis-tap is fixed by tapping again, and Cancel means "don't
+// archive it", not "throw away what I just told you". (The old name/pile pair
+// worked the other way because both were only meaningful once archived.)
 //
-// The name box is PREFILLED with what the chat is called now (the /vector
-// precedent: a box carrying its real current value, not example text — the
-// "text boxes ship empty" rule is about examples). Leaving it alone renames
-// nothing; clearing it drops back to the chat's own slug.
+// SUMMARIZE (v2) writes as soon as it answers, independently of what she does
+// next — so tapping Archive while it is still thinking loses nothing, and
+// neither does Cancel. That is what keeps this off the "never make anyone
+// watch a spinner" rule: the sheet stays live and the Archive button stays
+// armed the whole time.
 //
-// SUMMARIZE rides the same sheet (Aug 2026, Sophie: "it gives me a pop-up
-// saying I'm not sure I want to archive and I want a button on there that
-// automatically asks the chat to give me like a quick summary of what we
-// accomplished in that chat, and if there were still any questions that were
-// open"). The chat itself is ASLEEP by now and cannot be asked anything, so the
-// SERVER reads the thread the app already stores and writes the summary
-// (POST /wrapup/write, Claude — reader-facing words). From here that difference
-// is invisible: one tap, no trip back to the Claude app, nothing to copy.
-//
-// It writes as soon as it answers, independently of what she does next — so
-// tapping Archive while it is still thinking loses nothing, and neither does
-// Cancel: the summary lands on the chat either way. That is what keeps this off
-// the "never make anyone watch a spinner" rule — the sheet stays live, the
-// Archive button stays armed, and nothing is riding on her waiting for it.
-//
-// Hands back {ok, kind, title} — the caller does the writes, so a failed
-// rename can't take the archive down with it.
+// Hands back {ok} — nothing is left for the caller to file.
 function askArchive(name, cb){
   scrollStop();
-  var kind='built', current=dispName(name);
   var wrap=document.createElement('div'); wrap.className='askwrap';
   var box=document.createElement('div'); box.className='askbox';
 
-  var inp=document.createElement('input');
-  inp.type='text'; inp.className='arcname'; inp.value=current;
-  inp.setAttribute('aria-label','What this chat is called');
+  // The question, at the top, where she asked for it.
+  var q=document.createElement('p'); q.className='archq'; q.textContent='Archive this chat?';
 
+  // ---- the two marks + the tags -------------------------------------------
+  var tagrow=document.createElement('div'); tagrow.className='arctags';
+  function mark(kind){
+    var b=document.createElement('button'); b.type='button';
+    b.className='arcmark arc'+kind;
+    b.innerHTML = kind==='star' ? STAR : BMK_SVG;
+    var isOn=function(){ return kind==='star' ? chatStar(name) : chatKept(name); };
+    function paint(){
+      b.classList.toggle('on', isOn());
+      b.setAttribute('aria-label',
+        (isOn()?'Remove the ':'Add a ')+(kind==='star'?'star':'bookmark'));
+    }
+    paint();
+    b.onclick=function(e){
+      e.stopPropagation();
+      var was=isOn(), field=(kind==='star'?'starred':'bookmarked');
+      chats[name]=chats[name]||{}; chats[name][field]=!was;
+      paint();
+      var url=(kind==='star') ? '/api/chatfeed/star' : '/api/chatfeed/chat-bookmark';
+      var body={chat:name}; body[field]=!was;
+      api(url,{method:'POST',body:JSON.stringify(body)})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name][field]=was; paint(); toast('Couldn’t save that'); });
+    };
+    return b;
+  }
+  tagrow.appendChild(mark('star'));
+  tagrow.appendChild(mark('bmk'));
+  var div=document.createElement('span'); div.className='arcdiv';
+  tagrow.appendChild(div);
+
+  var picked=chatTags(name).slice();
+  TAG_LIST.forEach(function(t){
+    var b=document.createElement('button'); b.type='button';
+    b.className='catchip'+(picked.indexOf(t)>-1?' on':'');
+    b.textContent=t;
+    b.setAttribute('aria-pressed', picked.indexOf(t)>-1 ? 'true' : 'false');
+    b.onclick=function(e){
+      e.stopPropagation();
+      var was=picked.slice(), i=picked.indexOf(t);
+      if(i>-1) picked.splice(i,1); else picked.push(t);
+      b.classList.toggle('on', picked.indexOf(t)>-1);
+      b.setAttribute('aria-pressed', picked.indexOf(t)>-1 ? 'true' : 'false');
+      chats[name]=chats[name]||{}; chats[name].tags=picked.slice();
+      api('/api/chatfeed/tags',{method:'POST',body:JSON.stringify({chat:name, tags:picked})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){
+          picked=was; chats[name].tags=was.slice();
+          b.classList.toggle('on', was.indexOf(t)>-1);
+          toast('Couldn’t save that tag');
+        });
+    };
+    tagrow.appendChild(b);
+  });
+
+  // ---- summarize ----------------------------------------------------------
   // The summary reads back INTO the sheet, so she sees what is being filed
   // under the chat before she commits to putting it away.
   var out=document.createElement('div'); out.className='arcout'; out.hidden=true;
@@ -4996,39 +5052,23 @@ function askArchive(name, cb){
       });
   };
 
-  var tabs=document.createElement('div');
-  tabs.className='acctabs arctabs'; tabs.dataset.on='0';
-  [['built','Built'],['other','Other']].forEach(function(t,i){
-    var b=document.createElement('button');
-    b.className='acctab'+(i===0?' on':'');
-    b.textContent=t[1];
-    b.onclick=function(e){
-      e.stopPropagation();
-      kind=t[0]; tabs.dataset.on=String(i);
-      [].forEach.call(tabs.children, function(c,j){ c.classList.toggle('on', j===i); });
-    };
-    tabs.appendChild(b);
-  });
-
-  var q=document.createElement('p'); q.textContent='Archive this chat?';
+  // ---- the decision -------------------------------------------------------
   var row=document.createElement('div'); row.className='askrow';
   var no=document.createElement('button'); no.textContent='Cancel';
   var yes=document.createElement('button'); yes.className='go'; yes.textContent='Archive';
   function close(ok){
-    var title=inp.value.trim();
     wrap.remove(); document.body.style.overflow='';
-    cb(ok ? { ok:true, kind:kind, title:(title===current ? null : title) } : { ok:false });
+    cb(ok ? { ok:true } : { ok:false });
   }
   no.onclick=function(e){ e.stopPropagation(); close(false); };
   yes.onclick=function(e){ e.stopPropagation(); close(true); };
   wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
   box.onclick=function(e){ e.stopPropagation(); };
   row.appendChild(no); row.appendChild(yes);
-  // In the order she meets them: what it's called, which pile, the summary it
-  // takes with it, then the decision.
-  box.appendChild(inp); box.appendChild(tabs);
+  // Her order: the question, what this chat is, what it was about, then go.
+  box.appendChild(q); box.appendChild(tagrow);
   box.appendChild(sum); box.appendChild(out);
-  box.appendChild(q); box.appendChild(row);
+  box.appendChild(row);
   wrap.appendChild(box);
   document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }

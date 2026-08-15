@@ -665,9 +665,26 @@ them off the reference sheet, not off the old filenames.
   - The expander is a **sibling** of the row, not a child: a row is a
     `<button>`, so a nested button is invalid and the tap would bubble into
     opening the chat.
+  - **The sheet the button lives on asks for TAGS, not piles (Aug 2026 v3,
+    Sophie).** "Archive this chat?" is the header at the top; the name box is
+    GONE ("the chat name can only be changed from within the chat, not this
+    archive option"); and a star + bookmark toggle sit left of a row of tag
+    chips, all of which save on the tap rather than on Archive. The tags are a
+    FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
+    `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
+    archive's filter row. Full rules in `docs/chats-app.md`.
+  - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
+    her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
+    fails both of `parseJSON`'s attempts, so a finished summary line died with
+    the unfinished sentence after it. The cap is 1200 now and `salvageJson` in
+    `chatfeed.js` closes what the model left open, then trims back to the last
+    finished sentence. It is deliberately NOT in `anthropic.js`: half an object
+    is exactly what other callers must never be handed silently.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
-    the open half) and `node scripts/test-chats-archive-summary.js` (the button,
-    headless against the real page).
+    the open half, the truncation rescue), `node
+    scripts/test-chats-archive-summary.js` (the button) and `node
+    scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
+    filter row) — the last two headless against the real page.
 - **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
   "I'm constantly referring to a link to a page… I just wanna make that
   pattern more clear that chats have that option and make it the expected and

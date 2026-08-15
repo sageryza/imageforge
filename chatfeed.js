@@ -1007,10 +1007,53 @@ const WRAP_SYS = `You are writing the note a chat leaves behind when it is archi
 Return JSON: {"line": "...", "text": "...", "open": "..."}
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": 2-5 short sentences. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"text": 2-5 short sentences, under 800 characters. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
 "open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
+
+// Rescue a JSON object that got CUT OFF mid-answer. Deliberately local rather
+// than folded into anthropic.parseJSON: half an object is exactly what other
+// callers must never be handed silently (a truncated Etsy listing, a half
+// storyboard), whereas here the fields are independent strings and a summary
+// missing its tail is still worth infinitely more to her than an error.
+//
+// Closes what the model left open — the string it was mid-way through, then
+// every container — and if that still won't parse, drops back to the last
+// COMPLETE key/value pair and closes there. Returns null when there is nothing
+// to rescue, so the caller can report the real error.
+function salvageJson(raw) {
+  const s = String(raw || '');
+  const a = s.indexOf('{');
+  if (a < 0) return null;
+  let inStr = false, esc = false;
+  const stack = [];
+  let lastPairEnd = -1;                      // end of the last comma at depth 1
+  for (let i = a; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === '{' || c === '[') stack.push(c === '{' ? '}' : ']');
+    else if (c === '}' || c === ']') stack.pop();
+    else if (c === ',' && stack.length === 1) lastPairEnd = i;
+  }
+  const shut = (body, open) => body + (inStr ? '"' : '')
+    + open.slice().reverse().join('');
+  const tries = [shut(s.slice(a), stack)];
+  if (lastPairEnd > a) tries.push(s.slice(a, lastPairEnd) + '}');
+  for (const t of tries) {
+    try {
+      const v = JSON.parse(t);
+      if (v && typeof v === 'object') return v;
+    } catch (_) { /* next */ }
+  }
+  return null;
+}
 
 router.post('/wrapup/write', async (req, res) => {
   try {
@@ -1052,15 +1095,37 @@ router.post('/wrapup/write', async (req, res) => {
     // provably went unanswered instead of inventing plausible loose ends.
     const unanswered = buildQuestions(msgs).filter((q) => !q.answer)
       .slice(0, 5).map((q) => '- ' + String(q.question).replace(/\s+/g, ' ').slice(0, 200));
-    const out = await anthropic.chatJSON({
-      system: WRAP_SYS,
+    // RUN THE CALL RAW, so a truncated answer can still be rescued (found live
+    // 2026-08-15 on clips-chunking-library: the sheet showed "Claude did not
+    // return parseable JSON (got: {"line":"Built the Chunking clip-library
+    // tool…","text":"Sophie wanted a li)". Nothing was wrong with the summary —
+    // 600 max_tokens simply cut the JSON off mid-string, and an unclosed brace
+    // fails BOTH of parseJSON's attempts, so a perfectly good line was thrown
+    // away with it. Two fixes, because either alone still loses work: a cap
+    // with real headroom, and a salvage for the day something runs past it.
+    const rawOut = await anthropic.chat({
+      system: WRAP_SYS + '\n\nReply with STRICT JSON only — no prose, no code fences.',
       user: 'Chat name: ' + (cur.displayName || target) + '\nMessages: ' + msgs.length
         + (unanswered.length
           ? '\n\nQuestions Sophie asked that nobody ever answered:\n' + unanswered.join('\n')
           : '\n\nEvery question she asked in here got a reply.')
         + '\n\n' + digest,
-      maxTokens: 600,
+      maxTokens: 1200,
     });
+    let out, salvaged = false;
+    try { out = anthropic.parseJSON(rawOut); }
+    catch (err) {
+      out = salvageJson(rawOut);
+      if (!out) throw err;                       // genuinely unusable — say so
+      salvaged = true;
+      // A rescued answer ends mid-sentence, so cut back to the last one that
+      // finished. Better a summary that stops early than one that stops "wanted
+      // a li" — and the LINE, which is written first and is what her archive row
+      // shows, almost always survived whole.
+      const t = String(out.text || '');
+      const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
+      out.text = stop > 40 ? t.slice(0, stop + 1) : '';
+    }
     const full = wrapTextOf(out && out.text);
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
     const open = wrapLineOf(out && out.open);
@@ -1332,6 +1397,54 @@ router.post('/archive-kind', async (req, res) => {
     res.json({ ok: true, chats: live, missing, kind: other ? 'other' : 'built' });
   } catch (err) { fail(res, err); }
 });
+
+// TAGS ON AN ARCHIVED CHAT (Aug 2026, Sophie: "rather than having the
+// built/other tabs I think it would be better to have actual Tags … then I can
+// click the tag or tags that fit it best and it will be stored with those tags
+// and then those tags become a list of options at the top of the archive that I
+// can click on and filter by").
+//
+// This REPLACES the BUILT / OTHER piles, which were one binary judgement made at
+// the moment of archiving. Tags are several, they say what the chat WAS rather
+// than how well it went, and they are the filter row on the archive — so the
+// question "where's the chat where we fixed that bug" has an answer.
+//
+// A FIXED VOCABULARY (`TAGS` below), not free text. A typed tag is a typo away
+// from its own orphan pile, and the whole value here is that the same work
+// lands under the same word every time. Growing the list is a one-line change
+// when she asks for a word that is missing.
+//
+// `archiveKind` is deliberately left ALONE — it is not migrated and not deleted.
+// The old BUILT pile reads as the `built` tag by derivation in the page, so the
+// 97 chats already in there arrive tagged without a backfill, and nothing is
+// destroyed if this is ever reconsidered.
+//
+// Same phantom-row guard as /archive-kind: a merge-set on a missing doc CREATES
+// it, and every pile derives from the registry keys.
+const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
+  'images', 'film', 'audio', 'writing', 'research'];
+
+router.post('/tags', async (req, res) => {
+  try {
+    const { chat, tags } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!Array.isArray(tags)) return res.status(400).json({ error: 'tags array required' });
+    // Unknown words are dropped rather than refused: a page on an old build
+    // sending a retired tag must not fail her whole save.
+    const clean = tags.map((t) => String(t || '').trim().toLowerCase())
+      .filter((t, i, a) => TAGS.indexOf(t) > -1 && a.indexOf(t) === i).slice(0, TAGS.length);
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { tags: clean.length ? clean : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, tags: clean });
+  } catch (err) { fail(res, err); }
+});
+
+// The vocabulary itself, so the page never hard-codes a second copy that can
+// drift from the one the writes are checked against.
+router.get('/tags', (_req, res) => res.json({ tags: TAGS }));
 
 // File chats under a category — the chips where the LIST/TILES toggle used to
 // be (Aug 2026, Sophie: "category tags, the first two I can think of are
