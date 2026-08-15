@@ -19,8 +19,10 @@
 //   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
 //   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
 //                                  chats read it, only the app writes it)
-//   GET  /api/chatfeed/search?q= → substring search across every message
-//                                  (in-memory index): { results:[{chat,id,snippet,created,url}] }
+//   GET  /api/chatfeed/search?q= → search across every message (in-memory
+//                                  index): { results:[{chat,id,snippet,created,url}] }.
+//                                  Bare words AND (both in the SAME message),
+//                                  `OR`, `-word` excludes, "quoted" = adjacent
 //   POST /api/chatfeed/answered  → { chat, answered } — mark a chat answered
 //                                  (grayed until a newer message arrives)
 //   POST /api/chatfeed/app-account → { account } — which Claude account is
@@ -57,6 +59,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
+const { parseQuery } = require('./search-grammar');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -428,12 +431,69 @@ function refreshSearchIndex(force) {
   return indexRefreshing;
 }
 
+// ---- Matching -------------------------------------------------------------
+// The box speaks the house grammar (`search-grammar.js`): bare words AND, `OR`
+// between them, `-word` to exclude, "quoted phrases" for adjacency. Sophie's
+// case is the AND — two words she knows shared one message, where one of them
+// appears in hundreds of others.
+//
+// Terms keep their punctuation (only case and whitespace runs are flattened),
+// because `gpt-image-2` and `/api/gallery` are things she searches for, and a
+// normaliser that strips them would make those unfindable.
+const searchNorm = (s) => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// One term → a regex anchored at a word START, which is the one behaviour
+// worth preserving from the old single-phrase search: "aries" must not match
+// inside "boundaries", while the prefix "bound" still finds "boundaries". A
+// quoted phrase keeps its words adjacent but tolerates any whitespace between
+// them, since a reply wraps mid-phrase all the time.
+function termRegex(term) {
+  const body = term.value.split(' ').map(escRe).join('\\s+');
+  const lead = /^[a-z0-9]/i.test(term.value) ? '\\b' : '';
+  try { return new RegExp(lead + body, 'i'); } catch (e) { return null; }
+}
+// Compile once per request, then drop any group whose terms are all unusable.
+function compileQuery(q) {
+  const groups = parseQuery(q, { normalize: searchNorm });
+  groups.forEach((g) => { g.terms.forEach((t) => { t.re = termRegex(t); }); });
+  return groups.filter((g) => g.terms.some((t) => t.re));
+}
+function queryMatches(s, groups) {
+  for (const g of groups) {
+    const hit = g.terms.some((t) => t.re && t.re.test(s));
+    if (g.neg ? hit : !hit) return false;
+  }
+  return true;
+}
+// Where to centre the snippet. With two words the RARE one is what found this
+// message — the common one is everywhere and shows her nothing — so the
+// snippet opens on the term with the fewest hits in that message.
+function snippetAnchor(src, groups) {
+  let best = null;
+  for (const g of groups) {
+    if (g.neg) continue;
+    for (const t of g.terms) {
+      if (!t.re) continue;
+      const found = src.match(t.re);
+      if (!found) continue;
+      const all = new RegExp(t.re.source, 'gi');
+      let n = 0;
+      while (all.exec(src) && n < 60) n++;
+      if (!best || n < best.n) best = { i: src.search(t.re), len: found[0].length, n };
+    }
+  }
+  return best;
+}
+
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
     if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
+    const groups = compileQuery(q);
+    if (!groups.length) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     // Chats whose NAME matches the query — Sophie's display name first, the
     // slug as fallback — returned separately so the client can pin them at
     // the top of the results (her rule: searching a chat's name should find
@@ -441,36 +501,29 @@ router.get('/search', async (req, res) => {
     let chatMatches = [];
     try {
       const reg = await registry();
-      const ql = q.toLowerCase();
       chatMatches = Object.keys(reg.chats || {})
         .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
-        .filter((c) => c.name.toLowerCase().includes(ql) || c.chat.toLowerCase().includes(ql))
+        .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
         .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
         .slice(0, 10)
         .map((c) => ({ chat: c.chat, name: c.name }));
     } catch (e) { /* name matches are a bonus; message search still answers */ }
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
-    // Word-aware match: anchor the query at a word start (\b) so "aries" no
-    // longer matches inside "boundaries", while a prefix like "bound" still
-    // finds "boundaries"/"boundary". Falls back to a plain substring match if
-    // the query is all punctuation (regex would be empty).
-    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    let re = null;
-    try { re = /[a-z0-9]/i.test(q) ? new RegExp('\\b' + esc, 'i') : null; } catch (e) { re = null; }
-    const matches = (s) => (re ? re.test(s) : s.toLowerCase().indexOf(q.toLowerCase()) !== -1);
-    const findIn = (s) => (re ? s.search(re) : s.toLowerCase().indexOf(q.toLowerCase()));
-    const hits = searchIndex.filter((m) => matches(m.chat + '\n' + m.tldr + '\n' + m.text));
+    // Every word she typed has to land in the SAME message — that is the whole
+    // point — so the haystack is the one message, name and TLDR included.
+    const hits = searchIndex.filter((m) => queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     hits.sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
     const results = hits.slice(0, limit).map((m) => {
-      // snippet centred on the match — prefer the body, else the tldr/chat name
-      const src = m.text && findIn(m.text) > -1 ? m.text
-        : (m.tldr && findIn(m.tldr) > -1 ? m.tldr : (m.text || m.tldr || ''));
-      const i = findIn(src);
+      // Snippet centred on the match — prefer the body, else the tldr/chat name.
+      const inBody = m.text ? snippetAnchor(m.text, groups) : null;
+      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
+      const at = inBody || snippetAnchor(src, groups);
       let snip = src;
-      if (i > -1) {
-        const s = Math.max(0, i - 45);
-        snip = (s > 0 ? '…' : '') + src.slice(s, i + q.length + 70).replace(/\s+/g, ' ')
-          + (i + q.length + 70 < src.length ? '…' : '');
+      if (at && at.i > -1) {
+        const s = Math.max(0, at.i - 45);
+        const end = at.i + at.len + 70;
+        snip = (s > 0 ? '…' : '') + src.slice(s, end).replace(/\s+/g, ' ')
+          + (end < src.length ? '…' : '');
       }
       return { chat: m.chat, id: m.id, snippet: snip.slice(0, 200).trim(), created: m.created, url: m.url || '' };
     });
@@ -2388,4 +2441,6 @@ router.get('/verdict', async (req, res) => {
   }
 });
 
-module.exports = { router, pillInject, resolveChat, followMoves };
+// compileQuery/queryMatches/snippetAnchor are exported for the search tests —
+// they are pure, so the grammar is testable without Firestore or a server.
+module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor };

@@ -40,7 +40,10 @@
 // SEARCH IS THE WHOLE INTERFACE (her brief). `searchClips` is a pure function
 // with a real boolean grammar — bare terms AND, `OR` between them, `-term` to
 // exclude, "quoted phrases", and the field prefixes `tag:` `title:` `from:`
-// `prompt:` `note:` — over the clip's title, its tags, the film it came out of,
+// `prompt:` `note:`. The grammar itself moved to `search-grammar.js` (Aug
+// 2026) when the Chats app's search learned to speak it too, so it is parsed
+// once for the whole app; only the matching below is ours. It runs
+// over the clip's title, its tags, the film it came out of,
 // the prompt it was generated from, and Sophie's own notes. The prompt is what
 // makes the library findable at all: it is the only text that says what is
 // actually happening in the picture, and it comes free with every clip movies.js
@@ -72,6 +75,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 const admin = require('firebase-admin');
+const { parseQuery } = require('./search-grammar');
 
 const COL = process.env.CLIPS_COLLECTION || 'forge-clips';
 const META_COL = process.env.CLIPS_META_COLLECTION || 'forge-clips-meta';
@@ -173,42 +177,12 @@ const WEIGHT = { title: 4, tag: 3, source: 2, prompt: 1, note: 1 };
 //   tag:movie -bridge     → (tag:movie) AND NOT (bridge)
 //   "on the bench"        → the phrase, whole
 //
-// OR binds tighter than the implicit AND (`a b OR c` = a AND (b OR c)) — the
-// convention every search box she already uses follows. There are no
-// parentheses on purpose: a search bar on a phone is not a place to balance
-// brackets, and every query she described is expressible without them.
-function parseClipQuery(q) {
-  const groups = [];
-  const re = /(-|!)?(?:([a-zA-Z]+):)?(?:"([^"]*)"|(\S+))/g;
-  let pendingOr = false;
-  let pendingNot = false;
-  let m;
-  while ((m = re.exec(String(q || '')))) {
-    const quoted = m[3] !== undefined;
-    const raw = quoted ? m[3] : m[4];
-    const bare = !m[1] && !m[2] && !quoted;
-    if (bare && /^or$/i.test(raw)) { pendingOr = true; continue; }
-    if (bare && /^and$/i.test(raw)) { continue; }
-    if (bare && /^not$/i.test(raw)) { pendingNot = true; continue; }
-    const value = normalize(raw);
-    if (!value) continue;
-    const term = {
-      field: m[2] ? (FIELDS[m[2].toLowerCase()] || '') : '',
-      value,
-      phrase: quoted,
-    };
-    // An unknown prefix ("colour:blue") is not a field — treat the whole token
-    // as text rather than silently dropping half of what she typed.
-    if (m[2] && !FIELDS[m[2].toLowerCase()]) term.value = normalize(`${m[2]} ${raw}`);
-    const neg = !!m[1] || pendingNot;
-    const last = groups[groups.length - 1];
-    if (pendingOr && last && !last.neg && !neg) last.terms.push(term);
-    else groups.push({ neg, terms: [term] });
-    pendingOr = false;
-    pendingNot = false;
-  }
-  return groups;
-}
+// The grammar itself lives in `search-grammar.js` — the Chats app's search
+// speaks the same one (Aug 2026), so it is parsed in one place and each caller
+// brings only its own fields and its own idea of what a match is. Ours
+// normalises to lowercase alphanumerics, so her punctuation never decides a
+// hit in a library this small.
+const parseClipQuery = (q) => parseQuery(q, { fields: FIELDS, normalize });
 
 // The searchable text of one clip, per field, normalised once and memoised on
 // the record so a long list is scanned rather than re-normalised per term.

@@ -1296,6 +1296,54 @@
     chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
     tests. Tests: `node scripts/test-chats-search-archive.js`.
 
+- **TWO WORDS MEAN THE SAME MESSAGE — the boxes speak a small boolean grammar
+  (Aug 2026, Sophie: "sometimes I want to narrow it down by finding two words
+  I know were in the same message but aren't in any other message but one of
+  the words might appear tons of times").** Every box used to search the whole
+  field as ONE literal string, so that search — the only way to answer her
+  question — returned nothing at all.
+  - `witch keywords` = **both**, anywhere in the one message, any order ·
+    `witch OR spell` = either · `witch -blog` excludes · `"book of shadows"`
+    is the phrase, adjacent (the old behaviour, still one keystroke away).
+    OR binds tighter than the implicit AND. **No parentheses**, deliberately:
+    a search bar on a phone is not a place to balance brackets.
+  - **Parsed in ONE place — `search-grammar.js`** — which the Chunking clip
+    library already spoke and now shares, so there is one grammar in the app
+    rather than two that drift. **Matching stays per-caller and that is not
+    duplication:** the clip library normalises to lowercase alphanumerics
+    (punctuation should never decide a hit across a few hundred short
+    records), while the feed anchors each term at a word START against raw
+    text — so "aries" still doesn't find "boundaries", and `gpt-image-2`
+    survives with its hyphens. A shared normaliser would have broken one of
+    the two.
+  - **The snippet opens on the RAREST word she typed**, not the first: with
+    two words the common one is everywhere and shows her nothing — the rare
+    one is what found this message.
+  - All four boxes answer the same way (all chats, this chat's messages, this
+    chat's images, the clip library). The home one asks the server
+    (`GET /search`); the in-thread and Assets ones run `qparse`/`qmatch` in
+    the page over rows already loaded.
+  - Tests: `node scripts/test-search-grammar.js` (the server matcher, pure —
+    no Firestore, no browser) and `node scripts/test-chats-live-search.js`
+    (the real page, headless).
+
+- **THE BOXES SEARCH AS SHE DICTATES — never on the checkmark (Aug 2026,
+  Sophie: "can you change it so that it starts searching as soon as I type it
+  in without having to press the checkmark").** Sophie never types, she talks
+  into the field, and iOS dictation can hold its text in an input without ever
+  firing `input` until she taps the ✓ that ends dictation — so an
+  oninput-only box sat there doing nothing through a whole sentence while
+  looking, to her, like a search that didn't work.
+  - `liveInput(el, fn)` is the one wiring every box goes through: the events
+    dictation DOES send are listened for, AND the value is polled while the
+    field has focus (one string compare per 150ms, only while she is in the
+    box), firing only on a real change. It cannot miss a way the text arrives,
+    which is the point — the failure it replaces was silent.
+  - **A programmatic clear must not fire as if she typed it**: the ✕ and
+    `_resetSearch` call `.sync()` to re-baseline the remembered value.
+  - The test dictates the way iOS does — sets `.value` and dispatches
+    NOTHING — so an oninput-only regression fails it.
+
 - **TAKING A CHAT OUT OF THE ARCHIVE KEEPS HER IN IT (Aug 2026, Sophie:
   "when I take something out of the archive it should go straight to that
   chat, and when I get out of that chat I shouldn't be in the archive").**
