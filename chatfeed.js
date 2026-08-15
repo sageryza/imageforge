@@ -49,9 +49,10 @@
 //                                  the ✓ on a card in the NEW tab. A self-
 //                                  clearing stamp: anything newer brings the
 //                                  card back on its own.
-//   POST /api/chatfeed/news-queue → { chats:[…], queue:'later'|'soon'|'' } —
-//                                  the two boxes on the Update screen: "later"
-//                                  and "in a minute". One field per chat.
+//   POST /api/chatfeed/news-queue → { chats:[…], queue:'later'|'soon'|'never'
+//                                  |'' } — the boxes on the Update screen:
+//                                  "later", "in a minute", "maybe never".
+//                                  One field per chat.
 //   GET  /api/chatfeed/questions?chat= → her questions in that chat, each with
 //                                  the answer that came back. DERIVED from the
 //                                  thread (questions.js), never filed by a chat.
@@ -1371,7 +1372,10 @@ router.post('/category', async (req, res) => {
 // A name with no registry doc is SKIPPED, never written: `set(…, merge)` on a
 // missing doc creates it, and every pile derives from the registry keys, so
 // one typo would put a phantom row in her list.
-const NEWS_QUEUES = ['later', 'soon'];
+// `never` is "maybe never" — the third box, and the only one that is not also
+// a filter on the page: it shows ONLY while she is actively categorising
+// (Sophie, Aug 2026), the same rule DONE follows.
+const NEWS_QUEUES = ['later', 'soon', 'never'];
 router.post('/news-queue', async (req, res) => {
   try {
     const body = req.body || {};

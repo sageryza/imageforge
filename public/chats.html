@@ -2465,12 +2465,17 @@ function newsItems(g){
 //
 // The filter (which box is open) is SESSION-ONLY like every other filter on
 // this screen; the filing itself is on the registry (POST /news-queue).
-var NEWS_QS=[['later','Later'],['soon','In a minute']];
+// The third entry carries a flag: MAYBE NEVER shows ONLY while something is
+// picked (Aug 2026, Sophie: "can you make one more option called maybe never,
+// and this also only shows when I'm actively categorizing stuff") — the same
+// rule DONE follows, so the resting row stays the two boxes she browses.
+var NEWS_QS=[['later','Later'],['soon','In a minute'],['never','Maybe never',1]];
 var newsQ='';        // the open box, '' = the main list
 var newsPick={};     // what is selected right now (chat name → 1)
 function newsQueueOf(n){
   var q=(chats[n]&&chats[n].newsQueue)||'';
-  return (q==='later'||q==='soon') ? q : '';
+  for(var i=0;i<NEWS_QS.length;i++) if(NEWS_QS[i][0]===q) return q;
+  return '';
 }
 function newsQueuedAt(n){ return (chats[n]&&chats[n].newsQueuedAt)||''; }
 function newsQLabel(q){
@@ -2494,7 +2499,13 @@ function newsList(g){
 // for). Tapping one with cards picked FILES them.
 function paintNewsQRow(row,g){
   var items=newsItems(g);
+  var picking=!!Object.keys(newsPick).length;
   NEWS_QS.forEach(function(pair){
+    // MAYBE NEVER is a filing target only, so it is not on the row when there
+    // is nothing to file. The two she browses stay put — a row that changed
+    // shape every time she picked something would move the box she was
+    // reaching for.
+    if(pair[2] && !picking) return;
     var n=items.filter(function(it){
       return newsBoxed(it) && newsQueueOf(it.chat)===pair[0]; }).length;
     var b=document.createElement('button');
@@ -2510,7 +2521,7 @@ function paintNewsQRow(row,g){
   // DONE — only while something is actively selected, her rule. It is the
   // third thing she can do with a picked card (Later · In a minute · Done),
   // so it belongs beside the boxes rather than anywhere else.
-  if(Object.keys(newsPick).length){
+  if(picking){
     var d=document.createElement('button');
     d.className='catchip nwdone'; d.textContent='Done';
     d.setAttribute('aria-label','Clear these without filing them');
