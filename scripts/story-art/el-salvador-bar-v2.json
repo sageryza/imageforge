@@ -1,0 +1,17 @@
+[
+ {
+  "id": "esb-02-brother-venting-v2",
+  "likeness": "The SECOND attached image is the brother and the THIRD is the sister — same faces, hair and build in both cases; do not redesign either character.",
+  "scene": "the brother mid-sentence, leaning forward over the bar table with one hand raised open in the air, exasperated, explaining something he finds ridiculous; his sister's shoulder and her beer bottle in the near foreground, the open-air bar behind him",
+  "refs": [
+   "/home/user/out/el-salvador-cards/esb-card-brother.webp",
+   "/home/user/out/el-salvador-cards/esb-card-sister.webp"
+  ]
+ },
+ {
+  "id": "esb-03-sister-listening-v2",
+  "likeness": "The SECOND attached image is the sister — same face, hair and build; do not redesign the character.",
+  "scene": "the sister across the bar table, chin propped on one hand, listening to her brother with a small amused smile, her beer bottle sweating on the table in front of her, the bar and its doorway behind her",
+  "refs": ["/home/user/out/el-salvador-cards/esb-card-sister.webp"]
+ }
+]
