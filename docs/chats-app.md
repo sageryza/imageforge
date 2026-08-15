@@ -1245,6 +1245,45 @@
     `node scripts/test-chats-news-sticky.js` (hit-measures the ⌄/✓ gap, and
     drives a card through being opened to prove only the ✓ clears it). It
     replaced `test-chats-news-pin.js`, which asserted the opposite contract.
+  - **THE TWO BOXES — LATER and IN A MINUTE (Aug 2026, Sophie: "there's no
+    categories on the updates page in that same style of those little boxes.
+    I'd like to add two categories, one called IN A MINUTE for things I want
+    to look at in a minute, but not quite this second, and then next to it on
+    the left I want another category called LATER for things I want to look at
+    maybe later today or this week. How I want to work is that I tap the item,
+    it selects it with a thicker outline, and then I tap the category and
+    that's how it gets filed in").** The chips row (`#catrow`) now stays on
+    this screen and paints two boxes instead of the chat folders —
+    **LATER on the left, IN A MINUTE beside it, her order.**
+    - **A CLOSED SET OF TWO.** No New… box, no star chip: she named both, and
+      a box she could type is a folder, which is what the other row already
+      is. These file ONE UPDATE for a while; a category files a CHAT forever.
+    - **`newsQueue` + `newsQueuedAt` on the registry**, written by `POST
+      /api/chatfeed/news-queue { chats:[…], queue:'later'|'soon'|'' }` (the
+      same skip-a-missing-doc guard `/archive-kind` has, so a typo can never
+      plant a phantom chat).
+    - **A card is in EXACTLY ONE PLACE — the main list or a box, never both.**
+      That is the deliberate difference from a category chip, where a chat
+      rejoins the list and stays in its folder (`chatBack`). A card is the
+      newest thing a chat has handed her, so when something NEWER than
+      `newsQueuedAt` lands it is new news again and comes back out of the box
+      on its own. One place means the number on a box is exactly what she
+      finds inside it, and she never deals with the same card twice.
+    - **The tab badge counts the MAIN list only** — filing is triaging, and
+      the boxes carry their own counts.
+    - **TAP TO PICK, TAP A BOX TO FILE.** No select mode: on this screen the
+      card itself is the pick target (`.nwcard.picked` — the border goes 2px
+      in the filing green, with a pixel of padding given back so nothing
+      jumps). Tapping a box with nothing picked OPENS it instead (tap the lit
+      box to come back), and tapping the box a card is ALREADY in takes it
+      back out — that is the way home, and it needs no third chip.
+    - **OPENING THE CHAT MOVED ONTO THE CARD'S ICON**, drawn with its blank
+      initial fallback so every card has one. The NAME was tried first and it
+      is wrong: the name sits in the middle of the row, so the natural tap —
+      the centre of the card — opened the chat instead of picking it (caught
+      by the headless test on the first run). The ⌄, the ✓, a page title and a
+      thumbnail all stop the click, so nothing else gained a second meaning.
+    - Tests: `node scripts/test-chats-news-queue.js`.
 
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
