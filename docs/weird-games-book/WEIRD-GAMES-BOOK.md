@@ -50,11 +50,15 @@ a corridor. Mid-motion, everything blurred except the doors. Square-ish.
 
 ### 3. Charlie's game (working title: **Full Bladder**)
 Charlie invented it at a beer pong night: how close can you get to peeing
-without peeing. That's the whole game. Nobody knows why.
+without peeing. Night, on a tiled balcony, beer pong going on behind — most
+people playing, everyone holding a red Solo cup and drinking more beer. The
+comedy is that everyone stood there checking themselves and checking each other
+to judge how badly the others had to go, which of course tells you nothing.
 
-**Image:** small and close — one person standing very still in a hallway outside
-a bathroom, everyone else's party carrying on behind them out of focus. Small
-horizontal, low on the page.
+**Image:** the balcony at night — the beer pong table behind, a loose circle in
+front holding red Solo cups, everyone glancing down and sideways at each other
+with total seriousness. Wide horizontal. (v1 drew a hallway outside a bathroom;
+superseded, kept in the Assets tab as history.)
 
 ### 4. Nice to Meet You
 With Michael, at a meetup group or a pool. You meet the same people over and
