@@ -77,14 +77,35 @@
     font-family: inherit; text-align: left; padding: 12px 13px; cursor: pointer;
   }
   .les + .les { margin-top: 9px; }
-  .les:hover { border-color: var(--gold); }
+  /* HOVER ONLY WHERE THERE IS A POINTER. On a touch screen :hover sticks to
+     whatever was last tapped, and the tap that turns onto the quiz card lands
+     exactly where an option is about to appear — so that option drew itself
+     with a pink border and read as an answer already picked (Sophie found it
+     on the codon question, and it was gone when she came back, which is the
+     signature of a stuck hover rather than saved state). */
+  @media (hover: hover) and (pointer: fine) {
+    .les:hover { border-color: var(--gold); }
+    .know-opt:hover { border-color: var(--gold); }
+    .note-add:hover { color: var(--gold); }
+  }
   .les-cv { width: 52px; height: 52px; flex: none; border-radius: 4px; object-fit: contain; background: var(--panel); }
   .les .lt { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
   .les .ld { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
   .les-go { margin-left: auto; color: var(--text-faint); line-height: 0; }
   .les-go svg { width: 18px; height: 18px; }
   .les.soon { opacity: .55; cursor: default; }
-  .les.soon:hover { border-color: var(--border); }
+
+  /* A lesson's note — a small + when empty, her words when written, the box
+     while she is typing. The row is a wrapper because a <textarea> cannot live
+     inside the <button> that opens the lesson (the Bookmarks-row finding). */
+  .lesrow + .lesrow { margin-top: 9px; }
+  .les + .les, .lesrow .les { margin-top: 0; }
+  .noteslot { padding: 3px 2px 0 4px; }
+  .note-add { background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--text-faint); cursor: pointer; }
+  .note-txt { font-size: 13px; line-height: 1.45; color: var(--text-dim); cursor: text; padding: 2px 0 2px 8px; border-left: 2px solid var(--gold); }
+  .note-box { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; color: var(--text); background: var(--surface-2); border: 1px solid var(--gold); border-radius: var(--radius); padding: 8px 9px; resize: vertical; }
+  .note-say { font-size: 11px; color: var(--text-faint); min-height: 13px; padding-left: 1px; }
+  .note-say.warn { color: var(--text-dim); }
 
   /* ── Full-screen lesson deck — ported from witch.html, palette aside ── */
   #school-lesson {
@@ -139,7 +160,6 @@
   .know-face.back { transform: rotateY(180deg); text-align: center; }
   .know-q { font-size: 16px; line-height: 1.5; text-align: center; margin-bottom: 2px; }
   .know-opt { border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text); font-family: inherit; font-size: 14px; padding: 11px 12px; cursor: pointer; text-align: left; }
-  .know-opt:hover { border-color: var(--gold); }
   .know-verdict { font-size: 15px; color: var(--text-dim); }
   .know-tell { font-size: 14.5px; line-height: 1.55; }
   .know-hint { font-size: 11px; color: var(--text-faint); }
@@ -384,18 +404,97 @@
     { key: 'code', note: 'code', title: 'Reading the Code', sub: 'How four letters become a body', cover: 'cd-03' }
   ] };
 
+  /* ── Notes on a lesson ─────────────────────────────────────────────────
+     Sophie wants to note a WHOLE lesson, from the lesson page ("just put a
+     little plus that adds a note on each lesson page … I want to leave notes
+     on the whole lesson not just the pictures").
+
+     They go to the SAME PLACE the Compare page's notes do — the chat's verdict
+     doc, `sheet: lessons-4`, item = the lesson key — so the two surfaces are
+     one set of notes rather than two, and reading them is still one call:
+       GET /api/chatfeed/verdict?chat=<slug>&sheet=lessons-4  ->  texts
+
+     Three states, the house note affordance: nothing written -> a small "+
+     note"; written -> HER WORDS under the row; writing -> the box, folding
+     back on blur. Clearing it takes the note back rather than storing a blank.
+     Her words are mirrored to localStorage as she types, so a save that never
+     lands leaves the note on the phone instead of losing it. */
+  var CHAT = 'witch-school-synchronicity-lesson', SHEET = 'lessons-4';
+  var NOTES = {}, NOTE_LOCAL = 'science_notes';
+  function notesLocal() { try { return JSON.parse(localStorage.getItem(NOTE_LOCAL) || '{}'); } catch (e) { return {}; } }
+  function notesLocalSet(k, v) {
+    try { var a = notesLocal(); if (v) a[k] = v; else delete a[k]; localStorage.setItem(NOTE_LOCAL, JSON.stringify(a)); } catch (e) {}
+  }
+  function loadNotes() {
+    var local = notesLocal();
+    Object.keys(local).forEach(function (k) { NOTES[k] = local[k]; });
+    renderPath();
+    fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(SHEET))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        // The server is the record; a local copy only survives where the save
+        // never landed, so it must not overwrite what came back.
+        var t = (d && d.texts) || {};
+        Object.keys(t).forEach(function (k) { if (t[k]) { NOTES[k] = t[k]; notesLocalSet(k, null); } });
+        renderPath();
+      }).catch(function () {});
+  }
+  function saveNote(key, text) {
+    var t = String(text || '').slice(0, 2000);
+    if (t) NOTES[key] = t; else delete NOTES[key];
+    notesLocalSet(key, t);
+    renderPath();                                // fold back at once, before the network
+    var say = function (msg, warn) {
+      var s = $('course-list').querySelector('[data-slot="' + key + '"] .note-say');
+      if (s) { s.textContent = msg; s.className = 'note-say' + (warn ? ' warn' : ''); }
+    };
+    say('saving…');
+    fetch('/api/chatfeed/verdict', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: key, text: t }) })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); notesLocalSet(key, null); say(''); })
+      .catch(function () { say('kept on this phone — not saved yet', true); });
+  }
+  function noteSlot(l) {
+    var k = l.note, has = !!NOTES[k];
+    return '<div class="noteslot" data-slot="' + k + '">' +
+      (has ? '<div class="note-txt" data-noteedit="' + k + '">' + esc(NOTES[k]) + '</div>'
+           : '<button class="note-add" data-noteedit="' + k + '" type="button">+ note</button>') +
+      '<div class="note-say"></div></div>';
+  }
+  function openNoteBox(k) {
+    var slot = $('course-list').querySelector('[data-slot="' + k + '"]');
+    if (!slot || slot.querySelector('textarea')) return;
+    slot.innerHTML = '<textarea class="note-box" rows="3"></textarea><div class="note-say"></div>';
+    var ta = slot.querySelector('textarea');
+    ta.value = NOTES[k] || '';
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.addEventListener('blur', function () {
+      var v = ta.value;
+      ta.remove();               // the row is no longer being typed in, so
+      saveNote(k, v);            // renderPath may rebuild it
+    });
+  }
+
   /* ── The path ── */
   var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
   function renderPath() {
+    // Never rebuild the row she is typing in — that would drop the box (and
+    // the keyboard) mid-sentence when a save answers.
+    if ($('course-list').querySelector('textarea')) return;
     $('course-list').innerHTML = COURSE.lessons.map(function (l) {
       var cover = l.cover ? '<img class="les-cv" src="' + SCI_IMG + l.cover + SCI_EXT + '" alt="" loading="lazy">'
                           : '<span class="les-cv"></span>';
-      return '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
+      return '<div class="lesrow">' +
+        '<button class="les' + (l.key ? '' : ' soon') + '"' + (l.key ? ' data-lesson="' + l.key + '"' : ' disabled') + ' type="button">' +
         cover + '<div><div class="lt">' + esc(l.title) + '</div><div class="ld">' + esc(l.sub) + '</div></div>' +
-        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>';
+        (l.key ? '<span class="les-go">' + CHEV + '</span>' : '') + '</button>' +
+        noteSlot(l) + '</div>';
     }).join('');
     Array.prototype.forEach.call($('course-list').querySelectorAll('[data-lesson]'), function (b) {
       b.addEventListener('click', function () { openLesson(b.dataset.lesson); });
+    });
+    Array.prototype.forEach.call($('course-list').querySelectorAll('[data-noteedit]'), function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); openNoteBox(b.dataset.noteedit); });
     });
   }
 
@@ -437,7 +536,7 @@
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           var right = +btn.dataset.ki === q.ok;
-          $('know-back').innerHTML = '<div class="know-verdict">' + (right ? '✦ Just so.' : 'Actually —') + '</div>' +
+          $('know-back').innerHTML = '<div class="know-verdict">' + (right ? 'Correct.' : 'Actually —') + '</div>' +
             '<div class="know-tell">' + esc(q.tell) + '</div>' +
             '<div class="know-hint">tap the card to keep going</div>';
           flip.classList.add('flipped');
@@ -510,12 +609,13 @@
     if (e.clientX - r.left < r.width * 0.24) deckPrev(); else deckNext();
   });
 
-  renderPath();
+  loadNotes();
   preload(CELL_CARDS.slice(0, 2));
   // Test hooks — the headless test drives the real page, never a copy.
   window.__sci = { openLesson: openLesson, closeLesson: closeLesson,
     next: deckNext, prev: deckPrev, at: function () { return deckIdx; },
-    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES };
+    cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES,
+    notes: function () { return NOTES; }, openNote: openNoteBox };
 })();
 </script>
 </body>

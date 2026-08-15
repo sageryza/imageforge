@@ -40,8 +40,26 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  FAIL ') + msg); i
   const exe = findChromium();
   if (!exe) { console.log('skip: no chromium build found'); process.exit(0); }
 
+  // The verdict store, stubbed: the page's notes go to the SAME sheet the
+  // Compare page writes, so what this checks is that the page speaks that
+  // route — chat/sheet/item/text — not that a bespoke endpoint exists.
+  const posted = [];
+  let served = {};
   const srv = http.createServer((req, res) => {
     let p = decodeURIComponent(req.url.split('?')[0]);
+    if (p === '/api/chatfeed/verdict' && req.method === 'GET') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ ok: true, items: {}, texts: served }));
+    }
+    if (p === '/api/chatfeed/verdict' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => { body += c; });
+      return req.on('end', () => {
+        try { posted.push(JSON.parse(body)); } catch { posted.push({ bad: body }); }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
+    }
     if (p === '/' || p === '/science') p = '/science.html';
     const f = path.join(PUB, p);
     if (f.startsWith(PUB) && fs.existsSync(f) && fs.statSync(f).isFile()) {
@@ -149,6 +167,54 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  FAIL ') + msg); i
   // existence check is the verifier, which must be run before deploying.
   const ids = await page.evaluate(() => Object.values(window.__sci.LESSONS).flat().filter(c => c.img).map(c => c.img));
   ok(ids.every(i => /^[a-z]{2}-\d{2}$/.test(i)), 'every card id looks like a card id (' + ids.length + ' cards)');
+
+  // ── A note on a WHOLE lesson, from the lesson page (Sophie, Aug 2026) ──
+  // "just put a little plus that adds a note on each lesson page … I want to
+  // leave notes on the whole lesson not just the pictures."
+  console.log('\nnotes');
+  const noteKeys = await page.evaluate(() => Array.prototype.map.call(
+    document.querySelectorAll('#course-list [data-noteedit]'), b => b.dataset.noteedit));
+  ok(noteKeys.length === path0.rows, `every lesson row carries a note slot (${noteKeys.length}/${path0.rows})`);
+
+  await page.click('#course-list [data-noteedit]');
+  await page.waitForTimeout(150);
+  const opened = await page.evaluate(() => ({
+    box: !!document.querySelector('#course-list textarea'),
+    lesson: document.body.classList.contains('lesson-open'),
+  }));
+  ok(opened.box, 'tapping "+ note" opens the box');
+  ok(!opened.lesson, 'tapping "+ note" does not open the lesson underneath it');
+
+  await page.fill('#course-list textarea', 'more about the ribosomes');
+  await page.evaluate(() => document.querySelector('#course-list textarea').blur());
+  await page.waitForTimeout(300);
+  const wrote = posted[posted.length - 1] || {};
+  ok(wrote.sheet === 'lessons-4' && wrote.item === noteKeys[0] && wrote.text === 'more about the ribosomes',
+    'the note lands on the SAME sheet the Compare page reads (' + JSON.stringify(wrote) + ')');
+  const folded = await page.evaluate(() => ({
+    box: !!document.querySelector('#course-list textarea'),
+    txt: (document.querySelector('#course-list .note-txt') || {}).textContent,
+  }));
+  ok(!folded.box, 'the box folds away when she taps off it');
+  ok(folded.txt === 'more about the ribosomes', 'her words show under the row');
+
+  // Clearing takes the note back rather than filing a blank one.
+  await page.click('#course-list .note-txt');
+  await page.waitForTimeout(150);
+  await page.fill('#course-list textarea', '');
+  await page.evaluate(() => document.querySelector('#course-list textarea').blur());
+  await page.waitForTimeout(300);
+  ok((posted[posted.length - 1] || {}).text === '', 'clearing the note files an empty text, not a blank note');
+  ok(await page.evaluate(() => !!document.querySelector('#course-list .note-add')),
+    'the "+ note" comes back once it is cleared');
+
+  // A note left on the Compare page is what she finds here on arrival.
+  served = { [noteKeys[1]]: 'the DNA one runs long' };
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(700);
+  ok(await page.evaluate(() => Array.prototype.some.call(
+    document.querySelectorAll('#course-list .note-txt'), e => e.textContent === 'the DNA one runs long')),
+    'a note already on the sheet shows on arrival');
 
   // ── The chrome is PINK and carries NO BLUE (Sophie, Aug 2026) ──
   console.log('\npalette');
