@@ -722,6 +722,10 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
+// Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
+// sensory fragment, one-way, finite — a premise prototype, no server half and
+// no tile yet. Served WITHOUT the pill: the page never scrolls.
+app.get('/doors', serveGated('doors.html'));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).

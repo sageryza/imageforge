@@ -1,0 +1,317 @@
+<!doctype html>
+<!-- Doors — a corridor of possible futures, walked one door at a time.
+
+     THE RULE (this is the whole prototype; art comes later):
+       · doors are labelled with a SENSORY FRAGMENT, never with the future
+         behind them — you choose blind, by feel
+       · doors are ONE-WAY. The two you didn't take close as you go through,
+         their labels going unreadable, and they never come back
+       · the corridor is FINITE. Seven doors and it ends, so the game is a
+         budget of lives rather than a menu of them
+
+     A run is saved to localStorage on purpose — closing the tab must not
+     undo a choice, or the one-way rule is only a suggestion. "Walk again"
+     is the only thing that clears it.
+
+     House rules this follows: title once (.tool-eyebrow, hidden when the
+     page is embedded), the explanation behind the "?" and nowhere else,
+     buttons hug their words, no gradients, nothing scrolls. Served without
+     the autoscroll pill — there is no scroll to drive. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Doors</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+  /* One screen, never a scroll: the corridor, the room, and the end each
+     fill the space under the header and no more. */
+  html, body.tool { height:100%; overflow:hidden; }
+  .wrap { height:100dvh; display:flex; flex-direction:column; }
+  @supports not (height:100dvh) { .wrap { height:100vh; } }
+  main.stage { flex:1; min-height:0; display:flex; flex-direction:column;
+    padding:0 16px 16px; }
+
+  /* ── the budget: one tick per door, spent ones filled ───────────── */
+  .ticks { display:flex; gap:6px; justify-content:center; padding:14px 0 4px; }
+  .ticks i { width:3px; height:13px; background:var(--border); border-radius:1px; }
+  .ticks i.spent { background:var(--accent); }
+  .ticks i.here { background:var(--ink); }
+
+  /* ── the corridor ───────────────────────────────────────────────── */
+  /* the bottom padding is optical centering: the reserved label block below
+     each door would otherwise make the group read as sitting low */
+  .corridor { flex:1; min-height:0; display:flex; align-items:center;
+    justify-content:center; gap:9px; padding-bottom:40px; }
+  .door { flex:1 1 0; max-width:124px; display:flex; flex-direction:column;
+    align-items:center; gap:12px; background:none; border:0; padding:0;
+    font:inherit; color:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .door svg { width:100%; height:auto; display:block; }
+  /* three lines reserved so a long fragment can't shove its door out of line
+     with the other two */
+  .door .frag { font-family:'Iowan Old Style',Palatino,Georgia,serif;
+    font-size:14px; line-height:1.35; color:var(--ink); text-align:center;
+    min-height:4.05em;
+    transition:opacity .55s ease, filter .55s ease; }
+  .door .leaf { fill:var(--surface); stroke:var(--accent); stroke-width:1.4;
+    transition:fill .55s ease, stroke .55s ease; }
+  .door .panel { fill:none; stroke:var(--accent); stroke-width:.9; opacity:.5;
+    transition:stroke .55s ease, opacity .55s ease; }
+  .door .knob { fill:var(--accent); transition:fill .55s ease; }
+  /* the two you didn't take, closing */
+  .door.shut .leaf { fill:var(--surface2); stroke:var(--border); }
+  .door.shut .panel { stroke:var(--border); opacity:.35; }
+  .door.shut .knob { fill:var(--border); }
+  .door.shut .frag { opacity:0; filter:blur(5px); }
+  .door.taken .leaf { fill:var(--surface2); stroke:var(--accent); }
+  .corridor.picked .door { pointer-events:none; }
+
+  /* ── the room you land in ───────────────────────────────────────── */
+  .room { flex:1; min-height:0; display:flex; flex-direction:column;
+    justify-content:center; gap:18px; max-width:520px; margin:0 auto; width:100%; }
+  .room .frag { font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--dim); }
+  .room .scene { font-family:'Iowan Old Style',Palatino,Georgia,serif;
+    font-size:17px; line-height:1.62; color:var(--ink); }
+  .row { display:flex; gap:10px; align-items:center; }
+
+  /* ── the end ────────────────────────────────────────────────────── */
+  .end { flex:1; min-height:0; display:flex; flex-direction:column;
+    justify-content:center; gap:14px; max-width:520px; margin:0 auto; width:100%; }
+  .walked { display:flex; flex-direction:column; gap:5px; }
+  .walked li { font-family:'Iowan Old Style',Palatino,Georgia,serif;
+    font-size:15px; line-height:1.4; color:var(--ink); list-style:none; }
+  .walked li::before { content:'—'; color:var(--accent); margin-right:8px; }
+  .closed { font-size:13px; color:var(--dim); }
+  .shape { font-family:'Iowan Old Style',Palatino,Georgia,serif; font-size:16px;
+    line-height:1.55; color:var(--ink); border-top:1px solid var(--border);
+    padding-top:14px; }
+</style>
+
+<body class="tool">
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow tool-eyebrow">DOORS</div>
+    <button id="help" aria-label="what this is">?</button>
+  </header>
+  <div class="helpcard" id="helpcard" hidden>
+    <b>Each door is a possible future.</b> They're labelled with something you
+    might smell or hear in there, never with the life itself — so you pick by
+    feel and find out from inside.
+    <br><br><b>The doors you don't take close behind you.</b> Their labels go
+    unreadable and they don't come back. You get seven, then the corridor ends.
+  </div>
+
+  <main class="stage">
+    <div class="ticks" id="ticks"></div>
+
+    <div class="corridor" id="corridor" hidden></div>
+
+    <div class="room" id="room" hidden>
+      <div class="frag" id="roomFrag"></div>
+      <div class="scene" id="roomScene"></div>
+      <div class="row"><button class="btn" id="onward">Go on</button></div>
+    </div>
+
+    <div class="end" id="end" hidden>
+      <ul class="walked" id="walked"></ul>
+      <div class="closed" id="closed"></div>
+      <div class="shape" id="shape"></div>
+      <div class="row"><button class="btn" id="again">Walk again</button></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* Wrapped in an IIFE — a page-level `let`/`const` in global scope kills any
+   injected script at parse time (the pill contract). Nothing leaks out. */
+(function () {
+  'use strict';
+
+  // Seven depths, three doors each. `tag` is the grain a door leaves on the
+  // run; the ending reads back whichever grain came up most.
+  var CORRIDOR = [
+    [
+      { frag:'the kitchen at 4am', tag:'care', scene:"You're up before anyone. The floor is cold through your socks and the kettle takes forever on this stove, it always has. There's a drawing on the fridge in your handwriting and a name you'd have to think about. Outside it's still the colour of nothing. You drink the whole cup standing up." },
+      { frag:'a dog barking two streets over', tag:'alone', scene:"A rental, second floor, the good kind of shabby. The dog goes off at the same hour every night and by now you'd miss it. You know which stair creaks. Nobody has this address except the bank and one person you're careful about. The bed is on the floor and you meant to fix that in spring." },
+      { frag:'wet wool', tag:'together', scene:"Coats in the hall, four of them, dripping. Everyone came at once and the small kitchen is loud. Someone put your good scarf on the radiator without asking. You're cutting bread and half-listening to an argument about a road that doesn't exist anymore, and you already know you'll be last at the sink." }
+    ],
+    [
+      { frag:'someone says your name wrong', tag:'place', scene:"Ten years in the same town and they still put the stress on the wrong part. You stopped correcting it around year three. The woman at the counter knows your order by heart and has never once got the name right. There's a version of this that would have driven you out of here, and it didn't." },
+      { frag:'chlorine', tag:'alone', scene:"Tuesdays and Thursdays, the pool at the far end of the bus route. Your shoulders are different now. You swim badly and don't care, and the changing room smells exactly the way it did when you were nine. There's a locker you always take and a woman your age who nods." },
+      { frag:'a chair scraping upstairs', tag:'alone', scene:"You share the house. Not with family. It works out, mostly — the noise is company more than it's a nuisance, and you can tell from the scrape whether it's a bad day up there. You've built your whole evening around not going up." }
+    ],
+    [
+      { frag:"a car you don't recognise in the driveway", tag:'together', scene:"Someone visits now without arranging it first. You've reached the stage of a life where people just come. There's a bag in the hall that isn't yours and the kettle has already been used. You take a second on the step before you go in, and not because you mind." },
+      { frag:'sand in the bed', tag:'place', scene:"You live near enough to walk to it. It gets into everything and you've stopped fighting that. Off-season the whole town goes quiet, which is the part you moved for. Your hands are rougher than they were. There's salt on the window you'll clean in March." },
+      { frag:'the hum before the fridge stops', tag:'alone', scene:"A flat you keep very clean. You notice the fridge because there's nothing else to notice — no television on, nobody in the next room. The day has a shape you made yourself and you defend it. You eat well. You go weeks with the phone face-down and then a whole evening on it." }
+    ],
+    [
+      { frag:'a phone number in your own handwriting', tag:'alone', scene:"On the back of a receipt, in a coat you haven't worn since last winter. You know exactly whose it is. You stand in the hall with the coat half on, and then you put the receipt in the drawer with the batteries and the spare keys, and go out." },
+      { frag:"cut grass through a window that doesn't open", tag:'work', scene:"The job is fine. That's the honest word for it. There's a field visible from the second floor and someone mows it every Thursday and you look up every time. You're good at this. It took years to get good and you can't tell anymore whether you like it." },
+      { frag:'someone else’s coat on your hook', tag:'together', scene:"It's been there long enough that you don't see it. You know the weight of it and the smell of the collar. Whole months go by pleasantly. When you're annoyed it's about the dishes, not about anything real, and you've learned to say so on the same day." }
+    ],
+    [
+      { frag:"a light left on in a room you're not in", tag:'alone', scene:"You've stopped turning them off. There was a stretch where the dark got difficult and this was cheaper than talking about it, and then it stuck. The bill is barely anything. Anyone who stays over mentions it in the morning." },
+      { frag:'birds before the light', tag:'work', scene:"You wake before them now, most days. Not from worry — the work starts early. There's an hour where you're the only one up and it's the part of the day you'd fight to keep. By nine you're already tired and it's a good tiredness." },
+      { frag:'the taste of a metal spoon', tag:'care', scene:"Hospital, or near enough. Someone is ill and it isn't you, and it's gone on long enough to be ordinary. You know the parking, the good vending machine, the nurse who talks to you properly. You've read the same four pages of a book since April." }
+    ],
+    [
+      { frag:'the ferry horn', tag:'place', scene:"Twice a day, and you set your watch by it without meaning to. You came for a season and stayed. The people here took a long time and then all at once. There's a boat you're half a share in and it needs work you keep putting off until a better week." },
+      { frag:'a stack of unopened mail', tag:'alone', scene:"Not bad news, mostly. You went through a period of not opening things and it's easier to keep not opening them. Everything important gets said another way now. Once a month you sit down and do the lot and feel fine afterwards, and then you let it build again." },
+      { frag:'warm bread, someone else made it', tag:'care', scene:"You're being looked after and you're not entirely comfortable with it. There's a house that runs on somebody else's rhythm and you fit into it. You're useful in small ways. You keep a bag packed the way people do when they've moved often, and you haven't needed it in two years." }
+    ],
+    [
+      { frag:'the hallway light', tag:'alone', scene:"The last one. It's on because you left it on, in a house whose whole shape you know in the dark. You could walk it with your eyes shut and some nights you do. There's nobody to be quiet for and you're quiet anyway." },
+      { frag:'rain starting', tag:'place', scene:"The last one. It comes on the roof first and then the window. You're inside, and warm, and there's nothing you have to do about it. Somewhere in the house a window is open an inch and you'll get to it." },
+      { frag:'your own breath', tag:'together', scene:"The last one. Cold enough to see it, standing outside a door with your keys already in your hand. You've been on this exact step hundreds of times. You go in." }
+    ]
+  ];
+
+  var SHAPES = {
+    alone:    'The life you walked is mostly your own company. It stayed quiet in there because you kept it that way.',
+    together: 'There were people in nearly every room. You did not always pick them and you stayed anyway.',
+    work:     'Most of these doors had something behind them you had to get up for.',
+    place:    'You chose the same weather over and over. Whoever else was there, the ground was the thing.',
+    care:     'You spent most of it looking after something.'
+  };
+
+  var KEY = 'doors.run.v1';
+  var TOTAL = CORRIDOR.length;
+
+  var el = {
+    ticks:   document.getElementById('ticks'),
+    corridor:document.getElementById('corridor'),
+    room:    document.getElementById('room'),
+    frag:    document.getElementById('roomFrag'),
+    scene:   document.getElementById('roomScene'),
+    onward:  document.getElementById('onward'),
+    end:     document.getElementById('end'),
+    walked:  document.getElementById('walked'),
+    closed:  document.getElementById('closed'),
+    shape:   document.getElementById('shape'),
+    again:   document.getElementById('again')
+  };
+
+  // taken[i] = index of the door taken at depth i. A run is only ever
+  // appended to — there is no undo, which is the point.
+  var taken = load();
+
+  function load() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(KEY));
+      if (Array.isArray(raw) && raw.every(function (n) { return n === 0 || n === 1 || n === 2; })) {
+        return raw.slice(0, TOTAL);
+      }
+    } catch (e) { /* a corrupt run is just a fresh one */ }
+    return [];
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(taken)); } catch (e) {}
+  }
+
+  function doorSvg() {
+    // tall and narrow on purpose — three of these across a phone read as a
+    // corridor, where a realistic door-shaped door reads as three cupboards
+    return '<svg viewBox="0 0 46 128" aria-hidden="true">'
+      + '<rect class="leaf" x="2" y="3" width="42" height="122" rx="3"/>'
+      + '<rect class="panel" x="9" y="12" width="28" height="46" rx="2"/>'
+      + '<rect class="panel" x="9" y="68" width="28" height="46" rx="2"/>'
+      + '<circle class="knob" cx="38" cy="64" r="2.2"/>'
+      + '</svg>';
+  }
+
+  function drawTicks() {
+    var html = '';
+    for (var i = 0; i < TOTAL; i++) {
+      var cls = i < taken.length ? 'spent' : (i === taken.length ? 'here' : '');
+      html += '<i class="' + cls + '"></i>';
+    }
+    el.ticks.innerHTML = html;
+  }
+
+  function show(which) {
+    el.corridor.hidden = which !== 'corridor';
+    el.room.hidden     = which !== 'room';
+    el.end.hidden      = which !== 'end';
+  }
+
+  function renderCorridor() {
+    var depth = taken.length;
+    drawTicks();
+    el.corridor.className = 'corridor';
+    el.corridor.innerHTML = CORRIDOR[depth].map(function (d, i) {
+      return '<button class="door" data-i="' + i + '">'
+        + doorSvg() + '<span class="frag">' + d.frag + '</span></button>';
+    }).join('');
+    show('corridor');
+  }
+
+  function pick(i) {
+    var depth = taken.length;
+    el.corridor.classList.add('picked');
+    Array.prototype.forEach.call(el.corridor.children, function (node, n) {
+      node.classList.add(n === i ? 'taken' : 'shut');
+    });
+    taken.push(i);
+    save();
+    // Let the two you didn't take finish closing before the room replaces
+    // them — the one-way rule needs to be seen, not just enforced.
+    setTimeout(function () { renderRoom(depth, i); }, 900);
+  }
+
+  function renderRoom(depth, i) {
+    var d = CORRIDOR[depth][i];
+    el.frag.textContent = d.frag;
+    el.scene.textContent = d.scene;
+    el.onward.textContent = taken.length >= TOTAL ? 'See the corridor' : 'Go on';
+    drawTicks();
+    show('room');
+  }
+
+  function renderEnd() {
+    el.walked.innerHTML = taken.map(function (i, depth) {
+      return '<li>' + CORRIDOR[depth][i].frag + '</li>';
+    }).join('');
+    var shutCount = taken.length * (CORRIDOR[0].length - 1);
+    el.closed.textContent = 'You spent ' + taken.length + ' doors. '
+      + shutCount + ' closed behind you.';
+    var counts = {}, best = null;
+    taken.forEach(function (i, depth) {
+      var t = CORRIDOR[depth][i].tag;
+      counts[t] = (counts[t] || 0) + 1;
+      // ties go to the grain of the door taken latest
+      if (best === null || counts[t] >= counts[best]) best = t;
+    });
+    el.shape.textContent = SHAPES[best] || '';
+    drawTicks();
+    show('end');
+  }
+
+  el.corridor.addEventListener('click', function (e) {
+    var btn = e.target.closest('.door');
+    if (!btn || el.corridor.classList.contains('picked')) return;
+    pick(Number(btn.dataset.i));
+  });
+
+  el.onward.addEventListener('click', function () {
+    if (taken.length >= TOTAL) renderEnd(); else renderCorridor();
+  });
+
+  el.again.addEventListener('click', function () {
+    taken = [];
+    save();
+    renderCorridor();
+  });
+
+  document.getElementById('help').addEventListener('click', function () {
+    var card = document.getElementById('helpcard');
+    card.hidden = !card.hidden;
+  });
+  document.addEventListener('click', function (e) {
+    var card = document.getElementById('helpcard');
+    if (!card.hidden && !card.contains(e.target) && e.target.id !== 'help') card.hidden = true;
+  });
+
+  // Resume where the run left off: mid-corridor, or at the end if it's spent.
+  if (taken.length >= TOTAL) renderEnd(); else renderCorridor();
+})();
+</script>
