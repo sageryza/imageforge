@@ -35,15 +35,19 @@ const rows = [
         promptStyle: 'PASTEL STYLE TEXT', promptContent: 'braiding her long hair' },
     ],
   },
+  // FOUR cells — the quality ladder's shape. The column count is data, so a
+  // row of 4 has to lay out from the same code as a row of 3.
   {
     id: 'bicycle', label: 'The chain came off',
     cells: [
-      { key: 'watercolor', tag: 'watercolor', url: 'd.webp', alt: 'd',
-        promptStyle: 'WATERCOLOR STYLE TEXT', promptContent: 'the chain slips off' },
-      { key: 'dream', tag: 'dream mystery', url: 'e.webp', alt: 'e',
-        promptStyle: 'DREAM STYLE TEXT', promptContent: 'the chain slips off' },
-      { key: 'pastel', tag: 'pastel', url: 'f.webp', alt: 'f',
-        promptStyle: 'PASTEL STYLE TEXT', promptContent: 'the chain slips off' },
+      { key: 'sheetmed', tag: '¼ sheet · med', url: 'd.webp', alt: 'd',
+        promptStyle: 'SHEET RUNG TEXT', promptContent: 'the chain slips off' },
+      { key: 'low', tag: 'low', url: 'e.webp', alt: 'e',
+        promptStyle: 'LOW RUNG TEXT', promptContent: 'the chain slips off' },
+      { key: 'medium', tag: 'medium', url: 'f.webp', alt: 'f',
+        promptStyle: 'MEDIUM RUNG TEXT', promptContent: 'the chain slips off' },
+      { key: 'high', tag: 'high', url: 'g.webp', alt: 'g',
+        promptStyle: 'HIGH RUNG TEXT', promptContent: 'the chain slips off' },
     ],
   },
 ];
@@ -83,8 +87,16 @@ const ok = (label, cond) => { console.log(`  ${cond ? 'ok  ' : 'FAIL'}  ${label}
 
   ok('one <h1>, no eyebrow or sub above it',
     (await p.locator('h1').count()) === 1 && (await p.locator('.eyebrow, .sub').count()) === 0);
-  ok('a prompt button per cell', (await p.locator('.pbtn').count()) === 6);
+  ok('a prompt button per cell', (await p.locator('.pbtn').count()) === 7);
   ok('every panel starts shut', (await p.locator('.ppanel[hidden]').count()) === 2);
+  // Rows of DIFFERENT widths on one page — 3 across and 4 across — laid out
+  // from the same code path.
+  ok('a 3-cell row lays out 3 across', (await p.evaluate(() =>
+    getComputedStyle(document.querySelector('[data-item="braid"] .cmpgrid'))
+      .gridTemplateColumns.split(' ').length)) === 3);
+  ok('a 4-cell row lays out 4 across', (await p.evaluate(() =>
+    getComputedStyle(document.querySelector('[data-item="bicycle"] .cmpgrid'))
+      .gridTemplateColumns.split(' ').length)) === 4);
 
   const card = p.locator('.card[data-item="braid"]');
   const panel = card.locator('.ppanel');
@@ -122,7 +134,7 @@ const ok = (label, cond) => { console.log(`  ${cond ? 'ok  ' : 'FAIL'}  ${label}
   ok('no button reads as open once shut',
     await card.locator('.pbtn[aria-expanded="true"]').count() === 0);
 
-  await p.locator('.pbtn[data-p="bicycle__watercolor"]').click();
+  await p.locator('.pbtn[data-p="bicycle__high"]').click();
   await p.waitForTimeout(150);
   ok('rows are independent',
     (await p.locator('.card[data-item="bicycle"] .ppanel').isVisible()) && !(await panel.isVisible()));

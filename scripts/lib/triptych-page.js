@@ -34,7 +34,10 @@ function buildPage({ title, chat, sheet, help, rows }) {
     }
   }
 
+  // The column count is DATA — three styles on one page, four quality rungs on
+  // another — so it rides inline rather than as a class per possible count.
   const cards = rows.map((r) => {
+    const n = r.cells.length;
     const cells = r.cells.map((c) => `      <figure>
         <span class="tag">${esc(c.tag)}</span>
         <img src="${esc(c.url)}" alt="${esc(c.alt)}">
@@ -42,7 +45,7 @@ function buildPage({ title, chat, sheet, help, rows }) {
       </figure>`).join('\n');
     return `  <div class="card" data-item="${esc(r.id)}">
     <h3>${esc(r.label)}</h3>
-    <div class="duo trio">
+    <div class="duo cmpgrid" style="grid-template-columns:repeat(${n},1fr)">
 ${cells}
     </div>
     <div class="ppanel" hidden></div>
@@ -55,9 +58,12 @@ ${cells}
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-  /* Three across, labels on top — .duo's look, one more column. */
-  .duo.trio { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .duo.trio figure { display: flex; flex-direction: column; }
+  /* .duo's look, but N across — the count is set inline per row. */
+  .duo.cmpgrid { gap: 8px; }
+  .duo.cmpgrid figure { display: flex; flex-direction: column; }
+  /* Four columns on a 390px phone leaves ~85px a picture, so the tag has to
+     stay on one line rather than wrapping the row into raggedness. */
+  .duo.cmpgrid .tag { font-size: 10px; letter-spacing: .04em; white-space: nowrap; }
   /* The button hugs its word and sits under its own picture. */
   .pbtn { font-size: 12px; padding: 5px 9px; margin-top: 6px; align-self: start; }
   .pbtn[aria-expanded="true"] { background: var(--gold); color: var(--surface); }
