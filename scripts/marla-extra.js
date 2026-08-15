@@ -119,6 +119,9 @@ async function upload(buf, dest) {
 }
 
 const LABELS = {
+  '13t-none': 'Description test — page 13 face-on, character described: none',
+  '13t-expression': 'Description test — page 13 face-on, character described: expression',
+  '13t-full': 'Description test — page 13 face-on, character described: full',
   '8t-none': 'Description test — page 8, character described: none',
   '8t-expression': 'Description test — page 8, character described: expression',
   '8t-full': 'Description test — page 8, character described: full',
