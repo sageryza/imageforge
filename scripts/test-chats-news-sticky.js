@@ -23,7 +23,9 @@
 //   4. …and opening a chat does not POST notif-seen behind her back — that
 //      write is what used to keep the widget's count in step, and it would now
 //      clear a card she never checked,
-//   5. the ✓ clears the card and posts the stamp,
+//   5. the ✓ box + the pinned row's DONE clears the card and posts the stamp
+//      (Aug 2026 — the ✓ picks, DONE clears; test-chats-news-queue.js owns
+//      that contract),
 //   6. a chat whose ✓ is newer than everything it has delivered gets no card
 //      at all — the stamp still settles a card across reloads.
 //
@@ -157,15 +159,18 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
       + JSON.stringify(seenPosts));
   }
 
-  // 5. the ✓ is what clears it
+  // 5. the ✓ box + DONE is what clears it (Aug 2026: the ✓ picks the card and
+  //    the pinned row's DONE clears it — test-chats-news-queue.js owns that
+  //    contract; here it just has to still be the ONLY way a card leaves)
   await page.click('#grid .nwcard[data-chat="chat-new"] .nwck');
+  await page.click('#catrow .nwdone');
   await page.waitForFunction(() =>
     !document.querySelector('#grid .nwcard[data-chat="chat-new"]'),
-    null, { timeout: 3000 }).catch(() => fail('the ✓ did not clear the card'));
-  if (!seenPosts.some((p) => p.chat === 'chat-new')) fail('the ✓ never posted notif-seen');
+    null, { timeout: 3000 }).catch(() => fail('✓ then DONE did not clear the card'));
+  if (!seenPosts.some((p) => p.chat === 'chat-new')) fail('DONE never posted notif-seen');
 
   await browser.close();
   server.close();
   console.log(process.exitCode ? 'DONE with failures'
-    : 'OK: no pin, the card survives being opened, and nothing here but the ✓ clears it');
+    : 'OK: no pin, the card survives being opened, and nothing but ✓ + DONE clears it');
 })().catch((e) => { console.error(e); process.exit(1); });

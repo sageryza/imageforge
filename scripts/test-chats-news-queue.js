@@ -11,9 +11,16 @@
 // Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. the chips row is on the UPDATE screen, and it is exactly two boxes —
 //      LATER on the LEFT, IN A MINUTE beside it (her order),
-//   2. tapping a card PICKS it (the thicker outline) and tapping it again
-//      lets go; the ✓ and a page title still do their own jobs instead of
+//   2. THE ✓ BOX PICKS the card (the thicker outline, the box lights) and
+//      picks it again to let go — Sophie, Aug 2026: "I click the checkmark box
+//      to select it and then the buttons get pinned to the top, and we just
+//      add one more, DONE, and that clears it without putting it into a
+//      category — but the done button does not show up unless something is
+//      actively selected". A page title still opens its page rather than
 //      picking,
+//  2b. while something is picked the tool row PINS to the top and DONE joins
+//      the boxes; with nothing picked there is no DONE and no pin,
+//  2c. DONE clears the picked cards (POST /notif-seen) without filing them,
 //   3. picked + a box = FILED: it POSTs /news-queue, the card leaves the main
 //      list, and the box counts it,
 //   4. the box is a FILTER when nothing is picked — tap it to see what is in
@@ -59,6 +66,7 @@ const MSGS = [
   { id: 'm5', chat: 'chat-new', from: 'claude', text: 'new', tldr: 'spoke again since', created: iso(T0 - 10 * 60000), postedAt: iso(T0 - 10 * 60000) },
 ];
 const queuePosts = [];
+const seenPosts = [];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -91,6 +99,7 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => body += c);
     req.on('end', () => {
+      seenPosts.push(JSON.parse(body || '{}'));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, notifSeenAt: iso(Date.now()) }));
     });
@@ -158,13 +167,25 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (list.indexOf('chat-new') < 0) fail('a filed chat that delivered SINCE must pop back onto the list: ' + list.join(', '));
   if (!/1$/.test(row[0])) fail('the Later box should count 1 (chat-old), got "' + row[0] + '"');
 
-  // 2. a tap picks the card, a second tap lets go
-  await page.click('.nwcard[data-chat="chat-a"] .crow');
-  if (!await page.$('.nwcard[data-chat="chat-a"].picked')) fail('a tap on the card did not pick it');
+  // 2. the ✓ box picks the card, a second tap lets go
+  if (await page.$('#catrow .nwdone')) fail('DONE is on the row with nothing picked');
+  if (await page.$eval('body', n => n.classList.contains('newspick'))) fail('the row is pinned with nothing picked');
+  await page.click('.nwcard[data-chat="chat-a"] .nwck');
+  if (!await page.$('.nwcard[data-chat="chat-a"].picked')) fail('the ✓ box did not pick the card');
+  if (!await page.$('.nwcard[data-chat="chat-a"] .nwck.on')) fail('the ✓ box does not light when picked');
   const bw = await page.$eval('.nwcard[data-chat="chat-a"]', n => getComputedStyle(n).borderTopWidth);
   if (parseFloat(bw) < 2) fail('a picked card has no thicker outline (border ' + bw + ')');
-  await page.click('.nwcard[data-chat="chat-a"] .crow');
-  if (await page.$('.nwcard[data-chat="chat-a"].picked')) fail('tapping a picked card did not let go of it');
+
+  // 2b. …which pins the row and puts DONE on it
+  if (!await page.$eval('body', n => n.classList.contains('newspick'))) fail('picking did not pin the tool row');
+  const pos = await page.$eval('#toolrow', n => getComputedStyle(n).position);
+  if (pos !== 'sticky') fail('the pinned tool row is not sticky, it is ' + pos);
+  if (!await page.$('#catrow .nwdone')) fail('DONE did not join the row while something is picked');
+
+  await page.click('.nwcard[data-chat="chat-a"] .nwck');
+  if (await page.$('.nwcard[data-chat="chat-a"].picked')) fail('the ✓ box did not let go of the card');
+  if (await page.$('#catrow .nwdone')) fail('DONE stayed on the row after letting go');
+  if (await page.$eval('body', n => n.classList.contains('newspick'))) fail('the row stayed pinned after letting go');
 
   // …and the page title is still a page title, not a pick
   await page.click('.nwcard[data-chat="chat-a"] .pagerow');
@@ -175,8 +196,8 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForSelector('.pageview', { state: 'detached', timeout: 3000 }).catch(() => {});
 
   // 3. pick two, tap LATER → filed
-  await page.click('.nwcard[data-chat="chat-a"] .crow');
-  await page.click('.nwcard[data-chat="chat-b"] .crow');
+  await page.click('.nwcard[data-chat="chat-a"] .nwck');
+  await page.click('.nwcard[data-chat="chat-b"] .nwck');
   await page.click('#catrow .catchip:nth-of-type(1)');
   await page.waitForTimeout(120);
   const post = queuePosts[queuePosts.length - 1] || {};
@@ -206,7 +227,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (list.indexOf('chat-new') >= 0) fail('a card that delivered after filing must not sit in the box too');
 
   // 5. picked + the box it is already in = back out
-  await page.click('.nwcard[data-chat="chat-a"] .crow');
+  await page.click('.nwcard[data-chat="chat-a"] .nwck');
   await page.click('#catrow .catchip:nth-of-type(1)');
   await page.waitForTimeout(120);
   const back = queuePosts[queuePosts.length - 1] || {};
@@ -221,6 +242,21 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForTimeout(80);
   list = await cards();
   if (list.indexOf('chat-a') < 0) fail('the un-filed card did not come back to the main list: ' + list.join(', '));
+
+  // 2c. DONE clears without filing — the ✓'s old job, now on the pinned row
+  const seenBefore = seenPosts.length;
+  await page.click('.nwcard[data-chat="chat-new"] .nwck');
+  await page.click('#catrow .nwdone');
+  await page.waitForTimeout(150);
+  if (seenPosts.length !== seenBefore + 1 || seenPosts[seenPosts.length - 1].chat !== 'chat-new') {
+    fail('DONE did not POST /notif-seen for the picked card — ' + JSON.stringify(seenPosts));
+  }
+  if (((queuePosts[queuePosts.length - 1] || {}).chats || []).includes('chat-new')) {
+    fail('DONE filed the card into a box as well as clearing it');
+  }
+  list = await cards();
+  if (list.indexOf('chat-new') >= 0) fail('DONE did not take the card off the list: ' + list.join(', '));
+  if (await page.$('#catrow .nwdone')) fail('DONE stayed on the row after clearing the selection');
 
   // 8. the chat is still reachable — its ICON opens it (every card has one,
   // blank fallback included, because that is the way in now)

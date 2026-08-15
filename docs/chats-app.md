@@ -1283,6 +1283,34 @@
       the centre of the card — opened the chat instead of picking it (caught
       by the headless test on the first run). The ⌄, the ✓, a page title and a
       thumbnail all stop the click, so nothing else gained a second meaning.
+    - **THE ✓ BOX PICKS, AND THE ROW PINS (Aug 2026, Sophie: "we need the
+      buttons to become pinned to the top so I can click them — this could
+      happen only when I select something. I think the best thing would be
+      that I click the checkmark box to select it and then the buttons get
+      pinned to the top, and we just add one more, DONE, and that clears it
+      without putting it into a category — but the done button does not show
+      up unless something is actively selected").**
+      - The card's ✓ is the **select box** now: it lights, the card takes the
+        thicker outline, and tapping it again lets go.
+      - While anything is picked, `body.newspick` makes the whole tool row
+        **sticky at the top** so the boxes are always in reach — sticky, not
+        fixed, so the row keeps its place in the layout and nothing under it
+        jumps as it pins. It needs the page's own background or the cards
+        read through it.
+      - **DONE** joins the boxes on that row *only* while something is
+        picked, and it does what the ✓ used to do: `notifSeenAt`, no filing.
+        So clearing a card is two taps now (✓ then DONE) — her design, and
+        the reason the ✓ could stop being a one-tap delete on a screen where
+        every other gesture is a selection.
+      - Tests: `node scripts/test-chats-news-queue.js` covers the pin, the
+        DONE-only-while-picked rule, and DONE clearing without filing.
+        `test-chats-news.js` / `test-chats-news-sticky.js` were updated to
+        the two-tap clear.
+    - **STILL OPEN: how she opens a chat from a card.** A tap on the card
+      body picks it too, which is what she flagged ("I don't think there's a
+      way to open the chat now cause clicking on it selects it") — the icon
+      works today, and the real fix is to give the card body back to opening
+      now that the ✓ box owns picking. Waiting on her call, not forgotten.
     - Tests: `node scripts/test-chats-news-queue.js`.
 
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
