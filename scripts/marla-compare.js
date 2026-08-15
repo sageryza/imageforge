@@ -214,10 +214,15 @@ function figure(tag, img, chip, expr) {
 <div class="wrap">
   <h1>${esc(title)}</h1>
 
+  ${testCard}
+
+  <!-- The two standing lines sit BELOW the first card, not under the title:
+       nothing to read between the title and the first picture (Aug 2026).
+       They stay ON the page rather than behind the "?" because every chip
+       below names one of them — hidden, the chips would mean nothing. -->
   <div class="big"><b>the standing line, before</b>${esc(RULE_OLD)}</div>
   <div class="big"><b>and after your note</b>${esc(RULE_NEW)}</div>
 
-  ${testCard}
   ${blocks.join('\n  ')}
 </div>
 
