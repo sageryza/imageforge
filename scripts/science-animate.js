@@ -34,6 +34,13 @@ const { execFileSync } = require('child_process');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getStorage } = require('firebase-admin/storage');
 
+// The bundled binary, the way movies.js and scratchpad.js resolve it — a bare
+// `ffmpeg` is not on PATH in a session container, which is how the first run
+// produced the mp4 and silently skipped the GIF.
+const FFMPEG = process.env.FFMPEG_PATH
+  || (() => { try { return require('ffmpeg-static'); } catch { return null; } })()
+  || 'ffmpeg';
+
 const KEY = process.env.APIFRAME_KEY || process.env.APIFRAME_API_KEY || '';
 const BASE = process.env.APIFRAME_BASE || 'https://api.apiframe.ai/v2';
 // APIFRAME sits behind Cloudflare, which rejects non-browser signatures.
@@ -52,6 +59,12 @@ const endId = arg('end');
 const prompt = arg('prompt');
 const model = arg('model', 'seedance-2-mini');
 const resolution = arg('res', '480p');
+// BOTH OF THESE MUST BE SENT. The first run passed neither and seedance used
+// its own defaults — 8.1 seconds at 864x496 — which is twice the length Sophie
+// asked for and the wrong shape for a square card (48 credits instead of ~24).
+// seedance-2-mini's durations are 4, 6, 8, 10, 12, 15; the cards are square.
+const secs = Number(arg('secs', 4));
+const aspect = arg('ar', '1:1');
 const out = arg('out', startId + (endId ? '-' + endId : ''));
 
 if (!startId || !prompt) {
@@ -87,14 +100,14 @@ function videoUrlOf(r) {
 }
 
 (async () => {
-  const params = { resolution, start_image: ART + startId + '.png' };
+  const params = { resolution, duration: secs, aspect_ratio: aspect, start_image: ART + startId + '.png' };
   if (endId) params.end_image = ART + endId + '.png';
   // The camera is not the thing moving — the drawing is.
   params.camera_fixed = true;
 
   const before = (await api('/me')).team.credits;
   console.log(`credits before: ${before}`);
-  console.log(`${model} · ${resolution} · ${startId}${endId ? ' → ' + endId : ''}`);
+  console.log(`${model} · ${resolution} · ${aspect} · ${secs}s · ${startId}${endId ? ' → ' + endId : ''}`);
 
   const r = await api('/videos/generate', {
     method: 'POST',
@@ -137,8 +150,8 @@ function videoUrlOf(r) {
   try {
     const gif = path.join('/tmp', out + '.gif');
     const pal = path.join('/tmp', out + '-pal.png');
-    execFileSync('ffmpeg', ['-y', '-i', local, '-vf', 'fps=12,scale=480:-1:flags=lanczos,palettegen=stats_mode=diff', pal], { stdio: 'ignore' });
-    execFileSync('ffmpeg', ['-y', '-i', local, '-i', pal, '-lavfi', 'fps=12,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3', gif], { stdio: 'ignore' });
+    execFileSync(FFMPEG, ['-y', '-i', local, '-vf', 'fps=12,scale=480:-1:flags=lanczos,palettegen=stats_mode=diff', pal], { stdio: 'ignore' });
+    execFileSync(FFMPEG, ['-y', '-i', local, '-i', pal, '-lavfi', 'fps=12,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3', gif], { stdio: 'ignore' });
     const name = `witch-school/clips/${out}.gif`;
     await bucket.file(name).save(fs.readFileSync(gif), { metadata: { contentType: 'image/gif' } });
     await bucket.file(name).makePublic();
