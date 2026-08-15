@@ -42,10 +42,9 @@
   /* How it works — a POP-UP, in a plain style (Sophie): a cream card, black
      text, a normal font. Nothing fuchsia, nothing serif — it is the one screen
      that is only explaining, so it should look like a note, not like the app.
-     It lays OVER the feed rather than sitting in it: first visit, then from the
-     gear forever after. Someone arriving on a link she sent has no idea a dream
-     is private until they share it, or that the words and each drawing are
-     separate choices. */
+     It opens from the GEAR MENU and nowhere else (Sophie) — it never greets a
+     first visit, it is there for someone who wants to know how the sharing
+     works. So there is no seen/unseen state to keep. */
   .howwrap { position:fixed; inset:0; z-index:45; background:#0e0e1180;
              display:flex; align-items:center; justify-content:center; padding:20px; }
   .how { background:var(--paper); color:var(--inkp); border-radius:6px; width:100%;
@@ -312,7 +311,6 @@ async function api(path, opts){
 /* ── how it works ──
    Written for someone who just followed a link, so it says the two things the
    screen cannot: a dream is PRIVATE until shared, and sharing is per-piece. */
-var HOW_SEEN = 'dreamapp_how_seen';
 var howY = 0;
 function howCard(){
   return '<div class="how">' +
@@ -340,19 +338,15 @@ function openHow(){
     if (e.target === w || (e.target.closest && e.target.closest('[data-howclose]'))) closeHow();
   });
 }
-// Marking it seen on CLOSE, not on open: someone who leaves the page without
-// reading it hasn't read it, and should get it again next time.
 function closeHow(){
   var w = document.getElementById('howwrap');
   if (!w) return;
   w.remove();
-  try { localStorage.setItem(HOW_SEEN, '1'); } catch (e) {}
   if (document.getElementById('lb').hidden) {
     document.body.style.overflow = '';
     window.scrollTo(0, howY);
   }
 }
-function howSeen(){ try { return localStorage.getItem(HOW_SEEN) === '1'; } catch (e) { return false; } }
 
 /* ── lightbox: a tapped panel opens big ──
    The house rule has two halves and BOTH matter: lock the page behind it, and
@@ -576,7 +570,6 @@ async function renderFeed(){
     }
     if (!f.dreams.length) {
       el.innerHTML = '<div class="quiet" style="padding-top:30px">Yours is the first dream of the day.</div>';
-      if (!howSeen()) openHow();
       return;
     }
     // Group under the day they were shared, newest day first; no names. Inside
@@ -596,7 +589,6 @@ async function renderFeed(){
     }).join('');
     wirePanels(el);
     wireDreams(el);
-    if (!howSeen()) openHow();
   } catch (e) {
     el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
   }
