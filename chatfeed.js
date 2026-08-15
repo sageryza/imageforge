@@ -40,6 +40,9 @@
 //                                  the ✓ on a card in the NEW tab. A self-
 //                                  clearing stamp: anything newer brings the
 //                                  card back on its own.
+//   GET  /api/chatfeed/questions?chat= → her questions in that chat, each with
+//                                  the answer that came back. DERIVED from the
+//                                  thread (questions.js), never filed by a chat.
 //   GET  /api/chatfeed/todos     → her running to-do list (open items first).
 //                                  ANY chat may read it and act on an item.
 //   POST /api/chatfeed/todo      → { text } — add one
@@ -53,6 +56,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
+const { buildQuestions, answeredOnly } = require('./questions');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -487,6 +491,31 @@ router.get('/thread', async (req, res) => {
     const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0));
     res.json({ messages });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- Questions ------------------------------------------------------------
+// Her questions in this chat, each with the answer that came back — the thing
+// the Questions button under the thread header opens (Aug 2026: "it's hard to
+// find the answer cause it's buried under other stuff").
+//
+// DERIVED, never filed. See the header of questions.js for why that is the
+// whole design: nothing has to be remembered by any chat, and the list is
+// complete over the entire history from the moment it ships. Costs one
+// equality query (the same one /thread makes) and only when she taps.
+router.get('/questions', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 100));
+    const snap = await db().collection(MSGS).where('chat', '==', chat).get();
+    const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // An unanswered question is not listed — see `answeredOnly` in questions.js
+    // for why. `?open=1` asks for them back.
+    const all = buildQuestions(messages);
+    const out = String(req.query.open || '') === '1' ? all : answeredOnly(all);
+    res.json({ chat, questions: out.slice(0, limit), total: out.length });
   } catch (err) { fail(res, err); }
 });
 

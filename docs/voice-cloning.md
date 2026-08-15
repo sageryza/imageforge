@@ -149,8 +149,30 @@ for the PVC slot. An IVC is a different job: one recording, a few minutes, a
 spare voice slot. The conditioning rules do not change — no loudnorm, no
 denoise, one fixed gain — but two things about a single file bite.
 
-**Built this way: `Sophie — Evan/Charlie (instant)`, `KwYQwzMAtZ3ePyBmyLKc`.**
-Source is the memo she calls the Evan/Charlie recording,
+**OUTCOME: Sophie rejected it and had it deleted (2026-08-14, same day).** Her
+words: "it doesn't sound like me." Tested on both settings pairs — the house
+0.5/0.75 and Jonathan's 0.77/1.00 — three lines each, and neither carried the
+likeness. The voice id below is gone; nothing points at it. **The conditioning
+was not the problem** (the QC numbers below are clean), so do not rebuild this
+same clone hoping a better filter chain rescues it. What is worth knowing
+before spending another slot on an IVC of her:
+
+- **This source is her READING, not talking.** She is performing a written
+  piece in takes, which is a different register from the speech in the memos
+  that trained the voice she does like. A clone learns the register.
+- **7 minutes is IVC-sized, and IVC is the weaker tool.** The clone she
+  approves of (`Sophie — morning`, `UTkHGl2ImiT6gwtAFCql`) is a PVC trained on
+  **2.63 hours** across 30 conditioned recordings. An instant clone off one
+  file is a draft-quality tool and was always going to lose that comparison.
+- **Settings could not close the gap**, and that is the useful negative
+  result: when an IVC misses the likeness, stability/similarity is not the
+  lever. The source material is.
+
+Kept here because the two machinery bugs it exposed (below) are real and now
+fixed, and because the negative result is worth more than the voice was.
+
+**Built this way: `Sophie — Evan/Charlie (instant)`, `KwYQwzMAtZ3ePyBmyLKc`
+(DELETED).** Source is the memo she calls the Evan/Charlie recording,
 `2026-07-09_0456_2026-07-09T11_56_09Z` — her reading her own piece about the
 phone call from Evan, coincidence and belief, ending on Charlie. 33m44s,
 mono 48kHz 63kbps AAC. Filed under category `conversation`, but the transcript

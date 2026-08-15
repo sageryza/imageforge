@@ -1,0 +1,13 @@
+[
+ {
+  "id": "sync-01",
+  "file": "/home/user/out/sync/sync-01.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a phone lying face up on a wooden table with its screen lit, a folded stack of banknotes resting beside it and a moth settled on the table edge. On the right: a package of vegetarian sausages held up in a grocery aisle, shelves of packages softly suggested behind. No people and no faces anywhere. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]

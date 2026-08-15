@@ -37,15 +37,60 @@ if (names.length !== COLS * ROWS) {
 }
 fs.mkdirSync(outdir, { recursive: true });
 
+// CUT AT THE GUTTER, NOT AT THE MIDPOINT.
+//
+// Dividing the sheet into equal parts assumes the model centred the gap, and it
+// does not. Measured on the vegetable pairs: the exact midpoint of the
+// asparagus/broccoli sheet had 70 pixels of ink running through it — the cut
+// went straight through the broccoli, so a fragment of it landed in the
+// asparagus card AND pushed the asparagus off-centre, because the trim box then
+// grew to include the stray. The real gap was 64px wide, 90px to the left.
+// Sophie caught both symptoms ("a little bit of the other fruit cutting into
+// it", "some of them weren't centered") and offered to fix it by hand; this is
+// the same fix done by measurement.
+//
+// Returns the cut positions along one axis: the centre of the widest run of
+// entirely blank lines near each ideal boundary, or the ideal boundary itself
+// when no blank run exists (touching drawings — nothing can separate those, and
+// an even cut is the honest fallback).
+function cuts(profile, n, span) {
+  const out = [];
+  for (let k = 1; k < n; k++) {
+    const ideal = Math.round((span * k) / n);
+    const lo = Math.max(0, ideal - Math.round(span / (n * 2)));
+    const hi = Math.min(span - 1, ideal + Math.round(span / (n * 2)));
+    let best = { len: 0, at: -1 }, run = 0;
+    for (let x = lo; x <= hi; x++) {
+      if (profile[x] === 0) { run++; if (run > best.len) best = { len: run, at: x - run + 1 }; }
+      else run = 0;
+    }
+    out.push(best.len ? best.at + Math.floor(best.len / 2) : ideal);
+  }
+  return [0, ...out, span];
+}
+
 (async () => {
   const meta = await sharp(sheet).metadata();
-  const cw = Math.floor(meta.width / COLS), ch = Math.floor(meta.height / ROWS);
+  // Ink profiles along each axis: a line counts as blank only if NOTHING on it
+  // is darker than near-white, so a stray pen flick still blocks a gutter.
+  const { data, info } = await sharp(sheet).greyscale().raw().toBuffer({ resolveWithObject: true });
+  const colInk = new Array(info.width).fill(0);
+  const rowInk = new Array(info.height).fill(0);
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      if (data[y * info.width + x] < 235) { colInk[x]++; rowInk[y]++; }
+    }
+  }
+  const xs = cuts(colInk, COLS, info.width);
+  const ys = cuts(rowInk, ROWS, info.height);
+  if (COLS > 1) console.log(`  cuts at x: ${xs.slice(1, -1).join(', ')} (even would be ${
+    Array.from({ length: COLS - 1 }, (_, k) => Math.round(info.width * (k + 1) / COLS)).join(', ')})`);
   const out = [];
 
   for (let i = 0; i < names.length; i++) {
     const row = Math.floor(i / COLS), col = i % COLS;
     const cell = await sharp(sheet)
-      .extract({ left: col * cw, top: row * ch, width: cw, height: ch })
+      .extract({ left: xs[col], top: ys[row], width: xs[col + 1] - xs[col], height: ys[row + 1] - ys[row] })
       .toBuffer();
 
     const trimmed = await sharp(cell).trim({ threshold: 12 }).toBuffer();

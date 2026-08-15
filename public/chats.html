@@ -642,8 +642,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
 .t-tldr.t-note{font-style:italic;}
-/* Her note on a chat, editable at the top of its thread. Quiet until tapped. */
-.noterow{margin:0 0 1em; font-size:15px; line-height:1.4;}
+/* Her note on a chat, editable at the top of its thread. Quiet until tapped.
+   The QUESTIONS button rides the same row (Aug 2026, Sophie: "there's hardly
+   any room on that screen so I wouldn't put it there [the tab row] — I would
+   just put a little button underneath it somewhere that says questions"), so
+   it costs no vertical space at all: the note takes the line, the button sits
+   at its right end. */
+.noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 1em; font-size:15px; line-height:1.4;}
+.noterow .notewrap{flex:1 1 auto; min-width:0;}
+.noterow .qbtn{flex:none; margin-top:1px;}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
@@ -651,6 +658,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .noterow .noteshow.has{color:var(--ink);}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
+/* ---- QUESTIONS (Aug 2026) ---------------------------------------------------
+   Her questions in this chat, each with the answer that came back.
+   IT IS THE MESSAGE LIST, SWAPPED (Sophie, 2026-08-14, after the first attempt
+   shipped as a full-screen overlay with an ✕: "it's supposed to basically just
+   exchange for the messages same format like you know where it can open and
+   then close if I click on it be collapsed I mean, and it's supposed to have
+   all the other things above it. Not totally separate not an x"). So: the
+   header, the tabs and her note stay exactly where they are, the rows below
+   them become questions, and the button that swapped them swaps them back.
+   Each row IS a `.msg` — same padding, same hairline, same tap-to-open,
+   tap-the-head-to-close. Nothing here re-implements that; these two rules are
+   the whole stylesheet, because the row already knew how to behave.
+   Collapsed shows the question; open shows the question AGAIN with the answer
+   underneath, since `.msg.open` hides the preview and that pairing is the
+   entire feature. */
+.q-q{font-weight:700;}
+.q-a{font-weight:400; margin-top:.5em;}
 .stquiet{font-size:15.5px; font-style:italic; color:var(--ink2); padding:8px 2px;}
 /* ---- The UPDATE tab's cards (Aug 2026, Sophie) -------------------------------
    "A daily notifications thing, basically — so it includes a little more
@@ -3563,6 +3587,41 @@ function openPinned(pin){
   w.appendChild(v); w.appendChild(x);
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
+// QUESTIONS — every question she asked in this chat, each with the answer that
+// came back (Aug 2026: "sometimes I ask questions to chat and then it's hard to
+// find the answer cause it's buried under other stuff").
+//
+// A ROW IS A `.msg`, and that is the whole design (her correction, same day:
+// "it's supposed to basically just exchange for the messages same format …
+// where it can open and then close if I click on it be collapsed"). The list
+// takes the messages' place inside the Chat tab — header, tabs and her note
+// stay above it — and every row reuses the message row's own markup, so
+// tap-to-open, tap-the-head-to-close, the hairline and the spacing all come
+// for free rather than being re-invented three pixels off.
+//
+// Collapsed: the question. Open: the question AGAIN, bold, with the answer
+// underneath it — `.msg.open` hides `.m-preview`, and losing the question at
+// the moment she reads the answer would throw away the pairing this exists for.
+//
+// Nothing here is filed by a chat: the server DERIVES the pairs from the thread
+// it already stores (questions.js), so the list is complete over the chat's
+// whole history and no chat has to remember anything. Fetched on the first tap,
+// never on load — an unopened list costs nothing.
+function renderQuestion(q){
+  var row=document.createElement('div'); row.className='msg qrow';
+  var short=q.question.slice(0,140)+(q.question.length>140?'\u2026':'');
+  row.innerHTML='<div class="m-head"><span class="m-chat sophie">me</span>'
+    +'<span class="m-time">'+ago(q.at)+'</span>'
+    +'<span class="m-close">close &#9650;</span></div>'
+    +'<div class="m-preview q-q">'+esc(short)+'</div>'
+    +'<div class="m-full"><div class="q-q">'+esc(q.question)+'</div>'
+    +'<div class="q-a">'+md(q.answer)+'</div></div>';
+  row.querySelector('.m-preview').onclick=function(){ row.classList.add('open'); };
+  row.querySelector('.m-head').onclick=function(){
+    if(row.classList.contains('open')){ window.__scrollStop(); row.classList.remove('open'); }
+  };
+  return row;
+}
 function openChat(name, keepScroll, focusId, noFetch){
   if(window.__jumpsRecheck) setTimeout(window.__jumpsRecheck, 0);
   if(!cur) homeY=window.scrollY;   // remember the feed spot for back
@@ -3796,16 +3855,26 @@ function openChat(name, keepScroll, focusId, noFetch){
   // A chat never clears it; she edits or clears it right here (save on
   // tap-away, empty clears).
   var nrow=document.createElement('div'); nrow.className='noterow';
+  // The note owns the line; the Questions button sits at its right end, so
+  // opening her questions costs no vertical space on a screen that had none.
+  var nwrap=document.createElement('div'); nwrap.className='notewrap';
+  nrow.appendChild(nwrap);
+  var qOn=false;                     // are the questions showing instead of the messages?
+  var qbtn=document.createElement('button');
+  qbtn.className='tbtn qbtn'; qbtn.textContent='Questions';
+  qbtn.setAttribute('aria-label','Your questions in this chat, with the answers');
+  qbtn.setAttribute('aria-pressed','false');
+  nrow.appendChild(qbtn);
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
-    nrow.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
-    nrow.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+    nwrap.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
+    nwrap.querySelector('.noteshow').onclick=function(){ editChatNote(); };
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
     ta.placeholder='A note to yourself about this chat';
-    nrow.innerHTML=''; nrow.appendChild(ta); ta.focus();
+    nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
     var done=false;
     function save(){
       if(done) return; done=true;
@@ -3823,7 +3892,13 @@ function openChat(name, keepScroll, focusId, noFetch){
   paintNote();
   chatPanel.appendChild(nrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
-  if(!list.length) chatPanel.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  // The messages live in their OWN box so the Questions list can take their
+  // place without disturbing anything above it — the header, the tabs and her
+  // note stay put, which is what she asked for after the first version came
+  // back as a separate full-screen thing.
+  var mlist=document.createElement('div');
+  chatPanel.appendChild(mlist);
+  if(!list.length) mlist.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
   // Each row is indexed once against the text it was built from, not re-read
   // out of the DOM on every keystroke.
   var mrows=[];
@@ -3835,13 +3910,13 @@ function openChat(name, keepScroll, focusId, noFetch){
       var h=document.createElement('div');
       h.className='chapdiv';
       h.innerHTML='<span>'+esc(plan[i])+'</span>';
-      chatPanel.appendChild(h);
+      mlist.appendChild(h);
       chaprows.push(h);
     }
     var row=renderMsg(m);
     if(m.id&&wasOpen[m.id]) row.classList.add('open');
     mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
-    chatPanel.appendChild(row);
+    mlist.appendChild(row);
   });
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
@@ -3866,6 +3941,42 @@ function openChat(name, keepScroll, focusId, noFetch){
   }
   sinp.oninput=applyMsgFilter;
   sclr.onclick=function(){ sinp.value=''; applyMsgFilter(); sinp.focus(); };
+  // ---- Questions, in the messages' place ----------------------------------
+  // The button on the note row swaps the two boxes and swaps them back — no
+  // overlay, no ✕, nothing to dismiss. Lit (`.tbtn.on`) while the questions
+  // are showing, so the way out is the same control as the way in.
+  var qpanel=document.createElement('div'); qpanel.style.display='none';
+  chatPanel.appendChild(qpanel);
+  var qLoaded=false;
+  function loadQuestions(){
+    if(qLoaded) return; qLoaded=true;
+    qpanel.innerHTML='<div class="state">Loading…</div>';
+    api('/api/chatfeed/questions?chat='+encodeURIComponent(name)+'&_='+Date.now())
+      .then(function(r){return r.json()})
+      .then(function(d){
+        var qs=(d&&d.questions)||[];
+        qpanel.innerHTML='';
+        if(!qs.length){
+          qpanel.appendChild(Object.assign(document.createElement('div'),
+            {className:'state',textContent:'No answered questions in this chat yet.'}));
+          return;
+        }
+        qs.forEach(function(q){ qpanel.appendChild(renderQuestion(q)); });
+      })
+      .catch(function(){ qLoaded=false; qpanel.innerHTML='<div class="state">Couldn’t load your questions.</div>'; });
+  }
+  function showQuestions(on){
+    qOn=on;
+    mlist.style.display=on?'none':'';
+    srow.style.display=on?'none':'';         // that box searches messages
+    scount.style.display=on?'none':scount.textContent?'':'none';
+    qpanel.style.display=on?'':'none';
+    qbtn.classList.toggle('on', on);
+    qbtn.setAttribute('aria-pressed', on?'true':'false');
+    tsBtn.style.display=(curTab==='chat'&&!on)?'':'none';
+    if(on) loadQuestions();
+  }
+  qbtn.onclick=function(){ scrollStop(); showQuestions(!qOn); };
   var tsBtn=head.querySelector('.threadsearch');
   tsBtn.onclick=function(){
     var open=srow.classList.toggle('open');
@@ -4237,8 +4348,10 @@ function openChat(name, keepScroll, focusId, noFetch){
     if(tab==='assets') loadAssets();
     if(tab==='compare') loadPages();
     // The magnifier searches the Chat tab's messages, so it only belongs
-    // there — Assets carries its own search bar, Compare has nothing to filter.
-    tsBtn.style.display = tab==='chat' ? '' : 'none';
+    // there — Assets carries its own search bar, Compare has nothing to filter,
+    // and while the Questions list is standing in for the messages there is
+    // nothing under it to search either.
+    tsBtn.style.display = (tab==='chat' && !qOn) ? '' : 'none';
   }
   tgChat.onclick=function(){ showTab('chat'); };
   tgAssets.onclick=function(){ scrollStop(); showTab('assets'); window.scrollTo(0,0); };

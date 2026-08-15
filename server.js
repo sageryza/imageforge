@@ -324,6 +324,10 @@ loadConfig().then(() => {
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
   // rate-limited per IP inside the module, since it spends on image gen.
   app.use('/api/selfcare', require('./selfcare').router);
+  // Science School's lesson notes. PUBLIC like /science itself — it writes a
+  // document and nothing else, and it must NOT sit behind STUDIO_TOKEN or a
+  // note typed on a public page would vanish the day that gate goes on.
+  app.use('/api/science', require('./science'));
   // Dream Draw — dream text → drawn comic pages (the dream app's "draw it"
   // backend). PUBLIC + rate-limited per IP like /api/selfcare; spends on
   // image gen. Mounted here so movies.js has its keys hydrated.
