@@ -1,0 +1,352 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The chats-app chats, sorted — v2</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* right padding keeps every line clear of the note "+" that compare.js
+     pins in the row's bottom-right corner (absolute, 22px at right:7px) */
+  .row { background: var(--surface); border: 1px solid var(--line);
+         border-radius: 6px; margin-bottom: 8px; padding-right: 32px; }
+  .rlink { display: flex; gap: 10px; align-items: flex-start;
+           padding: 9px 0 9px 10px; color: inherit; text-decoration: none; }
+  .rlink:active { background: rgba(168,132,92,.09); }
+  .ric { width: 38px; height: 38px; border-radius: 6px; flex: none; object-fit: cover; }
+  .rblank { display: block; background: var(--line); }
+  .rbody { min-width: 0; flex: 1; }
+  .rname { font: 700 15px/1.35 Georgia, serif; margin-bottom: 1px; }
+  .rname .chip { vertical-align: 2px; }
+  .mini.ask { color: var(--rose); }
+</style>
+
+<div class="wrap">
+  <h1>The chats-app chats, sorted</h1>
+
+  <h2>NEEDS YOU · IMPORTANT FIRST</h2>
+  <div class="row" data-item="update-tab-messaging">
+    <a class="rlink" href="/chats?chat=update-tab-messaging" data-chat="update-tab-messaging">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/update-tab-messaging.png?v=1786828011267" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">update-tab-messaging <span class="chip warn">waiting on you</span> <span class="chip ">★ starred</span> <span class="chip warn">your message unanswered</span></div>
+        <div class="mini">Update tab timing — park cards till the turn ends. Design settled, nothing built.</div>
+        <div class="mini ask">your doubt (“3 hours is too long”) sits unanswered — poke it, or say drop the feature</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-notifications-icons">
+    <a class="rlink" href="/chats?chat=chat-notifications-icons" data-chat="chat-notifications-icons">
+      <span class="ric rblank"></span>
+      <div class="rbody">
+        <div class="rname">chat-notifications-icons <span class="chip warn">live tonight</span></div>
+        <div class="mini">The notification bell + icon colors — gold filled bell, crossed eye, press-red trash.</div>
+        <div class="mini ask">test the icons; bell is opt-in — say if you want opt-out instead</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="archive-summary-confirmation">
+    <a class="rlink" href="/chats?chat=archive-summary-confirmation" data-chat="archive-summary-confirmation">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/archive-summary-confirmation.png?v=1786828009119" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">archive-summary-confirmation <span class="chip warn">live tonight</span></div>
+        <div class="mini">Summarize button on the archive popup + the tag chips. The one failed summary was truncation — rescued.</div>
+        <div class="mini ask">try the tags, name any missing word</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="daily-notifications-tab">
+    <a class="rlink" href="/chats?chat=daily-notifications-tab" data-chat="daily-notifications-tab">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/daily-notifications-tab.png?v=1786829501943" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">update tab <span class="chip warn">waiting on you</span> <span class="chip info">filed under tech</span></div>
+        <div class="mini">Built the Update tab, real push, the widget. Notification taps open the chat now.</div>
+        <div class="mini ask">install the TestFlight build, add the widget</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="compare-page-style-variants">
+    <a class="rlink" href="/chats?chat=compare-page-style-variants" data-chat="compare-page-style-variants">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/compare-page-style-variants.png?v=1786828018812" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">compare-page-style-variants <span class="chip warn">waiting on you</span> <span class="chip ">★ starred</span></div>
+        <div class="mini">Style pages + the quality ladder, down to half-cent images. Three pages up.</div>
+        <div class="mini ask">say if half a cent reads good enough</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="missing-chat-turns-bug">
+    <a class="rlink" href="/chats?chat=missing-chat-turns-bug" data-chat="missing-chat-turns-bug">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/missing-chat-turns-bug.png?v=1786831009980" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">missing-chat-turns-bug <span class="chip warn">fixed</span></div>
+        <div class="mini">Chats dropping turns + stuck hidden — both fixed, wrapped.</div>
+        <div class="mini ask">back-write the other 83 archive wrap-ups? ~$1.66, yes or no</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-update-tab-icons">
+    <a class="rlink" href="/chats?chat=chat-update-tab-icons" data-chat="chat-update-tab-icons">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-update-tab-icons.png?v=1786830808920" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-update-tab-icons <span class="chip warn">done</span></div>
+        <div class="mini">253 drawn chat icons across the app, 66¢, merged.</div>
+        <div class="mini ask">want the weekly sweep for new chats? one line</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="updates-category-boxes">
+    <a class="rlink" href="/chats?chat=updates-category-boxes" data-chat="updates-category-boxes">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/updates-category-boxes.png?v=1786828008604" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">updates-category-boxes <span class="chip warn">live</span></div>
+        <div class="mini">Later · In a minute · Maybe never chips on the Update tab.</div>
+        <div class="mini ask">does Maybe never need a way back in?</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-pinned-links-pattern">
+    <a class="rlink" href="/chats?chat=chat-pinned-links-pattern" data-chat="chat-pinned-links-pattern">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-pinned-links-pattern.png?v=1786828010267" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-pinned-links-pattern <span class="chip warn">merged</span></div>
+        <div class="mini">Pin rule narrowed to your two cases; empty row is normal now.</div>
+        <div class="mini ask">3 old pins to keep or drop, 30 seconds</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="moon-milk-meta">
+    <a class="rlink" href="/chats?chat=moon-milk-meta" data-chat="moon-milk-meta">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/moon-milk-meta.png?v=1786829500311" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">meta moon milk <span class="chip warn">waiting on you</span> <span class="chip info">filed under stories</span></div>
+        <div class="mini">Chapters built into the app; six on the moon milk thread.</div>
+        <div class="mini ask">name the jonas + meta chats, pencil in the header</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-app-voice-summary">
+    <a class="rlink" href="/chats?chat=chat-app-voice-summary" data-chat="chat-app-voice-summary">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-app-voice-summary.png?v=1786831008488" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-app-voice-summary <span class="chip warn">done</span> <span class="chip info">not filed</span></div>
+        <div class="mini">Swept 254 chats: 29 open asks, 16 unread replies, 5 blocked.</div>
+        <div class="mini ask">listen to the 2-minute dinner memo</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-search-bar-persistence">
+    <a class="rlink" href="/chats?chat=chat-search-bar-persistence" data-chat="chat-search-bar-persistence">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-search-bar-persistence.png?v=1786828010771" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-search-bar-persistence <span class="chip warn">live</span></div>
+        <div class="mini">Search survives going back; glass wipes it, ✕ leaves it.</div>
+        <div class="mini ask">10-second test</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="comment-scroll-position-bug">
+    <a class="rlink" href="/chats?chat=comment-scroll-position-bug" data-chat="comment-scroll-position-bug">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/comment-scroll-position-bug.png?v=1786831019262" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">comment-scroll-position-bug <span class="chip warn">shipped</span></div>
+        <div class="mini">Assets note box no longer jumps the page.</div>
+        <div class="mini ask">quick test</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="deck-factory-homepage-buttons">
+    <a class="rlink" href="/chats?chat=deck-factory-homepage-buttons" data-chat="deck-factory-homepage-buttons">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/deck-factory-homepage-buttons.png?v=1786829673140" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">deck-factory-homepage-buttons <span class="chip warn">stalled</span> <span class="chip info">iOS home, not the chats app</span></div>
+        <div class="mini">Home shortcut squares — you still see 48pt; the originals were 64 wide.</div>
+        <div class="mini ask">stalled since Tue — install the newest build, say go bigger</div>
+      </div>
+    </a>
+  </div>
+  <h2>WORKING NOW</h2>
+  <div class="row" data-item="compare-pages-survey-013hav">
+    <a class="rlink" href="/chats?chat=compare-pages-survey-013hav" data-chat="compare-pages-survey-013hav">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/compare-pages-survey-013hav.png?v=1786828008048" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">compare-pages-survey-013hav <span class="chip good">working</span> <span class="chip info">not filed</span></div>
+        <div class="mini">Filling the 3 missing standing comparisons from clips + samples already on file.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="deck-factory-notifications">
+    <a class="rlink" href="/chats?chat=deck-factory-notifications" data-chat="deck-factory-notifications">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/deck-factory-notifications.png?v=1786831102626" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">deck-factory-notifications <span class="chip good">live</span> <span class="chip warn">the in-app one you were looking for</span> <span class="chip info">not filed</span></div>
+        <div class="mini">Push fixed — buzzes only when a reply answers you, never your own words back. Parked next: banners inside the app.</div>
+        <div class="mini ask">watch the next banner — it should read as the chat’s words</div>
+      </div>
+    </a>
+  </div>
+  <h2>DONE</h2>
+  <div class="row" data-item="chat-question-formatting">
+    <a class="rlink" href="/chats?chat=chat-question-formatting" data-chat="chat-question-formatting">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-question-formatting.png?v=1786831011529" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">questions <span class="chip good">done</span></div>
+        <div class="mini">The Questions button — your question bold, the answer under it.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="pattern-search-behavior">
+    <a class="rlink" href="/chats?chat=pattern-search-behavior" data-chat="pattern-search-behavior">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/pattern-search-behavior.png?v=1786828020297" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">pattern-search-behavior <span class="chip good">done</span></div>
+        <div class="mini">Search: two words AND in one message; dictation searches as you speak.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="notification-dismiss-on-reply">
+    <a class="rlink" href="/chats?chat=notification-dismiss-on-reply" data-chat="notification-dismiss-on-reply">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/notification-dismiss-on-reply.png?v=1786831010458" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">notification-dismiss-on-reply <span class="chip good">done</span></div>
+        <div class="mini">Replying clears an Update card, opening doesn’t; one page per card.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="save-compare-pages-gifting">
+    <a class="rlink" href="/chats?chat=save-compare-pages-gifting" data-chat="save-compare-pages-gifting">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/save-compare-pages-gifting.png?v=1786831016306" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">save-compare-pages-gifting <span class="chip good">done</span></div>
+        <div class="mini">The reference shelf — standing compare pages, saved.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="compare-pages-survey">
+    <a class="rlink" href="/chats?chat=compare-pages-survey" data-chat="compare-pages-survey">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/compare-pages-survey.png?v=1786831007436" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">compare-pages-survey <span class="chip good">done</span> <span class="chip ">★ starred</span></div>
+        <div class="mini">336 pages read; the shelf grew 12 → 19.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="archived-chats-section">
+    <a class="rlink" href="/chats?chat=archived-chats-section" data-chat="archived-chats-section">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/archived-chats-section.png?v=1786831015356" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">archived-chats-section <span class="chip good">done</span></div>
+        <div class="mini">The “more” fold for chats quiet over a week.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="hairline-pattern-compare-tab">
+    <a class="rlink" href="/chats?chat=hairline-pattern-compare-tab" data-chat="hairline-pattern-compare-tab">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/hairline-pattern-compare-tab.png?v=1786829489730" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">hairline-pattern-compare-tab <span class="chip good">done</span></div>
+        <div class="mini">Wrong tab-count bug fixed; tabs measure themselves now.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="artifacts-guidelines-update">
+    <a class="rlink" href="/chats?chat=artifacts-guidelines-update" data-chat="artifacts-guidelines-update">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/artifacts-guidelines-update.png?v=1786829493568" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">artifacts-guidelines-update <span class="chip good">done</span></div>
+        <div class="mini">Page rules folded into the shared kit; vector page fixed.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="pill-placement-audit">
+    <a class="rlink" href="/chats?chat=pill-placement-audit" data-chat="pill-placement-audit">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/pill-placement-audit.png?v=1786829502438" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">pill-placement-audit <span class="chip good">done</span> <span class="chip info">not filed</span></div>
+        <div class="mini">Scroll pill position checked — identical everywhere; wrapped.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="find-lost-chats">
+    <a class="rlink" href="/chats?chat=find-lost-chats" data-chat="find-lost-chats">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/find-lost-chats.png?v=1786828017805" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">find-lost-chats <span class="chip good">done</span> <span class="chip info">not filed</span></div>
+        <div class="mini">Woke the lost Evan + trim chats, ordered their backfill.</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="assets-auto-post-button">
+    <a class="rlink" href="/chats?chat=assets-auto-post-button" data-chat="assets-auto-post-button">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/assets-auto-post-button.png?v=1786829498825" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">tech (assets-auto-post-button) <span class="chip good">quiet since Tue</span> <span class="chip info">not filed</span></div>
+        <div class="mini">The parked-items sweep — your replies in the mix, app/web toggle.</div>
+      </div>
+    </a>
+  </div>
+  <h2>ARCHIVE OR MOVE</h2>
+  <div class="row" data-item="archive-hairline-chat-defaults">
+    <a class="rlink" href="/chats?chat=archive-hairline-chat-defaults" data-chat="archive-hairline-chat-defaults">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/archive-hairline-chat-defaults.png?v=1786829493024" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">archive-hairline-chat-defaults <span class="chip ">superseded</span></div>
+        <div class="mini">Built the BUILT/OTHER piles — your tags replaced them.</div>
+        <div class="mini ask">archive it</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-archive-labels-tags">
+    <a class="rlink" href="/chats?chat=chat-archive-labels-tags" data-chat="chat-archive-labels-tags">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-archive-labels-tags.png?v=1786831015846" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-archive-labels-tags <span class="chip ">superseded</span></div>
+        <div class="mini">Asked for labels-not-renames — the tags answered it.</div>
+        <div class="mini ask">archive it</div>
+      </div>
+    </a>
+  </div>
+  <div class="row" data-item="chat-ddd5d6a0">
+    <a class="rlink" href="/chats?chat=chat-ddd5d6a0" data-chat="chat-ddd5d6a0">
+      <img class="ric" src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/chat-feed/icons/chat-ddd5d6a0.png?v=1786831018231" alt="" loading="lazy">
+      <div class="rbody">
+        <div class="rname">chat-ddd5d6a0 <span class="chip ">junk</span></div>
+        <div class="mini">A one-shot hook probe, not a real chat.</div>
+        <div class="mini ask">trash it</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  // TAP A ROW = OPEN THAT CHAT.
+  // In the app this page runs in an IFRAME of /chats, so the slug is handed
+  // BACK to the parent (window.__openThread) rather than followed as a link:
+  // a same-origin link would navigate the iframe and put the whole Chats app
+  // inside the page viewer. The href is the standalone half — the same row
+  // followed in a browser lands on /chats?chat=<slug>, which opens that
+  // thread. Anchors are on the shared skip list, so a row tap never starts
+  // or stops the autoscroll.
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    var a = t && t.closest ? t.closest('a.rlink') : null;
+    if (!a) return;
+    var slug = a.getAttribute('data-chat');
+    var host = null;
+    try { host = (window.parent && window.parent !== window) ? window.parent : null; } catch (_) {}
+    if (!host || typeof host.__openThread !== 'function') return;   // browser: follow the href
+    e.preventDefault();
+    // false = this registry doesn't know the chat; fall back to a TOP-level
+    // navigation so the app is never nested inside its own page viewer.
+    if (host.__openThread(slug) !== true) {
+      try { window.top.location.href = '/chats?chat=' + encodeURIComponent(slug); } catch (_) {}
+    }
+  });
+
+  window.__compareNotes({ chat: 'chat-issues-comparison', sheet: 'chat-sort-s30' });
+  window.__compareHelp({ html: '<b>Every chats-app chat, one row each, importance order inside each pile.</b> '
+    + 'Tap a row to open that chat. The rose line is what it is waiting on you for, with the size of the ask. '
+    + 'Small grey tags say where a chat is mis-filed — 22 sit under meta, 8 more live outside it. '
+    + 'The + in a row’s corner leaves me a note and I’ll relay or act on it.' });
+})();
+</script>
