@@ -84,6 +84,12 @@ function buildPrompt(n, cards) {
   if (who.includes('marla')) {
     notes.unshift(rev.character.line + (rev.beachPages.includes(n) ? ' ' + rev.beachHat : ''));
   }
+  // ONE blanket across the whole book (her ask) — a beach page kept inventing
+  // a different one, so it rides on every beach page rather than depending on
+  // whoever writes the next scene remembering. The MOTHER is fixed at her
+  // source instead: plan.continuity.mother said 'a good grey dress', which is
+  // exactly why her black dress drifted.
+  if (rev.blanket && rev.beachPages.includes(n)) notes.push(rev.blanket);
   return [
     cards.length ? STYLE_MANY : STYLE_ONE,
     cardLines.join(' '),
