@@ -867,6 +867,66 @@
     tool row, search row and `.crow` padding, 46px row icon → 40px) — her
     ask, "a little bit too much space between the different lines".
 
+  **CHATS SORT THEMSELVES (Aug 2026, Sophie: "I've been manually sorting all
+  my chats, but they could sort themselves in the chats app, and that could be
+  a start of turn or end of turn activity").** `chat-sort.js` holds every
+  judgment and its reasoning; `sortChat()` in `chatfeed.js` holds the reads,
+  the writes and the money. The parts worth knowing before you touch it:
+  - **THE SERVER DECIDES, NOT THE CHAT** — even though her sentence describes
+    a chat doing it at the end of its turn. A chat-posted category would be
+    filed by the same ~7% that ever post an Update card (**measured: 15 of
+    224**), and the chats it missed would be the sleeping ones she most wants
+    sorted. So it is DERIVED from the thread the feed already stores, at the
+    end of a turn, through the door every chat already posts through
+    (`POST /api/chatfeed`, fire-and-forget after the response) — nothing to
+    install, nothing for a chat to remember, and it reaches ancient hooks.
+    Same call as the Questions button, and for the same measured reason.
+  - **END of turn, never start.** At the start of a turn the newest thing in
+    the thread is her message and the work hasn't happened — the sorter would
+    be judging the chat by what it was before she asked.
+  - **HER FILING IS FINAL** — `catBy` on the registry doc. Everything through
+    `POST /category` is stamped `sophie` (the app is its only caller), the
+    sorter writes `auto`, and it only ever writes into an empty field. One tap
+    from her locks a chat forever. Deliberately NOT a flag the page sends: her
+    phone runs a cached page for days, so a new-build-only flag would leave
+    her own filing looking automatic.
+  - **`filedAt` IS STAMPED AT HER LAST MESSAGE, not now** — the one thing here
+    that is easy to get wrong and expensive when you do. A sort runs when a
+    turn ends, so stamping now would file the chat the instant it finished
+    answering her and drop it off the main list with the answer inside it.
+    Stamped at `lastHerAt`, the reply that triggered the sort is newer than
+    the filing, so the chat pops straight back out — in the folder AND on the
+    list, the round trip she designed for manual filing. A BACKFILL stamps now
+    on purpose (`stampNow`): those are chats she would have filed by hand.
+  - **"none" is a real answer and locks nothing.** Filing hides a chat from
+    the list she reads, so a wrong folder costs her real work while an unfiled
+    chat costs nothing. The model is told to prefer none; none writes only
+    `catTriedAt`, and the chat is asked about again a day later.
+  - **THE VOCABULARY IS HERS, AND HER OWN FILING TEACHES IT.** The folders are
+    read live (`__settings.categories` + names in use), and each is described
+    to the model by up to 8 chats SHE filed there — so "meta" means what she
+    uses it for, and a folder she invents next month works as soon as she
+    files two chats into it, with no code change. The sorter's own answers are
+    excluded from the examples, or one early mistake would become a folder's
+    definition and compound.
+  - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
+    she wants something, not what it is; nothing outside her head can know
+    that, and guessing buries real work in a to-do folder. She still files
+    there by hand.
+  - **Cost:** one small Claude call (name + her note + status card + a
+    head/tail digest), well under a cent, at most once per chat per day
+    (`catTriedAt`). The gate is answered off the CACHED registry, so an
+    ordinary finished reply on an already-filed chat spends and reads nothing.
+  - `GET /api/chatfeed/sort` is the read — vocabulary, examples, counts, and
+    whether the key and the switch are on. `POST /api/chatfeed/sort
+    {chat, dry, force, stampNow}` sorts one; `dry:true` answers with the
+    folder it would pick and changes nothing. `__settings.autoSort === false`
+    stops it dead without a deploy (no UI — a switch she never asked for).
+  - Backfilling the ones already there:
+    `node scripts/backfill-chat-categories.js` (dry by default, `--write` to
+    file, `--limit N` for a sample). Tests: `node scripts/test-chat-sort.js`
+    (pure, no network, no key).
+
 - **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
   arrow next to it that brings me all the way down to the bottom").** `.jumps`
   holds the back-to-top arrow and its new twin. Three rules worth keeping:

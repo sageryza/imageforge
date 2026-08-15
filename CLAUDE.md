@@ -843,6 +843,19 @@ them off the reference sheet, not off the old filenames.
   - Tests: `node scripts/test-questions.js` (the extraction, pure, no
     network) and `node scripts/test-chats-questions.js` (the real page,
     headless).
+- **CHATS SORT THEMSELVES INTO HER FOLDERS — and there is NOTHING for you to
+  do (Aug 2026, Sophie: "I've been manually sorting all my chats, but they
+  could sort themselves").** Do NOT post a category, and do not add one to
+  your status card: the server files a chat at the end of its turn by reading
+  the thread it already stores (`chat-sort.js`), because a chat-posted
+  category would be filed by the same ~7% that ever post an Update card. The
+  three rules it obeys: **anything SHE filed is never touched** (`catBy`),
+  **"none" is a normal answer** (filing hides a chat from her main list, so a
+  wrong folder costs her real work), and **it never invents a folder** — her
+  vocabulary is read live and taught by her own filing. Her two WHEN folders,
+  `look at` and `come back to`, are off limits to it. Full rules in
+  `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the vocabulary and the
+  counts.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
