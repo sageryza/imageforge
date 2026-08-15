@@ -54,6 +54,65 @@ const COMMENT_MAX = 800;
 // one-way tag: enough to group, useless for identifying anyone.
 const byTag = (uid) => crypto.createHash('sha1').update(String(uid)).digest('hex').slice(0, 12);
 
+// ── A NIGHT IS THE ENTRY, not a dream (Sophie, Aug 2026) ────────────────────
+// "Generally people only have one dream per night, or the ones they had are
+// basically one dream. They shouldn't be separate entries." So one person's
+// dreams from one night are ONE post: one cover photo, one heart, one comment
+// thread. The pieces are still separate DOCS underneath — each was captured,
+// drawn and shared on its own — and that stays true, because sharing is
+// per-dream and per-panel and merging the storage would throw that away.
+//
+// The night's SPINE is its chronologically first dream, and it carries the
+// night: its id is the night's id, its title titles the entry, its doc holds
+// the featured cover, and new hearts/comments land on it. That choice needs no
+// migration and no second collection — hearts and comments already on a later
+// dream are still counted and still read, they simply stop being separately
+// addressable, which is the whole point of the change.
+const spineOf = (dreams) => dreams[0];
+function nightKey(doc) { return `${doc.uid}|${doc.publicOn || ''}`; }
+
+// Chronological — oldest first. The default cover is "the one that's
+// chronologically first", so this order IS the rule, not a display preference.
+function nightsFrom(docs) {
+  const by = new Map();
+  for (const d of docs) {
+    const k = nightKey(d);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(d);
+  }
+  const out = [];
+  for (const group of by.values()) {
+    out.push(group.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)));
+  }
+  // Newest night first, judged by its LATEST dream — a night that gained a
+  // second dream this morning is fresher than one that didn't.
+  return out.sort((a, b) => (a[a.length - 1].createdAt < b[b.length - 1].createdAt ? 1 : -1));
+}
+
+// The public panels of a night, in order, each tagged with the dream it came
+// from — so a cover can name one and the client can open the right dream.
+function nightPanels(dreams) {
+  const out = [];
+  for (const d of dreams) {
+    for (const p of (d.panels || [])) {
+      if (p.public) out.push({ dreamId: d.id, i: p.i, url: p.url, captions: p.captions });
+    }
+  }
+  return out;
+}
+
+// Default cover = the first public panel of the night. She can feature another
+// (`coverPanel` on the spine); a featured panel that has since been made
+// private falls back rather than showing a hole.
+function coverOf(dreams, panels) {
+  const want = spineOf(dreams).coverPanel;
+  if (want) {
+    const hit = panels.find((p) => p.dreamId === want.dreamId && p.i === Number(want.i));
+    if (hit) return hit;
+  }
+  return panels[0] || null;
+}
+
 let deps = { membryAuth: null };
 function init(d) { deps = { ...deps, ...d }; }
 
@@ -279,47 +338,101 @@ router.get('/feed', async (req, res) => {
     }
     const feltSnap = await db().collection(FELT).where('uid', '==', req.user.uid).get();
     const felt = new Set(feltSnap.docs.map((d) => d.data().dreamId));
-    const dreams = snap.docs.map((d) => d.data())
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-      .map((doc) => ({
-        id: doc.id,
-        title: doc.title || 'A Dream',
+    // One entry per person per night. The counts SUM across the night's dreams
+    // rather than reading the spine's alone, so hearts and comments left before
+    // this change still show — they just belong to the night now.
+    const nights = nightsFrom(snap.docs.map((d) => d.data())).map((group) => {
+      const spine = spineOf(group);
+      const panels = nightPanels(group);
+      return {
+        id: spine.id,
+        title: spine.title || 'A Dream',
         // `name` still rides along for a later reader; the feed does not show
-        // it — dreams are grouped under their DAY, unattributed (Sophie).
-        name: doc.name,
-        by: byTag(doc.uid),
-        mine: doc.uid === req.user.uid,
-        createdAt: doc.createdAt,
-        publicOn: doc.publicOn,
-        words: doc.wordsPublic !== false ? doc.text : null,
-        panels: (doc.panels || []).filter((p) => p.public).map((p) => ({ i: p.i, url: p.url, captions: p.captions })),
-        feltCount: doc.feltCount || 0,
-        felt: felt.has(doc.id),
-        commentCount: doc.commentCount || 0,
-      }));
-    res.json({ sealed: false, today, dreams });
+        // it — nights are grouped under their DAY, unattributed (Sophie).
+        name: spine.name,
+        by: byTag(spine.uid),
+        mine: spine.uid === req.user.uid,
+        createdAt: group[group.length - 1].createdAt,
+        publicOn: spine.publicOn,
+        dreams: group.map((doc) => ({
+          id: doc.id,
+          title: doc.title || 'A Dream',
+          words: doc.wordsPublic !== false ? doc.text : null,
+        })),
+        panels,
+        cover: coverOf(group, panels),
+        feltCount: group.reduce((n, d) => n + (d.feltCount || 0), 0),
+        felt: group.some((d) => felt.has(d.id)),
+        commentCount: group.reduce((n, d) => n + (d.commentCount || 0), 0),
+      };
+    });
+    res.json({ sealed: false, today, nights });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Every dream of the night the given dream belongs to, oldest first. A dream
+// that was never shared is a night of one.
+async function nightDreams(id) {
+  const snap = await db().collection(DREAMS).doc(id).get();
+  if (!snap.exists) return null;
+  const doc = snap.data();
+  if (!doc.publicOn) return [doc];
+  const sibs = await db().collection(DREAMS)
+    .where('uid', '==', doc.uid).where('publicOn', '==', doc.publicOn).get();
+  const group = sibs.docs.map((d) => d.data());
+  return group.length ? group.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)) : [doc];
+}
+
+// The heart belongs to the NIGHT (Sophie). A mark left on any dream of the
+// night counts as felt, so un-hearting clears every one of them — otherwise a
+// heart left on the second dream before this change could never be taken back.
 router.post('/dreams/:id/felt', async (req, res) => {
   try {
-    const dreamRef = db().collection(DREAMS).doc(req.params.id);
-    const feltRef = db().collection(FELT).doc(`${req.params.id}_${req.user.uid}`);
+    const group = await nightDreams(req.params.id);
+    if (!group) return res.status(404).json({ error: 'not found' });
+    const spine = spineOf(group);
+    const marks = group.map((d) => db().collection(FELT).doc(`${d.id}_${req.user.uid}`));
     const result = await db().runTransaction(async (tx) => {
-      const [dream, mark] = await Promise.all([tx.get(dreamRef), tx.get(feltRef)]);
-      if (!dream.exists) throw new Error('not found');
-      const count = dream.data().feltCount || 0;
-      if (mark.exists) {
-        tx.delete(feltRef);
-        tx.update(dreamRef, { feltCount: Math.max(0, count - 1) });
-        return { felt: false, feltCount: Math.max(0, count - 1) };
+      const docs = await Promise.all(group.map((d) => tx.get(db().collection(DREAMS).doc(d.id))));
+      const held = await Promise.all(marks.map((m) => tx.get(m)));
+      const counts = docs.map((d) => (d.exists ? d.data().feltCount || 0 : 0));
+      const any = held.some((m) => m.exists);
+      if (any) {
+        held.forEach((m, i) => {
+          if (!m.exists) return;
+          tx.delete(marks[i]);
+          tx.update(db().collection(DREAMS).doc(group[i].id), { feltCount: Math.max(0, counts[i] - 1) });
+          counts[i] = Math.max(0, counts[i] - 1);
+        });
+        return { felt: false, feltCount: counts.reduce((a, b) => a + b, 0) };
       }
-      tx.set(feltRef, { dreamId: req.params.id, uid: req.user.uid, at: new Date().toISOString() });
-      tx.update(dreamRef, { feltCount: count + 1 });
-      return { felt: true, feltCount: count + 1 };
+      const si = group.findIndex((d) => d.id === spine.id);
+      tx.set(marks[si], { dreamId: spine.id, uid: req.user.uid, at: new Date().toISOString() });
+      tx.update(db().collection(DREAMS).doc(spine.id), { feltCount: counts[si] + 1 });
+      counts[si] += 1;
+      return { felt: true, feltCount: counts.reduce((a, b) => a + b, 0) };
     });
     res.json(result);
   } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
+});
+
+// Feature a different photo for the night. Owner only, and it names a PANEL of
+// one of the night's own dreams — stored on the spine, which is where the
+// night's own facts live.
+router.post('/nights/:id/cover', async (req, res) => {
+  try {
+    const group = await nightDreams(req.params.id);
+    if (!group) return res.status(404).json({ error: 'not found' });
+    const spine = spineOf(group);
+    if (spine.uid !== req.user.uid) return res.status(404).json({ error: 'not found' });
+    const dreamId = String(req.body?.dreamId || '');
+    const i = Number(req.body?.i);
+    const owner = group.find((d) => d.id === dreamId);
+    const panel = (owner?.panels || []).find((p) => p.i === i && p.public);
+    if (!panel) return res.status(400).json({ error: 'pick one of this night’s shared pictures' });
+    await db().collection(DREAMS).doc(spine.id).update({ coverPanel: { dreamId, i } });
+    res.json({ ok: true, cover: { dreamId, i, url: panel.url, captions: panel.captions } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── comments ────────────────────────────────────────────────────────────────
@@ -338,8 +451,12 @@ router.get('/dreams/:id/comments', async (req, res) => {
   try {
     const dream = await readableDream(req.params.id, req.user.uid);
     if (!dream) return res.status(404).json({ error: 'not found' });
-    const snap = await db().collection(COMMENTS).where('dreamId', '==', req.params.id).get();
-    const comments = snap.docs.map((d) => d.data())
+    // ONE thread per night (Sophie): every comment left on any dream of the
+    // night, so replies written before the change are still in the thread.
+    const group = await nightDreams(req.params.id);
+    const ids = (group || [dream]).map((d) => d.id);
+    const snaps = await Promise.all(ids.map((id) => db().collection(COMMENTS).where('dreamId', '==', id).get()));
+    const comments = snaps.flatMap((s) => s.docs.map((d) => d.data()))
       .sort((a, b) => (a.at < b.at ? -1 : 1)) // oldest first — a thread reads down
       .map((c) => ({ id: c.id, name: c.name, text: c.text, at: c.at, mine: c.uid === req.user.uid }));
     res.json({ comments });
@@ -368,8 +485,17 @@ router.post('/dreams/:id/comments', async (req, res) => {
       const cur = await tx.get(dreamRef);
       if (cur.exists) tx.update(dreamRef, { commentCount: (cur.data().commentCount || 0) + 1 });
     }).catch(() => {});
-    res.json({ comment: { ...comment, mine: true }, commentCount: (dream.commentCount || 0) + 1 });
+    // The count the client shows is the NIGHT's, so it has to sum the group —
+    // the spine's own count would read low wherever an older comment sits on a
+    // later dream of the same night.
+    // Read AFTER the increment transaction above, so the new comment is already
+    // in the stored counts — adding one here as well would double it.
+    const group = (await nightDreams(req.params.id)) || [dream];
+    const total = group.reduce((n, d) => n + (d.commentCount || 0), 0);
+    res.json({ comment: { ...comment, mine: true }, commentCount: total });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-module.exports = { router, init };
+// The night rules are exported for their test — they are pure, and they are
+// the load-bearing half of "one night is one entry".
+module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf };
