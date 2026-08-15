@@ -182,28 +182,73 @@ separates them is **what is behind the words**:
   REAL AUDIO behind them. Every span carries a `timeSec` anchor into a
   recording, `phraseSpan` locates it in the audio's word timestamps, the edges
   snap into real silences, and the picker's ▶ plays the exact span.
-- **The Cannon picker** picks spans of a Dolores Cannon book passage — **words
-  that have never been spoken**. There is no audio, no timestamps, and nothing
-  to play.
+- **The Cannon picker** picks spans of a Dolores Cannon book passage. The PAGE
+  has no audio: no timestamps, nothing to play, which is why it is the only one
+  of the three that estimates **"N picks, about X words — roughly Y seconds read
+  aloud"** (`words / 2.6`).
 
-That difference is why it has the one feature neither of the others has:
-**"N picks, about X words — roughly Y seconds read aloud"** (`words / 2.6`).
-With no recording, an estimate is the only way to know how long the result runs.
+**CORRECTED 2026-08-15 — the books have AUDIOBOOKS, so the words HAVE been
+spoken.** This doc first concluded the Cannon picker was categorically different
+because its text had no recording behind it, and that it was therefore the
+**SCRIPT** stop prototyped. **Both halves of that were wrong**, and the evidence
+was already in Storage: `dolores-time/clips/` holds cut audiobook passages
+(`A`, `A2`, `B1`–`B5`, `JANET`, `LAUGH`) and the `dolores-cannon-time` chat
+built "TIME — listen to the passages (v2)" over them. Cannon passages are
+already being cut from audio and reviewed by ear — by hand, outside every tool.
 
-So it is **not** a worse Episode Editor — it is the **SCRIPT** stop, already
-prototyped. Long source text → pick what becomes the script → hand it on to be
-segmented into blocks. Her source there is a book rather than a voice memo, but
-the job is the same one SCRIPT names.
+What that makes it: **the Episode Editor pointed at a different library.** A
+long transcript with real audio behind it, spans picked out of it, cut. That is
+WORD CUT, not SCRIPT. The read-aloud estimate drops from *necessary* to a
+*fallback* — useful only for a line that has not been rendered yet (a TTS block),
+which is a real case but a narrower one.
+
+**SCRIPT survives; it just loses its prototype.** The voice-memo-plus-an-
+instruction becoming written words is still unbuilt and still its own step.
 
 **Worth carrying over:**
 
-- **The read-aloud estimate → BLOCKS.** Nothing downstream tells her how long a
-  cut will run until it renders.
 - **"Find it" → the Episode Editor.** The Cannon picks sheet jumps back to where
   a pick sits in the transcript; the editor has snippet cards with no way back
   to where they came from.
 - Its overlap guard (a pick may not cross another) and tap-inside-to-remove with
   undo are both good, and neither the editor nor the Cutting Room has them.
+- **The read-aloud estimate → BLOCKS**, but only for blocks with no audio yet
+  (a typed TTS line). Anything cut from a recording has a real duration.
+
+## An audiobook is the EPISODE EDITOR's shape, and only its shape
+
+Two measurements, both load-bearing for anything built on the Cannon books:
+
+- **The Cutting Room and Cut Marks CANNOT take an audiobook.** Both hard-cap at
+  90 minutes (`MAX_SECONDS = 5400`, in `cuttingroom.js` and `cutmarks.js`); a
+  Cannon audiobook runs 8–12 hours. **The Episode Editor has no cap because it
+  never loads the whole file** — `extractWindow` seeks a ±150s window with
+  ffmpeg over HTTP and cuts from that (`WINDOW_RADIUS = 150`). Long-form is
+  already solved in exactly one room, and it is the one this belongs in.
+- **Use `edgeSpan`, NEVER `phraseSpan`, to locate a pick in audiobook audio.**
+  The book's text and the narrator's reading are two DIFFERENT transcripts —
+  narrators drop and alter words, editions differ, and what we hold may be a
+  session transcript rather than the printed page. `phraseSpan` trims unmatched
+  edge words as never-said, which is correct within one transcript and **wrong
+  across two**: it would silently clip words off the ends of her picks.
+  `search.js`'s `edgeSpan` exists for precisely this case (its own header says
+  so — "the pick text and the cut come from DIFFERENT transcripts"), anchoring
+  each edge on its own 6-word sub-phrase and reclaiming disagreed edge words by
+  position. The plumbing is built; point it at the new library.
+
+**Two constraints before anyone starts:**
+
+- **Cost is an ASK, per book.** Whisper is ~$0.006/min, so a 10-hour audiobook
+  is ~600 min ≈ **$3.60** — over the $3 line. If the book's TEXT is already in
+  hand, forced alignment is cheaper than transcription and the NDE project
+  already has the pattern (`nde-align-cache/<videoId>_<winStart>.json`). Price
+  it properly before committing to a library of them.
+- **Whose voice SHIPS is a separate question from whose voice she picks by.**
+  An audiobook is a commercial narrator's recorded performance. Hearing it while
+  choosing is one thing; baking it into a film is another. The pipeline already
+  has the better answer for the render — narration in HER voice, which is what
+  the Episode Editor's narration cards and the Voice Studio already do. So:
+  audiobook as the reference track while picking, her voice on the output.
 
 **One latent bug, do not copy it.** The Cannon picker saves every pick —
 including each pick's full TEXT — as ONE verdict field, and
