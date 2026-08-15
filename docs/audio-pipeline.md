@@ -170,6 +170,67 @@ that jump. The hand-rolled span pickers are also the case CLAUDE.md already
 records — four chats each rebuilt one in a week, which is why the shared picker
 is now mandatory.
 
+## The Cannon picker is a working prototype of SCRIPT
+
+Measured Aug 2026 by reading `illustrated-cannon-passage`'s "Every passage —
+pick the cuts (v3)" against `editor.js` and `/picker.js`.
+
+All three are the same gesture — tap the first word, tap the last word. What
+separates them is **what is behind the words**:
+
+- **Episode Editor** and the **shared cut picker** pick spans of words that have
+  REAL AUDIO behind them. Every span carries a `timeSec` anchor into a
+  recording, `phraseSpan` locates it in the audio's word timestamps, the edges
+  snap into real silences, and the picker's ▶ plays the exact span.
+- **The Cannon picker** picks spans of a Dolores Cannon book passage — **words
+  that have never been spoken**. There is no audio, no timestamps, and nothing
+  to play.
+
+That difference is why it has the one feature neither of the others has:
+**"N picks, about X words — roughly Y seconds read aloud"** (`words / 2.6`).
+With no recording, an estimate is the only way to know how long the result runs.
+
+So it is **not** a worse Episode Editor — it is the **SCRIPT** stop, already
+prototyped. Long source text → pick what becomes the script → hand it on to be
+segmented into blocks. Her source there is a book rather than a voice memo, but
+the job is the same one SCRIPT names.
+
+**Worth carrying over:**
+
+- **The read-aloud estimate → BLOCKS.** Nothing downstream tells her how long a
+  cut will run until it renders.
+- **"Find it" → the Episode Editor.** The Cannon picks sheet jumps back to where
+  a pick sits in the transcript; the editor has snippet cards with no way back
+  to where they came from.
+- Its overlap guard (a pick may not cross another) and tap-inside-to-remove with
+  undo are both good, and neither the editor nor the Cutting Room has them.
+
+**One latent bug, do not copy it.** The Cannon picker saves every pick —
+including each pick's full TEXT — as ONE verdict field, and
+`POST /api/chatfeed/verdict` hard-truncates `text` at **2000 chars**
+(`chatfeed.js`, the `patch.texts` line). Measured live: her two sheets hold 5
+and 6 picks at 659 and 810 chars, so **nothing is lost today** — but at ~130
+chars a pick she starts silently losing them around 15. This is exactly the bug
+the shared picker was built to avoid, which is why `/picker.js` saves **one
+field per pick**. Anything built for SCRIPT uses the shared picker's save model.
+
+## "Where the pictures fall" is not an audio tool
+
+`darius-wright-heart-field`, Aug 8. Worth naming because its title reads like a
+cutting tool and it is not one: it is a **timing sheet for a film's pictures**.
+
+The narration was cut FIRST (1:48 of Darius), then 13 pictures were fitted to
+it. Each row carries the picture, its number, its exact span (`0:00–0:11 · 12s`)
+and the words that play underneath it; "Play the cut" opens the assembled video.
+Its job is judging whether each picture holds for the right amount of time
+against the words it covers — hence *where the pictures fall*. It even carries
+its own known-problems card (shot 13 warps under animation; shots 1, 2, 10 and
+12 are stretched over 2× to fill their lines, fix named as two pictures per
+line).
+
+It sits downstream of the finished cut, on the **picture** side — so it belongs
+to the content pipeline's map, not this one.
+
 ## If one tool were built with all of it
 
 The union is: blocks with a tri-state and a speaker badge, that can be split,
