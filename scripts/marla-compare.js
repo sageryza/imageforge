@@ -62,7 +62,14 @@ const sceneExpression = (scene) => sentences(scene).filter((x) => CUE.test(x)).j
 // A family is one BOOK PAGE and every picture ever drawn for it. `extra` keys
 // carry their page number in front (3a -> 3).
 const NUMBERED = ['s1', 'v2', 'v3', 'v3e', 's2', 's2diag', 's4', 's5'];
-const TEST_KEYS = ['8t-full', '8t-expression', '8t-none'];
+// The description test, run twice: page 8 (she is turned away, so it shows
+// what the description does to the DRAWING) and page 13 (face-on and in
+// outdoor coats, so it shows what it does to her LIKENESS and her clothes).
+const TESTS = [
+  { page: 8, note: 'Page 8 — she is turned away, so this is about the drawing, not her likeness.', keys: ['8t-full', '8t-expression', '8t-none'] },
+  { page: 13, note: 'Page 13 — face-on and in coats, so this is where her frock and her face are actually on the line.', keys: ['13t-full', '13t-expression', '13t-none'] },
+];
+const TEST_KEYS = TESTS.flatMap((t) => t.keys);
 
 async function assetTimes() {
   const r = await fetch(`${BASE}/api/gallery/assets?chat=${encodeURIComponent(CHAT)}&limit=400`);
@@ -165,11 +172,11 @@ function figure(tag, img, chip, expr) {
 
   initAdmin();
 
-  const test = [];
+  const testShots = new Map();
   for (const k of TEST_KEYS) {
     const v = state.extra[k];
     if (!v) continue;
-    test.push({ k, img: await display(v.url, k) });
+    testShots.set(k, await display(v.url, k));
     process.stdout.write('.');
   }
 
@@ -189,22 +196,22 @@ function figure(tag, img, chip, expr) {
   }
   console.log('');
 
-  const TEST_TAGS = {
-    '8t-full': 'described in full',
-    '8t-expression': 'expression clause only',
-    '8t-none': 'no description at all',
-  };
-  const testCard = `<div class="card" data-item="describe-test">
-    <h3>Does describing her help?</h3>
-    <div class="duo">${test.map((t) => '<figure>'
-      + `<span class="tag">${esc(TEST_TAGS[t.k])}</span>`
-      + `<img src="${t.img.small.url}" data-full="${t.img.full.url}" width="${t.img.small.w}" height="${t.img.small.h}" alt="${esc(TEST_TAGS[t.k])}" loading="lazy">`
-      + '</figure>').join('')}</div>
-    <p class="mini">Page 8, same scene, same reference sheet, three runs — only how much of Marla the prompt describes changes. She is turned away in all three, so this shows what the description does to the drawing, not to her likeness.</p>
-  </div>`;
+  const TEST_TAG = (k) => (k.endsWith('-full') ? 'described in full'
+    : k.endsWith('-expression') ? 'point at the sheet only' : 'nothing said about her');
+  const testCards = TESTS.map((t) => `<div class="card" data-item="describe-p${t.page}">
+    <h3>Does describing her help? — page ${t.page}</h3>
+    <div class="duo">${t.keys.filter((k) => testShots.has(k)).map((k) => {
+      const img = testShots.get(k);
+      return '<figure>'
+        + `<span class="tag">${esc(TEST_TAG(k))}</span>`
+        + `<img src="${img.small.url}" data-full="${img.full.url}" width="${img.small.w}" height="${img.small.h}" alt="${esc(TEST_TAG(k))}" loading="lazy">`
+        + '</figure>';
+    }).join('')}</div>
+    <p class="mini">${esc(t.note)}</p>
+  </div>`).join('\n  ');
 
   const sheet = `versions-p${pages.length}`;
-  const title = 'Marla — the versions, and what each prompt said about her face';
+  const title = 'Marla v2 — the versions, and what each prompt said about her face';
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -214,7 +221,7 @@ function figure(tag, img, chip, expr) {
 <div class="wrap">
   <h1>${esc(title)}</h1>
 
-  ${testCard}
+  ${testCards}
 
   <!-- The two standing lines sit BELOW the first card, not under the title:
        nothing to read between the title and the first picture (Aug 2026).
