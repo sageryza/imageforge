@@ -192,30 +192,147 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
     drivers waving back with three different levels of certainty that they
     know her. Landscape.*
 
-## Image reassignments pending Sophie's pick (Aug 2026)
-Three finished pictures outlived their games; each has replacement-game
-options on offer, and the tile gets relabeled once she picks:
-- **The poolside handshakes** (was Nice to Meet You, which moved to its true
-  arcade-bar setting): (a) *Old Friends* — greet strangers as long-lost
-  friends and commit until they "remember" you; (b) *The Reunion* — attend a
-  gathering of strangers as if it's your ten-year reunion; (c) *Diplomats* —
-  introduce your friend to everyone with escalating invented titles.
-- **The diner booth** (was Regulars, cut): (a) *Menu Roulette* — everyone
-  orders for the person to their left, no vetoes; (b) *Same Order* — the
-  whole table orders the identical thing in identical words, deadpan, one
-  after another; (c) *The Anniversary* — inform the staff it's a special
-  occasion that makes no sense ("our three-and-a-half-month friendaversary")
-  and see what the restaurant does.
-- **The draped clock / phones in the fruit bowl** (was The Hour, cut):
-  (a) *The Announcement* — every twenty minutes someone must stand and
-  formally announce nothing ("I have an announcement: I am switching
-  seats"), and everyone reacts like it's momentous; (b) *Midnight* — no one
-  knows when midnight is; each person counts down from ten out loud whenever
-  they personally believe it has arrived; (c) *Breaking News* — one guest
-  periodically delivers urgent bulletins about events at the party.
+## Shared-picture pages (Sophie's pattern, Aug 2026)
+Sophie's call: a picture can carry MULTIPLE games on one page — the image
+plus two (or more) games that fit it. Two pages use it so far:
+
+- **The diner booth** (picture: beaming friends, uncertain waitress, coffee
+  mid-pour):
+  - *Menu Roulette* — everyone orders for the person to their left. No
+    vetoes; whatever arrives is yours.
+  - *The Anniversary* — inform the staff it's a special occasion that makes
+    no sense ("our three-and-a-half-month friendaversary") and see what the
+    restaurant does.
+  (A third option, Same Order, was offered and cut — Sophie.)
+
+- **The poolside handshakes** (picture: warm handshakes, a couple caught
+  between politeness and confusion):
+  - *Reunions* (Sophie's title) — greet strangers as long-lost friends and
+    commit until they "remember" you.
+  - *Diplomats* — introduce your friend to everyone with escalating
+    invented titles.
+  (A ten-year-reunion variant was offered and folded into Reunions.)
+
+Still pending her pick — **the draped clock / phones in the fruit bowl**
+(was The Hour, cut): (a) *The Announcement* — every twenty minutes someone
+must stand and formally announce nothing ("I have an announcement: I am
+switching seats"), and everyone reacts like it's momentous; (b) *Midnight* —
+no one knows when midnight is; each person counts down from ten out loud
+whenever they personally believe it has arrived; (c) *Breaking News* — one
+guest periodically delivers urgent bulletins about events at the party.
 
 Also flagged by Sophie, awaiting her story before deciding: the **one-day
 marriage experiment** (asked her about it, Aug 2026).
+
+## The proposed games, round two (Claude, 2026-08-15 — awaiting Sophie's cuts/keeps)
+
+1. **Background Actors** — Your group goes to a café or park and behaves like
+   extras in someone else's movie: mouth full conversations without sound,
+   laugh silently, repeat the same natural-looking loop of business. The
+   game ends when a stranger notices the film has no star.
+   *Image: a café table of friends mouthing silent conversation mid-loop,
+   while one real couple talks obliviously at the next table. Landscape.*
+
+2. **Tourists** — Be tourists in your own neighborhood. Photograph the
+   mailbox. Consult an enormous map. Ask a local for directions to the
+   street you are standing on. Buy a souvenir from the corner store and
+   treat it like a treasure.
+   *Image: the group posing for a photo in front of an utterly ordinary
+   mailbox, one consulting a giant unfolded map, the corner store behind.
+   Landscape.*
+
+3. **Getaway Driver** — Every errand is a heist. One friend waits in the car
+   with the engine running while the others hit the grocery store for the
+   milk. Low voices, synchronized watches, walking fast without running.
+   The debrief happens at the safehouse (home).
+   *Image: the driver gripping the wheel with terrible intensity outside a
+   mundane grocery store, two friends speed-walking out with a single carton
+   of milk. Landscape.*
+
+4. **First Date** — Two old friends go to dinner and play it as a first
+   date: the nerves, the good shirt, the questions they already know the
+   answers to ("so… do you have siblings?"). Falling out of character loses;
+   so does answering like someone who knows.
+   *Image: two clearly comfortable old friends at a restaurant table leaning
+   in with first-date nerves, hands almost touching, the waiter unmoved.
+   Square.*
+
+5. **The Critic** — One guest reviews the evening in real time — the tap
+   water ("assured, mineral, cold"), the couch ("ambitious"), the host's
+   playlist — with a tiny notebook. The host must not defend anything.
+   *Image: a guest sniffing a glass of tap water over a tiny notebook while
+   the host watches nervously from the kitchen doorway. Portrait.*
+
+6. **The Chaperone** — One friend is the evening's chaperone and must
+   approve everything: another drink, a seat change, going to the bathroom
+   ("I'll allow it"). The chaperone's strictness may only escalate.
+   *Image: an adult asking permission with pleading eyes, drink held just
+   out of reach, while the chaperone consults a tiny notebook. Portrait.*
+
+7. **Border Control** — The kitchen doorway is an international border and
+   one friend is the officer. Every crossing needs a purpose of visit, a
+   declaration of goods (chips), and an arbitrary inspection. Smuggling is
+   punished by escalating paperwork.
+   *Image: the kitchen doorway as a checkpoint — the officer inspecting a
+   bowl of chips while the traveler stands with arms raised holding dip.
+   Portrait.*
+
+8. **The Inheritance** — On arrival everyone puts one pocket item in a bowl.
+   At the end of the night, a solemn candlelit reading of the will
+   redistributes them ("to you I leave… this lip balm. Use it well").
+   Grief and gratitude are mandatory.
+   *Image: the candlelit will-reading — one friend reading from a long
+   paper, another tearfully receiving a lip balm, the bowl of pocket items
+   between them. Square.*
+
+9. **Heavy Object** — The group adopts a large object — a rock is
+   traditional — and it comes to everything: brunch, the movies, the beach.
+   It gets a chair. It is never explained, to anyone, ever.
+   *Image: a large rock seated on its own chair at a brunch table, a plate
+   set in front of it, everyone eating normally. Square.*
+
+10. **The Package** — A wrapped gift sits in the middle of the party all
+    night. Nobody knows who it's for or what's inside. It may only be opened
+    by the first person to admit out loud that they cannot stand not
+    knowing.
+    *Image: a ribboned gift box alone on a coffee table, a ring of guests
+    staring at it, one hand mid-reach and stopped. Square.*
+
+11. **The Photographer** — One friend documents the night like a wildlife
+    photographer on assignment: belly-down on the carpet, unreasonable
+    lenses, holding breath for the shot of someone eating chips. The photos
+    are presented at the end as a serious exhibition.
+    *Image: someone lying flat on the carpet with a long lens, photographing
+    guests eating chips the way one photographs deer. Landscape.*
+
+12. **Elevator Pitch** — Whenever two people end up alone together — the
+    kitchen, the hallway, the porch — one must immediately begin pitching
+    the other an invented business, and must keep pitching until someone
+    else arrives. Investment is optional but binding.
+    *Image: two people at an open fridge, one gesturing at an invisible
+    chart mid-pitch, the other holding the fridge door like a hostage.
+    Portrait.*
+
+13. **The Double** — Two friends arrive dressed identically and are never in
+    the same room at the same time. Nobody mentions it. The game is how long
+    the other guests take to say something, and what they say.
+    *Image: an identically dressed pair crossing a hallway in perfect sync
+    past a guest doing a double take. Portrait.*
+
+14. **Remember the Ferry** — One friend invents a shared memory ("remember
+    the ferry?") and everyone builds on it — the weather, who got seasick,
+    the thing the captain said — until it feels real. It is retold at the
+    next gathering as fact.
+    *Image: friends deep in a couch reverie at night, all gazing into the
+    middle distance, one shared thought cloud above them holding a little
+    ferry. Landscape.*
+
+15. **The Alibi** — Something minor has occurred — the houseplant is over.
+    Everyone must account for their whereabouts at 9:14pm. One friend is the
+    detective, the desk lamp is repositioned, and everybody is a suspect,
+    including the plant.
+    *Image: a kitchen-table interrogation — desk lamp aimed at a suspect,
+    the detective pointing at a knocked-over houseplant. Landscape.*
 
 ## The cover — "the game that never happened"
 One invented composite game carrying a piece of every real one, not any single
