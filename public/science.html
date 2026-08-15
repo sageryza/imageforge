@@ -107,6 +107,23 @@
   .note-say { font-size: 11px; color: var(--text-faint); min-height: 13px; padding-left: 1px; }
   .note-say.warn { color: var(--text-dim); }
 
+  /* A note on THIS CARD (Sophie, Aug 2026: "I wanted to leave a note on the
+     books asking why they have flowers on them"). The + on the path notes a
+     whole lesson; this one notes the picture in front of her, which is what
+     she reached for first. It sits in .deck-top, OUTSIDE #deck-stage, so its
+     tap can never also turn the card — the same reason the ⓘ swallows its own.
+     The button goes pink once that card has a note, so she can see where she
+     has already written. */
+  .card-note-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: none; padding: 0; background: none; border: none; cursor: pointer; color: var(--text-faint); line-height: 0; }
+  .card-note-btn svg { width: 19px; height: 19px; stroke: currentColor; fill: none; }
+  .card-note-btn.has { color: var(--gold-dim); }
+  .cnote-wrap { position: absolute; inset: 0; display: none; align-items: flex-start; justify-content: center; padding: 52px 16px 16px; z-index: 8; background: rgba(51, 39, 46, .3); }
+  .cnote-wrap.on { display: flex; }
+  .cnote-card { width: 100%; max-width: 420px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; }
+  .cnote-hd { font-size: 12.5px; line-height: 1.4; color: var(--text-dim); margin-bottom: 8px; }
+  .cnote-foot { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
+  .cnote-foot .note-say { flex: 1; }
+
   /* ── Full-screen lesson deck — ported from witch.html, palette aside ── */
   #school-lesson {
     position: fixed; inset: 0; z-index: 90;
@@ -189,11 +206,21 @@
   <div class="deck-top">
     <button class="les-back" id="lesson-back" aria-label="Back to lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div class="deck-prog" id="deck-prog"></div>
+    <button class="card-note-btn" id="card-note-btn" type="button" aria-label="Leave a note on this card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 8v6"/><path d="M9 11h6"/></svg></button>
   </div>
   <div class="deck-stage" id="deck-stage"></div>
   <div class="deck-nav">
     <button class="deck-prev" id="deck-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Back</button>
     <button class="btn deck-next" id="deck-next">Continue</button>
+  </div>
+  <!-- The note box for the card on screen. A sibling of #deck-stage, never a
+       child, so nothing in here can reach the tap zones underneath. -->
+  <div class="cnote-wrap" id="cnote-wrap">
+    <div class="cnote-card" id="cnote-card">
+      <div class="cnote-hd" id="cnote-hd"></div>
+      <textarea class="note-box" id="cnote-box" rows="4"></textarea>
+      <div class="cnote-foot"><div class="note-say" id="cnote-say"></div><button class="btn" id="cnote-done" type="button">Done</button></div>
+    </div>
   </div>
 </div>
 
@@ -444,8 +471,11 @@
     if (t) NOTES[key] = t; else delete NOTES[key];
     notesLocalSet(key, t);
     renderPath();                                // fold back at once, before the network
+    syncCardNote();                              // the deck's pin follows too
+    // Whichever surface is showing this note reports its own saving state: the
+    // path row carries data-slot, the card box is tagged with the same key.
     var say = function (msg, warn) {
-      var s = $('course-list').querySelector('[data-slot="' + key + '"] .note-say');
+      var s = document.querySelector('[data-slot="' + key + '"] .note-say');
       if (s) { s.textContent = msg; s.className = 'note-say' + (warn ? ' warn' : ''); }
     };
     say('saving…');
@@ -473,6 +503,40 @@
       ta.remove();               // the row is no longer being typed in, so
       saveNote(k, v);            // renderPath may rebuild it
     });
+  }
+
+  /* A note on the CARD in front of her, into the same sheet as everything else.
+     The key is the card's ART ID (`dn-05`) where there is a picture, because
+     that is the thing she is talking about and it survives the cards being
+     reordered; a card with no art falls back to the lesson key plus its own
+     headline, which is unique inside a lesson and just as stable. */
+  function cardNoteKey(c) {
+    if (!c) return '';
+    if (c.img) return c.img;
+    return deckKey + ':' + String(c.h || c.kicker || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+  function syncCardNote() {
+    var btn = $('card-note-btn');
+    if (!btn) return;
+    btn.classList.toggle('has', !!NOTES[cardNoteKey(deckCards[deckIdx])]);
+  }
+  function closeCardNote(save) {
+    var wrap = $('cnote-wrap');
+    if (!wrap.classList.contains('on')) return;
+    var k = $('cnote-card').dataset.slot, v = $('cnote-box').value;
+    wrap.classList.remove('on');
+    if (save) saveNote(k, v); else syncCardNote();
+  }
+  function openCardNote() {
+    var c = deckCards[deckIdx], k = cardNoteKey(c);
+    if (!k) return;
+    $('cnote-card').dataset.slot = k;
+    $('cnote-hd').textContent = 'A note on “' + (c.h || c.kicker || 'this card') + '”';
+    $('cnote-say').textContent = '';
+    $('cnote-say').className = 'note-say';
+    $('cnote-box').value = NOTES[k] || '';
+    $('cnote-wrap').classList.add('on');
+    $('cnote-box').focus();
   }
 
   /* ── The path ── */
@@ -582,6 +646,7 @@
       });
     }
     $('deck-next').textContent = deckIdx >= deckCards.length - 1 ? 'Done' : 'Continue';
+    syncCardNote();
   }
 
   function openLesson(key) {
@@ -591,6 +656,7 @@
     renderDeckCard();
   }
   function closeLesson() {
+    closeCardNote(true);        // leaving mid-sentence still keeps what she wrote
     $('school-lesson').style.display = 'none';
     document.body.classList.remove('lesson-open');
   }
@@ -603,6 +669,12 @@
   $('lesson-back').addEventListener('click', closeLesson);
   $('deck-next').addEventListener('click', deckNext);
   $('deck-prev').addEventListener('click', deckPrev);
+  $('card-note-btn').addEventListener('click', function (e) { e.stopPropagation(); openCardNote(); });
+  $('cnote-done').addEventListener('click', function (e) { e.stopPropagation(); closeCardNote(true); });
+  $('cnote-card').addEventListener('click', function (e) { e.stopPropagation(); });
+  // Tapping the dimmed area around the box files what she wrote rather than
+  // dropping it — closing is not a way to cancel.
+  $('cnote-wrap').addEventListener('click', function (e) { if (e.target === this) closeCardNote(true); });
   // Imprint-style tap zones: the left edge steps back, the rest advances.
   $('deck-stage').addEventListener('click', function (e) {
     var r = this.getBoundingClientRect();
@@ -615,7 +687,8 @@
   window.__sci = { openLesson: openLesson, closeLesson: closeLesson,
     next: deckNext, prev: deckPrev, at: function () { return deckIdx; },
     cards: function () { return deckCards; }, LESSONS: LESSONS, TITLES: LESSON_TITLES,
-    notes: function () { return NOTES; }, openNote: openNoteBox };
+    notes: function () { return NOTES; }, openNote: openNoteBox,
+    cardKey: cardNoteKey, openCardNote: openCardNote, closeCardNote: closeCardNote };
 })();
 </script>
 </body>

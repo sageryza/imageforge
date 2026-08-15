@@ -208,6 +208,48 @@ const ok = (cond, msg) => { console.log((cond ? '  ok   ' : '  FAIL ') + msg); i
   ok(await page.evaluate(() => !!document.querySelector('#course-list .note-add')),
     'the "+ note" comes back once it is cleared');
 
+  // A note on the CARD in front of her — what she reached for first ("I wanted
+  // to leave a note on the books asking why they have flowers on them").
+  await page.evaluate(() => window.__sci.openLesson('dna'));
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { const s = window.__sci; while (s.at() < 3) s.next(); });
+  await page.waitForTimeout(150);
+  const cardKey = await page.evaluate(() => window.__sci.cardKey(window.__sci.cards()[window.__sci.at()]));
+  ok(/^[a-z]{2}-\d{2}$/.test(cardKey), `a card's note is keyed to its art id (${cardKey})`);
+
+  await page.click('#card-note-btn');
+  await page.waitForTimeout(150);
+  const cnote = await page.evaluate(() => ({
+    on: document.getElementById('cnote-wrap').classList.contains('on'),
+    at: window.__sci.at(),
+    hd: document.getElementById('cnote-hd').textContent,
+  }));
+  ok(cnote.on, 'the card note box opens');
+  ok(cnote.at === 3, 'opening it does not turn the card');
+  ok(/^A note on /.test(cnote.hd), 'the box names the card she is on (' + cnote.hd + ')');
+
+  // Nothing inside the box may reach the tap zones underneath it.
+  const before = await page.evaluate(() => window.__sci.at());
+  await page.click('#cnote-box');
+  await page.waitForTimeout(120);
+  ok(await page.evaluate(() => window.__sci.at()) === before, 'tapping inside the box does not turn the card');
+
+  await page.fill('#cnote-box', 'why do the books have flowers on them');
+  await page.click('#cnote-done');
+  await page.waitForTimeout(300);
+  const cardWrote = posted[posted.length - 1] || {};
+  ok(cardWrote.sheet === 'lessons-4' && cardWrote.item === cardKey
+    && cardWrote.text === 'why do the books have flowers on them',
+    'a card note files to the same sheet, keyed to the card (' + JSON.stringify(cardWrote) + ')');
+  ok(await page.evaluate(() => !document.getElementById('cnote-wrap').classList.contains('on')),
+    'Done closes the box');
+  ok(await page.evaluate(() => document.getElementById('card-note-btn').classList.contains('has')),
+    'the note button goes pink on a card she has written on');
+  ok(await page.evaluate(() => { window.__sci.next(); return !document.getElementById('card-note-btn').classList.contains('has'); }),
+    'and is plain again on the next card, which has no note');
+  await page.evaluate(() => window.__sci.closeLesson());
+  await page.waitForTimeout(150);
+
   // A note left on the Compare page is what she finds here on arrival.
   served = { [noteKeys[1]]: 'the DNA one runs long' };
   await page.goto(url, { waitUntil: 'domcontentloaded' });
