@@ -1,59 +1,42 @@
 #!/usr/bin/env node
-// harvest-clips.js — fill the Chunking library from the command line.
+// harvest-clips.js — run the Chunking harvest directly, without the server.
 //
-// The page has a "Rebuild the library" button that does exactly this as a
-// background job, but the poster phase is bounded by a wall clock (Render's
-// instance has other work to do), so a first build of a few hundred clips takes
-// several presses. From here it can just run to the end.
+// This is how a chat builds or refreshes the clip library from its own
+// container: the Admin SDK talks straight to Firestore/Storage
+// (googleapis.com — allowed on every network level), and the static ffmpeg
+// binaries in node_modules cut the posters locally. Free — no model calls.
 //
-//   node scripts/harvest-clips.js                # list, then draw every poster
-//   node scripts/harvest-clips.js --list-only    # just file the clips (fast)
-//   node scripts/harvest-clips.js --posters-only # only draw missing posters
+//   FIREBASE_SERVICE_ACCOUNT=<deckfactory json> node scripts/harvest-clips.js
+//   node scripts/harvest-clips.js --dry      # gather + report, write nothing
 //
-// Needs FIREBASE_SERVICE_ACCOUNT (deckfactory-43176) and ffmpeg/ffprobe, which
-// come from the repo's own npm packages. Costs nothing but bandwidth — every
-// clip it files was already generated and paid for.
+// The deployed server exposes the same run as POST /api/clips/harvest
+// (background job, poll GET /api/clips/harvest).
 
+process.chdir(require('path').join(__dirname, '..'));
 const admin = require('firebase-admin');
 
-const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-if (!raw) { console.error('FIREBASE_SERVICE_ACCOUNT is not set'); process.exit(1); }
-const sa = JSON.parse(raw);
+const svcRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (!svcRaw) {
+  console.error('FIREBASE_SERVICE_ACCOUNT (the deckfactory Admin JSON) is required.');
+  process.exit(1);
+}
+const svc = JSON.parse(svcRaw);
 admin.initializeApp({
-  credential: admin.credential.cert(sa),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${sa.project_id}.firebasestorage.app`,
+  credential: admin.credential.cert(svc),
+  storageBucket: `${svc.project_id}.firebasestorage.app`,
 });
 
-// The poster phase stops at a wall-clock budget so the server can never wedge;
-// a command-line run has no such deadline, so lift it and let the job finish.
-// BEFORE the require — clips.js reads this once, at load.
-process.env.CLIPS_POSTER_BUDGET_MS = String(6 * 60 * 60 * 1000);
-
-// Required AFTER admin is initialised — the module reads the default app.
 const clips = require('../clips');
-
-const args = process.argv.slice(2);
-const listing = !args.includes('--posters-only');
-const posters = !args.includes('--list-only');
-
-let lastLabel = '';
-const progress = async (done, total, label, extra = {}) => {
-  const line = `${label}${total ? ` ${done}/${total}` : ''}`;
-  if (line === lastLabel) return;
-  lastLabel = line;
-  const bits = Object.entries(extra).filter(([, v]) => v).map(([k, v]) => `${k}:${v}`).join(' ');
-  console.log(`  ${line}${bits ? `  (${bits})` : ''}`);
-};
+const dry = process.argv.includes('--dry');
 
 (async () => {
-  const started = Date.now();
-  await clips.harvest(progress, { listing, posters });
-  const all = await clips.loadAll();
-  const withPoster = all.filter((c) => c.poster).length;
-  const failed = all.filter((c) => c.posterFailed).length;
-  const hidden = all.filter((c) => c.hidden).length;
-  console.log(`\n${all.length} clips in the library — ${withPoster} with a picture, `
-    + `${failed} whose first frame could not be read, ${hidden} hidden.`);
-  console.log(`took ${Math.round((Date.now() - started) / 1000)}s`);
+  let lastLine = '';
+  const progress = (done, total, label) => {
+    const line = total ? `[${done}/${total}] ${label}` : label;
+    if (line !== lastLine) { console.log(line); lastLine = line; }
+  };
+  const summary = await clips.runHarvest(progress, { dry });
+  console.log(dry ? '\nDRY RUN — nothing written. Would gather:' : '\nHarvest summary:');
+  console.log(JSON.stringify(summary, null, 2));
   process.exit(0);
-})().catch((err) => { console.error('harvest failed:', err.message); process.exit(1); });
+})().catch((e) => { console.error('harvest failed:', e.message); process.exit(1); });

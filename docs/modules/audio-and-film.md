@@ -163,111 +163,75 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
 
 ## Chunking (`clips.js`) — the clip library, searchable
 
-**The name.** Sophie's, Aug 2026: *"I like the name chunking but Clips is the
-one that makes more sense so we'll call it chunking for now."* So the tile, the
-page title and `/chunking` say **Chunking**; the module, the routes, the
-collection and this doc say **clips**, because that is what the things are and
-it is what a future chat greps for. `/clips` serves the same page.
+Rebuilt from scratch 2026-08-15 (Sophie asked for a fresh take on the first
+build). Page at `/chunking` (`/clips` is the honest alias), API at
+`/api/clips`, iOS tile under the FILM filter. Collection
+`forge-clip-library` (+ `forge-clip-library-meta` for the harvest job) in
+deckfactory.
 
-**Why it exists.** Every film in this app is stitched out of short
-self-contained pieces, and each piece was only ever reachable through the ONE
-film it was made for. Re-cutting a film with a different emphasis meant
-regenerating clips that already existed, because nothing could answer "show me
-every clip of the woman on the bench". Chunking is the shelf of those atomic
-pieces — the things that get assembled INTO videos and never taken apart.
-**It generates and stitches nothing.** It is a shelf and a search box, so it
-spends no money at all; a harvest costs time and bandwidth.
+**What it is.** The shelf of every small, self-contained clip the studio has
+made — the pieces films get cut from, never the films themselves — so a
+re-cut with different emphasis reuses clips instead of re-paying for them.
+It generates and stitches nothing and costs nothing. The page is a
+Story-Room-style shelf: poster tiles four to a row, serif names underneath,
+a search bar on top, kind chips (scenes · bridges · quick · shorts), and a
+lightbox that plays the clip and edits its name/tags/note.
 
-**What it holds (measured on the first real build, 2026-08-14): 350 clips.**
-Harvest reads three Firestore sources — a movie's per-scene clips, their
-`clipHistory` re-rolls (tagged `alt`), its dream `bridges`, and every
-quick-animate — and then **sweeps Storage for every other video**, because most
-of the shorts were built by chats straight into their own prefixes
-(`exile-film/clips`, `hospital-film/pairs`, `witch-shorts/*`, `nde-anim/*`,
-`story-shorts/*`, `dinner-party/takes`) and never went through `movies.js` at
-all. The sweep gave 296 of the 350; Firestore knew about 54 scene clips and 44
-quick-animates.
+**Two sources, one harvest** (`runHarvest` in `clips.js`; CLI
+`node scripts/harvest-clips.js [--dry]`, server `POST /api/clips/harvest`
+as a background job on the meta doc, polled by the page):
 
-**The skip list is the load-bearing half of the sweep**, and it was corrected by
-running it and reading what it filed rather than by reasoning: the first pass
-filed 77 whole hour-long YouTube interviews (`nde-audio/`) and 11 finished
-episodes. `SKIP_PREFIXES` now also excludes finished films and supercuts, Cut
-Marks renders (whole recordings re-baked), `drops/` (the Dump — her raw phone
-footage is a source library, and a phone video is exactly the thing you WOULD
-take apart) and `scratchpad/film-cache`, which is not footage at all but an
-encode cache of single stills held for a duration. `SKIP_SEGMENTS` catches a
-`combined/` or `films/` folder anywhere in a path.
-- **The skip list is RECONCILED on every harvest**, so a correction reaches a
-  library that was already built: a swept record the current rules would no
-  longer file is deleted — unless Sophie has edited it, because her edit means
-  she wants it there.
-- **A swept file that probes longer than `MAX_SWEEP_SEC` (180s) is a video, not
-  a clip.** It is HIDDEN with a `hiddenReason` rather than deleted, so it is
-  readable rather than mysteriously absent.
+- **Firestore** — `forge-movies` scene clips, kept re-rolls
+  (`clipHistory`) and dream bridges; `forge-quick` quick-animates. These
+  carry their real titles and the generation PROMPT (the treasure — it is a
+  searchable field and shows in the lightbox).
+- **A Storage sweep** — the shorts chats built into their own prefixes
+  (witch-shorts/, story-shorts/, hospital-film/, two-panel-gallery/ …).
+  **The skip list is the load-bearing half** (`SKIP_PREFIXES`, measured
+  2026-08-15 against 697 video files): the Dump (`drops/`), whole
+  interviews (`nde-audio/`), finished episodes (`nde-episodes/`), the
+  movies pipeline's own storage (`movies/` — the Firestore half covers it
+  with better metadata), the pad's still-encode cache and films
+  (`scratchpad/`), voice notes (`writing-notes/`), Cut Marks / Cutting Room
+  renders, and this module's own posters. A swept file over **64MB** is
+  skipped before download; anything probing over **180s** is a film wearing
+  a clip's name and is skipped and counted, never filed.
 
-**Search is the whole interface, and `searchClips` is a pure function** (the
-tests drive all of it). Bare terms are ANDed, `OR` between two terms binds
-TIGHTER than that implicit AND (`a b OR c` = a AND (b OR c)), `-term` / `NOT`
-excludes, `"quotes"` keep a phrase whole, and `tag:` `title:` `from:` `prompt:`
-`note:` aim a term at one field. There are deliberately **no parentheses** — a
-phone search bar is not a place to balance brackets, and everything she
-described is expressible without them.
-- **A bare term searches the film it came out of too**, so the film's name finds
-  its scenes; `title:` is how you narrow that.
-- **The generation PROMPT is what makes the library findable**, and it comes
-  free with every clip `movies.js` made — it is the only text on the record that
-  says what is actually happening in the picture. A swept clip has none, which
-  is why its folder becomes tags.
-- Ranking is by field weight (title 4, tag 3, source 2, prompt/note 1) with a
-  whole-word bonus; with no query the shelf is newest-first.
-- **MEANING/semantic search is deliberately not built** (Sophie: "we might have
-  to do that later if it's hard"). `search.js` already owns the int8-quantized
-  embedding machinery to bolt on — and the prompts are the text worth embedding.
+**Her edits always win.** `PATCH /:id` (title/tags/note/hidden through an
+EDITABLE whitelist) records the touched fields in `editedFields`; a
+re-harvest merges through `mergeClip`, which never overwrites a touched
+field, and note/hidden are never the harvest's to write at all. Docs are
+content-addressed (`sha1(url)`), so re-running the harvest upserts and
+nothing ever doubles. There is deliberately NO delete route — hiding is the
+verb; a deleted doc would just resurrect on the next harvest.
 
-**Posters are the point of the grid**, so harvest is two phases: listing (cheap
-— Firestore + Storage metadata, files every doc immediately) then posters
-(ffmpeg, one frame each, ~1.6s per clip measured). The frame is taken a third of
-the way in, capped at one second: frame zero of a generated clip is usually the
-still it was animated FROM, so every panel-pair would tile identically, and on a
-fade it is simply black. webp, ~25KB each, into `clips/posters/`.
-- **The bytes come from the Admin SDK, NOT from the url.** ffmpeg can read https
-  directly and the first version did — but a chat's sandbox sends outbound HTTPS
-  through a proxy ffmpeg cannot speak to, and **all 350 posters failed with an
-  empty error** (2026-08-14). `googleapis` works everywhere the rest of the app
-  works, and for a clip already in our bucket it is the shorter route anyway. An
-  external url (a hand-added clip) still goes through fetch.
-- ONE download serves the duration, the frame size and the poster, and it is
-  deleted before the next clip starts — 350 clips would otherwise be a gigabyte
-  on a 512MB instance.
-- The phase stops at a wall-clock budget (`POSTER_BUDGET_MS`, 9 min) and reports
-  `postersLeft`; a re-run resumes. `scripts/harvest-clips.js` lifts the budget so
-  a first build finishes in one go.
-- A clip whose frame cannot be read still belongs in the library — it just tiles
-  without a picture, marked `posterFailed` so the next run doesn't retry forever.
+**Posters read the bytes via the Admin SDK, never the url** — ffmpeg cannot
+reach the cloud sandbox's HTTPS proxy, so the harvest downloads with the
+SDK (works everywhere, handles private objects), probes with ffprobe (a
+file with no video stream is refused), grabs a frame at ~15% in (frame 0 is
+often a fade from black), and ships it as a **480px webp** (~15KB, the
+webp rule) under `clip-library/posters/`, cache-immutable.
 
-**HER EDITS ALWAYS WIN.** The doc id is `sha1(url)`, so a re-harvest updates the
-record it already made; `upsert` skips every field listed in `edited`, which the
-PATCH route appends to. Tags MERGE rather than replace, so a tag she added by
-hand and a tag the sweep derives coexist. Nothing in this module deletes a clip
-from Storage — dropping one from the shelf removes the record only.
+**Search is the whole interface.** `search-grammar.js` parses (the ONE
+house grammar); matching is the clip-library way — lowercase alphanumerics,
+substring hits, so her punctuation and dictation never decide a match.
+Fields: `tag:` `title:` `from:` (the film it came out of) `prompt:` `note:`
+`kind:`. The page mirrors the same parse client-side over the loaded shelf
+(no request per keystroke) and the box runs through `liveInput`, so iOS
+dictation searches as she speaks. `GET /api/clips?q=` answers the same
+grammar server-side. Semantic search is deliberately not built yet
+(Sophie: fine to do later; it would cost an embedding pass).
 
-**The page** (`public/clips.html`, `tool.css`, `body.tool`) is the Story Room's
-shelf, which is the look she named: four to a row, the poster at 2:3, the name
-under it clamped to two lines, a duration badge in the corner. A filter chip
-writes its term INTO the search box rather than being a second piece of state,
-so there is only ever one thing to understand. Tapping a clip opens it over the
-page (locked + scroll restored, house rule) with the video, its name, tags and
-notes editable in place, the film it came from, and its prompt. The rebuild
-button lives behind the `?`.
+**Gotchas earned elsewhere, honored here:** opening the page never spends
+money and never starts a harvest (it only *shows* a running one); the
+lightbox freezes the page and restores the exact scroll position; the
+video element is torn down on close so the download stops; text boxes ship
+empty; the pill's five tokens are defined on `:root` and the page script
+is an IIFE.
 
-Routes (mounted at `/api/clips`, `STUDIO_TOKEN` gate, only `/status` open):
-`GET /` (`q` `tag` `source` `sort` `limit` `offset` `hidden`) · `GET /facets` ·
-`GET /:id` · `PATCH /:id` (title/tags/notes/hidden only) · `DELETE /:id` ·
-`POST /add` · `POST /harvest` (`force:true` takes over a wedged job — this one
-is library-wide, so a stale job blocks the whole tool) · `GET /harvest`.
-
-Tests: `node scripts/test-clips.js` — the grammar, the ranking, the naming rules
-and the skip list against fixtures, no network.
+Tests: `node scripts/test-clips.js` — the grammar matching, the sweep skip
+list, the title fallback, the her-edits-win merge, and the gatherers, all
+pure, no network.
 
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
