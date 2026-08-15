@@ -1,0 +1,63 @@
+[
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "watercolor",
+    "styleLabel": "Watercolor — sage sandy mirror",
+    "quality": "medium",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "sage-sandy-mirror.png"
+    ],
+    "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\n[content]\n\nDo not include any text in the image.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nDo not include any text in the image.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/medium/bicycle__watercolor.webp",
+    "bytes": 268268,
+    "ms": 47045,
+    "createdAt": 1786766449920
+  },
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "dream",
+    "styleLabel": "Dream mystery — diary comic",
+    "quality": "medium",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "dream-mystery.jpg"
+    ],
+    "promptStyle": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\n[content]\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nRender as ONE single full-bleed vertical illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/medium/bicycle__dream.webp",
+    "bytes": 566388,
+    "ms": 39487,
+    "createdAt": 1786766489407
+  },
+  {
+    "subject": "bicycle",
+    "subjectLabel": "The chain came off",
+    "stress": "machinery + an upside-down pose",
+    "style": "pastel",
+    "styleLabel": "Pastel — Witch School house",
+    "quality": "medium",
+    "model": "gpt-image-2",
+    "size": "1024x1536",
+    "refs": [
+      "witch-school/refs/sophie-snake.png",
+      "witch-school/refs/sophie-animals.png"
+    ],
+    "promptStyle": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\n[content]\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "promptContent": "A man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.",
+    "fullPrompt": "Use the attached images ONLY as a STYLE reference for the linework: bold confident black ink outlines, flat colors with NO gradients and minimal shading, a soft pastel palette of lilac, pastel pink, mint and pale yellow, on a plain white background, playful modern editorial illustration.\n\nA man crouched underneath an upside-down bicycle on a repair stand, turning the pedals with one hand while the chain slips off the sprocket into his other hand, his tools spread out on the ground beneath him.\n\nAbsolutely no text, no words, no letters, no numbers, no captions.",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/style-compare/medium/bicycle__pastel.webp",
+    "bytes": 109668,
+    "ms": 48236,
+    "createdAt": 1786766537643
+  }
+]

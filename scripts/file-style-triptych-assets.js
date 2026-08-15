@@ -42,7 +42,7 @@ function sheetRows() {
     if (!m.sheetUrl || seen.has(m.style)) continue;
     seen.set(m.style, {
       url: m.sheetUrl,
-      description: `Full 2x2 sheet — ${STYLE_NAME[m.style] || m.style} (all four subjects, one render)`,
+      description: `Full 2x2 sheet — ${STYLE_NAME[m.style] || m.style} · ${m.quality} (all four subjects, one render)`,
       caption: `${m.model} · ${m.quality}`,
       // The sheet's prompt IS the full prompt; the seam is the grid line.
       style: m.promptStyle.replace(/\n\n\[content[^\]]*\]\n\n/, '\n\n[content — the four subjects, one per quarter]\n\n'),
@@ -53,10 +53,16 @@ function sheetRows() {
 }
 
 (async () => {
+  // The QUALITY belongs in the LABEL, not only in the caption. The same subject
+  // in the same style exists at low, medium and high, and three tiles reading
+  // "The chain came off — watercolor" are indistinguishable in the tab — which
+  // is exactly the "an unlabeled variant makes the whole comparison
+  // unreadable" rule. `solo`/`2x2 sheet` is on it for the same reason: a cell
+  // and a full render are not the same picture.
   const rows = ok.map((m) => ({
     url: m.url,
-    description: `${m.subjectLabel} — ${STYLE_NAME[m.style] || m.style}`
-      + (SHEET ? ` [${m.cell} of the 2x2 sheet]` : ''),
+    description: `${m.subjectLabel} — ${STYLE_NAME[m.style] || m.style} · ${m.quality}`
+      + (SHEET ? ` · ${m.cell} of the 2x2 sheet` : ' · solo render'),
     caption: `${m.model} · ${m.quality}`,
     style: m.promptStyle,
     content: m.promptContent,
