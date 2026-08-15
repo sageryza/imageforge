@@ -85,6 +85,36 @@ async function display(srcUrl) {
   return url;
 }
 
+// THE FRONT VIEW'S FACE, cropped out of a three-view sheet.
+// A sheet is a wide full-length trio; a fishbowl page is a 2:3 portrait. Side
+// by side at phone width the sheet becomes a 161px sliver and the faces — the
+// only thing worth comparing — are a few pixels each. So the sheet enters the
+// comparison as a head-and-shoulders crop of its FRONT view, at the same 2:3
+// shape as the drawing beside it.
+// The box is FIXED, not detected: every sheet came from the same prompt and
+// places its front view identically (verified on both, v2 and v3e). If a sheet
+// ever crops wrong, the whole sheets are on the page underneath.
+const FACE = { left: 20, top: 130, width: 320, height: 480 };
+async function face(srcUrl) {
+  const name = srcUrl.split('/').pop().replace(/\.(png|webp|jpe?g)$/i, '') + '-face.webp';
+  const dest = `storybook/marla/compare/${name}`;
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(dest);
+  const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
+  const [exists] = await file.exists();
+  if (!exists) {
+    const buf = Buffer.from(await (await fetch(srcUrl)).arrayBuffer());
+    const out = await sharp(buf).extract(FACE).webp({ quality: 86 }).toBuffer();
+    const tmp = path.join(os.tmpdir(), name);
+    fs.writeFileSync(tmp, out);
+    await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' } });
+    await file.makePublic();
+    fs.unlink(tmp, () => {});
+    process.stdout.write(`  ${name} ${Math.round(out.length / 1024)}KB\n`);
+  }
+  return url;
+}
+
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 
 function shell(title, body, sheet) {
@@ -211,9 +241,52 @@ async function pageFishbowlTest(second) {
     : shell('Page 1 — the original prompt with each character sheet', body, 'marla-p1-cards-4');
 }
 
+// Each fishbowl drawing beside the sheet it was drawn from, so the question
+// "does she look like her card?" is answerable without holding two screens in
+// your head. The sheets enter as face crops (see FACE above) and the whole
+// sheets close the page, since the crop is the one thing here that is a guess.
+async function pageMatch() {
+  const t = state.fishbowlTest || {};
+  const rows = [
+    ['e', 'marlaSheetV2', 'Sheet 1'],
+    ['f', 'marlaSheetV2', 'Sheet 1, second draw'],
+    ['g', 'marlaSheet_v3e', 'Sheet 5 — the one you picked'],
+  ].filter(([k, sheet]) => t[k]?.pageUrl && state[sheet]?.url);
+
+  const cards = [];
+  for (const [k, sheet, label] of rows) {
+    const [sheetFace, drawing] = [await face(state[sheet].url), await display(t[k].pageUrl)];
+    cards.push(`  <div class="card" data-item="match-${k}">
+    <h3>${esc(label)}</h3>
+    <div class="duo">
+      <figure><span class="tag">her sheet</span><img src="${sheetFace}" alt="${esc(label)} face"></figure>
+      <figure><span class="tag">the drawing</span><img src="${drawing}" alt="${esc(label)} fishbowl"></figure>
+    </div>
+  </div>`);
+  }
+
+  const whole = [];
+  for (const [sheet, label] of [['marlaSheetV2', 'sheet 1'], ['marlaSheet_v3e', 'sheet 5']]) {
+    if (state[sheet]?.url) whole.push([label, await display(state[sheet].url)]);
+  }
+  if (whole.length) {
+    cards.push(`  <div class="card" data-item="whole-sheets">
+    <h3>The whole sheets</h3>
+    <div class="duo">
+      ${whole.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="${esc(tag)}"></figure>`).join('\n      ')}
+    </div>
+  </div>`);
+  }
+  return shell('Page 1 — each fishbowl beside the Marla it was drawn from', cards.join('\n'), 'marla-p1-match-3');
+}
+
 (async () => {
   initAdmin();
   console.log('display copies:');
+  if (process.argv.includes('--match')) {
+    await post('Page 1 — each fishbowl beside the Marla it was drawn from', await pageMatch());
+    process.exit(0);
+  }
   if (process.argv.includes('--fishbowl-second')) {
     await post('Page 1 — the fishbowl rewrite with each character sheet', await pageFishbowlTest(true));
     process.exit(0);
