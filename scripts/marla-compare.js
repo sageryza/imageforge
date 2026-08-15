@@ -183,9 +183,35 @@ async function post(title, html) {
   if (j.warnings?.length) console.log('  WARNINGS:', j.warnings.join(' · '));
 }
 
+// The four runs of the ORIGINAL page 1 prompt, differing only in which card
+// the model was handed. They sit two to a row rather than four across: at
+// 390px four columns is 84px a picture, which is too small to judge a face on.
+async function pageFishbowlTest() {
+  const t = state.fishbowlTest || {};
+  const order = [
+    ['a', 'no card'],
+    ['b', 'sheet 1'],
+    ['c', 'sheet 1 again'],
+    ['d', 'sheet 5 — yours'],
+  ].filter(([k]) => t[k]?.pageUrl);
+  const cells = [];
+  for (const [k, tag] of order) cells.push([tag, await display(t[k].pageUrl)]);
+  const body = `  <div class="card" data-item="fishbowl-test">
+    <h3>Same prompt, different Marla</h3>
+    <div class="duo">
+      ${cells.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="page 1 ${esc(tag)}"></figure>`).join('\n      ')}
+    </div>
+  </div>`;
+  return shell('Page 1 — the original prompt with each character sheet', body, 'marla-p1-cards-4');
+}
+
 (async () => {
   initAdmin();
   console.log('display copies:');
+  if (process.argv.includes('--fishbowl-test')) {
+    await post('Page 1 — the original prompt with each character sheet', await pageFishbowlTest());
+    process.exit(0);
+  }
   const a = await pageSheets();
   const b = await pageVersions();
   await post('Marla — the ten sheets and what you said about each', a);
