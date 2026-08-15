@@ -200,21 +200,31 @@ async function sendAll(title, body, data) {
 // Fire-and-forget BY CONTRACT: chatfeed calls this inside a posting route, and
 // a slow or broken push must never delay a reply landing in the feed. Two
 // throttles, both in-memory (a restart forgiving an extra push is fine):
-//   • per chat: one push per 10 minutes — the finished reply and the Compare
-//     page it posted in the same turn are one buzz, and a chat shipping six
-//     PRs in an evening is a handful, not a drumroll;
+//   • per chat: one push per 10 minutes — a chat shipping six PRs in an
+//     evening is a handful, not a drumroll;
 //   • global: 60s between pushes — five parallel chats finishing at once
 //     stack up as one buzz and the Update tab, not five in a row.
 // The dropped ones are not lost news: the Update tab is the catch-all, and
 // the pushes are its doorbell, not its replacement.
+//
+// `{ debounce:false }` OPTS OUT, and the finished-reply caller uses it (Aug
+// 2026). Both windows exist because EVERY finished reply used to push;
+// `push-gate.js` replaced that with "she spoke and this answers her", which
+// is a tighter gate than any clock — and the 10-minute window actively broke
+// what she asked for, because she messages a chat again four minutes later
+// and the answer to the second message was swallowed. A skipped send still
+// takes the global stamp, so a Compare page posted in the same turn as the
+// reply stays the one buzz it always was.
 const lastByChat = Object.create(null);
 let lastAny = 0;
-function notifyChat(chat, title, body) {
+function notifyChat(chat, title, body, opts) {
   try {
     if (!configured()) return;
     const now = Date.now();
-    if (lastByChat[chat] && now - lastByChat[chat] < 10 * 60 * 1000) return;
-    if (now - lastAny < 60 * 1000) return;
+    if (!opts || opts.debounce !== false) {
+      if (lastByChat[chat] && now - lastByChat[chat] < 10 * 60 * 1000) return;
+      if (now - lastAny < 60 * 1000) return;
+    }
     lastByChat[chat] = now; lastAny = now;
     sendAll(String(title || chat).slice(0, 120), String(body || '').slice(0, 240), { chat })
       .then((r) => {

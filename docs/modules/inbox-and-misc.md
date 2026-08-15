@@ -88,9 +88,42 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   HTTP/2 straight to Apple — no Firebase Messaging, no SDK. The iOS app
   registers its device token per launch (`POST /device`, upsert), and
   `chatfeed.js` calls `notifyChat()` on a **finished reply** (never a draft)
-  and on a **new Compare page**. Debounce: one push per chat per 10 min +
-  60s global gap — the pushes are the Update tab's doorbell, not its
-  replacement, so dropped ones are never lost news.
+  and on a **new Compare page** — the pushes are the Update tab's doorbell,
+  not its replacement, so dropped ones are never lost news.
+- **A FINISHED REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`,
+  Aug 2026, Sophie: "I don't need a notification when I send a message. I
+  need a notification when they respond to my message").** Every finished
+  reply used to push, and three real shapes put the buzz at the wrong moment:
+  a **catch-up post** (the hook's final pass runs on UserPromptSubmit too, so
+  a reply Stop failed to post lands the instant she hits send on her next
+  message), a **queued message** (messaging a chat that is mid-turn; the turn
+  already running finishes seconds later), and a **chat grinding on its own**
+  (turn after turn nobody asked for, and with the old 60s global spacing
+  whichever one landed next after she sent was the buzz she got).
+  Two comparisons, both against fields already on the registry doc, so the
+  gate costs no extra read: she must have spoken **since the last push**
+  (`lastHerAt > pushedAt`), and the reply must have been **written after she
+  spoke** (`created >= lastHerAt`) — a reply whose text predates her message
+  cannot be an answer to it. `lastHerAt` is stamped by `POST /reply`, which
+  is both doors (the hook lifting her words out of the Claude app, and the
+  Chats app's reply box), and it carries her REAL send time, never the lift
+  time. `pushedAt` is stamped in the same registry write the reply already
+  makes.
+  - **NO TIME DEBOUNCE on a reply** (`notifyChat(..., {debounce:false})`).
+    The per-chat 10 minutes existed only because every reply pushed, and
+    measured against her real threads it broke exactly what she asked for —
+    she messaged `update-tab-messaging` at 2:07 pm and again at 2:11 pm, and
+    a 10-minute window swallows the answer to the second. Each message she
+    sends can now produce at most one buzz, from the chat she sent it to. The
+    Compare-page call keeps the old 10 min + 60s windows, and a skipped send
+    still takes the global stamp, so a page and the reply in one turn stay
+    one buzz.
+  - **A chat that has never lifted one of her messages is NOT silenced.** No
+    `lastHerAt` on file looks identical whether the session's hook is too old
+    to post her messages or she has simply never written to it, so those keep
+    the old behaviour — a missed buzz is worse than a stray one.
+  - Tests: `node scripts/test-push-gate.js` (the whole decision table, pure,
+    no network).
 - **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
   optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
   key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all

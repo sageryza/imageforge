@@ -71,6 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
+const { shouldPushReply } = require('./push-gate');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -664,6 +665,13 @@ router.post('/', async (req, res) => {
     const hd = num(head), tl = num(tail);
     if (hd !== null && tl !== null && tl >= hd) { doc.head = hd; doc.tail = tl; }
     let msgId;
+    // When this turn's text FIRST landed — `doc.created` normally, but the
+    // draft's own stamp when this post is finalizing one (the patch below
+    // keeps it, so the doc's `created` is the truth and the final post's is
+    // just "now"). The push gate compares it against her newest message, and
+    // a turn that was already running when she sent must lose that comparison
+    // — so it has to be the turn's start, never the moment it was posted.
+    let bornAt = doc.created;
     const turnKey = String(turn || '').slice(0, 120);
     if (turnKey) {
       msgId = 't' + crypto.createHash('sha1')
@@ -681,6 +689,7 @@ router.post('/', async (req, res) => {
       if (prev.exists) {
         // keep the first write's `created` (it's what the unread dot keys on —
         // a draft pings once when it appears, never again as it grows/finishes)
+        bornAt = prev.get('created') || bornAt;
         const patch = {
           chat: doc.chat, text: doc.text, tldr: doc.tldr, postedAt: doc.postedAt,
           working: working ? true : admin.firestore.FieldValue.delete(),
@@ -725,15 +734,31 @@ router.post('/', async (req, res) => {
       const bumped = pinBump(mine.pinned);
       if (bumped) reg.pinned = bumped;
     }
+    // …and it MIGHT be the moment worth a buzz: a FINISHED reply that is
+    // actually ANSWERING HER (Aug 2026 — see push-gate.js for the three shapes
+    // that used to buzz her at the wrong moment, the loudest being a catch-up
+    // post landing the instant she hits send). The gate is pure and reads only
+    // fields already on the registry doc, so it costs no extra read.
+    const gate = shouldPushReply({
+      working,
+      replyCreated: bornAt,
+      lastHerAt: mine.lastHerAt,
+      pushedAt: mine.pushedAt,
+    });
+    // Stamped in the SAME registry write the reply already makes — and stamped
+    // before the send, not after: the push is fire-and-forget, so waiting on it
+    // would leave a window where a second reply could push again.
+    if (gate.push) reg.pushedAt = doc.postedAt;
     await regRef(doc.chat).set(reg, { merge: true });
-    // …and it's the moment worth a buzz (Aug 2026): a FINISHED reply — never a
-    // draft — pushes to her phone. Fire-and-forget by contract; notifyChat
-    // debounces per chat and can never fail this route. The title is the name
-    // SHE gave the chat, when there is one.
-    if (!working) {
+    // Fire-and-forget by contract; notifyChat can never fail this route. The
+    // title is the name SHE gave the chat, when there is one. `debounce:false`
+    // because her message is the gate now — a time window on top of it would
+    // swallow the answer to a follow-up she sent four minutes later.
+    if (gate.push) {
       try {
         require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
-          doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240));
+          doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240),
+          { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
     res.json({ ok: true, id: msgId });
@@ -2540,7 +2565,17 @@ router.post('/reply', async (req, res) => {
     // The stamp is `postedAt` (now), never her message's `created` — same
     // reason parking uses it: `created` is her real send time and can sit
     // behind the news it is answering.
-    const patch = { workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt };
+    //
+    // HER MESSAGE IS WHAT ARMS THE PUSH (Aug 2026 — see push-gate.js). This
+    // route is both doors: the hook lifting her words out of the Claude app,
+    // and the Chats app's own reply box. `lastHerAt` is her REAL send time
+    // (`doc.created`), never `postedAt` — an old hook lifts her message
+    // minutes late, and stamping the lift time would make the reply she is
+    // waiting for look like it predates her.
+    const patch = {
+      workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt,
+      lastHerAt: doc.created,
+    };
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
     await regRef(doc.chat).set(patch, { merge: true });
