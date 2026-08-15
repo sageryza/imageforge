@@ -1678,9 +1678,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
-  **finished reply** (never a draft) and on a new Compare page, debounced to one
-  per chat per 10 min. They are the Update tab's **doorbell, not its replacement**,
-  so a dropped push is never lost news. A tap opens THE CHAT IT CAME FROM.
+  **finished reply** (never a draft) and on a new Compare page. They are the
+  Update tab's **doorbell, not its replacement**, so a dropped push is never
+  lost news. A tap opens THE CHAT IT CAME FROM.
+  **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
+  Sophie: "I don't need a notification when I send a message. I need a
+  notification when they respond to my message").** Two comparisons against
+  fields already on the registry: she must have spoken since the last push
+  (`lastHerAt > pushedAt`, stamped by `POST /reply` with her REAL send time),
+  and the reply must have been written after she spoke (`created >=
+  lastHerAt`) — a reply whose text predates her message cannot answer it. That
+  kills the three shapes that buzzed her at the wrong moment: a **catch-up
+  post** (the hook's final pass runs on UserPromptSubmit, so a reply Stop
+  failed to post lands the instant she hits send), a **queued message** (the
+  turn already running finishes seconds after she sends), and a **chat
+  grinding on its own**. **The per-chat 10-minute debounce is GONE for
+  replies** — it swallowed the answer to a follow-up she sent four minutes
+  later; her message is the gate now. A chat that has never lifted one of her
+  messages keeps the old behaviour rather than going quiet.
+  Tests: `node scripts/test-push-gate.js`.
   Dormant until the APNs key exists — only Sophie can mint it.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
   must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**
