@@ -1,0 +1,13 @@
+[
+ {
+  "id": "full-bladder-v2",
+  "file": "/home/user/out/weird-games/round2/full-bladder-v2.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: night on an apartment balcony with a tiled floor, a beer pong table with red Solo cups going in the background and most people playing it, and in the foreground a loose circle of friends each holding a red Solo cup, every one of them glancing down at themselves and sideways at each other with comic seriousness, dark city beyond the balcony railing. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]
