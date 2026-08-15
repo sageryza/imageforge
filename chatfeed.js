@@ -883,6 +883,71 @@ router.post('/wrapup', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// RESCUE a chat archived before wrap-ups existed — the only path that can reach
+// one whose session is long dead (Aug 2026: 73 of her 88 archived chats showed
+// nothing but a name, and nothing had ever been written for them).
+//
+// It SPENDS MONEY, so: one chat per request, never triggered by opening a page,
+// and it refuses a chat that already has a wrap-up unless forced. Reader-facing
+// words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
+const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
+
+Return JSON: {"line": "...", "text": "..."}
+
+"line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
+"text": 2-5 short sentences. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+
+Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
+
+router.post('/wrapup/write', async (req, res) => {
+  try {
+    const { chat, force } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const anthropic = require('./anthropic');
+    if (!anthropic.available()) {
+      return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not set on the server' });
+    }
+    const target = await followMoves(chat);
+    const reg = await regRef(target).get();
+    const cur = reg.exists ? reg.data() : {};
+    if (!force && (cur.wrapUp || cur.wrapLine)) {
+      return res.json({ ok: true, skipped: 'already has one', chat: target });
+    }
+    // One equality filter, sorted in memory — the house rule everywhere in this
+    // file, so Firestore needs no composite index.
+    const snap = await db().collection(MSGS).where('chat', '==', target).get();
+    const msgs = snap.docs.map((d) => d.data())
+      .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+    if (!msgs.length) return res.status(400).json({ error: 'no messages to read' });
+    // The OPENING says what she wanted and the CLOSING says how it ended, which
+    // is the whole question. The long middle is the work — it costs tokens
+    // without changing the answer, so a 300-message thread bills like a short
+    // one and the price of the backfill stays predictable.
+    const cut = (m) => (m.from === 'sophie' ? 'Sophie: ' : 'Chat: ')
+      + String(m.text || '').replace(/\s+/g, ' ').slice(0, 700);
+    const head = msgs.slice(0, 3).map(cut);
+    const tail = msgs.length > 3 ? msgs.slice(-6).map(cut) : [];
+    const digest = (head.join('\n\n') + (tail.length ? '\n\n[…]\n\n' + tail.join('\n\n') : ''))
+      .slice(0, 9000);
+    const out = await anthropic.chatJSON({
+      system: WRAP_SYS,
+      user: 'Chat name: ' + (cur.displayName || target) + '\nMessages: ' + msgs.length
+        + '\n\n' + digest,
+      maxTokens: 500,
+    });
+    const full = wrapTextOf(out && out.text);
+    const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
+    if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
+    await regRef(target).set({
+      wrapLine: one,
+      wrapUp: full,
+      wrapUpAt: new Date().toISOString(),
+      wrapFrom: 'claude',
+    }, { merge: true });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, messages: msgs.length });
+  } catch (err) { fail(res, err); }
+});
+
 // DELETE a chat — the second option beside Archive (Aug 2026, Sophie: "I'd
 // like there to be a delete button as a second option to archive so I can
 // delete this chat so it doesn't keep confusing things ... and I'd like
