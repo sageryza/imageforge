@@ -111,7 +111,8 @@
                           height:1px; background:var(--linep); }
   /* A night that held more than one dream runs on inside the SAME entry; the
      faint rule parts them, where the black line above parts different people. */
-  .wtext .part + .part { margin-top:14px; padding-top:13px; border-top:1px solid #ffffff1f; }
+  .wtext .part + .part, .words .part + .part {
+    margin-top:14px; padding-top:13px; border-top:1px solid #ffffff1f; }
   .post .ttl { color:var(--fuchsia); font-family:Georgia, "Times New Roman", serif;
                font-size:19px; font-weight:400; }
   .post .meta { font-size:12.5px; color:var(--dim); margin-top:2px; }
@@ -666,41 +667,56 @@ function openDream(id, from){
 async function renderDream(){
   clearTimeout(dreamPoll);
   var el = scr.dream;
-  var d;
-  try { d = await api('/dreams/' + openDreamId); }
+  // The screen is the NIGHT, not one dream — you post once a day, and a long
+  // recording split into several dreams is machinery on the way to the pictures.
+  var night, d;
+  try { night = await api('/nights/' + openDreamId); }
   catch (e) { el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
+  d = (night.dreams || []).find(function(x){ return x.id === openDreamId; }) || night.dreams[0];
 
-  var drawing = d.drawJob && d.drawJob.status === 'drawing';
+  var allPanels = (night.dreams || []).reduce(function(a, x){ return a.concat(x.panels || []); }, []);
+  var drawing = (night.dreams || []).some(function(x){ return x.drawJob && x.drawJob.status === 'drawing'; });
   var failed = d.drawJob && d.drawJob.status === 'failed';
-  var shared = !!d.publicOn;
+  var shared = night.shared;
   var drawBlock;
   if (drawing) {
     drawBlock = '<div class="drawing"><span class="pulse"></span>drawing your dream…</div>' +
       '<div class="pgrid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>' +
       '<div class="quiet">You can leave — the drawing will be here when it’s done.</div>';
-  } else if (d.panels.length) {
-    // Your OWN dream, before you have shared it: every page at once. The
+  } else if (allPanels.length) {
+    // Your OWN night, before you have shared it: every page at once. The
     // one-cover rule is about the FEED — here you are choosing what to share,
     // so hiding pages behind a fold would hide the thing you came to decide.
-    drawBlock = plainGrid(d.panels);
+    drawBlock = plainGrid(allPanels);
   } else {
     drawBlock = '<button class="btn sub" id="drawBtn"><span class="star" style="color:var(--fuchsia)">' + STAR + '</span> draw it</button>' +
       (failed ? '<div class="err">' + esc(d.drawJob.error) + '</div>' : '');
   }
+  // SHARING IS THE NIGHT'S, not the dream's (Sophie: "you can only really post
+  // once per day"). Her words are one choice; each picture across the whole
+  // night is its own, named by the dream that drew it.
   var shareRows = '';
   if (!drawing) {
-    shareRows = shareItem('words', 'your words', null, d.wordsPublic, shared) +
-      d.panels.map(function(p){
-        return shareItem('p' + p.i, 'panel ' + (p.i + 1), p.url, p.public, shared);
+    var pics = [];
+    (night.dreams || []).forEach(function(dd){
+      (dd.panels || []).forEach(function(p){ pics.push({ dreamId: dd.id, i: p.i, url: p.url, public: p.public }); });
+    });
+    shareRows = shareItem('words', 'your words', null, night.wordsPublic, shared) +
+      pics.map(function(p, n){
+        return shareItem('p:' + p.dreamId + ':' + p.i, 'picture ' + (n + 1), p.url, p.public, shared);
       }).join('');
   }
   el.innerHTML =
     '<div class="backrow"><button id="backBtn">' + BACK + 'back</button></div>' +
     '<div class="post">' +
-    (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
-    '<div class="meta">' + ago(d.createdAt) + ' ago · ' +
+    (night.title ? '<div class="ttl">' + esc(night.title) + '</div>' : '<div class="naming">finding its name…</div>') +
+    '<div class="meta">' + ago(night.createdAt) + ' ago · ' +
     (shared ? '<span class="badge pub">in today’s feed</span>' : '<span class="badge priv">private</span>') + '</div>' +
-    '<div class="words">' + esc(d.text) + '</div>' +
+    // The whole night's words, in order. Where a long recording was split for
+    // the drawing, the pieces read on as one — that split is machinery.
+    '<div class="words">' + (night.dreams || []).map(function(x){
+      return '<div class="part">' + esc(x.text) + '</div>';
+    }).join('') + '</div>' +
     drawBlock + '</div>' +
     (shareRows
       ? '<div class="h2">Share</div>' + shareRows +
@@ -730,18 +746,20 @@ async function renderDream(){
     var words = el.querySelector('[data-t="words"]').classList.contains('pub');
     var panels = [];
     el.querySelectorAll('[data-t]').forEach(function(b){
-      if (b.dataset.t !== 'words' && b.classList.contains('pub')) panels.push(parseInt(b.dataset.t.slice(1), 10));
+      if (b.dataset.t === 'words' || !b.classList.contains('pub')) return;
+      var bits = b.dataset.t.split(':');   // p:<dreamId>:<i>
+      panels.push({ dreamId: bits[1], i: parseInt(bits[2], 10) });
     });
     this.disabled = true;
     try {
-      await api('/dreams/' + openDreamId + '/share', { body: { words: words, panels: panels } });
+      await api('/nights/' + openDreamId + '/share', { body: { words: words, panels: panels } });
       toast('you’re in today’s feed');
       await renderFeed();
       go('feed');
     } catch (e) { toast(e.message); this.disabled = false; }
   });
   // keep polling while the name or a drawing is still landing
-  if (!d.title || drawing) dreamPoll = setTimeout(renderDream, drawing ? 4000 : 1500);
+  if (!night.title || drawing) dreamPoll = setTimeout(renderDream, drawing ? 4000 : 1500);
 }
 function shareItem(key, label, thumb, on, locked){
   return '<div class="share-item">' + (thumb ? '<img class="thumb" src="' + thumb + '" alt="">' : '') +
@@ -759,14 +777,24 @@ async function renderMine(){
       el.innerHTML = '<div class="quiet" style="padding-top:30px">No dreams yet — tap + when you wake up with one.</div>';
       return;
     }
-    el.innerHTML = r.dreams.map(function(d){
-      var drawing = d.drawJob && d.drawJob.status === 'drawing';
-      return '<button class="jitem" data-id="' + d.id + '"><div class="row">' +
-        '<span class="ttl">' + esc(d.title || 'finding its name…') + '</span>' +
-        (d.publicOn ? '<span class="badge pub">shared</span>' : '<span class="badge priv">private</span>') +
+    // ONE ROW PER NIGHT — you post once a day, so two dreams written the same
+    // night are one thing here too, and the row opens the whole night.
+    var byNight = {}, order = [];
+    r.dreams.forEach(function(d){
+      var k = d.night || String(d.createdAt || '').slice(0, 10);
+      if (!byNight[k]) { byNight[k] = []; order.push(k); }
+      byNight[k].push(d);
+    });
+    order.forEach(function(k){ byNight[k].sort(function(a, b){ return a.createdAt < b.createdAt ? -1 : 1; }); });
+    el.innerHTML = order.map(function(k){
+      var group = byNight[k], first = group[0];
+      var drawing = group.some(function(d){ return d.drawJob && d.drawJob.status === 'drawing'; });
+      return '<button class="jitem" data-id="' + first.id + '"><div class="row">' +
+        '<span class="ttl">' + esc(first.title || 'finding its name…') + '</span>' +
+        (first.publicOn ? '<span class="badge pub">shared</span>' : '<span class="badge priv">private</span>') +
         (drawing ? '<span class="naming">drawing…</span>' : '') +
-        '<span class="when">' + ago(d.createdAt) + '</span></div>' +
-        '<div class="snip">' + esc(d.text) + '</div></button>';
+        '<span class="when">' + ago(first.createdAt) + '</span></div>' +
+        '<div class="snip">' + esc(group.map(function(d){ return d.text; }).join(' ')) + '</div></button>';
     }).join('');
     el.querySelectorAll('.jitem').forEach(function(b){
       b.addEventListener('click', function(){ openDream(b.dataset.id, 'mine'); });
