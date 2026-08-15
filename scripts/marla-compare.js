@@ -1,24 +1,30 @@
 #!/usr/bin/env node
 /**
- * marla-compare.js — the two Compare pages Sophie asked for (Aug 2026):
- *   1. the ten Marla character sheets with HER OWN notes under each, so the
- *      pick and the reasoning are on one screen;
- *   2. every version of the fishbowl page and every version of the page where
- *      she sits watching Tommy, side by side.
+ * marla-compare.js — the versions Compare page for "Eyes as Wide as a Fishbowl".
  *
- * WHY IT MAKES DISPLAY COPIES FIRST. The sheets are ~2.4MB gpt-image-2 PNGs
- * and the finished pages are ~500KB webp; a page pointing straight at them is
- * several megabytes on her phone. Every image here is re-encoded to a 760px
- * webp under storybook/marla/compare/ and uploaded immutable-cached — the
- * house rule from webp-assets.js, applied to a one-off page.
+ * Sophie asked for one page that DIFFS the versions of each redrawn page and,
+ * under each one, "just what you said about the expression for that prompt".
+ * So every cell carries the expression text VERBATIM out of the prompt that
+ * really drew it (state.json keeps `prompt` + `scene` per version) — never a
+ * paraphrase, same rule as the PROMPT overlay.
  *
- * The originals are never touched: the lightbox is a display copy too, which
- * is the right trade for a review page (she is judging the drawing, not
- * pixel-peeping), and the full-size art stays in Assets.
+ * Two kinds of expression text, and they are separated on purpose:
+ *   - the STANDING line, the same on every page in a round (it changed once,
+ *     after her page-12 note) — shown ONCE at the top, with a chip per cell
+ *     saying which of the two that prompt carried;
+ *   - the SCENE's own expression sentence, which differs page to page — shown
+ *     under its picture.
  *
- * USAGE
- *   node scripts/marla-compare.js            # build copies + post both pages
- *   node scripts/marla-compare.js --dry-run  # print what it would post
+ * TWO webp display copies per picture, never the raw ~3MB PNGs: 420px in the
+ * grid (~35KB) and 1100px behind `data-full` for the lightbox, so a page of
+ * forty-odd versions still opens on a phone.
+ *
+ * ORDER comes from the ASSETS TAB's `created`, not from state.json's `at` —
+ * seven entries were rebuilt from the tab after a write race and carry at:0,
+ * and sorting on that would put them first. Their real filing time is on the
+ * server, so ask the server.
+ *
+ *   node scripts/marla-compare.js [--dry-run] [--no-post]
  */
 const fs = require('fs');
 const os = require('os');
@@ -30,28 +36,67 @@ const ROOT = path.join(__dirname, '..');
 const CHAT = 'marlas-eyes-fishbowl-storybook';
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const DRY = process.argv.includes('--dry-run');
-const WIDE = 760;
+const NO_POST = process.argv.includes('--no-post');
 
 const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/state.json'), 'utf8'));
-const chars = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/storybooks/char-state.json'), 'utf8'));
 
-const P = 'https://storage.googleapis.com/membry-df528.firebasestorage.app/storybook/marla/pages/';
+// ── the two standing expression lines, verbatim out of the prompts ─────────
+const RULE_OLD = 'She does not smile; her face is still and unreadable unless this page says otherwise.';
+const RULE_NEW = 'Use the reference sheet for her FACE and CLOTHES only. Do NOT copy the expression from the reference sheet: give her an expression that fits what is happening on THIS page, and a posture that fits what she is doing. She is not a smiler, but she is not blank either.';
 
-// Her notes, verbatim off the Assets tab. A paraphrase here would defeat the
-// point of the page — she asked to see what she actually said.
-const SHEETS = [
-  { n: 1,  key: 'marlaSheetV2',      vote: null,     note: "I think I want the dress to be more complicated with like maybe some sort of frills or lace in the top forest area and then like Please and the skirt I don't know and maybe like slight ruffles on the sleeves I don't know" },
-  { n: 2,  key: 'marlaSheet_v3b',    vote: 'dislike', note: 'she looks pretty but too mean' },
-  { n: 3,  key: 'marlaSheet_v3c',    vote: null,     note: 'she looks kind of sad and EP' },
-  { n: 4,  key: 'marlaSheet_v3d',    vote: null,     note: 'boring Idk' },
-  { n: 5,  key: 'marlaSheet_v3e',    vote: 'like',   note: 'OK, use this one' },
-  { n: 6,  key: 'marlaSheet_v3f',    vote: null,     note: null },
-  { n: 7,  key: 'marlaSheet_v3g',    vote: 'dislike', note: null },
-  { n: 8,  key: 'marlaSheet_v3h',    vote: null,     note: null },
-  { n: 9,  key: 'marlaSheet_v3i',    vote: null,     note: null },
-  { n: 10, key: 'marlaSheet_v3j',    vote: null,     note: null },
-];
+function standingRule(prompt) {
+  const p = String(prompt || '');
+  if (p.includes(RULE_NEW)) return 'new';
+  if (p.includes(RULE_OLD)) return 'old';
+  return null;                       // no character card on this one
+}
 
+// The scene's OWN words about her face. Verbatim sentences picked by cue — a
+// sentence is either about how she looks or it is not, and quoting half of one
+// would be paraphrasing.
+const CUE = /\b(expression|face|eyes?|mouth|eyebrows?|brow|smil\w*|frown\w*|glare|scowl|stare|staring|gaze|blank|unreadable|crying|tears?|laugh\w*|delight\w*|exasperat\w*|weeping)\b/i;
+const sentences = (t) => String(t || '').split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+const sceneExpression = (scene) => sentences(scene).filter((x) => CUE.test(x)).join(' ');
+
+// ── gather the version families ───────────────────────────────────────────
+// A family is one BOOK PAGE and every picture ever drawn for it. `extra` keys
+// carry their page number in front (3a -> 3).
+const NUMBERED = ['s1', 'v2', 'v3', 'v3e', 's2', 's2diag', 's4', 's5'];
+const TEST_KEYS = ['8t-full', '8t-expression', '8t-none'];
+
+async function assetTimes() {
+  const r = await fetch(`${BASE}/api/gallery/assets?chat=${encodeURIComponent(CHAT)}&limit=400`);
+  const j = await r.json();
+  const t = new Map();
+  for (const a of j.assets || []) if (a.created) t.set(a.url, Date.parse(a.created));
+  return t;
+}
+
+function families(times) {
+  const fam = {};
+  const add = (n, rec) => { (fam[n] = fam[n] || []).push(rec); };
+  const when = (filed, at) => times.get(filed) || at || 0;
+  for (const b of NUMBERED) {
+    for (const [k, v] of Object.entries(state[b] || {})) {
+      const url = v.artUrl || v.url;
+      if (!url) continue;
+      add(String(Number(k)), { key: `${b}-${k}`, url, prompt: v.prompt, scene: v.scene, at: when(v.pageUrl, v.at) });
+    }
+  }
+  for (const [k, v] of Object.entries(state.extra || {})) {
+    if (TEST_KEYS.includes(k)) continue;          // the test is its own card
+    const m = String(k).match(/^(\d+)/);
+    if (!m || !v.url) continue;
+    add(m[1], { key: k, url: v.url, prompt: v.prompt, scene: v.scene, at: when(v.url, v.at), variant: k });
+  }
+  for (const n of Object.keys(fam)) {
+    fam[n].sort((a, b) => a.at - b.at);
+    if (fam[n].length < 2) delete fam[n];         // one picture is not a diff
+  }
+  return fam;
+}
+
+// ── display copies ────────────────────────────────────────────────────────
 function initAdmin() {
   if (admin.apps.length) return;
   const raw = process.env.STORY_FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -59,245 +104,142 @@ function initAdmin() {
   admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)), storageBucket: `${pid}.firebasestorage.app` });
 }
 
-// A 760px webp beside the original, immutable-cached. Named off the SOURCE
-// filename so re-running is idempotent and a changed picture (always a new id
-// in this pipeline) never collides with an old copy.
-const made = new Map();
-async function display(srcUrl) {
-  if (made.has(srcUrl)) return made.get(srcUrl);
-  const name = srcUrl.split('/').pop().replace(/\.(png|webp|jpe?g)$/i, '') + `-${WIDE}.webp`;
-  const dest = `storybook/marla/compare/${name}`;
+async function copyAt(src, name, width, q) {
   const bucket = admin.storage().bucket();
+  const dest = `storybook/marla/cmp/${name}-${width}.webp`;
   const file = bucket.file(dest);
   const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
   const [exists] = await file.exists();
-  if (!exists) {
-    const buf = Buffer.from(await (await fetch(srcUrl)).arrayBuffer());
-    const out = await sharp(buf).resize({ width: WIDE, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-    const tmp = path.join(os.tmpdir(), name);
-    fs.writeFileSync(tmp, out);
-    await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' } });
-    await file.makePublic();
-    fs.unlink(tmp, () => {});
-    process.stdout.write(`  ${name} ${Math.round(out.length / 1024)}KB\n`);
+  if (exists) {
+    const [meta] = await file.getMetadata();
+    if (meta.metadata && meta.metadata.w) return { url, w: +meta.metadata.w, h: +meta.metadata.h };
   }
-  made.set(srcUrl, url);
-  return url;
+  const buf = await sharp(src).resize({ width, withoutEnlargement: true }).webp({ quality: q }).toBuffer();
+  const { width: w, height: h } = await sharp(buf).metadata();
+  const tmp = path.join(os.tmpdir(), `${name}-${width}.webp`);
+  fs.writeFileSync(tmp, buf);
+  await bucket.upload(tmp, {
+    destination: dest,
+    metadata: {
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000, immutable',
+      metadata: { w: String(w), h: String(h) },
+    },
+  });
+  await file.makePublic();
+  fs.unlink(tmp, () => {});
+  return { url, w, h };
 }
 
-// THE FRONT VIEW'S FACE, cropped out of a three-view sheet.
-// A sheet is a wide full-length trio; a fishbowl page is a 2:3 portrait. Side
-// by side at phone width the sheet becomes a 161px sliver and the faces — the
-// only thing worth comparing — are a few pixels each. So the sheet enters the
-// comparison as a head-and-shoulders crop of its FRONT view, at the same 2:3
-// shape as the drawing beside it.
-// The box is FIXED, not detected: every sheet came from the same prompt and
-// places its front view identically (verified on both, v2 and v3e). If a sheet
-// ever crops wrong, the whole sheets are on the page underneath.
-const FACE = { left: 20, top: 130, width: 320, height: 480 };
-async function face(srcUrl) {
-  const name = srcUrl.split('/').pop().replace(/\.(png|webp|jpe?g)$/i, '') + '-face.webp';
-  const dest = `storybook/marla/compare/${name}`;
-  const bucket = admin.storage().bucket();
-  const file = bucket.file(dest);
-  const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
-  const [exists] = await file.exists();
-  if (!exists) {
-    const buf = Buffer.from(await (await fetch(srcUrl)).arrayBuffer());
-    const out = await sharp(buf).extract(FACE).webp({ quality: 86 }).toBuffer();
-    const tmp = path.join(os.tmpdir(), name);
-    fs.writeFileSync(tmp, out);
-    await bucket.upload(tmp, { destination: dest, metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' } });
-    await file.makePublic();
-    fs.unlink(tmp, () => {});
-    process.stdout.write(`  ${name} ${Math.round(out.length / 1024)}KB\n`);
-  }
-  return url;
+const cache = new Map();
+async function display(srcUrl, name) {
+  if (cache.has(name)) return cache.get(name);
+  const src = Buffer.from(await (await fetch(srcUrl)).arrayBuffer());
+  const small = await copyAt(src, name, 420, 80);
+  const full = await copyAt(src, name, 1100, 82);
+  const out = { small, full };
+  cache.set(name, out);
+  return out;
 }
 
-const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+// ── the page ──────────────────────────────────────────────────────────────
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const DAY = (ms) => (ms ? new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : '');
+const safe = (s) => String(s).replace(/[^a-z0-9-]/gi, '-');
 
-function shell(title, body, sheet) {
-  return `<!doctype html>
+function figure(tag, img, chip, expr) {
+  return `<figure><span class="tag">${esc(tag)}</span>`
+    + `<img src="${img.small.url}" data-full="${img.full.url}" width="${img.small.w}" height="${img.small.h}" alt="${esc(tag)}" loading="lazy">`
+    + (chip ? `<div class="chips"><span class="chip ${chip === 'new' ? 'good' : 'warn'}">${chip === 'new' ? 'new standing line' : 'old standing line'}</span></div>` : '')
+    + (expr ? `<figcaption>${esc(expr)}</figcaption>` : '')
+    + '</figure>';
+}
+
+(async () => {
+  const times = DRY ? new Map() : await assetTimes();
+  const fam = families(times);
+  const pages = Object.keys(fam).map(Number).sort((a, b) => a - b);
+  const shots = pages.reduce((n, p) => n + fam[p].length, 0);
+  console.log(`${pages.length} pages with more than one version · ${shots} pictures`);
+  if (DRY) { for (const p of pages) console.log(` p${p}: ${fam[p].map((v) => v.key).join(', ')}`); return; }
+
+  initAdmin();
+
+  const test = [];
+  for (const k of TEST_KEYS) {
+    const v = state.extra[k];
+    if (!v) continue;
+    test.push({ k, img: await display(v.url, k) });
+    process.stdout.write('.');
+  }
+
+  const blocks = [];
+  for (const p of pages) {
+    const cells = [];
+    for (const v of fam[p]) {
+      const img = await display(v.url, safe(`p${p}-${v.key}`));
+      const tag = (v.variant ? `${v.variant} · ` : '') + DAY(v.at);
+      cells.push(figure(tag, img, standingRule(v.prompt), sceneExpression(v.scene)));
+      process.stdout.write('.');
+    }
+    blocks.push(`<div class="card" data-item="p${p}">
+    <h3>Page ${p}</h3>
+    <div class="duo">${cells.join('')}</div>
+  </div>`);
+  }
+  console.log('');
+
+  const TEST_TAGS = {
+    '8t-full': 'described in full',
+    '8t-expression': 'expression clause only',
+    '8t-none': 'no description at all',
+  };
+  const testCard = `<div class="card" data-item="describe-test">
+    <h3>Does describing her help?</h3>
+    <div class="duo">${test.map((t) => '<figure>'
+      + `<span class="tag">${esc(TEST_TAGS[t.k])}</span>`
+      + `<img src="${t.img.small.url}" data-full="${t.img.full.url}" width="${t.img.small.w}" height="${t.img.small.h}" alt="${esc(TEST_TAGS[t.k])}" loading="lazy">`
+      + '</figure>').join('')}</div>
+    <p class="mini">Page 8, same scene, same reference sheet, three runs — only how much of Marla the prompt describes changes. She is turned away in all three, so this shows what the description does to the drawing, not to her likeness.</p>
+  </div>`;
+
+  const sheet = `versions-p${pages.length}`;
+  const title = 'Marla — the versions, and what each prompt said about her face';
+  const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="/compare.css">
-<style>
-  .vote { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
-  .vote.y { color: #b3443f; }
-  .vote.n { color: var(--ink2); }
-  .said { font-style: italic; color: var(--ink2); margin: 6px 0 0; font-size: 15px; line-height: 1.45; }
-  .card h3 .num { color: var(--ink2); font-weight: 400; }
-</style>
 
 <div class="wrap">
   <h1>${esc(title)}</h1>
-${body}
+
+  <div class="big"><b>the standing line, before</b>${esc(RULE_OLD)}</div>
+  <div class="big"><b>and after your note</b>${esc(RULE_NEW)}</div>
+
+  ${testCard}
+  ${blocks.join('\n  ')}
 </div>
 
 <script src="/compare.js"></script>
 <script>
 (function () {
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(sheet)} });
+  window.__compareHelp({ html: '<b>The chip under a picture</b> says which of the two standing lines above that prompt carried. '
+    + 'The words below it are that page\\'s own sentence about her face, exactly as it was sent — a picture with no words '
+    + 'under it had nothing page-specific said about her face. Oldest version on the left.' });
 })();
 </script>`;
-}
 
-async function pageSheets() {
-  const blocks = [];
-  for (const s of SHEETS) {
-    const rec = state[s.key];
-    if (!rec?.url) { console.log(`  (no ${s.key})`); continue; }
-    const img = await display(rec.url);
-    const vote = s.vote === 'like' ? '<span class="vote y">you picked this</span>'
-      : s.vote === 'dislike' ? '<span class="vote n">you crossed this out</span>' : '';
-    blocks.push(`  <div class="card" data-item="sheet-${s.n}">
-    <h3>Option ${s.n} ${vote}</h3>
-    <div class="imgrow"><img src="${img}" alt="Marla option ${s.n}"></div>
-${s.note ? `    <p class="said">“${esc(s.note)}”</p>\n` : ''}  </div>`);
-  }
-  // The coat sheets are new Marlas she has not judged yet; they belong on the
-  // same page because the question ("which Marla") is the same question.
-  const coats = [];
-  for (const t of ['a', 'b']) if (chars['marla-coat']?.[t]) coats.push(await display(chars['marla-coat'][t].url));
-  if (coats.length) {
-    blocks.push(`  <div class="card" data-item="coat">
-    <h3>In her coat — new, not yet judged</h3>
-    <div class="duo">
-      ${coats.map((u, i) => `<figure><span class="tag">option ${i + 1}</span><img src="${u}" alt="Marla in her coat option ${i + 1}"></figure>`).join('\n      ')}
-    </div>
-  </div>`);
-  }
-  return shell('Marla — the ten sheets and what you said about each', blocks.join('\n'), 'marla-sheets-10');
-}
+  const out = path.join(ROOT, 'docs/marla/compare-versions.html');
+  fs.writeFileSync(out, html);
+  console.log(`${(html.length / 1024).toFixed(0)}KB → ${out}`);
+  if (NO_POST) return;
 
-async function pageVersions() {
-  const fish = [
-    ['first version', P + 'p01.webp'],
-    ['v2', P + 'p01-v2.webp'],
-    ['v3e — your sheet', P + 'p01-v3e.webp'],
-  ];
-  const tommy = [
-    ['first version', P + 'p28.webp'],
-    ['v3e — your sheet', P + 'p28-v3e.webp'],
-  ];
-  const f = [];
-  for (const [tag, u] of fish) f.push([tag, await display(u)]);
-  const t = [];
-  for (const [tag, u] of tommy) t.push([tag, await display(u)]);
-
-  const body = `  <div class="card" data-item="fishbowl">
-    <h3>Page 1 — the fishbowl</h3>
-    <div class="duo" style="grid-template-columns:1fr 1fr 1fr">
-      ${f.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="page 1 ${esc(tag)}"></figure>`).join('\n      ')}
-    </div>
-  </div>
-  <div class="card" data-item="tommy">
-    <h3>Page 28 — sitting, watching Tommy</h3>
-    <div class="duo">
-      ${t.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="page 28 ${esc(tag)}"></figure>`).join('\n      ')}
-    </div>
-  </div>`;
-  return shell('Marla — every fishbowl and every Tommy, side by side', body, 'marla-versions-p1-p28');
-}
-
-async function post(title, html) {
-  if (DRY) { console.log(`\n--dry-run: would post "${title}" (${Math.round(html.length / 1024)}KB)`); return; }
   const r = await fetch(`${BASE}/api/chatfeed/page`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat: CHAT, title, html }),
   });
-  const j = await r.json();
-  console.log(`\n${title}\n  ${j.ok ? j.url : 'FAILED ' + JSON.stringify(j)}`);
-  if (j.warnings?.length) console.log('  WARNINGS:', j.warnings.join(' · '));
-}
-
-// The four runs of the ORIGINAL page 1 prompt, differing only in which card
-// the model was handed. They sit two to a row rather than four across: at
-// 390px four columns is 84px a picture, which is too small to judge a face on.
-async function pageFishbowlTest(second) {
-  const t = state.fishbowlTest || {};
-  const order = (second ? [
-    ['e', 'sheet 1'],
-    ['f', 'sheet 1 again'],
-    ['g', 'sheet 5 — yours'],
-  ] : [
-    ['a', 'no card'],
-    ['b', 'sheet 1'],
-    ['c', 'sheet 1 again'],
-    ['d', 'sheet 5 — yours'],
-  ]).filter(([k]) => t[k]?.pageUrl);
-  const cells = [];
-  for (const [k, tag] of order) cells.push([tag, await display(t[k].pageUrl)]);
-  const body = `  <div class="card" data-item="fishbowl-test">
-    <h3>Same prompt, different Marla</h3>
-    <div class="duo">
-      ${cells.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="page 1 ${esc(tag)}"></figure>`).join('\n      ')}
-    </div>
-  </div>`;
-  return second
-    ? shell('Page 1 — the fishbowl rewrite with each character sheet', body, 'marla-p1-fishbowl-3')
-    : shell('Page 1 — the original prompt with each character sheet', body, 'marla-p1-cards-4');
-}
-
-// Each fishbowl drawing beside the sheet it was drawn from, so the question
-// "does she look like her card?" is answerable without holding two screens in
-// your head. The sheets enter as face crops (see FACE above) and the whole
-// sheets close the page, since the crop is the one thing here that is a guess.
-async function pageMatch() {
-  const t = state.fishbowlTest || {};
-  const rows = [
-    ['e', 'marlaSheetV2', 'Sheet 1'],
-    ['f', 'marlaSheetV2', 'Sheet 1, second draw'],
-    ['g', 'marlaSheet_v3e', 'Sheet 5 — the one you picked'],
-  ].filter(([k, sheet]) => t[k]?.pageUrl && state[sheet]?.url);
-
-  const cards = [];
-  for (const [k, sheet, label] of rows) {
-    const [sheetFace, drawing] = [await face(state[sheet].url), await display(t[k].pageUrl)];
-    cards.push(`  <div class="card" data-item="match-${k}">
-    <h3>${esc(label)}</h3>
-    <div class="duo">
-      <figure><span class="tag">her sheet</span><img src="${sheetFace}" alt="${esc(label)} face"></figure>
-      <figure><span class="tag">the drawing</span><img src="${drawing}" alt="${esc(label)} fishbowl"></figure>
-    </div>
-  </div>`);
-  }
-
-  const whole = [];
-  for (const [sheet, label] of [['marlaSheetV2', 'sheet 1'], ['marlaSheet_v3e', 'sheet 5']]) {
-    if (state[sheet]?.url) whole.push([label, await display(state[sheet].url)]);
-  }
-  if (whole.length) {
-    cards.push(`  <div class="card" data-item="whole-sheets">
-    <h3>The whole sheets</h3>
-    <div class="duo">
-      ${whole.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="${esc(tag)}"></figure>`).join('\n      ')}
-    </div>
-  </div>`);
-  }
-  return shell('Page 1 — each fishbowl beside the Marla it was drawn from', cards.join('\n'), 'marla-p1-match-3');
-}
-
-(async () => {
-  initAdmin();
-  console.log('display copies:');
-  if (process.argv.includes('--match')) {
-    await post('Page 1 — each fishbowl beside the Marla it was drawn from', await pageMatch());
-    process.exit(0);
-  }
-  if (process.argv.includes('--fishbowl-second')) {
-    await post('Page 1 — the fishbowl rewrite with each character sheet', await pageFishbowlTest(true));
-    process.exit(0);
-  }
-  if (process.argv.includes('--fishbowl-test')) {
-    await post('Page 1 — the original prompt with each character sheet', await pageFishbowlTest(false));
-    process.exit(0);
-  }
-  const a = await pageSheets();
-  const b = await pageVersions();
-  await post('Marla — the ten sheets and what you said about each', a);
-  await post('Marla — every fishbowl and every Tommy, side by side', b);
-  process.exit(0);
+  console.log(JSON.stringify(await r.json(), null, 1));
 })().catch((e) => { console.error(e.stack || e.message); process.exit(1); });

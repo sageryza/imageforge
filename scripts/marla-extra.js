@@ -33,6 +33,16 @@ const arg = (n) => { const i = process.argv.indexOf('--' + n); return i === -1 ?
 // to 2:3 portrait; a scene that wants width has nowhere else to go.
 const SIZES = { portrait: '1024x1536', landscape: '1536x1024', square: '1024x1024' };
 const SIZE = SIZES[arg('shape') || 'portrait'] || SIZES.portrait;
+// How much of Marla to DESCRIBE alongside the card (Sophie: 'we try not to
+// describe things if it's pictured'). The repo already learned this on the NDE
+// cards — a preserve-list over-weighted the face and they came out as rendered
+// photographs (docs/nde-watercolor.md) — but Marla's description was inherited
+// from round 1, when her card was a bad head-on portrait, and never retested
+// against the good three-view sheet.
+//   full       her whole continuity line (what every page has been getting)
+//   expression only the do-not-copy-the-sheet's-face instruction
+//   none       nothing at all; the card carries her by itself
+const CHARS = arg('chars') || 'full';
 
 const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/state.json'), 'utf8'));
 const rev = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/revisions.json'), 'utf8'));
@@ -53,7 +63,8 @@ const pageOf = (key) => Number(String(key).replace(/[a-z]+$/i, '')) || null;
 function extraLines(key, scene) {
   const out = [];
   if (hasMarla(scene)) {
-    out.push(rev.character.line);
+    if (CHARS === 'full') out.push(rev.character.line);
+    else if (CHARS === 'expression') out.push(rev.character.expressionOnly || '');
     const n = pageOf(key);
     if (n && (rev.beachPages || []).includes(n) && rev.beachHat) out.push(rev.beachHat);
   }
@@ -108,6 +119,9 @@ async function upload(buf, dest) {
 }
 
 const LABELS = {
+  '8t-none': 'Description test — page 8, character described: none',
+  '8t-expression': 'Description test — page 8, character described: expression',
+  '8t-full': 'Description test — page 8, character described: full',
   '3e': 'Page 3 split — the storm INSIDE her chest, seen through her, not on the dress',
   '3f': 'Page 3 split — the bathtub, city only just peeking over the rim',
   '32h': 'Page 32 — the diagram, her eye straight on with space around it',
