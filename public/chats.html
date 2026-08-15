@@ -164,10 +164,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
 .pinned{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
-  padding:9px 11px; margin:0 0 .7em; background:var(--surface); width:100%; text-align:left; cursor:pointer;}
+  padding:9px 11px; margin:0 0 .7em; background:var(--barbg); width:100%; text-align:left; cursor:pointer;}
 .pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
   justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
 .pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* "current" — the pin was updated in the chat's last finished turn. Plain
+   letter-spaced sans in rose, the masthead's own voice: a chip here would be a
+   pill, and this is a state, not a control. */
+.pinned .cur{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:9px;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--rose);}
 #pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
 #pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
@@ -3613,6 +3618,23 @@ window.__openThread=function(name){
   return true;
 };
 
+// Is the pinned link CURRENT — i.e. did this chat update it in the last turn it
+// finished? (Aug 2026, Sophie: "a tag on it that says like current or recent,
+// and it only says that if the chat updated the last turn that they finished".)
+//
+// `turns` is the count the server keeps of finished replies posted SINCE the
+// pin was written: 0 = the turn that pinned it is still running, 1 = that turn
+// has ended and is the chat's most recent one. Both mean the last finished turn
+// updated the pin. 2 or more means it has finished a turn since that left the
+// pin alone, so the tag goes out.
+//
+// A pin with NO count was written before this shipped and cannot be judged —
+// no tag rather than a guessed one, exactly the rule the MODEL · QUALITY
+// captions follow. It earns its count on the chat's next pin.
+function pinCurrent(pin){
+  return !!pin && typeof pin.turns==='number' && pin.turns<=1;
+}
+window.__pinCurrent=pinCurrent;
 // Full-screen player for the pinned deliverable. Follows the house overlay
 // rule: stop the autoscroll, lock the background, and restore the EXACT scroll
 // position on close (overflow:hidden alone does not stop window.scrollBy).
@@ -3710,8 +3732,13 @@ function openChat(name, keepScroll, focusId, noFetch){
       ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>'
       : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg>';
     var label=pin.title||(isLink?'Open the page':'The latest cut');
-    b.innerHTML='<span class="pl">'+glyph+'</span><span class="ti">'+esc(label)+'</span>';
-    b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label);
+    // "current" = the chat updated this in its last FINISHED turn (Aug 2026,
+    // Sophie). The server counts the turns since the pin was written; see
+    // pinCurrent below for why 1 still counts.
+    var cur=pinCurrent(pin);
+    b.innerHTML='<span class="pl">'+glyph+'</span><span class="ti">'+esc(label)+'</span>'
+      +(cur?'<span class="cur">current</span>':'');
+    b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label+(cur?' — current':''));
     b.onclick=function(){
       if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
       openPinned(pin);
