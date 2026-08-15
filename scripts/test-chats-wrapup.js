@@ -136,6 +136,36 @@ console.log('the open-questions half');
   chats = { a: { sophieNote: 'mine', wrapLine: 'built the button', wrapOpen: 'x' } };
   ok('and HER note still wins over both', pick('a') === 'mine');
 }
+// ── the truncation rescue ──────────────────────────────────────────────────
+// FOUND LIVE 2026-08-15, in her hands: the sheet answered "Claude did not
+// return parseable JSON (got: {"line":"Built the Chunking clip-library tool and
+// baked its first real clips from the movies","text":"Sophie wanted a li)".
+// Nothing was wrong with the summary — max_tokens cut the JSON off mid-string,
+// and an unclosed brace fails BOTH of parseJSON's attempts, so a finished line
+// was thrown away with the unfinished sentence.
+console.log('a summary that got cut off');
+{
+  const salvageJson = new Function(lift('salvageJson') + ' return salvageJson;')();
+  const REAL = '{"line":"Built the Chunking clip-library tool and baked its first real'
+    + ' clips from the movies","text":"Sophie wanted a li';
+  const r = salvageJson(REAL);
+  ok('her actual failed answer is rescued', !!r && !!r.line);
+  ok('…with the line whole', r.line === 'Built the Chunking clip-library tool and'
+    + ' baked its first real clips from the movies', String(r && r.line));
+  ok('…and the half-written sentence kept for the route to trim', r.text === 'Sophie wanted a li');
+  ok('cut off mid-KEY still yields the fields that finished',
+    JSON.stringify(salvageJson('{"line":"a","tex')) === '{"line":"a"}');
+  ok('cut off right after a comma', JSON.stringify(salvageJson('{"line":"a","text":"b",'))
+    === '{"line":"a","text":"b"}');
+  ok('an open ARRAY is closed as an array, not a brace',
+    JSON.stringify(salvageJson('{"line":"a","l":[1,2')) === '{"line":"a","l":[1,2]}');
+  ok('a whole answer is untouched', JSON.stringify(salvageJson('{"line":"a","text":"b"}'))
+    === '{"line":"a","text":"b"}');
+  ok('a refusal with no JSON in it rescues NOTHING rather than inventing',
+    salvageJson('I cannot summarise that') === null);
+  ok('and the cap has real headroom now', /maxTokens: 1200/.test(src));
+}
+
 function WRAP_SYS_TEXT() {
   const i = src.indexOf('const WRAP_SYS =');
   return src.slice(i, src.indexOf('`;', i));

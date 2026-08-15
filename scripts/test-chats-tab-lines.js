@@ -170,16 +170,11 @@ async function checkRow(page, sel, what, widths) {
     await checkRow(page, '.acctabs.bmktabs', 'bookmarks, tab ' + (i + 1), WIDTHS);
   }
 
-  // ── 3. the archive — two tabs, and it carries the 56px-free layout ──────
-  await page.evaluate(() => window.__setHomeView('archive'));
-  await page.waitForSelector('.acctabs.archtabs', { timeout: 5000 });
-  const arch = await page.$$eval('.archtabs .acctab', ns => ns.length);
-  ok(arch === 2, 'the archive still has two piles');
-  for (let i = 0; i < arch; i++) {
-    await page.$$eval('.archtabs .acctab', (ns, j) => ns[j].click(), i);
-    await page.waitForTimeout(340);
-    await checkRow(page, '.acctabs.archtabs', 'archive, tab ' + (i + 1), WIDTHS);
-  }
+  // ── 3. (was the archive's two piles) ────────────────────────────────────
+  // The BUILT / OTHER hairline row is GONE (Aug 2026): her tags replaced the
+  // piles, and a tag filter is a chip row, not a measured-underline tab row.
+  // scripts/test-chats-archive-tags.js owns what stands there now. The view
+  // still has to come back to the chat list for section 4.
   await page.evaluate(() => window.__setHomeView('chats'));
   await page.waitForTimeout(200);
 
@@ -196,26 +191,10 @@ async function checkRow(page, sel, what, widths) {
     await checkRow(page, '#thread .acctabs.cmptabs', 'compare, tab ' + (i + 1), WIDTHS);
   }
 
-  // ── 5. the archive sheet's picker — a row born inside a popup ───────────
-  await page.click('.tg-chat');
-  await page.waitForTimeout(150);
-  const archWord = await page.$('#thread .archlink');
-  if (archWord) {
-    await archWord.click();
-    await page.waitForTimeout(350);
-    if (await page.$('.acctabs.arctabs')) {
-      const arc = await page.$$eval('.arctabs .acctab', ns => ns.length);
-      ok(arc === 2, 'the archive sheet asks between two piles');
-      for (let i = 0; i < arc; i++) {
-        await page.$$eval('.arctabs .acctab', (ns, j) => ns[j].click(), i);
-        await page.waitForTimeout(340);
-        await checkRow(page, '.acctabs.arctabs', 'archive sheet, tab ' + (i + 1), WIDTHS);
-      }
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.mouse.click(5, 5).catch(() => {});
-      await page.waitForTimeout(200);
-    } else ok(false, 'the archive sheet did not open — could not check .arctabs');
-  } else ok(false, 'no Archive control in the thread header — could not check .arctabs');
+  // ── 5. (was the archive sheet's pile picker) ────────────────────────────
+  // Also gone with the piles — the sheet asks for tags now, as chips. What a
+  // row born inside a popup has to do is unchanged and still worth knowing;
+  // if another hairline row ever opens in an overlay, measure it here.
 
   // ── 6. an unmeasured row draws NO line, never a guessed one ─────────────
   // This is the half a percentage could not give: with no measurement there is
