@@ -300,20 +300,36 @@ router.get('/results/:poll', async (req, res) => {
     const poll = pollSnap.data();
     const qs = await db().collection(VOTES).where('poll', '==', pollId).get();
 
+    const total = (poll.fruits || []).length;
     const ballots = qs.docs.map(d => d.data())
-      .map(d => ({
-        person: d.person, name: d.name || '',
-        loves: d.loves || d.likes || [], oks: d.oks || [], nopes: d.nopes || [],
-        top: d.top || null, done: Boolean(d.done), updatedAt: d.updatedAt || 0,
-      }))
+      .map(d => {
+        const loves = d.loves || d.likes || [], oks = d.oks || [], nopes = d.nopes || [];
+        return {
+          person: d.person, name: d.name || '',
+          loves, oks, nopes,
+          top: d.top || null, done: Boolean(d.done), updatedAt: d.updatedAt || 0,
+          // How far through the deck they got. A card they have not REACHED is
+          // not the same as one they refused, and the chart has to be able to
+          // tell them apart — otherwise a half-finished deck reads as a wall of
+          // rejections.
+          seen: loves.length + oks.length + nopes.length,
+          total,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    // COUNT PARTIAL BALLOTS TOO (Aug 2026, Sophie's ask). It used to tally only
+    // `done` ones, so the chart stayed completely empty until somebody tapped
+    // Send it — with two people mid-deck and nothing to show, which is the
+    // opposite of useful. Anyone who has judged a single card now counts, and
+    // `done` rides along per person so the page can say who is still going.
+    const started = ballots.filter(b => b.seen > 0);
     const answered = ballots.filter(b => b.done);
     const tally = new Map();
     for (const f of poll.fruits || []) {
       tally.set(f.id, { ...f, loves: 0, oks: 0, nopes: 0, tops: 0, lovedBy: [], okBy: [], topBy: [] });
     }
-    for (const b of answered) {
+    for (const b of started) {
       for (const id of b.loves) { const t = tally.get(id); if (t) { t.loves++; t.lovedBy.push(b.name); } }
       for (const id of b.oks) { const t = tally.get(id); if (t) { t.oks++; t.okBy.push(b.name); } }
       for (const id of b.nopes) { const t = tally.get(id); if (t) t.nopes++; }
@@ -330,8 +346,12 @@ router.get('/results/:poll', async (req, res) => {
       poll: publicPoll(pollSnap.id, poll),
       people: (poll.people || []).map(p => ({ id: p.id, name: p.name })),
       ballots,                                  // includes half-done ones, flagged
-      answered: answered.length,
-      waiting: (poll.people || []).filter(p => !answered.some(b => b.person === p.id)).map(p => p.name),
+      answered: answered.length,                // tapped Send it
+      started: started.length,                  // judged at least one card
+      // Only people who have not opened it at all — someone mid-deck is not
+      // "waiting on", they are doing it.
+      waiting: (poll.people || []).filter(p => !started.some(b => b.person === p.id)).map(p => p.name),
+      inProgress: started.filter(b => !b.done).map(b => ({ name: b.name, seen: b.seen, total: b.total })),
       fruits,
     });
   } catch (e) {

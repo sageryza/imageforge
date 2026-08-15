@@ -62,6 +62,14 @@ h1{margin:0;font-size:20px;font-weight:400;letter-spacing:.01em}
   padding-bottom:5px;border-bottom:1px solid var(--line);
 }
 .person .none{font-size:13px;color:var(--ink2)}
+/* "still going" rides on the name and in the grid header, so a partial ballot
+   is never mistaken for a finished one. */
+.part{
+  display:inline-block;font-style:normal;margin-left:7px;
+  font-family:-apple-system,system-ui,sans-serif;font-size:9px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink2);
+}
+thead th .part{display:block;margin:2px 0 0}
 .picks{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .pick{width:78px;text-align:center}
 .pick.first{width:118px}
@@ -131,8 +139,10 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
   own row, biggest picture first — that's their number one — with the ones they
   only thought were OK underneath. <b>Chart</b> is the grid: ★ favourite,
   ♥ loved, – it's OK. <b>Popular</b> sizes each fruit by how many people
-  <i>loved</i> it, with the OK count written alongside. Printing gives you all
-  three, one per page.
+  <i>loved</i> it, with the OK count written alongside. A deck someone is still
+  part-way through counts too, marked with how far they got — a card they have
+  not reached yet is left blank rather than shown as a no. Printing gives you
+  all three, one per page.
 </div></div>
 
 <script>
@@ -185,15 +195,22 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
 
       var byId = {};
       (d.fruits || []).forEach(function (f) { byId[f.id] = f; });
-      var answered = (d.ballots || []).filter(function (b) { return b.done; });
+      // Everyone who has judged at least one card, finished or not (Sophie's
+      // ask). A deck in progress is real data — waiting for Send it showed her
+      // an empty chart while two people were partway through.
+      var answered = (d.ballots || []).filter(function (b) { return (b.seen || 0) > 0; });
 
-      document.getElementById('waiting').textContent = d.waiting && d.waiting.length
-        ? 'waiting on ' + d.waiting.join(', ')
+      var bits = [];
+      if (d.waiting && d.waiting.length) bits.push('not started: ' + d.waiting.join(', '));
+      (d.inProgress || []).forEach(function (p) {
+        bits.push(p.name + ' ' + p.seen + '/' + p.total);
+      });
+      document.getElementById('waiting').textContent = bits.length ? bits.join(' · ')
         : (answered.length ? 'all in' : '');
 
       if (!answered.length) {
         empty(d.waiting && d.waiting.length
-          ? 'No answers yet — waiting on ' + d.waiting.join(', ') + '.'
+          ? 'Nobody has started yet — waiting on ' + d.waiting.join(', ') + '.'
           : 'No answers yet.');
         tabLine(tabs);
         return;
@@ -223,8 +240,9 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
             return '<div class="pick ok"><img src="' + esc(f.url) + '" alt=""><span>' + esc(f.name) + '</span></div>';
           }).join('') + '</div>'
           : '';
-        return '<div class="person"><h2>' + esc(b.name) + '</h2>'
-          + (cards ? '<div class="picks">' + cards + '</div>' : '<p class="none">Loved nothing on the whole deck.</p>')
+        return '<div class="person"><h2>' + esc(b.name)
+          + (b.done ? '' : '<i class="part">still going · ' + b.seen + ' of ' + b.total + '</i>') + '</h2>'
+          + (cards ? '<div class="picks">' + cards + '</div>' : '<p class="none">' + (b.done ? 'Loved nothing on the whole deck.' : 'Nothing loved so far.') + '</p>')
           + ok + '</div>';
       }).join('');
 
@@ -232,14 +250,18 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink2)}
       // Only fruits somebody actually picked — 27 empty rows is not a chart.
       var picked = (d.fruits || []).filter(function (f) { return f.loves > 0 || f.oks > 0 || f.tops > 0; });
       var head = '<tr><th></th>' + answered.map(function (b) {
-        return '<th>' + esc(b.name) + '</th>';
+        return '<th>' + esc(b.name) + (b.done ? '' : '<i class="part">' + b.seen + '/' + b.total + '</i>') + '</th>';
       }).join('') + '<th>♥</th></tr>';
       var rows = picked.map(function (f) {
         var cells = answered.map(function (b) {
           if (b.top === f.id) return '<td><span class="mark top" title="favorite">★</span></td>';
           if ((b.loves || []).indexOf(f.id) >= 0) return '<td><span class="mark">♥</span></td>';
           if ((b.oks || []).indexOf(f.id) >= 0) return '<td><span class="mark mid" title="it\'s OK">–</span></td>';
-          return '<td><span class="dash">·</span></td>';
+          if ((b.nopes || []).indexOf(f.id) >= 0) return '<td><span class="dash">·</span></td>';
+          // Not reached yet — deliberately BLANK, not a dot. A dot means they
+          // saw it and said no; leaving a half-finished deck full of dots would
+          // read as 20 rejections that nobody actually made.
+          return '<td></td>';
         }).join('');
         return '<tr><th><img src="' + esc(f.url) + '" alt="">' + esc(f.name) + '</th>'
           + cells + '<td class="n">' + f.loves + '</td></tr>';
