@@ -66,9 +66,48 @@ is('a chat SHE filed is never re-sorted',
   s.shouldAutoSort({ category: 'stories' }, many).why, 'hers');
 is('…and explicitly hers is just as final',
   s.shouldAutoSort({ category: 'stories', catBy: 'sophie' }, many).why, 'hers');
-is('a chat the sorter filed is left alone too',
-  s.shouldAutoSort({ category: 'meta', catBy: 'auto' }, many).why, 'already-sorted');
+is('a chat the sorter just filed is left alone too',
+  s.shouldAutoSort({ category: 'meta', catBy: 'auto', catSortedAt: new Date().toISOString() },
+    many).why, 'already-sorted');
 ok('an unfiled chat with a real thread is sortable', s.shouldAutoSort({}, many).sort);
+
+// ── When a filed chat is looked at again (Sophie: "how often would a chat
+// need to be refiled once it's filed … maybe it could ask again") ───────────
+// The risk is a chat filed EARLY: 3 messages in it looks like whatever it
+// opened with. So the signal is growth, not a clock.
+const NOW = Date.UTC(2026, 7, 15, 12);
+const ago = (days) => new Date(NOW - days * 86400 * 1000).toISOString();
+const filed = (days, msgs) => ({ category: 'meta', catBy: 'auto', catSortedAt: ago(days), catMsgs: msgs });
+
+is('filed yesterday, not re-asked however much it grew',
+  s.shouldAutoSort(filed(1, 4), { messages: 500, now: NOW }).why, 'already-sorted');
+is('a week on but barely grown, still left alone',
+  s.shouldAutoSort(filed(9, 40), { messages: 55, now: NOW }).why, 'not-grown');
+is('a week on and tripled, looked at again',
+  s.shouldAutoSort(filed(9, 40), { messages: 130, now: NOW }).why, 're-sort');
+// The floor: tripling 4 messages is 12, which is still nothing to judge on.
+is('a thin early filing does not re-ask at 3x alone',
+  s.shouldAutoSort(filed(9, 4), { messages: 12, now: NOW }).why, 'not-grown');
+ok('…but it does once there is real material',
+  s.shouldAutoSort(filed(9, 4), { messages: 26, now: NOW }).sort);
+
+// A wrap-up is the best description of a chat that will ever exist, and it
+// means the work is finished — so it reopens the question immediately, once.
+is('a wrap-up written after the filing reopens it, rest period or not',
+  s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(0) }, { messages: 401, now: NOW }).why,
+  'wrapped-up');
+is('a wrap-up written BEFORE the filing is old news',
+  s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(30) }, { messages: 401, now: NOW }).why,
+  'already-sorted');
+
+// And the rule that outranks all of it: a chat SHE filed is never revisited,
+// however old, however much it grew, wrap-up or no.
+is('her filing is never re-checked on age',
+  s.shouldAutoSort({ category: 'stories', catBy: 'sophie', catSortedAt: ago(400), catMsgs: 1 },
+    { messages: 900, now: NOW }).why, 'hers');
+is('…nor on a wrap-up',
+  s.shouldAutoSort({ category: 'stories', wrapUpAt: ago(0), catSortedAt: ago(400) },
+    { messages: 900, now: NOW }).why, 'hers');
 
 // ── Rule 2: "none" locks nothing, but it does rest ──────────────────────────
 const t = (h) => new Date(Date.UTC(2026, 7, 15, 12) - h * 3600 * 1000).toISOString();

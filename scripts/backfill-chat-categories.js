@@ -37,6 +37,9 @@ const WRITE = has('--write');
 const ONE = val('--chat', '');
 const LIMIT = Number(val('--limit', 0)) || 0;
 const PAUSE_MS = Number(val('--pause', 400));
+// Where to drop the decisions as JSON — what a review page is built from, so
+// the run that costs money happens once and the page can be rebuilt for free.
+const JSON_OUT = val('--json', '');
 
 async function api(path, opts) {
   const res = await fetch(BASE + path, {
@@ -75,6 +78,7 @@ async function api(path, opts) {
     + (WRITE ? ' — WRITING\n' : ' — dry run, nothing will be written\n'));
 
   const tally = {};
+  const results = [];
   for (let i = 0; i < names.length; i++) {
     const chat = names[i];
     let out;
@@ -86,6 +90,7 @@ async function api(path, opts) {
     } catch (err) { out = { why: 'error', reason: String(err.message || err) }; }
     const pick = out.category || '—';
     tally[pick] = (tally[pick] || 0) + 1;
+    results.push({ chat, category: out.category || null, reason: out.reason || '', why: out.why || '' });
     const pad = String(i + 1).padStart(String(names.length).length);
     console.log(`${pad}/${names.length}  ${pick.padEnd(14)} ${chat}`
       + (out.reason ? `  · ${out.reason}` : '')
@@ -95,5 +100,9 @@ async function api(path, opts) {
 
   console.log('\n' + Object.keys(tally).sort((a, b) => tally[b] - tally[a])
     .map((k) => `${k}: ${tally[k]}`).join('   '));
+  if (JSON_OUT) {
+    require('fs').writeFileSync(JSON_OUT, JSON.stringify({ folders: state.categories, rows: results }, null, 1));
+    console.log(`\nwrote ${JSON_OUT}`);
+  }
   if (!WRITE) console.log('\ndry run — re-run with --write to file them');
 })().catch((err) => { console.error(String(err.message || err)); process.exit(1); });

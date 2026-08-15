@@ -1605,12 +1605,19 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // NONE writes nothing but the cooldown — no folder, no filedAt, no trace on
   // any surface she looks at. The chat stays exactly where it was and is asked
   // about again tomorrow, which is what makes "none" cheap enough to prefer.
+  // A RE-CHECK that comes back unsure LEAVES THE EXISTING FOLDER ALONE. Being
+  // unsure is a reason not to move a chat, never a reason to pull one out of a
+  // folder she may have been finding it in for weeks.
   const patch = { catTriedAt: now };
   if (pick) {
     patch.category = pick;
     patch.catBy = 'auto';
     patch.catWhy = why;          // why it went there — for her and for an audit
     patch.catSortedAt = now;
+    // How long the thread was when it was filed — the growth the re-check
+    // measures against (chat-sort.js, RESORT_*). Without it every auto-filed
+    // chat would look brand new and re-ask on its next weekly window.
+    patch.catMsgs = msgs.length;
     // A BACKFILL stamps now (she would have filed these by hand today); a LIVE
     // sort stamps her last message, so the reply that triggered it still pops
     // the chat back onto the main list. chat-sort.js's filedStamp is the rule.
