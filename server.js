@@ -2699,14 +2699,12 @@ app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
 // Sophie picked for the tile, and both serve the same page.
 //
-// NO PILL, deliberately, and it is the search bar's fault: the pill owns the
-// top-right corner (x 324-374 on an iPhone 13) and this page's sticky search
-// row lives exactly there, so the reserve the pill contract demands would come
-// straight out of the one control the whole tool is. Screenshotted before the
-// decision — the pill sat over the field and the first filter chips. A shelf
-// you scan is not a reading surface; there is nothing here to autoscroll.
-app.get('/chunking', serveGated('clips.html'));
-app.get('/clips', serveGated('clips.html'));
+// It DOES carry the pill (Sophie asked for it back — "I still need it"). The
+// page pays the contract's price properly: its sticky search row reserves the
+// 56px corner, and it defines the five pill tokens itself, because tool.css
+// supplies only `--ink` of them.
+app.get('/chunking', serveGated('clips.html', { pill: true }));
+app.get('/clips', serveGated('clips.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's
