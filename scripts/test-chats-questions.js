@@ -1,24 +1,38 @@
 #!/usr/bin/env node
 // test-chats-questions.js — the QUESTIONS button under a chat's header and the
-// list it opens.
+// list it swaps in.
 //
 //   node scripts/test-chats-questions.js
 //
 // Sophie, 2026-08-14: "sometimes I ask questions to chat and then it's hard to
 // find the answer cause it's buried under other stuff … I want something where
 // my question is repeated verbatim and bold and then the answer is right
-// underneath it not bold" — and, on where it goes: "there's hardly any room on
-// that screen so I wouldn't put it there. I would just put a little button
-// underneath it somewhere that says questions."
+// underneath it not bold" — on where it goes: "there's hardly any room on that
+// screen so I wouldn't put it there. I would just put a little button
+// underneath it somewhere that says questions" — and, after the first version
+// shipped as a full-screen overlay with an ✕: "it's supposed to basically just
+// exchange for the messages same format like you know where it can open and
+// then close if I click on it be collapsed I mean, and it's supposed to have
+// all the other things above it. Not totally separate not an x. Also, it
+// shouldn't have questions that haven't been answered yet."
 //
 // Drives the REAL public/chats.html headless and asserts:
 //   1. the tab row is still the same THREE tabs — the button did not land there,
 //   2. a button reading exactly "Questions" sits underneath, on the note row,
+//      sharing its line rather than costing one,
 //   3. tapping it asks the server for THIS chat's questions,
-//   4. her question renders bold and VERBATIM; the answer renders NOT bold,
-//   5. an unanswered question is still listed, saying so,
-//   6. the overlay locks the background and restores the exact scroll position,
-//   7. the note underneath it still opens for editing, button intact.
+//   4. it EXCHANGES for the messages — they go, everything above them stays,
+//      and there is no overlay and no ✕ anywhere,
+//   5. a row is a message row: collapsed to the question, tap opens the answer
+//      underneath it, tapping the head collapses it again,
+//   6. her question is verbatim and BOLD; the answer is NOT bold,
+//   7. the same button swaps the messages back, with the thread intact,
+//   8. the note underneath it still opens for editing, button intact.
+//
+// Unanswered questions are dropped BEFORE the page ever sees them
+// (`answeredOnly` in questions.js, applied by the route) — that half is covered
+// by scripts/test-questions.js, and the stub here serves what the real route
+// would hand over.
 //
 // Skips cleanly without Chromium (CHROME_PATH overrides).
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -31,10 +45,11 @@ const iso = (ms) => new Date(ms).toISOString();
 const HER_Q = "I'm wondering if this should be part of the message or should be "
   + 'filed separately into a little hidden away tab called questions.';
 const THE_A = 'Both — the message carries the shape, and the tab is derived so nobody has to file it.';
-const OPEN_Q = 'What did the render cost?';
+const HER_Q2 = 'What did the render cost?';
+const THE_A2 = 'Six cents at medium.';
 
 const CHATS = { 'chat-a': { lastSeen: iso(T0 - 2e5), sophieNote: 'questions, formatting' } };
-// enough messages that the thread actually scrolls (the scroll-restore check)
+// enough messages that the thread actually scrolls
 const MSGS = [];
 for (let i = 0; i < 30; i++) {
   MSGS.push({ id: 'f' + i, chat: 'chat-a', from: 'claude', created: iso(T0 - 9e5 + i * 1000),
@@ -51,8 +66,10 @@ const server = http.createServer((req, res) => {
 
   if (p === '/api/chatfeed/questions') {
     asked.push(url.searchParams.get('chat'));
+    // The real route drops unanswered ones before they leave the server, so
+    // this stub serves what the page will actually be handed.
     return json({ chat: 'chat-a', total: 2, questions: [
-      { id: 'q2', replyId: '', at: iso(T0 - 1e5), question: OPEN_Q, answer: '' },
+      { id: 'q2', replyId: 'r2', at: iso(T0 - 1e5), question: HER_Q2, answer: THE_A2 },
       { id: 'q1', replyId: 'r1', at: iso(T0 - 4e5), question: HER_Q, answer: THE_A },
     ] });
   }
@@ -78,6 +95,7 @@ const server = http.createServer((req, res) => {
   const page = await b.newPage({ viewport: { width: 390, height: 800 } });
   const errs = []; page.on('pageerror', (e) => errs.push(String(e)));
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS' : 'FAIL') + ': ' + m); if (!c) fails++; };
+  const shown = (sel) => page.$$eval(sel, (ns) => ns.filter((n) => n.offsetParent !== null).length);
 
   await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.crow[data-chat="chat-a"]', { timeout: 8000 });
@@ -93,82 +111,71 @@ const server = http.createServer((req, res) => {
      'it says "Questions" — her word, not "Q&A"');
   ok(await page.$eval('#thread .qbtn', (n) => !!n.closest('.noterow')),
      'it sits on the note row underneath the header, not in the tab row');
-  // "hardly any room on that screen" — the button must not have cost a line.
   const rowH = await page.$eval('#thread .noterow', (n) => n.getBoundingClientRect().height);
   const btnH = await page.$eval('#thread .qbtn', (n) => n.getBoundingClientRect().height);
   ok(rowH < btnH * 2.2, 'it shares the note’s line rather than adding one (' + Math.round(rowH) + 'px)');
 
-  // ---- 6a: scroll position going in --------------------------------------
-  await page.evaluate(() => window.scrollTo(0, 600));
-  await page.waitForTimeout(150);
-  const yBefore = await page.evaluate(() => window.scrollY);
-  ok(yBefore > 200, 'the thread is scrolled before opening (' + Math.round(yBefore) + 'px)');
+  const msgsBefore = await shown('#thread .msg');
+  ok(msgsBefore > 5, 'the thread is showing its messages to begin with (' + msgsBefore + ')');
 
-  // ---- 3: it asks the server for THIS chat --------------------------------
-  // Clicked through the DOM, NOT page.click(): Playwright scrolls an element
-  // into view before clicking it, and this button lives at the top of the
-  // thread — so a real click would scroll the page up first and the
-  // scroll-restore check below would be measuring its own setup.
+  // ---- 3/4: it EXCHANGES for the messages ---------------------------------
   await page.$eval('#thread .qbtn', (n) => n.click());
-  await page.waitForSelector('#qfull .qitem', { timeout: 8000 });
+  await page.waitForSelector('#thread .qrow', { timeout: 8000 });
   ok(asked.length === 1 && asked[0] === 'chat-a', 'it asked for this chat’s questions: ' + asked.join(','));
+  ok(await shown('#thread .qrow') === 2, 'both questions are showing');
+  ok(await shown('#thread .msg:not(.qrow)') === 0, 'the messages are gone — it took their place');
+  // "Not totally separate not an x"
+  ok(await page.$$eval('#qfull', (n) => n.length) === 0, 'there is no overlay');
+  ok(await page.$$eval('#thread .qhead .x, #qfull .x', (n) => n.length) === 0, 'and no ✕ to dismiss');
+  // "it's supposed to have all the other things above it"
+  ok(await shown('#thread .thread-head h1') === 1, 'the chat’s name is still above it');
+  ok(await shown('#thread .viewtog button') === 3, 'the tabs are still above it');
+  ok(await shown('#thread .noterow') === 1, 'her note is still above it');
+  ok(await page.$eval('#thread .qbtn', (n) => n.classList.contains('on')), 'the button reads as lit');
+  // the questions must sit where the messages were, not somewhere else
+  ok(await page.evaluate(() => {
+    const note = document.querySelector('#thread .noterow').getBoundingClientRect().bottom;
+    return document.querySelector('#thread .qrow').getBoundingClientRect().top > note;
+  }), 'and the list starts below all of it');
 
-  // ---- it must be OPAQUE, and it must hide the pill -----------------------
-  // Both of these shipped broken (2026-08-14): the background was written
-  // var(--bg), a token this page does not define, so the whole list rendered
-  // transparent over the thread — and the autoscroll pill sat on top of it,
-  // because translateZ promotes it to a layer iOS paints above the overlay.
-  const bg = await page.$eval('#qfull', (n) => getComputedStyle(n).backgroundColor);
-  ok(!/transparent|rgba\(0, 0, 0, 0\)/.test(bg), 'the overlay is opaque (' + bg + ')');
-  ok(await page.$eval('#qfull', (n) => {
-    const c = getComputedStyle(n).backgroundColor.match(/[\d.]+/g).map(Number);
-    const p = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g).map(Number);
-    return Math.abs(c[0] - p[0]) < 3 && Math.abs(c[1] - p[1]) < 3 && Math.abs(c[2] - p[2]) < 3;
-  }), 'and it is the page’s own paper, not some other colour');
-  ok(await page.evaluate(() => document.body.classList.contains('ontop')),
-     'body.ontop is set — the pill hides and a build reload holds off');
-  ok(await page.$eval('.float', (n) => getComputedStyle(n).display) === 'none',
-     'the autoscroll pill is not sitting on top of her questions');
+  // ---- 5/6: a row is a message row ----------------------------------------
+  const first = '#thread .qrow';
+  ok(await page.$eval(first, (n) => n.classList.contains('msg')), 'a row IS a message row');
+  ok(await page.$eval(first, (n) => !n.classList.contains('open')), 'it starts collapsed');
+  ok(await page.$eval(first + ' .m-preview', (n) => n.offsetParent !== null), 'showing the question');
+  ok(await page.$eval(first + ' .m-full', (n) => n.offsetParent === null), 'with the answer put away');
+  await page.$eval(first + ' .m-preview', (n) => n.click());
+  await page.waitForTimeout(150);
+  ok(await page.$eval(first, (n) => n.classList.contains('open')), 'tapping it opens');
+  const shape = await page.$eval(first + ' .m-full', (n) => {
+    const q = n.querySelector('.q-q'), a = n.querySelector('.q-a');
+    return { q: q.textContent.trim(), a: a.textContent.trim(),
+      qW: getComputedStyle(q).fontWeight, aW: getComputedStyle(a).fontWeight,
+      order: q.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING ? 'answer under' : 'answer over' };
+  });
+  ok(shape.q === HER_Q2, 'the open row still shows her question, verbatim');
+  ok(Number(shape.qW) >= 600, 'the question is BOLD (' + shape.qW + ')');
+  ok(shape.a === THE_A2, 'the answer is there');
+  ok(Number(shape.aW) < 600, 'and NOT bold (' + shape.aW + ')');
+  ok(shape.order === 'answer under', 'the answer is underneath the question');
+  await page.$eval(first + ' .m-head', (n) => n.click());
+  await page.waitForTimeout(150);
+  ok(await page.$eval(first, (n) => !n.classList.contains('open')), 'tapping the head collapses it again');
 
-  // ---- 4: the shape — bold question, plain answer -------------------------
-  const items = await page.$$eval('#qfull .qitem', (ns) => ns.map((n) => {
-    const q = n.querySelector('.qq'), a = n.querySelector('.qa'), w = n.querySelector('.qwait');
-    return {
-      q: q ? q.textContent.trim() : '',
-      qWeight: q ? getComputedStyle(q).fontWeight : '',
-      a: a ? a.textContent.trim() : '',
-      aWeight: a ? getComputedStyle(a).fontWeight : '',
-      wait: w ? w.textContent.trim() : '',
-    };
-  }));
-  ok(items.length === 2, 'both questions listed');
-  const answered = items[1];
-  ok(answered.q === HER_Q, 'her question is verbatim, word for word');
-  ok(Number(answered.qWeight) >= 600, 'the question is BOLD (' + answered.qWeight + ')');
-  ok(answered.a === THE_A, 'the answer is right underneath it');
-  ok(Number(answered.aWeight) < 600, 'the answer is NOT bold (' + answered.aWeight + ')');
-  // the question has to read louder than the answer, which is the whole point
-  ok(Number(answered.qWeight) > Number(answered.aWeight), 'question outweighs answer');
-
-  // ---- 5: an unanswered one is still there --------------------------------
-  ok(items[0].q === OPEN_Q, 'the newest question is first');
-  ok(/no answer yet/i.test(items[0].wait), 'an unanswered question says so rather than hiding');
-
-  // ---- 6b: background locked, scroll restored on close --------------------
-  ok((await page.evaluate(() => document.body.style.overflow)) === 'hidden',
-     'the thread behind it is locked while the list is open');
-  await page.evaluate(() => window.scrollBy(0, 400));   // anything nudging the page under the overlay
-  await page.$eval('#qfull .qhead .x', (n) => n.click());
+  // ---- 7: the same button swaps back --------------------------------------
+  await page.$eval('#thread .qbtn', (n) => n.click());
   await page.waitForTimeout(250);
-  ok(await page.$$eval('#qfull', (n) => n.length) === 0, 'closing removes it');
-  ok((await page.evaluate(() => document.body.style.overflow)) === '', 'the lock is released');
-  ok(!(await page.evaluate(() => document.body.classList.contains('ontop'))), 'and body.ontop with it');
-  ok(await page.$eval('.float', (n) => getComputedStyle(n).display) !== 'none', 'the pill comes back');
-  const yAfter = await page.evaluate(() => window.scrollY);
-  ok(Math.abs(yAfter - yBefore) < 4,
-     'she closes it exactly where she opened it (' + Math.round(yBefore) + ' → ' + Math.round(yAfter) + ')');
+  ok(await shown('#thread .qrow') === 0, 'the questions go away');
+  ok(await shown('#thread .msg') === msgsBefore, 'and every message is back (' + msgsBefore + ')');
+  ok(!(await page.$eval('#thread .qbtn', (n) => n.classList.contains('on'))), 'the button is unlit again');
+  await page.$eval('#thread .qbtn', (n) => n.click());
+  await page.waitForTimeout(250);
+  ok(await shown('#thread .qrow') === 2, 'and it swaps again without re-fetching');
+  ok(asked.length === 1, 'the second look costs no request');
+  await page.$eval('#thread .qbtn', (n) => n.click());
+  await page.waitForTimeout(200);
 
-  // ---- 7: the note underneath still works ---------------------------------
+  // ---- 9: the note underneath it still works ------------------------------
   await page.click('#thread .noterow .noteshow');
   await page.waitForTimeout(200);
   ok(await page.$$eval('#thread .noterow textarea', (n) => n.length) === 1, 'the note still opens for editing');

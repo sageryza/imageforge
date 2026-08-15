@@ -89,6 +89,15 @@ eq('the answered one carries its block', built[1].answer, 'Yes, under the header
 eq('it points at her message', built[1].id, 'a');
 eq('and at the reply', built[1].replyId, 'b');
 
+console.log('\nunanswered questions are not shown');
+// "it shouldn't have questions that haven't been answered yet" — she opens the
+// list to find an answer, and the commonest open one is the question in the
+// message she just sent.
+const open = Q.answeredOnly(built);
+eq('the open one is dropped', open.length, 1);
+eq('the answered one stays', open[0].question, 'Should the button go underneath?');
+eq('buildQuestions itself still reports both', built.length, 2);
+
 console.log('\nout-of-order input is sorted before pairing');
 const shuffled = Q.buildQuestions([msgs[1], msgs[4], msgs[0], msgs[3], msgs[2]]);
 eq('same result', shuffled.length, 2);
