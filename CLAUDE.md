@@ -1341,6 +1341,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
   under the posters, so a re-cut reuses clips instead of re-paying for them.
+  **A CHUNK (Sophie's word, what the tool is named for) is a named, tagged
+  SECTION of a finished video — footage + voiceover together — that she'd
+  reuse whole in a different video** (her examples: the Sheldrake telepathy
+  bridge in the Evan video; the manifestation trio she visualized at night).
+  `POST /api/clips/chunk {url, start, end, title, vo?, tags?, from?}` files
+  and bakes one in the background (content-addressed by url+span; `vo` =
+  the span's voiceover text, searchable as `vo:`); the harvest never touches
+  chunks. Any chat that cuts a section of a finished video should file it.
   **Rebuilt from scratch 2026-08-15** (Sophie asked for a fresh take on the
   first build; the old `forge-clips` collection lies dormant — this one is
   `forge-clip-library`). **It generates and stitches nothing and costs

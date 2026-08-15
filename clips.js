@@ -34,6 +34,20 @@
 // any download — no 5s clip is that big, and probing a 300MB film to learn
 // it is a film wastes the instance's disk and bandwidth.
 //
+// CHUNKS (Sophie, Aug 2026 — what "chunking" specifically means): a chunk is
+// a NAMED, TAGGED SECTION of a finished video — footage and voiceover
+// together — that she would reuse whole in a different video. Her examples:
+// the Sheldrake telepathy bridge inside the Evan video, reusable anywhere she
+// talks about telepathy; the manifestation trio (the chocolate bars, the cat,
+// the third thing she visualized at night), reusable in any witchcraft video
+// about manifestation; the shirt she imagined then saw the next day; the
+// envelope in El Salvador. A chunk lives on the SAME shelf as the atomic
+// clips (kind 'chunk', its own chip), carries which video it came out of and
+// the span, and is BAKED into its own file so a re-cut just picks it up.
+// `POST /chunk { url, start, end, title, vo?, tags?, from? }` files one — the
+// bake (accurate trim + 12ms audio edge fades, the cutmarks recipe) runs as a
+// background job on the chunk's own doc. The harvest never touches chunks.
+//
 // Routes (mounted at /api/clips by server.js, STUDIO_TOKEN gate, /status open):
 //   GET    /status      → { ok, firebase, ffmpeg, ffprobe, clips }
 //   GET    /            → { count, clips } — the whole shelf, newest first
@@ -41,8 +55,11 @@
 //   GET    /harvest     → { job, summary } — poll the background harvest
 //   POST   /harvest     → start one (fire-and-forget; re-POST while running
 //                         answers the running job, never a second one)
+//   POST   /chunk       → { url, start, end, title, vo?, tags?, from? } —
+//                         file + bake a chunk (content-addressed by url+span,
+//                         so re-POSTing the same span converges on one doc)
 //   GET    /:id         → one clip
-//   PATCH  /:id         → title / tags / note / hidden — marks editedFields
+//   PATCH  /:id         → title / tags / note / vo / hidden — marks editedFields
 //
 // Tests: node scripts/test-clips.js (pure functions, no network).
 // CLI:   node scripts/harvest-clips.js [--dry] — run the harvest directly
@@ -64,8 +81,10 @@ const META = process.env.CLIPS_META_COLLECTION || 'forge-clip-library-meta';
 const POSTER_FOLDER = 'clip-library/posters';
 const VIDEO_RE = /\.(mp4|mov|m4v|webm)$/i;
 const MAX_CLIP_SECONDS = 180;            // longer = a film wearing a clip's name
+const MAX_CHUNK_SECONDS = 600;           // a chunk is a section, not the video
 const MAX_SWEEP_BYTES = 64 * 1024 * 1024; // bigger = a film; skip before download
 const POSTER_WIDTH = 480;                // tiles are ~90px; 480 covers the lightbox header too
+const CHUNK_FOLDER = 'clip-library/chunks';
 
 // ── The sweep skip list — what is deliberately NOT a clip ───────────────────
 // Measured against the live bucket 2026-08-15 (697 video files, 21,452
@@ -87,8 +106,8 @@ const SKIP_PREFIXES = [
 ];
 
 // Fields a client may write. Everything else — url, poster, seconds, kind,
-// prompt, from, createdAt — is the harvest's.
-const EDITABLE = ['title', 'tags', 'note', 'hidden'];
+// prompt, from, createdAt — is the harvest's (or, for a chunk, the bake's).
+const EDITABLE = ['title', 'tags', 'note', 'hidden', 'vo'];
 // Auto fields the harvest refreshes UNLESS she touched them.
 const AUTO_FIELDS = ['title', 'tags', 'from', 'kind', 'prompt'];
 
@@ -147,6 +166,7 @@ const FIELDS = {
   prompt: 'prompt',
   note: 'note',
   kind: 'kind',
+  vo: 'vo', script: 'vo', says: 'vo',
 };
 
 function clipHay(clip) {
@@ -157,9 +177,10 @@ function clipHay(clip) {
     prompt: normalize(clip.prompt),
     note: normalize(clip.note),
     kind: normalize(clip.kind),
+    vo: normalize(clip.vo),
     tag: tags,
   };
-  h.all = [h.title, h.from, h.prompt, h.note, h.kind, tags.join(' ')].join('  ');
+  h.all = [h.title, h.from, h.prompt, h.note, h.kind, h.vo, tags.join(' ')].join('  ');
   return h;
 }
 
@@ -234,6 +255,7 @@ function clean(patch) {
     if (v === undefined) continue;
     if (k === 'title') v = String(v || '').slice(0, 200);
     if (k === 'note') v = v === null ? null : String(v).slice(0, 2000);
+    if (k === 'vo') v = v === null ? null : String(v).slice(0, 4000);
     if (k === 'hidden') v = Boolean(v);
     if (k === 'tags') {
       v = (Array.isArray(v) ? v.map(String)
@@ -242,6 +264,113 @@ function clean(patch) {
     out[k] = v;
   }
   return out;
+}
+
+// ── Chunks: a named, tagged SECTION of a finished video ────────────────────
+// Content-addressed by source url + span, so re-POSTing the same section
+// converges on one doc instead of piling up copies.
+const chunkId = (url, start, end) =>
+  crypto.createHash('sha1').update(`${url}#${Number(start).toFixed(2)}-${Number(end).toFixed(2)}`)
+    .digest('hex').slice(0, 16);
+
+// Validate a chunk request into the doc to file, or throw a message the
+// caller can show. Pure — exported for the tests.
+function buildChunkDoc(body) {
+  const url = String(body.url || '').trim();
+  const start = Number(body.start);
+  const end = Number(body.end);
+  const title = String(body.title || '').trim();
+  if (!storageRef(url)) throw new Error('url must be a Firebase Storage url (the source video)');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+    throw new Error('start/end must be seconds with start < end');
+  }
+  if (end - start > MAX_CHUNK_SECONDS) {
+    throw new Error(`a chunk is a section, not the video — ${Math.round(end - start)}s is over the ${MAX_CHUNK_SECONDS}s cap`);
+  }
+  if (!title) throw new Error('a chunk needs a title — the name is what she reuses it by');
+  const tags = (Array.isArray(body.tags) ? body.tags.map(String)
+    : String(body.tags || '').split(',')).map((s) => s.trim()).filter(Boolean).slice(0, 24);
+  return {
+    kind: 'chunk',
+    title: title.slice(0, 200),
+    tags,
+    from: String(body.from || '').trim().slice(0, 200) || null,
+    vo: body.vo ? String(body.vo).slice(0, 4000) : null,
+    source: { url },
+    span: { start: Math.round(start * 100) / 100, end: Math.round(end * 100) / 100 },
+    prompt: null, note: null, hidden: false, editedFields: [],
+    status: 'baking',
+  };
+}
+
+// The ffmpeg graph for one accurate span: trim + reset timestamps, and 12ms
+// audio fades at each edge so an exact cut never clicks (the cutmarks recipe).
+function chunkGraph(start, end, withAudio) {
+  const s = Number(start).toFixed(3);
+  const e = Number(end).toFixed(3);
+  const d = end - start;
+  const parts = [`[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS[v]`];
+  if (withAudio) {
+    parts.push(`[0:a]atrim=start=${s}:end=${e},asetpts=PTS-STARTPTS,`
+      + `afade=t=in:st=0:d=0.012,afade=t=out:st=${Math.max(0, d - 0.012).toFixed(3)}:d=0.012[a]`);
+  }
+  return parts.join(';');
+}
+
+// Download the source via the Admin SDK (never hand ffmpeg the url — the
+// sandbox proxy lesson), bake the span into its own file, cut its poster,
+// finish the doc. Runs fire-and-forget on the chunk's own doc.
+async function bakeChunk(id) {
+  const d = db();
+  const ref = d.collection(COL).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const doc = snap.data();
+  const bucket = bucketOrNull();
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chunk-'));
+  try {
+    if (!bucket) throw new Error('Firebase Storage not configured');
+    if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg/ffprobe unavailable');
+    const sref = storageRef(doc.source.url);
+    if (!sref || sref.bucket !== bucket.name) throw new Error('source must live in this project\u2019s bucket');
+    const ext = (VIDEO_RE.exec(sref.path) || [null, 'mp4'])[1];
+    const local = path.join(tmpDir, `src.${ext}`);
+    await bucket.file(sref.path).download({ destination: local });
+
+    const probe = await run(FFPROBE, ['-v', 'error', '-show_entries',
+      'format=duration:stream=codec_type', '-of', 'json', local], 120000);
+    const info = JSON.parse(probe.stdout || '{}');
+    const total = parseFloat((info.format || {}).duration || '0') || 0;
+    const withAudio = (info.streams || []).some((x) => x.codec_type === 'audio');
+    if (total && doc.span.end > total + 0.5) {
+      throw new Error(`the source is ${Math.round(total)}s — the span ends at ${doc.span.end}s`);
+    }
+
+    const out = path.join(tmpDir, 'chunk.mp4');
+    const args = ['-i', local, '-filter_complex', chunkGraph(doc.span.start, doc.span.end, withAudio),
+      '-map', '[v]'];
+    if (withAudio) args.push('-map', '[a]', '-c:a', 'aac', '-b:a', '160k');
+    args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart', '-y', out);
+    await run(FFMPEG, args, 600000);
+
+    const chunkPath = `${CHUNK_FOLDER}/${id}.mp4`;
+    await bucket.upload(out, { destination: chunkPath, metadata: { contentType: 'video/mp4' } });
+    const cf = bucket.file(chunkPath);
+    await cf.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${chunkPath}`;
+
+    const rec = { kind: 'chunk', createdAt: Date.now(), bytes: fs.statSync(out).size };
+    const probed = await probeAndPoster({ ...rec, url }, id);
+    if (probed.skip) throw new Error(`baked file unusable: ${probed.skip}`);
+    await ref.set({ url, ...probed, status: 'ready', bakeError: null, updatedAt: Date.now() }, { merge: true });
+  } catch (e) {
+    await ref.set({
+      status: 'error', bakeError: String(e.message || e).slice(0, 300), updatedAt: Date.now(),
+    }, { merge: true }).catch(() => {});
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 }
 
 // ── The harvest ────────────────────────────────────────────────────────────
@@ -557,6 +686,8 @@ router.get('/', async (req, res) => {
         kind: v.kind || 'short', prompt: v.prompt || null, note: v.note || null,
         seconds: v.seconds ?? null, width: v.width ?? null, height: v.height ?? null,
         hidden: Boolean(v.hidden), createdAt: v.createdAt || 0,
+        vo: v.vo || null, status: v.status || 'ready',
+        span: v.span || null, source: v.source || null,
       });
     });
     if (req.query.q) {
@@ -579,6 +710,38 @@ router.get('/harvest', async (req, res) => {
 router.post('/harvest', async (req, res) => {
   try { res.json({ ok: true, ...(await startHarvest()) }); }
   catch (e) { fail(res, e); }
+});
+
+// POST /chunk — file + bake a named section of a finished video. Returns at
+// once; the bake runs in the background on the chunk's own doc (status
+// 'baking' → 'ready' | 'error' + bakeError). Re-POSTing the same url+span
+// lands on the same doc — safe to retry a failed bake.
+router.post('/chunk', async (req, res) => {
+  try {
+    let doc;
+    try { doc = buildChunkDoc(req.body || {}); } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+    const id = chunkId(doc.source.url, doc.span.start, doc.span.end);
+    const ref = db().collection(COL).doc(id);
+    const before = await ref.get();
+    if (before.exists && before.get('status') === 'ready') {
+      // Already baked — refresh only what the caller sent, honoring her edits.
+      const edited = new Set(before.get('editedFields') || []);
+      const patch = { updatedAt: Date.now() };
+      for (const k of ['title', 'tags', 'vo', 'from']) {
+        if (!edited.has(k) && doc[k] !== null && doc[k] !== undefined) patch[k] = doc[k];
+      }
+      await ref.set(patch, { merge: true });
+      const after = await ref.get();
+      return res.json({ ok: true, id, already: true, clip: { id, ...after.data() } });
+    }
+    const now = Date.now();
+    await ref.set({ ...doc, createdAt: (before.exists && before.get('createdAt')) || now, updatedAt: now },
+      { merge: true });
+    bakeChunk(id).catch(() => {});
+    res.json({ ok: true, id, status: 'baking' });
+  } catch (e) { fail(res, e); }
 });
 
 router.get('/:id', async (req, res) => {
@@ -613,6 +776,7 @@ module.exports = {
   // pure pieces, for the tests and the CLI
   normalize, parseClipQuery, matchClip, clipHay,
   sweepVerdict, titleFromPath, prettify, mergeClip, clean, clipId,
+  chunkId, buildChunkDoc, chunkGraph, bakeChunk, MAX_CHUNK_SECONDS,
   gatherFromMovies, gatherFromQuick, gatherFromSweep,
   runHarvest, startHarvest,
   SKIP_PREFIXES, MAX_CLIP_SECONDS, MAX_SWEEP_BYTES,
