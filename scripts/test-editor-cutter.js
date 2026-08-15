@@ -66,5 +66,69 @@ const at = i => HEARD[i];
   check('unrelated phrase returns null', s, null);
 }
 
+// ─── the OTHER copies of this matcher must agree ────────────────────
+// editor.js is the live implementation, but two standalone copies exist and
+// cannot import it (one is Python). They drifted silently once already: the
+// meteorite copy claimed to be "verbatim from editor.js" while missing
+// matchingBlocks' final sort, which ratio() never noticed because it only
+// sums block sizes. This pins all three to the same answers.
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const HEARD_LINE = HEARD.join(' ');
+const CASES = [
+  ['The basic experiment involves uh finding people who say this happens to them', 'The', 'them'],
+  ['They sit at home uh with a landline telephone,', 'They', 'telephone'],
+  ['And so, I decided to test that hypothesis by finding ways of doing experiments where you could actually evaluate the chance coincidence theory and see whether this happened more than chance coincidence.', 'And', 'coincidence'],
+];
+
+// 1. scripts/story-short-meteorite/02-cut-beats.js — its own JS copy.
+{
+  const src = fs.readFileSync(path.join(__dirname, 'story-short-meteorite', '02-cut-beats.js'), 'utf8');
+  const grab = (name) => {
+    const i = src.indexOf('function ' + name);
+    let d = 0, j = i;
+    for (; j < src.length; j++) { if (src[j] === '{') d++; else if (src[j] === '}') { d--; if (!d) break; } }
+    return src.slice(i, j + 1);
+  };
+  const sandbox = {};
+  const load = new Function(grab('matchingBlocks') + grab('ratio') + grab('normWords') + grab('phraseSpan')
+    + '; return phraseSpan;');
+  const theirs = load();
+  for (const [text, wantStart, wantEnd] of CASES) {
+    const s = theirs(words, text);
+    check(`meteorite 02-cut-beats.js opens on "${wantStart}"`, s && at(s.start), wantStart);
+    check(`meteorite 02-cut-beats.js ends on "${wantEnd}"`, s && at(s.end), wantEnd);
+  }
+}
+
+// 2. scripts/nde-supercut-precise.py — the Python original.
+{
+  const py = `
+import difflib, re, json, sys
+src = open(${JSON.stringify(path.join(__dirname, 'nde-supercut-precise.py'))}).read()
+ns = {'difflib': difflib, 're': re}
+exec(src[src.index('def norm'):src.index('def find_quote_sentence')], ns)
+heard = ${JSON.stringify(HEARD_LINE)}.split()
+wj = {'words': [{'word': w, 'start': i, 'end': i + 0.5} for i, w in enumerate(heard)]}
+out = []
+for text, _s, _e in json.loads(sys.argv[1]):
+    sp = ns['_phrase_span'](wj, text)
+    out.append([heard[sp[0]], heard[sp[1]]] if sp else [None, None])
+print(json.dumps(out))
+`;
+  try {
+    const raw = execFileSync('python3', ['-c', py, JSON.stringify(CASES)], { encoding: 'utf8' });
+    const got = JSON.parse(raw.trim().split('\n').pop());
+    CASES.forEach(([text, wantStart, wantEnd], i) => {
+      check(`nde-supercut-precise.py opens on "${wantStart}"`, got[i][0], wantStart);
+      check(`nde-supercut-precise.py ends on "${wantEnd}"`, got[i][1], wantEnd);
+    });
+  } catch (err) {
+    console.log('skip  nde-supercut-precise.py (python3 unavailable: ' + String(err.message).split('\n')[0] + ')');
+  }
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nall good');
 process.exit(failures ? 1 : 0);

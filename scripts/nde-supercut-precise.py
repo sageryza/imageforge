@@ -93,7 +93,7 @@ def _phrase_span(win_json, phrase):
     if not pw:
         return None
     n = len(pw)
-    best = None  # (ratio, start_idx, end_idx)
+    best = None  # (ratio, start_idx, window_len)
     for L in range(n, n + 4):  # allow whisper to insert up to 3 extra words
         for i in range(0, max(1, len(ww) - L + 1)):
             win = ww[i:i + L]
@@ -101,10 +101,24 @@ def _phrase_span(win_json, phrase):
                 continue
             r = difflib.SequenceMatcher(a=pw, b=win, autojunk=False).ratio()
             if best is None or r > best[0]:
-                best = (r, i, min(i + L - 1, len(words) - 1))
+                best = (r, i, L)
     if not best or best[0] < 0.5:
         return None
-    return (best[1], best[2])
+    # Snap the span's edges to the words that actually MATCHED. A phrase word
+    # the audio never says ("uh", caption garble) makes a window shifted one
+    # word early score the SAME ratio as the true one, and the tie above keeps
+    # the earlier start — so the cut opened on a stray word from the previous
+    # sentence, heard as the previous clip's last word played twice (Sophie's
+    # doubled "coincidence", Aug 2026). Kept in step with editor.js's
+    # phraseSpan, which is the live copy.
+    _r, i0, L = best
+    start, end = i0, min(i0 + L - 1, len(words) - 1)
+    blocks = [b for b in difflib.SequenceMatcher(a=pw, b=ww[i0:i0 + L], autojunk=False)
+              .get_matching_blocks() if b.size]
+    if blocks:
+        start = i0 + blocks[0].b
+        end = min(i0 + blocks[-1].b + blocks[-1].size - 1, len(words) - 1)
+    return (start, end)
 
 def find_quote_sentence(win_json, phrase, quote):
     """FINISH: pick the ONE sentence in the person's quote that contains the
