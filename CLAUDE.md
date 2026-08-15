@@ -1339,21 +1339,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
   videos? `docs/movies/sophies-movie-pipeline.md` first.
 - **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
-  self-contained piece the app has made, on one shelf, four to a row, so a
-  re-cut reuses clips instead of re-paying for them. **It generates and stitches
-  nothing and costs nothing.** Harvest reads movie scene clips (+ their re-rolls
-  and bridges) and quick-animates out of Firestore, then SWEEPS Storage for the
-  shorts chats built into their own prefixes — 350 clips on the first real build
-  (2026-08-14), 296 of them from the sweep. **The skip list is the load-bearing
-  half** and was corrected by RUNNING it: whole interviews, finished films, Cut
-  Marks renders, the Dump and the pad's still-encode cache are not clips, and a
-  swept file over 180s is hidden as a video. Search is the whole interface — a
-  real boolean grammar (AND, `OR`, `-term`, `"phrases"`, `tag:`/`title:`/`from:`/
-  `prompt:`/`note:`) over the name, tags, source film, the generation PROMPT and
-  her notes; semantic search is deliberately not built yet. **Her edits always
-  win** — a re-harvest never overwrites a field she touched. Posters read the
-  bytes via the Admin SDK, NOT the url (ffmpeg can't reach the sandbox's HTTPS
-  proxy — all 350 failed that way first). Tests: `node scripts/test-clips.js`.
+  self-contained piece the app has made, on one shelf, four to a row with names
+  under the posters, so a re-cut reuses clips instead of re-paying for them.
+  **Rebuilt from scratch 2026-08-15** (Sophie asked for a fresh take on the
+  first build; the old `forge-clips` collection lies dormant — this one is
+  `forge-clip-library`). **It generates and stitches nothing and costs
+  nothing.** Harvest = Firestore (movie scene clips + kept re-rolls + dream
+  bridges + quick-animates, arriving with real titles and the generation
+  PROMPT) + a Storage SWEEP for the shorts chats built into their own
+  prefixes. **The skip list is the load-bearing half** (`SKIP_PREFIXES`,
+  measured 2026-08-15): the Dump, whole interviews, finished
+  episodes/films, `movies/` (the Firestore half covers it), the pad's
+  still-encode cache, voice notes; a swept file over 64MB never downloads,
+  and one probing over 180s is a film, skipped and counted. Search is the
+  whole interface — the house grammar (`search-grammar.js` parses; matching
+  is substrings over normalized text) with `tag:`/`title:`/`from:`/`prompt:`/
+  `note:`/`kind:`; the box runs through `liveInput` so dictation searches as
+  she speaks; semantic search deliberately not built yet. **Her edits always
+  win** — `editedFields` on the doc; a re-harvest never overwrites a touched
+  field, and there is deliberately NO delete route (hidden is the verb).
+  Posters read the bytes via the Admin SDK, NOT the url (ffmpeg can't reach
+  the sandbox's HTTPS proxy), frame at ~15% in, 480px webp. Opening the page
+  never starts a harvest — it only shows a running one.
+  Tests: `node scripts/test-clips.js` (pure, no network).
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
   comes a produced track with HER actual voice (resemble-enhance -> musicgen

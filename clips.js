@@ -1,124 +1,98 @@
-// clips.js — Chunking: the clip library. Sophie's name for it is "Chunking";
-// the code says `clips` because that is what the things ARE, and a future chat
-// greps for the thing (her call, Aug 2026: "I like the name chunking but Clips
-// is the one that makes more sense so we'll call it chunking for now").
+// clips.js — Chunking: the library of small clips. Page at /chunking
+// (`/clips` is the honest alias), iOS tile under the FILM filter.
 //
-// The problem it solves: every film in this app is stitched out of short
-// self-contained pieces — a movie's per-scene wan/kling clip, a quick-animate,
-// a chat's hand-built short — and those pieces were only ever reachable through
-// the ONE film they were made for. Re-cutting a film with a different emphasis
-// meant re-generating clips that already existed, because nothing could answer
-// "show me every clip of the woman on the bench". So this is a LIBRARY of the
-// atomic pieces: things that get assembled INTO videos and never taken apart.
+// Sophie's brief (Aug 2026): "a library of small clips — not full videos,
+// just the clip part: standalone sections that would never be taken apart,
+// so a re-cut with slightly different emphasis can reuse them instead of
+// re-paying for them. It looks like a library of images with names under
+// them, four to a row, and the main mechanism is SEARCH."
 //
-// Nothing here generates or stitches anything — it is a shelf and a search box.
-// The clips it holds are the ones the other modules already made and paid for,
-// so a harvest costs nothing but time and bandwidth.
+// It GENERATES and STITCHES nothing, and costs nothing. Two sources, one
+// shelf (collection `forge-clip-library`, deckfactory):
 //
-// WHAT COUNTS AS A CLIP. Harvest reads three Firestore sources (movie scene
-// clips + their re-rolls + dream bridges, quick-animates) and then sweeps
-// Storage for every other video, because most of Sophie's shorts were built by
-// chats straight into their own Storage prefixes (`exile-film/clips`,
-// `hospital-film/pairs`, `witch-shorts/*`, `nde-anim/*`…) and never went
-// through movies.js at all. The sweep SKIPS the things that are not clips:
-// finished films and supercuts, Cut Marks renders (whole recordings re-baked),
-// the Dump (her raw phone footage — that is a source library, and a phone video
-// is exactly the thing you WOULD take apart), and `scratchpad/film-cache`,
-// which is not footage at all but an encode cache of single stills held for a
-// duration. Anything the sweep finds that probes longer than MAX_SWEEP_SEC is a
-// video, not a clip, and is left alone. A clip filed from Firestore is trusted
-// on faith — movies.js only ever writes real clips there.
+//   1. FIRESTORE — the movie pipeline's own records: every scene clip, kept
+//      re-roll and dream bridge on `forge-movies`, every finished
+//      quick-animate on `forge-quick`. These arrive with their real titles
+//      and the generation PROMPT (the treasure — see docs/image-pipeline.md).
+//   2. A STORAGE SWEEP — the shorts chats built into their own prefixes
+//      (witch-shorts/, story-shorts/, hospital-film/ …). The SKIP LIST below
+//      is the load-bearing half: what is deliberately NOT a clip.
 //
-// POSTERS ARE THE POINT OF THE GRID. A tile is the clip's first frame, so
-// harvest runs in TWO phases: listing (cheap, Firestore + Storage metadata,
-// files every doc immediately) then posters (ffmpeg, one frame per clip). The
-// poster phase reads each clip's BYTES through the Admin SDK rather than letting
-// ffmpeg open the url — see `fetchBytes` for why that is not a detail — and runs
-// under a wall-clock budget: a re-run picks up exactly where it stopped, so the
-// library is never blocked on it and a server restart cannot wedge it.
+// HER EDITS ALWAYS WIN. A PATCH records which fields she touched
+// (`editedFields`), and a re-harvest never overwrites a touched field —
+// re-running the harvest is always safe (upserts are content-addressed by
+// url, so nothing ever doubles).
 //
-// SEARCH IS THE WHOLE INTERFACE (her brief). `searchClips` is a pure function
-// with a real boolean grammar — bare terms AND, `OR` between them, `-term` to
-// exclude, "quoted phrases", and the field prefixes `tag:` `title:` `from:`
-// `prompt:` `note:`. The grammar itself moved to `search-grammar.js` (Aug
-// 2026) when the Chats app's search learned to speak it too, so it is parsed
-// once for the whole app; only the matching below is ours. It runs
-// over the clip's title, its tags, the film it came out of,
-// the prompt it was generated from, and Sophie's own notes. The prompt is what
-// makes the library findable at all: it is the only text that says what is
-// actually happening in the picture, and it comes free with every clip movies.js
-// made. Meaning/semantic search is deliberately NOT here yet (she said "we
-// might have to do that later if it's hard") — search.js already owns the int8
-// embedding machinery to bolt on when she wants it.
+// POSTERS READ THE BYTES VIA THE ADMIN SDK, NEVER THE URL. ffmpeg cannot
+// reach the cloud sandbox's HTTPS proxy, so feeding it a
+// storage.googleapis.com url fails in a chat's container; downloading with
+// the SDK first works everywhere and handles a private object too.
 //
-// Data: one Firestore doc per clip (`forge-clips`, deckfactory), id =
-// sha1(url) so a re-harvest updates the doc it already made instead of piling
-// up copies, and so Sophie's title/tags/notes survive every later harvest —
-// harvest only ever writes the fields SHE has not touched.
+// A SWEPT FILE OVER 180s IS A FILM, NOT A CLIP — it is skipped, counted in
+// the harvest summary, never filed. Firestore-sourced clips skip that gate
+// (the pipeline only makes ~5s pieces). Files over 64MB are skipped before
+// any download — no 5s clip is that big, and probing a 300MB film to learn
+// it is a film wastes the instance's disk and bandwidth.
 //
-// Routes (mounted at /api/clips, STUDIO_TOKEN gate, only /status open):
-//   GET    /status        → { ok, firebase, ffmpeg, ffprobe, clips, posters }
-//   GET    /              → ?q=&tag=&source=&limit=&offset=&sort=&hidden=
-//                           → { clips, total, facets:{tags,sources}, query }
-//   GET    /facets        → { tags, sources } — the filter chips
-//   GET    /:id           → one clip
-//   PATCH  /:id           → { title, tags, notes, hidden } (EDITABLE only)
-//   DELETE /:id           → drop it from the library (Storage is never touched)
-//   POST   /add           → { url, title?, tags?, source? } — file one by hand
-//   POST   /harvest       → rebuild/extend the library (background job)
-//   GET    /harvest       → { job } — poll it
+// Routes (mounted at /api/clips by server.js, STUDIO_TOKEN gate, /status open):
+//   GET    /status      → { ok, firebase, ffmpeg, ffprobe, clips }
+//   GET    /            → { count, clips } — the whole shelf, newest first
+//                         (?q= filters server-side with the house grammar)
+//   GET    /harvest     → { job, summary } — poll the background harvest
+//   POST   /harvest     → start one (fire-and-forget; re-POST while running
+//                         answers the running job, never a second one)
+//   GET    /:id         → one clip
+//   PATCH  /:id         → title / tags / note / hidden — marks editedFields
+//
+// Tests: node scripts/test-clips.js (pure functions, no network).
+// CLI:   node scripts/harvest-clips.js [--dry] — run the harvest directly
+//        with FIREBASE_SERVICE_ACCOUNT (how the first library was built).
 
 const express = require('express');
+const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const crypto = require('crypto');
 const { execFile } = require('child_process');
-const admin = require('firebase-admin');
+
 const { parseQuery } = require('./search-grammar');
+const { storageRef } = require('./asset-hash');
 
-const COL = process.env.CLIPS_COLLECTION || 'forge-clips';
-const META_COL = process.env.CLIPS_META_COLLECTION || 'forge-clips-meta';
-const POSTER_PREFIX = 'clips/posters/';
-const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
+const COL = process.env.CLIPS_COLLECTION || 'forge-clip-library';
+const META = process.env.CLIPS_META_COLLECTION || 'forge-clip-library-meta';
+const POSTER_FOLDER = 'clip-library/posters';
+const VIDEO_RE = /\.(mp4|mov|m4v|webm)$/i;
+const MAX_CLIP_SECONDS = 180;            // longer = a film wearing a clip's name
+const MAX_SWEEP_BYTES = 64 * 1024 * 1024; // bigger = a film; skip before download
+const POSTER_WIDTH = 480;                // tiles are ~90px; 480 covers the lightbox header too
 
-// A swept Storage video longer than this is a film, not a clip. Generated
-// clips run 5s (wan) to ~10s (kling); a hand-built short runs under a minute.
-// Three minutes is a deliberately generous ceiling — the point is to keep whole
-// recordings out, not to police length.
-const MAX_SWEEP_SEC = 180;
-// How long ONE poster run may spend making frames before it stops and reports
-// what is left. Render's instance is shared with everything else; a run that
-// never ends is a run that cannot be reasoned about.
-const POSTER_BUDGET_MS = Number(process.env.CLIPS_POSTER_BUDGET_MS || 9 * 60 * 1000);
-const MAX_TAGS = 24;
-const MAX_TITLE = 140;
-
-// Storage prefixes the sweep must not file. Each is a real thing that lives in
-// this bucket and is NOT a clip — see the header.
+// ── The sweep skip list — what is deliberately NOT a clip ───────────────────
+// Measured against the live bucket 2026-08-15 (697 video files, 21,452
+// objects). Top-level prefixes; everything else sweeps, gated by size and
+// duration. When a new prefix of non-clips appears, add it HERE with the
+// reason — the list is the design.
 const SKIP_PREFIXES = [
-  'clips/',                    // our own posters
-  'scratchpad/film-cache/',    // an encode cache of stills, not footage
-  'scratchpad/films/',         // finished films
-  'movies/films/',             // finished films
-  'nde-clips/supercuts/',      // finished supercuts
-  'cutmarks/',                 // Cut Marks renders — whole recordings re-baked
-  'drops/',                    // the Dump: raw phone footage (a source library)
-  'memo-audio/',
-  'search-clips/',
-  // Both found by running the sweep and reading what it filed (Aug 2026):
-  // `nde-audio` is the DOWNLOADED YouTube interviews — 77 whole hour-long
-  // conversations named by video id, the raw material the NDE project reads,
-  // and the last thing that belongs on a shelf of pieces. `nde-episodes` is
-  // the finished episodes.
-  'nde-audio/',
-  'nde-episodes/',
+  'drops/',          // the Dump — her raw phone videos, not made clips (91 files)
+  'nde-audio/',      // whole Anthony Chene interviews, 30–400MB webm (77 files)
+  'nde-episodes/',   // finished NDE episodes — films, not pieces
+  'movies/',         // the Firestore half covers clips/ and quick/ with real
+                     // titles + prompts; films/ and voiceover/ are not clips
+  'scratchpad/',     // the pad's per-beat still-encode cache + stitched pad films
+  'writing-notes/',  // Writing Room voice notes (webm audio)
+  'cutmarks/',       // Cut Marks renders — her own deliberate cuts of her own
+                     // recordings (none present at measurement; the tool writes here)
+  'cutroom/',        // Cutting Room artifacts, same reason
+  'clip-library/',   // this module's own posters
 ];
-// A path SEGMENT that means "this is the assembled thing, not a piece of it".
-const SKIP_SEGMENTS = new Set(['combined', 'films', 'film', 'supercuts', 'final', 'out', 'renders']);
-const VIDEO_EXT = /\.(mp4|mov|m4v|webm)$/i;
 
-// ─── binaries ───────────────────────────────────────────────────────
+// Fields a client may write. Everything else — url, poster, seconds, kind,
+// prompt, from, createdAt — is the harvest's.
+const EDITABLE = ['title', 'tags', 'note', 'hidden'];
+// Auto fields the harvest refreshes UNLESS she touched them.
+const AUTO_FIELDS = ['title', 'tags', 'from', 'kind', 'prompt'];
+
+// ── ffmpeg/ffprobe: static npm binaries first, then env/PATH (house pattern) ──
 function tryRequire(name) { try { return require(name); } catch { return null; } }
 function firstOnPath(bin) {
   for (const dir of (process.env.PATH || '').split(path.delimiter)) {
@@ -131,694 +105,515 @@ function usable(p) { if (!p) return null; try { fs.accessSync(p, fs.constants.X_
 const FFMPEG = process.env.FFMPEG_PATH || usable(tryRequire('ffmpeg-static')) || firstOnPath('ffmpeg');
 const ffprobeStatic = tryRequire('ffprobe-static');
 const FFPROBE = process.env.FFPROBE_PATH || usable(ffprobeStatic && ffprobeStatic.path) || firstOnPath('ffprobe');
+const sharp = tryRequire('sharp');
 
-function db() { return admin.apps.length ? admin.firestore() : null; }
-function bucket() { return admin.apps.length ? admin.storage().bucket() : null; }
-function run(bin, args, timeoutMs = 120000) {
+function db() {
+  if (!admin.apps.length) throw new Error('firebase not configured');
+  return admin.firestore();
+}
+function bucketOrNull() {
+  try { return admin.apps.length ? admin.storage().bucket() : null; } catch { return null; }
+}
+function fail(res, err) {
+  const msg = err && err.message ? err.message : String(err);
+  res.status(msg.includes('not configured') ? 503 : 500).json({ error: msg });
+}
+function run(bin, args, timeoutMs = 300000) {
   return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) reject(new Error(`${path.basename(bin)} failed: ${(stderr || err.message).slice(-300)}`));
       else resolve({ stdout, stderr });
     });
   });
 }
+
+// One doc per clip, content-addressed by its url — a re-harvest lands on the
+// same doc, so nothing ever doubles and her edits have a stable home.
 const clipId = (url) => crypto.createHash('sha1').update(String(url)).digest('hex').slice(0, 16);
-const nowIso = () => new Date().toISOString();
 
-// ─── the search grammar (pure — scripts/test-clips.js drives all of it) ──
-//
-// Normalising to lowercase alphanumerics means a query never has to match
-// Sophie's punctuation, and matching is substring so "cook" finds "cookie" in a
-// library this small. Everything below works on normalised text.
+// ── Search: the house grammar, matched the clip-library way ────────────────
+// search-grammar.js PARSES (one grammar for every box in the app); matching is
+// per-caller by design. Here: lowercase alphanumerics, substring matching — a
+// few hundred short records, where her punctuation should never decide a hit.
 const normalize = (s) => String(s == null ? '' : s)
-  .toLowerCase()
-  .replace(/[‘’']/g, '')
-  .replace(/[^a-z0-9]+/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
+  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-// The fields a `x:` prefix can name, and the aliases worth typing. `from:` is
-// the one Sophie asked for by name ("what video they came out of").
+// The typed field prefixes a query may use: `tag:movie`, `from:jonas`,
+// `title:crumbs`, `prompt:zoom`, `note:redo`, `kind:bridge`.
 const FIELDS = {
-  tag: 'tag', tags: 'tag', t: 'tag',
+  tag: 'tag', tags: 'tag',
   title: 'title', name: 'title',
-  from: 'source', source: 'source', src: 'source', film: 'source', movie: 'source',
-  prompt: 'prompt', p: 'prompt',
-  note: 'note', notes: 'note',
+  from: 'from', source: 'from', movie: 'from',
+  prompt: 'prompt',
+  note: 'note',
+  kind: 'kind',
 };
-// How much a hit in each field is worth. A title match is what she meant; a
-// prompt match is a guess that happened to pay off.
-const WEIGHT = { title: 4, tag: 3, source: 2, prompt: 1, note: 1 };
 
-// Parse a query into AND-ed groups of OR-ed terms, plus negations.
-//
-//   cookie jonas          → (cookie) AND (jonas)
-//   cookie OR crumbs      → (cookie OR crumbs)
-//   tag:movie -bridge     → (tag:movie) AND NOT (bridge)
-//   "on the bench"        → the phrase, whole
-//
-// The grammar itself lives in `search-grammar.js` — the Chats app's search
-// speaks the same one (Aug 2026), so it is parsed in one place and each caller
-// brings only its own fields and its own idea of what a match is. Ours
-// normalises to lowercase alphanumerics, so her punctuation never decides a
-// hit in a library this small.
+function clipHay(clip) {
+  const tags = (clip.tags || []).map(normalize).filter(Boolean);
+  const h = {
+    title: normalize(clip.title),
+    from: normalize(clip.from),
+    prompt: normalize(clip.prompt),
+    note: normalize(clip.note),
+    kind: normalize(clip.kind),
+    tag: tags,
+  };
+  h.all = [h.title, h.from, h.prompt, h.note, h.kind, tags.join(' ')].join('  ');
+  return h;
+}
+
+function termHits(hay, term) {
+  if (term.field === 'tag') return hay.tag.some((t) => t.includes(term.value));
+  const field = term.field && hay[term.field] !== undefined ? hay[term.field] : null;
+  if (term.field && term.field !== 'tag' && field !== null) return field.includes(term.value);
+  return hay.all.includes(term.value);
+}
+
+// A clip matches when every positive group has a matching term and no
+// negative group does — parseQuery's contract.
+function matchClip(clip, groups) {
+  const hay = clipHay(clip);
+  for (const g of groups) {
+    const hit = g.terms.some((t) => termHits(hay, t));
+    if (g.neg ? hit : !hit) return false;
+  }
+  return true;
+}
 const parseClipQuery = (q) => parseQuery(q, { fields: FIELDS, normalize });
 
-// The searchable text of one clip, per field, normalised once and memoised on
-// the record so a long list is scanned rather than re-normalised per term.
-function haystack(clip) {
-  if (clip.__hay) return clip.__hay;
-  const hay = {
-    title: normalize(clip.title),
-    tag: normalize((clip.tags || []).join(' ')),
-    source: normalize(`${(clip.source && clip.source.title) || ''} ${(clip.source && clip.source.kind) || ''}`),
-    prompt: normalize(clip.text),
-    note: normalize(clip.notes),
-  };
-  Object.defineProperty(clip, '__hay', { value: hay, enumerable: false, configurable: true });
-  return hay;
+// ── The sweep's pure decisions (exported for the tests) ────────────────────
+function sweepVerdict(name, size) {
+  if (!VIDEO_RE.test(name)) return { sweep: false, why: 'not video' };
+  const p = SKIP_PREFIXES.find((s) => name.startsWith(s));
+  if (p) return { sweep: false, why: p };
+  if (Number(size) > MAX_SWEEP_BYTES) return { sweep: false, why: 'too big' };
+  return { sweep: true };
 }
 
-// Score one term against one clip. Returns 0 for no match — a field-scoped term
-// only ever looks at its own field, which is what makes `tag:movie` mean the
-// tag and not the word.
-function scoreTerm(hay, term) {
-  const fields = term.field ? [term.field] : Object.keys(WEIGHT);
-  let best = 0;
-  for (const f of fields) {
-    const text = hay[f];
-    if (!text || !text.includes(term.value)) continue;
-    // A whole-word hit beats a hit inside a longer word, and an exact field
-    // beats a mention: "cookie" as the whole title outranks "cookie" in a
-    // paragraph of prompt.
-    let s = WEIGHT[f];
-    if (new RegExp(`(^| )${term.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}( |$)`).test(text)) s += WEIGHT[f] * 0.5;
-    if (text === term.value) s += WEIGHT[f];
-    if (term.phrase) s += 2;
-    best = Math.max(best, s);
+const prettify = (s) => String(s || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+// A basename that is timestamps/hashes carries no name — fall back to the
+// folder it lives in plus the day it was made.
+const OPAQUE_RE = /^[0-9a-f-]{8,}$|^\d{8,}[-_a-z0-9]*$/i;
+function titleFromPath(storagePath, createdMs) {
+  const parts = String(storagePath || '').split('/').filter(Boolean);
+  const base = (parts.pop() || '').replace(/\.[a-z0-9]{2,5}$/i, '');
+  const cleaned = prettify(base
+    .replace(/^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*)+/i, ''));
+  if (cleaned && !OPAQUE_RE.test(cleaned.replace(/ /g, '-'))) return cleaned;
+  const folder = prettify(parts[parts.length - 1] || parts[0] || 'clip');
+  const d = new Date(Number(createdMs) || Date.now());
+  return `${folder} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
+
+// ── Merge: what a re-harvest may write onto an existing doc ────────────────
+// Server-owned fields refresh freely; AUTO fields refresh only where she has
+// not touched them; note/hidden are only ever hers. Returns the patch (may be
+// empty — then nothing is written).
+function mergeClip(existing, incoming) {
+  const edited = new Set(existing.editedFields || []);
+  const patch = {};
+  for (const k of AUTO_FIELDS) {
+    if (edited.has(k)) continue;
+    if (incoming[k] === undefined || incoming[k] === null) continue;
+    const same = JSON.stringify(existing[k] ?? null) === JSON.stringify(incoming[k] ?? null);
+    if (!same) patch[k] = incoming[k];
   }
-  return best;
-}
-
-// A clip matches when every positive group has at least one matching term and
-// no negative group matches at all. The score is the sum of the best term in
-// each positive group, so adding a second word that also hits ranks a clip up.
-function scoreClip(clip, groups) {
-  if (!groups.length) return 0;
-  const hay = haystack(clip);
-  let total = 0;
-  for (const g of groups) {
-    let best = 0;
-    for (const term of g.terms) best = Math.max(best, scoreTerm(hay, term));
-    if (g.neg) { if (best > 0) return null; continue; }
-    if (!best) return null;
-    total += best;
+  for (const k of ['seconds', 'width', 'height', 'bytes', 'poster', 'posterPath', 'createdAt', 'storagePath', 'bucket']) {
+    if (incoming[k] === undefined || incoming[k] === null) continue;
+    if (existing[k] !== incoming[k]) patch[k] = incoming[k];
   }
-  return total;
+  return patch;
 }
 
-// The one list function the page calls. `clips` is the whole library in memory
-// (a few hundred small records — deliberately not an index to keep in step).
-function searchClips(clips, { q = '', tag = '', source = '', sort = '', hidden = false, limit = 120, offset = 0 } = {}) {
-  const groups = parseClipQuery(q);
-  const wantTags = String(tag || '').split(',').map((t) => normalize(t)).filter(Boolean);
-  const wantSource = normalize(source);
-  const scored = [];
-  for (const clip of clips) {
-    if (!hidden && clip.hidden) continue;
-    if (wantTags.length) {
-      const has = (clip.tags || []).map(normalize);
-      if (!wantTags.every((t) => has.includes(t))) continue;
-    }
-    if (wantSource && normalize((clip.source && clip.source.title) || '') !== wantSource) continue;
-    const score = groups.length ? scoreClip(clip, groups) : 0;
-    if (score === null) continue;
-    scored.push({ clip, score });
-  }
-  const byNew = (a, b) => (b.clip.createdAt || 0) - (a.clip.createdAt || 0);
-  if (sort === 'old') scored.sort((a, b) => (a.clip.createdAt || 0) - (b.clip.createdAt || 0));
-  else if (sort === 'long') scored.sort((a, b) => (b.clip.seconds || 0) - (a.clip.seconds || 0) || byNew(a, b));
-  else if (sort === 'short') scored.sort((a, b) => (a.clip.seconds || 0) - (b.clip.seconds || 0) || byNew(a, b));
-  else if (sort === 'new' || !groups.length) scored.sort(byNew);
-  // With a query and no explicit sort, RANK — newest-first would bury the best
-  // answer under whatever was made most recently.
-  else scored.sort((a, b) => b.score - a.score || byNew(a, b));
-  const total = scored.length;
-  const page = scored.slice(offset, offset + limit).map(({ clip, score }) => ({ ...publicClip(clip), score }));
-  return { clips: page, total, offset, limit, query: groups };
-}
-
-// The filter chips: what tags and what source films actually exist, with counts,
-// biggest first. Derived from the library rather than stored, so a renamed tag
-// can never leave a dead chip behind.
-function facetsOf(clips, { hidden = false } = {}) {
-  const tags = new Map();
-  const sources = new Map();
-  for (const c of clips) {
-    if (!hidden && c.hidden) continue;
-    for (const t of c.tags || []) tags.set(t, (tags.get(t) || 0) + 1);
-    const s = (c.source && c.source.title) || '';
-    if (s) sources.set(s, (sources.get(s) || 0) + 1);
-  }
-  const rank = (m) => [...m.entries()].map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  return { tags: rank(tags), sources: rank(sources) };
-}
-
-function publicClip(c) {
-  const { __hay, ...rest } = c;
-  return rest;
-}
-
-// ─── naming ─────────────────────────────────────────────────────────
-// A swept file's only name is its path, and half of those are hashes. Turn the
-// readable part into a title and leave the unreadable ones to the folder + date
-// — an honest "Exile · Jul 27" beats a 40-character hex string on a tile.
-function titleFromPath(objectPath, createdAt) {
-  const base = String(objectPath).split('/').pop().replace(VIDEO_EXT, '');
-  const folder = String(objectPath).split('/').slice(0, -1).pop() || '';
-  const readable = base
-    .replace(/^[0-9a-f]{16,}$/i, '')
-    .replace(/^\d{10,}[-_]?/, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const pretty = (s) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase()).trim();
-  if (readable && !/^[0-9a-f\s]{16,}$/i.test(readable)) return pretty(readable).slice(0, MAX_TITLE);
-  const when = new Date(createdAt || Date.now())
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${pretty(folder) || 'Clip'} · ${when}`.slice(0, MAX_TITLE);
-}
-
-// The tags a swept path earns for free. The top folder is the project the clip
-// belongs to, which is exactly the "what video did this come out of" filter —
-// no typing required for it to work on day one.
-function tagsFromPath(objectPath) {
-  const parts = String(objectPath).split('/').slice(0, -1);
-  return [...new Set(parts.map((p) => p.replace(/[_\s]+/g, '-').toLowerCase()).filter((p) => p && p !== '_'))]
-    .slice(0, 4);
-}
-
-function cleanTags(list) {
-  if (!Array.isArray(list)) return undefined;
-  return [...new Set(list
-    .map((t) => String(t || '').trim().toLowerCase().replace(/\s+/g, '-'))
-    .filter(Boolean))].slice(0, MAX_TAGS);
-}
-
-// ─── store ──────────────────────────────────────────────────────────
-async function loadAll() {
-  const d = db();
-  if (!d) return [];
-  const snap = await d.collection(COL).get();
-  return snap.docs.map((s) => s.data());
-}
-async function loadClip(id) {
-  const d = db();
-  if (!d) return null;
-  const snap = await d.collection(COL).doc(id).get();
-  return snap.exists ? snap.data() : null;
-}
-
-// Sophie's fields, and nothing else. url/storagePath/seconds/poster/source are
-// server-owned — a PATCH that could rewrite them would let the page corrupt the
-// thing the doc points at.
-const EDITABLE = ['title', 'tags', 'notes', 'hidden'];
-function cleanPatch(body) {
+function clean(patch) {
   const out = {};
   for (const k of EDITABLE) {
-    if (!(k in body)) continue;
-    if (k === 'tags') { const t = cleanTags(body[k]); if (t) out.tags = t; }
-    else if (k === 'hidden') out.hidden = !!body[k];
-    else out[k] = String(body[k] == null ? '' : body[k]).slice(0, k === 'title' ? MAX_TITLE : 2000);
+    if (!(k in patch)) continue;
+    let v = patch[k];
+    if (v === undefined) continue;
+    if (k === 'title') v = String(v || '').slice(0, 200);
+    if (k === 'note') v = v === null ? null : String(v).slice(0, 2000);
+    if (k === 'hidden') v = Boolean(v);
+    if (k === 'tags') {
+      v = (Array.isArray(v) ? v.map(String)
+        : String(v || '').split(',')).map((s) => s.trim()).filter(Boolean).slice(0, 24);
+    }
+    out[k] = v;
   }
   return out;
 }
 
-// Upsert one harvested clip. THE RULE THAT MATTERS: a re-harvest may fill in a
-// field, never overwrite one Sophie has edited. `edited` records which fields
-// she has touched, so a title she fixed survives every future harvest — the
-// alternative is a library that silently forgets her work every time it grows.
-async function upsert(record) {
-  const d = db();
-  if (!d) throw new Error('Firebase unavailable');
-  const ref = d.collection(COL).doc(record.id);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    await ref.set({ ...record, edited: [], hidden: false, notes: '', updatedAt: Date.now() });
-    return 'new';
-  }
-  const prev = snap.data();
-  const edited = new Set(prev.edited || []);
-  const patch = { harvestedAt: record.harvestedAt };
-  for (const [k, v] of Object.entries(record)) {
-    if (k === 'id' || k === 'harvestedAt') continue;
-    if (edited.has(k)) continue;
-    if (v === undefined || v === null || v === '') continue;
-    if (Array.isArray(v) && !v.length) continue;
-    // Tags MERGE rather than replace, so a tag she added by hand and a tag the
-    // sweep derives can coexist on one clip.
-    if (k === 'tags') { patch.tags = cleanTags([...(prev.tags || []), ...v]); continue; }
-    patch[k] = v;
-  }
-  await ref.update({ ...patch, updatedAt: Date.now() });
-  return 'updated';
-}
+// ── The harvest ────────────────────────────────────────────────────────────
 
-// ─── the harvest job ────────────────────────────────────────────────
-// Library-wide, so its state lives on a meta doc rather than on any clip. Same
-// shape and same stale-job takeover as cutmarks.js's per-doc jobs.
-function jobRef() { return db().collection(META_COL).doc('harvest'); }
-async function loadJob() {
-  const d = db();
-  if (!d) return null;
-  const snap = await jobRef().get();
-  return snap.exists ? snap.data().job || null : null;
-}
-async function saveJob(job) {
-  const d = db();
-  if (!d) return;
-  await jobRef().set({ job, updatedAt: Date.now() }, { merge: true }).catch(() => {});
-}
-async function startHarvest(opts = {}) {
-  const running = await loadJob();
-  if (running && running.status === 'running' && !opts.force) {
-    // The sibling modules' stale-job takeover: a job older than 20 minutes is
-    // assumed dead (a deploy mid-run leaves one "running" forever). `force`
-    // exists because this job is library-wide rather than per-doc, so a wedged
-    // one blocks the whole tool rather than one record — and a restart during a
-    // harvest is exactly how it happens.
-    const age = Date.now() - new Date(running.startedAt || 0).getTime();
-    if (age < 20 * 60 * 1000) return running;   // never a second job
-  }
-  const job = {
-    kind: 'harvest', status: 'running', done: 0, total: 0, label: 'starting',
-    error: null, startedAt: nowIso(), found: 0, posters: 0, postersLeft: 0,
-  };
-  await saveJob(job);
-  (async () => {
-    let lastSave = 0;
-    const progress = async (done, total, label, extra = {}) => {
-      Object.assign(job, { done, total, label }, extra);
-      if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await saveJob(job); }
-    };
-    try {
-      await harvest(progress, opts);
-      Object.assign(job, { status: 'done', label: job.postersLeft ? `${job.postersLeft} posters left` : 'done' });
-    } catch (err) {
-      console.warn('clips: harvest failed —', err.message);
-      Object.assign(job, { status: 'error', error: err.message });
-    }
-    await saveJob(job);
-  })();
-  return job;
-}
-
-// Phase 1 — every clip the app already made, from the modules that made them.
-async function candidatesFromFirestore() {
-  const d = db();
-  const out = [];
-  const at = Date.now();
-  const movies = await d.collection(process.env.MOVIES_COLLECTION || 'forge-movies').get();
-  movies.forEach((doc) => {
-    const m = doc.data();
-    const film = m.title || m.name || 'Untitled movie';
-    (m.scenes || []).forEach((s, i) => {
-      const add = (url, extraTags, promptUsed, when) => {
-        if (!url) return;
-        out.push({
-          id: clipId(url), url,
-          title: (s.title || `${film} — scene ${i + 1}`).slice(0, MAX_TITLE),
-          tags: cleanTags(['movie', ...(extraTags || [])]),
-          text: String(promptUsed || s.videoPrompt || s.prompt || '').slice(0, 4000),
-          source: { kind: 'movie', id: doc.id, title: film, sceneId: s.id || String(i + 1) },
-          createdAt: when || s.clipAt || m.createdAt || at,
-          harvestedAt: at,
+// What the Firestore half knows about every clip the movie pipeline made.
+function gatherFromMovies(movies) {
+  const recs = [];
+  for (const m of movies) {
+    const from = m.title || m.id || 'untitled film';
+    const scenes = m.scenes || [];
+    for (const s of scenes) {
+      if (s.clip && s.clip.url) {
+        recs.push({
+          url: s.clip.url, kind: 'scene', from,
+          title: s.title || 'scene',
+          prompt: s.clip.promptUsed || s.motionPrompt || null,
+          tags: [],
         });
-      };
-      add(s.clip && s.clip.url, [], s.clip && s.clip.promptUsed, s.clip && s.clip.at);
-      (s.clipHistory || []).forEach((h) => add(h && h.url, ['alt'], h && h.promptUsed, h && h.at));
-    });
-    (m.bridges || []).forEach((b, i) => {
-      if (!b || !b.url) return;
-      out.push({
-        id: clipId(b.url), url: b.url,
-        title: `${film} — bridge ${i + 1}`.slice(0, MAX_TITLE),
-        tags: cleanTags(['movie', 'bridge']),
-        text: String(b.prompt || b.promptUsed || '').slice(0, 4000),
-        source: { kind: 'movie', id: doc.id, title: film },
-        createdAt: b.at || m.createdAt || at,
-        harvestedAt: at,
+      }
+      (s.clipHistory || []).forEach((h, i) => {
+        if (!h || !h.url) return;
+        recs.push({
+          url: h.url, kind: 'reroll', from,
+          title: `${s.title || 'scene'} · earlier take ${i + 1}`,
+          prompt: h.promptUsed || null,
+          tags: [],
+        });
       });
-    });
-  });
-  const quick = await d.collection(process.env.QUICK_COLLECTION || 'forge-quick').get();
-  quick.forEach((doc) => {
-    const q = doc.data();
-    if (!q.clipUrl) return;
-    const words = String(q.prompt || '').trim().split(/\s+/).slice(0, 8).join(' ');
-    out.push({
-      id: clipId(q.clipUrl), url: q.clipUrl,
-      title: (words || 'Quick animate').slice(0, MAX_TITLE),
-      tags: cleanTags(['quick']),
-      text: String(q.prompt || '').slice(0, 4000),
-      source: { kind: 'quick', id: doc.id, title: 'Quick animate' },
-      createdAt: q.createdAt || at,
-      harvestedAt: at,
-    });
-  });
-  return out;
+    }
+    for (const b of (m.bridges || [])) {
+      if (!b.clip || !b.clip.url) continue;
+      const to = scenes.find((s) => s.id === b.toSceneId);
+      recs.push({
+        url: b.clip.url, kind: 'bridge', from,
+        title: `dream bridge — ${(to && to.title) || 'next scene'}`,
+        prompt: (b.clip && b.clip.promptUsed) || b.prompt || null,
+        tags: [],
+      });
+    }
+  }
+  return recs;
 }
 
-function sweepSkips(name) {
-  if (!VIDEO_EXT.test(name)) return true;
-  if (SKIP_PREFIXES.some((p) => name.startsWith(p))) return true;
-  const segs = name.split('/').slice(0, -1);
-  return segs.some((s) => SKIP_SEGMENTS.has(s.toLowerCase()));
+function gatherFromQuick(quickDocs) {
+  const recs = [];
+  for (const q of quickDocs) {
+    if (!q.clipUrl) continue;
+    const words = String(q.prompt || '').trim().split(/\s+/).filter(Boolean);
+    const title = words.length ? words.slice(0, 8).join(' ') : 'quick animate';
+    recs.push({
+      url: q.clipUrl, kind: 'quick', from: 'quick animate',
+      title,
+      prompt: q.prompt || null,
+      tags: [],
+      createdAt: q.createdAt ? Date.parse(q.createdAt) || null : null,
+    });
+  }
+  return recs;
 }
 
-// Phase 1b — the chats' own shorts, which never went through movies.js. The
-// folder becomes the source AND a tag, so "what film did this come out of"
-// works without anyone typing anything.
-async function candidatesFromStorage(known) {
-  const b = bucket();
-  if (!b) return [];
-  const [files] = await b.getFiles();
-  const at = Date.now();
-  const out = [];
+function gatherFromSweep(files, knownPaths) {
+  const recs = [];
+  const skipped = { prefix: 0, big: 0 };
   for (const f of files) {
-    const name = f.name;
-    if (sweepSkips(name)) continue;
-    const url = `https://storage.googleapis.com/${b.name}/${name}`;
-    const id = clipId(url);
-    if (known.has(id)) continue;         // Firestore already described it better
-    const created = Date.parse((f.metadata && f.metadata.timeCreated) || '') || at;
-    const folder = name.split('/').slice(0, -1).join('/') || 'storage';
-    out.push({
-      id, url, storagePath: name,
-      title: titleFromPath(name, created),
-      tags: cleanTags(tagsFromPath(name)),
-      text: '',
-      source: { kind: 'storage', id: folder, title: folder.split('/')[0] || folder },
-      bytes: Number((f.metadata && f.metadata.size) || 0) || null,
-      createdAt: created,
-      harvestedAt: at,
+    const size = Number(f.metadata && f.metadata.size) || 0;
+    const v = sweepVerdict(f.name, size);
+    if (!v.sweep) {
+      if (v.why === 'too big') skipped.big++;
+      else if (v.why !== 'not video') skipped.prefix++;
+      continue;
+    }
+    if (knownPaths.has(f.name)) continue;
+    const createdMs = Date.parse(f.metadata && f.metadata.timeCreated) || null;
+    const parts = f.name.split('/').filter(Boolean);
+    recs.push({
+      url: `https://storage.googleapis.com/${f.bucket.name}/${f.name}`,
+      kind: 'short',
+      from: prettify(parts[0] || ''),
+      title: titleFromPath(f.name, createdMs),
+      prompt: null,
+      tags: [...new Set(parts.slice(0, -1).map(prettify).filter(Boolean))],
+      createdAt: createdMs,
+      bytes: size,
     });
   }
-  return out;
+  return { recs, skipped };
 }
 
-// A clip's object path inside OUR bucket, or null when it lives somewhere else.
-// Both url shapes the app writes are handled: the plain
-// storage.googleapis.com/<bucket>/<path> form and Firebase's own
-// firebasestorage.googleapis.com/v0/b/<bucket>/o/<url-encoded path>.
-function storagePathFor(clip) {
-  if (clip.storagePath) return clip.storagePath;
-  const b = bucket();
-  if (!b) return null;
-  const url = String(clip.url || '');
-  const plain = url.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
-  if (plain && plain[1] === b.name) return decodeURIComponent(plain[2].split('?')[0]);
-  const fb = url.match(/^https?:\/\/firebasestorage\.googleapis\.com\/v0\/b\/([^/]+)\/o\/([^?]+)/);
-  if (fb && fb[1] === b.name) return decodeURIComponent(fb[2]);
-  return null;
-}
+// Download → probe → poster, all from the local bytes. Returns the fields to
+// put on the doc, or { skip } with the reason.
+async function probeAndPoster(rec, id, opts = {}) {
+  const bucket = bucketOrNull();
+  if (!bucket) throw new Error('Firebase Storage not configured');
+  const ref = storageRef(rec.url);
+  if (!ref) return { skip: 'external url' };
+  if (ref.bucket !== bucket.name) return { skip: 'other bucket' };
 
-// THE BYTES COME FROM THE ADMIN SDK, NOT FROM THE URL. ffmpeg CAN read https
-// directly, and the first version did — but a chat's sandbox sends all outbound
-// HTTPS through a proxy that ffmpeg cannot speak to, so every one of the first
-// 350 posters failed with an empty error (measured 2026-08-14). The Admin SDK
-// talks to googleapis, which works everywhere the rest of this app works, so
-// reading the object is the portable route — and for a clip already sitting in
-// our own bucket it is the shorter one anyway. An external url (a hand-added
-// clip) still goes through fetch.
-async function fetchBytes(clip, file) {
-  const p = storagePathFor(clip);
-  if (p) { await bucket().file(p).download({ destination: file }); return file; }
-  const fetch = require('node-fetch');
-  const res = await fetch(clip.url, { redirect: 'follow', timeout: 180000 });
-  if (!res.ok) throw new Error(`clip fetch ${res.status}`);
-  await new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(file);
-    res.body.pipe(out);
-    res.body.on('error', reject);
-    out.on('finish', resolve);
-    out.on('error', reject);
-  });
-  return file;
-}
-
-// Duration and frame size of a LOCAL file.
-async function probe(file) {
-  if (!FFPROBE) return {};
-  const { stdout } = await run(FFPROBE, [
-    '-v', 'error', '-select_streams', 'v:0',
-    '-show_entries', 'format=duration:stream=width,height',
-    '-of', 'json', file,
-  ], 90000);
-  const j = JSON.parse(stdout || '{}');
-  const st = (j.streams || [])[0] || {};
-  return {
-    seconds: Math.round((Number((j.format || {}).duration) || 0) * 10) / 10 || null,
-    width: st.width || null,
-    height: st.height || null,
-  };
-}
-
-// Read the clip once: its duration, its size, and one frame as its poster. ONE
-// download serves all three, and the copy is deleted before the next clip
-// starts — 350 clips would otherwise be a gigabyte sitting on a 512MB instance.
-//
-// The frame is taken a third of the way in, capped at a second: frame zero of a
-// generated clip is usually the still it was animated FROM, so it makes every
-// panel-pair look identical, and on a fade it is simply black. webp because a
-// poster is a display copy and the house rule is never to ship a raw frame — a
-// 1024x1536 png is ~1MB, this is ~25KB.
-async function posterFor(clip) {
-  if (!FFMPEG) throw new Error('ffmpeg unavailable');
-  const b = bucket();
-  if (!b) throw new Error('Storage unavailable');
-  const src = path.join(os.tmpdir(), `clip-${clip.id}${path.extname(String(clip.url).split('?')[0]) || '.mp4'}`);
-  const shot = path.join(os.tmpdir(), `clip-${clip.id}.webp`);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'clips-'));
+  const ext = (VIDEO_RE.exec(ref.path) || [null, 'mp4'])[1];
+  const local = path.join(tmpDir, `clip.${ext}`);
   try {
-    await fetchBytes(clip, src);
-    const meta = await probe(src).catch(() => ({}));
-    // A whole video is not a clip — say so and leave the frame undrawn.
-    if (clip.source && clip.source.kind === 'storage' && meta.seconds && meta.seconds > MAX_SWEEP_SEC) {
-      return { meta, tooLong: true };
+    const file = bucket.file(ref.path);
+    let meta;
+    try { [meta] = await file.getMetadata(); } catch { return { skip: 'object missing' }; }
+    await file.download({ destination: local });
+
+    let seconds = null; let width = null; let height = null; let hasVideo = true;
+    if (FFPROBE) {
+      const { stdout } = await run(FFPROBE, ['-v', 'error', '-show_entries',
+        'format=duration:stream=codec_type,width,height', '-of', 'json', local], 120000);
+      const info = JSON.parse(stdout || '{}');
+      const d = parseFloat((info.format || {}).duration || '0');
+      seconds = Number.isFinite(d) && d > 0 ? Math.round(d * 10) / 10 : null;
+      const vs = (info.streams || []).find((s) => s.codec_type === 'video');
+      hasVideo = Boolean(vs);
+      if (vs) { width = vs.width || null; height = vs.height || null; }
     }
-    const at = Math.min(1, Math.max(0, (meta.seconds || 2) / 3));
-    await run(FFMPEG, [
-      '-y', '-ss', at.toFixed(2), '-i', src, '-frames:v', '1',
-      '-vf', 'scale=480:-2', '-c:v', 'libwebp', '-quality', '72', shot,
-    ], 120000);
-    const dest = `${POSTER_PREFIX}${clip.id}.webp`;
-    await b.upload(shot, { destination: dest, metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000' } });
-    await b.file(dest).makePublic().catch(() => {});
-    return { meta, poster: `https://storage.googleapis.com/${b.name}/${dest}` };
+    if (!hasVideo) return { skip: 'no video stream' };
+    if (rec.kind === 'short' && seconds && seconds > MAX_CLIP_SECONDS) return { skip: 'long' };
+
+    let poster = null; let posterPath = null;
+    if (FFMPEG && sharp && !opts.skipPoster) {
+      // Not frame 0 — scene clips often open on a fade from black.
+      const at = Math.min(1, (seconds || 2) * 0.15).toFixed(2);
+      const frame = path.join(tmpDir, 'frame.png');
+      await run(FFMPEG, ['-ss', at, '-i', local, '-frames:v', '1', '-y', frame], 120000);
+      const webp = await sharp(frame).resize({ width: POSTER_WIDTH, withoutEnlargement: true })
+        .webp({ quality: 72 }).toBuffer();
+      posterPath = `${POSTER_FOLDER}/${id}.webp`;
+      const pf = bucket.file(posterPath);
+      await pf.save(webp, {
+        metadata: { contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' },
+      });
+      await pf.makePublic();
+      poster = `https://storage.googleapis.com/${bucket.name}/${posterPath}`;
+    }
+
+    return {
+      seconds, width, height, poster, posterPath,
+      bytes: Number(meta.size) || rec.bytes || null,
+      createdAt: rec.createdAt || Date.parse(meta.timeCreated) || Date.now(),
+      storagePath: ref.path, bucket: ref.bucket,
+    };
   } finally {
-    fs.promises.unlink(src).catch(() => {});
-    fs.promises.unlink(shot).catch(() => {});
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
 
-async function harvest(progress, { listing = true, posters = true } = {}) {
+// The whole harvest. `progress(done, total, label)` is throttled by the
+// caller; `opts.dry` gathers and reports without writing anything.
+async function runHarvest(progress = () => {}, opts = {}) {
   const d = db();
-  if (!d) throw new Error('Firebase unavailable');
-  let found = 0;
-  if (listing) {
-    await progress(0, 0, 'reading movies');
-    const fromDocs = await candidatesFromFirestore();
-    const known = new Set(fromDocs.map((c) => c.id));
-    await progress(0, 0, 'sweeping storage');
-    const fromStorage = await candidatesFromStorage(known);
-    const all = [...fromDocs, ...fromStorage];
-    // A dedupe pass: the same url can arrive twice (a scene clip that is also a
-    // history entry of the next scene). First writer wins — it has the better
-    // title, because it came from the doc that knows what the scene is.
-    const seen = new Set();
-    const list = all.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
-    for (let i = 0; i < list.length; i++) {
-      // One failed record costs its own clip, never the run.
-      try { await upsert(list[i]); found++; } catch (e) { console.warn('clips: upsert', e.message); }
-      await progress(i + 1, list.length, 'filing clips', { found });
-    }
+  const bucket = bucketOrNull();
+  if (!bucket) throw new Error('Firebase Storage not configured');
 
-    // RECONCILE. The skip list gets corrected as new kinds of file turn up in
-    // the bucket (the first sweep filed 77 whole interviews), so a harvest must
-    // be able to take back what an earlier one filed by mistake — otherwise the
-    // fix only helps a library that has never been built. Only ever removes
-    // SWEPT records that the current rules would no longer file, and never one
-    // Sophie has touched: her edit is the signal that she wants it there.
-    const stale = (await loadAll()).filter((c) => c.source && c.source.kind === 'storage'
-      && c.storagePath && sweepSkips(c.storagePath)
-      && !(c.edited || []).length);
-    for (const c of stale) {
-      await d.collection(COL).doc(c.id).delete().catch(() => {});
-    }
-    if (stale.length) await progress(list.length, list.length, `dropped ${stale.length} that aren't clips`, { found });
+  await progress(0, 0, 'reading the movie records');
+  const [moviesSnap, quickSnap, existingSnap] = await Promise.all([
+    d.collection('forge-movies').get(),
+    d.collection('forge-quick').get(),
+    d.collection(COL).get(),
+  ]);
+  const movies = moviesSnap.docs.map((x) => x.data());
+  const quick = quickSnap.docs.map((x) => x.data());
+  const existing = new Map();
+  existingSnap.forEach((x) => existing.set(x.id, { id: x.id, ...x.data() }));
+
+  await progress(0, 0, 'sweeping storage');
+  const [files] = await bucket.getFiles();
+
+  const recs = [...gatherFromMovies(movies), ...gatherFromQuick(quick)];
+  const knownPaths = new Set();
+  for (const r of recs) {
+    const ref = storageRef(r.url);
+    if (ref) knownPaths.add(ref.path);
   }
-  if (!posters) return;
+  const swept = gatherFromSweep(files, knownPaths);
+  recs.push(...swept.recs);
 
-  // Phase 2 — probe + poster for everything still missing one, under a budget.
-  const all = await loadAll();
-  const todo = all.filter((c) => !c.poster && !c.posterFailed);
-  const started = Date.now();
-  let made = 0;
-  for (let i = 0; i < todo.length; i++) {
-    if (Date.now() - started > POSTER_BUDGET_MS) break;
-    const clip = todo[i];
-    await progress(i, todo.length, `posters ${i + 1}/${todo.length}`, { posters: made, postersLeft: todo.length - i });
+  // Two records claiming one url collapse to the first (a scene clip beats a
+  // sweep of the same file; the sweep already skips movies/ anyway).
+  const byId = new Map();
+  for (const r of recs) {
+    const id = clipId(r.url);
+    if (!byId.has(id)) byId.set(id, { id, ...r });
+  }
+
+  const summary = {
+    sources: { movies: movies.length, quick: quick.length, storageVideos: files.filter((f) => VIDEO_RE.test(f.name)).length },
+    gathered: byId.size,
+    added: 0, updated: 0, unchanged: 0,
+    skippedLong: 0, skippedExternal: 0, skippedMissing: 0, skippedOtherBucket: 0,
+    posterErrors: 0, errors: 0,
+    skippedByPrefix: swept.skipped.prefix, skippedBig: swept.skipped.big,
+  };
+  if (opts.dry) return summary;
+
+  const todo = [...byId.values()];
+  let done = 0;
+  for (const rec of todo) {
+    done++;
     try {
-      const { meta, poster, tooLong } = await posterFor(clip);
-      // A swept file that turns out to be a whole video is not a clip. Say so on
-      // the doc rather than deleting it — a silent disappearance is unreadable.
-      if (tooLong) {
-        await d.collection(COL).doc(clip.id).update({
-          ...meta, hidden: true, hiddenReason: `${Math.round(meta.seconds)}s — a video, not a clip`, updatedAt: Date.now(),
-        });
+      const have = existing.get(rec.id);
+      if (have && have.poster && have.seconds != null) {
+        // Metadata-only refresh — a re-harvest with nothing new is cheap.
+        const patch = mergeClip(have, rec);
+        if (Object.keys(patch).length) {
+          patch.updatedAt = Date.now();
+          patch.harvestedAt = Date.now();
+          await d.collection(COL).doc(rec.id).set(patch, { merge: true });
+          summary.updated++;
+        } else summary.unchanged++;
         continue;
       }
-      await d.collection(COL).doc(clip.id).update({ ...meta, poster, updatedAt: Date.now() });
-      made++;
-    } catch (err) {
-      // A clip whose frame can't be read still belongs in the library — it just
-      // tiles without a picture. Marked so the next run doesn't retry forever.
-      await d.collection(COL).doc(clip.id)
-        .update({ posterFailed: String(err.message).slice(0, 200), updatedAt: Date.now() }).catch(() => {});
+      await progress(done, todo.length, `probing · ${rec.title}`.slice(0, 80));
+      const probed = await probeAndPoster(rec, rec.id);
+      if (probed.skip) {
+        if (probed.skip === 'long') summary.skippedLong++;
+        else if (probed.skip === 'external url') summary.skippedExternal++;
+        else if (probed.skip === 'other bucket') summary.skippedOtherBucket++;
+        else summary.skippedMissing++;
+        continue;
+      }
+      const now = Date.now();
+      if (have) {
+        const patch = { ...mergeClip(have, rec), ...probed, updatedAt: now, harvestedAt: now };
+        await d.collection(COL).doc(rec.id).set(patch, { merge: true });
+        summary.updated++;
+      } else {
+        await d.collection(COL).doc(rec.id).set({
+          url: rec.url, kind: rec.kind, title: rec.title, from: rec.from,
+          prompt: rec.prompt || null, tags: rec.tags || [],
+          note: null, hidden: false, editedFields: [],
+          ...probed, harvestedAt: now, updatedAt: now,
+        });
+        summary.added++;
+      }
+    } catch (e) {
+      summary.errors++;
+      // One failed clip costs that clip, never the run.
+      try {
+        await d.collection(COL).doc(rec.id).set({
+          harvestError: String(e.message || e).slice(0, 300), updatedAt: Date.now(),
+        }, { merge: true });
+      } catch { /* the record just stays absent */ }
     }
   }
-  const left = (await loadAll()).filter((c) => !c.poster && !c.posterFailed).length;
-  await progress(todo.length, todo.length, 'done', { posters: made, postersLeft: left });
+  return summary;
 }
 
-// ─── router ─────────────────────────────────────────────────────────
+// ── The harvest as a background job on the meta doc (house pattern) ─────────
+const metaRef = () => db().collection(META).doc('harvest');
+
+async function startHarvest() {
+  const snap = await metaRef().get();
+  const cur = snap.exists ? snap.data() : {};
+  if (cur.job && cur.job.status === 'running') {
+    const age = Date.now() - new Date(cur.job.startedAt || 0).getTime();
+    if (age < 20 * 60 * 1000) return { started: false, job: cur.job };
+    // A "running" job older than 20 min is a dead server's leftover — take over.
+  }
+  const job = { kind: 'harvest', status: 'running', done: 0, total: 0, label: 'starting', error: null, startedAt: new Date().toISOString() };
+  await metaRef().set({ job }, { merge: true });
+  (async () => {
+    let lastSave = 0;
+    const progress = async (dn, total, label) => {
+      Object.assign(job, { done: dn, total, label });
+      if (Date.now() - lastSave > 1500) {
+        lastSave = Date.now();
+        await metaRef().set({ job }, { merge: true }).catch(() => {});
+      }
+    };
+    try {
+      const summary = await runHarvest(progress);
+      Object.assign(job, { status: 'done', label: 'done' });
+      await metaRef().set({ job, summary, finishedAt: Date.now() }, { merge: true });
+    } catch (e) {
+      Object.assign(job, { status: 'error', error: String(e.message || e).slice(0, 300) });
+      await metaRef().set({ job }, { merge: true }).catch(() => {});
+    }
+  })();
+  return { started: true, job };
+}
+
+// ── Routes ─────────────────────────────────────────────────────────────────
 const router = express.Router();
 
-// Same gate as every sibling: open when STUDIO_TOKEN is unset, otherwise every
-// route but /status wants the header.
 router.use((req, res, next) => {
-  const token = STUDIO_TOKEN;
+  const token = process.env.STUDIO_TOKEN || '';
   if (!token) return next();
-  if (req.path === '/status') return next();
+  if (req.method === 'GET' && req.path === '/status') return next();
   if (req.get('x-studio-token') === token || req.query.token === token) return next();
   return res.status(401).json({ error: 'unauthorized' });
 });
-router.use(express.json({ limit: '1mb' }));
-
-function fail(res, err) {
-  console.warn('clips:', err.message);
-  res.status(500).json({ error: err.message });
-}
+router.use(express.json({ limit: '2mb' }));
 
 router.get('/status', async (req, res) => {
-  let clips = null; let posters = null;
-  try {
-    const all = await loadAll();
-    clips = all.length;
-    posters = all.filter((c) => c.poster).length;
-  } catch { /* status must answer even when Firestore is unhappy */ }
-  res.json({ ok: true, firebase: admin.apps.length > 0, ffmpeg: !!FFMPEG, ffprobe: !!FFPROBE, clips, posters });
+  let clips = null;
+  try { clips = (await db().collection(COL).count().get()).data().count; } catch { /* unconfigured */ }
+  res.json({ ok: true, firebase: Boolean(bucketOrNull()), ffmpeg: Boolean(FFMPEG), ffprobe: Boolean(FFPROBE), clips });
 });
 
+// GET / — the whole shelf, newest clip first. ?q= speaks the house grammar.
 router.get('/', async (req, res) => {
   try {
-    const all = await loadAll();
-    const hidden = req.query.hidden === '1';
-    const out = searchClips(all, {
-      q: req.query.q || '',
-      tag: req.query.tag || '',
-      source: req.query.source || '',
-      sort: req.query.sort || '',
-      hidden,
-      limit: Math.min(Number(req.query.limit) || 120, 400),
-      offset: Number(req.query.offset) || 0,
+    res.set('Cache-Control', 'no-store');
+    const snap = await db().collection(COL).get();
+    let clips = [];
+    snap.forEach((x) => {
+      const v = x.data();
+      clips.push({
+        id: x.id, url: v.url, poster: v.poster || null,
+        title: v.title || '', tags: v.tags || [], from: v.from || '',
+        kind: v.kind || 'short', prompt: v.prompt || null, note: v.note || null,
+        seconds: v.seconds ?? null, width: v.width ?? null, height: v.height ?? null,
+        hidden: Boolean(v.hidden), createdAt: v.createdAt || 0,
+      });
     });
-    // `library` is what the shelf holds under the SAME hidden rule the results
-    // used, so "24 of 337" compares two numbers that mean the same thing —
-    // counting every doc here made the total jump by the hidden ones.
-    const library = hidden ? all.length : all.filter((c) => !c.hidden).length;
-    res.json({ ...out, facets: facetsOf(all, { hidden }), library });
-  } catch (err) { fail(res, err); }
+    if (req.query.q) {
+      const groups = parseClipQuery(String(req.query.q));
+      clips = clips.filter((c) => matchClip(c, groups));
+    }
+    clips.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    res.json({ count: clips.length, clips });
+  } catch (e) { fail(res, e); }
 });
 
-router.get('/facets', async (req, res) => {
-  try { res.json(facetsOf(await loadAll(), { hidden: req.query.hidden === '1' })); }
-  catch (err) { fail(res, err); }
+router.get('/harvest', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const snap = await metaRef().get();
+    res.json(snap.exists ? snap.data() : { job: null });
+  } catch (e) { fail(res, e); }
 });
 
 router.post('/harvest', async (req, res) => {
-  try {
-    res.json({ job: await startHarvest({
-      listing: req.body.listing !== false,
-      posters: req.body.posters !== false,
-      force: !!req.body.force,
-    }) });
-  } catch (err) { fail(res, err); }
-});
-router.get('/harvest', async (req, res) => {
-  try { res.json({ job: await loadJob() }); }
-  catch (err) { fail(res, err); }
-});
-
-// File one by hand — a clip that lives somewhere this app didn't make it.
-router.post('/add', async (req, res) => {
-  try {
-    const url = String(req.body.url || '').trim();
-    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'a clip needs a url' });
-    const at = Date.now();
-    const id = clipId(url);
-    await upsert({
-      id, url,
-      title: String(req.body.title || titleFromPath(url, at)).slice(0, MAX_TITLE),
-      tags: cleanTags(req.body.tags) || [],
-      text: String(req.body.text || '').slice(0, 4000),
-      source: { kind: 'added', id: 'added', title: String(req.body.source || 'Added by hand') },
-      createdAt: Number(req.body.createdAt) || at,
-      harvestedAt: at,
-    });
-    // The poster is a background job like every other slow thing.
-    startHarvest({ listing: false, posters: true }).catch(() => {});
-    res.json({ ok: true, clip: await loadClip(id) });
-  } catch (err) { fail(res, err); }
+  try { res.json({ ok: true, ...(await startHarvest()) }); }
+  catch (e) { fail(res, e); }
 });
 
 router.get('/:id', async (req, res) => {
   try {
-    const clip = await loadClip(req.params.id);
-    if (!clip) return res.status(404).json({ error: 'no such clip' });
-    res.json({ clip });
-  } catch (err) { fail(res, err); }
+    const snap = await db().collection(COL).doc(req.params.id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    res.json({ id: snap.id, ...snap.data() });
+  } catch (e) { fail(res, e); }
 });
 
+// PATCH /:id — her curation. Whatever she touches is hers forever: the field
+// names land in editedFields and the harvest never writes those again.
 router.patch('/:id', async (req, res) => {
   try {
-    const patch = cleanPatch(req.body || {});
-    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    const patch = clean(req.body || {});
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to update' });
     const ref = db().collection(COL).doc(req.params.id);
-    const snap = await ref.get();
-    if (!snap.exists) return res.status(404).json({ error: 'no such clip' });
-    // Record which fields are HERS, so no later harvest overwrites them.
-    const edited = [...new Set([...(snap.data().edited || []), ...Object.keys(patch)])];
-    await ref.update({ ...patch, edited, updatedAt: Date.now() });
-    res.json({ ok: true, clip: await loadClip(req.params.id) });
-  } catch (err) { fail(res, err); }
-});
-
-// Drop it from the library. The clip's own bytes in Storage are never touched —
-// nothing Sophie made is deleted by a shelf.
-router.delete('/:id', async (req, res) => {
-  try {
-    await db().collection(COL).doc(req.params.id).delete();
-    res.json({ ok: true });
-  } catch (err) { fail(res, err); }
+    const before = await ref.get();
+    if (!before.exists) return res.status(404).json({ error: 'not found' });
+    const edited = new Set(before.get('editedFields') || []);
+    Object.keys(patch).forEach((k) => edited.add(k));
+    patch.editedFields = [...edited];
+    patch.updatedAt = Date.now();
+    await ref.set(patch, { merge: true });
+    const after = await ref.get();
+    res.json({ ok: true, clip: { id: after.id, ...after.data() } });
+  } catch (e) { fail(res, e); }
 });
 
 module.exports = {
-  router,
-  // pure, for scripts/test-clips.js
-  parseClipQuery, searchClips, facetsOf, normalize, titleFromPath, tagsFromPath,
-  cleanTags, cleanPatch, sweepSkips, scoreClip,
-  // for other modules / scripts
-  loadAll, loadClip, upsert, startHarvest, harvest, probe, posterFor, storagePathFor, COL,
+  router, COL, META,
+  // pure pieces, for the tests and the CLI
+  normalize, parseClipQuery, matchClip, clipHay,
+  sweepVerdict, titleFromPath, prettify, mergeClip, clean, clipId,
+  gatherFromMovies, gatherFromQuick, gatherFromSweep,
+  runHarvest, startHarvest,
+  SKIP_PREFIXES, MAX_CLIP_SECONDS, MAX_SWEEP_BYTES,
 };
