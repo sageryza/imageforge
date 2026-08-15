@@ -3,9 +3,16 @@
 // that it's pinned until I mark the checkmark and get rid of the pin").
 //
 // Every card used to clear itself the moment she opened the chat, and a pin
-// button existed to opt one card out of that. Now nothing clears but the ✓, so
+// button existed to opt one card out of that. Now OPENING clears nothing, so
 // the pin is gone. This replaces scripts/test-chats-news-pin.js, which tested
 // the opposite contract.
+//
+// The ✓ is what the PAGE writes, and this file is about the page. One other
+// thing writes the same stamp — HER REPLY, server-side in POST /reply, so a
+// card goes quiet when she answers the chat from the Claude app (Aug 2026,
+// Sophie: "if I actually replied to the message that does get rid of the
+// notification"). That half is pinned by scripts/test-chats-news-reply.js;
+// nothing here should start clearing cards on its own.
 //
 // Drives the REAL public/chats.html against a stub API and asserts:
 //   1. there is NO pin button left, and the card's top row still reads
@@ -158,5 +165,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await browser.close();
   server.close();
   console.log(process.exitCode ? 'DONE with failures'
-    : 'OK: no pin, the card survives being opened, and only the ✓ clears it');
+    : 'OK: no pin, the card survives being opened, and nothing here but the ✓ clears it');
 })().catch((e) => { console.error(e); process.exit(1); });
