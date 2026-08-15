@@ -44,6 +44,12 @@ const STYLE_REF = path.join(ROOT, 'refs/sage-sandy-mirror.png');
 // may have left a note on it, and silently swapping the bytes underneath it
 // makes her note describe a picture that no longer exists.
 const TAG = (process.argv.indexOf('--tag') !== -1 && process.argv[process.argv.indexOf('--tag') + 1]) || 'v2';
+// --sheet-key names the state entry holding the card to draw with, when it is
+// not this round's own. Sophie picked sheet 1 (marlaSheetV2) after the v3e
+// round had already run, so its pages have to be drawn from an OLDER sheet
+// while still writing under their own tag — without that split, --tag s1
+// would find no sheet on file and quietly draw a NEW one.
+const SHEET_KEY = (process.argv.indexOf('--sheet-key') !== -1 && process.argv[process.argv.indexOf('--sheet-key') + 1]) || `marlaSheet_${TAG}`;
 const SHEET = path.join(os.tmpdir(), `marla-sheet-${TAG}.png`);
 
 const QUALITY = 'medium', MODEL = 'gpt-image-2', SIZE = '1024x1536', W = 1024, H = 1536;
@@ -175,8 +181,8 @@ async function buildSheet() {
 
 async function ensureSheet() {
   if (fs.existsSync(SHEET)) return SHEET;
-  if (state[`marlaSheet_${TAG}`]?.url) {
-    const r = await fetch(state[`marlaSheet_${TAG}`].url);
+  if (state[SHEET_KEY]?.url) {
+    const r = await fetch(state[SHEET_KEY].url);
     fs.writeFileSync(SHEET, Buffer.from(await r.arrayBuffer()));
     return SHEET;
   }
