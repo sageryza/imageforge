@@ -210,7 +210,22 @@ twice, then spread into a second style, then one rung up the ladder.
   style pages on the shelf.
 - `scripts/build-walkthrough-page.js` — builds the Compare page out of the
   manifests, so nothing on it is written from memory.
-- The page: `/api/chatfeed/page/CQlLvkTABdpEGW7puKem`.
+- The page: `/api/chatfeed/page/nDbgnxLKjfloO3JaMGVe` (v2; v1,
+  `CQlLvkTABdpEGW7puKem`, is superseded).
+- Test: `node scripts/test-walkthrough-page.js`.
+
+**V1 of that page walked the road in order and that was the wrong shape**
+(Sophie: *"if you make a compare page, it might show what we're comparing
+things better"*). Round 1 sat in one card and round 2 in a card further down,
+so the two things she was meant to weigh against each other were a scroll
+apart — and you cannot hold two pictures in your head across a scroll. V2 is
+**three comparisons instead of a chronology**, one per hairline tab, each a
+column of `.duo` pairs: *before/after* (the same words rewritten), *two
+styles* (the same words, new reference), *two prices* (the same words, more
+money). **Every pair holds everything still and moves exactly one thing** —
+that is the whole reason a comparison says anything, and it is why the page
+now teaches what the prose could not. The test measures the laid-out boxes and
+fails if a pair's two pictures ever end up one above the other.
 
 **What the walk actually taught, and none of it was guessable:**
 
