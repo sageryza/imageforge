@@ -41,9 +41,18 @@ const path = require('path');
 const SPEC = path.join(__dirname, '..', 'specs', 'lessons-path.json');
 const OUT = path.join(__dirname, '..', 'built', 'lessons-path.html');
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
-const CHAT = process.env.FORGE_CHAT || 'deck-factory-story-room';   // her Imprint chat
-const TITLE = 'The Lessons — the path v1';
-const SHEET = 'lessons-path-v1';
+/* The page is built PER CHAT, because the chat is baked into it: her notes on
+   a category go to whichever chat the page belongs to. Default is her Imprint
+   chat; `--chat <slug>` posts the same page into another one. */
+const argChat = process.argv.indexOf('--chat');
+const CHAT = (argChat !== -1 && process.argv[argChat + 1])
+  || process.env.FORGE_CHAT || 'deck-factory-story-room';
+const V = 'v2';
+const TITLE = 'The Lessons — the path ' + V;
+/* The sheet keys her notes, so it carries the version: v2 is a different set
+   of items only in that it is a different page, and a note left on v1 belongs
+   to v1. */
+const SHEET = 'lessons-path-' + V;
 
 const spec = JSON.parse(fs.readFileSync(SPEC, 'utf8'));
 
@@ -191,28 +200,45 @@ const html = `<!doctype html>
   }
 
   /* ── the road ──────────────────────────────────────────────────────────
-     The pipeline's S (v8): bowls joined at the centre line, tangent
-     horizontal at every join and vertical at every extreme, running LEFT TO
-     RIGHT. n = how many FULL bowls; the sweep flags alternate 0,1,0,1,… and
-     the entry/exit are half-arcs, so n changes the length without changing
-     the shape of a single curve. */
-  /* B is the bowl's HALF-HEIGHT, and it is set by the nodes, not by taste:
-     where the road doubles back, two stops that are far apart ALONG it land
-     close together on the screen, so a bowl shallower than a node + its label
-     lets the last two overlap (it did, on the six-lesson path). 2B = 156 is a
-     node (60) + two lines of label with room to spare. */
-  var CX = 200, A = 140, B = 78, Y0 = 66, R = 30;
-  function roadPath(n) {
-    var d = 'M' + (CX - A) + ' ' + Y0 + 'A' + A + ' ' + B + ' 0 0 0 ' + CX + ' ' + (Y0 + B);
-    for (var k = 1; k <= n; k++) {
-      d += 'A' + A + ' ' + B + ' 0 1 ' + (k % 2) + ' ' + CX + ' ' + (Y0 + (2 * k + 1) * B);
+     THE S, take two (Sophie, on v1: "it isn't an S curve, it's zigzags and
+     then at the end it gets really small in the corner"). She was right about
+     both, and both came from copying the pipeline's construction — a chain of
+     half-ellipse ARCS — without copying its proportions:
+
+     - the ZIGZAG. An arc bowl has a VERTICAL tangent at its extreme, so its
+       radius of curvature there is ry²/rx — 43px at the sizes this page uses.
+       That is a hairpin: the road ran out flat, whipped around, and ran back,
+       which reads as switchbacks, not as a letter S. The pipeline gets away
+       with it because its bowls are 280x100 and its stops are half this size.
+     - the CORNER. The pipeline's road ends with a quarter arc onto the right
+       edge, correct for its FOUR bowls. With an odd number the last bowl ends
+       pointing the other way, so that quarter doubled back — the little tail
+       that "gets really small in the corner". A shape that is only right for
+       even counts has no business being generated for any count.
+
+     So the road is a SINE serpentine of cubic beziers now: it flows through
+     its extremes instead of turning at them, it starts at the top left and
+     ends ON the last stop with nothing trailing past it, and it is the
+     pipeline's flat-and-wide proportion (280 across, 138 down per half turn),
+     which is the S she was pointing at. */
+  var CX = 200, A = 140, ROW = 138, Y0 = 70, R = 30;
+  function roadPath(rows) {
+    var d = 'M' + (CX - A) + ' ' + Y0, x = CX - A, y = Y0;
+    for (var r = 0; r < rows; r++) {
+      var x1 = (r % 2 === 0) ? CX + A : CX - A, y1 = y + ROW;
+      // control points straight above/below each end: the tangent is vertical
+      // at the joins and the curve stays symmetric, which is what makes it
+      // read as one continuous S rather than a stack of separate curves
+      d += 'C' + x + ' ' + (y + ROW * 0.55) + ' ' + x1 + ' ' + (y1 - ROW * 0.55)
+        + ' ' + x1 + ' ' + y1;
+      x = x1; y = y1;
     }
-    return d + 'A' + A + ' ' + B + ' 0 0 ' + ((n + 1) % 2) + ' '
-      + (CX + A) + ' ' + (Y0 + (2 * n + 2) * B);
+    return d;
   }
-  // one bowl per ~2 lessons, so a 3-lesson path is a small S and a 6-lesson
-  // one is a tall S — the stops keep roughly the spacing the pipeline has
-  function bowls(n) { return Math.max(1, Math.ceil((n - 1) / 2)); }
+  /* half turns per path. Two is the floor — one is a shallow diagonal, not an
+     S — and after that it is one more per lesson, which keeps the stops about
+     as far apart as the pipeline keeps its own. */
+  function bowls(n) { return Math.max(2, n - 2); }
 
   // SVG has no text wrapping: a long name is split by words into two lines
   function wrap2(s, per) {
@@ -245,7 +271,7 @@ const html = `<!doctype html>
   function drawPath(cat) {
     var svg = document.getElementById('road');
     var ids = cat.lessons, N = ids.length, n = bowls(N);
-    var H = Y0 + (2 * n + 2) * B + 74;
+    var H = Y0 + n * ROW + 78;   // + the last stop's node and its two label lines
     svg.setAttribute('viewBox', '0 0 400 ' + H);
     svg.textContent = '';
 
