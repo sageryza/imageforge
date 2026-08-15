@@ -42,6 +42,9 @@
 //                                  the ✓ on a card in the NEW tab. A self-
 //                                  clearing stamp: anything newer brings the
 //                                  card back on its own.
+//   POST /api/chatfeed/news-queue → { chats:[…], queue:'later'|'soon'|'' } —
+//                                  the two boxes on the Update screen: "later"
+//                                  and "in a minute". One field per chat.
 //   GET  /api/chatfeed/questions?chat= → her questions in that chat, each with
 //                                  the answer that came back. DERIVED from the
 //                                  thread (questions.js), never filed by a chat.
@@ -1294,6 +1297,55 @@ router.post('/category', async (req, res) => {
         { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
     }
     res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- THE UPDATE SCREEN'S TWO BOXES (Aug 2026, Sophie) ----------------------
+// "There's no categories on the updates page in that same style of those
+// little boxes. I'd like to add two categories, one called IN A MINUTE for
+// things I want to look at in a minute but not quite this second, and then
+// next to it on the left another category called LATER for things I want to
+// look at maybe later today or this week."
+//
+// The chips on the CHAT list file a chat forever (`category`, a folder). These
+// file ONE UPDATE, for a while — so they are their own field, `newsQueue`, and
+// they are deliberately a CLOSED set of two: she named both, and a box she can
+// type is a folder, which is what the other row already is.
+//
+// `newsQueuedAt` is the moment it went in, and it is load-bearing exactly like
+// `filedAt` on a category: an update is the newest thing a chat has handed her,
+// so when something NEWER lands the card is new news again and belongs back on
+// the main list. The app reads the pair as ONE place — main list or a box,
+// never both — so the number on a box is what she finds when she opens it.
+//
+// A name with no registry doc is SKIPPED, never written: `set(…, merge)` on a
+// missing doc creates it, and every pile derives from the registry keys, so
+// one typo would put a phantom row in her list.
+const NEWS_QUEUES = ['later', 'soon'];
+router.post('/news-queue', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const queue = String(body.queue || '').trim().slice(0, 20);
+    if (queue && !NEWS_QUEUES.includes(queue)) {
+      return res.status(400).json({ error: `queue must be one of ${NEWS_QUEUES.join(', ')} (or empty to clear)` });
+    }
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = queue ? new Date().toISOString() : del;
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(
+      resolved.map((n) => db().collection(REG).doc(n).get()));
+    const live = resolved.filter((n, i) => snaps[i].exists);
+    const missing = resolved.filter((n, i) => !snaps[i].exists);
+    if (live.length) {
+      const batch = db().batch();
+      live.forEach((n) => batch.set(regRef(n),
+        { newsQueue: queue || del, newsQueuedAt: stamp }, { merge: true }));
+      await batch.commit();
+    }
+    res.json({ ok: true, chats: live, missing, queue: queue || null, at: queue ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 

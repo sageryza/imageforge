@@ -143,7 +143,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   // 3 + 4. THE ASK: open the chat, come back, the card is still there — and
   //        opening it wrote nothing to the server
-  await page.click('#grid .nwcard[data-chat="chat-new"] .crow');
+  // the ICON is the way into the chat from a card (Aug 2026 — the card itself
+  // picks it for the Later / In a minute boxes)
+  await page.click('#grid .nwcard[data-chat="chat-new"] .cr-ic');
   await page.waitForSelector('#thread .msg');
   await page.click('#back');   // the real way back, same as her thumb
   await page.waitForSelector('#grid .crow', { timeout: 3000 });
