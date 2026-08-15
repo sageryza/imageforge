@@ -59,17 +59,42 @@ const FEED = {
 // One transparent pixel, so panel images resolve without any network.
 const PX = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
+// My own night: two dreams written the same night, three pictures between them.
+const MINE = [
+  { id: 'm1', title: 'My Night', night: '2026-08-08', createdAt: new Date(T0).toISOString(), text: 'the first part of it', publicOn: null, wordsPublic: true, drawJob: null,
+    panels: [{ i: 0, url: '/px.png?i=a', public: false }, { i: 1, url: '/px.png?i=b', public: false }] },
+  { id: 'm2', title: 'And After', night: '2026-08-08', createdAt: new Date(T0 + 60000).toISOString(), text: 'and then the second part', publicOn: null, wordsPublic: true, drawJob: null,
+    panels: [{ i: 0, url: '/px.png?i=c', public: false }] },
+];
+const NIGHT = {
+  id: 'm1', night: '2026-08-08', title: 'My Night', shared: false,
+  createdAt: MINE[0].createdAt, wordsPublic: true,
+  dreams: MINE.map((d) => ({ id: d.id, title: d.title, text: d.text, createdAt: d.createdAt, drawJob: null, panels: d.panels })),
+};
+const shared = [];
+
+// The body has to be COLLECTED before routing, or the share POST is inspected
+// while it is still arriving and always reads as empty.
 const server = http.createServer((req, res) => {
+  let raw = '';
+  req.on('data', (c) => { raw += c; });
+  req.on('end', () => route(req, res, raw));
+});
+function route(req, res, body) {
   const url = new URL(req.url, 'http://x');
-  const send = (code, type, body) => { res.writeHead(code, { 'content-type': type }); res.end(body); };
+  const send = (code, type, b) => { res.writeHead(code, { 'content-type': type }); res.end(b); };
   if (url.pathname === '/px.png') return send(200, 'image/gif', PX);
   if (url.pathname === '/api/witch/firebase-config') return send(200, 'application/json', JSON.stringify({ apiKey: 'stub', authDomain: 'stub', projectId: 'stub' }));
   if (url.pathname === '/api/dreamapp/feed') return send(200, 'application/json', JSON.stringify(FEED));
-  if (url.pathname === '/api/dreamapp/dreams') return send(200, 'application/json', JSON.stringify({ dreams: [] }));
+  // "My dreams" holds ONE night made of two dreams — the shape a long recording
+  // split for drawing produces, and the case the share screen has to get right.
+  if (url.pathname === '/api/dreamapp/dreams') return send(200, 'application/json', JSON.stringify({ dreams: MINE }));
+  if (url.pathname === '/api/dreamapp/nights/m1') return send(200, 'application/json', JSON.stringify(NIGHT));
+  if (url.pathname === '/api/dreamapp/nights/m1/share') { shared.push(JSON.parse(body || '{}')); return send(200, 'application/json', JSON.stringify({ ok: true })); }
   if (/\/api\/dreamapp\/nights\/.*\/cover$/.test(url.pathname)) return send(200, 'application/json', JSON.stringify({ ok: true }));
   if (url.pathname === '/dreamfeed') return send(200, 'text/html', fs.readFileSync(path.join(PUB, 'dreamapp.html')));
   return send(404, 'text/plain', 'no');
-});
+}
 
 // Stands in for the two firebase-compat scripts the page loads from gstatic.
 const FAKE_FIREBASE = `
@@ -304,6 +329,35 @@ const check = (name, ok, detail) => {
   // words / pictures in small caps
   const caps = await page.evaluate(() => getComputedStyle(document.querySelector('.tab')).fontVariantCaps);
   check('the words/pictures labels are small caps', caps === 'small-caps', caps);
+
+  // ── SHARING IS THE NIGHT'S (Sophie: "you can only really post once per day",
+  // and a long recording split into dreams "counts as one"). My dreams lists
+  // ONE row for the night, and the share screen offers the whole night at once.
+  await page.locator('#nav-mine').click();
+  await page.waitForSelector('.jitem');
+  check('my dreams lists one row per night, not per dream',
+    (await page.locator('.jitem').count()) === 1, `${await page.locator('.jitem').count()} rows`);
+  await page.locator('.jitem').first().click();
+  await page.waitForSelector('#shareBtn');
+  check('the night screen shows both dreams\' words',
+    (await page.locator('#scr-dream .words .part').count()) === 2);
+  check('and every picture of the night is offered, across both dreams',
+    (await page.locator('#scr-dream .share-item').count()) === 4, // words + 3 pictures
+    `${await page.locator('#scr-dream .share-item').count()} rows`);
+
+  // Words start public (that is the stub's state); turn on one picture from the
+  // SECOND dream, so the send has to name which dream drew it, then share.
+  check('the words toggle starts on', await page.locator('#scr-dream [data-t="words"]').evaluate(
+    (el) => el.classList.contains('pub')));
+  await page.locator('#scr-dream [data-t="p:m2:0"]').click();
+  await page.locator('#shareBtn').click();
+  await page.waitForTimeout(300);
+  const sent = shared[shared.length - 1];
+  check('the share posts to the NIGHT', !!sent, JSON.stringify(sent || null));
+  check('carrying the words choice once for the night', sent && sent.words === true);
+  check('and naming the picture by its own dream',
+    sent && sent.panels.length === 1 && sent.panels[0].dreamId === 'm2' && sent.panels[0].i === 0,
+    JSON.stringify(sent && sent.panels));
 
   await browser.close();
   server.close();

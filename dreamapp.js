@@ -222,6 +222,9 @@ function repairJob(doc) {
 function mine(doc) {
   return {
     id: doc.id, text: doc.text, title: doc.title || null,
+    // The night it belongs to — "my dreams" lists one row per night, because
+    // you post once a day (Sophie).
+    night: nightOf(doc),
     createdAt: doc.createdAt, publicOn: doc.publicOn || null,
     wordsPublic: doc.wordsPublic !== false,
     panels: (doc.panels || []).map((p) => ({ i: p.i, url: p.url, captions: p.captions, public: !!p.public })),
@@ -312,6 +315,74 @@ router.post('/dreams/:id/draw', async (req, res) => {
     LIVE.add(doc.id);
     draw(doc, quality); // deliberately not awaited
     res.json(mine(doc));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ONE POST A DAY (Sophie, Aug 2026) ───────────────────────────────────────
+// "Someone can only really post once per day, so that's why it counts as one
+// dream. Sometimes I give a long recording and the model breaks it up into
+// different dreams so it can figure out the chronology, but that's just a step
+// towards illustrating it — it all counts as one. You can just add to your
+// single post later."
+//
+// So the SPLIT INTO DREAMS IS MACHINERY, not something the reader ever sees,
+// and sharing is a decision about the night. `POST /nights/:id/share` publishes
+// the whole night in one go: her words are one choice, and each picture across
+// the night is its own. Adding to the day later re-shares the same night.
+async function ownNight(uid, nightDate) {
+  const snap = await db().collection(DREAMS).where('uid', '==', uid).get();
+  return snap.docs.map((d) => d.data())
+    .filter((d) => nightOf(d) === nightDate)
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+}
+
+// The night that holds this dream, as its OWNER sees it — published or not.
+router.get('/nights/:id', async (req, res) => {
+  try {
+    const snap = await db().collection(DREAMS).doc(req.params.id).get();
+    if (!snap.exists || snap.data().uid !== req.user.uid) return res.status(404).json({ error: 'not found' });
+    const group = await ownNight(req.user.uid, nightOf(snap.data()));
+    const spine = spineOf(group);
+    res.json({
+      id: spine.id,
+      night: nightOf(spine),
+      title: spine.title || null,
+      shared: !!spine.publicOn,
+      createdAt: spine.createdAt,
+      wordsPublic: spine.wordsPublic !== false,
+      dreams: group.map((d) => ({
+        id: d.id, title: d.title || null, text: d.text, createdAt: d.createdAt,
+        drawJob: d.drawJob || null,
+        panels: (d.panels || []).map((p) => ({ i: p.i, url: p.url, public: !!p.public })),
+      })),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/nights/:id/share', async (req, res) => {
+  try {
+    const snap = await db().collection(DREAMS).doc(req.params.id).get();
+    if (!snap.exists || snap.data().uid !== req.user.uid) return res.status(404).json({ error: 'not found' });
+    const group = await ownNight(req.user.uid, nightOf(snap.data()));
+    const words = req.body?.words !== false;
+    // Panels are named across the whole night, so a picture is identified by
+    // which dream drew it as well as its index.
+    const want = new Set((Array.isArray(req.body?.panels) ? req.body.panels : [])
+      .map((p) => `${p.dreamId}|${Number(p.i)}`));
+    const anyPanel = group.some((d) => (d.panels || []).some((p) => want.has(`${d.id}|${p.i}`)));
+    if (!words && !anyPanel) return res.status(400).json({ error: 'switch at least one thing public first' });
+    const on = feedDay();
+    const batch = db().batch();
+    for (const d of group) {
+      batch.update(db().collection(DREAMS).doc(d.id), {
+        wordsPublic: words,
+        panels: (d.panels || []).map((p) => ({ ...p, public: want.has(`${d.id}|${p.i}`) })),
+        publicOn: on,
+        name: req.user.name,
+      });
+    }
+    await batch.commit();
+    res.json({ ok: true, night: nightOf(spineOf(group)), publicOn: on, dreams: group.length });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
