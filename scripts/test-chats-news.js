@@ -27,9 +27,9 @@
 //      opening a chat does NOT post it, or reading a thread would clear a
 //      card behind her back,
 //   5. the page title opens the full-screen Compare viewer; a thumb opens the
-//      chat; an account tab comes back to the chat list. (The card's ICON is
-//      what opens the chat since Aug 2026 — the card itself is the pick target
-//      for the two boxes; see test-chats-news-queue.js.)
+//      chat; an account tab comes back to the chat list. (Picking a card for
+//      the Later / In a minute boxes is the ✓ box, never the row — see
+//      test-chats-news-queue.js.)
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-news.js
 //
@@ -335,11 +335,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const before = notifPosts.length;
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForSelector('.nwcard', { timeout: 4000 });
-  // …opened by the card's ICON since Aug 2026 — a tap on the card itself now
-  // PICKS it for the Later / In a minute boxes (test-chats-news-queue.js).
-  await page.click('.nwcard[data-chat="chat-oven"] .cr-ic');
+  await page.click('.nwcard[data-chat="chat-oven"] .crow');
   await page.waitForFunction(() => document.getElementById('thread').style.display !== 'none',
-    null, { timeout: 4000 }).catch(() => fail('the card icon never opened the chat'));
+    null, { timeout: 4000 }).catch(() => fail('the card row never opened the chat'));
   await page.waitForFunction((n) => true, null, { timeout: 200 }).catch(() => {});
   const posted = notifPosts.slice(before).filter((p) => p.chat === 'chat-oven' && p.seen !== false);
   if (posted.length) fail('opening a chat posted notif-seen — it would clear a card she never checked');

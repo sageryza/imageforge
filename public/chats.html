@@ -2661,31 +2661,21 @@ function newsCard(it){
   // maybe just move it on the other side of the clock time"). So the card's
   // top row reads: name/line · ⌄ · TIME · ✓ — the harmless tap on one side,
   // and the one that clears the card alone behind the timestamp.
-  // The icon is drawn with its BLANK fallback here and nowhere else on this
-  // screen: it is the way into the chat now (below), so every card needs one,
-  // including the chats that have never been given a picture.
-  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic',true)
+  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic')
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(it.chat))+'</span>'
     +statusLinesHtml(it.chat, statusFor(it.list))+'</span>';
-  // A TAP ON THE CARD PICKS IT (Sophie, Aug 2026 — see NEWS_QS above). That
-  // takes the row's old job, so opening the chat moves onto its ICON.
-  // The NAME was tried first and it is wrong: the name sits in the middle of
-  // the row, so the natural tap — at the card's centre — landed on it and
-  // opened the chat instead of picking, which is the gesture she asked for.
-  // The icon is a 40px square at the edge, it is the chat's own face, and it
-  // is on every card. Everything else that already did something — the ⌄, the
-  // ✓, a page title, a thumbnail — stops the click, so nothing on this card
-  // gained a second meaning.
-  function pickTap(e){ e.stopPropagation(); toggleNewsPick(it.chat, card); }
-  card.onclick=pickTap;
-  row.onclick=pickTap;
-  row.setAttribute('aria-label','Pick this update');
-  var ic=row.querySelector('.cr-ic');
-  if(ic){
-    ic.onclick=function(e){ e.stopPropagation(); openChat(it.chat); };
-    ic.setAttribute('role','button');
-    ic.setAttribute('aria-label','Open '+dispName(it.chat));
-  }
+  // A TAP ON THE CARD OPENS THE CHAT, exactly as it always did — the ✓ box is
+  // what picks a card now (Aug 2026, Sophie), so nothing here has to mean two
+  // things. It went the other way for one build: the card itself was the pick
+  // target, which left no thumb-sized way into the chat ("I don't think
+  // there's a way to open the chat now cause clicking on it selects it"), and
+  // an opener parked on the little picture icon was a 40px target for the
+  // commonest tap on the screen. Handling it on the CARD as well as the row
+  // means the quiet space beside a thumbnail opens it too; the ⌄, the ✓, a
+  // page title and a thumbnail all stop the click and keep their own jobs.
+  function openTap(e){ e.stopPropagation(); openChat(it.chat); }
+  card.onclick=openTap;
+  row.onclick=openTap;
   if(newsPick[it.chat]) card.classList.add('picked');
   top.appendChild(row);
   var upd=newsUpdate(it);

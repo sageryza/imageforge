@@ -32,8 +32,9 @@
 //   7. NEWER NEWS POPS IT BACK OUT: a chat that delivers something after the
 //      filing is on the main list again and out of the box, so a card is
 //      always in exactly one place,
-//   8. the chat is still reachable — its NAME opens it, since the card's body
-//      now belongs to picking.
+//   8. A TAP ON THE CARD OPENS ITS CHAT (Sophie, Aug 2026, after living with
+//      the first build: "I don't think there's a way to open the chat now
+//      cause clicking on it selects it" → the ✓ box picks, the card opens).
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-news-queue.js
 //
@@ -258,9 +259,9 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (list.indexOf('chat-new') >= 0) fail('DONE did not take the card off the list: ' + list.join(', '));
   if (await page.$('#catrow .nwdone')) fail('DONE stayed on the row after clearing the selection');
 
-  // 8. the chat is still reachable — its ICON opens it (every card has one,
-  // blank fallback included, because that is the way in now)
-  await page.click('.nwcard[data-chat="chat-c"] .cr-ic');
+  // 8. a tap on the card opens its chat — picking lives on the ✓ box alone
+  await page.click('.nwcard[data-chat="chat-c"] .crow');
+  if (await page.$('.nwcard[data-chat="chat-c"].picked')) fail('opening the chat also picked the card');
   await page.waitForSelector('#thread', { state: 'visible', timeout: 3000 })
     .catch(() => fail('tapping the card’s name no longer opens the chat'));
 
