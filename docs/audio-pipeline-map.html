@@ -20,8 +20,8 @@
   }
   /* the hairline tabs (the account-row pattern). The 56px reserve is
      load-bearing — this row sits inside the pill's band (x 324-374,
-     y 14-192); the sliding line measures (100% - 56px)/3 because an abspos
-     child resolves against the PADDING box, and there are THREE tabs. */
+     y 14-192); the sliding line measures (100% - 56px)/4 because an abspos
+     child resolves against the PADDING box, and there are FOUR tabs. */
   .tabs {
     position: relative; display: flex; border-bottom: 1px solid #e6d2cd;
     margin: 0 0 14px; padding-right: 56px;
@@ -36,11 +36,12 @@
   .tab.on { color: var(--ink); }
   .tabs::after {
     content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
-    width: calc((100% - 56px) / 3); background: var(--ink);
+    width: calc((100% - 56px) / 4); background: var(--ink);
     transform: translateX(0); transition: transform .2s ease;
   }
   .tabs[data-on="1"]::after { transform: translateX(100%); }
   .tabs[data-on="2"]::after { transform: translateX(200%); }
+  .tabs[data-on="3"]::after { transform: translateX(300%); }
   .board {
     position: relative; background: var(--blush); border: 1px solid #e6d2cd;
     border-radius: 6px; padding: 8px 2px 10px;
@@ -89,9 +90,10 @@
   <h1>The audio pipeline</h1>
 
   <div class="tabs" id="tabs" data-on="0" data-nostop>
-    <button class="tab on" data-tab="0" type="button">The map</button>
-    <button class="tab" data-tab="1" type="button">The stops</button>
-    <button class="tab" data-tab="2" type="button">The gaps</button>
+    <button class="tab on" data-tab="0" type="button">Map</button>
+    <button class="tab" data-tab="1" type="button">Stops</button>
+    <button class="tab" data-tab="2" type="button">Gaps</button>
+    <button class="tab" data-tab="3" type="button">Artifacts</button>
   </div>
 
   <div id="view-map">
@@ -106,6 +108,10 @@
 
   <div id="view-gaps" hidden>
     <div id="gaplist" data-nostop></div>
+  </div>
+
+  <div id="view-arts" hidden>
+    <div class="stoplist" id="artlist" data-nostop></div>
   </div>
 </div>
 
@@ -140,7 +146,7 @@
     { id: 'exact',   label: 'EXACT CUT',  art: 'screen', href: '/cutmarks',
       what: 'tap the spot on the playhead, nudge it by a tenth — audio or video' },
     { id: 'polish',  label: 'POLISH',     art: 'wave', href: '/cuttingroom',
-      what: 'pauses out, filler out, one tap each — the last pass' },
+      what: 'pauses out and filler out (cutting room) — and their LENGTH set, or a new one added, in the pausing tool' },
     { id: 'cut',     label: 'THE CUT',    art: 'reel',
       what: 'the finished audio' },
   ];
@@ -307,34 +313,44 @@
      blocks artifact (v14), editor.js + editor.html, cuttingroom.js +
      cuttingroom.html, cutmarks.js + cutmarks.html, and search.js. A row is
      one thing you can DO to audio; the tags say which rooms can do it. */
+  /* `id` is STABLE and content-derived on purpose. The first cut keyed these
+     rows by array index, which means inserting one row silently re-points every
+     note she left below it onto different content — the same trap the sheet
+     naming rule exists for. Never renumber; add new ids at the end. */
   var GAPS = [
-    { f: 'Split one line into two', has: ['blocks'], hole: 1 },
-    { f: 'Meld two lines into one', has: ['blocks'], hole: 1 },
-    { f: 'Locked in / not sure / out', has: ['blocks'], hole: 1,
+    { id: 'split', f: 'Split one line into two', has: ['blocks'], hole: 1 },
+    { id:'meld', f: 'Meld two lines into one', has: ['blocks'], hole: 1 },
+    { id:'tristate', f: 'Locked in / not sure / out', has: ['blocks'], hole: 1,
       note: 'every other room is keep-or-cut, no maybe' },
-    { f: 'Hear the whole thing as marked, before rendering', has: ['blocks'], hole: 1 },
-    { f: 'Say who said it — you, or TTS', has: ['blocks'], hole: 1 },
-    { f: 'Reorder the pieces', has: ['blocks', 'episode editor'] },
-    { f: 'Add a typed line, spoken in your voice', has: ['blocks', 'episode editor'] },
-    { f: 'Undo', has: ['blocks', 'cut marks'], hole: 1,
+    { id:'hearall', f: 'Hear the whole thing as marked, before rendering', has: ['blocks', 'pausing tool'] },
+    { id:'who', f: 'Say who said it — you, or TTS', has: ['blocks'], hole: 1 },
+    { id:'pauselen', f: 'Set how LONG a pause is', has: ['pausing tool'], hole: 1,
+      note: 'the cutting room only removes one, compressed to about a third of a second' },
+    { id:'pauseadd', f: 'Add a pause where there is none', has: ['pausing tool'], hole: 1 },
+    { id:'roomtone', f: 'Build a pause out of the room’s own tone, never digital silence',
+      has: ['pausing tool'], hole: 1,
+      note: 'digital silence is what made the 45% line sound bungled' },
+    { id:'reorder', f: 'Reorder the pieces', has: ['blocks', 'episode editor'] },
+    { id:'typedline', f: 'Add a typed line, spoken in your voice', has: ['blocks', 'episode editor'] },
+    { id:'undo', f: 'Undo', has: ['blocks', 'cut marks'], hole: 1,
       note: 'the episode editor and the cutting room have none' },
-    { f: 'Nudge an edge by a tenth of a second', has: ['cut marks'], hole: 1,
+    { id:'nudge', f: 'Nudge an edge by a tenth of a second', has: ['cut marks'], hole: 1,
       note: 'the cutting room’s manual mode is parked' },
-    { f: 'Cut at the exact tapped moment', has: ['cut marks'], hole: 1 },
-    { f: 'Pauses and filler out', has: ['cutting room'], hole: 1 },
-    { f: 'Mark it on the transcript', has: ['cutting room', 'episode editor'] },
-    { f: 'Video, not just audio', has: ['cut marks'], hole: 1 },
-    { f: 'Pull words in from another recording', has: ['search', 'episode editor'] },
-    { f: 'Search every recording you have', has: ['search'] },
-    { f: 'Turn a memo + your notes into a script', has: [], hole: 1 },
-    { f: 'Carry one project across the rooms', has: [], hole: 1,
+    { id:'exact', f: 'Cut at the exact tapped moment', has: ['cut marks'], hole: 1 },
+    { id:'pauseout', f: 'Pauses and filler out', has: ['cutting room'], hole: 1 },
+    { id:'ontranscript', f: 'Mark it on the transcript', has: ['cutting room', 'episode editor'] },
+    { id:'video', f: 'Video, not just audio', has: ['cut marks'], hole: 1 },
+    { id:'pullin', f: 'Pull words in from another recording', has: ['search', 'episode editor'] },
+    { id:'search', f: 'Search every recording you have', has: ['search'] },
+    { id:'script', f: 'Turn a memo + your notes into a script', has: [], hole: 1 },
+    { id:'carry', f: 'Carry one project across the rooms', has: [], hole: 1,
       note: 'each room is keyed to its own source url, so marks, labels and order never travel' },
   ];
   var gl = document.getElementById('gaplist');
-  GAPS.forEach(function (g, i) {
+  GAPS.forEach(function (g) {
     var d = document.createElement('div');
     d.className = 'gap' + (g.hole ? ' hole' : '');
-    d.setAttribute('data-item', 'gap-' + i);
+    d.setAttribute('data-item', 'gap-' + g.id);
     var f = document.createElement('div');
     f.className = 'f'; f.textContent = g.f;
     d.appendChild(f);
@@ -362,6 +378,62 @@
     gl.appendChild(d);
   });
 
+  /* ── the artifacts tab ─────────────────────────────────────────────────
+     Every audio tool any chat has built as a Compare page. Measured Aug 2026
+     by walking all 253 chats in the registry and listing their pages (353),
+     then reading the ones that touch audio. `built` = it became a real tool;
+     everything else is still only a page. */
+  var ARTS = [
+    { seg: 'Still only a page' },
+    { nm: 'PAUSING TOOL', chat: 'evan-story-visual-summary', when: 'Aug 10',
+      go: '/api/chatfeed/page/s9rSf9bZo0AqnScX0OON',
+      what: 'every gap between words is a chip you tap to set its length, cut it, or add one — and play rebuilds the film with your pauses so you can hear it' },
+    { nm: 'CUTTING BLOCKS v14', chat: 'cutting-blocks-artifact', when: 'Aug 12',
+      go: '/api/chatfeed/page/ePKqeMJOATGCz7MJa9lA',
+      what: 'sentence blocks — split, meld, reorder, locked in / not sure / out, TTS lines' },
+    { nm: 'PICK THE CUTS', chat: 'illustrated-cannon-passage', when: 'Aug 8',
+      go: '/api/chatfeed/page/XGRx9R9uVqnnWOSqIFIT',
+      what: 'span picker over 11 sources — hand-rolled, before the shared one existed' },
+    { nm: 'WHERE THE PICTURES FALL', chat: 'darius-wright-heart-field', when: 'Aug 8',
+      go: '/api/chatfeed/page/qz80ICKwNoCQQiWa4jJs',
+      what: 'a planning cut, tap to play' },
+    { seg: 'Became a real tool' },
+    { nm: 'CUT PICKER', chat: 'chat-app-recording-trim-ui', when: 'Aug 9', built: 1,
+      go: '/api/chatfeed/page/cT0EZgNGl2RUhTshPCyj',
+      what: 'now the SHARED picker every page must use — picker-shell.html + /picker.js' },
+    { nm: 'CUTTING ROOM SKETCH', chat: 'audio-editor-waveform-marking', when: 'Aug 5', built: 1,
+      go: '/cuttingroom',
+      what: 'the screen sketch that became /cuttingroom' },
+    { nm: 'CUT MARKS MOCKUP', chat: 'manual-cut-marker-media', when: 'Aug 6', built: 1,
+      go: '/cutmarks',
+      what: 'the mockup that became /cutmarks' },
+  ];
+  var al = document.getElementById('artlist');
+  ARTS.forEach(function (a) {
+    if (a.seg) {
+      var h = document.createElement('div');
+      h.className = 'seg'; h.textContent = a.seg;
+      al.appendChild(h);
+      return;
+    }
+    var row = document.createElement('a');
+    row.className = 'stop' + (a.built ? '' : ' none');
+    row.href = a.go;
+    row.setAttribute('data-item', 'art-' + a.chat);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    var nm = tx.querySelector('.nm');
+    nm.textContent = a.nm;
+    var tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = a.chat + ' · ' + a.when;
+    if (a.built) { tag.style.color = 'var(--blushink)'; tag.style.borderColor = 'var(--track)'; }
+    nm.appendChild(tag);
+    tx.querySelector('.what').textContent = a.what;
+    row.appendChild(tx);
+    al.appendChild(row);
+  });
+
   /* ── tabs ──────────────────────────────────────────────────────────── */
   var tabs = document.getElementById('tabs');
   tabs.addEventListener('click', function (e) {
@@ -372,15 +444,16 @@
     document.getElementById('view-map').hidden = n !== '0';
     document.getElementById('view-stops').hidden = n !== '1';
     document.getElementById('view-gaps').hidden = n !== '2';
+    document.getElementById('view-arts').hidden = n !== '3';
   });
 
   draw();
   if (window.__compareHelp) window.__compareHelp({ html:
     '<p>The road is the path one piece of audio walks, top to bottom.</p>' +
     '<p>Tap a stop to go to its tool. A dashed ring means the stage is real but nothing is built for it yet.</p>' +
-    '<p><b>The stops</b> names each one. <b>The gaps</b> is every thing you can do to audio and which room can do it — the rose ones live in exactly one room, or in none.</p>' +
+    '<p><b>Stops</b> names each one. <b>Gaps</b> is every thing you can do to audio and which room can do it — the rose ones live in exactly one room, or in none. <b>Artifacts</b> is every audio tool any chat has built as a page; tap one to open it.</p>' +
     '<p>Leave a note on anything with the + in its corner.</p>' });
-  if (window.__compareNotes) window.__compareNotes({ chat: 'audio-pipeline-tool', sheet: 'audio-pipeline-v1' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'audio-pipeline-tool', sheet: 'audio-pipeline-s10' });
 })();
 </script>
 <style>[hidden]{display:none !important}</style>
