@@ -40,6 +40,9 @@ const SIZE = SIZES[arg('shape') || 'portrait'] || SIZES.portrait;
 // from round 1, when her card was a bad head-on portrait, and never retested
 // against the good three-view sheet.
 //   full       her whole continuity line (what every page has been getting)
+//   physical   the same line with the expression sentence taken out — Sophie's
+//              ask, and the arm the first test was missing: everything else
+//              identical, only the instruction about her face removed
 //   expression only the do-not-copy-the-sheet's-face instruction
 //   none       nothing at all; the card carries her by itself
 const CHARS = arg('chars') || 'full';
@@ -53,7 +56,15 @@ const STYLE_ONE = 'Use the attached image as a style reference. Only use its sty
 const CARD_LINE = 'The second attached image is a reference sheet for Marla — three views of the same girl. Draw her as that girl, in whatever pose this scene needs.';
 const NO_TEXT = 'Do not put any text, words, letters, numbers, captions or watermarks anywhere in the image.';
 
-const hasMarla = (scene) => /\bgirl\b|\bMarla\b|\bher\b/i.test(scene);
+// A CHARACTER SHEET IS NEVER DRAWN WITH MARLA'S CARD — and this cost a real
+// picture. `hasMarla` matches the words "Marla's mother", so the mother's own
+// reference sheet was drawn with Marla's card attached AND Marla's whole
+// description appended: the model was told "draw her as that girl", and drew
+// the mother as a young pretty version of Marla. Sophie's note on it was
+// "the mother looks too young and beautiful". The guard is the KEY, not a
+// flag someone has to remember to pass.
+const isSheet = (key) => /-?sheet(-|$)/i.test(String(key || ''));
+const hasMarla = (scene, key) => !isSheet(key) && /\bgirl\b|\bMarla\b|\bher\b/i.test(scene);
 
 // A variant key carries its page number ("32e" -> 32), so a beach variant gets
 // the same sun-hat continuity line the numbered page would. Without this, 32e
@@ -62,8 +73,9 @@ const hasMarla = (scene) => /\bgirl\b|\bMarla\b|\bher\b/i.test(scene);
 const pageOf = (key) => Number(String(key).replace(/[a-z]+$/i, '')) || null;
 function extraLines(key, scene) {
   const out = [];
-  if (hasMarla(scene)) {
+  if (hasMarla(scene, key)) {
     if (CHARS === 'full') out.push(rev.character.line);
+    else if (CHARS === 'physical') out.push(rev.character.physicalOnly || '');
     else if (CHARS === 'expression') out.push(rev.character.expressionOnly || '');
     const n = pageOf(key);
     if (n && (rev.beachPages || []).includes(n) && rev.beachHat) out.push(rev.beachHat);
@@ -119,6 +131,11 @@ async function upload(buf, dest) {
 }
 
 const LABELS = {
+  'mother-sheet-grey': "Marla's mother — sheet v2, older and plainer, GREY dress (no Marla card this time)",
+  'mother-sheet-black': "Marla's mother — sheet v2, older and plainer, BLACK dress (no Marla card this time)",
+  'sardinia-sheet': 'Sardinia the maid — character sheet, three views',
+  'father-sheet': 'Stu the father — character sheet, three views, moustache and waistcoat',
+  '13t-physical': 'Description test — page 13 face-on, described but NOTHING said about her expression',
   '13t-none': 'Description test — page 13 face-on, character described: none',
   '13t-expression': 'Description test — page 13 face-on, character described: expression',
   '13t-full': 'Description test — page 13 face-on, character described: full',
@@ -157,7 +174,7 @@ function saveExtra(key, rec) {
   const only = (arg('only') || Object.keys(rev.scenes).filter((k) => /[a-z]$/.test(k))).split(',').map((s) => s.trim());
   if (!process.env.OPENAI_API_KEY) throw new Error('No OPENAI_API_KEY.');
   console.log(`${only.length} drawing(s) · about $${(only.length * 0.06).toFixed(2)} · gpt-image-2 medium ${SIZE}`);
-  if (DRY) { for (const k of only) console.log(`\n--- ${k} ---\n` + buildPrompt(rev.scenes[k], !NO_CARD && hasMarla(rev.scenes[k]) ? {} : null, k)); return; }
+  if (DRY) { for (const k of only) console.log(`\n--- ${k} ---\n` + buildPrompt(rev.scenes[k], !NO_CARD && hasMarla(rev.scenes[k], k) ? {} : null, k)); return; }
 
   initAdmin();
   const cardBuf = Buffer.from(await (await fetch(SHEET.url)).arrayBuffer());
@@ -166,7 +183,7 @@ function saveExtra(key, rec) {
   for (const k of only) {
     const scene = rev.scenes[k];
     if (!scene) { console.log(`${k}: no scene on file`); continue; }
-    const useCard = !NO_CARD && hasMarla(scene);
+    const useCard = !NO_CARD && hasMarla(scene, k);
     const prompt = buildPrompt(scene, useCard ? cardBuf : null, k);
     process.stdout.write(`\n${k} … `);
     try {
