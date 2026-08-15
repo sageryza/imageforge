@@ -1650,6 +1650,12 @@ router.get('/sort', async (_req, res) => {
     const examples = chatSort.examplesFor(reg.chats, cats);
     const names = Object.keys(reg.chats).filter((n) => !reg.chats[n].deletedAt);
     const counted = (f) => names.filter(f).length;
+    // `unfiled` USED TO COUNT THE ARCHIVE and it read as 178 chats waiting to
+    // be sorted when 90 of them were chats she had already put away — a number
+    // quoted straight into a reply before anyone checked it. The live pile is
+    // the one a backfill would actually touch, so that is what `unfiled` means
+    // now, and the archived ones are their own honest line.
+    const live = (n) => !reg.chats[n].archived && !reg.chats[n].movedTo;
     res.json({
       enabled: reg.settings.autoSort !== false,
       anthropic: require('./anthropic').available(),
@@ -1659,7 +1665,8 @@ router.get('/sort', async (_req, res) => {
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
       filedByAuto: counted((n) => reg.chats[n].category && reg.chats[n].catBy === 'auto'),
-      unfiled: counted((n) => !reg.chats[n].category),
+      unfiled: counted((n) => !reg.chats[n].category && live(n)),
+      unfiledArchived: counted((n) => !reg.chats[n].category && reg.chats[n].archived),
     });
   } catch (err) { fail(res, err); }
 });
