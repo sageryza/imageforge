@@ -4,15 +4,12 @@
 <link rel="stylesheet" href="/compare.css">
 <style>
   /* The blush board + road language is the content pipeline's (v8, the
-     s-curve-content-pipeline chat), and this is its THIRD sibling after
-     docs/audio-pipeline-map.html. Same road, same cut-out drawings. Keep the
-     three looking like one family — if the road changes there, change it here.
-
-     THE ONE THING THIS MAP HAS THAT THE OTHER TWO DO NOT: a lap. The audio
-     road is a walk — you pass each stop once. Here the road walks into a loop
-     (FOUR-UP -> READ -> REWRITE) and goes round it until the prompt is right,
-     and only then carries on. The loop is the free part; everything after it
-     costs real money, so drawing it as a lap IS the argument. */
+     s-curve-content-pipeline chat). This is its IMAGE sibling: the same road,
+     the same cut-out drawings, exploded out of that map's abbreviated image
+     stops (WINDOW / WOODEN / GOLD / WTR WASH) into the six the picture work
+     really walks, plus the lap. Keep the family looking like one thing — if
+     the road changes there, change it here. Geometry notes are in
+     docs/image-pipeline.md. */
   :root {
     --blush: #f7ebe7; --blush2: #ecd7d2; --track: #e0c6bf;
     --road: #f1dfda; --edge: #d9bcb4;
@@ -23,7 +20,7 @@
     letter-spacing: .045em; text-transform: uppercase; margin-bottom: 10px;
   }
   /* the hairline tabs (the account-row pattern). The 56px reserve is
-     load-bearing — this row sits inside the pill's band — and the sliding line
+     load-bearing — this row sits inside the pill's band; the sliding line
      measures (100% - 56px)/4 because an abspos child resolves against the
      PADDING box, and there are FOUR tabs. */
   .tabs {
@@ -63,26 +60,20 @@
     color: inherit; text-decoration: none;
   }
   .stop svg.g { flex: 0 0 40px; width: 40px; height: 40px; }
+  .stop img.th { flex: 0 0 40px; width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
   .stop .nm {
     font: 600 11px/1.2 -apple-system, sans-serif; letter-spacing: .09em;
     text-transform: uppercase; color: var(--blushink);
   }
   .stop .what { font: 12px/1.35 Georgia, serif; color: var(--ink2); }
-  /* a stage with no tool behind it reads differently — dashed, and it says so */
+  /* a stage with no tool (or only a partial one) reads differently — dashed */
   .stop.none { border-style: dashed; }
-  /* a TRIBUTARY is inset and carries a join mark, so the list reads the way the
-     map does: these two flow INTO the split, they are not stops after it */
+  /* the lap row is inset under the stop it cycles with, and carries a join
+     mark, so the list reads the way the map does */
   .stop.feed { margin-left: 20px; }
   .stop.feed::before {
     content: ''; position: absolute; left: -14px; top: 50%;
     width: 12px; height: 1.5px; background: var(--track);
-  }
-  /* the three stops inside the lap carry a spine down their left edge, so the
-     list says what the arrow says on the map */
-  .stop.lap { margin-left: 20px; }
-  .stop.lap::before {
-    content: ''; position: absolute; left: -12px; top: -4px; bottom: -4px;
-    width: 1.5px; background: var(--goldfill);
   }
   .stop .tag {
     font: 700 8.5px/1 -apple-system, sans-serif; letter-spacing: .08em;
@@ -90,60 +81,31 @@
     border-radius: 3px; padding: 2px 4px; margin-left: 6px; display: inline-block;
     vertical-align: 1px;
   }
-  /* the COSTS tab — one row per way of buying a picture, cheapest first */
-  /* the 30px on the right is the note button's lane — compare.js drops a + into
-     the corner of anything carrying data-item, and without the reserve it lands
-     on top of the words */
-  .cost {
-    display: flex; align-items: baseline; gap: 10px;
-    border: 1.5px solid var(--track); border-radius: 6px;
-    padding: 9px 30px 9px 10px; margin: 6px 0;
-  }
-  .cost.free { border-color: var(--goldfill); }
-  .cost .n {
-    flex: 0 0 62px; text-align: right;
-    font: 700 15px/1.1 Georgia, serif; color: var(--blushink);
-  }
-  .cost.free .n { color: #8a6238; }
-  .cost .t { flex: 1 1 auto; }
-  .cost .t b { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
-  .cost .t span { display: block; font: 12px/1.35 Georgia, serif; color: var(--ink2); margin-top: 2px; }
-  /* the HOLES tab */
-  .hole { border: 1.5px solid var(--rose); border-radius: 6px; padding: 9px 30px 9px 10px; margin: 6px 0; }
-  .hole.ok { border-color: var(--track); }
-  .hole .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
-  .hole .what { font: 12px/1.4 Georgia, serif; color: var(--ink2); margin-top: 4px; }
-  .hole .who { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
-  .hole .w {
+  .gap { border: 1.5px solid var(--track); border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
+  .gap .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .gap .who { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .gap .w {
     font: 600 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
     text-transform: uppercase; color: var(--blushink);
     border: 1px solid var(--track); border-radius: 3px; padding: 3px 5px;
   }
-  .hole .w.no { color: var(--rose); border-color: var(--rose); }
-  .picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 2px; }
-  .pick {
-    flex: 1 1 calc(50% - 4px); min-width: 0;
-    border: 1.5px solid var(--track); border-radius: 6px;
-    background: var(--blush); padding: 6px 6px 22px; text-align: center;
-  }
-  .pick img { display: block; width: 100%; height: auto; }
-  .pick b { display: block; font: 600 9.5px/1.3 -apple-system, sans-serif;
-            letter-spacing: .06em; text-transform: uppercase; color: var(--blushink); }
+  .gap .w.no { color: var(--rose); border-color: var(--rose); }
+  .gap.hole { border-color: var(--rose); }
 </style>
 
 <div class="wrap">
-  <h1>The image pipeline</h1>
+  <h1>The image pipeline v1</h1>
 
   <div class="tabs" id="tabs" data-on="0" data-nostop>
     <button class="tab on" data-tab="0" type="button">Map</button>
     <button class="tab" data-tab="1" type="button">Stops</button>
-    <button class="tab" data-tab="2" type="button">Costs</button>
-    <button class="tab" data-tab="3" type="button">Holes</button>
+    <button class="tab" data-tab="2" type="button">Gaps</button>
+    <button class="tab" data-tab="3" type="button">Wardrobe</button>
   </div>
 
   <div id="view-map">
     <div class="board" data-item="image-map" data-nostop>
-      <svg id="path" viewBox="0 0 440 545" role="img" aria-label="the image pipeline map"></svg>
+      <svg id="path" viewBox="0 0 440 495" role="img" aria-label="the image pipeline map"></svg>
     </div>
   </div>
 
@@ -151,12 +113,12 @@
     <div class="stoplist" id="stoplist" data-nostop></div>
   </div>
 
-  <div id="view-costs" hidden>
-    <div id="costlist" data-nostop></div>
+  <div id="view-gaps" hidden>
+    <div id="gaplist" data-nostop></div>
   </div>
 
-  <div id="view-holes" hidden>
-    <div id="holelist" data-nostop></div>
+  <div id="view-rack" hidden>
+    <div class="stoplist" id="racklist" data-nostop></div>
   </div>
 </div>
 
@@ -168,52 +130,39 @@
             gold: '#c9a961', ink: '#6f5450' };
 
   /* Every stop on the ROAD, in walking order, with `at` = where it sits along
-     the path as a FRACTION of total length.
-
-     THE POSITIONS ARE CHOSEN, NOT EVENLY SPREAD — the same rule as the audio
-     map, for the same reason. The four road extremes land on exactly 0.2 /
-     0.4 / 0.6 / 0.8, and at an extreme the road is vertical with a clear
-     gutter beside it. THE SPLIT is pinned to 0.40 (the LEFT extreme) because
-     it is the only stop anything flows into, and its two tributaries need that
-     left lane. Everything after it reuses the audio map's proven spacing.
-
-     `none` = the stage is real but nothing is BUILT for it; the string says
-     what is there instead. */
+     the path as a FRACTION of total length. THE POSITIONS ARE CHOSEN, NOT
+     EVENLY SPREAD (the family rule): the road extremes land on 0.2 / 0.4 /
+     0.6 / 0.8, and 0.4 / 0.8 are the LEFT extremes with the wide gutter
+     beside them. WINDOW is pinned to 0.40 because the lap needs that gutter
+     for RED WORDS; GOLD is pinned to 0.80 because the out-arrow needs it for
+     the projects. `none` = the stage is real but no tool (or only a partial
+     one) is built. The walker on this road is the PROMPT — the pictures are
+     its footprints — which is why the road ends at the bank, not the picture. */
   var STOPS = [
-    { id: 'subjects', label: 'SUBJECTS', art: 'blocks', at: 0.01, none: 'no tool',
-      what: 'the list of things to draw — a SET, never one picture, because the cheap rung draws four at a time and a set is what re-renders when the direction changes' },
-    { id: 'split',    label: 'THE SPLIT', art: 'scissors', at: 0.40, none: 'no editor',
-      what: 'content and style written as two halves BEFORE anything is drawn — content survives a change of direction, style is a column' },
-    { id: 'fourup',   label: 'FOUR-UP',  art: 'stamps', at: 0.51, none: 'script only',
-      href: '/vector', lap: 1,
-      what: 'one low 2x2 sheet, four subjects in a single call — 2¢ the sheet, HALF A CENT a frame, cut on the real gutters' },
-    { id: 'read',     label: 'READ',     art: 'wooden', at: 0.60, none: 'on the image, not the prompt',
-      href: '/chats', lap: 1,
-      what: 'write down what half a cent bought — onto the PROMPT, so the finding outlives the picture' },
-    { id: 'rewrite',  label: 'REWRITE',  art: 'journal', at: 0.70, none: 'no tool',
-      href: '/writing', lap: 1,
-      what: 'v2 with the changed words marked, then round again. Free. Four laps of four frames is 8¢' },
-    { id: 'spread',   label: 'SPREAD',   art: 'reel',   at: 0.80, none: 'script only',
-      href: '/playground',
-      what: 'the survivor drawn in every style — one sheet each. Three styles across four subjects is twelve pictures for 6¢' },
-    { id: 'ladder',   label: 'LADDER',   art: 'curve',  at: 0.90, none: 'script only',
-      what: '¼ sheet 1.5¢ → low 2¢ → medium 6¢ → high 25¢. Nothing climbs a rung without a mark against it at the rung below' },
-    { id: 'picture',  label: 'THE PICTURE', art: 'gold', at: 0.99, href: '/gallery',
-      what: 'labeled, filed, with its exact prompt and its MODEL · QUALITY caption — then out to vector, animate, print, or a page' },
+    { id: 'words',    label: 'WORDS',    art: 'words',    at: 0.01, none: 'no tool',
+      what: 'the content prompt gets written — what is in the picture, no style yet. a chat writes it with you today' },
+    { id: 'window',   label: 'WINDOW',   art: 'window',   at: 0.40, none: 'pastel only', href: '/vector',
+      what: 'her spec verbatim: one low sheet cut into four frames, each literally half a cent — does the idea read?' },
+    { id: 'wardrobe', label: 'WARDROBE', art: 'wardrobe', at: 0.60, href: '/playground',
+      what: 'the settled content tries on styles, 2¢ a fitting — the content half never changes, only the hanger' },
+    { id: 'wooden',   label: 'WOODEN',   art: 'wooden',   at: 0.73, href: '/playground',
+      what: 'medium, 6¢ — the chosen telling rendered properly. often the keeper (the NDE watercolours live here)' },
+    { id: 'gold',     label: 'GOLD',     art: 'gold',     at: 0.80, href: '/playground',
+      what: 'high, 25¢ — the only expensive call on the road. the picture leaves for its project here' },
+    { id: 'treasury', label: 'TREASURY', art: 'treasury', at: 0.99, none: 'per-image only',
+      what: 'the prompt banked: content half, style half, refs, size, quality — the rebuild recipe. the picture is a cache' },
   ];
 
-  /* THE PATH IS NOT A STRICT LINE. Two rooms are not stages a picture passes
-     THROUGH — they are places the STYLE half of a prompt comes FROM, so they
-     join the road at THE SPLIT and the walk continues from there. */
-  var FEEDS = [
-    { id: 'shelf', label: 'THE SHELF', art: 'brush', href: '/freeform', dy: -44,
-      what: 'the references and their written recipes — sage sandy mirror, dream mystery, sophie snake + animals, hoonies, scarry, the wtr LoRA. A style is a reference PLUS a prefix PLUS a suffix, and those live in four different places today' },
-    { id: 'character', label: 'CHARACTER', art: 'screen', href: '/character', dy: 44,
-      what: 'the consistency anchor — sophie book, evan, the nine approved NDE faces. A third axis: content × style × character' },
-  ];
+  /* THE LAP — the only loop on any of the three maps. A probe comes back, the
+     words change, the window runs again. Drawn as a cycle between WINDOW and
+     a gutter node, because the reword pass is a real place the work goes. */
+  var LAP = {
+    id: 'redwords', label: 'RED WORDS', art: 'redwords', none: 'no tool',
+    what: 'the lap — reword, run the window again. every changed word should show red, writing-room style; nothing records it for prompts yet',
+  };
 
-  /* what flows INTO the first stop — where a subject comes from */
-  var SOURCES = ['journal', 'mic', 'book', 'chat'];
+  /* what flows INTO the first stop (the family's left-gutter gesture) */
+  var SOURCES = ['chat', 'mic', 'book'];
 
   function el(n, a) {
     var e = document.createElementNS(SVG, n);
@@ -222,12 +171,13 @@
   }
 
   /* ── the road ──────────────────────────────────────────────────────────
-     v8's path verbatim, by way of the audio map — bowls joined at the centre
-     line, tangent horizontal at every join and vertical at every extreme,
-     drawn as a ROAD (the same path stroked twice, edges under surface). Do NOT
-     re-derive the sweep flags: moving the start alone leaves the bowls curling
-     the old way and the S comes out backwards. */
-  var CX = 270, A = 140, B = 44, Y0 = 58, R = 22;
+     v8's path verbatim — bowls joined at the centre line, tangent horizontal
+     at every join and vertical at every extreme, drawn as a ROAD (the same
+     path stroked twice, edges under surface). Only B changed: six stops need
+     less height than ten. Do NOT re-derive the sweep flags — moving the
+     start alone leaves the bowls curling the old way and the S comes out
+     backwards. CX 270 on a 440 board keeps the wide left gutter. */
+  var CX = 270, A = 140, B = 40, Y0 = 58, R = 22;
   var D = 'M' + (CX - A) + ' ' + Y0
         + 'A' + A + ' ' + B + ' 0 0 0 ' + CX + ' ' + (Y0 + B)
         + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 3 * B)
@@ -238,27 +188,26 @@
   var svg = document.getElementById('path');
 
   /* The drawings are the content pipeline's own cut-outs — already made,
-     already paid for, transparent background. Reusing them is what makes this
-     map read as the same pipeline seen from a different side.
-     `stamps` is the FOUR-UP stop's own icon and it is NOT from the original
-     sheets: four candidates were drawn on the pipeline's own cheapest rung
-     (job sh-mstwaqid-bnejd, a low 2x2 vector sheet, 2¢, half a cent each) and
-     Sophie picked the block of four perforated stamps over the four-pane
-     WINDOW that stood here in v1 — a window says window, not four. It is
-     published into the family's own prefix so anything else can use it, and
-     it is the one icon here served as WEBP (143KB against the cut PNG's
-     437KB). Originals + traced SVGs: out/pipeline-icons/. */
+     already paid for, transparent background. Reusing them is what makes
+     this map read as the same pipeline seen closer up. The two frames
+     (wooden, gold) were repainted onto cut-outs for v8 for exactly these
+     two stops. */
   var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
   var CUT = V + 'pipeline-icons-cut/';
   var CUT2 = V + 'pipeline-icons-2-cut/';
   var ART = {
-    blocks: CUT + 'blocks-cut.png',   scissors: CUT + 'scissors-cut.png',
-    stamps: CUT + 'stamps-cut.webp', wooden: CUT + 'wooden-cut.png',
-    gold: CUT + 'gold-cut.png',       reel: CUT + 'reel-cut.png',
-    book: CUT + 'book-cut.png',
-    journal: CUT2 + 'journal-cut.png', curve: CUT2 + 'curve-cut.png',
-    brush: CUT2 + 'brush-cut.png',    screen: CUT2 + 'screen-cut.png',
-    mic: CUT2 + 'mic-cut.png',        chat: CUT2 + 'chat-cut.png',
+    words:    CUT2 + 'zine-cut.png',
+    window:   CUT + 'window-cut.png',
+    redwords: CUT2 + 'journal-cut.png',
+    wardrobe: CUT2 + 'brush-cut.png',
+    wooden:   V + 'pipeline-frames/wooden-wood-cut.png',
+    gold:     V + 'pipeline-frames/gold-gilt-cut.png',
+    treasury: CUT + 'inbox-cut.png',
+    chat:     CUT2 + 'chat-cut.png',
+    mic:      CUT2 + 'mic-cut.png',
+    book:     CUT + 'book-cut.png',
+    reel:     CUT + 'reel-cut.png',
+    screen:   CUT2 + 'screen-cut.png',
   };
 
   // a cut-out drawing, fitted inside a box of side `s` and never cropped
@@ -277,16 +226,23 @@
     cell(g, ART[st.art], p.x, p.y, R2 * 2.1);
   }
 
-  function label(p, txt) {
-    // the wide S puts stops close to both edges, so clamp where the TEXT is
-    // centred rather than the stop — the label slides inward instead of clipping
+  function label(p, txt, dy) {
     var lx = Math.max(52, Math.min(388, p.x));
-    var t = el('text', { x: lx, y: p.y + R + 13, 'text-anchor': 'middle',
+    var t = el('text', { x: lx, y: p.y + (dy || R + 13), 'text-anchor': 'middle',
       fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
     t.style.font = '600 9.5px -apple-system, sans-serif';
     t.style.letterSpacing = '.07em';
     t.textContent = txt;
     return t;
+  }
+
+  // a small solid arrowhead at (x, y): dir 'left' points at smaller x
+  function arrow(x, y, dir) {
+    var s = dir === 'left' ? 1 : -1;
+    return el('path', {
+      d: 'M' + x + ' ' + y + 'l' + (7 * s) + ' -4v8z',
+      fill: C.edge,
+    });
   }
 
   function draw() {
@@ -302,10 +258,9 @@
       return { x: p.x, y: p.y };
     });
 
-    /* THE INPUTS COME IN FROM THE LEFT, not down from the top — a column in the
-       left gutter uses space the first bowl leaves empty anyway. */
+    /* the sources come in from the left (the family gesture) */
     var p0 = pts[0], SX = 26, SR = 15;
-    var src = [{ y: p0.y - 26 }, { y: p0.y + 12 }, { y: p0.y + 50 }, { y: p0.y + 88 }];
+    var src = [{ y: p0.y - 26 }, { y: p0.y + 12 }, { y: p0.y + 50 }];
     src.forEach(function (s) {
       svg.appendChild(el('path', {
         d: 'M' + (SX + SR + 1) + ' ' + s.y + 'Q' + (p0.x - 26) + ' ' + s.y + ' ' + (p0.x - R - 1) + ' ' + p0.y,
@@ -317,91 +272,81 @@
       svg.appendChild(g);
     });
 
-    /* the two tributaries, joining the road AT THE SPLIT. Drawn BEFORE the
-       stops so a node always sits over its line. */
-    var si = 0;
-    STOPS.forEach(function (st, i) { if (st.id === 'split') si = i; });
-    var sp = pts[si], FX = 42, FR = 15;
-    FEEDS.forEach(function (f) {
-      svg.appendChild(el('path', {
-        d: 'M' + (FX + FR + 1) + ' ' + (sp.y + f.dy)
-         + 'Q' + (FX + 46) + ' ' + (sp.y + f.dy) + ' ' + (sp.x - R - 1) + ' ' + sp.y,
-        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
-    });
-    FEEDS.forEach(function (f) {
-      var g = el('g', { 'data-go': f.href || '' });
-      if (f.href) g.style.cursor = 'pointer';
-      cell(g, ART[f.art], FX, sp.y + f.dy, FR * 2.1);
-      svg.appendChild(g);
-      var t = el('text', { x: FX, y: sp.y + f.dy + FR + 11, 'text-anchor': 'middle',
-        fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
-      t.style.font = '600 8.5px -apple-system, sans-serif';
-      t.style.letterSpacing = '.06em';
-      t.textContent = f.label;
-      svg.appendChild(t);
-    });
-
-    /* ── THE LAP ─────────────────────────────────────────────────────────
-       The return arc from REWRITE back to FOUR-UP, which is what makes this
-       an image pipeline rather than an audio one. It is drawn in the space
-       INSIDE the S — the road bulges RIGHT between those two stops and LEFT
-       both above and below, so a curve bowing left to about x=205 at the
-       mid-height sits in genuinely empty board. Dashed and gold, the same
-       language as an unbuilt stop, because the lap is the unbuilt part. */
-    var fi = 0, ri = 0;
-    STOPS.forEach(function (st, i) {
-      if (st.id === 'fourup') fi = i;
-      if (st.id === 'rewrite') ri = i;
-    });
-    var fp = pts[fi], rp = pts[ri];
-    var midY = (fp.y + rp.y) / 2;
-    var bow = Math.min(fp.x, rp.x) - 80;
+    /* THE LAP — window ⇄ red words, a visible cycle in the left gutter.
+       Two curves with arrowheads, one each way, so it reads as going around. */
+    var wi = 1, wp = pts[wi], FX = 44, FR = 15;
+    var midX = (wp.x - R + FX + FR) / 2;
     svg.appendChild(el('path', {
-      class: 'lap',                     // the test selects it by this, not by shape
-      d: 'M' + rp.x + ' ' + (rp.y - R + 2) + 'Q' + bow + ' ' + midY + ' ' + fp.x + ' ' + (fp.y + R - 2),
-      fill: 'none', stroke: C.gold, 'stroke-width': 1.8, 'stroke-dasharray': '5 4' }));
-    // the arrowhead, pointing back INTO four-up
+      d: 'M' + (wp.x - R - 1) + ' ' + (wp.y - 9)
+       + 'Q' + midX + ' ' + (wp.y - 32) + ' ' + (FX + FR + 8) + ' ' + (wp.y - 9),
+      fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(arrow(FX + FR + 2, wp.y - 9, 'left'));
     svg.appendChild(el('path', {
-      d: 'M' + (fp.x - 5) + ' ' + (fp.y + R + 4)
-       + 'L' + fp.x + ' ' + (fp.y + R - 3)
-       + 'L' + (fp.x + 5) + ' ' + (fp.y + R + 4),
-      fill: 'none', stroke: C.gold, 'stroke-width': 1.8,
-      'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-    var lt = el('text', { x: bow + 6, y: midY - 4, 'text-anchor': 'middle',
-      fill: '#8a6238', 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
-    lt.style.font = '600 8px -apple-system, sans-serif';
-    lt.style.letterSpacing = '.08em';
-    lt.textContent = 'ROUND AGAIN';
+      d: 'M' + (FX + FR + 1) + ' ' + (wp.y + 9)
+       + 'Q' + midX + ' ' + (wp.y + 32) + ' ' + (wp.x - R - 8) + ' ' + (wp.y + 9),
+      fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(arrow(wp.x - R - 2, wp.y + 9, 'right'));
+    var lg = el('g', {});
+    node(lg, LAP, { x: FX, y: wp.y }, FR);
+    svg.appendChild(lg);
+    var lt = el('text', { x: FX, y: wp.y + FR + 15, 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    lt.style.font = '600 8.5px -apple-system, sans-serif';
+    lt.style.letterSpacing = '.06em';
+    lt.textContent = LAP.label;
     svg.appendChild(lt);
+
+    /* THE OUT-ARROW at GOLD — the finished picture leaves for its project;
+       the road walks on to the treasury without it. Same gutter, reversed
+       direction: the arrows point AWAY from the road. */
+    var gi = 4, gp = pts[gi], DX = 34, DR = 15;
+    var dst = [{ y: gp.y - 24, art: 'reel' }, { y: gp.y + 24, art: 'screen' }];
+    dst.forEach(function (d) {
+      svg.appendChild(el('path', {
+        d: 'M' + (gp.x - R - 1) + ' ' + gp.y
+         + 'Q' + (DX + 48) + ' ' + d.y + ' ' + (DX + DR + 8) + ' ' + d.y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+      svg.appendChild(arrow(DX + DR + 2, d.y, 'left'));
+    });
+    dst.forEach(function (d) {
+      var g = el('g', {});
+      cell(g, ART[d.art], DX, d.y, DR * 2.1);
+      svg.appendChild(g);
+    });
+    var dt = el('text', { x: DX + 12, y: gp.y + 24 + DR + 15, 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    dt.style.font = '600 8.5px -apple-system, sans-serif';
+    dt.style.letterSpacing = '.06em';
+    dt.textContent = 'THE PROJECTS';
+    svg.appendChild(dt);
 
     STOPS.forEach(function (st, i) {
       var g = el('g', { 'data-go': st.href || '' });
       if (st.href) g.style.cursor = 'pointer';
       node(g, st, pts[i]);
       svg.appendChild(g);
-      svg.appendChild(label(pts[i], st.label));
+      // TREASURY sits at the road's very end where the label would clip below
+      // the board — lift its label above the node instead
+      svg.appendChild(label(pts[i], st.label, st.id === 'treasury' ? -(R + 7) : 0));
     });
   }
 
-  // a tap on a stop goes to its tool — the map is the access point
   svg.addEventListener('click', function (e) {
     var g = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
     if (g && g.getAttribute('data-go')) location.href = g.getAttribute('data-go');
   });
 
   /* ── the stops tab ─────────────────────────────────────────────────── */
-  var SEGS = { subjects: 'Before anything is drawn',
-               fourup: 'The lap — half a cent a look',
-               spread: 'Only for a survivor',
-               picture: 'Out' };
+  var SEGS = { words: 'Free', window: 'Pennies — probe on doubt',
+               wardrobe: 'The paid rungs — spend on certainty',
+               treasury: 'Keep forever' };
   var list = document.getElementById('stoplist');
-  function stopRow(st, kind) {
+  function stopRow(st, feed) {
     var row = document.createElement(st.href ? 'a' : 'div');
-    row.className = 'stop' + (st.none ? ' none' : '') + (kind ? ' ' + kind : '');
+    row.className = 'stop' + (st.none ? ' none' : '') + (feed ? ' feed' : '');
     row.setAttribute('data-item', 'stop-' + st.id);
     if (st.href) row.href = st.href;
     var gs = document.createElementNS(SVG, 'svg');
-    // r=17 centred at 18,18 draws a 35.7px cell — an exact fit for a 36 box
     gs.setAttribute('viewBox', '0 0 36 36'); gs.setAttribute('class', 'g');
     var gg = el('g', {});
     node(gg, st, { x: 18, y: 18 }, 17);
@@ -426,137 +371,108 @@
       h.className = 'seg'; h.textContent = SEGS[st.id];
       list.appendChild(h);
     }
-    stopRow(st, st.lap ? 'lap' : '');
-    // the two tributaries sit directly under the stop they flow into
-    if (st.id === 'split') FEEDS.forEach(function (f) { stopRow(f, 'feed'); });
+    stopRow(st, false);
+    // the lap sits directly under the stop it cycles with
+    if (st.id === 'window') stopRow(LAP, true);
   });
 
-  /* ── the costs tab ─────────────────────────────────────────────────────
-     Every way this repo can buy a picture, cheapest first. The sheet numbers
-     are the measured ones: out/style-triptych/manifest-sheet-low.json and
-     -medium.json (24 of 24 cells found their real seams, none fell back to a
-     midpoint), and vector.js's own 3x3 measurement (traced line weight within
-     4.8% / 7.4% / 6.4% of source at low / medium / high).
-
-     `id` is STABLE and content-derived on purpose — never renumber, or a note
-     she left on a row silently re-points at different content. */
-  var COSTS = [
-    { id: 'sheet9low', n: '0.22¢', f: 'A drawing off a LOW 3x3 sheet',
-      w: 'nine in one call for the same 2¢. vector.js measured nothing degrading at nine — what changes is the DRAWING, not the trace: a smaller cell gets a simpler drawing out of the model. Objects and icons, not faces' },
-    { id: 'sheet4low', n: '0.5¢', f: 'A frame off a LOW 2x2 sheet',
-      w: 'the rung this pipeline is built on. 2¢ the sheet, cut on the real gutters by slice()' },
-    { id: 'sheet4med', n: '1.5¢', f: 'A frame off a MEDIUM 2x2 sheet',
-      w: 'a quarter of a medium render, and it holds legible faces at 468x727' },
-    { id: 'low', n: '2¢', f: 'A whole LOW render, on its own', w: '1024x1536, one call for one picture' },
-    { id: 'medium', n: '6¢', f: 'A whole MEDIUM render', w: 'the house default nearly everywhere' },
-    { id: 'high', n: '25¢', f: 'A whole HIGH render', w: 'the last rung, and only for something already chosen' },
-    { id: 'rewrite', n: 'free', free: 1, f: 'Rewriting the prompt', w: 'the treasure costs nothing to improve — which is the entire argument for the lap' },
-    { id: 'recut', n: 'free', free: 1, f: 'Re-cutting a sheet you already paid for',
-      w: 'different cell sizes, different crops, no new call' },
-    { id: 'trace', n: 'free', free: 1, f: 'Tracing a drawing to SVG', w: 'local, ~1.3s, and the outline IS the cut line' },
-    { id: 'recolor', n: 'free', free: 1, f: 'Recolouring a traced drawing',
-      w: 'POST /api/vector/recolor edits the fills — no model call' },
-    { id: 'lap4', n: '8¢', f: 'Four laps of four frames', w: 'sixteen looks at an idea, for less than two medium renders' },
-    { id: 'spread12', n: '6¢', f: 'Four subjects in three styles', w: 'twelve pictures, one low sheet per style' },
+  /* ── the gaps tab ──────────────────────────────────────────────────────
+     One row per thing you can DO to a prompt or its picture; the tags say
+     which surface has it. From the repo's measured record (CLAUDE.md + the
+     module docs; caption numbers measured Aug 2026 across all 171 chats).
+     `id` is STABLE and content-derived — never renumber; add at the end. */
+  var GAPS = [
+    { id: 'verbatim', f: 'Send her words verbatim, nothing added', has: ['freeform'],
+      note: 'promptSent stored on every run, so anyone can verify' },
+    { id: 'probe4', f: 'Draw four ideas on one cheap sheet, cut into frames', has: ['vector room'], hole: 1,
+      note: 'welded to the pastel style and the tracer — no other style can probe this way' },
+    { id: 'ladder', f: 'The quality ladder on one prompt', has: ['playground'],
+      note: 'the pyramid: low · low · medium' },
+    { id: 'rack', f: 'One content prompt across the five house styles', has: ['playground'], hole: 1,
+      note: 'one style a run — five runs by hand, nothing sends the same content through the whole rack' },
+    { id: 'styleref', f: 'Attach one of her pages as a pure style reference', has: ['freeform', 'playground', 'movies'] },
+    { id: 'character', f: 'Attach a character card so a person stays themselves', has: ['movies', 'playground', 'story room'] },
+    { id: 'keepall', f: 'Keep every version, nothing overwritten', has: ['assets tab', 'playground'] },
+    { id: 'reddiff', f: 'See which words changed between two versions', has: ['writing room'], hole: 1,
+      note: 'built for the dating-book prose — nothing does it for prompts, the one text where a single word moves the picture' },
+    { id: 'bankone', f: 'File the exact prompt with its picture', has: ['assets tab'],
+      note: 'style and content halves, per image, per chat' },
+    { id: 'findprompt', f: 'Find a prompt again months later', has: ['assets search'], hole: 1,
+      note: 'within one chat — no shelf holds every content prompt across chats' },
+    { id: 'caption', f: 'Know model and quality forever', has: ['assets caption'],
+      note: 'when filed at make-time — 1,938 of 2,488 images have none, and it cannot be backfilled' },
+    { id: 'rebuild', f: 'Rebuild a body of work in a new style', has: [], hole: 1,
+      note: 'the insurance the treasure is FOR — today it is archaeology' },
+    { id: 'twice', f: 'Draw the same picture twice', has: ['replicate styles'], hole: 1,
+      note: 'a fixed seed is deterministic; gpt-image-2 never repeats — the prompt guarantees the idea, not the pixels' },
   ];
-  var cl = document.getElementById('costlist');
-  COSTS.forEach(function (c) {
+  var gl = document.getElementById('gaplist');
+  GAPS.forEach(function (g) {
     var d = document.createElement('div');
-    d.className = 'cost' + (c.free ? ' free' : '');
-    d.setAttribute('data-item', 'cost-' + c.id);
-    var n = document.createElement('div');
-    n.className = 'n'; n.textContent = c.n;
-    var t = document.createElement('div');
-    t.className = 't';
-    var b = document.createElement('b'); b.textContent = c.f;
-    var s = document.createElement('span'); s.textContent = c.w;
-    t.appendChild(b); t.appendChild(s);
-    d.appendChild(n); d.appendChild(t);
-    cl.appendChild(d);
-  });
-
-  /* ── the holes tab ─────────────────────────────────────────────────────
-     The three structural ones first — the same shape as the audio pipeline's
-     three, and none of them is a missing button — then the icon question. */
-  var HOLES = [
-    { id: 'library', f: 'There is no prompt library',
-      w: 'A prompt exists only as two fields hanging off an IMAGE (promptStyle / promptContent on forge-chat-assets), plus whatever each tool keeps on its own run doc. You cannot search prompts across chats, version one, fork one, or say "draw this content in that style". The Assets search does match filed prompts — inside one chat only. This is the hole the whole framing is about.',
-      has: [] },
-    { id: 'set', f: 'Nothing carries a SET across the rooms',
-      w: 'Every picture surface is addressed by its own run — the Playground by its run doc, Freeform by its, Vector by its job, the sheet scripts by a hard-coded array. Four subjects therefore get retyped in each, and a change of direction means retyping them again.',
-      has: [] },
-    { id: 'cheapest', f: 'The cheapest rung is not a tool',
-      w: 'No module, no page, no tile, no doc of its own — scripts/style-triptych-sheet.js, run by hand. Exactly the shape of the audio pipeline’s BLOCKS being a Compare artifact, and it is the rung everything else is supposed to sit on.',
-      has: ['a script'] },
-    { id: 'certify', f: 'A style has to be certified before it can ride the cheap rung',
-      w: 'Two real constraints. gutters() needs a seam of luma ≥ 245 to find it, so a style rendering on cream paper is expected to miss and fall back to midpoints — measured zero misses on the runs on file, but the risk is in the method, not the luck. And dream mystery’s shipped suffix is an ANTI-GRID line, which contradicts a 2x2 outright: the sheet run replaces it, so for one style in three the cheap rung is quietly a different recipe from the one that ships.',
-      has: ['measured'] },
-    { id: 'findings', f: 'A finding dies with the picture it was learned from',
-      w: '♥/✘ and note threads attach to an IMAGE. Half a cent buys information about the prompt, and the information scrolls away with the tile — so the next chat re-learns it, at the same price.',
-      has: [] },
-    { id: 'promotion', f: 'Nothing enforces the promotion rule',
-      w: 'What keeps the whole pipeline near free is that nothing climbs a rung without a mark against it at the rung below. Today any surface will draw a 25¢ high render of an untested prompt.',
-      has: [] },
-  ];
-  var hl = document.getElementById('holelist');
-  HOLES.forEach(function (h) {
-    var d = document.createElement('div');
-    d.className = 'hole' + (h.has.length ? ' ok' : '');
-    d.setAttribute('data-item', 'hole-' + h.id);
+    d.className = 'gap' + (g.hole ? ' hole' : '');
+    d.setAttribute('data-item', 'gap-' + g.id);
     var f = document.createElement('div');
-    f.className = 'f'; f.textContent = h.f;
+    f.className = 'f'; f.textContent = g.f;
+    d.appendChild(f);
+    if (g.note) {
+      var n = document.createElement('div');
+      n.className = 'what';
+      n.style.font = '12px/1.35 Georgia, serif';
+      n.style.color = 'var(--ink2)';
+      n.style.marginTop = '3px';
+      n.textContent = g.note;
+      d.appendChild(n);
+    }
     var w = document.createElement('div');
-    w.className = 'what'; w.textContent = h.w;
-    var who = document.createElement('div');
-    who.className = 'who';
-    if (!h.has.length) {
-      var no = document.createElement('span');
-      no.className = 'w no'; no.textContent = 'nothing has it';
-      who.appendChild(no);
-    } else h.has.forEach(function (x) {
+    w.className = 'who';
+    if (!g.has.length) {
+      var none = document.createElement('span');
+      none.className = 'w no'; none.textContent = 'nothing has it';
+      w.appendChild(none);
+    } else g.has.forEach(function (h) {
       var s = document.createElement('span');
-      s.className = 'w'; s.textContent = x;
-      who.appendChild(s);
+      s.className = 'w'; s.textContent = h;
+      w.appendChild(s);
     });
-    d.appendChild(f); d.appendChild(w); d.appendChild(who);
-    hl.appendChild(d);
+    d.appendChild(w);
+    gl.appendChild(d);
   });
 
-  /* the icon question, answered on the pipeline's own cheapest rung: four
-     candidates off ONE low 2x2 vector sheet, 2¢, half a cent each */
-  /* WEBP, not the raw cell PNGs the job wrote — those are 1.3MB for the four
-     and webp with alpha is 360KB for the same pictures. The house rule is
-     never to serve a generated PNG to a page; the PNGs and the SVGs are in
-     out/pipeline-icons/ and in Storage beside these. */
-  var J = V + 'sh-mstwaqid-bnejd/';
-  var PICKS = [
-    { id: 'peel', nm: 'Peeled cell', png: J + 'cell-1.webp' },
-    { id: 'stamps', nm: 'Four stamps — picked', png: J + 'cell-2.webp' },
-    { id: 'press', nm: 'Press sheet', png: J + 'cell-3.webp' },
-    { id: 'scissors', nm: 'Cutting it up', png: J + 'cell-4.webp' },
+  /* ── the wardrobe tab ──────────────────────────────────────────────────
+     The rack of house styles the content half can wear. Thumbs are the
+     committed style previews where one exists (public/samples). */
+  var RACK = [
+    { id: 'wtr', nm: 'WTR', th: '/samples/watercolordrawings.webp',
+      what: 'the watercolor LoRA (trigger wtr) — loose wash, her watercolor drawings; the dating book’s art' },
+    { id: 'chatgpt', nm: 'CHATGPT',
+      what: 'sage sandy mirror — her ink-and-watercolour page as a pure style ref; the Evan film, the story room’s draw-it-here' },
+    { id: 'pastel', nm: 'PASTEL', th: '/samples/house-pastel.webp',
+      what: 'sophie snake + sophie animals as refs — witch school cards, stickers, the vector room' },
+    { id: 'scarry', nm: 'SCARRY',
+      what: 'the three richard scarry pages as refs — busy little worlds' },
+    { id: 'hoonie', nm: 'HOONIE', th: '/samples/hoonie.webp',
+      what: 'the linocut LoRA — relief print on white, the suffix applied server-side' },
+    { id: 'dream', nm: 'DREAM MYSTERY',
+      what: 'her diary-comic page — the movies’ dreamy pencil, the zine, the dream illustrator' },
   ];
-  var ih = document.createElement('div');
-  ih.className = 'hole ok';
-  ih.setAttribute('data-item', 'hole-icon');
-  ih.innerHTML = '<div class="f">The four-up stop wears the stamps now</div>'
-    + '<div class="what">v1 wore the four-pane window, which says window rather than four. '
-    + 'These four replacements were drawn on the pipeline’s own cheapest rung — ONE low 2x2 '
-    + 'vector sheet, 2¢, half a cent each — and Sophie picked the stamps. The other three are '
-    + 'kept here rather than deleted: a rejected option is the cheapest thing on file.</div>';
-  var pk = document.createElement('div');
-  pk.className = 'picks';
-  PICKS.forEach(function (p) {
-    var d = document.createElement('div');
-    d.className = 'pick';
-    d.setAttribute('data-item', 'icon-' + p.id);
-    var im = document.createElement('img');
-    im.src = p.png; im.alt = p.nm; im.loading = 'lazy';
-    var b = document.createElement('b'); b.textContent = p.nm;
-    d.appendChild(im); d.appendChild(b);
-    pk.appendChild(d);
+  var rl = document.getElementById('racklist');
+  RACK.forEach(function (s) {
+    var row = document.createElement('a');
+    row.className = 'stop';
+    row.href = '/playground';
+    row.setAttribute('data-item', 'rack-' + s.id);
+    if (s.th) {
+      var im = document.createElement('img');
+      im.className = 'th'; im.src = s.th; im.alt = s.nm; im.loading = 'lazy';
+      row.appendChild(im);
+    }
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    tx.querySelector('.nm').textContent = s.nm;
+    tx.querySelector('.what').textContent = s.what;
+    row.appendChild(tx);
+    rl.appendChild(row);
   });
-  ih.appendChild(pk);
-  hl.appendChild(ih);
 
   /* ── tabs ──────────────────────────────────────────────────────────── */
   var tabs = document.getElementById('tabs');
@@ -567,19 +483,19 @@
     tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t === b); });
     document.getElementById('view-map').hidden = n !== '0';
     document.getElementById('view-stops').hidden = n !== '1';
-    document.getElementById('view-costs').hidden = n !== '2';
-    document.getElementById('view-holes').hidden = n !== '3';
+    document.getElementById('view-gaps').hidden = n !== '2';
+    document.getElementById('view-rack').hidden = n !== '3';
   });
 
   draw();
   if (window.__compareHelp) window.__compareHelp({ html:
-    '<p>The road is the path an IDEA walks — not a picture. The prompt is what grows along it; the pictures are bought as cheaply as possible so you can look at the idea and throw them away.</p>' +
-    '<p><b>The gold dashed loop</b> is the lap. Four-up, read, rewrite, round again — that part is half a cent a look and free to improve. Everything after it costs real money, and nothing gets there without a mark against it.</p>' +
-    '<p>The two on the left — the shelf and the character — are not stops you pass through. They are where the STYLE half of a prompt comes from, so they flow into the split.</p>' +
-    '<p>Tap anything to go to its tool. A dashed ring means the stage is real but nothing is built for it yet, and on this road that is nearly all of them.</p>' +
-    '<p><b>Stops</b> names each one. <b>Costs</b> is every way this repo can buy a picture, cheapest first. <b>Holes</b> is what is missing — and the four candidate icons for the four-up stop, drawn on the cheap rung itself.</p>' +
+    '<p>The road is the path one picture walks — except the walker is the PROMPT, and the pictures are its footprints.</p>' +
+    '<p>The loop on the left — window ⇄ red words — is the lap: half-cent probe frames, reword, go again until the idea reads.</p>' +
+    '<p>The arrow out at GOLD is the finished picture leaving for its project. The road walks on without it, because the prompt is the treasure and the road ends at the bank.</p>' +
+    '<p>Tap a stop to open its tool. A dashed ring means the stage is real but no tool — or only a partial one — is built for it.</p>' +
+    '<p><b>Stops</b> names each one with its price. <b>Gaps</b> is what you can do to a prompt and which surface can do it — the rose rows live in one place, or none. <b>Wardrobe</b> is the rack of house styles the content half can wear.</p>' +
     '<p>Leave a note on anything with the + in its corner.</p>' });
-  if (window.__compareNotes) window.__compareNotes({ chat: 'image-pipeline-design', sheet: 'image-pipeline-s8' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'image-pipeline-design-018edr', sheet: 'image-pipeline-s7' });
 })();
 </script>
 <style>[hidden]{display:none !important}</style>
