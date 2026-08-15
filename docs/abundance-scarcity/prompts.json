@@ -1,0 +1,68 @@
+[
+ {
+  "id": "abundance-1-the-flood",
+  "file": "/home/user/out/abundance/abundance-1-the-flood.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a woman standing in a room completely overrun with plain brown cardboard boxes \u2014 flat-packed stacks leaning against every wall, towers of assembled boxes going up to the ceiling, more boxes spilling through the doorway behind her. She has her hands on her hips, looking at all of them, unworried. There are far more boxes than one person could ever use. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "abundance-2-inventing-uses",
+  "file": "/home/user/out/abundance/abundance-2-inventing-uses.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a woman cheerfully using plain brown cardboard boxes for everything they were never meant for \u2014 one box as a side table with a cup on it, one cut open into a lampshade, one as the stool she is sitting on, one flattened as a rug, one worn as a hat, a row of them fixed to the wall behind her as shelves. She is cutting into another box with scissors, thinking up the next use for it. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "abundance-3-the-mountain",
+  "file": "/home/user/out/abundance/abundance-3-the-mountain.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a small figure seen from behind, standing at the foot of an enormous mountain of plain brown cardboard boxes that rises past the top of the picture. Her arms hang open at her sides. The mountain of boxes is calm and ordinary, not threatening. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "scarcity-1-velvet-throne",
+  "file": "/home/user/out/abundance/scarcity-1-velvet-throne.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an open shoebox sitting on a bare wooden floor, lined inside with deep red velvet, with a tiny throne in the middle of it. One small glowing lightbulb sits on the throne like a king. A woman kneels beside the box with both hands flat on the floor, watching it. The rest of the room is completely empty. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "scarcity-2-petting-it",
+  "file": "/home/user/out/abundance/scarcity-2-petting-it.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a woman sitting cross-legged on the floor at night with an open shoebox in her lap. Inside the shoebox, on a folded square of velvet, is one small round glowing thing about the size of an egg. She is stroking it with one finger, the way you would pet a sleeping animal. A saucer sits on the floor beside her as though she has been feeding it. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "both-1-diptych",
+  "file": "/home/user/out/abundance/both-1-diptych.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: one picture divided down the middle by a vertical line. On the left half: a room overflowing with plain brown cardboard boxes, stacked to the ceiling and spilling across the floor, a woman among them handing one away. On the right half: the same room completely empty except for one shoebox on the floor, open, lined with velvet, with a single small glowing thing inside it, and a woman kneeling over it with her hands cupped around the box. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ }
+]
