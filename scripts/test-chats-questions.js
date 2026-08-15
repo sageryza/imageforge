@@ -113,6 +113,23 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('#qfull .qitem', { timeout: 8000 });
   ok(asked.length === 1 && asked[0] === 'chat-a', 'it asked for this chat’s questions: ' + asked.join(','));
 
+  // ---- it must be OPAQUE, and it must hide the pill -----------------------
+  // Both of these shipped broken (2026-08-14): the background was written
+  // var(--bg), a token this page does not define, so the whole list rendered
+  // transparent over the thread — and the autoscroll pill sat on top of it,
+  // because translateZ promotes it to a layer iOS paints above the overlay.
+  const bg = await page.$eval('#qfull', (n) => getComputedStyle(n).backgroundColor);
+  ok(!/transparent|rgba\(0, 0, 0, 0\)/.test(bg), 'the overlay is opaque (' + bg + ')');
+  ok(await page.$eval('#qfull', (n) => {
+    const c = getComputedStyle(n).backgroundColor.match(/[\d.]+/g).map(Number);
+    const p = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g).map(Number);
+    return Math.abs(c[0] - p[0]) < 3 && Math.abs(c[1] - p[1]) < 3 && Math.abs(c[2] - p[2]) < 3;
+  }), 'and it is the page’s own paper, not some other colour');
+  ok(await page.evaluate(() => document.body.classList.contains('ontop')),
+     'body.ontop is set — the pill hides and a build reload holds off');
+  ok(await page.$eval('.float', (n) => getComputedStyle(n).display) === 'none',
+     'the autoscroll pill is not sitting on top of her questions');
+
   // ---- 4: the shape — bold question, plain answer -------------------------
   const items = await page.$$eval('#qfull .qitem', (ns) => ns.map((n) => {
     const q = n.querySelector('.qq'), a = n.querySelector('.qa'), w = n.querySelector('.qwait');
@@ -145,6 +162,8 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(250);
   ok(await page.$$eval('#qfull', (n) => n.length) === 0, 'closing removes it');
   ok((await page.evaluate(() => document.body.style.overflow)) === '', 'the lock is released');
+  ok(!(await page.evaluate(() => document.body.classList.contains('ontop'))), 'and body.ontop with it');
+  ok(await page.$eval('.float', (n) => getComputedStyle(n).display) !== 'none', 'the pill comes back');
   const yAfter = await page.evaluate(() => window.scrollY);
   ok(Math.abs(yAfter - yBefore) < 4,
      'she closes it exactly where she opened it (' + Math.round(yBefore) + ' → ' + Math.round(yAfter) + ')');
