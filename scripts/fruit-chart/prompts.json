@@ -1,0 +1,299 @@
+[
+ {
+  "id": "01-strawberry",
+  "file": "/home/user/out/fruit/01-strawberry.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single ripe strawberry. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "02-banana",
+  "file": "/home/user/out/fruit/02-banana.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single ripe banana. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "03-apple",
+  "file": "/home/user/out/fruit/03-apple.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single red apple. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "04-orange",
+  "file": "/home/user/out/fruit/04-orange.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single orange. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "05-mango",
+  "file": "/home/user/out/fruit/05-mango.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single ripe mango. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "06-watermelon",
+  "file": "/home/user/out/fruit/06-watermelon.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a wedge of watermelon. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "07-grapes",
+  "file": "/home/user/out/fruit/07-grapes.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a bunch of purple grapes. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "08-blueberries",
+  "file": "/home/user/out/fruit/08-blueberries.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a small handful of blueberries. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "09-pineapple",
+  "file": "/home/user/out/fruit/09-pineapple.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single whole pineapple. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "10-peach",
+  "file": "/home/user/out/fruit/10-peach.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single ripe peach. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "11-cherries",
+  "file": "/home/user/out/fruit/11-cherries.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a pair of cherries joined at the stem. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "12-raspberries",
+  "file": "/home/user/out/fruit/12-raspberries.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a small handful of raspberries. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "13-pear",
+  "file": "/home/user/out/fruit/13-pear.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single green pear. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "14-kiwi",
+  "file": "/home/user/out/fruit/14-kiwi.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a kiwi fruit cut in half, cut side facing the viewer. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "15-lemon",
+  "file": "/home/user/out/fruit/15-lemon.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single lemon. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "16-plum",
+  "file": "/home/user/out/fruit/16-plum.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single plum. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "17-blackberries",
+  "file": "/home/user/out/fruit/17-blackberries.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a small handful of blackberries. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "18-cantaloupe",
+  "file": "/home/user/out/fruit/18-cantaloupe.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a wedge of cantaloupe melon. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "19-pomegranate",
+  "file": "/home/user/out/fruit/19-pomegranate.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a pomegranate broken open to show the seeds. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "20-avocado",
+  "file": "/home/user/out/fruit/20-avocado.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an avocado cut in half with the stone in one side. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "21-fig",
+  "file": "/home/user/out/fruit/21-fig.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a fig cut in half, cut side facing the viewer. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "22-papaya",
+  "file": "/home/user/out/fruit/22-papaya.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a papaya cut in half to show the seeds. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "23-apricot",
+  "file": "/home/user/out/fruit/23-apricot.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single apricot. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "24-coconut",
+  "file": "/home/user/out/fruit/24-coconut.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a coconut split into two halves. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "25-lime",
+  "file": "/home/user/out/fruit/25-lime.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single lime. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "26-nectarine",
+  "file": "/home/user/out/fruit/26-nectarine.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a single nectarine. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "27-dragonfruit",
+  "file": "/home/user/out/fruit/27-dragonfruit.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a dragon fruit cut in half, cut side facing the viewer. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ }
+]

@@ -1,0 +1,11 @@
+[
+ { "id": "28-cherimoya",    "name": "Cherimoya",     "size": "1024x1024", "scene": "a single cherimoya. No text or lettering anywhere." },
+ { "id": "29-dates",        "name": "Dates",         "size": "1024x1024", "scene": "a small pile of dates. No text or lettering anywhere." },
+ { "id": "30-persimmon",    "name": "Persimmon",     "size": "1024x1024", "scene": "a single persimmon. No text or lettering anywhere." },
+ { "id": "31-guava",        "name": "Guava",         "size": "1024x1024", "scene": "a guava cut in half, cut side facing the viewer. No text or lettering anywhere." },
+ { "id": "32-passionfruit", "name": "Passion fruit", "size": "1024x1024", "scene": "a passion fruit cut in half, cut side facing the viewer. No text or lettering anywhere." },
+ { "id": "33-lychee",       "name": "Lychee",        "size": "1024x1024", "scene": "two lychees, one of them peeled to show the white flesh. No text or lettering anywhere." },
+ { "id": "34-starfruit",    "name": "Starfruit",     "size": "1024x1024", "scene": "a starfruit with one slice cut off showing the star shape. No text or lettering anywhere." },
+ { "id": "35-honeydew",     "name": "Honeydew",      "size": "1024x1024", "scene": "a wedge of honeydew melon. No text or lettering anywhere." },
+ { "id": "36-grapefruit",   "name": "Grapefruit",    "size": "1024x1024", "scene": "a grapefruit cut in half, cut side facing the viewer. No text or lettering anywhere." }
+]

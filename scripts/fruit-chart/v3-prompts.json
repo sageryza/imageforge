@@ -1,0 +1,24 @@
+[
+ {
+  "id": "pair-f1",
+  "file": "/home/user/out/fruit4/pair-f1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two separate fruit drawings side by side, evenly spaced, each drawn on its own with clear white space around it \u2014 not touching or overlapping. On the left: a small handful of mulberries on a sprig. On the right: a few kumquats, one of them cut in half. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "28-cherimoya",
+  "file": "/home/user/out/fruit4/28-cherimoya.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a cherimoya cut in half, the cut side facing the viewer so the white flesh and dark seeds inside are visible, with the whole fruit behind it. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ }
+]

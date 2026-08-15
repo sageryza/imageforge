@@ -347,14 +347,152 @@ one meal, read as instructions being recycled. ✦
 
 ---
 
+## Decided (Sophie, 2026-08-09)
+
+- **NO recurring woman.** The Witch School character does not appear here. Cards
+  are objects and diagrams. A different main character may be chosen later, and
+  that would need its OWN reference images — do not reuse
+  `witch-school/refs/sophie-snake.png` + `sophie-animals.png` as a character
+  source, only as a LINE reference (the prompts say "do not copy their colors";
+  they should also never be asked for a person).
+- **Its own separate site / app**, not a course inside the existing School.
+- **It must look VERY SIMILAR to the witch one — no changes unless Sophie asks
+  for them.** Same card engine, same tap-through, same progress dashes, same
+  quiz + After card, same header. The palette is the deliberate difference; do
+  not take the separate-site decision as licence to redesign anything else.
+
+## The palette is SETTLED: pastel A (Sophie, 2026-08-14)
+
+Eight palettes were drawn and reviewed in the Assets tab. Her verdict, read
+off her own votes: **pastel A hearted three times** (the cell, the helix and
+the scientist), **palette D — her own ivory/purple/amber suggestion —
+rejected**, everything else unvoted. So the school is:
+
+> flat limited PASTEL palette: mint green `#B6E5CF`, powder blue `#AFC9E8`,
+> pale butter yellow `#F6E7A8`, soft blush pink `#F6C6DA`, and black, on a
+> PLAIN WHITE background
+
+The full art prompt is committed as **`cell-lesson-spec.json`** — reuse it
+verbatim for lessons 2–4 rather than rewriting the style block. It is the
+witch-school recipe with the colours swapped: gpt-image-2 **edits**, the two
+Witch School refs attached as a LINE reference only (`do NOT copy their
+colors`), quality **medium**, `whiten: true`. Every prompt also says
+**draw NO people and no faces** — see the decision below.
+
+Worth knowing before re-opening the question: the four-colour experiments (G =
+forest green + terracotta + ochre gold + slate blue, H = the same pair +
+butter yellow + dusty teal, both banked as `palette-g/h-spec.json`) came out of
+her note on F, *"I like this image the best, but I think you should add two
+more colors"* — she then picked pastel anyway. The pastel set is already four
+colours, which is probably what that note was really asking for.
+
+## The page (built 2026-08-14)
+
+**`public/science.html`, served at `/science`** — a separate school, public and
+ungated like `/witch`, with **Lesson 1 (The Cell) complete**: 10 cards, 9
+illustrated (`cl-01`…`cl-10`, minus the quiz slot), the `know` quiz at card 8,
+the After card last.
+
+- The deck engine is ported from `witch.html` **declaration for declaration**
+  (deck-top, dashes, `.tcard`, `.deck-text`'s auto-margin centring, the ⓘ FAQ,
+  the flip quiz, the tap zones) so the two can be diffed against each other.
+  Her rule stands: the palette is the ONLY deliberate difference — do not take
+  the separate-page decision as licence to redesign anything else.
+- The accent token is still called `--gold` on purpose, for that diff. Its
+  value is a slate blue `#3f7290`, because the pastels themselves are
+  unreadable as text on white: the pastels are the ART, the slate is the ink.
+- Art rides the **school** webp set (`witch-school/assets/` →
+  `witch-school/webp/`), because `witch-school-cards.js` writes there. So after
+  drawing new cards run `node scripts/webp-assets.js school` and then
+  `node scripts/webp-assets-verify.js` before deploying — a card with no webp
+  is a visibly broken picture.
+- **ALL FOUR LESSONS ARE BUILT** (2026-08-15). The Cell 10 cards, What's Inside
+  One 10, DNA 11, Reading the Code 10 — 37 cards, 28 of them drawn in one run
+  from `cell-lesson-spec.json`'s style block (medium, ~$1.68), specs banked as
+  `inside/dna/code-lesson-spec.json`. A fifth lesson is the same three steps:
+  write its cards here, copy a spec and swap the prompts, add a `LESSONS` entry
+  plus a `COURSE` row.
+- **Watch the voice in the ⓘ FAQs** — that prose is written fresh, not lifted
+  from this doc, so it is where the AI-tells creep in. Two were caught and
+  rewritten before shipping: a negation-pivot reframe ("not the molecule, the
+  shadow it casts") and a crafted closer ("a rounding error by size and
+  indispensable by function"). Re-read `docs/witch-school-lessons.md`'s voice
+  rules against any new FAQ.
+- **No people and no faces in any prompt.** Hooke, Leeuwenhoek, Miescher,
+  Franklin, Margulis, Matthaei are all real people, and the standing rule is
+  never to invent a face for one — so their cards draw the instrument, the
+  bench, the photograph, the stack of rejection envelopes.
+- **The pink is the ART'S OWN PINK, `#f6c6da`** (Sophie, 2026-08-14: "make the
+  pink the same shade as the pink in the lessons. There might be a hex code
+  somewhere" — there was: the blush out of the palette the cards are drawn in).
+  Sampled off the real drawings to confirm: the dominant pink pixels across
+  cl-01/02/05/07 are `#f7c8d5`-`#fdcfdf`, that value as rendered.
+  - **ONE pink, used only where pink is a BLOCK** — the progress dashes and the
+    button. Small type is ink or grey, because `#f6c6da` on white is about
+    1.3:1; the way to keep her one shade honest is to not set 10px text in it.
+    The button is blush with INK on it, never white.
+  - Earlier the accent was a slate blue, then a deep rose; both are gone. NO
+    BLUE anywhere in the chrome (her ask the same day) — the ART keeps its
+    powder blue, which is her palette.
+- **HER NOTES ON A LESSON: ONE STORE, TWO SURFACES.** The store is the chat's
+  verdict doc, sheet **`lessons-4`**, one item per lesson —
+  `cell` / `inside` / `dna` / `code`. She can write from the Compare tab OR
+  from `/science` itself, and both land on the same item.
+  - **The Compare page** (Sophie, 2026-08-14: "just put it in the compare tab
+    where it belongs") is **Science School — the lessons**: The Cell's nine
+    cards as an imgrow, and `window.__compareNotes` doing the rest.
+  - **The `+ note` on each row of `/science`** (Sophie, 2026-08-14: "just put a
+    little plus that adds a note on each lesson page … I want to leave notes on
+    the whole lesson not just the pictures"). Three states — `+ note` when
+    empty, her words under the row when written, the box while she types,
+    folding back on blur. Clearing takes the note back rather than filing a
+    blank one, and her words mirror to `localStorage` as she types so a save
+    that never lands stays on the phone.
+  - **The note button INSIDE the deck** (Sophie, 2026-08-15: "I wanted to leave
+    a note on the books asking why they have flowers on them"). This is the one
+    she reached for first — the row-level `+` notes a whole lesson, but what
+    she wanted was to talk about the picture in front of her. It sits in
+    `.deck-top` next to the dashes, goes pink on a card she has written on, and
+    its box is a SIBLING of `#deck-stage` so nothing in it can reach the tap
+    zones. Closing it — Done, the backdrop, or leaving the lesson — files what
+    she wrote; closing is not a way to cancel.
+    - **The item key is the card's ART ID** (`dn-09`), so a note is tied to the
+      picture and survives the cards being reordered. A card with no art falls
+      back to `<lessonKey>:<slugged headline>`.
+  - **Read what she wrote:**
+    `GET /api/chatfeed/verdict?chat=<slug>&sheet=lessons-4` -> `texts`.
+    Keys that look like a lesson (`cell`) are about the whole lesson; keys that
+    look like art (`dn-09`) are about that card.
+    Answer ON the note by appending `\n\n— Claude: …` to the same field.
+  - The three lessons that are only WRITTEN take notes too — that is where
+    "do this one next" goes.
+  - **What is dead is the BESPOKE ENDPOINT, not the field.** `/science` first
+    shipped its note field against its own `science.js` route; that route is
+    deleted and must not come back. The reason originally given for it (that
+    `/api/chatfeed` sits behind STUDIO_TOKEN, so a public page's note would
+    break if that gate came on) does not hold up: `compare.js` sends no token
+    either, so Compare-page notes would break in exactly the same way. A note
+    surface anywhere posts to `/api/chatfeed/verdict`.
+  - Rebuilding the page? A NEW page, and put the item-set shape in the sheet
+    name (`lessons-4` -> `lessons-7`) or her saved notes re-point at different
+    lessons.
+- **EVERY HOVER RULE GOES BEHIND `@media (hover: hover) and (pointer: fine)`.**
+  On a touch screen `:hover` sticks to whatever was last tapped, and the tap
+  that turns onto a quiz card lands exactly where an option is about to be
+  drawn — so that option renders with a pink border and reads as an answer
+  already picked. Sophie found it on the codon question and reported it as a
+  possible saved-state bug; it being gone when she came back is the signature
+  of a stuck hover, and that is how to tell the two apart next time.
+- **NO WITCH-APP WORDING.** The quiz verdict came over as `✦ Just so.` — the
+  phrase and the star both belong to the witch app ("you might wanna change it
+  since it's now about science"). It reads `Correct.` / `Actually —`. Anything
+  else ported from `witch.html` gets the same read-through before it ships.
+- Tests: `node scripts/test-science-school.js` — the page, including the
+  no-blue rule, the lit dash measured against her hex, and the whole note flow
+  against a stubbed verdict route.
+
 ## Still to decide
 
-- **Palette** — Sophie is choosing between pastel, blues/greens, and an
-  ink-plus-one-colour field-guide look. Samples rendered separately.
-- **Where it lives.** A separate app/page, or a course inside the existing
-  School? Not decided. The card engine is reusable either way.
-- **Whether the recurring woman appears.** Witch School's `char: true` cards
-  carry her through every lesson. A science school could keep her (continuity,
-  and Sophie's style refs already draw her) or be objects and diagrams only.
+- **Who the main character is**, if there is one at all.
 - Lessons 5–11 of the path are listed in the chat: Division and Why You Age,
   Inheritance, Evolution, Deep Time, Energy, Your Immune System, Microbes.

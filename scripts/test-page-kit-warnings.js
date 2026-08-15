@@ -144,6 +144,30 @@ const WITH_CHROME = SHELL.replace('<div class="wrap">',
   .replace('<h1>Title states', '<div class="sub">One line about the page.</div>\n  <h1>Title states')
   .replace('</div>\n</div>', '<textarea placeholder="a cat in a teacup"></textarea></div>\n</div>');
 
+// (f) two paragraphs of explanation sitting between the title and the first
+// picture — the shape that shipped in Aug 2026 because every written copy of
+// the rule said "no INSTRUCTIONS", and this text is an explanation of the
+// SUBJECT that Sophie had asked for in words ("explain the idea at the top").
+const IDEA = 'One page, two panels, same scene and camera — panel 1 is the '
+  + "animation's first frame, panel 2 its last. The page is sliced down the "
+  + 'gutter and wan gets both halves, so the clip has to travel between them '
+  + 'instead of drifting. It earns the second drawing only when panel 2 is a '
+  + 'genuinely different picture.';
+const WITH_PROSE = SHELL.replace('</h1>', `</h1>\n  <div class="card"><p>${IDEA}</p></div>`);
+
+// …and the same words behind the "?" instead, which is the fix. The help text
+// lives inside a <script>, so it must NOT trip the check.
+const PROSE_IN_HELP = SHELL.replace('</script>',
+  `</script>\n<script>window.__compareHelp({ html: ${JSON.stringify(IDEA)} });</script>`);
+
+// A page with NO pictures at all is not what the rule is about (a transcript, a
+// read-through), so a long paragraph there must stay clean. Built from scratch
+// rather than by stripping the shell — the shell carries several pictures.
+const TEXT_ONLY = `<!doctype html><meta charset="utf-8"><title>A read-through</title>
+<link rel="stylesheet" href="/compare.css">
+<div class="wrap"><h1>A read-through</h1><p>${IDEA}</p></div>
+<script src="/compare.js"></script>`;
+
 (async () => {
   console.log('POST /api/chatfeed/page — kit warnings');
 
@@ -213,6 +237,23 @@ const WITH_CHROME = SHELL.replace('<div class="wrap">',
     ok('example text in a box is warned about', has(w, 'placeholder'), JSON.stringify(w));
     ok('…and the page is still POSTED, never blocked',
       out.status === 200 && out.json.ok === true, JSON.stringify(out.json));
+  }
+
+  { // (f) prose between the title and the first picture, the fix, and the
+    // text-only page the rule deliberately does not touch
+    const a = await postPage({ chat: 'a-chat', title: 'Where the motion worked', html: WITH_PROSE });
+    ok('a prose block above the first picture is warned about',
+      has(a.out.json.warnings, 'prose block'), JSON.stringify(a.out.json.warnings));
+    ok('…and it says an explanation SHE ASKED FOR counts too',
+      has(a.out.json.warnings, 'she asked for'), JSON.stringify(a.out.json.warnings));
+
+    const b = await postPage({ chat: 'a-chat', title: 'Same words, behind the ?', html: PROSE_IN_HELP });
+    ok('the same words inside __compareHelp are clean',
+      !has(b.out.json.warnings, 'prose block'), JSON.stringify(b.out.json.warnings));
+
+    const c = await postPage({ chat: 'a-chat', title: 'A read-through', html: TEXT_ONLY });
+    ok('a page with no pictures is left alone',
+      !has(c.out.json.warnings, 'prose block'), JSON.stringify(c.out.json.warnings));
   }
 
   { // comments are stripped before anything is read — the shell keeps the rules

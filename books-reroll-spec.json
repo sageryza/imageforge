@@ -1,0 +1,9 @@
+{
+  "refs": ["storage:witch-school/refs/sophie-snake.png", "storage:witch-school/refs/sophie-animals.png"],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look — match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new illustration in that style. ",
+  "end": " Draw NO people and no faces. Generous empty white space around the subject. Absolutely no text, no words, no letters, no numbers, no captions. Draw NO flowers, NO leaves, NO stars and NO decorative ornament anywhere in the picture; every book cover is plain and unpatterned.",
+  "whiten": true,
+  "cards": [
+    { "id": "dn-12", "prompt": "A towering stack of identical printed books reaching up out of the picture, with one small open book at the foot of the stack for scale. Flat and simple." }
+  ]
+}

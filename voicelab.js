@@ -123,6 +123,8 @@ const OFFERED_VOICE_IDS = [
   'T9Hb8IjCmtu9eiwmHocH', // Richard v3 (word-exact — pitch AND loudness must agree)
   'EYB97SPMtZYwRMBdkH7a', // Sophie — doctor v2 (separated by transcript)
   'ZOw6P0YnswJ6JNjpj9wF', // Steve Ryza (her dad — NOT Steve Herrington, a different person)
+  't5WywHVtMw3aenhWkKCz', // Sophie — instant (Aug 14), from one 3½-min memo with its long pauses cut
+  '7Se81wBB6ZL5kXV2XKu5', // Sophie — instant v2 (Aug 14, stories), 12 min of her narrating, conditioned
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -146,6 +148,8 @@ const VOICE_COLORS = {
   ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate
   T9Hb8IjCmtu9eiwmHocH: '#6b7379', // Richard v3 — a darker slate, a shade off v1's stone
   EYB97SPMtZYwRMBdkH7a: '#e3b3bd', // Sophie — doctor v2
+  t5WywHVtMw3aenhWkKCz: '#d6b0c4', // Sophie — instant (Aug 14) — a third pink, beside her other two
+  '7Se81wBB6ZL5kXV2XKu5': '#cfa2b8', // Sophie — instant v2 (stories) — the same pink a shade deeper than v1
   ZOw6P0YnswJ6JNjpj9wF: '#6f8fa8', // Steve Ryza — steel blue. Deliberately NOT in the orange
   // family: orange is Steve Herrington, a different man, and pairing the two colours was
   // the visual version of the mistake that put them in one comparison (Aug 2026).

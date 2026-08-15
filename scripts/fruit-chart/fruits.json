@@ -1,0 +1,31 @@
+[
+ { "id": "01-strawberry",  "name": "Strawberry",   "group": 1, "size": "1024x1024", "scene": "a single ripe strawberry. No text or lettering anywhere." },
+ { "id": "02-banana",      "name": "Banana",       "group": 1, "size": "1024x1024", "scene": "a single ripe banana. No text or lettering anywhere." },
+ { "id": "03-apple",       "name": "Apple",        "group": 1, "size": "1024x1024", "scene": "a single red apple. No text or lettering anywhere." },
+ { "id": "04-orange",      "name": "Orange",       "group": 1, "size": "1024x1024", "scene": "a single orange. No text or lettering anywhere." },
+ { "id": "05-mango",       "name": "Mango",        "group": 1, "size": "1024x1024", "scene": "a single ripe mango. No text or lettering anywhere." },
+ { "id": "06-watermelon",  "name": "Watermelon",   "group": 1, "size": "1024x1024", "scene": "a wedge of watermelon. No text or lettering anywhere." },
+ { "id": "07-grapes",      "name": "Grapes",       "group": 1, "size": "1024x1024", "scene": "a bunch of purple grapes. No text or lettering anywhere." },
+ { "id": "08-blueberries", "name": "Blueberries",  "group": 1, "size": "1024x1024", "scene": "a small handful of blueberries. No text or lettering anywhere." },
+ { "id": "09-pineapple",   "name": "Pineapple",    "group": 1, "size": "1024x1024", "scene": "a single whole pineapple. No text or lettering anywhere." },
+
+ { "id": "10-peach",       "name": "Peach",        "group": 2, "size": "1024x1024", "scene": "a single ripe peach. No text or lettering anywhere." },
+ { "id": "11-cherries",    "name": "Cherries",     "group": 2, "size": "1024x1024", "scene": "a pair of cherries joined at the stem. No text or lettering anywhere." },
+ { "id": "12-raspberries", "name": "Raspberries",  "group": 2, "size": "1024x1024", "scene": "a small handful of raspberries. No text or lettering anywhere." },
+ { "id": "13-pear",        "name": "Pear",         "group": 2, "size": "1024x1024", "scene": "a single green pear. No text or lettering anywhere." },
+ { "id": "14-kiwi",        "name": "Kiwi",         "group": 2, "size": "1024x1024", "scene": "a kiwi fruit cut in half, cut side facing the viewer. No text or lettering anywhere." },
+ { "id": "15-lemon",       "name": "Lemon",        "group": 2, "size": "1024x1024", "scene": "a single lemon. No text or lettering anywhere." },
+ { "id": "16-plum",        "name": "Plum",         "group": 2, "size": "1024x1024", "scene": "a single plum. No text or lettering anywhere." },
+ { "id": "17-blackberries","name": "Blackberries", "group": 2, "size": "1024x1024", "scene": "a small handful of blackberries. No text or lettering anywhere." },
+ { "id": "18-cantaloupe",  "name": "Cantaloupe",   "group": 2, "size": "1024x1024", "scene": "a wedge of cantaloupe melon. No text or lettering anywhere." },
+
+ { "id": "19-pomegranate", "name": "Pomegranate",  "group": 3, "size": "1024x1024", "scene": "a pomegranate broken open to show the seeds. No text or lettering anywhere." },
+ { "id": "20-avocado",     "name": "Avocado",      "group": 3, "size": "1024x1024", "scene": "an avocado cut in half with the stone in one side. No text or lettering anywhere." },
+ { "id": "21-fig",         "name": "Fig",          "group": 3, "size": "1024x1024", "scene": "a fig cut in half, cut side facing the viewer. No text or lettering anywhere." },
+ { "id": "22-papaya",      "name": "Papaya",       "group": 3, "size": "1024x1024", "scene": "a papaya cut in half to show the seeds. No text or lettering anywhere." },
+ { "id": "23-apricot",     "name": "Apricot",      "group": 3, "size": "1024x1024", "scene": "a single apricot. No text or lettering anywhere." },
+ { "id": "24-coconut",     "name": "Coconut",      "group": 3, "size": "1024x1024", "scene": "a coconut split into two halves. No text or lettering anywhere." },
+ { "id": "25-lime",        "name": "Lime",         "group": 3, "size": "1024x1024", "scene": "a single lime. No text or lettering anywhere." },
+ { "id": "26-nectarine",   "name": "Nectarine",    "group": 3, "size": "1024x1024", "scene": "a single nectarine. No text or lettering anywhere." },
+ { "id": "27-dragonfruit", "name": "Dragon fruit", "group": 3, "size": "1024x1024", "scene": "a dragon fruit cut in half, cut side facing the viewer. No text or lettering anywhere." }
+]

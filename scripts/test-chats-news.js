@@ -16,10 +16,15 @@
 //      down there, but a third label must not push one under the autoscroll
 //      pill or off the edge), and the lit line lands on the FIRST slot,
 //   2. what makes a card: an unread reply, a new Compare page, or new
-//      pictures — and what does NOT: a chat she has already read, one she has
-//      already checked off (notifSeenAt), and an archived one,
+//      pictures — AND a chat she has merely READ, because since Aug 2026 the
+//      ✓ is the only thing that settles a card ("make the default behavior
+//      that it's pinned until I mark the checkmark and get rid of the pin").
+//      What does NOT: one she has checked off (notifSeenAt), or an archived
+//      one,
 //   3. a card carries the THING — the page's title, and up to three thumbs,
-//   4. the ✓ clears the card and POSTs /notif-seen (badge follows),
+//   4. the ✓ clears the card and POSTs /notif-seen (badge follows) — and
+//      opening a chat does NOT post it, or reading a thread would clear a
+//      card behind her back,
 //   5. the page title opens the full-screen Compare viewer; a thumb opens the
 //      chat; an account tab comes back to the chat list.
 //
@@ -47,7 +52,10 @@ const PX = Buffer.from(
 const H = 3600000;
 // chat-oven   — an unread reply AND a fresh Compare page (her own example)
 // chat-pics   — she has READ the last reply, but three pictures landed after
-// chat-quiet  — read, nothing delivered since → no card
+// chat-quiet  — READ, and nothing delivered since. It STILL gets a card: that
+//               is the Aug 2026 change, and this is the fixture that proves
+//               reading a thread no longer clears it. (Before, it was the
+//               "no card" case.)
 // chat-checked— unread reply, but already checked off (notifSeenAt newer)
 // chat-arch   — unread, archived → never a notification
 const MSGS = [
@@ -110,8 +118,9 @@ const server = http.createServer((req, res) => {
     //           title), but OLDER than her ✓ on this chat: gone as old news,
     //           without anyone parsing its title.
     // chat-deck delivers TWO genuinely different pages and says nothing at
-    // all — both must show ("if they give me a different page, why would I
-    // want it to not be shown?"), and a chat CAN deliver without a reply.
+    // all — only the NEWER shows (Sophie, Aug 2026: "I only want the newest
+    // compare page or whatever they posted on that turn"), and a chat CAN
+    // earn a card with pages alone, having never posted a reply.
     return res.end(JSON.stringify({ pages: [
       { id: 'p1', title: 'Oven artifact v4 (s96) — tightest cut', chat: 'chat-oven', created: iso(T0 - 90 * 60000) },
       { id: 'p3', title: 'Oven artifact v3 (s96) — link mode in the strip', chat: 'chat-oven', created: iso(T0 - 100 * 60000) },
@@ -189,15 +198,17 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   }
   await page.setViewportSize({ width: 390, height: 780 });
 
-  // The badge counts the CARDS — oven + pics, not the checked / already-read /
-  // archived ones. It has to be right on the CHAT LIST, without opening the
-  // tab: pictures arrive with no message, so the count is only honest once the
-  // delivered cache has loaded, which the tab row kicks off once per load.
+  // The badge counts the CARDS — oven + pics + deck + quiet, not the checked
+  // or archived ones. `quiet` is in the count because she only READ it, and
+  // reading is not checking off. It has to be right on the CHAT LIST, without
+  // opening the tab: pictures arrive with no message, so the count is only
+  // honest once the delivered cache has loaded, which the tab row kicks off
+  // once per load.
   await page.waitForFunction(
-    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '3'; },
+    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '4'; },
     null, { timeout: 5000 }).catch(async () => {
       const b = await page.$eval('#accrow .acctab[data-acct="new"]', n => n.textContent).catch(() => '');
-      fail('Update badge should be 3 (oven + pics + deck) on the chat list, got "' + b + '"');
+      fail('Update badge should be 4 (oven + pics + deck + quiet) on the chat list, got "' + b + '"');
     });
 
   // 2/3. open it: the title says New, the line slides to the third slot
@@ -221,15 +232,18 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // newest ARRIVAL first — chat-pics' newest picture is 20 minutes old, which
   // is newer than the oven chat's page (90m) and its reply (2h), even though
   // its own last message is the older of the two
+  // …and chat-quiet brings up the rear: read 8 hours ago, never checked off,
+  // so it keeps its card at the bottom of the list.
   const cards = await page.$$eval('.nwcard', ns => ns.map(n => n.dataset.chat));
-  if (JSON.stringify(cards) !== JSON.stringify(['chat-pics', 'chat-deck', 'chat-oven'])) {
+  if (JSON.stringify(cards) !== JSON.stringify(['chat-pics', 'chat-deck', 'chat-oven', 'chat-quiet'])) {
     fail('wrong cards (newest arrival first expected): ' + cards.join(','));
   }
   const pgTitles = await page.$$eval('.nwcard[data-chat="chat-oven"] .pr-title', ns => ns.map(n => n.textContent));
   if (!pgTitles.some(t => t.indexOf('Oven artifact v4') >= 0)) fail('the newest Compare page is not on the oven card');
-  // 1. a version pair inside one unchecked stretch collapses to the newer
-  //    (Sophie: "if there's one version and then a new one comes out it should
-  //    just replace that one — it says v6 and then v5")
+  // 1. an older page in the same unchecked stretch never shows — the newest
+  //    is the card's whole deliverable (Sophie: "if there's one version and
+  //    then a new one comes out it should just replace that one", then "I only
+  //    want the newest compare page")
   if (pgTitles.some(t => t.indexOf('v3') >= 0)) fail('the superseded v3 is still on the card: ' + pgTitles.join(' | '));
   // 2. …and a page older than her ✓ is gone as OLD NEWS, with nobody parsing
   //    its title — this is the one that beat the title rule twice ("I think it
@@ -238,12 +252,13 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     fail('a page older than her check-off survived: ' + pgTitles.join(' | '));
   }
   if (pgTitles.length !== 1) fail('the oven card should carry exactly its current artifact: ' + pgTitles.join(' | '));
-  // 3. but TWO genuinely different pages from one chat both show (Sophie,
-  //    correcting the one-page-only rule: "wait, if they give me a different
-  //    page, why would I want it to not be shown?"), and that chat never
-  //    posted a message — the pages alone earn it a card
+  // 3. TWO genuinely different pages from one chat show as the NEWEST alone
+  //    (Sophie, Aug 2026: "I only want the newest compare page or whatever
+  //    they posted on that turn" — reversing the v3 rule that showed both),
+  //    and that chat never posted a message: the pages alone earn it a card
   const deck = await page.$$eval('.nwcard[data-chat="chat-deck"] .pr-title', ns => ns.map(n => n.textContent));
-  if (deck.length !== 2) fail('two different pages from one chat did not both show: ' + deck.join(' | '));
+  if (deck.length !== 1) fail('a card should carry ONE page, its newest: ' + deck.join(' | '));
+  if (deck[0].indexOf('full-size cards') < 0) fail('the page shown is not the newest one: ' + deck.join(' | '));
 
   // THE ⌄ POP-OUT (Sophie, Aug 2026: "a TLDR in their update — not fully in
   // the message, because it would crowd things, but more as like a button I
@@ -279,29 +294,8 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     return n && getComputedStyle(n).display === 'none';
   }, null, { timeout: 4000 }).catch(() => fail('tapping the ⌄ again did not close the update'));
 
-  // the version-collapsing half, on real titles from her feed: WHERE the
-  // version sits decides what the family is, so re-cuts of one thing collapse
-  // while different pages under one project name do not
-  const fam = await page.evaluate(() => {
-    const f = window.__pageFamily;
-    return {
-      v6: f('Cutting blocks v6 (s96) — tap empty space to deselect'),
-      v5: f('Cutting blocks v5 (s96) — link mode in the strip, paragraph links'),
-      cut: f('Short 1 cut 3 — tightest'),
-      cut2: f('Short 1 cut 4'),
-      ev1: f('Evan — v11, the art from your notes'),
-      ev2: f('Evan — pick the pauses (v6)'),
-      ev3: f('Evan — the two floors, side by side'),
-      mon1: f('Monsters — full-size cards, quality ladder v1'),
-      mon2: f('Monsters — info backs, 3 samples v1'),
-      bare: f('v2'),
-    };
-  });
-  if (fam.v6 !== fam.v5) fail('v6 and v5 of the same page are not one family: ' + fam.v6 + ' / ' + fam.v5);
-  if (fam.cut !== fam.cut2) fail('cut 3 and cut 4 are not one family: ' + fam.cut + ' / ' + fam.cut2);
-  const proj = [fam.ev1, fam.ev2, fam.ev3, fam.mon1, fam.mon2];
-  if (new Set(proj).size !== proj.length) fail('different pages under one project collapsed: ' + proj.join(' | '));
-  if (!fam.bare) fail('a title that is only a version marker lost its identity');
+  // (The version-collapsing family parser lived here — deleted with v4 of the
+  // page rule: one page shows, so nothing reads a title any more.)
   const thumbs = await page.$$('.nwcard[data-chat="chat-pics"] .nwimg');
   if (thumbs.length !== 3) fail('expected the last THREE pictures, got ' + thumbs.length);
 
@@ -310,7 +304,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => !document.querySelector('.nwcard[data-chat="chat-pics"]'), null, { timeout: 4000 })
     .catch(() => fail('the ✓ did not take the card off the list'));
   await page.waitForFunction(
-    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '2'; },
+    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '3'; },
     null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow the ✓'));
   if (!notifPosts.some(p => p.chat === 'chat-pics' && p.seen !== false)) fail('POST /notif-seen never fired');
 
@@ -327,8 +321,11 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => document.getElementById('htitle').textContent === 'Chats')
     .catch(() => fail('an account tab did not leave the Update view'));
 
-  // 5b2. OPENING a chat tells the server too, so the home-screen widget's
-  //      count agrees with the tab's (the widget cannot read localStorage)
+  // 5b2. OPENING a chat writes NOTHING — and the card is still there when she
+  //      comes back. This used to POST notif-seen so the home-screen widget's
+  //      count matched the tab's; now that the ✓ is the only thing that
+  //      settles a card, that write would clear one she never checked. The
+  //      widget counts off the same stamp, so the two agree without it.
   const before = notifPosts.length;
   await page.click('#accrow .acctab[data-acct="new"]');
   await page.waitForSelector('.nwcard', { timeout: 4000 });
@@ -336,12 +333,19 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForFunction(() => document.getElementById('thread').style.display !== 'none',
     null, { timeout: 4000 }).catch(() => fail('the card row never opened the chat'));
   await page.waitForFunction((n) => true, null, { timeout: 200 }).catch(() => {});
-  if (!notifPosts.slice(before).some((p) => p.chat === 'chat-oven' && p.seen !== false)) {
-    fail('opening a chat did not stamp notifSeenAt for the widget');
-  }
+  const posted = notifPosts.slice(before).filter((p) => p.chat === 'chat-oven' && p.seen !== false);
+  if (posted.length) fail('opening a chat posted notif-seen — it would clear a card she never checked');
   await page.click('#back');
   await page.waitForFunction(() => document.getElementById('thread').style.display === 'none',
     null, { timeout: 4000 }).catch(() => {});
+  if ((await page.textContent('#htxt')) !== 'Update') {
+    await page.click('#accrow .acctab[data-acct="new"]');
+  }
+  await page.waitForSelector('.nwcard', { timeout: 4000 });
+  const stillThere = await page.$$eval('.nwcard', ns => ns.map(n => n.dataset.chat));
+  if (stillThere.indexOf('chat-oven') < 0) {
+    fail('the card cleared itself when she opened the chat: ' + stillThere.join(','));
+  }
 
   // 5c. a thumb opens its chat (its Assets tab).
   //     The tab TOGGLES, so only tap it if we are not already on Update —

@@ -1,0 +1,47 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new illustration in that style. ",
+  "end": " Draw NO people and no faces. Generous empty white space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "whiten": true,
+  "cards": [
+    {
+      "id": "in-01",
+      "prompt": "A round cell cut open like a doll's house, with four or five clearly different pieces of machinery inside it \u2014 a big sphere, a bean, a stack of folded sheets, a bag \u2014 each a separate shape sitting in its own space. Flat and simple."
+    },
+    {
+      "id": "in-02",
+      "prompt": "A large round nucleus with a double outer wall, coiled threads inside it, and one small ribbon-shaped copy slipping out through a pore in the wall into the space beyond. Flat and simple."
+    },
+    {
+      "id": "in-03",
+      "prompt": "A folded sheet of membrane studded with dozens of tiny two-lobed machines, a few more of them drifting loose above it, and one machine with a short string of beads coming out of it. Flat and simple."
+    },
+    {
+      "id": "in-04",
+      "prompt": "Three bean-shaped bodies with wavy folded inner walls, drawn large, with a small sugar cube and a round bubble of air entering one of them by an arrow and a small battery shape leaving it. Flat and simple."
+    },
+    {
+      "id": "in-05",
+      "prompt": "One bean-shaped body cut open to show a small closed loop of thread inside it and its own scattering of tiny two-lobed machines, drawn apart from the larger cell behind it. Flat and simple."
+    },
+    {
+      "id": "in-06",
+      "prompt": "A handwritten manuscript lying on a desk beside a tall leaning stack of opened return envelopes, with a single fountain pen resting across the top page. Flat and simple."
+    },
+    {
+      "id": "in-07",
+      "prompt": "A simple branching family tree drawn as lines and dots, with a bean-shaped body and a rod-shaped bacterium sitting together on the same small branch, and a green oval leaf-body on a branch beside them. Flat and simple."
+    },
+    {
+      "id": "in-09",
+      "prompt": "Two round cells side by side: the left one holding a large walled sphere at its centre, the right one holding a loose loop of thread and no sphere at all. Flat and simple."
+    },
+    {
+      "id": "in-10",
+      "prompt": "An open window with a curl of air drawn coming through it, the curl travelling down to a single bean-shaped body, and a second curl leaving in the other direction. Flat and simple."
+    }
+  ]
+}

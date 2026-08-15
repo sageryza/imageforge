@@ -1,0 +1,47 @@
+{
+  "refs": [
+    "storage:witch-school/refs/sophie-snake.png",
+    "storage:witch-school/refs/sophie-animals.png"
+  ],
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new illustration in that style. ",
+  "end": " Draw NO people and no faces. Generous empty white space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "whiten": true,
+  "cards": [
+    {
+      "id": "cd-01",
+      "prompt": "A strip of small blank tiles on the left, an arrow, and on the right three finished objects the tiles became: a feather, a single strand of hair, and a small rounded blob. Flat and simple."
+    },
+    {
+      "id": "cd-02",
+      "prompt": "A two-step diagram: a walled sphere with a coiled thread inside and a ribbon copy leaving it, an arrow across, then a small two-lobed machine running along that ribbon with a string of beads growing behind it. Flat and simple."
+    },
+    {
+      "id": "cd-03",
+      "prompt": "A long ribbon of small blank tiles, bracketed underneath into groups of exactly three, with a line from each group of three up to one bead in a growing chain. Flat and simple."
+    },
+    {
+      "id": "cd-04",
+      "prompt": "A wooden rack of twenty small test tubes at night, nineteen of them plain and one filled and glowing pale, with a round wall clock behind showing three o'clock. Flat and simple."
+    },
+    {
+      "id": "cd-05",
+      "prompt": "A horizontal strip of blank tiles with a small pennant flag planted on the tile at the left end and a solid square block capping the tile at the right end. Flat and simple."
+    },
+    {
+      "id": "cd-06",
+      "prompt": "A round table-wheel of small blank segments at the centre, with four living things arranged around it and a line from each to the wheel: a rod-shaped bacterium, a round yeast bud, an oak leaf, and a whale. Flat and simple."
+    },
+    {
+      "id": "cd-07",
+      "prompt": "A round-bottomed flask of cloudy liquid with a tiny closed loop of thread entering it by an arrow, and a small labelled-free glass vial of clear liquid leaving it by another arrow. Flat and simple."
+    },
+    {
+      "id": "cd-09",
+      "prompt": "Four round flat blood cells in a row and one crescent-shaped sickled cell at the end, with a short strip of tiles above where a single tile is drawn in a different colour. Flat and simple."
+    },
+    {
+      "id": "cd-10",
+      "prompt": "A plate of food on a table with a string of beads lifting out of it and coming apart into single loose beads, which reassemble into a new shorter string at the side. Flat and simple."
+    }
+  ]
+}

@@ -3,12 +3,12 @@
     "storage:witch-school/refs/sophie-snake.png",
     "storage:witch-school/refs/sophie-animals.png"
   ],
-  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading, and generous negative space. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new, SIMPLE, uncluttered illustration with one clear subject (not a busy scene). ",
-  "end": " Subject centered with lots of empty white space around it. Absolutely no text, no words, no letters, no numbers, no captions.",
+  "style": "Use the attached images ONLY as a STYLE reference for the LINE and the flat playful editorial look \u2014 match their bold confident black ink outlines, flat colors with NO gradients and minimal shading. Do NOT copy their colors. Use instead a flat limited PASTEL palette: mint green #B6E5CF, powder blue #AFC9E8, pale butter yellow #F6E7A8, soft blush pink #F6C6DA, and black, on a PLAIN WHITE background. Draw a brand-new illustration in that style. ",
+  "end": " Generous empty white space around the subject. Absolutely no text, no words, no letters, no numbers, no captions.",
   "cards": [
     {
-      "id": "pal-a",
-      "prompt": "A single round cell seen from directly above: one clear circular outline, a solid round nucleus inside it slightly off centre, and five small simple organelle shapes of different kinds scattered around the nucleus, plus one small four-point star beside the cell. One clear subject, generous empty space, flat and simple."
+      "id": "pal-a3",
+      "prompt": "A scientist standing at a laboratory bench in a lab coat, leaning to look into a microscope, with a rack of test tubes and an open notebook on the bench beside them, a shelf of flasks and stoppered bottles on the wall behind, and one small four-point star in the air. Flat and simple."
     }
   ],
   "whiten": true

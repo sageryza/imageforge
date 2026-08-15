@@ -99,6 +99,10 @@ const check = (name, ok, detail) => {
 
   const box = (sel) => page.locator(sel).first().boundingBox();
 
+  // "How this works" opens from the GEAR and nowhere else (Sophie) — it never
+  // greets a first visit, so an untouched page must not be carrying it.
+  check('the explainer does not greet a first visit', (await page.locator('#howwrap').count()) === 0);
+
   // 1. same amount of scrolling, whatever the dream's length
   const hLong = (await box('.dream[data-id="long"]')).height;
   const hAlso = (await box('.dream[data-id="alsolong"]')).height;
@@ -160,11 +164,38 @@ const check = (name, ok, detail) => {
   check('the gear is there', await page.locator('#gearBtn').isVisible());
   await page.locator('#gearBtn').click();
   check('the gear opens a menu holding sign out', await page.locator('#gearMenu #signOut').isVisible());
+  // The gear is the ONLY way to the explainer, and it opens as a plain pop-up:
+  // cream card, black text, a normal font (Sophie).
+  check('the gear holds the explainer', await page.locator('#gearMenu #howBtn').isVisible());
+  await page.locator('#gearMenu #howBtn').click();
+  check('tapping it opens the pop-up', await page.locator('#howwrap .how').isVisible());
+  const howLook = await page.evaluate(() => {
+    const c = getComputedStyle(document.querySelector('.how'));
+    return { pos: getComputedStyle(document.querySelector('#howwrap')).position,
+             bg: c.backgroundColor, fg: c.color, font: c.fontFamily,
+             head: getComputedStyle(document.querySelector('.how h3')).fontFamily,
+             locked: getComputedStyle(document.body).overflow };
+  });
+  const isDark = (c) => { const n = c.match(/\d+/g).map(Number); return n[0] + n[1] + n[2] < 160; };
+  check('it lays OVER the page, not in the feed', howLook.pos === 'fixed', howLook.pos);
+  check('the card is cream with black text', !isDark(howLook.bg) && isDark(howLook.fg),
+    `${howLook.bg} / ${howLook.fg}`);
+  check('and it is a normal font, not the serif or the app voice',
+    !/Georgia|Times/i.test(howLook.font) && !/Georgia|Times/i.test(howLook.head), howLook.font);
+  check('the page behind the pop-up is locked', howLook.locked === 'hidden', howLook.locked);
+  await page.locator('#howwrap').click({ position: { x: 5, y: 5 } });
+  check('a tap outside the card closes it', (await page.locator('#howwrap').count()) === 0);
+  check('and the page is usable again',
+    (await page.evaluate(() => getComputedStyle(document.body).overflow)) !== 'hidden');
+  await page.locator('#gearBtn').click();
   await page.locator('#gearScrim').click({ position: { x: 5, y: 5 } });
   check('tapping away puts it back', (await page.locator('#gearMenu').count()) === 0);
 
-  // lightbox: a tapped panel opens big, locks the page, and gives back the spot
-  await page.evaluate(() => window.scrollTo(0, 600));
+  // lightbox: a tapped panel opens big, locks the page, and gives back the spot.
+  // The panel has to be ON SCREEN before the position is read — a click scrolls
+  // its target into view, so measuring first would compare against a scroll
+  // position the tap itself moved.
+  await page.locator('.dream[data-id="pics"] .pgrid img').first().scrollIntoViewIfNeeded();
   const beforeY = await page.evaluate(() => window.scrollY);
   await page.locator('.dream[data-id="pics"] .pgrid img').first().click();
   check('a tapped panel opens the lightbox', await page.locator('#lb').isVisible());

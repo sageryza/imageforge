@@ -15,10 +15,19 @@ const admin = require('firebase-admin');
 
 const OUT_DIR = 'witch-school/webp/';
 const SRC_DIR = 'witch-school/assets/';
-const page = fs.readFileSync(path.join(__dirname, '..', 'public', 'witch.html'), 'utf8');
+// BOTH schools draw from this one folder — science.html's cards are written
+// by the same scripts/witch-school-cards.js, which always writes to
+// witch-school/assets/. So a missing webp is a broken picture in either app,
+// and both pages have to be swept.
+const page = ['witch.html', 'science.html']
+  .map(f => path.join(__dirname, '..', 'public', f))
+  .filter(p => fs.existsSync(p))
+  .map(p => fs.readFileSync(p, 'utf8'))
+  .join('\n');
 
-// Every id the page can put after SW_IMG: lesson card art (img:), course covers
-// (cover:), Book-of-Shadows section covers, and the brew shelf's ing2-<key>.
+// Every id a page can put after SW_IMG / SCI_IMG: lesson card art (img:),
+// course covers (cover:), Book-of-Shadows section covers, and the brew
+// shelf's ing2-<key>.
 const ids = new Set();
 for (const m of page.matchAll(/\bimg:\s*'([a-z0-9][a-z0-9-]*)'/gi)) ids.add(m[1]);
 for (const m of page.matchAll(/\bcover:\s*'([a-z0-9][a-z0-9-]*)'/gi)) ids.add(m[1]);

@@ -1,0 +1,1417 @@
+# The Chats app — how it is built
+
+`chatfeed.js` (`/api/chatfeed`) and `public/chats.html` — the app Sophie reads every chat in. This is the app's own build history and interface rules: the hook and its versions, the home screen's views and piles, the tabs, the marks, the Compare-page kit, and the sagas behind them.
+
+**Read this when you are working ON the Chats app.** What every chat must DO — post a status card and an Update card, label and file images, post prompts, answer notes, post a Compare page — stays in `CLAUDE.md`.
+
+*(Moved out of `CLAUDE.md` Aug 2026 — see the pointers there. Nothing was rewritten; this is the text as it stood.)*
+
+- **Auto-posting (July 2026):** a Stop hook (`post-to-feed.sh`) posts each
+  finished reply automatically — full text + TLDR + `url` (the
+  `claude.ai/code/session_…` deep link built from
+  `CLAUDE_CODE_REMOTE_SESSION_ID`), zero model tokens, de-duped per message.
+  **GOTCHA (verified live 2026-07-15): repo-committed `.claude/settings.json`
+  hooks DO NOT LOAD in these sessions** — the session's starting folder is
+  `/home/user` (four repos side by side), and Claude Code only loads project
+  settings from the starting folder. The working install path is the cloud
+  environment's **Setup script** (environment settings dialog), which writes
+  the hook + `/home/user/.claude/settings.json` before Claude Code launches —
+  paste `docs/chats-autopost-setup-script.sh` there (kept in sync with
+  `.claude/hooks/post-to-feed.sh`, which still covers single-repo sessions).
+  **ACTIVE since 2026-07-15** — Sophie installed the setup script and a fresh
+  chat's tile appeared on its own (verified live).
+
+- **SKILLS load in every session via the SAME setup script (v9, Aug 2026).**
+  The repo's `.claude/skills/` (witch-copy, deliver-images, new-page,
+  new-module, new-tool, sophie-audio, …) are only discovered by Claude Code once a chat
+  is already working inside this repo — the same starting-folder gotcha as
+  the hook — so the setup script SYMLINKS them to `/home/user/.claude/skills`
+  and they load from the first turn. A symlink, never a copy: sessions always
+  read whatever is on the clone today, so merged skill improvements arrive
+  with no re-paste. Like every hook change, an EXISTING environment needs
+  Sophie to re-paste the current `docs/chats-autopost-setup-script.sh` once;
+  a running session self-heals with the same
+  `curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`.
+
+- **LIVE DRAFTS (Aug 2026, hook v7):** the same hook is also registered on
+  **PostToolUse**, so the prose a chat writes BEFORE/BETWEEN tool calls
+  reaches the Chats app while the turn is still running — a long coding turn
+  no longer means silence until the very end (Sophie's ask: "it would be nice
+  if I could see that before they start coding"). Mechanics: the draft pass
+  posts the turn's text-so-far with `{turn, working:true}` (`turn` = the
+  transcript uuid of the user message that started the turn); the server
+  UPSERTS one message per turn onto a deterministic doc id keyed
+  session|turn — NOT the chat slug, so renames/slug re-resolution can't fork
+  a draft — and the app shows it as "still writing…" (breathing rose marker,
+  no Play button yet). The end-of-turn Stop post carries the same `turn` and
+  finalizes the SAME message (TLDR set, marker cleared) — one message per
+  turn, never a duplicate. The unread dot pings ONCE when the draft first
+  appears (Sophie's choice), never again as it grows/finishes. The whole
+  draft pass runs backgrounded (adds zero latency to tool calls), posts only
+  when the turn's prose actually GREW (state: `forge-draft-<sid>`), and skips
+  turns under 60 chars. An interrupted turn's draft is finalized by the
+  UserPromptSubmit sweep. After ANY edit to the hook, run
+  `python3 scripts/build-chats-setup.py` — it rebuilds
+  `docs/chats-autopost-setup-script.sh` + `public/setup.sh` with the hook
+  body verbatim-embedded; never hand-edit those two copies.
+  **A NEW HOOK VERSION DOES NOT REACH AN EXISTING ENVIRONMENT ON ITS OWN —
+  this note used to claim it did, and it is wrong (checked live 2026-08-07).**
+  The Setup script is PASTED TEXT in the environment settings dialog, and it
+  re-runs *the copy she pasted*, so an environment set up before v7 keeps
+  installing the pre-v7 hook forever. **It may not even re-run per session:
+  measured 2026-08-08, `/home/user/.claude/` and `.claude/hooks/` in a fresh
+  container both carried an mtime of Aug 1 23:32 — the environment SNAPSHOT
+  date — so nothing had written them in a week of sessions.** Treat the hook
+  as baked into the snapshot: after changing the Setup script, VERIFY in a
+  brand-new session (`grep -c PostToolUse /home/user/.claude/hooks/post-to-feed.sh`)
+  rather than assuming the edit took. Live
+  proof: `/home/user/.claude/settings.json` in these sessions registers only
+  Stop and UserPromptSubmit, the installed hook contains no `working` logic
+  at all, and the feed therefore holds ZERO live drafts — which is why the
+  Chats app's working-chat tint never fired. Fixing it needs Sophie to
+  re-paste the CURRENT script into the environment once — the whole file,
+  `docs/chats-autopost-setup-script.sh` (GitHub's file view has a one-tap
+  copy button, which matters: she does this on a phone).
+  **PREFER THE SELF-CONTAINED PASTE over the elegant one-liner** — this file
+  recommended `curl -fsSL …/setup.sh | bash` as the Setup script for exactly
+  one evening, on no evidence, and it is at best unproven here. What IS
+  established (2026-08-08): the big paste demonstrably installs a working
+  hook (it is what put the Aug 1 one there), needs no network, and cannot
+  fail on a server blip; whereas a Setup script that fetches at init dies
+  with "Setup script failed" (`recoverable:false`) the moment the fetch does
+  — which took out three probe sessions in one evening. **The honest limit of
+  that measurement: all three probes were MCP-seeded sessions whose network
+  was restricted anyway** (the one that recovered reported no hook file and
+  outbound POSTs blocked), so they do NOT prove a normal session's Setup
+  script lacks network. They only show the failure mode is real and fatal.
+  Given the script has to carry the hook body regardless — the whole reason
+  `build-chats-setup.py` embeds it verbatim — there is no upside to fetching
+  it at init. A RUNNING session is different: it has network, and curl is the
+  right tool for self-healing there (see the self-heal note below).
+
+- **THE "··· working details" FOLD IS STRUCTURAL — the signal is the turn's
+  TOOL CALLS (Aug 2026, v2, Sophie: "it's supposed to find when the message is
+  done coding … unless there's some internal signal, that would be the
+  best").** There is one, and this is it. The hook already walks the
+  transcript, where `text` and `tool_use` blocks are interleaved in order, so
+  every finished turn posts two character offsets into its text: **`head`** =
+  where the FIRST tool call fell, **`tail`** = where the LAST one did. The app
+  shows `text[0,head)` (what it said before starting), folds the middle (the
+  narration between tool calls), and shows `text[tail,…)` — the closing
+  rundown, which is the thing she opens the message for.
+  - **v1 was a VOCABULARY classifier and she called it a nuisance. Measured
+    2026-08-11 over the 132 real replies in six days of feed: it folded 4.5%
+    of reply text while putting a fold button on 46 of 112 long messages, and
+    what it hid included lines plainly meant for her** ("Now I have the truth,
+    and I owe you a correction."). It never once surfaced the closing rundown.
+    `isWork`/`splitBlocks` are deleted; **do not reintroduce a text-based
+    fallback.**
+  - **With no signal the message shows WHOLE** — the honest default, and what
+    she had before the feature existed. A chat on an older hook simply doesn't
+    fold: silence, not a wrong guess (the same rule the tint follows).
+  - **Coverage grows two ways, and the second costs nothing.** A v12 hook
+    sends `head`/`tail` exactly. For hooks v7–v11 the SERVER derives the same
+    pair from the live drafts for free — a draft posts at a tool call carrying
+    the turn's text so far, so **the first draft's length IS `head` and the
+    newest draft's length is `tail`**. Measured 2026-08-11: 33 of 132 replies
+    (23 of 77 chats) already post drafts, so a quarter of replies fold
+    correctly with no re-paste at all. The derived pair is approximate only in
+    erring toward folding LESS (the draft pass skips turns under 60 chars and
+    posts only when the prose grew).
+  - **The final post must never overwrite the drafts' boundaries** — its text
+    is the whole turn, so deriving from it would mark the entire reply as
+    pre-work and fold nothing. That guard is in `chatfeed.js` and pinned by a
+    test.
+  - Tests: `node scripts/test-chats-working-fold.js` — covers all three layers
+    (hook parser against a real JSONL, the server's contract, and `foldBody`
+    lifted out of chats.html and run for real). Needs no playwright.
+
+- **THE ROSE WORKING TINT: v3 — HONEST SIGNALS ONLY, LIVING WITH PARKING
+  INSIDE THE HIDDEN PILE (Aug 2026, Sophie: "it could still be tinted even if
+  it's in the hidden area — I could look in the hidden area and see which
+  ones are working"). `TINT=true` again.** v1's report ("skill is tinted pink
+  and it's not working whereas Imprint is working and it wasn't tinted pink")
+  had both halves true at once, and neither was fixable in `chats.html`:
+  - **The miss.** The tint's only honest signal is `workingAt`, stamped by the
+    hook's turn-start ping. A session keeps whatever hook its CONTAINER
+    SNAPSHOT holds, forever — so every chat started before Sophie re-pasted
+    the setup script can never tint, however long we wait. Measured
+    2026-08-10: of **77 chats that posted replies in six days, 3 had ever
+    carried `workingAt`**. Imprint is one of the ~190 older ones.
+    **CORRECTION (measured 2026-08-11, over all 6,166 feed docs): the claim
+    that "her own messages first appear in the feed on Aug 9" is WRONG.** Her
+    earliest lifted message is **2026-07-17**, 73 of them that first day, and
+    1,638 in all across 112 chats. What Aug 9 changed is the HIT RATE, and it
+    is the same container-snapshot story told properly — by the week a chat
+    STARTED: before 17 Jul **0%** of chats ever carried a message from her,
+    Jul 17-23 **17%**, Jul 24-30 **5%**, Jul 31-Aug 6 **76%**, Aug 7-11
+    **98%**. So the snapshot picked up a message-lifting hook around Jul 31
+    and the re-paste finished the job. Don't read a whole feature's absence
+    off one date again; count the docs.
+  - **The false positive.** The fallback signal "her message is the newest
+    thing in this chat" is really WAITING ON THE CHAT, not working. `skill`
+    was pink for exactly that reason, correctly by the code and wrongly by
+    the word.
+  So the tint came off entirely for a few hours and auto-parking replaced it
+  — until Sophie's v3 synthesis dissolved the "they defeat each other"
+  framing: parking and tint only collide on the MAIN list. A parked chat is
+  still a row inside the hidden pile, and THAT row glows while the chat
+  works; the CLOSED bar carries a rose "· N working" so the glow isn't a
+  secret (`paintHideWork`, refreshed by `paintLive` on message-less polls —
+  the mark arrives on exactly those). She wants to watch whether the honest
+  tint proves itself; if it does, parking may come off later. Three rules
+  survive from the saga:
+  - **`chatWorking` answers on the PING (`workingAt`) and on a live draft
+    (`working:true`) ONLY — never on "her message is the newest thing".**
+    That fallback is what lit `skill` wrongly (waiting, not working) and it
+    is deliberately gone. A chat with an old hook parks and simply doesn't
+    glow: silence, not a lie.
+  - **Coverage grows three ways:** every new session carries the re-pasted
+    setup script's hook; an idle chat's container recycles onto the current
+    snapshot on its own; and Sophie pastes the self-heal
+    (`curl -fsSL https://imageforge-q125.onrender.com/setup.sh | bash`) into
+    live old chats gradually (takes effect same session, proven 2026-08-07).
+  - **Do not "fix" a dead-looking tint by hunting the client repaint.**
+    #931/#933 did that, #901/#908/#910/#911 corrected this file's own wrong
+    claims, and the layer was never the problem — check the chat's HOOK
+    first (see the case-study rule at the top of this file).
+  `window.__setTint(true)` is how the tests force the flag regardless of its
+  default (the page script is an IIFE — `window.TINT` is a stray global that
+  proves nothing).
+
+- **AUTO-PARKING A CHAT SHE ANSWERED (Aug 2026, Sophie: "we need to go back
+  to the hiding method we tried before" — and kept in v3: "let's keep the
+  hidden thing currently").** `POST /reply` and `POST /working` stamp
+  `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list and
+  the stamp's own rule brings it back when the reply lands. It COEXISTS with
+  the v3 tint: the parked chat glows inside the pile, not on the list.
+  **Why parking's coverage is broader than the tint's:** parking rides on HER
+  MESSAGE arriving (`POST /reply`), which the hook has lifted since July
+  2026, well before the v7 ping. And its failure mode is graceful — a chat
+  whose hook is too old simply doesn't park, which is the ordinary list, not
+  a wrong colour. Manual hiding (the ⊖) is untouched.
+
+- **HOW THE PING GOT THERE — the turn-start ping, and why her own message is
+  NOT a usable signal (Aug 2026, v8).** The Chats app tints a chat pink while it is
+  working on something. The obvious signal ("the chat's newest message is
+  hers") looks right and is useless: the hook can only lift her message out of
+  the TRANSCRIPT, and at UserPromptSubmit the transcript does not contain it
+  yet — so it is posted at the END of the turn. Measured live across a whole
+  afternoon of her messages, her `postedAt` lands **~1 second** before the
+  reply's, every time, so that condition is true for about one second and the
+  tint never appeared. The hook therefore pings **`POST /api/chatfeed/working
+  {chat, session}`** at UserPromptSubmit (no transcript needed, backgrounded),
+  which stamps `workingAt` on the chat's registry doc; the reply's own
+  registry write deletes it. `chatWorking()` in chats.html reads that mark,
+  with a 3h cap and a backstop (a reply newer than the mark means the turn
+  finished, even if the clear was lost). The app's own reply box stamps the
+  same mark server-side, so that path works with no hook at all.
+  **The mark arrives on polls that carry ZERO new messages — repaint anyway
+  (Aug 2026, the "it doesn't work" bug).** `workingAt` lives on the REGISTRY,
+  so a turn starting or ending changes no message doc, and chats.html's
+  `poll()` early-returned on an empty message list BEFORE repainting — the
+  fresh mark was stored in memory and never painted, so the tint effectively
+  only ever showed on a first-ever load or a manual Refresh tap (a normal app
+  open paints from the localStorage cache and then polls). The whole server
+  loop was verified working the entire time; when this tint "doesn't fire",
+  check the CLIENT repaint path before the hook or the server. `poll()` now
+  calls `paintLive()` whenever fresh `chats` arrive, before that return
+  (paintLive only toggles classes on tiles already on screen — no rebuild, no
+  scroll jump, safe every poll). Test:
+  `node scripts/test-chats-working-tint.js` (headless Chromium against a stub
+  feed; skips without playwright).
+
+- **A TURN STARTED BY A BACKGROUND EVENT IS STILL A TURN (v14, Aug 2026).**
+  Sophie, across several chats in one week: "your last message didn't show up
+  in my chat app." The pattern was exact — every turn that answered HER
+  posted, every turn that answered a wake event / task notification did not.
+  **The two questions the hook asks about a user record are SEPARATE and must
+  stay that way:**
+  - **the TURN BOUNDARY takes everything** — ANY non-tool-result user record
+    ends the previous turn, machinery included, because a wake really does
+    begin a turn whose reply deserves its own message;
+  - **`her_words` decides what is POSTED as hers** — machinery is a boundary
+    but never a message.
+  Merging them (the first fix for the wake-envelopes-as-her-messages bug)
+  left a background-event reply keyed to the PREVIOUS turn. The message doc
+  id is `sha1(session|turn)`, so it UPSERTED onto that already-finished
+  message, inherited its `created` (the upsert preserves it deliberately),
+  never rose in the thread, and read as gone. The live-draft pass was worse:
+  it re-marked that delivered reply `working:true`, which is why those chats
+  ALSO sat parked in the hidden pile waiting for a reply she already had —
+  one cause, two symptoms, and worth remembering when the next "it's parked
+  and silent" report arrives. `turnkey_of()` (both parsers, kept in step)
+  also gives a machinery record with no uuid a STABLE key off its timestamp
+  rather than silently inheriting the previous turn's — stable because the
+  hook re-parses the whole transcript on every event, so a volatile key
+  would fork the doc. Tests: `node scripts/test-chats-turn-boundary.js`
+  (drives the REAL hook against a capture server; verified failing on the
+  unpatched hook, 9 of 17).
+  **THE TWO SYMPTOMS ARE OPPOSITE SIDES OF ONE ROLLOUT, which is why this
+  read as "various reasons" (measured 2026-08-14):** a chat on the OLD hook
+  files `<wake …>` envelopes into her feed AS HER MESSAGES but posts its
+  turns fine; a chat on the in-between hook posts no wake-turn replies at
+  all. Diagnose by which hook the chat carries before theorising. The
+  population that day: **1 of 235 chats had EVER reported a hook md5**
+  (`hookV`, v11+), i.e. essentially every session was on a pre-v11 snapshot,
+  and the chats that lost turns were the few recently healed by hand.
+
+- **THE CARD REMINDER IS IN THE HOOK (v13, Aug 2026).** On UserPromptSubmit
+  the hook prints one line of `additionalContext`, so every turn begins with
+  the reminder to refresh the chat's STATUS CARD and UPDATE card before it
+  ends. Why: measured 2026-08-13, only **15 of 224 chats had ever POSTed an
+  Update card**, so the ⌄ pop-out almost always fell back to the reply's
+  TLDR — the rule was written here and forgotten, which is what machinery is
+  for. Three things about it that are deliberate: the text is a FIXED string
+  baked into the hook (it is never fetched from the server — a hook that
+  relayed server-supplied instructions is the boundary the v11 note below
+  describes); it is the ONLY thing the hook ever writes to stdout, on the one
+  event whose contract reads stdout as JSON, so nothing else in the script
+  may print; and there is no state file — it is one cheap line every turn.
+  **Reaching an existing environment still needs Sophie's one-time re-paste**
+  of `docs/chats-autopost-setup-script.sh` (the standing distribution caveat
+  above) — a chat on an older hook simply gets no reminder, which is silence,
+  not a wrong turn.
+
+- **STALE HOOKS SHOW THEMSELVES NOW — and AUTO-UPDATE IS A HARD NO (v11, Aug
+  2026).** The turn-start ping carries the md5 of the session's INSTALLED
+  hook file; the server compares it to the repo copy it deployed with
+  (setup.sh installs byte-identical — verified 2026-08-10) and stamps
+  `hookV`/`hookStale` on the registry doc, and the Chats app shows "hook out
+  of date — paste the heal" under the chat's name. So nobody hunts stale
+  chats anymore: Sophie pastes the self-heal into the marked ones and the
+  mark clears on that chat's next turn. Detection ONLY, and that boundary is
+  not ours to move: two stronger designs — the hook fetching and running the
+  setup script by itself, and the hook telling the chat's model to run it —
+  were built on 2026-08-10 WITH Sophie's explicit permission and the chat
+  harness refused both (an unattended path that makes every chat execute
+  server-supplied code is over its line regardless of consent). Don't
+  rebuild them; extend the telemetry instead if more is needed. A chat can
+  check ITSELF without the server: `md5sum
+  /home/user/.claude/hooks/post-to-feed.sh` vs the repo's
+  `.claude/hooks/post-to-feed.sh` — different means stale, and the self-heal
+  below fixes it in-session.
+
+- **Two Claude accounts (July 2026) — Open buttons route app vs browser.**
+  Sophie runs two Claude accounts: one signed into the Claude iOS app, one used
+  on claude.ai in her phone browser (the app can't hold both). Each cloud
+  environment sets **`FORGE_ACCOUNT`** (`1` or `2`); the hook tags every feed
+  post with it (stored as `account` on the chat's registry doc). The `/chats`
+  home screen has an **App/Web toggle** ("App 1 · Web 2") Sophie taps when she
+  swaps sign-ins — it writes `appAccount` to the reserved registry doc
+  `__settings` via `POST /api/chatfeed/app-account`. Open buttons compare the
+  chat's `account` to `appAccount`: match (or untagged) → direct claude.ai link
+  (iOS universal link opens the Claude app); mismatch → the same claude.ai
+  link with **`#no_universal_links` appended** — claude.ai's own
+  apple-app-site-association EXCLUDES any URL carrying that fragment (their
+  first match rule, checked July 2026), so iOS never hands it to the Claude
+  app and it opens in the BROWSER, where that account is signed in. **Do NOT
+  reach for redirect tricks here:** a server 302 to claude.ai (verified
+  2026-07-27) AND a self-navigating interstitial page (verified 2026-07-31)
+  both bounce into the Claude app on current iOS — the AASA fragment
+  exclusion is the only thing that works. `GET /api/chatfeed/go?u=` survives
+  as a legacy hop for cached pages; it now just 302s to the fragment-tagged
+  URL. Nothing to re-paste when she swaps accounts — only the toggle.
+  Existing chats that haven't posted since the env vars were added are
+  untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
+  `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook
+  re-stamps the tag on every post, so a manual tag and the env var must agree.
+
+- **HER OWN MESSAGE NEVER RAISES THE "NEW MESSAGE" BAR (Aug 2026, Sophie: "it
+  notifies me when my own message comes in — that's a bug").** The hook lifts
+  what she types in the Claude app into the feed, so it arrives on a delta
+  poll like anything else — and `poll()` counted every arrival toward
+  `pendingNew`, so the app told her about the message she had just sent. The
+  row dot and the answered badges have always excluded her
+  (`from!=='sophie'`); the bar was the one path that didn't, which made the
+  single signal meaning "something came back" cry wolf. `poll()` now counts
+  `news`/`mineNews` (non-sophie) for the bar while `added`/`mine` still drive
+  caching and repainting — her message is merged as before and simply appears
+  at the next natural render. Tests:
+  `node scripts/test-chats-own-message.js` (drives the real delta poll via
+  `window.__poll`; verified failing against the old counting).
+
+- **HER OWN MESSAGES are in the feed too (July 2026), so a thread reads as the
+  conversation it was** instead of a monologue of Claude replies. The same hook
+  posts them: it already fires on `UserPromptSubmit` (that firing used to only
+  sweep up interrupted replies), and now also lifts her message out of the
+  transcript and POSTs it to `/api/chatfeed/reply` as `from:"sophie"`, keyed by
+  the transcript record's `uuid` so it can't double-post, carrying her real send
+  time via the route's new optional `created` (so hers sorts ABOVE the reply it
+  prompted). The app already rendered `from:"sophie"` as **"me"** in rose and
+  excludes it from the unread dot, so no client change was needed.
+  - **The machinery that also arrives as a "user" record is filtered out:**
+    `isMeta` ("Continue from where you left off"), `<task-notification>` /
+    `[SYSTEM NOTIFICATION …]`, `<github-webhook-activity>`, slash-command echoes
+    (`<command-name>`, `<local-command-stdout>`), `[Request interrupted …]`, and
+    the caveat preamble. `<system-reminder>` blocks are STRIPPED from her text
+    rather than used to reject the message (they ride inside real messages).
+  - First firing in a session **baselines her history and posts only her latest**,
+    same policy as the reply poster, so installing it never floods a live feed.
+  - **MID-TURN messages need the queue records (Aug 2026, fixed).** A message
+    Sophie sends WHILE Claude is still working is queued, and a queued message
+    is written to the transcript ONLY as a `queue-operation`/`enqueue` record —
+    it never becomes a `user` record. The parser only read `user` records, so
+    those messages reached Claude but **silently never reached the Chats app**
+    (found live 2026-08-07: "Yeah. Do the images." was lost, and it was a
+    course-correction — exactly the kind worth keeping). The hook now also
+    collects enqueue records. EVERY message is enqueued, so a queued entry only
+    counts when no `user` record carries the same words — matched as a
+    **multiset** so repeating a short phrase can't let the first swallow the
+    second — and its dedupe key is `q:<timestamp>`.
+  - State: `~/.claude/forge-user-<sid>.posted` (alongside the feed/gallery ones).
+
+- **App-embedded tool pages share ONE kit: `public/tool.css` (Aug 2026,
+  Sophie's redesign brief — "too much text, the buttons are too long, think
+  about the user doing the flow").** These pages were built for the desktop
+  web hub, which is why they showed every field, every explanation and every
+  full-width button at once. The kit gives them a step FLOW: `.rail` (where
+  am I), `.step` (only the OPEN one shows controls; a finished step collapses
+  to a tappable one-line summary), `.btn` that hugs its text, `.btn.star` for
+  anything that spends a model call, and a `?` circle holding the explanation
+  that used to be a paragraph. Link it, set `body class="tool"`, don't
+  hand-roll a per-page variant. `studio.html` is the reference; `blog.html`,
+  `report.html` and `vector.html` follow.
+  **THE FOUR RULES SHE KEEPS REPEATING, now baked into the kit (Aug 2026,
+  after /vector broke three of them on day one).** They live as comments at
+  the top of `tool.css`, in the `new-page` / `new-tool` skills, and — for
+  Compare pages — as `warnings` on `POST /api/chatfeed/page`:
+  1. **The tool's name appears ONCE.** The native bar carries it, so the page
+     must not. `?embed=1` hides the page's own title row — and **the server
+     now does that itself** (it injects the style for BOTH `.app-header` and
+     `.tool-eyebrow` plus `document.body.classList.add('embed')`), because
+     the old rule lived in tool.css behind a `body.embed` that only
+     studio.html's hand-written JS ever set. **`GatedWebTool` appends
+     `embed=1` to every path** rather than each call site remembering —
+     /vector shipped without it and read "VECTOR" twice down the screen.
+  2. **No instructions on the page** — behind the `?` (`#help`/`.helpcard`).
+  3. **Text boxes ship EMPTY**, not even a `placeholder`: "whenever there's a
+     text box there should not be anything in it… I prefer nothing." An
+     example belongs in the `?` card.
+  4. **A button is only as wide as its words** — never `width:100%` or
+     `flex:1`; `.btn` says `width:auto; flex:0 0 auto` out loud so someone
+     else's flex row can't stretch it.
+  **The rail and EVERY step caption reserve the pill's corner (Aug 2026)** —
+  `padding-right:56px`, not just the header. The injected pill is fixed over
+  roughly x 324-374 / y 14-192, which is the header AND the first two step
+  rows, so a caption's one-line summary rendered UNDER it (caught on /vector:
+  step 1 read "4 draw…"). It costs 56px off a summary that is ellipsised
+  anyway, and it fixed the same latent collision on every other tool page.
+
+- **A gated page hosted inside a native tool must be asked for with
+  `?embed=1` (Aug 2026).** `serveGated` then hides the page's own
+  `.app-header` — its brand row duplicated the native nav-bar title, and its
+  "← Hub" button navigated the WEB VIEW to the web hub, stranding her outside
+  the tool with no way back (Sophie caught all three business tools like
+  this). One rule in `serveGated` covers every gated page, since they share
+  `.app-header` from `forge.css`. Pass it on every new `GatedWebTool` path.
+
+- **Gated pages must not be cached by the app.** `serveGated` sends
+  `Cache-Control: no-cache, must-revalidate` — without it only an ETag shipped
+  and the iOS app's WKWebView served a heuristically-cached copy, so a shipped
+  page change (a moved button, a new tab) silently never reached her phone. This
+  actually happened with the header fixes. Keep that header on any new HTML route.
+
+- **The `/chats` header reserves the pill's corner.** The autoscroll pill is
+  `position:fixed` over the top-right (x 324–374, y 14–192 on an iPhone 13), so
+  ANY header control reaching that corner is untappable — the rename pencil was,
+  for real, until `.thread-head`/`.headbtns` got `padding-right:56px`. Keep that
+  reservation on any new header row, and never place a control in that corner.
+  **The home screen has FOUR views, switched from the title row: chats,
+  ARCHIVE, BOOKMARKS, and STATUS (Aug 2026, Sophie).** `homeView` in
+  chats.html. **STATUS** (the list-todo icon left of the bookmark) is the
+  prioritized front door Sophie asked for ("this is what's done, this is
+  what's waiting on you, these are the assets that were just delivered"):
+  WAITING ON YOU (her flagged come-back-later chats first, then finished
+  replies she hasn't opened, each row carrying the same ✓/! triage buttons as
+  the home list so she can mark answered without opening anything), WORKING
+  RIGHT NOW (the pink-tint chats), JUST DELIVERED (the newest images across
+  every chat — `GET /api/gallery/assets/recent`, server-side filename dedupe
+  + 480px thumbs, a thumb opens that chat's Assets tab — plus the newest
+  Compare pages via `GET /api/chatfeed/pages-recent`), and MARKED DONE (what
+  she has checked off). The chat sections derive from the registry + feed the
+  page already holds, so they paint instantly; only the delivered strip
+  fetches (cached 60s). Tests: `node scripts/test-chats-status.js` (headless
+  Chromium against a stub feed; skips without playwright). The
+  serif title says which one she is in ("Chats" / "Archive" / "Bookmarks") and
+  the word beside it becomes the way OUT, reading "← Chats" — a bold word
+  alone was "really confusing" and left her with no visible exit. The
+  bookmark icon next to it opens **every bookmarked message across all
+  chats**, newest first, tapping one jumps to it in its thread
+  (`GET /api/chatfeed/bookmarks`, one equality filter sorted in memory so
+  Firestore needs no composite index). Before that route existed the bookmark
+  button wrote a flag NOTHING ever read — a bookmark could only be found by
+  scrolling to that exact message in its own thread.
+  **DELETE + THE TRASH (Aug 2026, Sophie: "a delete button as a second option
+  to archive so I can delete this chat so it doesn't keep confusing things
+  rather than just archive it, and I'd like deleted chats to go to a trash
+  that I can empty").** `deletedAt` on the registry doc
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
+  thread header after Archive and Hide, and the trash itself.
+  - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
+    trash in archive and make it just a picture of a trashcan I guess").**
+    It shipped as a fifth WORD in the masthead and that broke the header:
+    measured at 390px, `.hctl` started at **x=48** while the word "Chats"
+    occupies **x=20-96**, so the bookmark button sat under the visible title
+    and won the tap — **tapping "Chats" opened Bookmarks**. Five controls
+    plus a long title do not fit on her phone. So `#trashlink` is an ICON
+    (~26px against the word's ~56px), `display:none` unless
+    `homeView==='archive'||'trash'`, and leaving the trash returns to the
+    ARCHIVE it opened from rather than all the way home. Its own class
+    `.trashbtn`, never `.bmk` — that rule's `.on svg{fill:currentColor}`
+    floods a stroke glyph into a blob (the `.stbtn` trap).
+    **The lesson for the next control:** the masthead is FULL. Anything new
+    there must be an icon, must be view-scoped, or must go somewhere else —
+    and `node scripts/test-chats-title-back.js` is what catches it, because
+    it hit-tests every header control under every title.
+  - **TWO STAGES, and the split is the whole point.** Deleting only stamps
+    `deletedAt` — nothing is destroyed, and every row in the trash carries
+    **Restore**. `POST /trash/empty` is the irreversible half (`{chat}` empties
+    one, no body empties all) and it says so in much stronger words than the
+    first confirm: a mis-tap on Delete costs one tap to undo, so the two must
+    not read alike.
+  - **`deletedAt` is NOT a self-clearing stamp and `/reply` never clears it**,
+    which is exactly where it differs from its two neighbours: `hiddenAt` pops
+    back when the chat answers, and `archived` is cleared by her messaging the
+    chat. A deleted chat must never resurrect itself because something posted
+    into it. Presence of the field is the whole test.
+  - **The exclusion lives in ONE place — `sortedChatNames()`** — because every
+    pile derives from it (live, hidden, ★, archive, the category chips, the
+    account tabs). A filter per pile is how a new pile silently forgets;
+    deleting is stronger than archiving, so a chat that is both must show in
+    neither. Pinned by a test that was verified failing without it.
+  - **Empty deletes the chat's messages, Compare pages, asset records and its
+    registry doc — never the image BYTES in Storage.** The same picture is in
+    her iOS gallery and can be referenced by another chat, so clearing a
+    chat's records must not reach through and destroy the pictures. Asset
+    VOTES are left too (keyed `sha1(chat|url)`, so unqueryable by chat, and a
+    few orphaned bytes nothing reads). The registry doc goes LAST, so a
+    failure partway leaves a row she can see and re-empty rather than a
+    half-erased chat that has vanished.
+  - Firestore caps a batch at 500 writes and a long chat holds thousands of
+    messages, so the delete runs in chunks of 400.
+  - Tests: `node scripts/test-chats-trash.js`.
+  **THE ARCHIVE IS TWO PILES — BUILT · OTHER (Aug 2026, Sophie: "right now
+  the archive is a single list, I want to split it using the hairline pattern
+  into two piles, one of things where we built something and something was
+  accomplished and everything worked out, and then another one that's pretty
+  much trash but I'm just keeping it for bookkeeping").** Her own examples of
+  the second pile: the chat where her computer wouldn't turn on ("yeah I did
+  fix it but it's not really important") and the one about Google Takeout
+  failing on her email. `.acctabs.archtabs` at the top of the archive grid,
+  `archiveKind` on the registry doc, `POST /api/chatfeed/archive-kind
+  {chat|chats:[…], kind:'built'|'other'}`.
+  - **ABSENT MEANS BUILT, and that is the load-bearing half.** 81 chats were
+    already archived the day this shipped, so storing only the second pile
+    means no backfill — and no risk of the left tab opening empty and reading
+    as the archive having been wiped. Only the throwaways carry a mark, which
+    is also the smaller and easier judgement.
+  - **It is INDEPENDENT of `archived`** and permanent like `starred`, not a
+    self-clearing stamp: a chat marked `other` and then pulled back out of the
+    archive keeps the mark, so re-archiving it never asks her twice.
+  - **The row's button in the archive MOVES the chat, it does not hide it**
+    (↓ / ↺, the Compare list's supersede idiom). It replaced the hide ⊖ there,
+    which was a dead control and always had been — the hidden pile is derived
+    from `live`, which excludes every archived chat, so hiding one could never
+    put it behind the red bar. One button per row; two makes the wrong one the
+    easy tap.
+  - **The tab row needs NO 56px pill reserve** — it is drawn at the top of
+    `#grid`, below the hidden bar, so it clears the pill's y 14–192 band. Move
+    it higher and it needs the reserve plus `width:calc((100% - 56px)/2)`. No
+    count badges: the red one elsewhere means "something answered you", which
+    an archived chat doing is not.
+  - **THE ACCOUNT TABS ARE HIDDEN IN THE ARCHIVE, AND THE ARCHIVE IS NO
+    LONGER SPLIT BY ACCOUNT (Aug 2026, Sophie: "I noticed there's an update
+    and account one account two tab in the archive").** `#accrow` had always
+    shown there; adding BUILT / OTHER underneath left two hairline rows
+    stacked 37px apart, and UPDATE was incoherent in that row regardless — it
+    is a whole VIEW, not a way of narrowing the chats below it. So the
+    archive shows ONE row, its own.
+    **The filter had to go with the row**, not just the row: a pile still
+    narrowed by a control no longer on screen is the silent filter this file
+    keeps warning about. `renderHome` therefore builds `arch` from
+    `everyone` (unfiltered) while every other pile still comes from `all`.
+    The cost is small and the error is in the safe direction — she sees MORE
+    archived chats than before, never fewer — and the archive is the
+    away-for-good pile, where which Claude account a chat ran on is the least
+    interesting thing about it. `test-chats-accounts.js` asserts this
+    exception (both accounts listed, one visible tab row); it previously
+    asserted the opposite.
+  - **ARCHIVING ASKS WHICH PILE, AND WHAT TO CALL IT (Aug 2026, Sophie: "the
+    archive should have an option to add it into the built or other pile and
+    also give an option to type a text box as a title for what it saves
+    under… there's already a pop-up for archive so you can just add it to the
+    top").** `askArchive()` in chats.html — the existing `askFirst` sheet
+    with two controls added ABOVE the question: a name box, then the pile.
+    - **The pile picker is `.acctabs` — the SAME hairline row she is about to
+      land in**, so the choice looks like its destination. BUILT preselected,
+      which is also what happens if she never opens the sheet.
+    - **The name box is PREFILLED with the chat's current name** (the /vector
+      precedent — a box holding its real current value, not example text; the
+      "text boxes ship empty" rule is about examples). Untouched, it renames
+      nothing: `askArchive` answers `title:null` unless she actually changed
+      it, so an unchanged box never fires `POST /rename`.
+    - **The rename and the pile are written BEFORE the archive**, so the chat
+      lands already named and already filed rather than sitting on BUILT for
+      a moment under its old name. Each write is independent — a failed
+      rename must not stop the archive.
+    - Taking a chat OUT still asks nothing; that gesture is one decision.
+    - Tests: `node scripts/test-chats-archive-sheet.js`.
+  - Session-only, every page load opening on BUILT. A first pass of 16 chats
+    was flagged 2026-08-13 from the thread contents (empty one-message chats,
+    diagnostics, dead ends she had already noted as failed, and sign-in/env
+    troubleshooting); a starred chat, or one with an outstanding `need`, was
+    never flagged. Tests: `node scripts/test-chats-archive-split.js` (the real
+    route against a stubbed Firestore + the real page in headless Chromium;
+    verified failing against an inverted default).
+  **MESSAGING AN ARCHIVED CHAT TAKES IT OUT OF THE ARCHIVE (Aug 2026,
+  Sophie: "when I message a chat that I archived, can it automatically come
+  out of the archive").** Archive means "away for good" — and going back to
+  talk to it is her saying it isn't, so she should not have to undo the
+  archive by hand first. `POST /reply` clears `archived` when the chat had
+  it, alongside the `workingAt`/`hiddenAt` stamps it already wrote, so the
+  chat comes out of the archive AND parks until it answers.
+  - **Server-side, in the route, for the same reason parking is**: that is
+    where her message ARRIVES, including the one the hook lifts out of the
+    Claude app with no page open anywhere.
+  - **Only HER message does it.** A chat's own reply must never drag itself
+    out of the archive she put it in — that is the whole difference between
+    Archive and the self-clearing `hiddenAt`. `/reply` is hers by definition
+    (`from:'sophie'`); the chat-reply route never touches `archived`, and a
+    test pins that.
+  - Tests: `node scripts/test-chats-unarchive-on-reply.js` — it drives the
+    REAL route against a stubbed Firestore (the question is what the route
+    WRITES, which source-shape assertions cannot answer) and was verified
+    failing without the change.
+  **Archive/Unarchive lives in the thread header** (same button, same spot,
+  either label) — deciding whether to archive must not mean scrolling past every
+  message first. The **App/Web account toggle is a plain on/off switch** on the
+  home header's title line (`.swi`, off = account 1, on = account 2, no text —
+  the toast names the account).
+  **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
+  chat she wants to come back to but not look at right now gets hidden: it
+  leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
+  · 1 new"). Tapping the bar opens the pile; tapping it again puts it away.
+  Details that are load-bearing:
+  - **THE OPEN PILE IS THE WHOLE SCREEN (Aug 2026, Sophie: "when I press the
+    hidden one it shows hidden, but it also shows everything else — can you
+    make it just show hidden until I get out of the hidden area").** v1
+    opened the pile IN PLACE, above the live list; the list underneath was
+    the thing she had taken those chats off, and it buried the pile she had
+    just opened. Opening the pile is going somewhere, the way Archive is —
+    so `renderHome` returns right after `renderHiddenBar` while it is open.
+    The masthead already says "Hidden" in red, and the ways out are
+    unchanged (the bar again, or the title). **Guarded on `hid.length`:** if
+    the last hidden chat pops out while she is in there (a reply lands, the
+    stamp self-clears) the bar is gone, so the list has to come back or the
+    screen would be blank with nothing to tap. One consequence to expect:
+    the ⊕ inside the pile takes a chat out of the PILE immediately, and the
+    list it rejoins is the one waiting when she leaves the hidden area.
+  - **A PARK IS CLEARED BY A FINISHED REPLY THAT LANDED AFTER IT — compare
+    `postedAt`, NEVER `created` (Aug 2026, Sophie: chats "end up in the
+    hidden and then they never come out of it so I never know when they're
+    done and I forget about them").** `unparked()` in chats.html is the one
+    rule, read by BOTH `chatHidden` and `chatBack`.
+    - **Why `created` is the wrong field, and it is not obvious:** a turn's
+      message doc is CREATED BY ITS FIRST LIVE DRAFT, so `created` is when
+      the chat started WRITING, while every park stamp is written when
+      something LANDS. So anything that parks a chat mid-turn — her own
+      message sent while it works, or a `<wake …>` envelope on a stale hook
+      — always out-stamps the very reply that answers it, and the chat can
+      never come back on its own. `postedAt` is monotonic and bumped on
+      every write, so it answers the honest question: did this chat write
+      anything after I parked it?
+    - **Measured 2026-08-14: 30 chats stuck in the pile**, two of them
+      holding full replies she had never seen — "Baby gets a boost" posted a
+      5,233-character draft at 04:47:01 and was buried by a stamp at
+      04:48:18, 77 seconds later. **16 were visible to her; the other 14
+      were FILED, so they were invisible on the main list AND absent from
+      the hidden bar**, reachable only by lighting the right chip. When she
+      says a count looks low, check the filed ones before doubting her.
+    - **FINISHED, not merely newer — her call, asked directly ("only when
+      it's finished").** A live draft (`working:true`) keeps the chat
+      parked: it is still typing, and parking means "not now", so it returns
+      when it is done rather than the moment it starts.
+    - **Her own message can never un-park the chat it just parked** —
+      `/reply` writes her message's `postedAt` BEFORE stamping `hiddenAt`,
+      so the stamp is always strictly later. Pinned by a test; keep that
+      write order if either is ever touched.
+    - Tests: `node scripts/test-chats-unpark.js` (lifts the real functions
+      out of chats.html and runs them — no browser). Clearing a chat that is
+      already stuck needs `POST /hide {chat, hidden:false}`; deleting the
+      message that parked it does NOT, because the stamp lives on the
+      registry.
+  - **`hiddenAt` is a self-clearing STAMP on the registry doc**
+    (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
+    `answeredAt`: a chat stays hidden only while nothing newer has arrived,
+    so **the moment it answers her it pops back out into the list**. That is
+    Sophie's explicit call — v1 shipped this as a permanent boolean and she
+    asked for the opposite the same day. Hiding means "not now"; **Archive**
+    is the one that means "away for good". **The retired v1 field
+    `hidden:true` is GONE and is no longer read** — it could never pop out,
+    which is precisely the bug she reported the same evening ("when I hide
+    something and then it answers me I want it to become unhidden"): the 11
+    chats she hid before the stamp shipped were stuck behind the bar
+    forever. All 11 were migrated onto stamps on 2026-08-09 by re-POSTing
+    `/hide`, which rewrites both fields. If a hidden chat ever "won't come
+    back", check for a doc still carrying the boolean before suspecting
+    `stampActive`.
+  - **It REPLACED the `!` flag button** at Sophie's ask ("you could replace
+    the ! with it") — hiding *is* the come-back-to-this mark now, and it does
+    what the flag only implied. `flaggedAt` still exists server-side
+    (`POST /flag`) but nothing in the page writes or reads it; **don't
+    re-add a flag button without asking her.**
+  - The glyph is a **circle-minus** on a visible chat and a **circle-plus**
+    (lit red) on a hidden one — take it off the list / put it back.
+    Deliberately NOT an eye: she rejected the eye by name.
+  - **The bar only exists when something is hidden**, and open/closed is
+    session-only, always starting CLOSED — persisting "open" would quietly
+    undo the feature overnight. Hiding a chat never opens the pile.
+  - **While the pile is OPEN the masthead says "Hidden" in the same red**
+    (`#htitle.hid`) — the pile is a place, so the screen has to name the one
+    she is in. It slightly overlaps the status icon at that width; Sophie
+    said that is fine for now.
+  - **Hidden chats lead STATUS's "Waiting on you"** (the slot flagged had) —
+    though **STATUS now has NO ENTRANCE**: its list-todo icon beside the
+    masthead came off at Sophie's ask ("the weird check-plus next to the big
+    chat's name — I don't actually know what it does"). The view and its
+    tests survive (`window.__setHomeView` is the only way in, kept so the
+    retained code stays testable); ask her what it should say before wiring
+    a button back, since the ✓ that filled MARKED DONE and the rose working
+    signal are both switched off now.
+  - **ANSWERING A CHAT PARKS IT (Aug 2026, Sophie: "is there any way you
+    could directly send a chat that I answered to the hidden section until
+    it comes back?").** `POST /reply` and `POST /working` both stamp
+    `hiddenAt` alongside `workingAt`, so a chat she answers leaves the list
+    and the stamp's own rule brings it back when the reply lands — no new
+    field, no new rule. **`/reply` is the path that carries it** — it is both
+    the app's own reply box AND where the hook POSTs her lifted Claude-app
+    messages, a feature that predates the v7 ping, so parking reaches chats
+    the tint never could. `/working` parks too and fires earlier in the turn,
+    but only from a hook new enough to send the ping. The stamp is
+    `postedAt`, never her message's
+    `created`: `created` is her real send time and a stamp older than the
+    newest message reads as not-hidden.
+  - **The thread header carries HIDE beside Archive** — "not now" next to
+    "away for good", so a chat she has just read can be parked without going
+    back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
+    2026, her ask) so the pair says which is the bigger decision at a glance;
+    fixed colours, like the row's ⊖ and ✓, since that row is cream in both
+    themes. The **"chats" crumb that used to lead the row is gone** ("that
+    seems redundant") — the back chevron already says where she is — and
+    `#thread header .no` is `justify-content:flex-end`, which is what the
+    crumb's `flex:1` used to do for the buttons' position.
+  - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
+    red outline over a light red tint, at Sophie's ask ("the same style as
+    the red outline version of the categories"). It shipped for one evening
+    as a solid red block; matching the chip means the two can never drift
+    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
+    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
+    colour before it is ever tapped, and its circle background is cream in
+    both themes so a fixed red is right there.
+    Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
+    stub feed; skips without playwright).
+  **MORE — the far end of the list, folded at SEVEN DAYS (Aug 2026, Sophie:
+  "if there's a chat that I haven't touched in over seven days, can you add a
+  new section underneath all the chats called more, and it's just an arrow
+  that opens up the rest").** `chatStale`/`renderMoreBar` in chats.html,
+  `STALE_DAYS=7`. The live list splits: what she has touched recently, then a
+  quiet hairline bar under it that opens the rest in place.
+  - **"Untouched" is read off the SAME timestamp the row already shows** (the
+    last message's `postedAt`/`created`), so the fold can never disagree with
+    the "9d ago" beside it. A chat with **no message at all** counts as
+    untouched; a chat that is **WORKING right now** never does, whatever its
+    last message says — folding one away mid-turn is the one case that would
+    read as a bug.
+  - **The bar carries the unread count** ("More 12 · 2 new"), the same reason
+    the hidden bar names what is behind it: a reply she never opened must not
+    go silent behind a fold.
+  - **Deliberately QUIET, and that is the whole difference from the hidden
+    bar above it.** Hidden is an alarm and a pile she PUT things in; this is
+    the far end of the same list — ink on a hairline, no tint, sitting UNDER
+    the chats, and opening it APPENDS rows rather than taking over the screen
+    (the hidden pile's whole-screen contract is deliberately not copied here;
+    she asked for "underneath all the chats").
+  - **Session-only, always starting CLOSED**, like the hidden pile and every
+    other filter here: a fold that remembered itself would hide half her
+    chats one morning with no memory of having asked.
+  - **The split happens in `renderHome`, not inside `renderList`** — so the
+    hidden pile, the archive, ★ and Status keep showing their piles whole.
+    Those are places she went on purpose, and a second fold inside one is a
+    filter on a filter. A category chip DOES narrow it, like everything else
+    on the live list.
+  - Tests: `node scripts/test-chats-more.js` (verified failing without the
+    split; covers the boundary, the count, the bar's position under the list,
+    open/close, the working exemption, and no bar when nothing is stale).
+  **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
+  2026, Sophie).** She stopped using the tile view, so the toggle was two taps
+  of nothing: the home is always the list (`view='list'` — **`renderTiles()`
+  is deliberately kept**, her ask, flip the const to bring it back), and the
+  tool row now holds category chips plus two icon-only buttons (select,
+  refresh — refresh lost its word to save the space).
+  - **A category is one `category` field on the registry doc**
+    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
+    `track` in another costume, and it takes a whole selection in one call
+    because filing is a bulk gesture. Empty category clears it.
+  - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
+    exist before anything is filed; anything typed into select mode's New…
+    box joins them. Tapping the LIT chip clears back to everything — the Dump
+    sort page's convention, and why there is no "All" chip.
+  - **A CATEGORY IS A THING, not a side effect of filing (Aug 2026 — she made
+    one and it wasn't there).** Two bugs, both real: typing a name with NO
+    chats picked toasted "Nothing picked" and threw the name away, and the
+    New… box only committed on Enter — she DICTATES these and dictation ends
+    with a tap elsewhere, not a press of return. So the name is now stored on
+    the `__settings` doc (`categories`, arrayUnion), `POST /category` accepts
+    an empty `chats`, the box commits on blur too, and `catList()` = seeds +
+    settings.categories + names in use. An empty folder outlives the filing
+    that created it.
+  - **The home header has NO eyebrow** (Aug 2026, Sophie: "that's wasted real
+    estate"). It said "deck factory · every chat, one place" above a screen
+    she opens from a tile that already says Chats. The THREAD header keeps
+    its `.no` row — that one carries the crumb, Archive and Hide.
+  - **The filter is session-only, never persisted.** A sticky filter would
+    show her three chats one morning and read as the rest having vanished.
+  - **A chip narrows the WHOLE screen, hidden pile included** — a bar
+    counting chats from a category she isn't looking at is noise.
+  - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
+    fixed bottom bar files the lot, filing exits the mode. While it is on a
+    tap anywhere on a row PICKS instead of opening, and the row's own ⊖/✓ are
+    hidden — two checkmarks on one row means the wrong one is the easy tap.
+  - **The tool row reserves the pill's corner** (`padding-right:64px`): it
+    sits inside the pill's y 14–192 band, so its right-hand icons would be
+    untappable without it. Measured live at 390px wide: the icons end at
+    x≈306, the pill starts at x≈324. Tests:
+    `node scripts/test-chats-categories.js`.
+  - **FILING MOVES A CHAT (Aug 2026, Sophie — this replaced the one-evening
+    "parked" note above it).** "When I mark something as a story, it takes it
+    out of the normal list." So the unfiltered home is the UNFILED pile, an
+    inbox, and a lit chip is that folder. Two consequences to keep in mind:
+    - **…BUT IT COMES BACK WHEN IT ANSWERS (Aug 2026, Sophie: "it's been a
+      problem when chats are in stories and they don't pop out back into the
+      main list when they're done, so let's have them pop back out").** Same
+      idea as the hidden pile: filing means "not in my way", not "gone".
+      **READING IT DOES NOT SETTLE IT (v2, same day — v1 keyed the pop-out on
+      the reply being unread and Sophie overruled that within the hour:
+      "reading it shouldn't send it back to stories — it should stay in both
+      places until I file it away again or respond").** A popped-out chat
+      stays on the main list, read or not, until she RE-FILES it (renewing
+      `filedAt` past the reply — the select-mode chips stamp it
+      optimistically, so the row leaves on the tap) or RESPONDS (her message
+      becomes the newest thing there, which ends the pop-out AND parks the
+      chat via auto-parking; the next reply pops it back out — the round
+      trip she described). The `filedAt` half of `chatBack` — the reply must
+      have landed after the filing moment, stamped by `POST /category` — is
+      still load-bearing: without it, filing a chat whose last reply she had
+      never opened would bounce straight back, and the backfill day would
+      have dumped a whole folder onto the list.
+      The chat NEVER leaves its folder — it is in two places.
+      Chats filed before the field existed carry no stamp and can't pop; all
+      23 were backfilled 2026-08-10 (`node scripts/backfill-filedat.js`,
+      idempotent, stamps NOW rather than back-dating for exactly that
+      reason), so a missing `filedAt` now means the chat isn't filed. Tests:
+      `node scripts/test-chats-filed-popout.js`.
+    - **The chips carry ONE number, the red ANSWERED badge** (the dim total
+      came off at her ask: "I don't need to see the number on the categories,
+      it should just say the number of chats I haven't read yet — just the
+      one in red"). Without them
+      a filed chat would simply vanish and a reply inside a folder would be
+      silent — the same reason the hidden bar names what is behind it. The
+      badge counts CHATS that came back and she hasn't opened (Sophie's ask:
+      "a little number next to stories that says if there's chats that just
+      recently answered to me"), not messages; it is the dots exception to
+      the no-pills rule, not a pill. A filed chat no longer shows its working
+      tint on the home; STATUS still shows it, and STATUS is deliberately NOT
+      category-filtered.
+    - **NOTHING in the app writes `answeredAt` anymore (Aug 2026, Sophie:
+      "the checkmark next to chats — I don't actually know what it does,
+      take it off" — she meant the STATUS icon beside the masthead, but the
+      ✓ had already gone from the rows and came off Status in the same
+      pass).** The ✓ came off the STATUS rows too, so MARKED DONE
+      only ever shows chats stamped before that day. `chatDone` /
+      `toggleMark` / `mkCheck` and `POST /answered` all still exist — the ✓
+      is one `appendChild` away in `renderList` or `stRow`. **Ask her before
+      putting it back**; hiding is what she reaches for now.
+    - **The home rows carry NO ✓ and NO letter icon (Aug 2026, Sophie).** A
+      chat with no picture used to get a box with a giant italic initial —
+      gone; 18 of ~190 chats have a real picture and those still show, so
+      the left edge is deliberately ragged. The ✓ came off the rows and the
+      hide ⊖ took its place on the right. **`mkCheck` is still on the STATUS
+      rows on purpose** — that view has a "Marked done" section, and pulling
+      the only control that writes `answeredAt` would leave it dead. Bring
+      the ✓ back to the rows by re-adding `mkCheck` in `renderList`.
+    - **ARCHIVE deliberately does NOT hide filed chats.** It is already the
+      "away for good" pile; filtering it down to the unfiled ones would
+      leave a filed+archived chat reachable only by lighting the right chip
+      first. A chip still narrows it.
+  - The home screen was tightened vertically in the same pass (rule, h1,
+    tool row, search row and `.crow` padding, 46px row icon → 40px) — her
+    ask, "a little bit too much space between the different lines".
+
+- **THE JUMP PAIR, bottom-right (Aug 2026, Sophie: "could you make another
+  arrow next to it that brings me all the way down to the bottom").** `.jumps`
+  holds the back-to-top arrow and its new twin. Three rules worth keeping:
+  each shows only when it has somewhere to go (>400px that way), so nothing
+  floats over a list that already fits; both call `__scrollStop` FIRST, or the
+  autoscroll keeps creeping after the jump arrives; and they hide under
+  `body.selecting`, where the filing bar owns the bottom of the screen.
+  **THE DOWN ARROW ANSWERS TO THE OPEN MESSAGE FIRST (Aug 2026, Sophie: "a
+  floating down button that gets me just to the bottom of the current message
+  that's open and visible on the screen — you could co-opt" the existing
+  one).** A finished reply runs for screens, and "the end of THIS one" is a
+  different question from "the end of everything". `openMsgEnd()` takes over
+  only when an open message is genuinely on screen AND its end is still below
+  the fold; otherwise the button is the page-bottom jump it always was. So a
+  long thread reads as a progression — one tap lands on the message's end,
+  the next carries on down the page — and on the chat list, where nothing is
+  open, nothing changes.
+  **IT LANDS ABOVE THE ARROWS, NOT UNDER THEM** (Sophie, the first time she
+  used it: "the arrow buttons when I go to the bottom of a message now sit
+  right where the Open in Claude button is"). A message's LAST ROW is its
+  bookmark + Open-in-Claude pair, so a flush landing parks the floating pair
+  exactly on top of the Open button. `bottomReserve()` measures what `.jumps`
+  is actually occupying — live, not hard-coded, so it stays right if the pair
+  changes size — and falls back to a hairline when neither arrow is showing.
+  The page-BOTTOM jump needs none of this: `.wrap` ends in 16vh of padding,
+  which already clears the pair.
+  The show/hide rule follows the same target, since the page bottom can be
+  close while the message still has a screen to go. Tests:
+  `node scripts/test-chats-jump-message.js` (verified failing without it). The
+  page height changes on every rebuild, so `window.__jumpsRecheck()` is called
+  after renderHome and openChat. Tests: `node scripts/test-chats-jumps.js`
+  (which starts the real autoscroll and proves it moved before asserting that
+  the jump stopped it).
+
+- **STARRED CHATS (Aug 2026, Sophie: "chats that were important, that have
+  work I want to refer back to, but I'm not actively using them" — Imprint
+  and the original Anthony Chene chat were the two she named).** `starred` on
+  the registry doc (`POST /api/chatfeed/star {chat, starred}`), a plain
+  boolean like `archived`: it is a permanent judgement about the chat, not a
+  state anything newer should clear.
+  - The mark is a **filled red star at the FRONT of the row**, in the
+    bookmark's `--chg` ("a red star would be nice to match the bookmark
+    colour"). Drawn only when starred — an empty slot on every row would be a
+    column of nothing down the list.
+  - **The ★ chip leads the category row and REACHES INTO THE ARCHIVE.** These
+    are chats she has finished with and put away, so a star filter that
+    stopped at `archived` would miss most of them. It replaces the list
+    rather than narrowing it, and clears the category filter.
+  - Setting it is the **star button in the thread header**, beside Archive and
+    Hide — the only place the star is a control.
+  - **A starred chat is NOT a kept chat anymore (Aug 2026, Sophie split
+    them).** `starred` now means "a chat I'm currently working on" and comes
+    off when she's done; **`bookmarked` is the keep-forever mark** and is what
+    fills the CHATS tab of the Bookmarks pile. See "THE KEEP-PILE IS THREE
+    TABS" for both halves. The description above — "important, work I want to
+    refer back to, but I'm not actively using them" — is the BOOKMARK's
+    meaning now, not the star's.
+
+- **A BOOKMARK CARRIES A NOTE (Aug 2026, Sophie: "when I bookmark messages I
+  want to leave a note or title the message so I remember what it was and why
+  I bookmarked it").** `bookmarkNote` on the MESSAGE doc;
+  `POST /bookmark {id, note}` with no `bookmarked` edits only the note, so
+  writing one can never quietly un-save the message.
+  - The box **appears the moment she bookmarks and is focused** — the reason
+    is in her head then and nowhere else — and it **stays under the message
+    for as long as it is bookmarked**, so editing it later needs no gesture to
+    discover. Un-bookmarking takes it away. Saves on tap-away.
+  - In the BOOKMARKS view her note **leads the row** above the snippet (the
+    snippet is the message's first line, which is rarely why she kept it) and
+    it is **editable right there** — naming a backlog of old bookmarks must
+    not mean opening each message in turn (her ask). That is why a bookmark
+    row is a `div` with a handler and not a `<button>`: an `<input>` cannot
+    live inside a button, and the note has to sit between the chat line and
+    the snippet. A tap on the input is skipped so typing never opens the chat.
+    The field is borderless until focused, so the list still reads as a list.
+  - Tests: `node scripts/test-chats-star-bookmark.js`.
+
+- **THE KEEP-PILE IS THREE TABS: CHATS · ARTIFACTS · MESSAGES (Aug 2026,
+  Sophie: "I should be able to bookmark chats, compare pages and messages and
+  they should all live in the same place… the hairline underline pattern with
+  chats on the left, pages in the middle and messages on the right — except
+  rather than Pages I want it called artifacts, cause that's the name I used
+  for it myself").** Bookmarks is THE pile for anything she kept; the old
+  All / Code / To read chip row is gone and `.acctabs` (the witch shop tab
+  pattern, same as the account row) splits it three ways.
+  - **"ARTIFACTS" is her word and the SCREEN's word; the code still says
+    `page`** — the route, the collection and `kind:'page'` are unchanged.
+    That split is deliberate, not an oversight: don't rename the data, and
+    don't rename the tab back.
+  - **A tab is not a chip, so there is no "All"** — the same reason the
+    account tabs have none. **Landing tab is MESSAGES** (slot 2), where the
+    pile she already had lives.
+  - **The Code / To read FILTER went with the chips** — code/read are now one
+    Messages tab. The distinction survives as the `code` BADGE on the row,
+    which is why that badge stays while the chat/artifact ones went: it
+    splits things WITHIN a tab, where the tab overhead can't. Ask her before
+    reviving the filter as a sub-row.
+  - **A kept CHAT is BOOKMARKED, NOT starred — the two were SPLIT APART (Aug
+    2026, Sophie: "bookmarking a chat is when I want to keep it in my history
+    and go back to it, like if it has useful information — there's only a
+    handful of chats like that, such as the dating book chat where we made the
+    Writing Room, the moon milk experiments, the Imprint chat… starring chats
+    is more of a temporary thing, like a chat I'm currently working on.
+    Bookmarks stay forever").** They had been ONE flag, and this file argued
+    for that ("a second per-chat keep-flag would only make her remember which
+    of two piles a chat went into") — she overruled it, because they answer
+    different questions:
+    - **`starred`** = what she is on RIGHT NOW, temporary, comes off when
+      done. The red star at the front of a row, the ★ chip, `POST /star`.
+    - **`bookmarked`** = the handful worth keeping forever. Permanent. Fills
+      the Bookmarks pile's **CHATS tab**, `POST /chat-bookmark {chat,
+      bookmarked}` (404s on a chat that doesn't exist — the phantom-row
+      guard). The row mark is the **filled bookmark glyph** beside the star.
+    - **Both controls sit side by side in the thread header** — the bookmark
+      then the star — so the difference is a choice she makes in one place.
+      The keep button is `.bmk.chatbmk`, written that way and never
+      `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules sit LATER
+      and win at equal specificity). Measured at 375/390/430 — five controls
+      on that row still fit on one line with none of them buried.
+    - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
+      were copied to `bookmarked` and their stars cleared, so nothing was
+      lost and the star starts empty under its new meaning. She prunes the
+      bookmark list down to her handful.
+    - The ★ chip still reaches into the archive. That was justified by the
+      old meaning; it is harmless under the new one and was left alone.
+  - **Rows branch on `kind`:** a chat row and a message row open a thread
+    (a chat row at the top — there is no message to jump to), an artifact
+    row launches `openPage` full-screen.
+  - **Each kind's note goes to its OWN route, and never carries a keep-flag**
+    — `/bookmark {id,note}` for a message, `/page/:id/bookmark {note}` for an
+    artifact, `/chatnote {chat,note}` for a chat. A chat's note IS its
+    existing `sophieNote` (the home-row where-things-stand line), editable
+    here as well as in the thread — one note per chat, never a third field.
+  - **`bookmarked` + `bookmarkNote` live on the PAGE doc**, so **deleting a
+    page takes its bookmark with it** — the pile can never hold a row
+    pointing at a 404. A **SUPERSEDED page can be kept**, on purpose: the old
+    version is often the thing worth keeping.
+  - **The mark on an artifact is the BOOKMARK glyph, not a star** — one glyph
+    for "kept" wherever it appears. `BMK_SVG` in chats.html is the single
+    copy; the button is `.bmk.pr-bmk`, written that way and never `.pr-bmk`,
+    because the generic `.bmk` rules sit LATER in the file and would win at
+    equal specificity (the `.bmk.hdrbmk` trap).
+  - **`GET /bookmarks` merges two queries + the cached registry** — still
+    single-equality only, so no composite index. Starred chats cost NO extra
+    read: the registry is already loaded for the display names.
+  - **`.acctabs.bmktabs` adds the pill's 56px corner reserve, and that is
+    load-bearing** — unlike the account row (which sits low, above the hidden
+    bar) this row is near the TOP of the screen, inside the pill's
+    x 324–374 / y 14–192 band, so the right-hand tab's own centre would land
+    under the pill. The sliding line then needs
+    `width:calc((100% - 56px)/3)`: an abspos child's percentages resolve
+    against the PADDING box, so the inherited 33.33% sits wider than a tab
+    and drifts right. The translateX steps stay 100%/200% (relative to the
+    line's own width).
+  - Tests: `node scripts/test-chats-bookmark-pile.js` — drives the real page
+    home → thread → Compare → Bookmarks, checks all three tabs and their
+    routes, and hit-tests every tab plus the underline width at 375/390/430.
+
+- **THE RUNNING TO-DO LIST (Aug 2026, Sophie: "I kind of wanna do like a
+  running to-do list").** `/chats` home view `todo`, entered by the word **To
+  do** beside Archive; Firestore `forge-chat-todos`;
+  `GET /api/chatfeed/todos`, `POST /todo {text}`,
+  `PATCH|DELETE /todo/:id {done?, text?}`.
+  - **Deliberately NOT per-chat.** The whole point is that an idea arrives
+    while she is somewhere else — a bug she noticed, an art direction to try.
+  - **ANY chat may read it** and act on an item the next time she messages
+    that chat — the same snail-mail rhythm as the notes on an image. Read it
+    in the same sweep as asset votes/notes. Do NOT poll it on a timer.
+  - Open items first, newest at the top of each group (the server sorts). A
+    crossed-off item stays, struck through, until she deletes it.
+  - The view hides the tool row and the search bar — both act on CHATS, and
+    neither does anything to this list. **That is exactly why the add row
+    carries `padding-right:56px`**: with those two gone it rides up into the
+    pill's y 14–192 band, and the Add button shipped underneath the pill,
+    untappable (Sophie caught it the first time she used the list). The test
+    hit-tests the button with `elementFromPoint` rather than comparing
+    numbers, so a future layout change cannot quietly re-bury it.
+
+- **The chat rows carry their ACCOUNT as a bare 1 or 2 at the front** (Aug
+  2026, Sophie, in the slot the letter icon vacated). Not a button: the
+  account picker lives in the thread, and a tappable-looking number there
+  would just be a mis-tap on the way into a chat. An untagged chat renders a
+  blank of the same width so the names still line up.
+
+- **ONE ACCOUNT AT A TIME — the ACCOUNT 1 / ACCOUNT 2 tabs (Aug 2026, Sophie:
+  "look at the Secretly a Witch app and see the pattern for where it says
+  reviews versus description, then follow that same pattern for account 1 and
+  account 2 so that on the main page of the chats app I can only see one
+  account at a time").** `.acctabs` in chats.html, a verbatim port of the
+  witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
+  hairline with a line under the one she is reading that SLIDES when she taps
+  the other.
+  - **In INK, not `--chg`** (Sophie, Aug 2026: "make it not red, just
+    black"). The screen spends its red on the hidden bar and the answered
+    badges, which are alarms; which account she is reading is not one. The
+    **red badge on each tab stays red** — that is the app's "something
+    answered you" colour everywhere else, and it is the one thing on the row
+    meant to catch her eye. Small type (10px) and a 5px negative top margin
+    keep it tight under the search box, also her ask.
+  - **It sits directly ABOVE THE HIDDEN BAR** (Sophie moved it there the same
+    day — it shipped under the masthead), so it is the last thing before the
+    list it governs. That position is also what lets it run FULL WIDTH: down
+    there it clears the autoscroll pill's band, so it needs neither the 56px
+    corner reserve nor a shortened hairline. **Move it back up and it needs
+    both again** — plus a sliding line of `calc((100% - 56px)/2)`, since an
+    abspos child measures the PADDING box. The test hit-tests both tabs at
+    375/390/430 rather than trusting any of that.
+  - **A gray line closes the hidden block off** from the chats under it
+    (`.hbsep`, her ask). It follows the whole block — the bar when the pile
+    is shut, the pile's last row when it is open — and that last row drops
+    its own border so the two never stack into a double line.
+  - **A tab is not a chip.** A category chip narrows a pile; this SPLITS the
+    screen in half, so it has to be a labelled tab that says which half she
+    is in — 144 of 200 chats are on account 1 (measured 2026-08-10), and a
+    silent filter would read as the rest having vanished.
+  - **An UNTAGGED chat shows on BOTH tabs.** Only 2 of 200 carry no account,
+    so it costs nothing, and picking a side for them would drop a chat off a
+    screen she can't tell is filtered.
+  - **It narrows every list of CHATS** — live, hidden pile, ★ pile, archive —
+    and the category chips' red badges count within the account, or a folder
+    promises replies that are on the other tab. Bookmarks / To do / Status
+    are lists of messages and items, so the tabs hide there; SEARCH is
+    deliberately untouched (searching is how she looks for one thing across
+    everything).
+  - **Session-only, defaulting to `appAccount`** — the App/Web switch on the
+    title line. Flipping that switch moves the list too (that is what the
+    switch means), unless she has already tapped a tab this session. Never
+    persisted: a sticky account would show her half her chats one morning
+    with no memory of having chosen.
+  - Each tab carries the same red ANSWERED badge the category chips do, so
+    the tab she is NOT on can still say there are three waiting over there.
+  - Tests: `node scripts/test-chats-accounts.js`.
+
+- **"UPDATE" — the daily notifications tab, and it LEADS the tab row (Aug
+  2026, Sophie: "right now there's account one and account two, two tabs on my
+  chat app screen — I wanna make one more tab, and this is like a daily
+  notifications thing, so it includes a little more information and I can get
+  rid of them if I've already checked them", then, having used it: "I would
+  put it on the left side of the accounts and call it update").**
+  `homeView='news'` — **the view key is still `news`; only her word for it
+  changed** — painted by `renderNews` in chats.html. The tab is the FIRST of
+  the three in `.acctabs` and lights up on its own (`data-on="new"`, the
+  sliding line's slot 0, which is the row's default); the two account words go
+  quiet under it. **The `::after` translate steps follow the MARKUP order** —
+  move a tab and move its step with it.
+  - **A card carries the THING, not a line about it** — that is the whole
+    point of the tab. Her two examples ARE the two blocks: "for the [oven]
+    chat, they keep delivering different versions of this artifact, so it
+    would show the actual artifact — I guess maybe a link to it" → the
+    chat's newest **Compare pages** (up to 2) as titles that open the page
+    full-screen; "if there's a chat that's making pictures, it would show the
+    last three pictures in a little row, so I can see it and be easily
+    reminded what they're doing" → the newest **three thumbnails**, a tap
+    opening that chat's Assets tab. On top sits the home list's own row
+    (name, her note or the chat's status line, how long ago), so the two
+    screens read as one app.
+  - **WHICH PAGES A CARD SHOWS — v4: THE NEWEST ONE, full stop (Aug 2026,
+    Sophie: "I only want the newest compare page or whatever they posted on
+    that turn").** `freshPages` in chats.html, and it is now one filter with
+    NO title parsing:
+    1. **NEWER THAN THE FLOOR.** The ✓ she taps — or her own reply — IS the
+       superseded marker ("I have seen the state of this chat as of now"), so
+       a page older than that mark never comes back whatever its title says.
+       This is what kills "Cutting blocks (s96) — moved from the Evan chat",
+       the page with no version number that beat the v1 rule twice: it was
+       never a version question, it was an old-news question.
+    2. **…then the newest survivor**, and only it.
+    **v3's `pageFamily` title parser is DELETED, and that is the win.** v3
+    kept up to two and collapsed versions by reading WHERE the version sat in
+    the title (head vs subtitle) — real machinery with real tests, and the one
+    half of this that a title could trick. With one page shown there is
+    nothing left for it to decide: the newest wins whether or not it is a new
+    cut of the same thing.
+    **This reverses her own v3 correction** ("wait, if they give me a
+    different page, why would I want it to not be shown?") — she asked for it
+    directly after living with both. So two different pages inside one
+    unchecked stretch now show as the newer alone. Nothing is hidden from the
+    CHAT: the Compare tab still holds every page; this is only what the
+    notification carries. The rule has gone v2 → v3 → v4; the parser is in git
+    history (PR #1182) if a fifth turn ever wants it back.
+    One page per card. **The PICTURES are deliberately not floor-filtered** —
+    she asked for "the last three pictures… to be easily reminded what
+    they're doing", which is context, and a row of one picture with two
+    blanks is worse at that job.
+  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
+    isn't hers, a Compare page, an image — because **a chat can deliver
+    without saying anything**, and a feed keyed on messages alone would miss
+    exactly the picture batches she asked to see. Cards sort by that arrival,
+    not by the chat's last message — **so a card whose page is replaced by a
+    newer version JUMPS TO THE TOP** rather than holding its old place (Sophie
+    asked, Aug 2026: "does it go to the top or stay where it was"). The card
+    is one per chat and updates in place; a chat can never stack up two.
+  - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
+    /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
+    `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
+    not silence v4, so the card is gone only while nothing newer has landed
+    and the next version brings it back by itself. Nothing has to un-check
+    anything. It is deliberately separate from `answeredAt` — "I know about
+    this" is not "this chat is done".
+  - **THE ✓ AND HER REPLY TAKE A CARD OFF THIS SCREEN — OPENING ONE NEVER
+    DOES (Aug 2026, Sophie: "make the default behavior that it's pinned until
+    I mark the checkmark and get rid of the pin", then, having lived with it:
+    "we made it so that opening messages on the update tab doesn't get rid of
+    the notification. Is it possible to make it so that if I actually replied
+    to the message that does get rid of the notification").** `newsFloor` is
+    `notifSeenAt` and nothing else. It used to be the LATER of that stamp and
+    the per-device `seen` mark (localStorage, written when she opens a chat) —
+    so reading a thread quietly cleared its card, and a PIN existed to opt one
+    card out of that. Every card is kept by default now, so the pin is gone;
+    `seen` still drives the unread dot and has no say here.
+    - **HER REPLY WRITES THE SAME STAMP, server-side in `POST /reply`** — no
+      new field, no new rule, and nothing for the page to do, because her
+      reply arrives from the CLAUDE app with no page open anywhere (there is
+      no reply box on `/chats`; the hook lifts her words out of the
+      transcript). Opening a chat is dealing with it later; replying is
+      having dealt with it, in her own words, which is exactly the line she
+      drew. The stamp is `postedAt`, never her message's `created` — the same
+      reason parking uses it.
+    - **Because the floor is a STAMP, the answer she gets back is new news.**
+      She replies → the card goes quiet → the chat answers → the reply is
+      newer than the floor → the card returns carrying it. That is also the
+      oven rule holding: answering the v5 chat cannot silence v6.
+    - **`POST /working` must NOT write it, and that is deliberate.** The
+      turn-start ping fires from UserPromptSubmit, and since hook v14 a turn
+      started by a BACKGROUND EVENT (a wake event, a task notification) is
+      still a turn — so machinery would clear cards she never saw. `/reply`
+      is her words by definition (`from:'sophie'`, `her_words` in the hook).
+      Parking still happens on both; only the notification stamp is hers
+      alone.
+    - A note typed inside a Compare page reaches `/reply` too and is
+      REROUTED to the page's verdict doc before any registry write, so it
+      clears nothing — a note on a picture is not an answer to the chat.
+    - Tests: `node scripts/test-chats-news-reply.js` (drives the real routes;
+      verified failing without the stamp).
+    - **`markSeen` must NOT post `/notif-seen`.** It used to, purely so the
+      widget's count matched the tab's, and that was harmless while opening
+      a chat already cleared its card. It would now clear a card she never
+      checked. The widget has always counted off `notifSeenAt` alone, so the
+      two surfaces agree by construction — that is what `test-chats-news.js`
+      §5b2 asserts.
+    - **`newsPinned` / `POST /news-pin` are REMOVED.** Stale
+      `newsPinned:true` fields may still sit on old registry docs; nothing
+      reads them. If you add a route here later, note that `pinned` + `POST
+      /pin` are TAKEN by the pinned DELIVERABLE (the film at the top of a
+      thread), which stores an OBJECT there — Express takes the first match,
+      so a route named `pin` would shadow it and the ✓ would delete the film.
+  - **It ignores the account tabs**, like Status does: this is the
+    what-happened-while-I-was-away screen, and splitting it in half would mean
+    checking two screens to know she is caught up. The card carries the
+    account digit instead.
+  - **The badge counts CARDS and is honest on the CHAT LIST**, before she
+    opens the tab — which is why the tab row kicks `stFetch` once per load.
+    Deliberately once, not per paint: `/api/gallery/assets/recent` reads 240
+    Firestore documents a call and the home screen polls. Refresh drops the
+    cache (`stCache.at=0`) so the tap means the pictures too. The shared
+    `stCache` now fetches the routes' maximums (60 images / 20 pages) because
+    UPDATE needs three pictures for EACH drawing chat; the Status painters
+    slice back to the 24/6 they always showed.
+  - **EVERY CHAT WRITES AN UPDATE CARD — the ⌄ pop-out on its card (Aug
+    2026, Sophie: "I wonder if it would be a good idea to have a chat have
+    like a TLDR in their update — not fully in the message, because it would
+    crowd things, but more as like a button I could click and it would pop
+    out", then the shape: "the first question in bold would be what I asked,
+    and they just describe what I originally wanted; then what they did; then
+    an optional one would be if they had any questions for me or what would
+    be coming next" — and "those would be in bold, but the answers would not
+    be").** `POST /api/chatfeed/update { chat, session, asked, did, next }`,
+    stored on the registry beside the status card, rendered as three
+    bold-labelled lines: **What you asked** / **What I did** / **What's
+    next**.
+    - **Write it at the end of any turn that changed your state**, the same
+      moment you refresh your STATUS CARD — they answer different questions
+      (the status card is the ONE line on her home row; this is the account
+      of the turn, behind a tap).
+    - `asked` = what SHE wanted, in her terms, not a restatement of your
+      plan. `did` = what actually changed. `next` = optional, and it is the
+      place for a question or the next step.
+    - 300 chars each, truncated server-side; `""` clears one. Plain
+      sentences, no markdown — the app renders the labels, you supply the
+      answers.
+    - **The FALLBACK when a chat has never written one is its reply's TLDR
+      under "What I did"** — honest, and it means the ⌄ is not a button that
+      appears and vanishes down the list for no visible reason.
+  - **THE CARD'S TOP ROW: name · ⌄ · TIME · ✓ (Aug 2026, Sophie: the ⌄ "is a
+    little bit close to the check box so I'm worried I'll tap that by
+    accident — maybe just move it on the other side of the clock time").**
+    The timestamp is lifted OUT of the inner `.crow` and rendered as a
+    sibling in `.nwtop` precisely so it sits BETWEEN the expand arrow and the
+    clearing ✓; the row gap also went 3px → 9px. Measured at 390px: 68px now
+    separates ⌄ from ✓, against 3px before — the pin sat to the LEFT of the ⌄,
+    so removing it left that gap alone (67px measured after). Anything added
+    to that row must keep the ✓ alone on the far side of the time — it is the
+    one tap that makes a card disappear.
+  - Tests: `node scripts/test-chats-news.js`, and
+    `node scripts/test-chats-news-sticky.js` (hit-measures the ⌄/✓ gap, and
+    drives a card through being opened to prove only the ✓ clears it). It
+    replaced `test-chats-news-pin.js`, which asserted the opposite contract.
+
+- **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
+  "if I'm on the update tab — I guess it's when a chat finishes, but I don't
+  know — it brings me out automatically, and then I have to go back to the
+  update tab and click into the artifact again").** It was never a chat
+  finishing: `checkBuild` in chats.html reloads the page when the feed's
+  build stamp changes (that is how a page change reaches her phone at all),
+  and five deploys shipped that evening. Two halves, both needed —
+  **`busyOnScreen()`** defers the reload while `body.ontop` (the Compare
+  viewer OR the image lightbox) or `body.selecting` is set, and the reload
+  stashes `homeView` in `sessionStorage['chats-reload-view']` so she comes
+  back on the tab she was on. Waiting alone would still have lost the tab;
+  restoring alone would still have closed the artifact. **Only the page's
+  OWN reload restores the view** — a launch she started still opens on the
+  chat list, like every other filter here promises. Any new full-screen
+  overlay must set `body.ontop` (it already has to, for the scroll lock) or
+  it will be reloaded away. Tests:
+  `node scripts/test-chats-build-reload.js` (verified failing on each half
+  separately).
+
+- **THE SEARCH BAR IS FOLDED TO A MAGNIFYING GLASS (Aug 2026, Sophie: "make
+  the search bar collapse into just a magnifying glass button unless I click
+  it, and then it expands into the search bar as it is right now").**
+  `.searchrow` is the glass until tapped, then the bar it always was
+  (focused, so the keyboard comes with it).
+  - **The glass keeps the BAR'S OWN place on the CHAT LIST — it does NOT
+    join the tool row's icons there.** That was the first build and it is
+    measurably wrong: at 375 and 390 a third icon up there squeezes the
+    category chips onto a second line, spending the row this was meant to
+    save. The test asserts the chips stay on one line at 375/390/430.
+  - **…but on a view with NO chips it DOES join the tool row** (Bookmarks,
+    Status, To do, UPDATE). There the tool row is one lonely refresh icon
+    and the folded glass was a second lonely icon on its own row underneath
+    — two rows spending almost nothing, which Sophie caught on UPDATE.
+    `otherView()` is the one predicate for "not a list of chats"; both
+    `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
+    can never disagree about which state they are in.
+  - **The ✕ is the only way out, and it does two jobs**: with words in the
+    field it clears them (bar stays open); on an empty field it folds the
+    bar away. One control, no second button to discover.
+  - **The row reserves the pill's corner AND lays the ✕ out as a real flex
+    child** rather than the absolutely-positioned overlay `.qclear` is
+    elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
+    against the PADDING box, so the reserve alone leaves the ✕ exactly where
+    it was — measured at 390, under the pill's own down-arrow, which ate the
+    tap. (That was already true of the old always-open bar; it only became
+    load-bearing when the ✕ became the way to close.)
+  - Session-only, always starting SHUT, and `goHome()` folds it — leaving a
+    chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
+    tests. Tests: `node scripts/test-chats-search-archive.js`.
+
+- **TAKING A CHAT OUT OF THE ARCHIVE KEEPS HER IN IT (Aug 2026, Sophie:
+  "when I take something out of the archive it should go straight to that
+  chat, and when I get out of that chat I shouldn't be in the archive").**
+  Unarchive used to `goHome()` like Archive does, which was wrong twice: she
+  pulls a chat out BECAUSE she wants it, and the home she landed on was the
+  ARCHIVE view — the one place the chat no longer is. So Unarchive now
+  repaints the thread in place (the word flips back to "Archive") and flips
+  `homeView` off `archive`, so the back chevron lands on the live list.
+  **Archiving is unchanged** — that gesture means "away for good", so it
+  still ends by leaving.
+
+- **A chat's NAME is SANS and CAPS (Aug 2026, Sophie: "change the font in the
+  title of every chat to be the same font that the account one account two is
+  in — no serif", then "did you change the font size? put it back — and make
+  it caps by default").** `-apple-system`, the same family as the account
+  tabs and the timestamps; the serif stays for the masthead and the message
+  prose. **It applies to the chat NAMES ON THE LIST only — `.cr-name`.**
+  It shipped on `.thread-head h1` too, on the reasoning that one name should
+  not change typeface when you tap into it; Sophie put the thread header back
+  ("I noticed you also changed the titles inside the chats — I actually want
+  them back exactly how they were"). That rule is now the original,
+  declaration for declaration: serif, 1.5em, bold, mixed case, no tracking.
+  **Don't re-add font declarations there to "match" the row.**
+  - **`text-transform`, never an uppercased STRING**, so her real
+    capitalisation survives in the rename box (a separate `.nameed` input,
+    unaffected), in search, and anywhere else the name is read.
+  - **Size: `.cr-name` 1.15em — TWO POINTS at a time off the original, in
+    real pixels, never a guessed em step** ("make it two points smaller",
+    then "make the title font a little smaller, two points or so"). The
+    row's base is 13.333px: 1.45em was 19.33px, 1.3em 17.33px, 1.15em is
+    15.33px. **Measure the base before changing it** — the thread header's
+    base is 16px, not 13.333px, so an em figure alone says nothing about
+    points across the two.
+  - **`letter-spacing:.04em`** on both ("a little bit more space between the
+    letters"). Caps set solid read as a block; this is enough air to tell
+    the letters apart without turning a name into a label.
+  - **NOT BOLD — `font-weight:400` in both places** ("the titles shouldn't
+    be bold"). An `h1` is bold by default, so the thread header needs it
+    said out loud; caps at this size hold the row on their own.
+  - **Truncation, measured 2026-08-10** against her 144 live chat names at
+    390px (195px of room on a row): at 15.33px **83 truncate**, against 96
+    at 17.33px, 98 at 19.33px, and 58 for the original serif. The FIRST two
+    points barely moved it (98 → 96) because the new tracking spent what the
+    size saved; the second two actually landed. If it comes up again the
+    measured levers are tracking at .02em (-2) and another point or two of
+    size; **don't quietly change it without telling her the number**.
+
+- **THE MASTHEAD OVERLAPS, it does not wrap (Aug 2026, Sophie: "hidden and
+  archive create extra rows because they are longer than the word chats —
+  can you just make it overlap with the other things").** Title + bookmark +
+  To do + Archive + the account switch, inside the pill's 56px reserve, leave
+  the title ~78px on a 375px phone: enough for "Chats", not for "Archive"
+  (102) or "Bookmarks" (147). It briefly WRAPPED to fit, which cost her a row
+  of screen in those views. Now `#htitle` takes **no width at all**
+  (`width:0`, `overflow:visible`) so the control group never moves and the row
+  is always one line; a long title simply draws across it. Two details make
+  that liveable and are load-bearing: the title has `z-index:2` so the word
+  she is reading wins, and `pointer-events:none` so every tap falls through
+  to the buttons underneath. Verified across 375/390/430 × all five titles.
+
+- **THE TITLE IS THE WAY BACK, and the handler must live on the ROW (Aug 2026,
+  Sophie: "I'm supposed to be able to click on the archive title and it goes
+  back to chats and same with hidden").** Tapping the big serif word returns
+  to the chat list from Archive / Bookmarks / To do / Status, and closes the
+  hidden pile; on the chat list it does nothing, because she is already
+  there. **Do NOT do this by putting a click handler on `#htitle`** — its
+  `pointer-events:none` is exactly what keeps the overlapped buttons
+  tappable, and turning it back on swallows the bookmark button under the
+  word "Bookmarks" (147px of title over ~78px of room). Instead `.hrow`
+  carries the handler: a tap that arrives as `.hrow` itself is one that
+  missed every button, and it counts as the title only when it lands inside
+  the text's own rect. `#htxt` is an inner span that exists ONLY to measure
+  that rect — the h1 is zero-width by design, so it cannot report where its
+  letters are; `paintHomeChrome` writes the word into the span, never the h1.
+  **The ARCHIVE title is green** (`#htitle.arch`, `#5d7a5a` — the same green
+  as the thread header's ARCHIVE word), the hidden pile's stays red, and both
+  classes are toggled together so a view swap can never leave the wrong one
+  on. Tests: `node scripts/test-chats-title-back.js` — it taps the real word
+  in every view AND hit-tests all four header controls with `elementFromPoint`
+  at 375/390/430 across all five titles, so a future layout change cannot
+  quietly re-bury one.
+
+- **The view words never rename themselves (Aug 2026, Sophie: "when I press
+  hidden or archive it just takes me back to chats rather than having a
+  button that says chats and a back arrow — get rid of that button").** TO DO
+  and ARCHIVE each stay put and toggle: tap to go, tap again to come back.
+  The lit state and the big serif title say which view she is in. The old
+  "← Chats" relabel is gone.
+
+- **CHAPTERS inside one long thread (Aug 2026, Sophie: "divide the moon milk
+  chat into chapters — aim for somewhere around five but it's OK if there's
+  like four or seven").** A few chats ran for weeks, and re-reading one meant
+  scrolling past everything. `POST /api/chatfeed/chapters { chat, chapters:
+  [{title, at}] }` stores them on the REGISTRY doc; the thread draws a small
+  hairline heading where the chapter changes.
+  - **A chapter is just `{title, at}` and it MOVES NOTHING.** `at` is an ISO
+    time and the chapter owns every message from there until the next one
+    starts — no message is re-keyed, re-timed or copied, so a wrong boundary
+    costs one more POST and can never damage a thread. Send `[]` to clear.
+  - **On the registry, deliberately** — the feed already loads that doc whole
+    (`registry()` hands the client the entire doc), so chapters reach the app
+    with NO extra request and a chat without them renders exactly as before.
+  - **`chapterPlan()` in chats.html is the whole client rule**, and it is a
+    pure function so it can be tested. The thread paints NEWEST FIRST, so a
+    heading is drawn where the chapter CHANGES on the way down — which lands
+    it on that chapter's newest message, i.e. at the TOP of its block.
+    Messages older than the first chapter get NO heading (silence, not a
+    guess) and the dividers hide while the in-thread search filters rows —
+    a heading naming a block that has been filtered away is a lie.
+  - **The route refuses a chat that doesn't exist (404).** Firestore's
+    `set({},{merge:true})` WRITES a missing doc and `sortedChatNames` lists
+    every registry key, so a typo would put a phantom row in her list that
+    only the Admin SDK could remove — that has happened before. The registry
+    read is already cached by `followMoves`, so the guard costs nothing.
+  - A chapter with no title or an unparseable `at` is DROPPED, never guessed
+    at; the stored list is sorted by time whatever order it arrived in.
+  - Tests: `node scripts/test-chats-chapters.js` (the real route against a
+    stubbed Firestore + `chapterPlan` lifted out of the page and executed;
+    verified failing on both halves separately).

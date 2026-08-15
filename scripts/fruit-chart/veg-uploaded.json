@@ -1,0 +1,170 @@
+[
+ {
+  "id": "01-asparagus",
+  "name": "Asparagus",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/01-asparagus.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/01-asparagus.webp"
+ },
+ {
+  "id": "02-broccoli",
+  "name": "Broccoli",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/02-broccoli.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/02-broccoli.webp"
+ },
+ {
+  "id": "03-carrot",
+  "name": "Carrot",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/03-carrot.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/03-carrot.webp"
+ },
+ {
+  "id": "04-corn",
+  "name": "Corn",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/04-corn.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/04-corn.webp"
+ },
+ {
+  "id": "05-tomato",
+  "name": "Tomato",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/05-tomato.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/05-tomato.webp"
+ },
+ {
+  "id": "06-cucumber",
+  "name": "Cucumber",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/06-cucumber.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/06-cucumber.webp"
+ },
+ {
+  "id": "07-bellpepper",
+  "name": "Bell pepper",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/07-bellpepper.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/07-bellpepper.webp"
+ },
+ {
+  "id": "08-onion",
+  "name": "Onion",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/08-onion.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/08-onion.webp"
+ },
+ {
+  "id": "09-potato",
+  "name": "Potato",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/09-potato.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/09-potato.webp"
+ },
+ {
+  "id": "10-sweetpotato",
+  "name": "Sweet potato",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/10-sweetpotato.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/10-sweetpotato.webp"
+ },
+ {
+  "id": "11-spinach",
+  "name": "Spinach",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/11-spinach.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/11-spinach.webp"
+ },
+ {
+  "id": "12-kale",
+  "name": "Kale",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/12-kale.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/12-kale.webp"
+ },
+ {
+  "id": "13-cauliflower",
+  "name": "Cauliflower",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/13-cauliflower.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/13-cauliflower.webp"
+ },
+ {
+  "id": "14-peas",
+  "name": "Peas",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/14-peas.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/14-peas.webp"
+ },
+ {
+  "id": "15-greenbeans",
+  "name": "Green beans",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/15-greenbeans.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/15-greenbeans.webp"
+ },
+ {
+  "id": "16-mushroom",
+  "name": "Mushroom",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/16-mushroom.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/16-mushroom.webp"
+ },
+ {
+  "id": "17-zucchini",
+  "name": "Zucchini",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/17-zucchini.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/17-zucchini.webp"
+ },
+ {
+  "id": "18-beet",
+  "name": "Beet",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/18-beet.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/18-beet.webp"
+ },
+ {
+  "id": "19-radish",
+  "name": "Radish",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/19-radish.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/19-radish.webp"
+ },
+ {
+  "id": "20-celery",
+  "name": "Celery",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/20-celery.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/20-celery.webp"
+ },
+ {
+  "id": "21-garlic",
+  "name": "Garlic",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/21-garlic.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/21-garlic.webp"
+ },
+ {
+  "id": "22-squash",
+  "name": "Squash",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/22-squash.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/22-squash.webp"
+ },
+ {
+  "id": "23-brusselssprouts",
+  "name": "Brussels sprouts",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/23-brusselssprouts.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/23-brusselssprouts.webp"
+ },
+ {
+  "id": "24-artichoke",
+  "name": "Artichoke",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/24-artichoke.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/24-artichoke.webp"
+ },
+ {
+  "id": "25-eggplant",
+  "name": "Eggplant",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/25-eggplant.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/25-eggplant.webp"
+ },
+ {
+  "id": "26-leek",
+  "name": "Leek",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/26-leek.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/26-leek.webp"
+ },
+ {
+  "id": "27-cabbage",
+  "name": "Cabbage",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/27-cabbage.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/27-cabbage.webp"
+ },
+ {
+  "id": "28-lettuce",
+  "name": "Lettuce",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/28-lettuce.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/veg/card/28-lettuce.webp"
+ }
+]

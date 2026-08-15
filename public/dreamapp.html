@@ -39,6 +39,25 @@
                  color:var(--inkp); font:14px -apple-system, sans-serif; padding:12px 16px; }
   .scrim { position:fixed; inset:0; z-index:19; background:transparent; }
 
+  /* How it works — a POP-UP, in a plain style (Sophie): a cream card, black
+     text, a normal font. Nothing fuchsia, nothing serif — it is the one screen
+     that is only explaining, so it should look like a note, not like the app.
+     It opens from the GEAR MENU and nowhere else (Sophie) — it never greets a
+     first visit, it is there for someone who wants to know how the sharing
+     works. So there is no seen/unseen state to keep. */
+  .howwrap { position:fixed; inset:0; z-index:45; background:#0e0e1180;
+             display:flex; align-items:center; justify-content:center; padding:20px; }
+  .how { background:var(--paper); color:var(--inkp); border-radius:6px; width:100%;
+         max-width:400px; max-height:100%; overflow:auto; padding:22px 20px 18px;
+         font:14px -apple-system, sans-serif; }
+  .how h3 { font:600 15px -apple-system, sans-serif; margin-bottom:12px; }
+  .how ol { list-style:none; counter-reset:s; }
+  .how li { counter-increment:s; position:relative; padding-left:24px; margin-top:12px;
+            line-height:1.55; }
+  .how li::before { content:counter(s) '.'; position:absolute; left:0; top:0; }
+  .how .close { display:block; margin:18px auto 0; background:none; border:1px solid #0e0e1140;
+                color:var(--inkp); border-radius:6px; padding:9px 18px; font:14px -apple-system, sans-serif; }
+
   main { padding:0 16px; }
   /* Buttons stay quiet — outlined, never solid blocks of fuchsia. */
   .btn { display:block; width:100%; background:none; color:var(--fuchsia); border:1px solid var(--fuchsia);
@@ -289,6 +308,46 @@ async function api(path, opts){
   return j;
 }
 
+/* ── how it works ──
+   Written for someone who just followed a link, so it says the two things the
+   screen cannot: a dream is PRIVATE until shared, and sharing is per-piece. */
+var howY = 0;
+function howCard(){
+  return '<div class="how">' +
+    '<h3>How this works</h3><ol>' +
+    '<li>Write a dream down. It saves to <b>my dreams</b>, private — nobody else can see it.</li>' +
+    '<li>Tap <b>draw it</b> and it gets illustrated as comic pages. That takes a few minutes; you can leave and come back.</li>' +
+    '<li>Then you choose what to share, piece by piece: your words, and each drawing on its own. Anything you leave private stays private.</li>' +
+    '<li>What you share joins the day in the feed. Dreams sit under their date with no names on them.</li>' +
+    '</ol>' +
+    '<button class="close" data-howclose>got it</button>' +
+    '</div>';
+}
+// The overlay keeps the lightbox's contract: stop the autoscroll, lock the page
+// behind it, and put her back exactly where she was on close.
+function openHow(){
+  if (document.getElementById('howwrap')) return;
+  howY = window.scrollY;
+  if (window.__scrollStop) window.__scrollStop();
+  var w = document.createElement('div');
+  w.className = 'howwrap'; w.id = 'howwrap';
+  w.innerHTML = howCard();
+  document.body.appendChild(w);
+  document.body.style.overflow = 'hidden';
+  w.addEventListener('click', function(e){
+    if (e.target === w || (e.target.closest && e.target.closest('[data-howclose]'))) closeHow();
+  });
+}
+function closeHow(){
+  var w = document.getElementById('howwrap');
+  if (!w) return;
+  w.remove();
+  if (document.getElementById('lb').hidden) {
+    document.body.style.overflow = '';
+    window.scrollTo(0, howY);
+  }
+}
+
 /* ── lightbox: a tapped panel opens big ──
    The house rule has two halves and BOTH matter: lock the page behind it, and
    remember where she was, because locking alone doesn't stop the page moving —
@@ -316,7 +375,7 @@ document.addEventListener('click', function(e){
   if (img) { openLightbox(img.src); return; }
   if (e.target.closest && e.target.closest('.lb')) closeLightbox();
 });
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLightbox(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeLightbox(); closeHow(); } });
 
 /* ── panels: three to a row; more than three folds behind "see more" ── */
 function panelBlock(panels){
@@ -340,13 +399,18 @@ function wireFold(btn, anchor, apply, moreLabel){
     btn.classList.toggle('stuck', open);
   }
   btn.addEventListener('click', function(){
-    var top = anchor.getBoundingClientRect().top;
     open = !open;
     apply(open);
     paint();
-    // Content above the anchor didn't move, so this lands its top just under
-    // the header no matter how much height the collapse took away.
-    if (!open && top < 0) window.scrollBy(0, top - 8);
+    // Measure AFTER the collapse, never before. Closing a very long dream can
+    // shorten the page past the scroll position the browser is holding, so it
+    // CLAMPS — and a delta computed from the old layout then lands the dream
+    // off the bottom of the screen. Reading the new rect and scrolling to it
+    // is right whether or not the clamp bites.
+    if (!open) {
+      var r = anchor.getBoundingClientRect();
+      if (r.top < 0 || r.top > window.innerHeight - 40) window.scrollTo(0, window.scrollY + r.top - 8);
+    }
   });
   paint();
 }
@@ -536,7 +600,8 @@ function openCompose(){
     '<div class="h2" style="margin-top:18px">What did you dream last night?</div>' +
     '<textarea id="cap" placeholder="I dreamt…"></textarea>' +
     '<button class="btn" id="saveBtn">save dream</button>' +
-    '<div class="quiet">It saves to my dreams first — sharing is its own step.</div>';
+    '<div class="quiet">Saves privately to my dreams. The next screen is where you draw it, ' +
+    'and where you choose what to share.</div>';
   go('compose');
   document.getElementById('saveBtn').addEventListener('click', async function(){
     var t = document.getElementById('cap').value.trim();
@@ -759,9 +824,13 @@ async function boot(){
     scrim.className = 'scrim'; scrim.id = 'gearScrim';
     var menu = document.createElement('div');
     menu.className = 'menu'; menu.id = 'gearMenu';
-    menu.innerHTML = '<button id="signOut">sign out</button>';
+    menu.innerHTML = '<button id="howBtn">how this works</button><button id="signOut">sign out</button>';
     document.body.appendChild(scrim); document.body.appendChild(menu);
     scrim.addEventListener('click', closeMenu);
+    document.getElementById('howBtn').addEventListener('click', function(){
+      closeMenu();
+      openHow();
+    });
     document.getElementById('signOut').addEventListener('click', function(){
       closeMenu(); fbAuth.signOut();
     });

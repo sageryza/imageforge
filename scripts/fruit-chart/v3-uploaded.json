@@ -1,0 +1,20 @@
+[
+ {
+  "id": "37-mulberries",
+  "name": "Mulberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/37-mulberries.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/37-mulberries.webp"
+ },
+ {
+  "id": "38-kumquat",
+  "name": "Kumquat",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/38-kumquat.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/38-kumquat.webp"
+ },
+ {
+  "id": "28-cherimoya",
+  "name": "Cherimoya",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/28-cherimoya-v3.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/28-cherimoya-v3.webp"
+ }
+]
