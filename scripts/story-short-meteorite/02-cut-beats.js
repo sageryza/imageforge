@@ -50,6 +50,13 @@ function matchingBlocks(a, b) {
     if (alo < i && blo < j) queue.push([alo, i, blo, j]);
     if (i + k < ahi && j + k < bhi) queue.push([i + k, ahi, j + k, bhi]);
   }
+  // This sort was MISSING from this copy even though the header above claims
+  // it is verbatim from editor.js (Aug 2026). The queue is LIFO, so blocks
+  // come out in recursion order, not left-to-right. Nothing noticed because
+  // ratio() only SUMS block sizes, which is order-independent — but anything
+  // that reads blocks[0] / the last block (the edge snap below) gets a
+  // scrambled span from it.
+  blocks.sort((x, y) => (x[0] - y[0]) || (x[1] - y[1]));
   return blocks;
 }
 function ratio(a, b) {
@@ -77,11 +84,25 @@ function phraseSpan(words, phrase) {
       const win = ww.slice(i, i + L);
       if (!win.length) continue;
       const r = ratio(pw, win);
-      if (!best || r > best[0]) best = [r, i, Math.min(i + L - 1, words.length - 1)];
+      if (!best || r > best[0]) best = [r, i, L];
     }
   }
   if (!best || best[0] < 0.5) return null;
-  return { start: best[1], end: best[2], score: best[0] };
+  // Snap the edges to the words that actually MATCHED — see editor.js's
+  // phraseSpan (the live copy). Without this a phrase word the audio never
+  // says ("uh") lets a window shifted one word early tie with the true one,
+  // and the tie above keeps the earlier start, so the cut opens on a stray
+  // word from the previous sentence.
+  const [score, i0, L] = best;
+  let start = i0;
+  let end = Math.min(i0 + L - 1, words.length - 1);
+  const blocks = matchingBlocks(pw, ww.slice(i0, i0 + L));
+  if (blocks.length) {
+    const last = blocks[blocks.length - 1];
+    start = i0 + blocks[0][1];
+    end = Math.min(i0 + last[1] + last[2] - 1, words.length - 1);
+  }
+  return { start, end, score };
 }
 function clampBounds(words, i0, i1) {
   let t0 = words[i0].start;
