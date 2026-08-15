@@ -56,7 +56,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
-const { buildQuestions } = require('./questions');
+const { buildQuestions, answeredOnly } = require('./questions');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -511,8 +511,11 @@ router.get('/questions', async (req, res) => {
     const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 100));
     const snap = await db().collection(MSGS).where('chat', '==', chat).get();
     const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // An unanswered question is not listed — see `answeredOnly` in questions.js
+    // for why. `?open=1` asks for them back.
     const all = buildQuestions(messages);
-    res.json({ chat, questions: all.slice(0, limit), total: all.length });
+    const out = String(req.query.open || '') === '1' ? all : answeredOnly(all);
+    res.json({ chat, questions: out.slice(0, limit), total: out.length });
   } catch (err) { fail(res, err); }
 });
 

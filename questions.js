@@ -180,4 +180,15 @@ function buildQuestions(messages) {
   return out.reverse();
 }
 
-module.exports = { sentences, isQuestion, findQuestions, boldBlocks, matchBlock, answerFor, buildQuestions };
+// AN UNANSWERED QUESTION IS NOT SHOWN (Sophie, 2026-08-14: "it shouldn't have
+// questions that haven't been answered yet"). She opens the list to FIND an
+// answer, so a row with nothing under it is only ever in the way — and the
+// commonest one is the question in the message she has just sent, which she
+// does not need reminding of. `buildQuestions` still returns them, because
+// "which of my questions went unanswered" is a real thing to want later; the
+// filter is what the route applies on the way out.
+function answeredOnly(list) {
+  return (list || []).filter((q) => q && q.answer);
+}
+
+module.exports = { sentences, isQuestion, findQuestions, boldBlocks, matchBlock, answerFor, buildQuestions, answeredOnly };
