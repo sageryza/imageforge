@@ -68,4 +68,51 @@ function shouldPushReply({ working, replyCreated, lastHerAt, pushedAt } = {}) {
   return { push: true, why: 'answers-her' };
 }
 
-module.exports = { shouldPushReply };
+// ── What the buzz SAYS ──────────────────────────────────────────────────────
+// A push whose body is HER OWN WORDS reads as "you sent a message" no matter
+// how right its timing is — found live 2026-08-15 from her screenshot, and it
+// is the whole reason she reported this. Two house rules collided:
+//
+//   • *Answering a question* says a reply OPENS with her question repeated
+//     verbatim in bold, on its own line, with the answer underneath.
+//   • The push body was `tldr || the reply's first non-empty line`.
+//
+// So every answer to a question buzzed her with her own sentence — asterisks
+// and all, because nothing stripped the markdown either.
+//
+// The fix is structural rather than stored: a line that is ENTIRELY bold is
+// exactly the shape that rule produces, so leading lines of that shape are
+// skipped. It deliberately does NOT skip `**TLDR** — …`, which has ordinary
+// text after the bold and is a real opening line. Comparing against her
+// message text instead was the other option and was rejected: it would mean
+// carrying a few hundred characters of every chat's newest message on the
+// registry doc, which rides the feed read to her phone 276 chats at a time.
+const BOLD_LINE = /^\s*\*\*(.+?)\*\*\s*$/;
+// Markdown a lock-screen banner should never show. Emphasis, headings, quote
+// marks, inline code, and a link reduced to its text.
+function plain(s) {
+  return String(s == null ? '' : s)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__|\*|_|`)/g, '')
+    .replace(/^\s{0,3}(#{1,6}|>)\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * The one line of the reply worth putting on her lock screen.
+ * @param {string} text the finished reply
+ * @param {string} tldr the TLDR the hook lifted, when it found one
+ * @returns {string} plain text, ready to send (caller still caps the length)
+ */
+function pushBody(text, tldr) {
+  const t = plain(tldr);
+  if (t) return t;
+  const lines = String(text || '').split('\n').filter((l) => l.trim());
+  const said = lines.find((l) => !BOLD_LINE.test(l));
+  // Every line entirely bold → nothing else to say, so say the first one
+  // rather than sending an empty banner.
+  return plain(said || lines[0] || '');
+}
+
+module.exports = { shouldPushReply, pushBody, _plain: plain };

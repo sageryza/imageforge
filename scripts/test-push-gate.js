@@ -8,7 +8,7 @@
 //
 //   node scripts/test-push-gate.js
 
-const { shouldPushReply } = require('../push-gate');
+const { shouldPushReply, pushBody } = require('../push-gate');
 
 let pass = 0; const fails = [];
 function is(name, got, want) {
@@ -99,6 +99,60 @@ is('the one-second gap an old hook produces still pushes',
 is('a reply with no timestamp does not push',
   shouldPushReply({ working: false, replyCreated: '', lastHerAt: t(30), pushedAt: t(5) }).push,
   false);
+
+// ── What the buzz SAYS ──────────────────────────────────────────────────────
+// THE CASE FROM HER SCREENSHOT (2026-08-15, 3:01 pm). The reply opened with
+// her question repeated verbatim in bold — the house *Answering a question*
+// rule — and the push body was the reply's first line, so the banner read
+// `**Can you give me a very brief rundown of how it works now?**`. Her own
+// sentence, asterisks and all. Right timing, wrong words, and it is what she
+// was reporting the whole time.
+{
+  const reply = [
+    '**Can you give me a very brief rundown of how it works now?**',
+    '',
+    'When you message a chat, the server stamps that chat with your send time.',
+    '',
+    'That second half is what kills the send-time buzz.',
+  ].join('\n');
+  is('the bolded echo of her question is skipped',
+    pushBody(reply, ''),
+    'When you message a chat, the server stamps that chat with your send time.');
+}
+
+// Two questions answered in one reply — every bolded head is skipped, not
+// just the first.
+is('several bolded questions are all skipped',
+  pushBody('**One?**\n**Two?**\nThe answer to both.', ''),
+  'The answer to both.');
+
+// A TLDR still wins, and it comes through as plain text.
+is('a TLDR wins and loses its markdown',
+  pushBody('**Her question?**\nbody', '**Shipped** the `push` gate'),
+  'Shipped the push gate');
+
+// A real opening line that merely CONTAINS bold is not an echo — bold plus
+// ordinary text on the line is the shape of a normal sentence, not the
+// question-repeat rule.
+is('a line with bold plus text is kept',
+  pushBody('**TLDR** — it is live now.\nmore', ''),
+  'TLDR — it is live now.');
+
+// Markdown that would otherwise show as literal characters on a lock screen.
+is('links, headings, quotes and code are flattened',
+  pushBody('## Done\n', ''),
+  'Done');
+is('a link is reduced to its text',
+  pushBody('See [the PR](https://example.com/x) for the rest.', ''),
+  'See the PR for the rest.');
+
+// Degenerate replies must still say something rather than buzzing blank.
+is('a reply that is nothing but a bolded question still says it',
+  pushBody('**Only this?**', ''),
+  'Only this?');
+is('an empty reply is an empty body, not a crash',
+  pushBody('', ''),
+  '');
 
 if (fails.length) {
   console.error(`\n${fails.length} FAILED (${pass} passed)\n`);

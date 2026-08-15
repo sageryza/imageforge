@@ -122,8 +122,25 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
     `lastHerAt` on file looks identical whether the session's hook is too old
     to post her messages or she has simply never written to it, so those keep
     the old behaviour — a missed buzz is worse than a stray one.
-  - Tests: `node scripts/test-push-gate.js` (the whole decision table, pure,
-    no network).
+  - **THE BODY IS NEVER HER OWN WORDS (`pushBody`).** Found live 2026-08-15
+    from her screenshot at 3:01 pm, and it is what she was actually reporting
+    — the timing was already right. Two house rules collided: *Answering a
+    question* opens a reply with her question repeated **verbatim in bold** on
+    its own line, and the push body was `tldr || the reply's first non-empty
+    line`. So every answer to a question buzzed her with her own sentence,
+    asterisks and all, because nothing stripped the markdown either. Leading
+    lines that are ENTIRELY bold are now skipped — that is precisely the shape
+    the answering rule produces, and `**TLDR** — …` has ordinary text after
+    the bold, so a real opening line is kept. The chosen line is then
+    flattened (emphasis, headings, quote marks, inline code, and a link
+    reduced to its text). A reply that is nothing but bolded questions still
+    sends its first line rather than a blank banner.
+    - **Structural, not stored, on purpose.** The other option was comparing
+      the line against her newest message, which means carrying a few hundred
+      characters of it on the registry doc — and the registry rides the feed
+      read to her phone 276 chats at a time.
+  - Tests: `node scripts/test-push-gate.js` (the whole decision table plus the
+    body rules, pure, no network — 22 checks).
 - **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
   optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
   key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all

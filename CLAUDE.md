@@ -1696,6 +1696,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   replies** — it swallowed the answer to a follow-up she sent four minutes
   later; her message is the gate now. A chat that has never lifted one of her
   messages keeps the old behaviour rather than going quiet.
+  **THE BODY IS NEVER HER OWN WORDS (`pushBody`, found live 2026-08-15 from
+  her screenshot — this, not the timing, is what she was actually reporting).**
+  Two house rules collided: *Answering a question* opens a reply with her
+  question repeated verbatim in bold on its own line, and the push body was
+  `tldr || the reply's first non-empty line` — so every answer buzzed her with
+  her own sentence, asterisks and all. Leading **entirely bold** lines are now
+  skipped (that is exactly the shape the answering rule produces; `**TLDR** —
+  …` has ordinary text after the bold and is kept), and the body is stripped
+  of markdown. Deliberately structural, not stored: comparing against her
+  message would mean carrying hundreds of characters of every chat's newest
+  message on the registry doc, which rides the feed read to her phone 276
+  chats at a time.
   Tests: `node scripts/test-push-gate.js`.
   Dormant until the APNs key exists — only Sophie can mint it.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and

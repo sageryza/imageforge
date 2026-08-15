@@ -71,7 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
-const { shouldPushReply } = require('./push-gate');
+const { shouldPushReply, pushBody } = require('./push-gate');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -757,8 +757,7 @@ router.post('/', async (req, res) => {
     if (gate.push) {
       try {
         require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
-          doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240),
-          { debounce: false });
+          pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
     res.json({ ok: true, id: msgId });
