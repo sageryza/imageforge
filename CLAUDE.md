@@ -676,14 +676,20 @@ them off the reference sheet, not off the old filenames.
     already existed; this one says what the answer should look like when it
     gets there.
   - **The QUESTIONS button reads these.** Under a chat's header, on the note
-    row, a small button opens every question she has asked in that chat with
-    the answer beside it (`#qfull` in `chats.html`). It is **DERIVED, never
-    filed**: `questions.js` reads the thread the feed already stores — her
-    messages (`from:'sophie'`) paired with the reply that followed — so no
-    chat has to remember anything and the list was complete over her whole
-    history the day it shipped. That was the deliberate choice against a
-    POSTed card: 15 of 224 chats had ever written an Update card, so a filed
-    Questions list would have been empty for the same reason.
+    row, a small button **swaps the message list for her questions** and swaps
+    it back — the header, the tabs and her note stay put, and each row is a
+    real `.msg` (collapsed to the question, tap to open the answer under it,
+    tap the head to collapse). **It shipped first as a full-screen overlay
+    with an ✕ and that was wrong** — "not totally separate not an x"; a new
+    surface here should reuse the row and take the messages' place rather
+    than cover them. **An unanswered question is never listed**
+    (`answeredOnly`) — she opens this to find an answer.
+    It is **DERIVED, never filed**: `questions.js` reads the thread the feed
+    already stores — her messages (`from:'sophie'`) paired with the reply that
+    followed — so no chat has to remember anything and the list was complete
+    over her whole history the day it shipped. That was the deliberate choice
+    against a POSTed card: 15 of 224 chats had ever written an Update card, so
+    a filed Questions list would have been empty for the same reason.
   - **What the bold line buys is EXACTNESS.** With it, the button shows the
     block you wrote under her question. Without it the answer falls back to
     your TLDR, and measured against her real threads that reads badly ("Lots
