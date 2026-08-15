@@ -1,0 +1,68 @@
+[
+ {
+  "id": "meet-in-the-middle-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/meet-in-the-middle-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a group of four friends meeting on the staircase of a dark house at night, out of breath and delighted, each holding a single lit tea light candle, the staircase lit warmly by the small flames while everywhere around them falls into darkness. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "loud-elevator-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/loud-elevator-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: four friends being as loud as possible inside an elevator, stamping their feet and shouting with their arms in the air, just as the elevator doors are opening on a startled stranger about to step in. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "threshold-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/threshold-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a row of young adults at a house party standing very still, each holding a red plastic cup, knees pressed together, every face deep in desperate concentration, a beer pong table behind them. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "nice-to-meet-you-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/nice-to-meet-you-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: at a busy poolside gathering, two friends warmly shaking hands with a couple they have clearly already met several times, greeting them like perfect strangers, the couple's faces caught between politeness and confusion. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "the-search-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/the-search-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: inside a supermarket aisle, three employees in aprons searching the shelves for something that does not exist, one on a step ladder checking the top shelf, one crouched at the bottom shelf, one studying a clipboard, while a woman points helpfully at an empty spot on the shelf. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "not-drowning-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v1/not-drowning-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: in a swimming pool, one swimmer mid-splash theatrically pretending to drown while three friends rush through the water toward her with faces of enormous concern, the pretend victim visibly fine and enjoying it. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]
