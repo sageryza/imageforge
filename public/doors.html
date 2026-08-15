@@ -66,7 +66,14 @@
 
   /* ── the room you land in ───────────────────────────────────────── */
   .room { flex:1; min-height:0; display:flex; flex-direction:column;
-    justify-content:center; gap:18px; max-width:520px; margin:0 auto; width:100%; }
+    justify-content:center; gap:14px; max-width:520px; margin:0 auto; width:100%; }
+  /* The picture keeps its own portrait shape rather than being cropped into a
+     band — it is a drawing, and a band throws most of it away. It shrinks
+     first when a long scene needs the room, so the page never scrolls. */
+  .room .art { flex:0 1 auto; min-height:0; display:flex; justify-content:center; }
+  .room .art img { max-height:100%; max-width:100%; width:auto; height:auto;
+    object-fit:contain; display:block;
+    border:1px solid var(--border); border-radius:var(--r); background:var(--surface); }
   .room .frag { font-size:11px; letter-spacing:2px; text-transform:uppercase;
     color:var(--dim); }
   .room .scene { font-family:'Iowan Old Style',Palatino,Georgia,serif;
@@ -106,6 +113,7 @@
     <div class="corridor" id="corridor" hidden></div>
 
     <div class="room" id="room" hidden>
+      <div class="art" id="roomArt" hidden><img id="roomImg" alt=""></div>
       <div class="frag" id="roomFrag"></div>
       <div class="scene" id="roomScene"></div>
       <div class="row"><button class="btn" id="onward">Go on</button></div>
@@ -166,6 +174,20 @@
     ]
   ];
 
+  // The picture behind each door, in the SAME order as CORRIDOR above — one
+  // file per door at /doors/<id>.webp. Kept as its own table rather than a
+  // field on each entry so the scene text stays readable; test-doors.js pins
+  // the two to the same shape, so a door can never quietly lose its art.
+  var ART = [
+    ['kitchen-4am',   'dog-two-streets',    'wet-wool'],
+    ['name-wrong',    'chlorine',           'chair-upstairs'],
+    ['unknown-car',   'sand-in-bed',        'fridge-hum'],
+    ['phone-number',  'cut-grass',          'coat-on-hook'],
+    ['light-left-on', 'birds-before-light', 'metal-spoon'],
+    ['ferry-horn',    'unopened-mail',      'warm-bread'],
+    ['hallway-light', 'rain-starting',      'own-breath']
+  ];
+
   var SHAPES = {
     alone:    'The life you walked is mostly your own company. It stayed quiet in there because you kept it that way.',
     together: 'There were people in nearly every room. You did not always pick them and you stayed anyway.',
@@ -184,6 +206,8 @@
     frag:    document.getElementById('roomFrag'),
     scene:   document.getElementById('roomScene'),
     onward:  document.getElementById('onward'),
+    art:     document.getElementById('roomArt'),
+    img:     document.getElementById('roomImg'),
     end:     document.getElementById('end'),
     walked:  document.getElementById('walked'),
     closed:  document.getElementById('closed'),
@@ -260,6 +284,15 @@
 
   function renderRoom(depth, i) {
     var d = CORRIDOR[depth][i];
+    var art = (ART[depth] || [])[i];
+    if (art) {
+      el.img.src = '/doors/' + art + '.webp';
+      el.img.alt = d.frag;
+      el.art.hidden = false;
+    } else {
+      el.art.hidden = true;   // a door with no picture yet still reads fine
+      el.img.removeAttribute('src');
+    }
     el.frag.textContent = d.frag;
     el.scene.textContent = d.scene;
     el.onward.textContent = taken.length >= TOTAL ? 'See the corridor' : 'Go on';

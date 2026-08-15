@@ -76,6 +76,15 @@ function ok(cond, label) {
     'the room names the fragment you chose');
   ok((await page.locator('.ticks i.spent').count()) === 1, 'one tick spent');
 
+  console.log('the room art');
+  ok(await page.locator('#roomArt').isVisible(), 'the room shows its picture');
+  const art = await page.locator('#roomImg').evaluate((n) => ({
+    src: n.getAttribute('src'), w: n.naturalWidth, alt: n.alt,
+  }));
+  ok(/^\/doors\/[a-z0-9-]+\.webp$/.test(art.src || ''), 'it points at a display copy — got: ' + art.src);
+  ok(art.w > 0, 'the picture actually loaded');
+  ok(art.alt === frags[1].trim(), 'the picture is described by its fragment');
+
   console.log('a reload cannot undo a choice');
   await page.reload();
   await page.waitForSelector('.door');
@@ -94,14 +103,20 @@ function ok(cond, label) {
   console.log('walking the whole corridor');
   // the reload left us standing in the corridor at depth 1, so a door comes
   // first and "go on" only between rooms
+  // ART and CORRIDOR are separate tables; walking every depth is what proves
+  // no door quietly lost its picture.
+  let roomsWithArt = 1; // depth 0 was checked above
   for (let d = 1; d < 7; d++) {
     await page.locator('.door').nth(d % 3).click();
     await page.waitForSelector('#room:not([hidden])');
+    const w = await page.locator('#roomImg').evaluate((n) => n.naturalWidth);
+    if (w > 0) roomsWithArt++;
     if (d < 6) {
       await page.locator('#onward').click();
       await page.waitForSelector('.corridor:not([hidden]) .door');
     }
   }
+  ok(roomsWithArt === 7, `every depth's room drew its picture (${roomsWithArt}/7)`);
   ok((await page.locator('.ticks i.spent').count()) === 7, 'all seven doors spent');
   ok((await page.locator('#onward').textContent()).includes('See the corridor'),
     'the last room offers the ending');
