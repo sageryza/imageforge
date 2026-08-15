@@ -27,10 +27,10 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    lit candle and a different starting spot, then moves through the house
    until, inevitably, everyone converges. There is a prize, and terms are
    negotiated in advance.
-   *Image (v2): everyone ARRIVING at the stairs mid-rush from different
-   directions — breathless, laughing, mid-game, cupping their tea light
-   flames — not standing around. Darkness everywhere except the stairwell.
-   Portrait.*
+   *Image (v3): everyone ARRIVING at the stairs mid-rush from different
+   directions — breathless and serious, NOT laughing, cupping their tea
+   light flames. The cast is three young men and one young woman (Sophie).
+   Darkness everywhere except the stairwell. Portrait.*
 
 2. **Loud Elevator** — Be as loud as possible in the elevator — stomping,
    hollering — and the instant a stranger steps in, total silence. Resume the
@@ -41,9 +41,9 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
 3. **Threshold** (placeholder title) — See how close you can get to needing
    to pee without actually peeing. Played in a halfhearted semicircle on a
    dark balcony at night, beer pong going on behind.
-   *Image (v2): the dark balcony semicircle — very still, knees together,
-   faces in desperate concentration, beer pong in the warm doorway behind.
-   Landscape.*
+   *Image (v3): the dark balcony semicircle in visible agony — knees
+   together, legs crossed, one bent forward with a hand pressed to the front
+   of his jeans, beer pong in the warm doorway behind. Landscape.*
 
 4. **Nice to Meet You** — At any recurring-strangers event, greet the same
    people warmly every single time as if meeting for the first time:
@@ -51,16 +51,20 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    legal answer is "good, how are you" — which loops. Original venue: a dark
    arcade bar, glowing machines on the periphery, played on strangers who
    were introducing themselves over and over anyway.
-   *Image (v2): the arcade-bar handshake loop, machines glowing around the
-   edges. Landscape. (The first, poolside version of this image is being
-   reassigned to a different game — Sophie picks which.)*
+   *Image (v2, arcade): the handshake loop in a CROWDED arcade bar —
+   machines glowing around the edges, the room full of people. Landscape.
+   (The poolside version of this image became the Reunions + Diplomats
+   page.)*
 
 5. **The Search** (placeholder title, solo) — Go into a supermarket and ask
    staff to help you find a very specific item that does not exist. Your
    score is the number of employees involved in the search. Record to beat:
    three.
-   *Image: three aproned employees deep in an aisle, one on tiptoe checking
-   the top shelf, the player pointing helpfully at nothing. Portrait.*
+   *Image (v2, portrait — Sophie's keeper): three visibly different employees
+   deep in an aisle, one up a ladder, one crouched low, one with a clipboard.*
+   *Alternate (horizontal): the three holding UP wrong answers — school glue,
+   a honey bear, a carton of milk — while she studies them doubtfully. Hers
+   to choose between.*
 
 6. **Not Drowning** (placeholder title) — Pool game. One player pretends to
    be drowning ("help me!"); everyone rushes over in maximum concern — "oh my
@@ -138,12 +142,13 @@ Titles on the unnamed ones are placeholders — Sophie renames at will.
    Portrait.*
 
 6. **The Interpreter** — Two people are declared mutually unintelligible for
-   the night and may only communicate through a third person standing between
-   them — and the interpreter may not speak: every message is relayed in
-   pantomime only, charades-style (Sophie's improvement, Aug 2026). The
-   interpreter's translations are final.
-   *Image (v2): three on a couch — the outer two watching intently, the
-   interpreter mid-charade, arms wild, face exaggerated. Landscape.*
+   the night. **They may not speak at all — they communicate only in
+   gestures — and a third person sitting between them says out loud what
+   they are "saying"** (Sophie, Aug 2026; an earlier version had this the
+   wrong way round). The interpreter's translations are final.
+   *Image (v3): three on a couch — the outer two mid-gesture with mouths
+   closed, the interpreter speaking, looking from one to the other.
+   Landscape.*
 
 7. **Slow Race** — A race across the room where the LAST one to touch the far
    wall wins — but you may never fully stop moving, and a judge watches for
