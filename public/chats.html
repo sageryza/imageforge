@@ -753,6 +753,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   -webkit-tap-highlight-color:transparent; border-radius:50%; width:31px; height:31px; flex:none;
   background:rgba(250,247,240,.92); color:#5d7a5a; box-shadow:0 1px 4px rgba(0,0,0,.18);}
 .nwck svg{width:15px; height:15px; display:block;}
+/* LIT while the card is picked (Aug 2026) — the box is what she taps to
+   select now, so it has to say so. Filled in the filing green, the same
+   colour the picked card's outline and the boxes wear. */
+.nwck.on{background:var(--chg); color:var(--paper);}
 .stgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:8px 0 2px;}
 .stcell{background:none; border:none; padding:0; cursor:pointer; text-align:left; min-width:0; -webkit-tap-highlight-color:transparent;}
 .stcell img{display:block; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
@@ -886,18 +890,31 @@ body.selecting .jumps{display:none;}
   align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; padding:0;}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
-/* ---- The tool row: category chips + select + refresh ----------------------
+/* ---- The tool row: select + refresh + the category chips ------------------
    Where the LIST/TILES toggle used to be (Aug 2026, Sophie — she stopped
    using tiles, so the toggle was two taps of nothing). The two icon buttons
-   sit at the RIGHT, so the row keeps the pill's corner clear (the pill covers
-   y 14–192, and this row lands inside that band). */
+   sit at the LEFT, where she remembered them ("could you put them back where
+   they were"); the 64px reserve at the right is the autoscroll pill's corner
+   (y 14–192, and this row lands inside that band), which the chips now run
+   up against instead.
+   WHILE SOMETHING IS PICKED THE WHOLE ROW PINS TO THE TOP (Aug 2026, Sophie:
+   "we need the buttons to become pinned to the top so I can click them —
+   this could happen only when I select something"). Sticky rather than fixed,
+   so the row keeps its place in the layout and nothing under it jumps as it
+   pins; it needs the page's own background or the cards read through it. */
 .toolrow{display:flex; align-items:flex-start; gap:8px; margin:0 0 .7em; padding-right:64px;}
+body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--paper);
+  padding-top:8px; padding-bottom:8px; margin-bottom:calc(.7em - 8px);}
 .catrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0;}
 .catchip{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
   padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .catchip .cc-n{opacity:.6; margin-left:1px;}
+/* DONE, on the Update screen's pinned row: an ACTION rather than a folder, so
+   it wears the ink instead of the boxes' quiet grey — and it is only on the
+   row while something is picked (paintNewsQRow). */
+.catchip.nwdone{border-color:var(--ink2); color:var(--ink);}
 /* HOW MANY ANSWERED (Sophie, Aug 2026: "a little number next to stories that
    says if there's chats that just recently answered to me"). A dot said only
    "something happened in here"; the number says how much. It is a badge — a
@@ -1046,10 +1063,16 @@ body.ontop > .float{display:none !important;}
       </div>
       <div class="rule"></div>
     </header>
+    <!-- The two square icons sit at the LEFT of this row (Aug 2026, Sophie:
+         "I thought that the select box and the other little square icon were
+         on the left before, could you put them back where they were"). The
+         64px reserve at the right stays regardless — that is the floating
+         autoscroll pill's corner (x 324-374, y 14-192), and it is the chips
+         that now run into it. -->
     <div id="toolrow" class="toolrow">
-      <div id="catrow" class="catrow"></div>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
       <button id="refresh" class="iconbtn" aria-label="Refresh"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+      <div id="catrow" class="catrow"></div>
     </div>
     <!-- COLLAPSED to the glass until she taps it (Sophie, Aug 2026). The glass
          keeps the bar's own place rather than joining the tool row's icons:
@@ -1822,6 +1845,7 @@ function setSearchOpen(on){
 function setHomeView(v){
   homeView = (homeView===v ? 'live' : v);
   if(homeView!=='news') newsPick={};
+  document.body.classList.toggle('newspick', false);
   renderHome(); window.scrollTo(0,0);
 }
 // The STATUS view has no button anymore (Sophie had the icon removed), so this
@@ -2483,6 +2507,16 @@ function paintNewsQRow(row,g){
     };
     row.appendChild(b);
   });
+  // DONE — only while something is actively selected, her rule. It is the
+  // third thing she can do with a picked card (Later · In a minute · Done),
+  // so it belongs beside the boxes rather than anywhere else.
+  if(Object.keys(newsPick).length){
+    var d=document.createElement('button');
+    d.className='catchip nwdone'; d.textContent='Done';
+    d.setAttribute('aria-label','Clear these without filing them');
+    d.onclick=doneNews;
+    row.appendChild(d);
+  }
 }
 // Repaint just the boxes — the counts move on a ✓ and when the delivered
 // caches land, and neither is worth a whole re-render of the list she is
@@ -2492,9 +2526,21 @@ function paintNewsChips(g){
   var row=document.getElementById('catrow'); if(!row) return;
   row.innerHTML=''; paintNewsQRow(row,g);
 }
+// Picking is what pins the row (body.newspick) and what puts DONE on it, so
+// both are refreshed from here — the one place a selection ever changes by
+// hand.
 function toggleNewsPick(name,card){
   if(newsPick[name]) delete newsPick[name]; else newsPick[name]=1;
-  card.classList.toggle('picked', !!newsPick[name]);
+  var on=!!newsPick[name];
+  card.classList.toggle('picked', on);
+  var box=card.querySelector('.nwck'); if(box) box.classList.toggle('on', on);
+  newsPickChrome();
+}
+// The pinned row and the DONE chip, in step with whether anything is picked.
+function newsPickChrome(){
+  var any=homeView==='news' && !!Object.keys(newsPick).length;
+  document.body.classList.toggle('newspick', any);
+  paintNewsChips(groups());
 }
 // File the picked cards. Tapping the box a card is ALREADY IN takes it back
 // out — that is the way back to the main list, and it needs no third chip and
@@ -2681,35 +2727,49 @@ function newsCard(it){
   }
   return card;
 }
-// "I've already checked this." Optimistic — the card goes on the tap and the
-// stamp is rolled back if the write fails, because the whole gesture is
-// clearing a screen and a card that lingers for a round-trip reads as a
-// missed tap. The tab's badge is repainted with it, or the number would still
-// be counting the card she just cleared.
-// It is now the ONLY way a card leaves — nothing else on this screen clears
-// itself, so a missed ✓ is the difference between the list being right and
-// being a lie. That is why the rollback below matters more than it used to.
+// THE ✓ IS THE SELECT BOX NOW (Aug 2026, Sophie: "I think the best thing
+// would be that I click the checkmark box to select it and then the buttons
+// get pinned to the top, and we just add one more, DONE, and that clears it
+// without putting it into a category — but the done button does not show up
+// unless something is actively selected").
+//
+// So the clearing that used to live on this tap moved to the DONE chip in the
+// pinned row (`doneNews`), and the box's whole job is picking. The glyph and
+// its place on the row are unchanged — it is the checkbox it always looked
+// like — and it lights when the card is picked.
 function newsCheck(it, card){
-  var b=document.createElement('button'); b.className='nwck'; b.innerHTML=NWCK;
-  b.setAttribute('aria-label','I have checked this — take it off the list');
-  b.onclick=function(e){
-    e.stopPropagation();
-    var prev=(chats[it.chat]&&chats[it.chat].notifSeenAt)||null;
-    chats[it.chat]=chats[it.chat]||{};
-    chats[it.chat].notifSeenAt=new Date().toISOString();
-    card.remove();
-    delete newsPick[it.chat];
-    var g=groups(); paintAcctTabs(g); paintNewsChips(g);
-    newsEmptyCheck();
-    api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:it.chat,seen:true})})
+  var b=document.createElement('button'); b.className='nwck'+(newsPick[it.chat]?' on':'');
+  b.innerHTML=NWCK;
+  b.setAttribute('aria-label','Pick this update');
+  b.onclick=function(e){ e.stopPropagation(); toggleNewsPick(it.chat, card); };
+  return b;
+}
+// DONE — "clears it without putting it into a category", i.e. exactly what the
+// ✓ did before: the `notifSeenAt` stamp, and the card goes.
+// Optimistic with a rollback, because the gesture is clearing a screen and a
+// card that lingered for a round-trip would read as a missed tap. The tab
+// badge and the boxes are repainted with it, or the numbers would still be
+// counting the cards she just cleared.
+function doneNews(){
+  var names=Object.keys(newsPick);
+  if(!names.length) return;
+  var prev={}, now=new Date().toISOString();
+  names.forEach(function(n){
+    prev[n]=(chats[n]&&chats[n].notifSeenAt)||null;
+    chats[n]=chats[n]||{}; chats[n].notifSeenAt=now;
+  });
+  newsPick={};
+  renderHome();
+  toast(names.length===1 ? 'Done' : (names.length+' done'));
+  names.forEach(function(n){
+    api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:n,seen:true})})
       .then(function(r){return r.json()})
-      .then(function(d){ if(!d.ok) throw 0; if(d.notifSeenAt) chats[it.chat].notifSeenAt=d.notifSeenAt; })
+      .then(function(d){ if(!d.ok) throw 0; if(d.notifSeenAt) chats[n].notifSeenAt=d.notifSeenAt; })
       .catch(function(){
-        if(prev) chats[it.chat].notifSeenAt=prev; else delete chats[it.chat].notifSeenAt;
+        if(prev[n]) chats[n].notifSeenAt=prev[n]; else delete chats[n].notifSeenAt;
         toast('Couldn’t save'); if(homeView==='news') renderHome();
       });
-  };
-  return b;
+  });
 }
 function newsEmptyCheck(){
   var el=document.getElementById('grid');
@@ -2721,6 +2781,7 @@ function newsEmptyCheck(){
     : 'Nothing new — you’re all caught up.')+'</div>';
 }
 function renderNews(el){
+  newsPickChrome();
   var g=groups();
   function paint(){
     if(homeView!=='news') return;            // she left while it loaded
