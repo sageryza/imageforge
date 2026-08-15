@@ -4,10 +4,19 @@
 //   A. "Make the search bar collapse into just a magnifying glass button
 //      unless I click it, and then it expands into the search bar as it is
 //      right now."  — the row is a glass until tapped; tapping opens the real
-//      bar, focused; the ✕ clears the words and, on an empty field, folds the
-//      bar back (there is no second close button to find); leaving a chat
-//      lands on a folded bar; and the glass must not push the category chips
-//      onto a second line, which is what putting it in the tool row did.
+//      bar, focused; leaving a chat lands on a folded bar (an EMPTY one — a
+//      live search now survives the back chevron, test-chats-search-persist);
+//      and the glass must not push the category chips onto a second line,
+//      which is what putting it in the tool row did.
+//
+//   A′. ONE CONTROL PER ACTION (Aug 2026, Sophie: "once I press the X on the
+//      search I think the search bar should just disappear so it's one tap to
+//      get out of search … there could be another button to clear the text and
+//      write new text").  The ✕ used to do both jobs in sequence — clear, then
+//      close — so leaving a search she could still see cost two taps and the
+//      first looked like it had only eaten her words.  Now the ✕ leaves in one
+//      tap whatever is in the box, and the glass STAYS beside the open bar as
+//      "start a new search": it empties the box and keeps the keyboard.
 //
 //   B. "When I take something out of the archive it should go straight to
 //      that chat, and when I get out of that chat I shouldn't be in the
@@ -124,28 +133,52 @@ const vis = (page, sel) => page.evaluate((s) => {
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
-  // A3. tapping the glass opens the real bar, focused, with the glass gone
+  // A3. tapping the glass opens the real bar, focused, and the glass STAYS as
+  //     the way to start the next search
   await page.click('#searchbtn');
   if (!(await vis(page, '#qsearch'))) fail('tapping the glass did not open the search bar');
-  if (await vis(page, '#searchbtn')) fail('the glass is still there beside the open bar');
+  if (!(await vis(page, '#searchbtn'))) fail('the glass left the open bar — there is no "new search" control');
   if (!(await page.evaluate(() => document.activeElement && document.activeElement.id === 'qsearch'))) {
     fail('the search bar opened without the keyboard — it was not focused');
   }
+
+  // A3b. keeping the glass beside the bar costs the box 38px, so measure what
+  //      is left rather than eyeball it — the row also reserves 56px for the
+  //      autoscroll pill's corner. Measured 2026-08-15: 208px at 375, 221px at
+  //      390 (her iPhone 13), against ~246/259 with the glass hidden.
+  for (const width of [375, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const w = await page.$eval('#qsearch', (n) => Math.round(n.getBoundingClientRect().width));
+    if (w < 200) fail('the open search box is only ' + w + 'px wide at ' + width + 'px');
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // A4. it searches exactly as before
   await page.fill('#qsearch', 'hello');
   await page.waitForSelector('#searchresults .sres', { timeout: 4000 })
     .catch(() => fail('the open bar did not search'));
 
-  // A5. the ✕ clears the words but leaves the bar open…
-  await page.click('#qclear');
-  if (await page.$eval('#qsearch', (n) => n.value !== '')) fail('the ✕ did not clear the words');
-  if (!(await vis(page, '#qsearch'))) fail('clearing the words folded the bar away too');
+  // A5. the GLASS clears the words for a new search and keeps the bar open
+  await page.click('#searchbtn');
+  if (await page.$eval('#qsearch', (n) => n.value !== '')) fail('the glass did not clear the words');
+  if (!(await vis(page, '#qsearch'))) fail('the glass folded the bar away instead of emptying it');
+  if (!(await page.evaluate(() => document.activeElement && document.activeElement.id === 'qsearch'))) {
+    fail('a new search started without the keyboard — the box was not refocused');
+  }
   await page.waitForFunction(() => !document.querySelector('#searchresults .sres'), null, { timeout: 4000 })
     .catch(() => fail('the results stayed up after the clear'));
 
-  // A6. …and on an EMPTY field the same ✕ folds it back to the glass, which
-  //     is the only way out — there is no second close button
+  // A6. the ✕ leaves in ONE tap — with words in the box…
+  await page.fill('#qsearch', 'hello');
+  await page.waitForSelector('#searchresults .sres', { timeout: 4000 })
+    .catch(() => fail('the refilled bar did not search'));
+  await page.click('#qclear');
+  if (await vis(page, '#qsearch')) fail('the ✕ only cleared the words — it must close the search in one tap');
+  if (!(await vis(page, '#searchbtn'))) fail('the glass did not come back');
+  if (await page.$eval('#qsearch', (n) => n.value !== '')) fail('closing left the old query in the box');
+
+  // …and from an empty one, the same single tap
+  await page.click('#searchbtn');
   await page.click('#qclear');
   if (await vis(page, '#qsearch')) fail('the ✕ on an empty field did not fold the bar away');
   if (!(await vis(page, '#searchbtn'))) fail('the glass did not come back');
