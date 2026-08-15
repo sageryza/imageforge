@@ -9,8 +9,11 @@
 // in").
 //
 // Drives the REAL public/chats.html headless against a stub API and asserts:
-//   1. the chips row is on the UPDATE screen, and it is exactly two boxes —
-//      LATER on the LEFT, IN A MINUTE beside it (her order),
+//   1. the chips row is on the UPDATE screen, and at rest it is exactly two
+//      boxes — LATER on the LEFT, IN A MINUTE beside it (her order). MAYBE
+//      NEVER is the third box and it shows ONLY while something is picked
+//      (Sophie, Aug 2026: "can you make one more option called maybe never,
+//      and this also only shows when I'm actively categorizing stuff"),
 //   2. THE ✓ BOX PICKS the card (the thicker outline, the box lights) and
 //      picks it again to let go — Sophie, Aug 2026: "I click the checkmark box
 //      to select it and then the buttons get pinned to the top, and we just
@@ -161,6 +164,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   // …and no star chip / no New… box borrowed from the chat list
   if (await page.$('#catrow .starchip')) fail('the star chip leaked onto the Update screen');
   if (await page.$('#catrow input')) fail('the Update boxes must be a closed set — no New… box');
+  if (row.some(t => /Maybe never/i.test(t))) fail('MAYBE NEVER is on the row with nothing picked: ' + row.join(' | '));
 
   // the pre-filed pair: chat-old is IN the box, chat-new spoke since so it is out
   let list = await cards();
@@ -177,15 +181,20 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const bw = await page.$eval('.nwcard[data-chat="chat-a"]', n => getComputedStyle(n).borderTopWidth);
   if (parseFloat(bw) < 2) fail('a picked card has no thicker outline (border ' + bw + ')');
 
-  // 2b. …which pins the row and puts DONE on it
+  // 2b. …which pins the row and puts MAYBE NEVER and DONE on it
   if (!await page.$eval('body', n => n.classList.contains('newspick'))) fail('picking did not pin the tool row');
   const pos = await page.$eval('#toolrow', n => getComputedStyle(n).position);
   if (pos !== 'sticky') fail('the pinned tool row is not sticky, it is ' + pos);
   if (!await page.$('#catrow .nwdone')) fail('DONE did not join the row while something is picked');
+  const picked = await chips();
+  if (!/^Maybe never/i.test(picked[2] || '')) {
+    fail('MAYBE NEVER is not the third box while picking: ' + picked.join(' | '));
+  }
 
   await page.click('.nwcard[data-chat="chat-a"] .nwck');
   if (await page.$('.nwcard[data-chat="chat-a"].picked')) fail('the ✓ box did not let go of the card');
   if (await page.$('#catrow .nwdone')) fail('DONE stayed on the row after letting go');
+  if ((await chips()).some(t => /Maybe never/i.test(t))) fail('MAYBE NEVER stayed on the row after letting go');
   if (await page.$eval('body', n => n.classList.contains('newspick'))) fail('the row stayed pinned after letting go');
 
   // …and the page title is still a page title, not a pick
@@ -244,6 +253,18 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   list = await cards();
   if (list.indexOf('chat-a') < 0) fail('the un-filed card did not come back to the main list: ' + list.join(', '));
 
+  // 2d. MAYBE NEVER files like the other two — it is a target, not a filter,
+  // so there is no box of its own to open afterwards
+  await page.click('.nwcard[data-chat="chat-a"] .nwck');
+  await page.click('#catrow .catchip:nth-of-type(3)');
+  await page.waitForTimeout(120);
+  const never = queuePosts[queuePosts.length - 1] || {};
+  if (never.queue !== 'never' || !(never.chats || []).includes('chat-a')) {
+    fail('MAYBE NEVER did not file the card — ' + JSON.stringify(never));
+  }
+  list = await cards();
+  if (list.indexOf('chat-a') >= 0) fail('a card filed under MAYBE NEVER is still on the list: ' + list.join(', '));
+
   // 2c. DONE clears without filing — the ✓'s old job, now on the pinned row
   const seenBefore = seenPosts.length;
   await page.click('.nwcard[data-chat="chat-new"] .nwck');
@@ -267,5 +288,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('PASS: the Update screen files into Later / In a minute');
+  if (!process.exitCode) console.log('PASS: the Update screen files into Later / In a minute / Maybe never');
 })().catch((e) => { console.error(e); process.exit(1); });

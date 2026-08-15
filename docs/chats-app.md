@@ -1255,9 +1255,18 @@
     that's how it gets filed in").** The chips row (`#catrow`) now stays on
     this screen and paints two boxes instead of the chat folders —
     **LATER on the left, IN A MINUTE beside it, her order.**
-    - **A CLOSED SET OF TWO.** No New… box, no star chip: she named both, and
-      a box she could type is a folder, which is what the other row already
-      is. These file ONE UPDATE for a while; a category files a CHAT forever.
+    - **A CLOSED SET.** No New… box, no star chip: she named the boxes, and a
+      box she could type is a folder, which is what the other row already is.
+      These file ONE UPDATE for a while; a category files a CHAT forever.
+    - **MAYBE NEVER is the third box, and it shows only while she is picking**
+      (Aug 2026, Sophie: "can you make one more option called maybe never, and
+      this also only shows when I'm actively categorizing stuff") — the same
+      rule DONE follows, so the resting row stays the two boxes she browses
+      and never changes shape under a thumb reaching for one. It is therefore
+      a filing TARGET with no filter of its own: a card put there is out of
+      sight until the chat delivers something new, which pops it back onto the
+      main list like any other filing. Flagged on delivery; if she wants to
+      see inside it, the chip becomes a filter like the other two.
     - **`newsQueue` + `newsQueuedAt` on the registry**, written by `POST
       /api/chatfeed/news-queue { chats:[…], queue:'later'|'soon'|'' }` (the
       same skip-a-missing-doc guard `/archive-kind` has, so a typo can never
