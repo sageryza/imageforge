@@ -42,7 +42,18 @@ const DRY = process.argv.includes('--dry-run');
 
 const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/state.json'), 'utf8'));
 const plan = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/pages.json'), 'utf8'));
+const rev = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/revisions.json'), 'utf8'));
 const PAGE1 = plan.pages.find((p) => p.n === 1);
+
+// WHICH page 1 wording. Default is the ORIGINAL — the head-on portrait "as
+// though the whole picture is being looked at through curved glass".
+// --second is the REWRITE her note asked for, where the bowl is really in the
+// picture and doing the widening, plus the character continuity line that
+// rides with it. That rewrite is the one she meant; the original ran first by
+// my misreading, and both sets are kept.
+const SECOND = process.argv.includes('--second');
+const SCENE = SECOND ? rev.scenes['1'] : PAGE1.scene;
+const EXTRA = SECOND ? rev.character.line : '';
 
 const STYLE_ONE = 'Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.';
 const STYLE_MANY = 'Use the first attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.';
@@ -50,7 +61,11 @@ const CARD_LINE = 'The second attached image is a reference sheet for Marla — 
 const CALM = 'Keep the lower third of the picture calm and uncluttered.';
 const NO_TEXT = 'Do not put any text, words, letters, numbers, captions or watermarks anywhere in the image.';
 
-const RUNS = [
+const RUNS = SECOND ? [
+  { tag: 'e', sheet: 'marlaSheetV2',   label: 'sheet option 1' },
+  { tag: 'f', sheet: 'marlaSheetV2',   label: 'sheet option 1, second draw' },
+  { tag: 'g', sheet: 'marlaSheet_v3e', label: 'sheet option 5 — the one you picked' },
+] : [
   { tag: 'a', sheet: null,             label: 'no character card — the original run reproduced' },
   { tag: 'b', sheet: 'marlaSheetV2',   label: 'sheet option 1' },
   { tag: 'c', sheet: 'marlaSheetV2',   label: 'sheet option 1, second draw' },
@@ -61,7 +76,8 @@ const buildPrompt = (withCard) => [
   withCard ? STYLE_MANY : STYLE_ONE,
   withCard ? CARD_LINE : '',
   '',
-  `Draw: ${PAGE1.scene}`,
+  `Draw: ${SCENE}`,
+  EXTRA,
   '',
   `${CALM} ${NO_TEXT}`,
 ].join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -169,18 +185,18 @@ async function upload(buf, dest, ct) {
       fs.writeFileSync(path.join(ROOT, 'docs/marla/state.json'), JSON.stringify(state, null, 2) + '\n');
       console.log('✓');
 
-      const label = `Page 1, the ORIGINAL prompt — ${r.label}`;
+      const label = `Page 1, the ${SECOND ? 'FISHBOWL rewrite' : 'ORIGINAL'} prompt — ${r.label}`;
       await fetch(`${BASE}/api/gallery`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: pageUrl, description: label, prompt: 'gpt-image-2 · medium' }),
       });
       items.push({
         url: pageUrl,
-        style: prompt.replace(`Draw: ${PAGE1.scene}`, 'Draw: [content]')
+        style: prompt.replace(`Draw: ${SCENE}`, 'Draw: [content]')
           + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
           + (r.sheet ? `, then ${state[r.sheet].url.split('/').pop()} as Marla's character card` : ' (no character card)')
           + '. gpt-image-2 edits, size 1024x1536, quality medium.',
-        content: PAGE1.scene,
+        content: SCENE,
       });
     } catch (e) { console.log(`FAILED — ${e.message}${e.refusal ? ' (safety refusal)' : ''}`); }
   }

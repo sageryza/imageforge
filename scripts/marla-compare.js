@@ -186,14 +186,18 @@ async function post(title, html) {
 // The four runs of the ORIGINAL page 1 prompt, differing only in which card
 // the model was handed. They sit two to a row rather than four across: at
 // 390px four columns is 84px a picture, which is too small to judge a face on.
-async function pageFishbowlTest() {
+async function pageFishbowlTest(second) {
   const t = state.fishbowlTest || {};
-  const order = [
+  const order = (second ? [
+    ['e', 'sheet 1'],
+    ['f', 'sheet 1 again'],
+    ['g', 'sheet 5 — yours'],
+  ] : [
     ['a', 'no card'],
     ['b', 'sheet 1'],
     ['c', 'sheet 1 again'],
     ['d', 'sheet 5 — yours'],
-  ].filter(([k]) => t[k]?.pageUrl);
+  ]).filter(([k]) => t[k]?.pageUrl);
   const cells = [];
   for (const [k, tag] of order) cells.push([tag, await display(t[k].pageUrl)]);
   const body = `  <div class="card" data-item="fishbowl-test">
@@ -202,14 +206,20 @@ async function pageFishbowlTest() {
       ${cells.map(([tag, u]) => `<figure><span class="tag">${esc(tag)}</span><img src="${u}" alt="page 1 ${esc(tag)}"></figure>`).join('\n      ')}
     </div>
   </div>`;
-  return shell('Page 1 — the original prompt with each character sheet', body, 'marla-p1-cards-4');
+  return second
+    ? shell('Page 1 — the fishbowl rewrite with each character sheet', body, 'marla-p1-fishbowl-3')
+    : shell('Page 1 — the original prompt with each character sheet', body, 'marla-p1-cards-4');
 }
 
 (async () => {
   initAdmin();
   console.log('display copies:');
+  if (process.argv.includes('--fishbowl-second')) {
+    await post('Page 1 — the fishbowl rewrite with each character sheet', await pageFishbowlTest(true));
+    process.exit(0);
+  }
   if (process.argv.includes('--fishbowl-test')) {
-    await post('Page 1 — the original prompt with each character sheet', await pageFishbowlTest());
+    await post('Page 1 — the original prompt with each character sheet', await pageFishbowlTest(false));
     process.exit(0);
   }
   const a = await pageSheets();
