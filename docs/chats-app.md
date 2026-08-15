@@ -1144,14 +1144,41 @@
     and the next version brings it back by itself. Nothing has to un-check
     anything. It is deliberately separate from `answeredAt` — "I know about
     this" is not "this chat is done".
-  - **THE ✓ IS THE ONLY THING THAT TAKES A CARD OFF THIS SCREEN (Aug 2026,
-    Sophie: "make the default behavior that it's pinned until I mark the
-    checkmark and get rid of the pin").** `newsFloor` is `notifSeenAt` and
-    nothing else. It used to be the LATER of that stamp and the per-device
-    `seen` mark (localStorage, written when she opens a chat) — so reading a
-    thread quietly cleared its card, and a PIN existed to opt one card out of
-    that. Every card is kept by default now, so the pin is gone; `seen` still
-    drives the unread dot and has no say here.
+  - **THE ✓ AND HER REPLY TAKE A CARD OFF THIS SCREEN — OPENING ONE NEVER
+    DOES (Aug 2026, Sophie: "make the default behavior that it's pinned until
+    I mark the checkmark and get rid of the pin", then, having lived with it:
+    "we made it so that opening messages on the update tab doesn't get rid of
+    the notification. Is it possible to make it so that if I actually replied
+    to the message that does get rid of the notification").** `newsFloor` is
+    `notifSeenAt` and nothing else. It used to be the LATER of that stamp and
+    the per-device `seen` mark (localStorage, written when she opens a chat) —
+    so reading a thread quietly cleared its card, and a PIN existed to opt one
+    card out of that. Every card is kept by default now, so the pin is gone;
+    `seen` still drives the unread dot and has no say here.
+    - **HER REPLY WRITES THE SAME STAMP, server-side in `POST /reply`** — no
+      new field, no new rule, and nothing for the page to do, because her
+      reply arrives from the CLAUDE app with no page open anywhere (there is
+      no reply box on `/chats`; the hook lifts her words out of the
+      transcript). Opening a chat is dealing with it later; replying is
+      having dealt with it, in her own words, which is exactly the line she
+      drew. The stamp is `postedAt`, never her message's `created` — the same
+      reason parking uses it.
+    - **Because the floor is a STAMP, the answer she gets back is new news.**
+      She replies → the card goes quiet → the chat answers → the reply is
+      newer than the floor → the card returns carrying it. That is also the
+      oven rule holding: answering the v5 chat cannot silence v6.
+    - **`POST /working` must NOT write it, and that is deliberate.** The
+      turn-start ping fires from UserPromptSubmit, and since hook v14 a turn
+      started by a BACKGROUND EVENT (a wake event, a task notification) is
+      still a turn — so machinery would clear cards she never saw. `/reply`
+      is her words by definition (`from:'sophie'`, `her_words` in the hook).
+      Parking still happens on both; only the notification stamp is hers
+      alone.
+    - A note typed inside a Compare page reaches `/reply` too and is
+      REROUTED to the page's verdict doc before any registry write, so it
+      clears nothing — a note on a picture is not an answer to the chat.
+    - Tests: `node scripts/test-chats-news-reply.js` (drives the real routes;
+      verified failing without the stamp).
     - **`markSeen` must NOT post `/notif-seen`.** It used to, purely so the
       widget's count matched the tab's, and that was harmless while opening
       a chat already cleared its card. It would now clear a card she never

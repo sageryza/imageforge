@@ -1003,12 +1003,17 @@ router.post('/hide', async (req, res) => {
 // notification off says "I know about this", not "I have read the thread" and
 // not "this chat is done".
 //
-// Since Aug 2026 it is also the ONLY thing that takes a card off the Update
-// tab — she asked for cards to stay put until she checks them, which retired
-// the pin that used to opt one card out of auto-clearing. So the app must
-// write this stamp on the ✓ and on nothing else: opening a chat used to POST
-// here too, purely so the widget's count matched, and that would now silently
-// clear cards she never checked.
+// Since Aug 2026 it is the only thing SHE TAPS that takes a card off the
+// Update tab — she asked for cards to stay put until she checks them, which
+// retired the pin that used to opt one card out of auto-clearing. So the app
+// must write this stamp on the ✓ and on nothing else: opening a chat used to
+// POST here too, purely so the widget's count matched, and that would now
+// silently clear cards she never checked.
+//
+// The one other thing that writes the same stamp is HER REPLY (POST /reply
+// stamps it inline — see the note there): answering a chat is dealing with its
+// news, and she asked for that after living with ✓-only. Opening is still not
+// clearing. Nothing else may write it.
 router.post('/notif-seen', async (req, res) => {
   try {
     const { chat, seen } = req.body || {};
@@ -2242,7 +2247,33 @@ router.post('/reply', async (req, res) => {
     // back out of the archive she put it in — that is the whole difference
     // between Archive and the self-clearing `hiddenAt` stamp, and /reply is
     // hers by definition (`from:'sophie'`).
-    const patch = { workingAt: doc.postedAt, hiddenAt: doc.postedAt };
+    //
+    // ANSWERING A CHAT ALSO CLEARS ITS UPDATE CARD (Aug 2026, Sophie: "we made
+    // it so that opening messages on the update tab doesn't get rid of the
+    // notification. Is it possible to make it so that if I actually replied to
+    // the message that does get rid of the notification"). The ✓ stays the
+    // deliberate way to clear one, and OPENING a chat still clears nothing —
+    // that is the whole point of the pin's removal. Replying is the third
+    // thing, and it is not a weaker version of opening: she has dealt with the
+    // news, in the chat, in her own words.
+    //
+    // It costs no new field and no new rule, because `notifSeenAt` is a
+    // self-clearing STAMP compared against the newest arrival: everything that
+    // existed when she wrote goes quiet, and the reply her message prompts is
+    // newer, so the card comes straight back carrying it. Her oven example
+    // holds either way — answering the v5 chat cannot silence v6.
+    //
+    // WHY HERE AND NOT IN /working: that ping fires from UserPromptSubmit for
+    // ANY turn, and since hook v14 a turn started by a background event (a wake
+    // event, a task notification) is still a turn. Machinery would silently
+    // clear cards she never saw. /reply is her words by definition
+    // (`from:'sophie'`, `her_words` in the hook), which is exactly the
+    // difference she asked for.
+    //
+    // The stamp is `postedAt` (now), never her message's `created` — same
+    // reason parking uses it: `created` is her real send time and can sit
+    // behind the news it is answering.
+    const patch = { workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt };
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
     await regRef(doc.chat).set(patch, { merge: true });
