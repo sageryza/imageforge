@@ -1,0 +1,102 @@
+[
+ {
+  "run": "round2",
+  "round": 2,
+  "cell": "books",
+  "label": "Books — v2",
+  "at": "TOP LEFT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "514x729",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the TOP LEFT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "TOP LEFT: A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer. TOP RIGHT: A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side. BOTTOM LEFT: An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile. BOTTOM RIGHT: A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__books.webp",
+  "bytes": 61712,
+  "createdAt": 1786771029070
+ },
+ {
+  "run": "round2",
+  "round": 2,
+  "cell": "groceries",
+  "label": "Groceries — v2",
+  "at": "TOP RIGHT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "510x729",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the TOP RIGHT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "TOP RIGHT: A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer. TOP RIGHT: A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side. BOTTOM LEFT: An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile. BOTTOM RIGHT: A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__groceries.webp",
+  "bytes": 52790,
+  "createdAt": 1786771029570
+ },
+ {
+  "run": "round2",
+  "round": 2,
+  "cell": "laundry",
+  "label": "Laundry — v2",
+  "at": "BOTTOM LEFT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "514x807",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the BOTTOM LEFT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "BOTTOM LEFT: An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer. TOP RIGHT: A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side. BOTTOM LEFT: An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile. BOTTOM RIGHT: A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__laundry.webp",
+  "bytes": 49126,
+  "createdAt": 1786771030093
+ },
+ {
+  "run": "round2",
+  "round": 2,
+  "cell": "boxes",
+  "label": "Boxes — v2",
+  "at": "BOTTOM RIGHT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "510x807",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the BOTTOM RIGHT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "BOTTOM RIGHT: A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer. TOP RIGHT: A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side. BOTTOM LEFT: An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile. BOTTOM RIGHT: A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round2__boxes.webp",
+  "bytes": 49410,
+  "createdAt": 1786771030600
+ }
+]

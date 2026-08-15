@@ -1,0 +1,27 @@
+[
+ {
+  "run": "ladder",
+  "round": 2,
+  "cell": "books",
+  "label": "Books — v2 at medium, on its own",
+  "at": null,
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "medium",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "1024x1536",
+  "fromSheet": false,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/ladder__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nONE small illustration, centred on a plain white background with clean white space all around it, no grid, no borders, no frames.\n\n[content — this whole picture]\n\nDo not include any text in the image.",
+  "promptContent": "A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nONE small illustration, centred on a plain white background with clean white space all around it, no grid, no borders, no frames. A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/ladder__books.webp",
+  "bytes": 158346,
+  "createdAt": 1786771160905
+ }
+]

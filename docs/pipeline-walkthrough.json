@@ -1,0 +1,82 @@
+{
+  "idea": "Too much to carry",
+  "why": "Sophie asked to be walked through the image pipeline with an example (Aug 2026). One idea, round the lap twice, then spread into a second style, then one rung up the ladder. Round 1 is written the way anyone actually writes a first prompt — short, and leaving the model to decide the thing you care about. That is the point: the lap is what turns it into a prompt worth keeping, and it costs half a cent a look.",
+  "runs": [
+    {
+      "id": "round1",
+      "round": 1,
+      "what": "the first draft — four short prompts, written the way you'd really write them",
+      "style": "watercolor",
+      "quality": "low",
+      "cells": [
+        { "id": "books", "at": "TOP LEFT", "label": "Books — v1",
+          "text": "A woman carrying a stack of books." },
+        { "id": "groceries", "at": "TOP RIGHT", "label": "Groceries — v1",
+          "text": "A woman carrying too many grocery bags." },
+        { "id": "laundry", "at": "BOTTOM LEFT", "label": "Laundry — v1",
+          "text": "A woman carrying a pile of laundry." },
+        { "id": "boxes", "at": "BOTTOM RIGHT", "label": "Boxes — v1",
+          "text": "A woman carrying boxes up some stairs." }
+      ],
+      "findings": [
+        "Not one of the four is struggling. The idea was TOO MUCH to carry and every one of them is coping — calm face, upright, nothing tipping, nothing falling. The prompt never said the load was winning.",
+        "It is the same woman four times, at the same angle: dark hair up, three-quarter view, standing still. Four cells drew one person because nothing asked for four.",
+        "The load sits at chest height in both arms in every cell, so the composition never changes between them.",
+        "The laundry was given a BASKET nobody asked for, and a basket is tidy — it takes away the precariousness that was the whole subject.",
+        "The only cell with any jeopardy in it is the stairs, and the stairs supplied that, not the prompt."
+      ]
+    },
+    {
+      "id": "round2",
+      "round": 2,
+      "what": "the rewrite — every line names the thing that was missing, not the subject again",
+      "style": "watercolor",
+      "quality": "low",
+      "cells": [
+        { "id": "books", "at": "TOP LEFT", "label": "Books — v2",
+          "text": "A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer." },
+        { "id": "groceries", "at": "TOP RIGHT", "label": "Groceries — v2",
+          "text": "A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side." },
+        { "id": "laundry", "at": "BOTTOM LEFT", "label": "Laundry — v2",
+          "text": "An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile." },
+        { "id": "boxes", "at": "BOTTOM RIGHT", "label": "Boxes — v2",
+          "text": "A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind." }
+      ],
+      "findings": [
+        "Books wins. It is the only cell where the load is visibly beating her AND the picture still reads at 500px — the stack towers, three books are already gone, and all that is left of her is her eyes over the top.",
+        "Laundry is second and it is the funny one: the face is gone completely, the sock landed, the sleeve trails.",
+        "Groceries half-worked. The split and the spilled fruit read, but the bag came out as a stiff slab rather than torn paper, and her face is empty — a 500px cell will not carry an expression.",
+        "Boxes lost the one detail that was asked for: the foot feeling for a step it cannot see. A small, hidden action is too much to ask of a quarter-sheet.",
+        "The general lesson, and it is the one worth keeping: at half a cent, ask for BIG visible things — a tipping mass, a spill, a covered face. Anything small enough to need a close look will not survive the cell size."
+      ]
+    },
+    {
+      "id": "spread",
+      "round": 2,
+      "what": "the same four v2 prompts, nothing changed but the style reference — the change-of-direction case",
+      "style": "pastel",
+      "quality": "low",
+      "cells": [
+        { "id": "books", "at": "TOP LEFT", "label": "Books — v2 in pastel",
+          "text": "A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer." },
+        { "id": "groceries", "at": "TOP RIGHT", "label": "Groceries — v2 in pastel",
+          "text": "A woman whose paper grocery bag has split open along the bottom, oranges and a baguette dropping out around her feet, both arms clamped underneath the bag to hold what is left, looking down at the mess, seen from the side." },
+        { "id": "laundry", "at": "BOTTOM LEFT", "label": "Laundry — v2 in pastel",
+          "text": "An armful of loose unfolded laundry with no basket and no bag, piled so high it covers the carrier's face completely, a sock hanging off the top and a sleeve trailing along the floor behind her, only her legs visible below the pile." },
+        { "id": "boxes", "at": "BOTTOM RIGHT", "label": "Boxes — v2 in pastel",
+          "text": "A man carrying four stacked cardboard boxes up a narrow staircase, the top box tilting off to one side as he leans away from it, one foot feeling for the next step he cannot see past the boxes, seen from above and behind." }
+      ]
+    },
+    {
+      "id": "ladder",
+      "round": 2,
+      "what": "one rung up, for the survivor only — the same words as a whole medium render",
+      "style": "watercolor",
+      "quality": "medium",
+      "cells": [
+        { "id": "books", "label": "Books — v2 at medium, on its own",
+          "text": "A woman almost hidden behind a stack of books taller than her head, the top three books sliding off the front of the stack and falling, her chin clamped down on the stack trying to stop them, seen from low down so the stack towers over the viewer." }
+      ]
+    }
+  ]
+}
