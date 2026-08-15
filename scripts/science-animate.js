@@ -17,6 +17,27 @@
 // 8.1s seedance-2-mini clip at 480p charged 48 credits, so reckon ~6 a second
 // and about 24 for the 4s default. The catalogue's `costMin: 6` is not what a
 // short run comes to. Credits are charged UP FRONT, at submit, not on delivery.
+// A FAILED job is refunded (one died on "No available capacity for model" and
+// its 24 came back), and there is NO cancel route — nothing submitted can be
+// called back.
+//
+// SO DO NOT PROBE POST /videos/generate. Finding wan-2.7's parameter key by
+// POSTing candidate shapes until one stopped erroring SUBMITTED A REAL JOB on
+// the shape that worked — 130 credits for a clip generated from the prompt
+// "test". Same rule as the Chats app's "confirm a route with a READ, never by
+// calling the write", and it cost real money here. GET /v2/models lists every
+// model with its controls, durations and aspect ratios; read that instead.
+//
+// THE PARAMS KEY IS PER MODEL FAMILY, and it is not guessable from the id:
+// seedance-* -> `seedanceParams`, wan-2.7 -> `wan27Params` (not `wanParams`),
+// Midjourney -> `midjourneyParams`. Flat options are rejected outright.
+//
+// `end_image` ON SEEDANCE IS A HINT, NOT A TARGET. Neither the 4s nor the 8s
+// unzip ended on dn-06: the 8s straightened both ribbons into vertical lines,
+// the 4s shrank them and drifted them apart. The MIDDLE of the motion is
+// faithful and the ends wander, which is worth knowing before building
+// anything that needs to land on a specific frame — wan-2.7's `last_frame`
+// (real first-last-frame conditioning) is the thing to try there.
 //
 // THE END FRAME IS THE POINT. Both ends of the DNA unwinding already exist as
 // drawings — dn-05 is the intact helix, dn-06 the unzipped one — so the model
