@@ -234,8 +234,8 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     doubt); the fruit chart's quality ladder stayed OFF — a sixth quality page
     answers nothing five didn't, and when in doubt the shelf stays small.
     Shelf after the pass: **24 pages, 10 topics, none superseded**.
-  - The survey's two gaps are still open: the seven Replicate LoRA styles on
-    one subject, and an aspect-ratio set beyond the blog heroes.
+  - The survey's two gaps were closed later the same day — see the second
+    survey below.
   **THE SECOND SURVEY, 2026-08-15 — an independent pass, by structure instead
   of titles, and what it adds.** Sophie asked for the survey redone from
   scratch (same chat, deliberately ignoring the first pass). Method: pull all
@@ -274,10 +274,21 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     violations on any of the 374 pages. `kitWarnings` is only stamped since
     Aug 14 (#1174) — an empty field on an older page means unscanned, not
     clean.
-  - **A third gap, newly named:** no page compares the ANIMATION models on
-    one still (Kling / Wan / the quick-animate default) — the DNA lesson
-    pages brushed it for one clip set, and the clip library holds the
-    evidence scattered. Plus the two still open above.
+  - **ALL THREE GAPS CLOSED, 2026-08-15, same chat** (Sophie: look for the
+    material first, "finish off the isolated variables" where it doesn't
+    exist). One subject for everything — the styles sheet's exact "chain came
+    off" content line — so the families read across each other:
+    - **"Seven LoRA styles, one prompt (v1)"** — all seven `MODELS.replicate`
+      styles through the server's own route (triggers + suffixes exact),
+      shelved under `styles`.
+    - **"One prompt, three shapes — low (v1)"** — gpt-image-2, prompt
+      verbatim, square/portrait/landscape, shelved under `image size`.
+    - **"One still, two animation tiers — wan vs kling (v1)"** — the Movies
+      tool's draft (wan-2.2-i2v-fast) and standard (kling-v2.1) tiers on the
+      DNA unzip card with one motion prompt, shelved under `animation` (a new
+      topic). The EXISTING DNA clips could not anchor this — the clip library
+      records no model or prompt for swept clips, so an honest isolated set
+      had to be fresh (~41¢). Whole batch ≈ 65¢.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
