@@ -11,30 +11,64 @@ saved notes). It is the
 audio sibling of the content pipeline's S-curve map
 (`s-curve-content-pipeline`, v8) — the same road, the same cut-out drawings,
 exploded out of that map's three audio stops (CUTTING BLOCKS / SLICE IN /
-POLISH) into the ten the audio really walks. **Keep the two looking like one
+POLISH) into the eight the audio really walks, plus two tributaries. **Keep the two looking like one
 family: if the road changes there, change it here.** The map reuses that
 pipeline's already-paid-for icon cut-outs
 (`vector/pipeline-icons-cut/`, `vector/pipeline-icons-2-cut/`) rather than
 re-rendering a sheet.
 
-## The ten stops
+**Editing the map's geometry?** The stops sit at CHOSEN fractions of the path,
+not evenly spread. The four road extremes land on exactly 0.2 / 0.4 / 0.6 / 0.8
+(a quarter plus n halves over 2.5 full ellipse perimeters), and at an extreme
+the road is vertical with a clear gutter beside it. **BLOCKS is pinned to 0.40**
+because it is the only stop anything flows into — spread evenly it landed on the
+pinch between two bowls, where the road returns within ~50px on both sides and
+no tributary can reach it without crossing. `CX` is 270 on a 440-wide board (not
+v8's 232/400) to widen the left gutter to 130px for that lane. Measured: the
+feeders clear the road by 97px and the tightest pair of stops is 103px apart
+against a 44px node.
+
+## The path is not a strict line
+
+Two rooms are not stages the audio passes **through** — they are places a block
+comes **from** (Sophie, v3: "certain things lead into each other"). **Search**
+and **Voice Studio** therefore join the road at BLOCKS as tributaries, and the
+walk continues from there:
+
+    capture → script → BLOCKS ← search, voice → arrange → word cut
+            → exact cut → polish → the cut
+
+**WORD CUT and EXACT CUT are both real stops, in that order** (Sophie, v3).
+The word cut is what the machine can find in a transcript; the exact cut is the
+by-ear pass after it, for what the machine could not hear.
+
+## The eight stops on the road
 
 1. **CAPTURE** — voice memos, the drop, the share sheet. One library; every
    path files into it (`memos.fileIntoArchive()`).
-2. **SCRIPT** — the memo plus her instructions become a script. **No tool.**
-3. **BLOCKS** — the script cut into sentence-level blocks. **Artifact only** —
-   the Cutting blocks Compare page, v14.
+2. **SCRIPT** — the memo plus her instructions become the words. **No tool** —
+   a chat writes this in conversation today. What it would be: pick a recording
+   out of the library (or drop one), say what you want made of it, and get back
+   a script already segmented into sentences, ready to become blocks. The
+   segmentation is the half that matters — it is what BLOCKS consumes.
+3. **BLOCKS** — the words cut into sentence-level blocks. This IS Cutting
+   blocks; "not built" means there is no TOOL, not that nothing exists — the
+   artifact is at v14 and works. What is missing is the module, the page, the
+   doc and the tile behind it.
 4. **ARRANGE** — move them, meld two into one, split one in two, drop some,
    add some. Lives inside the same artifact.
-5. **SLICE IN** — pull words in from any other recording (`search.js`).
-6. **VOICE** — a new line in her voice, or another voice on her take
-   (`voicelab.js`).
-7. **WORD CUT** — the exact words out of a long transcript (`editor.js`).
-8. **EXACT CUT** — tap the spot on the playhead, nudge by a tenth
-   (`cutmarks.js`).
-9. **POLISH** — pauses out and filler out (`cuttingroom.js`), and their LENGTH
+5. **WORD CUT** — the exact words out of a long transcript (`editor.js`).
+6. **EXACT CUT** — the by-ear pass after it: tap the spot on the playhead,
+   nudge by a tenth (`cutmarks.js`).
+7. **POLISH** — pauses out and filler out (`cuttingroom.js`), and their LENGTH
    set (or a new one added) in the **Pausing tool** artifact. The last pass.
-10. **THE CUT** — the finished audio.
+8. **THE CUT** — the finished audio.
+
+Flowing **into** BLOCKS:
+
+- **SEARCH** (`search.js`) — words pulled out of any other recording.
+- **VOICE** (`voicelab.js`) — a line spoken in her voice, or the voice changer
+  run on a take until the line is right.
 
 ## The diff
 
