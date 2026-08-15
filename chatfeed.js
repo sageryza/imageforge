@@ -71,7 +71,7 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
-const { shouldPushReply, pushBody } = require('./push-gate');
+const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -739,12 +739,18 @@ router.post('/', async (req, res) => {
     // that used to buzz her at the wrong moment, the loudest being a catch-up
     // post landing the instant she hits send). The gate is pure and reads only
     // fields already on the registry doc, so it costs no extra read.
-    const gate = shouldPushReply({
-      working,
-      replyCreated: bornAt,
-      lastHerAt: mine.lastHerAt,
-      pushedAt: mine.pushedAt,
-    });
+    // …and only if she has TURNED THE BELL ON for this chat (Aug 2026). The
+    // bell is the coarser question — "do I want this chat on my lock screen at
+    // all" — so it is asked before the timing one, and it is a whitelist: a
+    // chat she has never belled stays silent.
+    const gate = chatNotifies(mine)
+      ? shouldPushReply({
+        working,
+        replyCreated: bornAt,
+        lastHerAt: mine.lastHerAt,
+        pushedAt: mine.pushedAt,
+      })
+      : { push: false, why: 'bell-off' };
     // Stamped in the SAME registry write the reply already makes — and stamped
     // before the send, not after: the push is fire-and-forget, so waiting on it
     // would leave a window where a second reply could push again.
@@ -1348,6 +1354,35 @@ router.post('/chat-bookmark', async (req, res) => {
     await regRef(slug).set(
       { bookmarked: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, chat: slug, bookmarked: on });
+  } catch (err) { fail(res, err); }
+});
+
+// THE BELL — notifications ON for this chat (Aug 2026, Sophie: "add a little
+// bell next to the star that I can click in. This will enable notifications
+// for this chat and un-click and it will turn them off — only the ones I
+// clicked the bell on will notify me").
+//
+// A WHITELIST, and the third per-chat mark beside `starred` and `bookmarked`:
+//   `starred`    — what she is on right now (temporary)
+//   `bookmarked` — the handful worth keeping (permanent)
+//   `notify`     — the ones allowed to buzz her phone
+// Absent = silent, so nothing pushes until she taps a bell. `push-gate.js`
+// reads it (`chatNotifies`) in front of BOTH doors — a finished reply and a
+// new Compare page.
+//
+// Same phantom-row guard as /chat-bookmark: a merge-set on a missing doc
+// CREATES it, and every pile derives from the registry keys.
+router.post('/notify', async (req, res) => {
+  try {
+    const { chat, notify } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = notify !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { notify: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, notify: on });
   } catch (err) { fail(res, err); }
 });
 
@@ -2249,11 +2284,14 @@ router.post('/page', async (req, res) => {
     await ref.set(doc);
     // A new Compare page is a delivery even when the chat says nothing — the
     // same reason the Update tab counts it as an arrival. Same debounce, so a
-    // page and the reply that follows it in one turn are one buzz.
+    // page and the reply that follows it in one turn are one buzz. And the
+    // same BELL: a chat she has not belled never reaches her lock screen, by
+    // either door.
     try {
       const { chats } = await registry();
-      const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
-      require('./push').notifyChat(doc.chat, name, doc.title);
+      const reg = chats[doc.chat] || {};
+      const name = reg.displayName || doc.chat;
+      if (chatNotifies(reg)) require('./push').notifyChat(doc.chat, name, doc.title);
     } catch (e) { /* push must never fail a post */ }
     const body = { ok: true, id: ref.id, url: `/api/chatfeed/page/${ref.id}` };
     if (warnings.length) body.warnings = warnings;   // never blocks the post

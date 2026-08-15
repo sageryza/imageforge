@@ -90,6 +90,21 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   `chatfeed.js` calls `notifyChat()` on a **finished reply** (never a draft)
   and on a **new Compare page** — the pushes are the Update tab's doorbell,
   not its replacement, so dropped ones are never lost news.
+- **THE BELL DECIDES WHICH CHATS MAY BUZZ AT ALL — a WHITELIST (`chatNotifies`
+  in `push-gate.js`, Aug 2026, Sophie: "add a little bell next to the star that
+  I can click in. This will enable notifications for this chat and un-click and
+  it will turn them off — only the ones I clicked the bell on will notify me").**
+  One field, `notify`, on the chat's registry doc, beside `starred` and
+  `bookmarked`, so it rides the feed read the app already makes. **Absent means
+  SILENT**: nothing pushes until she taps a bell, and a chat she has never
+  belled never reaches her lock screen. It is asked BEFORE the timing gate
+  below — the coarse question first — and in front of **both** doors, a
+  finished reply and a new Compare page, so there is no way to buzz her past
+  it. The control is the bell in a chat's thread header (`.bellbtn` in
+  `chats.html`, next to the ★); `POST /api/chatfeed/notify {chat, notify}`
+  writes it, 404 on a chat that does not exist (the phantom-row guard every
+  registry write carries). Comparing `notify === true`, never truthiness, is
+  deliberate — the safe failure direction for an opt-in is silence.
 - **A FINISHED REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`,
   Aug 2026, Sophie: "I don't need a notification when I send a message. I
   need a notification when they respond to my message").** Every finished
@@ -139,8 +154,10 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
       the line against her newest message, which means carrying a few hundred
       characters of it on the registry doc — and the registry rides the feed
       read to her phone 276 chats at a time.
-  - Tests: `node scripts/test-push-gate.js` (the whole decision table plus the
-    body rules, pure, no network — 22 checks).
+  - Tests: `node scripts/test-push-gate.js` (the whole decision table, the bell
+    whitelist and the body rules, pure, no network — 30 checks) and
+    `node scripts/test-chats-bell.js` (the bell + the eye + the trash can on
+    the real page, headless — 18 checks).
 - **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
   optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
   key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all

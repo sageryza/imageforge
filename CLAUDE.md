@@ -1698,6 +1698,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **finished reply** (never a draft) and on a new Compare page. They are the
   Update tab's **doorbell, not its replacement**, so a dropped push is never
   lost news. A tap opens THE CHAT IT CAME FROM.
+  **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
+  `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
+  notify me").** One field, `notify`, on the chat's registry doc beside
+  `starred`/`bookmarked`, set by the bell in a chat's thread header
+  (`POST /api/chatfeed/notify {chat, notify}`). **Absent means silent**, so
+  nothing pushes until she taps one. It is asked BEFORE the timing gate below
+  and in front of BOTH doors (a finished reply and a new Compare page), and it
+  compares `notify === true` rather than truthiness — silence is the safe
+  direction for an opt-in.
   **A REPLY ONLY BUZZES WHEN IT IS ANSWERING HER (`push-gate.js`, Aug 2026,
   Sophie: "I don't need a notification when I send a message. I need a
   notification when they respond to my message").** Two comparisons against
@@ -1725,7 +1734,7 @@ before working on that module. Nothing was deleted — the moved text is verbati
   message would mean carrying hundreds of characters of every chat's newest
   message on the registry doc, which rides the feed read to her phone 276
   chats at a time.
-  Tests: `node scripts/test-push-gate.js`.
+  Tests: `node scripts/test-push-gate.js`, `node scripts/test-chats-bell.js`.
   Dormant until the APNs key exists — only Sophie can mint it.
   **The home-screen widget** reads one small JSON (`GET /api/chatfeed/widget`) and
   must NEVER pull the real feed. **Full details: `docs/modules/inbox-and-misc.md`.**

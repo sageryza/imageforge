@@ -45,6 +45,28 @@
 // Timestamps are ISO strings, which compare lexicographically in the same
 // order they compare chronologically, so no parsing is needed anywhere here.
 
+// ── THE BELL — which chats are allowed to buzz at all (Aug 2026, Sophie: "add
+// a little bell next to the star that I can click in… this will enable
+// notifications for this chat, and un-click and it will turn them off — only
+// the ones I clicked the bell on will notify me").
+//
+// The gate above answers "is this reply the ANSWER to her?"; the bell answers
+// "does she want this chat on her lock screen at all?", and it is the coarser
+// question, so it is asked first. It is a WHITELIST: `notify` is absent on
+// every chat until she taps the bell, and absent means silent. That is her
+// sentence read literally, and it is also the safe direction — a chat that
+// forgets to pass the flag goes quiet rather than buzzing her.
+//
+// One field on the registry doc, like `starred` and `bookmarked`, so it rides
+// the feed read the app already makes and costs nothing extra.
+/**
+ * @param {object} reg the chat's registry doc (or `{}` for a chat with none)
+ * @returns {boolean} whether this chat is allowed to send a push at all
+ */
+function chatNotifies(reg) {
+  return !!(reg && reg.notify === true);
+}
+
 /**
  * @param {object} o
  * @param {boolean} o.working      the post is a live draft, not a finished reply
@@ -115,4 +137,4 @@ function pushBody(text, tldr) {
   return plain(said || lines[0] || '');
 }
 
-module.exports = { shouldPushReply, pushBody, _plain: plain };
+module.exports = { shouldPushReply, chatNotifies, pushBody, _plain: plain };

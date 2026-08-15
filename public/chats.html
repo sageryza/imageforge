@@ -504,6 +504,28 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .starbtn svg{width:16px; height:16px; display:block;}
 .starbtn.on{color:var(--chg);}
+/* THE BELL — notifications on for this chat (Aug 2026, Sophie), sitting beside
+   the star because the three per-chat marks are one decision she makes in one
+   place: star = on it now, bookmark = keep it, bell = allowed to buzz me. Grey
+   outline until she taps it, then the same red the star and the bookmark fill
+   in — so the row reads at a glance. Its own class rather than `.bmk`, whose
+   generic `.on svg{fill:currentColor}` would flood a stroke-drawn bell into a
+   solid blob (the trap `.trashbtn` is written around too). */
+.bellbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.bellbtn svg{width:16px; height:16px; display:block;}
+.bellbtn.on{color:var(--chg);}
+/* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
+   picture of a trash can and the hide button a picture of an eye that's
+   crossed out if it's hidden"). They keep the red the words had — both take
+   the chat off the list — so the pair still reads against the green ARCHIVE
+   word beside them. The eye is the one that carries STATE: open while the chat
+   is live, crossed once it is in the hidden pile. */
+.eyebtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:#b3443f;
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.eyebtn svg{width:17px; height:17px; display:block;}
+.trashbtn.delbtn{padding:6px 4px; color:#b3443f;}
+.trashbtn.delbtn svg{width:16px; height:16px;}
 .cr-star{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-star svg{width:14px; height:14px; display:block;}
 /* the keep-forever mark, beside the star. Same red, and FILLED so the two are
@@ -3000,6 +3022,11 @@ function chatStar(name){ return !!(chats[name]&&chats[name].starred); }
 // stay forever", against a star for "a chat I'm currently working on"). It is
 // what fills the Bookmarks pile's CHATS tab; the star no longer does.
 function chatKept(name){ return !!(chats[name]&&chats[name].bookmarked); }
+// BELLED — allowed to push to her phone (Aug 2026). A WHITELIST: absent means
+// silent, so this is `=== true` in spirit, not "not explicitly off". The bell
+// in the thread header is the only control; the server reads the same field
+// (`push-gate.js` → `chatNotifies`) in front of every push.
+function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // Seeds + every name she has ever created (kept on the __settings doc) + every
 // name actually in use. The middle one is why an EMPTY folder still shows: she
 // made a category, nothing happened to be picked at the time, and it vanished
@@ -3854,6 +3881,15 @@ function mkBmkNote(m){
 // ONE bookmark glyph — a message row and a Compare page row both draw this,
 // so "kept" can never read as two different marks in two places.
 var BMK_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+// The thread header's three picture buttons (Aug 2026, Sophie). Lucide, exact
+// paths, stroke-drawn — and stroke-drawn is why the bell does NOT fill when it
+// is on the way the star and the bookmark do: filling Lucide's bell fills its
+// clapper arc into a lens and the glyph stops reading as a bell. Red vs grey
+// carries the state instead.
+var BELL_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>';
+var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
+var TRASH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 function bookmarkBtn(m, row){
   var BM=BMK_SVG;
   var b=document.createElement('button'); b.className='bmk'+(m.bookmarked?' on':'');
@@ -4095,12 +4131,19 @@ function openChat(name, keepScroll, focusId, noFetch){
   // HIDE, beside Archive — the two are the same family of decision ("not now"
   // vs "away for good"), so they belong in the same row. This is the way to
   // park a chat she has just read without going back to the list for its ⊖.
+  //
+  // A PICTURE OF AN EYE, CROSSED OUT WHEN IT IS HIDDEN (Aug 2026, Sophie's
+  // exact ask). The glyph carries the state the word "In hidden" used to
+  // carry, so nothing else has to say it: open eye = this chat is on the list,
+  // crossed eye = it is parked in the hidden pile.
   (function(){
     var list0=(groups()[name])||[];
     var last0=list0.length? list0[list0.length-1] : null;
+    var hid=chatHidden(name,last0);
     var hb=document.createElement('button');
-    hb.className='archlink hide-r';
-    hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
+    hb.className='eyebtn';
+    hb.innerHTML=hid? EYE_OFF_SVG : EYE_SVG;
+    hb.setAttribute('aria-label', hid? 'In the hidden pile — unhide this chat' : 'Hide this chat');
     hb.onclick=function(){
       toggleHide(name,last0);          // optimistic + POSTs + repaints the home
       goHome(true);
@@ -4115,10 +4158,17 @@ function openChat(name, keepScroll, focusId, noFetch){
   //
   // Nothing is destroyed here, so one plain confirm is enough; the
   // irreversible tap lives in the trash and says so in much stronger words.
+  //
+  // A PICTURE OF A TRASH CAN (Aug 2026, Sophie) — the same glyph the masthead
+  // already uses for the trash pile this chat lands in, so the button and the
+  // place it sends things to look like the same idea. `.trashbtn` and NOT
+  // `.bmk`: the generic `.bmk.on svg{fill:currentColor}` rule would flood a
+  // stroke-drawn can into a solid blob.
   (function(){
     var db=document.createElement('button');
-    db.className='archlink del-r';
-    db.textContent='Delete';
+    db.className='trashbtn delbtn';
+    db.innerHTML=TRASH_SVG;
+    db.setAttribute('aria-label','Delete this chat');
     db.onclick=function(){
       askFirst('Delete '+dispName(name)+'? It goes to the trash — you can restore it until you empty it.',
         'Delete', function(ok){
@@ -4186,6 +4236,40 @@ function openChat(name, keepScroll, focusId, noFetch){
         .catch(function(){ chats[name].starred=was; paintS(); toast('Couldn’t save that'); });
     };
     head.querySelector('.no').appendChild(sb);
+  })();
+  // THE BELL — let this chat buzz my phone (Aug 2026, Sophie: "add a little
+  // bell next to the star that I can click in. This will enable notifications
+  // for this chat and un-click and it will turn them off — only the ones I
+  // clicked the bell on will notify me").
+  //
+  // It is a WHITELIST, which is the half worth remembering: absent means
+  // silent, so a chat she has never belled never reaches her lock screen.
+  // `push-gate.js` asks it before the timing gate, on BOTH doors (a finished
+  // reply and a new Compare page) — see `chatNotifies` there.
+  //
+  // Beside the star on purpose: the three per-chat marks are one decision made
+  // in one place — star = on it now, bookmark = keep it forever, bell = allowed
+  // to interrupt me.
+  (function(){
+    var nb=document.createElement('button');
+    nb.className='bellbtn'+(chatNotify(name)?' on':'');
+    nb.innerHTML=BELL_SVG;
+    function paintN(){
+      nb.classList.toggle('on', chatNotify(name));
+      nb.setAttribute('aria-label', chatNotify(name)
+        ? 'Notifications on — turn them off for this chat'
+        : 'Turn on notifications for this chat');
+    }
+    paintN();
+    nb.onclick=function(){
+      var was=chatNotify(name);
+      chats[name]=chats[name]||{}; chats[name].notify=!was;
+      paintN(); toast(was?'Notifications off':'Notifications on');
+      api('/api/chatfeed/notify',{method:'POST',body:JSON.stringify({chat:name, notify:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].notify=was; paintN(); toast('Couldn’t save that'); });
+    };
+    head.querySelector('.no').appendChild(nb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
