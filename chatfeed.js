@@ -16,7 +16,14 @@
 //   POST /api/chatfeed/status    → { chat, session, need?, doing? } — the chat's
 //                                  living status card, shown under its name on
 //                                  the home list ("" clears a field)
+//   POST /api/chatfeed/pin      → { chat, session, url, title, kind? } — THE
+//                                  PINNED LINK at the top of the thread: the
+//                                  page this chat is building or the film it
+//                                  keeps re-cutting. Re-POST it whenever you
+//                                  update what's behind it — that lights the
+//                                  "current" tag. Empty url clears it.
 //   GET  /api/chatfeed/status?chat=&session= → the card + Sophie's pinned note
+//                                  + whatever this chat has pinned
 //   POST /api/chatfeed/chatnote  → { chat, note } — her pinned note (hers alone;
 //                                  chats read it, only the app writes it)
 //   GET  /api/chatfeed/search?q= → search across every message (in-memory
@@ -42,6 +49,9 @@
 //                                  the ✓ on a card in the NEW tab. A self-
 //                                  clearing stamp: anything newer brings the
 //                                  card back on its own.
+//   POST /api/chatfeed/news-queue → { chats:[…], queue:'later'|'soon'|'' } —
+//                                  the two boxes on the Update screen: "later"
+//                                  and "in a minute". One field per chat.
 //   GET  /api/chatfeed/questions?chat= → her questions in that chat, each with
 //                                  the answer that came back. DERIVED from the
 //                                  thread (questions.js), never filed by a chat.
@@ -697,10 +707,23 @@ router.post('/', async (req, res) => {
     // Which Claude account this chat's sessions run under (the hook posts the
     // environment's FORGE_ACCOUNT). Open buttons route app-vs-browser off it.
     if (account) reg.account = String(account).slice(0, 20);
+    // The chat's own registry doc, read BEFORE the write below (regRef() drops
+    // the cache, so reading after would force a fresh collection read every
+    // reply). Used for the pin's turn count and for the push title; a pin
+    // written earlier in this turn already invalidated the cache, so what comes
+    // back here is current.
+    let mine = {};
+    try { mine = (await registry()).chats[doc.chat] || {}; } catch (e) { /* best effort */ }
     // A FINAL reply ends the turn: clear the turn-start mark the hook stamped
     // at UserPromptSubmit (see POST /working), so the app's pink tint drops
     // the moment the reply lands. A growing draft is still mid-turn.
-    if (!working) reg.workingAt = admin.firestore.FieldValue.delete();
+    // It also ages the pinned link by one turn (see pinBump) — that is what
+    // takes the "current" tag off a pin the chat stopped updating.
+    if (!working) {
+      reg.workingAt = admin.firestore.FieldValue.delete();
+      const bumped = pinBump(mine.pinned);
+      if (bumped) reg.pinned = bumped;
+    }
     await regRef(doc.chat).set(reg, { merge: true });
     // …and it's the moment worth a buzz (Aug 2026): a FINISHED reply — never a
     // draft — pushes to her phone. Fire-and-forget by contract; notifyChat
@@ -708,9 +731,7 @@ router.post('/', async (req, res) => {
     // SHE gave the chat, when there is one.
     if (!working) {
       try {
-        const { chats } = await registry();
-        const name = (chats[doc.chat] && chats[doc.chat].displayName) || doc.chat;
-        require('./push').notifyChat(doc.chat, name,
+        require('./push').notifyChat(doc.chat, mine.displayName || doc.chat,
           doc.tldr || (doc.text.split('\n').find((l) => l.trim()) || '').slice(0, 240));
       } catch (e) { /* push must never fail a post */ }
     }
@@ -1329,6 +1350,55 @@ router.post('/category', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- THE UPDATE SCREEN'S TWO BOXES (Aug 2026, Sophie) ----------------------
+// "There's no categories on the updates page in that same style of those
+// little boxes. I'd like to add two categories, one called IN A MINUTE for
+// things I want to look at in a minute but not quite this second, and then
+// next to it on the left another category called LATER for things I want to
+// look at maybe later today or this week."
+//
+// The chips on the CHAT list file a chat forever (`category`, a folder). These
+// file ONE UPDATE, for a while — so they are their own field, `newsQueue`, and
+// they are deliberately a CLOSED set of two: she named both, and a box she can
+// type is a folder, which is what the other row already is.
+//
+// `newsQueuedAt` is the moment it went in, and it is load-bearing exactly like
+// `filedAt` on a category: an update is the newest thing a chat has handed her,
+// so when something NEWER lands the card is new news again and belongs back on
+// the main list. The app reads the pair as ONE place — main list or a box,
+// never both — so the number on a box is what she finds when she opens it.
+//
+// A name with no registry doc is SKIPPED, never written: `set(…, merge)` on a
+// missing doc creates it, and every pile derives from the registry keys, so
+// one typo would put a phantom row in her list.
+const NEWS_QUEUES = ['later', 'soon'];
+router.post('/news-queue', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const queue = String(body.queue || '').trim().slice(0, 20);
+    if (queue && !NEWS_QUEUES.includes(queue)) {
+      return res.status(400).json({ error: `queue must be one of ${NEWS_QUEUES.join(', ')} (or empty to clear)` });
+    }
+    const del = admin.firestore.FieldValue.delete();
+    const stamp = queue ? new Date().toISOString() : del;
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(
+      resolved.map((n) => db().collection(REG).doc(n).get()));
+    const live = resolved.filter((n, i) => snaps[i].exists);
+    const missing = resolved.filter((n, i) => !snaps[i].exists);
+    if (live.length) {
+      const batch = db().batch();
+      live.forEach((n) => batch.set(regRef(n),
+        { newsQueue: queue || del, newsQueuedAt: stamp }, { merge: true }));
+      await batch.commit();
+    }
+    res.json({ ok: true, chats: live, missing, queue: queue || null, at: queue ? stamp : null });
+  } catch (err) { fail(res, err); }
+});
+
 // ---- Status cards (Aug 2026, Sophie) --------------------------------------
 // Every chat keeps ONE living status card it rewrites on purpose at the end
 // of a turn: `need` = what it needs from Sophie, in her words ("pick a
@@ -1533,6 +1603,47 @@ router.post('/chatnote', async (req, res) => {
 // chat most often wants at the top is a PAGE, and it could not say so. A link
 // pin wears a link glyph and opens the page instead of embedding it.
 const PIN_KINDS = new Set(['audio', 'video', 'link']);
+// A MISSING `kind` IS READ OFF THE URL (Aug 2026). The pin used to fall back to
+// `video` for anything it didn't recognise, which was right while only films
+// were pinned and wrong the moment pinning a PAGE became the common case: a web
+// page dropped into a <video> renders a black box that never loads. The
+// extension decides — a media url ends in one — and an explicit `kind` still
+// wins, so a film pinned the old way behaves exactly as it did.
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm)(\?|#|$)/i;
+const AUDIO_EXT = /\.(m4a|mp3|wav|aac|caf|aiff?)(\?|#|$)/i;
+function pinKind(kind, url) {
+  if (PIN_KINDS.has(kind)) return kind;
+  if (VIDEO_EXT.test(url)) return 'video';
+  if (AUDIO_EXT.test(url)) return 'audio';
+  return 'link';
+}
+// THE "current" TAG (Aug 2026, Sophie: "for the movie that gets updated to have
+// like a tag on it that says like current or recent, and it only says that if
+// the chat updated the last turn that they finished"). What a pin cannot say on
+// its own is whether what sits behind it is FRESH — a link to /science looks
+// identical whether the page moved an hour ago or last week.
+//
+// So the pin carries `turns` = how many finished replies this chat has posted
+// SINCE the pin was written, incremented by the reply post below. 0 = the turn
+// that set it hasn't ended yet; 1 = it ended, and that is the chat's most
+// recent finished turn. Either way the last finished turn updated the pin, so
+// both read as current; 2 means the chat has since finished a turn that left it
+// alone, and the tag goes out. Counting turns rather than comparing timestamps
+// is what makes this exact: a turn's `created` is the first DRAFT's time when a
+// hook posts drafts and the final post's time when it doesn't, so any
+// pin.at-vs-message-time rule is wrong for half the chats.
+//
+// Re-POSTing the same url is therefore the whole update ritual: it resets the
+// count and lights the tag again.
+const PIN_CURRENT_TURNS = 1;
+function pinBump(pinned) {
+  if (!pinned || !pinned.url) return null;             // nothing pinned
+  const turns = Number.isFinite(pinned.turns) ? pinned.turns : 0;
+  // Once it can never be current again the count stops moving — no point
+  // writing the registry doc on every reply for the rest of the chat's life.
+  if (turns > PIN_CURRENT_TURNS) return null;
+  return { ...pinned, turns: turns + 1 };
+}
 router.post('/pin', async (req, res) => {
   try {
     const { chat, session, title, url, kind } = req.body || {};
@@ -1541,17 +1652,15 @@ router.post('/pin', async (req, res) => {
     const del = admin.firestore.FieldValue.delete();
     const u = String(url || '').trim();
     if (u && !/^https:\/\//.test(u)) return res.status(400).json({ error: 'url must be https' });
-    await regRef(target).set({
-      pinned: u ? {
-        url: u,
-        title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
-        // Unknown kinds still fall back to video, so nothing that pinned a film
-        // before this existed changes behaviour.
-        kind: PIN_KINDS.has(kind) ? kind : 'video',
-        at: new Date().toISOString(),
-      } : del,
-    }, { merge: true });
-    res.json({ ok: true, chat: target, pinned: u || null });
+    const pinned = u ? {
+      url: u,
+      title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+      kind: pinKind(kind, u),
+      at: new Date().toISOString(),
+      turns: 0,
+    } : del;
+    await regRef(target).set({ pinned }, { merge: true });
+    res.json({ ok: true, chat: target, pinned: u ? pinned : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -1574,6 +1683,10 @@ router.get('/status', async (req, res) => {
       statusAt: d.statusAt || null,
       note: d.sophieNote || null,
       noteAt: d.sophieNoteAt || null,
+      // …and what it has pinned, so a chat coming back to a thread can see
+      // whether its link is still up there and whether the "current" tag is
+      // still lit (`turns` — see pinBump) without re-pinning blind.
+      pinned: (d.pinned && d.pinned.url) ? d.pinned : null,
     });
   } catch (err) { fail(res, err); }
 });

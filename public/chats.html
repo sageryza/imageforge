@@ -164,10 +164,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    title, and when I press play it opens full screen"). She should not have to
    open a Compare page to reach the thing she asked a chat to make. */
 .pinned{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
-  padding:9px 11px; margin:0 0 .7em; background:var(--surface); width:100%; text-align:left; cursor:pointer;}
+  padding:9px 11px; margin:0 0 .7em; background:var(--barbg); width:100%; text-align:left; cursor:pointer;}
 .pinned .pl{width:30px; height:30px; border-radius:6px; flex:none; display:flex; align-items:center;
   justify-content:center; border:1.5px solid var(--chg); color:var(--chg);}
 .pinned .ti{flex:1; min-width:0; font-size:.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* "current" — the pin was updated in the chat's last finished turn. Plain
+   letter-spaced sans in rose, the masthead's own voice: a chip here would be a
+   pill, and this is a state, not a control. */
+.pinned .cur{flex:none; font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:9px;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--rose);}
 #pinfull{position:fixed; inset:0; background:#000; z-index:120; display:flex; align-items:center; justify-content:center;}
 #pinfull video{width:100%; height:100%; object-fit:contain; background:#000;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
@@ -381,7 +386,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .searchrow.on #qsearch{display:block; flex:1; min-width:0; padding-right:14px;}
 .searchrow.on .qclear{display:flex; align-items:center; justify-content:center;
   position:static; transform:none; flex:none;}
-.searchrow.on #searchbtn{display:none;}
+/* THE GLASS STAYS BESIDE THE OPEN BAR (Aug 2026) — one control per action:
+   the ✕ on the right LEAVES the search, the glass on the left starts a NEW
+   one (empties the box, keeps the keyboard). It was hidden while open when
+   the ✕ did both jobs. It keeps the exact spot it holds when folded, so the
+   bar simply grows out to the right of it and nothing moves under her thumb. */
 #qsearch{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; padding:11px 40px 11px 14px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
@@ -690,6 +699,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    ✓ on the right is the "I've checked this" — see POST /notif-seen. */
 .nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
   padding:4px 10px 10px; margin:0 0 10px;}
+/* PICKED — "I tap the item and it selects it with a thicker outline, and then
+   I tap the category and that's how it gets filed in" (Sophie, Aug 2026). The
+   outline IS the whole feedback, so it has to read on a card that already has
+   a border: the same filing green the lit chips wear, at 2px. The padding
+   loses the extra pixel back so a card never jumps as it is picked. */
+.nwcard.picked{border-color:var(--chg); border-width:2px; padding:3px 9px 9px;}
 /* gap was 3px, which is what put the ⌄ against the ✓ (Sophie: "I'm worried
    I'll tap that by accident"). The timestamp now sits BETWEEN them as well —
    see newsCard — so the clearing tap is isolated by a real gap plus the time. */
@@ -1707,7 +1722,12 @@ function paintHomeChrome(){
   // notifications, not the filing surface — a category chip or a select
   // checkbox there would be a control that does nothing to what is on screen.
   var other=otherView();
-  document.getElementById('catrow').style.display = other ? 'none' : '';
+  // …EXCEPT on UPDATE, which has its own two boxes in this row now (Aug 2026,
+  // Sophie: "there's no categories on the updates page in that same style of
+  // those little boxes"). Select stays gone there — a card is picked by
+  // tapping it, so a mode button would be a second way to do one thing.
+  var chipsOff = other && homeView!=='news';
+  document.getElementById('catrow').style.display = chipsOff ? 'none' : '';
   document.getElementById('selbtn').style.display = other ? 'none' : '';
   // The account tabs split a list of CHATS, so they belong on the chat list
   // and nowhere else — bookmarks and to-dos are not chats, and Status is
@@ -1774,6 +1794,19 @@ function paintSearch(){
   if(park){ if(btn.parentNode!==tools) tools.insertBefore(btn, ref); }
   else if(btn.parentNode!==row) row.insertBefore(btn, row.firstChild);
   row.style.display = (todoing || park) ? 'none' : '';
+  // ONE CONTROL PER ACTION (Aug 2026, Sophie: "once I press the X on the search
+  // I think the search bar should just disappear so it's one tap to get out of
+  // search … there could be another button to clear the text and write new
+  // text"). The ✕ used to do both jobs in sequence — clear, then close — so
+  // leaving a search she could still see cost two taps, and the first one
+  // looked like it had done nothing but wipe her words. Now:
+  //   ✕ (right)     → leave. Always, words or no words, one tap.
+  //   glass (left)  → a NEW search: empty the box, keyboard stays up.
+  // The glass is the same button in the same place that opened the bar, so
+  // "tap the glass to search" reads the same whether one is already running.
+  btn.setAttribute('aria-label', open ? 'Clear the search and start a new one' : 'Search all chats');
+  var qc=document.getElementById('qclear');
+  if(qc) qc.setAttribute('aria-label','Close the search');
 }
 function setSearchOpen(on){
   searchOpen=!!on;
@@ -1784,7 +1817,13 @@ function setSearchOpen(on){
   if(searchOpen){ var i=document.getElementById('qsearch'); if(i) i.focus(); }
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
-function setHomeView(v){ homeView = (homeView===v ? 'live' : v); renderHome(); window.scrollTo(0,0); }
+// Leaving UPDATE drops whatever was picked there — a selection is a gesture
+// half-finished, not a state to carry to another screen and back.
+function setHomeView(v){
+  homeView = (homeView===v ? 'live' : v);
+  if(homeView!=='news') newsPick={};
+  renderHome(); window.scrollTo(0,0);
+}
 // The STATUS view has no button anymore (Sophie had the icon removed), so this
 // is the only way in — the headless tests drive it, and it is what a restored
 // entrance would call. Deliberately kept so the retained view stays testable.
@@ -2377,6 +2416,123 @@ function newsItems(g){
   out.sort(function(a,b){ return a.at<b.at?1:-1; });   // newest first
   return out;
 }
+// ---- THE TWO BOXES ON THE UPDATE SCREEN (Aug 2026, Sophie) ----------------
+// "There's no categories on the updates page in that same style of those
+// little boxes. I'd like to add two categories, one called IN A MINUTE for
+// things I want to look at in a minute, but not quite this second, and then
+// next to it on the left I want another category called LATER for things I
+// want to look at maybe later today or this week. How I want to work is that I
+// tap the item, it selects it with a thicker outline, and then I tap the
+// category and that's how it gets filed in."
+//
+// So: LATER on the left, IN A MINUTE next to it, in the chips' own row — the
+// same little boxes the chat list wears, painted into the same #catrow. A
+// CLOSED set of two, deliberately: she named both, there is no New… box here,
+// and a box she could type would be a folder — which is what the other row
+// already is. These file ONE UPDATE for a while, not a chat forever.
+//
+// AN ITEM IS IN EXACTLY ONE PLACE — the main list or a box, never both. That
+// is the difference from a category chip (where a chat rejoins the list and
+// stays in its folder): a card is the newest thing a chat has handed her, so
+// when something NEWER lands the card is new news again and comes back out of
+// the box on its own. One place means the number on a box is exactly what she
+// finds when she opens it, and it means she never deals with the same card
+// twice.
+//
+// The filter (which box is open) is SESSION-ONLY like every other filter on
+// this screen; the filing itself is on the registry (POST /news-queue).
+var NEWS_QS=[['later','Later'],['soon','In a minute']];
+var newsQ='';        // the open box, '' = the main list
+var newsPick={};     // what is selected right now (chat name → 1)
+function newsQueueOf(n){
+  var q=(chats[n]&&chats[n].newsQueue)||'';
+  return (q==='later'||q==='soon') ? q : '';
+}
+function newsQueuedAt(n){ return (chats[n]&&chats[n].newsQueuedAt)||''; }
+function newsQLabel(q){
+  for(var i=0;i<NEWS_QS.length;i++) if(NEWS_QS[i][0]===q) return NEWS_QS[i][1];
+  return q;
+}
+// Filed, and nothing newer has landed since — the one test both lists use, so
+// the main list and the box can never disagree about where a card is.
+function newsBoxed(it){
+  var q=newsQueueOf(it.chat);
+  return !!q && !((it.at||'') > newsQueuedAt(it.chat));
+}
+function newsList(g){
+  var items=newsItems(g);
+  return newsQ ? items.filter(function(it){ return newsBoxed(it) && newsQueueOf(it.chat)===newsQ; })
+               : items.filter(function(it){ return !newsBoxed(it); });
+}
+// The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
+// Tapping one with nothing picked OPENS that box (tap it again to come back —
+// the category chips' convention, and why there is no "All" chip to reach
+// for). Tapping one with cards picked FILES them.
+function paintNewsQRow(row,g){
+  var items=newsItems(g);
+  NEWS_QS.forEach(function(pair){
+    var n=items.filter(function(it){
+      return newsBoxed(it) && newsQueueOf(it.chat)===pair[0]; }).length;
+    var b=document.createElement('button');
+    b.className='catchip'+(newsQ===pair[0]?' on':'');
+    b.innerHTML=esc(pair[1])+(n?'<span class="cc-new">'+n+'</span>':'');
+    b.setAttribute('aria-label', pair[1]+(n? ' — '+n+' waiting' : ''));
+    b.onclick=function(){
+      if(Object.keys(newsPick).length){ fileNews(pair[0]); return; }
+      newsQ=(newsQ===pair[0]?'':pair[0]); renderHome(); window.scrollTo(0,0);
+    };
+    row.appendChild(b);
+  });
+}
+// Repaint just the boxes — the counts move on a ✓ and when the delivered
+// caches land, and neither is worth a whole re-render of the list she is
+// reading.
+function paintNewsChips(g){
+  if(homeView!=='news') return;
+  var row=document.getElementById('catrow'); if(!row) return;
+  row.innerHTML=''; paintNewsQRow(row,g);
+}
+function toggleNewsPick(name,card){
+  if(newsPick[name]) delete newsPick[name]; else newsPick[name]=1;
+  card.classList.toggle('picked', !!newsPick[name]);
+}
+// File the picked cards. Tapping the box a card is ALREADY IN takes it back
+// out — that is the way back to the main list, and it needs no third chip and
+// no None button. Optimistic, with the rollback every write on this screen
+// has: filing is a clearing gesture, and a card that sat there for a
+// round-trip would read as a missed tap.
+function fileNews(q){
+  var names=Object.keys(newsPick);
+  if(!names.length) return;
+  var now=new Date().toISOString(), prev={}, to={};
+  names.forEach(function(n){
+    prev[n]={q:newsQueueOf(n), at:newsQueuedAt(n)};
+    var t=(prev[n].q===q && newsQueuedAt(n)) ? '' : q;   // in it already → out
+    (to[t]=to[t]||[]).push(n);
+    chats[n]=chats[n]||{};
+    if(t){ chats[n].newsQueue=t; chats[n].newsQueuedAt=now; }
+    else { delete chats[n].newsQueue; delete chats[n].newsQueuedAt; }
+  });
+  newsPick={};
+  renderHome();
+  var out=(to['']||[]).length, into=(to[q]||[]).length;
+  toast(into && out ? (names.length+' moved')
+    : into ? (into+' → '+newsQLabel(q))
+    : (out===1 ? 'Back on the list' : out+' back on the list'));
+  function undo(){
+    names.forEach(function(n){
+      if(prev[n].q){ chats[n].newsQueue=prev[n].q; chats[n].newsQueuedAt=prev[n].at; }
+      else { delete chats[n].newsQueue; delete chats[n].newsQueuedAt; }
+    });
+    renderHome(); toast('Couldn’t save that');
+  }
+  Object.keys(to).forEach(function(t){
+    api('/api/chatfeed/news-queue',{method:'POST',
+      body:JSON.stringify({chats:to[t], queue:t})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(undo);
+  });
+}
 var NWCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 var NWDN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
 // THE UPDATE BEHIND A TAP (Aug 2026, Sophie: "I wonder if it would be a good
@@ -2459,10 +2615,32 @@ function newsCard(it){
   // maybe just move it on the other side of the clock time"). So the card's
   // top row reads: name/line · ⌄ · TIME · ✓ — the harmless tap on one side,
   // and the one that clears the card alone behind the timestamp.
-  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic')
+  // The icon is drawn with its BLANK fallback here and nowhere else on this
+  // screen: it is the way into the chat now (below), so every card needs one,
+  // including the chats that have never been given a picture.
+  row.innerHTML=acctHtml(it.chat)+starHtml(it.chat)+iconHtml(it.chat,'cr-ic',true)
     +'<span class="cr-body"><span class="cr-name">'+esc(dispName(it.chat))+'</span>'
     +statusLinesHtml(it.chat, statusFor(it.list))+'</span>';
-  row.onclick=function(){ openChat(it.chat); };
+  // A TAP ON THE CARD PICKS IT (Sophie, Aug 2026 — see NEWS_QS above). That
+  // takes the row's old job, so opening the chat moves onto its ICON.
+  // The NAME was tried first and it is wrong: the name sits in the middle of
+  // the row, so the natural tap — at the card's centre — landed on it and
+  // opened the chat instead of picking, which is the gesture she asked for.
+  // The icon is a 40px square at the edge, it is the chat's own face, and it
+  // is on every card. Everything else that already did something — the ⌄, the
+  // ✓, a page title, a thumbnail — stops the click, so nothing on this card
+  // gained a second meaning.
+  function pickTap(e){ e.stopPropagation(); toggleNewsPick(it.chat, card); }
+  card.onclick=pickTap;
+  row.onclick=pickTap;
+  row.setAttribute('aria-label','Pick this update');
+  var ic=row.querySelector('.cr-ic');
+  if(ic){
+    ic.onclick=function(e){ e.stopPropagation(); openChat(it.chat); };
+    ic.setAttribute('role','button');
+    ic.setAttribute('aria-label','Open '+dispName(it.chat));
+  }
+  if(newsPick[it.chat]) card.classList.add('picked');
   top.appendChild(row);
   var upd=newsUpdate(it);
   if(upd) top.appendChild(newsMore(card));
@@ -2479,7 +2657,7 @@ function newsCard(it){
     var pr=document.createElement('button'); pr.className='pagerow';
     pr.innerHTML='<span class="pr-title">'+esc(p.title||'Untitled page')+'</span>'
       +'<span class="pr-time">'+ago(p.created)+'</span>';
-    pr.onclick=function(){ openPage(p); };
+    pr.onclick=function(e){ e.stopPropagation(); openPage(p); };
     card.appendChild(pr);
   });
   if(it.pics.length){
@@ -2496,7 +2674,7 @@ function newsCard(it){
         c.style.display='none';
       };
       c.appendChild(img);
-      c.onclick=function(){ curTab='assets'; openChat(it.chat); };
+      c.onclick=function(e){ e.stopPropagation(); curTab='assets'; openChat(it.chat); };
       grid.appendChild(c);
     });
     card.appendChild(grid);
@@ -2520,7 +2698,8 @@ function newsCheck(it, card){
     chats[it.chat]=chats[it.chat]||{};
     chats[it.chat].notifSeenAt=new Date().toISOString();
     card.remove();
-    paintAcctTabs(groups());
+    delete newsPick[it.chat];
+    var g=groups(); paintAcctTabs(g); paintNewsChips(g);
     newsEmptyCheck();
     api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:it.chat,seen:true})})
       .then(function(r){return r.json()})
@@ -2535,17 +2714,22 @@ function newsCheck(it, card){
 function newsEmptyCheck(){
   var el=document.getElementById('grid');
   if(homeView!=='news' || el.querySelector('.nwcard')) return;
-  el.innerHTML='<div class="state">Nothing new — you’re all caught up.</div>';
+  // An empty screen must say WHICH of the two it is, or an open box reads as
+  // the updates having vanished.
+  el.innerHTML='<div class="state">'+(newsQ
+    ? 'Nothing in '+esc(newsQLabel(newsQ))+' — tap an update, then tap '+esc(newsQLabel(newsQ))+'.'
+    : 'Nothing new — you’re all caught up.')+'</div>';
 }
 function renderNews(el){
   var g=groups();
   function paint(){
     if(homeView!=='news') return;            // she left while it loaded
     el.innerHTML='';
-    var items=newsItems(g);
+    var items=newsList(g);
     if(!items.length){ newsEmptyCheck(); return; }
     items.forEach(function(it){ el.appendChild(newsCard(it)); });
     paintAcctTabs(g);                        // the badge, once the pictures land
+    paintNewsChips(g);                       // …and the boxes' counts with it
     if(window.__jumpsRecheck) window.__jumpsRecheck();
   }
   // Paint immediately from what we already hold (the chats' own replies), then
@@ -2679,7 +2863,10 @@ function paintAcctTabs(g){
       // UPDATE is her word for it (Aug 2026, after using it for an evening).
       // The view key stays `news` — renaming it would re-key nothing and
       // touch every function in this block for no gain.
-      fresh=newsItems(g).length; label='Update';
+      // …the MAIN list only: a card she has put in Later or In a minute is
+      // one she has dealt with for now, and the boxes carry their own counts.
+      fresh=newsItems(g).filter(function(it){ return !newsBoxed(it); }).length;
+      label='Update';
       hint = fresh ? fresh+' new' : 'nothing new';
     } else {
       // How many chats in THAT account have answered her and are unopened —
@@ -2772,6 +2959,9 @@ function chatBack(name,last){
 // same reason the hidden bar names what is behind it.
 function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
+  // The UPDATE screen borrows this row for its two boxes — same chips, same
+  // place, a different thing being filed (see NEWS_QS).
+  if(homeView==='news'){ paintNewsQRow(row,g); return; }
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
@@ -3642,6 +3832,23 @@ window.__openThread=function(name){
   return true;
 };
 
+// Is the pinned link CURRENT — i.e. did this chat update it in the last turn it
+// finished? (Aug 2026, Sophie: "a tag on it that says like current or recent,
+// and it only says that if the chat updated the last turn that they finished".)
+//
+// `turns` is the count the server keeps of finished replies posted SINCE the
+// pin was written: 0 = the turn that pinned it is still running, 1 = that turn
+// has ended and is the chat's most recent one. Both mean the last finished turn
+// updated the pin. 2 or more means it has finished a turn since that left the
+// pin alone, so the tag goes out.
+//
+// A pin with NO count was written before this shipped and cannot be judged —
+// no tag rather than a guessed one, exactly the rule the MODEL · QUALITY
+// captions follow. It earns its count on the chat's next pin.
+function pinCurrent(pin){
+  return !!pin && typeof pin.turns==='number' && pin.turns<=1;
+}
+window.__pinCurrent=pinCurrent;
 // Full-screen player for the pinned deliverable. Follows the house overlay
 // rule: stop the autoscroll, lock the background, and restore the EXACT scroll
 // position on close (overflow:hidden alone does not stop window.scrollBy).
@@ -3739,8 +3946,13 @@ function openChat(name, keepScroll, focusId, noFetch){
       ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>'
       : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6l11-6.8z"/></svg>';
     var label=pin.title||(isLink?'Open the page':'The latest cut');
-    b.innerHTML='<span class="pl">'+glyph+'</span><span class="ti">'+esc(label)+'</span>';
-    b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label);
+    // "current" = the chat updated this in its last FINISHED turn (Aug 2026,
+    // Sophie). The server counts the turns since the pin was written; see
+    // pinCurrent below for why 1 still counts.
+    var cur=pinCurrent(pin);
+    b.innerHTML='<span class="pl">'+glyph+'</span><span class="ti">'+esc(label)+'</span>'
+      +(cur?'<span class="cur">current</span>':'');
+    b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label+(cur?' — current':''));
     b.onclick=function(){
       if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
       openPinned(pin);
@@ -3791,7 +4003,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           toast(!isArch? 'Archived' : 'Restored');
           // ARCHIVING is "away for good", so it ends with leaving \u2014 back to
           // the list, chat gone.
-          if(!isArch) return goHome();
+          if(!isArch) return goHome(true);   // archived — drop the stale result row
           // TAKING ONE OUT is the opposite gesture and used to behave the
           // same way, which was wrong twice over (Sophie, Aug 2026: "when I
           // take something out of the archive it should go straight to that
@@ -3823,7 +4035,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
     hb.onclick=function(){
       toggleHide(name,last0);          // optimistic + POSTs + repaints the home
-      goHome();
+      goHome(true);
     };
     head.querySelector('.no').appendChild(hb);
   })();
@@ -3849,8 +4061,9 @@ function openChat(name, keepScroll, focusId, noFetch){
             chats[name]=chats[name]||{}; chats[name].deletedAt=new Date().toISOString();
             toast('Moved to the trash');
             // Deleting ends with leaving, the way archiving does — the chat is
-            // no longer on the list she lands on.
-            goHome();
+            // no longer on the list she lands on, so any result row for it goes
+            // too.
+            goHome(true);
           })
           .catch(function(){ toast('Couldn’t delete that'); });
       });
@@ -4912,19 +5125,32 @@ function lightbox(url, asset){
     // …and again next frame, for the keyboard-dismissal scroll that lands late.
     requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
 }
-function goHome(){
-  // Leaving a chat lands on a clean list — including the search bar folded
-  // back to its glass, whether she got here from a result or not.
-  searchOpen=false;
+// THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
+// and then I click on one of the options if it's not the one I want when I go
+// back I want that to still be active"). A search is a LIST SHE IS WORKING
+// THROUGH — opening a hit is trying one of them, not finishing — so backing out
+// lands her on the same results with the same words in the bar, ready for the
+// next one. Retyping a dictated query to get back to result #3 was the cost.
+// `dropSearch` is for the ways out that END with that chat (archive, delete,
+// hide): those change the list underneath the results, so a stale row pointing
+// at a chat she just put away would be worse than a cleared box.
+function goHome(dropSearch){
+  var keep = !dropSearch && window._searchLive && window._searchLive();
+  if(!keep) searchOpen=false;
   scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
   renderHome();
-  if(window._resetSearch) window._resetSearch();
+  // renderHome repaints the chrome the results had folded away (the account
+  // tabs), so the restore has to land AFTER it.
+  if(keep){ if(window._searchRepaint) window._searchRepaint(); }
+  else if(window._resetSearch) window._resetSearch();
   window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
-document.getElementById('back').onclick=goHome;
+// Wrapped, never passed straight to onclick — the click Event would arrive as
+// `dropSearch` and every back-out would throw the search away.
+document.getElementById('back').onclick=function(){ goHome(); };
 
 // Search across every chat. Debounced; hits the server's in-memory index and
 // shows matching messages (chat + snippet, match highlighted); tap opens the
@@ -4941,6 +5167,17 @@ document.getElementById('back').onclick=goHome;
   // bar is open, because it doubles as the way to fold the bar away), so
   // nothing here touches its display.
   window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
+  // Is there a search on screen right now? Words in the box AND a results list
+  // standing in the grid's place — a query she typed but that matched nothing
+  // still counts, since the answer "no matches" is one she is reading.
+  window._searchLive=function(){
+    return !!(qi && qi.value.trim().length>=2 && sr && sr.style.display!=='none' && sr.innerHTML);
+  };
+  // Put the results back over the grid after a repaint (see goHome).
+  window._searchRepaint=function(){
+    if(!window._searchLive()) return;
+    grid.style.display='none'; showAcc(false); sr.style.display='';
+  };
   // ONE pass over the snippet with every term alternated — bolding term by
   // term would let a later term match inside the <b> a previous one wrote.
   function hl(snip,q){
@@ -4970,14 +5207,16 @@ document.getElementById('back').onclick=goHome;
         cm.forEach(function(c){
           var b=document.createElement('button'); b.className='sres schat';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+hl(c.name,q)+'</span><span class="sr-time">chat</span></div>';
-          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(c.chat); };
+          // The results are LEFT STANDING — see goHome. Opening a hit is
+          // trying one of them, so the list has to be there on the way back.
+          b.onclick=function(){ openChat(c.chat); };
           sr.appendChild(b);
         });
         rs.forEach(function(m){
           var b=document.createElement('button'); b.className='sres';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
-          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
+          b.onclick=function(){ openChat(m.chat, false, m.id); };
           sr.appendChild(b);
         });
       })
@@ -4986,13 +5225,10 @@ document.getElementById('back').onclick=goHome;
   var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
   var _reset=window._resetSearch;
   window._resetSearch=function(){ _reset(); live.sync(); };
-  // One control, two jobs: with words in the field it clears them; on an
-  // empty field there is nothing left to clear, so it folds the bar back to
-  // its glass. That is the way out of a search without a second button.
-  qc.onclick=function(){
-    if(qi.value){ window._resetSearch(); qi.focus(); return; }
-    setSearchOpen(false);
-  };
+  // THE ✕ IS THE WAY OUT, and only that (see paintSearch for her ask). It used
+  // to clear first and close on the second tap; leaving a search she could
+  // still see therefore cost two taps and the first read as "it ate my words".
+  qc.onclick=function(){ setSearchOpen(false); };
 })();
 
 // Floating audio bar: while a message's audio is in play, a tappable bar pins
@@ -5089,7 +5325,18 @@ document.getElementById('back').onclick=goHome;
   window.__jumpsRecheck=function(){ requestAnimationFrame(upd); };
   upd();
 })();
-document.getElementById('searchbtn').onclick=function(){ setSearchOpen(true); };
+// The glass opens a search — and while one is open it starts the NEXT one:
+// the words go, the bar and the keyboard stay, so a second search is one tap
+// from the first. (Closing still throws the query away, so either route ends
+// at an empty box; this is the route that doesn't cost the keyboard.)
+document.getElementById('searchbtn').onclick=function(){
+  if(searchOpen){
+    if(window._resetSearch) window._resetSearch();
+    var i=document.getElementById('qsearch'); if(i) i.focus();
+    return;
+  }
+  setSearchOpen(true);
+};
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
 // Refresh drops the delivered cache too (Aug 2026) \u2014 with the UPDATE tab reading

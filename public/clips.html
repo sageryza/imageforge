@@ -96,18 +96,21 @@
   </div>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Every small clip the studio has made, on one shelf.</b> Tap one to play
-  it, rename it, tag it, or leave a note — what you type is yours and a
-  re-harvest never overwrites it. HIDE takes a clip off the shelf; the
+  <b>Every reusable piece, on one shelf.</b> A <b>chunk</b> is a named
+  section of a finished video — footage and voiceover together — that you'd
+  reuse whole somewhere else (the telepathy bridge, the manifestation trio).
+  The smaller tiles are the atomic clips the films were cut from. Tap
+  anything to play it, rename it, tag it, or leave a note — what you type is
+  yours and never gets overwritten. HIDE takes one off the shelf; the
   <b>hidden</b> chip shows them again.<br><br>
   The search speaks the house grammar: bare words need <b>all</b> of them in
   one clip, <b>OR</b> takes either, <b>-word</b> excludes,
   <b>"quoted words"</b> stay together. Narrow a word to one field with
-  <b>tag:</b> <b>title:</b> <b>from:</b> (the film it came out of)
-  <b>prompt:</b> <b>note:</b> or <b>kind:</b> — e.g.
-  <b>kind:bridge waiting</b>.<br><br>
-  New clips arrive by harvest (free — it reads what the other tools already
-  made); a chat runs it after making anything new.
+  <b>tag:</b> <b>title:</b> <b>from:</b> (the video it came out of)
+  <b>vo:</b> (words in a chunk's voiceover) <b>prompt:</b> <b>note:</b> or
+  <b>kind:</b> — e.g. <b>kind:chunk telepathy</b>.<br><br>
+  New clips arrive by harvest, and chunks are filed by a chat naming a span
+  of a finished video — both free. Ask any chat to chunk a section for you.
 </div>
 
 <div class="kindrow">
@@ -166,7 +169,8 @@ function api(path, opts) {
    Same parse as search-grammar.js; matching normalises to lowercase
    alphanumerics and takes substrings — punctuation never decides a hit. */
 var FIELDS = { tag: 'tag', tags: 'tag', title: 'title', name: 'title',
-  from: 'from', source: 'from', movie: 'from', prompt: 'prompt', note: 'note', kind: 'kind' };
+  from: 'from', source: 'from', movie: 'from', prompt: 'prompt', note: 'note', kind: 'kind',
+  vo: 'vo', script: 'vo', says: 'vo' };
 function norm(s) {
   return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ').replace(/^ | $/g, '');
@@ -195,9 +199,9 @@ function hayOf(c) {
   if (!c._hay) {
     var tags = (c.tags || []).map(norm);
     c._hay = { title: norm(c.title), from: norm(c.from), prompt: norm(c.prompt),
-      note: norm(c.note), kind: norm(c.kind), tag: tags };
+      note: norm(c.note), kind: norm(c.kind), vo: norm(c.vo), tag: tags };
     c._hay.all = [c._hay.title, c._hay.from, c._hay.prompt, c._hay.note, c._hay.kind,
-      tags.join(' ')].join('  ');
+      c._hay.vo, tags.join(' ')].join('  ');
   }
   return c._hay;
 }
@@ -245,8 +249,8 @@ function esc(s) {
   });
 }
 
-var KIND_LABEL = { scene: 'scenes', bridge: 'bridges', reroll: 'earlier takes',
-  quick: 'quick', short: 'shorts' };
+var KIND_LABEL = { chunk: 'chunks', scene: 'scenes', bridge: 'bridges',
+  reroll: 'earlier takes', quick: 'quick', short: 'shorts' };
 
 function buildKinds() {
   var row = $('kinds'); row.innerHTML = '';
@@ -290,7 +294,8 @@ function render() {
     b.innerHTML = '<span class="ph">'
       + (c.poster ? '<img loading="lazy" src="' + esc(c.poster) + '" alt="">'
                   : '<span class="noart">' + FILM_ICON + '</span>')
-      + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
+      + (c.status === 'baking' ? '<span class="dur">baking…</span>'
+         : c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
       + '</span><span class="nm">' + esc(c.title) + '</span>';
     b.onclick = function () { openLb(c); };
     shelf.appendChild(b);
@@ -310,9 +315,13 @@ function openLb(c) {
   savedY = window.scrollY;
   $('lbVideo').src = c.url;
   $('lbTitle').value = c.title || '';
-  $('lbMeta').textContent = [fmtDur(c.seconds), c.kind, c.from].filter(Boolean).join(' · ');
+  var span = c.span ? fmtDur(c.span.start) + '–' + fmtDur(c.span.end) : '';
+  $('lbMeta').textContent = [fmtDur(c.seconds), c.kind, c.from, span,
+    c.status === 'baking' ? 'baking…' : '', c.status === 'error' ? 'bake failed' : '']
+    .filter(Boolean).join(' · ');
   var p = $('lbPrompt');
-  if (c.prompt) { p.textContent = c.prompt; p.hidden = false; } else p.hidden = true;
+  var ptext = [c.vo, c.prompt].filter(Boolean).join('\n\n');
+  if (ptext) { p.textContent = ptext; p.hidden = false; } else p.hidden = true;
   $('lbTags').value = (c.tags || []).join(', ');
   $('lbNote').value = c.note || '';
   $('lbHide').textContent = c.hidden ? 'Unhide' : 'Hide';

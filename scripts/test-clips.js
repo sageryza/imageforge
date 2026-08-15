@@ -7,6 +7,7 @@ const assert = require('assert');
 const {
   parseClipQuery, matchClip, sweepVerdict, titleFromPath, mergeClip, clean,
   gatherFromMovies, gatherFromQuick, MAX_SWEEP_BYTES,
+  chunkId, buildChunkDoc, chunkGraph, MAX_CHUNK_SECONDS,
 } = require('../clips');
 
 let n = 0;
@@ -167,6 +168,60 @@ t('quick-animates title themselves from their prompt', () => {
   assert.strictEqual(recs.length, 2);
   assert.strictEqual(recs[0].title, 'the cat slowly opens one eye and stares');
   assert.strictEqual(recs[1].title, 'quick animate');
+});
+
+console.log('\nchunks — a named section of a finished video:');
+
+const SRC = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/witch-shorts/combined/full-v7.mp4';
+
+t('a chunk request builds the doc: kind, span, vo, tags', () => {
+  const d = buildChunkDoc({ url: SRC, start: 102, end: 151.5,
+    title: 'Sheldrake telepathy bridge', tags: 'telepathy, bridge',
+    from: 'the Evan video', vo: 'Rupert Sheldrake ran an experiment' });
+  assert.strictEqual(d.kind, 'chunk');
+  assert.deepStrictEqual(d.span, { start: 102, end: 151.5 });
+  assert.deepStrictEqual(d.tags, ['telepathy', 'bridge']);
+  assert.strictEqual(d.status, 'baking');
+  assert.deepStrictEqual(d.editedFields, []);
+});
+
+t('a chunk is refused without a title, a storage url, or a sane span', () => {
+  assert.throws(() => buildChunkDoc({ url: SRC, start: 10, end: 20 }), /title/);
+  assert.throws(() => buildChunkDoc({ url: 'https://youtube.com/watch?v=x', start: 0, end: 9, title: 't' }), /Storage/);
+  assert.throws(() => buildChunkDoc({ url: SRC, start: 20, end: 10, title: 't' }), /start/);
+  assert.throws(() => buildChunkDoc({ url: SRC, start: 0, end: MAX_CHUNK_SECONDS + 10, title: 't' }), /section/);
+});
+
+t('the id is the url + span — re-filing the same section converges', () => {
+  assert.strictEqual(chunkId(SRC, 102, 151.5), chunkId(SRC, 102.0, 151.5));
+  assert.notStrictEqual(chunkId(SRC, 102, 151.5), chunkId(SRC, 102, 152));
+});
+
+t('the bake graph trims accurately and fades the audio edges (12ms)', () => {
+  const g = chunkGraph(102, 151.5, true);
+  assert.ok(g.includes('trim=start=102.000:end=151.500'));
+  assert.ok(g.includes('atrim=start=102.000:end=151.500'));
+  assert.ok(g.includes('afade=t=in:st=0:d=0.012'));
+  assert.ok(g.includes('afade=t=out:st=49.488:d=0.012'));
+  assert.ok(!chunkGraph(0, 5, false).includes('atrim'), 'a silent source gets no audio chain');
+});
+
+t('a chunk is searchable by its voiceover — vo: / script:', () => {
+  const c = clip({ kind: 'chunk', title: 'Sheldrake telepathy bridge',
+    from: 'the Evan video', prompt: null,
+    vo: 'Rupert Sheldrake ran an experiment about telepathy in dogs' });
+  assert.ok(match('vo:sheldrake', c));
+  assert.ok(match('script:telepathy', c));
+  assert.ok(match('telepathy dogs', c));
+  assert.ok(!match('vo:manifestation', c));
+  assert.ok(!match('vo:bridge', c), 'vo: looks only at the voiceover, not the title');
+});
+
+t('PATCH may fix the vo text; it is hers after that', () => {
+  assert.deepStrictEqual(clean({ vo: 'corrected words' }), { vo: 'corrected words' });
+  const fresh = { title: 't', tags: [], from: 'F', kind: 'chunk', prompt: null };
+  const hers = { vo: 'her fixed vo', editedFields: ['vo'] };
+  assert.ok(!('vo' in mergeClip(hers, { ...fresh, vo: 'machine vo' })));
 });
 
 console.log(`\nall ${n} passing`);

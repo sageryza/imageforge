@@ -14,6 +14,13 @@ The numbers are measured, not guessed.
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Say what you spent and what it cost**, in words, in the reply.
+3a. **PIN THE LINK, and re-pin it every time you update what's behind it** —
+   `POST /api/chatfeed/pin {chat, session, url, title}`. If your work lives at
+   a URL she goes back to — a page you are building (`/science`, `/chunking`),
+   a film you keep re-cutting — it belongs at the TOP of your thread, not
+   somewhere in the scrollback. **This is the default, not an option**, and
+   re-posting it is what lights the *current* tag. (Full rules: *THE PINNED
+   LINK* in the Chats app section.)
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
@@ -659,6 +666,41 @@ them off the reference sheet, not off the old filenames.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
     the open half) and `node scripts/test-chats-archive-summary.js` (the button,
     headless against the real page).
+- **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
+  "I'm constantly referring to a link to a page… I just wanna make that
+  pattern more clear that chats have that option and make it the expected and
+  common behavior for chats if a link is involved").** A pinned link sits
+  directly under the chat's name, above the messages: one row, the title she
+  gave it, one tap. Everything else about a link — where it was mentioned,
+  which turn it was in — makes her hunt for it in the scrollback.
+  `POST /api/chatfeed/pin { chat, session, url, title, kind? }`.
+  - **It is the DEFAULT for two shapes of work, not a flourish:**
+    - **a page this chat is building** — `/science`, `/chunking`, a tool page,
+      a Compare page's URL. Pin it the first turn it exists.
+    - **a deliverable that keeps getting a new version** — a film, an episode,
+      an audio cut. Pin the NEWEST render; the title carries the version
+      ("Evan — the long cut v6 (4:54)").
+  - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
+    the re-post is the update, and it is what lights the **current** tag on
+    the row (Sophie: "a tag on it that says like current or recent, and it
+    only says that if the chat updated the last turn that they finished"). The
+    server counts the finished replies since the pin; *current* shows while
+    that count is 0 or 1 — the turn that pinned it, and that turn once it has
+    ended — and goes out the moment the chat finishes a turn that left the
+    link alone. So a lit tag means *what's behind this moved in the last thing
+    this chat did*, and nothing else. Nothing decays it on a timer.
+  - **ONE pin per chat** — pinning again replaces it. Pin the thing she comes
+    back to; when a chat has both a page and a film, the page usually wins
+    (the film's newest cut can live on the page). Clear it with `url:""`.
+  - `kind` is optional now: a url ending in `.mp4`/`.mov`/`.webm` pins as a
+    film (tap = full-screen player), `.m4a`/`.mp3`/`.wav` as audio, anything
+    else as a **link** that opens the page. Pass `kind` explicitly when the
+    url has no extension to read (a signed media url with no filename).
+  - **Read back what you have pinned** with `GET /api/chatfeed/status?chat=&
+    session=` → `pinned:{url,title,kind,at,turns}`. `turns` ≤ 1 means the tag
+    is still lit.
+  - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
+    `node scripts/test-chats-pin.js` (the real page, headless).
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1366,6 +1408,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
   under the posters, so a re-cut reuses clips instead of re-paying for them.
+  **A CHUNK (Sophie's word, what the tool is named for) is a named, tagged
+  SECTION of a finished video — footage + voiceover together — that she'd
+  reuse whole in a different video** (her examples: the Sheldrake telepathy
+  bridge in the Evan video; the manifestation trio she visualized at night).
+  `POST /api/clips/chunk {url, start, end, title, vo?, tags?, from?}` files
+  and bakes one in the background (content-addressed by url+span; `vo` =
+  the span's voiceover text, searchable as `vo:`); the harvest never touches
+  chunks. Any chat that cuts a section of a finished video should file it.
   **Rebuilt from scratch 2026-08-15** (Sophie asked for a fresh take on the
   first build; the old `forge-clips` collection lies dormant — this one is
   `forge-clip-library`). **It generates and stitches nothing and costs

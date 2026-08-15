@@ -1245,6 +1245,45 @@
     `node scripts/test-chats-news-sticky.js` (hit-measures the ⌄/✓ gap, and
     drives a card through being opened to prove only the ✓ clears it). It
     replaced `test-chats-news-pin.js`, which asserted the opposite contract.
+  - **THE TWO BOXES — LATER and IN A MINUTE (Aug 2026, Sophie: "there's no
+    categories on the updates page in that same style of those little boxes.
+    I'd like to add two categories, one called IN A MINUTE for things I want
+    to look at in a minute, but not quite this second, and then next to it on
+    the left I want another category called LATER for things I want to look at
+    maybe later today or this week. How I want to work is that I tap the item,
+    it selects it with a thicker outline, and then I tap the category and
+    that's how it gets filed in").** The chips row (`#catrow`) now stays on
+    this screen and paints two boxes instead of the chat folders —
+    **LATER on the left, IN A MINUTE beside it, her order.**
+    - **A CLOSED SET OF TWO.** No New… box, no star chip: she named both, and
+      a box she could type is a folder, which is what the other row already
+      is. These file ONE UPDATE for a while; a category files a CHAT forever.
+    - **`newsQueue` + `newsQueuedAt` on the registry**, written by `POST
+      /api/chatfeed/news-queue { chats:[…], queue:'later'|'soon'|'' }` (the
+      same skip-a-missing-doc guard `/archive-kind` has, so a typo can never
+      plant a phantom chat).
+    - **A card is in EXACTLY ONE PLACE — the main list or a box, never both.**
+      That is the deliberate difference from a category chip, where a chat
+      rejoins the list and stays in its folder (`chatBack`). A card is the
+      newest thing a chat has handed her, so when something NEWER than
+      `newsQueuedAt` lands it is new news again and comes back out of the box
+      on its own. One place means the number on a box is exactly what she
+      finds inside it, and she never deals with the same card twice.
+    - **The tab badge counts the MAIN list only** — filing is triaging, and
+      the boxes carry their own counts.
+    - **TAP TO PICK, TAP A BOX TO FILE.** No select mode: on this screen the
+      card itself is the pick target (`.nwcard.picked` — the border goes 2px
+      in the filing green, with a pixel of padding given back so nothing
+      jumps). Tapping a box with nothing picked OPENS it instead (tap the lit
+      box to come back), and tapping the box a card is ALREADY in takes it
+      back out — that is the way home, and it needs no third chip.
+    - **OPENING THE CHAT MOVED ONTO THE CARD'S ICON**, drawn with its blank
+      initial fallback so every card has one. The NAME was tried first and it
+      is wrong: the name sits in the middle of the row, so the natural tap —
+      the centre of the card — opened the chat instead of picking it (caught
+      by the headless test on the first run). The ⌄, the ✓, a page title and a
+      thumbnail all stop the click, so nothing else gained a second meaning.
+    - Tests: `node scripts/test-chats-news-queue.js`.
 
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:
   "if I'm on the update tab — I guess it's when a chat finishes, but I don't
@@ -1282,9 +1321,25 @@
     `otherView()` is the one predicate for "not a list of chats"; both
     `paintHomeChrome` and `paintSearch` read it, so the chips and the glass
     can never disagree about which state they are in.
-  - **The ✕ is the only way out, and it does two jobs**: with words in the
-    field it clears them (bar stays open); on an empty field it folds the
-    bar away. One control, no second button to discover.
+  - **ONE CONTROL PER ACTION — the ✕ LEAVES, the glass starts a NEW search
+    (Aug 2026, Sophie: "once I press the X on the search I think the search
+    bar should just disappear so it's one tap to get out of search, but it
+    has to be intentional as opposed to be for where it was automatic … there
+    could be another button to clear the text and write new text").** The ✕
+    used to do both jobs in sequence — clear on the first tap, close on the
+    second — so leaving a search she could still see cost two taps and the
+    first read as "it ate my words".
+    - **✕ (right): leave.** One tap, words or no words. The query is thrown
+      away with it, so reopening is always a fresh box.
+    - **Glass (left): a new search.** It STAYS beside the open bar now (it
+      used to hide) and empties the box with the keyboard still up — the
+      same button, in the same place, that opened the search in the first
+      place, so "tap the glass to search" reads the same whether one is
+      already running. No new glyph was invented for this.
+    - It costs the box 38px of width. Measured 2026-08-15: **208px at 375,
+      221px at 390** (her iPhone 13), against ~246/259 before —
+      `test-chats-search-archive.js` A3b pins it at ≥200 so a future control
+      in that row can't quietly squeeze the field to a slot.
   - **The row reserves the pill's corner AND lays the ✕ out as a real flex
     child** rather than the absolutely-positioned overlay `.qclear` is
     elsewhere. Both halves are load-bearing: an abspos `right:5px` resolves
@@ -1292,9 +1347,30 @@
     it was — measured at 390, under the pill's own down-arrow, which ate the
     tap. (That was already true of the old always-open bar; it only became
     load-bearing when the ✕ became the way to close.)
-  - Session-only, always starting SHUT, and `goHome()` folds it — leaving a
-    chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
-    tests. Tests: `node scripts/test-chats-search-archive.js`.
+  - Session-only, always starting SHUT, and `goHome()` folds an EMPTY bar —
+    leaving a chat lands on a clean list. `window.__setSearchOpen(bool)`
+    drives it in tests. Tests: `node scripts/test-chats-search-archive.js`.
+  - **A LIVE SEARCH SURVIVES THE BACK CHEVRON (Aug 2026, Sophie: "when I
+    search something and then I click on one of the options if it's not the
+    one I want when I go back I want that to still be active so that search
+    is still on the search bar rather than clearing automatically").** A
+    search is a list she is WORKING THROUGH — opening a hit is trying one of
+    them, not finishing — so backing out lands her on the same results, same
+    words, ready for the next row. She dictates her queries, so retyping one
+    to get back to result #3 was the real cost. Result rows therefore no
+    longer call `_resetSearch()` on the way in, and `goHome()` restores the
+    results over the grid (`window._searchLive` / `_searchRepaint`, called
+    AFTER `renderHome`, which repaints the account tabs the results had
+    folded away).
+    - **The ways out that END with that chat still clear it** —
+      `goHome(true)` from archive, hide and delete, because each changes the
+      list underneath the results and a row pointing at a chat she just put
+      away is worse than an empty bar.
+    - `#back` is wired as `function(){ goHome(); }`, never `goHome` itself:
+      passed straight to `onclick` the click Event arrives as `dropSearch`
+      and every back-out throws the search away.
+    - Tests: `node scripts/test-chats-search-persist.js` (verified failing
+      against the old page — it named all five symptoms).
 
 - **TWO WORDS MEAN THE SAME MESSAGE — the boxes speak a small boolean grammar
   (Aug 2026, Sophie: "sometimes I want to narrow it down by finding two words
@@ -1463,3 +1539,55 @@
   - Tests: `node scripts/test-chats-chapters.js` (the real route against a
     stubbed Firestore + `chapterPlan` lifted out of the page and executed;
     verified failing on both halves separately).
+
+- **THE PINNED LINK — the row above the messages, and the *current* tag on it
+  (Aug 2026, Sophie: "sometimes I'm constantly referring to a link to a page…
+  I just wanna make that pattern more clear that chats have that option and
+  make it the expected and common behavior for chats if a link is involved").**
+  What every chat must DO about it lives in `CLAUDE.md` (*THE PINNED LINK*);
+  this is how it is built.
+  - **One field on the registry doc** (`pinned:{url,title,kind,at,turns}`), so
+    it rides the feed's already-cached read and costs the app no request.
+    Written by `POST /pin`, cleared with an empty url, read back on
+    `GET /status`. The row is a sibling of the thread header, drawn in
+    `openChat`.
+  - **It started as the pinned DELIVERABLE — a film with a play button** ("a
+    play button at the top, just the title, and when I press play it opens
+    full screen"), and `kind:'link'` was added when she asked for a PAGE up
+    there. The two are one pattern now: same row, same field, a link glyph and
+    `window.open` instead of the triangle and the full-screen `<video>`.
+  - **A MISSING `kind` IS READ OFF THE URL** (`pinKind`). The old fallback was
+    `video`, which was right while only films were pinned and wrong the moment
+    pages became the common case — a page dropped into a `<video>` renders a
+    black box that never loads, i.e. the failure looks like a broken pin
+    rather than a missing argument. An explicit `kind` still wins, so nothing
+    pinned the old way moved.
+  - **THE TAG COUNTS TURNS, NOT MINUTES** ("it only says that if the chat
+    updated the last turn that they finished"). `pinBump` increments
+    `pinned.turns` on every FINISHED reply — never a draft — and the tag shows
+    while the count is ≤ 1: **0** = the turn that pinned it is still running,
+    **1** = that turn has ended and is the chat's most recent one. Both mean
+    the last finished turn updated the pin. At 2 the chat has finished a turn
+    that left it alone and the tag goes out; the count then stops moving, so
+    the reply post isn't rewriting the registry doc for the rest of the chat's
+    life.
+    - **Why not compare timestamps.** A turn's `created` is the first DRAFT's
+      time in a hook-equipped session and the FINAL post's time without one,
+      so any `pin.at`-vs-message-time rule is wrong for half the chats — the
+      same population trap this file's case study is about. A counter the
+      server owns is exact for both, and needs nothing from the hook.
+    - **A pin with no `turns` at all** (written before this shipped) gets NO
+      tag rather than a guessed one. It earns its count the next time its chat
+      pins anything.
+  - **The registry read moved ABOVE the reply's own registry write** in the
+    POST handler — `regRef()` drops the cache, so reading after it would force
+    a fresh ~200-doc collection read on every reply. The push title now reuses
+    that same read instead of taking a second one.
+  - **The tag is letter-spaced sans in rose, not a chip** — a chip here would
+    be a pill, and it is a state, not a control.
+  - Tests: `node scripts/test-pin-current.js` (`pinKind` + `pinBump` lifted out
+    of `chatfeed.js`, plus `pinCurrent` lifted out of the page so the two sides
+    can't drift) and `node scripts/test-chats-pin.js` (the real page, headless:
+    the row renders, is tappable where it is drawn, a link pin opens instead of
+    embedding, the tag shows on a fresh pin and stays off a stale one and off
+    an uncounted one — verified failing without the feature).
