@@ -14,13 +14,15 @@ The numbers are measured, not guessed.
 2. **Write your UPDATE CARD** — `POST /api/chatfeed/update {chat, session,
    asked, did, next}`. *Measured: only 15 of 224 chats had ever posted one.*
 3. **Say what you spent and what it cost**, in words, in the reply.
-3a. **PIN THE LINK, and re-pin it every time you update what's behind it** —
-   `POST /api/chatfeed/pin {chat, session, url, title}`. If your work lives at
-   a URL she goes back to — a page you are building (`/science`, `/chunking`),
-   a film you keep re-cutting — it belongs at the TOP of your thread, not
-   somewhere in the scrollback. **This is the default, not an option**, and
-   re-posting it is what lights the *current* tag. (Full rules: *THE PINNED
-   LINK* in the Chats app section.)
+3a. **PIN THE LINK — but ONLY in her two cases** (`POST /api/chatfeed/pin
+   {chat, session, url, title}`): a page you are **actively working on**
+   (`/science`, `/chunking`), or a deliverable you are **actively handing her
+   new versions of** (a film, an episode). In those two, pinning is the
+   default and you re-post it every time you update what's behind it — that is
+   what lights the *current* tag. **Everything else stays out of that row**:
+   most chats should have NO pin. A third case is not yours to declare — run
+   it by Sophie first. (Full rules: *THE PINNED LINK* in the Chats app
+   section.)
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
@@ -674,12 +676,26 @@ them off the reference sheet, not off the old filenames.
   gave it, one tap. Everything else about a link — where it was mentioned,
   which turn it was in — makes her hunt for it in the scrollback.
   `POST /api/chatfeed/pin { chat, session, url, title, kind? }`.
-  - **It is the DEFAULT for two shapes of work, not a flourish:**
-    - **a page this chat is building** — `/science`, `/chunking`, a tool page,
-      a Compare page's URL. Pin it the first turn it exists.
-    - **a deliverable that keeps getting a new version** — a film, an episode,
-      an audio cut. Pin the NEWEST render; the title carries the version
-      ("Evan — the long cut v6 (4:54)").
+  - **TWO CASES EARN A PIN, AND ONLY THOSE TWO** (Sophie, same day, after the
+    first version of this rule read as "pin whenever a link is involved" and
+    chats started pinning anything with a URL: "not every chat deserves one,
+    only the two cases I mentioned"). **Most chats should have NO pin** — an
+    empty row is the correct, common state, and a pin she does not come back
+    to is clutter at the top of a thread she reads every day.
+    - **a page this chat is ACTIVELY WORKING ON** — `/science`, `/chunking`, a
+      tool page, a Compare page's URL. Pin it the first turn it exists. The
+      test is active work, not "a link exists": a page you finished and will
+      not touch again does not need the row.
+    - **a deliverable you are ACTIVELY HANDING HER NEW VERSIONS OF** — a film,
+      an episode, an audio cut. Pin the NEWEST render; the title carries the
+      version ("Evan — the long cut v6 (4:54)"). A one-off render you will
+      never re-cut is not this.
+  - **NEVER PIN, without asking:** a PR or a GitHub file/doc link, a dashboard,
+    a page you merely referenced, the Chats app itself, a page whose work is
+    done, or your own chat's admin links. **A THIRD CASE IS NOT YOURS TO
+    DECLARE** (Sophie: "there might be other cases, but I'd like them to be
+    run by me before they're made official") — describe the case in your reply
+    and let her say yes; do not pin it and see if she objects.
   - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
     the re-post is the update, and it is what lights the **current** tag on
     the row (Sophie: "a tag on it that says like current or recent, and it

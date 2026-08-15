@@ -148,13 +148,17 @@ Full findings in `docs/nde-precise-cutting.md`. In short:
 - Concatenate per-unit audio as **PCM/WAV, never AAC pieces** — AAC priming
   adds ~24ms per join and walks the sound off the pictures (measured).
 
-## Delivering a cut, a film or an episode: PIN IT
+## Handing her NEW VERSIONS of a cut, a film or an episode: PIN IT
 
-A deliverable that keeps getting a new version belongs at the TOP of your
-thread, not in whichever turn happened to render it (Aug 2026, Sophie — the
-same ask that made pages get pinned: a couple of chats already "pin videos
-we're working on and deliver the latest version there", and that is now the
-expected behaviour, not a trick two chats know).
+A deliverable you are actively re-rendering belongs at the TOP of your thread,
+not in whichever turn happened to make it (Aug 2026, Sophie — the same ask
+that made pages get pinned: a couple of chats already "pin videos we're
+working on and deliver the latest version there").
+
+**It is the re-versioning that earns the row, not the file.** A one-off render
+you will never re-cut doesn't get pinned — she pushed back the same day on
+chats pinning anything with a URL ("not every chat deserves one"). Most chats
+should have no pin at all.
 
 ```
 POST /api/chatfeed/pin { chat, session, url: "https://…/evan-v6.mp4",
