@@ -119,7 +119,12 @@ async function inkBox(cellBuf) {
   }
   const full = (await sharp(cellBuf).metadata());
   if (bx1 < 0) return { left: 0, top: 0, width: full.width, height: full.height };
-  const pad = 2;                                               // a hair back, in mask pixels
+  // ONE mask pixel, which is exactly the quantisation error and no more. The
+  // blob box is measured on a mask reduced by S, so a true edge can sit up to
+  // S full-res pixels outside it; 1 covers that. It was 2, which double-padded
+  // every card on top of the 10% frame below — Sophie asked whether that extra
+  // padding had been left in, and it had.
+  const pad = 1;                                               // mask pixels
   const left = Math.max(0, (bx0 - pad) * S);
   const top = Math.max(0, (by0 - pad) * S);
   return {
