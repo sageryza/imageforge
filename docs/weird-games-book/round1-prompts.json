@@ -1,0 +1,68 @@
+[
+ {
+  "id": "meet-in-the-middle",
+  "file": "/home/user/out/weird-games/round1/meet-in-the-middle.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: four friends meeting on the stairs of a dark house at night, out of breath, each one holding a single lit tea light, the staircase and their faces lit only by those small flames, the rest of the house dark around them. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "loud-elevator",
+  "file": "/home/user/out/weird-games/round1/loud-elevator.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: four friends being as loud as they possibly can inside a small elevator \u2014 stamping their feet, arms up, mouths open shouting \u2014 while the elevator doors are halfway open onto an empty corridor. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "full-bladder",
+  "file": "/home/user/out/weird-games/round1/full-bladder.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: one person standing perfectly still in a hallway just outside a bathroom door, arms at their sides, face tight with concentration, while a loud house party with a beer pong table carries on behind them. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "nice-to-meet-you",
+  "file": "/home/user/out/weird-games/round1/nice-to-meet-you.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: the same two people shaking hands over and over, drawn five times around in a ring, each handshake a little more strained and tired than the one before it, in a crowded meetup room. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "the-specific-item",
+  "file": "/home/user/out/weird-games/round1/the-specific-item.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a supermarket aisle seen from high above, three shop employees at three different points along it all searching the shelves for something, and one woman standing calmly in the middle of the aisle doing nothing. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "drowning",
+  "file": "/home/user/out/weird-games/round1/drowning.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: seen from underwater looking up at the surface of a swimming pool: one person at the surface thrashing and waving an arm, three sets of legs kicking toward her from three different directions, sunlight breaking through the water. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ }
+]
