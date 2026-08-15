@@ -69,7 +69,11 @@ const byTag = (uid) => crypto.createHash('sha1').update(String(uid)).digest('hex
 // dream are still counted and still read, they simply stop being separately
 // addressable, which is the whole point of the change.
 const spineOf = (dreams) => dreams[0];
-function nightKey(doc) { return `${doc.uid}|${doc.publicOn || ''}`; }
+// Which night a dream belongs to. `night` is stamped at capture; every dream
+// written before that field existed falls back to the day it was published and
+// then to the day it was written, so old entries group exactly as they did.
+const nightOf = (doc) => doc.night || doc.publicOn || String(doc.createdAt || '').slice(0, 10);
+function nightKey(doc) { return `${doc.uid}|${nightOf(doc)}`; }
 
 // Chronological — oldest first. The default cover is "the one that's
 // chronologically first", so this order IS the rule, not a display preference.
@@ -260,6 +264,13 @@ router.post('/dreams', async (req, res) => {
     const doc = {
       id: ref.id, uid: req.user.uid, name: req.user.name, text,
       title: null, createdAt: new Date().toISOString(),
+      // THE NIGHT IS STAMPED WHEN THE DREAM IS WRITTEN, not when it is shared.
+      // `publicOn` is a publication date and always was; using it to group the
+      // feed meant a night did not EXIST until it was published — so nothing
+      // could be offered "share the whole night", and two dreams from one night
+      // shared on different days landed as two separate entries. `night` is the
+      // dreamer's own calendar day in PT, the same boundary the feed uses.
+      night: feedDay(),
       publicOn: null, wordsPublic: true, panels: [], drawJob: null, drawnAt: null, feltCount: 0,
     };
     await ref.set(doc);
@@ -377,10 +388,15 @@ async function nightDreams(id) {
   if (!snap.exists) return null;
   const doc = snap.data();
   if (!doc.publicOn) return [doc];
-  const sibs = await db().collection(DREAMS)
-    .where('uid', '==', doc.uid).where('publicOn', '==', doc.publicOn).get();
-  const group = sibs.docs.map((d) => d.data());
-  return group.length ? group.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)) : [doc];
+  // Queried by UID and grouped in memory, not by a `where('night')` — dreams
+  // written before that field existed do not carry it, and a query on it would
+  // silently drop exactly those from their own night. One person's dreams are
+  // few (20/day, capped), so this costs nothing.
+  const sibs = await db().collection(DREAMS).where('uid', '==', doc.uid).get();
+  const group = sibs.docs.map((d) => d.data())
+    .filter((d) => d.publicOn && nightOf(d) === nightOf(doc))
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  return group.length ? group : [doc];
 }
 
 // The heart belongs to the NIGHT (Sophie). A mark left on any dream of the

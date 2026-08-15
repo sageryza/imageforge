@@ -98,5 +98,24 @@ check('a featured picture that is no longer shared falls back',
 const dark = [{ ...sage[0], panels: [panel(0, false)] }];
 check('a night with nothing shared has no cover', coverOf(dark, nightPanels(dark)) === null);
 
+// THE NIGHT IS WHEN IT WAS WRITTEN, not when it was published — otherwise two
+// dreams from one night shared on different days read as two separate entries,
+// and "share the whole night" has nothing to refer to before publication.
+const split = nightsFrom([
+  { id: 'x', uid: 'sage', night: '2026-08-08', publicOn: '2026-08-08', createdAt: at(1), panels: [] },
+  { id: 'y', uid: 'sage', night: '2026-08-08', publicOn: '2026-08-09', createdAt: at(3), panels: [] },
+]);
+check('two dreams from one night stay one entry even if shared on different days',
+  split.length === 1 && split[0].length === 2, `${split.length} nights`);
+
+// A dream written before the field existed carries no `night` — it must group
+// exactly as it did, off its publication day, never vanish into its own entry.
+const old = nightsFrom([
+  { id: 'o1', uid: 'sage', publicOn: '2026-08-01', createdAt: at(-2000), panels: [] },
+  { id: 'o2', uid: 'sage', publicOn: '2026-08-01', createdAt: at(-1990), panels: [] },
+]);
+check('dreams with no night field still group by the day they were shared',
+  old.length === 1 && old[0].length === 2, `${old.length} nights`);
+
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nall good');
 process.exit(fails.length ? 1 : 0);
