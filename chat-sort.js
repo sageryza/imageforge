@@ -60,6 +60,37 @@ const MIN_MESSAGES = 3;
 // again at the end of its every turn would bill her for the same no all day.
 const RETRY_MS = 24 * 60 * 60 * 1000;
 
+// ---- WHEN A FILED CHAT IS LOOKED AT AGAIN (Aug 2026, Sophie) ---------------
+// "I don't know how often a chat would need to be refiled once it's filed — if
+// anything maybe it could ask again if a new branch has started or some other
+// intermittent action."
+//
+// A NEW BRANCH IS NOT THE SIGNAL, and it is worth saying why: a chat's identity
+// here is its SESSION, not its branch (see resolveChat) — a session that owns a
+// chat posts there forever, whatever its branch says today. So "a new branch"
+// either means the same chat carrying on under a renamed branch (nothing has
+// changed) or a brand-new session, which is a brand-new unfiled chat anyway.
+//
+// What actually goes stale is a chat filed EARLY. Three messages in, a thread
+// looks like whatever it opened with; two hundred messages later it can be a
+// different project entirely — and the sorter's own first answer is the one
+// most likely to be wrong, because it was made on the least material. So the
+// signal is GROWTH: a chat is looked at again once it has roughly tripled in
+// length since it was filed, with a floor so a 3-message chat doesn't re-ask at
+// 9. That makes re-checks frequent exactly where the risk is (thin early
+// filings) and rare where it isn't (a chat filed with real material behind it).
+//
+// A WRAP-UP also reopens the question once, whenever it lands: it is the best
+// description of the chat that will ever exist, and it means the work is done.
+//
+// Only the sorter's OWN answers are ever revisited — her filing is final,
+// always. And a re-check that comes back "none" LEAVES THE EXISTING FOLDER
+// ALONE (see sortChat): unsure is a reason not to move a chat, never a reason
+// to unfile one she may have been finding there for weeks.
+const RESORT_GROWTH = 3;                          // × its length when filed
+const RESORT_MIN_NEW = 20;                        // …and at least this many more
+const RESORT_REST_MS = 7 * 24 * 60 * 60 * 1000;   // never more often than weekly
+
 // The `filedAt` a live sort writes when she has never spoken in the chat: a
 // stamp older than anything, so the chat is in its folder AND on the main list
 // (see filedStamp). Deliberately visible in the data rather than a magic empty
@@ -124,9 +155,19 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
   // it spends money on a row she is not looking at.
   if (r.archived) return { sort: false, why: 'archived' };
   if (r.category) {
-    return r.catBy === 'auto'
-      ? { sort: false, why: 'already-sorted' }
-      : { sort: false, why: 'hers' };           // rule 1 — one tap locks it
+    if (r.catBy !== 'auto') return { sort: false, why: 'hers' };  // rule 1 — one tap locks it
+    // Its own earlier answer, revisited — see the RESORT_* block above. The
+    // rest period is checked FIRST and reads only the registry, so the caller
+    // can ask this question before paying for a thread read: an auto-filed
+    // chat costs nothing at all on the six days a week it is resting.
+    const wrapped = Boolean(r.wrapUpAt && r.catSortedAt && r.wrapUpAt > r.catSortedAt);
+    const sortedAt = Date.parse(r.catSortedAt || '');
+    const rested = isNaN(sortedAt) || now - sortedAt >= RESORT_REST_MS;
+    if (!rested && !wrapped) return { sort: false, why: 'already-sorted' };
+    if (wrapped) return { sort: true, why: 'wrapped-up' };
+    const was = Number(r.catMsgs) || 0;
+    const grew = messages >= Math.max(was * RESORT_GROWTH, was + RESORT_MIN_NEW);
+    return grew ? { sort: true, why: 're-sort' } : { sort: false, why: 'not-grown' };
   }
   if (messages < MIN_MESSAGES) return { sort: false, why: 'too-thin' };
   const tried = Date.parse(r.catTriedAt || '');
@@ -222,6 +263,7 @@ function pickCategory(out, cats) {
 
 module.exports = {
   TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
+  RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp,
   digestOf, buildSortPrompt, pickCategory,
 };
