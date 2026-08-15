@@ -33,8 +33,8 @@
   },
   "2": {
     "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/chat-icons-s2/sheet.png",
-    "job": "sh-msuva1ca-6sv6u",
-    "at": "2026-08-15T21:55:28.346Z",
+    "job": "sh-msux03hf-dop53",
+    "at": "2026-08-15T21:56:46.431Z",
     "chats": [
       "trunking-module-movies",
       "compare-pages-survey",
@@ -61,8 +61,7 @@
       "chat-ddd5d6a0",
       "baby-gets-boost-story",
       "comment-scroll-position-bug"
-    ],
-    "note": "drawn, trace stalled on c21 — re-cut with a fixed ink"
+    ]
   },
   "3": {
     "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/chat-icons-s3/sheet.png",
@@ -318,6 +317,16 @@
       "image-panel-pipeline-ui",
       "test",
       "voice-creation-recordings-80d3a8"
+    ]
+  },
+  "11": {
+    "sheet": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/chat-icons-s11/sheet.png",
+    "job": "sh-msux2htn-ndmhs",
+    "at": "2026-08-15T21:58:21.870Z",
+    "chats": [
+      "deck-factory-notifications",
+      "el-salvador-bar-conversation",
+      "surgeon-tool-flatlay-image"
     ]
   }
 }

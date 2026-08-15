@@ -1,261 +1,1014 @@
 [
-  { "chat": "weird-games-book-014adq", "draw": "a striped spinning top spinning on a folded game board" },
-  { "chat": "compare-pages-survey-013hav", "draw": "a tall stack of paper sheets with one sheet pulled halfway out" },
-  { "chat": "updates-category-boxes", "draw": "a ticked checkbox sitting on top of a small stack of cards" },
-  { "chat": "archive-summary-confirmation", "draw": "a cardboard archive box with a rolled paper scroll tucked inside it" },
-  { "chat": "clips-chunking-library", "draw": "a strip of film cut into three pieces stacked on a small shelf" },
-  { "chat": "chat-pinned-links-pattern", "draw": "a push pin holding a paper tag with a chain link drawn on it" },
-  { "chat": "chat-search-bar-persistence", "draw": "a magnifying glass with a small round x button beside its handle" },
-  { "chat": "update-tab-messaging", "draw": "a speech bubble with a small bell hanging underneath it" },
-  { "chat": "image-pipeline-design-018edr", "draw": "four small empty picture frames joined by a curving line" },
-  { "chat": "image-pipeline-design", "draw": "an artist's palette with a curved arrow looping around it" },
-  { "chat": "weird-games-book-01yb8p", "draw": "a pair of tumbling dice" },
-  { "chat": "weird-games-book-01efhg", "draw": "a single wooden game pawn standing on a checkered square" },
-  { "chat": "group-dream-journal-review", "draw": "a crescent moon resting on an open journal with small stars around it" },
-  { "chat": "weird-games-book", "draw": "an open board game box with a folded board and playing pieces inside" },
-  { "chat": "metaphor-machine-pastel-images", "draw": "a whimsical little machine with cogs and a funnel on top" },
-  { "chat": "audio-trim-voice-training", "draw": "a pair of scissors cutting a ribbon shaped like a sound wave" },
-  { "chat": "episode-editor-word-repeat", "draw": "a reel-to-reel tape deck with a loose loop of tape hanging from it" },
-  { "chat": "doors-futures-game-premise", "draw": "three small doors in a row, the middle one standing open" },
-  { "chat": "ex-boyfriend-fighting-game", "draw": "two boxing gloves facing each other, one pink and one lilac" },
-  { "chat": "find-lost-chats", "draw": "a folded paper map with a dotted trail leading to a speech bubble" },
-  { "chat": "audio-trim-voice-training-wk6v6t", "draw": "a cassette tape with a paper luggage tag tied to it" },
-  { "chat": "compare-page-style-variants", "draw": "three small paint swatch cards fanned out side by side" },
-  { "chat": "favorite-fruit-chart", "draw": "a bar chart built out of stacked fruit, an apple a pear and a banana" },
-  { "chat": "marlas-eyes-fishbowl-storybook", "draw": "a round goldfish bowl with one large eye looking out through the glass" },
-  { "chat": "pattern-search-behavior", "draw": "a small microphone sitting inside a rounded search box outline" },
-
-  { "chat": "trunking-module-movies", "draw": "two film strips side by side, one much shorter than the other" },
-  { "chat": "compare-pages-survey", "draw": "a clipboard holding a ticked checklist with a pencil across it" },
-  { "chat": "witch-school-synchronicity-lesson", "draw": "a microscope with a small leaf on its slide" },
-  { "chat": "chat-app-voice-summary", "draw": "a microphone with three small speech bubbles rising from it" },
-  { "chat": "two-panel-animation-gallery", "draw": "two side by side picture panels with a small play triangle between them" },
-  { "chat": "audio-pipeline-tool", "draw": "a curving length of pipe with a sound wave running through it" },
-  { "chat": "missing-chat-turns-bug", "draw": "a chain of linked speech bubbles with one link missing from the middle" },
-  { "chat": "notification-dismiss-on-reply", "draw": "a hand bell with a single sweeping line struck through it" },
-  { "chat": "imprint-lessons-path", "draw": "a zigzag dotted path climbing past small round milestone markers" },
-  { "chat": "chat-question-formatting", "draw": "a large question mark with a short underline written beneath it" },
-  { "chat": "voice-memo-ideas", "draw": "a rising sun behind a small notepad and pencil" },
-  { "chat": "evan-charlie-voice-clone", "draw": "two identical microphones side by side, one of them faded out" },
-  { "chat": "voice-clone-recording", "draw": "a microphone with two overlapping sound waves behind it" },
-  { "chat": "new-session-672695", "draw": "a dinner table laid with plates, candles and wine glasses" },
-  { "chat": "new-session-ca5a13", "draw": "a long paper scroll of rules with scissors trimming its bottom end" },
-  { "chat": "vector-pipeline-polaroid", "draw": "a polaroid photograph with vector outline nodes over one corner" },
-  { "chat": "archived-chats-section", "draw": "a paper folder with a small downward arrow on its tab" },
-  { "chat": "chat-archive-labels-tags", "draw": "a paper luggage tag tied to the handle of a filing box" },
-  { "chat": "save-compare-pages-gifting", "draw": "a small bookshelf holding three labelled reference books" },
-  { "chat": "app-store-rejection", "draw": "a phone wearing a pointed witch hat with a stamp beside it" },
-  { "chat": "voice-memos-organization", "draw": "a shelf lined with labelled cassette tapes" },
-  { "chat": "hospital-story-images", "draw": "a hospital bed with a window of night stars behind it" },
-  { "chat": "chat-ddd5d6a0", "draw": "a plain speech bubble with a small question mark inside it" },
-  { "chat": "baby-gets-boost-story", "draw": "a small child on tiptoes reaching up towards a high shelf" },
-  { "chat": "comment-scroll-position-bug", "draw": "a picture frame with a scroll bar sliding off down one side" },
-
-  { "chat": "hairline-pattern-compare-tab", "draw": "three thin paper tabs in a row with a line underlining one of them" },
-  { "chat": "s-curve-content-pipeline", "draw": "a wide flowing S shaped curve with small dots along its length" },
-  { "chat": "instant-voice-clones", "draw": "a microphone with a lightning bolt beside it" },
-  { "chat": "darius-interview-videos", "draw": "a film camera on a tripod with three small tapes beside it" },
-  { "chat": "dagster-pipeline-tool", "draw": "connected pipes with a small round valve wheel on one joint" },
-  { "chat": "apothecary-card-sales-audit", "draw": "a corked apothecary bottle beside a small stack of cards" },
-  { "chat": "archive-hairline-chat-defaults", "draw": "an archive box with a blank paper label being written on" },
-  { "chat": "artifacts-guidelines-update", "draw": "a framed page with a small round question mark button in its corner" },
-  { "chat": "status-updaters-task-priority", "draw": "a small index card with one short handwritten line on it" },
-  { "chat": "audio-editor-waveform-marking", "draw": "scissors cutting a paper strip printed with a waveform" },
-  { "chat": "nde-illustration-montages", "draw": "a watercolour brush painting a soft oval portrait" },
-  { "chat": "deck-factory-story-room", "draw": "a wax seal stamp pressed into a blob of wax on paper" },
-  { "chat": "secretly-witch-app-improvements", "draw": "an open spellbook with a small plus sign on the page" },
-  { "chat": "netlify-site-review", "draw": "a curved bezier line with two small handle points on it" },
-  { "chat": "skills-domain-manager-examples", "draw": "two linked rings resting on a small toolbox" },
-  { "chat": "voice-memo-todo-list", "draw": "a checklist on a scroll with an arrow curving upward beside it" },
-  { "chat": "assets-auto-post-button", "draw": "a paperclip attaching a small photograph to a note" },
-  { "chat": "trim-artifact-description", "draw": "a page of writing with scissors trimming its lower half away" },
-  { "chat": "imprint-chat-assets", "draw": "a stack of portrait cards with the top one being swiped sideways" },
-  { "chat": "moon-milk-meta", "draw": "a tall glass of milk with a crescent moon floating in it" },
-  { "chat": "cutting-blocks-artifact", "draw": "a wooden cutting board with three small blocks on it" },
-  { "chat": "evan-story-visual-summary", "draw": "a boy's profile portrait inside a single film frame" },
-  { "chat": "daily-notifications-tab", "draw": "a hand bell with a small round dot on its shoulder" },
-  { "chat": "pill-placement-audit", "draw": "a small rounded button floating over the corner of a page" },
-  { "chat": "text-rendering-tools-compare", "draw": "a round play button with a small clock beside it" },
-
-  { "chat": "video-audio-extraction-pipeline", "draw": "a film strip with a sound wave being pulled out of it" },
-  { "chat": "xif-pipeline-resubmission", "draw": "a phone showing a listing page with a pencil editing its lines" },
-  { "chat": "deck-factory-movies", "draw": "a film clapperboard with a small crescent moon on it" },
-  { "chat": "professional-voice-plan-review", "draw": "a studio microphone on a boom arm with a round pop shield" },
-  { "chat": "deck-factory-homepage-buttons", "draw": "a neat grid of nine small rounded tiles" },
-  { "chat": "bookmark-artifacts-compare", "draw": "three ribbon bookmarks hanging side by side" },
-  { "chat": "nde-clips-story-connection", "draw": "a pair of headphones resting on an open storybook" },
-  { "chat": "chats-account-view-pattern", "draw": "two overlapping round profile portraits, one behind the other" },
-  { "chat": "timeline-todo-ui-designs", "draw": "a horizontal timeline line with three small marker dots on it" },
-  { "chat": "chatgpt-history-retrieval", "draw": "a filing drawer pulled open with paper tabs standing inside" },
-  { "chat": "deck-factory-home-modules", "draw": "an old envelope with a small clock beside it" },
-  { "chat": "chats-working-details-detection", "draw": "a small cog turning inside a speech bubble" },
-  { "chat": "image-pipeline-film", "draw": "a film strip curving through an empty picture frame" },
-  { "chat": "witchcraft-nav-sharing", "draw": "a wooden signpost with a crescent moon on one of its arms" },
-  { "chat": "deck-factory-image-gen", "draw": "a fanned hand of playing cards with little monsters on them" },
-  { "chat": "journal-search-caption", "draw": "an open journal with a small caption label under a drawing" },
-  { "chat": "deck-factory-hidden-chats-bar", "draw": "a speech bubble with a small wrench lying across it" },
-  { "chat": "mason-noise-art-summary", "draw": "a rolled script beside a small loudspeaker" },
-  { "chat": "chat-audit-summary-plan", "draw": "a clipboard with a bar chart made of little speech bubbles" },
-  { "chat": "video-search-jesus-rules", "draw": "a small pig standing beside a stone tablet" },
-  { "chat": "media-asset-survey-prototype", "draw": "an empty wooden shelf with one small object placed on it" },
-  { "chat": "new-session-b974aa", "draw": "a round zodiac wheel with a single star at its centre" },
-  { "chat": "google-drive-memory-import", "draw": "a cloud with a cassette tape dropping out of the bottom of it" },
-  { "chat": "revert-playground-views", "draw": "a stepped pyramid of three tiers" },
-  { "chat": "posttooluse-hook-count", "draw": "a fishing hook hanging beside a small counter dial" },
-
-  { "chat": "chat-app-recording-trim-ui", "draw": "a hand pointing at a marked span on a waveform strip" },
-  { "chat": "icon-swaps-playground", "draw": "four small square tiles with one of them lifting out" },
-  { "chat": "crystals-etsy-listings", "draw": "a cluster of three pointed crystals" },
-  { "chat": "media-asset-survey", "draw": "a wall of small thumbnail pictures with one of them circled" },
-  { "chat": "darius-wright-heart-field", "draw": "a heart with radiating field lines curving around it" },
-  { "chat": "dream-illustration-style-swap", "draw": "a paintbrush swapping colour across a sleeping face" },
-  { "chat": "writing-indicator-home-screen", "draw": "a speech bubble with three typing dots inside it" },
-  { "chat": "computer-wont-turn-on", "draw": "a desktop computer with a dark blank screen and a small spark" },
-  { "chat": "nyt-puzzle-website", "draw": "a small crossword grid with a pencil resting on it" },
-  { "chat": "new-session-b5902a", "draw": "one large die with a star on its face" },
-  { "chat": "illustrated-cannon-passage", "draw": "an open book with letters floating up off the page" },
-  { "chat": "dolores-cannon-time", "draw": "an hourglass filled with tiny stars instead of sand" },
-  { "chat": "new-session-f8a642", "draw": "a small fan of acupuncture needles" },
-  { "chat": "dolores-cannon-memo-illustrations", "draw": "a grasshopper perched on a blade of grass" },
-  { "chat": "missing-playground-images", "draw": "a photo album open with one empty slot in it" },
-  { "chat": "chats-in-progress-tint", "draw": "a speech bubble half filled with soft colour" },
-  { "chat": "deck-factory-dream-pagination", "draw": "a small barn under a crescent moon with page corners turning" },
-  { "chat": "train-new-voice-audio", "draw": "a microphone wearing a small graduation cap" },
-  { "chat": "youtube-transcript-search", "draw": "a play triangle over a page of ruled transcript lines" },
-  { "chat": "audit-generated-images-prompts", "draw": "a picture frame with a small paper prompt tag clipped to it" },
-  { "chat": "new-voice-memos", "draw": "a cassette tape with a small sticking plaster across it" },
-  { "chat": "sophie-experiment-notes", "draw": "a lab notebook open at a heart shaped diagram" },
-  { "chat": "newest-voice-memo", "draw": "a sheet of peel off stickers with one lifting at the corner" },
-  { "chat": "deck-factory-inbox-review", "draw": "a linocut carving tool beside a carved printing block" },
-  { "chat": "voice-memo-duplicates-survey", "draw": "two identical cassette tapes lying side by side" },
-
-  { "chat": "nde-precision-cutting-doc", "draw": "a horned viking helmet beside a small pair of scissors" },
-  { "chat": "character-sheet-portraits-rwaifr", "draw": "a sheet showing four small portrait heads in a row" },
-  { "chat": "oven-story-illustrations", "draw": "an old kitchen oven with its door open and warm light inside" },
-  { "chat": "anthony-chene-nde-pipeline", "draw": "an interview microphone in front of a softly glowing tunnel" },
-  { "chat": "mason-noise-art-images", "draw": "a stone chisel carving a wave shape into a block of stone" },
-  { "chat": "new-session-01wwku", "draw": "a blank page with one folded corner" },
-  { "chat": "films-pipeline-progressive-choices", "draw": "a path branching into three separate ways" },
-  { "chat": "mason-output", "draw": "a neat stack of finished stone blocks" },
-  { "chat": "references-render-plan", "draw": "a sheet of colour reference swatches pinned to a board" },
-  { "chat": "mac-nde-grabber", "draw": "a laptop with a download arrow dropping into a folder" },
-  { "chat": "manual-cut-marker-media", "draw": "a marker pen drawing a cut line across a paper strip" },
-  { "chat": "google-drawings-svg-export", "draw": "a framed drawing with an arrow leaving out of its side" },
-  { "chat": "nde-grabber-upload-chunking", "draw": "small boxes riding a conveyor belt up into a cloud" },
-  { "chat": "youtube-video-link", "draw": "a rabbit mask beside a small play button" },
-  { "chat": "tile-zindex-autoscroll-order", "draw": "three square tiles overlapping in a stack" },
-  { "chat": "playground-tile-updates", "draw": "a square tile with a small circular refresh arrow on it" },
-  { "chat": "voice-memos-playback-controls", "draw": "an envelope with a play triangle on its flap" },
-  { "chat": "story-image-lightbox-redesign", "draw": "a small card popping up in front of a page" },
-  { "chat": "voice-memos-dedup-transcribe", "draw": "a cassette tape turning into a written list" },
-  { "chat": "meteorite-story-prompts", "draw": "a meteorite streaking down with a trail of sparks" },
-  { "chat": "doc-version-history", "draw": "a stack of dated pages with a clock arrow curving back" },
-  { "chat": "blog-redirect-home", "draw": "a signpost arrow curving back towards a small house" },
-  { "chat": "draft-selftest", "draw": "a page with a small tick stamped in the middle of it" },
-  { "chat": "icon-conversion", "draw": "one small icon turning into a different one with an arrow between" },
-  { "chat": "playground-test-station-refs-01rtd5", "draw": "a laboratory flask beside a small reference photograph" },
-
-  { "chat": "last-voice-recording-inbox", "draw": "an inbox tray with a cassette tape sitting in it" },
-  { "chat": "watercolor-chatgpt-reference", "draw": "a watercolour paint palette with a wet brush across it" },
-  { "chat": "contact-sheet-vs-separate-013pjj", "draw": "a sheet of small frames beside one single large frame" },
-  { "chat": "playground-test-station-refs", "draw": "a pinboard covered with small reference pictures" },
-  { "chat": "contact-sheet-vs-separate", "draw": "a grid of tiny photographs with one pulled out and enlarged" },
-  { "chat": "migrations-gallery-safe-button", "draw": "a padlock hanging on a picture frame" },
-  { "chat": "secretly-witch-blog-status", "draw": "a quill pen writing on a page under a crescent moon" },
-  { "chat": "dream-save-bookmark-ui", "draw": "a ribbon bookmark tucked into a small cloud" },
-  { "chat": "book-shadows-inline-edit", "draw": "an open spellbook with a pencil editing one of its lines" },
-  { "chat": "book-shadows-card-spacing", "draw": "three cards standing in a row with even gaps between them" },
-  { "chat": "book-shadows-image-loading", "draw": "a spellbook page with a picture only half drawn in" },
-  { "chat": "voice-creation-recordings", "draw": "a microphone with a small sprout growing up beside it" },
-  { "chat": "voice-training-video-audios", "draw": "a film strip feeding into a microphone" },
-  { "chat": "f5-clone-audio-source", "draw": "two sound waves, one tracing exactly over the other" },
-  { "chat": "chatgpt-image-style-reference", "draw": "a picture with a small style swatch clipped to its edge" },
-  { "chat": "sidequest-testflight-invite-01roqf", "draw": "a paper plane carrying a small envelope" },
-  { "chat": "playground-autoscroll-bugs", "draw": "a scrolling page with a small beetle crawling on it" },
-  { "chat": "sidequest-testflight-invite", "draw": "an envelope with a small paper plane taking off from it" },
-  { "chat": "deck-factory-skip-duplicates", "draw": "two identical cards with one being pushed aside" },
-  { "chat": "deck-factory-story-room-015rj9", "draw": "a cosy armchair beside a shelf of storybooks" },
-  { "chat": "laura-deck-factory-test", "draw": "a test tube beside a small deck of cards" },
-  { "chat": "test-station-webpage-behavior", "draw": "a browser window with a small laboratory flask on it" },
-  { "chat": "app-crash-image-download", "draw": "a phone with a cracked screen and a download arrow" },
-  { "chat": "story-room-draft-stitching", "draw": "a needle and thread stitching two pages together" },
-  { "chat": "new-session", "draw": "a door with a key turning in its lock" },
-
-  { "chat": "story-room-header-arrow", "draw": "a page header with a back pointing chevron arrow" },
-  { "chat": "chat-naming-posting", "draw": "a name tag pinned onto a speech bubble" },
-  { "chat": "meteorite-story-room", "draw": "a fallen meteorite sitting in a small crater" },
-  { "chat": "deck-factory-story-room-01trzd", "draw": "a wax seal beside a small open book" },
-  { "chat": "bath-thought-experiment", "draw": "a claw foot bathtub with thought bubbles rising from it" },
-  { "chat": "deckfactory-etsy-pipeline", "draw": "a small printing press pressing a playing card" },
-  { "chat": "bible-reincarnation-removal", "draw": "an old book with one page being carefully lifted out" },
-  { "chat": "suno-api-song-generation", "draw": "a musical note with a small spark beside it" },
-  { "chat": "blog-readalouds-shorts", "draw": "a page with a small loudspeaker and a short film strip" },
-  { "chat": "new-house-story-illustrations", "draw": "a little house with a sun over its roof" },
-  { "chat": "iphone-audio-firebase", "draw": "a phone with a sound wave rising up into a cloud" },
-  { "chat": "iphone-audio-firebase-upload", "draw": "a phone with an upload arrow going into a cloud folder" },
-  { "chat": "deck-factory-story-back-arrow", "draw": "a curved back arrow looping around itself" },
-  { "chat": "pin-as-chapter-meaning", "draw": "a push pin marking a chapter divider in a book" },
-  { "chat": "dream-collection-consolidate", "draw": "two journals lying open being matched page to page" },
-  { "chat": "chats-app-messaging", "draw": "two speech bubbles passing each other in opposite directions" },
-  { "chat": "browser-account-toggle-redirect", "draw": "a toggle switch between two small round profile portraits" },
-  { "chat": "near-death-compilations", "draw": "a softly glowing tunnel with a small figure at the far end" },
-  { "chat": "dream-app-errors", "draw": "a sleeping cloud with a small warning triangle beside it" },
-  { "chat": "something-times-i-audio", "draw": "a clock with a sound wave curling around it" },
-  { "chat": "witch-app-saved-items-page", "draw": "a pointed witch hat with a bookmark ribbon hanging from it" },
-  { "chat": "self-care-app", "draw": "a bar of soap and a folded towel with a small heart" },
-  { "chat": "seamless-wallpaper-pattern", "draw": "a small square tile of repeating floral pattern" },
-  { "chat": "chat-scroll-position-new-messages", "draw": "a list of messages with an arrow jumping to the newest one" },
-  { "chat": "image-dump-chat-continue", "draw": "a box tipping over spilling out small photographs" },
-
-  { "chat": "tarot-paid-features-redesign", "draw": "three fanned tarot cards with a coin resting on one" },
-  { "chat": "ios-feed-posts-disappearing", "draw": "a park bench with two small figures sitting watching" },
-  { "chat": "voice-memos-automation", "draw": "a cassette tape riding along a small conveyor belt" },
-  { "chat": "dream-image-multi-ref", "draw": "a cloud with three reference photographs clipped to it" },
-  { "chat": "find-image-file", "draw": "an open folder with one picture being pulled out of it" },
-  { "chat": "multi-account-chat-routing", "draw": "two speech bubbles joined by a small track switch" },
-  { "chat": "Voice Memos", "draw": "a classic cassette tape with a handwritten paper label" },
-  { "chat": "connect-chats-across-accounts", "draw": "two speech bubbles joined by a chain link" },
-  { "chat": "account-transfer-settings", "draw": "a small suitcase with a round profile portrait on its side" },
-  { "chat": "hand-drawn-illustration-style", "draw": "a hand holding a pen mid stroke on paper" },
-  { "chat": "crystal-listings-ab-testing", "draw": "two crystals sitting on a small balance scale" },
-  { "chat": "memory-library-amnesia-redesign", "draw": "a library shelf with one book fading away" },
-  { "chat": "chat-app-js-issue", "draw": "a speech bubble with a small beetle crawling on it" },
-  { "chat": "deck-factory-chat-integration", "draw": "a deck of cards with a speech bubble floating above it" },
-  { "chat": "voice-memo-ingestion", "draw": "a cassette tape dropping into a funnel" },
-  { "chat": "secretly-which-restructure", "draw": "a witch hat being built up out of small blocks" },
-  { "chat": "xi-sign-in", "draw": "a die with a small key beside it" },
-  { "chat": "secretly-witch-ios-app", "draw": "a phone showing a crescent moon on its screen" },
-  { "chat": "shopify-product-writing", "draw": "a shopping price tag with a pen writing on it" },
-  { "chat": "transfer-chats-new-account", "draw": "speech bubbles moving across from one box to another" },
-  { "chat": "secretly-witch-ui-tweaks", "draw": "a small wrench beside a crescent moon" },
-  { "chat": "times-eye-versus-invites", "draw": "an open eye with a small envelope beside it" },
-  { "chat": "dream-journal-db-choice", "draw": "a cloud floating above two small stacked database drums" },
-  { "chat": "tarot-reveal-email", "draw": "an envelope opening to reveal a tarot card inside" },
-  { "chat": "googleads", "draw": "a small roadside billboard with a coin beside it" },
-
-  { "chat": "duck-factory-stories-overview", "draw": "a duck standing beside an open storybook" },
-  { "chat": "dream-library-sharing", "draw": "a small cloud being passed between two open hands" },
-  { "chat": "scrub-ads-doc-secrets", "draw": "a document with a black redaction bar and a scrubbing brush" },
-  { "chat": "witchcraft-astrology-prompt", "draw": "a star chart with a small crystal ball resting on it" },
-  { "chat": "soul-movie-concept", "draw": "a violin with a small film clapperboard beside it" },
-  { "chat": "notion-account-connection", "draw": "two puzzle pieces joining, one with a page drawn on it" },
-  { "chat": "site-deploy-stripe", "draw": "a small rocket taking off from a card payment terminal" },
-  { "chat": "scrivener-firebase-export", "draw": "a manuscript folder with an arrow going up into a cloud" },
-  { "chat": "verify-firebase-env-var", "draw": "a small key beside a cloud with a tick on it" },
-  { "chat": "verify-firebase-service-account", "draw": "a little robot badge standing beside a cloud" },
-  { "chat": "deck-factory-audio-dreams", "draw": "headphones resting on a sleeping cloud" },
-  { "chat": "zine-pipeline", "draw": "a folded paper zine with a stapler beside it" },
-  { "chat": "recurring-error-investigation", "draw": "a warning triangle with a loop arrow circling it" },
-  { "chat": "dreams-add-character-button", "draw": "a cloud with a small face in it and a plus sign" },
-  { "chat": "personal-data-sharing-safeguards", "draw": "a shield with a small padlock and a page behind it" },
-  { "chat": "session", "draw": "a closed notebook with a bookmark ribbon hanging out" },
-  { "chat": "things-i-learned-movie", "draw": "a lightbulb inside a single film frame" },
-  { "chat": "witch-mail", "draw": "an envelope sealed with a crescent moon wax seal" },
-  { "chat": "astrology-section-redesign", "draw": "a zodiac wheel being redrawn with a ruler" },
-  { "chat": "jonas", "draw": "a small boy following a trail of breadcrumbs" },
-  { "chat": "acupuncture", "draw": "a single acupuncture needle beside a small lotus flower" },
-  { "chat": "chat-update-tab-icons", "draw": "a grid of twenty five tiny drawings on one sheet" },
-  { "chat": "image-panel-pipeline-ui", "draw": "four comic panels connected by a single line" },
-  { "chat": "test", "draw": "a small laboratory flask with a bubble rising out of it" },
-  { "chat": "voice-creation-recordings-80d3a8", "draw": "a microphone beside a small folder of takes" }
+  {
+    "chat": "weird-games-book-014adq",
+    "draw": "a striped spinning top spinning on a folded game board"
+  },
+  {
+    "chat": "compare-pages-survey-013hav",
+    "draw": "a tall stack of paper sheets with one sheet pulled halfway out"
+  },
+  {
+    "chat": "updates-category-boxes",
+    "draw": "a ticked checkbox sitting on top of a small stack of cards"
+  },
+  {
+    "chat": "archive-summary-confirmation",
+    "draw": "a cardboard archive box with a rolled paper scroll tucked inside it"
+  },
+  {
+    "chat": "clips-chunking-library",
+    "draw": "a strip of film cut into three pieces stacked on a small shelf"
+  },
+  {
+    "chat": "chat-pinned-links-pattern",
+    "draw": "a push pin holding a paper tag with a chain link drawn on it"
+  },
+  {
+    "chat": "chat-search-bar-persistence",
+    "draw": "a magnifying glass with a small round x button beside its handle"
+  },
+  {
+    "chat": "update-tab-messaging",
+    "draw": "a speech bubble with a small bell hanging underneath it"
+  },
+  {
+    "chat": "image-pipeline-design-018edr",
+    "draw": "four small empty picture frames joined by a curving line"
+  },
+  {
+    "chat": "image-pipeline-design",
+    "draw": "an artist's palette with a curved arrow looping around it"
+  },
+  {
+    "chat": "weird-games-book-01yb8p",
+    "draw": "a pair of tumbling dice"
+  },
+  {
+    "chat": "weird-games-book-01efhg",
+    "draw": "a single wooden game pawn standing on a checkered square"
+  },
+  {
+    "chat": "group-dream-journal-review",
+    "draw": "a crescent moon resting on an open journal with small stars around it"
+  },
+  {
+    "chat": "weird-games-book",
+    "draw": "an open board game box with a folded board and playing pieces inside"
+  },
+  {
+    "chat": "metaphor-machine-pastel-images",
+    "draw": "a whimsical little machine with cogs and a funnel on top"
+  },
+  {
+    "chat": "audio-trim-voice-training",
+    "draw": "a pair of scissors cutting a ribbon shaped like a sound wave"
+  },
+  {
+    "chat": "episode-editor-word-repeat",
+    "draw": "a reel-to-reel tape deck with a loose loop of tape hanging from it"
+  },
+  {
+    "chat": "doors-futures-game-premise",
+    "draw": "three small doors in a row, the middle one standing open"
+  },
+  {
+    "chat": "ex-boyfriend-fighting-game",
+    "draw": "two boxing gloves facing each other, one pink and one lilac"
+  },
+  {
+    "chat": "find-lost-chats",
+    "draw": "a folded paper map with a dotted trail leading to a speech bubble"
+  },
+  {
+    "chat": "audio-trim-voice-training-wk6v6t",
+    "draw": "a cassette tape with a paper luggage tag tied to it"
+  },
+  {
+    "chat": "compare-page-style-variants",
+    "draw": "three small paint swatch cards fanned out side by side"
+  },
+  {
+    "chat": "favorite-fruit-chart",
+    "draw": "a bar chart built out of stacked fruit, an apple a pear and a banana"
+  },
+  {
+    "chat": "marlas-eyes-fishbowl-storybook",
+    "draw": "a round goldfish bowl with one large eye looking out through the glass"
+  },
+  {
+    "chat": "pattern-search-behavior",
+    "draw": "a small microphone sitting inside a rounded search box outline"
+  },
+  {
+    "chat": "trunking-module-movies",
+    "draw": "two film strips side by side, one much shorter than the other"
+  },
+  {
+    "chat": "compare-pages-survey",
+    "draw": "a clipboard holding a ticked checklist with a pencil across it"
+  },
+  {
+    "chat": "witch-school-synchronicity-lesson",
+    "draw": "a microscope with a small leaf on its slide"
+  },
+  {
+    "chat": "chat-app-voice-summary",
+    "draw": "a microphone with three small speech bubbles rising from it"
+  },
+  {
+    "chat": "two-panel-animation-gallery",
+    "draw": "two side by side picture panels with a small play triangle between them"
+  },
+  {
+    "chat": "audio-pipeline-tool",
+    "draw": "a curving length of pipe with a sound wave running through it"
+  },
+  {
+    "chat": "missing-chat-turns-bug",
+    "draw": "a chain of linked speech bubbles with one link missing from the middle"
+  },
+  {
+    "chat": "notification-dismiss-on-reply",
+    "draw": "a hand bell with a single sweeping line struck through it"
+  },
+  {
+    "chat": "imprint-lessons-path",
+    "draw": "a zigzag dotted path climbing past small round milestone markers"
+  },
+  {
+    "chat": "chat-question-formatting",
+    "draw": "a large question mark with a short underline written beneath it"
+  },
+  {
+    "chat": "voice-memo-ideas",
+    "draw": "a rising sun behind a small notepad and pencil"
+  },
+  {
+    "chat": "evan-charlie-voice-clone",
+    "draw": "two identical microphones side by side, one of them faded out"
+  },
+  {
+    "chat": "voice-clone-recording",
+    "draw": "a microphone with two overlapping sound waves behind it"
+  },
+  {
+    "chat": "new-session-672695",
+    "draw": "a dinner table laid with plates, candles and wine glasses"
+  },
+  {
+    "chat": "new-session-ca5a13",
+    "draw": "a long paper scroll of rules with scissors trimming its bottom end"
+  },
+  {
+    "chat": "vector-pipeline-polaroid",
+    "draw": "a polaroid photograph with vector outline nodes over one corner"
+  },
+  {
+    "chat": "archived-chats-section",
+    "draw": "a paper folder with a small downward arrow on its tab"
+  },
+  {
+    "chat": "chat-archive-labels-tags",
+    "draw": "a paper luggage tag tied to the handle of a filing box"
+  },
+  {
+    "chat": "save-compare-pages-gifting",
+    "draw": "a small bookshelf holding three labelled reference books"
+  },
+  {
+    "chat": "app-store-rejection",
+    "draw": "a phone wearing a pointed witch hat with a stamp beside it"
+  },
+  {
+    "chat": "voice-memos-organization",
+    "draw": "a shelf lined with labelled cassette tapes"
+  },
+  {
+    "chat": "hospital-story-images",
+    "draw": "a hospital bed with a window of night stars behind it"
+  },
+  {
+    "chat": "chat-ddd5d6a0",
+    "draw": "a plain speech bubble with a small question mark inside it"
+  },
+  {
+    "chat": "baby-gets-boost-story",
+    "draw": "a small child on tiptoes reaching up towards a high shelf"
+  },
+  {
+    "chat": "comment-scroll-position-bug",
+    "draw": "a picture frame with a scroll bar sliding off down one side"
+  },
+  {
+    "chat": "hairline-pattern-compare-tab",
+    "draw": "three thin paper tabs in a row with a line underlining one of them"
+  },
+  {
+    "chat": "s-curve-content-pipeline",
+    "draw": "a wide flowing S shaped curve with small dots along its length"
+  },
+  {
+    "chat": "instant-voice-clones",
+    "draw": "a microphone with a lightning bolt beside it"
+  },
+  {
+    "chat": "darius-interview-videos",
+    "draw": "a film camera on a tripod with three small tapes beside it"
+  },
+  {
+    "chat": "dagster-pipeline-tool",
+    "draw": "connected pipes with a small round valve wheel on one joint"
+  },
+  {
+    "chat": "apothecary-card-sales-audit",
+    "draw": "a corked apothecary bottle beside a small stack of cards"
+  },
+  {
+    "chat": "archive-hairline-chat-defaults",
+    "draw": "an archive box with a blank paper label being written on"
+  },
+  {
+    "chat": "artifacts-guidelines-update",
+    "draw": "a framed page with a small round question mark button in its corner"
+  },
+  {
+    "chat": "status-updaters-task-priority",
+    "draw": "a small index card with one short handwritten line on it"
+  },
+  {
+    "chat": "audio-editor-waveform-marking",
+    "draw": "scissors cutting a paper strip printed with a waveform"
+  },
+  {
+    "chat": "nde-illustration-montages",
+    "draw": "a watercolour brush painting a soft oval portrait"
+  },
+  {
+    "chat": "deck-factory-story-room",
+    "draw": "a wax seal stamp pressed into a blob of wax on paper"
+  },
+  {
+    "chat": "secretly-witch-app-improvements",
+    "draw": "an open spellbook with a small plus sign on the page"
+  },
+  {
+    "chat": "netlify-site-review",
+    "draw": "a curved bezier line with two small handle points on it"
+  },
+  {
+    "chat": "skills-domain-manager-examples",
+    "draw": "two linked rings resting on a small toolbox"
+  },
+  {
+    "chat": "voice-memo-todo-list",
+    "draw": "a checklist on a scroll with an arrow curving upward beside it"
+  },
+  {
+    "chat": "assets-auto-post-button",
+    "draw": "a paperclip attaching a small photograph to a note"
+  },
+  {
+    "chat": "trim-artifact-description",
+    "draw": "a page of writing with scissors trimming its lower half away"
+  },
+  {
+    "chat": "imprint-chat-assets",
+    "draw": "a stack of portrait cards with the top one being swiped sideways"
+  },
+  {
+    "chat": "moon-milk-meta",
+    "draw": "a tall glass of milk with a crescent moon floating in it"
+  },
+  {
+    "chat": "cutting-blocks-artifact",
+    "draw": "a wooden cutting board with three small blocks on it"
+  },
+  {
+    "chat": "evan-story-visual-summary",
+    "draw": "a boy's profile portrait inside a single film frame"
+  },
+  {
+    "chat": "daily-notifications-tab",
+    "draw": "a hand bell with a small round dot on its shoulder"
+  },
+  {
+    "chat": "pill-placement-audit",
+    "draw": "a small rounded button floating over the corner of a page"
+  },
+  {
+    "chat": "text-rendering-tools-compare",
+    "draw": "a round play button with a small clock beside it"
+  },
+  {
+    "chat": "video-audio-extraction-pipeline",
+    "draw": "a film strip with a sound wave being pulled out of it"
+  },
+  {
+    "chat": "xif-pipeline-resubmission",
+    "draw": "a phone showing a listing page with a pencil editing its lines"
+  },
+  {
+    "chat": "deck-factory-movies",
+    "draw": "a film clapperboard with a small crescent moon on it"
+  },
+  {
+    "chat": "professional-voice-plan-review",
+    "draw": "a studio microphone on a boom arm with a round pop shield"
+  },
+  {
+    "chat": "deck-factory-homepage-buttons",
+    "draw": "a neat grid of nine small rounded tiles"
+  },
+  {
+    "chat": "bookmark-artifacts-compare",
+    "draw": "three ribbon bookmarks hanging side by side"
+  },
+  {
+    "chat": "nde-clips-story-connection",
+    "draw": "a pair of headphones resting on an open storybook"
+  },
+  {
+    "chat": "chats-account-view-pattern",
+    "draw": "two overlapping round profile portraits, one behind the other"
+  },
+  {
+    "chat": "timeline-todo-ui-designs",
+    "draw": "a horizontal timeline line with three small marker dots on it"
+  },
+  {
+    "chat": "chatgpt-history-retrieval",
+    "draw": "a filing drawer pulled open with paper tabs standing inside"
+  },
+  {
+    "chat": "deck-factory-home-modules",
+    "draw": "an old envelope with a small clock beside it"
+  },
+  {
+    "chat": "chats-working-details-detection",
+    "draw": "a small cog turning inside a speech bubble"
+  },
+  {
+    "chat": "image-pipeline-film",
+    "draw": "a film strip curving through an empty picture frame"
+  },
+  {
+    "chat": "witchcraft-nav-sharing",
+    "draw": "a wooden signpost with a crescent moon on one of its arms"
+  },
+  {
+    "chat": "deck-factory-image-gen",
+    "draw": "a fanned hand of playing cards with little monsters on them"
+  },
+  {
+    "chat": "journal-search-caption",
+    "draw": "an open journal with a small caption label under a drawing"
+  },
+  {
+    "chat": "deck-factory-hidden-chats-bar",
+    "draw": "a speech bubble with a small wrench lying across it"
+  },
+  {
+    "chat": "mason-noise-art-summary",
+    "draw": "a rolled script beside a small loudspeaker"
+  },
+  {
+    "chat": "chat-audit-summary-plan",
+    "draw": "a clipboard with a bar chart made of little speech bubbles"
+  },
+  {
+    "chat": "video-search-jesus-rules",
+    "draw": "a small pig standing beside a stone tablet"
+  },
+  {
+    "chat": "media-asset-survey-prototype",
+    "draw": "an empty wooden shelf with one small object placed on it"
+  },
+  {
+    "chat": "new-session-b974aa",
+    "draw": "a round zodiac wheel with a single star at its centre"
+  },
+  {
+    "chat": "google-drive-memory-import",
+    "draw": "a cloud with a cassette tape dropping out of the bottom of it"
+  },
+  {
+    "chat": "revert-playground-views",
+    "draw": "a stepped pyramid of three tiers"
+  },
+  {
+    "chat": "posttooluse-hook-count",
+    "draw": "a fishing hook hanging beside a small counter dial"
+  },
+  {
+    "chat": "chat-app-recording-trim-ui",
+    "draw": "a hand pointing at a marked span on a waveform strip"
+  },
+  {
+    "chat": "icon-swaps-playground",
+    "draw": "four small square tiles with one of them lifting out"
+  },
+  {
+    "chat": "crystals-etsy-listings",
+    "draw": "a cluster of three pointed crystals"
+  },
+  {
+    "chat": "media-asset-survey",
+    "draw": "a wall of small thumbnail pictures with one of them circled"
+  },
+  {
+    "chat": "darius-wright-heart-field",
+    "draw": "a heart with radiating field lines curving around it"
+  },
+  {
+    "chat": "dream-illustration-style-swap",
+    "draw": "a paintbrush swapping colour across a sleeping face"
+  },
+  {
+    "chat": "writing-indicator-home-screen",
+    "draw": "a speech bubble with three typing dots inside it"
+  },
+  {
+    "chat": "computer-wont-turn-on",
+    "draw": "a desktop computer with a dark blank screen and a small spark"
+  },
+  {
+    "chat": "nyt-puzzle-website",
+    "draw": "a small crossword grid with a pencil resting on it"
+  },
+  {
+    "chat": "new-session-b5902a",
+    "draw": "one large die with a star on its face"
+  },
+  {
+    "chat": "illustrated-cannon-passage",
+    "draw": "an open book with letters floating up off the page"
+  },
+  {
+    "chat": "dolores-cannon-time",
+    "draw": "an hourglass filled with tiny stars instead of sand"
+  },
+  {
+    "chat": "new-session-f8a642",
+    "draw": "a small fan of acupuncture needles"
+  },
+  {
+    "chat": "dolores-cannon-memo-illustrations",
+    "draw": "a grasshopper perched on a blade of grass"
+  },
+  {
+    "chat": "missing-playground-images",
+    "draw": "a photo album open with one empty slot in it"
+  },
+  {
+    "chat": "chats-in-progress-tint",
+    "draw": "a speech bubble half filled with soft colour"
+  },
+  {
+    "chat": "deck-factory-dream-pagination",
+    "draw": "a small barn under a crescent moon with page corners turning"
+  },
+  {
+    "chat": "train-new-voice-audio",
+    "draw": "a microphone wearing a small graduation cap"
+  },
+  {
+    "chat": "youtube-transcript-search",
+    "draw": "a play triangle over a page of ruled transcript lines"
+  },
+  {
+    "chat": "audit-generated-images-prompts",
+    "draw": "a picture frame with a small paper prompt tag clipped to it"
+  },
+  {
+    "chat": "new-voice-memos",
+    "draw": "a cassette tape with a small sticking plaster across it"
+  },
+  {
+    "chat": "sophie-experiment-notes",
+    "draw": "a lab notebook open at a heart shaped diagram"
+  },
+  {
+    "chat": "newest-voice-memo",
+    "draw": "a sheet of peel off stickers with one lifting at the corner"
+  },
+  {
+    "chat": "deck-factory-inbox-review",
+    "draw": "a linocut carving tool beside a carved printing block"
+  },
+  {
+    "chat": "voice-memo-duplicates-survey",
+    "draw": "two identical cassette tapes lying side by side"
+  },
+  {
+    "chat": "nde-precision-cutting-doc",
+    "draw": "a horned viking helmet beside a small pair of scissors"
+  },
+  {
+    "chat": "character-sheet-portraits-rwaifr",
+    "draw": "a sheet showing four small portrait heads in a row"
+  },
+  {
+    "chat": "oven-story-illustrations",
+    "draw": "an old kitchen oven with its door open and warm light inside"
+  },
+  {
+    "chat": "anthony-chene-nde-pipeline",
+    "draw": "an interview microphone in front of a softly glowing tunnel"
+  },
+  {
+    "chat": "mason-noise-art-images",
+    "draw": "a stone chisel carving a wave shape into a block of stone"
+  },
+  {
+    "chat": "new-session-01wwku",
+    "draw": "a blank page with one folded corner"
+  },
+  {
+    "chat": "films-pipeline-progressive-choices",
+    "draw": "a path branching into three separate ways"
+  },
+  {
+    "chat": "mason-output",
+    "draw": "a neat stack of finished stone blocks"
+  },
+  {
+    "chat": "references-render-plan",
+    "draw": "a sheet of colour reference swatches pinned to a board"
+  },
+  {
+    "chat": "mac-nde-grabber",
+    "draw": "a laptop with a download arrow dropping into a folder"
+  },
+  {
+    "chat": "manual-cut-marker-media",
+    "draw": "a marker pen drawing a cut line across a paper strip"
+  },
+  {
+    "chat": "google-drawings-svg-export",
+    "draw": "a framed drawing with an arrow leaving out of its side"
+  },
+  {
+    "chat": "nde-grabber-upload-chunking",
+    "draw": "small boxes riding a conveyor belt up into a cloud"
+  },
+  {
+    "chat": "youtube-video-link",
+    "draw": "a rabbit mask beside a small play button"
+  },
+  {
+    "chat": "tile-zindex-autoscroll-order",
+    "draw": "three square tiles overlapping in a stack"
+  },
+  {
+    "chat": "playground-tile-updates",
+    "draw": "a square tile with a small circular refresh arrow on it"
+  },
+  {
+    "chat": "voice-memos-playback-controls",
+    "draw": "an envelope with a play triangle on its flap"
+  },
+  {
+    "chat": "story-image-lightbox-redesign",
+    "draw": "a small card popping up in front of a page"
+  },
+  {
+    "chat": "voice-memos-dedup-transcribe",
+    "draw": "a cassette tape turning into a written list"
+  },
+  {
+    "chat": "meteorite-story-prompts",
+    "draw": "a meteorite streaking down with a trail of sparks"
+  },
+  {
+    "chat": "doc-version-history",
+    "draw": "a stack of dated pages with a clock arrow curving back"
+  },
+  {
+    "chat": "blog-redirect-home",
+    "draw": "a signpost arrow curving back towards a small house"
+  },
+  {
+    "chat": "draft-selftest",
+    "draw": "a page with a small tick stamped in the middle of it"
+  },
+  {
+    "chat": "icon-conversion",
+    "draw": "one small icon turning into a different one with an arrow between"
+  },
+  {
+    "chat": "playground-test-station-refs-01rtd5",
+    "draw": "a laboratory flask beside a small reference photograph"
+  },
+  {
+    "chat": "last-voice-recording-inbox",
+    "draw": "an inbox tray with a cassette tape sitting in it"
+  },
+  {
+    "chat": "watercolor-chatgpt-reference",
+    "draw": "a watercolour paint palette with a wet brush across it"
+  },
+  {
+    "chat": "contact-sheet-vs-separate-013pjj",
+    "draw": "a sheet of small frames beside one single large frame"
+  },
+  {
+    "chat": "playground-test-station-refs",
+    "draw": "a pinboard covered with small reference pictures"
+  },
+  {
+    "chat": "contact-sheet-vs-separate",
+    "draw": "a grid of tiny photographs with one pulled out and enlarged"
+  },
+  {
+    "chat": "migrations-gallery-safe-button",
+    "draw": "a padlock hanging on a picture frame"
+  },
+  {
+    "chat": "secretly-witch-blog-status",
+    "draw": "a quill pen writing on a page under a crescent moon"
+  },
+  {
+    "chat": "dream-save-bookmark-ui",
+    "draw": "a ribbon bookmark tucked into a small cloud"
+  },
+  {
+    "chat": "book-shadows-inline-edit",
+    "draw": "an open spellbook with a pencil editing one of its lines"
+  },
+  {
+    "chat": "book-shadows-card-spacing",
+    "draw": "three cards standing in a row with even gaps between them"
+  },
+  {
+    "chat": "book-shadows-image-loading",
+    "draw": "a spellbook page with a picture only half drawn in"
+  },
+  {
+    "chat": "voice-creation-recordings",
+    "draw": "a microphone with a small sprout growing up beside it"
+  },
+  {
+    "chat": "voice-training-video-audios",
+    "draw": "a film strip feeding into a microphone"
+  },
+  {
+    "chat": "f5-clone-audio-source",
+    "draw": "two sound waves, one tracing exactly over the other"
+  },
+  {
+    "chat": "chatgpt-image-style-reference",
+    "draw": "a picture with a small style swatch clipped to its edge"
+  },
+  {
+    "chat": "sidequest-testflight-invite-01roqf",
+    "draw": "a paper plane carrying a small envelope"
+  },
+  {
+    "chat": "playground-autoscroll-bugs",
+    "draw": "a scrolling page with a small beetle crawling on it"
+  },
+  {
+    "chat": "sidequest-testflight-invite",
+    "draw": "an envelope with a small paper plane taking off from it"
+  },
+  {
+    "chat": "deck-factory-skip-duplicates",
+    "draw": "two identical cards with one being pushed aside"
+  },
+  {
+    "chat": "deck-factory-story-room-015rj9",
+    "draw": "a cosy armchair beside a shelf of storybooks"
+  },
+  {
+    "chat": "laura-deck-factory-test",
+    "draw": "a test tube beside a small deck of cards"
+  },
+  {
+    "chat": "test-station-webpage-behavior",
+    "draw": "a browser window with a small laboratory flask on it"
+  },
+  {
+    "chat": "app-crash-image-download",
+    "draw": "a phone with a cracked screen and a download arrow"
+  },
+  {
+    "chat": "story-room-draft-stitching",
+    "draw": "a needle and thread stitching two pages together"
+  },
+  {
+    "chat": "new-session",
+    "draw": "a door with a key turning in its lock"
+  },
+  {
+    "chat": "story-room-header-arrow",
+    "draw": "a page header with a back pointing chevron arrow"
+  },
+  {
+    "chat": "chat-naming-posting",
+    "draw": "a name tag pinned onto a speech bubble"
+  },
+  {
+    "chat": "meteorite-story-room",
+    "draw": "a fallen meteorite sitting in a small crater"
+  },
+  {
+    "chat": "deck-factory-story-room-01trzd",
+    "draw": "a wax seal beside a small open book"
+  },
+  {
+    "chat": "bath-thought-experiment",
+    "draw": "a claw foot bathtub with thought bubbles rising from it"
+  },
+  {
+    "chat": "deckfactory-etsy-pipeline",
+    "draw": "a small printing press pressing a playing card"
+  },
+  {
+    "chat": "bible-reincarnation-removal",
+    "draw": "an old book with one page being carefully lifted out"
+  },
+  {
+    "chat": "suno-api-song-generation",
+    "draw": "a musical note with a small spark beside it"
+  },
+  {
+    "chat": "blog-readalouds-shorts",
+    "draw": "a page with a small loudspeaker and a short film strip"
+  },
+  {
+    "chat": "new-house-story-illustrations",
+    "draw": "a little house with a sun over its roof"
+  },
+  {
+    "chat": "iphone-audio-firebase",
+    "draw": "a phone with a sound wave rising up into a cloud"
+  },
+  {
+    "chat": "iphone-audio-firebase-upload",
+    "draw": "a phone with an upload arrow going into a cloud folder"
+  },
+  {
+    "chat": "deck-factory-story-back-arrow",
+    "draw": "a curved back arrow looping around itself"
+  },
+  {
+    "chat": "pin-as-chapter-meaning",
+    "draw": "a push pin marking a chapter divider in a book"
+  },
+  {
+    "chat": "dream-collection-consolidate",
+    "draw": "two journals lying open being matched page to page"
+  },
+  {
+    "chat": "chats-app-messaging",
+    "draw": "two speech bubbles passing each other in opposite directions"
+  },
+  {
+    "chat": "browser-account-toggle-redirect",
+    "draw": "a toggle switch between two small round profile portraits"
+  },
+  {
+    "chat": "near-death-compilations",
+    "draw": "a softly glowing tunnel with a small figure at the far end"
+  },
+  {
+    "chat": "dream-app-errors",
+    "draw": "a sleeping cloud with a small warning triangle beside it"
+  },
+  {
+    "chat": "something-times-i-audio",
+    "draw": "a clock with a sound wave curling around it"
+  },
+  {
+    "chat": "witch-app-saved-items-page",
+    "draw": "a pointed witch hat with a bookmark ribbon hanging from it"
+  },
+  {
+    "chat": "self-care-app",
+    "draw": "a bar of soap and a folded towel with a small heart"
+  },
+  {
+    "chat": "seamless-wallpaper-pattern",
+    "draw": "a small square tile of repeating floral pattern"
+  },
+  {
+    "chat": "chat-scroll-position-new-messages",
+    "draw": "a list of messages with an arrow jumping to the newest one"
+  },
+  {
+    "chat": "image-dump-chat-continue",
+    "draw": "a box tipping over spilling out small photographs"
+  },
+  {
+    "chat": "tarot-paid-features-redesign",
+    "draw": "three fanned tarot cards with a coin resting on one"
+  },
+  {
+    "chat": "ios-feed-posts-disappearing",
+    "draw": "a park bench with two small figures sitting watching"
+  },
+  {
+    "chat": "voice-memos-automation",
+    "draw": "a cassette tape riding along a small conveyor belt"
+  },
+  {
+    "chat": "dream-image-multi-ref",
+    "draw": "a cloud with three reference photographs clipped to it"
+  },
+  {
+    "chat": "find-image-file",
+    "draw": "an open folder with one picture being pulled out of it"
+  },
+  {
+    "chat": "multi-account-chat-routing",
+    "draw": "two speech bubbles joined by a small track switch"
+  },
+  {
+    "chat": "Voice Memos",
+    "draw": "a classic cassette tape with a handwritten paper label"
+  },
+  {
+    "chat": "connect-chats-across-accounts",
+    "draw": "two speech bubbles joined by a chain link"
+  },
+  {
+    "chat": "account-transfer-settings",
+    "draw": "a small suitcase with a round profile portrait on its side"
+  },
+  {
+    "chat": "hand-drawn-illustration-style",
+    "draw": "a hand holding a pen mid stroke on paper"
+  },
+  {
+    "chat": "crystal-listings-ab-testing",
+    "draw": "two crystals sitting on a small balance scale"
+  },
+  {
+    "chat": "memory-library-amnesia-redesign",
+    "draw": "a library shelf with one book fading away"
+  },
+  {
+    "chat": "chat-app-js-issue",
+    "draw": "a speech bubble with a small beetle crawling on it"
+  },
+  {
+    "chat": "deck-factory-chat-integration",
+    "draw": "a deck of cards with a speech bubble floating above it"
+  },
+  {
+    "chat": "voice-memo-ingestion",
+    "draw": "a cassette tape dropping into a funnel"
+  },
+  {
+    "chat": "secretly-which-restructure",
+    "draw": "a witch hat being built up out of small blocks"
+  },
+  {
+    "chat": "xi-sign-in",
+    "draw": "a die with a small key beside it"
+  },
+  {
+    "chat": "secretly-witch-ios-app",
+    "draw": "a phone showing a crescent moon on its screen"
+  },
+  {
+    "chat": "shopify-product-writing",
+    "draw": "a shopping price tag with a pen writing on it"
+  },
+  {
+    "chat": "transfer-chats-new-account",
+    "draw": "speech bubbles moving across from one box to another"
+  },
+  {
+    "chat": "secretly-witch-ui-tweaks",
+    "draw": "a small wrench beside a crescent moon"
+  },
+  {
+    "chat": "times-eye-versus-invites",
+    "draw": "an open eye with a small envelope beside it"
+  },
+  {
+    "chat": "dream-journal-db-choice",
+    "draw": "a cloud floating above two small stacked database drums"
+  },
+  {
+    "chat": "tarot-reveal-email",
+    "draw": "an envelope opening to reveal a tarot card inside"
+  },
+  {
+    "chat": "googleads",
+    "draw": "a small roadside billboard with a coin beside it"
+  },
+  {
+    "chat": "duck-factory-stories-overview",
+    "draw": "a duck standing beside an open storybook"
+  },
+  {
+    "chat": "dream-library-sharing",
+    "draw": "a small cloud being passed between two open hands"
+  },
+  {
+    "chat": "scrub-ads-doc-secrets",
+    "draw": "a document with a black redaction bar and a scrubbing brush"
+  },
+  {
+    "chat": "witchcraft-astrology-prompt",
+    "draw": "a star chart with a small crystal ball resting on it"
+  },
+  {
+    "chat": "soul-movie-concept",
+    "draw": "a violin with a small film clapperboard beside it"
+  },
+  {
+    "chat": "notion-account-connection",
+    "draw": "two puzzle pieces joining, one with a page drawn on it"
+  },
+  {
+    "chat": "site-deploy-stripe",
+    "draw": "a small rocket taking off from a card payment terminal"
+  },
+  {
+    "chat": "scrivener-firebase-export",
+    "draw": "a manuscript folder with an arrow going up into a cloud"
+  },
+  {
+    "chat": "verify-firebase-env-var",
+    "draw": "a small key beside a cloud with a tick on it"
+  },
+  {
+    "chat": "verify-firebase-service-account",
+    "draw": "a little robot badge standing beside a cloud"
+  },
+  {
+    "chat": "deck-factory-audio-dreams",
+    "draw": "headphones resting on a sleeping cloud"
+  },
+  {
+    "chat": "zine-pipeline",
+    "draw": "a folded paper zine with a stapler beside it"
+  },
+  {
+    "chat": "recurring-error-investigation",
+    "draw": "a warning triangle with a loop arrow circling it"
+  },
+  {
+    "chat": "dreams-add-character-button",
+    "draw": "a cloud with a small face in it and a plus sign"
+  },
+  {
+    "chat": "personal-data-sharing-safeguards",
+    "draw": "a shield with a small padlock and a page behind it"
+  },
+  {
+    "chat": "session",
+    "draw": "a closed notebook with a bookmark ribbon hanging out"
+  },
+  {
+    "chat": "things-i-learned-movie",
+    "draw": "a lightbulb inside a single film frame"
+  },
+  {
+    "chat": "witch-mail",
+    "draw": "an envelope sealed with a crescent moon wax seal"
+  },
+  {
+    "chat": "astrology-section-redesign",
+    "draw": "a zodiac wheel being redrawn with a ruler"
+  },
+  {
+    "chat": "jonas",
+    "draw": "a small boy following a trail of breadcrumbs"
+  },
+  {
+    "chat": "acupuncture",
+    "draw": "a single acupuncture needle beside a small lotus flower"
+  },
+  {
+    "chat": "chat-update-tab-icons",
+    "draw": "a grid of twenty five tiny drawings on one sheet"
+  },
+  {
+    "chat": "image-panel-pipeline-ui",
+    "draw": "four comic panels connected by a single line"
+  },
+  {
+    "chat": "test",
+    "draw": "a small laboratory flask with a bubble rising out of it"
+  },
+  {
+    "chat": "voice-creation-recordings-80d3a8",
+    "draw": "a microphone beside a small folder of takes"
+  },
+  {
+    "chat": "deck-factory-notifications",
+    "draw": "a hand bell ringing beside an incoming speech bubble"
+  },
+  {
+    "chat": "el-salvador-bar-conversation",
+    "draw": "two figures talking over drinks at a small bar counter"
+  },
+  {
+    "chat": "surgeon-tool-flatlay-image",
+    "draw": "surgical instruments laid out in a neat row on a cloth"
+  }
 ]
