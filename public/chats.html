@@ -3762,7 +3762,7 @@ function openChat(name, keepScroll, focusId, noFetch){
           toast(!isArch? 'Archived' : 'Restored');
           // ARCHIVING is "away for good", so it ends with leaving \u2014 back to
           // the list, chat gone.
-          if(!isArch) return goHome();
+          if(!isArch) return goHome(true);   // archived — drop the stale result row
           // TAKING ONE OUT is the opposite gesture and used to behave the
           // same way, which was wrong twice over (Sophie, Aug 2026: "when I
           // take something out of the archive it should go straight to that
@@ -3794,7 +3794,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     hb.textContent=chatHidden(name,last0)? 'In hidden' : 'Hide';
     hb.onclick=function(){
       toggleHide(name,last0);          // optimistic + POSTs + repaints the home
-      goHome();
+      goHome(true);
     };
     head.querySelector('.no').appendChild(hb);
   })();
@@ -3820,8 +3820,9 @@ function openChat(name, keepScroll, focusId, noFetch){
             chats[name]=chats[name]||{}; chats[name].deletedAt=new Date().toISOString();
             toast('Moved to the trash');
             // Deleting ends with leaving, the way archiving does — the chat is
-            // no longer on the list she lands on.
-            goHome();
+            // no longer on the list she lands on, so any result row for it goes
+            // too.
+            goHome(true);
           })
           .catch(function(){ toast('Couldn’t delete that'); });
       });
@@ -4831,19 +4832,32 @@ function lightbox(url, asset){
     // …and again next frame, for the keyboard-dismissal scroll that lands late.
     requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
 }
-function goHome(){
-  // Leaving a chat lands on a clean list — including the search bar folded
-  // back to its glass, whether she got here from a result or not.
-  searchOpen=false;
+// THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
+// and then I click on one of the options if it's not the one I want when I go
+// back I want that to still be active"). A search is a LIST SHE IS WORKING
+// THROUGH — opening a hit is trying one of them, not finishing — so backing out
+// lands her on the same results with the same words in the bar, ready for the
+// next one. Retyping a dictated query to get back to result #3 was the cost.
+// `dropSearch` is for the ways out that END with that chat (archive, delete,
+// hide): those change the list underneath the results, so a stale row pointing
+// at a chat she just put away would be worse than a cleared box.
+function goHome(dropSearch){
+  var keep = !dropSearch && window._searchLive && window._searchLive();
+  if(!keep) searchOpen=false;
   scrollStop(); cur=null; curTab='chat';
   document.getElementById('thread').style.display='none';
   document.getElementById('home').style.display='';
   document.body.classList.remove('reading');
   renderHome();
-  if(window._resetSearch) window._resetSearch();
+  // renderHome repaints the chrome the results had folded away (the account
+  // tabs), so the restore has to land AFTER it.
+  if(keep){ if(window._searchRepaint) window._searchRepaint(); }
+  else if(window._resetSearch) window._resetSearch();
   window.scrollTo(0,homeY||0);   // back to where you were, not the top
 }
-document.getElementById('back').onclick=goHome;
+// Wrapped, never passed straight to onclick — the click Event would arrive as
+// `dropSearch` and every back-out would throw the search away.
+document.getElementById('back').onclick=function(){ goHome(); };
 
 // Search across every chat. Debounced; hits the server's in-memory index and
 // shows matching messages (chat + snippet, match highlighted); tap opens the
@@ -4860,6 +4874,17 @@ document.getElementById('back').onclick=goHome;
   // bar is open, because it doubles as the way to fold the bar away), so
   // nothing here touches its display.
   window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
+  // Is there a search on screen right now? Words in the box AND a results list
+  // standing in the grid's place — a query she typed but that matched nothing
+  // still counts, since the answer "no matches" is one she is reading.
+  window._searchLive=function(){
+    return !!(qi && qi.value.trim().length>=2 && sr && sr.style.display!=='none' && sr.innerHTML);
+  };
+  // Put the results back over the grid after a repaint (see goHome).
+  window._searchRepaint=function(){
+    if(!window._searchLive()) return;
+    grid.style.display='none'; showAcc(false); sr.style.display='';
+  };
   // ONE pass over the snippet with every term alternated — bolding term by
   // term would let a later term match inside the <b> a previous one wrote.
   function hl(snip,q){
@@ -4889,14 +4914,16 @@ document.getElementById('back').onclick=goHome;
         cm.forEach(function(c){
           var b=document.createElement('button'); b.className='sres schat';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+hl(c.name,q)+'</span><span class="sr-time">chat</span></div>';
-          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(c.chat); };
+          // The results are LEFT STANDING — see goHome. Opening a hit is
+          // trying one of them, so the list has to be there on the way back.
+          b.onclick=function(){ openChat(c.chat); };
           sr.appendChild(b);
         });
         rs.forEach(function(m){
           var b=document.createElement('button'); b.className='sres';
           b.innerHTML='<div class="sr-top"><span class="sr-chat">'+esc(dispName(m.chat))+'</span><span class="sr-time">'+ago(m.created)+'</span></div>'
             +'<div class="sr-snip">'+hl(m.snippet,q)+'</div>';
-          b.onclick=function(){ if(window._resetSearch) window._resetSearch(); openChat(m.chat, false, m.id); };
+          b.onclick=function(){ openChat(m.chat, false, m.id); };
           sr.appendChild(b);
         });
       })

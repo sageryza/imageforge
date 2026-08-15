@@ -1292,9 +1292,30 @@
     it was — measured at 390, under the pill's own down-arrow, which ate the
     tap. (That was already true of the old always-open bar; it only became
     load-bearing when the ✕ became the way to close.)
-  - Session-only, always starting SHUT, and `goHome()` folds it — leaving a
-    chat lands on a clean list. `window.__setSearchOpen(bool)` drives it in
-    tests. Tests: `node scripts/test-chats-search-archive.js`.
+  - Session-only, always starting SHUT, and `goHome()` folds an EMPTY bar —
+    leaving a chat lands on a clean list. `window.__setSearchOpen(bool)`
+    drives it in tests. Tests: `node scripts/test-chats-search-archive.js`.
+  - **A LIVE SEARCH SURVIVES THE BACK CHEVRON (Aug 2026, Sophie: "when I
+    search something and then I click on one of the options if it's not the
+    one I want when I go back I want that to still be active so that search
+    is still on the search bar rather than clearing automatically").** A
+    search is a list she is WORKING THROUGH — opening a hit is trying one of
+    them, not finishing — so backing out lands her on the same results, same
+    words, ready for the next row. She dictates her queries, so retyping one
+    to get back to result #3 was the real cost. Result rows therefore no
+    longer call `_resetSearch()` on the way in, and `goHome()` restores the
+    results over the grid (`window._searchLive` / `_searchRepaint`, called
+    AFTER `renderHome`, which repaints the account tabs the results had
+    folded away).
+    - **The ways out that END with that chat still clear it** —
+      `goHome(true)` from archive, hide and delete, because each changes the
+      list underneath the results and a row pointing at a chat she just put
+      away is worse than an empty bar.
+    - `#back` is wired as `function(){ goHome(); }`, never `goHome` itself:
+      passed straight to `onclick` the click Event arrives as `dropSearch`
+      and every back-out throws the search away.
+    - Tests: `node scripts/test-chats-search-persist.js` (verified failing
+      against the old page — it named all five symptoms).
 
 - **TWO WORDS MEAN THE SAME MESSAGE — the boxes speak a small boolean grammar
   (Aug 2026, Sophie: "sometimes I want to narrow it down by finding two words
