@@ -1581,6 +1581,26 @@
   make it the expected and common behavior for chats if a link is involved").**
   What every chat must DO about it lives in `CLAUDE.md` (*THE PINNED LINK*);
   this is how it is built.
+  - **THE RULE OVERSHOT ON ITS FIRST DAY, and the correction is the load-
+    bearing half.** It shipped reading "the expected and common behavior for
+    chats if a link is involved", which chats took as *pin something*: within
+    minutes one had pinned a GitHub markdown file and this chat had pinned
+    `/chats` itself — neither of which she goes back to. Her correction
+    (2026-08-15): *"not every chat deserves one, only the two cases I
+    mentioned — if we're actively working on the page, or if they're actively
+    giving me new versions of a movie"*, plus *"there might be other cases,
+    but I'd like them to be run by me before they're made official."*
+    - **Measured at the moment she pushed back: 8 pins across 275 chats** —
+      so the sprawl was caught early, not after it filled her app. Of those 8,
+      the qualifying ones were `/chunking`, `/fruit`, a Compare page, and two
+      chats sharing the Evan film; the ones that read as clutter were a repo
+      doc link and `/chats` itself.
+    - **An empty pin row is the correct, common state.** Anything that makes
+      "no pin" feel like a missing step is the bug — the honest default here
+      is the same shape as an empty `need` on a status card.
+    - **A new case is HERS to approve.** A chat that thinks it has a third
+      case describes it in the reply and waits; it does not pin and see
+      whether she objects.
   - **One field on the registry doc** (`pinned:{url,title,kind,at,turns}`), so
     it rides the feed's already-cached read and costs the app no request.
     Written by `POST /pin`, cleared with an empty url, read back on
