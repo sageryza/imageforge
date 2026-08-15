@@ -4,10 +4,7 @@
 <title>Where the motion worked (v1)</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-  .idea { margin-bottom: 20px; }
-  .idea p { margin: 0 0 7px; font-size: 15px; line-height: 1.5; }
-  .idea p:last-child { margin-bottom: 0; }
-  .sect { font: 600 12.5px/1 -apple-system, sans-serif; letter-spacing: .09em;
+  .sect { margin-top: 4px; font: 600 12.5px/1 -apple-system, sans-serif; letter-spacing: .09em;
           text-transform: uppercase; color: var(--chg); margin: 26px 0 10px; }
   .trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
   .trio img { width: 100%; height: auto; border-radius: 6px; display: block; }
@@ -32,14 +29,6 @@
 </style>
 <div class="wrap">
   <h1>Where the motion worked (v1)</h1>
-
-  <div class="card idea">
-    <p><b>The idea.</b> One page, two panels, same scene and camera — panel 1 is the animation's
-    first frame, panel 2 its last. The page is sliced down the gutter and wan gets both halves, so
-    the clip has to travel between them instead of drifting.</p>
-    <p>It earns the second drawing only when panel 2 is a genuinely different picture. Everything
-    below is measured on one scale, pairs and single drawings alike.</p>
-  </div>
 
   <div class="sect">Two panels, animated between</div>
   <div class="card" data-item="caught"><h3>Caught — out of push-up position and into bed</h3><div class="chips"><span class="chip">gpt-image-2 · high</span><span class="chip">wan 720p</span><span class="chip">~25¢ + ~16¢</span><span class="chip good">picture moved 48</span></div><div class="duo"><div><div class="tag">two panels</div><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/hospital-film/pairs/pair-caught-high.png" alt=""></div><div><div class="tag">the clip</div><button type="button" class="clip" data-src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/clips/hosp-pair-caught-high.mp4" data-poster="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/posters/hosp-pair-caught-high.webp" aria-label="Play the clip"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/posters/hosp-pair-caught-high.webp" alt="" class="pf"><span class="pb"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></button></div></div><p class="mini">&quot;the thing where I get up and go into my bed, that's something that actually happened&quot;</p><div class="also"><button type="button" class="alsobtn" data-src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/clips/hosp-pair-caught-720.mp4" data-poster="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/posters/hosp-pair-caught-720.webp">▶ 720p, medium page · 43</button><button type="button" class="alsobtn" data-src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/clips/hosp-pair-caught.mp4" data-poster="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/two-panel-gallery/posters/hosp-pair-caught.webp">▶ 480p draft · 43</button></div><details><summary>the prompts, verbatim</summary><div class="pr"><p><b>The drawing — content</b><br>A comic page of exactly two rectangular panels side by side, each panel fully enclosed by a hand-drawn black ink rectangle border, with a clean white gutter between them. Both panels show the same dark hospital room at night from the same camera position: a bed on the right, moonlight through the window, a door on the left. Left panel: the girl holds a frozen push-up position in the middle of the floor, the door closed. Right panel: the same room seconds later — the girl is in the bed with the covers pulled up to her chin, eyes wide open, and the silhouette of a Black nurse in dark teal scrubs stands in the now-open doorway.</p><p><b>The drawing — style half</b><br>gpt-image-2 EDITS, 1536x1024. Attached: refs/sage-sandy-mirror.png (then still named refs/evan-film-style.png) + hospital-film/gB-med.png. Sent verbatim as:<br><br>Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference. Use the second attached image as a character reference. Whenever the prompt mentions the girl, draw her as that girl.<br><br>[content]<br><br>Do not include any text in the image.</p><p><b>The motion prompt</b><br>Not on file. The chat that made this filed the DRAWING's prompt but not the line it sent to wan, and its session is gone, so the exact text cannot be recovered. Nothing is reconstructed here on purpose — a paraphrase would read like the real thing and be wrong.</p></div></details></div>
@@ -87,10 +76,17 @@
     var open = window.__compareShell && window.__compareShell.openVideo;
     if (open) open(b.getAttribute('data-src'), b.getAttribute('data-poster'));
   });
-  window.__compareHelp({ html: '<b>Tap a drawing</b> to see it big, <b>tap a clip</b> to play it. ' +
-    '<b>"picture moved"</b> is measured, not remembered: every clip decoded the same way and scored ' +
-    'on how different its last frame is from its first. Same scale for all four projects, so the ' +
-    'numbers compare. <b>The + under each row</b> is a note.' });
+  window.__compareHelp({ html:
+    '<b>The idea.</b> One page, two panels, same scene and camera — panel 1 is the ' +
+    "animation's first frame, panel 2 its last. The page is sliced down the gutter and wan " +
+    'gets both halves, so the clip has to travel between them instead of drifting. It earns ' +
+    'the second drawing only when panel 2 is a genuinely different picture; where a single ' +
+    'drawing plus a written action would do, that is cheaper and looks better. Both are ' +
+    'below, measured on one scale.' +
+    '<br><br><b>Reading it.</b> Tap a drawing to see it big, tap a clip to play it. ' +
+    '<b>"picture moved"</b> is measured, not remembered: every clip decoded the same way and ' +
+    'scored on how different its last frame is from its first. Same scale for all four ' +
+    'projects, so the numbers compare. <b>The + under each row</b> is a note.' });
   window.__compareNotes({ chat: "two-panel-animation-gallery", sheet: "motion-that-worked-v1" });
 })();
 </script>

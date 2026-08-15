@@ -40,14 +40,26 @@ you finish the turn.
    repeat it at all** — that is what `?embed=1` + `.tool-eyebrow` do (see
    Tool pages below), and /vector shipped saying "VECTOR" twice because it
    was missed.
-2. **NO INSTRUCTIONS ON THE PAGE — they go behind a "?"** (Aug 2026, Sophie:
-   "if they do want to put instructions… they can put it behind a ? so I can
-   tap it if I don't know what's going on. That's a much better idea").
+2. **NOTHING TO READ BETWEEN THE TITLE AND THE FIRST PICTURE — it all goes
+   behind the "?"** (Aug 2026, Sophie: "if they do want to put instructions…
+   they can put it behind a ? so I can tap it if I don't know what's going
+   on. That's a much better idea").
    Compare page: `window.__compareHelp({ html: '…' })` — the circle rides at
    the end of the title, the card floats over the page and any tap closes it.
    Judge page: pass `help:` to `__judge`. Tool page: `#help` / `.helpcard`
-   from tool.css. A list of how-to lines down the top of the page is the
-   thing being replaced, every time.
+   from tool.css.
+   **THIS COVERS AN EXPLANATION SHE ASKED FOR, and that is the case that
+   keeps getting through** (Aug 2026 — the two-panel gallery shipped with two
+   paragraphs at the top because she had said "at the top explain briefly the
+   idea behind this concept", and the rule was written as *no instructions*,
+   so an explanation of the SUBJECT read as exempt). It is not exempt: **the
+   "?" card IS the top of the page**, so "explain it at the top" is an ask
+   for the card, not for a paragraph above the work. The rule is about the
+   SHAPE of the top of the page, never the genre of the text — a how-to list,
+   a summary, a premise, a finding, all the same answer.
+   `POST /page` enforces this now: >180 characters of `<p>` before the first
+   picture comes back as a warning naming the "?". A page with no pictures at
+   all (a transcript, a read-through) is deliberately untouched.
 3. **TEXT BOXES SHIP EMPTY** (Aug 2026, Sophie: "whenever there's a text box
    there should not be anything in it, no example text… I prefer nothing").
    Not even a `placeholder` — an example she has to clear before typing is

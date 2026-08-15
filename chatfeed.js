@@ -1740,6 +1740,36 @@ function kitWarnings(html) {
       + 'the top. Anything worth explaining goes behind the "?" — '
       + 'window.__compareHelp({ html: "…" }).');
   }
+  // A PROSE BLOCK BETWEEN THE TITLE AND THE FIRST PICTURE — INCLUDING ONE SHE
+  // ASKED FOR (Aug 2026, Sophie, after this page shipped with two paragraphs
+  // at the top: "can you put lots of extra text at the top that should be
+  // hidden behind the ?").
+  //
+  // The .eyebrow and .sub checks above only catch the two NAMED classes, and
+  // every written copy of the rule says "no INSTRUCTIONS on the page" — so a
+  // chat asked to "explain the idea at the top" reads its own paragraph as
+  // neither an instruction nor an eyebrow, writes it into a plain .card, and
+  // ships it. That is the hole this closes: the rule is about the SHAPE of
+  // the top of the page, not the genre of the text, and her asking for an
+  // explanation is an ask for the "?" CARD, which is the top of the page.
+  //
+  // Only fires when the page has pictures at all — a deliberately text-only
+  // page (a transcript, a read-through) is not what the rule is about — and
+  // only counts prose BEFORE the first one, so per-item captions and the
+  // folds under a row are untouched.
+  const media = s.search(/<img\b|<video\b|<audio\b|class\s*=\s*["'][^"']*\b(?:imgrow|duo|trio)\b/i);
+  if (media > 0) {
+    const before = s.slice(0, media);
+    const prose = (before.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) || [])
+      .join(' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (prose.length > 180) {
+      out.push(`A ${prose.length}-character prose block between the title and `
+        + 'the first picture: the page goes straight from its <h1> into the '
+        + 'thing. This applies to an explanation SHE ASKED FOR too — "explain '
+        + 'it at the top" means the "?" card, which is at the top: '
+        + 'window.__compareHelp({ html: "…" }).');
+    }
+  }
   // TEXT BOXES SHIP EMPTY (Aug 2026, Sophie: "whenever there's a text box
   // there should not be anything in it, no example text… I prefer nothing").
   // An example she has to clear before typing is work.
