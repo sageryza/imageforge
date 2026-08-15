@@ -231,6 +231,13 @@ async function main() {
       const pageUrl = await upload(await captionPage(art, page.words), `storybook/marla/pages/p${stamp}-${TAG}.webp`, 'image/webp');
       bucket()[n] = { n, prompt, scene: sceneFor(n), artUrl, pageUrl, cards: names, at: Date.now() };
       saveState();
+      // FILE IT THE MOMENT IT EXISTS — never inside repoint(). Filing used to
+      // live in repoint() only, so `--sample` ("draw, don't touch the book")
+      // silently also meant "don't show her the pictures": 18 of 22 sampled
+      // pages never reached the Assets tab and she reported them missing. A
+      // sample is precisely the thing she needs to SEE, and the caption sweep
+      // cannot catch this — it only inspects images already in the tab.
+      await fileAsset(n, bucket()[n]);
       console.log(`   ✓ ${pageUrl}`);
     } catch (e) {
       console.log(`   FAILED: ${e.message}${e.refusal ? ' (safety refusal — not retried)' : ''}`);
@@ -238,6 +245,32 @@ async function main() {
   }
   if (sample) { console.log('\n--sample: the book is untouched.'); return; }
   await repoint(only);
+}
+
+// Label + caption + exact prompt for one drawn page, in the Assets tab.
+// Called from the draw loop so a --sample run is just as visible as a real one.
+async function fileAsset(n, v) {
+  const page = plan.pages.find((p) => p.n === n);
+  const w = (page?.words || '').replace(/\s+/g, ' ').trim();
+  const short = w.length > 56 ? w.slice(0, 56).replace(/[\s,;:.—-]+\S*$/, '') + '…' : w;
+  const style = v.prompt.replace(`Draw: ${v.scene}`, 'Draw: [content]')
+    + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
+    + (v.cards.length ? `, then the ${v.cards.join(' and ')} character card${v.cards.length > 1 ? 's' : ''} (Marla is the ${TAG} three-view sheet)` : '')
+    + '. gpt-image-2 edits, size 1024x1536, quality medium.';
+  try {
+    await fetch(`${BASE}/api/gallery`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v.pageUrl,
+        description: `Page ${n} — ${short}`, prompt: 'gpt-image-2 · medium' }),
+    });
+    await fetch(`${BASE}/api/gallery/assets/prompt`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, url: v.pageUrl, style, content: v.scene }),
+    });
+  } catch (e) {
+    // A filing failure must be LOUD — an unfiled picture is one she never sees.
+    console.log(`   ! page ${n} drew but did not file: ${e.message}`);
+  }
 }
 
 // Repoint each page's EXISTING creation doc at the v2 image, so the book stays
@@ -264,22 +297,9 @@ async function repoint(nums) {
       body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v1Url,
         description: `Page ${n} v1 — superseded`, prompt: 'gpt-image-2 · medium' }),
     });
-    const page = plan.pages.find((p) => p.n === n);
-    const w = page.words.replace(/\s+/g, ' ').trim();
-    const short = w.length > 56 ? w.slice(0, 56).replace(/[\s,;:.—-]+\S*$/, '') + '…' : w;
-    await fetch(`${BASE}/api/gallery`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetsOnly: true, chat: CHAT, url: v2.pageUrl,
-        description: `Page ${n} ${TAG} — ${short}`, prompt: 'gpt-image-2 · medium' }),
-    });
-    const style = v2.prompt.replace(`Draw: ${v2.scene}`, 'Draw: [content]')
-      + '\n\nAttached: refs/sage-sandy-mirror.png as the style reference'
-      + (v2.cards.length ? `, then the ${v2.cards.join(' and ')} character card${v2.cards.length > 1 ? 's' : ''} (Marla is the ${TAG} three-view sheet)` : '')
-      + '. gpt-image-2 edits, size 1024x1536, quality medium.';
-    await fetch(`${BASE}/api/gallery/assets/prompt`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat: CHAT, url: v2.pageUrl, style, content: v2.scene }),
-    });
+    // Idempotent — the draw loop already filed it; this covers a repoint of
+    // pages drawn by an older run.
+    await fileAsset(n, v2);
     moved++;
   }
   console.log(`\nrepointed ${moved} page(s); the book is still ${snap.size} pages.`);
