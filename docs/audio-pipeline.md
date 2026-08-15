@@ -138,6 +138,53 @@ These are the ones worth building, and none of them is a missing button:
   Walking the whole S therefore means re-deciding the same things in four
   places.
 
+## "Make everything point at each other" — what already does
+
+Measured 2026-08-15, because this is now an active work item and the answer is
+smaller than it sounds. **The phrase covers two different jobs**, and only one
+of them is close to done:
+
+**(a) A BUTTON from one room to another — five exist:**
+
+- Search → Episode Editor (`POST /to-editor`, `/picks-to-editor` →
+  `editor.addExternalSnippet`)
+- Search → Cutting Room (`POST /to-cutroom`)
+- Cutting Room → Episode Editor (`cuttingroom.js` → `addExternalSnippet`)
+- Cutting Room → Story Room (`scratchpad.attachVoiceUrl`)
+- Episode Editor render → Cutting Room (the scissors, `editor.html`)
+
+**The two that are missing:**
+
+- **Cut Marks is a dead end in BOTH directions.** It imports only utilities
+  from the editor (`audioDuration`, `uploadPublic`) — nothing hands off INTO
+  it but a raw url, and its renders hand off to nothing. It is stop 6 of 8,
+  in the middle of the road.
+- **Voice Studio hands off to nothing at all** (zero references in
+  `voicelab.js`). A rendered line has to be downloaded and re-uploaded by
+  hand — and VOICE is one of the two tributaries INTO blocks on the map, so
+  that connection does not exist yet.
+
+**(b) A PROJECT that carries state across the rooms — barely started.** This is
+the third structural hole above, and it is the big build: every room is
+content-addressed by its own source url, so marks, labels, speaker and order
+never travel.
+
+**Order matters: build the BLOCKS tool before wiring (a).** Wiring hand-offs
+into a Compare page means wiring the thing that is about to be replaced.
+
+## The Search index runs behind the memo archive (measured 2026-08-15)
+
+`GET /api/search/sources` reports **1,035** memos indexed, built 2026-08-11;
+`GET /api/memos/status` reports **1,137** in the archive. **102 recordings are
+in the library but not findable** — so SLICE IN silently cannot reach her most
+recent memos. Rebuilding is FREE (`POST /api/search/reindex`), but a reindex
+that re-chunks makes the vectors stale, so meaning-search needs
+`POST /api/search/embed` after it (~$0.05).
+
+This is already on her running to-do list as "search index should rebuild
+itself when memos land, not by hand" — the number is what that item costs
+today.
+
 ## The survey — every audio tool a chat built as a page
 
 Measured Aug 2026 by walking all **253 chats** in the registry and listing their
