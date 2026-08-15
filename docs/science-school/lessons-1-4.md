@@ -448,8 +448,21 @@ the After card last.
     folding back on blur. Clearing takes the note back rather than filing a
     blank one, and her words mirror to `localStorage` as she types so a save
     that never lands stays on the phone.
+  - **The note button INSIDE the deck** (Sophie, 2026-08-15: "I wanted to leave
+    a note on the books asking why they have flowers on them"). This is the one
+    she reached for first — the row-level `+` notes a whole lesson, but what
+    she wanted was to talk about the picture in front of her. It sits in
+    `.deck-top` next to the dashes, goes pink on a card she has written on, and
+    its box is a SIBLING of `#deck-stage` so nothing in it can reach the tap
+    zones. Closing it — Done, the backdrop, or leaving the lesson — files what
+    she wrote; closing is not a way to cancel.
+    - **The item key is the card's ART ID** (`dn-09`), so a note is tied to the
+      picture and survives the cards being reordered. A card with no art falls
+      back to `<lessonKey>:<slugged headline>`.
   - **Read what she wrote:**
     `GET /api/chatfeed/verdict?chat=<slug>&sheet=lessons-4` -> `texts`.
+    Keys that look like a lesson (`cell`) are about the whole lesson; keys that
+    look like art (`dn-09`) are about that card.
     Answer ON the note by appending `\n\n— Claude: …` to the same field.
   - The three lessons that are only WRITTEN take notes too — that is where
     "do this one next" goes.
