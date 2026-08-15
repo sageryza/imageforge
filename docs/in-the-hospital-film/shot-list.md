@@ -75,6 +75,18 @@ earlier shot.
   PICTURE** the model could not invent from the first: a new location or scale,
   a body somewhere it wasn't, a scene that has transformed. Everything else is
   one shot + `scripts/…/single-animate.js`-style i2v.
+- **THE SECOND FRAME IS ALSO A WAY TO SHOW THE MODEL WHAT IT DOESN'T KNOW HOW
+  TO DRAW (Sophie, Aug 2026, on the pigs clip).** Her words: an end frame
+  "could've helped the pigs one so that they would have blood, to see what the
+  end frame should look like." The motion prompt there asked for blood coming
+  out of the necks and the clip never produced any — because a written line
+  cannot show a model a thing it has no picture of. **Drawing the end panel
+  hands it the answer instead of describing it.** So a pair earns its second
+  drawing for a second reason beyond a different composition: when the end
+  state contains something the animator would have to INVENT — blood, a
+  transformation, an object that isn't in frame yet — draw it rather than name
+  it. Costs one more picture (2-6¢) against a clip that silently omits the
+  thing the shot was for.
 - **A pair is a PLOT EVENT — "this is supposed to be a movie. Things actually
   happen" (Sophie, Aug 2026, after two rejected rounds).** The round of tiny
   hand-task pairs was "small movements again"; the round of bold METAPHOR

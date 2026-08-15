@@ -17,8 +17,8 @@ const { row, splitFiled, page, post } = require('./render');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const CHAT = 'two-panel-animation-gallery';
-const SHEET = 'other-clips-v1';
-const TITLE = 'The other clips, ranked (v1)';
+const SHEET = 'other-clips-v2';
+const TITLE = 'The other clips, ranked (v2)';
 const DRY = process.argv.includes('--dry');
 const B = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app';
 
@@ -96,6 +96,20 @@ const RECENT = [
   },
 ];
 
+// ── Valued Customer, 10 Aug ────────────────────────────────────────────────
+// Sophie asked me to message the chat that made these and get the stills where
+// I could see them. It turned out I did not have to: deck-factory-story-room
+// had already filed every one, labelled, with its content prompt verbatim. The
+// only thing missing is the motion line — that chat never filed it.
+const VC = [
+  ['vc-4-siren', 'siren, jumps the fence', 27.76, 'The best of the six — a body crossing the frame.'],
+  ['vc-3-track', 'track legs dodge the car', 25.51, null],
+  ['vc-2-highway', 'bolts across a 5-lane highway', 20.85, null],
+  ['vc-5-parkedcar', 'under the parked car', 17.59, null],
+  ['vc-6-penny', 'the one-cent card is the penny', 9.82, null],
+  ['vc-1-wired', 'drinks the found coffee, gets wired', 8.62, 'Jitter, not an event — the lowest of the six.'],
+];
+
 (async () => {
   const r = await fetch(`${BASE}/api/gallery/assets?chat=dolores-cannon-memo-illustrations&limit=300`);
   if (!r.ok) throw new Error(`assets → ${r.status}`);
@@ -113,6 +127,18 @@ const RECENT = [
     });
   });
 
+  const vcAssets = await (await fetch(`${BASE}/api/gallery/assets?chat=deck-factory-story-room&limit=400`)).json();
+  const vcRows = VC.map(([mediaKey, label, move, her]) => {
+    const a = (vcAssets.assets || []).find((x) => (x.description || '').includes(label));
+    if (!a) throw new Error(`no asset for ${label}`);
+    return row({
+      id: mediaKey, media: mediaKey, still: a.url, move, her,
+      title: (a.description || label).replace(/^Valued Customer — /, ''),
+      chips: ['gpt-image-2', 'wan 480p', '624x624'],
+      style: a.promptStyle, content: a.promptContent, motion: null,
+    });
+  });
+
   const html = page({
     title: TITLE, chat: CHAT, sheet: SHEET,
     help: '<b>What this is.</b> All sixteen grasshopper clips, ranked, so you can see whether any of '
@@ -123,11 +149,19 @@ const RECENT = [
       + 'judge.</b> A clip whose action returns to rest scores low but reads fine (the pigs), and a '
       + 'clip whose STYLE collapses scores high for the wrong reason (Seedance). Read the number '
       + 'with the picture, never instead of it.'
+      + '<br><br><b>How the score is made.</b> Each clip is decoded to four frames a second, '
+      + 'shrunk to a 96x144 thumbnail and turned to greyscale; the number is the average '
+      + 'brightness difference, per pixel, between the FIRST frame and the LAST, on a 0-255 scale. '
+      + 'So it is one thing only: how much of the picture ended up different from how it started. '
+      + 'Every clip in every project went through the identical pass, which is what makes the '
+      + 'numbers comparable.'
       + '<br><br>Tap a drawing to see it big, tap a clip to play it. The + under each row is a note.',
     body: '  <div class="sect">The grasshopper — all sixteen, best first</div>\n'
       + exileRows.join('\n')
       + '\n  <div class="sect">Animated since, and not the dinner party</div>\n'
-      + RECENT.map(row).join('\n'),
+      + RECENT.map(row).join('\n')
+      + '\n  <div class="sect">Valued Customer, 10 Aug</div>\n'
+      + vcRows.join('\n'),
   });
 
   const out = path.join(__dirname, 'page-others.html');
