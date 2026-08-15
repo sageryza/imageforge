@@ -446,8 +446,9 @@
   to archive so I can delete this chat so it doesn't keep confusing things
   rather than just archive it, and I'd like deleted chats to go to a trash
   that I can empty").** `deletedAt` on the registry doc
-  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** word in the
-  thread header after Archive and Hide, and the trash itself.
+  (`POST /api/chatfeed/delete {chat, deleted}`), a **Delete** button in the
+  thread header after Archive and Hide — **a trash can since Aug 2026**, see
+  *The bell and the two picture buttons* — and the trash itself.
   - **THE TRASH LIVES INSIDE THE ARCHIVE, AS A CAN (Aug 2026, Sophie: "put
     trash in archive and make it just a picture of a trashcan I guess").**
     It shipped as a fifth WORD in the masthead and that broke the header:
@@ -697,10 +698,12 @@
     back to the list for its ⊖. **ARCHIVE is tinted green and HIDE red** (Aug
     2026, her ask) so the pair says which is the bigger decision at a glance;
     fixed colours, like the row's ⊖ and ✓, since that row is cream in both
-    themes. The **"chats" crumb that used to lead the row is gone** ("that
-    seems redundant") — the back chevron already says where she is — and
-    `#thread header .no` is `justify-content:flex-end`, which is what the
-    crumb's `flex:1` used to do for the buttons' position.
+    themes. **HIDE is a PICTURE of an eye now** — see *The bell and the two
+    picture buttons* below; it keeps the red. The **"chats" crumb that used to
+    lead the row is gone** ("that seems redundant") — the back chevron already
+    says where she is — and `#thread header .no` is
+    `justify-content:flex-end`, which is what the crumb's `flex:1` used to do
+    for the buttons' position.
   - **The bar wears the LIT CATEGORY CHIP's look** — same `--chg` tokens,
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
@@ -961,18 +964,57 @@
       the Bookmarks pile's **CHATS tab**, `POST /chat-bookmark {chat,
       bookmarked}` (404s on a chat that doesn't exist — the phantom-row
       guard). The row mark is the **filled bookmark glyph** beside the star.
-    - **Both controls sit side by side in the thread header** — the bookmark
-      then the star — so the difference is a choice she makes in one place.
-      The keep button is `.bmk.chatbmk`, written that way and never
-      `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules sit LATER
-      and win at equal specificity). Measured at 375/390/430 — five controls
-      on that row still fit on one line with none of them buried.
+    - **`notify`** = allowed to buzz her phone. The BELL, added Aug 2026 —
+      see *The bell and the two picture buttons* below.
+    - **All three marks sit side by side in the thread header** — the
+      bookmark, the star, then the bell — so the difference is a choice she
+      makes in one place. The keep button is `.bmk.chatbmk`, written that way
+      and never `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules
+      sit LATER and win at equal specificity). Measured at 375/390/430 — the
+      row still fits on one line with none of them buried.
     - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
       were copied to `bookmarked` and their stars cleared, so nothing was
       lost and the star starts empty under its new meaning. She prunes the
       bookmark list down to her handful.
     - The ★ chip still reaches into the archive. That was justified by the
       old meaning; it is harmless under the new one and was left alone.
+
+  **THE BELL AND THE TWO PICTURE BUTTONS (Aug 2026, Sophie: "add a little bell
+  next to the star that I can click in. This will enable notifications for this
+  chat and un-click and it will turn them off — only the ones I clicked the
+  bell on will notify me. Also, can you make the delete button a picture of a
+  trash can and the hide button a picture of an eye that's crossed out if it's
+  hidden").** Three changes to `#thread header .no`, one row:
+  - **The bell is a WHITELIST, and that is the load-bearing half.** `notify`
+    on the registry doc, `POST /api/chatfeed/notify {chat, notify}` (404s on a
+    chat that doesn't exist — the phantom-row guard), read server-side by
+    `chatNotifies` in `push-gate.js` in front of BOTH push doors: a finished
+    reply and a new Compare page. **Absent means silent** — nothing pushes
+    until she taps a bell, which is her sentence read literally and also the
+    safe failure direction (a caller that forgets the flag goes quiet rather
+    than buzzing her). It compares `notify === true`, never truthiness.
+  - **It does not FILL when lit, unlike the star and the bookmark beside it.**
+    Filling Lucide's bell fills its clapper arc into a lens and the glyph
+    stops reading as a bell, so the state is carried by colour alone — grey
+    `--line` off, `--chg` red on, the same red its two neighbours use. Its
+    class is `.bellbtn`, kept out of `.bmk` on purpose: the generic
+    `.bmk.on svg{fill:currentColor}` is exactly the rule that would flood it.
+  - **The eye carries the HIDE state the word used to.** Open eye = this chat
+    is on the list; crossed eye (`eye-off`) = it is parked in the hidden pile,
+    which is what "In hidden" said before. Both stay `#b3443f` red — the
+    decision family didn't change, only its picture.
+  - **The trash can is the masthead's own glyph** (`TRASH_SVG`, the same
+    `trash-2` path `#trashlink` draws), so the button and the pile it sends
+    things to read as one idea. `.trashbtn.delbtn`, again never `.bmk`.
+  - **The row got NARROWER, not wider, even with a control added** — measured
+    at 390px after the change, the six children run x=75→315 inside a 351px
+    row with `scrollWidth === clientWidth` and no horizontal body scroll. Two
+    words became two ~25px icons, which paid for the bell twice over. Measure
+    it the same way before adding a seventh.
+  - Tests: `node scripts/test-chats-bell.js` (the real page, headless — the
+    bell's two POSTs, the roll-back on a failed save, both eye states, no
+    words left in the row, and a hit-test on all three) and the bell half of
+    `node scripts/test-push-gate.js`.
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.

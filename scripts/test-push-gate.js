@@ -8,7 +8,7 @@
 //
 //   node scripts/test-push-gate.js
 
-const { shouldPushReply, pushBody } = require('../push-gate');
+const { shouldPushReply, chatNotifies, pushBody } = require('../push-gate');
 
 let pass = 0; const fails = [];
 function is(name, got, want) {
@@ -99,6 +99,34 @@ is('the one-second gap an old hook produces still pushes',
 is('a reply with no timestamp does not push',
   shouldPushReply({ working: false, replyCreated: '', lastHerAt: t(30), pushedAt: t(5) }).push,
   false);
+
+// ── THE BELL — which chats may buzz at all ──────────────────────────────────
+// Sophie's whitelist (Aug 2026): "only the ones I clicked the bell on will
+// notify me". Absent means SILENT, so every shape of missing has to read as
+// off — a chat with no registry doc, a chat that predates the bell, and the
+// two falsy-but-not-false values a hand-written POST could leave behind.
+is('a belled chat may buzz', chatNotifies({ notify: true }), true);
+is('a chat that has never been belled is silent', chatNotifies({}), false);
+is('a chat with no registry doc at all is silent', chatNotifies(undefined), false);
+is('an explicitly un-belled chat is silent', chatNotifies({ notify: false }), false);
+// `notify` is compared to true, not merely truthy — a stray string on the doc
+// must not be read as "she wants this one".
+is('a non-boolean notify does not count as belled', chatNotifies({ notify: 'yes' }), false);
+// The bell and the timing gate are INDEPENDENT: a chat can be belled and still
+// have nothing worth buzzing about, and an answer to her is still silent
+// without the bell. chatfeed.js asks the bell FIRST, so this pair is the whole
+// decision.
+{
+  const answering = { working: false, replyCreated: t(34), lastHerAt: t(30), pushedAt: t(5) };
+  is('belled + answering her = the one case that buzzes',
+    chatNotifies({ notify: true }) && shouldPushReply(answering).push, true);
+  is('belled but grinding on its own is still silent',
+    chatNotifies({ notify: true })
+      && shouldPushReply({ working: false, replyCreated: t(48), lastHerAt: t(30), pushedAt: t(34) }).push,
+    false);
+  is('answering her without the bell is silent',
+    chatNotifies({ starred: true }) && shouldPushReply(answering).push, false);
+}
 
 // ── What the buzz SAYS ──────────────────────────────────────────────────────
 // THE CASE FROM HER SCREENSHOT (2026-08-15, 3:01 pm). The reply opened with
