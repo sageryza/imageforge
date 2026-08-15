@@ -17,14 +17,37 @@ function eq(name, got, want) { ok(name, got === want, 'got: ' + JSON.stringify(g
 console.log('\nis it a question?');
 ok('plain question mark', Q.isQuestion('Should this be a tab?'));
 ok('mid-sentence dictation with no mark', Q.isQuestion("I'm wondering if this should be part of the message"));
-ok('lead word, long enough', Q.isQuestion('Should we do the blue one'));
-ok('what/how lead', Q.isQuestion('How does the pairing actually work'));
+ok('auxiliary lead, no mark', Q.isQuestion('Should we do the blue one'));
+ok('another auxiliary lead', Q.isQuestion('Can you make the dashes at the top pink'));
+ok('and another', Q.isQuestion('do we have a synchronicity lesson in the witch school'));
 // The false positives that made the word-count floor and the apostrophe
 // lookahead necessary — her messages are full of these.
 ok('short assertion is not a question', !Q.isQuestion('Should be fine.'));
 ok('contraction is not a question', !Q.isQuestion("Can't wait to see it."));
 ok('plain instruction is not a question', !Q.isQuestion('Let us just try it and I will give you feedback.'));
 ok('statement is not a question', !Q.isQuestion('There is hardly any room on that screen.'));
+
+console.log('\na wh-word with no question mark is a RELATIVE CLAUSE, not a question');
+// Both of these were sitting in her list, straight out of dictated transcript
+// (measured 2026-08-14).
+ok('"which I could illustrate…" is not a question',
+   !Q.isQuestion('which I could illustrate, like, a pretty big spider creeping up onto this'));
+ok('"Which he goaded himself into…" is not a question',
+   !Q.isQuestion('Which he goaded himself into, but, um'));
+ok('but a wh-question WITH the mark still counts',
+   Q.isQuestion('Who would do, like, just the vertical and horizontal?'));
+ok('and so does an unmarked wondering', Q.isQuestion("I'm wondering if that would work"));
+
+console.log('\ncode and fragments are not questions');
+// Eight of these were listed under one answer in the Story Room chat.
+ok('a bare mark', !Q.isQuestion('?'));
+ok('two tokens', !Q.isQuestion('char ?'));
+ok('a field name', !Q.isQuestion(', imageHistory?'));
+ok('an assignment', !Q.isQuestion('textContent = on ?'));
+ok('a backticked line', !Q.isQuestion('page api() helper auto-injects `pad` into bodies / ?'));
+ok('a bulleted shape', !Q.isQuestion('- Beat shape: {id, url|null, color, src, text?'));
+ok('real prose with punctuation in it survives',
+   Q.isQuestion('So, like, what did I think of as the first time he said it?'));
 
 console.log('\npulling questions out of a real message');
 // Her actual message, 2026-08-14 — voice-to-text, and the question in it has NO
@@ -97,6 +120,37 @@ const open = Q.answeredOnly(built);
 eq('the open one is dropped', open.length, 1);
 eq('the answered one stays', open[0].question, 'Should the button go underneath?');
 eq('buildQuestions itself still reports both', built.length, 2);
+
+console.log('\none answer, one row');
+// Her real shape: a run of messages, then one reply for all of them. Ten rows
+// of the same paragraph is what she saw. Straight off the voice-memo-ideas
+// chat, 2026-08-14.
+const runReply = 'You’re right, and it’s worse than intermittent — no turn from this repo has '
+  + 'ever posted. The hook is installed and healthy; it just never loaded.';
+const run = [
+  { id: 's1', from: 'sophie', text: 'oh yeah also, can you make sure you’re posting the chats up?', created: '2026-08-14T10:00:00Z' },
+  { id: 's2', from: 'sophie', text: 'Who would do, like, just the vertical and horizontal?', created: '2026-08-14T10:01:00Z' },
+  { id: 's3', from: 'sophie', text: 'And then the other one I was thinking, was there another one?', created: '2026-08-14T10:02:00Z' },
+  { id: 'r1', from: 'claude', text: runReply, tldr: runReply, created: '2026-08-14T10:03:00Z' },
+];
+const collapsed = Q.buildQuestions(run);
+eq('three questions become one row', collapsed.length, 1);
+ok(/posting the chats up/.test(collapsed[0].question),
+   'and it keeps the one the answer is actually about: ' + collapsed[0].question);
+
+// A reply written to the house rule gives each question its OWN answer, so
+// nothing collapses.
+const perQuestion = [
+  { id: 's1', from: 'sophie', text: 'Should the button go underneath?', created: '2026-08-14T11:00:00Z' },
+  { id: 's2', from: 'sophie', text: 'What colour should it be?', created: '2026-08-14T11:01:00Z' },
+  { id: 'r1', from: 'claude', created: '2026-08-14T11:02:00Z', tldr: 'both',
+    text: '**Should the button go underneath?**\n\nYes, under the header.\n\n'
+        + '**What colour should it be?**\n\nThe same tan as the row.' },
+];
+const kept = Q.buildQuestions(perQuestion);
+eq('bold blocks keep both rows', kept.length, 2);
+eq('each with its own answer', kept[0].answer, 'The same tan as the row.');
+eq('and the other one', kept[1].answer, 'Yes, under the header.');
 
 console.log('\nout-of-order input is sorted before pairing');
 const shuffled = Q.buildQuestions([msgs[1], msgs[4], msgs[0], msgs[3], msgs[2]]);
