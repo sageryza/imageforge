@@ -47,8 +47,9 @@ function lift(name) {
 // `chats` is the page's registry map; the lifted functions close over it.
 let chats = {};
 const scope = { chats: () => chats };
-const src = lift('unparked') + '\n' + lift('chatHidden') + '\n' + lift('chatBack')
-  + '\nreturn { unparked: unparked, chatHidden: chatHidden, chatBack: chatBack };';
+const src = 'var PARK_LEASH=3*60*1000;\n'
+  + lift('unparked') + '\n' + lift('parkTripped') + '\n' + lift('chatHidden') + '\n' + lift('chatBack')
+  + '\nreturn { unparked: unparked, parkTripped: parkTripped, chatHidden: chatHidden, chatBack: chatBack };';
 // eslint-disable-next-line no-new-func
 const api = new Function('getChats', 'var chats; ' + src.replace(/\bchats\b(?=\s*&&|\s*\[)/g, 'getChats()'))(scope.chats);
 
@@ -114,6 +115,31 @@ console.log('fallbacks');
     api.chatHidden('c', { created: '2026-08-14T05:00:00.000Z' }) === false);
   ok('…and an old created still keeps it hidden',
     api.chatHidden('c', { created: '2026-08-14T04:00:00.000Z' }) === true);
+}
+
+console.log('the leash (Aug 2026: "could it just be like three minutes")');
+{
+  const iso = (msAgo) => new Date(Date.now() - msAgo).toISOString();
+  const MIN = 60000;
+  // an automatic park (workingAt == hiddenAt) with no life since → tripped
+  chats = { c: { hiddenAt: iso(10 * MIN), workingAt: iso(10 * MIN) } };
+  ok('a dead automatic park trips after 3 minutes',
+    api.chatHidden('c', { created: iso(60 * MIN), postedAt: iso(60 * MIN) }) === false);
+  // the same park with a draft that grew 30s ago → alive, still hidden
+  ok('a growing draft is a sign of life — still hidden',
+    api.chatHidden('c', { created: iso(9 * MIN), postedAt: iso(30000), working: true }) === true);
+  // a park younger than the leash → still hidden even with no life yet
+  chats = { c: { hiddenAt: iso(MIN), workingAt: iso(MIN) } };
+  ok('a fresh automatic park has its 3 minutes',
+    api.chatHidden('c', { created: iso(60 * MIN), postedAt: iso(60 * MIN) }) === true);
+  // her hand hide (no workingAt) never trips, however old
+  chats = { c: { hiddenAt: iso(2 * 24 * 60 * MIN) } };
+  ok('a hand hide never trips the leash',
+    api.chatHidden('c', { created: iso(60 * 60 * MIN), postedAt: iso(60 * 60 * MIN) }) === true);
+  // she hid it by hand mid-turn (hiddenAt newer than workingAt) — her hand wins
+  chats = { c: { workingAt: iso(20 * MIN), hiddenAt: iso(19 * MIN) } };
+  ok('a mid-turn hand hide (hiddenAt newer than workingAt) never trips',
+    api.chatHidden('c', { created: iso(20 * MIN), postedAt: iso(20 * MIN), working: true }) === true);
 }
 
 console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');

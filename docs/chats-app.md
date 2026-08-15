@@ -641,6 +641,33 @@
       already stuck needs `POST /hide {chat, hidden:false}`; deleting the
       message that parked it does NOT, because the stamp lives on the
       registry.
+  - **THE LEASH — a dead automatic park surfaces after 3 minutes of silence
+    (Aug 2026, Sophie: "three hours is way too long to wait … could it just
+    be like three minutes").** An AUTOMATIC park promises a reply — the
+    turn-start ping (`/working`) and her answered message (`/reply`) both
+    tuck the chat away expecting it back — but a chat that dies mid-turn
+    never sends the reply that unparks it, and it used to sit in Hidden
+    forever (the same shape as the 30-stuck-chats bug above, from the other
+    side). `parkTripped()` in chats.html: parked with NO sign of life for
+    `PARK_LEASH` (3 min) → back on the list. Life = the newest of the park
+    stamps and the last message's `postedAt`, which bumps on every draft
+    growth — so a chat that is genuinely working keeps itself hidden, and
+    one that trips early (a long silent render) just reappears tinted and
+    re-hides when its next draft lands. The misfire is today's behaviour
+    for a moment, self-correcting, which is why 3 minutes is safe.
+    - **A hide SHE tapped is NEVER leashed** — the discriminator costs no
+      new field: both automatic parks stamp `workingAt` equal to
+      `hiddenAt`, the hand hide (`POST /hide`) writes `hiddenAt` alone, so
+      `workingAt >= hiddenAt` means "a turn was expected here". A hand hide
+      placed DURING a turn (hiddenAt newer than workingAt) also never
+      trips — her hand wins over the machinery's park.
+    - The trip happens by the CLOCK, with no poll delta to announce it, so
+      the 20s timer runs `leashCheck()` — it repaints only when some chat's
+      hidden state actually changed, and with the same courtesy the poll
+      shows (home list, at the top, never rebuilding the grid mid-scroll).
+    - Tests: `node scripts/test-chats-park-leash.js` (the real page,
+      headless — dead park surfaces, hand hides stay put, the clock-only
+      repaint) and the leash block in `test-chats-unpark.js` (pure).
   - **`hiddenAt` is a self-clearing STAMP on the registry doc**
     (`POST /api/chatfeed/hide {chat, hidden}`), the same shape as
     `answeredAt`: a chat stays hidden only while nothing newer has arrived,
