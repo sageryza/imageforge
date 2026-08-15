@@ -157,7 +157,8 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
   - Tests: `node scripts/test-push-gate.js` (the whole decision table, the bell
     whitelist and the body rules, pure, no network — 30 checks) and
     `node scripts/test-chats-bell.js` (the bell + the eye + the trash can on
-    the real page, headless — 18 checks).
+    the real page, headless — 24 checks, including the painted colours: filled
+    bell, gold when lit, nothing red sitting at rest).
 - **Dormant until the APNs key exists**: `APNS_KEY_ID`, `APNS_TEAM_ID`,
   optional `APNS_TOPIC` (defaults to `com.sageryza.imageforge`), plus the
   key itself EITHER as `APNS_KEY` (raw PEM, base64, or literal-\n all

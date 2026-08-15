@@ -17,6 +17,15 @@
 //   8. every one of them is tappable where it is drawn (the autoscroll pill
 //      owns the top-right corner and has buried real controls before).
 //
+// …and the second pass (Aug 2026, Sophie: "change the bell colour to yellow
+// and make it filled in rather than just the outline, and make the trash not
+// red until I click it and the hidden icon should also not be red until I
+// click it"):
+//   9. the bell is FILLED, not stroked, in both states,
+//  10. it is GOLD when on and grey when off — never the ⊖'s red,
+//  11. neither the eye nor the can is red at rest,
+//  12. the eye goes red only WITH its crossing stroke (i.e. really hidden).
+//
 //   npm install playwright-core --no-save && node scripts/test-chats-bell.js
 const http = require('http');
 const fs = require('fs');
@@ -128,6 +137,27 @@ const ok = () => { checks++; };
   await hitTest('#thread header .no .eyebtn', 'the eye');
   await hitTest('#thread header .no .trashbtn.delbtn', 'the trash can');
 
+  // ── 9/11. filled bell, and nothing red sitting at rest ────────────────────
+  // Read the PAINTED values, not the markup: a stray `.bmk`-style rule landing
+  // on one of these is exactly the failure worth catching, and it only shows
+  // up in the computed style.
+  const paint = (sel) => page.$eval(sel + ' svg', (n) => {
+    const cs = getComputedStyle(n);
+    return { fill: cs.fill, stroke: cs.stroke, color: getComputedStyle(n.parentElement).color };
+  });
+  const bellOff = await paint('#thread header .no .bellbtn');
+  if (/none/.test(bellOff.fill)) fail('the bell is not filled: ' + JSON.stringify(bellOff));
+  else ok();
+  const RED = /rgb\(179,\s*68,\s*63\)/;
+  const rest = {
+    eye: await paint('#thread header .no .eyebtn'),
+    can: await paint('#thread header .no .trashbtn.delbtn'),
+  };
+  if (RED.test(rest.eye.color)) fail('the eye is red at rest');
+  else ok();
+  if (RED.test(rest.can.color)) fail('the trash can is red at rest');
+  else ok();
+
   // ── 3/4. tapping writes it, both ways ─────────────────────────────────────
   await page.click('#thread header .no .bellbtn');
   await page.waitForSelector('#thread header .no .bellbtn.on', { timeout: 2000 })
@@ -144,10 +174,19 @@ const ok = () => { checks++; };
     fail('turning it off did not POST notify:false — ' + JSON.stringify(posted[1] || null));
   } else ok();
 
-  // ── 2. a belled chat arrives lit ──────────────────────────────────────────
+  // ── 2/10. a belled chat arrives lit, and lit means GOLD ───────────────────
   await open('belled');
   if (!await page.$('#thread header .no .bellbtn.on')) fail('a chat carrying notify:true drew an unlit bell');
   else ok();
+  const lit = await page.$eval('#thread header .no .bellbtn', (n) => getComputedStyle(n).color);
+  if (RED.test(lit)) fail('the lit bell is the ⊖ red, not gold: ' + lit);
+  else ok();
+  // Gold, not merely "not red": more red than blue and a real green channel is
+  // what separates a yellow from this page's rose, red and ink.
+  const rgb = (lit.match(/\d+/g) || []).map(Number);
+  if (!(rgb.length >= 3 && rgb[0] > rgb[2] + 60 && rgb[1] > rgb[2] + 30 && rgb[1] > 90)) {
+    fail('the lit bell does not read as a yellow: ' + lit);
+  } else ok();
 
   // ── 5. a failed POST rolls the light back ─────────────────────────────────
   notifyFails = true;
@@ -170,6 +209,10 @@ const ok = () => { checks++; };
   await page.waitForSelector('#thread header .no .eyebtn', { timeout: 4000 });
   const eye = await page.$eval('#thread header .no .eyebtn', (n) => n.innerHTML);
   if (!/m2 2 20 20/.test(eye)) fail('a hidden chat did not draw the crossed eye');
+  else ok();
+  // 12. …and THAT is the one state the eye is allowed to be red in.
+  const hiddenEyeColor = await page.$eval('#thread header .no .eyebtn', (n) => getComputedStyle(n).color);
+  if (!RED.test(hiddenEyeColor)) fail('a hidden chat\'s crossed eye is not red: ' + hiddenEyeColor);
   else ok();
 
   await browser.close();
