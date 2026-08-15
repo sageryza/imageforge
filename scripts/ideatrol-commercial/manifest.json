@@ -1,0 +1,256 @@
+{
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/ideatrol-draft-480p-v1.mp4",
+  "total_seconds": 74.5,
+  "scenes": [
+    [
+      "s01",
+      3.991
+    ],
+    [
+      "s02",
+      3.456
+    ],
+    [
+      "s03",
+      4.451
+    ],
+    [
+      "s04",
+      4.451
+    ],
+    [
+      "s05",
+      4.522
+    ],
+    [
+      "s06",
+      5.0
+    ],
+    [
+      "s07",
+      6.114
+    ],
+    [
+      "s08",
+      10.55
+    ],
+    [
+      "s09",
+      10.55
+    ],
+    [
+      "s10",
+      10.55
+    ],
+    [
+      "s11",
+      5.944
+    ],
+    [
+      "s12",
+      4.891
+    ]
+  ],
+  "voplan": [
+    [
+      "seg1",
+      0.8
+    ],
+    [
+      "seg2",
+      4.290611999999999
+    ],
+    [
+      "seg3",
+      7.646121999999999
+    ],
+    [
+      "seg4",
+      16.648570999999997
+    ],
+    [
+      "seg5",
+      21.070611999999993
+    ],
+    [
+      "seg6",
+      32.18449
+    ],
+    [
+      "seg7",
+      64.035102
+    ],
+    [
+      "seg8",
+      66.406939
+    ],
+    [
+      "seg9",
+      69.979592
+    ]
+  ],
+  "vo_durations": {
+    "seg1": 2.690612,
+    "seg2": 2.45551,
+    "seg3": 8.202449,
+    "seg4": 3.422041,
+    "seg5": 10.213878,
+    "seg6": 30.850612,
+    "seg7": 1.671837,
+    "seg8": 2.272653,
+    "seg9": 3.291429
+  },
+  "stills": {
+    "s01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s01.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s01.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She sits at a kitchen table at 3 AM covered in seventeen open spiral notebooks and scribbled diagrams, head in her hands, lit by a single overhead light."
+    },
+    "s02": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s02.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s02.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "Extreme close-up of her face lit by soft lamplight, eyes wide, mid-whisper; in front of her on the table, ink sketches of houseplants."
+    },
+    "s03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s03.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s03.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She stands in a cluttered home office holding a podcast microphone in one hand with a felt puppet on the other hand, overwhelmed; behind her a small vintage letterpress printing machine and stacks of paper."
+    },
+    "s04": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s04.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s04.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "Her cheerful family at a dinner table exchange amused tired glances while she stands at the head of the table gesturing enthusiastically, presenting a big new idea."
+    },
+    "s05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s05.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s05.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She looks up toward a bright kitchen window as morning light pours in; the scene is black and white but warm golden color is blooming into it around her hopeful face."
+    },
+    "s06": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s06.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s06.png",
+      "style": "",
+      "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label reading IDEATROL standing on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic."
+    },
+    "s07": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s07.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s07.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "In a bright morning kitchen she gently closes a single notebook and smiles with quiet relief; a houseplant on the windowsill."
+    },
+    "s08": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s08.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s08.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She kayaks on a calm lake at golden hour, mountains behind, sunlight sparkling on the water, serene smile."
+    },
+    "s09": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s09.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s09.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "At a farmers market she hands a single neat manuscript tied with string to a golden retriever sitting attentively; flower and vegetable stalls behind."
+    },
+    "s10": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s10.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s10.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She laughs with two friends over iced tea on a sunlit porch, relaxed, golden hour."
+    },
+    "s11": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s11.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s11.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: late 30s, shoulder-length wavy brown hair, kind tired face, sage-green cardigan over a cream top. ",
+      "content": "She stands alone on a porch at dusk in a gentle wind, hair blowing, holding a single softly glowing lightbulb in both hands like a treasure."
+    },
+    "s12": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/stills/s12.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/crops/s12.png",
+      "style": "",
+      "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word IDEATROL in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: One thing at a time. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients."
+    }
+  },
+  "clips": {
+    "s01": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s01.mp4",
+    "s02": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s02.mp4",
+    "s03": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s03.mp4",
+    "s04": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s04.mp4",
+    "s05": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s05.mp4",
+    "s06": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s06.mp4",
+    "s07": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s07.mp4",
+    "s08": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s08.mp4",
+    "s09": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s09.mp4",
+    "s10": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s10.mp4",
+    "s11": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/ideatrol/clips/s11.mp4"
+  },
+  "motion": {
+    "s01": "black and white film. static camera slowly pushes in as the woman rubs her temples; papers shift slightly; the overhead light flickers gently",
+    "s02": "black and white film. extreme close up; she whispers to herself, eyes darting; subtle breathing; slow push in",
+    "s03": "black and white film. she looks back and forth between the microphone and the puppet, overwhelmed; slight handheld sway",
+    "s04": "black and white film. she gestures excitedly pitching an idea; the family exchange glances and lean back wearily",
+    "s05": "warm golden light grows across her face as she looks up slowly; dust motes drift in the light beam; color warming into the scene",
+    "s06": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+    "s07": "she gently closes the notebook, exhales, and smiles with relief; camera drifts slowly closer",
+    "s08": "she paddles smoothly across sparkling water; slow tracking shot; gentle ripples; birds drift in the distance",
+    "s09": "she hands the manuscript to the golden retriever, which takes it gently in its mouth, tail wagging; she smiles",
+    "s10": "the three friends laugh together; she raises her glass; gentle breeze moves the plants",
+    "s11": "wind blows her hair; she lifts the glowing bulb slightly; camera slowly pulls back; warm dusk light"
+  },
+  "vo_text": {
+    "seg1": {
+      "voice": "Brian",
+      "tempo": 1.0,
+      "text": "Do you lie awake at night... having concepts?"
+    },
+    "seg2": {
+      "voice": "Sarah",
+      "tempo": 1.0,
+      "text": "...a business... about drawing plants..."
+    },
+    "seg3": {
+      "voice": "Brian",
+      "tempo": 1.0,
+      "text": "Have you started a podcast, a puppet troupe, and a small press \u2014 this week? Do your loved ones flinch when you say, okay, hear me out?"
+    },
+    "seg4": {
+      "voice": "Brian",
+      "tempo": 1.0,
+      "text": "You may be living with C.I.O. \u2014 Chronic Idea Overproduction."
+    },
+    "seg5": {
+      "voice": "Brian",
+      "tempo": 1.0,
+      "text": "Introducing IDEATROL. IDEATROL works by gently binding to the brain's what-if receptors, so one idea can be finished... before the next four arrive."
+    },
+    "seg6": {
+      "voice": "Brian",
+      "tempo": 1.3,
+      "text": "IDEATROL is not for everyone. Do not take IDEATROL if you are a muse, married to a muse, or currently the eldest daughter of a whimsical family. Side effects may include: finishing things, alarming levels of follow-through, remembering why you walked into the room, sustained eye contact, spontaneous completion of taxes, and, in rare cases, boredom. Stop taking IDEATROL and call your doctor if you go more than four hours without a single idea, as this may be a sign of contentment. Ideas may return if you stop taking IDEATROL. In clinical trials, some patients reported that their one remaining idea was actually pretty good."
+    },
+    "seg7": {
+      "voice": "Sarah",
+      "tempo": 1.0,
+      "text": "Now... I just have the one."
+    },
+    "seg8": {
+      "voice": "Brian",
+      "tempo": 1.0,
+      "text": "IDEATROL. One thing at a time."
+    },
+    "seg9": {
+      "voice": "Brian",
+      "tempo": 1.35,
+      "text": "IDEATROL does not treat scope creep. Ask your doctor about scope creep."
+    }
+  },
+  "cost": {
+    "images": 0.0,
+    "clips": 0.0,
+    "music": 0.05,
+    "total": 0.05
+  }
+}
