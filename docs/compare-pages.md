@@ -236,6 +236,48 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     Shelf after the pass: **24 pages, 10 topics, none superseded**.
   - The survey's two gaps are still open: the seven Replicate LoRA styles on
     one subject, and an aspect-ratio set beyond the blog heroes.
+  **THE SECOND SURVEY, 2026-08-15 — an independent pass, by structure instead
+  of titles, and what it adds.** Sophie asked for the survey redone from
+  scratch (same chat, deliberately ignoring the first pass). Method: pull all
+  374 HTML files and classify every page by what its markup actually is —
+  no title shortlist. The verdicts converged with the shelf almost everywhere,
+  which is now two independent reads agreeing; the differences and the new
+  facts:
+  - **The census: about half the "Compare" tab has no pictures at all.** 374
+    pages → 73 with images laid side-by-side, 22 more multi-image, 59
+    film/animation, 9 audio, 6 judge, 3 picker — and ~174 (47%) with no
+    images: to-do lists, tool prototypes, path/status pages, transcripts,
+    lesson texts. Roughly 35 pages genuinely compare like-for-like variants;
+    ~25 answer recurring questions, and that set is the shelf.
+  - **A STATIC IMG COUNT IS NOT EVIDENCE EITHER — 25 pages inject their
+    pictures by script.** "Blog Heroes — Square vs Landscape" has ZERO
+    `<img>` tags and 76 pictures (38 square/landscape pairs in a JS data
+    array). Opening a page means reading its script too, or a real
+    comparison gets dropped the same way the Playground mockup almost got
+    kept.
+  - **Recurrence, measured:** quality ladders were built independently by 6
+    different chats (7+ pages), style tests by 4 — including two ladders
+    built AFTER the shelf shipped, so chats are not reading the shelf before
+    building. The recurrence is also the proof of which questions recur.
+  - **Topic canon discipline:** `image quality` now holds 5 ladders. A topic
+    is a question — a new page joins it only by answering something the
+    existing ones don't (a style-specific ladder qualifies; a sixth generic
+    one doesn't — the fruit chart's ladder stayed off on exactly this).
+  - Flag changes from this pass: **"Vectors against their sources — four
+    palettes"** added under `vector tracing` (same subjects in four palettes,
+    vector beside source; palette is a live choice, `/recolor` exists), and
+    the sundress same-seed flag MOVED v1 → v2 (duplicates removed — the
+    strictly better copy of the same rows). Shelf: 25 pages / 10 topics,
+    none superseded.
+  - **Media health, re-verified independently: 915 of 915 real media URLs
+    across the shelf + comparison roster answer 200.** Zero gradient
+    violations on any of the 374 pages. `kitWarnings` is only stamped since
+    Aug 14 (#1174) — an empty field on an older page means unscanned, not
+    clean.
+  - **A third gap, newly named:** no page compares the ANIMATION models on
+    one still (Kling / Wan / the quick-animate default) — the DNA lesson
+    pages brushed it for one clip set, and the clip library holds the
+    evidence scattered. Plus the two still open above.
   **A VERDICT SHEET NAME MUST CARRY THE VERSION OF WHAT IT ANSWERS (Aug 2026,
   earned on the Evan cutting blocks).** Verdicts are keyed by an item id, and a
   rebuilt page usually renumbers its items — so re-posting a page under the SAME
