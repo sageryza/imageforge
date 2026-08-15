@@ -374,6 +374,20 @@ each opens a focused workflow that shares the same house styles.
     sweep clean up after that), and a RE-ENCODED copy is different bytes under
     a different name, so nothing joins it. `POST /api/gallery/asset-cleanup`
     (with `dry` first) still removes strays.
+    **DO NOT trust `asset-cleanup` to be scoped by `chat` — measured
+    2026-08-15 it is not.** Called `{chat:"image-pipeline-design", dry:true}`
+    against a tab holding **22** images it answered `wouldDelete: 23`, i.e.
+    more records than that chat has. Running it without `dry` on the strength
+    of "it's chat-scoped" would have deleted other chats' tiles. **Always run
+    it dry and check the number against the chat's real `total`
+    (`GET /api/gallery/assets?chat=`) before running it for real** — and if
+    the two don't line up, label the stray instead and leave it. A duplicate
+    tile beside a labeled one is a much smaller problem than a wrong delete.
+    Also measured the same day: a stray that shares a url with an
+    already-labeled record can survive re-POSTing the label (the write
+    answers `ok:true, deduped:true` and lands on the labeled doc every time,
+    never the other one), so the tab keeps one nameless twin. Known, not
+    worth chasing.
   - Tests: `node scripts/test-asset-guard.js` (the whole decision table with
     fixtures, no network).
 - **NO contact sheets — review happens IN the gallery, labeled (July 2026,

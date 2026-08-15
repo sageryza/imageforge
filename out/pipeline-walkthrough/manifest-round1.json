@@ -1,0 +1,102 @@
+[
+ {
+  "run": "round1",
+  "round": 1,
+  "cell": "books",
+  "label": "Books — v1",
+  "at": "TOP LEFT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "492x735",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the TOP LEFT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "TOP LEFT: A woman carrying a stack of books.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman carrying a stack of books. TOP RIGHT: A woman carrying too many grocery bags. BOTTOM LEFT: A woman carrying a pile of laundry. BOTTOM RIGHT: A woman carrying boxes up some stairs.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__books.webp",
+  "bytes": 48240,
+  "createdAt": 1786770952663
+ },
+ {
+  "run": "round1",
+  "round": 1,
+  "cell": "groceries",
+  "label": "Groceries — v1",
+  "at": "TOP RIGHT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "532x735",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the TOP RIGHT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "TOP RIGHT: A woman carrying too many grocery bags.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman carrying a stack of books. TOP RIGHT: A woman carrying too many grocery bags. BOTTOM LEFT: A woman carrying a pile of laundry. BOTTOM RIGHT: A woman carrying boxes up some stairs.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__groceries.webp",
+  "bytes": 69662,
+  "createdAt": 1786770953193
+ },
+ {
+  "run": "round1",
+  "round": 1,
+  "cell": "laundry",
+  "label": "Laundry — v1",
+  "at": "BOTTOM LEFT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "492x801",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the BOTTOM LEFT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "BOTTOM LEFT: A woman carrying a pile of laundry.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman carrying a stack of books. TOP RIGHT: A woman carrying too many grocery bags. BOTTOM LEFT: A woman carrying a pile of laundry. BOTTOM RIGHT: A woman carrying boxes up some stairs.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__laundry.webp",
+  "bytes": 58242,
+  "createdAt": 1786770953702
+ },
+ {
+  "run": "round1",
+  "round": 1,
+  "cell": "boxes",
+  "label": "Boxes — v1",
+  "at": "BOTTOM RIGHT",
+  "style": "watercolor",
+  "styleLabel": "Watercolor — sage sandy mirror",
+  "quality": "low",
+  "model": "gpt-image-2",
+  "sheetSize": "1024x1536",
+  "cellSize": "532x801",
+  "fromSheet": true,
+  "sheetUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__sheet.webp",
+  "seamsMissed": 0,
+  "refs": [
+   "sage-sandy-mirror.png"
+  ],
+  "promptStyle": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames.\n\n[content — this cell is the BOTTOM RIGHT quarter of a 2x2 sheet]\n\nDo not include any text in the image.",
+  "promptContent": "BOTTOM RIGHT: A woman carrying boxes up some stairs.",
+  "fullPrompt": "Use only the style of the attached style reference and ignore its content — do not copy anything depicted in it. You can choose your own colors rather than copying the colors of the style reference.\n\nA 2x2 grid of four completely separate small illustrations on a plain white background. Wide clean white gutters between them, each drawing sitting well inside its own quarter, nothing crossing or touching between the cells, no grid lines, no borders, no frames. TOP LEFT: A woman carrying a stack of books. TOP RIGHT: A woman carrying too many grocery bags. BOTTOM LEFT: A woman carrying a pile of laundry. BOTTOM RIGHT: A woman carrying boxes up some stairs.\n\nDo not include any text in the image.",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pipeline-walkthrough/round1__boxes.webp",
+  "bytes": 57160,
+  "createdAt": 1786770954220
+ }
+]

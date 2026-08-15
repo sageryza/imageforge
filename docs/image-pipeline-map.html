@@ -184,7 +184,7 @@
       what: 'the list of things to draw — a SET, never one picture, because the cheap rung draws four at a time and a set is what re-renders when the direction changes' },
     { id: 'split',    label: 'THE SPLIT', art: 'scissors', at: 0.40, none: 'no editor',
       what: 'content and style written as two halves BEFORE anything is drawn — content survives a change of direction, style is a column' },
-    { id: 'fourup',   label: 'FOUR-UP',  art: 'window', at: 0.51, none: 'script only',
+    { id: 'fourup',   label: 'FOUR-UP',  art: 'stamps', at: 0.51, none: 'script only',
       href: '/vector', lap: 1,
       what: 'one low 2x2 sheet, four subjects in a single call — 2¢ the sheet, HALF A CENT a frame, cut on the real gutters' },
     { id: 'read',     label: 'READ',     art: 'wooden', at: 0.60, none: 'on the image, not the prompt',
@@ -240,17 +240,20 @@
   /* The drawings are the content pipeline's own cut-outs — already made,
      already paid for, transparent background. Reusing them is what makes this
      map read as the same pipeline seen from a different side.
-     `fourup` is the FOUR-PANE WINDOW, picked because it shows four things and
-     flagged by Sophie as provisional — four replacements were drawn on the
-     pipeline's own cheapest rung (job sh-mstwaqid-bnejd, a low 2x2 vector
-     sheet, 2¢, half a cent each) and sit on the Holes tab. Swap this one line
-     when she picks. */
+     `stamps` is the FOUR-UP stop's own icon and it is NOT from the original
+     sheets: four candidates were drawn on the pipeline's own cheapest rung
+     (job sh-mstwaqid-bnejd, a low 2x2 vector sheet, 2¢, half a cent each) and
+     Sophie picked the block of four perforated stamps over the four-pane
+     WINDOW that stood here in v1 — a window says window, not four. It is
+     published into the family's own prefix so anything else can use it, and
+     it is the one icon here served as WEBP (143KB against the cut PNG's
+     437KB). Originals + traced SVGs: out/pipeline-icons/. */
   var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
   var CUT = V + 'pipeline-icons-cut/';
   var CUT2 = V + 'pipeline-icons-2-cut/';
   var ART = {
     blocks: CUT + 'blocks-cut.png',   scissors: CUT + 'scissors-cut.png',
-    window: CUT + 'window-cut.png',   wooden: CUT + 'wooden-cut.png',
+    stamps: CUT + 'stamps-cut.webp', wooden: CUT + 'wooden-cut.png',
     gold: CUT + 'gold-cut.png',       reel: CUT + 'reel-cut.png',
     book: CUT + 'book-cut.png',
     journal: CUT2 + 'journal-cut.png', curve: CUT2 + 'curve-cut.png',
@@ -528,17 +531,18 @@
   var J = V + 'sh-mstwaqid-bnejd/';
   var PICKS = [
     { id: 'peel', nm: 'Peeled cell', png: J + 'cell-1.webp' },
-    { id: 'stamps', nm: 'Four stamps', png: J + 'cell-2.webp' },
+    { id: 'stamps', nm: 'Four stamps — picked', png: J + 'cell-2.webp' },
     { id: 'press', nm: 'Press sheet', png: J + 'cell-3.webp' },
     { id: 'scissors', nm: 'Cutting it up', png: J + 'cell-4.webp' },
   ];
   var ih = document.createElement('div');
   ih.className = 'hole ok';
   ih.setAttribute('data-item', 'hole-icon');
-  ih.innerHTML = '<div class="f">The four-up stop is wearing the window</div>'
-    + '<div class="what">Picked because it shows four things, and flagged as provisional. '
+  ih.innerHTML = '<div class="f">The four-up stop wears the stamps now</div>'
+    + '<div class="what">v1 wore the four-pane window, which says window rather than four. '
     + 'These four replacements were drawn on the pipeline’s own cheapest rung — ONE low 2x2 '
-    + 'vector sheet, 2¢, half a cent each. Leave a note saying which one.</div>';
+    + 'vector sheet, 2¢, half a cent each — and Sophie picked the stamps. The other three are '
+    + 'kept here rather than deleted: a rejected option is the cheapest thing on file.</div>';
   var pk = document.createElement('div');
   pk.className = 'picks';
   PICKS.forEach(function (p) {

@@ -106,9 +106,10 @@ the shape of the audio pipeline's BLOCKS being a Compare artifact. `vector.js`
 is the closest thing to it that IS a tool, but it ends at SVG rather than at a
 prompt you keep working on.
 
-**The icon is the four-pane window** (`pipeline-icons-cut/window-cut.png`) —
-picked because it shows four things, provisional at Sophie's ask. Candidates
-drawn on the cheap rung itself: `docs/image-pipeline.md` § icons below.
+**The icon is the block of four stamps** (`pipeline-icons-cut/stamps-cut.webp`,
+served as webp — 143KB against the cut PNG's 437KB). v1 of the map wore the
+four-pane window, picked because it shows four things; Sophie chose the stamps
+instead, and a window does say window rather than four. See § icons below.
 
 ### 4. READ — write down what half a cent bought
 
@@ -194,6 +195,48 @@ button.
 3. **SPREAD and LADDER as buttons** on a set, not scripts.
 4. Wiring the existing rooms to read a set instead of their own box.
 
+## The walkthrough — the road actually walked, for 12¢
+
+Sophie asked to be walked through this with an example rather than told about
+it (Aug 2026), so it was **run**: one idea, *Too much to carry*, round the lap
+twice, then spread into a second style, then one rung up the ladder.
+
+- `docs/pipeline-walkthrough.json` — every prompt, in order, plus the findings
+  written at each READ stop. The words are data, so the page and the reply
+  quote what was really sent.
+- `scripts/pipeline-walkthrough.js <run-id>` — runs one stop. Reuses `slice()`
+  and `HOUSE.grid(2,2)`; its two style recipes are copies of
+  `style-triptych-sheet.js`'s, so a picture made here stays comparable with the
+  style pages on the shelf.
+- `scripts/build-walkthrough-page.js` — builds the Compare page out of the
+  manifests, so nothing on it is written from memory.
+- The page: `/api/chatfeed/page/CQlLvkTABdpEGW7puKem`.
+
+**What the walk actually taught, and none of it was guessable:**
+
+- **Round 1 drew four people coping.** The idea was *too much* to carry and
+  every cell came back calm and upright — because the prompt named the subject
+  and never named the failure. It also drew the same woman at the same angle
+  four times, and handed the laundry a **basket nobody asked for**, which
+  tidies away the precariousness that was the whole point.
+- **Round 2 fixed it by naming the failure instead of the subject** — the stack
+  tipping, the bag splitting, the face covered — and the four cells came back
+  unrecognisably better for the same 2¢.
+- **At half a cent, ask for BIG visible things.** The one instruction round 2
+  lost was "one foot feeling for the next step he cannot see": a small hidden
+  action does not survive a ~510px cell. A tipping mass, a spill, a covered
+  face all do.
+- **A rung up the ladder RE-DRAWS the picture, it does not enlarge it.** The
+  medium solo of the winning prompt came back with a different composition —
+  she stands beside the stack rather than hidden behind it — and a real
+  expression the quarter-sheet could not hold. So the ladder is for the
+  PROMPT, never for a particular picture you fell in love with. Anything you
+  actually want kept has to be in the words.
+- **The spread is the cheapest thing on the road and it reads that way.** The
+  same four prompts in the pastel recipe, nothing else changed, 2¢ — a
+  different world, and arguably more legible at cell size than the watercolour,
+  because flat bold shapes survive being small better than wet line does.
+
 ## Icons — drawn on the pipeline's own cheapest rung
 
 The four-up stop needs an icon that is not the four-pane window. Four candidates
@@ -207,5 +250,10 @@ demonstrating its own first stop:
 4. scissors cutting down the middle gutter of a sheet of four
 
 Job `sh-mstwaqid-bnejd`; the cut-outs and SVGs are in Storage under
-`vector/sh-mstwaqid-bnejd/`. Whichever Sophie picks replaces `window` in
-`ART.fourup` in the map.
+`vector/sh-mstwaqid-bnejd/` and archived in `out/pipeline-icons/`.
+
+**Sophie picked #2, the stamps** (Aug 2026). It is published into the family's
+own prefix as `vector/pipeline-icons-cut/stamps-cut.png` + `.webp` so anything
+else can use it, and the map reads the webp. The other three are kept on the
+map's Holes tab rather than deleted — a rejected option is the cheapest thing
+on file, which is the morgue idea in miniature.
