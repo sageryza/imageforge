@@ -1,0 +1,227 @@
+// chat-sort.js — chats file THEMSELVES into her category folders.
+//
+// Sophie, 2026-08-15: "right now I've been manually sorting all my chats, but
+// I just realized that they could sort themselves in the chats app and that
+// could be like a start of turn or end of turn activity. right now I have lots
+// of different categories. one is called Meta, which is about chats issues —
+// this one would be a Meta chat because we're trying to solve issues within
+// the chats app."
+//
+// WHY THE SERVER DOES IT AND NOT THE CHAT. Her sentence says "start of turn or
+// end of turn", which reads as the chat posting its own category the way it
+// posts its status card. That is exactly the design that has already failed
+// here twice, and it is measured, not guessed: **15 of 224 chats had ever
+// posted an Update card**, which is why the Questions button was built DERIVED
+// instead of filed. A chat-declared category would be empty for 93% of her
+// chats for the same reason, and the ones it missed would be the sleeping ones
+// she most wants sorted. So this reads the thread the feed ALREADY stores and
+// decides server-side, at the end of a turn — the moment she named, reached
+// through the door every chat already walks through (POST /api/chatfeed), with
+// nothing to install and nothing for a chat to remember.
+//
+// THREE RULES, and they are all about not taking something away from her:
+//
+//   1. HER FILING IS FINAL. `catBy` records who filed a chat. Anything filed
+//      from the app is hers (the default — her phone caches the page for days,
+//      so a provenance flag only a NEW build sends would mark her own filing
+//      as automatic; the safe direction is that everything is hers unless the
+//      sorter says otherwise). The sorter only ever writes into an empty
+//      field or over its OWN earlier answer, so one tap from her locks a chat
+//      forever.
+//   2. NONE IS A REAL ANSWER. Filing takes a chat OFF her main list, so a
+//      wrong file HIDES something. An unfiled chat costs her nothing. The
+//      model is told to answer none whenever it isn't clear, and none does not
+//      lock anything — the chat is simply looked at again tomorrow.
+//   3. NEVER INVENT A FOLDER. The vocabulary is hers, read live off the
+//      registry, and the answer must be one of her names or none. A new folder
+//      is a thing she makes.
+//
+// THE VOCABULARY IS TAUGHT BY HER OWN FILING. Each folder is described to the
+// model by the chats she has already put in it (measured 2026-08-15: 96 chats
+// filed across 9 folders), so it learns "witch" and "meta" the way she uses
+// them rather than the way the words sound — and a folder she invents next
+// month starts working as soon as she files two chats into it, with no code
+// change and nothing to describe.
+//
+// TWO OF HER FOLDERS ARE OFF LIMITS. "look at" and "come back to" say WHEN she
+// wants something, not what it is. Nothing outside her head can know that a
+// chat is one she means to come back to, and guessing would bury real work in
+// a to-do folder. The sorter never files into them; she still can.
+
+// Her WHEN folders — see above. Matched case-insensitively.
+const TRIAGE = ['look at', 'come back to'];
+
+// A chat needs enough thread to be about something. Under this the honest
+// answer is almost always none, so the call is not worth making.
+const MIN_MESSAGES = 3;
+
+// How long an unsorted chat rests before it is looked at again. A chat that
+// answers none does so because it is thin or genuinely miscellaneous; asking
+// again at the end of its every turn would bill her for the same no all day.
+const RETRY_MS = 24 * 60 * 60 * 1000;
+
+// The `filedAt` a live sort writes when she has never spoken in the chat: a
+// stamp older than anything, so the chat is in its folder AND on the main list
+// (see filedStamp). Deliberately visible in the data rather than a magic empty
+// — a MISSING filedAt means "not filed" and would make the chat vanish.
+const BEFORE_EVERYTHING = '1970-01-01T00:00:00.000Z';
+
+const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
+const isTriage = (c) => TRIAGE.includes(norm(c));
+
+/**
+ * The folders the sorter may choose from: the names she has made (`__settings`
+ * .categories) plus any name in use on a chat, minus the triage pair.
+ *
+ * Read live rather than hard-coded, because `CAT_SEEDS` in chats.html is only
+ * the two she started with and she has nine now.
+ */
+function sortableCategories(settings, chats) {
+  const out = [];
+  const add = (c) => {
+    const v = String(c || '').trim();
+    if (!v || isTriage(v)) return;
+    if (!out.some((x) => norm(x) === norm(v))) out.push(v);
+  };
+  ((settings && settings.categories) || []).forEach(add);
+  Object.keys(chats || {}).forEach((n) => add((chats[n] || {}).category));
+  return out;
+}
+
+/**
+ * What each folder MEANS, in her own filing: up to `per` chat names she has
+ * put there herself.
+ *
+ * Only chats SHE filed teach the vocabulary (`catBy !== 'auto'`). Feeding the
+ * sorter's own answers back in would let one early mistake become the
+ * definition of a folder — the model would see it as an example and file more
+ * like it, and nothing would ever pull it back.
+ */
+function examplesFor(chats, cats, per = 8) {
+  const out = {};
+  cats.forEach((c) => { out[c] = []; });
+  Object.keys(chats || {}).forEach((n) => {
+    const reg = chats[n] || {};
+    if (!reg.category || reg.catBy === 'auto' || reg.deletedAt) return;
+    const hit = cats.find((c) => norm(c) === norm(reg.category));
+    if (!hit || out[hit].length >= per) return;
+    out[hit].push(String(reg.displayName || n).slice(0, 60));
+  });
+  return out;
+}
+
+/**
+ * Is this chat the sorter's business right now?
+ *
+ * Pure, and every no is named, so a chat that never gets sorted can be asked
+ * why in one call instead of guessed at.
+ */
+function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } = {}) {
+  const r = reg || {};
+  if (!enabled) return { sort: false, why: 'off' };
+  if (r.deletedAt) return { sort: false, why: 'deleted' };
+  // An archived chat is finished; she has already read it and moved on. Sorting
+  // it spends money on a row she is not looking at.
+  if (r.archived) return { sort: false, why: 'archived' };
+  if (r.category) {
+    return r.catBy === 'auto'
+      ? { sort: false, why: 'already-sorted' }
+      : { sort: false, why: 'hers' };           // rule 1 — one tap locks it
+  }
+  if (messages < MIN_MESSAGES) return { sort: false, why: 'too-thin' };
+  const tried = Date.parse(r.catTriedAt || '');
+  if (!isNaN(tried) && now - tried < RETRY_MS) return { sort: false, why: 'cooling-off' };
+  return { sort: true, why: 'sortable' };
+}
+
+/**
+ * The `filedAt` stamp for a LIVE sort — and the whole reason auto-sorting does
+ * not swallow the answer it was triggered by.
+ *
+ * `filedAt` is what the app's pop-out reads: a chat rejoins the main list when
+ * a reply lands AFTER it ("it's been a problem when chats are in stories and
+ * they don't pop out back into the main list when they're done"). A sort runs
+ * at the end of a turn, so stamping NOW would mean the chat filed itself the
+ * instant it finished answering her and dropped off the list she reads. So it
+ * is stamped at HER last message instead — "filed as of when she last spoke" —
+ * and the reply that just landed pops it straight back out. She sees the
+ * answer on her main list exactly as before, and the folder gains a member.
+ *
+ * A BACKFILL passes its own stamp (now) on purpose: those are old chats she
+ * would have filed by hand, and filing by hand means "out of my way today".
+ */
+function filedStamp(reg) {
+  const r = reg || {};
+  return r.lastHerAt || BEFORE_EVERYTHING;
+}
+
+// The thread, cheaply. The OPENING says what the chat is for and the CLOSING
+// says what it became — the long middle is the work, which costs tokens
+// without moving the answer. Same shape as the archive summary's digest, so a
+// 300-message chat bills like a short one.
+function digestOf(msgs, { head = 2, tail = 4, per = 400, cap = 4000 } = {}) {
+  const list = (msgs || []).map((m) => (m.from === 'sophie' ? 'Sophie: ' : 'Chat: ')
+    + String((m && m.text) || '').replace(/\s+/g, ' ').slice(0, per)).filter((s) => s.length > 8);
+  const a = list.slice(0, head);
+  const b = list.length > head ? list.slice(-tail) : [];
+  return (a.join('\n\n') + (b.length ? '\n\n[…]\n\n' + b.join('\n\n') : '')).slice(0, cap);
+}
+
+const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone.
+
+Return JSON: {"category": "...", "why": "..."}
+
+"category": EXACTLY one of the folder names you are given, copied character for character, or "none".
+"why": under 90 characters, plain, what the chat is actually about. Never a sales pitch for the folder you picked.
+
+The folders are hers. You are matching a chat to how SHE already uses them — the chats she has filed in each one are the definition, not the words in the name. Never invent a folder, never merge two, never answer with a name that is not on the list.
+
+Answer "none" whenever it is not clear. Filing a chat takes it off the main list where she looks for things, so a wrong folder hides real work, while an unfiled chat costs her nothing and gets looked at again tomorrow. A chat that spans two folders, a chat that is mostly her thinking out loud, a one-off question, a thread too short to have a subject — all "none". Being unsure is the ordinary case, not a failure.`;
+
+/**
+ * The call, as text. Split out from the network so the whole decision is
+ * testable without a key.
+ */
+function buildSortPrompt({ name, reg, msgs, cats, examples }) {
+  const r = reg || {};
+  const ex = examples || {};
+  const folders = (cats || []).map((c) => {
+    const list = (ex[c] || []).map((n) => '"' + n + '"');
+    return '- ' + c + (list.length
+      ? ' — she has filed: ' + list.join(', ')
+      : ' — (she has not filed anything here yet; go by the name alone, and prefer none)');
+  }).join('\n');
+  const bits = [
+    'Chat name: ' + String(r.displayName || name || '').slice(0, 80),
+  ];
+  // Everything the registry already knows about the chat, free. Her own note
+  // is the strongest single signal there is — it is what she calls the thing.
+  if (r.sophieNote) bits.push("Sophie's note on it: " + String(r.sophieNote).slice(0, 200));
+  if (r.statusDoing) bits.push('What it says it is doing: ' + String(r.statusDoing).slice(0, 200));
+  if (r.statusNeed) bits.push('What it says it needs: ' + String(r.statusNeed).slice(0, 200));
+  if (r.wrapLine) bits.push('Its wrap-up line: ' + String(r.wrapLine).slice(0, 200));
+  const user = 'Sophie\'s folders, and the chats she filed in each:\n' + folders
+    + '\n\n---\n\n' + bits.join('\n')
+    + '\n\nThe conversation:\n\n' + digestOf(msgs);
+  return { system: SORT_SYS, user };
+}
+
+/**
+ * Read the model's answer back into one of her folder names.
+ *
+ * Case- and whitespace-tolerant on the way in (the model echoes "Meta" for
+ * "meta"), but the value RETURNED is always her spelling, because that string
+ * is the key every chip, count and filter on the page joins on.
+ */
+function pickCategory(out, cats) {
+  const raw = norm(out && typeof out === 'object' ? out.category : out);
+  if (!raw || raw === 'none' || raw === 'null' || raw === 'unfiled') return '';
+  const hit = (cats || []).find((c) => norm(c) === raw);
+  return hit || '';                       // rule 3 — anything invented is a no
+}
+
+module.exports = {
+  TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
+  sortableCategories, examplesFor, shouldAutoSort, filedStamp,
+  digestOf, buildSortPrompt, pickCategory,
+};

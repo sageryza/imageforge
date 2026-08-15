@@ -72,6 +72,7 @@ const fetch = require('node-fetch');
 const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
+const chatSort = require('./chat-sort');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -766,7 +767,21 @@ router.post('/', async (req, res) => {
           pushBody(doc.text, doc.tldr).slice(0, 240), { debounce: false });
       } catch (e) { /* push must never fail a post */ }
     }
+    // END OF TURN: the chat files itself (Aug 2026 — "that could be a start of
+    // turn or end of turn activity"). END, not start: at the start of a turn
+    // the newest thing in the thread is her message and the turn's work hasn't
+    // happened yet, so the sorter would be judging a chat by what it was
+    // BEFORE the thing she just asked for. A finished reply is the moment the
+    // chat is most itself.
+    //
+    // Fire-and-forget by contract, exactly like the push above: it runs after
+    // the response, and nothing it does — a model outage, a missing key, a
+    // Firestore error — can fail a chat's reply. A draft is mid-turn and never
+    // triggers it.
     res.json({ ok: true, id: msgId });
+    if (!working) {
+      sortChat(doc.chat).catch(() => { /* sorting must never fail a post */ });
+    }
   } catch (err) { fail(res, err); }
 });
 
@@ -1511,8 +1526,16 @@ router.post('/category', async (req, res) => {
       // straight back on the main list and read as filing not working. A chat
       // taken out of every folder loses the stamp with the category.
       const stamp = category ? new Date().toISOString() : del;
+      // WHO FILED IT (Aug 2026, with auto-sorting — see chat-sort.js). This
+      // route is HER hand: the app is the only thing that calls it, and the
+      // auto-sorter writes its own field directly. So everything through here
+      // is stamped `sophie` and the sorter will never touch that chat again.
+      // Deliberately NOT a flag the page has to send: her phone runs a cached
+      // page for days, so a new-build-only flag would leave her own filing
+      // looking automatic and open to being overwritten.
       const batch = db().batch();
-      names.forEach((n) => batch.set(regRef(n), { category: val, filedAt: stamp }, { merge: true }));
+      names.forEach((n) => batch.set(regRef(n),
+        { category: val, filedAt: stamp, catBy: category ? 'sophie' : del }, { merge: true }));
       await batch.commit();
     }
     if (category) {
@@ -1520,6 +1543,117 @@ router.post('/category', async (req, res) => {
         { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
     }
     res.json({ ok: true, chats: names, category: category || null });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- AUTO-SORTING: a chat files ITSELF (Aug 2026, Sophie) ------------------
+// "I've been manually sorting all my chats, but they could sort themselves in
+// the chats app, and that could be a start of turn or end of turn activity."
+//
+// The rules, the vocabulary and every judgment live in `chat-sort.js` — read
+// its header first, especially why this is derived server-side instead of
+// posted by each chat (measured: 15 of 224 chats ever posted an Update card).
+// This half is the reads, the writes and the money.
+//
+// COST AND WHEN IT SPENDS. One small Claude call — the chat's name, her note,
+// its status card, and a head+tail digest of the thread — so well under a cent
+// each. It is asked at most once per chat per day (`catTriedAt`), never for a
+// chat that already has a folder, and the whole registry gate is answered off
+// the CACHED registry read, so the ordinary finished reply spends nothing and
+// reads nothing extra. Only a chat that is genuinely unsorted pays for its
+// thread read.
+async function sortChat(chat, { force = false, dry = false, stampNow = false } = {}) {
+  const anthropic = require('./anthropic');
+  const target = await followMoves(chat);
+  const reg = await registry();
+  const mine = reg.chats[target] || {};
+  if (!reg.chats[target]) return { chat: target, sorted: false, why: 'no-such-chat' };
+  // A global off switch with no UI: one field on __settings, so auto-sorting
+  // can be stopped dead without a deploy if it ever files something wrong.
+  const enabled = reg.settings.autoSort !== false;
+  // TWO GATES, cheap one first. This one reads only the registry (cached), so
+  // a chat that is already filed — the common case — costs nothing at all.
+  // `messages: Infinity` skips the thin-thread test, which needs a real read.
+  const pre = force
+    ? { sort: true, why: 'forced' }
+    : chatSort.shouldAutoSort(mine, { messages: Infinity, enabled });
+  if (!pre.sort) return { chat: target, sorted: false, why: pre.why };
+  if (!anthropic.available()) return { chat: target, sorted: false, why: 'no-anthropic-key' };
+
+  const cats = chatSort.sortableCategories(reg.settings, reg.chats);
+  if (!cats.length) return { chat: target, sorted: false, why: 'no-folders' };
+
+  const snap = await db().collection(MSGS).where('chat', '==', target).get();
+  const msgs = snap.docs.map((d) => d.data())
+    .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+  // …and the second gate, now that the thread is in hand.
+  const gate = force
+    ? { sort: true, why: 'forced' }
+    : chatSort.shouldAutoSort(mine, { messages: msgs.length, enabled });
+  if (!gate.sort) return { chat: target, sorted: false, why: gate.why };
+
+  const examples = chatSort.examplesFor(reg.chats, cats);
+  const { system, user } = chatSort.buildSortPrompt({ name: target, reg: mine, msgs, cats, examples });
+  let out;
+  try { out = await anthropic.chatJSON({ system, user, maxTokens: 300 }); }
+  catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
+  const pick = chatSort.pickCategory(out, cats);
+  const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (dry) return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why };
+
+  const now = new Date().toISOString();
+  // NONE writes nothing but the cooldown — no folder, no filedAt, no trace on
+  // any surface she looks at. The chat stays exactly where it was and is asked
+  // about again tomorrow, which is what makes "none" cheap enough to prefer.
+  const patch = { catTriedAt: now };
+  if (pick) {
+    patch.category = pick;
+    patch.catBy = 'auto';
+    patch.catWhy = why;          // why it went there — for her and for an audit
+    patch.catSortedAt = now;
+    // A BACKFILL stamps now (she would have filed these by hand today); a LIVE
+    // sort stamps her last message, so the reply that triggered it still pops
+    // the chat back onto the main list. chat-sort.js's filedStamp is the rule.
+    patch.filedAt = stampNow ? now : chatSort.filedStamp(mine);
+  }
+  await regRef(target).set(patch, { merge: true });
+  return { chat: target, sorted: Boolean(pick), category: pick || null, why: pick ? 'sorted' : 'none',
+    reason: why };
+}
+
+// Sort ONE chat on demand — what the backfill script drives, and the only way
+// to see the decision without taking it (`dry:true` answers with the folder it
+// would pick and changes nothing).
+router.post('/sort', async (req, res) => {
+  try {
+    const { chat, session, force, dry, stampNow } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const resolved = await resolveChat(String(chat).slice(0, 60), String(session || '').slice(0, 120));
+    res.json(await sortChat(resolved, { force: Boolean(force), dry: Boolean(dry), stampNow: Boolean(stampNow) }));
+  } catch (err) { fail(res, err); }
+});
+
+// What the sorter is working with — her folder vocabulary, the examples each
+// one teaches, and the counts. A READ, so it is the safe way to check the
+// machinery is live (never probe a write against real data).
+router.get('/sort', async (_req, res) => {
+  try {
+    const reg = await registry();
+    const cats = chatSort.sortableCategories(reg.settings, reg.chats);
+    const examples = chatSort.examplesFor(reg.chats, cats);
+    const names = Object.keys(reg.chats).filter((n) => !reg.chats[n].deletedAt);
+    const counted = (f) => names.filter(f).length;
+    res.json({
+      enabled: reg.settings.autoSort !== false,
+      anthropic: require('./anthropic').available(),
+      categories: cats,
+      triage: chatSort.TRIAGE,
+      examples,
+      chats: names.length,
+      filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
+      filedByAuto: counted((n) => reg.chats[n].category && reg.chats[n].catBy === 'auto'),
+      unfiled: counted((n) => !reg.chats[n].category),
+    });
   } catch (err) { fail(res, err); }
 });
 
