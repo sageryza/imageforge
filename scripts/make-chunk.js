@@ -30,6 +30,15 @@ admin.initializeApp({
   credential: admin.credential.cert(svc),
   storageBucket: `${svc.project_id}.firebasestorage.app`,
 });
+// The story app too, when its key is around — the Evan films and every other
+// story film live in membry, and a chunk's source is read from ITS bucket.
+if (process.env.STORY_FIREBASE_SERVICE_ACCOUNT) {
+  const story = JSON.parse(process.env.STORY_FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({
+    credential: admin.credential.cert(story),
+    storageBucket: `${story.project_id}.firebasestorage.app`,
+  }, 'story');
+}
 
 const clips = require('../clips');
 

@@ -317,6 +317,24 @@ function chunkGraph(start, end, withAudio) {
   return parts.join(';');
 }
 
+// A chunk's SOURCE can live in EITHER project — the Evan films sit in
+// membry's story/films/, the studio's own shorts in deckfactory — and a
+// credential for one cannot read the other. So the bucket is resolved FROM
+// THE URL across every initialized admin app (the asset-hash rule), never
+// assumed to be ours. The BAKED file and poster always land in the default
+// (deckfactory) bucket — the library's home.
+function bucketForUrl(url) {
+  const ref = storageRef(url);
+  if (!ref) return null;
+  const project = (b) => String(b || '').replace(/\.(firebasestorage\.app|appspot\.com)$/, '');
+  for (const app of admin.apps) {
+    if (project((app.options || {}).storageBucket) === project(ref.bucket)) {
+      try { return app.storage().bucket(ref.bucket); } catch { /* next app */ }
+    }
+  }
+  return null;
+}
+
 // Download the source via the Admin SDK (never hand ffmpeg the url — the
 // sandbox proxy lesson), bake the span into its own file, cut its poster,
 // finish the doc. Runs fire-and-forget on the chunk's own doc.
@@ -332,10 +350,13 @@ async function bakeChunk(id) {
     if (!bucket) throw new Error('Firebase Storage not configured');
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg/ffprobe unavailable');
     const sref = storageRef(doc.source.url);
-    if (!sref || sref.bucket !== bucket.name) throw new Error('source must live in this project\u2019s bucket');
+    const srcBucket = bucketForUrl(doc.source.url);
+    if (!sref || !srcBucket) {
+      throw new Error('no credential can read that source bucket — is STORY_FIREBASE_SERVICE_ACCOUNT set?');
+    }
     const ext = (VIDEO_RE.exec(sref.path) || [null, 'mp4'])[1];
     const local = path.join(tmpDir, `src.${ext}`);
-    await bucket.file(sref.path).download({ destination: local });
+    await srcBucket.file(sref.path).download({ destination: local });
 
     const probe = await run(FFPROBE, ['-v', 'error', '-show_entries',
       'format=duration:stream=codec_type', '-of', 'json', local], 120000);
@@ -776,7 +797,7 @@ module.exports = {
   // pure pieces, for the tests and the CLI
   normalize, parseClipQuery, matchClip, clipHay,
   sweepVerdict, titleFromPath, prettify, mergeClip, clean, clipId,
-  chunkId, buildChunkDoc, chunkGraph, bakeChunk, MAX_CHUNK_SECONDS,
+  chunkId, buildChunkDoc, chunkGraph, bakeChunk, bucketForUrl, MAX_CHUNK_SECONDS,
   gatherFromMovies, gatherFromQuick, gatherFromSweep,
   runHarvest, startHarvest,
   SKIP_PREFIXES, MAX_CLIP_SECONDS, MAX_SWEEP_BYTES,

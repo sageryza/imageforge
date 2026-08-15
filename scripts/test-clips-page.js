@@ -49,6 +49,8 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   const pg = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = [];
   pg.on('pageerror', (e) => errs.push(String(e.message)));
+  // The main checks run with the tour already seen; the tour has its own pass below.
+  await pg.addInitScript(() => localStorage.setItem('clips.tourSeen', '1'));
 
   await pg.goto(BASE + '/chunking?embed=1', { waitUntil: 'domcontentloaded' });
   await pg.waitForFunction(() => document.querySelectorAll('#shelf .clip').length > 0
@@ -134,6 +136,32 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
     'closing restores the scroll to the exact spot');
   ok(await pg.locator('#lbVideo').evaluate((el) => !el.getAttribute('src')),
     'and tears the video down so the download stops');
+
+  // ── the tour: first visit offers it, Skip remembers, tap-through works ──
+  const pg2 = await b.newPage({ viewport: { width: 390, height: 844 } });
+  await pg2.goto(BASE + '/chunking?embed=1', { waitUntil: 'domcontentloaded' });
+  await pg2.waitForFunction(() => !document.getElementById('tourAsk').hidden, null, { timeout: 15000 })
+    .catch(() => {});
+  ok(await pg2.locator('#tourAsk').isVisible(), 'a first visit offers the tour');
+  ok(await pg2.locator('#tourSkip').textContent() === 'Skip tutorial', 'with a Skip tutorial button');
+  await pg2.locator('#tourGo').click();
+  await pg2.waitForTimeout(150);
+  ok(await pg2.locator('#tour').isVisible() && await pg2.locator('#tourAsk').isHidden(),
+    'Show me dims the page and spotlights the first control');
+  ok(/Search everything/.test(await pg2.locator('#tourText').textContent()),
+    'the first tip is the search bar');
+  ok(await pg2.evaluate(() => document.body.style.overflow === 'hidden'),
+    'the page behind the tour is locked');
+  const nTips = await pg2.evaluate(() => 4);
+  for (let i = 0; i < nTips; i++) { await pg2.locator('#tour').click(); await pg2.waitForTimeout(120); }
+  ok(await pg2.locator('#tour').isHidden(), 'tapping through the tips ends the tour');
+  ok(await pg2.evaluate(() => document.body.style.overflow === ''), 'and unlocks the page');
+  ok(await pg2.evaluate(() => localStorage.getItem('clips.tourSeen') === '1'),
+    'the tour is remembered — it never nags twice');
+  await pg2.reload({ waitUntil: 'domcontentloaded' });
+  await pg2.waitForTimeout(1200);
+  ok(await pg2.locator('#tourAsk').isHidden(), 'a return visit goes straight to the shelf');
+  await pg2.close();
 
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs[0] : ''));
   await b.close();
