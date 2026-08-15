@@ -69,6 +69,66 @@ function cuts(profile, n, span) {
   return [0, ...out, span];
 }
 
+// THE BOUNDING BOX OF THE DRAWING, IGNORING ISOLATED SPECKS.
+//
+// A plain trim takes the box of everything non-white, so a single stray pen
+// tick anywhere in the cell stretches the box to reach it. The subject then
+// sits off-centre AND is drawn smaller, because it occupies less of its square.
+// Sophie spotted both on the beet and the radish; the beet's cause was one
+// faint mark in the top-right corner, well inside its own half, so the gutter
+// cut could never have caught it.
+//
+// So: find the connected blobs of ink and drop the ones too small to be part
+// of the drawing, then box what remains. Runs on a downscaled mask — a speck
+// that survives an 8x reduction is real ink, and it keeps the flood fill cheap.
+async function inkBox(cellBuf) {
+  const W0 = (await sharp(cellBuf).metadata()).width;
+  const S = Math.max(1, Math.round(W0 / 256));                 // scale factor
+  const { data, info } = await sharp(cellBuf).resize({ width: Math.round(W0 / S) })
+    .greyscale().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  const ink = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) ink[i] = data[i] < 235 ? 1 : 0;
+
+  // Iterative flood fill (a recursive one blows the stack on a big blob).
+  const seen = new Uint8Array(W * H);
+  const MIN = Math.max(6, Math.round(W * H * 0.0004));         // speck threshold
+  let bx0 = W, by0 = H, bx1 = -1, by1 = -1;
+  const stack = [];
+  for (let s = 0; s < W * H; s++) {
+    if (!ink[s] || seen[s]) continue;
+    stack.push(s); seen[s] = 1;
+    let n = 0, x0 = W, y0 = H, x1 = -1, y1 = -1;
+    while (stack.length) {
+      const p = stack.pop(), px = p % W, py = (p / W) | 0;
+      n++;
+      if (px < x0) x0 = px; if (px > x1) x1 = px;
+      if (py < y0) y0 = py; if (py > y1) y1 = py;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const qx = px + dx, qy = py + dy;
+          if (qx < 0 || qy < 0 || qx >= W || qy >= H) continue;
+          const q = qy * W + qx;
+          if (ink[q] && !seen[q]) { seen[q] = 1; stack.push(q); }
+        }
+      }
+    }
+    if (n < MIN) continue;                                     // a speck, not the drawing
+    if (x0 < bx0) bx0 = x0; if (x1 > bx1) bx1 = x1;
+    if (y0 < by0) by0 = y0; if (y1 > by1) by1 = y1;
+  }
+  const full = (await sharp(cellBuf).metadata());
+  if (bx1 < 0) return { left: 0, top: 0, width: full.width, height: full.height };
+  const pad = 2;                                               // a hair back, in mask pixels
+  const left = Math.max(0, (bx0 - pad) * S);
+  const top = Math.max(0, (by0 - pad) * S);
+  return {
+    left, top,
+    width: Math.min(full.width - left, (bx1 - bx0 + 1 + pad * 2) * S),
+    height: Math.min(full.height - top, (by1 - by0 + 1 + pad * 2) * S),
+  };
+}
+
 (async () => {
   const meta = await sharp(sheet).metadata();
   // Ink profiles along each axis: a line counts as blank only if NOTHING on it
@@ -93,8 +153,9 @@ function cuts(profile, n, span) {
       .extract({ left: xs[col], top: ys[row], width: xs[col + 1] - xs[col], height: ys[row + 1] - ys[row] })
       .toBuffer();
 
-    const trimmed = await sharp(cell).trim({ threshold: 12 }).toBuffer();
-    const tm = await sharp(trimmed).metadata();
+    const crop = await inkBox(cell);
+    const trimmed = await sharp(cell).extract(crop).toBuffer();
+    const tm = { width: crop.width, height: crop.height };
     const side = Math.max(tm.width, tm.height);
     const pad = Math.round(side * 0.10);
     const box = side + pad * 2;

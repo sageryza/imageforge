@@ -27,11 +27,18 @@ const RETIRED = new Set(['27-dragonfruit']);
 // Oldest first — a later record replaces an earlier one with the same id.
 // v3 carries the cherimoya redrawn cut-open (it read as an artichoke whole)
 // plus mulberries and kumquat, the two Sophie asked for.
-const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json', 'fruit-chart/v3-uploaded.json'];
+// hq- carries the ones re-rendered at HIGH quality for their own sake, not to
+// fix anything — Sophie picking favourites she wants drawn better.
+const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json',
+  'fruit-chart/v3-uploaded.json', 'fruit-chart/hq-uploaded.json'];
 // v2 is the same 28 vegetables RECUT at the gutter rather than the midpoint —
 // the even split put a fragment of the neighbour in some cards and knocked the
 // subject off-centre (see the note in fruit-cut.js).
-const VEG_SOURCES = ['fruit-chart/veg-uploaded.json', 'fruit-chart/veg-v2-uploaded.json'];
+// v3 re-trims every card ignoring isolated specks: one stray tick was
+// stretching the box, so the subject sat off-centre and small inside its square
+// (Sophie spotted it on the beet and the radish).
+const VEG_SOURCES = ['fruit-chart/veg-uploaded.json', 'fruit-chart/veg-v2-uploaded.json',
+  'fruit-chart/veg-v3-uploaded.json'];
 
 // `next` sends them straight from one deck into the other when they finish
 // (Sophie: "there could be a button to take the vegetables quiz"). It names the
