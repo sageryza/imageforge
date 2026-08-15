@@ -1,0 +1,14 @@
+[
+ {
+  "id": "esb-card-brother",
+  "likeness": "The SECOND attached image is a drawing of two people at a table; the person to draw is the man on the right, in the baseball cap.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer. No text or lettering anywhere.",
+  "refs": ["/home/user/out/el-salvador-bar/esb-01-wide.webp"]
+ },
+ {
+  "id": "esb-card-sister",
+  "likeness": "The SECOND attached image is a drawing of two people at a table; the person to draw is the woman on the left, with her dark hair up.",
+  "scene": "a head-and-shoulders portrait of that person, facing the viewer. No text or lettering anywhere.",
+  "refs": ["/home/user/out/el-salvador-bar/esb-01-wide.webp"]
+ }
+]
