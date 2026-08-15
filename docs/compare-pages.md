@@ -310,15 +310,32 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   them — so a chat starting from the right file still copied the wrong shape.
   All three are corrected, and `POST /page` now answers a `warning` naming
   the eyebrow / the tagline.
-  **INSTRUCTIONS GO BEHIND A "?" — never down the top of the page (Aug 2026,
-  Sophie: "every chat seems to include a long list of instructions… if they
-  do want to put instructions they can put it behind a ? so I can tap it if I
-  don't know what's going on. That's a much better idea").** One line:
+  **ANYTHING TO READ GOES BEHIND A "?" — never down the top of the page (Aug
+  2026, Sophie: "every chat seems to include a long list of instructions… if
+  they do want to put instructions they can put it behind a ? so I can tap it
+  if I don't know what's going on. That's a much better idea").** One line:
   `window.__compareHelp({ html: '…' })` in `/compare.js` — the circle rides
   at the end of the title (the pill owns the top-right corner), the card is
   `position:fixed` so it can't push the page down under her finger, and any
   tap closes it. A judge page passes `help:` to `__judge`; a tool page uses
   tool.css's `#help`. Most pages need none at all.
+  **AND IT COVERS AN EXPLANATION SHE ASKED FOR — that is the one that keeps
+  getting through (Aug 2026).** The two-panel gallery shipped with two
+  paragraphs above the first row because she had said "at the top explain
+  briefly the idea behind this concept", and every written copy of this rule
+  said *no INSTRUCTIONS*: a premise, a finding or a summary is not an
+  instruction, so the paragraph read as exempt and her own words read as
+  overriding the rule. Neither is true. **The "?" card IS the top of the
+  page** — "explain it at the top" is an ask for the card. The rule is about
+  the SHAPE of the top of the page, never the genre of the text. Her asking
+  for an explanation changes what the card SAYS, not where it lives.
+  **`POST /page` enforces it now**, because three copies of the words did
+  not: more than 180 characters of `<p>` before the first picture comes back
+  as a warning naming `__compareHelp`. It only fires on a page that HAS
+  pictures — a transcript or a read-through is not what the rule is about —
+  and only counts prose before the first one, so per-item captions and the
+  folds under a row are untouched. Tests:
+  `node scripts/test-page-kit-warnings.js`.
   **TEXT BOXES SHIP EMPTY, and BUTTONS HUG THEIR WORDS (Aug 2026, Sophie).**
   No example text in a box, not even a `placeholder` ("I prefer nothing") —
   it belongs in the `?` card if anywhere. And "there's no reason to make

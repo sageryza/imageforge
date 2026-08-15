@@ -37,12 +37,18 @@ function sentences(text) {
   return out;
 }
 
-// A lead word only counts at the START of a sentence, and never as its
-// contraction: "Can't wait" and "Should be fine" are not questions, "Can you
-// build it" and "Should we do the blue one" are. The lookahead kills the
-// apostrophe forms; the word-count floor below kills the short assertions that
-// happen to open with one of these words.
-const LEAD = /^(what|why|how|when|where|who|which|whose|can|could|should|would|do|does|did|is|are)(?![\w'’])/i;
+// WITHOUT A QUESTION MARK, ONLY AN AUXILIARY COUNTS — never a wh-word
+// (measured 2026-08-14 against 466 real derived questions, after Sophie:
+// "most of them aren't even questions"). English inverts the auxiliary only to
+// ask, so "Can you make the dashes pink", "do we have a synchronicity lesson"
+// and "Are there some I can't see" are all questions with no mark on them. A
+// wh-word at the start of an unmarked sentence is usually a RELATIVE CLAUSE,
+// and in her dictated transcripts that is exactly what it was: "which I could
+// illustrate, like, a pretty big spider creeping up onto this" and "Which he
+// goaded himself into, but, um…" both landed in her list as questions. A real
+// wh-question still arrives through the question-mark path, which is where 339
+// of those 466 came from.
+const LEAD = /^(can|could|should|would|do|does|did|is|are)(?![\w'’])/i;
 // The case that made this necessary: "I'm wondering if this should be part of
 // the message or should be filed separately" — a real question with no question
 // mark anywhere in it (her own words, 2026-08-14).
@@ -53,14 +59,30 @@ const LEAD = /^(what|why|how|when|where|who|which|whose|can|could|should|would|d
 // that can also be spoken about a question is not a signal.
 const WONDER = /\b(i'?m wondering|i wonder|wondering (?:if|whether|about)|curious (?:if|whether|about)|can you tell me|do you know|any chance)\b/i;
 
+// A QUESTION MARK IS NOT ENOUGH ON ITS OWN. Her messages sometimes carry
+// pasted code and quoted spec, and a naive split turned those into "questions"
+// reading `?`, `char ?`, `, imageHistory?` and "}`; page api() helper
+// auto-injects `pad` into bodies / ?" — eight of them under one answer in the
+// Story Room chat (measured 2026-08-14). A question she would recognise as
+// hers is a sentence: several words, opening with a word.
+const MIN_WORDS = 4;
+function looksTyped(s) {
+  if (/[`{}=<>|]|\]\(/.test(s)) return false;         // code, markdown links
+  if (/^[^A-Za-z"'“]/.test(s)) return false;          // starts with punctuation
+  // Words, not tokens: `textContent = on ?` is four things separated by spaces
+  // and none of it is a sentence. (That one survived the first pass of this
+  // filter and showed up in her list.)
+  return s.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length >= MIN_WORDS;
+}
+
 function isQuestion(s) {
   const t = String(s || '').trim();
-  if (!t) return false;
+  if (!t || !looksTyped(t)) return false;
   if (/\?\s*$/.test(t)) return true;              // the easy, reliable case
   if (WONDER.test(t)) return true;
-  // A lead word with no question mark needs some length behind it, or every
-  // "Should be fine." lands in her list as a question she never asked.
-  if (LEAD.test(t) && t.split(/\s+/).length >= 4) return true;
+  // An auxiliary opening with no question mark. The word floor is already in
+  // looksTyped, and it is what keeps "Should be fine." out.
+  if (LEAD.test(t)) return true;
   return false;
 }
 
@@ -94,9 +116,18 @@ function boldBlocks(reply) {
 
 const STOP = new Set(['the', 'a', 'an', 'is', 'are', 'do', 'does', 'did', 'to', 'of', 'in', 'on',
   'it', 'this', 'that', 'and', 'or', 'be', 'i', 'you', 'we', 'my', 'me', 'so', 'if', 'for']);
+// A CRUDE STEM, because the exact word rarely survives the round trip: she
+// asked "can you make sure you're POSTING the chats up" and the answer says
+// "no turn from this repo has ever POSTED". Unstemmed those share nothing, and
+// that question scored zero against its own answer — which is how the ten-row
+// collapse first kept a transcript fragment instead of the real ask.
+function stem(w) {
+  return w.replace(/(ies)$/, 'y').replace(/(ing|ed|es|s)$/, (m, _g, i) => (i >= 3 ? '' : m));
+}
 function tokens(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
-    .filter((w) => w.length > 2 && !STOP.has(w));
+    .filter((w) => w.length > 2 && !STOP.has(w))
+    .map(stem);
 }
 
 // Which bold block answers THIS question. Token overlap rather than an exact
@@ -144,6 +175,50 @@ function answerFor(reply, tldr, question) {
   return raw.length > ANSWER_CAP ? raw.slice(0, ANSWER_CAP).trim() + '…' : raw;
 }
 
+// ---- One answer, one row --------------------------------------------------
+// SHE SENDS SEVERAL MESSAGES BEFORE A REPLY LANDS, and every question in that
+// run pairs with the same reply. Where that reply has no bold question blocks
+// there is only ONE answer to give, so the list showed it over and over —
+// measured 2026-08-14: 88 replies were answering more than one question with
+// identical text, and those groups alone occupied 267 of the 466 rows. Sophie:
+// "all of these questions have the same answer". The worst was ten rows of the
+// same paragraph.
+//
+// So a repeated answer keeps ONE question: the one the answer is most plausibly
+// about, by token overlap. On the ten-row group that picked "can you make sure
+// you're posting the chats up?" out of nine transcript fragments, which is
+// exactly the question that answer was written for.
+//
+// A reply written to the house rule is untouched by this — each bold block is a
+// DIFFERENT answer, so every question keeps its own row.
+function collapseSharedAnswers(list) {
+  const keep = new Set();
+  const groups = new Map();
+  list.forEach((q, i) => {
+    const key = (q.replyId || '#' + q.at) + ' ' + q.answer;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+  groups.forEach((idxs) => {
+    if (idxs.length === 1) { keep.add(idxs[0]); return; }
+    let best = idxs[0];
+    let bestScore = -1;
+    idxs.forEach((i) => {
+      const q = list[i];
+      const at = new Set(tokens(q.answer));
+      const qt = tokens(q.question);
+      const score = qt.length ? qt.filter((w) => at.has(w)).length / qt.length : 0;
+      // Ties go to the question asked LAST before the reply — the operative ask
+      // when nothing in the answer distinguishes them.
+      if (score > bestScore || (score === bestScore && (list[i].at || '') > (list[best].at || ''))) {
+        bestScore = score; best = i;
+      }
+    });
+    keep.add(best);
+  });
+  return list.filter((_, i) => keep.has(i));
+}
+
 // ---- The list -------------------------------------------------------------
 // `messages` = one chat's thread in any order; each { id, from, text, tldr,
 // created, working }. Her message is `from:'sophie'`; the answer is the next
@@ -177,7 +252,7 @@ function buildQuestions(messages) {
     });
   });
   // Newest first — the same order the thread reads in.
-  return out.reverse();
+  return collapseSharedAnswers(out.reverse());
 }
 
 // AN UNANSWERED QUESTION IS NOT SHOWN (Sophie, 2026-08-14: "it shouldn't have
@@ -191,4 +266,5 @@ function answeredOnly(list) {
   return (list || []).filter((q) => q && q.answer);
 }
 
-module.exports = { sentences, isQuestion, findQuestions, boldBlocks, matchBlock, answerFor, buildQuestions, answeredOnly };
+module.exports = { sentences, isQuestion, findQuestions, boldBlocks, matchBlock, answerFor,
+  collapseSharedAnswers, buildQuestions, answeredOnly };

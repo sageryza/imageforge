@@ -128,10 +128,7 @@ function row(r) {
 <title>${esc(TITLE)}</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
-  .idea { margin-bottom: 20px; }
-  .idea p { margin: 0 0 7px; font-size: 15px; line-height: 1.5; }
-  .idea p:last-child { margin-bottom: 0; }
-  .sect { font: 600 12.5px/1 -apple-system, sans-serif; letter-spacing: .09em;
+  .sect { margin-top: 4px; font: 600 12.5px/1 -apple-system, sans-serif; letter-spacing: .09em;
           text-transform: uppercase; color: var(--chg); margin: 26px 0 10px; }
   .trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
   .trio img { width: 100%; height: auto; border-radius: 6px; display: block; }
@@ -156,14 +153,6 @@ function row(r) {
 </style>
 <div class="wrap">
   <h1>${esc(TITLE)}</h1>
-
-  <div class="card idea">
-    <p><b>The idea.</b> One page, two panels, same scene and camera — panel 1 is the animation's
-    first frame, panel 2 its last. The page is sliced down the gutter and wan gets both halves, so
-    the clip has to travel between them instead of drifting.</p>
-    <p>It earns the second drawing only when panel 2 is a genuinely different picture. Everything
-    below is measured on one scale, pairs and single drawings alike.</p>
-  </div>
 
   <div class="sect">Two panels, animated between</div>
   ${PAIRS.map(row).join('\n')}
@@ -193,10 +182,17 @@ function row(r) {
     var open = window.__compareShell && window.__compareShell.openVideo;
     if (open) open(b.getAttribute('data-src'), b.getAttribute('data-poster'));
   });
-  window.__compareHelp({ html: '<b>Tap a drawing</b> to see it big, <b>tap a clip</b> to play it. ' +
-    '<b>"picture moved"</b> is measured, not remembered: every clip decoded the same way and scored ' +
-    'on how different its last frame is from its first. Same scale for all four projects, so the ' +
-    'numbers compare. <b>The + under each row</b> is a note.' });
+  window.__compareHelp({ html:
+    '<b>The idea.</b> One page, two panels, same scene and camera — panel 1 is the ' +
+    "animation's first frame, panel 2 its last. The page is sliced down the gutter and wan " +
+    'gets both halves, so the clip has to travel between them instead of drifting. It earns ' +
+    'the second drawing only when panel 2 is a genuinely different picture; where a single ' +
+    'drawing plus a written action would do, that is cheaper and looks better. Both are ' +
+    'below, measured on one scale.' +
+    '<br><br><b>Reading it.</b> Tap a drawing to see it big, tap a clip to play it. ' +
+    '<b>"picture moved"</b> is measured, not remembered: every clip decoded the same way and ' +
+    'scored on how different its last frame is from its first. Same scale for all four ' +
+    'projects, so the numbers compare. <b>The + under each row</b> is a note.' });
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(SHEET)} });
 })();
 </script>

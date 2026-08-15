@@ -66,6 +66,17 @@ const srv = http.createServer((req, res) => {
   await p.evaluate(() => { const x = document.querySelector('.cmp-vlb-x'); if (x) x.click(); });
   await p.waitForTimeout(300);
   await p.screenshot({ path: S + '/shot-top.png' });
+  // the "?" card carries the explanation now — open it and prove it is there
+  await p.evaluate(() => document.querySelector('.cmp-help').click());
+  await p.waitForTimeout(300);
+  const help = await p.evaluate(() => {
+    const c = document.querySelector('.cmp-helpcard');
+    return { open: !!c && !c.hasAttribute('hidden'), chars: c ? c.textContent.trim().length : 0 };
+  });
+  console.log('help card:', JSON.stringify(help));
+  await p.screenshot({ path: S + '/shot-help.png' });
+  await p.evaluate(() => document.body.click());
+  await p.waitForTimeout(200);
   await p.evaluate(() => window.scrollTo(0, 620));
   await p.waitForTimeout(400);
   await p.screenshot({ path: S + '/shot-row.png' });
