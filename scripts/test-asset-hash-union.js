@@ -304,6 +304,79 @@ t('storageRef resolves both projects and both url shapes', () => {
   assert.strictEqual(storageRef('https://storage.googleapis.com/onlybucket'), null);
 });
 
+/* ── 8. THE HASH VETO — proof beats a shared address ────────────────────── */
+t('same url, different md5: two pictures, two tiles', () => {
+  // A url is an ADDRESS, and an address can be re-pointed — a fixed storage
+  // path overwritten with new bytes leaves two records agreeing on the url and
+  // describing two different pictures. Measured 2026-08-16 across all 5,197
+  // asset records in every chat: 274 urls held by more than one record, ZERO
+  // with hashes that disagree. This is the guard, not a repair.
+  const v1 = assetRecord({
+    url: `${DECK}/vector/polaroids/sheet.png`, description: 'Polaroids v1',
+    md5: 'aaaa1111', created: '2026-08-14T10:00:00.000Z',
+  });
+  const v2 = assetRecord({
+    url: `${DECK}/vector/polaroids/sheet.png`, description: 'Polaroids v2 — redrawn',
+    md5: 'bbbb2222', created: '2026-08-16T10:00:00.000Z',
+  });
+  const out = tiles([v2, v1]);
+  assert.strictEqual(out.length, 2, 'differing bytes are two pictures, whatever the url says');
+  assert.deepStrictEqual(out.map((x) => x.description), ['Polaroids v2 — redrawn', 'Polaroids v1']);
+  assert.deepStrictEqual(out[0].alts, [], 'neither hides behind the other as an alt');
+});
+
+t('same url, different sha256: also two tiles', () => {
+  const a = assetRecord({ url: `${DECK}/tmp/out.png`, hash: 'sha-a', created: '2026-08-14T10:00:00.000Z' });
+  const b = assetRecord({ url: `${DECK}/tmp/out.png`, hash: 'sha-b', created: '2026-08-14T10:00:01.000Z' });
+  assert.strictEqual(tiles([a, b]).length, 2);
+});
+
+t('a hash-less record joins the copy it does not contradict', () => {
+  // The veto splits the url's group in two, so a third record carrying no hash
+  // must land on one of them rather than being dropped or merging both back.
+  const v1 = assetRecord({ url: `${DECK}/v/sheet.png`, md5: 'aaaa', created: '2026-08-14T10:00:00.000Z' });
+  const v2 = assetRecord({ url: `${DECK}/v/sheet.png`, md5: 'bbbb', created: '2026-08-14T10:00:01.000Z' });
+  const bare = assetRecord({
+    url: `${DECK}/v/sheet.png`, description: 'The sheet', created: '2026-08-14T10:00:02.000Z',
+  });
+  const out = tiles([v1, v2, bare]);
+  assert.strictEqual(out.length, 2, 'still two pictures — the bare copy joins one of them');
+  const labeled = out.filter((x) => x.description === 'The sheet');
+  assert.strictEqual(labeled.length, 1, 'the label lands on exactly one tile');
+});
+
+t('the veto never breaks the case this module exists for', () => {
+  // The two-paths-one-picture join is on the md5 itself — proof, pass 1 — so
+  // nothing about the veto can touch it.
+  const labeled = assetRecord({
+    url: `${DECK}/art/p.png`, description: 'P', md5: 'same', created: '2026-08-14T10:00:00.000Z',
+  });
+  const twin = assetRecord({
+    url: `${MEMBRY}/claude-deliveries/9z.png`, prompt: 'from art', md5: 'same',
+    created: '2026-08-14T10:00:01.000Z',
+  });
+  const out = tiles([labeled, twin]);
+  assert.strictEqual(out.length, 1);
+  assert.strictEqual(out[0].description, 'P');
+});
+
+t('where the evidence is ambiguous the union errs toward TWO tiles', () => {
+  // The asymmetry that decides every close call: a duplicate is a tile Sophie
+  // can see and ask about, while a wrong merge HIDES a picture behind `alts` —
+  // which is how six vector sheets went missing and got reported as "my images
+  // didn't post". A chain that would have to contradict a hash to close is
+  // therefore left open.
+  const a = assetRecord({ url: `${DECK}/p/one.png`, md5: 'aaaa', created: '2026-08-14T10:00:00.000Z' });
+  const b = assetRecord({ url: `${DECK}/p/one.png`, md5: 'bbbb', created: '2026-08-14T10:00:01.000Z' });
+  // C shares B's bytes under another name, D shares A's. The url would pull all
+  // four together; the hashes say it is two pictures, filed twice each.
+  const c = assetRecord({ url: `${MEMBRY}/claude-deliveries/c.png`, md5: 'bbbb', created: '2026-08-14T10:00:02.000Z' });
+  const d = assetRecord({ url: `${MEMBRY}/claude-deliveries/d.png`, md5: 'aaaa', created: '2026-08-14T10:00:03.000Z' });
+  const out = tiles([a, b, c, d]);
+  assert.strictEqual(out.length, 2, 'two pictures, each with its own second path');
+  out.forEach((tile) => assert.strictEqual(tile.alts.length, 1, 'each keeps exactly one alt'));
+});
+
 console.log(`\n  ${n} checks passed\n`);
 
 /* THE SAME URL FROM TWO SOURCES — the tab reads iOS creations (filed WITH the
