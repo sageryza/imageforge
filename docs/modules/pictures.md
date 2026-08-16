@@ -146,7 +146,7 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
 - **Low · low · medium in one tap (Aug 2026, Sophie) — the pyramid button,
   ChatGPT only.** Fires THREE runs from one tap: two at `low` and one at
   `medium`, so she gets two cheap looks at a prompt plus a better one without
-  three taps and two trips to the dropdown. ~10¢ a tap. `startRun(scale, q)`
+  three taps and two trips to the dropdown. ~5¢ a tap. `startRun(scale, q)`
   takes a per-run quality override, so the dropdown is left exactly as she set
   it. ChatGPT is never deduped, so the two lows are two DIFFERENT pictures —
   they merge into one box side by side, and the medium is its own box (its
@@ -159,8 +159,30 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   against `PL_GPT.qualities`). **Deliberately NOT persisted:** it's a plain JS
   variable, so it holds while the page is open and every fresh load is back to
   medium — localStorage would carry an expensive `high` into next time without
-  her meaning it. Roughly 2¢ / 6¢ / 25¢ an image. (The old sticky 1/2/3/4
-  count toggle is gone — see the one-image rule above.)
+  her meaning it. At the Playground's 2:3 that is **0.5¢ / 4.1¢ / 16.5¢** an
+  image (the table below). (The old sticky 1/2/3/4 count toggle is gone — see
+  the one-image rule above.)
+- **WHAT A gpt-image-2 PICTURE COSTS — the one table, checked against OpenAI's
+  own image-generation guide 2026-08-16.** Every other cost figure in this repo
+  should be derived from it rather than restated from memory:
+  - **square 1024x1024** — low 0.6¢ · medium 5.3¢ · high 21.1¢
+  - **portrait 1024x1536** — low 0.5¢ · medium 4.1¢ · high 16.5¢
+  - **landscape 1536x1024** — low 0.5¢ · medium 4.1¢ · high 16.5¢
+  **THE SQUARE IS THE EXPENSIVE ONE**, which is the opposite of the guess
+  everyone makes: a 1536x1024 canvas holds 1.5x the pixels of a 1024x1024 one
+  and costs 22% LESS. So "it's bigger, it must cost more" is wrong here, and
+  scaling a price by area — which is how this file's old figures were talked
+  about — gets it wrong by 2x.
+  **The old ~2¢ / 6¢ / 25¢ was gpt-image-1** (whose real numbers were 1.6¢ /
+  6.3¢ / 25¢ at square, and which DID charge more for the bigger canvas). It
+  sat in this file, in CLAUDE.md and in the vector doc long after every
+  surface moved to gpt-image-2, so estimates given to Sophie ran ~25% high.
+  When a model changes, its price changes with it — fix the figure in the same
+  commit.
+  **An EDITS call also pays for what it reads**, so a run with style
+  references attached costs a little over the table (the attached image is
+  charged as input tokens); a `generations` call with no refs is the table
+  exactly.
 - **Cancel is REPLICATE-ONLY, on purpose (Aug 2026, Sophie's call).** The X on
   a running job → "Are you sure you want to cancel?" → `POST
   /api/promptlab/:id/cancel` → status `cancelled`.
@@ -194,7 +216,9 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   trying the same references against different words. Bytes at
   `freeform/refs/<id>.<ext>` + a 512px webp display copy; deleting a ref drops
   the record but KEEPS the bytes, or a finished run's history would break.
-- **Quality low / medium / high** (~2¢ / 6¢ / 25¢), size portrait 2:3 (default) /
+- **Quality low / medium / high** (0.5¢ / 4.1¢ / 16.5¢ at 2:3 — the table in the
+  Playground section above; the SQUARE is the dearer canvas, not the cheaper),
+  size portrait 2:3 (default) /
   square / landscape, 1-4 images a run. With refs attached it calls the **edits**
   endpoint; with none it calls **generations** (edits requires an image).
 - Background job on the doc (`forge-freeform`), each output lands as it finishes
@@ -210,7 +234,7 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   the exact style (prompt wording, model, refs, size, quality), the routes, the
   gotchas and the test.
 - **What it does:** describe 1-25 drawings → ONE gpt-image-2 sheet in the pastel
-  house style (~6¢, the only cost) → cut into cells → lift each off its paper →
+  house style (5.3¢, the only cost) → cut into cells → lift each off its paper →
   trace each to SVG (**free**, local, ~1.3s) → an SVG + a 2048px PNG per
   drawing in Storage. `POST /sheet`, poll `GET /job/:id`. `POST /trace` does
   just the tracing half on any flat-colour image URL, for nothing. `POST
@@ -235,7 +259,8 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   draws simpler objects (2.9 fills a drawing against 4.75 at 2x2). So 2x2 for a
   drawing with detail, 3x3 for simple objects and icons (0.7¢ each). 5/7/8
   don't tile — the spare cells are drawn and binned, so ask for 4, 6 or 9.
-  Quality is ~2¢/6¢/25¢ a SHEET; all three trace cleanly. **Nothing about the
+  Quality is 0.6¢ / 5.3¢ / 21.1¢ a SHEET (it draws square); all three trace
+  cleanly. **Nothing about the
   tracer is tuned per quality or per grid** — they are inputs, the defaults are
   untouched; the only per-drawing options are `fills` and `darkBackground`.
   **5x5 TRACES FINE** — on a real 21-icon sheet (204px cells) 3 of 21 drew lines

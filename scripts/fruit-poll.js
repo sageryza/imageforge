@@ -32,9 +32,14 @@ const RETIRED = new Set(['27-dragonfruit']);
 // hq2- is the same idea run through the VEGETABLES' two-up template: six of the
 // most-loved fruits, two to a 1536x1024 sheet and cut back into squares, which
 // is what makes high affordable (~17c a fruit against 25c drawn singly).
+// hq3- carries raspberries redrawn two-up (its hq- single was the first high
+// card ever made, before the template existed) with kiwi and fig new to high,
+// plus THE MANGO CUT OPEN — Sophie asked for the cherimoya's composition on it,
+// a whole fruit standing behind and slices in front, so the two of them read as
+// a pair on the chart.
 const SOURCES = ['fruit-chart/uploaded.json', 'fruit-chart/v2-uploaded.json',
   'fruit-chart/v3-uploaded.json', 'fruit-chart/hq-uploaded.json',
-  'fruit-chart/hq2-uploaded.json'];
+  'fruit-chart/hq2-uploaded.json', 'fruit-chart/hq3-uploaded.json'];
 // v2 is the same 28 vegetables RECUT at the gutter rather than the midpoint —
 // the even split put a fragment of the neighbour in some cards and knocked the
 // subject off-centre (see the note in fruit-cut.js).
