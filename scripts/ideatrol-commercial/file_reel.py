@@ -11,10 +11,14 @@ ROOT = os.path.join(HOME, "reels", SLUG)
 m = json.load(open(os.path.join(ROOT, "manifest.json")))
 LABELS = json.load(open(LABELS_PATH))
 BASE = "https://imageforge-q125.onrender.com"
-CHAT = "fictional-pill-commercial"
-SESSION = "01Em65jpY2vw2daUnGVYZBtQ"
+# Chat identity comes from the running session, never hardcoded — a later
+# session reusing a hardcoded slug/session files into the WRONG chat.
+SESSION = os.environ.get("CLAUDE_CODE_REMOTE_SESSION_ID", "").removeprefix("cse_")
+CHAT = os.environ.get("FORGE_CHAT") or requests.get(
+    f"{BASE}/api/chatfeed/name", params={"chat": "", "session": SESSION},
+    timeout=30).json()["chat"]
 ENV = {**os.environ, "NODE_PATH": os.path.join(HOME, "node_modules"),
-       "GALLERY_UID": "kWNQSEqZ4mdLMsd1QZgDP7UFc1m1"}
+       "GALLERY_UID": os.environ.get("GALLERY_UID", "kWNQSEqZ4mdLMsd1QZgDP7UFc1m1")}
 
 ok = 0
 items = []
