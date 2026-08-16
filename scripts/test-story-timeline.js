@@ -10,7 +10,8 @@
  *      (that was a real bug here, caught by this test before she saw it)
  *   3. re-ordering must MOVE the DOM nodes, never rebuild them, or the note
  *      boxes /compare.js hangs off each card (and a half-typed note) are lost
- *   4. the character card must never be duplicated or dropped by a move
+ *   4. joining two units must make ONE unit that then moves whole, and no card
+ *      may ever be lost by a join, a split or a move
  *
  * Headless Chromium directly (no playwright dependency), and the verdict comes
  * back over HTTP rather than via --dump-dom: virtual time HANGS on a page that
@@ -55,47 +56,73 @@ if (!fs.existsSync(PAGE)) {
 const DRIVE = `<script>
 (function () {
   var L = [];
-  function ids() { return Array.prototype.map.call(document.querySelectorAll('#tl .unit'),
-    function (li) { return li.getAttribute('data-unit'); }); }
+  function ok(c, m, extra) { L.push((c ? 'PASS' : 'FAIL') + ': ' + m + (c ? '' : ' [' + extra + ']')); }
+  function units() { return Array.prototype.slice.call(document.querySelectorAll('#tl .unit')); }
+  function ids() { return units().map(function (u) {
+    return Array.prototype.map.call(u.querySelectorAll('.mcard'), function (c) {
+      return c.getAttribute('data-item'); }).join(','); }); }
   function nums() { return Array.prototype.map.call(document.querySelectorAll('#tl .no'),
     function (b) { return b.value; }).join(','); }
-  function ok(c, m, extra) { L.push((c ? 'PASS' : 'FAIL') + ': ' + m + (c ? '' : ' [' + extra + ']')); }
-  function type(box, v) { box.value = String(v); box.dispatchEvent(new FocusEvent('blur')); }
+  function unitOf(id) { return document.querySelector('[data-item="' + id + '"]').closest('.unit'); }
+  function tap(id, sel) { unitOf(id).querySelector(sel).click(); }
+  function type(id, v) {
+    var box = unitOf(id).querySelector('.no');
+    box.value = String(v); box.dispatchEvent(new FocusEvent('blur'));
+  }
+  function cards() { return document.querySelectorAll('#tl .mcard').length; }
 
   setTimeout(function () {
-    var N = document.querySelectorAll('#tl .no').length;
-    var run = []; for (var i = 1; i <= N; i++) run.push(i);
-    run = run.join(',');
-    var start = ids();
+    var N0 = units().length, CARDS0 = cards();
+    function run() { var a = []; for (var i = 1; i <= units().length; i++) a.push(i); return a.join(','); }
 
-    ok(N === document.querySelectorAll('#tl .unit').length,
-       'every unit carries a number, the cast card included', N);
-    ok(nums() === run, 'the numbers run 1..N', nums());
-    ok(document.querySelector('[data-unit="s-b3"] .cards').children.length === 5,
-       'a sequence is ONE unit holding its 5 cards', '');
-    ok(document.querySelector('#tl .unit .up').disabled, 'the first up arrow is disabled', '');
+    ok(nums() === run(), 'every unit is numbered, 1..N', nums());
+    ok(unitOf('b3') === unitOf('b7') && unitOf('b3').querySelectorAll('.mcard').length === 5,
+       'a sequence starts as ONE unit of 5 cards', '');
+    ok(document.querySelectorAll('#tl .join button').length === N0 - 1,
+       'a join sits in every gap', document.querySelectorAll('#tl .join button').length + '/' + (N0 - 1));
+    ok(units()[0].querySelector('.up').disabled && units()[0].querySelector('.top').disabled,
+       'the first unit cannot go up', '');
 
-    document.querySelector('[data-unit="b1"] .dn').click();
-    ok(ids()[0] === 'b2' && ids()[1] === 'b1', 'an arrow moves one place', ids().slice(0, 3).join('|'));
-    ok(nums() === run, 'it renumbers after the arrow', nums());
+    // one step
+    tap('b1', '.dn');
+    ok(ids()[0] === 'b2' && ids()[1] === 'b1', 'a single arrow moves one place', ids().slice(0, 3).join(' / '));
+    ok(nums() === run(), 'it renumbers after a move', nums());
 
-    type(document.querySelector('[data-unit="b1"] .no'), 6);
-    ok(ids().indexOf('b1') === 5, 'typing 6 lands it on 6', ids().slice(0, 8).join('|'));
+    // all the way (her v4 ask)
+    tap('b1', '.top');
+    ok(ids()[0] === 'b1', 'the double arrow sends it to the top', ids().slice(0, 2).join(' / '));
+    tap('b1', '.bot');
+    ok(ids()[ids().length - 1] === 'b1', 'the other one sends it to the bottom', ids().slice(-2).join(' / '));
 
-    type(document.querySelector('[data-unit="s-b3"] .no'), 1);
-    ok(ids()[0] === 's-b3' && document.querySelector('[data-unit="s-b3"] .cards').children.length === 5,
-       'a sequence moves whole', ids().slice(0, 3).join('|'));
+    // typing a number
+    type('b1', 4);
+    ok(ids()[3] === 'b1', 'typing 4 lands it on 4', ids().slice(0, 6).join(' / '));
 
-    var boxes = document.querySelectorAll('#tl .no');
-    type(boxes[boxes.length - 1], N);
-    ok(ids().filter(function (x) { return x === 'cast'; }).length === 1,
-       'the cast card survives, exactly once', '');
-    ok(ids().length === start.length, 'nothing is lost across the moves',
-       ids().length + ' vs ' + start.length);
-    ok(document.querySelectorAll('#tl .cmp-note').length === document.querySelectorAll('#tl .mcard').length,
-       'every card still has its note box after moving',
-       document.querySelectorAll('#tl .cmp-note').length + '/'
-       + document.querySelectorAll('#tl .mcard').length);
+    // COMBINE two next to each other (her v4 ask)
+    var before = units().length;
+    var i = ids().indexOf('b1');
+    var neighbour = ids()[i + 1];
+    document.querySelectorAll('#tl .join button')[i].click();
+    ok(units().length === before - 1, 'joining two makes one unit', units().length + ' vs ' + before);
+    ok(unitOf('b1') === unitOf(neighbour.split(',')[0]),
+       'the two are in the same unit now', '');
+    ok(unitOf('b1').classList.contains('seq'), 'a joined unit is drawn attached', '');
+    ok(nums() === run(), 'the numbers close up after a join', nums());
+
+    // and back apart
+    tap('b1', '.split');
+    ok(unitOf('b1') !== unitOf(neighbour.split(',')[0]), 'split breaks it back apart', '');
+
+    // a joined unit moves whole
+    document.querySelectorAll('#tl .join button')[0].click();
+    var joined = ids()[0];
+    tap(joined.split(',')[0], '.bot');
+    ok(ids()[ids().length - 1] === joined, 'a joined unit moves whole', ids().slice(-2).join(' / '));
+
+    ok(cards() === CARDS0, 'no card is lost across any of it', cards() + ' vs ' + CARDS0);
+    ok(document.querySelectorAll('#tl .cmp-note').length === cards(),
+       'every card still has its note box',
+       document.querySelectorAll('#tl .cmp-note').length + '/' + cards());
 
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
   }, 700);
