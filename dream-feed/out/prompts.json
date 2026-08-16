@@ -1,0 +1,44 @@
+[
+  {
+    "file": "01-xylophone-teeth.webp",
+    "draw": "an open mouth seen close up, the teeth replaced by the tuned wooden bars of a xylophone; a hand at the edge of the frame strikes them with a small mallet. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an open mouth seen close up, the teeth replaced by the tuned wooden bars of a xylophone; a hand at the edge of the frame strikes them with a small mallet. No text or lettering anywhere.",
+    "bytes": 281706,
+    "ok": true
+  },
+  {
+    "file": "02-whale-again.webp",
+    "draw": "an enormous whale hanging in the air above a single parked car on a narrow residential street, tilted as if leaning down to inspect it. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an enormous whale hanging in the air above a single parked car on a narrow residential street, tilted as if leaning down to inspect it. No text or lettering anywhere.",
+    "bytes": 306770,
+    "ok": true
+  },
+  {
+    "file": "03-seminar-on-doors.webp",
+    "draw": "an empty lecture hall in which the rows of seats are freestanding doors instead of chairs; one window at the side stands open with a chair tipped over beneath it. Nobody in the room. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an empty lecture hall in which the rows of seats are freestanding doors instead of chairs; one window at the side stands open with a chair tipped over beneath it. Nobody in the room. No text or lettering anywhere.",
+    "bytes": 294022,
+    "ok": true
+  },
+  {
+    "file": "05-peephole-moon.webp",
+    "draw": "a full moon in a night sky drawn as the peephole of a front door, with a hand raised beside it about to knock on the sky itself. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a full moon in a night sky drawn as the peephole of a front door, with a hand raised beside it about to knock on the sky itself. No text or lettering anywhere.",
+    "bytes": 228804,
+    "ok": true
+  },
+  {
+    "file": "06-weather-chess.webp",
+    "draw": "an old woman seated at a chessboard whose pieces are made of weather — one bishop is a small drizzling rain cloud, a rook is a column of fog, a pawn is a tiny gust. She is winning. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an old woman seated at a chessboard whose pieces are made of weather — one bishop is a small drizzling rain cloud, a rook is a column of fog, a pawn is a tiny gust. She is winning. No text or lettering anywhere.",
+    "bytes": 216632,
+    "ok": true
+  },
+  {
+    "file": "07-floor-8-is-ocean.webp",
+    "draw": "an elevator with its doors open onto deep open ocean water instead of a corridor, a few people calmly wading out from the lit elevator car into the water. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: an elevator with its doors open onto deep open ocean water instead of a corridor, a few people calmly wading out from the lit elevator car into the water. No text or lettering anywhere.",
+    "bytes": 358626,
+    "ok": true
+  }
+]
