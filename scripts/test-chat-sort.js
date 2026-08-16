@@ -201,6 +201,11 @@ is('the closing boundary never cuts a question in half',
        { from: 'claude', text: 'Which one do you want?  ...work...  Ready for the next batch?', tail: 38 }]),
   'Ready for the next batch?');
 is('an empty thread owes nothing', ask([]), '');
+// A url's query string ends in "?" and splits off as its own sentence — three
+// of the first fourteen live flags were exactly this.
+is('a url is not a question',
+  ask([{ from: 'sophie', text: 'go' },
+       { from: 'claude', text: 'Filed it. See https://imageforge-q125.onrender.com/news/?' }]), '');
 is('nothing known at all is not an invitation to archive', s.archiveHint({}), 'keep');
 
 // An unreadable or missing state must never read as "done" — that is the value

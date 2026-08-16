@@ -74,8 +74,8 @@ const HINT_CLASS = { archive: 'good', 'dead end': 'info', 'needs you': 'warn' };
       + (disp ? `    <div class="mini">${esc(r.chat)}</div>\n` : '')
       + (r.reason ? `    <div class="mini">${esc(r.reason)}</div>\n` : '')
       + (cls ? `    <div class="chips"><span class="chip ${cls}">${esc(r.hint)}</span>`
-          + (r.hint === 'needs you' && r.openQuestion
-            ? `<span class="mini">${esc(r.openQuestion)}</span>`
+          + (r.hint === 'needs you' && r.pendingAsk
+            ? `<span class="mini">${esc(r.pendingAsk)}</span>`
             : (r.stateWhy ? `<span class="mini">${esc(r.stateWhy)}</span>` : ''))
           + '</div>\n' : '')
       + '    <div class="pick"><button class="yes" type="button">✓</button>'

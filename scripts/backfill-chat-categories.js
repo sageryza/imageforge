@@ -96,7 +96,7 @@ async function api(path, opts) {
     results.push({
       chat, category: out.category || null, reason: out.reason || '', why: out.why || '',
       hint: out.hint || '', state: out.state || '', stateWhy: out.stateWhy || '',
-      openQuestions: out.openQuestions || 0, openQuestion: out.openQuestion || '',
+      pendingAsk: out.pendingAsk || '',
     });
     const pad = String(i + 1).padStart(String(names.length).length);
     console.log(`${pad}/${names.length}  ${pick.padEnd(14)} ${(out.hint || '').padEnd(10)} ${chat}`
