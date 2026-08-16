@@ -39,11 +39,20 @@ const FULL = 'She asked for a button on the archive pop-up that summarises the c
   + 'The session is asleep by then, so the server reads the thread and writes it with Claude instead. '
   + 'Shipped with the open-questions half on the same call.';
 const OPEN = 'whether the summary should overwrite her own note, or only take the line when she has none';
+// The long version is stored NEWLINE-JOINED, one point per line (Aug 2026, her
+// ask for bullets). The page splits on those newlines — nothing re-splits prose
+// on punctuation, which is why the model is asked for an array in the first place.
+const PTS = [
+  'The button had to write server-side: the chat is asleep by the time she archives it.',
+  'It cost about a cent a summary on Sonnet, so a backfill of every chat is a couple of dollars.',
+  'A truncated answer is rescued rather than thrown away — that bug was found in her hands.',
+];
+const LONG = PTS.join('\n');
 
 const CHATS = {
   'chat-a': { lastSeen: iso(T0 - 2e5) },
   'chat-old': { lastSeen: iso(T0 - 9e6), archived: true,
-    wrapLine: LINE, wrapUp: FULL, wrapOpen: OPEN },
+    wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN },
 };
 const MSGS = [];
 for (let i = 0; i < 6; i++) {
@@ -68,8 +77,8 @@ const server = http.createServer((req, res) => {
     if (failNext) { failNext = false; return json({ error: 'ANTHROPIC_API_KEY is not set on the server' }); }
     // The real route WRITES before it answers, which is the whole reason
     // cancelling the archive cannot lose the summary — so the stub does too.
-    CHATS[b.chat] = Object.assign(CHATS[b.chat] || {}, { wrapLine: LINE, wrapUp: FULL, wrapOpen: OPEN });
-    json({ ok: true, chat: b.chat, wrapLine: LINE, wrapUp: FULL, wrapOpen: OPEN,
+    CHATS[b.chat] = Object.assign(CHATS[b.chat] || {}, { wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN });
+    json({ ok: true, chat: b.chat, wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN,
       messages: MSGS.length, unanswered: 1 });
   });
   if (p === '/api/chatfeed/archive') return read((b) => { archived.push(b); json({ ok: true, archived: !!b.archived }); });
@@ -140,6 +149,37 @@ const server = http.createServer((req, res) => {
   ok(await page.$eval('.askwrap .askrow button.go', (n) => !n.disabled),
      'Archive stayed armed the whole time — she is never made to wait on it');
 
+  // ---- 3b: BULLETS, but only where they help ------------------------------
+  // Sophie, Aug 2026: "I would like bullet points especially for the long
+  // summary — don't add bullet points where it doesn't actually help, but the
+  // long summary is one block of text would be great to see them separated."
+  // So: the SHORT one is a paragraph and draws as one; the long one arrives as
+  // separate points and draws as separate bullets.
+  ok(await page.$$eval('.askwrap .arcout .wrapbul', (n) => n.length) === 0,
+     'the short summary is NOT bulleted — one sentence behind a • is decoration');
+  ok(await page.$$eval('.askwrap .arcout .wrapmore2', (n) => n.length) === 1,
+     'the longer version is one tap in');
+  await page.click('.askwrap .arcout .wrapmore2');
+  await page.waitForTimeout(150);
+  const bul = await page.$$eval('.askwrap .arcout .wrapbul', (n) => n.map((x) => x.textContent.trim()));
+  ok(bul.length === PTS.length && bul.join('|') === PTS.join('|'),
+     'the long one is drawn one point per bullet: ' + JSON.stringify(bul));
+  // The marker is CSS, so the text she'd copy has no stray glyphs in it, and
+  // the padding is the hanging indent — a wrapped point lines up under itself.
+  const mark = await page.$eval('.askwrap .arcout .wrapbul', (n) => ({
+    before: getComputedStyle(n, '::before').content,
+    pad: getComputedStyle(n).paddingLeft }));
+  ok(/•/.test(mark.before), 'the bullet is drawn by CSS, not typed into the text: ' + mark.before);
+  ok(parseFloat(mark.pad) > 8, 'and it hangs — the text is indented past the marker: ' + mark.pad);
+  ok((await page.$eval('.askwrap .arcout .wrapmore2', (n) => n.textContent.trim())) === 'less',
+     'and it folds back up');
+  await page.click('.askwrap .arcout .wrapmore2');
+  await page.waitForTimeout(150);
+  ok(await page.$$eval('.askwrap .arcout .wrapbul', (n) => n.length) === 0,
+     'less puts the short paragraph back');
+  ok((await page.$eval('.askwrap .arcout', (n) => n.textContent)).indexOf('Still open: ' + OPEN) > 0,
+     'and the open line survives the round trip');
+
   // ---- 5: Cancel keeps the summary and archives nothing --------------------
   await page.click('.askwrap .askrow button:not(.go)');
   await page.waitForTimeout(250);
@@ -200,6 +240,14 @@ const server = http.createServer((req, res) => {
   ok(body.vis, 'it opens');
   ok(body.t.indexOf(FULL) === 0, 'showing the whole account');
   ok(body.t.indexOf('Still open: ' + OPEN) > 0, 'with the open question under it');
+  // Same renderer as the sheet, so the archive reads exactly like the read-back
+  // she approved: short as a paragraph, long as bullets.
+  ok(await page.$$eval('.wrapfull .wrapbul', (n) => n.length) === 0,
+     'the archived row opens on the unbulleted short one');
+  await page.click('.wrapfull .wrapmore2');
+  await page.waitForTimeout(150);
+  ok((await page.$$eval('.wrapfull .wrapbul', (n) => n.map((x) => x.textContent.trim()))).join('|')
+     === PTS.join('|'), 'and its long version is bulleted too');
 
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs[0] : ''));
 

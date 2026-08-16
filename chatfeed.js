@@ -1037,7 +1037,7 @@ The three summary fields are the SAME story told at three lengths, each complete
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
 "text": THREE LINES ON A PHONE — that is UNDER 180 CHARACTERS, two or three short sentences, and it is a hard limit rather than a target. What she wanted, what came of it, and how it ended. This is the one she actually reads, so it has to stand alone — write the sentences that matter, not the first few of a longer piece. If it does not fit, cut detail rather than running over: the long version is where detail belongs.
-"long": 4-8 sentences, under 800 characters, for when the short one leaves her wanting the rest. The specifics: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. Never pad to reach a length; when a chat was genuinely small, leave this empty and let the short one be the whole answer.
+"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when the short one leaves her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the short one be the whole answer.
 "open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
@@ -1163,7 +1163,11 @@ router.post('/wrapup/write', async (req, res) => {
         return stop > 40 ? t.slice(0, stop + 1) : '';
       };
       out.text = backToSentence(out.text);
-      out.long = backToSentence(out.long);
+      // A rescued array has a half-written last point — drop it rather than
+      // showing her a bullet that stops mid-word. The earlier points are whole.
+      out.long = Array.isArray(out.long)
+        ? out.long.filter((x) => /[.!?]\s*$/.test(String(x || '').trim()))
+        : backToSentence(out.long);
     }
     const full = wrapTextOf(out && out.text);
     // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
@@ -1171,7 +1175,18 @@ router.post('/wrapup/write', async (req, res) => {
     // story at a second depth, not a continuation — she stops at whichever
     // length answers her. A chat too small to have a longer version leaves it
     // empty and the short one is the whole answer.
-    const long = wrapTextOf(out && out.long);
+    // ONE POINT PER LINE (Aug 2026, Sophie: "I would like bullet points
+    // especially for the long summary … the long summary is one block of text
+    // would be great to see them separate"). The model returns an array; it is
+    // stored newline-joined so the field stays a plain string — the one already
+    // written as a paragraph keeps rendering as one, and the page splits on the
+    // newlines to draw bullets. An array is what makes the split reliable: a
+    // paragraph would have to be re-split on punctuation, which breaks on every
+    // abbreviation and file name.
+    const long = wrapTextOf(Array.isArray(out && out.long)
+      ? out.long.map((x) => String(x || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean).slice(0, 8).join('\n')
+      : (out && out.long));
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
     const open = wrapLineOf(out && out.open);
     if (!one && !full) return res.status(502).json({ error: 'no summary came back' });

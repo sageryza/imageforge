@@ -738,6 +738,14 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
+/* ONE POINT PER LINE (Aug 2026, Sophie: "the long summary is one block of text
+   would be great to see them separated"). The marker is drawn by CSS so the
+   text itself stays clean, and the padding is the hanging indent — a point that
+   wraps lines up under its own first word, not under the bullet. */
+.wrapbul{position:relative; margin:0 0 5px; padding-left:13px;}
+.wrapbul:last-child{margin-bottom:0;}
+.wrapbul::before{content:'•'; position:absolute; left:1px; top:0;}
+.wrapopen{margin-top:9px;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
@@ -4082,6 +4090,28 @@ function renderArchive(el,g,arch){
 // live inside one — it is appended as a SIBLING after the row, which also means
 // tapping it can never open the chat by bubbling.
 // Archive view only: this is the pile she reads to remember what a chat was.
+// Draw a wrap-up into a box — the archive row's expander and the archive
+// sheet's read-back both use this, so the two can never drift apart.
+// BULLETS ONLY WHERE THEY HELP (Aug 2026, Sophie: "don't add bullet points
+// where it doesn't actually help, but the long summary is one block of text
+// would be great to see them separated"). The long version arrives newline-
+// joined, one point per line, and each line becomes its own bullet; a summary
+// that is a single paragraph — which the short one always is — draws as a
+// paragraph, because a lone • in front of one sentence is decoration.
+function fillWrap(el, text, open){
+  el.textContent='';
+  var lines=String(text||'').split('\n').map(function(s){return s.trim();})
+    .filter(Boolean);
+  lines.forEach(function(s){
+    var d=document.createElement('div');
+    if(lines.length>1) d.className='wrapbul';
+    d.textContent=s; el.appendChild(d);
+  });
+  if(open){
+    var o=document.createElement('div'); o.className='wrapopen';
+    o.textContent='Still open: '+open; el.appendChild(o);
+  }
+}
 function paintWrapUps(el){
   [].forEach.call(el.querySelectorAll('.crow[data-chat]'), function(row){
     var r=chats[row.dataset.chat]||{};
@@ -4097,8 +4127,7 @@ function paintWrapUps(el){
     tog.setAttribute('aria-label','What this chat was about');
     var body=document.createElement('div');
     body.className='wrapfull'; body.hidden=true;
-    var short=(full||'')+(open?(full?'\n\n':'')+'Still open: '+open:'');
-    body.textContent=short;
+    fillWrap(body, full, open);
     // THE LONGER VERSION, one more tap in (Aug 2026, Sophie: "ideally would be
     // a short summary like three lines at most, and then a longer summary
     // behind an arrow"). Three depths, and she stops at whichever answers her:
@@ -4112,9 +4141,7 @@ function paintWrapUps(el){
       more.onclick=function(e){
         e.stopPropagation();
         shown=!shown;
-        body.textContent = shown
-          ? long+(open?'\n\nStill open: '+open:'')
-          : short;
+        fillWrap(body, shown?long:full, open);
         more.textContent = shown ? 'less' : 'more';
         body.appendChild(more);
       };
@@ -5726,6 +5753,9 @@ function askArchive(name, cb){
   sum.className='arcsum'; sum.type='button';
   sum.innerHTML=GEN_STAR+'<span>Summarize</span>';
   function say(t){ out.hidden=false; out.textContent=t; }
+  // The summary reads back here exactly as it will read in the archive — same
+  // bullets, same still-open paragraph — so what she approves is what she gets.
+  function sayWrap(t, open){ out.hidden=false; fillWrap(out, t, open); }
   sum.onclick=function(e){
     e.stopPropagation();
     sum.disabled=true; sum.querySelector('span').textContent='Writing…';
@@ -5744,8 +5774,8 @@ function askArchive(name, cb){
         // the SHORT summary, same as the archive row's first tap; the longer
         // version is one more tap, and is skipped entirely when the chat was
         // small enough that there isn't one.
-        var tail=d.wrapOpen?'\n\nStill open: '+d.wrapOpen:'';
-        say((d.wrapUp||d.wrapLine)+tail);
+        var brief=d.wrapUp||d.wrapLine;
+        sayWrap(brief, d.wrapOpen||'');
         if(d.wrapLong && d.wrapLong!==d.wrapUp){
           var more=document.createElement('button');
           more.className='wrapmore2'; more.textContent='more';
@@ -5753,7 +5783,7 @@ function askArchive(name, cb){
           more.onclick=function(ev){
             ev.stopPropagation();
             shown=!shown;
-            out.textContent = shown ? d.wrapLong+tail : (d.wrapUp||d.wrapLine)+tail;
+            fillWrap(out, shown?d.wrapLong:brief, d.wrapOpen||'');
             more.textContent = shown ? 'less' : 'more';
             out.appendChild(more);
           };

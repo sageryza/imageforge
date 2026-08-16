@@ -714,12 +714,30 @@ them off the reference sheet, not off the old filenames.
     justify a long version leaves `wrapLong` empty and shows no `more`. The
     fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
     LAST field, so the summary she actually reads is the one least at risk.
+    The SHORT one is capped in CHARACTERS (under 180 = three lines on her
+    phone), not in sentences — the first cut asked for three sentences and came
+    back at 374 characters, seven lines in the expander.
+  - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
+    especially for the long summary — don't add bullet points where it doesn't
+    actually help, but the long summary is one block of text would be great to
+    see them separated").** The model returns `long` as an ARRAY of points and
+    the route stores it newline-joined, so `wrapLong` stays a plain string and
+    the one paragraph written before this still reads. **The array is what makes
+    the split reliable** — re-splitting a paragraph on punctuation breaks on
+    every abbreviation and file name. `fillWrap()` in `chats.html` draws it,
+    ONE renderer for both the archive row's expander and the sheet's read-back:
+    more than one line → one `.wrapbul` per line with a CSS `•` and a hanging
+    indent; a single line → a plain paragraph, because the short summary is
+    always one and a lone bullet in front of one sentence is decoration. The
+    prompt says **SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT**, so a chat that did
+    one continuous thing gets one or two points rather than a chopped-up list.
   - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
     her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
     fails both of `parseJSON`'s attempts, so a finished summary line died with
-    the unfinished sentence after it. The cap is 1200 now and `salvageJson` in
+    the unfinished sentence after it. The cap is 1500 now and `salvageJson` in
     `chatfeed.js` closes what the model left open, then trims back to the last
-    finished sentence. It is deliberately NOT in `anthropic.js`: half an object
+    finished sentence — and, in the bulleted long half, drops the point that
+    stopped mid-word while keeping the ones that finished. It is deliberately NOT in `anthropic.js`: half an object
     is exactly what other callers must never be handed silently.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
     the open half, the truncation rescue), `node
