@@ -154,6 +154,13 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
   // An archived chat is finished; she has already read it and moved on. Sorting
   // it spends money on a row she is not looking at.
   if (r.archived) return { sort: false, why: 'archived' };
+  // SHE SAID LEAVE IT UNFILED — and that is a decision, not an absence (Aug
+  // 2026, with the review page's picker: "leave unfiled" is one of her three
+  // answers). Without this the sorter would look at the chat again tomorrow
+  // and file it anyway, which is rule 1 broken in the one direction the
+  // `category` field cannot record — an empty folder looks identical to never
+  // having been asked.
+  if (r.catNone) return { sort: false, why: 'hers-unfiled' };
   if (r.category) {
     if (r.catBy !== 'auto') return { sort: false, why: 'hers' };  // rule 1 — one tap locks it
     // Its own earlier answer, revisited — see the RESORT_* block above. The
