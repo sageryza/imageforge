@@ -3426,9 +3426,37 @@ function unparked(stamp,last){
   if(last.working) return false;             // still writing — not done yet
   return (last.postedAt||last.created||'') > stamp;
 }
+// THE LEASH (Aug 2026, Sophie: "three hours is way too long to wait", then
+// "could it just be like three minutes"). An AUTOMATIC park promises a reply:
+// the turn-start ping and her answered message both tuck the chat away
+// expecting it back. A chat that dies mid-turn never sends the reply that
+// unparks it, so it used to sit in Hidden forever — the one failure she named
+// ("it pings it, but then whatever behavior causes it to unhide never
+// occurs"). So: parked with NO sign of life for 3 minutes → back on the list.
+// A working chat that trips it early just shows up tinted and re-hides when
+// its next draft lands (postedAt bumps on every draft growth) — the misfire is
+// today's behaviour for a moment, self-correcting, which is why the leash can
+// be this short.
+//
+// A hide SHE tapped is NEVER leashed — the pile she curates by hand must stay
+// exactly as she left it. The discriminator costs no new field: both automatic
+// parks (/working, /reply) stamp `workingAt` equal to `hiddenAt`, while the
+// hand hide writes `hiddenAt` alone — so `workingAt >= hiddenAt` means "a turn
+// was expected here" and anything else keeps the old contract (parked until a
+// reply lands, however long that takes).
+var PARK_LEASH=3*60*1000;
+function parkTripped(name,last){
+  var r=chats[name]||{};
+  if(!r.hiddenAt) return false;
+  if(!r.workingAt || r.workingAt<r.hiddenAt) return false;   // her hand hide — no leash
+  var life=Date.parse(r.workingAt)||0;
+  var h=Date.parse(r.hiddenAt)||0; if(h>life) life=h;
+  if(last){ var pa=Date.parse(last.postedAt||last.created||'')||0; if(pa>life) life=pa; }
+  return Date.now()-life>PARK_LEASH;
+}
 function chatHidden(name,last){
   var a=(chats[name]&&chats[name].hiddenAt)||'';
-  return !!a && !unparked(a,last);
+  return !!a && !unparked(a,last) && !parkTripped(name,last);
 }
 // A chat counts as WORKING on either of two signals, and it needs both:
 //
@@ -3541,6 +3569,29 @@ function paintLive(){
 // test that sets that assigns a stray global and silently proves nothing.
 window.__repaintLive=paintLive;
 window.__setTint=function(v){ TINT=!!v; };
+// The leash trips by the CLOCK, not by data — no poll delta ever announces
+// it — so the 20s timer also asks "did any chat's hidden state change since
+// last look?" and repaints only then, with the same courtesy the poll shows:
+// only on the home list, only sitting at the top, never rebuilding the grid
+// under her mid-scroll (a tripped chat she'd miss just appears at the next
+// natural render). Test hooks: __parkTripped is the rule itself,
+// __setParkLeash shrinks the wait so a test isn't three minutes long.
+var leashSig=null;
+function leashCheck(){
+  var g=groups(), on=[];
+  Object.keys(chats).forEach(function(n){
+    var l=g[n]||[];
+    if(chatHidden(n, l.length? l[l.length-1] : null)) on.push(n);
+  });
+  var s=on.sort().join(',');
+  if(leashSig===null){ leashSig=s; return; }   // first look baselines quietly
+  if(s===leashSig) return;
+  leashSig=s;
+  if(!cur && window.scrollY<8 && homeView==='live') renderHome();
+}
+window.__parkTripped=function(n,last){ return parkTripped(n,last); };
+window.__setParkLeash=function(ms){ PARK_LEASH=ms; };
+window.__leashCheck=leashCheck;
 // Test hooks for the MORE fold. `__setMoreOpen` drives the fold without a tap,
 // and `__chatStale` is the rule itself, so a test can assert the seven-day
 // boundary without building a whole feed either side of it.
@@ -5841,6 +5892,7 @@ setInterval(function(){
   // Don't poll a page nobody is looking at — a backgrounded webview would
   // otherwise keep paying for reads all day.
   if(document.hidden) return;
+  leashCheck();   // time-based, so it rides the timer, not the poll's deltas
   poll();
 }, 20000);
 // Coming back to the app should feel instant rather than waiting out the timer.

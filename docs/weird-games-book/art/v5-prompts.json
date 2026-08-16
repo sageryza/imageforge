@@ -1,0 +1,134 @@
+[
+ {
+  "id": "groundhog-day-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/groundhog-day-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: the same small house party shown twice side by side like two frames of a film, identical people frozen in identical mid-toast poses in both halves with one tiny detail different between them, and in both halves the same reluctant guest stuck playing chess in the corner. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "pooping-partners-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/pooping-partners-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two small bathrooms shown side by side in cutaway, in each one a person sitting and happily texting on their phone, nothing else explaining itself. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "group-dream-journal-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/group-dream-journal-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: several sleepers in a row of beds at night, their dream clouds overlapping into one large shared cloud, inside which small figures wander between the dreams and wave to each other. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "tourists-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/tourists-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a group of friends posing for a photo in front of an utterly ordinary mailbox on a residential street, one consulting a giant unfolded map, one taking the photo very seriously, a corner store behind them. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "getaway-driver-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/getaway-driver-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a driver gripping the steering wheel with terrible intensity in a parked car outside a mundane grocery store at dusk, while two friends speed-walk out of the store toward the car carrying a single carton of milk. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ },
+ {
+  "id": "first-date-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/first-date-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two clearly comfortable old friends at a restaurant table leaning in with first-date nerves, dressed slightly too nicely, hands almost touching beside the candle, an unmoved waiter in the background. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "the-critic-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/the-critic-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a dinner guest solemnly sniffing a glass of tap water while writing in a tiny notebook, the host watching nervously from the kitchen doorway with a dish towel over one shoulder. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "border-control-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/border-control-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a kitchen doorway turned into a border checkpoint at a house party, one friend in the doorway as the officer stamping a small paper passport, while a traveler stands with arms raised holding a bowl of chips and a jar of dip. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "the-inheritance-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/the-inheritance-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a candlelit reading of a will at the end of a house party, one friend solemnly reading from a long sheet of paper, another tearfully receiving a lip balm with both hands, a bowl of small pocket items between them. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "heavy-object-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/heavy-object-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a large rock seated on its own chair at a brunch table, a plate and cutlery set in front of it, the friends around the table eating and chatting completely normally. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1024",
+  "split": null
+ },
+ {
+  "id": "elevator-pitch-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/elevator-pitch-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two people at an open refrigerator at a house party, one mid-pitch gesturing at an invisible chart with shining eyes, the other holding the fridge door and politely trapped, both lit by the fridge light. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "remember-the-ferry-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v5/remember-the-ferry-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: friends sunk deep into a couch at night in lamplight, all gazing into the middle distance, one shared dreamy thought cloud floating above them holding a little ferry boat at sea. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "medium",
+  "size": "1536x1024",
+  "split": null
+ }
+]
