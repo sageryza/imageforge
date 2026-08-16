@@ -1,0 +1,488 @@
+<!doctype html>
+<!-- Story Timeline — dictated moments become cards you can put in order.
+     The front for /api/timeline. It grew out of one Compare page for one story
+     (Sophie, Aug 2026) and every control here is one she asked for by name:
+       a number you can TYPE           send a moment straight to that place
+       single / double arrows          one step / all the way
+       the marks in the GAP            join these two into one, add one here
+       the pencil on a card            change the words, divide at the cursor,
+                                       or delete — the last two only ever
+                                       reachable from inside the open editor
+       a long unit FOLDS               first and last whole, the middles one
+                                       line each; tap one to open it
+     TWO LEVELS, one page: the shelf of stories, and one story open.
+     window.__navBack takes the native chevron back to the shelf.
+     Nothing here spends money — there is no model call in this tool. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Story Timeline</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+  /* ---- the shelf ---- */
+  .shelf { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .srow { display:flex; align-items:center; gap:10px; width:100%;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+    padding:11px 12px; text-align:left; font:inherit; color:var(--ink); }
+  .srow .st { flex:1; font-size:15px; font-weight:600; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .srow .sn { font-size:12px; color:var(--dim); flex:0 0 auto; }
+
+  /* ---- one story ---- */
+  .tl { list-style:none; margin:2px 0 0; padding:0; }
+  .unit {
+    /* minmax(0,1fr), never plain 1fr: a folded middle sets white-space nowrap,
+       and a plain 1fr track grows to its min-content — so the whole sequence,
+       untrimmed ends included, shot off the right of the screen instead of
+       ellipsising. */
+    display:grid; grid-template-columns:30px minmax(0,1fr) 43px;
+    gap:8px; align-items:start;
+  }
+  .cards { min-width:0; }
+  .mcard { position:relative; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--r);
+    padding:8px 10px; }
+  .say { font-size:14px; line-height:1.42; display:block; }
+  /* a unit holding more than one card — hairlines shared, only the outer
+     corners rounded, one accent edge so it reads as a single thing */
+  .seq .mcard { border-radius:0; margin-top:-1px; border-left:3px solid var(--accent); }
+  .seq .mcard:first-child { border-top-left-radius:var(--r); border-top-right-radius:var(--r); margin-top:0; }
+  .seq .mcard:last-child { border-bottom-left-radius:var(--r); border-bottom-right-radius:var(--r); }
+
+  /* the number — 16px or iOS zooms the page when she taps it */
+  .no { width:30px; height:28px; text-align:center; padding:0;
+    font:700 16px/1 -apple-system,'Helvetica Neue',sans-serif;
+    color:var(--dim); background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--r); }
+  .no:focus { outline:none; border-color:var(--accent); color:var(--accent); }
+  .seq .no { color:var(--accent); }
+
+  /* left column = all the way, right column = one step */
+  .mv { display:grid; grid-template-columns:20px 20px; gap:3px; }
+  .mv button, .split, .gap button, .pencil, .erow button {
+    padding:0; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--border); border-radius:var(--r);
+    background:var(--surface); color:var(--dim); }
+  .mv button { width:20px; height:20px; }
+  .mv button svg, .split svg, .gap button svg { width:13px; height:13px; display:block; }
+  .mv button:disabled { opacity:.25; }
+  .split { width:30px; height:20px; margin-top:4px; }
+
+  /* THE GAP holds the things that act BETWEEN moments — join these two, add
+     one here. It IS the gap, so they cost the page no height. */
+  .gap { display:flex; align-items:center; justify-content:center; gap:10px; height:17px; }
+  .gap button { width:30px; height:15px; border-color:transparent;
+    background:transparent; color:#cfc4ae; }
+
+  /* a LONG unit folds: first and last whole, the middles one line each */
+  .long:not(.open) .mcard.trim { padding-top:4px; padding-bottom:4px; }
+  .long:not(.open) .mcard.trim .say { white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; color:var(--dim); }
+  .long:not(.open) .mcard.trim .pencil { display:none; }
+
+  /* EDITING is behind a pencil, never on a tap on the words — tap-to-edit
+     means every stray thumb on the way down the page opens an editor.
+     Dividing and deleting live INSIDE the open editor for the same reason. */
+  .pencil { position:absolute; bottom:6px; right:6px; z-index:2; width:22px; height:22px;
+    background:var(--bg); }
+  .pencil svg { width:12px; height:12px; display:block; }
+  .mcard { padding-right:32px; }
+  .edit { display:none; }
+  .mcard.editing .say, .mcard.editing .lab, .mcard.editing .pencil { display:none; }
+  .mcard.editing .edit { display:block; }
+  .etext { width:100%; display:block; font:16px/1.42 inherit;  /* 16 or iOS zooms */
+    color:var(--ink); background:var(--bg);
+    border:1px solid var(--accent); border-radius:var(--r); padding:7px 8px; resize:vertical; }
+  .etext:focus { outline:none; }
+  .erow { display:flex; gap:6px; margin-top:6px; align-items:center; }
+  .erow button { width:auto; font:600 12px/1 -apple-system,'Helvetica Neue',sans-serif;
+    padding:7px 9px; }
+  .erow .del { color:var(--danger); border-color:#f0d2cf; }
+  .erow .del svg { width:13px; height:13px; display:block; }
+  .lab { display:block; font:700 9px/1 -apple-system,'Helvetica Neue',sans-serif;
+    letter-spacing:1.6px; text-transform:uppercase; color:var(--dim); padding-bottom:5px; }
+  .saved { font-size:12px; color:var(--dim); }
+</style>
+
+<body class="tool">
+<header class="head">
+  <div class="eyebrow tool-eyebrow">STORY TIMELINE</div>
+  <button id="help" aria-label="what this does">?</button>
+</header>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Paste a dictated list</b> and every line becomes a moment you can move.
+  An ALL-CAPS line like <i>SEQUENCE</i> groups what follows into one unit; it
+  will get some of them wrong, which is what the marks in the gaps are for.
+  <br><br>
+  <b>Type a number</b> to send a moment to that place. Single arrows move it one
+  step, double ones send it all the way. In the gap between two moments: join
+  them into one, or add a new one there. The mark under a number breaks a
+  joined one apart.
+  <br><br>
+  <b>The pencil</b> on a card changes its words — and while it is open you can
+  divide the moment at the cursor, or delete it. A unit of five or more folds
+  to its first and last; tap a folded line to see the whole thing.
+  <br><br>
+  It saves as you go, and nothing here costs money.
+</div>
+
+<main>
+  <!-- LEVEL 1 — the shelf -->
+  <section id="lvShelf">
+    <div class="step open">
+      <div class="cap"><span class="n">1</span><span class="t">Your stories</span></div>
+      <div class="body">
+        <div class="shelf" id="shelf"></div>
+        <div class="note" id="shelfEmpty" hidden>Nothing here yet.</div>
+      </div>
+    </div>
+    <div class="step open">
+      <div class="cap"><span class="n">2</span><span class="t">Start one</span></div>
+      <div class="body">
+        <label for="newTitle">Name it</label>
+        <input type="text" id="newTitle">
+        <label for="newText">Paste the moments</label>
+        <textarea id="newText" rows="6"></textarea>
+        <div class="row">
+          <button class="btn" id="make">Make the timeline</button>
+          <span class="note" id="makeNote"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEVEL 2 — one story -->
+  <section id="lvStory" hidden>
+    <div class="row" style="margin-top:2px">
+      <button class="btn ghost" id="back">Stories</button>
+      <input type="text" id="title" style="flex:1;min-width:0;margin:0">
+      <span class="saved" id="saved"></span>
+    </div>
+    <ol class="tl" id="tl"></ol>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var qs = new URLSearchParams(location.search);
+  var TOKEN = qs.get('token') || '';
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'Content-Type': 'application/json' },
+      TOKEN ? { 'x-studio-token': TOKEN } : {}, opts.headers || {});
+    return fetch('/api/timeline' + path, opts).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) throw new Error(j.error || r.status);
+        return j;
+      });
+    });
+  }
+
+  // Lucide, inlined: single = one step, double = all the way, converging =
+  // join these two, diverging = break apart, plus = add one here
+  var GLYPH = {
+    up: 'm18 15-6-6-6 6',
+    dn: 'm6 9 6 6 6-6',
+    top: 'm17 11-5-5-5 5|m17 18-5-5-5 5',
+    bot: 'm7 6 5 5 5-5|m7 13 5 5 5-5',
+    join: 'm7 20 5-5 5 5|m7 4 5 5 5-5',
+    split: 'm7 15 5 5 5-5|m7 9 5-5 5 5',
+    add: 'M12 5v14|M5 12h14',
+    pencil: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z',
+    trash: 'M3 6h18|M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+  };
+  function svg(k, w) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 2)
+      + '" stroke-linecap="round" stroke-linejoin="round">'
+      + GLYPH[k].split('|').map(function (d) { return '<path d="' + d + '"/>'; }).join('')
+      + '</svg>';
+  }
+
+  /* ------------------------------------------------------------- the shelf */
+  function shelf() {
+    api('/stories').then(function (d) {
+      var box = $('shelf');
+      box.innerHTML = '';
+      (d.stories || []).forEach(function (s) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'srow';
+        b.innerHTML = '<span class="st"></span><span class="sn">'
+          + s.moments + (s.moments === 1 ? ' moment' : ' moments') + '</span>';
+        b.querySelector('.st').textContent = s.title;
+        b.onclick = function () { open(s.id); };
+        box.appendChild(b);
+      });
+      $('shelfEmpty').hidden = (d.stories || []).length > 0;
+    }).catch(function (e) { $('makeNote').textContent = String(e.message || e); });
+  }
+
+  $('make').onclick = function () {
+    var text = $('newText').value.trim();
+    if (!text) { $('makeNote').textContent = 'paste the moments first'; return; }
+    $('make').disabled = true;
+    $('makeNote').textContent = 'making it…';
+    api('/stories', { method: 'POST', body: JSON.stringify({ title: $('newTitle').value, text: text }) })
+      .then(function (s) {
+        $('newTitle').value = ''; $('newText').value = '';
+        $('makeNote').textContent = '';
+        open(s.id);
+      })
+      .catch(function (e) { $('makeNote').textContent = String(e.message || e); })
+      .then(function () { $('make').disabled = false; });
+  };
+
+  /* ------------------------------------------------------------ one story */
+  var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 5;
+
+  function show(level) {
+    $('lvShelf').hidden = level !== 'shelf';
+    $('lvStory').hidden = level !== 'story';
+  }
+  // the native chevron asks this first — inside a story it goes back to the
+  // shelf rather than leaving the tool
+  window.__navBack = function () {
+    if ($('lvStory').hidden) return false;
+    toShelf();
+    return true;
+  };
+  function toShelf() { ID = null; show('shelf'); shelf(); }
+  $('back').onclick = toShelf;
+
+  function open(id) {
+    api('/stories/' + encodeURIComponent(id)).then(function (s) {
+      ID = s.id; MOM = s.moments || {}; UNITS = s.units || []; NODES = {}; opened = {};
+      $('title').value = s.title;
+      show('story');
+      paint();
+      window.scrollTo(0, 0);
+    }).catch(function (e) { $('makeNote').textContent = String(e.message || e); });
+  }
+
+  function node(id) {
+    if (NODES[id]) return NODES[id];
+    var m = MOM[id] || { text: '' };
+    var d = document.createElement('div');
+    d.className = 'mcard';
+    d.setAttribute('data-item', id);
+    d.innerHTML = (m.label ? '<span class="lab"></span>' : '') + '<span class="say"></span>'
+      + '<button class="pencil" type="button" aria-label="change the words">' + svg('pencil', 1.8) + '</button>';
+    if (m.label) d.querySelector('.lab').textContent = m.label;
+    d.querySelector('.say').textContent = m.text;
+    NODES[id] = d;
+    return d;
+  }
+
+  function shell(group, i, n) {
+    var li = document.createElement('li');
+    var long = group.length >= LONG;
+    li.className = 'unit' + (group.length > 1 ? ' seq' : '')
+      + (long ? ' long' : '') + (long && opened[group[0]] ? ' open' : '');
+    li.innerHTML = '<div class="gut">'
+      + '<input class="no" type="text" inputmode="numeric" aria-label="its place in the order" value="' + (i + 1) + '">'
+      + (group.length > 1 ? '<button class="split" type="button" aria-label="break this one apart">' + svg('split') + '</button>' : '')
+      + '</div><div class="cards"></div><div class="mv">'
+      + '<button class="top" type="button" aria-label="send it to the top">' + svg('top') + '</button>'
+      + '<button class="up" type="button" aria-label="move it up one">' + svg('up') + '</button>'
+      + '<button class="bot" type="button" aria-label="send it to the bottom">' + svg('bot') + '</button>'
+      + '<button class="dn" type="button" aria-label="move it down one">' + svg('dn') + '</button></div>';
+    var cards = li.querySelector('.cards');
+    group.forEach(function (id, k) {
+      var c = node(id);                                  // MOVES it, never rebuilds
+      c.classList.toggle('trim', long && k > 0 && k < group.length - 1);
+      cards.appendChild(c);
+    });
+    li.querySelector('.top').disabled = li.querySelector('.up').disabled = i === 0;
+    li.querySelector('.bot').disabled = li.querySelector('.dn').disabled = i === n - 1;
+    return li;
+  }
+
+  function gapRow(at, joinable) {
+    var li = document.createElement('li');
+    li.className = 'gap';
+    li.innerHTML = (joinable ? '<button class="joinb" type="button" data-after="' + (at - 1)
+      + '" aria-label="join these two into one">' + svg('join') + '</button>' : '')
+      + '<button class="addb" type="button" data-at="' + at + '" aria-label="add a moment here">' + svg('add') + '</button>';
+    return li;
+  }
+
+  function paint() {
+    var rows = [];
+    UNITS.forEach(function (g, i) { rows.push(gapRow(i, i > 0)); rows.push(shell(g, i, UNITS.length)); });
+    rows.push(gapRow(UNITS.length, false));
+    var tl = $('tl');
+    tl.replaceChildren.apply(tl, rows);
+  }
+
+  /* ---- saving: one debounced PUT of what she owns ---- */
+  var saveT = null;
+  function save() {
+    clearTimeout(saveT);
+    $('saved').textContent = '';
+    saveT = setTimeout(function () {
+      api('/stories/' + encodeURIComponent(ID), {
+        method: 'PUT',
+        body: JSON.stringify({ title: $('title').value, moments: MOM, units: UNITS }),
+      }).then(function () { $('saved').textContent = 'saved'; })
+        .catch(function (e) { $('saved').textContent = String(e.message || e); });
+    }, 500);
+  }
+  $('title').oninput = save;
+
+  function where(id) {
+    for (var i = 0; i < UNITS.length; i++) {
+      var k = UNITS[i].indexOf(id);
+      if (k >= 0) return [i, k];
+    }
+    return [-1, -1];
+  }
+  function move(from, to) {
+    if (from < 0 || to < 0 || to > UNITS.length - 1 || to === from) return paint();
+    UNITS.splice(to, 0, UNITS.splice(from, 1)[0]);
+    paint(); save();
+  }
+  function idxOf(li) { return Array.prototype.indexOf.call($('tl').querySelectorAll('.unit'), li); }
+  function mint() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  /* ---- the editor ---- */
+  function openEditor(c) {
+    if (c.querySelector('.edit')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'edit';
+    wrap.innerHTML = '<textarea class="etext" rows="3"></textarea>'
+      + '<div class="erow"><button class="divide" type="button">divide here</button>'
+      + '<button class="del" type="button" aria-label="delete this moment">' + svg('trash', 1.8) + '</button></div>';
+    var box = wrap.querySelector('.etext');
+    box.value = MOM[c.getAttribute('data-item')].text || '';
+    c.appendChild(wrap);
+    c.classList.add('editing');
+    box.style.height = Math.max(56, box.scrollHeight + 4) + 'px';
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+  }
+  function closeEditor(c, keep) {
+    var wrap = c.querySelector('.edit');
+    if (!wrap) return;
+    var id = c.getAttribute('data-item');
+    if (keep !== false) {
+      var v = wrap.querySelector('.etext').value;
+      if (v !== MOM[id].text) {
+        MOM[id].text = v;
+        c.querySelector('.say').textContent = v;
+        save();
+      }
+    }
+    c.classList.remove('editing');
+    wrap.remove();
+  }
+  function closeAll(except) {
+    Array.prototype.forEach.call($('tl').querySelectorAll('.mcard.editing'), function (c) {
+      if (c !== except) closeEditor(c);
+    });
+  }
+
+  function addAt(at) {
+    var id = mint();
+    MOM[id] = { text: '' };
+    UNITS.splice(at, 0, [id]);
+    paint(); save();
+    var c = NODES[id];
+    if (c) { openEditor(c); c.scrollIntoView({ block: 'center' }); }
+  }
+
+  function divide(c) {
+    var id = c.getAttribute('data-item');
+    var box = c.querySelector('.etext');
+    var cut = box.selectionStart, all = box.value;
+    if (cut <= 0 || cut >= all.length) return;
+    var head = all.slice(0, cut).replace(/\s+$/, '');
+    var tail = all.slice(cut).replace(/^\s+/, '');
+    if (!head || !tail) return;
+    closeEditor(c, false);
+    MOM[id].text = head;
+    c.querySelector('.say').textContent = head;
+    var nid = mint();
+    MOM[nid] = { text: tail };
+    var at = where(id);
+    // inside a sequence the second half stays in that sequence; a moment on its
+    // own divides into two moments on their own
+    if (UNITS[at[0]].length > 1) UNITS[at[0]].splice(at[1] + 1, 0, nid);
+    else UNITS.splice(at[0] + 1, 0, [nid]);
+    paint(); save();
+  }
+
+  function remove(c) {
+    var id = c.getAttribute('data-item');
+    var at = where(id);
+    if (at[0] < 0) return;
+    closeEditor(c, false);
+    UNITS[at[0]].splice(at[1], 1);
+    if (!UNITS[at[0]].length) UNITS.splice(at[0], 1);
+    delete NODES[id];                     // MOM keeps the words — see the module
+    paint(); save();
+  }
+
+  $('tl').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    var card = e.target.closest('.mcard');
+    if (b && b.classList.contains('addb')) { closeAll(); return addAt(+b.dataset.at); }
+    if (b && b.classList.contains('joinb')) {
+      closeAll();
+      var j = +b.dataset.after;
+      UNITS[j] = UNITS[j].concat(UNITS[j + 1]);
+      UNITS.splice(j + 1, 1);
+      paint(); save(); return;
+    }
+    if (b && b.classList.contains('pencil')) { closeAll(card); return openEditor(card); }
+    if (b && b.classList.contains('divide')) return divide(card);
+    if (b && b.classList.contains('del')) return remove(card);
+    if (card && card.classList.contains('editing')) return;
+    if (!b) {                                   // a tap on a folded middle opens it
+      var host = card && card.closest('.unit.long');
+      if (!host) return;
+      opened[host.querySelector('.mcard').getAttribute('data-item')] = host.classList.toggle('open');
+      return;
+    }
+    var li = b.closest('.unit');
+    if (!li) return;
+    closeAll();
+    var i = idxOf(li);
+    if (b.classList.contains('split')) {
+      UNITS.splice.apply(UNITS, [i, 1].concat(UNITS[i].map(function (id) { return [id]; })));
+      paint(); save(); return;
+    }
+    if (b.classList.contains('up')) return move(i, i - 1);
+    if (b.classList.contains('dn')) return move(i, i + 1);
+    if (b.classList.contains('top')) return move(i, 0);
+    if (b.classList.contains('bot')) return move(i, UNITS.length - 1);
+  });
+
+  $('tl').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList.contains('no')) { e.preventDefault(); e.target.blur(); }
+  });
+  $('tl').addEventListener('blur', function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains('no')) {
+      var i = idxOf(t.closest('.unit'));
+      var want = parseInt(t.value, 10);
+      return (!want || want < 1) ? paint() : move(i, Math.min(want, UNITS.length) - 1);
+    }
+    if (t.classList && t.classList.contains('etext')) {
+      var c = t.closest('.mcard');
+      // divide and delete blur the box first and close it themselves, so hold
+      // only for a BUTTON in this same card — holding for anything inside it
+      // meant a blur that left focus put never saved what she had typed
+      setTimeout(function () {
+        var a = document.activeElement;
+        if (!(a && a.tagName === 'BUTTON' && a.closest && a.closest('.mcard') === c)) closeEditor(c);
+      }, 120);
+    }
+  }, true);
+
+  /* ---- the "?" — the only place instructions live ---- */
+  $('help').onclick = function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
+  document.addEventListener('click', function () { $('helpcard').hidden = true; });
+
+  var want = qs.get('story');
+  if (want) open(want); else shelf();
+})();
+</script>

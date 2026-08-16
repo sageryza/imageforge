@@ -287,6 +287,9 @@ loadConfig().then(() => {
   // sheets (public — reviews are marketing content). Backfill:
   // scripts/backfill-etsy-reviews.js; steady-state top-up is self-throttled.
   app.use('/api/witch/shop/reviews', require('./etsy-reviews').router);
+  // Story Timeline: a dictated list of moments becomes cards she can put in
+  // order. No model call, no job — see timeline.js's header.
+  app.use('/api/timeline', require('./timeline').router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
@@ -732,6 +735,9 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
+// Story Timeline: dictated moments -> cards you can order, join into
+// sequences, edit, divide and delete. The front for /api/timeline.
+app.get('/timeline', serveGated('timeline.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
