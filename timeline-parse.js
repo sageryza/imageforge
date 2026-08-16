@@ -124,4 +124,24 @@ function countMoments(units) {
   return (units || []).reduce((n, u) => n + u.length, 0);
 }
 
-module.exports = { parseStory, cleanMoments, cleanUnits, countMoments };
+/* ---- storing an arrangement --------------------------------------------
+   FIRESTORE REFUSES A NESTED ARRAY ("Nested arrays are not allowed"), and
+   `units` is an array of arrays by nature — so it is PACKED on the way to the
+   database and unpacked on the way out: one string per unit, its moment ids
+   joined by commas. The API shape never changes; only the stored one does.
+   Found the moment the first real story was written, not by reasoning. */
+
+function packUnits(units) {
+  return (units || []).map((u) => (Array.isArray(u) ? u.join(',') : String(u)))
+    .filter((s) => s.length);
+}
+
+function unpackUnits(rows) {
+  return (rows || []).map((r) => (Array.isArray(r) ? r.slice() : String(r).split(',')))
+    .map((u) => u.filter(Boolean))
+    .filter((u) => u.length);
+}
+
+module.exports = {
+  parseStory, cleanMoments, cleanUnits, countMoments, packUnits, unpackUnits,
+};

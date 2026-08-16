@@ -70,7 +70,7 @@ router.use((req, res, next) => {
 });
 
 const {
-  parseStory, cleanMoments, cleanUnits, countMoments,
+  parseStory, cleanMoments, cleanUnits, countMoments, packUnits, unpackUnits,
 } = require('./timeline-parse');
 
 const EDITABLE = ['title', 'moments', 'units'];
@@ -81,7 +81,7 @@ function view(doc) {
     id: doc.id,
     title: d.title || 'Untitled',
     moments: d.moments || {},
-    units: d.units || [],
+    units: unpackUnits(d.units),
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null,
   };
@@ -114,7 +114,7 @@ router.get('/stories', async (req, res) => {
         return {
           id: d.id,
           title: x.title || 'Untitled',
-          moments: countMoments(x.units),
+          moments: countMoments(unpackUnits(x.units)),
           units: (x.units || []).length,
           updatedAt: x.updatedAt || x.createdAt || null,
         };
@@ -138,12 +138,12 @@ router.post('/stories', async (req, res) => {
     const doc = {
       title: String(b.title || '').trim().slice(0, 200) || 'Untitled',
       moments: parsed.moments,
-      units: parsed.units,
+      units: packUnits(parsed.units),
       createdAt: now,
       updatedAt: now,
     };
     const ref = await db().collection(COLL).add(doc);
-    res.json({ id: ref.id, title: doc.title, moments: doc.moments, units: doc.units });
+    res.json({ id: ref.id, title: doc.title, moments: doc.moments, units: parsed.units });
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
 
@@ -174,7 +174,7 @@ router.put('/stories/:id', async (req, res) => {
     // those arrive in the same call or are already on the doc
     const against = moments || (doc.data() || {}).moments || null;
     const units = cleanUnits(b.units, against);
-    if (units) patch.units = units;
+    if (units) patch.units = packUnits(units);
 
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
     Object.keys(patch).forEach((k) => { if (EDITABLE.indexOf(k) < 0) delete patch[k]; });

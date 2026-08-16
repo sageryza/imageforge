@@ -27,7 +27,7 @@ const { spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const {
-  parseStory, cleanMoments, cleanUnits, countMoments,
+  parseStory, cleanMoments, cleanUnits, countMoments, packUnits, unpackUnits,
 } = require('../timeline-parse');
 
 let n = 0;
@@ -134,6 +134,27 @@ t('a moment with no text becomes an empty one, never undefined', () => {
 t('a text that is too long is cut, not refused', () => {
   const out = cleanMoments({ a: { text: 'x'.repeat(9000) } });
   assert.strictEqual(out.a.text.length, 4000);
+});
+
+console.log('storing an arrangement');
+
+t('units are PACKED for Firestore, which refuses a nested array', () => {
+  assert.deepStrictEqual(packUnits([['a', 'b'], ['c']]), ['a,b', 'c']);
+  packUnits([['a', 'b'], ['c']]).forEach((row) => assert.strictEqual(typeof row, 'string'));
+});
+
+t('and come back out the same arrangement', () => {
+  const u = [['a', 'b'], ['c'], ['d', 'e', 'f']];
+  assert.deepStrictEqual(unpackUnits(packUnits(u)), u);
+});
+
+t('a doc written before the packing still reads', () => {
+  assert.deepStrictEqual(unpackUnits([['a', 'b'], ['c']]), [['a', 'b'], ['c']]);
+});
+
+t('empty rows never become empty units', () => {
+  assert.deepStrictEqual(unpackUnits(['a,,b', '', 'c']), [['a', 'b'], ['c']]);
+  assert.deepStrictEqual(packUnits([[], ['a']]), ['a']);
 });
 
 console.log(`\n${n} pure checks passed`);
