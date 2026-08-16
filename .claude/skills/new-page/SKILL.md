@@ -186,10 +186,29 @@ your own pill and never re-implement its script.** The contract:
    styles itself from the host page's `--ink` / `--paper` / `--chg` /
    `--ink2` / `--rose` `:root` variables. Linking `/compare.css` provides
    them; a page that genuinely can't link it MUST define those five itself.
+   - **BUT THE INJECTED PILL IGNORES `:root` ENTIRELY — measured 2026-08-15
+     on /chunking.** `public/pill-inject.html` (the copy `serveGated`
+     appends) declares its OWN palette **on the element**:
+     `.float{--paper:#f6f2e9; --ink:#26221c; …}`. An element's own custom
+     property beats one inherited from `:root`, so a served page that
+     defines all five correctly STILL gets a near-black `#26221c` pill on
+     its own background — which is exactly what Sophie reported ("does not
+     follow the usual pattern, injected, and is therefore black, which is
+     really annoying"). The tokens rule above is still right for a page
+     that imports the pill via `gen-*.py`; for an INJECTED one, a page that
+     wants the pill to match must out-specify `.float`:
+     `body.tool .float{--paper:…; --ink:…;}`. Do that per page — editing
+     the shared file repaints every page in the app.
 2. **The top-right corner belongs to the pill** (`position:fixed`, roughly
    x 324–374, y 14–192 on an iPhone 13). Any header row needs
    `padding-right:56px`; never place a control in that corner — it will be
    untappable (the Chats rename pencil was, for real).
+   - **56 is a hair too tight at 390pt — measured 2026-08-15: the pill's
+     left edge lands at x=326** (its `right` is `max(14px,4vw)` = 15.6 at
+     390, plus its 48px width), so a 56px reserve ends at 334 and the last
+     8px of whatever sits there is dead. /chunking's "?" lost exactly that.
+     **Use 64px** on a row whose rightmost control is tappable; it clears
+     the pill at 375 and 390 alike.
 3. **Wrap the page's own script in an IIFE.** The injected pill runs in
    global scope declaring `var raf`, `var I`, `var playing`, … — a page-level
    `let raf` / `const I` kills the pill's script AT PARSE TIME (symptom:

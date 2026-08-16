@@ -241,6 +241,27 @@ dictation searches as she speaks. `GET /api/clips?q=` answers the same
 grammar server-side. Semantic search is deliberately not built yet
 (Sophie: fine to do later; it would cost an embedding pass).
 
+**CHUNKS ARE THE DEFAULT VIEW (Sophie, Aug 2026: "since the main point is
+chunking not random clips… hide the clips by default and only show them when
+asked").** The chip row is TWO piles and nothing finer — **chunks** (what she
+named on purpose) and **clips** (every atom, one tap away), plus **hidden**
+when it exists; the old per-kind chips (scenes/bridges/quick/shorts) are
+gone. A search runs inside the open pile, and when it comes up empty there
+but has hits in the other one the state line offers them ("Nothing matches in
+clips · 1 in chunks") rather than dead-ending. The page is **cream**
+(`--bg:#faf6ee`), and it out-specifies the injected pill's own palette so the
+pill matches it — see the pill note in the `new-page` skill, because `:root`
+alone cannot reach an injected pill. A **back-to-top** button sits
+bottom-right (the pill owns top-right) once the scroll passes 500px.
+
+**Two layout bugs found by MEASURING the rendered page (2026-08-15), both
+invisible in a passing test suite:** a tile's `.ph` is a `<span>` inside a
+`<button>`, so it was inline and `aspect-ratio:1` never applied — the squares
+only looked square while their posters happened to load, and collapsed to
+77x111 whenever one was slow or missing (`display:block` fixes it); and the
+house 56px pill reserve left the "?" 8px underneath the pill at 390pt (64px
+clears it). Screenshot a page before calling it done.
+
 **Gotchas earned elsewhere, honored here:** opening the page never spends
 money and never starts a harvest (it only *shows* a running one); the
 lightbox freezes the page and restores the exact scroll position; the

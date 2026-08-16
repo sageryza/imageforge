@@ -71,7 +71,10 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   ok(await pg.locator('#helpcard').isHidden(), 'the explanation hides behind the "?"');
   await pg.locator('#help').click();
   ok(await pg.locator('#helpcard').isVisible(), '…and the "?" shows it');
-  await pg.locator('body').click({ position: { x: 20, y: 800 } });
+  // Dispatched on the element, not aimed at a coordinate: the chunks-first
+  // shelf can be shorter than the viewport, so a point near the bottom lands
+  // on <html> rather than on the page.
+  await pg.evaluate(() => document.body.click());
   ok(await pg.locator('#helpcard').isHidden(), '…and any tap closes it');
 
   const cols = await pg.locator('#shelf').evaluate((el) =>
@@ -84,10 +87,22 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   shelf = await fetch(BASE + '/api/clips').then((r) => r.json());
   const harvesting = await fetch(BASE + '/api/clips/harvest').then((r) => r.json())
     .then((h) => h.job && h.job.status === 'running').catch(() => false);
-  const visible = (shelf.clips || []).filter((c) => !c.hidden);
+  // ── chunks are the default view; clips are one tap away ──────────────
+  const chunks = (shelf.clips || []).filter((c) => !c.hidden && c.kind === 'chunk');
+  const atoms = (shelf.clips || []).filter((c) => !c.hidden && c.kind !== 'chunk');
+  const chipText = await pg.locator('#kinds .chip').allTextContents();
+  ok(chipText[0] === 'chunks' && await pg.locator('#kinds .chip.on').textContent() === 'chunks',
+    `it opens on chunks, not on everything (chips: ${chipText.join(' / ')})`);
+  ok(!chipText.includes('scenes') && !chipText.includes('bridges'),
+    'the atomic kinds are one pile called clips, not five chips');
+  const shown = await pg.locator('#shelf .clip').count();
+  ok(shown === chunks.length, `only the chunks are on screen (${shown}/${chunks.length})`);
+  ok(shown < atoms.length, `the ${atoms.length} clips stay out of the way until asked`);
+  await pg.locator('#kinds .chip', { hasText: 'clips' }).click();
+  await pg.waitForTimeout(200);
   const tiles = await pg.locator('#shelf .clip').count();
-  ok(harvesting ? Math.abs(tiles - visible.length) <= 3 : tiles === visible.length,
-    `every un-hidden clip is on the shelf (${tiles}/${visible.length}`
+  ok(harvesting ? Math.abs(tiles - atoms.length) <= 3 : tiles === atoms.length,
+    `tapping clips shows them (${tiles}/${atoms.length}`
     + (harvesting ? ', harvest running)' : ')'));
   if (!tiles) {
     console.log('(empty library — the search and lightbox checks need a harvest first)');
@@ -99,7 +114,7 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   for (const q of ['kind:scene', 'dream OR quick', 'the -bridge', '"dream bridge"']) {
     const server = await fetch(BASE + '/api/clips?q=' + encodeURIComponent(q))
       .then((r) => r.json());
-    const serverN = (server.clips || []).filter((c) => !c.hidden).length;
+    const serverN = (server.clips || []).filter((c) => !c.hidden && c.kind !== 'chunk').length;
     await pg.locator('#q').fill(q);
     await pg.waitForTimeout(300);
     const clientN = await pg.locator('#shelf .clip').count();
@@ -111,9 +126,69 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   ok(await pg.locator('#shelf .clip').count() === 0
     && /nothing matches/i.test(await pg.locator('#stateline').textContent()),
   'a miss says "Nothing matches" instead of showing an empty page');
+  // A hit that lives in the OTHER pile is offered rather than being a dead end.
+  const chunkWord = chunks.length ? (chunks[0].title || '').split(/\s+/).filter((w) => w.length > 4)[0] : '';
+  if (chunkWord) {
+    await pg.locator('#q').fill(chunkWord);
+    await pg.waitForTimeout(300);
+    const hint = await pg.locator('#stateline').textContent();
+    ok(/in chunks/.test(hint), `a search that only hits chunks offers them ("${hint.trim()}")`);
+    await pg.locator('#stateline button').click();
+    await pg.waitForTimeout(200);
+    ok(await pg.locator('#kinds .chip.on').textContent() === 'chunks',
+      'and tapping it switches the pile');
+    await pg.locator('#kinds .chip', { hasText: 'clips' }).click();
+    await pg.waitForTimeout(200);
+  }
   await pg.locator('#clearq').click();
   await pg.waitForTimeout(300);
   ok(await pg.locator('#shelf .clip').count() === tiles, 'the ✕ clears the search');
+
+  // ── the tiles are SQUARE even with no picture, and nothing hides under
+  //    the pill (both were live bugs, found by measuring) ────────────────
+  const geo = await pg.evaluate(() => {
+    const box = (el) => { const b = el.getBoundingClientRect(); return { x: b.x, w: b.width, h: b.height, r: b.right }; };
+    const ph = document.querySelector('#shelf .clip .ph');
+    const pill = document.querySelector('.vseg');
+    return {
+      ph: box(ph),
+      pillLeft: pill.getBoundingClientRect().left,
+      rightmost: ['#help', '#q', '#kinds'].map((s) => box(document.querySelector(s)).r),
+    };
+  });
+  ok(Math.abs(geo.ph.w - geo.ph.h) < 2,
+    `a tile is square whatever its poster does (${Math.round(geo.ph.w)}x${Math.round(geo.ph.h)})`);
+  ok(geo.rightmost.every((r) => r <= geo.pillLeft + 0.5),
+    `no control runs under the pill (edges ${geo.rightmost.map(Math.round).join(',')} vs pill at ${Math.round(geo.pillLeft)})`);
+
+  // ── cream, and a pill that matches it ────────────────────────────────
+  const paint = await pg.evaluate(() => {
+    const seg = document.querySelector('.vseg');
+    const cs = seg && getComputedStyle(seg);
+    return {
+      body: getComputedStyle(document.body).backgroundColor,
+      pillBg: cs && cs.backgroundColor,
+      pillInk: cs && cs.borderTopColor,
+    };
+  });
+  ok(paint.body === 'rgb(250, 246, 238)', `the page is cream, not white (${paint.body})`);
+  ok(paint.pillBg === paint.body,
+    `the pill wears the same cream as the page (${paint.pillBg})`);
+  ok(paint.pillInk === 'rgb(58, 53, 48)',
+    `and its ink is the page's, not the injected near-black (${paint.pillInk})`);
+
+  // ── back to top ──────────────────────────────────────────────────────
+  await pg.evaluate(() => window.scrollTo(0, 0));
+  await pg.waitForTimeout(150);
+  ok(await pg.locator('#totop').isHidden(), 'no back-to-top at the top of the page');
+  await pg.evaluate(() => window.scrollTo(0, 900));
+  await pg.waitForTimeout(200);
+  ok(await pg.locator('#totop').isVisible(), 'it appears once there is a scroll worth undoing');
+  const corner = await pg.locator('#totop').boundingBox();
+  ok(corner.y > 600, `it sits at the BOTTOM, clear of the pill's corner (y=${Math.round(corner.y)})`);
+  await pg.locator('#totop').click();
+  await pg.waitForTimeout(700);
+  ok(await pg.evaluate(() => window.scrollY) === 0, 'and it goes back to the top');
 
   // ── the lightbox freezes the page and restores the exact spot ────────
   await pg.evaluate(() => window.scrollTo(0, 300));
