@@ -1,82 +1,87 @@
 #!/usr/bin/env node
-// Give every ALREADY-ARCHIVED chat a wrap-up (Aug 2026, Sophie: "whenever I'm
-// about to archive a chat the last message of the chat is them explaining what
-// the chat was about and what went down").
+// BACKFILL THE ARCHIVE WRAP-UPS — write the summary for every chat that has
+// none (Aug 2026, Sophie: "maybe we should have summaries written up for every
+// chat in that note box automatically … OK, just run it on all the chats").
 //
-// Chats archived from now on carry their own — written by the chat, or frozen
-// from its Update card as it goes past. This is for the ones that were already
-// in there when the feature shipped: measured 2026-08-14, **73 of her 88
-// archived chats showed nothing but a name**, and nothing had ever been written
-// for them, so only reading the thread back can rescue those.
+// Why a backfill exists at all: a chat is ASLEEP by the time she archives it,
+// so it cannot summarise itself then. `POST /api/chatfeed/wrapup/write` reads
+// the thread the app already stores and writes the three lengths + the open
+// line. This script is just the loop over her chats.
 //
-// IT SPENDS MONEY — one Claude call per chat, server-side. So:
-//   node scripts/backfill-wrapups.js                 # dry run, prints the bill
-//   node scripts/backfill-wrapups.js --apply         # do it
-//   node scripts/backfill-wrapups.js --apply --limit 5
-//   node scripts/backfill-wrapups.js --apply --chat <slug>
-// Idempotent: a chat that already has a wrap-up is skipped by the server, so a
-// re-run after a failure costs only the ones still missing. --force overrides.
+// It is DELIBERATELY not forced: the route skips a chat that already has a
+// wrap-up, so re-running this costs nothing for the ones already done and can
+// never overwrite one a chat wrote about itself. Use the Summarize button in
+// the archive sheet to rewrite a single chat.
+//
+//   node scripts/backfill-wrapups.js --dry-run     # what it would do, and the price
+//   node scripts/backfill-wrapups.js               # do it
+//   node scripts/backfill-wrapups.js --limit 20    # a first slice, to check the writing
+//   node scripts/backfill-wrapups.js --chat <slug> # just one (still skips if present)
+//
+// FORGE_BASE overrides the server. ~1¢ a chat on Sonnet — say the estimate
+// before running it, and ask above $3 (the house spending rule).
 'use strict';
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const argv = process.argv.slice(2);
-const APPLY = argv.includes('--apply');
-const FORCE = argv.includes('--force');
-const arg = (f, d) => { const i = argv.indexOf(f); return i > -1 ? argv[i + 1] : d; };
-const LIMIT = parseInt(arg('--limit', '0'), 10) || 0;
-const ONLY = arg('--chat', '');
+const flag = (n) => argv.indexOf(n) > -1;
+const val = (n, d) => { const i = argv.indexOf(n); return i > -1 ? argv[i + 1] : d; };
+const DRY = flag('--dry-run');
+const ONE = val('--chat', '');
+const LIMIT = Number(val('--limit', 0)) || 0;
+const CONC = Math.max(1, Number(val('--concurrency', 3)) || 3);
+const CENTS = 1;                       // measured: ~1¢ a summary on claude-sonnet-5
 
-// Measured shape of the digest the route sends: capped at 9,000 chars of
-// transcript (~2.3k tokens) plus a ~250-token system prompt, answering with
-// ~250 tokens. At Sonnet's rates that is well under 2c a chat — the estimate
-// below is deliberately rounded UP so the number she is given is never light.
-const CENTS_EACH = 2;
+const api = async (path, opts) => {
+  const r = await fetch(BASE + path, Object.assign({
+    headers: Object.assign({ 'Content-Type': 'application/json' },
+      process.env.STUDIO_TOKEN ? { 'x-studio-token': process.env.STUDIO_TOKEN } : {}),
+  }, opts || {}));
+  const t = await r.text();
+  try { return JSON.parse(t); } catch (_) { return { error: 'HTTP ' + r.status + ': ' + t.slice(0, 200) }; }
+};
 
-const hdr = { 'Content-Type': 'application/json' };
-if (process.env.STUDIO_TOKEN) hdr['x-studio-token'] = process.env.STUDIO_TOKEN;
-
-async function main() {
-  const r = await fetch(BASE + '/api/chatfeed?limit=1&scan=200');
-  if (!r.ok) throw new Error('feed read failed: ' + r.status);
-  const chats = (await r.json()).chats || {};
-
-  let names = Object.keys(chats).filter((n) => {
-    const c = chats[n];
-    if (!c.archived || c.deletedAt) return false;          // archived pile only
-    if (!FORCE && (c.wrapUp || c.wrapLine)) return false;  // already has one
-    return true;
+(async () => {
+  const feed = await api('/api/chatfeed?limit=1');
+  if (!feed || !feed.chats) { console.error('could not read the feed:', feed && feed.error); process.exit(1); }
+  const all = Object.keys(feed.chats);
+  // The route skips these too — filtering here is what makes the estimate real.
+  const todo = all.filter((n) => {
+    const c = feed.chats[n] || {};
+    if (ONE) return n === ONE;
+    return !(c.wrapLine || c.wrapUp);
   });
-  if (ONLY) names = names.filter((n) => n === ONLY);
-  names.sort();
-  if (LIMIT) names = names.slice(0, LIMIT);
+  const list = LIMIT ? todo.slice(0, LIMIT) : todo;
+  console.log(all.length + ' chats, ' + (all.length - todo.length) + ' already summarised, '
+    + list.length + ' to write');
+  console.log('estimated cost: about $' + (list.length * CENTS / 100).toFixed(2));
+  if (DRY) { list.slice(0, 20).forEach((n) => console.log('  would write ' + n));
+    if (list.length > 20) console.log('  … and ' + (list.length - 20) + ' more');
+    return; }
 
-  const bill = '$' + (names.length * CENTS_EACH / 100).toFixed(2);
-  console.log(names.length + ' archived chats have no wrap-up');
-  console.log('estimated cost: ~' + bill + ' (about ' + CENTS_EACH + 'c each, rounded up)');
-  if (!names.length) return;
-  if (!APPLY) {
-    names.forEach((n) => console.log('   ' + n));
-    console.log('\ndry run — pass --apply to write them');
-    return;
-  }
-
-  let done = 0; let failed = 0; let skipped = 0;
-  for (const chat of names) {
-    try {
-      const res = await fetch(BASE + '/api/chatfeed/wrapup/write', {
-        method: 'POST', headers: hdr, body: JSON.stringify({ chat, force: FORCE }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) { failed++; console.log('  FAIL ' + chat + ' — ' + (j.error || res.status)); continue; }
-      if (j.skipped) { skipped++; console.log('  skip ' + chat + ' — ' + j.skipped); continue; }
+  let done = 0, wrote = 0, skipped = 0, empty = 0, failed = 0;
+  const fails = [];
+  const queue = list.slice();
+  const worker = async () => {
+    for (;;) {
+      const chat = queue.shift();
+      if (!chat) return;
+      let d;
+      try { d = await api('/api/chatfeed/wrapup/write', { method: 'POST', body: JSON.stringify({ chat }) }); }
+      catch (e) { d = { error: String((e && e.message) || e) }; }
       done++;
-      console.log('  ok   ' + chat + ' — ' + (j.wrapLine || '').slice(0, 80));
-    } catch (e) {
-      failed++; console.log('  FAIL ' + chat + ' — ' + e.message);
+      if (d && d.ok && d.skipped) skipped++;
+      else if (d && d.ok) wrote++;
+      else if (d && /no messages/.test(d.error || '')) empty++;
+      else { failed++; fails.push(chat + ': ' + ((d && d.error) || 'unknown')); }
+      const tag = d && d.ok && !d.skipped ? '✓' : (d && d.ok ? '·' : (/no messages/.test((d && d.error) || '') ? '∅' : '✗'));
+      console.log('[' + done + '/' + list.length + '] ' + tag + ' ' + chat
+        + (d && d.ok && !d.skipped ? ' — ' + String(d.wrapLine || '').slice(0, 80) : ''));
     }
-  }
-  console.log('\nwrote ' + done + ', skipped ' + skipped + ', failed ' + failed);
-  if (failed) console.log('re-run to retry only the ones still missing — it is idempotent');
-}
-
-main().catch((e) => { console.error(e.message); process.exit(1); });
+  };
+  await Promise.all(Array.from({ length: CONC }, worker));
+  console.log('\nwrote ' + wrote + ' · already had one ' + skipped + ' · no messages ' + empty
+    + ' · failed ' + failed);
+  console.log('actual spend: about $' + (wrote * CENTS / 100).toFixed(2));
+  if (fails.length) { console.log('\nfailures:'); fails.slice(0, 40).forEach((f) => console.log('  ' + f)); }
+})();
