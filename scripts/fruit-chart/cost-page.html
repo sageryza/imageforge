@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What an image costs (v1)</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* A price grid, not a picture row — four columns that fit 390px without
+     sliding sideways (the no-wide-tables rule applies here too). The label
+     column takes what it needs; the three quality columns share the rest. */
+  /* THE TOP-RIGHT CORNER BELONGS TO THE PILL. The first table's header and
+     first row sit inside it (x 326-374, y 14-192 at 390pt), so the `high`
+     column was drawn UNDER the pill and unreadable. Reserving 64px on every
+     table keeps the two aligned with each other rather than only fixing the
+     one that collided. */
+  .tbl { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0;
+         padding-right: 64px;
+         font: 15px/1.3 -apple-system, 'Helvetica Neue', sans-serif; }
+  .tbl > div { padding: 9px 6px; border-bottom: 1px solid var(--line); }
+  .tbl > div:nth-child(4n) { padding-right: 0; }
+  .tbl > div:nth-child(4n+1) { padding-left: 0; }
+  .tbl .hd { font: 700 11px/1.2 -apple-system, sans-serif; letter-spacing: .12em;
+             text-transform: uppercase; color: var(--gold); border-bottom-color: var(--ink2); }
+  .tbl .n { text-align: right; font-variant-numeric: tabular-nums; min-width: 62px; }
+  .tbl .lo { color: var(--ink2); }
+  .tbl .row0 { border-bottom: 0; }
+  .tbl .sz { font-size: 12px; color: var(--ink2); display: block; }
+  .note { font: 13px/1.4 -apple-system, sans-serif; color: var(--ink2); margin-top: 10px; }
+  .dear { color: var(--rose); }
+</style>
+
+<div class="wrap">
+  <h1>What an image costs</h1>
+
+  <div class="card" data-item="by-size">
+    <h3>One reference attached</h3>
+    <div class="tbl">
+      <div class="hd"></div><div class="hd n">low</div><div class="hd n">medium</div><div class="hd n">high</div>
+
+      <div>Square<span class="sz">1024 × 1024</span></div>
+      <div class="n">2.5¢</div><div class="n">7.2¢</div><div class="n dear">23.0¢</div>
+
+      <div>Tall<span class="sz">1024 × 1536</span></div>
+      <div class="n">2.4¢</div><div class="n">6.0¢</div><div class="n">18.4¢</div>
+
+      <div class="row0">Wide<span class="sz">1536 × 1024</span></div>
+      <div class="n row0">2.4¢</div><div class="n row0">6.0¢</div><div class="n row0">18.4¢</div>
+    </div>
+    <p class="note">The square is the dear one. Wide holds 1.5× the pixels and costs less.</p>
+  </div>
+
+  <div class="card" data-item="by-refs">
+    <h3>How many references</h3>
+    <div class="tbl">
+      <div class="hd">tall / wide</div><div class="hd n">low</div><div class="hd n">medium</div><div class="hd n">high</div>
+
+      <div class="lo">none</div>
+      <div class="n lo">0.5¢</div><div class="n lo">4.1¢</div><div class="n lo">16.5¢</div>
+
+      <div>one</div>
+      <div class="n">2.4¢</div><div class="n">6.0¢</div><div class="n">18.4¢</div>
+
+      <div>two</div>
+      <div class="n">4.2¢</div><div class="n">7.8¢</div><div class="n">20.2¢</div>
+
+      <div class="row0">three</div>
+      <div class="n row0">6.1¢</div><div class="n row0">9.7¢</div><div class="n row0">22.1¢</div>
+    </div>
+    <p class="note">Each reference adds 1.85¢, whatever the size or quality. At low that is more than the picture.</p>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'favorite-fruit-chart', sheet: 'image-cost-v1' });
+  window.__compareHelp({ html:
+    '<b>gpt-image-2, checked 2026-08-16.</b> The no-reference row is OpenAI’s '
+    + 'published price. The 1.85¢ a reference adds is measured on your own '
+    + 'account — 3,293 image calls over 31 days averaged 2,310 input-image '
+    + 'tokens at $8 per million. Two and three references are that figure '
+    + 'multiplied, not separately measured.<br><br>'
+    + 'Rates: text in $5/1M, image in $8/1M, image out $30/1M. Pricing your '
+    + 'usage export against them predicted $6.97 for a day the invoice billed '
+    + 'at $7.10.<br><br>'
+    + 'The prompt text itself is under 0.1¢ and is left out. Your month’s '
+    + 'real all-in average was 6.3¢ an image.' });
+})();
+</script>

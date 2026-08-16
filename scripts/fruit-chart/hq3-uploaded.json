@@ -1,0 +1,26 @@
+[
+ {
+  "id": "12-raspberries",
+  "name": "Raspberries",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/12-raspberries-hq.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/12-raspberries-hq.webp"
+ },
+ {
+  "id": "14-kiwi",
+  "name": "Kiwi",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/14-kiwi-hq.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/14-kiwi-hq.webp"
+ },
+ {
+  "id": "05-mango",
+  "name": "Mango",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/05-mango-hq.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/05-mango-hq.webp"
+ },
+ {
+  "id": "21-fig",
+  "name": "Fig",
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/card/21-fig-hq.webp",
+  "full": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/fruit/full/21-fig-hq.webp"
+ }
+]
