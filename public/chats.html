@@ -2654,7 +2654,12 @@ function newsItems(g){
 // picked (Aug 2026, Sophie: "can you make one more option called maybe never,
 // and this also only shows when I'm actively categorizing stuff") — the same
 // rule DONE follows, so the resting row stays the two boxes she browses.
-var NEWS_QS=[['later','Later'],['soon','In a minute'],['never','Maybe never',1]];
+// LATER IS CALLED "COME BACK TO" NOW (Aug 2026, Sophie: "can you combine the
+// come back to and later categories") — one word for one intention, on both
+// screens. The STORED value stays `later`, so nothing had to be migrated and
+// no older reader breaks; only the word she reads changed. See COME BACK TO
+// IS ONE BUCKET near the category chips for the other half.
+var NEWS_QS=[['later','Come back to'],['soon','In a minute'],['never','Maybe never',1]];
 var newsQ='';        // the open box, '' = the main list
 var newsPick={};     // what is selected right now (chat name → 1)
 function newsQueueOf(n){
@@ -3064,6 +3069,43 @@ function catsShown(){ return catsOpen || !!cat; }
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// ---- COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
+// back to and later categories") ------------------------------------------
+// She had two names for one intention: the COME BACK TO folder on this list,
+// and the LATER box on the UPDATE screen. Same meaning, two words, two places
+// to go looking.
+//
+// They stay TWO FIELDS underneath, and that is the deliberate part. `category`
+// files a chat FOREVER; `newsQueue` files ONE update until something newer
+// lands and then hands it back. Folding either into the other loses something
+// real: make the box write a category and a chat she defers an update from is
+// yanked out of Stories (a chat can only be in one folder), make the folder
+// write a queue and her filing expires on its own.
+//
+// So the combine is ONE WORD and ONE PILE, not one field: the Update box is
+// labelled "Come back to" (NEWS_QS), and this folder shows the chats sitting
+// in that box as well as the ones filed into it.
+//
+// What it deliberately does NOT do: a chat deferred on the Update screen still
+// shows on the main list. Deferring one update is not filing the whole chat
+// away, and making it vanish from the list would be a filing she never asked
+// for.
+var CB_CAT='come back to';
+var CB_QUEUE='later';
+// The chats whose update card is in the box RIGHT NOW, rebuilt each render.
+// Read through newsItems/newsBoxed rather than re-deriving the test, or the
+// chip and the box could disagree about where something is — the one thing
+// the Update screen's own two lists are careful never to do.
+var cbBox={};
+function rebuildComeBack(g){
+  cbBox={};
+  newsItems(g).forEach(function(it){
+    if(newsBoxed(it) && newsQueueOf(it.chat)===CB_QUEUE) cbBox[it.chat]=1;
+  });
+}
+// The one test for "is this chat in that folder", used by the chip's count,
+// the list and the archive alike.
+function chatInCat(name,c){ return chatCat(name)===c || (c===CB_CAT && !!cbBox[name]); }
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
 // everything worked out, and then another one that's pretty much trash but I'm
@@ -3206,6 +3248,10 @@ function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
+  // Never leave the Come back to box without a chip to reach it by: the folder
+  // is in her vocabulary already, but a chat sitting in that box with no chip
+  // on the row would be a pile with no door.
+  if(Object.keys(cbBox).length && out.indexOf(CB_CAT)<0) out.push(CB_CAT);
   ((settings&&settings.categories)||[]).forEach(function(c){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
@@ -3274,7 +3320,7 @@ function paintCatRow(g){
     var mine=Object.keys(chats).filter(function(n){
       // acctMatch: the badge has to count the same chats the chip will SHOW,
       // or a folder promises replies that are on the other account's tab.
-      return chatCat(n)===c && !(chats[n]&&chats[n].archived) && acctMatch(n);
+      return chatInCat(n,c) && !(chats[n]&&chats[n].archived) && acctMatch(n);
     });
     // how many chats in here have ANSWERED her — a finished reply she has not
     // opened. Counted per CHAT, not per message: "3" means three of them came
@@ -3482,6 +3528,10 @@ function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
+  // Which chats are sitting in the Come back to box right now — one pass, read
+  // by the chip, the list and the archive below (see COME BACK TO IS ONE
+  // BUCKET). Must run before anything filters or counts by category.
+  rebuildComeBack(g);
   // ONE ACCOUNT AT A TIME (Sophie, Aug 2026). Applied to `all` up front, so
   // every pile below it — live, hidden, ★ — is that account's.
   // The ARCHIVE is the exception (Aug 2026): its own BUILT / OTHER row
@@ -3512,7 +3562,7 @@ function renderHome(){
   // folder she isn't looking at would be noise.
   // …but a filed chat COMES BACK when it answers — see chatBack above.
   live=live.filter(function(n){
-    return cat ? chatCat(n)===cat : (!chatCat(n) || chatBack(n, lastOf(g,n)));
+    return cat ? chatInCat(n,cat) : (!chatCat(n) || chatBack(n, lastOf(g,n)));
   });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
@@ -3522,7 +3572,7 @@ function renderHome(){
   // chip still narrows it.
   // …from `everyone`, not `all`: the archive shows both accounts (above).
   var arch=everyone.filter(function(n){ return chats[n]&&chats[n].archived; });
-  if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
+  if(cat) arch=arch.filter(function(n){ return chatInCat(n,cat); });
   paintHomeChrome();
   paintAcctTabs(g);
   paintCatRow(g);

@@ -859,6 +859,33 @@
     - Select mode's own filing chips are untouched — the whole vocabulary is
       always there to file into, whatever the row above is doing. Test:
       `node scripts/test-chats-tags-button.js`.
+  - **COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
+    back to and later categories" — confirmed as the chat-list FOLDER and the
+    UPDATE screen's BOX).** She had two names for one intention and two places
+    to go looking.
+    - **One word and one pile — deliberately NOT one field.** `category` files
+      a chat forever; `newsQueue` files ONE update until something newer lands
+      and then hands it back. Folding either into the other loses something
+      real: make the box write a category and a chat she defers an update from
+      is yanked out of Stories (a chat can only be in one folder); make the
+      folder write a queue and her filing expires on its own.
+    - So the Update box is **labelled** "Come back to" (`NEWS_QS`) while its
+      **stored value stays `later`** — the rename is a word, not a migration,
+      and nothing already filed had to move. `NEWS_QUEUES` in `chatfeed.js`
+      carries the note.
+    - The folder's chip shows the union: chats filed into `come back to` PLUS
+      chats whose update card is in that box right now. `chatInCat()` is the
+      one test, read by the chip's count, the live list and the archive alike;
+      `rebuildComeBack()` derives the box membership through
+      `newsItems`/`newsBoxed` rather than re-deriving it, so the chip and the
+      box can never disagree about where something is.
+    - **A chat deferred on the Update screen still shows on the main list.**
+      Deferring one update is not filing the whole chat away, and making it
+      vanish from the list would be a filing she never asked for.
+    - A superseded card leaves the pile the same moment it leaves the box —
+      the auto-return rule is the box's, and the folder must not contradict it.
+    - Test: `node scripts/test-chats-come-back-to.js` (verified failing against
+      a folder that only reads `category`).
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one

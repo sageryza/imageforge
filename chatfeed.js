@@ -1791,6 +1791,12 @@ router.get('/sort', async (_req, res) => {
 // `never` is "maybe never" — the third box, and the only one that is not also
 // a filter on the page: it shows ONLY while she is actively categorising
 // (Sophie, Aug 2026), the same rule DONE follows.
+// THE VALUES ARE STORED WORDS, NOT DISPLAYED ONES. `later` is labelled
+// "Come back to" in the app since Aug 2026 (Sophie: "can you combine the come
+// back to and later categories" — the box and the chat list's folder of that
+// name meant the same thing). Renaming the stored value would have orphaned
+// every chat already filed under it for a word, so the label moved and this
+// did not; the two are joined in `chats.html` (COME BACK TO IS ONE BUCKET).
 const NEWS_QUEUES = ['later', 'soon', 'never'];
 router.post('/news-queue', async (req, res) => {
   try {
