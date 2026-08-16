@@ -150,6 +150,27 @@ ok('a chat she has never spoken in is filed before everything',
   s.filedStamp({}) < REPLY);
 ok('…and that stamp is a real one, never an empty field', s.filedStamp({}).length > 10);
 
+// ── Is this chat finished? (Sophie: "flag which ones should be archived") ───
+// The question she forgot to answer OUTRANKS everything — that is the case she
+// named first, and a finished feature with her question hanging in it is a chat
+// to answer, not one to put away.
+is('a question she never answered beats a finished feature',
+  s.archiveHint({ state: 'done', openQuestions: 1 }), 'needs you');
+is('…and beats being mid-work too',
+  s.archiveHint({ state: 'mid', openQuestions: 3 }), 'needs you');
+is('built and settled, nothing owed → archive',
+  s.archiveHint({ state: 'done', openQuestions: 0 }), 'archive');
+is('it stopped on something that could not be done',
+  s.archiveHint({ state: 'blocked', openQuestions: 0 }), 'dead end');
+is('still in the middle → keep', s.archiveHint({ state: 'mid', openQuestions: 0 }), 'keep');
+is('nothing known at all is not an invitation to archive', s.archiveHint({}), 'keep');
+
+// An unreadable or missing state must never read as "done" — that is the value
+// that would send a live chat to the archive pile.
+is('a state the model invented falls back to mid', s.pickState({ state: 'finished' }), 'mid');
+is('no state at all falls back to mid', s.pickState({}), 'mid');
+is('a real state reads', s.pickState({ state: 'BLOCKED' }), 'blocked');
+
 // ── The prompt carries what it needs, and only what it needs ────────────────
 const msgs = [
   { from: 'sophie', text: 'can you make the archive rows show a summary' },
@@ -165,7 +186,9 @@ const p = s.buildSortPrompt({
 });
 ok('the folders are listed', /- meta —/.test(p.user));
 ok('each folder is taught by her own chats', /secretly A Witch app/.test(p.user));
-ok('an empty folder says so rather than pretending', /not filed anything here yet/.test(p.user));
+ok('a folder she just made is offered by name, never suppressed',
+  /a new folder, nothing filed in it yet/.test(p.user));
+ok('the model is asked whether the work finished', /"state"/.test(p.system));
 ok('her note is in there — it is what she calls the thing', /chats app stuff/.test(p.user));
 ok('the status card rides along', /tag chips/.test(p.user));
 ok('the opening of the thread is there', /archive rows show a summary/.test(p.user));

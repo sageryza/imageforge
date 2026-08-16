@@ -949,6 +949,32 @@
     {chat, dry, force, stampNow}` sorts one; `dry:true` answers with the
     folder it would pick and changes nothing. `__settings.autoSort === false`
     stops it dead without a deploy (no UI — a switch she never asked for).
+  - **IS THIS CHAT FINISHED? — the same call also flags what could be archived
+    (Aug 2026, Sophie: "flag which ones should be archived… whether there was a
+    feature that was built that was basically complete, or if we were in the
+    middle of something… if there was something that simply couldn't be done,
+    or if there was a question I just forgot to answer").** Two halves, and
+    only one is a judgment: the model says `done` / `mid` / `blocked`, while
+    **the question she forgot to answer is DERIVED** — `buildQuestions` over
+    the whole thread, `!q.answer` — so "needs you" names a question that
+    provably went unanswered rather than one that sounded likely. An open
+    question **outranks everything**: a finished feature with her question
+    hanging in it is a chat to answer, not one to put away. Four values on the
+    registry as `archiveHint`: `archive`, `dead end`, `needs you`, `keep`.
+    **Nothing archives anything** — she asked to be shown which ones, and a
+    wrong archive puts real work behind a pile she does not read.
+  - **THE REVIEW PAGE ANSWERS IN FOLDER NAMES, not yes/no** (`scripts/gen-sort-
+    proposal-page.js`, her ask: "a check off mark per chat to say yeah file it
+    there, or alternatively file it elsewhere"). One control does both: ✓
+    writes the proposed folder into the verdict's `ok`, the picker writes a
+    different one, `none` leaves it unfiled — and a row with NO value is one
+    she hasn't reached, a state a boolean could not carry. The ✓ lights only
+    when her answer IS the proposal, or a lit tick would be claiming she
+    agreed with a guess she overrode.
+  - **An EMPTY folder is offered by name, never suppressed.** The first version
+    told the model to "prefer none" for a folder with nothing in it, which is
+    backwards — an empty folder is one she has just MADE (she made `dream app`
+    the day this shipped) and it would have stayed empty forever.
   - Backfilling the ones already there:
     `node scripts/backfill-chat-categories.js` (dry by default, `--write` to
     file, `--limit N` for a sample). Tests: `node scripts/test-chat-sort.js`

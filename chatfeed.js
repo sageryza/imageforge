@@ -1599,7 +1599,26 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
   const pick = chatSort.pickCategory(out, cats);
   const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-  if (dry) return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why };
+  // IS IT FINISHED? — the model judges whether the work landed; the question she
+  // forgot to answer is COUNTED, not judged (chat-sort.js, archiveHint). An
+  // unanswered question is a fact about the transcript, so the flag can name one
+  // that provably exists instead of one that sounded likely.
+  const openQ = buildQuestions(msgs).filter((q) => !q.answer);
+  const state = chatSort.pickState(out);
+  const stateWhy = String((out && out.stateWhy) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  const hint = chatSort.archiveHint({ state, openQuestions: openQ.length });
+  const finished = {
+    state,
+    stateWhy,
+    hint,
+    openQuestions: openQ.length,
+    // The newest one, so the page can show WHICH question is hanging — a count
+    // alone sends her back into the chat to find out what she owes it.
+    openQuestion: openQ.length ? String(openQ[openQ.length - 1].question).slice(0, 200) : '',
+  };
+  if (dry) {
+    return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why, ...finished };
+  }
 
   const now = new Date().toISOString();
   // NONE writes nothing but the cooldown — no folder, no filedAt, no trace on
@@ -1608,7 +1627,7 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // A RE-CHECK that comes back unsure LEAVES THE EXISTING FOLDER ALONE. Being
   // unsure is a reason not to move a chat, never a reason to pull one out of a
   // folder she may have been finding it in for weeks.
-  const patch = { catTriedAt: now };
+  const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, openQ: openQ.length };
   if (pick) {
     patch.category = pick;
     patch.catBy = 'auto';
@@ -1625,7 +1644,7 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   }
   await regRef(target).set(patch, { merge: true });
   return { chat: target, sorted: Boolean(pick), category: pick || null, why: pick ? 'sorted' : 'none',
-    reason: why };
+    reason: why, ...finished };
 }
 
 // Sort ONE chat on demand — what the backfill script drives, and the only way
