@@ -142,7 +142,7 @@ def appui_html(thumb_path, highlight):
 </div>
 </body>"""
 
-def memui_html(card_path, caption, idx, total):
+def memui_html(card_path, caption, idx, total, sub="Sophie &middot; ages 6&ndash;8"):
     dots = "".join(
         f"<span style='display:inline-block;width:7px;height:7px;border-radius:50%;"
         f"margin:0 4px;background:{'#22201b' if i == idx else '#d8cfb8'}'></span>"
@@ -150,7 +150,7 @@ def memui_html(card_path, caption, idx, total):
     return f"""<body style="{BODY}background:#faf4e6;text-align:center">
 <div style="padding-top:52px;color:#22201b;font-family:Georgia,serif;font-size:24px;
   letter-spacing:0.04em">Memory Library</div>
-<div style="color:#8a8371;font-size:13px;font-style:italic;margin-top:4px">Sophie &middot; ages 6&ndash;8</div>
+<div style="color:#8a8371;font-size:13px;font-style:italic;margin-top:4px">{sub}</div>
 <div style="margin:30px 30px 0;background:#fffdf6;border:1px solid #e3dbc6;border-radius:6px;
   padding:14px">
   <img src="{b64img(card_path)}" style="width:100%;height:420px;object-fit:cover;border-radius:4px">
@@ -302,7 +302,8 @@ for sc in REEL["scenes"]:
             frame_plan[sid].append((f, hold, True))
             shots.append({"file": f, "html": memui_html(
                 os.path.join(ROOT, "stills", f"{card['id']}.png"),
-                card["caption"], i, len(sc["cards"]))})
+                card["caption"], i, len(sc["cards"]),
+                **({"sub": REEL["mem_sub"]} if REEL.get("mem_sub") else {}))})
     elif sc["kind"] == "witui":
         frame_plan[sid] = []
         for i, st in enumerate(sc["states"]):
