@@ -126,13 +126,24 @@ Editor).
 
 These are the ones worth building, and none of them is a missing button:
 
-- **BLOCKS has no tool.** It is a hand-built Compare page, re-posted at v14,
-  which borrows `POST /api/editor/page-cut` to render and saves its whole
-  marking state into a chatfeed verdict doc. There is no module, no Firestore
-  doc of its own, no page in `public/`, no iOS tile. Every improvement to it
-  costs a chat re-authoring an 80KB artifact. It also holds five capabilities
-  that exist nowhere else (above), so the most-featured cutting surface in the
-  repo is the one with no server behind it.
+- ~~**BLOCKS has no tool.**~~ **BUILT — `blocks.js` + `/blocks`, merged
+  2026-08-16 (#1281).** It was a hand-built Compare page, re-posted at v14,
+  which borrowed `POST /api/editor/page-cut` to render and saved its whole
+  marking state into a chatfeed verdict doc: no module, no Firestore doc of its
+  own, no page in `public/`, no iOS tile, so every improvement cost a chat
+  re-authoring an 87KB artifact — while it held five capabilities that exist
+  nowhere else (above). It is now `forge-blocks` (content-addressed by the
+  source url, so re-opening resumes), a page at `/blocks`, and an iOS tile
+  under the FILM filter. **The one design decision worth carrying forward:
+  previews and the real render take DIFFERENT paths on purpose.** The bulk
+  75s-chunked whisper pass places a line and drives ▶ (through the Episode
+  Editor's `page-cut`); the render RE-LISTENS per card and cuts through
+  `editor.js`'s validated cutter — the Cutting Room's own finding, imported
+  rather than re-learned, so `cuttingroom.js` now exports `chunkedWords` and
+  `cutSection` instead of a second copy drifting. Measured live the day it
+  shipped, on a 17s clip: listen job ~6s, 45 words → 3 sentence-level lines
+  whose word ranges tile the source exactly. Tests:
+  `node scripts/test-blocks.js`.
 - **The polish pass is split across a tool and an artifact.** The Cutting Room
   removes a pause; the Pausing tool shapes one. Rhythm — how long a beat sits —
   is the half that only exists as a page, and it is the half that decides how a
