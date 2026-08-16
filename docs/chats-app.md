@@ -973,14 +973,39 @@
     middle of something… if there was something that simply couldn't be done,
     or if there was a question I just forgot to answer").** Two halves, and
     only one is a judgment: the model says `done` / `mid` / `blocked`, while
-    **the question she forgot to answer is DERIVED** — `buildQuestions` over
-    the whole thread, `!q.answer` — so "needs you" names a question that
-    provably went unanswered rather than one that sounded likely. An open
-    question **outranks everything**: a finished feature with her question
+    **the question she forgot to answer is DERIVED** (`pendingAsk`). It
+    **outranks everything** — a finished feature with a question of hers
     hanging in it is a chat to answer, not one to put away. Four values on the
     registry as `archiveHint`: `archive`, `dead end`, `needs you`, `keep`.
     **Nothing archives anything** — she asked to be shown which ones, and a
     wrong archive puts real work behind a pile she does not read.
+    - **THE DIRECTION WAS BACKWARDS AT FIRST, and the measurement caught it.**
+      v1 looked for questions of HERS with no reply (`buildQuestions`,
+      `!q.answer`) and flagged **0 of 86 chats** — a chat always answers, so
+      that pairing can only ever come up empty on a live thread. Her sentence
+      is the other direction: *the chat* asked *her* and she never came back,
+      which is exactly why such a chat is not finished.
+    - It stays derived because the proof is structural: her answer would be a
+      message from her AFTER the question, so a question in the thread's LAST
+      message with nothing behind it is unanswered by construction.
+    - **It reads only the CLOSING section** (from the message's `tail` offset,
+      where the turn's last tool call fell) — mid-narration prose is full of
+      rhetorical questions. And it **requires a literal `?`**, which
+      `isQuestion` deliberately does not: that detector is tuned for HER
+      dictation, which often has no question mark, so a leading auxiliary is
+      enough there and "Did all the work here." trips it. A chat writes
+      markdown and always punctuates.
+    - The closing is picked by SENTENCE, never by slicing at `tail` — a raw
+      offset lands mid-word and the fragment reads as its own sentence
+      ("ady for the next batch?").
+  - **THE OUTPUT GREW AND THE TOKEN CAP DIDN'T — the same truncation the
+    archive summary already had.** 300 tokens fitted `{category, why}` and cut
+    `{state, stateWhy}` off mid-string; an unclosed brace fails both of
+    `parseJSON`'s attempts, so **15 of 86 chats in one pass** came back as
+    "Claude did not return parseable JSON". The cap is 700 now AND the call
+    runs raw through `salvageJson`, because either fix alone still loses
+    answers. **Adding a field to a model's JSON output means raising its cap
+    in the same commit.**
   - **THE REVIEW PAGE ANSWERS IN FOLDER NAMES, not yes/no** (`scripts/gen-sort-
     proposal-page.js`, her ask: "a check off mark per chat to say yeah file it
     there, or alternatively file it elsewhere"). One control does both: ✓
@@ -989,6 +1014,19 @@
     she hasn't reached, a state a boolean could not carry. The ✓ lights only
     when her answer IS the proposal, or a lit tick would be claiming she
     agreed with a guess she overrode.
+  - **HER TICKS GET APPLIED, AND THAT IS WHAT TEACHES A NEW FOLDER.**
+    `node scripts/apply-sort-verdict.js --sheet sort-dryrun-<n>` (dry, then
+    `--write`) reads the verdict back and files them through `POST /category`,
+    which stamps `catBy:'sophie'` — so the sorter never revisits them AND they
+    become the EXAMPLES the folder is taught by. That is the whole loop: "5 of
+    these witch ones are really dream app" becomes a `dream app` folder the
+    sorter can use, with nobody writing a description of it. A row she never
+    touched is left alone — the page is long, so silence means "not yet".
+  - **"Leave unfiled" is an ANSWER and needs its own field** (`catNone`,
+    `POST /api/chatfeed/sort/none`). An empty `category` is indistinguishable
+    from a chat nobody has looked at, so without it the sorter would file the
+    chat again tomorrow — rule 1 broken in the one direction `category` cannot
+    record.
   - **An EMPTY folder is offered by name, never suppressed.** The first version
     told the model to "prefer none" for a folder with nothing in it, which is
     backwards — an empty folder is one she has just MADE (she made `dream app`

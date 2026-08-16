@@ -48,6 +48,10 @@
 // chat is one she means to come back to, and guessing would bury real work in
 // a to-do folder. The sorter never files into them; she still can.
 
+// The question detector is shared with the Questions button, so a chat asking
+// her something reads the same to both surfaces.
+const { sentences } = require('./questions');
+
 // Her WHEN folders — see above. Matched case-insensitively.
 const TRIAGE = ['look at', 'come back to'];
 
@@ -242,11 +246,65 @@ function digestOf(msgs, { head = 2, tail = 4, per = 400, cap = 4000 } = {}) {
 // NOTHING HERE ARCHIVES ANYTHING. She asked to be shown which ones, and
 // archiving is hers to do — a wrong archive puts real work behind a pile she
 // does not read.
-function archiveHint({ state, openQuestions = 0 } = {}) {
-  if (openQuestions > 0) return 'needs you';
+function archiveHint({ state, pendingAsk = '' } = {}) {
+  if (pendingAsk) return 'needs you';
   if (state === 'done') return 'archive';
   if (state === 'blocked') return 'dead end';
   return 'keep';
+}
+
+/**
+ * The question SHE forgot to answer — the chat asked her something and she
+ * never came back.
+ *
+ * THE FIRST VERSION HAD THIS BACKWARDS and the measurement is what caught it:
+ * it looked for questions of HERS with no reply (`buildQuestions`, `!q.answer`)
+ * and flagged **0 of 86 chats**, because a chat always answers — that pairing
+ * can only ever come up empty on a live thread. Her sentence is the other
+ * direction: "if there was a question I just forgot to answer" is the chat
+ * waiting on HER, which is exactly why such a chat is not finished.
+ *
+ * It stays DERIVED rather than judged, because the proof is structural: her
+ * answer would be a message from her AFTER the question, so a question in the
+ * thread's LAST message with nothing behind it is unanswered by construction.
+ *
+ * Only the CLOSING section of that message is searched — `tail` is the offset
+ * of the turn's last tool call, so text[tail…] is the rundown a chat writes at
+ * the end, which is where it actually asks her something. Prose in the middle
+ * of a work narration is full of rhetorical questions, and reading those would
+ * flag half her chats as owing her an answer.
+ *
+ * AND IT REQUIRES A LITERAL "?", which `isQuestion` deliberately does not.
+ * That detector is tuned for HER — she dictates and her questions often carry
+ * no question mark at all — so it leans on a leading auxiliary, and "Did all
+ * the work here." trips it. A chat writes markdown and always punctuates, so
+ * the mark is free here and it is what separates a real ask from a sentence
+ * that merely opens with "did".
+ */
+function pendingAsk(msgs, { fallbackChars = 800 } = {}) {
+  const list = msgs || [];
+  const last = list[list.length - 1];
+  if (!last || last.from === 'sophie') return '';   // she spoke last — nothing owed
+  if (last.working) return '';                      // still writing; it hasn't asked yet
+  const text = String(last.text || '');
+  const t = Number(last.tail);
+  const cut = Number.isFinite(t) && t > 0 && t < text.length
+    ? t : Math.max(0, text.length - fallbackChars);
+  // Split the WHOLE message, then keep the sentences that END at or after the
+  // cut — never slice the string itself. `tail` is a raw character offset and
+  // lands mid-word ("Re|ady for the next batch?"), and a fragment starting a
+  // slice reads to the sentence splitter as its own sentence. Keeping the
+  // straddler is deliberate: a sentence that runs across the boundary is part
+  // of the closing, not of the work above it.
+  let pos = 0;
+  const closing = sentences(text).filter((sn) => {
+    const at = text.indexOf(sn, pos);
+    if (at < 0) return false;
+    pos = at + sn.length;
+    return pos >= cut;
+  });
+  const qs = closing.filter((x) => /\?\s*$/.test(x));
+  return qs.length ? String(qs[qs.length - 1]).replace(/\s+/g, ' ').trim().slice(0, 200) : '';
 }
 
 const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
@@ -318,6 +376,6 @@ function pickCategory(out, cats) {
 module.exports = {
   TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
-  sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState,
+  sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
   digestOf, buildSortPrompt, pickCategory,
 };

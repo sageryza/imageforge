@@ -159,14 +159,48 @@ ok('…and that stamp is a real one, never an empty field', s.filedStamp({}).len
 // named first, and a finished feature with her question hanging in it is a chat
 // to answer, not one to put away.
 is('a question she never answered beats a finished feature',
-  s.archiveHint({ state: 'done', openQuestions: 1 }), 'needs you');
+  s.archiveHint({ state: 'done', pendingAsk: 'Want the long version?' }), 'needs you');
 is('…and beats being mid-work too',
-  s.archiveHint({ state: 'mid', openQuestions: 3 }), 'needs you');
+  s.archiveHint({ state: 'mid', pendingAsk: 'Which palette?' }), 'needs you');
 is('built and settled, nothing owed → archive',
-  s.archiveHint({ state: 'done', openQuestions: 0 }), 'archive');
+  s.archiveHint({ state: 'done', pendingAsk: '' }), 'archive');
 is('it stopped on something that could not be done',
-  s.archiveHint({ state: 'blocked', openQuestions: 0 }), 'dead end');
-is('still in the middle → keep', s.archiveHint({ state: 'mid', openQuestions: 0 }), 'keep');
+  s.archiveHint({ state: 'blocked', pendingAsk: '' }), 'dead end');
+is('still in the middle → keep', s.archiveHint({ state: 'mid', pendingAsk: '' }), 'keep');
+
+// ── The question SHE forgot to answer — the chat asked, she never came back ──
+// The first version looked for questions of HERS with no reply and flagged 0
+// of 86 chats: a chat always answers, so that pairing can only come up empty.
+// Her sentence is the other direction, and it is provable — her answer would
+// be a message from her AFTER the question.
+const ask = (msgs) => s.pendingAsk(msgs);
+is('the chat asked and she never came back',
+  ask([{ from: 'sophie', text: 'do it' },
+       { from: 'claude', text: 'Shipped it. Want me to run the backfill too?' }]),
+  'Want me to run the backfill too?');
+is('she answered, so nothing is owed',
+  ask([{ from: 'claude', text: 'Want me to run it?' }, { from: 'sophie', text: 'yes go' }]), '');
+is('a finished report with no question owes nothing',
+  ask([{ from: 'sophie', text: 'hi' }, { from: 'claude', text: 'Shipped it and merged.' }]), '');
+is('a draft has not asked her anything yet',
+  ask([{ from: 'sophie', text: 'hi' },
+       { from: 'claude', text: 'Should I use A or B?', working: true }]), '');
+// isQuestion is tuned for HER dictation, which often carries no "?" — so a
+// leading auxiliary is enough there and "Did all the work here." trips it.
+// A chat writes markdown and always punctuates.
+is('a chat sentence that merely opens with "did" is not an ask',
+  ask([{ from: 'sophie', text: 'go' }, { from: 'claude', text: 'Did all the work here.' }]), '');
+// Only the CLOSING counts: a question buried above a wall of work narration is
+// something it already answered itself, not something she owes.
+is('a question far above the closing is not owed',
+  ask([{ from: 'sophie', text: 'go' },
+       { from: 'claude', text: 'Should I use A?  ' + 'x'.repeat(2000) + '  All done.' }]), '');
+// `tail` is a raw offset and lands mid-word, so the split is by sentence.
+is('the closing boundary never cuts a question in half',
+  ask([{ from: 'sophie', text: 'hi' },
+       { from: 'claude', text: 'Which one do you want?  ...work...  Ready for the next batch?', tail: 38 }]),
+  'Ready for the next batch?');
+is('an empty thread owes nothing', ask([]), '');
 is('nothing known at all is not an invitation to archive', s.archiveHint({}), 'keep');
 
 // An unreadable or missing state must never read as "done" — that is the value

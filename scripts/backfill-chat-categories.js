@@ -90,9 +90,16 @@ async function api(path, opts) {
     } catch (err) { out = { why: 'error', reason: String(err.message || err) }; }
     const pick = out.category || '—';
     tally[pick] = (tally[pick] || 0) + 1;
-    results.push({ chat, category: out.category || null, reason: out.reason || '', why: out.why || '' });
+    // The WHOLE decision, not just the folder — the review page shows the
+    // archive flag and the unanswered question too, and the pass that produced
+    // them costs money, so nothing it learned may be dropped on the floor here.
+    results.push({
+      chat, category: out.category || null, reason: out.reason || '', why: out.why || '',
+      hint: out.hint || '', state: out.state || '', stateWhy: out.stateWhy || '',
+      openQuestions: out.openQuestions || 0, openQuestion: out.openQuestion || '',
+    });
     const pad = String(i + 1).padStart(String(names.length).length);
-    console.log(`${pad}/${names.length}  ${pick.padEnd(14)} ${chat}`
+    console.log(`${pad}/${names.length}  ${pick.padEnd(14)} ${(out.hint || '').padEnd(10)} ${chat}`
       + (out.reason ? `  · ${out.reason}` : '')
       + (out.why && out.why !== 'sorted' && out.why !== 'dry-run' ? `  [${out.why}]` : ''));
     if (PAUSE_MS && i < names.length - 1) await new Promise((r) => setTimeout(r, PAUSE_MS));
