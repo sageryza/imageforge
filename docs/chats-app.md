@@ -507,6 +507,15 @@
     `images · film · audio · writing · research`. Growing it is a one-line
     change in both. **Free text was refused deliberately**: a typed tag is a
     typo away from its own orphan pile.
+  - **HER OWN LINE IS IN THE SHEET TOO (Aug 2026, Sophie: "I'd like to also be
+    able to leave my own note … it would show up in the archive as a little
+    italic line underneath the bold title of the chat like the notes to myself
+    do before they're archived").** It writes `sophieNote` — the field that
+    ALREADY renders as that italic line and already beats anything a chat wrote
+    there. A second field would only have raced it for the same row. The box
+    arrives prefilled with what she has, saves through `liveInput` (dictation
+    can fill a field without firing `input`) and again as the sheet closes, so a
+    tap that goes straight from the box to Archive keeps what she typed.
   - **A chat is tagged from the ARCHIVE SHEET, and every tap saves at once** —
     the star, the bookmark and the tags are facts about the chat, not part of
     the archiving decision, so Cancel means "don't archive it" rather than
@@ -519,6 +528,15 @@
     derivation applies ONLY to archived chats — a live chat opening the sheet
     must show nothing picked, or she archives it pre-tagged with a word she
     never chose.
+  - **A MARK HAS TO FILL, not just recolour (Sophie, 2026-08-15: "the bookmark
+    doesn't fill in when I click it, that's frustrating").** `BMK_SVG` is drawn
+    `fill="none" stroke="currentColor"`, so lighting the button turned the
+    outline rose and left the bookmark hollow; the star looked right because it
+    is `fill="currentColor"` already. Any new place that lights a bookmark needs
+    its own `.on svg{fill:currentColor}` — `.bmk.chatbmk.on svg` and
+    `.arctags .arcmark.on svg` are the two copies. A test that asserts only the
+    `.on` CLASS passes while she is looking at a dead control, which is exactly
+    what happened: assert the computed `fill`.
   - **Only tags that are actually in the archive are offered**, in the
     vocabulary's order, with ALL leading and landing. The full ten on a phone
     would be a row she reads past to reach the two that find anything. The
@@ -1366,14 +1384,31 @@
     she asked for "the last three pictures… to be easily reminded what
     they're doing", which is context, and a row of one picture with two
     blanks is worse at that job.
-  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
-    isn't hers, a Compare page, an image — because **a chat can deliver
-    without saying anything**, and a feed keyed on messages alone would miss
-    exactly the picture batches she asked to see. Cards sort by that arrival,
-    not by the chat's last message — **so a card whose page is replaced by a
-    newer version JUMPS TO THE TOP** rather than holding its old place (Sophie
-    asked, Aug 2026: "does it go to the top or stay where it was"). The card
-    is one per chat and updates in place; a chat can never stack up two.
+  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a FINISHED
+    reply that isn't hers, a Compare page, an image — because **a chat can
+    deliver without saying anything**, and a feed keyed on messages alone
+    would miss exactly the picture batches she asked to see. Cards sort by
+    that arrival, not by the chat's last message — **so a card whose page is
+    replaced by a newer version JUMPS TO THE TOP** rather than holding its
+    old place (Sophie asked, Aug 2026: "does it go to the top or stay where
+    it was"). The card is one per chat and updates in place; a chat can
+    never stack up two.
+    - **A STILL-WRITING DRAFT IS NOT AN ARRIVAL (Aug 2026, Sophie: "the
+      update tab seems to give me an update before the turn is even
+      done").** A card used to land at the chat's FIRST TOOL CALL — the
+      hook's live-draft post is a non-Sophie message, and nothing here
+      checked `working` — carrying last turn's ⌄ and a timestamp about
+      something she couldn't read yet. The widget and the push both already
+      skipped drafts; `newsItems` now agrees: the reply that counts is the
+      newest FINISHED one (`lastFin`), so an unchecked reply from an earlier
+      turn still holds its card while a new turn runs on top of it, and the
+      ⌄ fallback reads `lastFin` too — never half a sentence. **Pictures and
+      pages still count the moment they land, mid-turn included** — her call,
+      asked directly: "if they finished making something or made images but
+      their turn isn't done I kind of want to preserve that" — because a
+      filed image is done even when the reply around it isn't. Tests:
+      `node scripts/test-chats-news-drafts.js` (the real page, headless;
+      verified failing on every point against the pre-change page).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must

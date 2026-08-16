@@ -226,18 +226,20 @@ const MSGS = [
   { id: 'm3', chat: 'the-bug', from: 'claude', text: 'fixed it', tldr: 'c', created: iso(T0 - 3000), postedAt: iso(T0 - 3000) },
 ];
 const CHATS = {
-  'live-one': { account: '1', lastSeen: MSGS[0].created, starred: true },
+  'live-one': { account: '1', lastSeen: MSGS[0].created, starred: true,
+    sophieNote: 'the tags one' },
   // deliberately NO tags: an archived chat that predates them must read as
   // `built`, which is what spares the 97 already in there a backfill.
   'we-built-it': { account: '1', lastSeen: MSGS[1].created, archived: true },
   'the-bug': { account: '1', lastSeen: MSGS[2].created, archived: true,
-    tags: ['bug fix'], bookmarked: true },
+    tags: ['bug fix'], bookmarked: true,
+    sophieNote: 'why I put it away', wrapLine: 'a summary nobody should see over her note' },
 };
 
 async function pageTests() {
   console.log('the page:');
   if (!chromium) { console.log('  SKIP: playwright not installed'); return; }
-  const posts = { tags: [], star: [], bmk: [], archive: [] };
+  const posts = { tags: [], star: [], bmk: [], archive: [], note: [] };
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
     const take = (bin) => {
@@ -259,6 +261,7 @@ async function pageTests() {
       }));
     }
     if (url.pathname === '/api/chatfeed/tags' && req.method === 'POST') return take('tags');
+    if (url.pathname === '/api/chatfeed/chatnote' && req.method === 'POST') return take('note');
     if (url.pathname === '/api/chatfeed/star' && req.method === 'POST') return take('star');
     if (url.pathname === '/api/chatfeed/chat-bookmark' && req.method === 'POST') return take('bmk');
     if (url.pathname === '/api/chatfeed/archive' && req.method === 'POST') return take('archive');
@@ -292,8 +295,11 @@ async function pageTests() {
       await page.$eval('.askbox', (n) => n.firstElementChild.tagName === 'P'
         && /archive this chat/i.test(n.firstElementChild.textContent)));
     // "let's make it impossible to change the name of the chat in this instance"
-    ok('there is no name box in the sheet',
-      (await page.$$('.askwrap input')).length === 0);
+    // The only text box in here is HER NOTE — renaming lives on the pencil in
+    // the thread header and nowhere else.
+    ok('there is no rename box in the sheet', (await page.$$('.askwrap .arcname')).length === 0);
+    ok('and the only input is her note',
+      (await page.$$eval('.askwrap input', (ns) => ns.map((n) => n.className).join(','))) === 'arcnote');
     ok('and no pile tabs either', (await page.$$('.askwrap .arctabs')).length === 0);
 
     // the marks read the chat's real state — live-one is starred, not kept
@@ -302,13 +308,29 @@ async function pageTests() {
     ok('the bookmark is empty because it is not kept',
       await page.$eval('.askwrap .arcbmk', (n) => !n.classList.contains('on')));
 
+    // THE GLYPH, not just the class (Sophie, 2026-08-15: "the bookmark doesn't
+    // fill in when I click it, that's frustrating"). BMK_SVG is drawn
+    // `fill="none"`, so lighting the button recoloured the OUTLINE and left the
+    // bookmark hollow — the class was on the whole time and the first version of
+    // this test asserted exactly that, which is why it passed while she was
+    // looking at a dead-looking control. Assert the PAINT.
+    const bmkFill = () => page.$eval('.askwrap .arcbmk svg path', (n) => getComputedStyle(n).fill);
+    const hollow = await bmkFill();
+    ok('the bookmark starts hollow', hollow === 'none', hollow);
     await page.click('.askwrap .arcbmk');
     await page.waitForTimeout(200);
-    ok('tapping the bookmark fills it',
+    ok('tapping the bookmark lights it',
       await page.$eval('.askwrap .arcbmk', (n) => n.classList.contains('on')));
+    const filled = await bmkFill();
+    ok('…and the glyph actually FILLS, not just the outline',
+      filled !== 'none' && filled !== hollow, filled);
     ok('…and files it straight away',
       posts.bmk.length === 1 && posts.bmk[0].chat === 'live-one' && posts.bmk[0].bookmarked === true,
       JSON.stringify(posts.bmk));
+    // The star was never broken — it is drawn `fill="currentColor"` — which is
+    // why only one of the two marks looked dead. Pin that it stays filled.
+    ok('the star, already set, is drawn filled',
+      (await page.$eval('.askwrap .arcstar svg path', (n) => getComputedStyle(n).fill)) !== 'none');
 
     const chips = await page.$$eval('.askwrap .arctags .catchip', (ns) => ns.map((n) => n.textContent.trim()));
     ok('her five tags are all offered',
@@ -341,6 +363,19 @@ async function pageTests() {
     await page.waitForTimeout(200);
     ok('tapping a lit tag un-picks it',
       JSON.stringify((posts.tags[2] || {}).tags) === '["bug fix"]', JSON.stringify(posts.tags));
+
+    // ---- her own note ----------------------------------------------------
+    ok('there is one note box, and it is a single line',
+      (await page.$$('.askwrap .arcnote')).length === 1
+      && (await page.$eval('.askwrap .arcnote', (n) => n.tagName)) === 'INPUT');
+    ok('it arrives carrying the note she already wrote',
+      (await page.$eval('.askwrap .arcnote', (n) => n.value)) === 'the tags one');
+    await page.fill('.askwrap .arcnote', 'archived, tags shipped');
+    await page.waitForTimeout(400);
+    ok('typing in it saves to her OWN note field, not a second one',
+      posts.note.length > 0 && posts.note[posts.note.length - 1].chat === 'live-one'
+      && posts.note[posts.note.length - 1].note === 'archived, tags shipped',
+      JSON.stringify(posts.note));
 
     // Cancel means "don't archive it" — the tags she just picked stay picked
     await page.click('.askwrap .askrow button:not(.go)');
@@ -399,6 +434,11 @@ async function pageTests() {
 
     // the ↓ went with the piles it moved chats between
     ok('an archive row carries no pile-mover', !(await page.$('#grid .crow .archbtn')));
+    // Her note is the italic line under the bold name — the same place it sits
+    // before a chat is archived, and it still beats anything a chat wrote.
+    ok('her note is the line on the archived row',
+      (await page.$eval('#grid .crow[data-chat="the-bug"] .cr-note', (n) => n.textContent.trim()))
+        === 'why I put it away');
   } finally {
     await browser.close();
     server.close();
