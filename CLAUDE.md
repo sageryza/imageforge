@@ -53,6 +53,9 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 **While you work**
 - **Never block the turn on a wait** — background it, or her next message is
   silently swallowed.
+- **She is almost never at her desktop.** Anything that can only run on her Mac
+  gets APPENDED to `docs/desktop-tasks.md` (the one queue, every repo) and
+  mentioned in one line — never asked for. Urgent is the only interrupt.
 - **Nothing may live only in the scratchpad.** Commit and push as you go.
 - **Estimate the cost before a paid batch, and ASK above $3.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
@@ -101,6 +104,35 @@ links at the very bottom.
   also makes it look like she can't talk to you when she always can.
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
+
+## SHE IS ALMOST NEVER AT HER DESKTOP — batch desktop tasks, never ask
+**Sophie works from her phone (Aug 2026, her rule: "I'm almost never on my
+computer… anytime someone has a desktop task they should just batch it").** So
+a task that can only run on her Mac must NOT turn into "can you go to your
+computer and…" — that is a request to change where she is, and it lands weeks
+late or never.
+- **Write it into `docs/desktop-tasks.md` instead.** That is THE list, one for
+  every chat in every repo, and it lives in her Mac checkout (`~/imageforge`) so
+  the machine that has to run it already has it. The file carries the entry
+  template, the rules for adding one, and the protocol the terminal chat
+  follows; append to **OPEN** at the bottom, exact copy-pasteable commands, no
+  secrets (public repo), commit and push the same turn.
+- **Say one line in your reply** that you queued it and what it is. She should
+  know the pile grew without having to ask, and without it becoming an ask.
+- **Then keep going.** A queued desktop task never blocks the rest of the turn —
+  do everything that doesn't depend on it and hand the turn back.
+- **When she IS at the computer** she says "open `docs/desktop-tasks.md` and run
+  the queue" and the terminal chat works it top to bottom, moving each finished
+  block to DONE with the date.
+- **URGENT is the only interrupt** — she is blocked without it, or it expires.
+  Say so plainly in the reply AND queue it anyway, so it survives her not being
+  near the computer. "It would be faster" is not urgent.
+- **What counts as desktop-only:** YouTube downloads (datacenter IPs are
+  bot-blocked — `docs/modules/nde.md`), anything needing her logged-in browser,
+  keychain or Photos library, a plugged-in device, local files that live only on
+  the Mac, and big uploads that must be chunked on her home connection. Anything
+  a cloud session can do, a cloud session does — never queue work here to avoid
+  doing it.
 
 ## Claims about OTHER sessions or the environment: MEASURE, never reason
 **A SECOND CASE, and the same shape (2026-08-14): "a repo-committed hook never
