@@ -564,9 +564,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
 /* PINNED TO THE TOP — the pushpin is a CONTROL on the row (Aug 2026, Sophie:
    "I was assuming it would go right on the main page not inside of it"), so it
-   joins the circular-button family the hide ⊖ already belongs to rather than
-   being a mark at the front of the row. Grey at rest, red HEAD when set — the
-   `.pinbtn` rules above do the colouring, this only sizes and places it. */
+   sits with the hide button rather than being a mark at the front of the row.
+   Grey at rest, red HEAD when set — the `.pinbtn` rules above do the
+   colouring, this only sizes and places it.
+   The plate below is for the TILE cover only; a list row strips it — see
+   "NO CIRCLE ON A LIST ROW". */
 .crow .pinrow{width:31px; height:31px; flex:none; margin-left:2px;}
 .pinrow{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92);
@@ -623,6 +625,29 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
 .t-cover .hidebtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
 .crow .ckbtn,.crow .hidebtn{width:31px; height:31px; flex:none; margin-left:2px;}
+/* NO CIRCLE ON A LIST ROW (Aug 2026, Sophie, of the pin and the hide beside
+   it: "I don't want in a circle — can you take it out of the circle, and also
+   there's a hide button next to it, can you take that out of the circle
+   also"). Bare glyphs on the row: the cream plate and its shadow were there to
+   lift a control off a PHOTO, and a row has no photo under it — so on a row
+   they were two floating buttons in a list made of nothing but hairlines.
+   THE TILES KEEP THEIRS, so this is scoped to `.crow` and not written on the
+   bare classes. `.t-cover` sits on the chat's picture, which is exactly the
+   case the plate exists for; taking it off there would leave the glyphs
+   unreadable on a light image. (The tile view is unreachable today — `view` is
+   pinned to 'list' — but renderTiles is kept code at her ask, so the guard
+   belongs here rather than in whoever turns it back on.) The size is kept —
+   31px is the tap target, the plate was never what made it one.
+   The glyph goes up 14 → 16px now that it has no ring around it to fill. */
+.crow .pinrow,.crow .hidebtn{background:none; box-shadow:none; border-radius:6px;}
+.crow .pinrow svg,.crow .hidebtn svg{width:16px; height:16px;}
+/* …and with the plate gone the hide follows her OWN rule for the same glyph in
+   the thread header ("the hidden icon should also not be red until I click
+   it"): quiet ink until the chat really is parked, then red. A red crossed eye
+   on every row is a wall of red about chats with nothing wrong with them —
+   which is only bearable while it is a small mark inside a cream disc. */
+.crow .hidebtn{color:var(--ink2);}
+.crow .hidebtn.on{background:none; color:#b3443f;}
 /* The HIDDEN bar — at the top of where the chats live (Aug 2026, Sophie).
    Only drawn when something is actually hidden; tapping it opens the pile
    underneath it, tapping again puts it away. It wears the LIT CATEGORY CHIP's
@@ -3716,12 +3741,18 @@ function chatWorking(name,last){
   return !at || (now-at) < LIVE_STALE;
 }
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-// Hide / put back. Deliberately NOT an eye (Sophie's call) — an eye says
-// "look at this", and the pair below says what actually happens to the row:
-// minus takes it OFF the list, plus puts it back. Same circle either way, so
-// the two read as one control in two states, the way ✓ does.
+// The ⊖ on the HIDDEN BAR — the pile's own label, still the minus in a circle.
+// It has the word "Hidden" beside it, so it needs no glyph of its own to say
+// what it is.
+//
+// THE ROW'S HIDE IS AN EYE NOW, AND THAT REVERSES AN EARLIER CALL OF HERS.
+// This line used to read "deliberately NOT an eye (Sophie's call) — an eye
+// says 'look at this'", paired with a ⊖/⊕ that said what happens to the row.
+// Aug 2026 she asked for the eye: "there's a hide button next to it, can you
+// take that out of the circle also and can you make it an eye that's crossed
+// out" — the same glyph she had already asked for in the thread header. The
+// ⊕ that used to mean "put it back" is gone with it; see `mkHide`.
 var HD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
-var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
 // A filled star in the bookmark's red — "a red star would be nice to match the
 // bookmark colour" (Sophie). Filled, not outlined: on a row it is a state, not
 // a control; the one place it IS a control is the thread header's button.
@@ -3824,10 +3855,17 @@ function mkPinTop(name){
   };
   return b;
 }
+// A CROSSED-OUT EYE, in BOTH states (Aug 2026, Sophie: "can you make it an eye
+// that's crossed out" — no condition attached, unlike her thread-header ask,
+// which was "an eye that's crossed out IF it's hidden"). So this button is the
+// hidden control, one glyph, and the STATE is the colour: quiet ink while the
+// chat is on the list, red once it is parked. That also keeps it agreeing with
+// the header for the case both are looking at — a hidden chat wears the
+// crossed eye in both places.
 function mkHide(name,last){
   var hid=chatHidden(name,last);
   var b=document.createElement('button'); b.className='hidebtn'+(hid?' on':'');
-  b.innerHTML=hid?UNHD:HD;
+  b.innerHTML=EYE_OFF_SVG;
   b.setAttribute('aria-label', hid?'Put this chat back in the list':'Hide this chat');
   b.onclick=function(e){ e.stopPropagation(); toggleHide(name,last); };
   return b;

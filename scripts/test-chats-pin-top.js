@@ -247,6 +247,48 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
     fail('the whole pin went red — she asked for just the top part: ' + JSON.stringify(lit));
   } else ok();
 
+  // ── NO CIRCLE ON A LIST ROW, and the hide is a CROSSED EYE ────────────────
+  // (Aug 2026, Sophie: "I don't want in a circle, can you take it out of the
+  // circle, and also there's a hide button next to it, can you take that out of
+  // the circle also and can you make it an eye that's crossed out".)
+  const flat = await page.$eval('#grid .crow[data-chat="newest"]', (row) => {
+    const read = (sel) => { const cs = getComputedStyle(row.querySelector(sel));
+      return { bg: cs.backgroundColor, shadow: cs.boxShadow, radius: cs.borderRadius, w: cs.width }; };
+    return { pin: read('.pinrow'), hide: read('.hidebtn'),
+      hideSvg: row.querySelector('.hidebtn').innerHTML };
+  });
+  ['pin', 'hide'].forEach((k) => {
+    const s = flat[k];
+    if (!/rgba\(0, 0, 0, 0\)|transparent/.test(s.bg)) fail('the row ' + k + ' still has a plate behind it: ' + s.bg);
+    else ok();
+    if (s.shadow !== 'none') fail('the row ' + k + ' still has the circle shadow: ' + s.shadow);
+    else ok();
+    if (/50%/.test(s.radius)) fail('the row ' + k + ' is still a circle: ' + s.radius);
+    else ok();
+    // The plate went, the tap target did not.
+    if (parseFloat(s.w) < 28) fail('the row ' + k + ' lost its tap target with its plate: ' + s.w);
+    else ok();
+  });
+  // Lucide `eye-off` — the `m2 2 20 20` crossing stroke is the tell, and it is
+  // there in BOTH states (her ask carried no "if it's hidden" condition, unlike
+  // the thread header's).
+  if (!/m2 2 20 20/.test(flat.hideSvg)) {
+    fail('the row hide is not a crossed-out eye — ' + flat.hideSvg.slice(0, 120));
+  } else ok();
+  // The de-plating is written `.crow`-scoped so the TILE cover keeps its
+  // plate — `.t-cover` sits on the chat's picture, which is the one case a
+  // plate exists for. Not asserted here because the tile view is unreachable
+  // (`view` is pinned to 'list'; renderTiles is kept code, not a screen).
+  const tilePlate = await page.evaluate(() => {
+    const el = document.createElement('div'); el.className = 't-cover';
+    const b = document.createElement('button'); b.className = 'hidebtn';
+    el.appendChild(b); document.body.appendChild(el);
+    const bg = getComputedStyle(b).backgroundColor; el.remove(); return bg;
+  });
+  if (/rgba\(0, 0, 0, 0\)|transparent/.test(tilePlate)) {
+    fail('the de-plating leaked off the row onto `.t-cover`, which sits on a photo: ' + tilePlate);
+  } else ok();
+
   // ── 4/5. tapping writes it, both ways, and MOVES the row ──────────────────
   await page.click(rowPin('middle'));
   await page.waitForTimeout(200);
