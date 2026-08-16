@@ -59,6 +59,9 @@ const TRIAGE = ['look at', 'come back to'];
 // answer is almost always none, so the call is not worth making.
 const MIN_MESSAGES = 3;
 
+// The shortest thing that can be a real question to her — see pendingAsk.
+const MIN_ASK_WORDS = 4;
+
 // How long an unsorted chat rests before it is looked at again. A chat that
 // answers none does so because it is thin or genuinely miscellaneous; asking
 // again at the end of its every turn would bill her for the same no all day.
@@ -303,7 +306,11 @@ function pendingAsk(msgs, { fallbackChars = 800 } = {}) {
     pos = at + sn.length;
     return pos >= cut;
   });
-  const qs = closing.filter((x) => /\?\s*$/.test(x));
+  // …and it must read like a sentence. A URL ending in a query string splits
+  // into "com/news/?" and passes the question-mark test — three of the first
+  // fourteen flags were exactly that. Four words is the same floor questions.js
+  // uses on her own dictation, and no real ask to her is shorter.
+  const qs = closing.filter((x) => /\?\s*$/.test(x) && x.trim().split(/\s+/).length >= MIN_ASK_WORDS);
   return qs.length ? String(qs[qs.length - 1]).replace(/\s+/g, ' ').trim().slice(0, 200) : '';
 }
 
