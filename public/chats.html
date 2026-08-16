@@ -738,6 +738,14 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
+/* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
+   then a longer summary behind an arrow). Quiet by design: it sits at the end of
+   the short summary as one small word, not a second control competing with the
+   ⌄ that opened this. */
+.wrapmore2{display:block; margin:6px 0 0; padding:0; background:none; border:0;
+  color:var(--chg); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
 .t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped.
    The QUESTIONS button rides the same row (Aug 2026, Sophie: "there's hardly
@@ -4089,7 +4097,29 @@ function paintWrapUps(el){
     tog.setAttribute('aria-label','What this chat was about');
     var body=document.createElement('div');
     body.className='wrapfull'; body.hidden=true;
-    body.textContent=(full||'')+(open?(full?'\n\n':'')+'Still open: '+open:'');
+    var short=(full||'')+(open?(full?'\n\n':'')+'Still open: '+open:'');
+    body.textContent=short;
+    // THE LONGER VERSION, one more tap in (Aug 2026, Sophie: "ideally would be
+    // a short summary like three lines at most, and then a longer summary
+    // behind an arrow"). Three depths, and she stops at whichever answers her:
+    // one line on the row, three sentences here, the full account behind MORE.
+    // A chat too small to have a longer version simply shows no MORE.
+    var long=String(r.wrapLong||'').trim();
+    if(long && long!==full){
+      var more=document.createElement('button');
+      more.className='wrapmore2'; more.textContent='more';
+      var shown=false;
+      more.onclick=function(e){
+        e.stopPropagation();
+        shown=!shown;
+        body.textContent = shown
+          ? long+(open?'\n\nStill open: '+open:'')
+          : short;
+        more.textContent = shown ? 'less' : 'more';
+        body.appendChild(more);
+      };
+      body.appendChild(more);
+    }
     tog.onclick=function(e){
       e.stopPropagation();
       body.hidden=!body.hidden;
@@ -5708,10 +5738,27 @@ function askArchive(name, cb){
         if(!d.ok||!(d.wrapLine||d.wrapUp)) throw new Error(d.error||'nothing came back');
         chats[name]=chats[name]||{};
         chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
-        chats[name].wrapOpen=d.wrapOpen||'';
+        chats[name].wrapOpen=d.wrapOpen||''; chats[name].wrapLong=d.wrapLong||'';
         // Open questions read as their own paragraph, not a clause buried in
-        // the summary — they are the half she goes looking for.
-        say((d.wrapUp||d.wrapLine)+(d.wrapOpen?'\n\nStill open: '+d.wrapOpen:''));
+        // the summary — they are the half she goes looking for. The sheet shows
+        // the SHORT summary, same as the archive row's first tap; the longer
+        // version is one more tap, and is skipped entirely when the chat was
+        // small enough that there isn't one.
+        var tail=d.wrapOpen?'\n\nStill open: '+d.wrapOpen:'';
+        say((d.wrapUp||d.wrapLine)+tail);
+        if(d.wrapLong && d.wrapLong!==d.wrapUp){
+          var more=document.createElement('button');
+          more.className='wrapmore2'; more.textContent='more';
+          var shown=false;
+          more.onclick=function(ev){
+            ev.stopPropagation();
+            shown=!shown;
+            out.textContent = shown ? d.wrapLong+tail : (d.wrapUp||d.wrapLine)+tail;
+            more.textContent = shown ? 'less' : 'more';
+            out.appendChild(more);
+          };
+          out.appendChild(more);
+        }
         sum.querySelector('span').textContent='Rewrite';
         sum.disabled=false;
       })

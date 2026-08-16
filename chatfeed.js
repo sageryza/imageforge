@@ -995,24 +995,30 @@ router.post('/archive', async (req, res) => {
 // Sending only `text` derives the line from its first sentence.
 router.post('/wrapup', async (req, res) => {
   try {
-    const { chat, session, line, text, open } = req.body || {};
+    const { chat, session, line, text, long, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const full = wrapTextOf(text);
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
+    const fuller = wrapTextOf(long);
     const still = wrapLineOf(open);
     if (!one && !full) return res.status(400).json({ error: 'line or text required' });
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapUp: full || del,
+      // The fuller account, behind a second tap. Same three-depth shape the
+      // Summarize button writes: `text` is the three-line answer, this is the
+      // rest for when she wants it.
+      wrapLong: (fuller && fuller !== full) ? fuller : del,
       // What was still open when it stopped — the same field the Summarize
       // button fills. A chat that knows it left something hanging says so here.
       wrapOpen: still || del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
-    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full, wrapOpen: still });
+    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
+      wrapLong: fuller, wrapOpen: still });
   } catch (err) { fail(res, err); }
 });
 
@@ -1025,10 +1031,13 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "...", "open": "..."}
+Return JSON: {"line": "...", "text": "...", "long": "...", "open": "..."}
+
+The three summary fields are the SAME story told at three lengths, each complete on its own — not an intro, a middle and an end. She reads whichever depth she wants and stops there.
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": 2-5 short sentences, under 800 characters. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"text": THREE SHORT SENTENCES AT MOST, under 300 characters. What she wanted, what came of it, and how it ended. This is the one she actually reads, so it has to stand alone — write the three sentences that matter, not the first three of a longer piece.
+"long": 4-8 sentences, under 800 characters, for when the short one leaves her wanting the rest. The specifics: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. Never pad to reach a length; when a chat was genuinely small, leave this empty and let the short one be the whole answer.
 "open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
@@ -1131,7 +1140,8 @@ router.post('/wrapup/write', async (req, res) => {
           ? '\n\nQuestions Sophie asked that nobody ever answered:\n' + unanswered.join('\n')
           : '\n\nEvery question she asked in here got a reply.')
         + '\n\n' + digest,
-      maxTokens: 1200,
+      // Three summary fields now instead of one, so the cap grew with them.
+      maxTokens: 1500,
     });
     let out, salvaged = false;
     try { out = anthropic.parseJSON(rawOut); }
@@ -1143,25 +1153,41 @@ router.post('/wrapup/write', async (req, res) => {
       // finished. Better a summary that stops early than one that stops "wanted
       // a li" — and the LINE, which is written first and is what her archive row
       // shows, almost always survived whole.
-      const t = String(out.text || '');
-      const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
-      out.text = stop > 40 ? t.slice(0, stop + 1) : '';
+      // The fields are written in order, so a truncation loses the LAST ones —
+      // trim whichever one it stopped inside, and the shorter fields before it
+      // survive whole. That ordering is why `text` is asked for before `long`:
+      // the summary she actually reads is the one least likely to be cut.
+      const backToSentence = (v) => {
+        const t = String(v || '');
+        const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
+        return stop > 40 ? t.slice(0, stop + 1) : '';
+      };
+      out.text = backToSentence(out.text);
+      out.long = backToSentence(out.long);
     }
     const full = wrapTextOf(out && out.text);
+    // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
+    // three lines at most, and then a longer summary behind an arrow"). Same
+    // story at a second depth, not a continuation — she stops at whichever
+    // length answers her. A chat too small to have a longer version leaves it
+    // empty and the short one is the whole answer.
+    const long = wrapTextOf(out && out.long);
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
     const open = wrapLineOf(out && out.open);
     if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
     await regRef(target).set({
       wrapLine: one,
       wrapUp: full,
-      // Cleared rather than left behind: a rewrite that finds nothing open must
-      // not leave the last run's loose end sitting under the summary.
+      // Cleared rather than left behind: a rewrite that finds nothing open (or
+      // nothing more to say) must not leave the last run's leftovers under the
+      // new summary.
+      wrapLong: (long && long !== full) ? long : admin.firestore.FieldValue.delete(),
       wrapOpen: open || admin.firestore.FieldValue.delete(),
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapOpen: open,
-      messages: msgs.length, unanswered: unanswered.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapLong: long,
+      wrapOpen: open, messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 

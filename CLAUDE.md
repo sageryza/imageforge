@@ -705,6 +705,15 @@ them off the reference sheet, not off the old filenames.
     FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
     `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
     archive's filter row. Full rules in `docs/chats-app.md`.
+  - **THREE LENGTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
+    short summary like three lines at most, and then a longer summary behind an
+    arrow").** `wrapLine` is the one line on the archive row, `wrapUp` is THREE
+    SENTENCES behind the ⌄, and `wrapLong` is the full account behind a `more`
+    inside that. Each is written to stand alone — not an intro, a middle and an
+    end — because she stops at whichever depth answers her. A chat too small to
+    justify a long version leaves `wrapLong` empty and shows no `more`. The
+    fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
+    LAST field, so the summary she actually reads is the one least at risk.
   - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
     her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
     fails both of `parseJSON`'s attempts, so a finished summary line died with
