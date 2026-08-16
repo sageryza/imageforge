@@ -1,0 +1,61 @@
+{
+  "slug": "skipsmalltalk",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/skipsmalltalk-reel-draft-v1.mp4",
+  "total_seconds": 30.6,
+  "scene_durations": {
+    "x01": 5.362449,
+    "x02": 3.438367,
+    "x03": 3.4,
+    "x04": 7.800000000000001,
+    "x05": 3.4,
+    "x06": 3.4,
+    "x07": 3.8
+  },
+  "stills": {
+    "x01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/stills/x01.png",
+      "style": "Vertical cinematic still from a social media commercial, black and white, desaturated, deadpan comedy framing, soft depth of field, photorealistic. The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. ",
+      "content": "Across a small cafe table, the earnest young man is mid-question with polite enthusiasm while she rests her chin in her hand, eyes glazed with polite exhaustion. Black and white."
+    },
+    "x02": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/stills/x02.png",
+      "style": "Vertical cinematic still from a social media commercial, black and white, desaturated, deadpan comedy framing, soft depth of field, photorealistic. The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. ",
+      "content": "A different earnest young man mid-sentence across a different diner table, the same young woman with the same glazed politeness, a different cafe. Black and white."
+    },
+    "x03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/stills/x03.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. ",
+      "content": "She slides her phone across the cafe table toward the earnest young man with one raised eyebrow and a small knowing smile, warm color blooming into the scene."
+    },
+    "x05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/stills/x05.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. ",
+      "content": "The earnest young man holds her phone in both hands, outraged on her behalf, mouth open mid-exclamation, leaning forward."
+    },
+    "x06": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/skipsmalltalk/stills/x06.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. ",
+      "content": "The two of them deep in animated conversation over empty coffee cups at golden hour, both laughing, the phone forgotten between them."
+    }
+  },
+  "memcards": {
+    "m1": {
+      "caption": "The laundry chute dare \u2014 age 7",
+      "content": "A small girl peering nervously into an open laundry chute door in a 1990s hallway while her best friend gestures grandly for her to climb in."
+    },
+    "m2": {
+      "caption": "The bathtub potion incident \u2014 age 6",
+      "content": "Two small girls in pajamas at a bathroom sink, one gleefully pouring a rainbow of bottles into the swirling water with mad-scientist delight."
+    },
+    "m3": {
+      "caption": "Hide and seek, abandoned \u2014 age 8",
+      "content": "A small girl peeking out of a dark hallway closet, far down the hall a babysitter and a boy calmly playing cards at the kitchen table."
+    }
+  },
+  "cost": {
+    "images": 0.0,
+    "clips": 0.0,
+    "music": 0.0,
+    "total": 0.0
+  }
+}

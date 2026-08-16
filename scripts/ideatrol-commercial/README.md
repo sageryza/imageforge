@@ -61,3 +61,17 @@ Watch the labels: gpt-image-2 twice printed a REAL drug's generic on a
 bottle (desvenlafaxine, brexpiprazole). Every bottle/end-card prompt now
 spells out its fictional generic or forbids extra text; check any new
 bottle render anyway.
+
+## Instagram reels (Aug 2026) — the app-ad engine
+
+`make_reel.py <slug>` + `reels.json`: portrait 2:3 skits for the real apps.
+Scene kinds: `live` (gpt still + wan), `dream` (gpt EDIT with
+`refs/dream-mystery.jpg` attached as a pure style ref), `chat`/`appui`/`memui`/
+`witui` (crisp UI frames screenshotted by `chat_shot.mjs` via the sandbox
+Chromium — images must be data-URI embedded, `file://` is silently blocked and
+ships a broken-image icon), `endcard` (typeset, never generated). Message pops
+and the doorbell are ffmpeg-synthesized. Shot reels: `birdcostume` (dreams),
+`skipsmalltalk` (Xi/Memory Library), `syncday` + `bookofshadows` (Secretly a
+Witch, plum/gold `witui` templates, witch-copy voice rules apply to all VO).
+The dream-style ref leaks its CAPTION STRIP into renders — `DREAM_PRE` forbids
+text; the captioned v1s are archived as `*-v1-captioned.png`.
