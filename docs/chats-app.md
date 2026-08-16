@@ -507,6 +507,15 @@
     `images · film · audio · writing · research`. Growing it is a one-line
     change in both. **Free text was refused deliberately**: a typed tag is a
     typo away from its own orphan pile.
+  - **HER OWN LINE IS IN THE SHEET TOO (Aug 2026, Sophie: "I'd like to also be
+    able to leave my own note … it would show up in the archive as a little
+    italic line underneath the bold title of the chat like the notes to myself
+    do before they're archived").** It writes `sophieNote` — the field that
+    ALREADY renders as that italic line and already beats anything a chat wrote
+    there. A second field would only have raced it for the same row. The box
+    arrives prefilled with what she has, saves through `liveInput` (dictation
+    can fill a field without firing `input`) and again as the sheet closes, so a
+    tap that goes straight from the box to Archive keeps what she typed.
   - **A chat is tagged from the ARCHIVE SHEET, and every tap saves at once** —
     the star, the bookmark and the tags are facts about the chat, not part of
     the archiving decision, so Cancel means "don't archive it" rather than
@@ -519,6 +528,15 @@
     derivation applies ONLY to archived chats — a live chat opening the sheet
     must show nothing picked, or she archives it pre-tagged with a word she
     never chose.
+  - **A MARK HAS TO FILL, not just recolour (Sophie, 2026-08-15: "the bookmark
+    doesn't fill in when I click it, that's frustrating").** `BMK_SVG` is drawn
+    `fill="none" stroke="currentColor"`, so lighting the button turned the
+    outline rose and left the bookmark hollow; the star looked right because it
+    is `fill="currentColor"` already. Any new place that lights a bookmark needs
+    its own `.on svg{fill:currentColor}` — `.bmk.chatbmk.on svg` and
+    `.arctags .arcmark.on svg` are the two copies. A test that asserts only the
+    `.on` CLASS passes while she is looking at a dead control, which is exactly
+    what happened: assert the computed `fill`.
   - **Only tags that are actually in the archive are offered**, in the
     vocabulary's order, with ALL leading and landing. The full ten on a phone
     would be a row she reads past to reach the two that find anything. The

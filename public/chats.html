@@ -865,12 +865,34 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    has to say out loud. */
 .arctags .arcmark.on{border-color:var(--chg); color:var(--chg);
   background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+/* THE GLYPH ITSELF HAS TO FILL (Aug 2026, Sophie: "the bookmark doesn't fill in
+   when I click it, that's frustrating"). BMK_SVG is drawn `fill="none"
+   stroke="currentColor"`, so recolouring the button turned the OUTLINE rose and
+   left the bookmark hollow — which is exactly the thing she was looking for.
+   `.bmk.chatbmk.on svg` does this in the thread header and this is the same
+   rule; the star needs nothing, being `fill="currentColor"` already, which is
+   why only one of the two marks looked dead. */
+.arctags .arcmark.on svg{fill:currentColor;}
 .arctags .arcdiv{width:1px; align-self:stretch; background:var(--line); margin:0 2px;}
 /* The same chips again as the archive's FILTER row (her ask: "those tags become
    a list of options at the top of the archive"). `.catrow` is written to sit
    inside the tool row, so standalone it needs its own bottom margin and must
    not stretch. */
 .arctagrow{flex:none; margin:0 0 .8em;}
+/* HER OWN LINE ON THE ARCHIVED CHAT (Aug 2026, Sophie: "I'd like to also be
+   able to leave my own note … it would show up in the archive as a little
+   italic line underneath the bold title of the chat like the notes to myself do
+   before they're archived … the same pattern as when I decide to bookmark
+   something and then I can name the bookmark").
+   It is her EXISTING note field (`sophieNote`) — the one that already renders as
+   that italic line and already beats anything a chat writes there — not a second
+   one that would race it for the same row. So the box arrives carrying whatever
+   she wrote before, and one line is the shape she asked for. */
+.arcnote{width:100%; box-sizing:border-box; margin:0 0 12px; padding:8px 10px;
+  border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
+  font-family:'EBGaramond',Georgia,serif; font-size:15px; font-style:italic;}
+.arcnote:focus{outline:none; border-color:var(--ink2);}
+.arcnote::placeholder{color:var(--ink2); opacity:.7;}
 /* SUMMARIZE, inside the archive sheet (Aug 2026, Sophie: "a button on there
    that automatically asks the chat to give me like a quick summary of what we
    accomplished in that chat, and if there were still any questions that were
@@ -5176,6 +5198,37 @@ function askArchive(name, cb){
     tagrow.appendChild(b);
   });
 
+  // ---- her own line -------------------------------------------------------
+  // Deliberately the SAME field as the note she writes from inside a thread
+  // (`sophieNote`, POST /chatnote): it is already the italic line under a
+  // chat's name and it already wins that line over anything a chat wrote, so a
+  // second field would only have raced it for the same row. Prefilled with what
+  // she has, because arriving empty on a chat that already carries a note would
+  // read as an invitation to replace it.
+  var noteWas=String((chats[name]&&chats[name].sophieNote)||'');
+  var note=document.createElement('input');
+  note.type='text'; note.className='arcnote'; note.maxLength=200; note.value=noteWas;
+  note.placeholder='A note to yourself about this chat';
+  note.setAttribute('aria-label','Your note about this chat');
+  var noteSaved=noteWas;
+  function saveNote(){
+    var nv=note.value.trim();
+    if(nv===noteSaved) return;
+    noteSaved=nv;
+    chats[name]=chats[name]||{}; chats[name].sophieNote=nv||null; saveCache();
+    api('/api/chatfeed/chatnote',{method:'POST',body:JSON.stringify({chat:name, note:nv})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        chats[name].sophieNote=noteWas||null; noteSaved=noteWas; saveCache();
+        toast('Couldn’t save that note');
+      });
+  }
+  // `liveInput` because iOS DICTATION can fill a field without ever firing
+  // `input` — she never types — and it also fires on blur. The close handler
+  // saves again for the tap that goes straight from the box to Archive, which
+  // on iOS can beat the blur.
+  liveInput(note, saveNote);
+
   // ---- summarize ----------------------------------------------------------
   // The summary reads back INTO the sheet, so she sees what is being filed
   // under the chat before she commits to putting it away.
@@ -5215,6 +5268,7 @@ function askArchive(name, cb){
   var no=document.createElement('button'); no.textContent='Cancel';
   var yes=document.createElement('button'); yes.className='go'; yes.textContent='Archive';
   function close(ok){
+    saveNote();                       // a tap straight from the box to Archive
     wrap.remove(); document.body.style.overflow='';
     cb(ok ? { ok:true } : { ok:false });
   }
@@ -5223,8 +5277,10 @@ function askArchive(name, cb){
   wrap.onclick=function(e){ if(e.target===wrap) close(false); };   // tap outside = no
   box.onclick=function(e){ e.stopPropagation(); };
   row.appendChild(no); row.appendChild(yes);
-  // Her order: the question, what this chat is, what it was about, then go.
-  box.appendChild(q); box.appendChild(tagrow);
+  // Her order: the question, what this chat is, her own line on it, what it was
+  // about, then go. The note sits ABOVE Summarize so a summary appearing never
+  // pushes the box she is typing in down the sheet.
+  box.appendChild(q); box.appendChild(tagrow); box.appendChild(note);
   box.appendChild(sum); box.appendChild(out);
   box.appendChild(row);
   wrap.appendChild(box);
