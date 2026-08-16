@@ -1594,28 +1594,36 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
 
   const examples = chatSort.examplesFor(reg.chats, cats);
   const { system, user } = chatSort.buildSortPrompt({ name: target, reg: mine, msgs, cats, examples });
+  // RUN THE CALL RAW so a truncated answer can still be rescued — the same
+  // failure the archive summary already had, repeated here the moment the
+  // output grew a second half: 300 tokens fitted {category, why} and cut
+  // {state, stateWhy} off mid-string, and an unclosed brace fails both of
+  // parseJSON's attempts. Measured 2026-08-15: 15 of 86 chats in one pass came
+  // back "Claude did not return parseable JSON (got: {"categ…". Two fixes,
+  // because either alone still loses answers — a cap with real headroom, and
+  // the salvage for the day something runs past it.
   let out;
-  try { out = await anthropic.chatJSON({ system, user, maxTokens: 300 }); }
-  catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
+  try {
+    const raw = await anthropic.chat({
+      system: system + '\n\nReply with STRICT JSON only — no prose, no code fences.',
+      user, maxTokens: 700,
+    });
+    try { out = anthropic.parseJSON(raw); }
+    catch (err) { out = salvageJson(raw); if (!out) throw err; }
+  } catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
   const pick = chatSort.pickCategory(out, cats);
   const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
   // IS IT FINISHED? — the model judges whether the work landed; the question she
   // forgot to answer is COUNTED, not judged (chat-sort.js, archiveHint). An
   // unanswered question is a fact about the transcript, so the flag can name one
   // that provably exists instead of one that sounded likely.
-  const openQ = buildQuestions(msgs).filter((q) => !q.answer);
+  const ask = chatSort.pendingAsk(msgs);
   const state = chatSort.pickState(out);
   const stateWhy = String((out && out.stateWhy) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-  const hint = chatSort.archiveHint({ state, openQuestions: openQ.length });
-  const finished = {
-    state,
-    stateWhy,
-    hint,
-    openQuestions: openQ.length,
-    // The newest one, so the page can show WHICH question is hanging — a count
-    // alone sends her back into the chat to find out what she owes it.
-    openQuestion: openQ.length ? String(openQ[openQ.length - 1].question).slice(0, 200) : '',
-  };
+  const hint = chatSort.archiveHint({ state, pendingAsk: ask });
+  // The question itself, not a count — a count alone sends her back into the
+  // chat to find out what she owes it.
+  const finished = { state, stateWhy, hint, pendingAsk: ask };
   if (dry) {
     return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why, ...finished };
   }
@@ -1627,7 +1635,7 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // A RE-CHECK that comes back unsure LEAVES THE EXISTING FOLDER ALONE. Being
   // unsure is a reason not to move a chat, never a reason to pull one out of a
   // folder she may have been finding it in for weeks.
-  const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, openQ: openQ.length };
+  const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, pendingAsk: ask };
   if (pick) {
     patch.category = pick;
     patch.catBy = 'auto';
