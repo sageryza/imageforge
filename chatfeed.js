@@ -995,24 +995,30 @@ router.post('/archive', async (req, res) => {
 // Sending only `text` derives the line from its first sentence.
 router.post('/wrapup', async (req, res) => {
   try {
-    const { chat, session, line, text, open } = req.body || {};
+    const { chat, session, line, text, long, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
     const full = wrapTextOf(text);
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
+    const fuller = wrapTextOf(long);
     const still = wrapLineOf(open);
     if (!one && !full) return res.status(400).json({ error: 'line or text required' });
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapUp: full || del,
+      // The fuller account, behind a second tap. Same three-depth shape the
+      // Summarize button writes: `text` is the three-line answer, this is the
+      // rest for when she wants it.
+      wrapLong: (fuller && fuller !== full) ? fuller : del,
       // What was still open when it stopped — the same field the Summarize
       // button fills. A chat that knows it left something hanging says so here.
       wrapOpen: still || del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
-    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full, wrapOpen: still });
+    res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
+      wrapLong: fuller, wrapOpen: still });
   } catch (err) { fail(res, err); }
 });
 
@@ -1025,10 +1031,13 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "...", "open": "..."}
+Return JSON: {"line": "...", "text": "...", "long": "...", "open": "..."}
+
+The three summary fields are the SAME story told at three lengths, each complete on its own — not an intro, a middle and an end. She reads whichever depth she wants and stops there.
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": 2-5 short sentences, under 800 characters. What she wanted, what actually got built or decided, and how it ended. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary.
+"text": THREE LINES ON A PHONE — that is UNDER 180 CHARACTERS, TWO short sentences at most, and it is a hard limit rather than a target. Count them: 180 characters is about 30 words, so a third sentence will not fit. What she wanted, what came of it, and how it ended. This is the one she actually reads, so it has to stand alone — write the sentences that matter, not the first few of a longer piece. If it does not fit, cut detail rather than running over: the long version is where detail belongs.
+"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when the short one leaves her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the short one be the whole answer.
 "open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
 
 Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
@@ -1131,7 +1140,8 @@ router.post('/wrapup/write', async (req, res) => {
           ? '\n\nQuestions Sophie asked that nobody ever answered:\n' + unanswered.join('\n')
           : '\n\nEvery question she asked in here got a reply.')
         + '\n\n' + digest,
-      maxTokens: 1200,
+      // Three summary fields now instead of one, so the cap grew with them.
+      maxTokens: 1500,
     });
     let out, salvaged = false;
     try { out = anthropic.parseJSON(rawOut); }
@@ -1143,25 +1153,56 @@ router.post('/wrapup/write', async (req, res) => {
       // finished. Better a summary that stops early than one that stops "wanted
       // a li" — and the LINE, which is written first and is what her archive row
       // shows, almost always survived whole.
-      const t = String(out.text || '');
-      const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
-      out.text = stop > 40 ? t.slice(0, stop + 1) : '';
+      // The fields are written in order, so a truncation loses the LAST ones —
+      // trim whichever one it stopped inside, and the shorter fields before it
+      // survive whole. That ordering is why `text` is asked for before `long`:
+      // the summary she actually reads is the one least likely to be cut.
+      const backToSentence = (v) => {
+        const t = String(v || '');
+        const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
+        return stop > 40 ? t.slice(0, stop + 1) : '';
+      };
+      out.text = backToSentence(out.text);
+      // A rescued array has a half-written last point — drop it rather than
+      // showing her a bullet that stops mid-word. The earlier points are whole.
+      out.long = Array.isArray(out.long)
+        ? out.long.filter((x) => /[.!?]\s*$/.test(String(x || '').trim()))
+        : backToSentence(out.long);
     }
     const full = wrapTextOf(out && out.text);
+    // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
+    // three lines at most, and then a longer summary behind an arrow"). Same
+    // story at a second depth, not a continuation — she stops at whichever
+    // length answers her. A chat too small to have a longer version leaves it
+    // empty and the short one is the whole answer.
+    // ONE POINT PER LINE (Aug 2026, Sophie: "I would like bullet points
+    // especially for the long summary … the long summary is one block of text
+    // would be great to see them separate"). The model returns an array; it is
+    // stored newline-joined so the field stays a plain string — the one already
+    // written as a paragraph keeps rendering as one, and the page splits on the
+    // newlines to draw bullets. An array is what makes the split reliable: a
+    // paragraph would have to be re-split on punctuation, which breaks on every
+    // abbreviation and file name.
+    const long = wrapTextOf(Array.isArray(out && out.long)
+      ? out.long.map((x) => String(x || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean).slice(0, 8).join('\n')
+      : (out && out.long));
     const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
     const open = wrapLineOf(out && out.open);
     if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
     await regRef(target).set({
       wrapLine: one,
       wrapUp: full,
-      // Cleared rather than left behind: a rewrite that finds nothing open must
-      // not leave the last run's loose end sitting under the summary.
+      // Cleared rather than left behind: a rewrite that finds nothing open (or
+      // nothing more to say) must not leave the last run's leftovers under the
+      // new summary.
+      wrapLong: (long && long !== full) ? long : admin.firestore.FieldValue.delete(),
       wrapOpen: open || admin.firestore.FieldValue.delete(),
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapOpen: open,
-      messages: msgs.length, unanswered: unanswered.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapLong: long,
+      wrapOpen: open, messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -1317,7 +1358,8 @@ router.post('/notif-seen', async (req, res) => {
 // them. Note for whoever adds the next route here — `pinned` and POST /pin
 // are TAKEN by the pinned DELIVERABLE, the film at the top of a thread, which
 // stores an OBJECT there; Express takes the first match, so a route named
-// `pin` here would shadow it.)
+// `pin` here would shadow it. That is why pinning a CHAT to the top of the
+// list is `pinTop` / POST /pin-top, further down.)
 
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
@@ -1398,6 +1440,45 @@ router.post('/notify', async (req, res) => {
     await regRef(slug).set(
       { notify: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, chat: slug, notify: on });
+  } catch (err) { fail(res, err); }
+});
+
+// PIN A CHAT TO THE TOP OF THE LIST (Aug 2026, Sophie: "an option to pin chat
+// to the top so they always show first when they come out of hiding and they
+// never disappeared to the bottom if I don't look at them for a while, and I
+// guess I can just unpin them if necessary").
+//
+// The home list is sorted by newest message, which is right for an inbox and
+// wrong for the two or three chats she is steering: a chat she leaves alone
+// for a day sinks under 190 others, and one she parks in the hidden pile comes
+// back wherever its last message puts it. This is her override — a pinned chat
+// sits above the sort, in every pile, until she taps the pin again.
+//
+// FIELD IS `pinTop`, ROUTE IS `/pin-top` — `pinned` and POST `/pin` are TAKEN
+// by the pinned DELIVERABLE (the link/film row at the top of a thread), which
+// stores an OBJECT there. Express takes the first match, so a route named
+// `pin` here would shadow it, and a field named `pinned` would collide with a
+// value of a completely different shape.
+//
+// The fourth per-chat mark, and a plain boolean like the other three:
+//   `starred`    — what she is on right now (temporary)
+//   `bookmarked` — the handful worth keeping (permanent)
+//   `notify`     — the ones allowed to buzz her phone
+//   `pinTop`     — the ones that stay at the top of the list
+//
+// Same phantom-row guard as /chat-bookmark and /notify: a merge-set on a
+// missing doc CREATES it, and every pile derives from the registry keys.
+router.post('/pin-top', async (req, res) => {
+  try {
+    const { chat, pinTop } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = pinTop !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { pinTop: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, pinTop: on });
   } catch (err) { fail(res, err); }
 });
 
@@ -1751,6 +1832,12 @@ router.get('/sort', async (_req, res) => {
 // `never` is "maybe never" — the third box, and the only one that is not also
 // a filter on the page: it shows ONLY while she is actively categorising
 // (Sophie, Aug 2026), the same rule DONE follows.
+// THE VALUES ARE STORED WORDS, NOT DISPLAYED ONES. `later` is labelled
+// "Come back to" in the app since Aug 2026 (Sophie: "can you combine the come
+// back to and later categories" — the box and the chat list's folder of that
+// name meant the same thing). Renaming the stored value would have orphaned
+// every chat already filed under it for a word, so the label moved and this
+// did not; the two are joined in `chats.html` (COME BACK TO IS ONE BUCKET).
 const NEWS_QUEUES = ['later', 'soon', 'never'];
 router.post('/news-queue', async (req, res) => {
   try {

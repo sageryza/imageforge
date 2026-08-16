@@ -31,7 +31,9 @@ const RETIRED = new Set(['27-dragonfruit']);
 // fix anything — Sophie picking favourites she wants drawn better.
 // hq2- is the same idea run through the VEGETABLES' two-up template: six of the
 // most-loved fruits, two to a 1536x1024 sheet and cut back into squares, which
-// is what makes high affordable (~17c a fruit against 25c drawn singly).
+// is what makes high affordable — 8.3c a fruit against 21.1c drawn singly on a
+// square, because the landscape canvas is CHEAPER than the square one as well
+// as holding two (the price table is in docs/modules/pictures.md).
 // hq3- carries raspberries redrawn two-up (its hq- single was the first high
 // card ever made, before the template existed) with kiwi and fig new to high,
 // plus THE MANGO CUT OPEN — Sophie asked for the cherimoya's composition on it,

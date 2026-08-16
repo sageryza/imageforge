@@ -1,0 +1,277 @@
+<!doctype html>
+<!-- Built by scripts/gen-story-timeline.js from docs/story-timeline/beats.json.
+     Edit the JSON and rebuild; never hand-edit this file. Her ARRANGEMENT is
+     not in here — order and grouping live on the server. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Story timeline v4 — combine and move</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* layout only — every colour is a /compare.css token */
+  .tl { list-style: none; margin-top: 12px; }
+  .tl li::before { content: none; }
+
+  /* A UNIT: its number, its card(s), its arrows. The cards INSIDE a unit are
+     attached; the space BETWEEN units is the join strip below (Sophie:
+     sequences "attached like right next to each other", the loose ones with
+     "a little space"). */
+  .unit {
+    display: grid; grid-template-columns: 30px 1fr 43px;
+    gap: 8px; align-items: start;
+  }
+  .mcard {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 28px 8px 10px;
+  }
+  .say { font-size: 14px; line-height: 1.42; }
+  .x {
+    font: 700 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    color: var(--gold); border: 1px solid #e0d6c4; background: #f6f0e4;
+    border-radius: 6px; padding: 2px 4px; margin-left: 4px; white-space: nowrap;
+  }
+  /* a unit holding more than one card — hairlines shared, only the outer
+     corners rounded, one gold edge so it reads as a single thing */
+  .seq .mcard { border-radius: 0; margin-top: -1px; border-left: 3px solid var(--gold); }
+  .seq .mcard:first-child { border-top-left-radius: 6px; border-top-right-radius: 6px; margin-top: 0; }
+  .seq .mcard:last-child { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+
+  /* the number — a text box she can type a new place into. 16px because
+     anything smaller makes iOS zoom the page when she taps it. */
+  .no {
+    width: 30px; height: 28px; text-align: center;
+    font: 700 16px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--ink2); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+  .no:focus { outline: none; border-color: var(--gold); color: var(--gold); }
+  .seq .no { border-color: #e0d6c4; background: #f6f0e4; color: var(--gold); }
+
+  /* left column = all the way, right column = one step */
+  .mv { display: grid; grid-template-columns: 20px 20px; gap: 3px; }
+  .mv button, .split, .join button {
+    padding: 0; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink2);
+  }
+  .mv button { width: 20px; height: 20px; }
+  .mv button svg { width: 13px; height: 13px; display: block; }
+  .mv button:disabled { opacity: .25; }
+  .split { width: 30px; height: 20px; margin-top: 4px; }
+  .split svg { width: 13px; height: 13px; display: block; }
+
+  /* JOIN — it lives in the gap between two units, which IS the gap, so the
+     control costs the page almost no height. Quiet until she looks for it. */
+  .join {
+    display: flex; align-items: center; justify-content: center;
+    height: 16px; margin: 0;
+  }
+  .join button {
+    width: 34px; height: 14px; border-color: transparent;
+    background: transparent; color: #cfc4ae;
+  }
+  .join button svg { width: 13px; height: 13px; display: block; }
+  .join button:hover { color: var(--gold); }
+
+  .cast { border-style: dashed; }
+  .reflab {
+    display: block; font: 700 9px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink2); padding-bottom: 5px;
+  }
+  .cast .say { color: var(--ink2); font-size: 13px; }
+</style>
+
+<div class="wrap">
+  <h1>Story timeline v4 — combine and move</h1>
+  <ol class="tl" id="tl">
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b1"><span class="say">the laundry basket <span class="x">2x</span></span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b2"><span class="say">the phone that I should have stolen hanging out the window, that didn’t actually happen.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b3"><span class="say">The lilac moment where the colors are changing. I was like, I don’t want that.</span></div><div class="mcard" data-item="b4"><span class="say">And then the realization, followed by me, screaming and putting the thing into my belly button. So that’s three</span></div><div class="mcard" data-item="b5"><span class="say">one, getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front</span></div><div class="mcard" data-item="b6"><span class="say">and then, two was, like, screaming, I’m angry</span></div><div class="mcard" data-item="b7"><span class="say">and then, um, putting it in my belly button as a close up</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b8"><span class="say">and then, uh, the knife hiding the knife, producing the knife. Um, finding the knife, I guess.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b9"><span class="say">Him pulling out his gun.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b10"><span class="say">Him behind me explaining things to me on the chair.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b11"><span class="say">I guess the beginning where we were, like, at the wall</span></div><div class="mcard" data-item="b12"><span class="say">and then the train</span></div><div class="mcard" data-item="b13"><span class="say">and then walking in that place</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b14"><span class="say">the chair, three, four instances, one with sandy, two with Jonathan, one with that guy</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b15"><span class="say">saying, I love you</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b16"><span class="say">the woman, like, poor baby. Probably shouldn’t be here, but not trying to help.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b17"><span class="say">leaving through the creaky door when he falls asleep. That’s, like, the end</span></div><div class="mcard" data-item="b18"><span class="say">and then just sort of, like, laying down in the brush and crying a little bit, maybe. In relief, let’s say.</span></div><div class="mcard" data-item="b19"><span class="say">And then, let’s just say the lavender came back. I don’t know if it actually did</span></div><div class="mcard" data-item="b20"><span class="say">just seeing like what colors were actually there.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b21"><span class="say">the moment where they were like, oh, she has OCD, like, let’s rape her</span></div><div class="mcard" data-item="b22"><span class="say">so, where are we gonna rape her?</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b23"><span class="say">me, like, talking about having OCD and that happened with Laurian, too.</span></div><div class="mcard" data-item="b24"><span class="say">Um, and then just being like, yeah, okay, this is okay. Actually, I’m kind of scared</span></div><div class="mcard" data-item="b25"><span class="say">what, you found her at a mental hospital, like, can she leave now?</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b26"><span class="say">a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b27"><span class="say">my tights on the floor with $83 or so on them. But it’s not a big deal, ‘cause I have $1 million now, so it’s not a big deal.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b28"><span class="say">Oh yeah, also him closing the door, that’s a good one. That important.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard cast" data-item="cast"><span class="reflab">Character reference</span><span class="say">Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b29"><span class="say">Oh yeah, and then he was like, how was your 1st time? I was like, um, what?</span></div></div></li>
+  </ol>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var CHAT = 'story-timeline-sequences', SHEET = 'timeline-b29', ORDER = 'timeline-order-b29';
+  var tl = document.getElementById('tl');
+
+  // Lucide, inlined: single = one step, double = all the way, converging =
+  // join these two, diverging = break this one apart
+  var GLYPH = {
+    up: 'm18 15-6-6-6 6',
+    dn: 'm6 9 6 6 6-6',
+    top: 'm17 11-5-5-5 5|m17 18-5-5-5 5',
+    bot: 'm7 6 5 5 5-5|m7 13 5 5 5-5',
+    join: 'm7 20 5-5 5 5|m7 4 5 5 5-5',
+    split: 'm7 15 5 5 5-5|m7 9 5-5 5 5',
+  };
+  function svg(k) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      + 'stroke-linecap="round" stroke-linejoin="round">'
+      + GLYPH[k].split('|').map(function (d) { return '<path d="' + d + '"/>'; }).join('')
+      + '</svg>';
+  }
+
+  // THE CARDS ARE HARVESTED ONCE and never rebuilt — a rebuilt card loses the
+  // note box /compare.js hung off it (and anything half-typed in one). Only the
+  // unit shells around them are made and remade.
+  var CARDS = {}, startArr = [];
+  Array.prototype.forEach.call(tl.querySelectorAll('.unit'), function (li) {
+    var g = [];
+    Array.prototype.forEach.call(li.querySelectorAll('.mcard'), function (c) {
+      var id = c.getAttribute('data-item'); CARDS[id] = c; g.push(id);
+    });
+    if (g.length) startArr.push(g);
+  });
+  var ALL = startArr.reduce(function (a, g) { return a.concat(g); }, []);
+  var arr = startArr.map(function (g) { return g.slice(); });
+
+  function shell(group, i, n) {
+    var li = document.createElement('li');
+    li.className = 'unit' + (group.length > 1 ? ' seq' : '');
+    li.innerHTML = '<div class="gut">'
+      + '<input class="no" type="text" inputmode="numeric" aria-label="its place in the order" value="' + (i + 1) + '">'
+      + (group.length > 1 ? '<button class="split" type="button" aria-label="break this one apart">' + svg('split') + '</button>' : '')
+      + '</div><div class="cards"></div><div class="mv">'
+      + '<button class="top" type="button" aria-label="send it to the top">' + svg('top') + '</button>'
+      + '<button class="up" type="button" aria-label="move it up one">' + svg('up') + '</button>'
+      + '<button class="bot" type="button" aria-label="send it to the bottom">' + svg('bot') + '</button>'
+      + '<button class="dn" type="button" aria-label="move it down one">' + svg('dn') + '</button>'
+      + '</div>';
+    var cards = li.querySelector('.cards');
+    group.forEach(function (id) { cards.appendChild(CARDS[id]); });   // MOVES the card
+    li.querySelector('.top').disabled = li.querySelector('.up').disabled = i === 0;
+    li.querySelector('.bot').disabled = li.querySelector('.dn').disabled = i === n - 1;
+    return li;
+  }
+
+  function joinRow(after) {
+    var li = document.createElement('li');
+    li.className = 'join';
+    li.innerHTML = '<button type="button" data-after="' + after + '" aria-label="join these two into one">'
+      + svg('join') + '</button>';
+    return li;
+  }
+
+  function paint() {
+    var rows = [];
+    arr.forEach(function (g, i) {
+      if (i) rows.push(joinRow(i - 1));           // the gap between units IS the join
+      rows.push(shell(g, i, arr.length));
+    });
+    tl.replaceChildren.apply(tl, rows);
+  }
+
+  var saveT = null;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      fetch('/api/chatfeed/verdict', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: CHAT, sheet: ORDER, item: 'order',
+          text: arr.map(function (g) { return g.join(','); }).join('|') }),
+      }).catch(function () { /* offline — the arrangement is still on screen */ });
+    }, 400);
+  }
+
+  function move(from, to) {
+    if (from < 0 || to < 0 || to > arr.length - 1 || to === from) return paint();
+    var g = arr.splice(from, 1)[0];
+    arr.splice(to, 0, g);
+    paint(); save();
+  }
+  function idxOf(li) { return Array.prototype.indexOf.call(tl.querySelectorAll('.unit'), li); }
+
+  tl.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.after !== undefined) {           // join this one with the next
+      var j = +b.dataset.after;
+      arr[j] = arr[j].concat(arr[j + 1]);
+      arr.splice(j + 1, 1);
+      paint(); save(); return;
+    }
+    var li = b.closest('.unit');
+    if (!li) return;
+    var i = idxOf(li);
+    if (b.classList.contains('split')) {           // break it back into moments
+      arr.splice.apply(arr, [i, 1].concat(arr[i].map(function (id) { return [id]; })));
+      paint(); save(); return;
+    }
+    if (b.classList.contains('up')) return move(i, i - 1);
+    if (b.classList.contains('dn')) return move(i, i + 1);
+    if (b.classList.contains('top')) return move(i, 0);
+    if (b.classList.contains('bot')) return move(i, arr.length - 1);
+  });
+
+  // typing a number sends it to that place
+  function commit(box) {
+    var i = idxOf(box.closest('.unit'));
+    var want = parseInt(box.value, 10);
+    if (!want || want < 1) return paint();
+    move(i, Math.min(want, arr.length) - 1);
+  }
+  tl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList.contains('no')) { e.preventDefault(); e.target.blur(); }
+  });
+  tl.addEventListener('blur', function (e) {
+    if (e.target.classList && e.target.classList.contains('no')) commit(e.target);
+  }, true);
+
+  // her saved arrangement wins over the one in the file
+  function parse(saved) {
+    var groups = saved.indexOf('|') >= 0
+      ? saved.split('|').map(function (g) { return g.split(','); })
+      // the older format: unit ids, a sequence written s-<its first beat>
+      : saved.split(',').map(function (t) {
+        if (t.indexOf('s-') !== 0) return [t];
+        var head = t.slice(2), hit = null;
+        startArr.forEach(function (g) { if (g[0] === head) hit = g; });
+        return hit ? hit.slice() : [head];
+      });
+    var seen = {}, out = [];
+    groups.forEach(function (g) {
+      var keep = g.filter(function (id) {
+        if (!CARDS[id] || seen[id]) return false;
+        seen[id] = 1; return true;
+      });
+      if (keep.length) out.push(keep);
+    });
+    ALL.forEach(function (id) { if (!seen[id]) out.push([id]); });   // nothing is ever dropped
+    return out;
+  }
+
+  fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(ORDER))
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (d) {
+      var saved = d && d.texts && d.texts.order;
+      if (saved) { arr = parse(saved); paint(); }
+    });
+  paint();
+
+  window.__compareNotes({ chat: CHAT, sheet: SHEET });
+  window.__compareHelp({ html: '<b>Type a number to send a moment there.</b> The '
+    + 'single arrows move it one place, the double ones send it all the way up or '
+    + 'down. The mark in the gap joins two into one; the one under a number breaks '
+    + 'a joined one apart. The + on any card leaves a note. It all saves as you go.' });
+})();
+</script>

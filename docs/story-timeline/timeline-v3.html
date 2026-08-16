@@ -1,0 +1,264 @@
+<!doctype html>
+<!-- Built by scripts/gen-story-timeline.js from docs/story-timeline/beats.json.
+     Edit the JSON and rebuild; never hand-edit this file. Her ARRANGEMENT is
+     not in here — it lives on the server (see ORDER_SHEET below). -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Story timeline v3 — her words restored</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* layout only — every colour is a /compare.css token */
+  .tl { list-style: none; margin-top: 14px; }
+  .tl li::before { content: none; }
+
+  /* A UNIT: its number, its card(s), its arrows. Units are spaced apart; the
+     cards INSIDE a sequence unit are not (Sophie: sequences "attached like
+     right next to each other", the loose ones with "a little space"). */
+  .unit {
+    display: grid; grid-template-columns: 34px 1fr 22px;
+    gap: 9px; align-items: start; margin-bottom: 14px;
+  }
+  .mcard {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 30px 10px 11px;
+  }
+  .say { font-size: 16px; line-height: 1.45; }
+  .x {
+    font: 700 10px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    color: var(--gold); border: 1px solid #e0d6c4; background: #f6f0e4;
+    border-radius: 6px; padding: 3px 5px; margin-left: 5px; white-space: nowrap;
+  }
+  /* the sequence stack — one block, hairlines shared, only the outer corners
+     rounded, and a gold edge so it still reads as one thing while scrolling */
+  .seq .mcard { border-radius: 0; margin-top: -1px; border-left: 3px solid var(--gold); }
+  .seq .mcard:first-child { border-top-left-radius: 6px; border-top-right-radius: 6px; margin-top: 0; }
+  .seq .mcard:last-child { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+
+  /* the number — a text box she can type a new place into */
+  .no {
+    width: 34px; height: 30px; text-align: center;
+    font: 700 16px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--ink2); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0;
+    -webkit-text-size-adjust: 100%;   /* iOS must not zoom the page on focus */
+  }
+  .no:focus { outline: none; border-color: var(--gold); color: var(--gold); }
+  .seq .no { border-color: #e0d6c4; background: #f6f0e4; color: var(--gold); }
+
+  /* the arrows */
+  .mv { display: flex; flex-direction: column; gap: 4px; }
+  .mv button {
+    width: 22px; height: 22px; padding: 0; display: flex;
+    align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink2);
+  }
+  .mv button svg { width: 14px; height: 14px; display: block; }
+  .mv button:disabled { opacity: .28; }
+
+  .cast { border-style: dashed; }
+  .reflab {
+    display: block; font: 700 10px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink2); padding-bottom: 6px;
+  }
+  .cast .say { color: var(--ink2); font-size: 15px; }
+</style>
+
+<div class="wrap">
+  <h1>Story timeline v3 — her words restored</h1>
+  <ol class="tl" id="tl">
+      <li class="unit" data-unit="b1">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b1"><span class="say">the laundry basket <span class="x">2x</span></span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b2">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b2"><span class="say">the phone that I should have stolen hanging out the window, that didn’t actually happen.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit seq" data-unit="s-b3">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b3"><span class="say">The lilac moment where the colors are changing. I was like, I don’t want that.</span></div><div class="mcard" data-item="b4"><span class="say">And then the realization, followed by me, screaming and putting the thing into my belly button. So that’s three</span></div><div class="mcard" data-item="b5"><span class="say">one, getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front</span></div><div class="mcard" data-item="b6"><span class="say">and then, two was, like, screaming, I’m angry</span></div><div class="mcard" data-item="b7"><span class="say">and then, um, putting it in my belly button as a close up</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b8">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b8"><span class="say">and then, uh, the knife hiding the knife, producing the knife. Um, finding the knife, I guess.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b9">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b9"><span class="say">Him pulling out his gun.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b10">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b10"><span class="say">Him behind me explaining things to me on the chair.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit seq" data-unit="s-b11">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b11"><span class="say">I guess the beginning where we were, like, at the wall</span></div><div class="mcard" data-item="b12"><span class="say">and then the train</span></div><div class="mcard" data-item="b13"><span class="say">and then walking in that place</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b14">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b14"><span class="say">the chair, three, four instances, one with sandy, two with Jonathan, one with that guy</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b15">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b15"><span class="say">saying, I love you</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b16">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b16"><span class="say">the woman, like, poor baby. Probably shouldn’t be here, but not trying to help.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit seq" data-unit="s-b17">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b17"><span class="say">leaving through the creaky door when he falls asleep. That’s, like, the end</span></div><div class="mcard" data-item="b18"><span class="say">and then just sort of, like, laying down in the brush and crying a little bit, maybe. In relief, let’s say.</span></div><div class="mcard" data-item="b19"><span class="say">And then, let’s just say the lavender came back. I don’t know if it actually did</span></div><div class="mcard" data-item="b20"><span class="say">just seeing like what colors were actually there.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit seq" data-unit="s-b21">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b21"><span class="say">the moment where they were like, oh, she has OCD, like, let’s rape her</span></div><div class="mcard" data-item="b22"><span class="say">so, where are we gonna rape her?</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit seq" data-unit="s-b23">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b23"><span class="say">me, like, talking about having OCD and that happened with Laurian, too.</span></div><div class="mcard" data-item="b24"><span class="say">Um, and then just being like, yeah, okay, this is okay. Actually, I’m kind of scared</span></div><div class="mcard" data-item="b25"><span class="say">what, you found her at a mental hospital, like, can she leave now?</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b26">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b26"><span class="say">a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b27">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b27"><span class="say">my tights on the floor with $83 or so on them. But it’s not a big deal, ‘cause I have $1 million now, so it’s not a big deal.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b28">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b28"><span class="say">Oh yeah, also him closing the door, that’s a good one. That important.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit refu" data-unit="cast">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard cast" data-item="cast"><span class="reflab">Character reference</span><span class="say">Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really.</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+      <li class="unit" data-unit="b29">
+        <div class="gut"><input class="no" type="text" inputmode="numeric" aria-label="its place in the order"></div>
+        <div class="cards"><div class="mcard" data-item="b29"><span class="say">Oh yeah, and then he was like, how was your 1st time? I was like, um, what?</span></div></div>
+        <div class="mv"><button class="up" type="button" aria-label="move it up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button class="dn" type="button" aria-label="move it down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </li>
+  </ol>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var CHAT = 'story-timeline-sequences', SHEET = 'timeline-b29', ORDER = 'timeline-order-b29';
+  var tl = document.getElementById('tl');
+
+  // The DOM nodes are MOVED, never rebuilt — re-rendering would throw away the
+  // note boxes /compare.js hangs off each card (and her half-typed note in one).
+  var nodes = {}, order = [];
+  Array.prototype.forEach.call(tl.children, function (li) {
+    var id = li.getAttribute('data-unit');
+    nodes[id] = li; order.push(id);
+  });
+
+  function paint() {
+    var n = 0;
+    order.forEach(function (id, i) {
+      var li = nodes[id];
+      tl.appendChild(li);                       // appendChild MOVES an existing node
+      var box = li.querySelector('.no');
+      if (box) { n++; if (document.activeElement !== box) box.value = n; }
+      li.querySelector('.up').disabled = i === 0;
+      li.querySelector('.dn').disabled = i === order.length - 1;
+    });
+  }
+
+  var saveT = null;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      fetch('/api/chatfeed/verdict', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: CHAT, sheet: ORDER, item: 'order', text: order.join(',') }),
+      }).catch(function () { /* offline — the arrangement is still on screen */ });
+    }, 400);
+  }
+
+  function moveTo(id, to) {
+    var from = order.indexOf(id);
+    if (from < 0 || to < 0 || to > order.length - 1 || to === from) return paint();
+    order.splice(from, 1);
+    order.splice(to, 0, id);
+    paint(); save();
+  }
+
+  tl.addEventListener('click', function (e) {
+    var b = e.target.closest('.up, .dn');
+    if (!b) return;
+    var id = b.closest('.unit').getAttribute('data-unit');
+    var i = order.indexOf(id);
+    moveTo(id, b.classList.contains('up') ? i - 1 : i + 1);
+  });
+
+  // typing a number moves it to that place. Only NUMBERED units count toward a
+  // place, so the unnumbered character card is stepped over rather than landed on.
+  // It is PULLED OUT FIRST and the place counted in what is left — counting in
+  // the list it is still sitting in lands it one short of what she typed.
+  function commit(box) {
+    var id = box.closest('.unit').getAttribute('data-unit');
+    var want = parseInt(box.value, 10);
+    if (!want || want < 1) return paint();
+    var rest = order.slice();
+    rest.splice(rest.indexOf(id), 1);
+    var seen = 0, to = rest.length;              // past the end = last place
+    for (var i = 0; i < rest.length; i++) {
+      if (!nodes[rest[i]].querySelector('.no')) continue;
+      if (seen === want - 1) { to = i; break; }
+      seen++;
+    }
+    rest.splice(to, 0, id);
+    order = rest; paint(); save();
+  }
+  tl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList.contains('no')) { e.preventDefault(); e.target.blur(); }
+  });
+  tl.addEventListener('blur', function (e) {
+    if (e.target.classList && e.target.classList.contains('no')) commit(e.target);
+  }, true);
+
+  // her saved arrangement wins over the order in the file
+  fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(ORDER))
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (d) {
+      var saved = d && d.texts && d.texts.order;
+      if (saved) {
+        var keep = saved.split(',').filter(function (id) { return nodes[id]; });
+        order.forEach(function (id) { if (keep.indexOf(id) < 0) keep.push(id); });
+        order = keep;
+      }
+      paint();
+    });
+  paint();
+
+  window.__compareNotes({ chat: CHAT, sheet: SHEET });
+  window.__compareHelp({ html: '<b>Type a number to send a moment there, or nudge it '
+    + 'with the arrows.</b> It saves as you go. A sequence is the stack of cards '
+    + 'under one number — it moves whole. The + on any card leaves a note.' });
+})();
+</script>

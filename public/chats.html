@@ -518,6 +518,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .bellbtn svg{width:16px; height:16px; display:block;}
 .bellbtn.on{color:var(--bell);}
+/* THE PUSHPIN — keep this chat at the top of the list (Aug 2026, Sophie).
+   ONLY THE HEAD GOES RED, which is why the glyph is two shapes: the head
+   fills AND takes the red stroke, the spike stays whatever colour the button
+   is. The spike goes to ink when it is set, because a grey spike under a red
+   head reads as a disabled control.
+   IT LIVES ON THE HOME ROW, not in the thread header (Sophie, second pass:
+   "I was assuming it would go right on the main page not inside of it") —
+   `.pinrow` below is the real control; this base class is what colours it. */
+.pinbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.pinbtn svg{width:16px; height:16px; display:block;}
+.pinbtn.on{color:var(--ink2);}
+.pinbtn.on .pinhead{fill:var(--chg); stroke:var(--chg);}
+/* ORGANIZE — file and tag this chat without leaving it (Aug 2026, Sophie).
+   Quiet ink like the eye and the can beside it: it opens a sheet, it is not a
+   state, so it has nothing to light up about. */
+.orgbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--ink2);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.orgbtn svg{width:16px; height:16px; display:block;}
 /* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
    picture of a trash can and the hide button a picture of an eye that's
    crossed out if it's hidden").
@@ -543,6 +562,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    told apart at a glance on a row that carries both. */
 .cr-kept{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
+/* PINNED TO THE TOP — the pushpin is a CONTROL on the row (Aug 2026, Sophie:
+   "I was assuming it would go right on the main page not inside of it"), so it
+   sits with the hide button rather than being a mark at the front of the row.
+   Grey at rest, red HEAD when set — the `.pinbtn` rules above do the
+   colouring, this only sizes and places it.
+   The plate below is for the TILE cover only; a list row strips it — see
+   "NO CIRCLE ON A LIST ROW". */
+.crow .pinrow{width:31px; height:31px; flex:none; margin-left:2px;}
+.pinrow{border:none; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent; border-radius:50%; background:rgba(250,247,240,.92);
+  color:var(--ink2); box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.pinrow svg{width:15px; height:15px; display:block;}
+.t-cover .pinrow{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
 .catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
 .catchip.starchip svg{width:14px; height:14px; display:block;}
 .catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
@@ -593,6 +625,29 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .t-cover .ckbtn{position:absolute; top:5px; left:5px; width:26px; height:26px; z-index:2;}
 .t-cover .hidebtn{position:absolute; top:5px; right:5px; width:26px; height:26px; z-index:2;}
 .crow .ckbtn,.crow .hidebtn{width:31px; height:31px; flex:none; margin-left:2px;}
+/* NO CIRCLE ON A LIST ROW (Aug 2026, Sophie, of the pin and the hide beside
+   it: "I don't want in a circle — can you take it out of the circle, and also
+   there's a hide button next to it, can you take that out of the circle
+   also"). Bare glyphs on the row: the cream plate and its shadow were there to
+   lift a control off a PHOTO, and a row has no photo under it — so on a row
+   they were two floating buttons in a list made of nothing but hairlines.
+   THE TILES KEEP THEIRS, so this is scoped to `.crow` and not written on the
+   bare classes. `.t-cover` sits on the chat's picture, which is exactly the
+   case the plate exists for; taking it off there would leave the glyphs
+   unreadable on a light image. (The tile view is unreachable today — `view` is
+   pinned to 'list' — but renderTiles is kept code at her ask, so the guard
+   belongs here rather than in whoever turns it back on.) The size is kept —
+   31px is the tap target, the plate was never what made it one.
+   The glyph goes up 14 → 16px now that it has no ring around it to fill. */
+.crow .pinrow,.crow .hidebtn{background:none; box-shadow:none; border-radius:6px;}
+.crow .pinrow svg,.crow .hidebtn svg{width:16px; height:16px;}
+/* …and with the plate gone the hide follows her OWN rule for the same glyph in
+   the thread header ("the hidden icon should also not be red until I click
+   it"): quiet ink until the chat really is parked, then red. A red crossed eye
+   on every row is a wall of red about chats with nothing wrong with them —
+   which is only bearable while it is a small mark inside a cream disc. */
+.crow .hidebtn{color:var(--ink2);}
+.crow .hidebtn.on{background:none; color:#b3443f;}
 /* The HIDDEN bar — at the top of where the chats live (Aug 2026, Sophie).
    Only drawn when something is actually hidden; tapping it opens the pile
    underneath it, tapping again puts it away. It wears the LIT CATEGORY CHIP's
@@ -683,6 +738,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
+/* ONE POINT PER LINE (Aug 2026, Sophie: "the long summary is one block of text
+   would be great to see them separated"). The marker is drawn by CSS so the
+   text itself stays clean, and the padding is the hanging indent — a point that
+   wraps lines up under its own first word, not under the bullet. */
+.wrapbul{position:relative; margin:0 0 5px; padding-left:13px;}
+.wrapbul:last-child{margin-bottom:0;}
+.wrapbul::before{content:'•'; position:absolute; left:1px; top:0;}
+.wrapopen{margin-top:9px;}
+/* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
+   then a longer summary behind an arrow). Quiet by design: it sits at the end of
+   the short summary as one small word, not a second control competing with the
+   ⌄ that opened this. */
+.wrapmore2{display:block; margin:6px 0 0; padding:0; background:none; border:0;
+  color:var(--chg); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
 .t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped.
    The QUESTIONS button rides the same row (Aug 2026, Sophie: "there's hardly
@@ -874,6 +945,18 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    why only one of the two marks looked dead. */
 .arctags .arcmark.on svg{fill:currentColor;}
 .arctags .arcdiv{width:1px; align-self:stretch; background:var(--line); margin:0 2px;}
+/* ORGANIZE — the two section labels in the sheet behind the tag icon (Aug
+   2026, Sophie). Sans, caps, not bold, like every other label in this app.
+   They exist because the sheet holds two different things — a chat has ONE
+   folder and MANY tags — and an unlabelled wall of identical chips gives her
+   no way to know which tap is which. */
+.orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
+.askbox .arctags + .orggrp{margin-top:2px;}
+.askbox .arctags input{font-family:'EBGaramond',Georgia,serif; font-size:15px; color:var(--ink);
+  background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:5px 9px;
+  width:6.5em; min-width:0;}
+.askbox .arctags input:focus{outline:none; border-color:var(--chg);}
 /* The same chips again as the archive's FILTER row (her ask: "those tags become
    a list of options at the top of the archive"). `.catrow` is written to sit
    inside the tool row, so standalone it needs its own bottom margin and must
@@ -1008,19 +1091,34 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
 .pickbtn svg{width:15px; height:15px; display:block;}
 .t-cover .pickbtn{position:absolute; bottom:5px; left:5px; z-index:2; background:rgba(250,247,240,.92);}
 .t-cover .pickbtn.on{background:var(--chg);}
-.selbar{position:fixed; left:0; right:0; bottom:0; z-index:12; background:var(--barbg); border-top:1px solid var(--line);
-  padding:10px max(14px,4vw) calc(10px + env(safe-area-inset-bottom)); box-shadow:0 -2px 12px rgba(0,0,0,.10);}
+/* PINNED TO THE TOP, not the bottom (Aug 2026, Sophie: "when I am selecting
+   things to change their category right now the selection is at the bottom
+   instead — can you pin it to the top"). It only exists while she is picking,
+   so covering the masthead for the duration is the point, not a cost.
+   MOVING IT UP PUT IT IN THE AUTOSCROLL PILL'S CORNER (x 324–374, y 14–192),
+   and the fix is to HIDE THE PILL rather than reserve 56px the way the tab
+   rows do — see `body.selecting > .float` below. Two reasons: a reserve would
+   cost a chip's worth of width on the one row that has the most chips, and
+   `.float` is promoted to its own layer (translateZ), which iOS can paint
+   ABOVE this bar whatever the z-index says. That is the same trap the
+   `body.ontop > .float` rule already exists for. */
+.selbar{position:fixed; left:0; right:0; top:0; z-index:12; background:var(--barbg); border-bottom:1px solid var(--line);
+  padding:calc(10px + env(safe-area-inset-top)) max(14px,4vw) 10px; box-shadow:0 2px 12px rgba(0,0,0,.10);}
 .selbar .sb-n{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); margin:0 0 8px;}
 .selbar .sb-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
 .selbar input{font-family:'EBGaramond',Georgia,serif; font-size:15px; color:var(--ink); background:var(--paper);
   border:1.5px solid var(--line); border-radius:6px; padding:6px 9px; width:9em; min-width:0;}
 .selbar input:focus{outline:none; border-color:var(--chg);}
-/* the list needs room for the bar, or the last row hides under it */
-body.selecting #grid{padding-bottom:120px;}
+/* The page needs room for the bar, or the top of the document hides under it.
+   It goes on BODY, not on #grid: the masthead sits above the grid, so padding
+   the grid alone would leave the masthead under the bar and open a gap below
+   it. The exact height is set from JS (`paintSelBar`) because the chips wrap —
+   a folder list long enough for two rows makes the bar taller. */
+body.selecting{padding-top:96px;}
 /* while picking, the row carries ONE control. Leaving ✓ up beside the pick box
    put two checkmarks on every row, and the wrong one is the easy tap. */
-body.selecting .ckbtn,body.selecting .hidebtn{display:none;}
+body.selecting .ckbtn,body.selecting .hidebtn,body.selecting .pinrow{display:none;}
 /* Search within a chat's Assets tab — matches the home search bar's shape
    (rounded rectangle, never a pill). */
 .asearch{position:relative; margin:0 0 12px;}
@@ -1084,6 +1182,11 @@ body.selecting .ckbtn,body.selecting .hidebtn{display:none;}
    NOTE: this is a CHATS-page rule, not a pill.py rule — it lives OUTSIDE the
    shared-pill placeholder so a pill resync can never swallow it again. */
 body.ontop > .float{display:none !important;}
+/* Same rule, same reason, for SELECT MODE (Aug 2026): the picking bar is
+   pinned to the top of the screen now and runs straight through the pill's
+   corner. `display:none` rather than a z-index, because of the layer promotion
+   above — and the pill has no job while she is picking chats to file. */
+body.selecting > .float{display:none !important;}
 
 </style>
 
@@ -1611,10 +1714,29 @@ function setIcon(chat){
   inp.click();
 }
 
+// WHEN A MESSAGE ACTUALLY ARRIVED (Aug 2026, Sophie diagnosed this one
+// herself: "when I message a chat and they're already writing then my messages
+// go ahead of it … and then their message posts under my new messages because
+// it already started writing").
+//
+// A reply's `created` is when the chat STARTED writing — its doc is created by
+// the turn's first live draft — so a message she sends mid-turn carries a LATER
+// `created` than the reply that lands minutes after it, and that reply sorts
+// underneath her own message where she never sees it. Measured 2026-08-14:
+// 52 of these across 25 chats, one of them 1 second into a turn.
+//
+// HER messages keep `created` — her real send time, which is what puts her
+// message above the reply it prompted (an old hook posts it ~1s AFTER that
+// reply, so post time would invert every single exchange). A reply is ordered
+// by when it LANDED. `postedAt` is monotonic and bumped on every write, so a
+// growing draft rises as it is written, which is also what she wants to see.
+function sortAt(m){
+  return (m && m.from === 'sophie') ? (m.created || '') : (m.postedAt || m.created || '');
+}
 // messages grouped per chat, oldest first
 function groups(){
   var g={};
-  msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?-1:1; })
+  msgs.slice().sort(function(a,b){ return sortAt(a)<sortAt(b)?-1:1; })
     .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
   return g;
 }
@@ -1704,6 +1826,11 @@ function statusLinesHtml(name, fallback){
 // the two marks were split apart, see chatKept). Both are drawn only when set
 // and both can be on one row: "I am working on this" and "this is a keeper"
 // are different sentences and a chat can be both.
+// There is NO pin mark here. The pin is a CONTROL on the row itself
+// (`mkPinTop`, at the right beside the hide ⊖), and a lit control already says
+// the chat is pinned — a second copy of the same glyph at the front of the row
+// was showing the state twice. The star and the bookmark are marks here
+// because they have no control on the row.
 function starHtml(name){
   return (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
        + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
@@ -1728,6 +1855,13 @@ function trashNames(){
     return (chats[b].deletedAt||'').localeCompare(chats[a].deletedAt||'');  // newest binned first
   });
 }
+// PINNED TO THE TOP (Aug 2026, Sophie: "an option to pin chat to the top so
+// they always show first when they come out of hiding and they never
+// disappeared to the bottom if I don't look at them for a while"). Her
+// override on the recency sort — the map-pin in a chat's header sets it, the
+// same tap clears it. `pinTop` on the registry, NOT `pinned` (that one holds
+// the pinned link/film object).
+function chatPinTop(name){ return !!(chats[name]&&chats[name].pinTop); }
 function sortedChatNames(g){
   // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
@@ -1737,6 +1871,13 @@ function sortedChatNames(g){
   // one place, instead of a filter per pile that a new pile could forget.
   names=names.filter(function(n){ return !chatDeleted(n); });
   names.sort(function(a,b){
+    // A PINNED CHAT SITS ABOVE THE SORT, not inside it — that is the whole
+    // point of the mark, and it is done HERE, in the one place every pile
+    // sorts, so a chat coming back out of the hidden pile lands at the top
+    // without the hidden pile knowing anything about pinning. Pinned chats
+    // keep their own recency order among themselves.
+    var pa=chatPinTop(a), pb=chatPinTop(b);
+    if(pa!==pb) return pa?-1:1;
     var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
     return la<lb?1:-1;
   });
@@ -2554,7 +2695,12 @@ function newsItems(g){
 // picked (Aug 2026, Sophie: "can you make one more option called maybe never,
 // and this also only shows when I'm actively categorizing stuff") — the same
 // rule DONE follows, so the resting row stays the two boxes she browses.
-var NEWS_QS=[['later','Later'],['soon','In a minute'],['never','Maybe never',1]];
+// LATER IS CALLED "COME BACK TO" NOW (Aug 2026, Sophie: "can you combine the
+// come back to and later categories") — one word for one intention, on both
+// screens. The STORED value stays `later`, so nothing had to be migrated and
+// no older reader breaks; only the word she reads changed. See COME BACK TO
+// IS ONE BUCKET near the category chips for the other half.
+var NEWS_QS=[['later','Come back to'],['soon','In a minute'],['never','Maybe never',1]];
 var newsQ='';        // the open box, '' = the main list
 var newsPick={};     // what is selected right now (chat name → 1)
 function newsQueueOf(n){
@@ -2938,11 +3084,69 @@ function chatStale(name,last){
 // three chats one morning and read as the rest having vanished.
 var CAT_SEEDS=['stories','tech'];
 var cat='';
+// ---- …AND THEN THE CHIPS FOLDED AWAY BEHIND ONE WORD (Aug 2026, Sophie) ----
+// "Take the categories — like just for fun, stories, pretty much all of them —
+// off that page, just have a button that says TAGS, and then once I click it
+// that's when it shows all the categories."
+//
+// The row had grown to ten folders and wrapped onto two lines above every
+// list. Filing is a burst — she does it in select mode — but the chips were
+// paying rent at the top of the screen the rest of the time, which is the
+// MINIMIZE THE SCROLLING rule and the same argument that collapsed the search
+// bar into its magnifying glass.
+//
+// SESSION-ONLY and always starting SHUT, exactly like the search bar: a row
+// that remembered being open would give the screen back for no reason on the
+// next launch.
+var catsOpen=false;
+// …EXCEPT WHILE A FOLDER IS LIT. A collapsed row with a live filter behind it
+// is the silent filter this app keeps warning about — she would be looking at
+// seven chats with nothing on screen saying why. So the chips force open
+// whenever `cat` is set, which also means the way OUT of a folder (tap the lit
+// chip) is never hidden.
+function catsShown(){ return catsOpen || !!cat; }
 // The ★ chip is a filter like a category, with one deliberate difference: it
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
 function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// ---- COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
+// back to and later categories") ------------------------------------------
+// She had two names for one intention: the COME BACK TO folder on this list,
+// and the LATER box on the UPDATE screen. Same meaning, two words, two places
+// to go looking.
+//
+// They stay TWO FIELDS underneath, and that is the deliberate part. `category`
+// files a chat FOREVER; `newsQueue` files ONE update until something newer
+// lands and then hands it back. Folding either into the other loses something
+// real: make the box write a category and a chat she defers an update from is
+// yanked out of Stories (a chat can only be in one folder), make the folder
+// write a queue and her filing expires on its own.
+//
+// So the combine is ONE WORD and ONE PILE, not one field: the Update box is
+// labelled "Come back to" (NEWS_QS), and this folder shows the chats sitting
+// in that box as well as the ones filed into it.
+//
+// What it deliberately does NOT do: a chat deferred on the Update screen still
+// shows on the main list. Deferring one update is not filing the whole chat
+// away, and making it vanish from the list would be a filing she never asked
+// for.
+var CB_CAT='come back to';
+var CB_QUEUE='later';
+// The chats whose update card is in the box RIGHT NOW, rebuilt each render.
+// Read through newsItems/newsBoxed rather than re-deriving the test, or the
+// chip and the box could disagree about where something is — the one thing
+// the Update screen's own two lists are careful never to do.
+var cbBox={};
+function rebuildComeBack(g){
+  cbBox={};
+  newsItems(g).forEach(function(it){
+    if(newsBoxed(it) && newsQueueOf(it.chat)===CB_QUEUE) cbBox[it.chat]=1;
+  });
+}
+// The one test for "is this chat in that folder", used by the chip's count,
+// the list and the archive alike.
+function chatInCat(name,c){ return chatCat(name)===c || (c===CB_CAT && !!cbBox[name]); }
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
 // everything worked out, and then another one that's pretty much trash but I'm
@@ -3085,6 +3289,10 @@ function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
+  // Never leave the Come back to box without a chip to reach it by: the folder
+  // is in her vocabulary already, but a chat sitting in that box with no chip
+  // on the row would be a pile with no door.
+  if(Object.keys(cbBox).length && out.indexOf(CB_CAT)<0) out.push(CB_CAT);
   ((settings&&settings.categories)||[]).forEach(function(c){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
@@ -3147,16 +3355,39 @@ function paintCatRow(g){
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
   sb.onclick=function(){ starOnly=!starOnly; if(starOnly) cat=''; renderHome(); window.scrollTo(0,0); };
   row.appendChild(sb);
-  catList().forEach(function(c){
+  // Counted BEFORE anything is painted, because the TAGS button needs the sum
+  // of them while the chips themselves are away.
+  var cats=catList().map(function(c){
     var mine=Object.keys(chats).filter(function(n){
       // acctMatch: the badge has to count the same chats the chip will SHOW,
       // or a folder promises replies that are on the other account's tab.
-      return chatCat(n)===c && !(chats[n]&&chats[n].archived) && acctMatch(n);
+      return chatInCat(n,c) && !(chats[n]&&chats[n].archived) && acctMatch(n);
     });
     // how many chats in here have ANSWERED her — a finished reply she has not
     // opened. Counted per CHAT, not per message: "3" means three of them came
     // back, which is the thing she is deciding whether to go look at.
-    var fresh=mine.filter(function(n){ return chatAnswered(n, lastOf(g,n)); }).length;
+    return { name:c, fresh:mine.filter(function(n){ return chatAnswered(n, lastOf(g,n)); }).length };
+  });
+  var shown=catsShown();
+  // THE ONE WORD THE FOLDERS LIVE BEHIND — and it carries their red number
+  // added up. Filing a chat takes it off the main list, so without the sum a
+  // folded row would make every reply inside a folder silent: exactly the
+  // thing the per-chip badge was built to prevent, just hidden one level
+  // deeper. Tapping it open shows which folders those replies are in.
+  var waiting=cats.reduce(function(n,c){ return n+c.fresh; }, 0);
+  var tb=document.createElement('button');
+  tb.className='catchip tagsbtn'+(shown?' on':'');
+  tb.innerHTML='Tags'+((!shown&&waiting)?'<span class="cc-new">'+waiting+'</span>':'');
+  tb.setAttribute('aria-label',(shown?'Hide the categories':'Show the categories')
+    +((!shown&&waiting)? ' — '+waiting+' answered you' : ''));
+  // Closing CLEARS the filter. A lit folder forces the row open (catsShown),
+  // so without this the button would look dead on the one tap she is most
+  // likely to make — and folding a live filter away would hide it.
+  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen) cat=''; renderHome(); window.scrollTo(0,0); };
+  row.appendChild(tb);
+  if(!shown) return;
+  cats.forEach(function(e){
+    var c=e.name, fresh=e.fresh;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
     // ONE number, and it is the red one (Aug 2026, Sophie: "I don't need to
@@ -3171,15 +3402,18 @@ function paintCatRow(g){
 }
 
 // ---- Select mode -----------------------------------------------------------
-// Pick rows, then one fixed bar at the bottom files the lot — the same shape
-// as the Dump sort page's Select, because it is the same job. While it is on,
-// a tap anywhere on a chat PICKS it instead of opening it, and the row's own
-// ⊖ / ✓ are hidden — two checkmarks on one row means the wrong one is the
-// easy tap.
+// Pick rows, then one fixed bar files the lot — the same shape as the Dump
+// sort page's Select, because it is the same job. While it is on, a tap
+// anywhere on a chat PICKS it instead of opening it, and the row's own ⊖ / 📌
+// / ✓ are hidden — two checkmarks on one row means the wrong one is the easy
+// tap.
+// THE BAR IS AT THE TOP (Aug 2026, Sophie: "right now the selection is at the
+// bottom instead, can you pin it to the top"). It still only exists while she
+// is picking; see `.selbar` for the corner reserve the move made necessary.
 var selMode=false, picked={};
 function selCount(){ return Object.keys(picked).length; }
 function enterSelect(){ selMode=true; picked={}; document.body.classList.add('selecting'); renderHome(); }
-function exitSelect(){ selMode=false; picked={}; document.body.classList.remove('selecting'); var b=document.getElementById('selbar'); if(b) b.remove(); document.body.classList.remove('selecting'); }
+function exitSelect(){ selMode=false; picked={}; document.body.classList.remove('selecting'); var b=document.getElementById('selbar'); if(b) b.remove(); document.body.style.paddingTop=''; }
 function togglePick(name,node){
   if(picked[name]) delete picked[name]; else picked[name]=1;
   node.classList.toggle('picked', !!picked[name]);
@@ -3231,7 +3465,7 @@ function filePicked(c){
 }
 function paintSelBar(){
   var bar=document.getElementById('selbar');
-  if(!selMode){ if(bar) bar.remove(); return; }
+  if(!selMode){ if(bar) bar.remove(); document.body.style.paddingTop=''; return; }
   if(!bar){ bar=document.createElement('div'); bar.id='selbar'; bar.className='selbar'; document.body.appendChild(bar); }
   var n=selCount();
   bar.innerHTML='<div class="sb-n">'+(n? n+' picked — file '+(n===1?'it':'them')+' under' : 'Tap the chats you want to file')+'</div>';
@@ -3262,6 +3496,11 @@ function paintSelBar(){
   out.onclick=function(){ exitSelect(); renderHome(); };
   row.appendChild(out);
   bar.appendChild(row);
+  // MEASURE the bar and hold that much room at the top of the document. The
+  // CSS carries a one-row fallback, but the chips wrap — a folder list long
+  // enough for two rows makes the bar taller, and a guessed number would let
+  // it swallow the first chat on the list.
+  document.body.style.paddingTop=bar.offsetHeight+'px';
 }
 // The rose "· N working" on the hidden bar. Its own function because TWO
 // paths need it: the bar's build, and paintLive on a message-less poll.
@@ -3330,6 +3569,10 @@ function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
   var el=document.getElementById('grid'); el.innerHTML='';
   var g=groups();
+  // Which chats are sitting in the Come back to box right now — one pass, read
+  // by the chip, the list and the archive below (see COME BACK TO IS ONE
+  // BUCKET). Must run before anything filters or counts by category.
+  rebuildComeBack(g);
   // ONE ACCOUNT AT A TIME (Sophie, Aug 2026). Applied to `all` up front, so
   // every pile below it — live, hidden, ★ — is that account's.
   // The ARCHIVE is the exception (Aug 2026): its own BUILT / OTHER row
@@ -3360,7 +3603,7 @@ function renderHome(){
   // folder she isn't looking at would be noise.
   // …but a filed chat COMES BACK when it answers — see chatBack above.
   live=live.filter(function(n){
-    return cat ? chatCat(n)===cat : (!chatCat(n) || chatBack(n, lastOf(g,n)));
+    return cat ? chatInCat(n,cat) : (!chatCat(n) || chatBack(n, lastOf(g,n)));
   });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
@@ -3370,7 +3613,7 @@ function renderHome(){
   // chip still narrows it.
   // …from `everyone`, not `all`: the archive shows both accounts (above).
   var arch=everyone.filter(function(n){ return chats[n]&&chats[n].archived; });
-  if(cat) arch=arch.filter(function(n){ return chatCat(n)===cat; });
+  if(cat) arch=arch.filter(function(n){ return chatInCat(n,cat); });
   paintHomeChrome();
   paintAcctTabs(g);
   paintCatRow(g);
@@ -3564,12 +3807,18 @@ function chatWorking(name,last){
   return !at || (now-at) < LIVE_STALE;
 }
 var CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-// Hide / put back. Deliberately NOT an eye (Sophie's call) — an eye says
-// "look at this", and the pair below says what actually happens to the row:
-// minus takes it OFF the list, plus puts it back. Same circle either way, so
-// the two read as one control in two states, the way ✓ does.
+// The ⊖ on the HIDDEN BAR — the pile's own label, still the minus in a circle.
+// It has the word "Hidden" beside it, so it needs no glyph of its own to say
+// what it is.
+//
+// THE ROW'S HIDE IS AN EYE NOW, AND THAT REVERSES AN EARLIER CALL OF HERS.
+// This line used to read "deliberately NOT an eye (Sophie's call) — an eye
+// says 'look at this'", paired with a ⊖/⊕ that said what happens to the row.
+// Aug 2026 she asked for the eye: "there's a hide button next to it, can you
+// take that out of the circle also and can you make it an eye that's crossed
+// out" — the same glyph she had already asked for in the thread header. The
+// ⊕ that used to mean "put it back" is gone with it; see `mkHide`.
 var HD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
-var UNHD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
 // A filled star in the bookmark's red — "a red star would be nice to match the
 // bookmark colour" (Sophie). Filled, not outlined: on a row it is a state, not
 // a control; the one place it IS a control is the thread header's button.
@@ -3651,10 +3900,38 @@ function mkCheck(name,last,container){
 // The hide button sits where the ! flag used to (Sophie, Aug 2026: "you could
 // replace the ! with it"). Hiding IS the come-back-to-this-later mark now, and
 // it does the thing the flag only implied — the chat leaves the list.
+// THE PUSHPIN, ON THE ROW (Aug 2026, Sophie: "I was assuming it would go right
+// on the main page not inside of it"). Same circular-button family as the hide
+// ⊖ it sits beside, and the same optimistic write + roll-back. Repainting is
+// `renderHome`, not a local class flip, because pinning MOVES the row — the
+// whole point is that it jumps to the top the moment she taps it.
+function mkPinTop(name){
+  var b=document.createElement('button');
+  b.className='pinbtn pinrow'+(chatPinTop(name)?' on':'');
+  b.innerHTML=PIN_SVG;
+  b.setAttribute('aria-label', chatPinTop(name)? 'Pinned to the top — unpin this chat' : 'Pin this chat to the top');
+  b.onclick=function(e){
+    e.stopPropagation();
+    var was=chatPinTop(name);
+    chats[name]=chats[name]||{}; chats[name].pinTop=!was;
+    renderHome(); toast(was?'Unpinned':'Pinned to the top');
+    api('/api/chatfeed/pin-top',{method:'POST',body:JSON.stringify({chat:name, pinTop:!was})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){ chats[name].pinTop=was; renderHome(); toast('Couldn’t save that'); });
+  };
+  return b;
+}
+// A CROSSED-OUT EYE, in BOTH states (Aug 2026, Sophie: "can you make it an eye
+// that's crossed out" — no condition attached, unlike her thread-header ask,
+// which was "an eye that's crossed out IF it's hidden"). So this button is the
+// hidden control, one glyph, and the STATE is the colour: quiet ink while the
+// chat is on the list, red once it is parked. That also keeps it agreeing with
+// the header for the case both are looking at — a hidden chat wears the
+// crossed eye in both places.
 function mkHide(name,last){
   var hid=chatHidden(name,last);
   var b=document.createElement('button'); b.className='hidebtn'+(hid?' on':'');
-  b.innerHTML=hid?UNHD:HD;
+  b.innerHTML=EYE_OFF_SVG;
   b.setAttribute('aria-label', hid?'Put this chat back in the list':'Hide this chat');
   b.onclick=function(e){ e.stopPropagation(); toggleHide(name,last); };
   return b;
@@ -3706,7 +3983,10 @@ function renderTiles(el,g,names){
       +(about? '<span class="t-about">'+esc(about)+'</span>':'')
       +lineHtml
       +'<span class="t-meta">'+(last? ago(last.created) : 'no messages')+'</span>';
-    var cov=b.querySelector('.t-cover'); cov.appendChild(mkHide(name,last));
+    // The pin is on the TILE too — a control that works in one of the two
+    // views and not the other is a bug, not restraint. Top-LEFT of the cover,
+    // opposite the hide ⊖ in the top-right.
+    var cov=b.querySelector('.t-cover'); cov.appendChild(mkPinTop(name)); cov.appendChild(mkHide(name,last));
     if(selMode){ b.classList.toggle('picked', !!picked[name]); cov.appendChild(mkPick(name)); }
     b.onclick=function(){ if(selMode) togglePick(name,b); else openChat(name); };
     grid.appendChild(b);
@@ -3810,6 +4090,28 @@ function renderArchive(el,g,arch){
 // live inside one — it is appended as a SIBLING after the row, which also means
 // tapping it can never open the chat by bubbling.
 // Archive view only: this is the pile she reads to remember what a chat was.
+// Draw a wrap-up into a box — the archive row's expander and the archive
+// sheet's read-back both use this, so the two can never drift apart.
+// BULLETS ONLY WHERE THEY HELP (Aug 2026, Sophie: "don't add bullet points
+// where it doesn't actually help, but the long summary is one block of text
+// would be great to see them separated"). The long version arrives newline-
+// joined, one point per line, and each line becomes its own bullet; a summary
+// that is a single paragraph — which the short one always is — draws as a
+// paragraph, because a lone • in front of one sentence is decoration.
+function fillWrap(el, text, open){
+  el.textContent='';
+  var lines=String(text||'').split('\n').map(function(s){return s.trim();})
+    .filter(Boolean);
+  lines.forEach(function(s){
+    var d=document.createElement('div');
+    if(lines.length>1) d.className='wrapbul';
+    d.textContent=s; el.appendChild(d);
+  });
+  if(open){
+    var o=document.createElement('div'); o.className='wrapopen';
+    o.textContent='Still open: '+open; el.appendChild(o);
+  }
+}
 function paintWrapUps(el){
   [].forEach.call(el.querySelectorAll('.crow[data-chat]'), function(row){
     var r=chats[row.dataset.chat]||{};
@@ -3825,7 +4127,26 @@ function paintWrapUps(el){
     tog.setAttribute('aria-label','What this chat was about');
     var body=document.createElement('div');
     body.className='wrapfull'; body.hidden=true;
-    body.textContent=(full||'')+(open?(full?'\n\n':'')+'Still open: '+open:'');
+    fillWrap(body, full, open);
+    // THE LONGER VERSION, one more tap in (Aug 2026, Sophie: "ideally would be
+    // a short summary like three lines at most, and then a longer summary
+    // behind an arrow"). Three depths, and she stops at whichever answers her:
+    // one line on the row, three sentences here, the full account behind MORE.
+    // A chat too small to have a longer version simply shows no MORE.
+    var long=String(r.wrapLong||'').trim();
+    if(long && long!==full){
+      var more=document.createElement('button');
+      more.className='wrapmore2'; more.textContent='more';
+      var shown=false;
+      more.onclick=function(e){
+        e.stopPropagation();
+        shown=!shown;
+        fillWrap(body, shown?long:full, open);
+        more.textContent = shown ? 'less' : 'more';
+        body.appendChild(more);
+      };
+      body.appendChild(more);
+    }
     tog.onclick=function(e){
       e.stopPropagation();
       body.hidden=!body.hidden;
@@ -3866,6 +4187,7 @@ function renderList(el,g,names){
     // The ARCHIVE's rows carry no button at all now: hiding is dead in there
     // (the hidden pile is derived from the LIVE list) and the pile-mover went
     // with the piles.
+    if(homeView!=='archive') row.appendChild(mkPinTop(name));
     if(homeView!=='archive') row.appendChild(mkHide(name,last));
     if(selMode){ row.classList.toggle('picked', !!picked[name]); row.appendChild(mkPick(name)); }
     row.onclick=function(){ if(selMode) togglePick(name,row); else openChat(name); };
@@ -4000,6 +4322,28 @@ var BMK_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke=
 // It is drawn filled in BOTH states; grey vs gold is the state, exactly like
 // the star beside it.
 var BELL_SVG='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.4c-3.4 0-6.1 2.8-6.1 6.2 0 3.4-.8 5.2-2.1 6.6-.7.8-.2 2 .9 2h14.6c1.1 0 1.6-1.2.9-2-1.3-1.4-2.1-3.2-2.1-6.6 0-3.4-2.7-6.2-6.1-6.2z"/><path d="M9.4 19.2h5.2a2.6 2.6 0 0 1-5.2 0z"/></svg>';
+// THE PUSHPIN — "the pin that's like round with a metal thing sticking down
+// from it" (Aug 2026, Sophie). **NOT the Maps teardrop**: this shipped first
+// as a `map-pin` marker and she came back with exactly that correction, so
+// don't drift it back. Her sentence names two parts and the glyph is those
+// two parts and nothing else — a round head and a straight spike.
+//
+// It is TWO SHAPES because the other half of her ask is "make just the top
+// part turn red when it's pinned", and half of one path cannot take its own
+// colour: the CIRCLE is the head and the PATH is the spike, starting exactly
+// at the bottom of the head (cy+r = 11) and running to (12,21.6). The spike is
+// LONGER than the head is wide — 10.6 against 8.8 — because at 15px a pin
+// whose two halves are the same length reads as a magnifying glass.
+//
+// THE HEAD IS STROKED IN BOTH STATES and only FILLS when set. Fill-only was
+// tried and is wrong: unpinned, the head simply vanished and the button read
+// as a bare stick (the teardrop got away with fill-only because its outline
+// was the whole silhouette; this one's isn't).
+var PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
+// ORGANIZE — Lucide `tag`, the icon on the button that opens the folder + tag
+// sheet (`askOrganize`). A luggage-tag silhouette with its eyelet: it says
+// "label this" without a word, which the row has no space for.
+var TAG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>';
 var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
 var TRASH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
@@ -4385,6 +4729,28 @@ function openChat(name, keepScroll, focusId, noFetch){
         .catch(function(){ chats[name].notify=was; paintN(); toast('Couldn’t save that'); });
     };
     head.querySelector('.no').appendChild(nb);
+  })();
+  // ORGANIZE — file this chat and tag it, from inside it (Aug 2026, Sophie: "I
+  // want to be able to tag it as come back to or tech or something like that,
+  // so maybe just an icon that says organize and then it pulls up the ability
+  // to tag and categorize which is already on the front page but so far it
+  // doesn't work within there").
+  //
+  // Both controls existed and neither was reachable from a thread: FOLDERS
+  // were home-screen-only and behind Select (pick rows, then the bar files
+  // them — a round trip out of the chat she is reading and back), and TAGS
+  // only ever appeared on the way past, inside the archive sheet, so a chat
+  // she was NOT archiving could not be tagged at all.
+  //
+  // The pin used to sit in this slot and moved to the home row, which is why
+  // this row is still six controls wide.
+  (function(){
+    var ob=document.createElement('button');
+    ob.className='orgbtn';
+    ob.innerHTML=TAG_SVG;
+    ob.setAttribute('aria-label','Organize — file and tag this chat');
+    ob.onclick=function(){ askOrganize(name); };
+    head.querySelector('.no').appendChild(ob);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
@@ -5099,6 +5465,137 @@ function openPage(p){
 // handed to any chat that isn't doing it yet. Kept in sync with the CLAUDE.md
 // section "Prompts on Assets images".
 
+// ORGANIZE — the sheet behind the tag icon in a chat's header (Aug 2026,
+// Sophie: "an ability to tag or categorize something from within the chat
+// itself … an icon that says organize and then it pulls up the ability to tag
+// and categorize which is already on the front page but so far it doesn't work
+// within there").
+//
+// Two sections, because they are two different things and she named both:
+//   FOLDER — exactly ONE per chat, the home screen's own `catList()`. Picking
+//     one is the same call the Select bar makes (`POST /category` with a
+//     one-name list), including the `filedAt` stamp: without it a chat with an
+//     unread reply files itself and reappears on the same repaint (`chatBack`),
+//     which reads as filing doing nothing. That bug is why the stamp is copied
+//     here rather than left to the server's own.
+//   TAGS — MANY per chat, the fixed `TAG_LIST` vocabulary, the same chips the
+//     archive sheet writes and the archive's filter row reads.
+//
+// Everything SAVES ON THE TAP, like the archive sheet — there is no OK button
+// to miss, and closing can never lose a choice. Done just shuts it.
+//
+// Filing a chat takes it off the unfiled home list by design, so the toast
+// names the folder: otherwise picking one looks like the chat vanished.
+function askOrganize(name){
+  scrollStop();
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq'; q.textContent='Organize this chat';
+  box.appendChild(q);
+
+  // ---- FOLDER (one) --------------------------------------------------------
+  var fl=document.createElement('div'); fl.className='orggrp'; fl.textContent='Folder';
+  box.appendChild(fl);
+  var frow=document.createElement('div'); frow.className='arctags'; box.appendChild(frow);
+  function paintFolders(){
+    frow.innerHTML='';
+    var now=chatCat(name);
+    catList().forEach(function(c){
+      var b=document.createElement('button'); b.type='button';
+      b.className='catchip'+(now===c?' on':'');
+      b.textContent=catLabel(c);
+      b.setAttribute('aria-pressed', now===c ? 'true' : 'false');
+      // Tapping the folder it is ALREADY in takes it out — one control, both
+      // directions, the way every other toggle on this screen works.
+      b.onclick=function(e){ e.stopPropagation(); setFolder(now===c ? '' : c); };
+      frow.appendChild(b);
+    });
+    var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
+    inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
+    // Enter OR tapping away — she dictates these, and dictation often ends with
+    // a tap somewhere else rather than a press of return. Losing the name that
+    // way is exactly how a category she made once went missing.
+    function takeNew(){
+      var v=(inp.value||'').trim().toLowerCase().slice(0,40);
+      if(!v) return;
+      inp.value='';
+      settings=settings||{};
+      settings.categories=(settings.categories||[]).slice();
+      if(settings.categories.indexOf(v)<0) settings.categories.push(v);
+      setFolder(v);
+    }
+    inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
+    inp.onblur=takeNew;
+    var none=document.createElement('button'); none.type='button';
+    none.className='catchip'+(now?'':' on'); none.textContent='None';
+    none.onclick=function(e){ e.stopPropagation(); setFolder(''); };
+    // None first, then the New box LAST — the box is the widest thing in the
+    // row and putting it mid-row (which is where the Select bar has it) leaves
+    // the folders reading around a hole.
+    frow.appendChild(none);
+    frow.appendChild(inp);
+  }
+  function setFolder(c){
+    var prevC=chatCat(name), prevAt=(chats[name]&&chats[name].filedAt)||'';
+    chats[name]=chats[name]||{}; chats[name].category=c;
+    if(c) chats[name].filedAt=new Date().toISOString(); else delete chats[name].filedAt;
+    paintFolders();
+    toast(c ? ('Filed under '+catLabel(c)) : 'Out of every folder');
+    api('/api/chatfeed/category',{method:'POST',body:JSON.stringify({chats:[name], category:c})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        chats[name].category=prevC;
+        if(prevAt) chats[name].filedAt=prevAt; else delete chats[name].filedAt;
+        paintFolders(); toast('Couldn’t save that');
+      });
+  }
+  paintFolders();
+
+  // ---- TAGS (many) ---------------------------------------------------------
+  var tl=document.createElement('div'); tl.className='orggrp'; tl.textContent='Tags';
+  box.appendChild(tl);
+  var trow=document.createElement('div'); trow.className='arctags'; box.appendChild(trow);
+  var tags=chatTags(name).slice();
+  TAG_LIST.forEach(function(t){
+    var b=document.createElement('button'); b.type='button';
+    b.className='catchip'+(tags.indexOf(t)>-1?' on':'');
+    b.textContent=t;
+    b.setAttribute('aria-pressed', tags.indexOf(t)>-1 ? 'true' : 'false');
+    b.onclick=function(e){
+      e.stopPropagation();
+      var was=tags.slice(), i=tags.indexOf(t);
+      if(i>-1) tags.splice(i,1); else tags.push(t);
+      b.classList.toggle('on', tags.indexOf(t)>-1);
+      b.setAttribute('aria-pressed', tags.indexOf(t)>-1 ? 'true' : 'false');
+      chats[name]=chats[name]||{}; chats[name].tags=tags.slice();
+      api('/api/chatfeed/tags',{method:'POST',body:JSON.stringify({chat:name, tags:tags})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){
+          tags=was; chats[name].tags=was.slice();
+          b.classList.toggle('on', was.indexOf(t)>-1);
+          b.setAttribute('aria-pressed', was.indexOf(t)>-1 ? 'true' : 'false');
+          toast('Couldn’t save that tag');
+        });
+    };
+    trow.appendChild(b);
+  });
+
+  var row=document.createElement('div'); row.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){
+    wrap.remove(); document.body.style.overflow='';
+    // The home list may be a different list now — a filed chat leaves the
+    // unfiled pile — so repaint it rather than leaving a stale screen behind.
+    renderHome(); saveCache();
+  }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  row.appendChild(done); box.appendChild(row);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };   // tap outside = shut
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap); document.body.style.overflow='hidden';
+}
+
 // Ask before something you can't undo with one tap. Locks the page behind it
 // like the lightbox does, and hands back true/false.
 function askFirst(question, okLabel, cb){
@@ -5256,6 +5753,9 @@ function askArchive(name, cb){
   sum.className='arcsum'; sum.type='button';
   sum.innerHTML=GEN_STAR+'<span>Summarize</span>';
   function say(t){ out.hidden=false; out.textContent=t; }
+  // The summary reads back here exactly as it will read in the archive — same
+  // bullets, same still-open paragraph — so what she approves is what she gets.
+  function sayWrap(t, open){ out.hidden=false; fillWrap(out, t, open); }
   sum.onclick=function(e){
     e.stopPropagation();
     sum.disabled=true; sum.querySelector('span').textContent='Writing…';
@@ -5268,10 +5768,27 @@ function askArchive(name, cb){
         if(!d.ok||!(d.wrapLine||d.wrapUp)) throw new Error(d.error||'nothing came back');
         chats[name]=chats[name]||{};
         chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
-        chats[name].wrapOpen=d.wrapOpen||'';
+        chats[name].wrapOpen=d.wrapOpen||''; chats[name].wrapLong=d.wrapLong||'';
         // Open questions read as their own paragraph, not a clause buried in
-        // the summary — they are the half she goes looking for.
-        say((d.wrapUp||d.wrapLine)+(d.wrapOpen?'\n\nStill open: '+d.wrapOpen:''));
+        // the summary — they are the half she goes looking for. The sheet shows
+        // the SHORT summary, same as the archive row's first tap; the longer
+        // version is one more tap, and is skipped entirely when the chat was
+        // small enough that there isn't one.
+        var brief=d.wrapUp||d.wrapLine;
+        sayWrap(brief, d.wrapOpen||'');
+        if(d.wrapLong && d.wrapLong!==d.wrapUp){
+          var more=document.createElement('button');
+          more.className='wrapmore2'; more.textContent='more';
+          var shown=false;
+          more.onclick=function(ev){
+            ev.stopPropagation();
+            shown=!shown;
+            fillWrap(out, shown?d.wrapLong:brief, d.wrapOpen||'');
+            more.textContent = shown ? 'less' : 'more';
+            out.appendChild(more);
+          };
+          out.appendChild(more);
+        }
         sum.querySelector('span').textContent='Rewrite';
         sum.disabled=false;
       })
@@ -5729,7 +6246,10 @@ function saveCache(){
     // visit. Chats whose extra messages we drop are re-marked truncated so
     // opening them pulls the thread again next launch.
     var byChat={}, dropped={};
-    msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+    // same arrival order the thread uses (see sortAt) — the cache must keep the
+    // newest TEN as she would see them, or a reply that landed late is the one
+    // dropped.
+    msgs.slice().sort(function(a,b){ return sortAt(a)<sortAt(b)?1:-1; })
       .forEach(function(m){
         var c=m.chat||''; var arr=(byChat[c]=byChat[c]||[]);
         if(arr.length<10) arr.push(m); else dropped[c]=1;

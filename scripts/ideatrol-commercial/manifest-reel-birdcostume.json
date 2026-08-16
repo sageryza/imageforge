@@ -1,0 +1,68 @@
+{
+  "slug": "birdcostume",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4",
+  "total_seconds": 41.8,
+  "scene_durations": {
+    "b01": 3.0,
+    "b02": 7.1,
+    "b03": 2.6,
+    "b04": 2.7,
+    "b05": 3.2,
+    "b06": 3.2,
+    "b07": 2.8,
+    "b08": 2.2,
+    "b09": 5.1,
+    "b10": 3.4,
+    "b11": 3.0,
+    "b12": 3.5
+  },
+  "stills": {
+    "b01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b01.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: early 20s, long dark wavy hair, soft freckles, mustard-yellow cardigan. ",
+      "content": "She lies on her stomach on a bed in a cozy evening bedroom with string lights, texting on her phone and giggling to herself, warm lamp glow."
+    },
+    "b03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b03.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young man appears: early 20s, tousled brown curls, warm smile, olive-green t-shirt. ",
+      "content": "He sits on a couch at night lit by his phone screen, a slow mischievous smirk spreading across his face."
+    },
+    "b05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b05.png",
+      "style": "Draw this scene entirely in the hand-drawn style of the attached reference image, but leave the caption strip at the bottom of the card completely BLANK \u2014 no words, no letters, no text anywhere in the image.  [style ref: dream-mystery.jpg attached]",
+      "content": "A young woman and a young man kissing under an enormous full moon in a night sky full of stars."
+    },
+    "b06": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b06.png",
+      "style": "Draw this scene entirely in the hand-drawn style of the attached reference image, but leave the caption strip at the bottom of the card completely BLANK \u2014 no words, no letters, no text anywhere in the image.  [style ref: dream-mystery.jpg attached]",
+      "content": "Mid-embrace, the young man is transforming into a large gentle songbird, feathers unfurling from his arms while the young woman watches in wonder."
+    },
+    "b07": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b07.png",
+      "style": "Draw this scene entirely in the hand-drawn style of the attached reference image, but leave the caption strip at the bottom of the card completely BLANK \u2014 no words, no letters, no text anywhere in the image.  [style ref: dream-mystery.jpg attached]",
+      "content": "A large songbird flying away over moonlit rooftops into the starry night, a single feather drifting down toward the young woman below."
+    },
+    "b08": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b08.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young man appears: early 20s, tousled brown curls, warm smile, olive-green t-shirt. ",
+      "content": "Close on his face lit by phone glow, eyes widening from surprise into delighted scheming."
+    },
+    "b10": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b10.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young man appears: early 20s, tousled brown curls, warm smile, olive-green t-shirt. ",
+      "content": "Seen from inside an open front doorway at night: he stands on the porch wearing a full fluffy bluebird costume with a soft yellow beak hood, completely earnest, porch light glowing."
+    },
+    "b11": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/stills/b11.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: early 20s, long dark wavy hair, soft freckles, mustard-yellow cardigan. ",
+      "content": "Close on her in the doorway wearing a cute date-night outfit and lip gloss, processing what she is seeing, a long slow blink, the very beginning of a fond smile."
+    }
+  },
+  "memcards": {},
+  "cost": {
+    "images": 0.0,
+    "clips": 0.0,
+    "music": 0.0,
+    "total": 0.0
+  }
+}

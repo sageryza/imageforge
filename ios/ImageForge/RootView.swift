@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline
     var id: String { rawValue }
 
     var title: String {
@@ -27,6 +27,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "Cutting Room"
         case .search:    return "Search"
         case .cutmarks:  return "Cut Marks"
+        case .blocks:    return "Cutting Blocks"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
         case .dump:      return "Dump"
@@ -39,6 +40,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .freeform:  return "Freeform"
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
+        case .timeline:  return "Story Timeline"
         }
     }
 
@@ -62,6 +64,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "Mark a recording on its words — cut pauses, send sections on."
         case .search:    return "Find any words in every interview and every memo."
         case .cutmarks:  return "Mark your own cuts on a video or recording — no transcript."
+        case .blocks:    return "Break a recording into lines — split, mark, reorder, hear it."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
@@ -73,6 +76,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
+        case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
         }
     }
@@ -94,6 +98,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "scissors"
         case .search:    return "magnifyingglass"
         case .cutmarks:  return "timeline.selection"
+        case .blocks:    return "rectangle.split.3x1"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
@@ -116,6 +121,9 @@ enum Tool: String, CaseIterable, Identifiable {
         // A strip cut into pieces — the library of PARTS, not of films. (Not
         // rectangle.grid.2x2: .lessons already wears that one.)
         case .chunking:  return "rectangle.split.3x1"
+        // Moments stacked in an order, with one of them picked up — the whole
+        // tool is moving a card up and down a list.
+        case .timeline:  return "list.bullet.indent"
         }
     }
 
@@ -156,6 +164,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   CuttingRoomView()
         case .search:    SearchView()
         case .cutmarks:  CutMarksView()
+        case .blocks:    BlocksView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
         case .dump:      DumpView().forgeToolBar("Dump")
@@ -180,6 +189,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "rectangle.grid.2x2")
                             .forgeToolBar("Chunking")
+        // Story Timeline: a shelf of stories, then one open. The page answers
+        // window.__navBack, so the chevron goes shelf-ward before it leaves.
+        case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent")
+                            .forgeToolBar("Story Timeline")
         }
     }
 }
@@ -472,6 +485,8 @@ struct RootView: View {
             if t == .search { return false }
             // Cut Marks too — same family, same injected pill.
             if t == .cutmarks { return false }
+            // Cutting Blocks too — same family, same injected pill.
+            if t == .blocks { return false }
             // Scratch Pad is a web page with its own injected pill — showing
             // the native one too would stack two pills.
             if t == .scratchpad { return false }
@@ -481,6 +496,8 @@ struct RootView: View {
             if t == .vector { return false }
             // Chunking is a web page with its own injected pill too.
             if t == .chunking { return false }
+            // Story Timeline is served with { pill: true } as well.
+            if t == .timeline { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills
             // drew and the speed label read "Fast" twice (Sophie's
@@ -569,7 +586,7 @@ private struct HomeGrid: View {
     /// - **Song Station** is gone from every grid — "get rid of song station
     ///   altogether". The tool, its page and `deckfactory://song` all still
     ///   work; it simply has no card anywhere now.
-    private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
+    private static let movieTools: [Tool] = [.movie, .films, .blocks, .cutroom, .cutmarks, .editor,
                                              .voice, .search, .character, .chunking]
 
     /// The image filter's set — the three "make me a picture" tools. This is

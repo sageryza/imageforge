@@ -278,6 +278,7 @@ loadConfig().then(() => {
   const editor = require('./editor');
   const cuttingroom = require('./cuttingroom');
   const cutmarks = require('./cutmarks');
+  const blocks = require('./blocks');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -286,6 +287,9 @@ loadConfig().then(() => {
   // sheets (public — reviews are marketing content). Backfill:
   // scripts/backfill-etsy-reviews.js; steady-state top-up is self-throttled.
   app.use('/api/witch/shop/reviews', require('./etsy-reviews').router);
+  // Story Timeline: a dictated list of moments becomes cards she can put in
+  // order. No model call, no job — see timeline.js's header.
+  app.use('/api/timeline', require('./timeline').router);
   app.use('/api/printify', printify.router);
   app.use('/api/printful', printful.router);
   app.use('/api/lulu', lulu.router);
@@ -372,6 +376,11 @@ loadConfig().then(() => {
   // hit into work — interview → Episode Editor, memo → Cutting Room.
   app.use('/api/search', require('./search').router);
   app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
+  // Cutting Blocks: the TOP of the audio pipeline — a recording comes apart
+  // into sentence-level lines she can split, meld, reorder, respeak and hear
+  // as marked before anything is cut for real. Was a hand-authored Compare
+  // page (v14) with no server behind it; see docs/audio-pipeline.md.
+  app.use('/api/blocks', blocks.router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
@@ -726,6 +735,9 @@ app.get('/freeform', serveGated('freeform.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
+// Story Timeline: dictated moments -> cards you can order, join into
+// sequences, edit, divide and delete. The front for /api/timeline.
+app.get('/timeline', serveGated('timeline.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
@@ -2702,6 +2714,10 @@ app.get('/search', serveGated('search.html', { pill: true }));
 // (video or audio, no transcript), drop pieces, render a fresh file. Engine
 // is /api/cutmarks (cutmarks.js). Same gate; same shared pill.
 app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
+// Cutting Blocks: a recording broken into sentence-level lines to take apart,
+// mark, reorder and hear before cutting. Engine is /api/blocks (blocks.js).
+// Same gate; the line list scrolls, so it carries the shared autoscroll pill.
+app.get('/blocks', serveGated('blocks.html', { pill: true }));
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name

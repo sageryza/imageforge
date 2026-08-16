@@ -53,6 +53,9 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 **While you work**
 - **Never block the turn on a wait** — background it, or her next message is
   silently swallowed.
+- **She is almost never at her desktop.** Anything that can only run on her Mac
+  gets APPENDED to `docs/desktop-tasks.md` (the one queue, every repo) and
+  mentioned in one line — never asked for. Urgent is the only interrupt.
 - **Nothing may live only in the scratchpad.** Commit and push as you go.
 - **Estimate the cost before a paid batch, and ASK above $3.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
@@ -101,6 +104,35 @@ links at the very bottom.
   also makes it look like she can't talk to you when she always can.
 - Deploys are never worth blocking on: the change is already merged and safe;
   the watcher just tells you when it's live.
+
+## SHE IS ALMOST NEVER AT HER DESKTOP — batch desktop tasks, never ask
+**Sophie works from her phone (Aug 2026, her rule: "I'm almost never on my
+computer… anytime someone has a desktop task they should just batch it").** So
+a task that can only run on her Mac must NOT turn into "can you go to your
+computer and…" — that is a request to change where she is, and it lands weeks
+late or never.
+- **Write it into `docs/desktop-tasks.md` instead.** That is THE list, one for
+  every chat in every repo, and it lives in her Mac checkout (`~/imageforge`) so
+  the machine that has to run it already has it. The file carries the entry
+  template, the rules for adding one, and the protocol the terminal chat
+  follows; append to **OPEN** at the bottom, exact copy-pasteable commands, no
+  secrets (public repo), commit and push the same turn.
+- **Say one line in your reply** that you queued it and what it is. She should
+  know the pile grew without having to ask, and without it becoming an ask.
+- **Then keep going.** A queued desktop task never blocks the rest of the turn —
+  do everything that doesn't depend on it and hand the turn back.
+- **When she IS at the computer** she says "open `docs/desktop-tasks.md` and run
+  the queue" and the terminal chat works it top to bottom, moving each finished
+  block to DONE with the date.
+- **URGENT is the only interrupt** — she is blocked without it, or it expires.
+  Say so plainly in the reply AND queue it anyway, so it survives her not being
+  near the computer. "It would be faster" is not urgent.
+- **What counts as desktop-only:** YouTube downloads (datacenter IPs are
+  bot-blocked — `docs/modules/nde.md`), anything needing her logged-in browser,
+  keychain or Photos library, a plugged-in device, local files that live only on
+  the Mac, and big uploads that must be chunked on her home connection. Anything
+  a cloud session can do, a cloud session does — never queue work here to avoid
+  doing it.
 
 ## Claims about OTHER sessions or the environment: MEASURE, never reason
 **A SECOND CASE, and the same shape (2026-08-14): "a repo-committed hook never
@@ -673,12 +705,39 @@ them off the reference sheet, not off the old filenames.
     FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
     `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
     archive's filter row. Full rules in `docs/chats-app.md`.
+  - **THREE LENGTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
+    short summary like three lines at most, and then a longer summary behind an
+    arrow").** `wrapLine` is the one line on the archive row, `wrapUp` is THREE
+    SENTENCES behind the ⌄, and `wrapLong` is the full account behind a `more`
+    inside that. Each is written to stand alone — not an intro, a middle and an
+    end — because she stops at whichever depth answers her. A chat too small to
+    justify a long version leaves `wrapLong` empty and shows no `more`. The
+    fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
+    LAST field, so the summary she actually reads is the one least at risk.
+    The SHORT one is capped in CHARACTERS (under 180 = three lines on her
+    phone), not in sentences — the first cut asked for three sentences and came
+    back at 374 characters, seven lines in the expander.
+  - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
+    especially for the long summary — don't add bullet points where it doesn't
+    actually help, but the long summary is one block of text would be great to
+    see them separated").** The model returns `long` as an ARRAY of points and
+    the route stores it newline-joined, so `wrapLong` stays a plain string and
+    the one paragraph written before this still reads. **The array is what makes
+    the split reliable** — re-splitting a paragraph on punctuation breaks on
+    every abbreviation and file name. `fillWrap()` in `chats.html` draws it,
+    ONE renderer for both the archive row's expander and the sheet's read-back:
+    more than one line → one `.wrapbul` per line with a CSS `•` and a hanging
+    indent; a single line → a plain paragraph, because the short summary is
+    always one and a lone bullet in front of one sentence is decoration. The
+    prompt says **SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT**, so a chat that did
+    one continuous thing gets one or two points rather than a chopped-up list.
   - **A truncated answer is RESCUED, not thrown away (found live 2026-08-15 in
     her hands).** `max_tokens` cut the JSON mid-string and an unclosed brace
     fails both of `parseJSON`'s attempts, so a finished summary line died with
-    the unfinished sentence after it. The cap is 1200 now and `salvageJson` in
+    the unfinished sentence after it. The cap is 1500 now and `salvageJson` in
     `chatfeed.js` closes what the model left open, then trims back to the last
-    finished sentence. It is deliberately NOT in `anthropic.js`: half an object
+    finished sentence — and, in the bulleted long half, drops the point that
+    stopped mid-word while keeping the ones that finished. It is deliberately NOT in `anthropic.js`: half an object
     is exactly what other callers must never be handed silently.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
     the open half, the truncation rescue), `node
@@ -700,19 +759,33 @@ them off the reference sheet, not off the old filenames.
     empty row is the correct, common state, and a pin she does not come back
     to is clutter at the top of a thread she reads every day.
     - **a page this chat is ACTIVELY WORKING ON** — `/science`, `/chunking`, a
-      tool page, a Compare page's URL. Pin it the first turn it exists. The
+      tool page. Pin it the first turn it exists. The
       test is active work, not "a link exists": a page you finished and will
       not touch again does not need the row.
     - **a deliverable you are ACTIVELY HANDING HER NEW VERSIONS OF** — a film,
       an episode, an audio cut. Pin the NEWEST render; the title carries the
       version ("Evan — the long cut v6 (4:54)"). A one-off render you will
       never re-cut is not this.
+  - **A COMPARE PAGE IS ALREADY IN THE TAB — NEVER ALSO PIN IT AS A LINK (Aug
+    2026, Sophie: "if there's a compare page for the exact same thing … it
+    shouldn't be also pinned as a link").** Anything posted with
+    `POST /api/chatfeed/page` sits in the chat's **Compare tab**, one tap from
+    the same header, so pinning its URL puts the identical thing on screen
+    twice and spends the one pin row on something she can already reach. This
+    is a carve-out of case 1, not an exception to it: a page you are actively
+    working on still earns the row — unless the page IS the Compare page, in
+    which case the tab is the row. (This line used to name "a Compare page's
+    URL" as a thing to pin, which is how it happened.) Same for the judge and
+    cut-picker pages: all three land in that tab. A page you host yourself
+    (`/science`, a tool page) is NOT in the tab and still pins normally.
   - **NEVER PIN, without asking:** a PR or a GitHub file/doc link, a dashboard,
     a page you merely referenced, the Chats app itself, a page whose work is
-    done, or your own chat's admin links. **A THIRD CASE IS NOT YOURS TO
-    DECLARE** (Sophie: "there might be other cases, but I'd like them to be
-    run by me before they're made official") — describe the case in your reply
-    and let her say yes; do not pin it and see if she objects.
+    done, your own chat's admin links, or **anything already sitting in one of
+    this chat's own tabs** (a Compare page, an Assets image). **A THIRD CASE
+    IS NOT YOURS TO DECLARE** (Sophie: "there might be other cases, but I'd
+    like them to be run by me before they're made official") — describe the
+    case in your reply and let her say yes; do not pin it and see if she
+    objects.
   - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
     the re-post is the update, and it is what lights the **current** tag on
     the row (Sophie: "a tag on it that says like current or recent, and it
@@ -734,6 +807,37 @@ them off the reference sheet, not off the old filenames.
     is still lit.
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
+- **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
+  (Aug 2026, Sophie: "an option to pin chat to the top so they always show
+  first when they come out of hiding and they never disappeared to the bottom
+  if I don't look at them for a while").** Nothing to do with the pinned link
+  above, and **not yours to set** — it is hers, tapped on the pushpin on the
+  chat's row on the `/chats` HOME screen (it shipped in the thread header and
+  she moved it: "I was assuming it would go right on the main page not inside
+  of it"). Her override on the recency sort: a pinned chat leads every pile,
+  and pinned chats keep their own recency order among themselves.
+  - **The names are separate ON PURPOSE and must stay that way:** `pinTop` +
+    `POST /api/chatfeed/pin-top` for this, `pinned` + `POST /pin` for the
+    deliverable link (which stores an OBJECT under `pinned`). Express matches
+    the first route, so a route named `pin` shadows the other one.
+  - The whole sort is ONE tier in `sortedChatNames` (chats.html), which every
+    list comes through — so the hidden pile, the archive, the ★ chip and the
+    account tabs all obey it without knowing about it.
+  - **The glyph is a PUSHPIN — round head, straight spike — never the Maps
+    teardrop.** It shipped as a `map-pin` and she corrected it ("the pin
+    that's like round with a metal thing sticking down from it — that's a
+    different one that you made"). Don't drift it back.
+  - Test: `node scripts/test-chats-pin-top.js`.
+- **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
+  Sophie: "an ability to tag or categorize something from within the chat
+  itself … an icon that says organize and then it pulls up the ability to tag
+  and categorize which is already on the front page but so far it doesn't work
+  within there").** The tag icon in a thread's header opens a sheet with her
+  FOLDERS (one per chat, `POST /category`) over the TAG vocabulary (many,
+  `POST /tags`) — both already existed, neither was reachable from a thread.
+  Everything saves on the tap. **Filing is still HERS, not yours** — the
+  server files chats by itself (`chat-sort.js`); do not POST a category.
+  Same test file.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1452,6 +1556,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   server-side ffmpeg; every re-roll is kept.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
+- **Cutting Blocks** (`blocks.js`, `/api/blocks`, page at `/blocks`, iOS tile
+  under the FILM filter) — the TOP of the audio pipeline. A recording comes
+  apart into sentence-level LINES to split (tap two words), meld back together
+  (the chain), mark **locked in / not sure / out** (three states, not
+  keep-or-cut), reorder, respeak in her voice, and **hear as marked before
+  anything is cut**. It was a hand-authored Compare page re-posted at v14 with
+  no server behind it — five capabilities that existed nowhere else, and every
+  improvement cost a chat re-authoring an 87KB artifact.
+  **The two-tier timing rule is load-bearing:** the bulk 75s-chunked whisper
+  pass places and PREVIEWS a line (via the Episode Editor's `page-cut`), and
+  the real render RE-LISTENS per card and cuts through `editor.js`'s validated
+  cutter — the Cutting Room's finding, imported rather than re-learned
+  (`cuttingroom.js` now exports `chunkedWords` / `cutSection`). Her marking
+  state is a whitelisted patch on one Firestore doc (`forge-blocks`,
+  content-addressed by the source url, so re-opening resumes); words and
+  blocks live in Storage. Transcription is ~$0.006/min, once ever per
+  recording; rendering is ffmpeg on our own box, free. Tests:
+  `node scripts/test-blocks.js`. **Full details: `docs/audio-pipeline.md`.**
 - **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
@@ -1574,6 +1696,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   show approval state. **Making art for the "Evan" story? `docs/evan-film-style.md`
   FIRST** — write NO style description at all.
   **Full details: `docs/modules/story.md`.**
+- **Story Timeline** (`timeline.js` + `timeline-parse.js`, `/api/timeline`,
+  page at `/timeline`, iOS tile) — a dictated list of moments becomes cards she
+  can put in order. It started as one Compare page for one story (Aug 2026) and
+  became a tool when she asked for it "for other stories". **It costs nothing —
+  no model call, no background job**, so opening it and saving are both free.
+  **THE CARD IS THE ATOM, THE UNIT IS WHAT MOVES:** a unit is one moment or a
+  run of them that travel together (her word: a SEQUENCE) and carries ONE
+  number, because the number is its place in the order. `units` is an array of
+  arrays of moment ids and is the whole arrangement — order and grouping in one
+  field — while `moments` is keyed by id and holds only words, so moving a
+  moment can never alter it and re-ordering can never lose one. **Parsing a
+  paste is a STARTING POINT, not a verdict** (an ALL-CAPS line opens a group; an
+  END line, a blank line or the next header closes it): it gets some groups
+  wrong on purpose, because fixing one on the page is two taps and no parser
+  out-guesses her about where a sequence stops. **Nothing is deleted outright**
+  — DELETE hides a story, and deleting a moment drops it from `units` while its
+  words stay in `moments`. The page's controls are all hers by name: a number
+  you can TYPE, single/double arrows (one step / all the way), the marks in the
+  GAP (join these two, add one here), the pencil (change the words, and only
+  from inside the open editor: divide at the cursor, delete), and a unit of 5+
+  FOLDING to its first and last with one line each in between.
+  **The editor is behind a pencil and never a tap on the words** — tap-to-edit
+  means every stray thumb on the way down the page opens an editor.
+  Two bugs worth not repeating, both pinned by the test: a folded middle sets
+  `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
+  unit shoots off the right of the screen; and an editor that holds itself open
+  for ANY focus inside its card loses what she typed when a blur leaves focus
+  put. Tests: `node scripts/test-timeline.js` (the parser and the validators
+  pure, then the real page driven in headless Chromium).
+  Firestore `forge-timelines`, one doc per story.
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are

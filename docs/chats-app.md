@@ -769,10 +769,11 @@
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
     as a solid red block; matching the chip means the two can never drift
-    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
-    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
-    colour before it is ever tapped, and its circle background is cream in
-    both themes so a fixed red is right there.
+    apart, and the screen stops carrying one slab of colour. **The BAR's own
+    ⊖ is a FIXED `#b3443f`**, on a cream background in both themes, so a
+    fixed red is right there. The ROW's hide button used to match it and no
+    longer does: it is a bare crossed-out eye now, `--ink2` until the chat is
+    really parked (Aug 2026 — see *The pushpin* for both changes and why).
     Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
     stub feed; skips without playwright).
   **MORE — the far end of the list, folded at SEVEN DAYS (Aug 2026, Sophie:
@@ -836,6 +837,56 @@
     its `.no` row — that one carries the crumb, Archive and Hide.
   - **The filter is session-only, never persisted.** A sticky filter would
     show her three chats one morning and read as the rest having vanished.
+  - **…AND THEN THE CHIPS FOLDED AWAY BEHIND ONE WORD (Aug 2026, Sophie:
+    "take the categories — like just for fun, stories, pretty much all of
+    them — off that page, just have a button that says tags and then once I
+    click it that's when it shows all the categories").** The row had grown
+    to ten folders and wrapped onto two lines above every list. Filing is a
+    burst — she does it in select mode — but the chips were paying rent at
+    the top of the screen the rest of the time: the MINIMIZE THE SCROLLING
+    rule, and the same argument that collapsed the search bar into its glass.
+    - The row at rest is the ★ chip and **TAGS** (`.tagsbtn`). One tap paints
+      every folder, another folds them away. `catsOpen` is session-only and
+      **always starts SHUT**, exactly like `searchOpen`.
+    - **TAGS carries the SUM of the folders' red unread numbers while they
+      are away**, and drops it once they are on screen. Filing takes a chat
+      off the main list, so without the sum a folded row would make every
+      reply inside a folder silent — the thing the per-chip badge was built
+      to prevent, hidden one level deeper.
+    - **A LIT FOLDER FORCES THE ROW OPEN** (`catsShown() = catsOpen || cat`),
+      and **closing clears the filter**. Either half alone gives the silent
+      filter this app keeps warning about: she would be looking at seven
+      chats with nothing on screen saying why, and no way back out.
+    - Select mode's own filing chips are untouched — the whole vocabulary is
+      always there to file into, whatever the row above is doing. Test:
+      `node scripts/test-chats-tags-button.js`.
+  - **COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
+    back to and later categories" — confirmed as the chat-list FOLDER and the
+    UPDATE screen's BOX).** She had two names for one intention and two places
+    to go looking.
+    - **One word and one pile — deliberately NOT one field.** `category` files
+      a chat forever; `newsQueue` files ONE update until something newer lands
+      and then hands it back. Folding either into the other loses something
+      real: make the box write a category and a chat she defers an update from
+      is yanked out of Stories (a chat can only be in one folder); make the
+      folder write a queue and her filing expires on its own.
+    - So the Update box is **labelled** "Come back to" (`NEWS_QS`) while its
+      **stored value stays `later`** — the rename is a word, not a migration,
+      and nothing already filed had to move. `NEWS_QUEUES` in `chatfeed.js`
+      carries the note.
+    - The folder's chip shows the union: chats filed into `come back to` PLUS
+      chats whose update card is in that box right now. `chatInCat()` is the
+      one test, read by the chip's count, the live list and the archive alike;
+      `rebuildComeBack()` derives the box membership through
+      `newsItems`/`newsBoxed` rather than re-deriving it, so the chip and the
+      box can never disagree about where something is.
+    - **A chat deferred on the Update screen still shows on the main list.**
+      Deferring one update is not filing the whole chat away, and making it
+      vanish from the list would be a filing she never asked for.
+    - A superseded card leaves the pile the same moment it leaves the box —
+      the auto-return rule is the box's, and the folder must not contradict it.
+    - Test: `node scripts/test-chats-come-back-to.js` (verified failing against
+      a folder that only reads `category`).
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
@@ -1151,7 +1202,10 @@
       guard). The row mark is the **filled bookmark glyph** beside the star.
     - **`notify`** = allowed to buzz her phone. The BELL, added Aug 2026 —
       see *The bell and the two picture buttons* below.
-    - **All three marks sit side by side in the thread header** — the
+    - **`pinTop`** = stays at the top of every list. The PUSHPIN, added Aug
+      2026 — see *The pushpin* below. It is the one mark whose control is
+      **not** in the thread header: it lives on the home row, at her ask.
+    - **Three of the marks sit side by side in the thread header** — the
       bookmark, the star, then the bell — so the difference is a choice she
       makes in one place. The keep button is `.bmk.chatbmk`, written that way
       and never `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules
@@ -1225,6 +1279,149 @@
     `getComputedStyle`, not the markup — a stray `.bmk`-style rule landing on
     one of these is exactly the failure worth catching, and it shows up
     nowhere else.
+  **THE PUSHPIN — a chat that stays at the top (Aug 2026, Sophie: "an option
+  to pin chat to the top so they always show first when they come out of
+  hiding and they never disappeared to the bottom if I don't look at them for
+  a while, and I guess I can just unpin them if necessary").** The fourth
+  per-chat mark, and the only one whose control is on the home ROW rather than
+  in the thread header.
+
+  **IT SHIPPED WRONG TWICE IN ONE PASS AND SHE CORRECTED BOTH — read this
+  before touching it.** Her first message said "the little dot pin for like
+  Maps that people put on Maps", which was built as a Lucide-style teardrop
+  marker. What she meant was a PUSHPIN: "sorry I was talking about the pin
+  that's like round with a metal thing sticking down from it — that's a
+  different one that you made." And it was put in the thread header beside the
+  other three marks, which was the wrong screen: "I was assuming it would go
+  right on the main page not inside of it." Both are settled now; don't drift
+  either back.
+  - **It is HER OVERRIDE ON THE RECENCY SORT.** The home list is ordered by
+    newest message, which is right for an inbox and wrong for the two or
+    three chats she is actually steering: one she leaves alone for a day
+    sinks under ~190 others, and one that comes back out of the hidden pile
+    re-enters wherever its last message puts it. A pinned chat sorts above
+    all of that; pinned chats keep their own recency order among themselves.
+  - **ONE LINE, IN `sortedChatNames`, AND THAT IS DELIBERATE.** Every list of
+    chats — live, hidden, ★, archive, the category chips, the account tabs,
+    Status — comes through that function, so the tier is written once and
+    nothing else had to learn about pinning. In particular the hidden pile
+    needed no change at all: her sentence about "when they come out of
+    hiding" falls out of sorting in the one place.
+  - **`pinTop` on the registry, `POST /api/chatfeed/pin-top {chat, pinTop}`**
+    (404s on a chat that doesn't exist — the phantom-row guard). **NOT
+    `pinned`, and NOT `POST /pin`: both are TAKEN** by the pinned
+    *deliverable* — the link/film row at the top of a thread — which stores
+    an OBJECT there. Express takes the first match, so a route called `pin`
+    would shadow it and a field called `pinned` would collide with a value of
+    a completely different shape.
+  - **ONLY THE HEAD TURNS RED, which is why the glyph is TWO SHAPES.** Half
+    of one path cannot take a different colour, so `PIN_SVG` is a `<circle>`
+    (the head, `.pinhead`) over a `<path>` (the straight spike, starting
+    exactly at cy+r). Two things to leave alone: **the head is STROKED in
+    both states** and only *fills* when set — fill-only was tried and the
+    unpinned button read as a bare stick, because unlike the teardrop this
+    glyph's outline is not its whole silhouette; and the spike is LONGER than
+    the head is wide (10.6 vs 8.8), because at 15px a pin whose halves match
+    reads as a magnifying glass.
+  - `.pinbtn` is grey `--line` at rest and `--ink2` when set, with the head
+    taking `--chg` as both fill and stroke: a grey spike under a red head
+    reads as a disabled control. Kept out of `.bmk` for the usual reason.
+  - **The control is `mkPinTop`, on the row** — `.pinbtn.pinrow`, beside the
+    hide button, and on the TILE cover too (top-left, opposite the hide)
+    because a control that works in one of the two views is a bug rather than
+    restraint. It repaints with `renderHome`, not a local class flip: pinning
+    MOVES the row, which is the whole point. It hides in select mode with the
+    hide and the ✓.
+  - **NO CIRCLE ON A LIST ROW, for either button** (Aug 2026, Sophie: "I
+    don't want in a circle, can you take it out of the circle, and also
+    there's a hide button next to it, can you take that out of the circle
+    also"). The cream plate and its shadow exist to lift a control off a
+    PHOTO; a row has no photo under it, so on a row they were two floating
+    buttons in a list made of nothing but hairlines. **The de-plating is
+    written `.crow`-scoped, never on the bare classes** — `.t-cover` sits on
+    the chat's picture and must keep its plate, and a test asserts that the
+    rule has not leaked there. Sizes are unchanged: 31px is the tap target
+    and the plate was never what made it one; the glyphs go 14 → 16px now
+    that there is no ring to fill.
+  - **The row's hide is a CROSSED-OUT EYE, and that REVERSES an earlier call
+    of hers.** The comment on `HD` used to read "deliberately NOT an eye
+    (Sophie's call) — an eye says 'look at this'", paired with a ⊖/⊕ that
+    said what happens to the row. She asked for the eye instead: "can you
+    make it an eye that's crossed out" — the same glyph she had already asked
+    for in the thread header. **In BOTH states**, note: this ask carried no
+    condition, unlike the header's "an eye that's crossed out IF it's
+    hidden". So one glyph, and the STATE is the colour — `--ink2` while the
+    chat is on the list, red once it is parked, which is her own rule for
+    that glyph in the header ("the hidden icon should also not be red until I
+    click it") and avoids a wall of red about chats with nothing wrong with
+    them. `UNHD` is deleted; `HD` survives only as the hidden BAR's label,
+    where the word "Hidden" sits beside it.
+  - **There is NO separate pin mark at the front of the row.** One shipped
+    and was removed the same day the control moved: a lit control already
+    says the chat is pinned, and the mark was showing the same state twice.
+    The star and the bookmark stay marks because they have no row control.
+  - Tests: `node scripts/test-chats-pin-top.js` (the real page, headless —
+    the sort tier including the just-came-back-from-hiding case, the control
+    on the row and NOT in the header, no doubled mark, both POSTs, the row
+    actually moving, the roll-back on a failed save, a hit-test, the spike
+    being a straight line rather than an arc, and the COMPUTED fills proving
+    the head is red while the spike is not). Verified failing with the sort
+    tier removed.
+
+  **ORGANIZE — filing and tagging from inside a chat (Aug 2026, Sophie: "an
+  ability to tag or categorize something from within the chat itself, for
+  example I want to be able to tag it as come back to or tech or something
+  like that, so maybe just an icon that says organize and then it pulls up the
+  ability to tag and categorize which is already on the front page but so far
+  it doesn't work within there").** `.orgbtn` in `#thread header .no`, wearing
+  Lucide `tag` (`TAG_SVG`), opening `askOrganize`.
+  - **Both halves existed and neither was reachable from a thread.** FOLDERS
+    were home-screen-only and behind Select — pick rows, then the bar files
+    them, which is a round trip out of the chat she is reading and back. TAGS
+    only ever appeared on the way past, inside the archive sheet, so a chat
+    she was *not* archiving could not be tagged at all.
+  - **Two sections because they are two different things**, labelled, because
+    an unlabelled wall of identical chips gives no clue which tap is which:
+    **FOLDER** is exactly one per chat (`catList()`, `POST /category` with a
+    one-name list, plus a New… box and None), **TAGS** is many (`TAG_LIST`,
+    `POST /tags`) — the same vocabulary the archive sheet writes and the
+    archive's filter row reads.
+  - **Tapping the folder a chat is already in takes it out** — one control,
+    both directions, like every other toggle on this screen.
+  - **The `filedAt` stamp is written client-side here too**, copied from
+    `filePicked` and not left to the server's own: without it a chat with an
+    unread reply files itself and reappears on the same repaint (`chatBack`),
+    which reads as filing doing nothing.
+  - **Everything saves on the tap**, like the archive sheet — no OK button to
+    miss, and closing can never lose a choice. Done just shuts it and
+    repaints the home list, because a filed chat has left the unfiled pile.
+    The toast names the folder for the same reason: otherwise picking one
+    looks like the chat vanished.
+  - The pin used to sit in this slot, which is why the header row is still
+    six controls wide after the swap.
+
+  **THE SELECT BAR IS PINNED TO THE TOP (Aug 2026, Sophie: "when I am
+  selecting things to change their category right now the selection is at the
+  bottom instead — can you pin it to the top. It only shows when I'm actively
+  in selected mode by the way").**
+  - `.selbar` is `top:0` with a bottom border and a downward shadow. It only
+    exists while she is picking, so covering the masthead for the duration is
+    the point, not a cost.
+  - **The room it needs is measured, not guessed** — `paintSelBar` sets
+    `document.body.style.paddingTop` from the bar's real `offsetHeight`,
+    because the chips wrap and a long folder list makes the bar taller. It
+    goes on BODY, not on `#grid`: the masthead sits above the grid, so
+    padding the grid alone would leave the masthead under the bar and open a
+    gap below it. `exitSelect` and the not-selecting branch of `paintSelBar`
+    both clear it.
+  - **Moving it up put it in the autoscroll pill's corner, and the fix is to
+    HIDE THE PILL** (`body.selecting > .float`), not to reserve 56px the way
+    the tab rows do. Two reasons: a reserve would cost a chip's width on the
+    row that has the most chips, and `.float` is layer-promoted
+    (`translateZ`), which iOS can paint ABOVE the bar whatever the z-index
+    says — the same trap the `body.ontop > .float` rule already exists for.
+
+
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.

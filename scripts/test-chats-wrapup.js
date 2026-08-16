@@ -120,6 +120,20 @@ console.log('the open-questions half');
 {
   const route = src.slice(src.indexOf("router.post('/wrapup/write'"));
   ok('the route asks for an `open` field', /"open":/.test(WRAP_SYS_TEXT()));
+  ok('…and a `long` one beside the short summary', /"long":/.test(WRAP_SYS_TEXT()));
+  // "three lines at most" is a LENGTH on her phone, not a sentence count — the
+  // first cut asked for three sentences and came back at 374 characters, which
+  // is seven lines in the expander. The cap is stated in characters now.
+  ok('the SHORT one is capped in CHARACTERS, at three phone lines',
+     /UNDER 180 CHARACTERS/.test(WRAP_SYS_TEXT()));
+  ok('…and told to cut detail rather than run over',
+     /cut detail rather than running over/.test(WRAP_SYS_TEXT()));
+  ok('each depth is told as a whole story, not a continuation',
+     /complete on its own/.test(WRAP_SYS_TEXT()));
+  ok('a small chat may have no long version at all',
+     /let the short one be the whole answer/.test(WRAP_SYS_TEXT()));
+  ok('the short one is asked for BEFORE the long one, so a cut loses the long one',
+     WRAP_SYS_TEXT().indexOf('"text":') < WRAP_SYS_TEXT().indexOf('"long":'));
   ok('and tells it to leave that empty rather than invent a loose end',
      /Empty string when the chat genuinely ended settled/.test(WRAP_SYS_TEXT()));
   ok('the unanswered questions are derived, not read out of the digest',
@@ -128,6 +142,31 @@ console.log('the open-questions half');
      /Questions Sophie asked that nobody ever answered/.test(route));
   ok('a rewrite CLEARS a stale loose end instead of leaving it',
      /wrapOpen: open \|\| admin\.firestore\.FieldValue\.delete\(\)/.test(route));
+  ok('a long version identical to the short one is not stored twice',
+     /wrapLong: \(long && long !== full\)/.test(route));
+
+  // BULLETS (Aug 2026, Sophie: "I would like bullet points especially for the
+  // long summary … the long summary is one block of text would be great to see
+  // them separated"). The model is asked for an ARRAY, and the array is what
+  // makes the split reliable — re-splitting a paragraph on punctuation breaks
+  // on every abbreviation and file name. Stored newline-joined so the field
+  // stays a plain string and the one already written as a paragraph still reads.
+  ok('the long one is asked for as an ARRAY of points',
+     /"long": AN ARRAY OF SHORT POINTS/.test(WRAP_SYS_TEXT()));
+  ok('…one point per distinct thing that happened',
+     /One point per distinct thing that happened/.test(WRAP_SYS_TEXT()));
+  ok('…and it must not chop one thought up to fill a list',
+     /SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT/.test(WRAP_SYS_TEXT()));
+  ok('a small chat returns an empty array rather than padding one',
+     /return an empty array/.test(WRAP_SYS_TEXT()));
+  ok('the SHORT one is still a paragraph, not points',
+     /"text": THREE LINES ON A PHONE/.test(WRAP_SYS_TEXT()));
+  ok('the array is stored newline-joined, so the field stays a plain string',
+     /Array\.isArray\(out && out\.long\)/.test(route) && /\.join\('\\n'\)/.test(route));
+  ok('a truncated answer trims BOTH summary fields, not just the short one',
+     /out\.text = backToSentence\(out\.text\)/.test(route)
+     && /out\.long = Array\.isArray\(out\.long\)/.test(route)
+     && /backToSentence\(out\.long\)/.test(route));
 
   // The row line is untouched by it: `wrapOpen` lives behind the expander, so
   // her note and the summary line keep their old precedence exactly.
@@ -161,9 +200,18 @@ console.log('a summary that got cut off');
     JSON.stringify(salvageJson('{"line":"a","l":[1,2')) === '{"line":"a","l":[1,2]}');
   ok('a whole answer is untouched', JSON.stringify(salvageJson('{"line":"a","text":"b"}'))
     === '{"line":"a","text":"b"}');
+  // The long half is a list of points now, so a cut lands mid-POINT: the
+  // finished ones are kept and the half-written one is dropped by the route,
+  // rather than showing her a bullet that stops mid-word.
+  {
+    const cut = salvageJson('{"line":"a","long":["Built the thing.","Cost about a ce');
+    const kept = (cut.long || []).filter((x) => /[.!?]\s*$/.test(String(x || '').trim()));
+    ok('a list cut mid-point keeps the points that finished',
+      JSON.stringify(kept) === '["Built the thing."]', JSON.stringify(cut.long));
+  }
   ok('a refusal with no JSON in it rescues NOTHING rather than inventing',
     salvageJson('I cannot summarise that') === null);
-  ok('and the cap has real headroom now', /maxTokens: 1200/.test(src));
+  ok('and the cap has real headroom now', /maxTokens: 1500/.test(src));
 }
 
 function WRAP_SYS_TEXT() {

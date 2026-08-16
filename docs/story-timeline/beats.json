@@ -1,0 +1,220 @@
+{
+  "_": "Sophie's story timeline — the drawable beats, in HER order and HER words. Verbatim: do not tidy the dictation. Ids are STABLE to the TEXT (b7 is the belly button forever), so a re-order never re-points her saved notes at a different moment. Her ARRANGEMENT is not in here — the page saves it under `order` on the chat's verdict doc, so rebuilding never overwrites it (read it with --order). Rebuild: node scripts/gen-story-timeline.js",
+  "title": "Story timeline v5 — long sequences fold",
+  "chat": "story-timeline-sequences",
+  "sheet": "timeline-b29",
+  "order": "timeline-order-b29",
+  "blocks": [
+    {
+      "kind": "beat",
+      "id": "b1",
+      "n": 1,
+      "text": "the laundry basket",
+      "tag": "2x"
+    },
+    {
+      "kind": "beat",
+      "id": "b2",
+      "n": 2,
+      "text": "the phone that I should have stolen hanging out the window, that didn’t actually happen."
+    },
+    {
+      "kind": "seq",
+      "label": "Sequence",
+      "beats": [
+        {
+          "kind": "beat",
+          "id": "b3",
+          "n": 3,
+          "text": "The lilac moment where the colors are changing. I was like, I don’t want that."
+        },
+        {
+          "kind": "beat",
+          "id": "b4",
+          "n": 4,
+          "text": "And then the realization, followed by me, screaming and putting the thing into my belly button. So that’s three"
+        },
+        {
+          "kind": "beat",
+          "id": "b5",
+          "n": 5,
+          "text": "one, getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front"
+        },
+        {
+          "kind": "beat",
+          "id": "b6",
+          "n": 6,
+          "text": "and then, two was, like, screaming, I’m angry"
+        },
+        {
+          "kind": "beat",
+          "id": "b7",
+          "n": 7,
+          "text": "and then, um, putting it in my belly button as a close up"
+        }
+      ]
+    },
+    {
+      "kind": "beat",
+      "id": "b8",
+      "n": 8,
+      "text": "and then, uh, the knife hiding the knife, producing the knife. Um, finding the knife, I guess."
+    },
+    {
+      "kind": "beat",
+      "id": "b9",
+      "n": 9,
+      "text": "Him pulling out his gun."
+    },
+    {
+      "kind": "beat",
+      "id": "b10",
+      "n": 10,
+      "text": "Him behind me explaining things to me on the chair."
+    },
+    {
+      "kind": "seq",
+      "label": "Sequence",
+      "beats": [
+        {
+          "kind": "beat",
+          "id": "b11",
+          "n": 11,
+          "text": "I guess the beginning where we were, like, at the wall"
+        },
+        {
+          "kind": "beat",
+          "id": "b12",
+          "n": 12,
+          "text": "and then the train"
+        },
+        {
+          "kind": "beat",
+          "id": "b13",
+          "n": 13,
+          "text": "and then walking in that place"
+        }
+      ]
+    },
+    {
+      "kind": "beat",
+      "id": "b14",
+      "n": 14,
+      "text": "the chair, three, four instances, one with sandy, two with Jonathan, one with that guy"
+    },
+    {
+      "kind": "beat",
+      "id": "b15",
+      "n": 15,
+      "text": "saying, I love you"
+    },
+    {
+      "kind": "beat",
+      "id": "b16",
+      "n": 16,
+      "text": "the woman, like, poor baby. Probably shouldn’t be here, but not trying to help."
+    },
+    {
+      "kind": "seq",
+      "label": "Ending sequence",
+      "beats": [
+        {
+          "kind": "beat",
+          "id": "b17",
+          "n": 17,
+          "text": "leaving through the creaky door when he falls asleep. That’s, like, the end"
+        },
+        {
+          "kind": "beat",
+          "id": "b18",
+          "n": 18,
+          "text": "and then just sort of, like, laying down in the brush and crying a little bit, maybe. In relief, let’s say."
+        },
+        {
+          "kind": "beat",
+          "id": "b19",
+          "n": 19,
+          "text": "And then, let’s just say the lavender came back. I don’t know if it actually did"
+        },
+        {
+          "kind": "beat",
+          "id": "b20",
+          "n": 20,
+          "text": "just seeing like what colors were actually there."
+        }
+      ]
+    },
+    {
+      "kind": "seq",
+      "label": "Sequence",
+      "beats": [
+        {
+          "kind": "beat",
+          "id": "b21",
+          "n": 21,
+          "text": "the moment where they were like, oh, she has OCD, like, let’s rape her"
+        },
+        {
+          "kind": "beat",
+          "id": "b22",
+          "n": 22,
+          "text": "so, where are we gonna rape her?"
+        }
+      ]
+    },
+    {
+      "kind": "seq",
+      "label": "Sequence",
+      "beats": [
+        {
+          "kind": "beat",
+          "id": "b23",
+          "n": 23,
+          "text": "me, like, talking about having OCD and that happened with Laurian, too."
+        },
+        {
+          "kind": "beat",
+          "id": "b24",
+          "n": 24,
+          "text": "Um, and then just being like, yeah, okay, this is okay. Actually, I’m kind of scared"
+        },
+        {
+          "kind": "beat",
+          "id": "b25",
+          "n": 25,
+          "text": "what, you found her at a mental hospital, like, can she leave now?"
+        }
+      ]
+    },
+    {
+      "kind": "beat",
+      "id": "b26",
+      "n": 26,
+      "text": "a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know."
+    },
+    {
+      "kind": "beat",
+      "id": "b27",
+      "n": 27,
+      "text": "my tights on the floor with $83 or so on them. But it’s not a big deal, ‘cause I have $1 million now, so it’s not a big deal."
+    },
+    {
+      "kind": "beat",
+      "id": "b28",
+      "n": 28,
+      "text": "Oh yeah, also him closing the door, that’s a good one. That important."
+    },
+    {
+      "kind": "ref",
+      "id": "cast",
+      "label": "Character reference",
+      "text": "Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really."
+    },
+    {
+      "kind": "beat",
+      "id": "b29",
+      "n": 29,
+      "text": "Oh yeah, and then he was like, how was your 1st time? I was like, um, what?"
+    }
+  ]
+}

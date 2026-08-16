@@ -142,5 +142,26 @@ console.log('the leash (Aug 2026: "could it just be like three minutes")');
     api.chatHidden('c', { created: iso(20 * MIN), postedAt: iso(20 * MIN), working: true }) === true);
 }
 
+// ── arrival order (Aug 2026) ────────────────────────────────────────────────
+// Sophie: "when I message a chat and they're already writing then my messages
+// go ahead of it … and then their message posts under my new messages because
+// it already started writing." Measured: 52 across 25 chats.
+const sortAt = new Function('return ' + lift('sortAt') + ';')();
+console.log('arrival order');
+{
+  // the real numbers from her own thread
+  const reply = { from: 'claude', created: '2026-08-15T02:09:05Z', postedAt: '2026-08-15T02:12:59Z' };
+  const hers  = { from: 'sophie', created: '2026-08-15T02:12:23Z', postedAt: '2026-08-15T02:12:57Z' };
+  ok('a reply that lands after her mid-turn message sorts AFTER it',
+    sortAt(reply) > sortAt(hers), sortAt(reply) + ' vs ' + sortAt(hers));
+  ok('the old created-based order buried it', reply.created < hers.created);
+  // an ordinary exchange must not invert: an old hook posts her message ~1s
+  // AFTER the reply, so ordering hers by post time would flip every one
+  const h2 = { from: 'sophie', created: '2026-08-15T10:00:00Z', postedAt: '2026-08-15T10:01:01Z' };
+  const r2 = { from: 'claude', created: '2026-08-15T10:00:05Z', postedAt: '2026-08-15T10:01:00Z' };
+  ok('her message still sorts before the reply it prompted', sortAt(h2) < sortAt(r2));
+  ok('a message with no postedAt falls back to created',
+    sortAt({ from: 'claude', created: 'x' }) === 'x');
+}
 console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');
 process.exit(fails ? 1 : 0);
