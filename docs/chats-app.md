@@ -1151,12 +1151,15 @@
       guard). The row mark is the **filled bookmark glyph** beside the star.
     - **`notify`** = allowed to buzz her phone. The BELL, added Aug 2026 —
       see *The bell and the two picture buttons* below.
-    - **All three marks sit side by side in the thread header** — the
-      bookmark, the star, then the bell — so the difference is a choice she
-      makes in one place. The keep button is `.bmk.chatbmk`, written that way
-      and never `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules
-      sit LATER and win at equal specificity). Measured at 375/390/430 — the
-      row still fits on one line with none of them buried.
+    - **`pinTop`** = stays at the top of every list. The MAP PIN, added Aug
+      2026 — see *The map pin* below.
+    - **All four marks sit side by side in the thread header** — the
+      bookmark, the star, the bell, then the pin — so the difference is a
+      choice she makes in one place. The keep button is `.bmk.chatbmk`,
+      written that way and never `.chatbmk` (the `.bmk.hdrbmk` trap: the
+      generic `.bmk` rules sit LATER and win at equal specificity). Measured
+      at 375/390/430 — the row still fits on one line with none of them
+      buried.
     - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
       were copied to `bookmarked` and their stars cleared, so nothing was
       lost and the star starts empty under its new meaning. She prunes the
@@ -1225,6 +1228,58 @@
     `getComputedStyle`, not the markup — a stray `.bmk`-style rule landing on
     one of these is exactly the failure worth catching, and it shows up
     nowhere else.
+  **THE MAP PIN — a chat that stays at the top (Aug 2026, Sophie: "an option
+  to pin chat to the top so they always show first when they come out of
+  hiding and they never disappeared to the bottom if I don't look at them for
+  a while, and I guess I can just unpin them if necessary … can you use the
+  little dot pin for like Maps that people put on Maps, and make just the top
+  part turn red when it's pinned and click it again to unpin").** The fourth
+  per-chat mark, sitting after the bell in `#thread header .no`.
+  - **It is HER OVERRIDE ON THE RECENCY SORT.** The home list is ordered by
+    newest message, which is right for an inbox and wrong for the two or
+    three chats she is actually steering: one she leaves alone for a day
+    sinks under ~190 others, and one that comes back out of the hidden pile
+    re-enters wherever its last message puts it. A pinned chat sorts above
+    all of that; pinned chats keep their own recency order among themselves.
+  - **ONE LINE, IN `sortedChatNames`, AND THAT IS DELIBERATE.** Every list of
+    chats — live, hidden, ★, archive, the category chips, the account tabs,
+    Status — comes through that function, so the tier is written once and
+    nothing else had to learn about pinning. In particular the hidden pile
+    needed no change at all: her sentence about "when they come out of
+    hiding" falls out of sorting in the one place.
+  - **`pinTop` on the registry, `POST /api/chatfeed/pin-top {chat, pinTop}`**
+    (404s on a chat that doesn't exist — the phantom-row guard). **NOT
+    `pinned`, and NOT `POST /pin`: both are TAKEN** by the pinned
+    *deliverable* — the link/film row at the top of a thread — which stores
+    an OBJECT there. Express takes the first match, so a route called `pin`
+    would shadow it and a field called `pinned` would collide with a value of
+    a completely different shape.
+  - **ONLY THE HEAD TURNS RED, which is why the glyph is TWO SHAPES.** Half
+    of one path cannot take a different colour, and Lucide's `map-pin` is a
+    single closed teardrop — so `PIN_SVG` is a fill-only `<circle>` (the
+    head, `.pinhead`) sitting inside a stroked `<path>` (the whole
+    silhouette). The circle and the arc share a centre and a radius, so the
+    fill lands exactly inside the outline. Two things to leave alone: the
+    circle carries `stroke="none"` (stroked, it draws a line straight across
+    the pin's neck), and the body path is never filled (filled, the teardrop
+    floods into a blob and the pin is gone). The tangent points
+    (7.11, 11.52) / (16.89, 11.52) are computed from r=5.5 with the tip 12
+    units below the centre — that is what makes the tail leave the head with
+    no corner at the join.
+  - `.pinbtn` is grey `--line` at rest and `--ink2` when set, with the head
+    filling `--chg`: a grey outline under a red head reads as a disabled
+    control. Kept out of `.bmk` for the usual reason.
+  - **The row mark is the same glyph** (`.cr-pin`, at the front of the row
+    ahead of the bookmark and the star, drawn only when set). Without it a
+    pinned chat and a chat that just answered look identical, and nothing on
+    screen says why the row is where it is. `.cr-kept`'s blanket
+    `fill:currentColor` is deliberately not copied onto it.
+  - Tests: `node scripts/test-chats-pin-top.js` (the real page, headless —
+    the sort tier including the just-came-back-from-hiding case, the row
+    mark, both POSTs, the roll-back on a failed save, a hit-test, and the
+    COMPUTED fills proving the head is red while the outline is not).
+    Verified failing with the sort tier removed.
+
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
     row launches `openPage` full-screen.

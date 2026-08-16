@@ -734,6 +734,22 @@ them off the reference sheet, not off the old filenames.
     is still lit.
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
+- **A SECOND, UNRELATED PIN — the MAP PIN keeps a CHAT at the top of her list
+  (Aug 2026, Sophie: "an option to pin chat to the top so they always show
+  first when they come out of hiding and they never disappeared to the bottom
+  if I don't look at them for a while").** Nothing to do with the pinned link
+  above, and **not yours to set** — it is hers, tapped on the map-pin in a
+  chat's thread header beside the star/bookmark/bell. Her override on the
+  recency sort: a pinned chat leads every pile, and pinned chats keep their own
+  recency order among themselves.
+  - **The names are separate ON PURPOSE and must stay that way:** `pinTop` +
+    `POST /api/chatfeed/pin-top` for this, `pinned` + `POST /pin` for the
+    deliverable link (which stores an OBJECT under `pinned`). Express matches
+    the first route, so a route named `pin` shadows the other one.
+  - The whole sort is ONE tier in `sortedChatNames` (chats.html), which every
+    list comes through — so the hidden pile, the archive, the ★ chip and the
+    account tabs all obey it without knowing about it.
+  - Test: `node scripts/test-chats-pin-top.js`.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name

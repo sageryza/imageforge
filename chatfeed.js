@@ -1317,7 +1317,8 @@ router.post('/notif-seen', async (req, res) => {
 // them. Note for whoever adds the next route here — `pinned` and POST /pin
 // are TAKEN by the pinned DELIVERABLE, the film at the top of a thread, which
 // stores an OBJECT there; Express takes the first match, so a route named
-// `pin` here would shadow it.)
+// `pin` here would shadow it. That is why pinning a CHAT to the top of the
+// list is `pinTop` / POST /pin-top, further down.)
 
 // STAR a chat (Aug 2026, Sophie) — "chats that were important, that have work
 // I want to refer back to, but I'm not actively using them". Imprint and the
@@ -1398,6 +1399,45 @@ router.post('/notify', async (req, res) => {
     await regRef(slug).set(
       { notify: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
     res.json({ ok: true, chat: slug, notify: on });
+  } catch (err) { fail(res, err); }
+});
+
+// PIN A CHAT TO THE TOP OF THE LIST (Aug 2026, Sophie: "an option to pin chat
+// to the top so they always show first when they come out of hiding and they
+// never disappeared to the bottom if I don't look at them for a while, and I
+// guess I can just unpin them if necessary").
+//
+// The home list is sorted by newest message, which is right for an inbox and
+// wrong for the two or three chats she is steering: a chat she leaves alone
+// for a day sinks under 190 others, and one she parks in the hidden pile comes
+// back wherever its last message puts it. This is her override — a pinned chat
+// sits above the sort, in every pile, until she taps the pin again.
+//
+// FIELD IS `pinTop`, ROUTE IS `/pin-top` — `pinned` and POST `/pin` are TAKEN
+// by the pinned DELIVERABLE (the link/film row at the top of a thread), which
+// stores an OBJECT there. Express takes the first match, so a route named
+// `pin` here would shadow it, and a field named `pinned` would collide with a
+// value of a completely different shape.
+//
+// The fourth per-chat mark, and a plain boolean like the other three:
+//   `starred`    — what she is on right now (temporary)
+//   `bookmarked` — the handful worth keeping (permanent)
+//   `notify`     — the ones allowed to buzz her phone
+//   `pinTop`     — the ones that stay at the top of the list
+//
+// Same phantom-row guard as /chat-bookmark and /notify: a merge-set on a
+// missing doc CREATES it, and every pile derives from the registry keys.
+router.post('/pin-top', async (req, res) => {
+  try {
+    const { chat, pinTop } = req.body || {};
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const on = pinTop !== false;
+    const slug = await followMoves(String(chat).slice(0, 60));
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { pinTop: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, pinTop: on });
   } catch (err) { fail(res, err); }
 });
 
