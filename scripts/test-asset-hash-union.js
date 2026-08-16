@@ -164,9 +164,17 @@ t('an md5 is never compared against a sha256', () => {
   // sharing a namespace would have silently failed to group and, worse, looked
   // like it worked. Namespaced keys make that impossible.
   const keys = joinKeys({ url: `${DECK}/a/b.png`, md5: 'ff00', hash: 'ff00' });
-  // No 'f:' key: a record that carries a content hash is joined on its BYTES
-  // only — see the filename-collision test below for why.
-  assert.deepStrictEqual(keys, ['m:ff00', 's:ff00']);
+  // The two intents this pins, both still exact:
+  //   1. md5 and sha256 live in SEPARATE namespaces, so the same hex string
+  //      from two algorithms can never be mistaken for a match.
+  //   2. NO 'f:' key when a content hash exists — a record carrying bytes is
+  //      joined on its bytes, never on a basename it happens to share (the
+  //      vector-sheet collision below).
+  // The 'u:' key is the record's own exact url, which is an identity rather
+  // than a guess, so it is always present and weighs against nothing.
+  assert.deepStrictEqual(keys.filter((k) => !k.startsWith('u:')), ['m:ff00', 's:ff00']);
+  assert.ok(keys.some((k) => k.startsWith('u:')), 'the exact url is always a key');
+  assert.ok(!keys.some((k) => k.startsWith('f:')), 'no filename key beside a hash');
   const a = assetRecord({ url: `${DECK}/a/one.png`, md5: 'ff00', created: '2026-08-14T00:00:00.000Z' });
   const b = assetRecord({ url: `${DECK}/a/two.png`, hash: 'ff00', created: '2026-08-14T00:00:01.000Z' });
   assert.strictEqual(tiles([a, b]).length, 2, 'same string, different algorithms: not a match');
@@ -297,3 +305,28 @@ t('storageRef resolves both projects and both url shapes', () => {
 });
 
 console.log(`\n  ${n} checks passed\n`);
+
+/* THE SAME URL FROM TWO SOURCES — the tab reads iOS creations (filed WITH the
+   sha256 of the posted bytes) and forge-chat-assets (written from a url alone,
+   so no hash). Before the url key these could not join: one sat in the `s:`
+   namespace, one in `f:`, and Sophie saw every delivered image twice — bare
+   beside labelled. Measured live 2026-08-15: 7 pictures, 14 tiles, 7 docs. */
+(function () {
+  const u = 'https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1786834367328-urem3g.png';
+  const out = unionAssets([
+    { url: u, hash: 'abc123', prompt: 'from favorite-fruit-chart', ms: 2 },
+    { url: u, prompt: 'screenshot · not generated', description: 'Fruit chart', ms: 1 },
+  ]);
+  assert.strictEqual(out.length, 1, 'same url from two sources must be ONE tile');
+  assert.strictEqual(out[0].description, 'Fruit chart', 'the label must survive');
+  console.log('  ok   same url, one hashed and one not, joins into one tile');
+})();
+
+/* …and the vector-sheet case must STILL be seven tiles: different urls that
+   merely share a basename, each with its own md5. */
+(function () {
+  const mk = (n) => ({ url: `https://x/vector/${n}/sheet.png`, md5: 'md5-' + n, ms: 1 });
+  const out = unionAssets(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(mk));
+  assert.strictEqual(out.length, 7, 'different sheets must not collapse');
+  console.log('  ok   seven different sheets named sheet.png stay seven tiles');
+})();

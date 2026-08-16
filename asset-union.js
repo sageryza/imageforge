@@ -73,6 +73,21 @@ function joinKeys(rec) {
   const sha = String(rec.hash || '').trim().toLowerCase();
   if (md5) keys.push('m:' + md5);
   if (sha) keys.push('s:' + sha);
+  // THE EXACT URL, ALWAYS. Two records pointing at the identical url are the
+  // same picture — that is not a guess the way a shared basename is, so it
+  // needs no evidence to outweigh and can never repeat the vector-sheet bug
+  // (those were DIFFERENT urls that happened to end in `sheet.png`).
+  //
+  // Without it, the two records this tab is built from could not join when
+  // only one of them carried a hash: the tab reads iOS creations (which the
+  // hook files WITH the sha256 of the bytes it posted) and forge-chat-assets
+  // (which a chat writes from a url alone, so no hash at all). Same url, one
+  // key in the `s:` namespace and one in `f:`, never compared — so Sophie saw
+  // every image she was sent twice, once bare and once labelled, and labelling
+  // the asset record could never fix the bare creation beside it.
+  // Measured 2026-08-15: 7 pictures, 14 tiles, 7 docs.
+  const u = String(rec.url || '').split('?')[0].split('#')[0].trim().toLowerCase();
+  if (u) keys.push('u:' + u);
   // FILENAME ONLY WHEN THERE IS NO CONTENT HASH — which is what the note at the
   // top of this file always said this key was for ("for every record that
   // carries no hash of either kind"), but the code added it unconditionally and
