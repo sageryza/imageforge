@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Medicine Cabinet</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #faf4e6;
+    color: #22201b;
+    font-family: Georgia, 'Times New Roman', serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 40px 18px 60px; }
+  header { text-align: center; margin-bottom: 34px; }
+  h1 {
+    font-size: 34px; font-weight: 400; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .sub {
+    margin-top: 10px; font-size: 15px; font-style: italic; color: #6b6555;
+  }
+  .card {
+    background: #fffdf6;
+    border: 1px solid #e3dbc6;
+    border-radius: 6px;
+    margin-bottom: 26px;
+    overflow: hidden;
+  }
+  .card video { display: block; width: 100%; aspect-ratio: 854/480; background: #f3ecd9; }
+  .meta { padding: 14px 16px 16px; }
+  .name {
+    font-size: 19px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .name sup { font-size: 10px; }
+  .generic {
+    font-size: 13px; font-style: italic; color: #6b6555; margin-top: 3px;
+  }
+  .row {
+    margin-top: 8px; display: flex; justify-content: space-between;
+    align-items: baseline; gap: 10px;
+  }
+  .cond { font-size: 14px; color: #444033; }
+  .dur {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px; color: #8a8371; white-space: nowrap;
+  }
+  footer {
+    text-align: center; margin-top: 40px; font-size: 13px;
+    color: #8a8371; font-style: italic;
+  }
+  footer p { font-size: 13px; color: #8a8371; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The Medicine Cabinet</h1>
+    <div class="sub">A series of commercials for medications that do not exist.</div>
+  </header>
+  <div id="cabinet"></div>
+  <footer>
+    <p>New commercials appear here as they're made.</p>
+    <p>None of these are real medicine. Please do not ask your doctor about them.</p>
+  </footer>
+</div>
+<script>
+var BASE = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/';
+// newest first
+var SPOTS = [
+  { slug: 'tabzolam',     name: 'Tabzolam',     generic: 'browsolam',               cond: 'For chronic tab retention',            dur: '0:55', file: 'tabzolam-draft-480p-v1.mp4' },
+  { slug: 'hobbystatin',  name: 'Hobbystatin',  generic: 'loomivir',                cond: 'For acute hobby acquisition',          dur: '1:20', file: 'hobbystatin-draft-480p-v1.mp4' },
+  { slug: 'cancellia',    name: 'Cancellia',    generic: 'homebodine hydrochloride', cond: 'For social commitment remorse',       dur: '1:17', file: 'cancellia-draft-480p-v1.mp4' },
+  { slug: 'replyva',      name: 'Replyva',      generic: 'respondazepam',           cond: 'For compositional paralysis',          dur: '1:08', file: 'replyva-draft-480p-v1.mp4' },
+  { slug: 'doomscrollex', name: 'Doomscrollex', generic: 'thumbafinil',             cond: 'For chronic nocturnal scrolling',      dur: '1:10', file: 'doomscrollex-draft-480p-v1.mp4' },
+  { slug: 'ideatrol',     name: 'Ideatrol',     generic: 'frivolamine besylate',    cond: 'For chronic idea overproduction',      dur: '1:14', file: 'ideatrol-draft-480p-v1.mp4' }
+];
+var el = document.getElementById('cabinet');
+SPOTS.forEach(function (s) {
+  var card = document.createElement('div');
+  card.className = 'card';
+  var v = document.createElement('video');
+  v.controls = true; v.preload = 'none'; v.playsInline = true;
+  v.poster = BASE + s.slug + '/poster.webp';
+  v.src = BASE + s.slug + '/' + s.file;
+  card.appendChild(v);
+  var meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.innerHTML =
+    '<div class="name">' + s.name + '<sup>®</sup></div>' +
+    '<div class="generic">(' + s.generic + ')</div>' +
+    '<div class="row"><div class="cond">' + s.cond + '</div>' +
+    '<div class="dur">' + s.dur + '</div></div>';
+  card.appendChild(meta);
+  el.appendChild(card);
+});
+// only one commercial plays at a time
+document.addEventListener('play', function (e) {
+  document.querySelectorAll('video').forEach(function (v) {
+    if (v !== e.target) v.pause();
+  });
+}, true);
+</script>
+</body>
+</html>

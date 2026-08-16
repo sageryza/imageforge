@@ -37,3 +37,27 @@ animator), `clips/` (per-scene wan renders), and the final mp4.
   out in the prompt. Check generated labels for real drug names.
 - Replicate 429s prediction creation ~10 in-flight; `start_clip` has backoff,
   `recover.py` re-attaches orphaned predictions by input-image URL.
+
+## The series (Aug 2026) — all six spots
+
+Sophie asked for all five pitches after IDEATROL, so the pipeline became a
+config-driven engine: `make_spot.py <slug>` reads `spots.json` (scenes,
+motion prompts, VO segments with voice/tempo/span), renders and uploads one
+spot; `file_spot.py` does the Assets/gallery/pin filing; `redo_endcard.py`
+re-rolls an end card in place. Per-spot manifests: `manifest-<slug>.json`.
+
+**The family page: https://imageforge-q125.onrender.com/pills** —
+`public/pills.html`, public/ungated like /fruit (family opens it from a
+text). Newest spot first; add a new spot to the `SPOTS` array at the top of
+its script. Posters are the end cards as 640px webp at
+`commercials/<slug>/poster.webp`.
+
+Films: ideatrol · doomscrollex · replyva · cancellia · hobbystatin ·
+tabzolam, each at
+`commercials/<slug>/<slug>-draft-480p-v1.mp4` (deckfactory Storage).
+Draft cost ≈ $1.10-1.75 each; series total ≈ $8.60.
+
+Watch the labels: gpt-image-2 twice printed a REAL drug's generic on a
+bottle (desvenlafaxine, brexpiprazole). Every bottle/end-card prompt now
+spells out its fictional generic or forbids extra text; check any new
+bottle render anyway.
