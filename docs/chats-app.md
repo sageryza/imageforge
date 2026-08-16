@@ -971,6 +971,19 @@
     she hasn't reached, a state a boolean could not carry. The ✓ lights only
     when her answer IS the proposal, or a lit tick would be claiming she
     agreed with a guess she overrode.
+  - **HER TICKS GET APPLIED, AND THAT IS WHAT TEACHES A NEW FOLDER.**
+    `node scripts/apply-sort-verdict.js --sheet sort-dryrun-<n>` (dry, then
+    `--write`) reads the verdict back and files them through `POST /category`,
+    which stamps `catBy:'sophie'` — so the sorter never revisits them AND they
+    become the EXAMPLES the folder is taught by. That is the whole loop: "5 of
+    these witch ones are really dream app" becomes a `dream app` folder the
+    sorter can use, with nobody writing a description of it. A row she never
+    touched is left alone — the page is long, so silence means "not yet".
+  - **"Leave unfiled" is an ANSWER and needs its own field** (`catNone`,
+    `POST /api/chatfeed/sort/none`). An empty `category` is indistinguishable
+    from a chat nobody has looked at, so without it the sorter would file the
+    chat again tomorrow — rule 1 broken in the one direction `category` cannot
+    record.
   - **An EMPTY folder is offered by name, never suppressed.** The first version
     told the model to "prefer none" for a folder with nothing in it, which is
     backwards — an empty folder is one she has just MADE (she made `dream app`
