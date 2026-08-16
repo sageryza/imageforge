@@ -1,6 +1,6 @@
 {
   "_": "Sophie's story timeline — the drawable beats, in HER order and HER words. Verbatim: do not tidy the dictation. Ids are STABLE to the TEXT (b7 is the belly button forever), so a re-order never re-points her saved notes at a different moment. Her ARRANGEMENT is not in here — the page saves it under `order` on the chat's verdict doc, so rebuilding never overwrites it (read it with --order). Rebuild: node scripts/gen-story-timeline.js",
-  "title": "Story timeline v3 — her words restored",
+  "title": "Story timeline v4 — combine and move",
   "chat": "story-timeline-sequences",
   "sheet": "timeline-b29",
   "order": "timeline-order-b29",
