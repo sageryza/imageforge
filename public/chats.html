@@ -2474,15 +2474,31 @@ function newsItems(g){
     // thing she opens and a stale one wastes the tap (see freshPages).
     var pics=(ix.imgs[name]||[]).slice(0,3);
     var pages=freshPages(ix.pgs[name]||[], floor);
+    // A STILL-WRITING DRAFT IS NOT AN ARRIVAL (Aug 2026, Sophie: "the update
+    // tab seems to give me an update before the turn is even done"). A card
+    // used to land at the chat's first tool call, carrying last turn's ⌄ and
+    // a timestamp about something she couldn't read yet. The widget and the
+    // push both already skip drafts; this makes the tab agree. So the reply
+    // that counts is the newest FINISHED one — an unchecked reply from an
+    // earlier turn still holds its card while a new turn runs on top of it.
+    // Pictures and Compare pages still count the moment they land, mid-turn
+    // included — "if they finished making something … I kind of want to
+    // preserve that" — because a filed image is done even when the reply
+    // around it isn't.
+    var lastFin=null;
+    for(var i=list.length-1;i>=0;i--){
+      var m=list[i];
+      if(m.from!=='sophie' && !m.working){ lastFin=m; break; }
+    }
     var at='';
     function bump(t){ if(t && t>at) at=t; }
-    if(last && last.from!=='sophie') bump(last.created||'');
+    if(lastFin) bump(lastFin.created||'');
     pics.forEach(function(p){ bump(p.created||''); });
     pages.forEach(function(p){ bump(p.created||''); });
     // Nothing since the ✓ means nothing to show. Nothing else takes a card
     // off this screen any more — see newsFloor.
     if(!at || at<=floor) return;
-    out.push({ chat:name, list:list, last:last, pics:pics, pages:pages, at:at });
+    out.push({ chat:name, list:list, last:last, lastFin:lastFin, pics:pics, pages:pages, at:at });
   });
   out.sort(function(a,b){ return a.at<b.at?1:-1; });   // newest first
   return out;
@@ -2665,10 +2681,13 @@ function newsUpdate(it){
   var u={ asked:String(r.updAsked||'').trim(), did:String(r.updDid||'').trim(),
           next:String(r.updNext||'').trim() };
   if(u.asked||u.did||u.next) return u;
-  var m=it.last;
-  if(!m || m.from==='sophie') return null;
+  // The fallback reads the newest FINISHED reply, never a live draft — a card
+  // that exists mid-turn (fresh pictures, a page) must not open on half a
+  // sentence from the turn that is still running.
+  var m=it.lastFin||it.last;
+  if(!m || m.from==='sophie' || m.working) return null;
   var t=String(m.tldr||'').trim();
-  // no TLDR (an older hook, or a draft still being written) — the reply's own
+  // no TLDR (an older hook) — the reply's own
   // opening line is the honest stand-in, and `plain` drops the markdown marks
   if(!t) t=plain(String(m.text||'').split('\n').filter(function(l){ return l.trim(); })[0]||'');
   t=t.trim();
