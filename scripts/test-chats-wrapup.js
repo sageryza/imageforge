@@ -120,6 +120,15 @@ console.log('the open-questions half');
 {
   const route = src.slice(src.indexOf("router.post('/wrapup/write'"));
   ok('the route asks for an `open` field', /"open":/.test(WRAP_SYS_TEXT()));
+  ok('…and a `long` one beside the short summary', /"long":/.test(WRAP_SYS_TEXT()));
+  ok('the SHORT one is capped at three sentences (her ask)',
+     /THREE SHORT SENTENCES AT MOST/.test(WRAP_SYS_TEXT()));
+  ok('each depth is told as a whole story, not a continuation',
+     /complete on its own/.test(WRAP_SYS_TEXT()));
+  ok('a small chat may have no long version at all',
+     /leave this empty and let the short one be the whole answer/.test(WRAP_SYS_TEXT()));
+  ok('the short one is asked for BEFORE the long one, so a cut loses the long one',
+     WRAP_SYS_TEXT().indexOf('"text":') < WRAP_SYS_TEXT().indexOf('"long":'));
   ok('and tells it to leave that empty rather than invent a loose end',
      /Empty string when the chat genuinely ended settled/.test(WRAP_SYS_TEXT()));
   ok('the unanswered questions are derived, not read out of the digest',
@@ -128,6 +137,11 @@ console.log('the open-questions half');
      /Questions Sophie asked that nobody ever answered/.test(route));
   ok('a rewrite CLEARS a stale loose end instead of leaving it',
      /wrapOpen: open \|\| admin\.firestore\.FieldValue\.delete\(\)/.test(route));
+  ok('a long version identical to the short one is not stored twice',
+     /wrapLong: \(long && long !== full\)/.test(route));
+  ok('a truncated answer trims BOTH summary fields, not just the short one',
+     /out\.text = backToSentence\(out\.text\)/.test(route)
+     && /out\.long = backToSentence\(out\.long\)/.test(route));
 
   // The row line is untouched by it: `wrapOpen` lives behind the expander, so
   // her note and the summary line keep their old precedence exactly.
@@ -163,7 +177,7 @@ console.log('a summary that got cut off');
     === '{"line":"a","text":"b"}');
   ok('a refusal with no JSON in it rescues NOTHING rather than inventing',
     salvageJson('I cannot summarise that') === null);
-  ok('and the cap has real headroom now', /maxTokens: 1200/.test(src));
+  ok('and the cap has real headroom now', /maxTokens: 1500/.test(src));
 }
 
 function WRAP_SYS_TEXT() {
