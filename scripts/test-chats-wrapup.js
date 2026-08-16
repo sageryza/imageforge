@@ -121,8 +121,13 @@ console.log('the open-questions half');
   const route = src.slice(src.indexOf("router.post('/wrapup/write'"));
   ok('the route asks for an `open` field', /"open":/.test(WRAP_SYS_TEXT()));
   ok('…and a `long` one beside the short summary', /"long":/.test(WRAP_SYS_TEXT()));
-  ok('the SHORT one is capped at three sentences (her ask)',
-     /THREE SHORT SENTENCES AT MOST/.test(WRAP_SYS_TEXT()));
+  // "three lines at most" is a LENGTH on her phone, not a sentence count — the
+  // first cut asked for three sentences and came back at 374 characters, which
+  // is seven lines in the expander. The cap is stated in characters now.
+  ok('the SHORT one is capped in CHARACTERS, at three phone lines',
+     /UNDER 180 CHARACTERS/.test(WRAP_SYS_TEXT()));
+  ok('…and told to cut detail rather than run over',
+     /cut detail rather than running over/.test(WRAP_SYS_TEXT()));
   ok('each depth is told as a whole story, not a continuation',
      /complete on its own/.test(WRAP_SYS_TEXT()));
   ok('a small chat may have no long version at all',
