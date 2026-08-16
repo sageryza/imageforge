@@ -769,10 +769,11 @@
     red outline over a light red tint, at Sophie's ask ("the same style as
     the red outline version of the categories"). It shipped for one evening
     as a solid red block; matching the chip means the two can never drift
-    apart, and the screen stops carrying one slab of colour. The row's ⊖ is
-    a FIXED `#b3443f` even unlit — it belongs to the bar, so it reads as its
-    colour before it is ever tapped, and its circle background is cream in
-    both themes so a fixed red is right there.
+    apart, and the screen stops carrying one slab of colour. **The BAR's own
+    ⊖ is a FIXED `#b3443f`**, on a cream background in both themes, so a
+    fixed red is right there. The ROW's hide button used to match it and no
+    longer does: it is a bare crossed-out eye now, `--ink2` until the chat is
+    really parked (Aug 2026 — see *The pushpin* for both changes and why).
     Tests: `node scripts/test-chats-hidden.js` (headless Chromium against a
     stub feed; skips without playwright).
   **MORE — the far end of the list, folded at SEVEN DAYS (Aug 2026, Sophie:
@@ -1325,12 +1326,36 @@
   - `.pinbtn` is grey `--line` at rest and `--ink2` when set, with the head
     taking `--chg` as both fill and stroke: a grey spike under a red head
     reads as a disabled control. Kept out of `.bmk` for the usual reason.
-  - **The control is `mkPinTop`, on the row** — `.pinbtn.pinrow`, the same
-    circular-button family as the hide ⊖ it sits beside, and on the TILE
-    cover too (top-left, opposite the ⊖) because a control that works in one
-    of the two views is a bug rather than restraint. It repaints with
-    `renderHome`, not a local class flip: pinning MOVES the row, which is the
-    whole point. It hides in select mode with the ⊖ and the ✓.
+  - **The control is `mkPinTop`, on the row** — `.pinbtn.pinrow`, beside the
+    hide button, and on the TILE cover too (top-left, opposite the hide)
+    because a control that works in one of the two views is a bug rather than
+    restraint. It repaints with `renderHome`, not a local class flip: pinning
+    MOVES the row, which is the whole point. It hides in select mode with the
+    hide and the ✓.
+  - **NO CIRCLE ON A LIST ROW, for either button** (Aug 2026, Sophie: "I
+    don't want in a circle, can you take it out of the circle, and also
+    there's a hide button next to it, can you take that out of the circle
+    also"). The cream plate and its shadow exist to lift a control off a
+    PHOTO; a row has no photo under it, so on a row they were two floating
+    buttons in a list made of nothing but hairlines. **The de-plating is
+    written `.crow`-scoped, never on the bare classes** — `.t-cover` sits on
+    the chat's picture and must keep its plate, and a test asserts that the
+    rule has not leaked there. Sizes are unchanged: 31px is the tap target
+    and the plate was never what made it one; the glyphs go 14 → 16px now
+    that there is no ring to fill.
+  - **The row's hide is a CROSSED-OUT EYE, and that REVERSES an earlier call
+    of hers.** The comment on `HD` used to read "deliberately NOT an eye
+    (Sophie's call) — an eye says 'look at this'", paired with a ⊖/⊕ that
+    said what happens to the row. She asked for the eye instead: "can you
+    make it an eye that's crossed out" — the same glyph she had already asked
+    for in the thread header. **In BOTH states**, note: this ask carried no
+    condition, unlike the header's "an eye that's crossed out IF it's
+    hidden". So one glyph, and the STATE is the colour — `--ink2` while the
+    chat is on the list, red once it is parked, which is her own rule for
+    that glyph in the header ("the hidden icon should also not be red until I
+    click it") and avoids a wall of red about chats with nothing wrong with
+    them. `UNHD` is deleted; `HD` survives only as the hidden BAR's label,
+    where the word "Hidden" sits beside it.
   - **There is NO separate pin mark at the front of the row.** One shipped
     and was removed the same day the control moved: a lit control already
     says the chat is pinned, and the mark was showing the same state twice.
