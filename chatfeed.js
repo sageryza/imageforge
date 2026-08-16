@@ -1647,6 +1647,35 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
     reason: why, ...finished };
 }
 
+// "LEAVE IT UNFILED" — her third answer on the review page, and the one the
+// `category` field cannot hold: an empty folder is indistinguishable from a
+// chat nobody has looked at, so without a mark of its own the sorter would file
+// it again tomorrow. `catNone` records the decision; clearing it (`none:false`)
+// puts the chat back in the sorter's way.
+router.post('/sort/none', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const on = body.none !== false;
+    const del = admin.firestore.FieldValue.delete();
+    const reg = await registry();
+    const batch = db().batch();
+    const wrote = [];
+    names.forEach((n) => {
+      // A name with no registry doc is SKIPPED, never written — set(…, merge)
+      // on a missing doc creates it, and every pile derives from the registry
+      // keys, so one typo would put a phantom row in her list.
+      if (!reg.chats[n]) return;
+      wrote.push(n);
+      batch.set(regRef(n), { catNone: on ? true : del }, { merge: true });
+    });
+    if (wrote.length) await batch.commit();
+    res.json({ ok: true, chats: wrote, none: on });
+  } catch (err) { fail(res, err); }
+});
+
 // Sort ONE chat on demand — what the backfill script drives, and the only way
 // to see the decision without taking it (`dry:true` answers with the folder it
 // would pick and changes nothing).

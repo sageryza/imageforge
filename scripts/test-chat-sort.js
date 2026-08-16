@@ -70,6 +70,10 @@ is('a chat the sorter just filed is left alone too',
   s.shouldAutoSort({ category: 'meta', catBy: 'auto', catSortedAt: new Date().toISOString() },
     many).why, 'already-sorted');
 ok('an unfiled chat with a real thread is sortable', s.shouldAutoSort({}, many).sort);
+// "Leave unfiled" is an ANSWER, and the category field cannot hold it — an
+// empty folder looks identical to never having been asked.
+is('she said leave it unfiled, so it stays unfiled',
+  s.shouldAutoSort({ catNone: true }, many).why, 'hers-unfiled');
 
 // ── When a filed chat is looked at again (Sophie: "how often would a chat
 // need to be refiled once it's filed … maybe it could ask again") ───────────
