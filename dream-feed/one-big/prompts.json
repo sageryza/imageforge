@@ -1,0 +1,26 @@
+[
+  {
+    "file": "big-spaceship.webp",
+    "title": "Claude's Tiny Spaceship",
+    "panels": 3,
+    "draw": "a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb with a figure rolling out of its open door onto the road. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb with a figure rolling out of its open door onto the road. No text or lettering anywhere.",
+    "ok": true
+  },
+  {
+    "file": "big-halloween.webp",
+    "title": "Last-Minute Halloween Party",
+    "panels": 5,
+    "draw": "a woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; through the open door behind her a crowded party of teenagers in costumes fills the next room. Her back is to us. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; through the open door behind her a crowded party of teenagers in costumes fills the next room. Her back is to us. No text or lettering anywhere.",
+    "ok": true
+  },
+  {
+    "file": "big-kitten.webp",
+    "title": "Choosing a Kitten",
+    "panels": 4,
+    "draw": "two people seen from behind walking away down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment, all of the kittens watching as the two pass. No text or lettering anywhere.",
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: two people seen from behind walking away down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment, all of the kittens watching as the two pass. No text or lettering anywhere.",
+    "ok": true
+  }
+]
