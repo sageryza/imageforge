@@ -1,0 +1,158 @@
+{
+  "slug": "replyva",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/replyva-draft-480p-v1.mp4",
+  "total_seconds": 68.4,
+  "scene_durations": {
+    "r01": 3.9861220000000004,
+    "r02": 5.5961225,
+    "r03": 8.6165305,
+    "r04": 3.433878,
+    "r05": 4.9561225,
+    "r06": 4.9561225,
+    "r07": 8.929115666666666,
+    "r08": 8.929115666666666,
+    "r09": 8.929115666666666,
+    "r10": 5.583265000000001,
+    "r11": 4.4816329999999995
+  },
+  "voplan": [
+    [
+      "a1",
+      0.8
+    ],
+    [
+      "a2",
+      4.286
+    ],
+    [
+      "c1",
+      14.778
+    ],
+    [
+      "a3",
+      18.499
+    ],
+    [
+      "a4",
+      21.933
+    ],
+    [
+      "a5",
+      31.845
+    ],
+    [
+      "c2",
+      58.732
+    ],
+    [
+      "a6",
+      60.6
+    ],
+    [
+      "a7",
+      64.316
+    ]
+  ],
+  "vo_durations": {
+    "a1": 2.586122,
+    "a2": 10.292245,
+    "c1": 2.220408,
+    "a3": 2.533878,
+    "a4": 9.012245,
+    "a5": 25.887347,
+    "c2": 1.567347,
+    "a6": 2.115918,
+    "a7": 2.481633
+  },
+  "stills": {
+    "r01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r01.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r01.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She washes dishes at a kitchen sink, hands still, staring out the window into the middle distance, lips moving slightly as she composes something in her head."
+    },
+    "r02": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r02.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r02.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She sits parked in a car in a driveway, hands on the wheel, mouthing words to herself with small precise gestures, going nowhere."
+    },
+    "r03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r03.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r03.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "A phone lights up on a nightstand with a stack of notifications while she watches it from bed, arms folded, making no move toward it."
+    },
+    "r04": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r04.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r04.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, black and white, desaturated, melancholy, soft diffused lighting, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She sits at a desk with her head in her hands, surrounded by faint pencil drafts crumpled on the desk."
+    },
+    "r05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r05.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r05.png",
+      "style": "",
+      "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads REPLYVA in large letters, and beneath it in smaller letters RESPONDAZEPAM and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic."
+    },
+    "r06": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r06.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r06.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "Close on her hands as she types a short message on her phone and presses send with one decisive thumb tap, warm color blooming into the scene, her face relaxing."
+    },
+    "r07": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r07.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r07.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She walks down a sunny sidewalk texting cheerfully, light on her face, entirely at ease."
+    },
+    "r08": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r08.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r08.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "Two friends hug hello outside a cafe, both delighted; she is one of them, actually there, golden hour."
+    },
+    "r09": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r09.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r09.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She laughs at a full dinner table with family, mid-conversation, warm evening light."
+    },
+    "r10": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r10.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r10.png",
+      "style": "Cinematic still from a 2000s American prescription-drug television commercial, warm golden lighting, soft diffused light, gentle depth of field, shot on 35mm film, photorealistic. The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+      "content": "She holds up her phone with a small proud smile, like an athlete with a medal, bright morning kitchen."
+    },
+    "r11": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r11.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r11.png",
+      "style": "",
+      "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word REPLYVA in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: They know you saw it. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients."
+    },
+    "r11b": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/stills/r11b.png",
+      "crop": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/crops/r11b.png",
+      "style": "",
+      "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word REPLYVA in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: They know you saw it. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients. The small bottle's label shows only the word REPLYVA in tiny letters and no other text."
+    }
+  },
+  "clips": {
+    "r01": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r01.mp4",
+    "r02": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r02.mp4",
+    "r03": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r03.mp4",
+    "r04": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r04.mp4",
+    "r05": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r05.mp4",
+    "r06": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r06.mp4",
+    "r07": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r07.mp4",
+    "r08": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r08.mp4",
+    "r09": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r09.mp4",
+    "r10": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/replyva/clips/r10.mp4"
+  },
+  "cost": {
+    "images": 0.6600000000000001,
+    "clips": 0.72,
+    "total": 1.38
+  }
+}

@@ -60,6 +60,37 @@ const MIN_MESSAGES = 3;
 // again at the end of its every turn would bill her for the same no all day.
 const RETRY_MS = 24 * 60 * 60 * 1000;
 
+// ---- WHEN A FILED CHAT IS LOOKED AT AGAIN (Aug 2026, Sophie) ---------------
+// "I don't know how often a chat would need to be refiled once it's filed — if
+// anything maybe it could ask again if a new branch has started or some other
+// intermittent action."
+//
+// A NEW BRANCH IS NOT THE SIGNAL, and it is worth saying why: a chat's identity
+// here is its SESSION, not its branch (see resolveChat) — a session that owns a
+// chat posts there forever, whatever its branch says today. So "a new branch"
+// either means the same chat carrying on under a renamed branch (nothing has
+// changed) or a brand-new session, which is a brand-new unfiled chat anyway.
+//
+// What actually goes stale is a chat filed EARLY. Three messages in, a thread
+// looks like whatever it opened with; two hundred messages later it can be a
+// different project entirely — and the sorter's own first answer is the one
+// most likely to be wrong, because it was made on the least material. So the
+// signal is GROWTH: a chat is looked at again once it has roughly tripled in
+// length since it was filed, with a floor so a 3-message chat doesn't re-ask at
+// 9. That makes re-checks frequent exactly where the risk is (thin early
+// filings) and rare where it isn't (a chat filed with real material behind it).
+//
+// A WRAP-UP also reopens the question once, whenever it lands: it is the best
+// description of the chat that will ever exist, and it means the work is done.
+//
+// Only the sorter's OWN answers are ever revisited — her filing is final,
+// always. And a re-check that comes back "none" LEAVES THE EXISTING FOLDER
+// ALONE (see sortChat): unsure is a reason not to move a chat, never a reason
+// to unfile one she may have been finding there for weeks.
+const RESORT_GROWTH = 3;                          // × its length when filed
+const RESORT_MIN_NEW = 20;                        // …and at least this many more
+const RESORT_REST_MS = 7 * 24 * 60 * 60 * 1000;   // never more often than weekly
+
 // The `filedAt` a live sort writes when she has never spoken in the chat: a
 // stamp older than anything, so the chat is in its folder AND on the main list
 // (see filedStamp). Deliberately visible in the data rather than a magic empty
@@ -123,10 +154,27 @@ function shouldAutoSort(reg, { now = Date.now(), messages = 0, enabled = true } 
   // An archived chat is finished; she has already read it and moved on. Sorting
   // it spends money on a row she is not looking at.
   if (r.archived) return { sort: false, why: 'archived' };
+  // SHE SAID LEAVE IT UNFILED — and that is a decision, not an absence (Aug
+  // 2026, with the review page's picker: "leave unfiled" is one of her three
+  // answers). Without this the sorter would look at the chat again tomorrow
+  // and file it anyway, which is rule 1 broken in the one direction the
+  // `category` field cannot record — an empty folder looks identical to never
+  // having been asked.
+  if (r.catNone) return { sort: false, why: 'hers-unfiled' };
   if (r.category) {
-    return r.catBy === 'auto'
-      ? { sort: false, why: 'already-sorted' }
-      : { sort: false, why: 'hers' };           // rule 1 — one tap locks it
+    if (r.catBy !== 'auto') return { sort: false, why: 'hers' };  // rule 1 — one tap locks it
+    // Its own earlier answer, revisited — see the RESORT_* block above. The
+    // rest period is checked FIRST and reads only the registry, so the caller
+    // can ask this question before paying for a thread read: an auto-filed
+    // chat costs nothing at all on the six days a week it is resting.
+    const wrapped = Boolean(r.wrapUpAt && r.catSortedAt && r.wrapUpAt > r.catSortedAt);
+    const sortedAt = Date.parse(r.catSortedAt || '');
+    const rested = isNaN(sortedAt) || now - sortedAt >= RESORT_REST_MS;
+    if (!rested && !wrapped) return { sort: false, why: 'already-sorted' };
+    if (wrapped) return { sort: true, why: 'wrapped-up' };
+    const was = Number(r.catMsgs) || 0;
+    const grew = messages >= Math.max(was * RESORT_GROWTH, was + RESORT_MIN_NEW);
+    return grew ? { sort: true, why: 're-sort' } : { sort: false, why: 'not-grown' };
   }
   if (messages < MIN_MESSAGES) return { sort: false, why: 'too-thin' };
   const tried = Date.parse(r.catTriedAt || '');
@@ -167,12 +215,51 @@ function digestOf(msgs, { head = 2, tail = 4, per = 400, cap = 4000 } = {}) {
   return (a.join('\n\n') + (b.length ? '\n\n[…]\n\n' + b.join('\n\n') : '')).slice(0, cap);
 }
 
-const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone.
+// ---- IS THIS CHAT FINISHED? (Aug 2026, Sophie) -----------------------------
+// "I'm wondering if it would be easy to flag which ones should be archived —
+// based on whether there was a feature that was built that was basically
+// complete, or if we were in the middle of something. Things to look for would
+// be if there was something that simply couldn't be done for whatever reason,
+// or if there was a question I just forgot to answer."
+//
+// Two halves, and only one of them is a judgment:
+//
+//   THE QUESTION SHE FORGOT TO ANSWER IS DERIVED, NOT GUESSED. `buildQuestions`
+//   already pairs every question in a thread with the reply that followed it,
+//   over the WHOLE conversation — so an unanswered one is a fact about the
+//   transcript, not a model's impression of it. Same choice the archive
+//   summary made for the same reason, and it is what keeps this flag honest:
+//   "needs you" only ever names a question that provably went unanswered.
+//
+//   WHETHER THE WORK LANDED is a judgment, so the model makes it: done (the
+//   thing was built and works), mid (stopped in the middle), or blocked
+//   (something could not be done and the chat stopped there).
+//
+// An open question OUTRANKS everything — a finished feature with a question of
+// hers hanging in it is not a chat to archive, it is a chat to answer. That is
+// the case she named first, so it wins.
+//
+// NOTHING HERE ARCHIVES ANYTHING. She asked to be shown which ones, and
+// archiving is hers to do — a wrong archive puts real work behind a pile she
+// does not read.
+function archiveHint({ state, openQuestions = 0 } = {}) {
+  if (openQuestions > 0) return 'needs you';
+  if (state === 'done') return 'archive';
+  if (state === 'blocked') return 'dead end';
+  return 'keep';
+}
 
-Return JSON: {"category": "...", "why": "..."}
+const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
+
+Return JSON: {"category": "...", "why": "...", "state": "...", "stateWhy": "..."}
 
 "category": EXACTLY one of the folder names you are given, copied character for character, or "none".
 "why": under 90 characters, plain, what the chat is actually about. Never a sales pitch for the folder you picked.
+"state": one of "done", "mid", "blocked".
+  "done" — what she asked for was built, shipped or settled, and the chat ran out of work rather than stopping.
+  "mid" — it stopped in the middle of something: a half-built feature, a plan nobody carried out, work still clearly in flight.
+  "blocked" — it stopped because something could not be done: a limit nobody could get past, a tool that does not exist, an approach that failed and was not replaced.
+"stateWhy": under 90 characters, what was finished or what it stopped on. Concrete — name the thing, not "the work".
 
 The folders are hers. You are matching a chat to how SHE already uses them — the chats she has filed in each one are the definition, not the words in the name. Never invent a folder, never merge two, never answer with a name that is not on the list.
 
@@ -189,7 +276,10 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
     const list = (ex[c] || []).map((n) => '"' + n + '"');
     return '- ' + c + (list.length
       ? ' — she has filed: ' + list.join(', ')
-      : ' — (she has not filed anything here yet; go by the name alone, and prefer none)');
+      // A folder with nothing in it is one she has just MADE, on purpose — the
+      // first version said "prefer none" here and that is backwards: it would
+      // suppress the folder she asked for until something else filled it.
+      : ' — (a new folder, nothing filed in it yet — go by the name)');
   }).join('\n');
   const bits = [
     'Chat name: ' + String(r.displayName || name || '').slice(0, 80),
@@ -213,6 +303,11 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
  * "meta"), but the value RETURNED is always her spelling, because that string
  * is the key every chip, count and filter on the page joins on.
  */
+function pickState(out) {
+  const v = norm(out && typeof out === 'object' ? out.state : out);
+  return ['done', 'mid', 'blocked'].includes(v) ? v : 'mid';   // unsure = still in flight
+}
+
 function pickCategory(out, cats) {
   const raw = norm(out && typeof out === 'object' ? out.category : out);
   if (!raw || raw === 'none' || raw === 'null' || raw === 'unfiled') return '';
@@ -222,6 +317,7 @@ function pickCategory(out, cats) {
 
 module.exports = {
   TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
-  sortableCategories, examplesFor, shouldAutoSort, filedStamp,
+  RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
+  sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState,
   digestOf, buildSortPrompt, pickCategory,
 };

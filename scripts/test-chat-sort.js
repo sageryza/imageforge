@@ -66,9 +66,52 @@ is('a chat SHE filed is never re-sorted',
   s.shouldAutoSort({ category: 'stories' }, many).why, 'hers');
 is('…and explicitly hers is just as final',
   s.shouldAutoSort({ category: 'stories', catBy: 'sophie' }, many).why, 'hers');
-is('a chat the sorter filed is left alone too',
-  s.shouldAutoSort({ category: 'meta', catBy: 'auto' }, many).why, 'already-sorted');
+is('a chat the sorter just filed is left alone too',
+  s.shouldAutoSort({ category: 'meta', catBy: 'auto', catSortedAt: new Date().toISOString() },
+    many).why, 'already-sorted');
 ok('an unfiled chat with a real thread is sortable', s.shouldAutoSort({}, many).sort);
+// "Leave unfiled" is an ANSWER, and the category field cannot hold it — an
+// empty folder looks identical to never having been asked.
+is('she said leave it unfiled, so it stays unfiled',
+  s.shouldAutoSort({ catNone: true }, many).why, 'hers-unfiled');
+
+// ── When a filed chat is looked at again (Sophie: "how often would a chat
+// need to be refiled once it's filed … maybe it could ask again") ───────────
+// The risk is a chat filed EARLY: 3 messages in it looks like whatever it
+// opened with. So the signal is growth, not a clock.
+const NOW = Date.UTC(2026, 7, 15, 12);
+const ago = (days) => new Date(NOW - days * 86400 * 1000).toISOString();
+const filed = (days, msgs) => ({ category: 'meta', catBy: 'auto', catSortedAt: ago(days), catMsgs: msgs });
+
+is('filed yesterday, not re-asked however much it grew',
+  s.shouldAutoSort(filed(1, 4), { messages: 500, now: NOW }).why, 'already-sorted');
+is('a week on but barely grown, still left alone',
+  s.shouldAutoSort(filed(9, 40), { messages: 55, now: NOW }).why, 'not-grown');
+is('a week on and tripled, looked at again',
+  s.shouldAutoSort(filed(9, 40), { messages: 130, now: NOW }).why, 're-sort');
+// The floor: tripling 4 messages is 12, which is still nothing to judge on.
+is('a thin early filing does not re-ask at 3x alone',
+  s.shouldAutoSort(filed(9, 4), { messages: 12, now: NOW }).why, 'not-grown');
+ok('…but it does once there is real material',
+  s.shouldAutoSort(filed(9, 4), { messages: 26, now: NOW }).sort);
+
+// A wrap-up is the best description of a chat that will ever exist, and it
+// means the work is finished — so it reopens the question immediately, once.
+is('a wrap-up written after the filing reopens it, rest period or not',
+  s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(0) }, { messages: 401, now: NOW }).why,
+  'wrapped-up');
+is('a wrap-up written BEFORE the filing is old news',
+  s.shouldAutoSort({ ...filed(1, 400), wrapUpAt: ago(30) }, { messages: 401, now: NOW }).why,
+  'already-sorted');
+
+// And the rule that outranks all of it: a chat SHE filed is never revisited,
+// however old, however much it grew, wrap-up or no.
+is('her filing is never re-checked on age',
+  s.shouldAutoSort({ category: 'stories', catBy: 'sophie', catSortedAt: ago(400), catMsgs: 1 },
+    { messages: 900, now: NOW }).why, 'hers');
+is('…nor on a wrap-up',
+  s.shouldAutoSort({ category: 'stories', wrapUpAt: ago(0), catSortedAt: ago(400) },
+    { messages: 900, now: NOW }).why, 'hers');
 
 // ── Rule 2: "none" locks nothing, but it does rest ──────────────────────────
 const t = (h) => new Date(Date.UTC(2026, 7, 15, 12) - h * 3600 * 1000).toISOString();
@@ -111,6 +154,27 @@ ok('a chat she has never spoken in is filed before everything',
   s.filedStamp({}) < REPLY);
 ok('…and that stamp is a real one, never an empty field', s.filedStamp({}).length > 10);
 
+// ── Is this chat finished? (Sophie: "flag which ones should be archived") ───
+// The question she forgot to answer OUTRANKS everything — that is the case she
+// named first, and a finished feature with her question hanging in it is a chat
+// to answer, not one to put away.
+is('a question she never answered beats a finished feature',
+  s.archiveHint({ state: 'done', openQuestions: 1 }), 'needs you');
+is('…and beats being mid-work too',
+  s.archiveHint({ state: 'mid', openQuestions: 3 }), 'needs you');
+is('built and settled, nothing owed → archive',
+  s.archiveHint({ state: 'done', openQuestions: 0 }), 'archive');
+is('it stopped on something that could not be done',
+  s.archiveHint({ state: 'blocked', openQuestions: 0 }), 'dead end');
+is('still in the middle → keep', s.archiveHint({ state: 'mid', openQuestions: 0 }), 'keep');
+is('nothing known at all is not an invitation to archive', s.archiveHint({}), 'keep');
+
+// An unreadable or missing state must never read as "done" — that is the value
+// that would send a live chat to the archive pile.
+is('a state the model invented falls back to mid', s.pickState({ state: 'finished' }), 'mid');
+is('no state at all falls back to mid', s.pickState({}), 'mid');
+is('a real state reads', s.pickState({ state: 'BLOCKED' }), 'blocked');
+
 // ── The prompt carries what it needs, and only what it needs ────────────────
 const msgs = [
   { from: 'sophie', text: 'can you make the archive rows show a summary' },
@@ -126,7 +190,9 @@ const p = s.buildSortPrompt({
 });
 ok('the folders are listed', /- meta —/.test(p.user));
 ok('each folder is taught by her own chats', /secretly A Witch app/.test(p.user));
-ok('an empty folder says so rather than pretending', /not filed anything here yet/.test(p.user));
+ok('a folder she just made is offered by name, never suppressed',
+  /a new folder, nothing filed in it yet/.test(p.user));
+ok('the model is asked whether the work finished', /"state"/.test(p.system));
 ok('her note is in there — it is what she calls the thing', /chats app stuff/.test(p.user));
 ok('the status card rides along', /tag chips/.test(p.user));
 ok('the opening of the thread is there', /archive rows show a summary/.test(p.user));

@@ -1599,18 +1599,44 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   catch (err) { return { chat: target, sorted: false, why: 'model-error', error: String(err.message || err) }; }
   const pick = chatSort.pickCategory(out, cats);
   const why = String((out && out.why) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-  if (dry) return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why };
+  // IS IT FINISHED? — the model judges whether the work landed; the question she
+  // forgot to answer is COUNTED, not judged (chat-sort.js, archiveHint). An
+  // unanswered question is a fact about the transcript, so the flag can name one
+  // that provably exists instead of one that sounded likely.
+  const openQ = buildQuestions(msgs).filter((q) => !q.answer);
+  const state = chatSort.pickState(out);
+  const stateWhy = String((out && out.stateWhy) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  const hint = chatSort.archiveHint({ state, openQuestions: openQ.length });
+  const finished = {
+    state,
+    stateWhy,
+    hint,
+    openQuestions: openQ.length,
+    // The newest one, so the page can show WHICH question is hanging — a count
+    // alone sends her back into the chat to find out what she owes it.
+    openQuestion: openQ.length ? String(openQ[openQ.length - 1].question).slice(0, 200) : '',
+  };
+  if (dry) {
+    return { chat: target, sorted: false, why: 'dry-run', category: pick || null, reason: why, ...finished };
+  }
 
   const now = new Date().toISOString();
   // NONE writes nothing but the cooldown — no folder, no filedAt, no trace on
   // any surface she looks at. The chat stays exactly where it was and is asked
   // about again tomorrow, which is what makes "none" cheap enough to prefer.
-  const patch = { catTriedAt: now };
+  // A RE-CHECK that comes back unsure LEAVES THE EXISTING FOLDER ALONE. Being
+  // unsure is a reason not to move a chat, never a reason to pull one out of a
+  // folder she may have been finding it in for weeks.
+  const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, openQ: openQ.length };
   if (pick) {
     patch.category = pick;
     patch.catBy = 'auto';
     patch.catWhy = why;          // why it went there — for her and for an audit
     patch.catSortedAt = now;
+    // How long the thread was when it was filed — the growth the re-check
+    // measures against (chat-sort.js, RESORT_*). Without it every auto-filed
+    // chat would look brand new and re-ask on its next weekly window.
+    patch.catMsgs = msgs.length;
     // A BACKFILL stamps now (she would have filed these by hand today); a LIVE
     // sort stamps her last message, so the reply that triggered it still pops
     // the chat back onto the main list. chat-sort.js's filedStamp is the rule.
@@ -1618,8 +1644,37 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   }
   await regRef(target).set(patch, { merge: true });
   return { chat: target, sorted: Boolean(pick), category: pick || null, why: pick ? 'sorted' : 'none',
-    reason: why };
+    reason: why, ...finished };
 }
+
+// "LEAVE IT UNFILED" — her third answer on the review page, and the one the
+// `category` field cannot hold: an empty folder is indistinguishable from a
+// chat nobody has looked at, so without a mark of its own the sorter would file
+// it again tomorrow. `catNone` records the decision; clearing it (`none:false`)
+// puts the chat back in the sorter's way.
+router.post('/sort/none', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
+      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+    if (!names.length) return res.status(400).json({ error: 'chat required' });
+    const on = body.none !== false;
+    const del = admin.firestore.FieldValue.delete();
+    const reg = await registry();
+    const batch = db().batch();
+    const wrote = [];
+    names.forEach((n) => {
+      // A name with no registry doc is SKIPPED, never written — set(…, merge)
+      // on a missing doc creates it, and every pile derives from the registry
+      // keys, so one typo would put a phantom row in her list.
+      if (!reg.chats[n]) return;
+      wrote.push(n);
+      batch.set(regRef(n), { catNone: on ? true : del }, { merge: true });
+    });
+    if (wrote.length) await batch.commit();
+    res.json({ ok: true, chats: wrote, none: on });
+  } catch (err) { fail(res, err); }
+});
 
 // Sort ONE chat on demand — what the backfill script drives, and the only way
 // to see the decision without taking it (`dry:true` answers with the folder it
@@ -1643,6 +1698,12 @@ router.get('/sort', async (_req, res) => {
     const examples = chatSort.examplesFor(reg.chats, cats);
     const names = Object.keys(reg.chats).filter((n) => !reg.chats[n].deletedAt);
     const counted = (f) => names.filter(f).length;
+    // `unfiled` USED TO COUNT THE ARCHIVE and it read as 178 chats waiting to
+    // be sorted when 90 of them were chats she had already put away — a number
+    // quoted straight into a reply before anyone checked it. The live pile is
+    // the one a backfill would actually touch, so that is what `unfiled` means
+    // now, and the archived ones are their own honest line.
+    const live = (n) => !reg.chats[n].archived && !reg.chats[n].movedTo;
     res.json({
       enabled: reg.settings.autoSort !== false,
       anthropic: require('./anthropic').available(),
@@ -1652,7 +1713,8 @@ router.get('/sort', async (_req, res) => {
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
       filedByAuto: counted((n) => reg.chats[n].category && reg.chats[n].catBy === 'auto'),
-      unfiled: counted((n) => !reg.chats[n].category),
+      unfiled: counted((n) => !reg.chats[n].category && live(n)),
+      unfiledArchived: counted((n) => !reg.chats[n].category && reg.chats[n].archived),
     });
   } catch (err) { fail(res, err); }
 });
