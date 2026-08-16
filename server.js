@@ -494,6 +494,10 @@ app.get('/lessons', (req, res) => { res.set('Cache-Control', 'no-cache, must-rev
 // the day's progress lives in localStorage.
 app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.html'); });
 
+// The Medicine Cabinet — the fake-pill commercials, for Sophie's family.
+// Public/ungated on purpose: family opens it from a text with no studio token.
+app.get('/pills', (req, res) => { res.sendFile(__dirname + '/public/pills.html'); });
+
 // The favorite-fruit poll. BOTH pages are PUBLIC and ungated on purpose: /fruit
 // is opened from an email by Sophie's family, who have no studio token and
 // never will, and the person id in the link is the only identity there is.

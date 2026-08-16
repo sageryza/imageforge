@@ -1,0 +1,834 @@
+{
+  "doomscrollex": {
+    "title": "DOOMSCROLLEX",
+    "generic": "thumbafinil",
+    "announcer": "nPczCjzI2devNBz1zQrb",
+    "character": "bIHbv24MWmeRgasZH58o",
+    "char_line": "The same man appears: early 30s, short dark hair, light stubble, grey hoodie. ",
+    "scenes": [
+      {
+        "id": "d01",
+        "bw": true,
+        "content": "He lies in bed in a dark bedroom at night, face lit only by the cold glow of the phone held above his face, wide awake."
+      },
+      {
+        "id": "d02",
+        "bw": true,
+        "content": "Extreme close-up of his tired eyes reflecting the scrolling glow of a phone screen in the dark, unblinking."
+      },
+      {
+        "id": "d03",
+        "bw": true,
+        "content": "He is deeper under the blankets now, curled around the glowing phone like a campfire, the clock on the nightstand out of focus behind him."
+      },
+      {
+        "id": "d04",
+        "bw": true,
+        "content": "He stares at his own thumb with dawning concern, phone lowered, sitting on the edge of the bed in the dark."
+      },
+      {
+        "id": "d05",
+        "bw": false,
+        "neutral": true,
+        "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads DOOMSCROLLEX in large letters, and beneath it in smaller letters THUMBAFINIL and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic.",
+        "nochar": true
+      },
+      {
+        "id": "d06",
+        "bw": false,
+        "content": "He places the phone face-down on the nightstand and turns off the lamp, a small peaceful smile; warm color blooming into the dim scene."
+      },
+      {
+        "id": "d07",
+        "bw": false,
+        "content": "Morning: he stretches awake in bright sunlight streaming through the window, genuinely rested."
+      },
+      {
+        "id": "d08",
+        "bw": false,
+        "content": "He reads a paper book on a park bench under a big tree, golden afternoon light, absorbed and content."
+      },
+      {
+        "id": "d09",
+        "bw": false,
+        "content": "He laughs over coffee with a friend at a sidewalk cafe table, both phones nowhere in sight, golden hour."
+      },
+      {
+        "id": "d10",
+        "bw": false,
+        "content": "He stands at a sunny window with a mug, looking out at the morning, calm and amazed."
+      },
+      {
+        "id": "d11",
+        "endcard": true,
+        "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word DOOMSCROLLEX in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: The news will still be there. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients.",
+        "nochar": true
+      }
+    ],
+    "motion": {
+      "d01": "black and white film. the phone glow flickers on his face as his thumb slowly scrolls; slow push in",
+      "d02": "black and white film. extreme close up; reflections of scrolling content drift across his unblinking eyes",
+      "d03": "black and white film. he pulls the blanket tighter around the glowing phone; subtle breathing; the clock ticks",
+      "d04": "black and white film. he looks from the phone to his thumb and back, concerned; slow push in",
+      "d05": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+      "d06": "he sets the phone face-down, clicks off the lamp, and settles into the pillow smiling; warm light glows",
+      "d07": "he stretches his arms wide in the morning sun, sits up rested; dust motes in the light",
+      "d08": "he turns a page, smiles slightly; leaves flutter; dappled light moves",
+      "d09": "the two friends laugh; he gestures mid-story; steam rises from the cups",
+      "d10": "he sips from the mug, looking out the window; curtains sway gently in the breeze"
+    },
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "tempo": 1.0,
+        "pre": 0.8,
+        "text": "It's 11:45 PM. You opened your phone... to check the time.",
+        "scenes": [
+          "d01"
+        ]
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "It is now 1:20 in the morning. You know everything about a stranger's kitchen renovation. You have opinions... about their backsplash.",
+        "scenes": [
+          "d02",
+          "d03"
+        ]
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.2,
+        "text": "...just one more...",
+        "scenes": [
+          "d03"
+        ]
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "You may be suffering from Chronic Nocturnal Scrolling.",
+        "scenes": [
+          "d04"
+        ]
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Introducing DOOMSCROLLEX. DOOMSCROLLEX forms a gentle protective barrier between your thumb and the algorithm, so bedtime can end... in sleep.",
+        "scenes": [
+          "d05",
+          "d06"
+        ]
+      },
+      {
+        "id": "a5",
+        "v": "A",
+        "tempo": 1.3,
+        "text": "DOOMSCROLLEX is not for everyone. Do not take DOOMSCROLLEX if you are a group chat administrator, a reply guy, or currently in an argument with a stranger you will never meet. Side effects may include: knowing what time it is, making eye contact with your own life, reading an entire book, and waking up rested, which may feel unfamiliar. Stop taking DOOMSCROLLEX and call your doctor if you experience the sudden urge to check one small thing, as the thing is never small. The news will still be there tomorrow. It will, unfortunately, still be news.",
+        "scenes": [
+          "d07",
+          "d08",
+          "d09"
+        ]
+      },
+      {
+        "id": "c2",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.4,
+        "text": "I slept... eight hours?",
+        "scenes": [
+          "d10"
+        ]
+      },
+      {
+        "id": "a6",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "DOOMSCROLLEX. The news will still be there.",
+        "scenes": [
+          "d10"
+        ]
+      },
+      {
+        "id": "a7",
+        "v": "A",
+        "tempo": 1.35,
+        "pre": 0.4,
+        "post": 1.0,
+        "text": "DOOMSCROLLEX cannot protect you from your smartwatch. Ask your doctor about your smartwatch.",
+        "scenes": [
+          "d11"
+        ]
+      }
+    ]
+  },
+  "replyva": {
+    "title": "REPLYVA",
+    "generic": "respondazepam",
+    "announcer": "nPczCjzI2devNBz1zQrb",
+    "character": "XrExE9yKIg1WjnnlVkGX",
+    "char_line": "The same woman appears: early 40s, straight black hair in a low bun, denim shirt. ",
+    "scenes": [
+      {
+        "id": "r01",
+        "bw": true,
+        "content": "She washes dishes at a kitchen sink, hands still, staring out the window into the middle distance, lips moving slightly as she composes something in her head."
+      },
+      {
+        "id": "r02",
+        "bw": true,
+        "content": "She sits parked in a car in a driveway, hands on the wheel, mouthing words to herself with small precise gestures, going nowhere."
+      },
+      {
+        "id": "r03",
+        "bw": true,
+        "content": "A phone lights up on a nightstand with a stack of notifications while she watches it from bed, arms folded, making no move toward it."
+      },
+      {
+        "id": "r04",
+        "bw": true,
+        "content": "She sits at a desk with her head in her hands, surrounded by faint pencil drafts crumpled on the desk."
+      },
+      {
+        "id": "r05",
+        "bw": false,
+        "neutral": true,
+        "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads REPLYVA in large letters, and beneath it in smaller letters RESPONDAZEPAM and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic.",
+        "nochar": true
+      },
+      {
+        "id": "r06",
+        "bw": false,
+        "content": "Close on her hands as she types a short message on her phone and presses send with one decisive thumb tap, warm color blooming into the scene, her face relaxing."
+      },
+      {
+        "id": "r07",
+        "bw": false,
+        "content": "She walks down a sunny sidewalk texting cheerfully, light on her face, entirely at ease."
+      },
+      {
+        "id": "r08",
+        "bw": false,
+        "content": "Two friends hug hello outside a cafe, both delighted; she is one of them, actually there, golden hour."
+      },
+      {
+        "id": "r09",
+        "bw": false,
+        "content": "She laughs at a full dinner table with family, mid-conversation, warm evening light."
+      },
+      {
+        "id": "r10",
+        "bw": false,
+        "content": "She holds up her phone with a small proud smile, like an athlete with a medal, bright morning kitchen."
+      },
+      {
+        "id": "r11",
+        "endcard": true,
+        "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word REPLYVA in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: They know you saw it. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients. The small bottle's label shows only the word REPLYVA in tiny letters and no other text.",
+        "nochar": true
+      }
+    ],
+    "motion": {
+      "r01": "black and white film. water runs over the dishes as she stares out the window, lips moving faintly; steam drifts",
+      "r02": "black and white film. she gestures precisely as she rehearses, then sighs and rests her head on the wheel",
+      "r03": "black and white film. the phone screen pulses with another notification; she pulls the blanket up; slow push in",
+      "r04": "black and white film. she rubs her temples; a draft page slides off the desk; the lamp flickers",
+      "r05": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+      "r06": "her thumb taps send; the phone lowers; her shoulders drop with relief; warm light grows",
+      "r07": "she walks and types at the same time, breezy; her bun bounces slightly; sunlight flickers through trees",
+      "r08": "the friends embrace and pull back beaming, talking at once; cafe umbrellas sway",
+      "r09": "the table laughs together; she refills a glass; candlelight flickers warmly",
+      "r10": "she raises the phone slightly with a proud little nod; morning light glints"
+    },
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "tempo": 1.0,
+        "pre": 0.8,
+        "text": "In your head... you've already answered.",
+        "scenes": [
+          "r01"
+        ]
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "The perfect reply. Warm. Witty. Exactly the right length. You composed it in the car... on Tuesday... to a message from March.",
+        "scenes": [
+          "r02",
+          "r03"
+        ]
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.2,
+        "text": "I'll respond when I can do it properly.",
+        "scenes": [
+          "r03"
+        ]
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "You may be living with Compositional Paralysis.",
+        "scenes": [
+          "r04"
+        ]
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Introducing REPLYVA. REPLYVA quiets the part of your brain that believes a text message is a wedding toast \u2014 so good enough... can actually get sent.",
+        "scenes": [
+          "r05",
+          "r06"
+        ]
+      },
+      {
+        "id": "a5",
+        "v": "A",
+        "tempo": 1.3,
+        "text": "REPLYVA is not for everyone. Do not take REPLYVA if you are composing a toast, a eulogy, or a legally binding contract, as those do need to be good. Side effects may include: answered emails, alarmed friends receiving responses within the same week, the words 'sounds good' sent without shame, and closure. In rare cases, REPLYVA users have replied so promptly the recipient asked if everything was okay. Ideas for the perfect reply may continue after sending. This is normal. It is also too late.",
+        "scenes": [
+          "r07",
+          "r08",
+          "r09"
+        ]
+      },
+      {
+        "id": "c2",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.4,
+        "text": "Sent it in four seconds.",
+        "scenes": [
+          "r10"
+        ]
+      },
+      {
+        "id": "a6",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "REPLYVA. They know you saw it.",
+        "scenes": [
+          "r10"
+        ]
+      },
+      {
+        "id": "a7",
+        "v": "A",
+        "tempo": 1.35,
+        "pre": 0.4,
+        "post": 1.0,
+        "text": "REPLYVA does not treat voicemail. Nothing treats voicemail.",
+        "scenes": [
+          "r11"
+        ]
+      }
+    ]
+  },
+  "cancellia": {
+    "title": "CANCELLIA",
+    "generic": "homebodine hydrochloride",
+    "announcer": "EXAVITQu4vr4xnSDxMaL",
+    "character": "cgSgspJ2msm6clMCkdW9",
+    "char_line": "The same woman appears: late 30s, curly auburn hair, oversized cream cardigan. ",
+    "scenes": [
+      {
+        "id": "c01",
+        "bw": true,
+        "content": "She stands in front of a wall calendar staring at a circled date, mug frozen halfway to her mouth."
+      },
+      {
+        "id": "c02",
+        "bw": true,
+        "content": "She stands at an open closet holding up two dresses, looking at both with quiet dread."
+      },
+      {
+        "id": "c03",
+        "bw": true,
+        "content": "She sits on the edge of the bed fully dressed except for shoes, holding one shoe, staring at nothing."
+      },
+      {
+        "id": "c04",
+        "bw": true,
+        "content": "Close on her phone in her hands: she is typing a message, deleting it, typing again, face conflicted."
+      },
+      {
+        "id": "c05",
+        "bw": false,
+        "neutral": true,
+        "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads CANCELLIA in large letters, and beneath it in smaller letters HOMEBODINE HCL and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic.",
+        "nochar": true
+      },
+      {
+        "id": "c06",
+        "bw": false,
+        "content": "She presses send on her phone and exhales enormously, shoulders dropping, eyes closing in relief; warm color blooming into the scene."
+      },
+      {
+        "id": "c07",
+        "bw": false,
+        "content": "A deep bubble bath with a paperback book, a lit candle on the tub edge, her curly hair piled up, utterly serene, warm lamplight."
+      },
+      {
+        "id": "c08",
+        "bw": false,
+        "content": "She is wrapped in a blanket on a couch with a mug of tea and a cat, golden lamp light, deep evening contentment."
+      },
+      {
+        "id": "c09",
+        "bw": false,
+        "content": "On the couch she smiles down at her phone at a reply, hand on her chest, touched and relieved."
+      },
+      {
+        "id": "c10",
+        "bw": false,
+        "content": "Seen from outside through the window at night: her living room glows warm and golden, one lamp lit, a silhouette curled on the couch, gentle and inviting."
+      },
+      {
+        "id": "c11",
+        "endcard": true,
+        "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word CANCELLIA in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: Ask your doctor if staying home is right for you. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients. The small bottle's label shows only the word CANCELLIA in tiny letters and no other text.",
+        "nochar": true
+      }
+    ],
+    "motion": {
+      "c01": "black and white film. she slowly lowers the mug without drinking, staring at the calendar; slow push in",
+      "c02": "black and white film. she looks between the two dresses, then lets both arms drop with a sigh",
+      "c03": "black and white film. she turns the shoe over in her hands, staring into the distance; the clock ticks",
+      "c04": "black and white film. her thumbs type, hover, delete; she bites her lip; the screen glow flickers",
+      "c05": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+      "c06": "her thumb presses send; her whole body exhales; she sinks back into the pillows; warm light grows",
+      "c07": "steam curls off the bath; a page turns; the candle flame sways gently",
+      "c08": "she sips the tea; the cat stretches and resettles; the blanket rises and falls softly",
+      "c09": "she reads the reply and smiles, hand to chest; the cat looks up at her",
+      "c10": "slow gentle push in toward the glowing window; a moth drifts past; curtains sway inside"
+    },
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "tempo": 1.0,
+        "pre": 0.8,
+        "text": "You said yes three weeks ago. Back when Friday... was theoretical.",
+        "scenes": [
+          "c01"
+        ]
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Now Friday is here. And you love your friends. You love them... in theory.",
+        "scenes": [
+          "c02",
+          "c03"
+        ]
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.2,
+        "text": "...maybe there's traffic... maybe it's cancelled...",
+        "scenes": [
+          "c03"
+        ]
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "You may be experiencing Social Commitment Remorse.",
+        "scenes": [
+          "c04"
+        ]
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Introducing CANCELLIA. CANCELLIA helps you compose the cancellation text you have already written in your heart \u2014 kindly, gracefully, and in time for them to give away your seat.",
+        "scenes": [
+          "c05",
+          "c06"
+        ]
+      },
+      {
+        "id": "a5",
+        "v": "A",
+        "tempo": 1.3,
+        "text": "CANCELLIA is not for everyone. Do not take CANCELLIA before weddings, funerals, or your own birthday, as people will notice. Side effects may include: sweatpants at 7 PM, a bath at 8, the good candle, your own couch, and the particular joy of a plan dissolving into an evening. In clinical trials, some patients discovered their friends had also taken CANCELLIA, and the group chat simply... rested. Do not combine CANCELLIA with guilt. Guilt renders CANCELLIA ineffective. If you experience a genuine desire to attend something, attend it. That is not a side effect. That is friendship.",
+        "scenes": [
+          "c07",
+          "c08",
+          "c09"
+        ]
+      },
+      {
+        "id": "c2",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.4,
+        "text": "They said no worries... and they meant it.",
+        "scenes": [
+          "c09"
+        ]
+      },
+      {
+        "id": "a6",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "CANCELLIA. Ask your doctor if staying home is right for you.",
+        "scenes": [
+          "c10"
+        ]
+      },
+      {
+        "id": "a7",
+        "v": "A",
+        "tempo": 1.35,
+        "pre": 0.4,
+        "post": 1.0,
+        "text": "Rescheduling is a separate condition. Ask your doctor about NEXTWEEKIA.",
+        "scenes": [
+          "c11"
+        ]
+      }
+    ]
+  },
+  "hobbystatin": {
+    "title": "HOBBYSTATIN",
+    "generic": "loomivir",
+    "announcer": "pqHfZKP75CvOlQylNhV4",
+    "character": "CwhRBWXzGAHq8TQ4Fs17",
+    "char_line": "The same man appears: mid 50s, salt-and-pepper beard, glasses, flannel shirt. ",
+    "scenes": [
+      {
+        "id": "h01",
+        "bw": true,
+        "content": "He gazes tenderly at a glass jar of sourdough starter on the kitchen counter, both hands cupped around it."
+      },
+      {
+        "id": "h02",
+        "bw": true,
+        "content": "He stands small in the middle of a garage packed floor to ceiling with hobby equipment: a floor loom, ukuleles hung in a row, a beekeeping suit on a hook, easels, fishing rods, a telescope."
+      },
+      {
+        "id": "h03",
+        "bw": true,
+        "content": "At the front door he signs a delivery clipboard while an enormous wooden crate on a hand truck towers beside the delivery person."
+      },
+      {
+        "id": "h04",
+        "bw": true,
+        "content": "Close-up: he stands before a wall of labeled craft supply bins, overwhelmed, one hand on his beard."
+      },
+      {
+        "id": "h05",
+        "bw": false,
+        "neutral": true,
+        "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads HOBBYSTATIN in large letters, and beneath it in smaller letters LOOMIVIR and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic.",
+        "nochar": true
+      },
+      {
+        "id": "h06",
+        "bw": false,
+        "content": "He sits at a single pottery wheel in a cleared, sunlit garage, hands shaping wet clay, deeply content; warm color blooming into the scene."
+      },
+      {
+        "id": "h07",
+        "bw": false,
+        "content": "He hands a cardboard box of craft supplies to a delighted neighbor over the fence, more boxes stacked beside him, golden afternoon."
+      },
+      {
+        "id": "h08",
+        "bw": false,
+        "content": "He plays a single ukulele in a rocking chair on the porch, eyes closed, golden hour."
+      },
+      {
+        "id": "h09",
+        "bw": false,
+        "content": "He presents a small handmade ceramic bowl to his wife at the kitchen table with both hands, quietly proud; she beams."
+      },
+      {
+        "id": "h10",
+        "bw": false,
+        "content": "Wide shot: the porch at sunset, the man in the rocking chair, one pottery wheel visible through the open garage door, everything calm and spare."
+      },
+      {
+        "id": "h11",
+        "endcard": true,
+        "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word HOBBYSTATIN in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: You already have a hobby. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients. The small bottle's label shows only the word HOBBYSTATIN in tiny letters and no other text.",
+        "nochar": true
+      }
+    ],
+    "motion": {
+      "h01": "black and white film. he lifts the jar slightly toward the light, admiring it; flour dust drifts",
+      "h02": "black and white film. slow pan across the crowded garage as he turns in place, small among the equipment",
+      "h03": "black and white film. he signs, glances up at the towering crate, and signs again more slowly",
+      "h04": "black and white film. his eyes move along the wall of bins; he strokes his beard; slow push in",
+      "h05": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+      "h06": "the wheel spins; the clay rises under his hands; he smiles slightly; sunlight through the door",
+      "h07": "he passes the box over the fence; the neighbor beams and waves; leaves flutter",
+      "h08": "he strums gently, rocking; the porch light glows warmer as the sun sets",
+      "h09": "he sets the bowl down and turns it just so; his wife clasps her hands, delighted",
+      "h10": "slow pull back from the porch; the rocking chair sways; warm light fades gently"
+    },
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "tempo": 1.0,
+        "pre": 0.8,
+        "text": "It started... with sourdough.",
+        "scenes": [
+          "h01"
+        ]
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Then the loom arrived. Then the second loom. The ukuleles. The beekeeping suit. And on Tuesday... the kiln.",
+        "scenes": [
+          "h02",
+          "h03"
+        ]
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.2,
+        "text": "...it was on sale...",
+        "scenes": [
+          "h03"
+        ]
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "You may have Acute Hobby Acquisition Syndrome.",
+        "scenes": [
+          "h04"
+        ]
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Introducing HOBBYSTATIN. HOBBYSTATIN blocks the receptor that mistakes buying supplies... for having a hobby.",
+        "scenes": [
+          "h05",
+          "h06"
+        ]
+      },
+      {
+        "id": "a5",
+        "v": "A",
+        "tempo": 1.3,
+        "text": "HOBBYSTATIN is not for everyone. Do not take HOBBYSTATIN if you are a museum, a craft store, or married to someone who has already converted the garage. Side effects may include: finishing the scarf, naming the sourdough starter Gerald and keeping only Gerald, one shelf where there were nine, and the strange peace of doing a single thing well. Stop taking HOBBYSTATIN and call your doctor if you experience a sudden interest in blacksmithing while already holding a banjo. That is a relapse. Craft fairs remain a high-risk environment. Attend with a buddy, and a budget.",
+        "scenes": [
+          "h07",
+          "h08",
+          "h09"
+        ]
+      },
+      {
+        "id": "c2",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.4,
+        "text": "I made a bowl. Just... the one bowl.",
+        "scenes": [
+          "h09"
+        ]
+      },
+      {
+        "id": "a6",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "HOBBYSTATIN. You already have a hobby.",
+        "scenes": [
+          "h10"
+        ]
+      },
+      {
+        "id": "a7",
+        "v": "A",
+        "tempo": 1.35,
+        "pre": 0.4,
+        "post": 1.0,
+        "text": "HOBBYSTATIN has no effect on yarn. Yarn is forever. Ask your doctor about yarn.",
+        "scenes": [
+          "h11"
+        ]
+      }
+    ]
+  },
+  "tabzolam": {
+    "title": "TABZOLAM",
+    "generic": "browsolam",
+    "announcer": "nPczCjzI2devNBz1zQrb",
+    "character": "FGY2WhTYpPnrIDTdsKH5",
+    "char_line": "The same woman appears: early 30s, box braids, olive blazer over a white t-shirt. ",
+    "scenes": [
+      {
+        "id": "t01",
+        "bw": true,
+        "content": "She sits in a dark home office lit only by a laptop screen, dozens of tiny tab shapes glowing along the top of the screen, her face weary."
+      },
+      {
+        "id": "t02",
+        "bw": true,
+        "content": "Extreme close-up of her tired eyes with the laptop light reflecting in them, a faint whirring fan sound implied by dust drifting past the vent."
+      },
+      {
+        "id": "t03",
+        "bw": true,
+        "content": "She hugs the open laptop protectively against her chest and looks directly at the camera, calm and completely serious."
+      },
+      {
+        "id": "t04",
+        "bw": false,
+        "neutral": true,
+        "content": "Product shot from a television pharmaceutical commercial: an amber prescription pill bottle with a clean white label; the label reads TABZOLAM in large letters, and beneath it in smaller letters BROWSOLAM and EXTENDED RELEASE TABLETS 25 mg; the bottle stands on a seamless soft white studio background, bathed in warm golden light, gentle glow, photorealistic.",
+        "nochar": true
+      },
+      {
+        "id": "t05",
+        "bw": false,
+        "content": "Close on one finger hovering over the keyboard, then pressing a single key with ceremony; her face floods with relief; warm color blooming into the scene."
+      },
+      {
+        "id": "t06",
+        "bw": false,
+        "content": "The laptop sits closed on a tidy desk while she stretches in a sunlit room, arms overhead, unburdened."
+      },
+      {
+        "id": "t07",
+        "bw": false,
+        "content": "She cooks happily from a propped-open cookbook in a bright kitchen, tasting from a wooden spoon."
+      },
+      {
+        "id": "t08",
+        "bw": false,
+        "content": "A quiet home office: closed laptop, a thriving plant, morning light; she sits with tea, listening to the silence with wonder."
+      },
+      {
+        "id": "t09",
+        "endcard": true,
+        "content": "Minimal end card for a television pharmaceutical commercial: flat solid cream background, the word TABZOLAM in large elegant dark serif capital letters centered, beneath it in smaller letters the tagline: You were never going to read them. A small amber pill bottle sits below the text. Clean flat studio typography, no gradients. The small bottle's label shows only the word TABZOLAM in tiny letters and no other text.",
+        "nochar": true
+      }
+    ],
+    "motion": {
+      "t01": "black and white film. the screen light flickers on her face as she scrolls sideways through tabs; slow push in",
+      "t02": "black and white film. extreme close up; tiny reflected tabs drift across her eyes; she blinks slowly",
+      "t03": "black and white film. she holds the laptop tighter and lifts her chin slightly, steady eye contact with camera",
+      "t04": "the pill bottle rotates slowly on its axis; glints of warm light; soft sparkle particles drift",
+      "t05": "the finger descends in slow motion and presses the key; her shoulders drop; warm light grows",
+      "t06": "she stretches tall in the sunlight and exhales; curtains sway; the closed laptop sits still",
+      "t07": "she stirs, tastes from the spoon, nods happily; steam rises; a page of the cookbook lifts",
+      "t08": "she sips tea in the quiet; the plant's leaves move faintly; morning light shifts"
+    },
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "tempo": 1.0,
+        "pre": 0.8,
+        "text": "Four hundred... and twelve... open tabs.",
+        "scenes": [
+          "t01"
+        ]
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Recipes you will never cook. A flight you didn't book. An article titled How To Focus... from 2023.",
+        "scenes": [
+          "t02"
+        ]
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.2,
+        "text": "The tabs are load-bearing.",
+        "scenes": [
+          "t03"
+        ]
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "Introducing TABZOLAM \u2014 for Chronic Tab Retention. TABZOLAM gently releases your grip on the button that says... close all.",
+        "scenes": [
+          "t04",
+          "t05"
+        ]
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "tempo": 1.3,
+        "text": "TABZOLAM is not for everyone. Side effects may include: a computer that no longer sounds like a small aircraft, finding the tab that has been playing music since June, bookmarks used correctly, and grief, which passes. In clinical trials, no patient ever returned to a saved tab. Not one. The tabs were never the plan. The tabs were the feeling of a plan.",
+        "scenes": [
+          "t06",
+          "t07"
+        ]
+      },
+      {
+        "id": "c2",
+        "v": "C",
+        "tempo": 1.0,
+        "pre": 0.4,
+        "text": "I can hear my fan again.",
+        "scenes": [
+          "t08"
+        ]
+      },
+      {
+        "id": "a5",
+        "v": "A",
+        "tempo": 1.0,
+        "text": "TABZOLAM. You were never going to read them.",
+        "scenes": [
+          "t08"
+        ]
+      },
+      {
+        "id": "a6",
+        "v": "A",
+        "tempo": 1.35,
+        "pre": 0.4,
+        "post": 1.0,
+        "text": "TABZOLAM is not effective against phone tabs. Those are yours forever.",
+        "scenes": [
+          "t09"
+        ]
+      }
+    ]
+  }
+}
