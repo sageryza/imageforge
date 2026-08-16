@@ -1,0 +1,545 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The merge — module 1</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* THE FOURTH MAP ON THE BLUSH BOARD. The other three are the content
+     pipeline's S-curve (v8), docs/audio-pipeline-map.html and
+     docs/image-pipeline-map.html. This one draws where the audio road and the
+     image road JOIN, and only that — module 1 of the merge, one module at a
+     time (Sophie, 2026-08-16).
+
+     The claim the drawing makes: the audio road's BLOCKS stop already
+     produces exactly what the image road's first stop (WORDS) is dashed for.
+     So the merge does not bolt two pipelines together — it feeds one road's
+     unbuilt front door from the other road's built third stop.
+
+     Same board, same road language, same already-paid-for cut-out drawings.
+     Three of the five stops wear the SAME drawing as the stop they correspond
+     to on a parent map (inbox = CAPTURE, blocks = BLOCKS, zine = WORDS /
+     SCRIPT, window = WINDOW) — that is deliberate, it is how the family reads
+     as one thing seen closer up. If the road changes there, change it here. */
+  :root {
+    --blush: #f7ebe7; --blush2: #ecd7d2; --track: #e0c6bf;
+    --road: #f1dfda; --edge: #d9bcb4;
+    --goldfill: #c9a961; --blushink: #6f5450;
+  }
+  h1 {
+    font: 600 21px/1.25 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .045em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  /* the hairline tabs (the account-row pattern). 64px of corner reserve, not
+     the 56 the sibling maps use — measured 2026-08-15, the injected pill's
+     left edge lands at x=326 on a 390pt phone, so a 56px reserve leaves the
+     last 8px of the rightmost tab dead. The sliding line measures
+     (100% - 64px)/4 because an abspos child resolves against the PADDING box,
+     and there are FOUR tabs. */
+  .tabs {
+    position: relative; display: flex; border-bottom: 1px solid #e6d2cd;
+    margin: 0 0 14px; padding-right: 64px;
+  }
+  .tab {
+    flex: 1 1 0; min-width: 0; padding: 7px 4px 9px;
+    border: none; background: none; cursor: pointer;
+    font: 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.on { color: var(--ink); }
+  .tabs::after {
+    content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
+    width: calc((100% - 64px) / 4); background: var(--ink);
+    transform: translateX(0); transition: transform .2s ease;
+  }
+  .tabs[data-on="1"]::after { transform: translateX(100%); }
+  .tabs[data-on="2"]::after { transform: translateX(200%); }
+  .tabs[data-on="3"]::after { transform: translateX(300%); }
+  .board {
+    position: relative; background: var(--blush); border: 1px solid #e6d2cd;
+    border-radius: 6px; padding: 8px 2px 10px; margin-bottom: 10px;
+  }
+  .board svg { display: block; width: 100%; height: auto; }
+  .cap {
+    font: 12px/1.35 Georgia, serif; color: var(--ink2); margin: 0 2px 4px;
+  }
+  .stoplist { display: flex; flex-direction: column; gap: 6px; }
+  .seg {
+    font: 600 10px/1 -apple-system, sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; color: #8a6238; margin: 10px 2px 2px;
+  }
+  .stop {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--blush); border: 1.5px solid var(--track);
+    border-radius: 6px; padding: 9px 30px 9px 10px;
+    color: inherit; text-decoration: none;
+  }
+  .stop svg.g { flex: 0 0 40px; width: 40px; height: 40px; }
+  .stop .nm {
+    font: 600 11px/1.2 -apple-system, sans-serif; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--blushink);
+  }
+  .stop .what { font: 12px/1.35 Georgia, serif; color: var(--ink2); }
+  /* a stage with no tool (or only a partial one) reads dashed, as on both
+     parent maps */
+  .stop.none { border-style: dashed; }
+  .stop .tag {
+    font: 700 8.5px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--rose); border: 1px solid var(--rose);
+    border-radius: 3px; padding: 2px 4px; margin-left: 6px; display: inline-block;
+    vertical-align: 1px;
+  }
+  .gap { border: 1.5px solid var(--track); border-radius: 6px; padding: 8px 10px 8px; margin: 6px 0; }
+  .gap .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .gap .who { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .gap .w {
+    font: 600 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--blushink);
+    border: 1px solid var(--track); border-radius: 3px; padding: 3px 5px;
+  }
+  .gap .w.no { color: var(--rose); border-color: var(--rose); }
+  .gap .note { font: 12px/1.35 Georgia, serif; color: var(--ink2); margin-top: 3px; }
+  .gap.hole { border-color: var(--rose); }
+  /* the cost rows — the figure leads, because the figure is the point */
+  .cost {
+    display: flex; align-items: baseline; gap: 10px;
+    border: 1.5px solid var(--track); border-radius: 6px;
+    padding: 8px 30px 8px 10px; margin: 6px 0;
+  }
+  .cost .n {
+    flex: 0 0 74px; font: 600 15px/1.15 -apple-system, sans-serif;
+    color: #8a6238; letter-spacing: .01em;
+  }
+  .cost .f { font: 600 12px/1.3 -apple-system, sans-serif; color: var(--ink); }
+  .cost .note { font: 12px/1.35 Georgia, serif; color: var(--ink2); margin-top: 3px; }
+</style>
+
+<div class="wrap">
+  <h1>The merge v1 — module 1</h1>
+
+  <div class="tabs" id="tabs" data-on="0" data-nostop>
+    <button class="tab on" data-tab="0" type="button">Map</button>
+    <button class="tab" data-tab="1" type="button">Stops</button>
+    <button class="tab" data-tab="2" type="button">The join</button>
+    <button class="tab" data-tab="3" type="button">Cost</button>
+  </div>
+
+  <div id="view-map">
+    <div class="board" data-item="merge-map" data-nostop>
+      <svg id="path" viewBox="0 0 440 495" role="img" aria-label="where the audio road and the image road join"></svg>
+    </div>
+    <div class="board" data-item="quarter-panel" data-nostop>
+      <svg id="mech" viewBox="0 0 440 156" role="img" aria-label="four blocks, one sheet, four quarter panels"></svg>
+    </div>
+    <p class="cap">The same panel drawn one to a call costs 2.35¢. The style
+      reference is billed per call, so quartering the sheet quarters the
+      reference bill with it — that is where the quarter comes from.</p>
+  </div>
+
+  <div id="view-stops" hidden>
+    <div class="stoplist" id="stoplist" data-nostop></div>
+  </div>
+
+  <div id="view-join" hidden>
+    <div id="joinlist" data-nostop></div>
+  </div>
+
+  <div id="view-cost" hidden>
+    <div id="costlist" data-nostop></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var SVG = 'http://www.w3.org/2000/svg';
+  var C = { node: '#ecd7d2', road: '#f1dfda', edge: '#d9bcb4',
+            gold: '#c9a961', ink: '#6f5450', rose: '#b4707a' };
+
+  /* THE FIVE STOPS of module 1, in walking order, with `at` = where the stop
+     sits along the path as a FRACTION of total length. THE POSITIONS ARE
+     CHOSEN, NOT EVENLY SPREAD (the family rule): the road's extremes land on
+     0.2 / 0.4 / 0.6 / 0.8, and 0.4 / 0.8 are the LEFT extremes with the wide
+     gutter beside them. BLOCKS is pinned to 0.40 and WINDOW to 0.80 because
+     those are the two stops with something to draw beside them — the fan of
+     lines, and the sheet being cut. `none` = the stage is real but nothing
+     built reaches it. */
+  var STOPS = [
+    { id: 'input',  label: 'INPUT',     art: 'inbox',   at: 0.01,
+      what: 'a recording — voice memos, the drop, the share sheet. one library, and every path already files into it' },
+    { id: 'blocks', label: 'BLOCKS',    art: 'blocks',  at: 0.40, href: '/blocks',
+      what: 'it comes apart into sentence-level lines you can split, meld, reorder and mark. roughly 180 of them in a 17-minute recording' },
+    { id: 'scene',  label: 'SCENE',     art: 'zine',    at: 0.60, none: 'no tool',
+      what: 'each line’s words become a content prompt — what the picture is OF. this is the one genuinely new hole the merge opens' },
+    { id: 'window', label: 'WINDOW',    art: 'window',  at: 0.80, none: 'built twice, joined to neither', href: '/vector',
+      what: 'four blocks to a sheet, one low call, cut apart into quarter panels — about 0.6¢ a frame' },
+    { id: 'board',  label: 'THE BOARD', art: 'clapper', at: 0.99, none: 'nothing carries it',
+      what: 'every block wearing its panel, in order — the storyboard. both roads walk on from here' },
+  ];
+
+  /* what flows INTO the first stop (the family's left-gutter gesture) */
+  var SOURCES = ['mic', 'chat'];
+
+  function el(n, a) {
+    var e = document.createElementNS(SVG, n);
+    for (var k in a) e.setAttribute(k, a[k]);
+    return e;
+  }
+
+  /* ── the road ──────────────────────────────────────────────────────────
+     v8's path verbatim — bowls joined at the centre line, tangent horizontal
+     at every join and vertical at every extreme, drawn as a ROAD (the same
+     path stroked twice, edges under surface). Identical constants to the
+     image map so the two boards are the same board. Do NOT re-derive the
+     sweep flags: moving the start alone leaves the bowls curling the old way
+     and the S comes out backwards. CX 270 on a 440 board keeps the wide left
+     gutter the two gestures need. */
+  var CX = 270, A = 140, B = 40, Y0 = 58, R = 22;
+  var D = 'M' + (CX - A) + ' ' + Y0
+        + 'A' + A + ' ' + B + ' 0 0 0 ' + CX + ' ' + (Y0 + B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 3 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 5 * B)
+        + 'A' + A + ' ' + B + ' 0 1 1 ' + CX + ' ' + (Y0 + 7 * B)
+        + 'A' + A + ' ' + B + ' 0 1 0 ' + CX + ' ' + (Y0 + 9 * B)
+        + 'A' + A + ' ' + B + ' 0 0 1 ' + (CX + A) + ' ' + (Y0 + 10 * B);
+  var svg = document.getElementById('path');
+
+  /* The drawings are the content pipeline's own cut-outs — already made,
+     already paid for, transparent background. */
+  var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
+  var CUT = V + 'pipeline-icons-cut/';
+  var CUT2 = V + 'pipeline-icons-2-cut/';
+  var ART = {
+    inbox:   CUT + 'inbox-cut.png',
+    blocks:  CUT + 'blocks-cut.png',
+    window:  CUT + 'window-cut.png',
+    clapper: CUT + 'clapper-cut.png',
+    zine:    CUT2 + 'zine-cut.png',
+    mic:     CUT2 + 'mic-cut.png',
+    chat:    CUT2 + 'chat-cut.png',
+  };
+
+  // a cut-out drawing, fitted inside a box of side `s` and never cropped
+  function cell(g, url, cx, cy, s) {
+    g.appendChild(el('image', {
+      href: url, x: cx - s / 2, y: cy - s / 2, width: s, height: s,
+      preserveAspectRatio: 'xMidYMid meet',
+    }));
+  }
+
+  function node(g, st, p, r) {
+    var R2 = r || R;
+    if (st.none) g.appendChild(el('rect', {
+      x: p.x - R2, y: p.y - R2, width: R2 * 2, height: R2 * 2, rx: 5,
+      fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    cell(g, ART[st.art], p.x, p.y, R2 * 2.1);
+  }
+
+  function label(p, txt, dy) {
+    var lx = Math.max(52, Math.min(388, p.x));
+    var t = el('text', { x: lx, y: p.y + (dy || R + 13), 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    t.style.font = '600 9.5px -apple-system, sans-serif';
+    t.style.letterSpacing = '.07em';
+    t.textContent = txt;
+    return t;
+  }
+
+  function small(parent, x, y, txt) {
+    var t = el('text', { x: x, y: y, 'text-anchor': 'middle',
+      fill: C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7', 'stroke-width': 3 });
+    t.style.font = '600 8px -apple-system, sans-serif';
+    t.style.letterSpacing = '.06em';
+    t.textContent = txt;
+    parent.appendChild(t);
+  }
+
+  // a small solid arrowhead at (x, y): dir 'left' points at smaller x
+  function arrow(parent, x, y, dir, col) {
+    var s = dir === 'left' ? 1 : -1;
+    parent.appendChild(el('path', {
+      d: 'M' + x + ' ' + y + 'l' + (7 * s) + ' -4v8z',
+      fill: col || C.edge,
+    }));
+  }
+
+  function draw() {
+    svg.textContent = '';
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.edge, 'stroke-width': 27, 'stroke-linecap': 'round' }));
+    svg.appendChild(el('path', { d: D, fill: 'none', stroke: C.road, 'stroke-width': 22, 'stroke-linecap': 'round' }));
+
+    var track = el('path', { d: D, fill: 'none', stroke: 'none' });
+    svg.appendChild(track);
+    var L = track.getTotalLength();
+    var pts = STOPS.map(function (st) {
+      var p = track.getPointAtLength(st.at * L);
+      return { x: p.x, y: p.y };
+    });
+
+    /* the sources come in from the left (the family gesture) */
+    var p0 = pts[0], SX = 26, SR = 15;
+    var src = [{ y: p0.y - 20 }, { y: p0.y + 20 }];
+    src.forEach(function (s) {
+      svg.appendChild(el('path', {
+        d: 'M' + (SX + SR + 1) + ' ' + s.y + 'Q' + (p0.x - 26) + ' ' + s.y + ' ' + (p0.x - R - 1) + ' ' + p0.y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    });
+    src.forEach(function (s, i) {
+      var g = el('g', {});
+      cell(g, ART[SOURCES[i]], SX, s.y, SR * 2.1);
+      svg.appendChild(g);
+    });
+
+    /* THE FAN at BLOCKS — the one recording becoming many lines. Four little
+       cards in the left gutter, each with its own thread back to the road, so
+       the drawing says "every line" rather than "a thing that happens here". */
+    var bp = pts[1], FX = 34, FW = 46, FH = 9;
+    var fy = [bp.y - 27, bp.y - 9, bp.y + 9, bp.y + 27];
+    fy.forEach(function (y) {
+      svg.appendChild(el('path', {
+        d: 'M' + (bp.x - R - 1) + ' ' + bp.y + 'Q' + (FX + FW + 22) + ' ' + y + ' ' + (FX + FW + 4) + ' ' + y,
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.2 }));
+      svg.appendChild(el('rect', {
+        x: FX, y: y - FH / 2, width: FW, height: FH, rx: 2,
+        fill: '#fdf7f5', stroke: C.edge, 'stroke-width': 1.2 }));
+      // the words on a card, drawn as two hairlines — never lorem text
+      svg.appendChild(el('path', {
+        d: 'M' + (FX + 5) + ' ' + (y - 1.5) + 'h' + (FW - 14)
+         + 'M' + (FX + 5) + ' ' + (y + 2) + 'h' + (FW - 24),
+        stroke: C.edge, 'stroke-width': 1, 'stroke-linecap': 'round' }));
+    });
+    small(svg, FX + FW / 2, bp.y + 46, 'EVERY LINE');
+
+    /* THE SHEET at WINDOW — one low call drawn as a square quartered by a
+       dashed cut line, four arrowheads coming off it. This is the quarter
+       panel, drawn where it happens. */
+    var wp = pts[3], SS = 46, SXX = 40, sy = wp.y - SS / 2;
+    svg.appendChild(el('path', {
+      d: 'M' + (wp.x - R - 1) + ' ' + wp.y + 'Q' + (SXX + SS + 26) + ' ' + wp.y + ' ' + (SXX + SS + 4) + ' ' + wp.y,
+      fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    arrow(svg, SXX + SS + 4, wp.y, 'left');
+    svg.appendChild(el('rect', {
+      x: SXX, y: sy, width: SS, height: SS, rx: 3,
+      fill: '#fdf7f5', stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(el('path', {
+      d: 'M' + (SXX + SS / 2) + ' ' + sy + 'v' + SS
+       + 'M' + SXX + ' ' + (sy + SS / 2) + 'h' + SS,
+      stroke: C.gold, 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }));
+    small(svg, SXX + SS / 2, wp.y + SS / 2 + 15, 'FOUR TO A SHEET');
+
+    STOPS.forEach(function (st, i) {
+      var g = el('g', { 'data-go': st.href || '' });
+      if (st.href) g.style.cursor = 'pointer';
+      node(g, st, pts[i]);
+      svg.appendChild(g);
+      // THE BOARD sits at the road's very end where its label would clip
+      // below the board — lift it above the node instead (the treasury fix)
+      svg.appendChild(label(pts[i], st.label, st.id === 'board' ? -(R + 7) : 0));
+    });
+  }
+
+  /* ── the quarter panel, drawn ──────────────────────────────────────────
+     Four blocks → one sheet → four panels, left to right, with what each
+     one costs under it. This is the whole mechanism behind the claim, and
+     it is the half of the drawing she asked for by name. */
+  function drawMech() {
+    var m = document.getElementById('mech');
+    m.textContent = '';
+    var MY = 58;
+
+    // four blocks
+    var BX = 18, BW = 74, BH = 12;
+    [0, 1, 2, 3].forEach(function (i) {
+      var y = MY - 26 + i * 17;
+      m.appendChild(el('rect', { x: BX, y: y, width: BW, height: BH, rx: 2,
+        fill: '#fdf7f5', stroke: C.edge, 'stroke-width': 1.2 }));
+      m.appendChild(el('path', {
+        d: 'M' + (BX + 6) + ' ' + (y + 4.5) + 'h' + (BW - 18)
+         + 'M' + (BX + 6) + ' ' + (y + 8.5) + 'h' + (BW - 30),
+        stroke: C.edge, 'stroke-width': 1, 'stroke-linecap': 'round' }));
+    });
+    small(m, BX + BW / 2, MY + 46, 'FOUR BLOCKS');
+    small(m, BX + BW / 2, MY + 58, 'four lines she said');
+
+    // → one sheet
+    m.appendChild(el('path', { d: 'M' + (BX + BW + 10) + ' ' + MY + 'h20',
+      stroke: C.edge, 'stroke-width': 1.5 }));
+    arrow(m, BX + BW + 32, MY, 'right');
+
+    var SX2 = 148, SS2 = 62;
+    m.appendChild(el('rect', { x: SX2, y: MY - SS2 / 2, width: SS2, height: SS2, rx: 3,
+      fill: '#fdf7f5', stroke: C.edge, 'stroke-width': 1.5 }));
+    m.appendChild(el('path', {
+      d: 'M' + (SX2 + SS2 / 2) + ' ' + (MY - SS2 / 2) + 'v' + SS2
+       + 'M' + SX2 + ' ' + MY + 'h' + SS2,
+      stroke: C.gold, 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }));
+    small(m, SX2 + SS2 / 2, MY + 46, 'ONE LOW SHEET');
+    small(m, SX2 + SS2 / 2, MY + 58, '2.35¢');
+
+    // → cut apart into four panels
+    m.appendChild(el('path', { d: 'M' + (SX2 + SS2 + 10) + ' ' + MY + 'h20',
+      stroke: C.edge, 'stroke-width': 1.5 }));
+    arrow(m, SX2 + SS2 + 32, MY, 'right');
+
+    var PX = 262, PS = 34, PG = 9;
+    [0, 1, 2, 3].forEach(function (i) {
+      var x = PX + (i % 2) * (PS + PG);
+      var y = MY - PS - PG / 2 + Math.floor(i / 2) * (PS + PG);
+      m.appendChild(el('rect', { x: x, y: y, width: PS, height: PS, rx: 2,
+        fill: '#fdf7f5', stroke: C.gold, 'stroke-width': 1.5 }));
+      // a drawing inside a frame, said with two strokes — a horizon and a hill
+      m.appendChild(el('path', {
+        d: 'M' + (x + 5) + ' ' + (y + PS - 11) + 'h' + (PS - 10)
+         + 'M' + (x + 8) + ' ' + (y + PS - 11) + 'q' + (PS / 2 - 8) + ' -13 ' + (PS - 16) + ' 0',
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.2, 'stroke-linecap': 'round' }));
+    });
+    small(m, PX + PS + PG / 2, MY + 46, 'FOUR PANELS');
+    small(m, PX + PS + PG / 2, MY + 58, '0.59¢ each');
+  }
+
+  svg.addEventListener('click', function (e) {
+    var g = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+    if (g && g.getAttribute('data-go')) location.href = g.getAttribute('data-go');
+  });
+
+  /* ── the stops tab ─────────────────────────────────────────────────── */
+  var SEGS = { input: 'The audio road, as far as it is built',
+               scene: 'The join — where nothing is built yet',
+               board: 'And on' };
+  var list = document.getElementById('stoplist');
+  STOPS.forEach(function (st) {
+    if (SEGS[st.id]) {
+      var h = document.createElement('div');
+      h.className = 'seg'; h.textContent = SEGS[st.id];
+      list.appendChild(h);
+    }
+    var row = document.createElement(st.href ? 'a' : 'div');
+    row.className = 'stop' + (st.none ? ' none' : '');
+    row.setAttribute('data-item', 'stop-' + st.id);
+    if (st.href) row.href = st.href;
+    var gs = document.createElementNS(SVG, 'svg');
+    gs.setAttribute('viewBox', '0 0 36 36'); gs.setAttribute('class', 'g');
+    var gg = el('g', {});
+    node(gg, st, { x: 18, y: 18 }, 17);
+    gs.appendChild(gg);
+    row.appendChild(gs);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    var nm = tx.querySelector('.nm');
+    nm.textContent = st.label;
+    if (st.none) {
+      var tag = document.createElement('span');
+      tag.className = 'tag'; tag.textContent = st.none;
+      nm.appendChild(tag);
+    }
+    tx.querySelector('.what').textContent = st.what;
+    row.appendChild(tx);
+    list.appendChild(row);
+  });
+
+  /* ── the join tab ──────────────────────────────────────────────────────
+     One row per piece the join needs, and what in the repo already has it.
+     Measured 2026-08-16 by reading blocks.js, movies.js, vector.js,
+     scripts/story-short-meteorite/ and both parent maps. `id` is STABLE and
+     content-derived — never renumber; add at the end. */
+  var JOIN = [
+    { id: 'wordsfree', f: 'The blocks ARE the words', has: ['blocks'],
+      note: 'the image road’s first stop is dashed on its own map — "a chat writes it in conversation today". the audio road’s third stop already produces exactly that: sentence-segmented, in order, in her own words. the merge fills one road’s front door with the other road’s output, for nothing.' },
+    { id: 'quarter', f: 'Four to a sheet, cut apart', has: ['movies', 'vector room'], hole: 1,
+      note: 'built TWICE and reachable from neither. movies.js renderSketchGrid draws a 2x2 at low and slices the quadrants with ffmpeg (inset so wobbly borders don’t bleed) — welded to a movie’s scenes. the vector room sheets and cuts too — welded to pastel and the tracer. this is the hole the image map already names: "the road’s own front door has no general tool".' },
+    { id: 'scene', f: 'A spoken line turned into a picture description', has: [], hole: 1,
+      note: '"and I just got in the car and drove" is what she SAID — it is not what the picture is OF. the one genuinely NEW hole the merge opens, and the only one that costs a model call. the meteorite short did it by hand, beat by beat, in beats.js.' },
+    { id: 'carry', f: 'A panel living ON its block', has: [], hole: 1,
+      note: 'blocks.js’s state whitelist is marks / custom / whoOver / added / ttsUrls / order / secMeld / place / sections — there is no image field, and no image concept anywhere in the module. both parent maps already name this one: "nothing carries a project across the rooms", "the treasure is stored on the throwaway".' },
+    { id: 'unit', f: 'Which unit gets a panel — the line, or the paragraph', has: ['blocks'],
+      note: 'nothing to build: makeSections already groups the lines into paragraphs at the biggest silences (about eight lines each) and titles each one from its own first six words — never a model call, never invented. so a panel per line and a panel per paragraph are the same feature with a different unit, and the price gap between them is 7x.' },
+    { id: 'walked', f: 'The whole walk, done once by hand', has: ['story-short-meteorite'],
+      note: 'scripts/story-short-meteorite/ is this exact road walked end to end on a 17-minute recording: whisper → hand-listed spans → panels → animate → stitch → file, about $2.90 for twelve beats. the hand-listing in beats.js is the step BLOCKS now does by itself — which is what makes the merge a wiring job rather than a new pipeline.' },
+  ];
+  var jl = document.getElementById('joinlist');
+  JOIN.forEach(function (g) {
+    var d = document.createElement('div');
+    d.className = 'gap' + (g.hole ? ' hole' : '');
+    d.setAttribute('data-item', 'join-' + g.id);
+    var f = document.createElement('div');
+    f.className = 'f'; f.textContent = g.f;
+    d.appendChild(f);
+    var n = document.createElement('div');
+    n.className = 'note'; n.textContent = g.note;
+    d.appendChild(n);
+    var w = document.createElement('div');
+    w.className = 'who';
+    if (!g.has.length) {
+      var none = document.createElement('span');
+      none.className = 'w no'; none.textContent = 'nothing has it';
+      w.appendChild(none);
+    } else g.has.forEach(function (h) {
+      var s = document.createElement('span');
+      s.className = 'w'; s.textContent = h;
+      w.appendChild(s);
+    });
+    d.appendChild(w);
+    jl.appendChild(d);
+  });
+
+  /* ── the cost tab ──────────────────────────────────────────────────────
+     gpt-image-2, checked against the one table in docs/modules/pictures.md
+     (itself checked against OpenAI's image guide 2026-08-16). Two figures do
+     the work: a low portrait call is 0.5¢ of output, and a style reference
+     averages 1.85¢ of input on top — measured across 3,293 real calls in 31
+     days. The reference is charged PER CALL, which is the whole reason a
+     quarter panel is a quarter and not merely a smaller picture. */
+  var COST = [
+    { id: 'sheet', n: '0.59¢', f: 'A quarter panel', pl: 'a panel',
+      note: 'one low sheet is 2.35¢ — 0.5¢ of output plus about 1.85¢ for the style reference — and it carries four.' },
+    { id: 'full', n: '2.35¢', f: 'The same panel drawn full frame',
+      note: 'same call, same reference, one picture instead of four. exactly four times the price for the same information, which is the number you guessed.' },
+    { id: 'line', n: '~$1.06', f: 'A 17-minute recording, a panel per line',
+      note: 'about 180 lines at the measured rate (a 17-second clip made 3) → 45 sheets. the whole ramble storyboarded for a dollar.' },
+    { id: 'para', n: '~14¢', f: 'A 17-minute recording, a panel per paragraph',
+      note: 'the same recording at makeSections’ own grouping — about 23 paragraphs → 6 sheets. seven times cheaper, and closer to the twelve beats the meteorite short actually used.' },
+    { id: 'med', n: '1.79¢', f: 'A quarter panel at medium instead of low',
+      note: 'a medium sheet is 7.15¢. worth knowing, not worth spending here — this is the storyboarding phase, and the panel exists to be thrown away.' },
+    { id: 'stale', n: 'stale', f: 'What vector.js thinks a sheet costs',
+      note: 'its COST table still reads 2¢ / 6¢ / 25¢, which is gpt-image-1’s pricing and runs about 25% high at medium and high. cosmetic — the table is only shown, never billed — but it should be fixed when that module is next opened.' },
+  ];
+  var cl = document.getElementById('costlist');
+  COST.forEach(function (c) {
+    var d = document.createElement('div');
+    d.className = 'cost';
+    d.setAttribute('data-item', 'cost-' + c.id);
+    var n = document.createElement('div');
+    n.className = 'n'; n.textContent = c.n;
+    d.appendChild(n);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="f"></div><div class="note"></div>';
+    tx.querySelector('.f').textContent = c.f;
+    tx.querySelector('.note').textContent = c.note;
+    d.appendChild(tx);
+    cl.appendChild(d);
+  });
+
+  /* ── tabs ──────────────────────────────────────────────────────────── */
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    var n = b.getAttribute('data-tab');
+    tabs.setAttribute('data-on', n);
+    tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t === b); });
+    document.getElementById('view-map').hidden = n !== '0';
+    document.getElementById('view-stops').hidden = n !== '1';
+    document.getElementById('view-join').hidden = n !== '2';
+    document.getElementById('view-cost').hidden = n !== '3';
+  });
+
+  draw();
+  drawMech();
+  if (window.__compareHelp) window.__compareHelp({ html:
+    '<p>Module 1 of the merge, and only module 1: a recording comes in, comes apart into lines, and every line gets a cheap picture.</p>' +
+    '<p>The claim the road makes is that the two pipelines already touch. BLOCKS is stop 3 on the audio map and it is BUILT. WORDS is stop 1 on the image map and it is dashed — "a chat writes it in conversation today". They are the same words, so the audio road hands the image road its missing front door.</p>' +
+    '<p>A dashed ring means the stage is real but nothing built reaches it. The gold cross on the sheet is where it gets cut apart.</p>' +
+    '<p><b>Stops</b> names the five. <b>The join</b> is what each piece needs and what in the repo already has it — the rose rows are the three that are missing. <b>Cost</b> is where the quarter comes from.</p>' +
+    '<p>Leave a note on anything with the + in its corner.</p>' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'audio-image-pipeline-merge', sheet: 'merge-m1-s5' });
+})();
+</script>
+<style>[hidden]{display:none !important}</style>

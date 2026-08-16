@@ -82,11 +82,16 @@ links at the very bottom.
   `new-module`, `sophie-audio`, `witch-copy`. They load themselves when relevant;
   read the matching one BEFORE starting that kind of work.
 - **The pipeline maps** — the road a piece of work actually walks, one doc plus
-  one Compare page each, all three drawn as the same blush S-curve:
+  one Compare page each, all four drawn as the same blush S-curve:
   `docs/audio-pipeline.md` (subtractive — the recording already holds
   everything) and `docs/image-pipeline.md` (**the prompt is the treasure, the
   image is a throwaway probe** — read it before building any picture surface).
   Each doc also names that pipeline's three structural holes.
+  **`docs/merge-pipeline.md` is where the two roads JOIN** (Aug 2026, drawn one
+  module at a time): the audio road's BLOCKS stop already produces exactly what
+  the image road's dashed first stop needs, so a recording's lines become
+  quarter-panel storyboard probes at ~0.6¢ a frame. Module 1 is drawn, nothing
+  is built. Read it before wiring anything between the two pipelines.
 - Deep dives that already had their own doc: `docs/nde-precise-cutting.md`,
   `docs/witch-school-lessons.md`, `docs/vector-pipeline.md`,
   `docs/evan-film-style.md`, `docs/nde-watercolor.md`,
