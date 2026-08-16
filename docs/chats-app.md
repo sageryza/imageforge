@@ -1174,15 +1174,15 @@
       guard). The row mark is the **filled bookmark glyph** beside the star.
     - **`notify`** = allowed to buzz her phone. The BELL, added Aug 2026 —
       see *The bell and the two picture buttons* below.
-    - **`pinTop`** = stays at the top of every list. The MAP PIN, added Aug
-      2026 — see *The map pin* below.
-    - **All four marks sit side by side in the thread header** — the
-      bookmark, the star, the bell, then the pin — so the difference is a
-      choice she makes in one place. The keep button is `.bmk.chatbmk`,
-      written that way and never `.chatbmk` (the `.bmk.hdrbmk` trap: the
-      generic `.bmk` rules sit LATER and win at equal specificity). Measured
-      at 375/390/430 — the row still fits on one line with none of them
-      buried.
+    - **`pinTop`** = stays at the top of every list. The PUSHPIN, added Aug
+      2026 — see *The pushpin* below. It is the one mark whose control is
+      **not** in the thread header: it lives on the home row, at her ask.
+    - **Three of the marks sit side by side in the thread header** — the
+      bookmark, the star, then the bell — so the difference is a choice she
+      makes in one place. The keep button is `.bmk.chatbmk`, written that way
+      and never `.chatbmk` (the `.bmk.hdrbmk` trap: the generic `.bmk` rules
+      sit LATER and win at equal specificity). Measured at 375/390/430 — the
+      row still fits on one line with none of them buried.
     - **Migration (2026-08-13):** the 22 chats starred under the OLD meaning
       were copied to `bookmarked` and their stars cleared, so nothing was
       lost and the star starts empty under its new meaning. She prunes the
@@ -1251,13 +1251,22 @@
     `getComputedStyle`, not the markup — a stray `.bmk`-style rule landing on
     one of these is exactly the failure worth catching, and it shows up
     nowhere else.
-  **THE MAP PIN — a chat that stays at the top (Aug 2026, Sophie: "an option
+  **THE PUSHPIN — a chat that stays at the top (Aug 2026, Sophie: "an option
   to pin chat to the top so they always show first when they come out of
   hiding and they never disappeared to the bottom if I don't look at them for
-  a while, and I guess I can just unpin them if necessary … can you use the
-  little dot pin for like Maps that people put on Maps, and make just the top
-  part turn red when it's pinned and click it again to unpin").** The fourth
-  per-chat mark, sitting after the bell in `#thread header .no`.
+  a while, and I guess I can just unpin them if necessary").** The fourth
+  per-chat mark, and the only one whose control is on the home ROW rather than
+  in the thread header.
+
+  **IT SHIPPED WRONG TWICE IN ONE PASS AND SHE CORRECTED BOTH — read this
+  before touching it.** Her first message said "the little dot pin for like
+  Maps that people put on Maps", which was built as a Lucide-style teardrop
+  marker. What she meant was a PUSHPIN: "sorry I was talking about the pin
+  that's like round with a metal thing sticking down from it — that's a
+  different one that you made." And it was put in the thread header beside the
+  other three marks, which was the wrong screen: "I was assuming it would go
+  right on the main page not inside of it." Both are settled now; don't drift
+  either back.
   - **It is HER OVERRIDE ON THE RECENCY SORT.** The home list is ordered by
     newest message, which is right for an inbox and wrong for the two or
     three chats she is actually steering: one she leaves alone for a day
@@ -1278,30 +1287,88 @@
     would shadow it and a field called `pinned` would collide with a value of
     a completely different shape.
   - **ONLY THE HEAD TURNS RED, which is why the glyph is TWO SHAPES.** Half
-    of one path cannot take a different colour, and Lucide's `map-pin` is a
-    single closed teardrop — so `PIN_SVG` is a fill-only `<circle>` (the
-    head, `.pinhead`) sitting inside a stroked `<path>` (the whole
-    silhouette). The circle and the arc share a centre and a radius, so the
-    fill lands exactly inside the outline. Two things to leave alone: the
-    circle carries `stroke="none"` (stroked, it draws a line straight across
-    the pin's neck), and the body path is never filled (filled, the teardrop
-    floods into a blob and the pin is gone). The tangent points
-    (7.11, 11.52) / (16.89, 11.52) are computed from r=5.5 with the tip 12
-    units below the centre — that is what makes the tail leave the head with
-    no corner at the join.
+    of one path cannot take a different colour, so `PIN_SVG` is a `<circle>`
+    (the head, `.pinhead`) over a `<path>` (the straight spike, starting
+    exactly at cy+r). Two things to leave alone: **the head is STROKED in
+    both states** and only *fills* when set — fill-only was tried and the
+    unpinned button read as a bare stick, because unlike the teardrop this
+    glyph's outline is not its whole silhouette; and the spike is LONGER than
+    the head is wide (10.6 vs 8.8), because at 15px a pin whose halves match
+    reads as a magnifying glass.
   - `.pinbtn` is grey `--line` at rest and `--ink2` when set, with the head
-    filling `--chg`: a grey outline under a red head reads as a disabled
-    control. Kept out of `.bmk` for the usual reason.
-  - **The row mark is the same glyph** (`.cr-pin`, at the front of the row
-    ahead of the bookmark and the star, drawn only when set). Without it a
-    pinned chat and a chat that just answered look identical, and nothing on
-    screen says why the row is where it is. `.cr-kept`'s blanket
-    `fill:currentColor` is deliberately not copied onto it.
+    taking `--chg` as both fill and stroke: a grey spike under a red head
+    reads as a disabled control. Kept out of `.bmk` for the usual reason.
+  - **The control is `mkPinTop`, on the row** — `.pinbtn.pinrow`, the same
+    circular-button family as the hide ⊖ it sits beside, and on the TILE
+    cover too (top-left, opposite the ⊖) because a control that works in one
+    of the two views is a bug rather than restraint. It repaints with
+    `renderHome`, not a local class flip: pinning MOVES the row, which is the
+    whole point. It hides in select mode with the ⊖ and the ✓.
+  - **There is NO separate pin mark at the front of the row.** One shipped
+    and was removed the same day the control moved: a lit control already
+    says the chat is pinned, and the mark was showing the same state twice.
+    The star and the bookmark stay marks because they have no row control.
   - Tests: `node scripts/test-chats-pin-top.js` (the real page, headless —
-    the sort tier including the just-came-back-from-hiding case, the row
-    mark, both POSTs, the roll-back on a failed save, a hit-test, and the
-    COMPUTED fills proving the head is red while the outline is not).
-    Verified failing with the sort tier removed.
+    the sort tier including the just-came-back-from-hiding case, the control
+    on the row and NOT in the header, no doubled mark, both POSTs, the row
+    actually moving, the roll-back on a failed save, a hit-test, the spike
+    being a straight line rather than an arc, and the COMPUTED fills proving
+    the head is red while the spike is not). Verified failing with the sort
+    tier removed.
+
+  **ORGANIZE — filing and tagging from inside a chat (Aug 2026, Sophie: "an
+  ability to tag or categorize something from within the chat itself, for
+  example I want to be able to tag it as come back to or tech or something
+  like that, so maybe just an icon that says organize and then it pulls up the
+  ability to tag and categorize which is already on the front page but so far
+  it doesn't work within there").** `.orgbtn` in `#thread header .no`, wearing
+  Lucide `tag` (`TAG_SVG`), opening `askOrganize`.
+  - **Both halves existed and neither was reachable from a thread.** FOLDERS
+    were home-screen-only and behind Select — pick rows, then the bar files
+    them, which is a round trip out of the chat she is reading and back. TAGS
+    only ever appeared on the way past, inside the archive sheet, so a chat
+    she was *not* archiving could not be tagged at all.
+  - **Two sections because they are two different things**, labelled, because
+    an unlabelled wall of identical chips gives no clue which tap is which:
+    **FOLDER** is exactly one per chat (`catList()`, `POST /category` with a
+    one-name list, plus a New… box and None), **TAGS** is many (`TAG_LIST`,
+    `POST /tags`) — the same vocabulary the archive sheet writes and the
+    archive's filter row reads.
+  - **Tapping the folder a chat is already in takes it out** — one control,
+    both directions, like every other toggle on this screen.
+  - **The `filedAt` stamp is written client-side here too**, copied from
+    `filePicked` and not left to the server's own: without it a chat with an
+    unread reply files itself and reappears on the same repaint (`chatBack`),
+    which reads as filing doing nothing.
+  - **Everything saves on the tap**, like the archive sheet — no OK button to
+    miss, and closing can never lose a choice. Done just shuts it and
+    repaints the home list, because a filed chat has left the unfiled pile.
+    The toast names the folder for the same reason: otherwise picking one
+    looks like the chat vanished.
+  - The pin used to sit in this slot, which is why the header row is still
+    six controls wide after the swap.
+
+  **THE SELECT BAR IS PINNED TO THE TOP (Aug 2026, Sophie: "when I am
+  selecting things to change their category right now the selection is at the
+  bottom instead — can you pin it to the top. It only shows when I'm actively
+  in selected mode by the way").**
+  - `.selbar` is `top:0` with a bottom border and a downward shadow. It only
+    exists while she is picking, so covering the masthead for the duration is
+    the point, not a cost.
+  - **The room it needs is measured, not guessed** — `paintSelBar` sets
+    `document.body.style.paddingTop` from the bar's real `offsetHeight`,
+    because the chips wrap and a long folder list makes the bar taller. It
+    goes on BODY, not on `#grid`: the masthead sits above the grid, so
+    padding the grid alone would leave the masthead under the bar and open a
+    gap below it. `exitSelect` and the not-selecting branch of `paintSelBar`
+    both clear it.
+  - **Moving it up put it in the autoscroll pill's corner, and the fix is to
+    HIDE THE PILL** (`body.selecting > .float`), not to reserve 56px the way
+    the tab rows do. Two reasons: a reserve would cost a chip's width on the
+    row that has the most chips, and `.float` is layer-promoted
+    (`translateZ`), which iOS can paint ABOVE the bar whatever the z-index
+    says — the same trap the `body.ontop > .float` rule already exists for.
+
 
   - **Rows branch on `kind`:** a chat row and a message row open a thread
     (a chat row at the top — there is no message to jump to), an artifact
