@@ -55,9 +55,20 @@ crimson-and-plum palette onto every frame.
   the style reference, and restate the preserve list ("same face, hair and
   build — do not redesign the character"), per the character-anchor technique
   already used by the movies pipeline.
-- **The girl character is NOT settled yet** (August 2026) — she's being
-  iterated on one scene at a time. When Sophie picks one, save it as
-  `refs/evan-girl-character.png` and add it here the same way.
+- **Girl character reference — `refs/evan-girl-character.png`** (SETTLED
+  2026-08-15). Sophie picked her from a spread of six faces drawn in the same
+  beat-1 bedroom scene: brown hair in braids with loose strands around her
+  face, strong brows, full lips, mid twenties. Public at
+  `https://storage.googleapis.com/membry-df528.firebasestorage.app/story/evan-girl-d-1786861883502.png`
+  Attach it as an extra `image[]` reference in any scene the girl appears in,
+  after the style reference, and restate the preserve list ("same face, hair
+  and build — do not redesign the character"), exactly as for Evan.
+  **Why this file exists:** before it did, twelve beats were drawn in one batch
+  and the girl came out as a different person in every one — Evan held because
+  he had a reference and she drifted because she had none. Her hairstyle may
+  vary per scene if a scene needs it (Sophie: "she could have a different
+  hairstyle in one image or not. Doesn't matter"); the FACE is what this
+  reference locks.
 
 ## Character descriptions (Sophie's own words)
 
