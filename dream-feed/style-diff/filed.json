@@ -1,0 +1,80 @@
+[
+  {
+    "file": "spaceship-sage.webp",
+    "styleId": "sage",
+    "styleLabel": "sage sandy mirror",
+    "dreamId": "spaceship",
+    "title": "Claude's Tiny Spaceship",
+    "panels": 3,
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb, a man with a startled face rolling out of its open door onto the road. No text or lettering anywhere.",
+    "style": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: [content] No text or lettering anywhere.\n\n(attached style ref: refs/sage-sandy-mirror.png — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb, a man with a startled face rolling out of its open door onto the road.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/spaceship-sage.webp"
+  },
+  {
+    "file": "halloween-sage.webp",
+    "styleId": "sage",
+    "styleLabel": "sage sandy mirror",
+    "dreamId": "halloween",
+    "title": "Last-Minute Halloween Party",
+    "panels": 5,
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a young woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; her face is visible in the mirror, anxious and hurrying. Through the open door behind her a crowded party of teenagers in costumes fills the next room. No text or lettering anywhere.",
+    "style": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: [content] No text or lettering anywhere.\n\n(attached style ref: refs/sage-sandy-mirror.png — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a young woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; her face is visible in the mirror, anxious and hurrying. Through the open door behind her a crowded party of teenagers in costumes fills the next room.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/halloween-sage.webp"
+  },
+  {
+    "file": "kitten-sage.webp",
+    "styleId": "sage",
+    "styleLabel": "sage sandy mirror",
+    "dreamId": "kitten",
+    "title": "Choosing a Kitten",
+    "panels": 4,
+    "prompt": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a man and a woman walking down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment. The two have stopped to look at one of the kittens, their faces visible — he is pleased, she is uncertain. No text or lettering anywhere.",
+    "style": "Use the attached image as a style reference. Only use its style, not its content — do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: [content] No text or lettering anywhere.\n\n(attached style ref: refs/sage-sandy-mirror.png — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a man and a woman walking down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment. The two have stopped to look at one of the kittens, their faces visible — he is pleased, she is uncertain.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/kitten-sage.webp"
+  },
+  {
+    "file": "spaceship-dream.webp",
+    "styleId": "dream",
+    "styleLabel": "dream mystery",
+    "dreamId": "spaceship",
+    "title": "Claude's Tiny Spaceship",
+    "panels": 3,
+    "prompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb, a man with a startled face rolling out of its open door onto the road. Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "style": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: [content] Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.\n\n(attached style ref: refs/dream-mystery.jpg — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a person sealed inside a tiny egg-shaped one-person spaceship rolling down the middle of a residential street at night, seen from the front; their eyes are covered by a smooth white helmet with a single narrow pill-shaped slit to see through. Behind them a car sits crashed at the kerb, a man with a startled face rolling out of its open door onto the road.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/spaceship-dream.webp"
+  },
+  {
+    "file": "halloween-dream.webp",
+    "styleId": "dream",
+    "styleLabel": "dream mystery",
+    "dreamId": "halloween",
+    "title": "Last-Minute Halloween Party",
+    "panels": 5,
+    "prompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: a young woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; her face is visible in the mirror, anxious and hurrying. Through the open door behind her a crowded party of teenagers in costumes fills the next room. Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "style": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: [content] Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.\n\n(attached style ref: refs/dream-mystery.jpg — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a young woman standing in front of a full-length mirror in a spare bedroom late at night, putting together a costume at the last minute, pulling on a blue jacket with gold trim at the cuffs; her face is visible in the mirror, anxious and hurrying. Through the open door behind her a crowded party of teenagers in costumes fills the next room.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/halloween-dream.webp"
+  },
+  {
+    "file": "kitten-dream.webp",
+    "styleId": "dream",
+    "styleLabel": "dream mystery",
+    "dreamId": "kitten",
+    "title": "Choosing a Kitten",
+    "panels": 4,
+    "prompt": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: a man and a woman walking down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment. The two have stopped to look at one of the kittens, their faces visible — he is pleased, she is uncertain. Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.",
+    "style": "The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.\n\nDraw: [content] Render as ONE single full-bleed illustration — a single image, NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.\n\n(attached style ref: refs/dream-mystery.jpg — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)",
+    "content": "a man and a woman walking down a long narrow corridor lined on both sides with small open compartments, a different odd-looking kitten sitting in each compartment. The two have stopped to look at one of the kittens, their faces visible — he is pleased, she is uncertain.",
+    "ok": true,
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/style-diff/kitten-dream.webp"
+  }
+]
