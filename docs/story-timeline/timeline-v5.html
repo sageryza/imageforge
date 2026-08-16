@@ -1,74 +1,10 @@
-#!/usr/bin/env node
-/* gen-story-timeline.js — build Sophie's story timeline Compare page from
-   docs/story-timeline/beats.json.
-     node scripts/gen-story-timeline.js            # write the html
-     node scripts/gen-story-timeline.js --post     # write it AND post the page
-     node scripts/gen-story-timeline.js --order    # print back everything she changed
-
-   THE CARD IS THE ATOM, THE UNIT IS WHAT MOVES. A unit is one moment or a
-   whole sequence of them, and a unit carries ONE number (Sophie, v2: "have the
-   sequences just have one number since they will stay together"). She builds
-   the units herself — the mark in the gap joins two into one, the one under a
-   number breaks one apart — so the grouping is HERS, not the JSON's.
-
-   EVERYTHING SHE CHANGES LIVES ON THE SERVER, NOT IN THIS FILE, on the chat's
-   verdict doc under `data.order`. Three kinds of record, so a rebuild of this
-   page can never overwrite her work:
-     order      `b1|b2|b3,b4,b5`  — `|` between units, `,` inside one
-     t:<id>     the words of one moment, when she has edited it or added it
-     gone       the ids she deleted, so they are not resurrected on load
-   The older order format (unit ids joined by commas, a sequence written
-   `s-b3`) is still read, so an arrangement from v3 carries over.
-
-   Ids are stable to the TEXT, not the position (`b7` is the belly button
-   forever; a moment she adds gets its own `n…` id at birth), so neither her
-   notes nor her arrangement slide onto a different moment when the JSON moves.
-
-   THE JSON IS THE STARTING POINT, NOT THE TRUTH, once she has touched a page:
-   fold her `--order` output back into beats.json before changing the source
-   text of a moment she has edited, or her version silently wins and the two
-   drift apart.
-
-   A NEW VERSION IS A NEW PAGE: bump `title` and post again; supersede the old
-   one rather than deleting it. */
-const fs = require('fs');
-const path = require('path');
-
-const ROOT = path.join(__dirname, '..');
-const SRC = path.join(ROOT, 'docs/story-timeline/beats.json');
-const data = JSON.parse(fs.readFileSync(SRC, 'utf8'));
-const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
-
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const attr = (s) => esc(s).replace(/"/g, '&quot;');
-
-/* blocks → the STARTING units. A `seq` block starts life as one unit. */
-const units = data.blocks.map((b) => (b.kind === 'seq'
-  ? { kind: 'seq', beats: b.beats }
-  : { kind: b.kind, beats: [b] }));
-
-// The "2x" tag sits OUTSIDE .say on purpose: .say holds nothing but the words,
-// so editing a moment can read and write its text without eating the tag.
-function card(b) {
-  const lab = b.kind === 'ref' ? `<span class="reflab">${esc(b.label)}</span>` : '';
-  const tag = b.tag ? `<span class="x">${esc(b.tag)}</span>` : '';
-  return `<div class="mcard${b.kind === 'ref' ? ' cast' : ''}" data-item="${attr(b.id)}">`
-    + `${lab}<span class="say">${esc(b.text)}</span>${tag}</div>`;
-}
-
-// The server paints the STARTING arrangement; the page script harvests the
-// cards out of it and builds every unit shell itself from then on. So the page
-// still reads as a plain list if the script never runs.
-const start = units.map((u) => `      <li class="unit${u.beats.length > 1 ? ' seq' : ''}">`
-  + `<div class="cards">${u.beats.map(card).join('')}</div></li>`).join('\n');
-
-const html = `<!doctype html>
+<!doctype html>
 <!-- Built by scripts/gen-story-timeline.js from docs/story-timeline/beats.json.
      Edit the JSON and rebuild; never hand-edit this file. Her arrangement, her
      edits and her deletions are NOT in here — they live on the server. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${esc(data.title)}</title>
+<title>Story timeline v5 — long sequences fold</title>
 <link rel="stylesheet" href="/compare.css">
 <style>
   /* layout only — every colour is a /compare.css token */
@@ -196,16 +132,33 @@ const html = `<!doctype html>
 </style>
 
 <div class="wrap">
-  <h1>${esc(data.title)}</h1>
+  <h1>Story timeline v5 — long sequences fold</h1>
   <ol class="tl" id="tl">
-${start}
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b1"><span class="say">the laundry basket</span><span class="x">2x</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b2"><span class="say">the phone that I should have stolen hanging out the window, that didn’t actually happen.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b3"><span class="say">The lilac moment where the colors are changing. I was like, I don’t want that.</span></div><div class="mcard" data-item="b4"><span class="say">And then the realization, followed by me, screaming and putting the thing into my belly button. So that’s three</span></div><div class="mcard" data-item="b5"><span class="say">one, getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front</span></div><div class="mcard" data-item="b6"><span class="say">and then, two was, like, screaming, I’m angry</span></div><div class="mcard" data-item="b7"><span class="say">and then, um, putting it in my belly button as a close up</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b8"><span class="say">and then, uh, the knife hiding the knife, producing the knife. Um, finding the knife, I guess.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b9"><span class="say">Him pulling out his gun.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b10"><span class="say">Him behind me explaining things to me on the chair.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b11"><span class="say">I guess the beginning where we were, like, at the wall</span></div><div class="mcard" data-item="b12"><span class="say">and then the train</span></div><div class="mcard" data-item="b13"><span class="say">and then walking in that place</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b14"><span class="say">the chair, three, four instances, one with sandy, two with Jonathan, one with that guy</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b15"><span class="say">saying, I love you</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b16"><span class="say">the woman, like, poor baby. Probably shouldn’t be here, but not trying to help.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b17"><span class="say">leaving through the creaky door when he falls asleep. That’s, like, the end</span></div><div class="mcard" data-item="b18"><span class="say">and then just sort of, like, laying down in the brush and crying a little bit, maybe. In relief, let’s say.</span></div><div class="mcard" data-item="b19"><span class="say">And then, let’s just say the lavender came back. I don’t know if it actually did</span></div><div class="mcard" data-item="b20"><span class="say">just seeing like what colors were actually there.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b21"><span class="say">the moment where they were like, oh, she has OCD, like, let’s rape her</span></div><div class="mcard" data-item="b22"><span class="say">so, where are we gonna rape her?</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b23"><span class="say">me, like, talking about having OCD and that happened with Laurian, too.</span></div><div class="mcard" data-item="b24"><span class="say">Um, and then just being like, yeah, okay, this is okay. Actually, I’m kind of scared</span></div><div class="mcard" data-item="b25"><span class="say">what, you found her at a mental hospital, like, can she leave now?</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b26"><span class="say">a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b27"><span class="say">my tights on the floor with $83 or so on them. But it’s not a big deal, ‘cause I have $1 million now, so it’s not a big deal.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b28"><span class="say">Oh yeah, also him closing the door, that’s a good one. That important.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard cast" data-item="cast"><span class="reflab">Character reference</span><span class="say">Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b29"><span class="say">Oh yeah, and then he was like, how was your 1st time? I was like, um, what?</span></div></div></li>
   </ol>
 </div>
 
 <script src="/compare.js"></script>
 <script>
 (function () {
-  var CHAT = '${data.chat}', SHEET = '${data.sheet}', ORDER = '${data.order}';
+  var CHAT = 'story-timeline-sequences', SHEET = 'timeline-b29', ORDER = 'timeline-order-b29';
   var tl = document.getElementById('tl');
 
   // Lucide, inlined: single = one step, double = all the way, converging =
@@ -408,8 +361,8 @@ ${start}
     var cut = box.selectionStart;
     var all = box.value;
     if (cut <= 0 || cut >= all.length) return;          // nothing to divide
-    var head = all.slice(0, cut).replace(/\\s+$/, '');
-    var tail = all.slice(cut).replace(/^\\s+/, '');
+    var head = all.slice(0, cut).replace(/\s+$/, '');
+    var tail = all.slice(cut).replace(/^\s+/, '');
     if (!head || !tail) return;
     closeEditor(c, false);
     setWords(id, head); saveText(id);
@@ -554,31 +507,3 @@ ${start}
     + 'It all saves as you go.' });
 })();
 </script>
-`;
-
-const v = data.title.match(/\bv(\d+)\b/);
-const out = path.join(ROOT, 'docs/story-timeline', (v ? 'timeline-v' + v[1] : 'timeline') + '.html');
-fs.writeFileSync(out, html);
-console.log('wrote ' + path.relative(ROOT, out) + '  ('
-  + units.length + ' starting units, ' + html.length + ' bytes)');
-
-if (process.argv.includes('--order')) {
-  fetch(BASE + '/api/chatfeed/verdict?chat=' + encodeURIComponent(data.chat)
-        + '&sheet=' + encodeURIComponent(data.order))
-    .then((r) => r.json())
-    .then((d) => {
-      const t = (d && d.texts) || {};
-      console.log('order: ' + (t.order || '(nothing saved yet)'));
-      if (t.gone) console.log('deleted: ' + t.gone);
-      Object.keys(t).filter((k) => k.indexOf('t:') === 0)
-        .forEach((k) => console.log(k.slice(2) + ': ' + JSON.stringify(t[k])));
-    });
-}
-
-if (process.argv.includes('--post')) {
-  fetch(BASE + '/api/chatfeed/page', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: data.chat, title: data.title, html }),
-  }).then((r) => r.json()).then((d) => console.log(JSON.stringify(d, null, 2)));
-}
