@@ -836,6 +836,29 @@
     its `.no` row — that one carries the crumb, Archive and Hide.
   - **The filter is session-only, never persisted.** A sticky filter would
     show her three chats one morning and read as the rest having vanished.
+  - **…AND THEN THE CHIPS FOLDED AWAY BEHIND ONE WORD (Aug 2026, Sophie:
+    "take the categories — like just for fun, stories, pretty much all of
+    them — off that page, just have a button that says tags and then once I
+    click it that's when it shows all the categories").** The row had grown
+    to ten folders and wrapped onto two lines above every list. Filing is a
+    burst — she does it in select mode — but the chips were paying rent at
+    the top of the screen the rest of the time: the MINIMIZE THE SCROLLING
+    rule, and the same argument that collapsed the search bar into its glass.
+    - The row at rest is the ★ chip and **TAGS** (`.tagsbtn`). One tap paints
+      every folder, another folds them away. `catsOpen` is session-only and
+      **always starts SHUT**, exactly like `searchOpen`.
+    - **TAGS carries the SUM of the folders' red unread numbers while they
+      are away**, and drops it once they are on screen. Filing takes a chat
+      off the main list, so without the sum a folded row would make every
+      reply inside a folder silent — the thing the per-chip badge was built
+      to prevent, hidden one level deeper.
+    - **A LIT FOLDER FORCES THE ROW OPEN** (`catsShown() = catsOpen || cat`),
+      and **closing clears the filter**. Either half alone gives the silent
+      filter this app keeps warning about: she would be looking at seven
+      chats with nothing on screen saying why, and no way back out.
+    - Select mode's own filing chips are untouched — the whole vocabulary is
+      always there to file into, whatever the row above is doing. Test:
+      `node scripts/test-chats-tags-button.js`.
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one

@@ -3001,6 +3001,27 @@ function chatStale(name,last){
 // three chats one morning and read as the rest having vanished.
 var CAT_SEEDS=['stories','tech'];
 var cat='';
+// ---- …AND THEN THE CHIPS FOLDED AWAY BEHIND ONE WORD (Aug 2026, Sophie) ----
+// "Take the categories — like just for fun, stories, pretty much all of them —
+// off that page, just have a button that says TAGS, and then once I click it
+// that's when it shows all the categories."
+//
+// The row had grown to ten folders and wrapped onto two lines above every
+// list. Filing is a burst — she does it in select mode — but the chips were
+// paying rent at the top of the screen the rest of the time, which is the
+// MINIMIZE THE SCROLLING rule and the same argument that collapsed the search
+// bar into its magnifying glass.
+//
+// SESSION-ONLY and always starting SHUT, exactly like the search bar: a row
+// that remembered being open would give the screen back for no reason on the
+// next launch.
+var catsOpen=false;
+// …EXCEPT WHILE A FOLDER IS LIT. A collapsed row with a live filter behind it
+// is the silent filter this app keeps warning about — she would be looking at
+// seven chats with nothing on screen saying why. So the chips force open
+// whenever `cat` is set, which also means the way OUT of a folder (tap the lit
+// chip) is never hidden.
+function catsShown(){ return catsOpen || !!cat; }
 // The ★ chip is a filter like a category, with one deliberate difference: it
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
@@ -3210,7 +3231,9 @@ function paintCatRow(g){
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
   sb.onclick=function(){ starOnly=!starOnly; if(starOnly) cat=''; renderHome(); window.scrollTo(0,0); };
   row.appendChild(sb);
-  catList().forEach(function(c){
+  // Counted BEFORE anything is painted, because the TAGS button needs the sum
+  // of them while the chips themselves are away.
+  var cats=catList().map(function(c){
     var mine=Object.keys(chats).filter(function(n){
       // acctMatch: the badge has to count the same chats the chip will SHOW,
       // or a folder promises replies that are on the other account's tab.
@@ -3219,7 +3242,28 @@ function paintCatRow(g){
     // how many chats in here have ANSWERED her — a finished reply she has not
     // opened. Counted per CHAT, not per message: "3" means three of them came
     // back, which is the thing she is deciding whether to go look at.
-    var fresh=mine.filter(function(n){ return chatAnswered(n, lastOf(g,n)); }).length;
+    return { name:c, fresh:mine.filter(function(n){ return chatAnswered(n, lastOf(g,n)); }).length };
+  });
+  var shown=catsShown();
+  // THE ONE WORD THE FOLDERS LIVE BEHIND — and it carries their red number
+  // added up. Filing a chat takes it off the main list, so without the sum a
+  // folded row would make every reply inside a folder silent: exactly the
+  // thing the per-chip badge was built to prevent, just hidden one level
+  // deeper. Tapping it open shows which folders those replies are in.
+  var waiting=cats.reduce(function(n,c){ return n+c.fresh; }, 0);
+  var tb=document.createElement('button');
+  tb.className='catchip tagsbtn'+(shown?' on':'');
+  tb.innerHTML='Tags'+((!shown&&waiting)?'<span class="cc-new">'+waiting+'</span>':'');
+  tb.setAttribute('aria-label',(shown?'Hide the categories':'Show the categories')
+    +((!shown&&waiting)? ' — '+waiting+' answered you' : ''));
+  // Closing CLEARS the filter. A lit folder forces the row open (catsShown),
+  // so without this the button would look dead on the one tap she is most
+  // likely to make — and folding a live filter away would hide it.
+  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen) cat=''; renderHome(); window.scrollTo(0,0); };
+  row.appendChild(tb);
+  if(!shown) return;
+  cats.forEach(function(e){
+    var c=e.name, fresh=e.fresh;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
     // ONE number, and it is the red one (Aug 2026, Sophie: "I don't need to
