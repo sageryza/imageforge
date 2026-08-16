@@ -37,6 +37,26 @@ list. **Every beat's edges were checked by re-transcribing the finished reel**,
 which caught four tails cut mid-sentence ("I think I…", "Yes, there…") that
 reading the timestamps alone would not have.
 
+## The page
+
+The three passages fold their text away behind a **Read it** tap, so the
+flagged list is near the top rather than 4,000 words down.
+
+It also **keeps her place** — position and the open/closed state of every fold,
+saved together and applied folds-first on the way back, because restoring a
+scroll offset against a different set of folds lands somewhere she never was.
+The key is the page's own path, so a new version of the page starts clean.
+
+The **jump arrows** (all the way up / all the way down) float **bottom-left**,
+which is the only free corner: the injected pill owns the top-right, and every
+item's note "+" is pinned in its own bottom-right.
+
+Test: `node scripts/test-horns-page.js` — drives the real generated page
+against the real pill in headless Chromium, 15 checks. It reloads the tab
+rather than relaunching the browser, because headless Chromium flushes
+localStorage to disk lazily and a relaunch lost the entry, which read as a
+page bug when it was the harness.
+
 ## The other 49
 
 `flagged.json` — 24 more in Part 1, 25 in Part 2, each with its span, what

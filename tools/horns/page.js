@@ -71,6 +71,20 @@ const html = `<!doctype html>
   .passage > summary::after { content: ' +'; }
   .passage[open] > summary::after { content: ' \\2212'; }
   .passage[open] > summary { margin-bottom: 4px; }
+  .jump {
+    position: fixed; z-index: 8;
+    left: max(14px, 4vw); bottom: calc(16px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .jump button {
+    width: 40px; height: 40px; padding: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .jump button:active { border-color: var(--gold); color: var(--gold); }
+  .jump svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+              stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   audio { width: 100%; margin: 8px 0 2px; }
   blockquote { margin-top: 8px; padding-left: 11px; border-left: 2px solid var(--line);
                color: var(--ink2); font-style: italic; font-size: 15px; }
@@ -101,13 +115,80 @@ ${flagCards(flagged.part1, 'p1')}
 ${flagCards(flagged.part2, 'p2')}
 </div>
 
+<nav class="jump">
+  <button type="button" id="jtop" aria-label="All the way to the top">
+    <svg viewBox="0 0 24 24"><path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/></svg>
+  </button>
+  <button type="button" id="jbot" aria-label="All the way to the bottom">
+    <svg viewBox="0 0 24 24"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>
+  </button>
+</nav>
+
 <script src="/compare.js"></script>
 <script>
 (function () {
   window.__compareNotes({ chat: ${JSON.stringify(CHAT)}, sheet: ${JSON.stringify(SHEET)} });
+
+  // ── keep her place ────────────────────────────────────────────────
+  // Keyed on THIS page's own path, so a new version of the page starts
+  // clean instead of inheriting an offset that now points somewhere else.
+  // The open/closed state of the folds is saved WITH the offset and applied
+  // FIRST on the way back: restoring a scroll position against a different
+  // set of folds lands somewhere she never was.
+  var KEY = 'horns-place:' + location.pathname;
+  var folds = function () { return [].slice.call(document.querySelectorAll('details.passage')); };
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        y: Math.round(window.scrollY),
+        open: folds().map(function (d) { return d.open ? 1 : 0 }),
+      }));
+    } catch (e) {}
+  }
+
+  function restore() {
+    var raw; try { raw = localStorage.getItem(KEY) } catch (e) { return }
+    if (!raw) return;
+    var st; try { st = JSON.parse(raw) } catch (e) { return }
+    if (!st || !st.y) return;
+    if (Array.isArray(st.open)) folds().forEach(function (d, i) { d.open = !!st.open[i] });
+    // Twice on purpose: once now, once after the webfont has settled, since
+    // a serif page reflows under a restored offset and drifts.
+    window.scrollTo(0, st.y);
+    requestAnimationFrame(function () { window.scrollTo(0, st.y) });
+    window.addEventListener('load', function () { window.scrollTo(0, st.y) }, { once: true });
+  }
+
+  var t = 0;
+  window.addEventListener('scroll', function () {
+    clearTimeout(t); t = setTimeout(save, 200);
+  }, { passive: true });
+  document.addEventListener('toggle', function (e) {
+    if (e.target.matches && e.target.matches('details.passage')) save();
+  }, true);
+  // iOS often never fires unload, and a backgrounded tab can be discarded.
+  window.addEventListener('pagehide', save);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) save() });
+
+  restore();
+
+  // ── all the way up / all the way down ─────────────────────────────
+  // These are <button>, which is already on the pill's shared skip list, so a
+  // tap can never START the autoscroll. Stopping a running one is deliberate:
+  // being thrown to the bottom while it scrolls is disorienting.
+  function jump(y) {
+    if (window.__scrollStop) window.__scrollStop();
+    window.scrollTo(0, y);
+    save();
+  }
+  document.getElementById('jtop').addEventListener('click', function () { jump(0) });
+  document.getElementById('jbot').addEventListener('click', function () {
+    jump(document.documentElement.scrollHeight);
+  });
   window.__compareHelp({ html: '<b>The three at the top are cut.</b> Each one plays its own '
     + 'audio, and the full text opens on a tap. Everything under them is flagged but not cut '
-    + 'yet — leave a note on any of them and I will cut it the same way.' });
+    + 'yet — leave a note on any of them and I will cut it the same way. The page remembers where you were, and the arrows go all the way up or all the way down.' });
 })();
 </script>`;
 
