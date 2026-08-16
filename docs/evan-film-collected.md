@@ -238,10 +238,11 @@ them blank.
     high ponytail with loose strands… that or braids."* Neither a bob nor
     glasses appears in it.
 
-**`refs/evan-girl-character.png` is not on `main`.** It is in
-**[PR #1296](https://github.com/sageryza/imageforge/pull/1296)** — open,
-unmerged, 2 files, +14/−3, no conflicts. The chat that opened it was blocked
-from merging by the permission system.
+**`refs/evan-girl-character.png` is now on `main`** —
+[PR #1296](https://github.com/sageryza/imageforge/pull/1296), merged
+2026-08-16. It had sat open because the chat that raised it was blocked from
+merging by the permission system; no checks were configured on it and the diff
+was the reference image plus a doc line.
 
 ---
 
@@ -278,8 +279,11 @@ never acted on. The substantive ones:
 1. **The voice-clone leftovers.** *"Still sitting in Storage under
    `voice-clones/evan-charlie/`… Want me to delete those too, or leave them?"*
    — asked Aug 15, never answered.
-2. **PR #1296** — open since Aug 16, needs a merge.
-3. **Low vs medium art for the final film** — never put to her.
+2. **Low vs medium art for the final film** — never put to her.
+3. **Which narrator is canon** — the Aug 10 bob or the Aug 16 braids.
+
+(1–3 are on the Compare page *"Evan — collected, and the three things only you
+can settle"*, one card each, so she can answer them in the app.)
 
 ---
 
@@ -287,7 +291,8 @@ never acted on. The substantive ones:
 
 In order, and none of it needs a new decision from her except where marked:
 
-1. **Merge PR #1296** so `refs/evan-girl-character.png` is on `main`.
+1. ~~**Merge PR #1296**~~ — **done 2026-08-16**, so
+   `refs/evan-girl-character.png` is on `main`.
 2. **Reconcile the marks onto the 148-key sheet** and retire the 42-key copy —
    or better, migrate both into the shipped `/blocks` tool so this cannot
    happen a third time.
