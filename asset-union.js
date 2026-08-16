@@ -25,6 +25,13 @@
  *   file  — the filename, exactly as before, for every record that carries no
  *           hash of either kind (everything filed before Aug 2026).
  *
+ * PROOF BEATS EVIDENCE. A content hash proves two records are the same bytes;
+ * a shared url or filename only says they share an address, and an address can
+ * be re-pointed (a fixed storage path overwritten with new bytes). So hashes
+ * join first and unconditionally, and a weak key may never merge two groups
+ * whose hashes disagree — the veto. Where it is ambiguous the code errs toward
+ * TWO tiles, because a duplicate is visible and a wrong merge HIDES a picture.
+ *
  * GROUPING IS TRANSITIVE, and it has to be: A can share its md5 with B while B
  * shares its filename with C, and all three are one picture. A per-key pass
  * would leave that chain as two tiles, so the join is union-find over the whole
@@ -62,21 +69,36 @@ function filenameKey(url) {
   return base || clean;
 }
 
+const norm = (v) => String(v || '').trim().toLowerCase();
+const urlKey = (url) => String(url || '').split('?')[0].split('#')[0].trim().toLowerCase();
+
 /**
- * Every key a record can be joined on. Namespaced, so an md5 can never be
+ * PROOF keys — a content hash. Two records carrying the same one ARE the same
+ * bytes, so these joins are unconditional. Namespaced, so an md5 can never be
  * compared against a sha256 (they are hashes of the same bytes and will never
- * be equal — silently failing to group is exactly the bug being fixed here).
+ * be equal — silently failing to group is exactly the bug this module exists
+ * to fix).
  */
-function joinKeys(rec) {
+function strongKeys(rec) {
   const keys = [];
-  const md5 = String(rec.md5 || '').trim().toLowerCase();
-  const sha = String(rec.hash || '').trim().toLowerCase();
+  const md5 = norm(rec.md5);
+  const sha = norm(rec.hash);
   if (md5) keys.push('m:' + md5);
   if (sha) keys.push('s:' + sha);
-  // THE EXACT URL, ALWAYS. Two records pointing at the identical url are the
-  // same picture — that is not a guess the way a shared basename is, so it
-  // needs no evidence to outweigh and can never repeat the vector-sheet bug
-  // (those were DIFFERENT urls that happened to end in `sheet.png`).
+  return keys;
+}
+
+/**
+ * EVIDENCE keys — a shared address, not shared bytes. Strong enough to join on
+ * when nothing contradicts it, and vetoed by a content hash that does (see
+ * THE HASH VETO in unionAssets).
+ */
+function weakKeys(rec) {
+  const keys = [];
+  // THE EXACT URL. Two records pointing at the identical url are almost always
+  // the same picture — far better evidence than a shared basename, which is
+  // what caused the vector-sheet bug (those were DIFFERENT urls that happened
+  // to end in `sheet.png`).
   //
   // Without it, the two records this tab is built from could not join when
   // only one of them carried a hash: the tab reads iOS creations (which the
@@ -86,7 +108,16 @@ function joinKeys(rec) {
   // every image she was sent twice, once bare and once labelled, and labelling
   // the asset record could never fix the bare creation beside it.
   // Measured 2026-08-15: 7 pictures, 14 tiles, 7 docs.
-  const u = String(rec.url || '').split('?')[0].split('#')[0].trim().toLowerCase();
+  //
+  // It is EVIDENCE and not proof because a url is an address, and an address
+  // can be re-pointed: a fixed storage path (`vector/<name>/sheet.png`,
+  // `refs/style.png`) overwritten with new bytes leaves two records agreeing
+  // on the url and describing two different pictures. Measured 2026-08-16
+  // across all 5,197 asset records in every chat: 274 urls are held by more
+  // than one record and ZERO of them have hashes that disagree — so this is a
+  // guard against a case that has not happened yet, not a repair of one that
+  // has.
+  const u = urlKey(rec.url);
   if (u) keys.push('u:' + u);
   // FILENAME ONLY WHEN THERE IS NO CONTENT HASH — which is what the note at the
   // top of this file always said this key was for ("for every record that
@@ -100,17 +131,24 @@ function joinKeys(rec) {
   // Sophie reported it as her images not posting; the posts had all succeeded.
   // Union-find is transitive, so one shared basename pulls the whole family in.
   //
-  // A shared filename is a GUESS that two records are one picture; a differing
-  // md5 is proof they are not. So the guess only gets a vote when there is no
-  // evidence to weigh it against. Records filed before Aug 2026 carry no hash
-  // at all and still join each other exactly as they used to, and the
-  // two-paths-one-picture case this module was built for is unaffected —
-  // a claude-deliveries copy is named `<ms>-<random>.<ext>` and never matched
-  // by filename anyway, which is the whole reason content hashing was added.
-  if (md5 || sha) return keys;
+  // Records filed before Aug 2026 carry no hash at all and still join each
+  // other exactly as they used to, and the two-paths-one-picture case this
+  // module was built for is unaffected — a claude-deliveries copy is named
+  // `<ms>-<random>.<ext>` and never matched by filename anyway, which is the
+  // whole reason content hashing was added.
+  if (norm(rec.md5) || norm(rec.hash)) return keys;
   const f = filenameKey(rec.url);
   if (f) keys.push('f:' + f);
   return keys;
+}
+
+/**
+ * Every key a record can be joined on, proof first. Kept as one function
+ * because the tests and any future reader want the whole identity of a record
+ * in one place; unionAssets uses the two halves separately so it can rank them.
+ */
+function joinKeys(rec) {
+  return strongKeys(rec).concat(weakKeys(rec));
 }
 
 function seedTile(r) {
@@ -175,16 +213,60 @@ function unionAssets(records) {
   // order follows first appearance however the joins happened to arrive.
   const parent = recs.map((_, i) => i);
   const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  // Each root carries the set of content hashes seen anywhere in its group —
+  // that is what the veto below weighs a url against.
+  const md5s = recs.map((r) => (norm(r.md5) ? new Set([norm(r.md5)]) : new Set()));
+  const shas = recs.map((r) => (norm(r.hash) ? new Set([norm(r.hash)]) : new Set()));
   const join = (a, b) => {
     a = find(a); b = find(b);
     if (a === b) return;
-    if (a < b) parent[b] = a; else parent[a] = b;
+    const root = a < b ? a : b;
+    const other = a < b ? b : a;
+    parent[other] = root;
+    md5s[other].forEach((v) => md5s[root].add(v));
+    shas[other].forEach((v) => shas[root].add(v));
   };
+
+  // PASS 1 — the proof keys. Same bytes is same picture, no questions asked.
   const firstWithKey = new Map();
   recs.forEach((r, i) => {
-    joinKeys(r).forEach((k) => {
+    strongKeys(r).forEach((k) => {
       if (firstWithKey.has(k)) join(firstWithKey.get(k), i);
       else firstWithKey.set(k, i);
+    });
+  });
+
+  // THE HASH VETO. A url is an address and an address can be re-pointed, so a
+  // shared url is evidence; a differing md5 is proof of two different pictures
+  // and always wins. Two groups may only be merged on a weak key when the
+  // merge leaves at most one distinct md5 and at most one distinct sha256
+  // across the whole group.
+  //
+  // Where the evidence is ambiguous this deliberately errs toward NOT merging:
+  // two tiles for one picture is a duplicate Sophie can see and ask about;
+  // one tile for two pictures HIDES the other behind `alts`, which is how six
+  // vector sheets went missing and got reported as "my images didn't post".
+  const agrees = (x, y) => {
+    if (!x.size || !y.size) return true;
+    if (x.size > 1 || y.size > 1) return false;
+    return x.values().next().value === y.values().next().value;
+  };
+  const compatible = (a, b) => {
+    a = find(a); b = find(b);
+    return a === b || (agrees(md5s[a], md5s[b]) && agrees(shas[a], shas[b]));
+  };
+
+  // PASS 2 — the evidence keys. A key can end up with more than one accepted
+  // group (that IS the veto firing), so a later record joins whichever of them
+  // it does not contradict rather than the first one that shares the key.
+  const seenWithKey = new Map();
+  recs.forEach((r, i) => {
+    weakKeys(r).forEach((k) => {
+      const reps = seenWithKey.get(k);
+      if (!reps) { seenWithKey.set(k, [i]); return; }
+      const match = reps.find((rep) => compatible(rep, i));
+      if (match === undefined) reps.push(i);
+      else join(match, i);
     });
   });
 
@@ -228,5 +310,6 @@ function creationRecord(c) {
 }
 
 module.exports = {
-  AUDIO_URL_RE, filenameKey, joinKeys, unionAssets, assetRecord, creationRecord,
+  AUDIO_URL_RE, filenameKey, joinKeys, strongKeys, weakKeys,
+  unionAssets, assetRecord, creationRecord,
 };
