@@ -179,10 +179,22 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   surface moved to gpt-image-2, so estimates given to Sophie ran ~25% high.
   When a model changes, its price changes with it — fix the figure in the same
   commit.
-  **An EDITS call also pays for what it reads**, so a run with style
-  references attached costs a little over the table (the attached image is
-  charged as input tokens); a `generations` call with no refs is the table
-  exactly.
+  **An EDITS call also pays for what it reads, and it is NOT small — measured
+  against Sophie's real invoice, 2026-08-16.** A style reference is charged as
+  input image tokens at $8/1M, and over 3,293 gpt-image-2 calls in 31 days the
+  refs averaged **2,310 tokens = 1.85¢ a call** — more than the whole output of
+  a `low` picture. So a low run with refs attached costs about **2.4¢, not
+  0.5¢**: at the cheap end the reference is most of the bill, and adding a
+  second or third ref adds that again. Medium and high barely notice it.
+  A `generations` call with no refs is the table exactly.
+  **The whole-month average was 6.3¢ an image all-in** (4.31¢ output + 1.85¢
+  refs + 0.09¢ text), i.e. the house default of medium-with-references — which
+  is the number to reach for when estimating a batch of ordinary runs rather
+  than the table's medium.
+  **The rates behind all of this** (gpt-image-2): text in $5/1M, image in
+  $8/1M, image out $30/1M. Verified end to end — pricing those tokens against
+  the usage export predicted $6.97 for a day the invoice billed at $7.10, the
+  gap being the handful of other models on it.
 - **Cancel is REPLICATE-ONLY, on purpose (Aug 2026, Sophie's call).** The X on
   a running job → "Are you sure you want to cancel?" → `POST
   /api/promptlab/:id/cancel` → status `cancelled`.
