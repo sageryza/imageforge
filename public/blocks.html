@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cutting Blocks</title>
+<!--
+  blocks.html — CUTTING BLOCKS, the top of the audio pipeline. Engine is
+  /api/blocks (blocks.js); the pipeline map is docs/audio-pipeline.md.
+
+  THIS PAGE IS A PORT, NOT A NEW DESIGN. It was a hand-authored Compare page
+  re-posted fourteen times, and almost every rule in the CSS below is one of
+  Sophie's corrections written down where the next version can't lose it — the
+  two controls per line (a maybe you can tap back out of), the invisible word
+  targets, the speaker badge being the control, the seams that take no room,
+  the cut pile. Those comments are kept VERBATIM from the artifact. What is
+  new is everything under them: the lines come from a real recording instead
+  of a baked-in array, her marks live on a Firestore doc instead of a chat's
+  verdict fields, and Render cuts the actual audio through the Episode
+  Editor's validated cutter.
+
+  Palette is the Cutting Room / Episode Editor family — the audio tools read
+  as one set. The pill's own five tokens (--ink --paper --chg --ink2 --rose)
+  are declared here too, or it renders black on transparent.
+-->
+<style>
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    /* the injected autoscroll pill styles itself from these */
+    --ink2:#7A7266; --chg:#C79633; --rose:#B4462F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:90px}
+  /* [hidden] must ALWAYS win — an author display rule silently overrides the
+     UA default (the bug that broke the Episode Editor's back button). */
+  [hidden]{display:none !important}
+  /* Inside the app the native nav bar carries the title AND the back chevron,
+     so the page hides its own (the Episode Editor pattern). */
+  body.native #back{display:none !important}
+  body.embed .tool-eyebrow, body.native .tool-eyebrow{display:none}
+
+  /* ── header ────────────────────────────────────────────────────────── */
+  header{position:sticky; top:0; z-index:8; background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:calc(11px + env(safe-area-inset-top)) 56px 10px 14px;  /* 56: the pill's corner */
+    display:flex; align-items:center; gap:10px}
+  header h1{margin:0; font-size:13px; font-weight:600; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--soft); flex:1}
+  #back{background:none; border:0; color:var(--goldline); padding:0; cursor:pointer;
+    display:flex; align-items:center; flex:none}
+  #helpbtn{flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--goldline);
+    background:transparent; color:var(--goldline); font:600 13px/1 -apple-system,sans-serif; cursor:pointer}
+  .helpcard{position:fixed; inset:auto 12px auto 12px; top:70px; z-index:40; background:var(--card);
+    border:1.5px solid var(--line); border-radius:6px; padding:14px 15px; font-size:14px; line-height:1.5;
+    box-shadow:0 8px 30px rgba(0,0,0,.14)}
+  .helpcard b{color:var(--goldline)}
+
+  main{padding:10px 12px}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:8px 13px; font:600 14px/1 -apple-system,sans-serif; cursor:pointer}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .btn[disabled]{opacity:.4}
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .muted{color:var(--soft); font-size:13px}
+
+  /* ── the recordings list ───────────────────────────────────────────── */
+  .src{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:10px 11px; margin-bottom:6px; cursor:pointer; color:inherit; font:inherit}
+  .src .nm{flex:1; font-size:14px; line-height:1.35}
+  .src .mt{font:600 11px/1 -apple-system,sans-serif; color:var(--soft); flex:none}
+  .src .dot{flex:none; width:7px; height:7px; border-radius:50%; background:var(--gold)}
+  .tabs{display:flex; border-bottom:1px solid var(--line); margin-bottom:10px; position:relative}
+  .tabs button{flex:1; background:none; border:0; padding:9px 0 8px; cursor:pointer;
+    font:600 11px/1 -apple-system,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--soft)}
+  .tabs button.on{color:var(--ink)}
+  .tabs .ul{position:absolute; bottom:-1px; left:0; height:1.5px; background:var(--ink);
+    width:50%; transition:transform .16s ease}
+
+  /* ── the working strip ─────────────────────────────────────────────────
+     it sits LEFT — the autoscroll pill owns the top-right corner
+     (x 324-374) and anything under it is untappable */
+  #fl{position:fixed; top:max(58px, calc(50px + env(safe-area-inset-top))); left:max(10px,3vw);
+      z-index:20; display:flex; align-items:center; gap:7px;
+      background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:5px 8px}
+  #fl button{width:26px; height:26px; border:0; background:transparent; color:var(--soft);
+             cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0}
+  #fl button:disabled{opacity:.35}
+  #fl button.on{background:rgba(160,130,60,.16); color:var(--gold); border-radius:5px}
+  #fl .n{font:600 11px/1 -apple-system,sans-serif; color:var(--ink); margin-left:2px}
+  #fl .n em{font-style:normal; color:var(--gold)}
+  /* An inline <svg> inside a display:flex button is a flex item, and with no
+     CSS width it collapses to ZERO WIDTH — the icon is present and correctly
+     stroked but draws nothing. Every icon here needs a size and flex:0 0 auto. */
+  #fl button svg, .st svg, .qm svg, .tw svg, .ln svg{width:15px; height:15px; flex:0 0 auto; display:block}
+  /* TWO CONTROLS PER LINE, side by side, since v8 (Sophie caught the flaw in
+     the single tap-cycle: from a maybe, "if I tap it again it will just
+     disappear" — the way back to normal ran THROUGH the vanishing state).
+     The ? cycles the in-states: blank → locked in → not sure → blank. The ✕
+     does exactly one thing: out (and, in the pile, back). Nothing on the ?
+     ever removes a line; nothing but the ✕ ever does. */
+  .qm .i-lock, .qm .i-maybe{display:none}
+  .c[data-state="keep"]  .qm .i-open,  .s[data-state="keep"]  .qm.sec .i-open {display:none}
+  .c[data-state="maybe"] .qm .i-open,  .s[data-state="maybe"] .qm.sec .i-open {display:none}
+  .c[data-state="keep"]  .qm .i-lock,  .s[data-state="keep"]  .qm.sec .i-lock {display:block}
+  .c[data-state="maybe"] .qm .i-maybe, .s[data-state="maybe"] .qm.sec .i-maybe{display:block}
+  #work{padding-top:44px}
+  .s{border:1.5px solid var(--line); border-radius:6px; margin:8px 0; overflow:hidden; background:var(--card)}
+  .s .hd{display:flex; align-items:center; gap:8px; padding:9px}
+  .s .ti{flex:1; font:600 13px/1.35 -apple-system,sans-serif; color:var(--ink)}
+  .s .sd{font:600 10px/1 -apple-system,sans-serif; color:var(--soft)}
+  .s .tw{flex:0 0 auto; width:24px; height:24px; border:0; background:none; color:var(--soft);
+         cursor:pointer; display:flex; align-items:center; justify-content:center}
+  /* the black play at the top of every paragraph — plays that whole paragraph
+     of the CURRENT recording (cuts and all; a fresh cut is a render, not a play) */
+  .php{flex:0 0 auto; width:24px; height:24px; border-radius:5px; border:1.5px solid var(--ink);
+       background:transparent; color:var(--ink); font-size:9px; line-height:1; cursor:pointer;
+       display:flex; align-items:center; justify-content:center; padding:0; margin-right:2px}
+  .php.on{background:var(--ink); color:var(--paper)}
+  #fl #playall{color:var(--ink); font-size:11px}
+  #fl #playall.on{background:var(--ink); color:var(--paper); border-radius:5px}
+  /* rendering: the button breathes until the cut is ready (seconds the first
+     time; instant ever after — the server banks every cut by WHAT it is) */
+  .php.busy, #fl #playall.busy{animation:cbb 1.2s ease-in-out infinite}
+  @keyframes cbb{50%{opacity:.3}}
+  .s .l2, .s .l3{display:none; padding:0 9px 9px}
+  .s[data-lv="2"] .l2{display:flex; gap:8px; align-items:center}
+  .s[data-lv="3"] .l3{display:block}
+  .l2 .tx{flex:1; font-size:14px; line-height:1.5; color:var(--ink)}
+  .c{display:flex; align-items:flex-start; gap:8px; border:1.5px solid var(--line); border-radius:6px;
+     padding:7px 8px; margin:6px 0}
+  .c .tx{flex:1; font-size:14px; line-height:1.45; color:var(--ink)}
+  /* THE BADGE IS THE CONTROL (v13, Sophie: a TTS line of hers was labelled as
+     her own voice). Only she knows which lines were spoken and which were
+     rendered, so this is hers to set. On the OPEN line the badge is tappable,
+     and a line with no speaker shows a dim ghost badge to turn on. Deliberately
+     NOT another button in the left column: that column's height is what made
+     the cards grow, and the badge is already exactly where the answer reads.
+     The badge also survives the strike — an ancestor's line-through paints
+     straight through inline children, and inline-block is the escape. */
+  .c.sel .wh{outline:1px dashed rgba(160,130,60,.55); outline-offset:1px}
+  .wh.ghost{display:none}
+  .c.sel .wh.ghost{display:inline-block; opacity:.4}
+  .wh, .nw{font:700 9px/1 -apple-system,sans-serif; letter-spacing:.07em; text-transform:uppercase;
+       color:var(--goldline); border:1px solid var(--gold); border-radius:3px; padding:2px 4px;
+       margin-right:4px; display:inline-block; text-decoration:none}
+  /* ── MARKS BELONG TO THE CARD SHE TAPPED (Sophie, Aug 2026: "make the mark
+     mode per line rather than per the whole block — when I click on it, it
+     shows all the options") ──────────────────────────────────────────────
+     Tapping a line opens everything on it at once: the play button, its place
+     in the cut, the chain, and its words as marks. One tap on a word cuts the
+     line in two there. Nothing else on the page changes, so the rest of the
+     paragraph stays ordinary prose and only the line she is working on spreads
+     out.
+     NOTHING IS DRAWN AROUND A WORD (Sophie, Aug 2026: "get rid of the weird
+     boxes, they take out too much space and I don't like them — I can just
+     click on the words"). She only taps two words to lift a phrase out, so the
+     page has no reason to advertise every word as a target. The hit area is
+     still generous and simply INVISIBLE: padding, no background, no border, no
+     inset highlight. The floor on the width is what keeps a bare "I" — 4px of
+     ink — from being the video game it was.
+     The open line sets EXACTLY like every other line (Sophie: "why are there
+     extra spaces between the lines? that's a mistake") — the padding grows the
+     hit box and an equal negative margin gives the space back, so the line box
+     never grows. Don't put the line-height back to buy tap room. */
+  .c.sel .w{display:inline-block; min-width:11px; text-align:center;
+        padding:7px 0; margin:-7px 0; cursor:pointer}
+  .c.sel .w:active{color:var(--gold)}
+  /* ── melding (Sophie: "make it so that the link button is in the floating
+     tools at the top and when it's activated it shows lines between each
+     thingy, and if you press one then it links the two together") ──────────
+     The chain buttons came OFF the cards — stacked in the left column they made
+     every selected card taller, which read as the page breaking. Link mode is
+     add mode's twin: the strip's chain lights, a tappable seam appears between
+     every pair that can be joined, one tap melds that pair into ONE card and
+     the mode ends.
+     A SEAM TAKES NO ROOM (v10 — Sophie: entering link mode "still scrolls
+     away"). v9's seams were real 26px rows, ~100 of them, so the page grew and
+     everything drifted however well one point was anchored. A first try at
+     zero-height in-flow buttons still leaked pixels (buttons do not
+     margin-collapse like plain boxes), so a seam is ABSOLUTE — laid over the
+     boundary from the next card's own offset, completely out of the flow. */
+  #secs{position:relative}
+  .s .l3{position:relative}
+  .seam{display:none; position:absolute; left:0; right:0; height:28px; z-index:6;
+        margin:0; padding:0; border:0; background:none; cursor:pointer;
+        align-items:center; justify-content:center; color:var(--gold)}
+  body.linking .seam{display:flex}
+  .seam::before, .seam::after{content:''; flex:1; border-top:1.5px solid var(--gold); opacity:.55}
+  .seam svg{width:15px; height:15px; flex:0 0 auto; margin:0 8px; background:var(--paper)}
+  .seam:active{color:#8a6d33}
+  /* the play button appears only on the line she has tapped */
+  .pl{display:none; flex:0 0 auto; width:26px; height:26px; border-radius:5px; border:1.5px solid var(--gold);
+      background:transparent; color:var(--goldline); font-size:10px; line-height:1; cursor:pointer}
+  .c.sel .pl, .l2.sel .pl{display:flex; align-items:center; justify-content:center}
+  .lft{display:flex; flex-direction:column; align-items:center; gap:3px; flex:0 0 auto}
+  .num{display:none; width:30px; padding:2px 0; text-align:center; border:1.5px solid var(--line);
+       border-radius:4px; background:transparent; color:var(--ink);
+       font:600 11px/1.2 -apple-system,sans-serif}
+  .c.sel .num{display:block}
+  .c.sel{border-color:var(--gold)}
+  .pl.on{background:var(--gold); color:var(--paper)}
+  .st, .qm{flex:0 0 auto; width:26px; height:26px; border:0; background:transparent; color:var(--soft);
+      cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0}
+  .c .qm{margin-right:-4px}
+  .c.keep{border-color:var(--gold)} .c.keep .qm{color:var(--gold)}
+  .c.cut{border-color:var(--bad); background:rgba(179,68,63,.07)}
+  .c.cut .tx{text-decoration:line-through; text-decoration-color:var(--bad); color:var(--soft)}
+  .c.cut .st{color:var(--bad)}
+  .s.keep{border-color:var(--gold)} .s.keep .qm.sec{color:var(--gold)}
+  .s.cut{border-color:var(--bad); background:rgba(179,68,63,.05)}
+  .s.cut .ti{text-decoration:line-through; text-decoration-color:var(--bad); color:var(--soft)}
+  .s.cut .st.sec{color:var(--bad)}
+  .s.melded{display:none}
+  /* adding a line */
+  .slot{display:none}
+  body.adding .slot{display:block; height:22px; margin:2px 0; border-radius:4px;
+        border:1.5px dashed var(--gold); background:rgba(160,130,60,.06); cursor:pointer}
+  body.adding .slot:active{background:rgba(160,130,60,.2)}
+  .c.new{border-style:dashed; border-color:var(--gold); background:rgba(160,130,60,.05)}
+  /* THE BOX SHIPS EMPTY — no example text, not even a placeholder. */
+  .c.new .ed{display:inline-block; min-width:70%; min-height:19px; outline:none;
+        border-bottom:1px dotted var(--gold)}
+  /* ── THE CUT PILE (Sophie: "when I ex something it should just leave... but
+     a hide button so I can still see it if I want to"). A cut line is PUT
+     AWAY, never destroyed — body.hidecut folds it out of sight and the ✕ in
+     the strip carries the count and brings the pile back. Paragraphs stay
+     visible even when every line in them is cut: the struck header is the only
+     control that can un-cut the whole paragraph. */
+  body.hidecut .c.cut{display:none}
+  #pile{position:relative}
+  #pile .k{font:600 10px/1 -apple-system,sans-serif; margin-left:1px}
+  #fl #pile[data-n="0"]{opacity:.35; pointer-events:none}
+  /* the pile SHOWING is the loud state — the page is not in its working shape */
+  #fl #pile.on{background:rgba(179,68,63,.14); color:var(--bad); border-radius:5px}
+  /* an open paragraph whose lines are all put away says so, rather than
+     reading as an empty box she broke */
+  .l3 .allcut{display:none; font:600 11px/1 -apple-system,sans-serif; color:var(--soft); padding:7px 2px}
+  body.hidecut .s[data-state="cut"] .l3 .allcut{display:block}
+  /* ── MAYBE — "if there's things I definitely want out I'm sure of them, or
+     things I'm not sure about" (Sophie). One stroke = not sure, two strokes =
+     sure. Only the SURE ones go to the pile; a maybe stays on the page because
+     the whole point of it is that she still has to look at it.
+     A MAYBE LOOKS EXACTLY LIKE A CUT (Sophie: "why did you change the styling
+     for the things that get exed and red?"). It shipped dashed for one version
+     to keep "not sure" apart from "definitely out" — but a cut line LEAVES the
+     page, so the only exed-out thing she ever sees is a maybe and there was
+     nothing for it to be mistaken for. What tells them apart is the ✕ ITSELF,
+     plus, when the pile is open, the put-away ones sit back at reduced opacity. */
+  .st .i-maybe{display:none}
+  .c[data-state="maybe"] .st .i-open, .s[data-state="maybe"] .st.sec .i-open{display:none}
+  .c[data-state="maybe"] .st .i-maybe, .s[data-state="maybe"] .st.sec .i-maybe{display:block}
+  .c.maybe{border-color:var(--bad); background:rgba(179,68,63,.07)}
+  .c.maybe .tx{text-decoration:line-through; text-decoration-color:var(--bad); color:var(--soft)}
+  .c.maybe .qm{color:var(--bad)}
+  .s.maybe{border-color:var(--bad); background:rgba(179,68,63,.05)}
+  .s.maybe .ti{text-decoration:line-through; text-decoration-color:var(--bad); color:var(--soft)}
+  .s.maybe .qm.sec{color:var(--bad)}
+  body:not(.hidecut) .c.cut{opacity:.62}
+  #fl .n i{font-style:normal; color:var(--bad); opacity:.8}
+  /* ── the render bar ──────────────────────────────────────────────────── */
+  #bar{position:fixed; left:0; right:0; bottom:0; z-index:18; background:var(--paper);
+    border-top:1px solid var(--line); padding:9px 14px calc(9px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:9px}
+  #bar .st8{flex:1; font-size:12px; color:var(--soft)}
+  .rnd{display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
+    border-radius:6px; padding:8px 10px; margin-top:6px; font-size:13px}
+</style>
+</head>
+<body class="tool">
+
+<header>
+  <button id="back" aria-label="back" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+  <h1 class="tool-eyebrow">Cutting Blocks</h1>
+  <button id="helpbtn" aria-label="what this is">?</button>
+</header>
+
+<div class="helpcard" id="helpcard" hidden>
+  <p><b>Open a recording</b> and it comes apart into lines.</p>
+  <p>Tap a line to open it — then a tap on any word cuts it in two there, the badge
+  says who speaks it, and the number moves it. The <b>?</b> marks it locked in or
+  not sure; the <b>✕</b> puts it away.</p>
+  <p>The <b>+</b> adds a line you type, spoken in your voice. The <b>chain</b> joins
+  two lines back into one. <b>▶</b> at the top plays the whole thing as you have
+  marked it. <b>Render</b> cuts it for real.</p>
+</div>
+
+<main>
+  <!-- STEP 1: pick a recording -->
+  <section id="home">
+    <div class="tabs">
+      <button data-tab="0" class="on">Working on</button>
+      <button data-tab="1">Recordings</button>
+      <span class="ul"></span>
+    </div>
+    <div id="projects"></div>
+    <div id="sources" hidden></div>
+  </section>
+
+  <!-- STEP 2: the lines -->
+  <section id="work" hidden>
+    <div id="secs"></div>
+    <div id="renders"></div>
+  </section>
+</main>
+
+<div id="fl" hidden>
+  <button id="playall" aria-label="hear the whole thing as you have marked it">&#9654;</button>
+  <button id="undo" aria-label="undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  <button id="redo" aria-label="redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+  <button id="add" aria-label="add a line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button id="link" aria-label="link two lines together" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
+  <button id="fold" aria-label="close this paragraph" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg></button>
+  <button id="pile" aria-label="show or hide the lines you cut" data-n="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg><span class="k">0</span></button>
+  <span class="n"><em id="keep">0:00</em>/<span id="all">0:00</span><i id="floor"></i></span>
+</div>
+
+<div id="bar" hidden>
+  <span class="st8" id="st8"></span>
+  <button class="btn" id="render">Render</button>
+</div>
+
+<script>
+/* The page's own script is wrapped in an IIFE: the injected autoscroll pill
+   runs in global scope declaring `var raf`, `var I`, `var playing`, … and a
+   page-level `let`/`const` of the same name kills its script at PARSE time. */
+(function () {
+  'use strict';
+  var API='/api/blocks';
+  var TOKEN=new URLSearchParams(location.search).get('token')||'';
+  function url(p){ return API+p+(TOKEN?(p.indexOf('?')>=0?'&':'?')+'token='+encodeURIComponent(TOKEN):''); }
+  function j(p, opt){ return fetch(url(p), opt).then(function(r){ return r.json(); }); }
+  function post(p, body){
+    return j(p, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{}) });
+  }
+  var esc=function(s){ return String(s).replace(/[<&]/g,''); };
+  function fmt(s){ return Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0'); }
+
+  var I={
+    open:'<svg class="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+    lock:'<svg class="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    cut:'<svg class="i-cut" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    maybe:'<svg class="i-maybe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.7 8.5a3.3 3.3 0 1 1 4.8 2.9c-1 .55-1.5 1.1-1.5 2.3"/><path d="M12 17.6h.01"/></svg>',
+    chain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+    down:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    right:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
+  };
+  var QICONS=I.open+I.lock+I.maybe;
+  // the ? walks the in-states; the ✕ is out, and out only
+  var QORDER=['','keep','maybe'];
+  function qNext(st){ return QORDER[(QORDER.indexOf(st==='cut'?'':st)+1)%QORDER.length]; }
+
+  /* ── the project ────────────────────────────────────────────────────── */
+  var PID=null, SRC='', MODEL=[], SECS=[], TOTAL=0, BY={}, SECOF={}, BLOCK_INDEX={};
+  /* Her marking state. Every one of these is a whitelisted field on the doc —
+     the page owns what a split or a meld MEANS, the server owns that it
+     survives. */
+  var custom={};   // card key -> [{b,a,z}]  the cards she has split or melded
+  var ttsUrls={};  // added-line id -> its rendered ElevenLabs mp3
+  var whoOver={};  // block id -> the speaker SHE says it is
+  var secMeld={};  // paragraph key -> the paragraph it was linked INTO
+  var state={};    // card key -> ''|'keep'|'maybe'|'cut'
+  var added={};    // added-line id -> her typed line
+  var order=[];    // the saved running order
+  var newN=0;
+
+  /* SAVING IS DEBOUNCED AND COALESCED. Every gesture used to be its own POST
+     (one verdict field each); marking twenty lines in a row is now one write.
+     Dirty keys are tracked, not values, so the save always sends what the page
+     currently believes rather than a stale snapshot. */
+  var dirty={}, saveT=null;
+  function mark(key){ dirty[key]=true; clearTimeout(saveT); saveT=setTimeout(flush, 700); }
+  function snapshot(key){
+    if(key==='marks') return state;
+    if(key==='custom'){ var o={}; Object.keys(custom).forEach(function(k){ o[k]=encSegs(custom[k]); }); return o; }
+    if(key==='whoOver') return whoOver;
+    if(key==='added') return added;
+    if(key==='ttsUrls') return ttsUrls;
+    if(key==='secMeld') return secMeld;
+    if(key==='order') return orderList();
+    return null;
+  }
+  function flush(){
+    if(!PID) return;
+    var keys=Object.keys(dirty); if(!keys.length) return;
+    dirty={};
+    var patch={}; keys.forEach(function(k){ patch[k]=snapshot(k); });
+    post('/'+PID+'/state', { patch:patch }).catch(function(){
+      keys.forEach(function(k){ dirty[k]=true; });   // a failed save is retried, never dropped
+    });
+  }
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) flush(); });
+
+  // a line's speaker: her override wins over whatever the recording was labelled
+  function whoOf(bid){ return whoOver[bid] || (BY[bid] ? BY[bid].who : 'you'); }
+  function setWho(card){
+    var first=decSegs(card.dataset.segs)[0]; if(!first) return;
+    var bid=first.b, orig=BY[bid].who, now=whoOf(bid);
+    var next = now==='TTS' ? (orig==='TTS' ? 'you' : orig) : 'TTS';
+    if(next===orig) delete whoOver[bid]; else whoOver[bid]=next;
+    mark('whoOver');
+    var b=card.querySelector('.wh');
+    if(b){ b.textContent = next==='you' ? 'TTS' : next; b.classList.toggle('ghost', next==='you'); }
+    paintAll();
+  }
+  function segWords(sg){ return BY[sg.b].words.slice(sg.a, sg.z); }
+  function segsText(sgs){ var w=[]; sgs.forEach(function(s){ w=w.concat(segWords(s)); }); return w; }
+  function encSegs(sgs){ return sgs.map(function(s){ return s.b+':'+s.a+'-'+s.z; }).join(','); }
+  function decSegs(str){
+    return String(str||'').split(',').filter(Boolean).map(function(p){
+      var m=/^(\w+):(\d+)-(\d+)$/.exec(p); if(!m) return null;
+      return { b:m[1], a:+m[2], z:+m[3] };
+    }).filter(function(s){ return s && BY[s.b]; });
+  }
+  /* a card's span in the recording, worked out pro rata across its words. It
+     drives the ▶ preview ONLY — the real cut re-listens to the window and uses
+     the Episode Editor's cutter, which is why this being approximate is fine. */
+  function spanOf(sgs){
+    if(!sgs.length) return [0,0];
+    var f=sgs[0], l=sgs[sgs.length-1], bf=BY[f.b], bl=BY[l.b];
+    var t0=bf.t0 + (bf.t1-bf.t0)*(f.a/Math.max(1,bf.words.length));
+    var t1=bl.t0 + (bl.t1-bl.t0)*(l.z/Math.max(1,bl.words.length));
+    return [t0, Math.max(t1,t0+0.2)];
+  }
+  function durOf(sgs){
+    var d=0; sgs.forEach(function(s){ var b=BY[s.b];
+      d += b.dur * ((s.z-s.a)/Math.max(1,b.words.length)); });
+    return d;
+  }
+
+  /* ── drawing a card ─────────────────────────────────────────────────── */
+  function mkCard(key, sgs, isPiece){
+    var d=document.createElement('div');
+    d.className='c'+(isPiece?' piece':'');
+    d.dataset.id=key; d.dataset.segs=encSegs(sgs);
+    var who=whoOf(sgs[0].b), sp=spanOf(sgs);
+    d.dataset.t0=sp[0]; d.dataset.t1=sp[1]; d.dataset.dur=durOf(sgs).toFixed(3);
+    d.dataset.state=state[key]||'';
+    d.innerHTML='<span class="lft"><input class="num" inputmode="numeric" aria-label="its place in the cut">'
+      +'<button class="pl" aria-label="hear it">&#9654;</button></span>'
+      +'<span class="tx">'+(who!=='you'?'<b class="wh">'+esc(who)+'</b> ':'<b class="wh ghost">TTS</b> ')
+      + segsText(sgs).map(function(w,i){ return '<span class="w" data-w="'+i+'">'+esc(w)+'</span>'; }).join(' ')
+      +'</span>'
+      +'<button class="qm" aria-label="locked in, not sure, or neither">'+QICONS+'</button>'
+      +'<button class="st" aria-label="cut it, or bring it back">'+I.cut+I.maybe+'</button>';
+    paintOne(d);
+    return d;
+  }
+  function mkNew(id, text){
+    var d=document.createElement('div');
+    d.className='c new'; d.dataset.id=id; d.dataset.t0='0'; d.dataset.t1='0'; d.dataset.dur='0';
+    d.dataset.state=state[id]||'';
+    d.innerHTML='<span class="lft"><input class="num" inputmode="numeric" aria-label="its place in the cut">'
+      +'<button class="pl" aria-label="hear it in your voice">&#9654;</button></span>'
+      +'<span class="tx"><b class="nw">TTS</b> <span class="ed" contenteditable="true"></span></span>'
+      +'<button class="qm" aria-label="locked in, not sure, or neither">'+QICONS+'</button>'
+      +'<button class="st" aria-label="cut it, or bring it back">'+I.cut+I.maybe+'</button>';
+    d.querySelector('.ed').textContent=text||'';
+    paintOne(d);
+    return d;
+  }
+
+  function build(){
+    var host=document.getElementById('secs'); host.innerHTML='';
+    SECS.forEach(function(sec){
+      var s=document.createElement('div');
+      s.className='s'; s.dataset.sec=sec.key; s.dataset.lv='0';
+      s.dataset.state=state[sec.key]||'';
+      s.innerHTML='<div class="hd"><button class="tw" aria-label="open this paragraph">'+I.right+'</button>'
+        +'<button class="php" aria-label="hear this paragraph">&#9654;</button>'
+        +'<span class="ti">'+esc(sec.title)+'</span><span class="sd"></span>'
+        +'<button class="qm sec" aria-label="locked in, not sure, or neither">'+QICONS+'</button>'
+        +'<button class="st sec" aria-label="cut the paragraph, or bring it back">'+I.cut+I.maybe+'</button></div>'
+        +'<div class="l2"><button class="pl" aria-label="hear this paragraph">&#9654;</button><span class="tx"></span></div>'
+        +'<div class="l3"><div class="allcut">every line here is put away</div></div>';
+      var l3=s.querySelector('.l3');
+      sec.blocks.forEach(function(bid){
+        var key=bid;
+        var sgs = custom[key] || [{ b:bid, a:0, z:BY[bid].words.length }];
+        l3.appendChild(mkCard(key, sgs, false));
+      });
+      host.appendChild(s);
+    });
+    // the pieces she split off, and the lines she typed, restored into place
+    Object.keys(custom).forEach(function(key){
+      if(document.querySelector('.c[data-id="'+key+'"]')) return;
+      var sgs=custom[key]; if(!sgs || !sgs.length) return;
+      var host2=document.querySelector('.s[data-sec="'+(SECOF[sgs[0].b]||SECS[0].key)+'"] .l3');
+      if(host2) host2.appendChild(mkCard(key, sgs, true));
+    });
+    Object.keys(added).forEach(function(id){
+      if(document.querySelector('.c[data-id="'+id+'"]')) return;
+      var host3=document.querySelector('.s .l3');
+      if(host3) host3.appendChild(mkNew(id, added[id]));
+      var n=+(/^n(\d+)$/.exec(id)||[0,0])[1]; if(n>=newN) newN=n+1;
+    });
+  }
+
+  function paintOne(el){
+    var st=el.dataset.state||'';
+    el.classList.toggle('keep', st==='keep');
+    el.classList.toggle('cut', st==='cut');
+    el.classList.toggle('maybe', st==='maybe');
+  }
+  function allCards(){ return [].slice.call(document.querySelectorAll('.l3 .c')); }
+  function orderList(){ return allCards().map(function(c){ return c.dataset.id; }); }
+  function total(){
+    var keep=0, all=0, floor=0;
+    allCards().forEach(function(c){
+      var d=+c.dataset.dur||0, st=c.dataset.state||'';
+      all+=d;
+      if(st!=='cut') keep+=d;
+      if(st!=='cut' && st!=='maybe') floor+=d;
+    });
+    return [keep, all, floor];
+  }
+  function cardText(c){
+    if(c.classList.contains('new')) return (added[c.dataset.id]||'');
+    return segsText(decSegs(c.dataset.segs)).join(' ');
+  }
+  function paintPara(sec){
+    var out=[];
+    [].forEach.call(sec.querySelectorAll('.l3 .c'), function(c){
+      if((c.dataset.state||'')==='cut') return;
+      out.push(cardText(c));
+    });
+    sec.querySelector('.l2 .tx').textContent=out.join(' ');
+  }
+  function paintAll(){
+    [].forEach.call(document.querySelectorAll('.s'), function(s){
+      var cards=[].slice.call(s.querySelectorAll('.l3 .c'));
+      var d=0; cards.forEach(function(c){ if((c.dataset.state||'')!=='cut') d+=+c.dataset.dur||0; });
+      s.querySelector('.sd').textContent=cards.length?fmt(d):'';
+      syncSection(s);
+      if((s.dataset.lv||'0')==='2') paintPara(s);
+    });
+    var t=total();
+    document.getElementById('keep').textContent=fmt(t[0]);
+    document.getElementById('all').textContent=fmt(t[1]||TOTAL);
+    document.getElementById('floor').textContent = t[2]<t[0] ? ' ('+fmt(t[2])+')' : '';
+    renumber(); paintPile();
+  }
+
+  /* ── undo ───────────────────────────────────────────────────────────── */
+  var hist=[], future=[];
+  var undoBtn=document.getElementById('undo'), redoBtn=document.getElementById('redo');
+  function arm(){ undoBtn.disabled=!hist.length; redoBtn.disabled=!future.length; }
+  function push(un){ hist.push(un); if(hist.length>80) hist.shift(); future.length=0; arm(); }
+  undoBtn.addEventListener('click', function(){
+    var u=hist.pop(); if(!u) return; future.push(u.redo ? u : { undo:u.undo }); u.undo(); arm(); paintAll();
+  });
+  redoBtn.addEventListener('click', function(){
+    var r=future.pop(); if(!r || !r.redo) return; hist.push(r); r.redo(); arm(); paintAll();
+  });
+
+  /* ── splitting one line in two ──────────────────────────────────────── */
+  function splitCard(card, wi){
+    var sgs=decSegs(card.dataset.segs);
+    if(wi<=0) return;
+    var a=[], b=[], seen=0;
+    sgs.forEach(function(s){
+      var n=s.z-s.a;
+      if(seen+n<=wi){ a.push(s); }
+      else if(seen>=wi){ b.push(s); }
+      else { var k=wi-seen; a.push({b:s.b,a:s.a,z:s.a+k}); b.push({b:s.b,a:s.a+k,z:s.z}); }
+      seen+=n;
+    });
+    if(!a.length || !b.length) return;
+    var key=card.dataset.id;
+    var k2=key+'/'+(Date.now().toString(36).slice(-4));
+    var before={ segs:card.dataset.segs, st:card.dataset.state||'' };
+    var apply=function(){
+      custom[key]=a; custom[k2]=b;
+      var n1=mkCard(key, a, card.classList.contains('piece'));
+      var n2=mkCard(k2, b, true);
+      var at=document.querySelector('.c[data-id="'+key+'"]');
+      at.parentNode.insertBefore(n1, at); at.parentNode.insertBefore(n2, n1.nextSibling);
+      at.remove();
+      select(n1);
+      mark('custom'); mark('order'); paintAll();
+    };
+    push({ undo:function(){
+      delete custom[k2];
+      if(before.segs===encSegs([{b:decSegs(before.segs)[0].b,a:0,z:BY[decSegs(before.segs)[0].b].words.length}])) delete custom[key];
+      else custom[key]=decSegs(before.segs);
+      var e2=document.querySelector('.c[data-id="'+k2+'"]'); if(e2) e2.remove();
+      var e1=document.querySelector('.c[data-id="'+key+'"]');
+      var back=mkCard(key, decSegs(before.segs), e1 && e1.classList.contains('piece'));
+      back.dataset.state=before.st; paintOne(back);
+      if(e1){ e1.parentNode.insertBefore(back, e1); e1.remove(); }
+      mark('custom'); mark('order'); paintAll();
+    }, redo:apply });
+    apply();
+  }
+
+  /* ── melding two lines back into one ────────────────────────────────── */
+  function meldWithNext(card){
+    var next=meldTarget(card, 1); if(!next) return;
+    if(card.classList.contains('new') || next.classList.contains('new')) return;
+    var sgs=decSegs(card.dataset.segs).concat(decSegs(next.dataset.segs));
+    var key=card.dataset.id, gone=next.dataset.id;
+    var beforeA=card.dataset.segs, beforeB=next.dataset.segs;
+    var wasPiece=next.classList.contains('piece'), stB=next.dataset.state||'';
+    var apply=function(){
+      custom[key]=sgs; delete custom[gone]; delete state[gone];
+      var n=mkCard(key, sgs, card.classList.contains('piece'));
+      var e1=document.querySelector('.c[data-id="'+key+'"]');
+      var e2=document.querySelector('.c[data-id="'+gone+'"]');
+      e1.parentNode.insertBefore(n, e1); e1.remove(); if(e2) e2.remove();
+      select(n);
+      mark('custom'); mark('marks'); mark('order'); paintAll();
+    };
+    push({ undo:function(){
+      custom[key]=decSegs(beforeA); custom[gone]=decSegs(beforeB); state[gone]=stB;
+      var e=document.querySelector('.c[data-id="'+key+'"]');
+      var a=mkCard(key, decSegs(beforeA), e && e.classList.contains('piece'));
+      var b=mkCard(gone, decSegs(beforeB), wasPiece); b.dataset.state=stB; paintOne(b);
+      if(e){ e.parentNode.insertBefore(a, e); a.parentNode.insertBefore(b, a.nextSibling); e.remove(); }
+      mark('custom'); mark('marks'); mark('order'); paintAll();
+    }, redo:apply });
+    apply();
+  }
+  function meldTarget(card, dir){
+    var sib = dir>0 ? card.nextElementSibling : card.previousElementSibling;
+    while(sib && !sib.classList.contains('c')) sib = dir>0 ? sib.nextElementSibling : sib.previousElementSibling;
+    return sib;
+  }
+
+  /* ── marking ────────────────────────────────────────────────────────── */
+  function setBlock(c, st, remember){
+    var was=c.dataset.state||'';
+    if(remember) push({ undo:function(){ setBlock(c, was, false); }, redo:function(){ setBlock(c, st, false); } });
+    c.dataset.state=st; if(st) state[c.dataset.id]=st; else delete state[c.dataset.id];
+    paintOne(c); mark('marks'); paintAll();
+  }
+  function setSection(sec, st, remember){
+    var cards=[].slice.call(sec.querySelectorAll('.l3 .c'));
+    var was=cards.map(function(c){ return c.dataset.state||''; });
+    var wasSec=sec.dataset.state||'';
+    if(remember) push({ undo:function(){
+        cards.forEach(function(c,i){ c.dataset.state=was[i];
+          if(was[i]) state[c.dataset.id]=was[i]; else delete state[c.dataset.id]; paintOne(c); });
+        sec.dataset.state=wasSec; if(wasSec) state[sec.dataset.sec]=wasSec; else delete state[sec.dataset.sec];
+        mark('marks'); paintAll();
+      }, redo:function(){ setSection(sec, st, false); } });
+    cards.forEach(function(c){ c.dataset.state=st;
+      if(st) state[c.dataset.id]=st; else delete state[c.dataset.id]; paintOne(c); });
+    sec.dataset.state=st; if(st) state[sec.dataset.sec]=st; else delete state[sec.dataset.sec];
+    mark('marks'); paintAll();
+  }
+  // a paragraph's own mark is DERIVED from its lines when they agree, so
+  // un-cutting one line un-strikes the header without a second gesture
+  function syncSection(sec){
+    var cards=[].slice.call(sec.querySelectorAll('.l3 .c'));
+    if(!cards.length) return;
+    var first=cards[0].dataset.state||'';
+    var same=cards.every(function(c){ return (c.dataset.state||'')===first; });
+    sec.dataset.state = same ? first : '';
+    sec.classList.toggle('keep', same && first==='keep');
+    sec.classList.toggle('cut', same && first==='cut');
+    sec.classList.toggle('maybe', same && first==='maybe');
+  }
+
+  /* ── the running order ──────────────────────────────────────────────── */
+  function renumber(){
+    var n=0;
+    allCards().forEach(function(c){
+      var st=c.dataset.state||'';
+      if(st==='cut'){ var i0=c.querySelector('.num'); if(i0) i0.value=''; return; }
+      n+=1; var i=c.querySelector('.num'); if(i && document.activeElement!==i) i.value=String(n);
+    });
+  }
+  function moveTo(card, want){
+    if(!want || want<1) { renumber(); return; }
+    var live=allCards().filter(function(c){ return (c.dataset.state||'')!=='cut'; });
+    var target=live[Math.min(want, live.length)-1];
+    if(!target || target===card) { renumber(); return; }
+    var from=card.nextElementSibling, parent=card.parentNode;
+    push({ undo:function(){ parent.insertBefore(card, from); mark('order'); paintAll(); },
+           redo:function(){ target.parentNode.insertBefore(card, target); mark('order'); paintAll(); } });
+    target.parentNode.insertBefore(card, target);
+    mark('order'); paintAll();
+  }
+
+  /* ── a typed line, spoken in her voice ──────────────────────────────── */
+  function renderTTS(card){
+    var id=card.dataset.id, text=(added[id]||'').trim();
+    if(!text) return null;
+    if(ttsUrls[id] && ttsUrls[id].text===text) return null;
+    // the Episode Editor's narration cache — one voice, one settings block,
+    // cached by TEXT, so the same line is never paid for twice
+    return fetch('/api/editor/page/narration-preview', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ text:text })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if(res && res.url){ ttsUrls[id]=res.url; mark('ttsUrls'); }
+      return res && res.url;
+    }).catch(function(){ return null; });
+  }
+  var ttsAu=new Audio(); ttsAu.preload='none';
+  function playTTS(card, btn){
+    if(btn.classList.contains('on')){ ttsAu.pause(); btn.classList.remove('on'); return; }
+    var id=card.dataset.id;
+    var go=function(u){
+      if(!u) return;
+      stopAll(); btn.classList.add('on');
+      ttsAu.src=u; ttsAu.onended=function(){ btn.classList.remove('on'); };
+      ttsAu.play().catch(function(){ btn.classList.remove('on'); });
+    };
+    if(ttsUrls[id]) go(ttsUrls[id]);
+    else { btn.classList.add('busy'); var p=renderTTS(card);
+      if(p) p.then(function(u){ btn.classList.remove('busy'); go(u); });
+      else btn.classList.remove('busy'); }
+  }
+
+  /* ── hearing it as marked ───────────────────────────────────────────────
+     The PREVIEW is stitched from pro-rata spans by the Episode Editor's
+     page-cut route (content-addressed, so the same marking is rendered once
+     ever). It is deliberately not the same path as Render — see the module
+     header: the bulk timings are good enough to LISTEN to and not good enough
+     to CUT on. */
+  var BLOCK_AT={};
+  function segSpansOf(card){
+    var out=[], prevB=null;
+    decSegs(card.dataset.segs).forEach(function(sg){
+      var b=BY[sg.b];
+      var t0=b.t0+(b.t1-b.t0)*(sg.a/Math.max(1,b.words.length));
+      var t1=b.t0+(b.t1-b.t0)*(sg.z/Math.max(1,b.words.length));
+      if(t1<=t0) t1=t0+0.2;
+      var last=out[out.length-1];
+      var adjacent = prevB!==null && (sg.b===prevB || BLOCK_AT[sg.b]===BLOCK_AT[prevB]+1);
+      var gap = last ? t0-last.t1 : 999;
+      if(last && ((adjacent && gap>=-0.06 && gap<1.0) || Math.abs(gap)<0.06)) last.t1=t1;
+      else out.push({t0:t0,t1:t1});
+      prevB=sg.b;
+    });
+    return out;
+  }
+  function partsFor(cards){
+    var parts=[], waits=[];
+    cards.forEach(function(c){
+      if((c.dataset.state||'')==='cut') return;
+      if(c.classList.contains('new')){
+        var id=c.dataset.id, text=(added[id]||'').trim();
+        if(!text) return;
+        parts.push({ _id:id });
+        if(!ttsUrls[id]){ var pr=renderTTS(c); if(pr && pr.then) waits.push(pr); }
+      } else {
+        segSpansOf(c).forEach(function(s){ parts.push({t0:+s.t0.toFixed(2), t1:+s.t1.toFixed(2)}); });
+      }
+    });
+    return { parts:parts, waits:waits };
+  }
+  var cutAu=new Audio(); cutAu.preload='none';
+  var au=new Audio(); au.preload='none';
+  function stopAll(){
+    au.pause(); if(!ttsAu.paused) ttsAu.pause(); if(!cutAu.paused) cutAu.pause();
+    [].forEach.call(document.querySelectorAll('.pl.on, .php.on, #playall.on'), function(x){ x.classList.remove('on'); });
+  }
+  function playCut(btn, cards){
+    if(btn.classList.contains('on')){ cutAu.pause(); btn.classList.remove('on'); return; }
+    if(btn.classList.contains('busy')) return;
+    var got=partsFor(cards);
+    Promise.all(got.waits).then(function(){
+      var parts=got.parts.map(function(p){
+        return p._id ? (ttsUrls[p._id] ? { tts: ttsUrls[p._id] } : null) : p;
+      }).filter(Boolean);
+      if(!parts.length) return;
+      btn.classList.add('busy');
+      var body=JSON.stringify({ film: SRC, parts: parts }), tries=0;
+      function done(u){
+        btn.classList.remove('busy'); stopAll();
+        cutAu.src=u; btn.classList.add('on');
+        cutAu.onended=function(){ btn.classList.remove('on'); };
+        cutAu.play().catch(function(){ btn.classList.remove('on'); });
+      }
+      function bad(){ btn.classList.remove('busy'); }
+      function poll(key){
+        if(++tries>240) return bad();
+        setTimeout(function(){
+          fetch('/api/editor/page-cut/'+key).then(function(r){ return r.json(); }).then(function(res){
+            if(res.status==='ready') done(res.url);
+            else if(res.status==='failed') bad();
+            else if(res.status==='unknown') go();   // server restarted — the same request re-banks
+            else poll(key);
+          }).catch(bad);
+        }, 1500);
+      }
+      function go(){
+        fetch('/api/editor/page-cut', { method:'POST', headers:{'Content-Type':'application/json'}, body:body })
+          .then(function(r){ return r.json(); }).then(function(res){
+            if(res.status==='ready') done(res.url);
+            else if(res.status==='making' && res.key) poll(res.key);
+            else bad();
+          }).catch(bad);
+      }
+      go();
+    });
+  }
+  document.getElementById('playall').addEventListener('click', function(){ playCut(this, allCards()); });
+
+  function secSpan(sec){
+    var t0=Infinity, t1=0;
+    [].forEach.call(sec.querySelectorAll('.c'), function(c){
+      if(c.classList.contains('new')) return;
+      t0=Math.min(t0, +c.dataset.t0||0); t1=Math.max(t1, +c.dataset.t1||0);
+    });
+    return t0===Infinity ? null : [t0, t1];
+  }
+  var curBtn=null, stopAt=0;
+  au.addEventListener('timeupdate', function(){
+    if(stopAt && au.currentTime>=stopAt){ au.pause(); if(curBtn){curBtn.classList.remove('on');curBtn=null;} stopAt=0; }
+  });
+  function hear(t0, t1, btn){
+    if(curBtn===btn && !au.paused){ au.pause(); btn.classList.remove('on'); curBtn=null; return; }
+    stopAll();
+    stopAt=t1+0.15; curBtn=btn; btn.classList.add('on');
+    if(!au.src) au.src=SRC;
+    var seek=function(){ try{ au.currentTime=Math.max(0,t0-0.1); }catch(_){} };
+    if(au.readyState>=1) seek(); else au.addEventListener('loadedmetadata', seek, {once:true});
+    au.play().then(seek).catch(function(){ btn.classList.remove('on'); curBtn=null; });
+  }
+
+  /* ── levels: the paragraph opens to prose, then to its lines ────────── */
+  function twist(s){ s.querySelector('.tw').innerHTML = (s.dataset.lv||'0')!=='0' ? I.down : I.right; }
+  function cycle(sec){
+    var lv=sec.dataset.lv||'0';
+    sec.dataset.lv = lv==='0' ? '2' : lv==='2' ? '3' : '0';
+    twist(sec);
+    if(sec.dataset.lv==='2') paintPara(sec);
+    if(adding) slots();
+    if(linking) seams();
+    savePlace();
+  }
+  function select(el){
+    deselect();
+    el.classList.add('sel');
+    document.getElementById('link').disabled = !(el.classList.contains('c') && meldTarget(el, 1));
+  }
+  function deselect(){
+    [].forEach.call(document.querySelectorAll('.sel'), function(x){ x.classList.remove('sel'); });
+    document.getElementById('link').disabled=true;
+  }
+
+  /* ── link mode: absolute seams, laid over the boundaries ────────────── */
+  var linking=false;
+  function seams(){
+    [].forEach.call(document.querySelectorAll('.seam'), function(s){ s.remove(); });
+    if(!linking) return;
+    [].forEach.call(document.querySelectorAll('.s[data-lv="3"] .l3'), function(l3){
+      var cards=[].slice.call(l3.querySelectorAll('.c'));
+      cards.forEach(function(c, i){
+        if(i===0) return;
+        var prev=cards[i-1];
+        if(c.classList.contains('new') || prev.classList.contains('new')) return;
+        var b=document.createElement('button');
+        b.className='seam'; b.dataset.a=prev.dataset.id;
+        b.innerHTML=I.chain;
+        b.style.top=(c.offsetTop-14)+'px';
+        l3.appendChild(b);
+      });
+    });
+  }
+  function setLinking(on){
+    linking=on;
+    document.body.classList.toggle('linking', on);
+    document.getElementById('link').classList.toggle('on', on);
+    if(on && adding) setAdding(false);
+    seams();
+  }
+  document.getElementById('link').addEventListener('click', function(){
+    var sel=document.querySelector('.c.sel');
+    if(sel && !linking){ meldWithNext(sel); return; }
+    setLinking(!linking);
+  });
+  document.getElementById('secs').addEventListener('click', function(e){
+    var seam=e.target.closest('.seam');
+    if(!seam) return;
+    e.stopPropagation();
+    var a=document.querySelector('.c[data-id="'+seam.dataset.a+'"]');
+    setLinking(false);
+    if(a) meldWithNext(a);
+  }, true);
+
+  /* ── add mode: a slot between every pair ────────────────────────────── */
+  var adding=false;
+  function mkSlot(){ var d=document.createElement('div'); d.className='slot'; return d; }
+  function slots(){
+    [].forEach.call(document.querySelectorAll('.slot'), function(s){ s.remove(); });
+    if(!adding) return;
+    [].forEach.call(document.querySelectorAll('.s[data-lv="3"] .l3'), function(l3){
+      var cards=[].slice.call(l3.querySelectorAll('.c'));
+      cards.forEach(function(c){ l3.insertBefore(mkSlot(), c); });
+      l3.appendChild(mkSlot());
+    });
+  }
+  function setAdding(on){
+    adding=on;
+    document.body.classList.toggle('adding', on);
+    document.getElementById('add').classList.toggle('on', on);
+    if(on && linking) setLinking(false);
+    slots();
+  }
+  document.getElementById('add').addEventListener('click', function(){ setAdding(!adding); });
+  document.getElementById('secs').addEventListener('click', function(e){
+    var slot=e.target.closest('.slot');
+    if(!slot) return;
+    e.stopPropagation();
+    var id='n'+(newN++);
+    added[id]='';
+    var card=mkNew(id, '');
+    slot.parentNode.insertBefore(card, slot);
+    setAdding(false);
+    mark('added'); mark('order'); paintAll();
+    var ed=card.querySelector('.ed'); if(ed) ed.focus();
+  }, true);
+
+  /* ── taps ───────────────────────────────────────────────────────────── */
+  document.getElementById('secs').addEventListener('click', function(e){
+    var sec=e.target.closest('.s');
+    if(!sec) return;
+    if(e.target.closest('.tw')){ cycle(sec); return; }
+    if(e.target.closest('.php')){
+      if(e.shiftKey){ playCut(e.target.closest('.php'), [].slice.call(sec.querySelectorAll('.l3 .c'))); return; }
+      var sp=secSpan(sec); if(sp) hear(sp[0], sp[1], sec.querySelector('.php')); return;
+    }
+    if(e.target.closest('.qm.sec')){ setSection(sec, qNext(sec.dataset.state||''), true); return; }
+    if(e.target.closest('.st.sec')){
+      setSection(sec, (sec.dataset.state||'')==='cut' ? '' : 'cut', true); return;
+    }
+    var card=e.target.closest('.c');
+    if(card){
+      if(e.target.closest('.wh') && card.classList.contains('sel') && !card.classList.contains('new')){
+        setWho(card); return;
+      }
+      var w=e.target.closest('.w');
+      if(w && card.classList.contains('sel')){ splitCard(card, +w.dataset.w); return; }
+      if(e.target.closest('.pl')){
+        if(card.classList.contains('new')){ playTTS(card, card.querySelector('.pl')); return; }
+        hear(+card.dataset.t0, +card.dataset.t1, card.querySelector('.pl')); return;
+      }
+      if(e.target.closest('.qm')){ setBlock(card, qNext(card.dataset.state||''), true); return; }
+      if(e.target.closest('.st')){ setBlock(card, (card.dataset.state||'')==='cut' ? '' : 'cut', true); return; }
+      if(e.target.closest('.num')) return;
+      // she is aiming at a word; a near miss inside the same line must not
+      // shut the line she is working on
+      if(card.classList.contains('sel') && e.target.closest('.tx')) return;
+      select(card); return;
+    }
+    var para=e.target.closest('.l2');
+    if(para){
+      if(e.target.closest('.pl')){ var sp2=secSpan(sec); if(sp2) hear(sp2[0], sp2[1], para.querySelector('.pl')); return; }
+      select(para); return;
+    }
+    deselect();
+  });
+  document.getElementById('secs').addEventListener('change', function(e){
+    var n=e.target.closest('.num'); if(!n) return;
+    moveTo(n.closest('.c'), Number(n.value));
+  });
+  document.getElementById('secs').addEventListener('keydown', function(e){
+    if(e.key==='Enter' && e.target.closest('.num')) e.target.blur();
+  });
+  document.getElementById('secs').addEventListener('focusout', function(e){
+    var ed=e.target.closest('.ed'); if(!ed) return;
+    var c=ed.closest('.c');
+    added[c.dataset.id]=ed.textContent.trim();
+    mark('added'); renderTTS(c);
+  });
+
+  /* ── where she was ──────────────────────────────────────────────────── */
+  function placeKey(){ return 'blocks-place-'+PID; }
+  function savePlace(){
+    if(!PID) return;
+    var open={};
+    [].forEach.call(document.querySelectorAll('.s'), function(s){ if((s.dataset.lv||'0')!=='0') open[s.dataset.sec]=s.dataset.lv; });
+    try { localStorage.setItem(placeKey(), JSON.stringify({ open:open, y:window.scrollY, pile:!hidingCut })); } catch(_){}
+  }
+  var placeT=null;
+  window.addEventListener('scroll', function(){ clearTimeout(placeT); placeT=setTimeout(savePlace, 250); }, {passive:true});
+  window.addEventListener('pagehide', savePlace);
+
+  /* ── the cut pile ───────────────────────────────────────────────────── */
+  var pileBtn=document.getElementById('pile'), hidingCut=true;
+  function paintPile(){
+    var n=allCards().filter(function(c){ return (c.dataset.state||'')==='cut'; }).length;
+    pileBtn.dataset.n=String(n);
+    pileBtn.querySelector('.k').textContent=String(n);
+    pileBtn.classList.toggle('on', !hidingCut && n>0);
+    document.body.classList.toggle('hidecut', hidingCut);
+  }
+  pileBtn.addEventListener('click', function(){
+    hidingCut=!hidingCut; paintPile(); renumber(); savePlace(); paintFold();
+  });
+
+  /* ── the floating close ─────────────────────────────────────────────── */
+  var foldBtn=document.getElementById('fold');
+  function secAtView(){
+    var y=window.innerHeight*0.45, secs=document.querySelectorAll('.s');
+    for(var i=0;i<secs.length;i++){
+      var r=secs[i].getBoundingClientRect();
+      if(r.top<=y && r.bottom>=y && (secs[i].dataset.lv||'0')!=='0') return secs[i];
+    }
+    return null;
+  }
+  // In the strip it DISABLES rather than disappears — a button that comes and
+  // goes moves its neighbours around under her finger; a dim one holds its place.
+  function paintFold(){ foldBtn.disabled=!secAtView(); }
+  window.addEventListener('scroll', paintFold, {passive:true});
+  window.addEventListener('resize', paintFold);
+  document.addEventListener('click', function(){ setTimeout(paintFold, 60); });
+  foldBtn.addEventListener('click', function(){
+    var s=secAtView(); if(!s) return;
+    s.dataset.lv='0'; twist(s); if(adding) slots(); savePlace();
+    var top=s.getBoundingClientRect().top + window.scrollY - 58;
+    window.scrollTo(0, Math.max(0, top));
+    paintFold();
+  });
+
+  /* ── render: the real cut ───────────────────────────────────────────── */
+  var st8=document.getElementById('st8'), renderBtn=document.getElementById('render');
+  renderBtn.addEventListener('click', function(){
+    flush();
+    var cards=allCards().filter(function(c){ return (c.dataset.state||'')!=='cut'; }).map(function(c){
+      if(c.classList.contains('new')) return { key:c.dataset.id, tts:ttsUrls[c.dataset.id]||'' };
+      return { key:c.dataset.id, segs:decSegs(c.dataset.segs) };
+    }).filter(function(c){ return c.tts || (c.segs && c.segs.length); });
+    if(!cards.length){ st8.textContent='nothing is marked in'; return; }
+    renderBtn.disabled=true; st8.textContent='starting…';
+    post('/'+PID+'/render', { cards:cards }).then(function(res){
+      if(res.error){ st8.textContent=res.error; renderBtn.disabled=false; return; }
+      pollJob();
+    }).catch(function(){ st8.textContent="couldn't start"; renderBtn.disabled=false; });
+  });
+  var jobT=null;
+  function pollJob(){
+    clearTimeout(jobT);
+    j('/'+PID+'/job').then(function(res){
+      var job=res.job;
+      if(job && job.status==='running'){
+        st8.textContent=(job.label||'working')+(job.total?' — '+job.done+'/'+job.total:'');
+        jobT=setTimeout(pollJob, 2000);
+        try{ localStorage.setItem('blocks-job-'+PID, '1'); }catch(_){}
+        return;
+      }
+      try{ localStorage.removeItem('blocks-job-'+PID); }catch(_){}
+      renderBtn.disabled=false;
+      if(job && job.status==='error'){ st8.textContent=job.error||'it failed'; return; }
+      st8.textContent='';
+      paintRenders(res.renders||[]);
+      if(res.status && res.status!=='ready') openProject(PID);   // the listen job finished
+    }).catch(function(){ jobT=setTimeout(pollJob, 4000); });
+  }
+  function paintRenders(list){
+    var host=document.getElementById('renders'); host.innerHTML='';
+    (list||[]).forEach(function(r){
+      var d=document.createElement('div');
+      d.className='rnd';
+      d.innerHTML='<button class="btn plain" data-u="'+r.url+'">&#9654;</button>'
+        +'<span>'+fmt(r.seconds||0)+' · '+(r.pieces||0)+' pieces</span>'
+        +'<a class="btn plain" href="'+r.url+'" style="text-decoration:none">Open</a>';
+      host.appendChild(d);
+    });
+  }
+  document.getElementById('renders').addEventListener('click', function(e){
+    var b=e.target.closest('button[data-u]'); if(!b) return;
+    stopAll(); cutAu.src=b.dataset.u; cutAu.play().catch(function(){});
+  });
+
+  /* ── the home screen ────────────────────────────────────────────────── */
+  var tabs=document.querySelector('.tabs');
+  tabs.addEventListener('click', function(e){
+    var b=e.target.closest('button[data-tab]'); if(!b) return;
+    var i=+b.dataset.tab;
+    [].forEach.call(tabs.querySelectorAll('button'), function(x){ x.classList.toggle('on', x===b); });
+    // the row measures its own underline — adding a tab costs no layout work
+    var n=tabs.querySelectorAll('button').length;
+    var ul=tabs.querySelector('.ul');
+    ul.style.width=(100/n)+'%';
+    ul.style.transform='translateX('+(i*100)+'%)';
+    document.getElementById('projects').hidden=(i!==0);
+    document.getElementById('sources').hidden=(i!==1);
+    if(i===1) loadSources();
+  });
+
+  function loadHome(){
+    j('/').then(function(res){
+      var host=document.getElementById('projects'); host.innerHTML='';
+      var ps=res.projects||[];
+      if(!ps.length){ host.innerHTML='<p class="muted">Nothing open yet.</p>'; return; }
+      ps.forEach(function(p){
+        var b=document.createElement('button');
+        b.className='src'; b.dataset.pid=p.id;
+        b.innerHTML=(p.status==='ready'?'<span class="dot"></span>':'')
+          +'<span class="nm">'+esc(p.title)+'</span>'
+          +'<span class="mt">'+(p.status==='ready' ? p.blockCount+' lines' : esc(p.status))+'</span>';
+        host.appendChild(b);
+      });
+    });
+  }
+  function loadSources(){
+    var host=document.getElementById('sources');
+    if(host.dataset.done) return;
+    host.innerHTML='<p class="muted">loading…</p>';
+    j('/sources').then(function(res){
+      host.dataset.done='1'; host.innerHTML='';
+      (res.sources||[]).forEach(function(s){
+        var b=document.createElement('button');
+        b.className='src'; b.dataset.url=s.url; b.dataset.name=s.name;
+        b.innerHTML='<span class="nm">'+esc(s.name)+'</span>'
+          +'<span class="mt">'+(s.seconds?fmt(s.seconds):'')+'</span>';
+        host.appendChild(b);
+      });
+      if(!(res.sources||[]).length) host.innerHTML='<p class="muted">No recordings in the library yet.</p>';
+    }).catch(function(){ host.innerHTML='<p class="muted">couldn’t load the library</p>'; });
+  }
+  document.getElementById('projects').addEventListener('click', function(e){
+    var b=e.target.closest('[data-pid]'); if(!b) return;
+    openProject(b.dataset.pid);
+  });
+  document.getElementById('sources').addEventListener('click', function(e){
+    var b=e.target.closest('[data-url]'); if(!b) return;
+    b.disabled=true;
+    post('/open', { url:b.dataset.url, name:b.dataset.name }).then(function(res){
+      if(res.error){ b.disabled=false; return; }
+      openProject(res.id);
+    }).catch(function(){ b.disabled=false; });
+  });
+
+  /* ── opening one ────────────────────────────────────────────────────── */
+  function showHome(){
+    PID=null;
+    document.getElementById('home').hidden=false;
+    document.getElementById('work').hidden=true;
+    document.getElementById('fl').hidden=true;
+    document.getElementById('bar').hidden=true;
+    document.getElementById('back').hidden=true;
+    clearTimeout(jobT);
+    loadHome();
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){}
+  }
+  // the native chevron asks the page first (the Episode Editor contract)
+  window.__navBack=function(){ if(PID){ showHome(); return true; } return false; };
+  document.getElementById('back').addEventListener('click', showHome);
+
+  function openProject(id){
+    PID=id;
+    document.getElementById('home').hidden=true;
+    document.getElementById('work').hidden=false;
+    document.getElementById('back').hidden=false;
+    j('/'+id).then(function(res){
+      var p=res.project; if(!p) return;
+      document.querySelector('header h1').textContent=p.title||'Cutting Blocks';
+      if(p.status!=='ready'){
+        document.getElementById('secs').innerHTML='<p class="muted">'
+          +(p.status==='failed' ? esc(p.error||'it failed') : 'reading the recording…')+'</p>';
+        document.getElementById('bar').hidden=true;
+        document.getElementById('fl').hidden=true;
+        pollJob();
+        return;
+      }
+      SRC=p.source && p.source.url || '';
+      TOTAL=p.seconds||0;
+      state=p.marks||{}; whoOver=p.whoOver||{}; added=p.added||{};
+      ttsUrls=p.ttsUrls||{}; secMeld=p.secMeld||{}; order=p.order||[];
+      custom={};
+      Object.keys(p.custom||{}).forEach(function(k){ custom[k]=decSegs(p.custom[k]); });
+      return fetch(p.blocksUrl).then(function(r){ return r.json(); }).then(function(b){
+        MODEL=b.blocks||[]; SECS=b.sections||[];
+        BY={}; MODEL.forEach(function(x,i){ BY[x.id]=x; BLOCK_AT[x.id]=i; });
+        SECOF={}; SECS.forEach(function(s){ s.blocks.forEach(function(bid){ SECOF[bid]=s.key; }); });
+        // custom segs were decoded before BY existed — decode them again now
+        custom={};
+        Object.keys(p.custom||{}).forEach(function(k){
+          var sg=decSegs(p.custom[k]); if(sg.length) custom[k]=sg;
+        });
+        document.getElementById('fl').hidden=false;
+        document.getElementById('bar').hidden=false;
+        build();
+        /* A card cut from the recording belongs to its own paragraph, so it is
+           ordered WITHIN that paragraph (appendChild, walking in saved order,
+           lands each at the end = the saved order). A TYPED line belongs to no
+           paragraph — build() has to guess — so it is the only kind that
+           follows its neighbour across a boundary. Moving every card that way
+           collapses the whole piece into paragraph one, which is exactly what
+           the first attempt at this did. */
+        var prev=null;
+        (order||[]).forEach(function(cid){
+          var c=document.querySelector('.c[data-id="'+cid+'"]'); if(!c) return;
+          if(c.classList.contains('new')){ if(prev) prev.parentNode.insertBefore(c, prev.nextSibling); }
+          else c.parentNode.appendChild(c);
+          prev=c;
+        });
+        paintAll(); restorePlace(); arm();
+        paintRenders(p.renders||[]);
+        try{ if(localStorage.getItem('blocks-job-'+PID)) pollJob(); }catch(_){}
+      });
+    });
+  }
+  function restorePlace(){
+    var p; try { p=JSON.parse(localStorage.getItem(placeKey())||'null'); } catch(_){ p=null; }
+    [].forEach.call(document.querySelectorAll('.s'), function(s){ twist(s); });
+    if(!p) return;
+    if(p.pile){ hidingCut=false; paintPile(); renumber(); }
+    Object.keys(p.open||{}).forEach(function(id){
+      var s=document.querySelector('.s[data-sec="'+id+'"]'); if(!s) return;
+      s.dataset.lv=p.open[id]; twist(s); if(p.open[id]==='2') paintPara(s);
+    });
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.scrollTo(0, p.y||0); }); });
+  }
+
+  /* ── the "?" ────────────────────────────────────────────────────────── */
+  var help=document.getElementById('helpcard');
+  document.getElementById('helpbtn').addEventListener('click', function(e){
+    e.stopPropagation(); help.hidden=!help.hidden;
+  });
+  document.addEventListener('click', function(){ if(!help.hidden) help.hidden=true; });
+
+  showHome();
+})();
+</script>
+</body>
+</html>

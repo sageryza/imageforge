@@ -873,4 +873,11 @@ router.delete('/:id', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router };
+module.exports = {
+  router,
+  // exported for blocks.js — ONE implementation of "get word timings for this
+  // recording" and "cut these words out of it properly". Both were learned
+  // here the hard way (the 75s chunking, the re-listen before every real cut);
+  // a second copy would drift and sound different.
+  chunkedWords, cutSection, downloadTo, fileIntoAudioLibrary,
+};
