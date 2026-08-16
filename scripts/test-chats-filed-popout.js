@@ -87,6 +87,9 @@ const server = http.createServer((req, res) => {
 const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat).sort());
 const openFolder = async (page, on) => {
+  // The folders live behind the TAGS button now (Aug 2026) and the row starts
+  // shut on every load — open it before reaching for a chip.
+  if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
   await page.$$eval('#catrow .catchip', (ns) => {
     const c = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Stories');
     if (c) c.click();

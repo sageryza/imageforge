@@ -88,8 +88,16 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
 // the label only: the row LEADS with the ★ chip (no text), and a chip's label
 // runs straight into its red unread badge with no space between them
-const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip)',
+const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)',
   (ns) => ns.map((n) => n.firstChild.textContent.trim()));
+// The folders live behind the TAGS button now (Aug 2026) and the row starts
+// SHUT on every load, so anything asserting on a chip opens it first. It is a
+// no-op once open — `catsOpen` survives every re-render inside one page load.
+const openTags = async (page) => {
+  await page.waitForSelector('#catrow .tagsbtn');
+  if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
+  await page.waitForSelector('#catrow .catchip:not(.starchip):not(.tagsbtn)');
+};
 
 (async () => {
   await new Promise(r => server.listen(0, r));
@@ -107,13 +115,14 @@ const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip)',
   if (await page.$('#v-list')) fail('the LIST/TILES toggle is still on the page');
   if (!(await page.$('#grid > .clist'))) fail('home did not render as the list');
 
-  // 2. both seeded chips exist before anything is filed
+  // 2. both seeded chips exist before anything is filed — behind TAGS
+  await openTags(page);
   let cs = await chips(page);
   if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech', 'Crystals'])) fail('seeded chips wrong: ' + cs.join(','));
   // ONE number on a chip, and it is the red unread one — the dim total came
   // off at Sophie's ask ("just the one in red")
   if (await page.$('#catrow .cc-n')) fail('the dim total is still on the chips');
-  const badge = await page.$$eval('#catrow .catchip:not(.starchip)', (ns) =>
+  const badge = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)', (ns) =>
     ns.filter((n) => n.firstChild.textContent.trim() === 'Stories')
       .map((n) => (n.querySelector('.cc-new') || {}).textContent || '')[0]);
   if (badge !== '1') fail('Stories chip did not badge its unread hidden chat: ' + badge);
@@ -201,7 +210,7 @@ const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip)',
     localStorage.setItem('chats-seen-v1', JSON.stringify(seen));
   });
   await page.reload();
-  await page.waitForSelector('#catrow .catchip');
+  await openTags(page);
   const after = await page.$$eval('#catrow .catchip', (ns) =>
     ns.filter((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech')
       .map((n) => !!n.querySelector('.cc-new'))[0]);
