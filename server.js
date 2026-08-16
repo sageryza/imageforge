@@ -278,6 +278,7 @@ loadConfig().then(() => {
   const editor = require('./editor');
   const cuttingroom = require('./cuttingroom');
   const cutmarks = require('./cutmarks');
+  const blocks = require('./blocks');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -372,6 +373,11 @@ loadConfig().then(() => {
   // hit into work — interview → Episode Editor, memo → Cutting Room.
   app.use('/api/search', require('./search').router);
   app.use('/api/cutmarks', cutmarks.router); // Cut Marks: mark your own cut points on a playhead — video or audio, no transcript
+  // Cutting Blocks: the TOP of the audio pipeline — a recording comes apart
+  // into sentence-level lines she can split, meld, reorder, respeak and hear
+  // as marked before anything is cut for real. Was a hand-authored Compare
+  // page (v14) with no server behind it; see docs/audio-pipeline.md.
+  app.use('/api/blocks', blocks.router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
@@ -2702,6 +2708,10 @@ app.get('/search', serveGated('search.html', { pill: true }));
 // (video or audio, no transcript), drop pieces, render a fresh file. Engine
 // is /api/cutmarks (cutmarks.js). Same gate; same shared pill.
 app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
+// Cutting Blocks: a recording broken into sentence-level lines to take apart,
+// mark, reorder and hear before cutting. Engine is /api/blocks (blocks.js).
+// Same gate; the line list scrolls, so it carries the shared autoscroll pill.
+app.get('/blocks', serveGated('blocks.html', { pill: true }));
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name

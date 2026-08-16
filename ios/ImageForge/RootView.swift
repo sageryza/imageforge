@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking
     var id: String { rawValue }
 
     var title: String {
@@ -27,6 +27,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "Cutting Room"
         case .search:    return "Search"
         case .cutmarks:  return "Cut Marks"
+        case .blocks:    return "Cutting Blocks"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
         case .dump:      return "Dump"
@@ -62,6 +63,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "Mark a recording on its words — cut pauses, send sections on."
         case .search:    return "Find any words in every interview and every memo."
         case .cutmarks:  return "Mark your own cuts on a video or recording — no transcript."
+        case .blocks:    return "Break a recording into lines — split, mark, reorder, hear it."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
@@ -94,6 +96,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   return "scissors"
         case .search:    return "magnifyingglass"
         case .cutmarks:  return "timeline.selection"
+        case .blocks:    return "rectangle.split.3x1"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
@@ -156,6 +159,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .cutroom:   CuttingRoomView()
         case .search:    SearchView()
         case .cutmarks:  CutMarksView()
+        case .blocks:    BlocksView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
         case .dump:      DumpView().forgeToolBar("Dump")
@@ -472,6 +476,8 @@ struct RootView: View {
             if t == .search { return false }
             // Cut Marks too — same family, same injected pill.
             if t == .cutmarks { return false }
+            // Cutting Blocks too — same family, same injected pill.
+            if t == .blocks { return false }
             // Scratch Pad is a web page with its own injected pill — showing
             // the native one too would stack two pills.
             if t == .scratchpad { return false }
@@ -569,7 +575,7 @@ private struct HomeGrid: View {
     /// - **Song Station** is gone from every grid — "get rid of song station
     ///   altogether". The tool, its page and `deckfactory://song` all still
     ///   work; it simply has no card anywhere now.
-    private static let movieTools: [Tool] = [.movie, .films, .cutroom, .cutmarks, .editor,
+    private static let movieTools: [Tool] = [.movie, .films, .blocks, .cutroom, .cutmarks, .editor,
                                              .voice, .search, .character, .chunking]
 
     /// The image filter's set — the three "make me a picture" tools. This is

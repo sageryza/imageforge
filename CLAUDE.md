@@ -1495,6 +1495,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   server-side ffmpeg; every re-roll is kept.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
+- **Cutting Blocks** (`blocks.js`, `/api/blocks`, page at `/blocks`, iOS tile
+  under the FILM filter) — the TOP of the audio pipeline. A recording comes
+  apart into sentence-level LINES to split (tap two words), meld back together
+  (the chain), mark **locked in / not sure / out** (three states, not
+  keep-or-cut), reorder, respeak in her voice, and **hear as marked before
+  anything is cut**. It was a hand-authored Compare page re-posted at v14 with
+  no server behind it — five capabilities that existed nowhere else, and every
+  improvement cost a chat re-authoring an 87KB artifact.
+  **The two-tier timing rule is load-bearing:** the bulk 75s-chunked whisper
+  pass places and PREVIEWS a line (via the Episode Editor's `page-cut`), and
+  the real render RE-LISTENS per card and cuts through `editor.js`'s validated
+  cutter — the Cutting Room's finding, imported rather than re-learned
+  (`cuttingroom.js` now exports `chunkedWords` / `cutSection`). Her marking
+  state is a whitelisted patch on one Firestore doc (`forge-blocks`,
+  content-addressed by the source url, so re-opening resumes); words and
+  blocks live in Storage. Transcription is ~$0.006/min, once ever per
+  recording; rendering is ffmpeg on our own box, free. Tests:
+  `node scripts/test-blocks.js`. **Full details: `docs/audio-pipeline.md`.**
 - **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
