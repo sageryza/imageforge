@@ -173,6 +173,17 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
   and costs 22% LESS. So "it's bigger, it must cost more" is wrong here, and
   scaling a price by area — which is how this file's old figures were talked
   about — gets it wrong by 2x.
+  **AND IT IS TRUE OF gpt-image-2 ONLY — the older models price it the
+  intuitive way round**, which is why the inversion reads as a typo and must
+  not be "corrected" back. Same page, same day: gpt-image-1 high is 16.7c
+  square against 25c for either rectangle, and gpt-image-1.5 is 13.3c against
+  20c — both charge MORE for the bigger canvas. gpt-image-2 alone charges
+  less. The billing is per OUTPUT TOKEN, never per pixel, and OpenAI's own
+  guide says so out loud: *"a larger non-square resolution can sometimes
+  produce fewer output tokens than a smaller or square resolution at the same
+  quality setting."* **They do not publish gpt-image-2's per-size token
+  counts** (they do for the older models), so the mechanism behind it is not
+  knowable from the docs — take the price as given and don't reason from area.
   **The old ~2¢ / 6¢ / 25¢ was gpt-image-1** (whose real numbers were 1.6¢ /
   6.3¢ / 25¢ at square, and which DID charge more for the bigger canvas). It
   sat in this file, in CLAUDE.md and in the vector doc long after every
