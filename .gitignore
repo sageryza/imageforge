@@ -19,6 +19,10 @@ __pycache__/
 # Video clips pulled down by scripts/clip — big files, and this repo is public
 clips/
 
+# Commercial render working dirs (stills/clips/vo land in Storage, not git)
+scripts/ideatrol-commercial/reels/
+scripts/ideatrol-commercial/node_modules
+
 # one-off mockup manifest (scripts/day-stickers-mockup.js)
 .day-stickers.json
 
