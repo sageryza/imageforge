@@ -23,6 +23,20 @@ All three are in Part 1. Text in `passages/`, audio in Storage under
 clip were re-transcribed with whisper and checked against the words the
 transcript says should be there. All six landed clean.
 
+## The reel
+
+`tools/horns/reel-beats.json` — nine beats cut from both parts and butted
+together with a 0.45s breath between, 5:18, at `horns-passages/reel-v1.mp3`.
+It runs wonder-first and then turns: everybody's a witch, the circle in the
+grove, the bad back and the conceiving, the unicorn over the rainbow,
+Stonehenge raised by music — then whatever you send out comes back, he called
+down a storm, cease to function, and the oath.
+
+Six beats come out of the three cut passages and three out of the flagged
+list. **Every beat's edges were checked by re-transcribing the finished reel**,
+which caught four tails cut mid-sentence ("I think I…", "Yes, there…") that
+reading the timestamps alone would not have.
+
 ## The other 49
 
 `flagged.json` — 24 more in Part 1, 25 in Part 2, each with its span, what
@@ -38,6 +52,8 @@ Run in this order; they need `FIREBASE_SERVICE_ACCOUNT` (Deck Factory).
     node tools/horns/dl.js       # the Part 1 audio, via the Admin SDK
     node tools/horns/text.js     # → readable paragraphs per passage
     node tools/horns/cut.js cuts.json   # cut + upload the clips
+    node tools/horns/reel.js            # the reel, from reel-beats.json
+    node tools/horns/upload.js <file>   # a finished file → Storage
     node tools/horns/page.js --post     # the Compare page
 
 **`dl.js` exists because ffmpeg cannot reach the sandbox's HTTPS proxy** — the
