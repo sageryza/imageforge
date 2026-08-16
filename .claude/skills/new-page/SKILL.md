@@ -278,10 +278,20 @@ your own pill and never re-implement its script.** The contract:
 ## PIN THE PAGE TO THE TOP OF YOUR CHAT — while you are working on it
 
 A page this chat is **actively working on** gets pinned to the top of its
-thread: a tool page, a public page like `/science`, a Compare page you keep
-re-posting. That is one of the two cases that earn the row (Aug 2026, Sophie:
+thread: a tool page, a public page like `/science`. That is one of the two
+cases that earn the row (Aug 2026, Sophie:
 "I'm constantly referring to a link to a page"); otherwise the URL lives in
 whichever turn happened to mention it and she has to scroll back for it.
+
+**NOT A COMPARE PAGE, THOUGH — it is already in the tab (Aug 2026, Sophie:
+"if there's a compare page for the exact same thing … it shouldn't be also
+pinned as a link").** Anything you `POST /api/chatfeed/page` — a Compare
+page, a judge page, a cut picker — lands in this chat's Compare tab, one tap
+from the same header, so pinning its URL puts the same thing on screen twice
+and spends the one pin row on something she can already reach. This sentence
+used to name "a Compare page you keep re-posting" as a thing to pin; it was
+wrong. Pin a page you HOST (a `public/*.html` tool page), never one you
+posted into a tab.
 
 **The test is ACTIVE WORK, not "a link exists"** — she pushed back the same day
 on chats pinning anything with a URL ("not every chat deserves one"). A sheet

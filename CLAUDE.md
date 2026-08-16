@@ -700,19 +700,33 @@ them off the reference sheet, not off the old filenames.
     empty row is the correct, common state, and a pin she does not come back
     to is clutter at the top of a thread she reads every day.
     - **a page this chat is ACTIVELY WORKING ON** — `/science`, `/chunking`, a
-      tool page, a Compare page's URL. Pin it the first turn it exists. The
+      tool page. Pin it the first turn it exists. The
       test is active work, not "a link exists": a page you finished and will
       not touch again does not need the row.
     - **a deliverable you are ACTIVELY HANDING HER NEW VERSIONS OF** — a film,
       an episode, an audio cut. Pin the NEWEST render; the title carries the
       version ("Evan — the long cut v6 (4:54)"). A one-off render you will
       never re-cut is not this.
+  - **A COMPARE PAGE IS ALREADY IN THE TAB — NEVER ALSO PIN IT AS A LINK (Aug
+    2026, Sophie: "if there's a compare page for the exact same thing … it
+    shouldn't be also pinned as a link").** Anything posted with
+    `POST /api/chatfeed/page` sits in the chat's **Compare tab**, one tap from
+    the same header, so pinning its URL puts the identical thing on screen
+    twice and spends the one pin row on something she can already reach. This
+    is a carve-out of case 1, not an exception to it: a page you are actively
+    working on still earns the row — unless the page IS the Compare page, in
+    which case the tab is the row. (This line used to name "a Compare page's
+    URL" as a thing to pin, which is how it happened.) Same for the judge and
+    cut-picker pages: all three land in that tab. A page you host yourself
+    (`/science`, a tool page) is NOT in the tab and still pins normally.
   - **NEVER PIN, without asking:** a PR or a GitHub file/doc link, a dashboard,
     a page you merely referenced, the Chats app itself, a page whose work is
-    done, or your own chat's admin links. **A THIRD CASE IS NOT YOURS TO
-    DECLARE** (Sophie: "there might be other cases, but I'd like them to be
-    run by me before they're made official") — describe the case in your reply
-    and let her say yes; do not pin it and see if she objects.
+    done, your own chat's admin links, or **anything already sitting in one of
+    this chat's own tabs** (a Compare page, an Assets image). **A THIRD CASE
+    IS NOT YOURS TO DECLARE** (Sophie: "there might be other cases, but I'd
+    like them to be run by me before they're made official") — describe the
+    case in your reply and let her say yes; do not pin it and see if she
+    objects.
   - **RE-POST IT EVERY TIME YOU UPDATE WHAT'S BEHIND IT.** Same url is fine —
     the re-post is the update, and it is what lights the **current** tag on
     the row (Sophie: "a tag on it that says like current or recent, and it
