@@ -862,7 +862,8 @@
     "off": 2.2,
     "text": "Memory Library. Keep the whole story."
    }
-  ]
+  ],
+  "mem_sub": "the two of us"
  },
  "memoryfight-spiky": {
   "music": "gentle comedic pizzicato and warm strings, light domestic tension easing, playful",
@@ -975,6 +976,7 @@
     "off": 1.9,
     "text": "Memory Library. Settle it."
    }
-  ]
+  ],
+  "mem_sub": "the two of us"
  }
 }
