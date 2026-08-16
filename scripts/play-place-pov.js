@@ -73,6 +73,16 @@ const SCENES = [
     frames: 121,
   },
   {
+    // v2 (Sophie's feedback on the first cut): the slide read as slow motion,
+    // and the outstretched jeans/sneakers read as dummy feet — so this take is
+    // faster and has NO body parts, just the tunnel coming at you.
+    id: 'slide-fast',
+    label: 'Play place POV — the fast run down the tube slide (v2, no feet)',
+    content: 'Rushing down inside an enclosed red spiral tube slide, first-person view with no body parts visible, the glossy curved plastic walls spiraling and banking hard around the camera, strong motion blur streaking the panel seams and reflections, bright light from an opening far below.',
+    motion: 'Extremely fast first-person plunge down the spiral tube slide, the camera whipping around the curves and rolling with the spiral, walls streaking past with heavy motion blur, accelerating the whole way down.',
+    frames: 81,
+  },
+  {
     id: 'ball-pit',
     label: 'POV — splashing into the ball pit',
     content: 'Shooting out of the tube slide\'s bright round opening into a huge ball pit, hundreds of red, yellow, blue and green plastic balls splashing up toward the camera, legs ahead half-buried in the balls, padded walls and safety netting around the pit.',

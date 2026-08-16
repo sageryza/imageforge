@@ -89,6 +89,23 @@
       "motionPrompt": "The camera splashes into the ball pit, colorful plastic balls flying up past the lens and tumbling back down, then gentle bobbing as everything settles.",
       "clipFrames": 81,
       "clipCost": 0.16
+    },
+    {
+      "id": "slide-fast",
+      "label": "Play place POV — the fast run down the tube slide (v2, no feet)",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-fast.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Rushing down inside an enclosed red spiral tube slide, first-person view with no body parts visible, the glossy curved plastic walls spiraling and banking hard around the camera, strong motion blur streaking the panel seams and reflections, bright light from an opening far below.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Rushing down inside an enclosed red spiral tube slide, first-person view with no body parts visible, the glossy curved plastic walls spiraling and banking hard around the camera, strong motion blur streaking the panel seams and reflections, bright light from an opening far below.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786858877354,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-fast.mp4",
+      "motionPrompt": "Extremely fast first-person plunge down the spiral tube slide, the camera whipping around the curves and rolling with the spiral, walls streaking past with heavy motion blur, accelerating the whole way down.",
+      "clipFrames": 81,
+      "clipCost": 0.16,
+      "clipFastUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-fast-160.mp4",
+      "speedup": 1.6
     }
   ],
   "film": {
