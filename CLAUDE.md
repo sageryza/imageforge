@@ -734,14 +734,15 @@ them off the reference sheet, not off the old filenames.
     is still lit.
   - Tests: `node scripts/test-pin-current.js` (the kind + tag rules, pure) and
     `node scripts/test-chats-pin.js` (the real page, headless).
-- **A SECOND, UNRELATED PIN — the MAP PIN keeps a CHAT at the top of her list
+- **A SECOND, UNRELATED PIN — the PUSHPIN keeps a CHAT at the top of her list
   (Aug 2026, Sophie: "an option to pin chat to the top so they always show
   first when they come out of hiding and they never disappeared to the bottom
   if I don't look at them for a while").** Nothing to do with the pinned link
-  above, and **not yours to set** — it is hers, tapped on the map-pin in a
-  chat's thread header beside the star/bookmark/bell. Her override on the
-  recency sort: a pinned chat leads every pile, and pinned chats keep their own
-  recency order among themselves.
+  above, and **not yours to set** — it is hers, tapped on the pushpin on the
+  chat's row on the `/chats` HOME screen (it shipped in the thread header and
+  she moved it: "I was assuming it would go right on the main page not inside
+  of it"). Her override on the recency sort: a pinned chat leads every pile,
+  and pinned chats keep their own recency order among themselves.
   - **The names are separate ON PURPOSE and must stay that way:** `pinTop` +
     `POST /api/chatfeed/pin-top` for this, `pinned` + `POST /pin` for the
     deliverable link (which stores an OBJECT under `pinned`). Express matches
@@ -749,7 +750,21 @@ them off the reference sheet, not off the old filenames.
   - The whole sort is ONE tier in `sortedChatNames` (chats.html), which every
     list comes through — so the hidden pile, the archive, the ★ chip and the
     account tabs all obey it without knowing about it.
+  - **The glyph is a PUSHPIN — round head, straight spike — never the Maps
+    teardrop.** It shipped as a `map-pin` and she corrected it ("the pin
+    that's like round with a metal thing sticking down from it — that's a
+    different one that you made"). Don't drift it back.
   - Test: `node scripts/test-chats-pin-top.js`.
+- **ORGANIZE — a chat can be filed and tagged from INSIDE it (Aug 2026,
+  Sophie: "an ability to tag or categorize something from within the chat
+  itself … an icon that says organize and then it pulls up the ability to tag
+  and categorize which is already on the front page but so far it doesn't work
+  within there").** The tag icon in a thread's header opens a sheet with her
+  FOLDERS (one per chat, `POST /category`) over the TAG vocabulary (many,
+  `POST /tags`) — both already existed, neither was reachable from a thread.
+  Everything saves on the tap. **Filing is still HERS, not yours** — the
+  server files chats by itself (`chat-sort.js`); do not POST a category.
+  Same test file.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
