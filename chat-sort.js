@@ -208,12 +208,51 @@ function digestOf(msgs, { head = 2, tail = 4, per = 400, cap = 4000 } = {}) {
   return (a.join('\n\n') + (b.length ? '\n\n[…]\n\n' + b.join('\n\n') : '')).slice(0, cap);
 }
 
-const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone.
+// ---- IS THIS CHAT FINISHED? (Aug 2026, Sophie) -----------------------------
+// "I'm wondering if it would be easy to flag which ones should be archived —
+// based on whether there was a feature that was built that was basically
+// complete, or if we were in the middle of something. Things to look for would
+// be if there was something that simply couldn't be done for whatever reason,
+// or if there was a question I just forgot to answer."
+//
+// Two halves, and only one of them is a judgment:
+//
+//   THE QUESTION SHE FORGOT TO ANSWER IS DERIVED, NOT GUESSED. `buildQuestions`
+//   already pairs every question in a thread with the reply that followed it,
+//   over the WHOLE conversation — so an unanswered one is a fact about the
+//   transcript, not a model's impression of it. Same choice the archive
+//   summary made for the same reason, and it is what keeps this flag honest:
+//   "needs you" only ever names a question that provably went unanswered.
+//
+//   WHETHER THE WORK LANDED is a judgment, so the model makes it: done (the
+//   thing was built and works), mid (stopped in the middle), or blocked
+//   (something could not be done and the chat stopped there).
+//
+// An open question OUTRANKS everything — a finished feature with a question of
+// hers hanging in it is not a chat to archive, it is a chat to answer. That is
+// the case she named first, so it wins.
+//
+// NOTHING HERE ARCHIVES ANYTHING. She asked to be shown which ones, and
+// archiving is hers to do — a wrong archive puts real work behind a pile she
+// does not read.
+function archiveHint({ state, openQuestions = 0 } = {}) {
+  if (openQuestions > 0) return 'needs you';
+  if (state === 'done') return 'archive';
+  if (state === 'blocked') return 'dead end';
+  return 'keep';
+}
 
-Return JSON: {"category": "...", "why": "..."}
+const SORT_SYS = `You file one of Sophie's Claude chats into one of HER OWN folders, or you leave it alone, and you say whether the work in it finished.
+
+Return JSON: {"category": "...", "why": "...", "state": "...", "stateWhy": "..."}
 
 "category": EXACTLY one of the folder names you are given, copied character for character, or "none".
 "why": under 90 characters, plain, what the chat is actually about. Never a sales pitch for the folder you picked.
+"state": one of "done", "mid", "blocked".
+  "done" — what she asked for was built, shipped or settled, and the chat ran out of work rather than stopping.
+  "mid" — it stopped in the middle of something: a half-built feature, a plan nobody carried out, work still clearly in flight.
+  "blocked" — it stopped because something could not be done: a limit nobody could get past, a tool that does not exist, an approach that failed and was not replaced.
+"stateWhy": under 90 characters, what was finished or what it stopped on. Concrete — name the thing, not "the work".
 
 The folders are hers. You are matching a chat to how SHE already uses them — the chats she has filed in each one are the definition, not the words in the name. Never invent a folder, never merge two, never answer with a name that is not on the list.
 
@@ -230,7 +269,10 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
     const list = (ex[c] || []).map((n) => '"' + n + '"');
     return '- ' + c + (list.length
       ? ' — she has filed: ' + list.join(', ')
-      : ' — (she has not filed anything here yet; go by the name alone, and prefer none)');
+      // A folder with nothing in it is one she has just MADE, on purpose — the
+      // first version said "prefer none" here and that is backwards: it would
+      // suppress the folder she asked for until something else filled it.
+      : ' — (a new folder, nothing filed in it yet — go by the name)');
   }).join('\n');
   const bits = [
     'Chat name: ' + String(r.displayName || name || '').slice(0, 80),
@@ -254,6 +296,11 @@ function buildSortPrompt({ name, reg, msgs, cats, examples }) {
  * "meta"), but the value RETURNED is always her spelling, because that string
  * is the key every chip, count and filter on the page joins on.
  */
+function pickState(out) {
+  const v = norm(out && typeof out === 'object' ? out.state : out);
+  return ['done', 'mid', 'blocked'].includes(v) ? v : 'mid';   // unsure = still in flight
+}
+
 function pickCategory(out, cats) {
   const raw = norm(out && typeof out === 'object' ? out.category : out);
   if (!raw || raw === 'none' || raw === 'null' || raw === 'unfiled') return '';
@@ -264,6 +311,6 @@ function pickCategory(out, cats) {
 module.exports = {
   TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
-  sortableCategories, examplesFor, shouldAutoSort, filedStamp,
+  sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState,
   digestOf, buildSortPrompt, pickCategory,
 };
