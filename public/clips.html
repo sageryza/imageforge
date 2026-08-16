@@ -9,9 +9,25 @@
 /* Chunking — the clip shelf. Story-Room look: tiles four to a row, names
    under them, the search bar is the interface. Flat solid colors only. */
 :root{
-  /* The injected autoscroll pill styles itself from these five — a page that
-     skips them renders it black on transparent (the pill contract). */
-  --ink:#3a3530; --paper:#faf9f7; --chg:#b48b6a; --ink2:#9e9590; --rose:#d4807a;
+  /* The five pill tokens (the pill contract) — kept for any page code that
+     reads them, and as the palette the .float override below hands the pill. */
+  --ink:#3a3530; --paper:#faf6ee; --chg:#b48b6a; --ink2:#9e9590; --rose:#c0614a;
+  /* CREAM, not white (Sophie, Aug 2026). tool.css ships a near-white #faf9f7,
+     which left the pill's own cream body reading as a dark slab pasted onto a
+     white page. The page is the thing that moves: cream page, cream pill. */
+  --bg:#faf6ee; --surface:#fffdf7; --surface2:#f2ece0; --border:#e6ddcb;
+}
+/* THE INJECTED PILL IGNORES :root — MEASURED 2026-08-15, and the docs' "define
+   the five tokens" rule is not enough on its own. `pill-inject.html` declares
+   `.float{--paper:#f6f2e9; --ink:#26221c; …}` ON THE ELEMENT, and an element's
+   own custom property beats an inherited one from :root however the host page
+   sets it — so the pill wore a near-black #26221c border and glyphs whatever
+   this page asked for (Sophie: "is therefore black, which is really
+   annoying"). A page CAN reach it, but only at higher specificity than
+   `.float`, which is what this rule is. Scoped to this page; the shared pill
+   file is untouched, so no other page moves. */
+body.tool .float{
+  --paper:#faf6ee; --ink:#3a3530; --ink2:#9e9590; --chg:#b48b6a; --rose:#c0614a;
 }
 [hidden]{ display:none !important; }
 .tool main{ max-width:640px; margin:0 auto; }
@@ -20,10 +36,14 @@
    stays reachable however deep the shelf goes). tool.css makes .head sticky
    on its own; inside the pinned block it goes static. */
 #top{ position:sticky; top:0; z-index:6; background:var(--bg); }
-#top .head{ position:static; border-bottom:0; }
+/* 64, not the usual 56: measured 2026-08-15 the injected pill sits at
+   x 326-374 on a 390pt screen (its right is max(14px,4vw)), so a 56px reserve
+   left the "?" 8px underneath it — the exact "never put a control in that
+   corner" trap. 64 clears it at 375 and 390 alike. */
+#top .head{ position:static; border-bottom:0; padding-right:64px; }
 
 /* search — the main mechanism, right under the header */
-.searchrow{ display:flex; align-items:center; gap:8px; padding:10px 56px 8px 16px;
+.searchrow{ display:flex; align-items:center; gap:8px; padding:10px 64px 8px 16px;
   border-bottom:1px solid var(--border); }
 .searchrow svg{ width:17px; height:17px; stroke:var(--dim); stroke-width:1.8; fill:none;
   stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
@@ -34,15 +54,20 @@
   padding:0; line-height:1; }
 
 /* kind chips + the count */
-.kindrow{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:10px 56px 0 16px; }
+.kindrow{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:10px 64px 0 16px; }
 .cnt{ font-size:12px; color:var(--dim); margin-left:auto; }
 
 /* the shelf — four to a row, names under the pictures */
 .shelf{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; padding:12px 14px 8px; }
-.clip{ background:none; border:0; padding:0; margin:0; cursor:pointer; text-align:left;
-  font:inherit; color:var(--ink); }
-.clip .ph{ position:relative; aspect-ratio:1; border-radius:6px; overflow:hidden;
-  background:var(--surface2); border:1px solid var(--border); }
+.clip{ display:block; background:none; border:0; padding:0; margin:0; cursor:pointer;
+  text-align:left; font:inherit; color:var(--ink); }
+/* display:block is LOAD-BEARING — these are <span>s inside a <button>, and an
+   inline box ignores aspect-ratio and height, so the square collapsed to the
+   image's own shape the moment a poster was slow, missing, or still loading
+   (measured 2026-08-15: 77x111 instead of 77x77). The tiles only ever looked
+   right because the pictures happened to arrive. */
+.clip .ph{ display:block; position:relative; aspect-ratio:1; border-radius:6px;
+  overflow:hidden; background:var(--surface2); border:1px solid var(--border); }
 .clip .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
 .clip .ph .noart{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
   color:var(--dim); }
@@ -51,7 +76,7 @@
 .clip .dur{ position:absolute; right:3px; bottom:3px; font-family:-apple-system,system-ui,sans-serif;
   font-size:9px; letter-spacing:.03em; color:#fff; background:rgba(42,38,32,.72);
   border-radius:4px; padding:1px 4px; }
-.clip .nm{ font-family:Georgia,'Times New Roman',serif; font-size:11px; line-height:1.3;
+.clip .nm{ display:block; font-family:Georgia,'Times New Roman',serif; font-size:11px; line-height:1.3;
   margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; word-break:break-word; }
 .clip.dim .ph{ opacity:.45; }
@@ -59,7 +84,7 @@
 .stateline{ padding:10px 16px; }
 
 /* the lightbox — freezes the page behind it (scroll saved and restored) */
-#lb{ position:fixed; inset:0; background:rgba(250,249,247,.985); display:none; z-index:50;
+#lb{ position:fixed; inset:0; background:rgba(250,246,238,.985); display:none; z-index:50;
   overflow-y:auto; }
 #lb.open{ display:block; }
 #lb .wrap{ max-width:640px; margin:0 auto; padding:12px 14px calc(40px + env(safe-area-inset-bottom)); }
@@ -80,6 +105,20 @@
 #lb .row{ margin-top:16px; }
 #lb .saved{ font-size:12px; color:var(--ok); opacity:0; transition:opacity .3s; }
 #lb .saved.show{ opacity:1; }
+
+/* back to top — bottom-right, because the pill owns the top-right corner.
+   Only while there is a scroll worth undoing. */
+#totop{ position:fixed; z-index:10; right:max(14px,4vw);
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  width:44px; height:44px; border-radius:50%; padding:0;
+  background:var(--surface); border:1.5px solid var(--ink); color:var(--ink);
+  box-shadow:0 2px 10px rgba(0,0,0,.09); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; }
+#totop svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+/* a search that comes up empty here, but has hits in the other pile */
+.elsewhere{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
 /* the tour — dim the page, spotlight one control at a time */
 #tour{ position:fixed; inset:0; z-index:80; }
@@ -142,6 +181,10 @@
   <div class="shelf" id="shelf"></div>
   <div class="note stateline" id="stateline" hidden></div>
 </main>
+
+<button id="totop" hidden aria-label="Back to top">
+  <svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+</button>
 
 <div id="tour" hidden>
   <div class="spot" id="tourSpot"></div>
@@ -267,7 +310,11 @@ function liveInput(el, fn) {
 
 /* ── state ── */
 var all = [];            // the whole shelf, newest first
-var kindFilter = 'all';  // 'all' | a kind | 'hidden'
+/* CHUNKS ARE THE DEFAULT VIEW (Sophie, Aug 2026: "since the main point is
+   chunking not random clips… hide the clips by default and only show them
+   when asked"). Two piles and nothing finer: CHUNKS are the sections she
+   named on purpose, CLIPS is every atom the films were cut from. */
+var pile = 'chunks';     // 'chunks' | 'clips' | 'hidden'
 var current = null;      // the clip open in the lightbox
 var savedY = 0;
 
@@ -282,34 +329,43 @@ function esc(s) {
   });
 }
 
-var KIND_LABEL = { chunk: 'chunks', scene: 'scenes', bridge: 'bridges',
-  reroll: 'earlier takes', quick: 'quick', short: 'shorts' };
+var isChunk = function (c) { return c.kind === 'chunk'; };
+var PILE_LABEL = { chunks: 'chunks', clips: 'clips', hidden: 'hidden' };
 
-function buildKinds() {
+function pileCount(p) {
+  return all.filter(function (c) {
+    if (p === 'hidden') return c.hidden;
+    if (c.hidden) return false;
+    return p === 'chunks' ? isChunk(c) : !isChunk(c);
+  }).length;
+}
+
+function buildPiles() {
   var row = $('kinds'); row.innerHTML = '';
-  var present = {}; var anyHidden = false;
-  all.forEach(function (c) { if (c.hidden) { anyHidden = true; return; } present[c.kind] = true; });
-  var chips = ['all'].concat(Object.keys(KIND_LABEL).filter(function (k) { return present[k]; }));
-  if (anyHidden) chips.push('hidden');
-  if (!(kindFilter === 'all' || chips.indexOf(kindFilter) !== -1)) kindFilter = 'all';
-  chips.forEach(function (k) {
+  var chips = ['chunks'];
+  if (pileCount('clips')) chips.push('clips');
+  if (pileCount('hidden')) chips.push('hidden');
+  // Nothing chunked yet? Don't open on an empty shelf.
+  if (pile === 'chunks' && !pileCount('chunks') && pileCount('clips')) pile = 'clips';
+  if (chips.indexOf(pile) === -1) pile = chips[0];
+  chips.forEach(function (p) {
     var b = document.createElement('button');
-    b.className = 'chip' + (kindFilter === k ? ' on' : '');
-    b.textContent = k === 'all' ? 'all' : (KIND_LABEL[k] || k);
-    b.onclick = function () { kindFilter = k; render(); };
+    b.className = 'chip' + (pile === p ? ' on' : '');
+    b.textContent = PILE_LABEL[p];
+    b.onclick = function () { pile = p; render(); };
     row.appendChild(b);
   });
 }
 
-function visible() {
+function inPile(c, p) {
+  if (p === 'hidden') return Boolean(c.hidden);
+  if (c.hidden) return false;
+  return p === 'chunks' ? isChunk(c) : !isChunk(c);
+}
+function visible(p) {
   var groups = qparse($('q').value);
   return all.filter(function (c) {
-    if (kindFilter === 'hidden') { if (!c.hidden) return false; }
-    else {
-      if (c.hidden) return false;
-      if (kindFilter !== 'all' && c.kind !== kindFilter) return false;
-    }
-    return !groups.length || qmatch(c, groups);
+    return inPile(c, p || pile) && (!groups.length || qmatch(c, groups));
   });
 }
 
@@ -318,7 +374,7 @@ var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="
   + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
 
 function render() {
-  buildKinds();
+  buildPiles();
   var list = visible();
   var shelf = $('shelf'); shelf.innerHTML = '';
   list.forEach(function (c) {
@@ -335,9 +391,30 @@ function render() {
   });
   $('cnt').textContent = list.length ? String(list.length) : '';
   var line = $('stateline');
+  line.innerHTML = ''; line.hidden = true;
   if (!all.length) { line.textContent = 'The shelf is empty — no harvest has run yet.'; line.hidden = false; }
-  else if (!list.length) { line.textContent = 'Nothing matches.'; line.hidden = false; }
-  else line.hidden = true;
+  else if (!list.length) {
+    // A search that misses HERE but hits in the other pile is a dead end
+    // otherwise — chunks being the default is what makes that possible.
+    var other = pile === 'chunks' ? 'clips' : 'chunks';
+    var elsewhereN = $('q').value ? visible(other).length : 0;
+    var say = $('q').value ? 'Nothing matches'
+      : (pile === 'chunks' ? 'No chunks yet — ask a chat to chunk a section of a video'
+         : 'Nothing here');
+    if (elsewhereN) {
+      line.className = 'note stateline elsewhere';
+      line.appendChild(document.createTextNode(say + ' in ' + pile + '.'));
+      var b = document.createElement('button');
+      b.className = 'btn ghost';
+      b.textContent = elsewhereN + ' in ' + other;
+      b.onclick = function () { pile = other; render(); };
+      line.appendChild(b);
+    } else {
+      line.className = 'note stateline';
+      line.textContent = say + '.';
+    }
+    line.hidden = false;
+  }
   $('clearq').hidden = !$('q').value;
 }
 
@@ -360,6 +437,7 @@ function openLb(c) {
   $('lbHide').textContent = c.hidden ? 'Unhide' : 'Hide';
   $('lb').classList.add('open');
   document.body.style.overflow = 'hidden';
+  syncTop();
 }
 function closeLb() {
   var v = $('lbVideo');
@@ -373,7 +451,7 @@ function closeLb() {
   // sees a short page and clamps to 0. Measured headless; the double-rAF lands
   // after the first painted frame.
   requestAnimationFrame(function () {
-    requestAnimationFrame(function () { window.scrollTo(0, savedY); });
+    requestAnimationFrame(function () { window.scrollTo(0, savedY); syncTop(); });
   });
 }
 $('lbClose').onclick = closeLb;
@@ -427,6 +505,18 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('focusin', function () { if (window.__scrollStop) window.__scrollStop(); });
 
+/* ── back to top ── */
+var totop = $('totop');
+function syncTop() {
+  if ($('lb').classList.contains('open') || !$('tour').hidden) { totop.hidden = true; return; }
+  totop.hidden = window.scrollY < 500;
+}
+window.addEventListener('scroll', syncTop, { passive: true });
+totop.onclick = function () {
+  if (window.__scrollStop) window.__scrollStop();   // a running autoscroll would fight it
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
 /* ── search wiring ── */
 var qLive = liveInput($('q'), render);
 $('clearq').onclick = function () { $('q').value = ''; qLive.sync(); render(); };
@@ -441,7 +531,7 @@ function tourTargets() {
     { el: document.querySelector('.searchrow'),
       text: 'Search everything here \u2014 type words, or narrow with tag: from: vo:' },
     { el: $('kinds'),
-      text: 'Chunks are whole sections of a video \u2014 voiceover and all. Clips are the atoms films get cut from.' },
+      text: 'Chunks are whole sections of a video \u2014 voiceover and all. Tap clips for the atoms films get cut from.' },
     { el: document.querySelector('#shelf .clip .ph'),
       text: 'Tap any tile to play it, rename it, tag it, or leave a note.' },
     { el: $('help'),
@@ -475,12 +565,14 @@ function tourStart() {
   $('tourAsk').hidden = true;
   $('helpcard').hidden = true;
   $('tour').hidden = false;
+  syncTop();
   tourShow();
 }
 function tourEnd() {
   $('tour').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, tourY);
+  syncTop();
 }
 $('tour').addEventListener('click', function () {
   tourAt++;
