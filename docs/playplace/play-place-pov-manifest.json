@@ -1,0 +1,98 @@
+{
+  "scenes": [
+    {
+      "id": "tunnel-crawl",
+      "label": "POV — crawling through the padded tunnel",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/tunnel-crawl.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Crawling forward through an enclosed padded crawl tube, both small hands visible on the wipeable blue vinyl floor ahead, the tube curving to the right, round clear porthole windows in the walls glowing with light from the big play room, colorful netting visible through them.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Crawling forward through an enclosed padded crawl tube, both small hands visible on the wipeable blue vinyl floor ahead, the tube curving to the right, round clear porthole windows in the walls glowing with light from the big play room, colorful netting visible through them.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857071010,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/tunnel-crawl.mp4",
+      "motionPrompt": "First-person camera crawls steadily forward through the padded tunnel, gently rocking side to side with each hand placement, moving toward the bend ahead.",
+      "clipFrames": 81,
+      "clipCost": 0.16
+    },
+    {
+      "id": "bubble-window",
+      "label": "POV — the bubble window over the play floor",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/bubble-window.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Looking out through a scratched clear plastic bubble dome window from inside the play structure, two small hands pressed against the plastic, the whole indoor play place spread out below: a ball pit, padded ramps, foam-wrapped support poles, colorful tube slides winding between levels.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Looking out through a scratched clear plastic bubble dome window from inside the play structure, two small hands pressed against the plastic, the whole indoor play place spread out below: a ball pit, padded ramps, foam-wrapped support poles, colorful tube slides winding between levels.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857228101,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/bubble-window.mp4",
+      "motionPrompt": "The camera slowly leans closer to the curved bubble window, peering down at the play floor far below, light shifting across the scratched plastic.",
+      "clipFrames": 81,
+      "clipCost": 0.16
+    },
+    {
+      "id": "net-climb",
+      "label": "POV — climbing the rope net",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/net-climb.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Climbing up through a steep netted rope tunnel inside the play structure, small hands gripping the thick woven rope net, a padded platform level visible above through the netting, colored plastic panels and soft foam edges on both sides.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Climbing up through a steep netted rope tunnel inside the play structure, small hands gripping the thick woven rope net, a padded platform level visible above through the netting, colored plastic panels and soft foam edges on both sides.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857395470,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/net-climb.mp4",
+      "motionPrompt": "First-person camera climbs upward through the rope netting, hands gripping one row higher then another, the padded platform above growing closer.",
+      "clipFrames": 81,
+      "clipCost": 0.16
+    },
+    {
+      "id": "slide-mouth",
+      "label": "POV — at the mouth of the tube slide",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-mouth.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Kneeling at the glowing mouth of an enclosed red spiral tube slide, small hands gripping the smooth plastic rim, looking down into the tunnel as it curves away out of sight, light reflecting off the glossy red plastic walls.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Kneeling at the glowing mouth of an enclosed red spiral tube slide, small hands gripping the smooth plastic rim, looking down into the tunnel as it curves away out of sight, light reflecting off the glossy red plastic walls.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857553649,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-mouth.mp4",
+      "motionPrompt": "The camera leans forward over the rim and tips down into the slide, starting to descend into the curving red tunnel.",
+      "clipFrames": 81,
+      "clipCost": 0.16
+    },
+    {
+      "id": "slide-descent",
+      "label": "POV — rushing down inside the tube slide",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-descent.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Rushing down inside the enclosed red tube slide mid-descent, the glossy curved plastic walls wrapping tightly all around, panel seams streaking past, warm red glow everywhere, white sneakers and legs stretched out ahead toward the curve below.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Rushing down inside the enclosed red tube slide mid-descent, the glossy curved plastic walls wrapping tightly all around, panel seams streaking past, warm red glow everywhere, white sneakers and legs stretched out ahead toward the curve below.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857699087,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/slide-descent.mp4",
+      "motionPrompt": "Fast first-person descent down the spiral tube slide, the camera rushing and banking along the curving glossy red walls, seams and light flashing past, speeding up around the bend.",
+      "clipFrames": 121,
+      "clipCost": 0.24
+    },
+    {
+      "id": "ball-pit",
+      "label": "POV — splashing into the ball pit",
+      "stillUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/ball-pit.png",
+      "promptStyle": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. ",
+      "promptContent": "Shooting out of the tube slide's bright round opening into a huge ball pit, hundreds of red, yellow, blue and green plastic balls splashing up toward the camera, legs ahead half-buried in the balls, padded walls and safety netting around the pit.",
+      "promptFull": "Photorealistic first-person POV photo, wide-angle action-camera perspective at a small child's eye level, bright indoor lighting, 1990s indoor children's play place, primary-colored padded play structure. Shooting out of the tube slide's bright round opening into a huge ball pit, hundreds of red, yellow, blue and green plastic balls splashing up toward the camera, legs ahead half-buried in the balls, padded walls and safety netting around the pit.",
+      "model": "gpt-image-2",
+      "quality": "medium",
+      "madeAt": 1786857930904,
+      "clipUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/ball-pit.mp4",
+      "motionPrompt": "The camera splashes into the ball pit, colorful plastic balls flying up past the lens and tumbling back down, then gentle bobbing as everything settles.",
+      "clipFrames": 81,
+      "clipCost": 0.16
+    }
+  ],
+  "film": {
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/playplace/play-place-pov.mp4",
+    "madeAt": 1786858066877
+  }
+}
