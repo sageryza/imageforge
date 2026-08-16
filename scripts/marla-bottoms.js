@@ -50,25 +50,15 @@ function bandFor(words, height) {
   return Math.max(0, Math.min(topY, height - 40));
 }
 
-// The CURRENT picture for each page = the newest numbered round that drew it.
-// Named variants (3a, 32e) are experiments, not the book, so they are skipped.
-const ROUNDS = ['s1', 'v2', 'v3', 'v3e', 's2', 's2diag', 's4', 's5'];
+// THE PICTURE FOR EACH PAGE IS THE ONE SHE CHOSE — docs/marla/chosen.json,
+// built by marla-chosen.js from her real hearts. Newest-wins was wrong for
+// pages 1, 18 and 31, where she kept an older drawing, and it put the floating
+// fishbowl into her caption examples.
 function currentArt() {
-  const out = {};
-  for (const b of ROUNDS) {
-    for (const [k, v] of Object.entries(state[b] || {})) {
-      const n = Number(k);
-      const url = v.artUrl || v.url;
-      if (!n || !url) continue;
-      const at = v.at || 0;
-      if (!out[n] || at >= out[n].at) out[n] = { n, url, at, round: b };
-    }
-  }
-  for (const [k, v] of Object.entries(state.pages || {})) {
-    const n = Number(k);
-    if (!out[n] && v.artUrl) out[n] = { n, url: v.artUrl, at: v.at || 0, round: 'r1' };
-  }
-  return Object.values(out).sort((a, b) => a.n - b.n);
+  const chosen = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/chosen.json'), 'utf8'));
+  return Object.values(chosen)
+    .map((c) => ({ n: c.n, url: c.art, at: c.at, round: c.round + (c.provisional ? '' : ' ♥') }))
+    .sort((a, b) => a.n - b.n);
 }
 
 async function measure(url, words) {

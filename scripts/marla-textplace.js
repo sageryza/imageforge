@@ -35,6 +35,9 @@ const CHAT = 'marlas-eyes-fishbowl-storybook';
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
 const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/state.json'), 'utf8'));
 const bottoms = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/bottoms.json'), 'utf8'));
+// The picture for a page is the one SHE chose (marla-chosen.js), never the
+// newest — that is what put the floating fishbowl in her caption examples.
+const chosen = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/chosen.json'), 'utf8'));
 const arg = (n, d) => { const i = process.argv.indexOf('--' + n); return i === -1 ? d : process.argv[i + 1]; };
 const POST = process.argv.includes('--post');
 
@@ -42,12 +45,22 @@ const W = 1024, H = 1536;
 const FONT = "Georgia, 'Times New Roman', serif";
 const INK = '#2c2622', PAPER = '#fffdf6';
 
-// The bucket a page falls in. Calibrated by LOOKING at the bottom bands, not
-// by picking numbers: p22 at heavy .038 is a shoe in one corner over bare
-// paper (clear); p1 at .53 is a pale wash with nothing drawn in it, which a
-// veil sits on happily; p17 at mean 129 is a solid dark wash where a veil
-// strong enough to read would visibly bleach the picture.
-const bucketOf = (r) => (r.heavy <= 0.05 ? 'clear' : r.mean < 40 ? 'veil' : 'byhand');
+// TWO AXES, not one — Sophie's correction: the placement is not about how
+// dark the bottom is, it is about how important the thing down there is.
+// Page 17 is nearly black at the bottom (wet sand, spreading the blanket)
+// and she named it as perfect for text; page 35 is paler and unusable
+// because her legs and shoes are down there.
+//   IMPORTANCE decides whether the words may sit on the picture at all, and
+//     it is a JUDGEMENT — docs/marla/bottom-content.json, one line of
+//     reasoning each, hers to overturn.
+//   DARKNESS only decides whether they need a veil to stay readable, and
+//     that part is measured (marla-bottoms.js).
+const content = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/marla/bottom-content.json'), 'utf8')).pages;
+function bucketOf(r) {
+  const c = content[String(r.n)];
+  if (c && c.matters) return 'byhand';        // it belongs to the story
+  return r.mean < 12 ? 'clear' : 'veil';      // else plain if light, veiled if not
+}
 
 const escapeXml = (s) => String(s).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
 function wrap(text, max) {
@@ -143,7 +156,8 @@ async function upload(buf, dest, type) {
     const row = bottoms.find((r) => r.n === n);
     const words = (state.pages[String(n)] || {}).words || '';
     if (!row || !words) { console.log(`p${n}: no art or no words`); continue; }
-    const buf = Buffer.from(await (await fetch(row.url)).arrayBuffer());
+    const src = (chosen[String(n)] || {}).art || row.url;
+    const buf = Buffer.from(await (await fetch(src)).arrayBuffer());
     const b = bucketOf(row);
     const made = {};
     made.clear = await upload(await clearPage(buf, words), `storybook/marla/text/p${n}-clear.webp`, 'image/webp');
