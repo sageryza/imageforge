@@ -11,8 +11,10 @@
  * what she deleted). This reads both, applies HER version over the file's the
  * same way the page did, and writes one story into /api/timeline.
  *
- * It is a ONE-SHOT: run it again and you get a second copy, so it prints the
- * story id and stops. --dry-run shows exactly what would be written.
+ * It REUSES an empty story of the same name rather than making a second one, so
+ * a retry after a failed write tops the same story up instead of littering her
+ * shelf — which is exactly what the first two attempts did. --dry-run shows
+ * what would be written and touches nothing.
  */
 const fs = require('fs');
 const path = require('path');
@@ -93,11 +95,30 @@ function headers() {
     return;
   }
 
-  const made = await fetch(BASE + '/api/timeline/stories', {
-    method: 'POST', headers: headers(),
-    body: JSON.stringify({ title: 'The house' }),
-  }).then((r) => r.json());
+  // reuse an EMPTY story of this name if one is sitting there — a failed write
+  // leaves one behind, and a retry must not add to the pile
+  const TITLE = 'The house';
+  const shelf = await fetch(BASE + '/api/timeline/stories', { headers: headers() })
+    .then((r) => r.json()).catch(() => ({}));
+  const empty = ((shelf && shelf.stories) || [])
+    .filter((x) => x.title === TITLE && !x.moments)
+    .sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt)));
+
+  let made = empty[0];
+  if (made) console.log('reusing the empty story left by an earlier run');
+  else {
+    made = await fetch(BASE + '/api/timeline/stories', {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({ title: TITLE }),
+    }).then((r) => r.json());
+  }
   if (!made.id) throw new Error('could not make the story: ' + JSON.stringify(made));
+
+  // and hide any other empty twins, so the shelf shows one story
+  for (const x of empty.slice(1)) {
+    await fetch(BASE + '/api/timeline/stories/' + x.id, { method: 'DELETE', headers: headers() })
+      .catch(() => {});
+  }
 
   const put = await fetch(BASE + '/api/timeline/stories/' + made.id, {
     method: 'PUT', headers: headers(),
