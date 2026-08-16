@@ -156,10 +156,12 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   const cards = () => page.$$eval('.nwcard', ns => ns.map(n => n.dataset.chat));
   const chips = () => page.$$eval('#catrow .catchip', ns => ns.map(n => n.textContent.trim()));
 
-  // 1. two boxes, LATER first
+  // 1. two boxes, COME BACK TO first — the box she called LATER wears the
+  //    chat list's own folder name now (Aug 2026, "combine the come back to
+  //    and later categories"); the stored value is still `later`.
   const row = await chips();
   if (row.length !== 2) fail('expected exactly two boxes, got ' + row.length + ': ' + row.join(' | '));
-  if (!/^Later/.test(row[0] || '')) fail('LATER is not the left box: ' + row.join(' | '));
+  if (!/^Come back to/.test(row[0] || '')) fail('COME BACK TO is not the left box: ' + row.join(' | '));
   if (!/^In a minute/i.test(row[1] || '')) fail('IN A MINUTE is not the right box: ' + row.join(' | '));
   // …and no star chip / no New… box borrowed from the chat list
   if (await page.$('#catrow .starchip')) fail('the star chip leaked onto the Update screen');
@@ -170,7 +172,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   let list = await cards();
   if (list.indexOf('chat-old') >= 0) fail('a filed card is still on the main list: ' + list.join(', '));
   if (list.indexOf('chat-new') < 0) fail('a filed chat that delivered SINCE must pop back onto the list: ' + list.join(', '));
-  if (!/1$/.test(row[0])) fail('the Later box should count 1 (chat-old), got "' + row[0] + '"');
+  if (!/1$/.test(row[0])) fail('the Come back to box should count 1 (chat-old), got "' + row[0] + '"');
 
   // 2. the ✓ box picks the card, a second tap lets go
   if (await page.$('#catrow .nwdone')) fail('DONE is on the row with nothing picked');
@@ -221,7 +223,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   }
   if (await page.$('.nwcard.picked')) fail('filing did not clear the selection');
   let row2 = await chips();
-  if (!/3$/.test(row2[0])) fail('the Later box should now count 3, got "' + row2[0] + '"');
+  if (!/3$/.test(row2[0])) fail('the Come back to box should now count 3, got "' + row2[0] + '"');
 
   // 6. the tab badge counts what is LEFT on the main list (chat-c + chat-new)
   const badge = await page.$eval('#accrow .acctab[data-acct="new"] .cc-new', n => n.textContent).catch(() => '');
@@ -232,7 +234,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.waitForTimeout(80);
   list = await cards();
   if (list.length !== 3 || list.indexOf('chat-a') < 0 || list.indexOf('chat-old') < 0) {
-    fail('the Later box should hold exactly the three filed cards, got: ' + list.join(', '));
+    fail('the Come back to box should hold exactly the three filed cards, got: ' + list.join(', '));
   }
   if (list.indexOf('chat-new') >= 0) fail('a card that delivered after filing must not sit in the box too');
 
@@ -288,5 +290,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('PASS: the Update screen files into Later / In a minute / Maybe never');
+  if (!process.exitCode) console.log('PASS: the Update screen files into Come back to / In a minute / Maybe never');
 })().catch((e) => { console.error(e); process.exit(1); });
