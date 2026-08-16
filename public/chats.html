@@ -1636,10 +1636,29 @@ function setIcon(chat){
   inp.click();
 }
 
+// WHEN A MESSAGE ACTUALLY ARRIVED (Aug 2026, Sophie diagnosed this one
+// herself: "when I message a chat and they're already writing then my messages
+// go ahead of it … and then their message posts under my new messages because
+// it already started writing").
+//
+// A reply's `created` is when the chat STARTED writing — its doc is created by
+// the turn's first live draft — so a message she sends mid-turn carries a LATER
+// `created` than the reply that lands minutes after it, and that reply sorts
+// underneath her own message where she never sees it. Measured 2026-08-14:
+// 52 of these across 25 chats, one of them 1 second into a turn.
+//
+// HER messages keep `created` — her real send time, which is what puts her
+// message above the reply it prompted (an old hook posts it ~1s AFTER that
+// reply, so post time would invert every single exchange). A reply is ordered
+// by when it LANDED. `postedAt` is monotonic and bumped on every write, so a
+// growing draft rises as it is written, which is also what she wants to see.
+function sortAt(m){
+  return (m && m.from === 'sophie') ? (m.created || '') : (m.postedAt || m.created || '');
+}
 // messages grouped per chat, oldest first
 function groups(){
   var g={};
-  msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?-1:1; })
+  msgs.slice().sort(function(a,b){ return sortAt(a)<sortAt(b)?-1:1; })
     .forEach(function(m){ (g[m.chat]=g[m.chat]||[]).push(m); });
   return g;
 }
@@ -5825,7 +5844,10 @@ function saveCache(){
     // visit. Chats whose extra messages we drop are re-marked truncated so
     // opening them pulls the thread again next launch.
     var byChat={}, dropped={};
-    msgs.slice().sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
+    // same arrival order the thread uses (see sortAt) — the cache must keep the
+    // newest TEN as she would see them, or a reply that landed late is the one
+    // dropped.
+    msgs.slice().sort(function(a,b){ return sortAt(a)<sortAt(b)?1:-1; })
       .forEach(function(m){
         var c=m.chat||''; var arr=(byChat[c]=byChat[c]||[]);
         if(arr.length<10) arr.push(m); else dropped[c]=1;
