@@ -1635,6 +1635,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
   show approval state. **Making art for the "Evan" story? `docs/evan-film-style.md`
   FIRST** — write NO style description at all.
   **Full details: `docs/modules/story.md`.**
+- **Story Timeline** (`timeline.js` + `timeline-parse.js`, `/api/timeline`,
+  page at `/timeline`, iOS tile) — a dictated list of moments becomes cards she
+  can put in order. It started as one Compare page for one story (Aug 2026) and
+  became a tool when she asked for it "for other stories". **It costs nothing —
+  no model call, no background job**, so opening it and saving are both free.
+  **THE CARD IS THE ATOM, THE UNIT IS WHAT MOVES:** a unit is one moment or a
+  run of them that travel together (her word: a SEQUENCE) and carries ONE
+  number, because the number is its place in the order. `units` is an array of
+  arrays of moment ids and is the whole arrangement — order and grouping in one
+  field — while `moments` is keyed by id and holds only words, so moving a
+  moment can never alter it and re-ordering can never lose one. **Parsing a
+  paste is a STARTING POINT, not a verdict** (an ALL-CAPS line opens a group; an
+  END line, a blank line or the next header closes it): it gets some groups
+  wrong on purpose, because fixing one on the page is two taps and no parser
+  out-guesses her about where a sequence stops. **Nothing is deleted outright**
+  — DELETE hides a story, and deleting a moment drops it from `units` while its
+  words stay in `moments`. The page's controls are all hers by name: a number
+  you can TYPE, single/double arrows (one step / all the way), the marks in the
+  GAP (join these two, add one here), the pencil (change the words, and only
+  from inside the open editor: divide at the cursor, delete), and a unit of 5+
+  FOLDING to its first and last with one line each in between.
+  **The editor is behind a pencil and never a tap on the words** — tap-to-edit
+  means every stray thumb on the way down the page opens an editor.
+  Two bugs worth not repeating, both pinned by the test: a folded middle sets
+  `white-space:nowrap`, so its grid track needs `minmax(0,1fr)` or the whole
+  unit shoots off the right of the screen; and an editor that holds itself open
+  for ANY focus inside its card loses what she typed when a blur leaves focus
+  put. Tests: `node scripts/test-timeline.js` (the parser and the validators
+  pure, then the real page driven in headless Chromium).
+  Firestore `forge-timelines`, one doc per story.
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word
   marked red, autoscroll, and per-paragraph notes (text or voice memo). **Notes are

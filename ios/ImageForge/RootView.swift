@@ -4,7 +4,7 @@ import SwiftUI
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline
     var id: String { rawValue }
 
     var title: String {
@@ -40,6 +40,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .freeform:  return "Freeform"
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
+        case .timeline:  return "Story Timeline"
         }
     }
 
@@ -75,6 +76,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .films:     return "Films without a story — experiments and one-offs."
         case .freeform:  return "Your refs, your words — sent exactly as typed."
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
+        case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
         }
     }
@@ -119,6 +121,9 @@ enum Tool: String, CaseIterable, Identifiable {
         // A strip cut into pieces — the library of PARTS, not of films. (Not
         // rectangle.grid.2x2: .lessons already wears that one.)
         case .chunking:  return "rectangle.split.3x1"
+        // Moments stacked in an order, with one of them picked up — the whole
+        // tool is moving a card up and down a list.
+        case .timeline:  return "list.bullet.indent"
         }
     }
 
@@ -184,6 +189,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // bar carries the name and the page never repeats it (?embed=1).
         case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "rectangle.grid.2x2")
                             .forgeToolBar("Chunking")
+        // Story Timeline: a shelf of stories, then one open. The page answers
+        // window.__navBack, so the chevron goes shelf-ward before it leaves.
+        case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent")
+                            .forgeToolBar("Story Timeline")
         }
     }
 }
@@ -487,6 +496,8 @@ struct RootView: View {
             if t == .vector { return false }
             // Chunking is a web page with its own injected pill too.
             if t == .chunking { return false }
+            // Story Timeline is served with { pill: true } as well.
+            if t == .timeline { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills
             // drew and the speed label read "Fast" twice (Sophie's
