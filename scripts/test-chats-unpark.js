@@ -117,7 +117,6 @@ console.log('fallbacks');
     api.chatHidden('c', { created: '2026-08-14T04:00:00.000Z' }) === true);
 }
 
-<<<<<<< Updated upstream
 console.log('the leash (Aug 2026: "could it just be like three minutes")');
 {
   const iso = (msAgo) => new Date(Date.now() - msAgo).toISOString();
@@ -143,8 +142,6 @@ console.log('the leash (Aug 2026: "could it just be like three minutes")');
     api.chatHidden('c', { created: iso(20 * MIN), postedAt: iso(20 * MIN), working: true }) === true);
 }
 
-console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');
-=======
 // ── arrival order (Aug 2026) ────────────────────────────────────────────────
 // Sophie: "when I message a chat and they're already writing then my messages
 // go ahead of it … and then their message posts under my new messages because
@@ -166,6 +163,5 @@ console.log('arrival order');
   ok('a message with no postedAt falls back to created',
     sortAt({ from: 'claude', created: 'x' }) === 'x');
 }
-console.log(fails ? '\n' + fails + ' FAILED (order)' : '\norder ok');
->>>>>>> Stashed changes
+console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');
 process.exit(fails ? 1 : 0);
