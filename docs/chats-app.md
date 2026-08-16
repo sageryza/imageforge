@@ -1302,14 +1302,31 @@
     she asked for "the last three pictures… to be easily reminded what
     they're doing", which is context, and a row of one picture with two
     blanks is worse at that job.
-  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a reply that
-    isn't hers, a Compare page, an image — because **a chat can deliver
-    without saying anything**, and a feed keyed on messages alone would miss
-    exactly the picture batches she asked to see. Cards sort by that arrival,
-    not by the chat's last message — **so a card whose page is replaced by a
-    newer version JUMPS TO THE TOP** rather than holding its old place (Sophie
-    asked, Aug 2026: "does it go to the top or stay where it was"). The card
-    is one per chat and updates in place; a chat can never stack up two.
+  - **WHAT COUNTS AS NEW is the newest of three arrivals** — a FINISHED
+    reply that isn't hers, a Compare page, an image — because **a chat can
+    deliver without saying anything**, and a feed keyed on messages alone
+    would miss exactly the picture batches she asked to see. Cards sort by
+    that arrival, not by the chat's last message — **so a card whose page is
+    replaced by a newer version JUMPS TO THE TOP** rather than holding its
+    old place (Sophie asked, Aug 2026: "does it go to the top or stay where
+    it was"). The card is one per chat and updates in place; a chat can
+    never stack up two.
+    - **A STILL-WRITING DRAFT IS NOT AN ARRIVAL (Aug 2026, Sophie: "the
+      update tab seems to give me an update before the turn is even
+      done").** A card used to land at the chat's FIRST TOOL CALL — the
+      hook's live-draft post is a non-Sophie message, and nothing here
+      checked `working` — carrying last turn's ⌄ and a timestamp about
+      something she couldn't read yet. The widget and the push both already
+      skipped drafts; `newsItems` now agrees: the reply that counts is the
+      newest FINISHED one (`lastFin`), so an unchecked reply from an earlier
+      turn still holds its card while a new turn runs on top of it, and the
+      ⌄ fallback reads `lastFin` too — never half a sentence. **Pictures and
+      pages still count the moment they land, mid-turn included** — her call,
+      asked directly: "if they finished making something or made images but
+      their turn isn't done I kind of want to preserve that" — because a
+      filed image is done even when the reply around it isn't. Tests:
+      `node scripts/test-chats-news-drafts.js` (the real page, headless;
+      verified failing on every point against the pre-change page).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
