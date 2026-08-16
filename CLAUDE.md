@@ -1520,7 +1520,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   her own scans attached as style refs, kept in `PL_GPT_STYLES` in server.js).
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
-  draws a different picture. Quality low/medium/high ~2c/6c/25c, deliberately not
+  draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3
+  (the one price table lives in `docs/modules/pictures.md` — and the SQUARE
+  canvas is the dear one, not the cheap one), deliberately not
   persisted. Cancel is Replicate-only on purpose. The feed pages backwards through
   time and has LIST and TILES views. **Full details: `docs/modules/pictures.md`.**
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
