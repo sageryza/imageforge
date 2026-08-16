@@ -518,6 +518,22 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
   display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
 .bellbtn svg{width:16px; height:16px; display:block;}
 .bellbtn.on{color:var(--bell);}
+/* THE MAP PIN — keep this chat at the top of the list (Aug 2026, Sophie: "can
+   you use the little dot pin for like Maps that people put on Maps … and make
+   just the top part turn red when it's pinned and click it again to unpin").
+   The fourth mark in the row, after the bell.
+   ONLY THE HEAD FILLS. The glyph is drawn as two shapes for exactly this
+   reason — a stroked teardrop for the whole silhouette and a fill-only circle
+   sitting inside its round top, so the red lands on the head and the tail
+   stays an outline. The circle carries `stroke="none"` in the markup and must
+   keep it: stroked, it would draw a line straight across the pin's neck.
+   The outline goes to ink when it is set, because a grey pin under a red head
+   reads as a disabled control. */
+.pinbtn{flex:none; background:none; border:none; padding:6px 4px; cursor:pointer; color:var(--line);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.pinbtn svg{width:16px; height:16px; display:block;}
+.pinbtn.on{color:var(--ink2);}
+.pinbtn.on .pinhead{fill:var(--chg);}
 /* HIDE and DELETE as PICTURES (Aug 2026, Sophie: "make the delete button a
    picture of a trash can and the hide button a picture of an eye that's
    crossed out if it's hidden").
@@ -543,6 +559,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    told apart at a glance on a row that carries both. */
 .cr-kept{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
 .cr-kept svg{width:13px; height:13px; display:block; fill:currentColor;}
+/* PINNED TO THE TOP — the map-pin, at the front of the row (Aug 2026, Sophie).
+   The head is filled and the tail is the outline, exactly as the header's
+   toggle draws it when set, so the mark on the row and the button she tapped
+   are visibly the same object. `.cr-kept`'s blanket `fill:currentColor` is
+   deliberately NOT copied here: filling the tail path too would flood the
+   teardrop into a solid blob and lose the pin. */
+.cr-pin{flex:none; display:flex; align-items:center; color:var(--chg); margin-right:-3px;}
+.cr-pin svg{width:13px; height:13px; display:block;}
+.cr-pin .pinhead{fill:currentColor;}
 .catchip.starchip{display:inline-flex; align-items:center; padding:6px 8px; color:var(--chg);}
 .catchip.starchip svg{width:14px; height:14px; display:block;}
 .catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
@@ -1704,8 +1729,13 @@ function statusLinesHtml(name, fallback){
 // the two marks were split apart, see chatKept). Both are drawn only when set
 // and both can be on one row: "I am working on this" and "this is a keeper"
 // are different sentences and a chat can be both.
+// A PINNED chat carries the map-pin at the front of the row, ahead of both
+// (Aug 2026) — drawn only when set, like the other two. It is what says why a
+// row is sitting at the top of a list sorted by recency; without it a pinned
+// chat and a chat that just answered look identical.
 function starHtml(name){
-  return (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
+  return (chatPinTop(name) ? '<span class="cr-pin">'+PIN_SVG+'</span>' : '')
+       + (chatKept(name) ? '<span class="cr-kept">'+BMK_SVG+'</span>' : '')
        + (chatStar(name) ? '<span class="cr-star">'+STAR+'</span>' : '');
 }
 function acctHtml(name){
@@ -1728,6 +1758,13 @@ function trashNames(){
     return (chats[b].deletedAt||'').localeCompare(chats[a].deletedAt||'');  // newest binned first
   });
 }
+// PINNED TO THE TOP (Aug 2026, Sophie: "an option to pin chat to the top so
+// they always show first when they come out of hiding and they never
+// disappeared to the bottom if I don't look at them for a while"). Her
+// override on the recency sort — the map-pin in a chat's header sets it, the
+// same tap clears it. `pinTop` on the registry, NOT `pinned` (that one holds
+// the pinned link/film object).
+function chatPinTop(name){ return !!(chats[name]&&chats[name].pinTop); }
 function sortedChatNames(g){
   // both views: most recent activity first (chats with no messages sink)
   var names=Object.keys(g);
@@ -1737,6 +1774,13 @@ function sortedChatNames(g){
   // one place, instead of a filter per pile that a new pile could forget.
   names=names.filter(function(n){ return !chatDeleted(n); });
   names.sort(function(a,b){
+    // A PINNED CHAT SITS ABOVE THE SORT, not inside it — that is the whole
+    // point of the mark, and it is done HERE, in the one place every pile
+    // sorts, so a chat coming back out of the hidden pile lands at the top
+    // without the hidden pile knowing anything about pinning. Pinned chats
+    // keep their own recency order among themselves.
+    var pa=chatPinTop(a), pb=chatPinTop(b);
+    if(pa!==pb) return pa?-1:1;
     var la=(g[a]&&g[a][g[a].length-1].created)||'', lb=(g[b]&&g[b][g[b].length-1].created)||'';
     return la<lb?1:-1;
   });
@@ -4000,6 +4044,24 @@ var BMK_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke=
 // It is drawn filled in BOTH states; grey vs gold is the state, exactly like
 // the star beside it.
 var BELL_SVG='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.4c-3.4 0-6.1 2.8-6.1 6.2 0 3.4-.8 5.2-2.1 6.6-.7.8-.2 2 .9 2h14.6c1.1 0 1.6-1.2.9-2-1.3-1.4-2.1-3.2-2.1-6.6 0-3.4-2.7-6.2-6.1-6.2z"/><path d="M9.4 19.2h5.2a2.6 2.6 0 0 1-5.2 0z"/></svg>';
+// THE MAP PIN — "the little dot pin for like Maps that people put on Maps"
+// (Aug 2026, Sophie), and it is drawn in TWO PIECES on purpose, because her
+// other half of the ask is "make just the top part turn red when it's pinned".
+// A single Lucide `map-pin` path is one closed teardrop, and half of one path
+// cannot take a different colour — so:
+//   • the CIRCLE is the head, fill-only (`stroke="none"`, and it must stay
+//     that way: stroked, it draws a line across the pin's neck),
+//   • the PATH is the whole silhouette, stroked — a 6r arc over the top that
+//     runs into the two tangent lines meeting at the tip (12,21.5).
+// The tangent points are computed, not eyeballed: with the centre 12 units
+// above the tip and r=6 the half-angle is exactly 60°, putting them at
+// (6.8,12.5) and (17.2,12.5) — which is what makes the tail leave the head
+// with no corner at the join. Because the circle and the arc share a centre
+// and a radius, the fill lands exactly inside the outline, so `.on` colours
+// the head and nothing else. (First cut used r=5.5 with the same
+// construction and rendered noticeably narrow beside the star and the bell;
+// this fills the 24-box the way the other glyphs do.)
+var PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="9.5" r="6" stroke="none"/><path d="M6.8 12.5A6 6 0 1 1 17.2 12.5L12 21.5Z"/></svg>';
 var EYE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYE_OFF_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
 var TRASH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
@@ -4385,6 +4447,40 @@ function openChat(name, keepScroll, focusId, noFetch){
         .catch(function(){ chats[name].notify=was; paintN(); toast('Couldn’t save that'); });
     };
     head.querySelector('.no').appendChild(nb);
+  })();
+  // THE MAP PIN — keep this chat at the top of the list (Aug 2026, Sophie: "an
+  // option to pin chat to the top so they always show first when they come out
+  // of hiding and they never disappeared to the bottom if I don't look at them
+  // for a while … and I guess I can just unpin them if necessary").
+  //
+  // The list is sorted by newest message, which buries a chat she is steering
+  // but hasn't messaged today, and drops one back into the middle of the pile
+  // when it comes out of hiding. This lifts it above the sort in EVERY pile —
+  // one line in sortedChatNames, so nothing else had to learn about it.
+  //
+  // The fourth per-chat mark, in the same row as the other three because they
+  // are one decision made in one place: star = on it now, bookmark = keep it,
+  // bell = allowed to buzz me, pin = stays at the top.
+  (function(){
+    var pb=document.createElement('button');
+    pb.className='pinbtn'+(chatPinTop(name)?' on':'');
+    pb.innerHTML=PIN_SVG;
+    function paintP(){
+      pb.classList.toggle('on', chatPinTop(name));
+      pb.setAttribute('aria-label', chatPinTop(name)
+        ? 'Pinned to the top — unpin this chat'
+        : 'Pin this chat to the top');
+    }
+    paintP();
+    pb.onclick=function(){
+      var was=chatPinTop(name);
+      chats[name]=chats[name]||{}; chats[name].pinTop=!was;
+      paintP(); toast(was?'Unpinned':'Pinned to the top');
+      api('/api/chatfeed/pin-top',{method:'POST',body:JSON.stringify({chat:name, pinTop:!was})})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){ chats[name].pinTop=was; paintP(); toast('Couldn’t save that'); });
+    };
+    head.querySelector('.no').appendChild(pb);
   })();
   var curl=claudeUrlFor(name, list); openUrl=curl;   // renderMsg reads openUrl
   sec.appendChild(head);
