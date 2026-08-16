@@ -1,0 +1,115 @@
+<!doctype html>
+<!-- Built by scripts/gen-story-timeline.js from docs/story-timeline/beats.json.
+     Edit the JSON and rebuild; never hand-edit this file. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Story timeline v1 — 29 moments</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* layout only — every colour is a /compare.css token */
+  .tl, .tl ol { list-style: none; }
+  .tl li::before { content: none; }
+  .tl { margin-top: 14px; }
+  .beat {
+    display: grid; grid-template-columns: 30px 1fr; gap: 11px;
+    align-items: start; padding: 7px 30px 7px 0;
+  }
+  .num {
+    font: 700 12px/22px -apple-system, 'Helvetica Neue', sans-serif;
+    text-align: center; height: 22px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink2);
+  }
+  .say { font-size: 16px; line-height: 1.45; }
+  .x {
+    font: 700 10px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    color: var(--gold);
+    border: 1px solid #e0d6c4; background: #f6f0e4;
+    border-radius: 6px; padding: 3px 5px; margin-left: 5px; white-space: nowrap;
+  }
+  /* a SEQUENCE is one visual chunk — the beats inside keep their own numbers */
+  .seq {
+    border: 1px solid var(--line); border-left: 3px solid var(--gold);
+    background: var(--surface); border-radius: 6px;
+    padding: 9px 10px 8px; margin: 12px 0;
+  }
+  .seq > ol { margin: 0; }
+  .seq .beat { padding-top: 5px; padding-bottom: 5px; }
+  .seq .num { border-color: #e0d6c4; background: #f6f0e4; color: var(--gold); }
+  .seqlab {
+    display: block; font: 700 10px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gold); padding: 1px 0 7px 1px;
+  }
+  /* the cast note — off the numbered spine, it is not a moment */
+  .ref {
+    display: block; border: 1px dashed var(--line); border-radius: 6px;
+    background: var(--surface); padding: 9px 30px 9px 10px; margin: 12px 0;
+  }
+  .reflab {
+    display: block; font: 700 10px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink2); padding-bottom: 6px;
+  }
+  .ref .say { color: var(--ink2); font-size: 15px; }
+</style>
+
+<div class="wrap">
+  <h1>Story timeline v1 — 29 moments</h1>
+  <ol class="tl">
+      <li class="beat" data-item="b1"><span class="num">1</span><span class="say">the laundry basket <span class="x">2x</span></span></li>
+      <li class="beat" data-item="b2"><span class="num">2</span><span class="say">the phone that I should have stolen hanging out the window, that didn’t actually happen.</span></li>
+      <li class="seq"><span class="seqlab">Sequence · 3–7</span>
+        <ol>
+      <li class="beat" data-item="b3"><span class="num">3</span><span class="say">The lilac moment where the colors are changing. I was like, I don’t want that.</span></li>
+      <li class="beat" data-item="b4"><span class="num">4</span><span class="say">And then the realization</span></li>
+      <li class="beat" data-item="b5"><span class="num">5</span><span class="say">getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front</span></li>
+      <li class="beat" data-item="b6"><span class="num">6</span><span class="say">screaming, I’m angry</span></li>
+      <li class="beat" data-item="b7"><span class="num">7</span><span class="say">putting it in my belly button as a close up</span></li>
+        </ol></li>
+      <li class="beat" data-item="b8"><span class="num">8</span><span class="say">finding the knife</span></li>
+      <li class="beat" data-item="b9"><span class="num">9</span><span class="say">Him pulling out his gun.</span></li>
+      <li class="beat" data-item="b10"><span class="num">10</span><span class="say">Him behind me explaining things to me on the chair.</span></li>
+      <li class="seq"><span class="seqlab">Sequence · 11–13</span>
+        <ol>
+      <li class="beat" data-item="b11"><span class="num">11</span><span class="say">the beginning where we were, like, at the wall</span></li>
+      <li class="beat" data-item="b12"><span class="num">12</span><span class="say">and then the train</span></li>
+      <li class="beat" data-item="b13"><span class="num">13</span><span class="say">and then walking in that place</span></li>
+        </ol></li>
+      <li class="beat" data-item="b14"><span class="num">14</span><span class="say">the chair</span></li>
+      <li class="beat" data-item="b15"><span class="num">15</span><span class="say">I love you</span></li>
+      <li class="beat" data-item="b16"><span class="num">16</span><span class="say">the woman, like, poor baby. Probably shouldn’t be here, but not trying to help.</span></li>
+      <li class="seq"><span class="seqlab">Ending sequence · 17–20</span>
+        <ol>
+      <li class="beat" data-item="b17"><span class="num">17</span><span class="say">leaving through the creaky door when he falls asleep.</span></li>
+      <li class="beat" data-item="b18"><span class="num">18</span><span class="say">laying down in the brush and crying a little bit, maybe. In relief, let’s say.</span></li>
+      <li class="beat" data-item="b19"><span class="num">19</span><span class="say">And then, let’s just say the lavender came back. I don’t know if it actually did</span></li>
+      <li class="beat" data-item="b20"><span class="num">20</span><span class="say">just seeing like what colors were actually there.</span></li>
+        </ol></li>
+      <li class="seq"><span class="seqlab">Sequence · 21–22</span>
+        <ol>
+      <li class="beat" data-item="b21"><span class="num">21</span><span class="say">the moment where they were like, oh, she has OCD, like, let’s rape her</span></li>
+      <li class="beat" data-item="b22"><span class="num">22</span><span class="say">so, where are we gonna rape her?</span></li>
+        </ol></li>
+      <li class="seq"><span class="seqlab">Sequence · 23–25</span>
+        <ol>
+      <li class="beat" data-item="b23"><span class="num">23</span><span class="say">me, like, talking about having OCD and that happened with Laurian, too.</span></li>
+      <li class="beat" data-item="b24"><span class="num">24</span><span class="say">yeah, okay, this is okay. Actually, I’m kind of scared</span></li>
+      <li class="beat" data-item="b25"><span class="num">25</span><span class="say">what, you found her at a mental hospital, like, can she leave now?</span></li>
+        </ol></li>
+      <li class="beat" data-item="b26"><span class="num">26</span><span class="say">a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know.</span></li>
+      <li class="beat" data-item="b27"><span class="num">27</span><span class="say">my tights on the floor with $83 or so on them.</span></li>
+      <li class="beat" data-item="b28"><span class="num">28</span><span class="say">him closing the door</span></li>
+      <li class="ref" data-item="cast"><span class="reflab">Character reference</span><span class="say">Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really.</span></li>
+      <li class="beat" data-item="b29"><span class="num">29</span><span class="say">he was like, how was your 1st time? I was like, um, what?</span></li>
+  </ol>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'story-timeline-sequences', sheet: 'timeline-b29' });
+  window.__compareHelp({ html: '<b>29 drawable moments, in your order.</b> '
+    + 'Every one keeps its own number, including the ones inside a bracketed '
+    + 'sequence. Tap the + on any moment to say what should move.' });
+})();
+</script>
