@@ -1,0 +1,640 @@
+<!doctype html>
+<!-- The one flow v1 — the merged UI of the Story Timeline and Cutting Blocks
+     artifacts, built so Sophie can feel the whole verb set in one place before
+     it is wired into the real tools. Arranging verbs are timeline v5's; the
+     three-state marking, the cut pile and undo/redo come from blocks v14.
+     Her arrangement, marks and edits are NOT in here — they live on the
+     server (chat compare-similar-artifacts, sheet flow-order-b30). -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The one flow v1 — arrange and mark (b30)</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* layout only — every colour is a /compare.css token (the few hex literals
+     below are the same chip tones timeline v5 shipped with) */
+  .tl { list-style: none; margin-top: 12px; }
+  .tl li::before { content: none; }
+
+  /* undo · redo · the cut pile — one short row, clear of the pill corner */
+  .strip { display: flex; gap: 6px; align-items: center; margin: 10px 64px 0 0; }
+  .strip button {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    width: auto; padding: 6px 9px;
+    font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink2);
+  }
+  .strip button svg { width: 14px; height: 14px; display: block; }
+  .strip button:disabled { opacity: .3; }
+  .strip .pileb.on { color: var(--gold); border-color: #e0d6c4; background: #f6f0e4; }
+
+  .unit {
+    display: grid; grid-template-columns: 30px minmax(0, 1fr) 43px;
+    gap: 8px; align-items: start;
+  }
+  .cards { min-width: 0; }
+  .mcard {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 30px 8px 10px;
+  }
+  .say { font-size: 14px; line-height: 1.42; }
+  .x {
+    font: 700 9px/1 -apple-system, sans-serif; letter-spacing: .06em;
+    color: var(--gold); border: 1px solid #e0d6c4; background: #f6f0e4;
+    border-radius: 6px; padding: 2px 4px; margin-left: 4px; white-space: nowrap;
+  }
+  .seq .mcard { border-radius: 0; margin-top: -1px; border-left: 3px solid var(--gold); }
+  .seq .mcard:first-child { border-top-left-radius: 6px; border-top-right-radius: 6px; margin-top: 0; }
+  .seq .mcard:last-child { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+
+  .no {
+    width: 30px; height: 28px; text-align: center;
+    font: 700 16px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--ink2); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+  .no:focus { outline: none; border-color: var(--gold); color: var(--gold); }
+  .seq .no { border-color: #e0d6c4; background: #f6f0e4; color: var(--gold); }
+
+  .mv { display: grid; grid-template-columns: 20px 20px; gap: 3px; }
+  .mv button, .split, .gap button {
+    padding: 0; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink2);
+  }
+  .mv button { width: 20px; height: 20px; }
+  .mv button svg { width: 13px; height: 13px; display: block; }
+  .mv button:disabled { opacity: .25; }
+  .split { width: 30px; height: 20px; margin-top: 4px; }
+  .split svg { width: 13px; height: 13px; display: block; }
+
+  .gap {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; height: 17px; margin: 0;
+  }
+  .gap button {
+    width: 30px; height: 15px; border-color: transparent;
+    background: transparent; color: #cfc4ae;
+  }
+  .gap button svg { width: 13px; height: 13px; display: block; }
+  .gap button:hover { color: var(--gold); }
+
+  .long:not(.open) .mcard.trim { padding-top: 4px; padding-bottom: 4px; }
+  .long:not(.open) .mcard.trim .say {
+    display: block; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; color: var(--ink2);
+  }
+  .long:not(.open) .mcard.trim .pencil,
+  .long:not(.open) .mcard.trim .qm,
+  .long:not(.open) .mcard.trim .outb { display: none; }
+
+  /* THE MARKS (from Cutting Blocks): the lock walks neither → locked in →
+     not sure; the ✕ is out, and out only. An out card leaves the page and
+     waits in the cut pile; nothing is ever deleted by the ✕. */
+  .qm, .outb {
+    position: absolute; right: 5px; z-index: 2;
+    width: 22px; height: 22px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: 6px;
+    background: transparent; color: var(--ink2); opacity: .55;
+  }
+  .qm { top: 5px; }
+  .outb { top: 30px; }
+  .qm svg, .outb svg { width: 14px; height: 14px; display: block; }
+  .qm .i-lock, .qm .i-maybe { display: none; }
+  .st-keep .qm .i-open, .st-keep .qm .i-maybe,
+  .st-maybe .qm .i-open, .st-maybe .qm .i-lock { display: none; }
+  .st-keep .qm .i-lock, .st-maybe .qm .i-maybe { display: block; }
+  .st-keep .qm, .st-maybe .qm {
+    color: var(--gold); opacity: 1;
+    border-color: #e0d6c4; background: #f6f0e4;
+  }
+  .st-keep { background: #faf6ec; }
+  .st-out { opacity: .55; }
+  .st-out .outb { color: var(--rose); opacity: 1; }
+  .st-out .say { color: var(--ink2); }
+
+  .pencil {
+    position: absolute; bottom: 7px; right: 33px; z-index: 2;
+    width: 22px; height: 22px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--paper); color: var(--ink2);
+  }
+  .pencil svg { width: 12px; height: 12px; display: block; }
+  .pencil:hover { color: var(--gold); border-color: var(--gold); }
+  .edit { display: none; }
+  .mcard.editing .say, .mcard.editing .x, .mcard.editing .qm,
+  .mcard.editing .outb,
+  .mcard.editing .pencil, .mcard.editing .cmp-note { display: none; }
+  .mcard.editing .edit { display: block; }
+  .etext {
+    width: 100%; display: block;
+    font: 16px/1.42 Georgia, 'Times New Roman', serif;   /* 16 or iOS zooms */
+    color: var(--ink); background: var(--paper);
+    border: 1px solid var(--gold); border-radius: 6px;
+    padding: 7px 8px; resize: vertical;
+    -webkit-text-size-adjust: 100%;
+  }
+  .etext:focus { outline: none; }
+  .erow { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+  .erow button {
+    width: auto; font: 600 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink2); padding: 7px 9px;
+  }
+  .erow .del { color: var(--rose); border-color: #eccfc5; }
+  .erow .del svg { width: 13px; height: 13px; display: block; }
+
+  .cast { border-style: dashed; }
+  .reflab {
+    display: block; font: 700 9px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink2); padding-bottom: 5px;
+  }
+  .cast .say { color: var(--ink2); font-size: 13px; }
+</style>
+
+<div class="wrap">
+  <h1>The one flow v1 — arrange and mark (b30)</h1>
+  <div class="strip" id="strip">
+    <button class="undob" type="button" aria-label="undo" disabled></button>
+    <button class="redob" type="button" aria-label="redo" disabled></button>
+    <button class="pileb" type="button" aria-label="show or hide the cards you cut" disabled>cut pile</button>
+  </div>
+  <ol class="tl" id="tl" data-nostop>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b11"><span class="say">I guess the beginning where we were, like, at the wall</span></div><div class="mcard" data-item="b12"><span class="say">and then the train</span></div><div class="mcard" data-item="b13"><span class="say">and then walking in that place</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b26"><span class="say">a wide shot of their house, which was, like, just like the stereotypical house, super white, and then, like, there was like almost no furniture. like yeah obviously two like three men live here or whatever I don’t know.</span></div><div class="mcard cast" data-item="cast"><span class="reflab">Character reference</span><span class="say">Three black men. One tall and skinny one, short, and skinny one. Normal and fat looks almost exactly like Daryl from the office. But not really.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b16"><span class="say">the woman, like, poor baby. Probably shouldn’t be here, but not trying to help.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b8"><span class="say">and then, uh, the knife hiding the knife, producing the knife. Um, finding the knife, I guess.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b9"><span class="say">Him pulling out his gun.</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b10"><span class="say">Him behind me explaining things to me on the chair.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b21"><span class="say">the moment where they were like, oh, she has OCD, like, let’s rape her</span></div><div class="mcard" data-item="b22"><span class="say">so, where are we gonna rape her?</span></div><div class="mcard" data-item="b23"><span class="say">me, like, talking about having OCD and that happened with Laurian, too.</span></div><div class="mcard" data-item="b24"><span class="say">Um, and then just being like, yeah, okay, this is okay. Actually, I’m kind of scared</span></div><div class="mcard" data-item="b25"><span class="say">what, you found her at a mental hospital, like, can she leave now?</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b1"><span class="say">the laundry basket</span><span class="x">2x</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b2"><span class="say">the phone that I should have stolen hanging out the window, that didn’t actually happen.</span></div><div class="mcard" data-item="b28"><span class="say">Oh yeah, also him closing the door, that’s a good one. That important.</span></div><div class="mcard" data-item="b3"><span class="say">The lilac moment where the colors are changing. I was like, I don’t want that.</span></div><div class="mcard" data-item="b4"><span class="say">And then the realization, followed by me, screaming and putting the thing into my belly button. So that’s three</span></div><div class="mcard" data-item="b5"><span class="say">one, getting it from where I knew it was hidden in the cabinet, um, at the bottom, in the front</span></div><div class="mcard" data-item="b6"><span class="say">and then, two was, like, screaming, I’m angry</span></div><div class="mcard" data-item="b7"><span class="say">and then, um, putting it in my belly button as a close up</span></div></div></li>
+      <li class="unit"><div class="cards"><div class="mcard" data-item="b27"><span class="say">my tights on the floor with $83 or so on them. But it’s not a big deal, ‘cause I have $1 million now, so it’s not a big deal.</span></div></div></li>
+      <li class="unit seq"><div class="cards"><div class="mcard" data-item="b29"><span class="say">Oh yeah, and then he was like, how was your 1st time? I was like, um, what?</span></div><div class="mcard" data-item="b14"><span class="say">the chair, three, four instances, one with sandy, two with Jonathan, one with that guy</span></div><div class="mcard" data-item="b15"><span class="say">saying, I love you</span></div><div class="mcard" data-item="b17"><span class="say">leaving through the creaky door when he falls asleep. That’s, like, the end</span></div><div class="mcard" data-item="b18"><span class="say">and then just sort of, like, laying down in the brush and crying a little bit, maybe. In relief, let’s say.</span></div><div class="mcard" data-item="b19"><span class="say">And then, let’s just say the lavender came back. I don’t know if it actually did</span></div><div class="mcard" data-item="b20"><span class="say">just seeing like what colors were actually there.</span></div></div></li>
+  </ol>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var CHAT = 'compare-similar-artifacts', SHEET = 'flow-b30', ORDER = 'flow-order-b30';
+  var tl = document.getElementById('tl');
+  var strip = document.getElementById('strip');
+
+  var GLYPH = {
+    up: 'm18 15-6-6-6 6',
+    dn: 'm6 9 6 6 6-6',
+    top: 'm17 11-5-5-5 5|m17 18-5-5-5 5',
+    bot: 'm7 6 5 5 5-5|m7 13 5 5 5-5',
+    join: 'm7 20 5-5 5 5|m7 4 5 5 5-5',
+    split: 'm7 15 5 5 5-5|m7 9 5-5 5 5',
+    add: 'M12 5v14|M5 12h14',
+    pencil: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z',
+    trash: 'M3 6h18|M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+    undo: 'M9 14 4 9l5-5|M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11',
+    redo: 'm15 14 5-5-5-5|M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13',
+    x: 'M18 6 6 18|M6 6l12 12',
+  };
+  function svg(k, px, cls) {
+    return '<svg' + (cls ? ' class="' + cls + '"' : '')
+      + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (px || 2) + '" '
+      + 'stroke-linecap="round" stroke-linejoin="round">'
+      + GLYPH[k].split('|').map(function (d) { return '<path d="' + d + '"/>'; }).join('')
+      + '</svg>';
+  }
+  // the lock pair + ? are Cutting Blocks' own marks, verbatim
+  var LOCKS = '<svg class="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>'
+    + '<svg class="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+    + '<svg class="i-maybe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.7 8.5a3.3 3.3 0 1 1 4.8 2.9c-1 .55-1.5 1.1-1.5 2.3"/><path d="M12 17.6h.01"/></svg>';
+
+  strip.querySelector('.undob').innerHTML = svg('undo', 1.8);
+  strip.querySelector('.redob').innerHTML = svg('redo', 1.8);
+
+  // THE CARDS ARE HARVESTED ONCE and never rebuilt — a rebuilt card loses the
+  // note box /compare.js hung off it. Only the unit shells are made and remade.
+  var CARDS = {}, startArr = [];
+  Array.prototype.forEach.call(tl.querySelectorAll('.unit'), function (li) {
+    var g = [];
+    Array.prototype.forEach.call(li.querySelectorAll('.mcard'), function (c) {
+      var id = c.getAttribute('data-item'); CARDS[id] = c; g.push(id);
+    });
+    if (g.length) startArr.push(g);
+  });
+  var arr = startArr.map(function (g) { return g.slice(); });
+  var gone = {}, edited = {};
+  // st: '' | 'keep' | 'maybe' | 'out'  — the ? walks the in-states, ✕ is out only
+  var st = {}, pileOn = false;
+  var QORDER = ['', 'keep', 'maybe'];
+  function qNext(s) { return QORDER[(QORDER.indexOf(s === 'out' ? '' : (s || '')) + 1) % QORDER.length]; }
+
+  function words(id) {
+    var s = CARDS[id] && CARDS[id].querySelector('.say');
+    return s ? s.textContent : '';
+  }
+  function setWords(id, t) {
+    var s = CARDS[id] && CARDS[id].querySelector('.say');
+    if (s) s.textContent = t;
+  }
+  function newCard(id, text) {
+    var d = document.createElement('div');
+    d.className = 'mcard';
+    d.setAttribute('data-item', id);
+    d.innerHTML = '<span class="say"></span>';
+    d.querySelector('.say').textContent = text || '';
+    CARDS[id] = d;
+    return d;
+  }
+  var madeAt = 0;
+  function freshId() {
+    madeAt = Math.max(madeAt + 1, Date.now());
+    return 'n' + madeAt.toString(36);
+  }
+  function markCard(id) {
+    var c = CARDS[id]; if (!c) return;
+    c.classList.toggle('st-keep', st[id] === 'keep');
+    c.classList.toggle('st-maybe', st[id] === 'maybe');
+    c.classList.toggle('st-out', st[id] === 'out');
+  }
+
+  var LONG = 5, opened = {};
+  function shown(id) { return pileOn || st[id] !== 'out'; }
+
+  // VIS maps what she SEES to where it lives: with the pile put away an out
+  // card is not on the page, so numbering and the arrows walk only visible
+  // units — numbering past a hidden one would leave gaps she cannot tap.
+  var VIS = [];
+
+  function shell(ai, k, n) {
+    var group = arr[ai];
+    var disp = group.filter(shown);
+    var li = document.createElement('li');
+    var long = disp.length >= LONG;
+    li.className = 'unit' + (disp.length > 1 ? ' seq' : '')
+      + (long ? ' long' : '') + (long && opened[group[0]] ? ' open' : '');
+    li.setAttribute('data-ai', ai);
+    li.innerHTML = '<div class="gut">'
+      + '<input class="no" type="text" inputmode="numeric" aria-label="its place in the order" value="' + (k + 1) + '">'
+      + (disp.length > 1 ? '<button class="split" type="button" aria-label="break this one apart">' + svg('split') + '</button>' : '')
+      + '</div><div class="cards"></div><div class="mv">'
+      + '<button class="top" type="button" aria-label="send it to the top">' + svg('top') + '</button>'
+      + '<button class="up" type="button" aria-label="move it up one">' + svg('up') + '</button>'
+      + '<button class="bot" type="button" aria-label="send it to the bottom">' + svg('bot') + '</button>'
+      + '<button class="dn" type="button" aria-label="move it down one">' + svg('dn') + '</button>'
+      + '</div>';
+    var cards = li.querySelector('.cards');
+    disp.forEach(function (id, j) {                                 // MOVES the card
+      var c = CARDS[id] || newCard(id, '');
+      c.classList.toggle('trim', long && j > 0 && j < disp.length - 1);
+      if (!c.querySelector('.pencil')) {
+        var p = document.createElement('button');
+        p.type = 'button'; p.className = 'pencil';
+        p.setAttribute('aria-label', 'change the words');
+        p.innerHTML = svg('pencil', 1.8);
+        c.appendChild(p);
+      }
+      if (!c.querySelector('.qm')) {
+        var q = document.createElement('button');
+        q.type = 'button'; q.className = 'qm';
+        q.setAttribute('aria-label', 'locked in, not sure, or neither');
+        q.innerHTML = LOCKS;
+        c.appendChild(q);
+        var o = document.createElement('button');
+        o.type = 'button'; o.className = 'outb';
+        o.setAttribute('aria-label', 'cut it, or bring it back');
+        o.innerHTML = svg('x', 2, 'i-x');
+        c.appendChild(o);
+      }
+      markCard(id);
+      cards.appendChild(c);
+    });
+    li.querySelector('.top').disabled = li.querySelector('.up').disabled = k === 0;
+    li.querySelector('.bot').disabled = li.querySelector('.dn').disabled = k === n - 1;
+    return li;
+  }
+
+  function gapRow(k, joinable) {
+    var li = document.createElement('li');
+    li.className = 'gap';
+    li.innerHTML = (joinable
+      ? '<button class="joinb" type="button" data-k="' + (k - 1) + '" aria-label="join these two into one">' + svg('join') + '</button>'
+      : '')
+      + '<button class="addb" type="button" data-k="' + k + '" aria-label="add a moment here">' + svg('add') + '</button>';
+    return li;
+  }
+
+  function pileCount() {
+    var n = 0;
+    Object.keys(st).forEach(function (id) { if (st[id] === 'out' && !gone[id]) n++; });
+    return n;
+  }
+
+  function paint() {
+    VIS = [];
+    arr.forEach(function (g, i) { if (g.some(shown)) VIS.push(i); });
+    var rows = [];
+    VIS.forEach(function (ai, k) {
+      rows.push(gapRow(k, k > 0));
+      rows.push(shell(ai, k, VIS.length));
+    });
+    rows.push(gapRow(VIS.length, false));
+    tl.replaceChildren.apply(tl, rows);
+    var pc = pileCount();
+    var pb = strip.querySelector('.pileb');
+    if (!pc) pileOn = false;
+    pb.disabled = !pc;
+    pb.classList.toggle('on', pileOn);
+    pb.textContent = pc ? 'cut pile · ' + pc : 'cut pile';
+    strip.querySelector('.undob').disabled = !past.length;
+    strip.querySelector('.redob').disabled = !future.length;
+    var needs = Array.prototype.some.call(tl.querySelectorAll('.mcard'), function (c) {
+      return !c.querySelector(':scope > .cmp-note');
+    });
+    if (needs && window.__compareNotes) window.__compareNotes({ chat: CHAT, sheet: SHEET });
+  }
+
+  /* ---- saving. Order + gone as before; a mark is its own field per card
+     ("st:<id>") — never one big blob, the route caps a field at 2000. ---- */
+  var timers = {};
+  function post(item, text) {
+    clearTimeout(timers[item]);
+    timers[item] = setTimeout(function () {
+      fetch('/api/chatfeed/verdict', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: CHAT, sheet: ORDER, item: item, text: text }),
+      }).catch(function () { /* offline — it is all still on screen */ });
+    }, 400);
+  }
+  function save() { post('order', arr.map(function (g) { return g.join(','); }).join('|')); }
+  function saveText(id) { edited[id] = 1; post('t:' + id, words(id)); }
+  function saveGone() { post('gone', Object.keys(gone).join(',')); }
+  function saveSt(id) { post('st:' + id, st[id] || ''); }
+
+  /* ---- undo / redo: a snapshot of everything a tap can change ---- */
+  var past = [], future = [];
+  function snap() {
+    var texts = {};
+    Object.keys(CARDS).forEach(function (id) { texts[id] = words(id); });
+    return {
+      arr: arr.map(function (g) { return g.slice(); }),
+      st: JSON.parse(JSON.stringify(st)),
+      gone: JSON.parse(JSON.stringify(gone)),
+      texts: texts,
+    };
+  }
+  function bank() { past.push(snap()); if (past.length > 50) past.shift(); future = []; }
+  function restore(s) {
+    Object.keys(s.texts).forEach(function (id) {
+      if (!CARDS[id]) newCard(id, s.texts[id]);
+      else if (words(id) !== s.texts[id]) { setWords(id, s.texts[id]); saveText(id); }
+    });
+    Object.keys(CARDS).forEach(function (id) {
+      if (!(id in s.texts)) delete CARDS[id];
+    });
+    Object.keys(st).concat(Object.keys(s.st)).forEach(function (id) {
+      if ((st[id] || '') !== (s.st[id] || '')) { st[id] = s.st[id] || ''; saveSt(id); }
+    });
+    arr = s.arr.map(function (g) { return g.slice(); });
+    gone = JSON.parse(JSON.stringify(s.gone));
+    paint(); save(); saveGone();
+  }
+
+  /* ---- moving (arr indexes; targets come from VIS) ---- */
+  function move(from, to) {
+    if (from < 0 || to < 0 || to > arr.length - 1 || to === from) return paint();
+    bank();
+    arr.splice(to, 0, arr.splice(from, 1)[0]);
+    paint(); save();
+  }
+  function where(id) {
+    for (var i = 0; i < arr.length; i++) {
+      var k = arr[i].indexOf(id);
+      if (k >= 0) return [i, k];
+    }
+    return [-1, -1];
+  }
+
+  /* ---- editing one moment ---- */
+  function openEditor(c) {
+    if (c.querySelector('.edit')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'edit';
+    wrap.innerHTML = '<textarea class="etext" rows="3"></textarea>'
+      + '<div class="erow"><button class="divide" type="button">divide here</button>'
+      + '<button class="del" type="button" aria-label="delete this moment">' + svg('trash', 1.8) + '</button></div>';
+    var box = wrap.querySelector('.etext');
+    box.value = words(c.getAttribute('data-item'));
+    c.appendChild(wrap);
+    c.classList.add('editing');
+    box.style.height = Math.max(56, box.scrollHeight + 4) + 'px';
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+  }
+  function closeEditor(c, keep) {
+    var wrap = c.querySelector('.edit');
+    if (!wrap) return;
+    var id = c.getAttribute('data-item');
+    if (keep !== false) {
+      var v = wrap.querySelector('.etext').value;
+      if (v !== words(id)) { bank(); setWords(id, v); saveText(id); }
+    }
+    c.classList.remove('editing');
+    wrap.remove();
+  }
+  function closeAll(except) {
+    Array.prototype.forEach.call(tl.querySelectorAll('.mcard.editing'), function (c) {
+      if (c !== except) closeEditor(c);
+    });
+  }
+
+  function addAt(k) {
+    bank();
+    var id = freshId();
+    newCard(id, '');
+    arr.splice(k < VIS.length ? VIS[k] : arr.length, 0, [id]);
+    paint(); save(); saveText(id);
+    var c = CARDS[id];
+    if (c) { openEditor(c); c.scrollIntoView({ block: 'center' }); }
+  }
+
+  function divide(c) {
+    var id = c.getAttribute('data-item');
+    var box = c.querySelector('.etext');
+    var cut = box.selectionStart;
+    var all = box.value;
+    if (cut <= 0 || cut >= all.length) return;
+    var head = all.slice(0, cut).replace(/\s+$/, '');
+    var tail = all.slice(cut).replace(/^\s+/, '');
+    if (!head || !tail) return;
+    closeEditor(c, false);
+    bank();
+    setWords(id, head); saveText(id);
+    var nid = freshId();
+    newCard(nid, tail);
+    var at = where(id);
+    if (arr[at[0]].length > 1) arr[at[0]].splice(at[1] + 1, 0, nid);
+    else arr.splice(at[0] + 1, 0, [nid]);
+    paint(); save(); saveText(nid);
+  }
+
+  function remove(c) {
+    var id = c.getAttribute('data-item');
+    var at = where(id);
+    if (at[0] < 0) return;
+    closeEditor(c, false);
+    bank();
+    arr[at[0]].splice(at[1], 1);
+    if (!arr[at[0]].length) arr.splice(at[0], 1);
+    delete CARDS[id];
+    gone[id] = 1;
+    paint(); save(); saveGone();
+  }
+
+  /* ---- the strip ---- */
+  strip.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    closeAll();
+    if (b.classList.contains('undob') && past.length) {
+      future.push(snap()); restore(past.pop()); return;
+    }
+    if (b.classList.contains('redob') && future.length) {
+      past.push(snap()); restore(future.pop()); return;
+    }
+    if (b.classList.contains('pileb')) { pileOn = !pileOn; paint(); }
+  });
+
+  /* ---- one click handler for the list ---- */
+  tl.addEventListener('click', function (e) {
+    if (e.target.closest('.cmp-note')) return;
+    var b = e.target.closest('button');
+    var card = e.target.closest('.mcard');
+
+    if (b && b.classList.contains('qm')) {
+      var qid = card.getAttribute('data-item');
+      bank();
+      st[qid] = qNext(st[qid]);
+      markCard(qid); saveSt(qid);
+      strip.querySelector('.undob').disabled = false;
+      return;
+    }
+    if (b && b.classList.contains('outb')) {
+      var oid = card.getAttribute('data-item');
+      bank();
+      st[oid] = st[oid] === 'out' ? '' : 'out';
+      markCard(oid); saveSt(oid);
+      paint();
+      return;
+    }
+    if (b && b.classList.contains('addb')) { closeAll(); return addAt(+b.dataset.k); }
+    if (b && b.classList.contains('joinb')) {
+      closeAll();
+      bank();
+      var a = VIS[+b.dataset.k], z = VIS[+b.dataset.k + 1];
+      arr[a] = arr[a].concat(arr[z]);
+      arr.splice(z, 1);
+      paint(); save(); return;
+    }
+    if (b && b.classList.contains('pencil')) { closeAll(card); return openEditor(card); }
+    if (b && b.classList.contains('divide')) return divide(card);
+    if (b && b.classList.contains('del')) return remove(card);
+    if (card && card.classList.contains('editing')) return;
+
+    if (!b) {
+      var host = card && card.closest('.unit.long');
+      if (!host) return;
+      var head = arr[+host.getAttribute('data-ai')][0];
+      opened[head] = host.classList.toggle('open');
+      return;
+    }
+
+    var li = b.closest('.unit');
+    if (!li) return;
+    closeAll();
+    var ai = +li.getAttribute('data-ai');
+    var k = VIS.indexOf(ai);
+    if (b.classList.contains('split')) {
+      bank();
+      arr.splice.apply(arr, [ai, 1].concat(arr[ai].map(function (id) { return [id]; })));
+      paint(); save(); return;
+    }
+    if (b.classList.contains('up')) return move(ai, VIS[k - 1]);
+    if (b.classList.contains('dn')) return move(ai, VIS[k + 1]);
+    if (b.classList.contains('top')) return move(ai, VIS[0]);
+    if (b.classList.contains('bot')) return move(ai, VIS[VIS.length - 1]);
+  });
+
+  tl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList.contains('no')) { e.preventDefault(); e.target.blur(); }
+  });
+  tl.addEventListener('blur', function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains('no')) {
+      var ai = +t.closest('.unit').getAttribute('data-ai');
+      var want = parseInt(t.value, 10);
+      return (!want || want < 1) ? paint()
+        : move(ai, VIS[Math.min(want, VIS.length) - 1]);
+    }
+    if (t.classList && t.classList.contains('etext')) {
+      var c = t.closest('.mcard');
+      setTimeout(function () {
+        var a = document.activeElement;
+        var held = a && a.tagName === 'BUTTON' && a.closest && a.closest('.mcard') === c;
+        if (!held) closeEditor(c);
+      }, 120);
+    }
+  }, true);
+
+  /* ---- load what she has already done ---- */
+  function parse(saved) {
+    var groups = saved.split('|').map(function (g) { return g.split(','); });
+    var seen = {}, out = [];
+    groups.forEach(function (g) {
+      var keep = g.filter(function (id) {
+        if (!CARDS[id] || seen[id] || gone[id]) return false;
+        seen[id] = 1; return true;
+      });
+      if (keep.length) out.push(keep);
+    });
+    Object.keys(CARDS).forEach(function (id) { if (!seen[id] && !gone[id]) out.push([id]); });
+    return out;
+  }
+
+  fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(ORDER))
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (d) {
+      var t = (d && d.texts) || {};
+      (t.gone || '').split(',').forEach(function (id) { if (id) gone[id] = 1; });
+      Object.keys(t).forEach(function (k) {                 // her words win over the file
+        if (k.indexOf('t:') !== 0) return;
+        var id = k.slice(2);
+        if (gone[id]) return;
+        edited[id] = 1;
+        if (CARDS[id]) setWords(id, t[k]); else newCard(id, t[k]);
+      });
+      Object.keys(t).forEach(function (k) {
+        if (k.indexOf('st:') !== 0) return;
+        var id = k.slice(3);
+        if (t[k] && !gone[id]) st[id] = t[k];
+      });
+      Object.keys(gone).forEach(function (id) { delete CARDS[id]; });
+      arr = parse(t.order || arr.map(function (g) { return g.join(','); }).join('|'));
+      paint();
+    });
+  paint();
+
+  window.__compareHelp({ html: '<b>Both tools’ verbs, one page.</b> Type a number to send '
+    + 'a moment there; single arrows move it one place, double ones send it all the way. '
+    + 'In the gap: join two into one, or add a new one. The mark under a number breaks '
+    + 'a joined one apart. The pencil changes the words — divide at the cursor or '
+    + 'delete from inside it. A long sequence folds; tap to open. From Cutting Blocks: '
+    + 'the lock on a card walks locked in → not sure → neither, the ✕ cuts '
+    + 'it to the pile (the cut pile button up top shows it, ✕ again brings it back), '
+    + 'and undo/redo take back any tap. It all saves as you go.' });
+})();
+</script>
