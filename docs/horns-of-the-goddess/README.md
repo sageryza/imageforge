@@ -1,0 +1,49 @@
+# Horns of the Goddess — the magic passages
+
+Sophie asked for the parts of the Dolores Cannon audiobook where they talk about
+magic. Both parts were already transcribed and sitting in `forge-nde-videos`
+(ingested June 2026 through the NDE grabber), so nothing here cost a
+transcription — the work was finding the passages and cutting them.
+
+    IJZVNv5O6rA  The Horns Of The Goddess, Part 1   7:39:51
+    wwQcSKbqfoQ  The Horns Of The Goddess, Part 2   6:15:51
+
+## The three she named
+
+All three are in Part 1. Text in `passages/`, audio in Storage under
+`horns-passages/` (urls in `clips.json`).
+
+| passage | span | length |
+| --- | --- | --- |
+| `unicorn-rainbow` | 7:08:34 – 7:14:13 | 5:38 |
+| `cease-to-function` | 1:42:27 – 1:50:44 | 8:17 |
+| `ceremonies-grove` | 4:56:58 – 5:08:45 | 11:47 |
+
+**Boundaries were verified, not assumed** — the head and tail of each finished
+clip were re-transcribed with whisper and checked against the words the
+transcript says should be there. All six landed clean.
+
+## The other 49
+
+`flagged.json` — 24 more in Part 1, 25 in Part 2, each with its span, what
+happens in it, and a quote to identify it by. Found by two agents reading the
+full 19,022-line transcript. None of these is cut yet.
+
+## The tools
+
+Run in this order; they need `FIREBASE_SERVICE_ACCOUNT` (Deck Factory).
+
+    node tools/horns/pull.js     # transcripts out of Firestore/Storage
+    node tools/horns/flat.js     # → timestamped text, one line per segment
+    node tools/horns/dl.js       # the Part 1 audio, via the Admin SDK
+    node tools/horns/text.js     # → readable paragraphs per passage
+    node tools/horns/cut.js cuts.json   # cut + upload the clips
+    node tools/horns/page.js --post     # the Compare page
+
+**`dl.js` exists because ffmpeg cannot reach the sandbox's HTTPS proxy** — the
+same finding the clip library hit. ffmpeg reads the source off local disk; the
+bytes come down through the Admin SDK. Cutting straight from the Storage url
+fails, and the failure looks like an ffmpeg error rather than a network one.
+
+`/api/search/clip-span` is the normal way to cut a span of an indexed
+recording, but it caps at 180s and these passages run to 11 minutes.
