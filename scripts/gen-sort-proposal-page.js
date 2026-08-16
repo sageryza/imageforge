@@ -73,6 +73,12 @@ const HINT_CLASS = { archive: 'good', 'dead end': 'info', 'needs you': 'warn' };
       + `    <h3>${esc(disp || r.chat)}</h3>\n`
       + (disp ? `    <div class="mini">${esc(r.chat)}</div>\n` : '')
       + (r.reason ? `    <div class="mini">${esc(r.reason)}</div>\n` : '')
+      // WHERE IT IS ARCHIVED (Aug 2026, Sophie: "there's two archives, one in the
+      // Claude app and one in the Deck Factory app… just have a little mark if
+      // they're archived and where"). Every row here is un-archived in Deck
+      // Factory by construction — the run skips those — so the only mark this
+      // can carry is the Claude one, and it says so rather than just "archived".
+      + (r.claudeArchived ? '    <div class="chips"><span class="chip">archived in Claude</span></div>\n' : '')
       + (cls ? `    <div class="chips"><span class="chip ${cls}">${esc(r.hint)}</span>`
           + (r.hint === 'needs you' && r.pendingAsk
             ? `<span class="mini">${esc(r.pendingAsk)}</span>`
@@ -125,7 +131,12 @@ ${left.map(row).join('')}</div>
     + 'The coloured flag is whether the chat looks finished — <b>archive</b> '
     + 'built and settled, <b>dead end</b> stopped on something that could not be '
     + 'done, <b>needs you</b> a question of yours nobody answered (it says which). '
-    + 'Nothing is archived either; that stays yours.' });
+    + 'Nothing is archived either; that stays yours.<br><br>'
+    + '<b>archived in Claude</b> means you archived that chat in the Claude app '
+    + 'but not here — the two archives are separate, and this page only skips the '
+    + 'Deck Factory one. 23 of these have no Claude session on record at all '
+    + '(older than the session list, or on the other account), so for those the '
+    + 'absence of a mark means unknown rather than live.' });
 
   function save(item, val) {
     return fetch('/api/chatfeed/verdict', {
