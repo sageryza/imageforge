@@ -1,5 +1,11 @@
 # The Evan film — established style + character references
 
+> **Where the project stands — `docs/evan-film-collected.md`.** This file is
+> the art recipe only. The state of the film (the six chats it was built in,
+> the 35 renders, the 114 images, and the diverged cut-marks sheet that is
+> currently blocking a final render) is collected there. Read it before
+> picking the film back up.
+
 The art style for the **Evan** story (Story Room `forge-story/evan`, eventually
 animated). Settled with Sophie in August 2026 after a run of side-by-side tests.
 This file is the record — use it, don't re-derive it.
