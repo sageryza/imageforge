@@ -313,6 +313,14 @@ pure, no network.
   real deduping (every manifest record carries `hash`). The internal clock
   is the moment recording STOPPED, which is why hand-built stamps went wrong
   (2026-08-05: filed `_1330`, her phone said 1:28) — don't guess it.
+- **A filed recording TELLS SEARCH (Aug 2026).** `fileIntoArchive` notifies
+  `memos.onFiled` listeners once a record is really appended (never for a
+  duplicate; a listener that throws is swallowed — filing is the half that
+  must not fail), and `search.js` registers one that arms its append-only
+  index sync. That is the whole reason a recording is findable minutes after
+  it lands instead of whenever somebody remembers to rebuild the index — see
+  the Search section for what the sync does and what it costs. A restamp
+  notifies too: a new id is, to an id-keyed index, one gone and one arrived.
 - **Transcription is UNCONDITIONAL** (Sophie 2026-08-05) — no toggles;
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead
@@ -797,10 +805,41 @@ pure, no network.
   the phone.
 - **The index** lives at Storage `search-index/index-v1.json` (~10MB, ~600ms to
   load, ~49MB heap) and is cached in process for 15 min. Built from Firestore +
-  the memo manifest; a rebuild is FREE (no paid API) and runs as a background
-  job via `POST /reindex` (the page has a "Rebuild the index" button). A
-  missing index builds itself on first use. **Re-index after ingesting new
-  videos or a batch of memos**, or they aren't findable.
+  the memo manifest; a rebuild is FREE of paid APIs and runs as a background job
+  via `POST /reindex` (the page has a "Rebuild the index" button). A missing
+  index builds itself on first use.
+- **IT CATCHES ITSELF UP NOW — nobody re-indexes after an ingest (Aug 2026).**
+  It used to move only when somebody tapped the button, and nobody did:
+  **measured Aug 2026 it held 1,035 recordings against the archive's 1,137**.
+  Anything she had recorded lately returned nothing, which reads as the
+  recording not existing — and it silently broke the SLICE IN hand-off
+  (Search → Cutting Room) for everything recent.
+  - **A sync APPENDS; it does not rebuild.** A full rebuild re-chunks
+    everything, which renumbers every position and so invalidates every vector
+    — meaning search then wants the ~$0.05 whole-library re-embed. Per memo
+    that is ~$5 and gigabytes of Storage traffic for one Mac catch-up run of
+    ~100 recordings. Appending leaves every existing position — and every
+    embedding already paid for — untouched, so a new memo costs only its own
+    ~2 passages, about **$0.000004**.
+  - **A recording that is GONE loses its `sources` entry, and its chunks stay
+    where they are.** Both searches already skip a chunk whose source is
+    missing, so it vanishes from results without renumbering anything behind
+    it. `counts.dead` is what that costs in file size — the honest argument for
+    an occasional full rebuild, and the only thing a rebuild now reclaims.
+  - **Debounced, and the delta comes from the LIBRARIES, not from a queue.**
+    `memos.fileIntoArchive` notifies Search (`memos.onFiled` — one listener
+    covers the Mac push, the share sheet, a Story Room paste and a chat's
+    pasted file, since they all funnel through it); the flush runs after 45s of
+    quiet, capped at 5 min from the first mark, so a 100-recording burst is ONE
+    index write and ONE tail embed. It then asks "what does the archive hold
+    that the index doesn't", so a restart, a crash, an ingest path that said
+    nothing, and the 102-recording backlog all heal through the same code with
+    nothing to replay. A search arms the same check at most every 30 min as a
+    backstop (that is what catches a video ingested straight into Firestore on
+    her Mac). Force it with `POST /api/search/sync`; `GET` it to watch.
+  - New interview docs are found with a Firestore `select()` id listing (no
+    transcript bodies pulled just to ask what's new), and a doc that has no
+    transcript YET adds no source — or it would count as indexed forever after.
 - **Chunks OVERLAP on purpose** (step 30s / span 48s; memos 700 chars / step
   460). Terms are ANDed, so two words spoken in one breath either side of a
   boundary would find NOTHING — "darius pyramids" really did miss the memo that
@@ -828,12 +867,22 @@ pure, no network.
   Buffer with no JSON parsing. Native 1536-dim float32 would have been 79MB.
   Whole-library cost was **$0.046**, ~16s; a query costs one tiny embedding
   (~$0.000002) and a linear dot-product pass (~150ms).
-- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt` + chunk count must
-  match). Chunk N in the vector file has to be chunk N in the index, so a
-  reindex that re-chunks makes them stale — meaning search returns **409 with
-  `code:'stale-vectors'`** (or `'no-vectors'`) and the page offers a one-tap
-  re-embed with the price on the button, instead of silently ranking against
-  the wrong passages. **Re-embed after any reindex that changes chunking.**
+- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt`, the model and the
+  dimensions must match). Chunk N in the vector file has to be chunk N in the
+  index, so a full reindex re-chunks and makes them stale — meaning search
+  returns **409 with `code:'stale-vectors'`** (or `'no-vectors'`) and the page
+  offers a one-tap re-embed with the price on the button, instead of silently
+  ranking against the wrong passages. **`POST /reindex` now re-embeds by
+  itself** (`{embed:false}` opts out): a rebuild that leaves meaning search
+  broken until someone happens to switch modes is how it stayed broken.
+- **A vector file is valid as a PREFIX, which is what lets the index move
+  without paying $0.05 (Aug 2026).** Since a sync only appends, vectors
+  covering the first N chunks are still exactly right about those N —
+  `vectorState()` calls that **partial**, meaning search ranks the N and
+  reports `pending`, and the sync embeds the tail (a fraction of a cent). Only
+  a real mismatch is **stale**. So a memo filed a minute ago can never break
+  meaning search for the rest of the library, and a missing `OPENAI_API_KEY`
+  costs the tail, not the mode.
 - **Similarity is a RANKING, not a set — hence two floors.** Every chunk gets a
   score, so with no cut-off "the heart holds the soul" honestly reported
   **1,080** passages and pure nonsense still reported 23. Measured on this
@@ -854,9 +903,14 @@ pure, no network.
   streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
 - **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
   `GET /?q=&mode=words|meaning&kind=&limit=&offset=`, `GET /sources`,
-  `POST|GET /reindex`, **`POST|GET /embed`** (build/inspect the vectors),
-  `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
-  Deep link a query with `/search?q=darius`.
+  `POST|GET /reindex`, **`POST|GET /sync`** (catch up with the libraries — see
+  above; normally nobody's job), **`POST|GET /embed`** (build/inspect the
+  vectors), `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`,
+  `POST /to-cutroom`. Deep link a query with `/search?q=darius`.
+- **Tests:** `node scripts/test-search-sync.js` — the append rules, pure, no
+  Firestore and no API key (positions never renumbered, a gone recording
+  dropped by source not by slot, a failed manifest read never mistaken for an
+  emptied archive, and the prefix/stale vector states).
 - **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
   waiting for `loadedmetadata` BEFORE calling `play()` deadlocks — nothing
   loads until play, so the event never fires. `play()` must be called

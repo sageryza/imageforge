@@ -374,7 +374,7 @@ async function run() {
       ? data.total + (data.total === 1 ? ' passage' : ' passages') + ' · ' + data.took + 'ms'
       : '';
     render(data);
-    if (data.index) showIndex(data.index, data.builtAt);
+    if (data.index) showIndex(data.index, data.builtAt, data.syncedAt);
   } catch (err) {
     if (mine !== seq) return;
     $('status').textContent = '';
@@ -410,11 +410,15 @@ function offerEmbed(err) {
   };
 }
 
-function showIndex(counts, builtAt) {
+// The index catches itself up now (a filed recording arms a sync), so the date
+// that matters is the last time it MOVED, not the last full rebuild — showing
+// the build date on a self-updating index reads as months stale when it isn't.
+function showIndex(counts, builtAt, syncedAt) {
   idxChunks = counts.chunks || 0;
-  const when = builtAt ? new Date(builtAt).toLocaleDateString() : '';
+  const at = syncedAt && (!builtAt || syncedAt > builtAt) ? syncedAt : builtAt;
+  const when = at ? new Date(at).toLocaleDateString() : '';
   $('idx').textContent = counts.nde + ' interviews · ' + counts.memo + ' recordings · '
-    + counts.chunks.toLocaleString() + ' passages' + (when ? ' · indexed ' + when : '');
+    + counts.chunks.toLocaleString() + ' passages' + (when ? ' · updated ' + when : '');
 }
 
 // ── actions ─────────────────────────────────────────────────────────
@@ -601,13 +605,16 @@ $('reindex').onclick = async () => {
   $('reindex').disabled = true;
   try {
     await api('/reindex', { method: 'POST' });
-    toast('Rebuilding the index…');
+    // A rebuild re-chunks everything, which moves every position and so
+    // invalidates every embedding — it re-reads the passages afterwards
+    // (~5¢). New recordings need none of this: they append themselves.
+    toast('Rebuilding the index and re-reading the passages (~5¢)…');
     const poll = setInterval(async () => {
       const { job } = await api('/reindex');
       if (!job || job.status === 'running') return;
       clearInterval(poll);
       $('reindex').disabled = false;
-      if (job.status === 'done') { toast('Index rebuilt'); if (job.counts) showIndex(job.counts, new Date().toISOString()); run(); }
+      if (job.status === 'done') { toast('Index rebuilt'); if (job.counts) showIndex(job.counts, new Date().toISOString(), null); run(); }
       else toast(job.error || 'Rebuild failed');
     }, 2000);
   } catch (err) { toast(err.message); $('reindex').disabled = false; }
@@ -620,7 +627,7 @@ window.__navBack = () => false;
 // Deep link: /search?q=darius
 const preset = new URLSearchParams(location.search).get('q');
 if (preset) { $('q').value = preset; run(); }
-api('/sources').then((d) => showIndex(d.counts, d.builtAt)).catch(() => {});
+api('/sources').then((d) => showIndex(d.counts, d.builtAt, d.syncedAt)).catch(() => {});
 </script>
 </body>
 </html>
