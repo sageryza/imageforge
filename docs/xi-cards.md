@@ -249,6 +249,44 @@ Pairs testing for batch 2 waits until she has chosen keepers — then a
 keepers-only pairs page (optionally + batch-1 keepers and live-deck
 cross-pairs) replaces walking all 19,900 combinations.
 
+## Card art — the style test (v1, 2026-08-17)
+
+Sophie's art spec: "**Vintage illustration**, sort of stuff, **not too
+detailed** if possible, but ChatGPT has trouble with that." Cards render in
+the app at `aspect-ratio:1` with `object-fit:contain` and
+`mix-blend-mode:multiply` over cream cells — so **art is SQUARE on
+cream/white paper**, and light paper grounds melt into the app's cells.
+Square gpt-image-2 prices: low 0.6¢ · medium 5.3¢ · high 21.1¢.
+
+**Image philosophy for memory cards** (why the prompts read the way they
+do): the image must stay as OPEN as the card — no legible faces (figures
+from behind, eyes shut, silhouette), the scene at its most archetypal
+instant, objects and light carrying the feeling, so the player can put
+their OWN memory inside it. The picture is a door, not a photograph of
+someone else's memory.
+
+Round 1: her 4 evidence-backed picks (the kitchen + the sneaking cluster) ×
+3 style directions, all **medium**, via Freeform (verbatim prompts,
+`promptSent` stored). The three style halves — all Claude-authored, each
+written to fight gpt-image-2's over-detailing:
+
+- **gouache** — "Flat mid-century picture-book illustration, matte gouache,
+  simple rounded shapes, muted palette of five colors on warm cream paper,
+  soft grain, no outlines, generous empty space, not too detailed, no text."
+- **silkscreen** — "Vintage silkscreen print, three ink colors on aged cream
+  paper, bold flat shapes, slight misregistration, heavy paper grain, large
+  areas of blank paper, 1940s matchbook illustration, minimal detail, no
+  text."
+- **inkwash** — "Loose vintage storybook pen-and-ink drawing, thin scratchy
+  line, one muted watercolor wash color, mostly bare cream paper, 1940s
+  illustration, very few details, no text."
+
+Content halves are style-portable (the treasure — see
+`docs/image-pipeline.md`) and filed per image on the PROMPT overlay. Two
+favorites re-ran at **high** on the same prompts for a medium/high duo.
+Baked-in captions (the live deck has them) are deliberately NOT in round 1 —
+style first, lettering later.
+
 ## Live-deck housekeeping spotted while reading
 
 The live midjourney deck carries two exact duplicate captions:
