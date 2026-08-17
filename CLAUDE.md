@@ -1134,6 +1134,17 @@ custom viewing page → **post it into her app**, don't make a claude.ai artifac
 tab and opens full-screen. **Read the `new-page` skill first; the full contract
 is `docs/compare-pages.md`.** The parts you must not get wrong:
 
+- **A LIST FITS A STOCK TEMPLATE — post the DATA, not HTML (Aug 2026).** When
+  the page is "review these one at a time" or "these variants side by side",
+  don't build HTML at all: `POST /api/chatfeed/page { chat, title,
+  template:'deck'|'grid', data }` — the deck is the Tinder pager (browse
+  taps/swipe, optional ♥/✕ or her own states, tap-to-record voice notes), the
+  grid is rows of 2–6 with the Assets-style PROMPT overlay; items with an
+  asset `url` mirror ♥/✕/notes to the Assets tab so the two agree. `{
+  template:'grid', from:{assets:true} }` auto-files the chat's quality/model
+  ladders; near-variant prompts are only FLAGGED
+  (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
+  call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
 - **START FROM THE SHELL** — `public/compare-shell.html`, which links
   `/compare.css` (the one house look AND the `:root` tokens the injected
   autoscroll pill styles itself from) and `/compare.js` (the one house
