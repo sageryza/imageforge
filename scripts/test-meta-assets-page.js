@@ -39,6 +39,12 @@ const ASSETS = [
     created: iso(T0 - 2000), vote: 'like' },
   { chat: 'witch-school', name: 'Witch School', url: 'http://127.0.0.1:PORT/i/oldest.png',
     description: 'Moon lesson card', created: iso(T0 - 3000), vote: 'dislike' },
+  // an APP-MADE creation (the my-creations bucket): no chat to open, but the
+  // Playground and Save icons still work off its prompt
+  { chat: 'my-creations', name: 'My Creations', app: true,
+    url: 'http://127.0.0.1:PORT/i/appmade.png', prompt: 'gpt-image-2 · low',
+    description: 'a fox in a yellow raincoat', promptContent: 'a fox in a yellow raincoat',
+    created: iso(T0 - 4000) },
 ];
 
 const votes = [];   // every vote POST the page sends, captured
@@ -96,9 +102,13 @@ const server = http.createServer((req, res) => {
       fail('tiles not in filing order: ' + JSON.stringify(caps));
     }
     const whos = await page.$$eval('.assetgrid .acell .who', (es) => es.map((e) => e.textContent));
-    if (whos.join('|') !== 'Evan|Dating Book|Witch School') {
+    if (whos.join('|') !== 'Evan|Dating Book|Witch School|My Creations') {
       fail('origin chat names missing from tiles: ' + JSON.stringify(whos));
     }
+    // tile labels clamp to two lines — the full text lives in the lightbox
+    const clamp = await page.$eval('.assetgrid .acell .lbl',
+      (e) => getComputedStyle(e).webkitLineClamp);
+    if (clamp !== '2') fail('tile label not clamped to 2 lines: ' + clamp);
 
     // 3 — a vote already on file paints
     const lit = await page.$eval('.assetgrid .acell:nth-child(2) .vote.heart',
@@ -130,7 +140,7 @@ const server = http.createServer((req, res) => {
     await page.fill('.asearch input', '');
     await page.waitForFunction(() => {
       const es = [...document.querySelectorAll('.assetgrid .acell')];
-      return es.filter((e) => e.style.display !== 'none').length === 3;
+      return es.filter((e) => e.style.display !== 'none').length === 4;
     });
 
     // 5 — lightbox freezes the page and restores scrollY
@@ -158,7 +168,52 @@ const server = http.createServer((req, res) => {
       requestAnimationFrame(() => requestAnimationFrame(() => ok(window.scrollY)))));
     if (Math.abs(y - 400) > 2) fail('scroll not restored after lightbox: ' + y);
 
-    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract');
+    // 7 — the action icons: chat + Playground + Save on a chat's image…
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.click('.assetgrid .acell:nth-child(1) > button');
+    await page.waitForSelector('.lbacts');
+    const labels = await page.$$eval('.lbacts button',
+      (es) => es.map((e) => e.getAttribute('aria-label')));
+    if (labels.join('|') !== 'Open the chat|Open in Playground|Save to Photos') {
+      fail('wrong action icons on a chat image: ' + JSON.stringify(labels));
+    }
+    await page.click('#clightbox', { position: { x: 10, y: 800 } });
+    await page.waitForFunction(() => document.getElementById('clightbox').style.display === 'none');
+    // …no chat icon on an app-made creation (there is no chat to open)
+    await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(4) > button').click());
+    await page.waitForSelector('.lbacts');
+    const appLabels = await page.$$eval('.lbacts button',
+      (es) => es.map((e) => e.getAttribute('aria-label')));
+    if (appLabels.join('|') !== 'Open in Playground|Save to Photos') {
+      fail('wrong action icons on an app creation: ' + JSON.stringify(appLabels));
+    }
+    await page.click('#clightbox', { position: { x: 10, y: 800 } });
+    await page.waitForFunction(() => document.getElementById('clightbox').style.display === 'none');
+
+    // 8 — the chat icon lands in the Chats app, on THIS image's chat
+    await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(1) > button').click());
+    await page.waitForSelector('.lbacts');
+    await Promise.all([
+      page.waitForURL((u) => u.pathname === '/chats' && u.searchParams.get('chat') === 'evan-film'),
+      page.click('.lbacts button[aria-label="Open the chat"]'),
+    ]);
+
+    // 9 — the Playground icon carries the exact prompt + recognised style/quality
+    await page.goto(`http://127.0.0.1:${port}/assets`);
+    await page.waitForSelector('.assetgrid .acell');
+    await page.evaluate(() => document.querySelector('.assetgrid .acell:nth-child(1) > button').click());
+    await page.waitForSelector('.lbacts');
+    await Promise.all([
+      page.waitForURL((u) => u.pathname === '/playground'),
+      page.click('.lbacts button[aria-label="Open in Playground"]'),
+    ]);
+    const q = new URL(page.url()).searchParams;
+    if (q.get('prompt') !== 'a man at a hospital window at dusk'
+      || q.get('style') !== 'watercolor' || q.get('quality') !== 'medium') {
+      fail('playground query wrong: ' + page.url());
+    }
+
+    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons');
   } finally {
     await browser.close();
     server.close();

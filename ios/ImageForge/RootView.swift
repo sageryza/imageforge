@@ -471,7 +471,12 @@ struct RootView: View {
                 .environment(\.openTool, { open($0) })
                 .opacity(screen == .tool(.chats) ? 1 : 0)
                 .allowsHitTesting(screen == .tool(.chats))
-            NavigationStack { CreationsView() }
+            // The gallery slot shows META ASSETS now (Aug 2026, Sophie: "it
+            // will just replace my creations") — the /assets web page, every
+            // chat's Assets tab in one automatic feed, app-made creations
+            // folded in server-side. CreationsView stays in the repo,
+            // deliberately unmounted, in case she ever wants it back.
+            NavigationStack { MetaAssetsView() }
                 .environment(\.goHome, { setScreen(.home) })
                 .environment(\.goBack, { goBack() })
                 .opacity(screen == .gallery ? 1 : 0)
@@ -490,7 +495,9 @@ struct RootView: View {
     private var showAutoScroll: Bool {
         switch screen {
         case .home: return false
-        case .gallery: return true
+        // Meta Assets is a web page carrying the server-injected pill — the
+        // native one on top of it would be two pills in one corner.
+        case .gallery: return false
         case .tool(let t):
             // Story Room is a web page with its own in-page pill.
             if t == .writing || t == .chats || t == .story { return false }

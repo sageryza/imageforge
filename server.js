@@ -2267,7 +2267,28 @@ app.get('/api/gallery/assets/all', async (req, res) => {
       const snap = await admin.firestore().collection('forge-chat-assets')
         .select('chat', 'url', 'created', 'prompt', 'description',
           'promptStyle', 'promptContent', 'kind', 'hash', 'md5').get();
-      metaAssetsCache = metaAssets.buildMetaAssets(snap.docs.map((d) => d.data()));
+      // The APP-MADE half of My Creations (stickers, dream pages, in-app
+      // generations) lives only in the iOS gallery — pull it in so pointing
+      // that tile here loses nothing. Chat deliverables' hook copies (prompt
+      // "from <chat>") and urls a chat already filed are skipped in the
+      // builder; best-effort, exactly like the per-chat route's creations read.
+      let creations = [];
+      try {
+        await storyDb();
+        if (storyApp) {
+          const uid = await galleryUid();
+          const csnap = await storyApp.firestore().collection('users').doc(uid)
+            .collection('creations')
+            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt').get();
+          creations = csnap.docs.map((d) => {
+            const c = d.data() || {};
+            return { url: c.url, prompt: c.prompt, type: c.type, model: c.model,
+              quality: c.quality, style: c.style,
+              ms: c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0 };
+          });
+        }
+      } catch (e) { /* uid discovery unavailable */ }
+      metaAssetsCache = metaAssets.buildMetaAssets(snap.docs.map((d) => d.data()), creations);
       metaAssetsCacheAt = Date.now();
     }
     const total = metaAssetsCache.length;
@@ -2279,6 +2300,7 @@ app.get('/api/gallery/assets/all', async (req, res) => {
       if (a.kind) o.kind = a.kind;
       if (a.promptStyle) o.promptStyle = a.promptStyle;
       if (a.promptContent) o.promptContent = a.promptContent;
+      if (a.app) { o.app = true; o.name = 'My Creations'; }
       return o;
     });
     // What she calls each chat — off the registry's own cached read, so this
@@ -2286,6 +2308,7 @@ app.get('/api/gallery/assets/all', async (req, res) => {
     try {
       const reg = await require('./chatfeed').registry();
       assets.forEach((a) => {
+        if (a.app) return;
         const c = (reg.chats || {})[a.chat];
         if (c && c.displayName) a.name = c.displayName;
       });
