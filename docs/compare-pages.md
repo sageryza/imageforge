@@ -458,8 +458,14 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     back. `page-templates.js` is the whole contract: an item is
     `{ id?, label, img?|text?, full?, url?, model?, quality?, promptStyle?,
     promptContent? }` — NO HTML anywhere in `data`, everything renders
-    escaped. `deck` data is `{ items:[…], states?, voice?, browse? }`; `grid`
-    data is `{ groups:[{ label?, items:[…] }], states? }`.
+    escaped. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
+    `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
+    **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
+    AND story-fragment rectangles, "options they can pick between"):
+    `'square'` (1:1, a card deck's face), `'portrait'` (5:7, the
+    playing-card / story-fragment rectangle), `'landscape'` (7:5). Omit it
+    for the item's natural shape; one item may carry its own `aspect` to
+    differ from its page.
   - **`deck`** = the judge page driven by data: browse mode ON (tap the
     card's left/right edges or swipe — no action required per card), ♥/✕/
     maybe/later or her own words via `states:[{key:'done',label:'done'},…]`,

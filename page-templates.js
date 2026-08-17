@@ -49,6 +49,15 @@
 // drives all of it with fixtures.
 
 const TEMPLATES = ['deck', 'grid'];
+// The card-face shapes a page (or one item) can pick between (Aug 2026,
+// Sophie: "something should be square, some should be rectangle like story
+// fragments, so these should be options they can pick between"). A fixed
+// menu, not a free ratio — the same reason the states are a list: options
+// keep every deck reading as one system.
+//   square    1:1  — a card deck's face (the XI cards)
+//   portrait  5:7  — the playing-card / story-fragment rectangle
+//   landscape 7:5  — a scene card on its side
+const ASPECTS = { square: '1/1', portrait: '5/7', landscape: '7/5' };
 const MAX_ITEMS = 500;
 const MAX_STATES = 6;
 const STR = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
@@ -92,6 +101,7 @@ function cleanItem(raw, taken, fallback) {
   if (url) it.url = url;
   for (const k of ['model', 'quality']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
+  if (ASPECTS[raw.aspect]) it.aspect = raw.aspect;   // one card may differ from its page
   it.id = STR(raw.id, 60) || null;
   if (it.id) { if (taken.has(it.id)) return { dup: it.id }; taken.add(it.id); }
   else it.id = deriveId(it, taken, fallback);
@@ -128,10 +138,9 @@ function validateTemplate(template, data) {
   if (help) out.help = help;
   const states = cleanStates(data.states);
   if (states) out.states = states;
-  // aspect:'square' — every card/tile face keeps 1:1 (a card deck — the XI
-  // chat's ask, Aug 2026). The only aspect there is; anything else is the
-  // item's own natural shape, which is the default.
-  if (data.aspect === 'square') out.aspect = 'square';
+  // the page's card-face shape — see ASPECTS above. Items may override one
+  // by one; anything not on the menu keeps the item's natural shape.
+  if (ASPECTS[data.aspect]) out.aspect = data.aspect;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -310,6 +319,6 @@ function groupAssetVariants(assets) {
 }
 
 module.exports = {
-  TEMPLATES, validateTemplate, renderTemplatePage, groupAssetVariants,
+  TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
   parseCaption, normContent,
 };
