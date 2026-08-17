@@ -714,6 +714,118 @@ pure, no network.
   `docs/nde-precise-cutting.md`), so filler removal by transcript is partial;
   the pause detection catches many of them anyway as breath pauses.
 
+## Pausing (`pausing.js`, `/pausing`) — how long a beat sits
+
+The other half of the polish pass, and the half that decides how a cut
+actually sounds. Shipped Aug 2026; before that it existed only as a
+hand-authored Compare page, "Evan — the pause timeline (v7b)" in the chat
+`evan-story-visual-summary`, page `s9rSf9bZo0AqnScX0OON` — still worth reading
+as the reference for what the tool does.
+
+**What it is for.** The Cutting Room can REMOVE a pause: it compresses one to
+`KEEP` (~0.28s) and that is the only length it has. Nothing else in the app
+could make a pause 1.2 seconds, or put a pause somewhere she never left one.
+Four things lived on that page and nowhere else, and they are the tool:
+
+1. **Setting a LENGTH**, not just removing — the whole idea of rhythm.
+2. **ADDING a pause** where the recording has none.
+3. Building it out of the recording's **OWN ROOM TONE**.
+4. **Playing HER EDIT** rather than the source (Sophie: "I need to be able to
+   hear it to know how long of a pause I want"). Pressing play used to play
+   the recording as it is, so a pause she had just set sounded exactly the
+   same and there was no way to judge a length.
+
+**A pause is never digital silence.** This is the finding the tool is built
+on: a room has a floor, and a pause rebuilt as zero samples reads as a
+dropout — it is what made the "45 percent" line sound bungled. So every pause
+is real audio out of her own recording, and the only question is which piece:
+
+- an **existing gap** lends its own air, trimmed if she shortened it and
+  repeated if she lengthened it — the best possible source, because it is
+  literally the room at that exact moment;
+- an **added pause** has no gap of its own, so it borrows the quietest
+  sustained stretch of the same file, baked once during the listen job to
+  `pausing/<id>/room.wav` and read by both the preview and the render.
+
+Fades are 12ms on the OUTER edges of a pause piece and nowhere else. A fade at
+every loop boundary pumps audibly on room tone; a butt join between two copies
+of near-silence does not.
+
+**Detection is imported, never re-implemented.** `cuttingroom.js` exports
+`breathCuts`, `roomToneCuts`, `mergeRanges` and `rmsProfile` — the
+vo-remove-pauses passes (see `docs/nde-precise-cutting.md`, "Noisy pauses":
+breath and mouth noise sit only 4-7dB under quiet speech, so no absolute
+silence threshold finds these pauses). Every constant in them is a measured
+finding. A second copy would find DIFFERENT pauses and the same recording
+would read differently in two rooms.
+
+Those passes hand back ranges to REMOVE, **already inset by `KEEP`/2 on both
+sides**. Pausing wants the GAP, so `pausesFrom` takes that inset back off —
+and no further, because the 0.10s margins inside `breathCuts` are deliberate
+protection for the speech either side. Get this wrong and every pause she is
+shown is 0.28s shorter than the one she hears: the tool's whole job, silently
+off by a beat. Two filters then apply: below **0.35s** a gap is articulation
+rather than rhythm and gets no chip (a chip on every comma buries the pauses
+that matter), and head/tail air is a TRIM, which is the Cutting Room's job.
+
+**The edit itself is ONE shared file.** `pause-plan.js` is loaded by the
+render on the server (`require('./pause-plan')`) and served to the page at
+`/pause-plan.js`. She sets a length by EAR, so the 1.2s she approved in the
+preview has to be the 1.2s that comes out of the render — two implementations
+would drift and the tool would quietly stop being trustworthy. `planEdit`
+turns her marks into ITEMS over the original timeline and walks them into
+PIECES that tile it exactly: a gap in them is audio silently dropped out of
+her recording, an overlap is audio played twice. Picking the length a gap
+already had is **not a change** (re-cutting a gap to itself would add two
+fade-joins to audio that needed none), and overlaps are dropped rather than
+merged.
+
+**It does not cut words.** The reference page had a CUT mode; the Cutting Room
+and Cutting Blocks both do that properly, with the re-listen every real word
+cut needs. Pausing only ever touches AIR, which is why its word timings never
+have to be cut-accurate and it never re-listens. "out" is 0.08s of room tone —
+an elision, not a splice.
+
+**The unit of listening is the PARAGRAPH.** The artifact decoded one 90-second
+film into memory and rebuilt the whole thing on every play. A real recording
+can be ninety MINUTES, which decoded is most of a gigabyte of Float32 in a
+WKWebView. So the server cuts a paragraph span once (`/api/search/clip-span`,
+banked immutably, ~45KB for a sheet preview), the page decodes it, and her
+pauses are spliced in the browser — which keeps the thing that mattered:
+changing a length and hearing it with no round trip. Paragraphs are derived
+client-side, broken at the LONGEST pauses, and the page opens FOLDED to them
+(the progressive-expansion rule) and draws words only where she goes in.
+
+**Undo collapses consecutive changes to one pause into one step.** Deciding a
+length is a run of taps — 0.4, then 0.8, then 1.2, listening to each — and one
+entry per tap means undo walks back through her auditioning instead of back
+out of the pause. Adding a pause opens the sheet, so add-then-length was two
+entries and one undo left an unwanted pause sitting at its old length (caught
+by the page test).
+
+**Data.** One doc per recording in `forge-pausing` (deckfactory),
+content-addressed by a sha1 of the source url so re-opening resumes. Words in
+Storage (`pausing/<id>/words.json`); only `set` and `added` — her marking
+state, the part that changes — live on the doc, through a whitelisted
+`POST /:id/state`. Renders capped at 8. **Her voice is never loudnormed.**
+
+**Money.** Opening a recording transcribes it, ~$0.006/min, once ever per
+recording. Previews are ffmpeg span cuts, banked forever. Rendering is ffmpeg
+on our own box. Nothing spends on load.
+
+**Routes** (mounted at `/api/pausing`, STUDIO_TOKEN gate, only `/status`
+open): `GET /status` · `GET /sources` · `GET /` · `POST /open` ·
+`GET /:id` · `POST /:id/state` · `GET /:id/plan` (her edit as the render will
+perform it — free, no ffmpeg) · `POST /:id/title` · `POST /:id/render` ·
+`GET /:id/job` · `DELETE /:id`.
+
+**Tests.** `node scripts/test-pausing.js` — the inset arithmetic, the room-tone
+pick, and the shared plan's tiling, pure and no network. `node
+scripts/test-pausing-page.js` — the real page in headless Chromium against a
+synthetic recording the stub cuts on demand, asserting on the SAMPLES the page
+hands the speakers: the pause must be quiet AND non-zero. A regression there is
+invisible in code review and obvious in her ears.
+
 ## Search (`search.js`) — every transcript, one search
 - `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
   `magnifyingglass`, deep link `deckfactory://search`) — one search across

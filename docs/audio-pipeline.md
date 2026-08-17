@@ -68,7 +68,9 @@ by-ear pass after it, for what the machine could not hear.
 6. **EXACT CUT** — the by-ear pass after it: tap the spot on the playhead,
    nudge by a tenth (`cutmarks.js`).
 7. **POLISH** — pauses out and filler out (`cuttingroom.js`), and their LENGTH
-   set (or a new one added) in the **Pausing tool** artifact. The last pass.
+   set (or a new one added) in **Pausing** (`pausing.js`, `/pausing`). The last
+   pass, and the two halves are deliberately separate rooms: removing a beat is
+   a cut, shaping one is rhythm.
 8. **THE CUT** — the finished audio.
 
 Flowing **into** BLOCKS:
@@ -100,17 +102,16 @@ Only in **Cut Marks**:
 - Cut at the exact tapped moment
 - Video, not just audio
 
-Only in **the Pausing tool** (a Compare page, not a tool):
+Only in **Pausing** (`pausing.js` + `/pausing` — a real tool since Aug 2026;
+it was a Compare page when this list was written):
 
 - Set how LONG a pause is — the Cutting Room only removes one, compressed to
   ~0.28s
 - Add a pause where there is none
-- Build a pause out of the recording's OWN room tone (the quietest 120ms,
-  trimmed or looped), never digital silence — digital silence is what made the
-  45% line sound bungled
-- Play HER EDIT rather than the film: the page decodes the film once and
-  rebuilds it in memory with her pauses and cuts applied, because "I need to be
-  able to hear it to know how long of a pause I want"
+- Build a pause out of the recording's OWN room tone, trimmed or looped, never
+  digital silence — digital silence is what made the 45% line sound bungled
+- Play HER EDIT rather than the source, because "I need to be able to hear it
+  to know how long of a pause I want"
 
 Only in **the Cutting Room**: pauses and filler out (i.e. *removing* them).
 
@@ -144,10 +145,37 @@ These are the ones worth building, and none of them is a missing button:
   shipped, on a 17s clip: listen job ~6s, 45 words → 3 sentence-level lines
   whose word ranges tile the source exactly. Tests:
   `node scripts/test-blocks.js`.
-- **The polish pass is split across a tool and an artifact.** The Cutting Room
-  removes a pause; the Pausing tool shapes one. Rhythm — how long a beat sits —
-  is the half that only exists as a page, and it is the half that decides how a
-  cut actually sounds.
+- ~~**The polish pass is split across a tool and an artifact.**~~ **BUILT —
+  `pausing.js` + `/pausing`, Aug 2026.** The Cutting Room removes a pause; the
+  Pausing tool shapes one, and rhythm — how long a beat sits — was the half
+  that existed only as "Evan — the pause timeline (v7b)", a hand-authored
+  Compare page whose whole state lived in a chat's verdict fields. It is now
+  `forge-pausing` (content-addressed by the source url, so re-opening
+  resumes), a page at `/pausing`, and an iOS tile under the FILM filter.
+  **Three design decisions worth carrying forward:**
+  - **Detection is IMPORTED, never re-implemented.** `cuttingroom.js` now
+    exports `breathCuts`, `roomToneCuts`, `mergeRanges` and `rmsProfile`
+    alongside `chunkedWords`/`cutSection`. Those passes carry measured
+    constants (the -7dB relative threshold, the sustained-energy veto, the
+    0.10s speech margins); a second copy would find DIFFERENT pauses and the
+    same recording would read differently in two rooms. The detection hands
+    back ranges to REMOVE, already inset by KEEP/2 either side — this tool
+    takes that inset back off to get the GAP, and no further.
+  - **The EDIT is one shared file.** `pause-plan.js` is loaded by the render
+    on the server and served to the page at `/pause-plan.js`. She sets a
+    length by ear, so the preview she approves has to be the take she gets;
+    two implementations would drift and the tool would quietly stop being
+    trustworthy.
+  - **The unit of listening is the PARAGRAPH.** The artifact decoded one
+    90-second film and rebuilt the whole thing on every play; ninety minutes
+    decoded is most of a gigabyte of Float32 in a WKWebView. The server cuts
+    a paragraph span once (banked, `/api/search/clip-span`), the page decodes
+    it, and the pauses are spliced in the browser — so changing a length and
+    hearing it still costs no round trip.
+  Tests: `node scripts/test-pausing.js` (the detection arithmetic and the
+  shared plan, pure) and `node scripts/test-pausing-page.js` (the real page in
+  headless Chromium, asserting on the SAMPLES it hands the speakers — a pause
+  is quiet and NON-ZERO, which is the finding the whole tool is built on).
 - **Nothing carries a project across the rooms.** Each room is
   content-addressed by its own source url — `forge-cutroom` by sha1 of the
   audio url, `forge-cutmarks` by sha1 of the url, the Episode Editor by
@@ -210,10 +238,12 @@ Compare pages (**353** total), then reading every one that touches audio.
 
 Still only a page:
 
-- **Pausing tool** — `evan-story-visual-summary`, Aug 10, page
-  `s9rSf9bZo0AqnScX0OON` (titled "Evan — the pause timeline (v7b)"). The one
-  above. This is also the page behind CLAUDE.md's CORS finding: it `fetch()`es
-  audio and `decodeAudioData`s it, which a same-origin test cannot exercise.
+- ~~**Pausing tool**~~ — `evan-story-visual-summary`, Aug 10, page
+  `s9rSf9bZo0AqnScX0OON` (titled "Evan — the pause timeline (v7b)"). **Became
+  a real tool Aug 2026 — `pausing.js` + `/pausing`;** the page is still the
+  reference for what it does. This is also the page behind CLAUDE.md's CORS
+  finding: it `fetch()`es audio and `decodeAudioData`s it, which a same-origin
+  test cannot exercise.
 - **Cutting blocks v14** — `cutting-blocks-artifact`, Aug 12,
   `ePKqeMJOATGCz7MJa9lA`.
 - **Every passage — pick the cuts (v3)** — `illustrated-cannon-passage`, Aug 8.
@@ -391,7 +421,8 @@ Three things must NOT be folded in while doing it, all decided already:
   what the Cutting Room is for.
 - **Her voice is never loudnormed**, anywhere on the path.
 - **A pause is never digital silence.** Build it from the recording's own room
-  tone, trimmed or looped — the Pausing tool's finding, and it is audible.
+  tone, trimmed or looped — Pausing's finding, and it is audible. `pause-plan.js`
+  is where that rule now lives in code, for both the preview and the render.
 
 And one implementation rule the repo already paid for: **there is ONE cutter**
 (`editor.js` — `phraseSpan` → `clampBounds` → `detectSilences`/`snapToSilence`

@@ -1601,6 +1601,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   blocks live in Storage. Transcription is ~$0.006/min, once ever per
   recording; rendering is ffmpeg on our own box, free. Tests:
   `node scripts/test-blocks.js`. **Full details: `docs/audio-pipeline.md`.**
+- **Pausing** (`pausing.js`, `/api/pausing`, page at `/pausing`, iOS tile under
+  the FILM filter) — the BOTTOM of the audio pipeline, and the other half of
+  the polish pass: **how long a beat sits**. The Cutting Room can only REMOVE a
+  pause (compressed to ~0.28s, its one length); here she sets a length, ADDS a
+  pause where the recording has none, and hears her EDIT rather than the
+  source ("I need to be able to hear it to know how long of a pause I want").
+  It was a hand-authored Compare page ("Evan — the pause timeline v7b") with
+  its whole state in a chat's verdict fields.
+  **Three things not to undo.** (1) **Pause detection is IMPORTED** —
+  `cuttingroom.js` exports `breathCuts`/`roomToneCuts`/`mergeRanges`/
+  `rmsProfile` and this module calls them; every constant in them is a measured
+  finding, so a second copy would find different pauses and the same recording
+  would read differently in two rooms. Those passes return ranges to REMOVE,
+  inset by KEEP/2 either side — Pausing takes the inset back off to get the
+  GAP, and no further (the 0.10s margins are speech protection). (2) **A PAUSE
+  IS NEVER DIGITAL SILENCE** — it is the recording's own room tone, an existing
+  gap lending its own air (trimmed or looped) and an added pause borrowing the
+  quietest stretch of the file, baked once at `pausing/<id>/room.wav`. Zero
+  samples read as a dropout; that is what made the "45 percent" line sound
+  bungled. (3) **The edit is ONE file** — `pause-plan.js`, loaded by the render
+  on the server AND served to the page at `/pause-plan.js`, because she
+  approves a length by ear and the preview has to be the take. It does not cut
+  WORDS (that is the Cutting Room's and Cutting Blocks' job, with the re-listen
+  a real word cut needs); "out" is 0.08s of room tone, an elision. Listening is
+  per PARAGRAPH — the server cuts that span once via `/api/search/clip-span`
+  and the page splices in the browser, so changing a length costs no round
+  trip; ninety minutes decoded would be most of a gigabyte in a WKWebView.
+  Transcription ~$0.006/min once ever per recording; everything else is free.
+  Tests: `node scripts/test-pausing.js` (pure) and `node
+  scripts/test-pausing-page.js` (the real page, headless, asserting on the
+  SAMPLES — a pause must be quiet and NON-ZERO).
+  **Full details: `docs/audio-pipeline.md`.**
 - **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
