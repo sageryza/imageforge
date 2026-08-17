@@ -14,10 +14,18 @@
 2. **A TIMELINE** — the raw events of the date in order, arrow-separated
    ("coffee house → bus → his house → pasta → …"). Extract only; illustration
    of timelines comes later. One per date.
-3. **A CAPTION per moment** — **bold title** on top, *italic quote* under it.
-   The quote is Sophie's ACTUAL words from the journal (or actual dialogue),
-   trimmed — never paraphrased into new wording. Example: **The Chai
-   Experiment** / *"let's see how hyper you can get…"*
+3. **A CAPTION per moment** — **bold title** on top, *italic line* under it.
+   **The register is funny — snarky or self-deprecating is welcome (Sophie,
+   Aug 2026):** the line is taken out of context, so it's disconnected from
+   the source and judged less — that's the opportunity. Her worked example
+   for the cheese grater: *"I was starting to understand why he didn't get
+   along with his roommate."* Rules of the register:
+   - Her journal line verbatim WHEN it already lands (*"I was a sloth, not
+     moving at all, waiting for this torture to be over"* needs nothing).
+   - A punched-up or composed line is ALLOWED — but in her deadpan, wry
+     voice, and flagged as composed when delivered so she can veto.
+   - No Claude-isms (see `docs/witch-school-lessons.md` voice rules): no
+     negation-pivot, no mic-drop closers, no profound-simplicity.
 4. **STATISTICS** — gather per date, for the book's charts:
    - Standard set (collect for every date): how long the date lasted, who
      paid for what, food and drink consumed, transport, locations. Mark
@@ -70,8 +78,12 @@ that doc should be updated — flag, don't silently rewrite it.
 
 ## Process
 
-- One date at a time; Sophie reviews each before the next (calibration phase).
-- Reader: Fable, personally (her call after the David sample).
+- Reader: Fable, personally (her call after the David sample — "$3 to 5 is
+  nothing").
+- Batching: calibration first (David, then griffin solo for the new caption
+  register), then batches of ~3, opening up to ~10 once a batch comes back
+  without corrections. Not all-at-once — a drifted register discovered after
+  40 dates means redoing 240 captions.
 - Eventually: picks compiled into a Tinder-style deck (`template:'deck'`
   Compare page) for her ♥/✕ pass, then illustration in batches with a cost
   estimate (ask above $3).
