@@ -71,6 +71,27 @@
     '.jg-btn.later{color:var(--ink2);}' +
     '.jg-btn.maybe{color:var(--gold);}' +
     '.jg-btn.yes{color:var(--chg);border-color:var(--chg);}' +
+    // browse mode paints the card's current verdict on its button
+    '.jg-btn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);}' +
+    // custom states are her words — chips that hug them (never pills)
+    '.jg-chip{border:1.5px solid var(--line);border-radius:6px;background:var(--surface);' +
+    ' color:var(--ink2);font:600 13px/1 -apple-system,sans-serif;padding:11px 13px;}' +
+    '.jg-chip.on{color:var(--paper);background:var(--ink);border-color:var(--ink);}' +
+    // the browse tap zones: the card's left/right edges page the deck; the
+    // middle stays the picture's own tap (lightbox)
+    '.jg-navzone{position:absolute;top:0;bottom:0;width:26%;background:transparent;' +
+    ' border:0;border-radius:0;padding:0;z-index:2;}' +
+    '.jg-navzone.prev{left:0;}.jg-navzone.next{right:0;}' +
+    // tap-to-record, bottom-left corner (the note + owns bottom-right)
+    '.jg-mic{position:absolute;left:8px;bottom:8px;width:30px;height:30px;z-index:3;' +
+    ' border-radius:50%;border:1.5px solid var(--line);background:var(--surface);' +
+    ' color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0;}' +
+    '.jg-mic svg{width:15px;height:15px;}' +
+    '.jg-mic.rec{color:var(--rose);border-color:var(--rose);animation:jgrec 1.1s infinite;}' +
+    '@keyframes jgrec{0%,100%{opacity:1}50%{opacity:.45}}' +
+    '.jg-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;' +
+    ' background:var(--ink);color:var(--paper);border-radius:6px;padding:9px 13px;' +
+    ' font:500 13px/1.3 -apple-system,sans-serif;max-width:86vw;}' +
     '.jg-piles h2{margin-top:22px;}' +
     '.jg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}' +
     '.jg-grid button{border:1px solid var(--line);border-radius:6px;background:var(--surface);' +
@@ -101,13 +122,13 @@
     later: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>',
     grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
   };
-  var PILES = [
+  var DEFAULT_PILES = [
     { key: true,    name: 'Loved' },
     { key: 'maybe', name: 'Maybe' },
     { key: 'later', name: 'Later' },
     { key: false,   name: 'Passed' },
-    { key: undefined, name: 'Unsorted' },
   ];
 
   window.__judge = function (opts) {
@@ -117,8 +138,105 @@
     var mount = document.querySelector(opts.mount || '#judge');
     if (!mount || !items.length) return;
 
+    // THE DECK TEMPLATE'S OPTIONS (Aug 2026, Sophie):
+    //   states — her own verdicts ('done' / 'in progress') instead of the
+    //            four defaults; strings ride the verdict route as-is.
+    //   browse — "you don't have to take any action per card… tapping on the
+    //            screen to the right or left goes backwards or forwards":
+    //            edge taps (and a swipe) navigate, judging is optional, a
+    //            judged card advances one step instead of jumping around.
+    //   voice  — a tap-to-record mic on every card; the note lands on the
+    //            card as her transcribed message (POST /page-voice).
+    var states = Array.isArray(opts.states) && opts.states.length >= 2
+      ? opts.states.filter(function (s) { return s && s.label !== undefined; }) : null;
+    var browse = !!opts.browse;
+    var voice = !!opts.voice;
+    var piles = (states
+      ? states.map(function (s) { return { key: s.key, name: s.label }; })
+      : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
+
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
     var noteTimer = null;
+
+    // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
+    // page and the tab "should agree"). Only the boolean pair mirrors —
+    // 'like'/'dislike' are the only words the asset vote speaks.
+    function mirrorVote(it, val) {
+      if (!it.url) return;
+      var vote = val === true ? 'like' : val === false ? 'dislike' : null;
+      fetch('/api/gallery/assets/vote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: chat, url: it.url, vote: vote }),
+      }).catch(function () { /* the page's own verdict still saved */ });
+    }
+    function mirrorNote(it, text) {
+      if (!it.url || !text) return;
+      fetch('/api/gallery/assets/note', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat: chat, url: it.url, text: text, from: 'sophie' }),
+      }).catch(function () { /* the page's own thread still has it */ });
+    }
+
+    // ── TAP-TO-RECORD (v1 of the voice notes — Aug 2026). One tap starts,
+    // one tap stops; the recording is pinned to the card it STARTED on, so
+    // swiping onward while finishing a sentence cannot mis-file it. The
+    // server stores the audio and appends the transcript to that card's note
+    // thread (POST /page-voice); an asset-backed card mirrors to the Assets
+    // thread. Hands-free continuous mode is deliberately NOT here yet — it
+    // ships only after the in-app mic probe proves the iframe can record.
+    var mrec = null, recIt = null;
+    function recActive() { return !!mrec; }
+    function toast(msg) {
+      var t = document.createElement('div');
+      t.className = 'jg-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { t.remove(); }, 3200);
+    }
+    function toggleRec() {
+      if (mrec) { try { mrec.stop(); } catch (_) { mrec = null; } return; }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia
+          || typeof MediaRecorder === 'undefined') {
+        toast('The mic isn’t available here — typed notes still work.');
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var chunks = [];
+        mrec = new MediaRecorder(stream);
+        recIt = items[cur];
+        mrec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        mrec.onstop = function () {
+          stream.getTracks().forEach(function (t) { t.stop(); });
+          mrec = null;
+          var it = recIt || items[cur];
+          recIt = null;
+          render();
+          var blob = new Blob(chunks, { type: chunks[0] && chunks[0].type || 'audio/webm' });
+          if (blob.size > 5000000) { toast('That one’s too long to keep here — under ~3 minutes.'); return; }
+          if (!blob.size) return;
+          var rd = new FileReader();
+          rd.onloadend = function () {
+            toast('Saving the voice note…');
+            fetch('/api/chatfeed/page-voice', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat: chat, sheet: sheet, item: it.id, audio: rd.result }),
+            }).then(function (r) { return r.json(); }).then(function (d) {
+              if (!d || !d.ok) { toast('Couldn’t save that voice note.'); return; }
+              notes[it.id] = d.text || notes[it.id];
+              toast(d.transcript ? '“' + d.transcript.slice(0, 80) + '…” — on the card.'
+                : 'Voice note attached.');
+              mirrorNote(it, (d.transcript || 'voice note') + ' (voice: ' + d.url + ')');
+              if (items[cur] === it && view === 'card') render();
+            }).catch(function () { toast('Couldn’t save that voice note.'); });
+          };
+          rd.readAsDataURL(blob);
+        };
+        mrec.start();
+        render();
+      }).catch(function () {
+        toast('Mic permission was refused here — typed notes still work.');
+      });
+    }
 
     function post(body) {
       body.chat = chat; body.sheet = sheet;
@@ -150,24 +268,48 @@
     }
     function judge(val) {
       var it = items[cur];
-      undoStack.push({ i: cur, prev: verdicts[it.id] });
-      verdicts[it.id] = val;
+      var prev = verdicts[it.id];
+      // in browse mode the lit verdict is visible, so tapping it again clears
+      if (browse && prev === val) val = null;
+      undoStack.push({ i: cur, prev: prev });
+      if (val === null) delete verdicts[it.id]; else verdicts[it.id] = val;
       post({ item: it.id, ok: val });
-      var next = firstUnjudged();
-      if (next === -1) { view = 'piles'; } else { cur = next; }
+      if (val === true || val === false || prev === true || prev === false) mirrorVote(it, val);
+      if (browse) {
+        // a judged card steps FORWARD, never jumps — her order stays hers
+        if (val !== null) { if (cur < items.length - 1) cur += 1; else view = 'piles'; }
+      } else {
+        var next = firstUnjudged();
+        if (next === -1) { view = 'piles'; } else { cur = next; }
+      }
       render(true);
+    }
+    function nav(step) {
+      var to = cur + step;
+      if (to < 0) return;
+      if (to > items.length - 1) { view = 'piles'; render(true); return; }
+      cur = to; view = 'card'; render(true);
     }
     function undo() {
       var u = undoStack.pop();
       if (!u) return;
       var it = items[u.i];
+      var was = verdicts[it.id];
       if (u.prev === undefined) { delete verdicts[it.id]; post({ item: it.id, ok: null }); }
       else { verdicts[it.id] = u.prev; post({ item: it.id, ok: u.prev }); }
+      if (was === true || was === false || u.prev === true || u.prev === false) {
+        mirrorVote(it, u.prev === undefined ? null : u.prev);
+      }
       cur = u.i; view = 'card'; render(true);
     }
 
     function mediaHtml(it) {
-      // page-authored trusted HTML judged in the picture's place (see header)
+      // a TEMPLATE item's words render ESCAPED — template data carries no
+      // HTML by design (page-templates.js); `card` below stays page-authored
+      // trusted HTML for hand-built judge pages
+      if (it.text && !it.img && !it.pair && !it.card) {
+        return '<div class="jg-cardtext">' + esc(it.text) + '</div>';
+      }
       if (it.card) return '<div class="jg-cardtext">' + it.card + '</div>';
       if (it.pair) {
         return '<div class="jg-media">' + it.pair.map(function (p) {
@@ -199,14 +341,14 @@
       // parent pill + its tap-to-toggle gesture on this document). A judge
       // page has nothing to scroll, so no tap here may ever START the scroll.
       if (view === 'piles') {
-        var sections = PILES.map(function (p) {
+        var sections = piles.map(function (p) {
           var members = items.filter(function (it) { return verdicts[it.id] === p.key; });
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
             + members.map(function (it) {
-              if (it.card) {
+              if (it.card || (it.text && !it.img && !it.pair)) {
                 return '<button class="txt" data-open="' + esc(it.id) + '">'
-                  + esc(it.label || it.id) + '</button>';
+                  + esc(it.label || it.text || it.id) + '</button>';
               }
               var src = it.pair ? it.pair[0].img : it.img;
               return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
@@ -217,8 +359,28 @@
           + (sections || '<p class="mini">Nothing here yet.</p>') + '</div></div>';
       } else {
         var it = items[cur];
+        var v = verdicts[it.id];
+        var row;
+        if (states) {
+          // her own words as chips — a button is only as wide as its words
+          row = states.map(function (s, i) {
+            return '<button class="jg-chip' + (v === s.key ? ' on' : '')
+              + '" data-state="' + i + '">' + esc(s.label) + '</button>';
+          }).join('');
+        } else {
+          var lit = function (k) { return browse && v === k ? ' on' : ''; };
+          row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
+            + '<button class="jg-btn later' + lit('later') + '" data-act="later" aria-label="Sort later">' + I.later + '</button>'
+            + '<button class="jg-btn maybe' + lit('maybe') + '" data-act="maybe" aria-label="Maybe">' + I.maybe + '</button>'
+            + '<button class="jg-btn yes' + lit(true) + '" data-act="yes" aria-label="Love">' + I.heart + '</button>';
+        }
         mount.innerHTML = '<div class="jg" data-nostop>' + top
           + '<div class="jg-card' + (flash ? ' jg-flash' : '') + '">'
+          // browse mode: the card's left/right EDGES page through the deck
+          // (Sophie: "tapping on the screen to the right or left goes
+          // backwards or forwards") — the middle still opens the lightbox
+          + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
+            + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
           + mediaHtml(it)
           + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
           // the note is a small + in the card's bottom-right corner; a
@@ -229,13 +391,10 @@
           + PLUS_SVG + '</button>'
           + '<div class="cmp-note-text"></div>'
           + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>'
+          + (voice ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
+            + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div>'
-          + '<div class="jg-row">'
-          + '<button class="jg-btn no" data-act="no" aria-label="Pass">' + I.x + '</button>'
-          + '<button class="jg-btn later" data-act="later" aria-label="Sort later">' + I.later + '</button>'
-          + '<button class="jg-btn maybe" data-act="maybe" aria-label="Maybe">' + I.maybe + '</button>'
-          + '<button class="jg-btn yes" data-act="yes" aria-label="Love">' + I.heart + '</button>'
-          + '</div></div>';
+          + '<div class="jg-row">' + row + '</div></div>';
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
         // the thread is painted by the shared kit, so hers and the chat's
@@ -259,6 +418,7 @@
           if (draft) {
             saveNote(it.id, S.threadField ? S.threadField(msgs, draft) : draft);
             msgs = S.paintNote ? S.paintNote(wrap, notes[it.id]) : msgs;
+            mirrorNote(it, draft);   // asset-backed cards agree with the tab
           }
           wrap.classList.remove('open');
         });
@@ -272,17 +432,22 @@
       // Sophie: instructions on the page are clutter — "they can put it
       // behind a ? so I can tap it if I don't know what's going on"). Pass
       // `help: '…'` to __judge and it leads the card, above the buttons key.
+      var keys = states
+        ? 'Tap a word under the card to mark it; tap it again to unmark.'
+        : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
-        + '<b>THE BUTTONS</b><br>♥ love it · ✕ pass ·'
-        + ' dashed circle = maybe (its own pile) · arrow = sort it later.<br>'
+        + '<b>THE BUTTONS</b><br>' + keys + '<br>'
+        + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
+          + ' — nothing has to be marked. ' : '')
+        + (voice ? 'The mic records a voice note onto this card: tap to start, tap to stop. ' : '')
         + 'Top row: undo the last one, the grid shows every pile —'
-        + ' tap any picture there to judge it again.</div>';
+        + ' tap any tile there to open it again.</div>';
       h.addEventListener('click', function () { h.remove(); });
       document.body.appendChild(h);
     }
 
     mount.addEventListener('click', function (e) {
-      var b = e.target && e.target.closest ? e.target.closest('[data-act],[data-open]') : null;
+      var b = e.target && e.target.closest ? e.target.closest('[data-act],[data-open],[data-state]') : null;
       if (!b) return;
       var open = b.getAttribute('data-open');
       if (open !== null && open !== undefined && open !== '') {
@@ -290,15 +455,38 @@
         if (cur < 0) cur = 0;
         view = 'card'; render(true); return;
       }
+      var st = b.getAttribute('data-state');
+      if (st !== null && st !== undefined && st !== '' && states) {
+        var s = states[parseInt(st, 10)];
+        if (s) judge(s.key);
+        return;
+      }
       var act = b.getAttribute('data-act');
       if (act === 'yes') judge(true);
       else if (act === 'no') judge(false);
       else if (act === 'maybe') judge('maybe');
       else if (act === 'later') judge('later');
+      else if (act === 'prev') nav(-1);
+      else if (act === 'next') nav(1);
+      else if (act === 'mic') toggleRec();
       else if (act === 'undo') undo();
       else if (act === 'help') showHelp();
       else if (act === 'piles') { view = view === 'piles' ? 'card' : 'piles'; render(); }
     });
+
+    // a real SWIPE pages the deck too — it is the Tinder page, after all.
+    // Horizontal, decisive (40px+, more sideways than down), card view only.
+    if (browse) {
+      var swX = null, swY = null;
+      mount.addEventListener('pointerdown', function (e) { swX = e.clientX; swY = e.clientY; });
+      mount.addEventListener('pointerup', function (e) {
+        if (swX === null || view !== 'card') { swX = null; return; }
+        var dx = e.clientX - swX, dy = e.clientY - swY;
+        swX = null;
+        if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+        nav(dx < 0 ? 1 : -1);   // swipe left = forward, the deck convention
+      });
+    }
 
     // resume: her earlier verdicts and notes come back off the doc
     fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)

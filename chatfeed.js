@@ -73,6 +73,8 @@ const { buildQuestions, answeredOnly } = require('./questions');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
+const pageTemplates = require('./page-templates');
+const assetUnion = require('./asset-union');
 
 const router = express.Router();
 const MSGS = 'forge-chat-feed';
@@ -2546,10 +2548,75 @@ function kitWarnings(html) {
 const REF_TOPIC_MAX = 40;
 function refTopic(t) { return String(t == null ? '' : t).trim().toLowerCase().slice(0, REF_TOPIC_MAX); }
 
+// THE STOCK TEMPLATES (Aug 2026, Sophie: "ready-made templates… they will be
+// forced into the structure of a page that's already built"). A chat that has
+// a LIST — options to judge, variants to compare, a to-do to walk — POSTs the
+// list, not HTML: { chat, title, template:'deck'|'grid', data:{…} }. The full
+// item shape and the two templates live in page-templates.js; the page is
+// rendered by the CURRENT stock renderer at serve time, so improvements reach
+// every template page ever posted. `template:'grid', from:{assets:true}`posts
+// the auto-grouped quality/model ladders straight out of the chat's Assets tab
+// (only the objective exact-prompt groups — near-variants are the chat's own
+// call: GET /api/gallery/assets/variants flags those).
+async function chatAssetRows(chat) {
+  // the same union the Assets tab serves, minus the iOS-creations leg (those
+  // records carry no prompts, and prompts are what grouping runs on)
+  const snap = await admin.firestore().collection('forge-chat-assets')
+    .where('chat', '==', chat).get();
+  return assetUnion.unionAssets(snap.docs.map((d) => assetUnion.assetRecord(d.data())))
+    .sort((x, y) => y.ms - x.ms);
+}
+
 router.post('/page', async (req, res) => {
   try {
-    const { chat, title, html, reference, topic } = req.body || {};
-    if (!chat || !title || !html) return res.status(400).json({ error: 'chat, title and html required' });
+    const { chat, title, html, template, data, from, reference, topic } = req.body || {};
+    if (!chat || !title || (!html && !template)) {
+      return res.status(400).json({ error: 'chat, title and html (or template + data) required' });
+    }
+    if (template) {
+      let body = data;
+      if (!body && template === 'grid' && from && from.assets) {
+        const rows = await chatAssetRows(String(chat).slice(0, 60));
+        const { ladders } = pageTemplates.groupAssetVariants(rows);
+        if (!ladders.length) {
+          return res.status(400).json({ error: 'no auto-groupable ladders in this chat\'s assets '
+            + '(same prompt content, differing model/quality). GET /api/gallery/assets/variants '
+            + 'to see near-variant candidates you can file yourself.' });
+        }
+        body = { groups: ladders };
+      }
+      const v = pageTemplates.validateTemplate(template, body);
+      if (!v.ok) return res.status(400).json({ error: v.error });
+      const tdoc = {
+        chat: String(chat).slice(0, 60),
+        title: String(title).slice(0, 140),
+        created: new Date().toISOString(),
+        template,
+      };
+      if (reference) {
+        tdoc.reference = true;
+        const t = refTopic(topic);
+        if (t) tdoc.refTopic = t;
+      }
+      const tref = db().collection(PAGES).doc();
+      const tfile = admin.storage().bucket().file(`chat-pages/${tref.id}.json`);
+      await tfile.save(Buffer.from(JSON.stringify(v.data), 'utf8'), {
+        contentType: 'application/json', resumable: false,
+      });
+      tdoc.path = tfile.name;
+      await tref.set(tdoc);
+      try {
+        const { chats } = await registry();
+        const reg = chats[tdoc.chat] || {};
+        if (chatNotifies(reg)) require('./push').notifyChat(tdoc.chat, reg.displayName || tdoc.chat, tdoc.title);
+      } catch (e) { /* push must never fail a post */ }
+      // sheet = page-<id>: unique per page, and a new version is a new page,
+      // so the verdict sheet's identity carries the item set's shape for free
+      return res.json({ ok: true, id: tref.id, url: `/api/chatfeed/page/${tref.id}`,
+        template, sheet: `page-${tref.id}`,
+        items: template === 'grid'
+          ? v.data.groups.reduce((n, g) => n + g.items.length, 0) : v.data.items.length });
+    }
     const warnings = kitWarnings(html);
     const doc = {
       chat: String(chat).slice(0, 60),
@@ -2750,6 +2817,19 @@ router.get('/page/:id', async (req, res) => {
     const snap = await db().collection(PAGES).doc(String(req.params.id)).get();
     if (!snap.exists) return res.status(404).send('Not found');
     const [buf] = await admin.storage().bucket().file(snap.data().path).download();
+    if (snap.data().template) {
+      // a TEMPLATE page stores its DATA; the chrome is rendered fresh by the
+      // current stock renderer, so shared fixes reach every page ever posted
+      let data = {};
+      try { data = JSON.parse(buf.toString('utf8')); } catch (e) { /* renders empty */ }
+      let thtml = pageTemplates.renderTemplatePage({
+        template: snap.data().template, title: snap.data().title || '',
+        chat: snap.data().chat || '', sheet: `page-${snap.id}`, data,
+      });
+      if (req.query.embed !== '1') thtml += pillInject();
+      res.set('Cache-Control', 'no-store');   // the renderer may improve under it
+      return res.set('Content-Type', 'text/html; charset=utf-8').send(thtml);
+    }
     let html = buf.toString('utf8');
     // Inject the shared pill for direct/browser viewing. Skip it when embedded
     // in the app's Compare viewer (?embed=1): iOS renders position:fixed badly
@@ -3021,6 +3101,61 @@ router.post('/reply', async (req, res) => {
     if (wasArch) patch.archived = false;
     await regRef(doc.chat).set(patch, { merge: true });
     res.json({ ok: true, id: ref.id, unarchived: !!wasArch });
+  } catch (err) { fail(res, err); }
+});
+
+// ─── Voice notes on a template page's card (Aug 2026, Sophie) ───────────────
+// The deck template's mic: she taps to record on a card, taps again to stop,
+// and the note lands ON that card — audio in Storage, transcript appended to
+// the card's verdict-note thread as her message (same `— me:` markers the
+// note kit paints), so the chat reads it exactly where typed notes live.
+// Transcription is gpt-4o-mini-transcribe (the audio model — mechanical
+// extraction, allowed): best-effort, a failed transcription never loses the
+// recording. The client mirrors to the Assets thread itself when the card is
+// an asset (same one-way mirror as typed notes).
+router.post('/page-voice', express.json({ limit: '8mb' }), async (req, res) => {
+  try {
+    const { chat, sheet, item, audio } = req.body || {};
+    if (!chat || !sheet || !item) return res.status(400).json({ error: 'chat, sheet and item required' });
+    const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
+    if (!m) return res.status(400).json({ error: 'audio must be a data:audio/… URL' });
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length) return res.status(400).json({ error: 'empty recording' });
+    const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+    const safe = (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`page-voice/${safe(sheet)}/${safe(item)}-${Date.now()}.${ext}`);
+    await file.save(buf, { contentType: m[1].split(';')[0], resumable: false });
+    await file.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    let transcript = '';
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const form = new FormData();
+        form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `note.${ext}`);
+        form.append('model', 'gpt-4o-mini-transcribe');
+        // globalThis.fetch: the module-level `fetch` is node-fetch v2, which
+        // cannot send a web FormData/Blob (writing.js posts the same way)
+        const r = await globalThis.fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: form,
+        });
+        const t = await r.json();
+        if (t && t.text) transcript = String(t.text).trim().slice(0, 1500);
+      } catch (err) { console.error('page-voice transcription failed:', err.message); }
+    }
+    // append onto the card's note thread — never replace what's there
+    const vdb = admin.firestore();
+    const vid = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const vref = vdb.collection('forge-chat-verdicts').doc(vid);
+    const cur = ((await vref.get()).data() || {});
+    const prev = (cur.texts || {})[String(item)] || '';
+    const line = `— me: ${transcript || '(voice note)'} (voice: ${url})`;
+    const text = (prev ? `${prev}\n\n` : '') + line;
+    await vref.set({ chat, sheet, updatedAt: new Date().toISOString(),
+      texts: { [String(item)]: text.slice(0, 2000) } }, { merge: true });
+    res.json({ ok: true, url, transcript, text: text.slice(0, 2000) });
   } catch (err) { fail(res, err); }
 });
 

@@ -12,9 +12,20 @@ description: >
 
 # Building a new page
 
-Pick the TEMPLATE first (Aug 2026, Sophie: pages should be filled-in
-templates — "less choices to make, but not no choices"), then read the pill
-contract — it applies to everything.
+**FIRST: if the page is a LIST to review, you may not need to build a page at
+all (Aug 2026).** The STOCK TEMPLATES take data, not HTML — `POST
+/api/chatfeed/page { chat, title, template:'deck'|'grid', data }` — and the
+server renders the page around your items (structure enforced, kit included,
+♥/✕/notes mirrored to the Assets tab for asset-backed items). `deck` = the
+Tinder pager (browse, optional actions, her own states, voice notes); `grid`
+= rows of 2–6 variants with the Assets-style PROMPT overlay;
+`from:{assets:true}` auto-files quality/model ladders. Full contract: "THE
+STOCK TEMPLATES" in `docs/compare-pages.md`. Build custom HTML only when
+neither template fits the shape of the thing.
+
+Otherwise pick the TEMPLATE first (Aug 2026, Sophie: pages should be
+filled-in templates — "less choices to make, but not no choices"), then read
+the pill contract — it applies to everything.
 
 - **Compare page** (`compare-shell.html`) — she LOOKS at things side by side
   (medium vs high, ref A vs ref B, v1 vs v2).

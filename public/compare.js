@@ -478,6 +478,13 @@
           flag.classList.add('on');
           setTimeout(function () { flag.classList.remove('on'); }, 1200);
         });
+        // a COMMITTED message (never a debounced half-sentence) is handed to
+        // the page, which may mirror it — grid.js/judge.js append it to an
+        // asset-backed item's Assets-tab note thread (Aug 2026, Sophie: the
+        // page and the tab "should agree")
+        if (noteCfg && noteCfg.onMessage) {
+          try { noteCfg.onMessage(item, draft); } catch (_) { /* mirror only */ }
+        }
       }
       // always fold back — the textarea is for writing the next message,
       // the thread is what stays on the page
@@ -536,7 +543,8 @@
   };
 
   window.__compareNotes = function (opts) {
-    noteCfg = { chat: (opts || {}).chat, sheet: (opts || {}).sheet };
+    noteCfg = { chat: (opts || {}).chat, sheet: (opts || {}).sheet,
+      onMessage: (opts || {}).onMessage || null };
     var sel = (opts || {}).selector || '[data-item]';
     var hosts = Array.prototype.slice.call(document.querySelectorAll(sel));
     if (!hosts.length || !noteCfg.chat || !noteCfg.sheet) return;

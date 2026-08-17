@@ -448,6 +448,49 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   `/compare.js`. **The deliverable sits at the TOP of the page**, above
   whatever there is to decide — that is where she looks for it, and it is why
   a delivery gets a Compare page at all.
+  **THE STOCK TEMPLATES — post a LIST, not HTML, whenever one fits (Aug 2026,
+  Sophie: "ready-made templates that they can use when it is appropriate and
+  basically they will be forced into the structure of a page that's already
+  built").** Two templates, one item shape, and the server renders the page —
+  a chat cannot restyle it, half-copy it, or ship it with the kit missing:
+  - **`POST /api/chatfeed/page { chat, title, template:'deck'|'grid', data }`**
+    (no `html`). The answer carries `sheet` (`page-<id>`) for reading verdicts
+    back. `page-templates.js` is the whole contract: an item is
+    `{ id?, label, img?|text?, full?, url?, model?, quality?, promptStyle?,
+    promptContent? }` — NO HTML anywhere in `data`, everything renders
+    escaped. `deck` data is `{ items:[…], states?, voice?, browse? }`; `grid`
+    data is `{ groups:[{ label?, items:[…] }], states? }`.
+  - **`deck`** = the judge page driven by data: browse mode ON (tap the
+    card's left/right edges or swipe — no action required per card), ♥/✕/
+    maybe/later or her own words via `states:[{key:'done',label:'done'},…]`,
+    and `voice:true` puts a tap-to-record mic on every card (the transcript
+    lands on the card's note thread via `POST /page-voice`, audio kept in
+    Storage). Approving a storybook page by page, walking a to-do list,
+    picking keepers — all this template.
+  - **`grid`** = the classic one-variable comparison: each group is one row,
+    2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
+    Assets tab's PROMPT overlay (content/style split, opens on CONTENT,
+    MODEL · QUALITY at the top) fed from the item's fields.
+  - **THE MIRROR: an item with `url` (its Assets-tab identity — a storage
+    `img` is its own by default) keeps the page and the Assets tab AGREEING**
+    (Sophie's call): ♥/✕ writes through to the asset vote, a committed note
+    is appended to the asset's note thread, and on load an Assets-tab ♥
+    fills in any item the page has no verdict for.
+  - **The chrome is rendered at SERVE time** from the current stock renderer,
+    so a fix reaches every template page ever posted; the DATA is what's
+    frozen (a new version is still a NEW page, same as always).
+  - **AUTO-FEED: `{ template:'grid', from:{assets:true} }`** builds the page
+    straight out of the chat's Assets tab — but ONLY the objective groups:
+    same prompt content, differing MODEL · QUALITY / style (a quality
+    ladder). **Near-identical prompts (a line added or changed — the
+    dream-feed case) are never auto-filed**: `GET /api/gallery/assets/
+    variants?chat=` FLAGS those clusters and the chat reads them, decides
+    where the variation set starts and stops, and posts the grid itself
+    (Sophie's rule, Aug 2026: the server files only what is provable; the
+    chat deciphers the rest).
+  - Tests: `node scripts/test-page-templates.js` (validation, rendering,
+    grouping — pure) and `node scripts/test-templates-pages.js` (both stock
+    pages driven in headless Chromium, mirror posts included).
   **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
   is PICKING/CHOOSING across a set rather than reading a comparison, start
   from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,

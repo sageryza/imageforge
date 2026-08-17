@@ -1789,6 +1789,7 @@ async function findChatAsset(chat, { hash, url } = {}) {
 // ONE copy of that rule, shared with the union below.
 const assetUnion = require('./asset-union');
 const AUDIO_URL_RE = assetUnion.AUDIO_URL_RE;
+const pageTemplates = require('./page-templates');
 
 // ─── The content hash that keeps one picture on one tile ─────────────
 // A picture filed twice under two filenames (its storage object, and the
@@ -2461,6 +2462,37 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
       return aw !== bw ? aw - bw : lastAt(b) - lastAt(a);
     });
     res.json({ chat, notes, waiting: notes.filter((n) => n.waiting === 'chat').length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// VARIANT GROUPS in a chat's Assets tab (Aug 2026 — the auto-feed half of the
+// stock templates; see page-templates.js). Two confidences, deliberately kept
+// apart (Sophie's instinct, made the rule):
+//   ladders  — SAME prompt content, differing MODEL · QUALITY caption or
+//              style. Objective, so POST /api/chatfeed/page with
+//              { template:'grid', from:{assets:true} } auto-files exactly
+//              these and nothing else.
+//   variants — NEAR-identical prompts (one or two lines changed — the
+//              dream-feed case). Only ever FLAGGED here: where a variation
+//              set starts and stops is the chat's call, so the chat reads
+//              this and files the grid page itself.
+app.get('/api/gallery/assets/variants', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    const chat = String(req.query.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const snap = await admin.firestore().collection('forge-chat-assets')
+      .where('chat', '==', chat).get();
+    const rows = assetUnion.unionAssets(snap.docs.map((d) => assetUnion.assetRecord(d.data())))
+      .sort((x, y) => y.ms - x.ms);
+    const out = pageTemplates.groupAssetVariants(rows);
+    res.json({ chat, ladders: out.ladders, variants: out.variants });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
