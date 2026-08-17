@@ -123,6 +123,20 @@ lifted into a standalone tool later.
 - **Env vars** (Render dashboard, `sync:false`): `ETSY_API_KEY`,
   `ETSY_SHARED_SECRET`, optional `ETSY_REDIRECT_URI`. The callback URL must be
   registered on the Etsy app; defaults to `<RENDER_EXTERNAL_URL>/api/etsy/callback`.
+- **MULTI-ACCOUNT (Aug 2026, the hat shop).** One Etsy account = one shop, so a
+  second shop (funny hats, kept separate from the witch shop) is a second Etsy
+  account authorized against the SAME app keys. Every route takes an optional
+  `?account=<slug>` / `body.account`; omitted = `default` = the original shop,
+  whose token doc keeps its exact pre-feature path (`config/etsy-tokens`) so
+  nothing existing moved. A named account stores at `config/etsy-tokens-<slug>`.
+  Connect a new one by opening `/api/etsy/connect?account=hats` **while signed
+  into that Etsy account in the browser**; the callback stamps `shop_id` +
+  `shop_name` onto the token doc, which then serve as that account's default
+  `shop_id` (the `ETSY_SHOP_ID` env fallback applies to `default` only).
+  `GET /api/etsy/accounts` lists every connected account. Exported seller
+  functions take an optional trailing `account` param — legacy callers
+  (pipeline, report, reviews) pass nothing and keep hitting the original shop.
+  Tests: `node scripts/test-etsy-accounts.js` (pure, no network).
 - **Listing rules:** title ≤140 chars, ≤13 tags each ≤20 chars (enforced in
   `validateTags`), `who_made:"i_did"`, `when_made:"2020_2026"`, `legacy=false`
   on writes. Etsy bans apps after 6 months of inactivity — keep it warm.
