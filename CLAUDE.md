@@ -1871,6 +1871,52 @@ before working on that module. Nothing was deleted — the moved text is verbati
   field; filing an album moves nothing inside it). `photoIndex` comes from a
   transaction, never from counting — that is the bug that scrambled album order.
   **Full details: `docs/modules/inbox-and-misc.md`.**
+- **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
+  **"What's new"** button on the iOS home screen → `BriefView`) — Aug 2026,
+  Sophie: "an update button on the home screen that I can just click and then
+  it does an API call that gives me the top five things I might want to be
+  updated on, and then maybe some lower priority things, and ideally images
+  that chats made or links to compare pages". One tap → five cards, the
+  quieter ones under them, each carrying the pictures that chat made and the
+  Compare pages it posted.
+  - **IT SPENDS NOTHING AND WRITES NOTHING.** No model call: the lines it
+    shows were already written by the chats themselves (their status card's
+    `need`, their Update card's `did`, their TLDR), so a summary here would be
+    a paraphrase of a summary. Four Firestore reads, three capped, one of them
+    chatfeed's own 5-minute registry cache (`registry` is exported for this —
+    do NOT open a second cache of that collection). The answer is held 60s, so
+    a double tap is free; `?fresh=1` is the Refresh button.
+  - **`notifSeenAt` — the ✓ in the Chats app — is the ONE floor**, the same
+    one the Update tab and the widget use. Checking a chat off there empties
+    its card here, and anything newer brings it back by itself. **Reading the
+    brief marks nothing seen**: a button that silently cleared her Update tab
+    would lose news she never read.
+  - **Her filing wins the ranking**: `pinTop` and `starred` lift,
+    `newsQueue:'later'` sinks, `'never'` drops out, and archived/trashed/hidden
+    obey the same rules as the chat list (hidden is a STAMP, so a chat that
+    answers her pops back out). A live `need` keeps a card even once she has
+    seen it — the ask is still open.
+  - **ONE OF THE FIVE IS RESERVED for something to LOOK at** (measured against
+    her real data 2026-08-17: **24 of 33 cards carried an open `need`**, so a
+    pure score sort filled all five with asks and the pictures and pages —
+    half of what she asked the button for — never reached the top of the
+    page). It is a reservation, not a re-score: the top four are whatever
+    scored highest, and with nothing to look at the fifth goes back to the
+    next card by score.
+  - **The picture strip merges by md5 and keeps the LABELED record**, not the
+    newest one — the unlabeled twin is always the hook's `claude-deliveries`
+    copy, so "first one wins" would strip the label off half the strip.
+  - **It is a full-screen COVER from the home grid, not a `Tool`.** Opening a
+    Tool promotes it into `Recents`, so this button would evict one of her
+    three bottom-bar slots on every tap — and it is the button meant to be
+    tapped most. The cover also rebuilds fresh each time, which is what makes
+    it always current with nothing to refresh. It carries no count badge on
+    purpose: a badge means fetching on every home draw, and the number would
+    be the only stale thing on that screen.
+  - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures) and
+    `node scripts/test-brief-page.js` (the real page + the real injected pill,
+    headless — pill palette, the pill's corner over the top card, the lightbox
+    contract, the ⌄).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the

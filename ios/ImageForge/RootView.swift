@@ -590,6 +590,11 @@ private struct HomeGrid: View {
     var open: (Tool) -> Void
     @Binding var filter: HomeFilter
     @ObservedObject var recents: Recents
+    /// The update button's cover. A COVER and not a `Tool` on purpose: opening
+    /// a tool promotes it into `Recents`, so this button would evict one of her
+    /// three bottom-bar slots on every tap — and it's the button meant to be
+    /// tapped most. See BriefView for the rest of that reasoning.
+    @State private var showBrief = false
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
 
     /// The film filter's set — everything that makes or cuts moving pictures
@@ -705,6 +710,7 @@ private struct HomeGrid: View {
             // Sophie: "a tad lower under Deck Factory so it doesn't feel so
             // crowded" — the row needs air between it and the masthead.
             shortcutRow.padding(.top, 14)
+            updateButton
             ScrollView {
                 LazyVGrid(columns: grid, spacing: 14) {
                     ForEach(shown) { t in
@@ -718,6 +724,45 @@ private struct HomeGrid: View {
             }
         }
         .background(Theme.bg.ignoresSafeArea())
+        .fullScreenCover(isPresented: $showBrief) { BriefView() }
+    }
+
+    /// THE UPDATE BUTTON (Aug 2026, Sophie: "an update button on the home
+    /// screen that I can just click and then it does an API call that gives me
+    /// the top five things I might want to be updated on").
+    ///
+    /// It sits between the shortcut row and the cards — the first thing under
+    /// the chrome, where "what happened while I was away" belongs, and clear of
+    /// the masthead's four corner icons, which are already as many as fit.
+    ///
+    /// **Not a sixth square in the shortcut row**: six 60pt squares don't fit a
+    /// 375pt phone (6 × 60 = 360 inside 343 of usable row), and the squares only
+    /// just grew from 48 to 60 because there were five. Shrinking them back to
+    /// add this would undo a change she asked for.
+    ///
+    /// **It hugs its words** — the house button rule — so it reads as one thing
+    /// to tap rather than a slab lying across the screen.
+    ///
+    /// It carries NO count badge, deliberately: a badge means fetching the
+    /// brief every time the home grid draws, and the number would then be the
+    /// only part of this screen that can be stale or wrong. The tap is the ask.
+    private var updateButton: some View {
+        Button { showBrief = true } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "list.bullet.rectangle").font(.system(size: 16))
+                Text("What's new").font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(Theme.accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Theme.surface)
+            .cornerRadius(Theme.radius)
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                .stroke(Theme.accent, lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: Theme.radius))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 12)
     }
 
     /// Side of a shortcut button, and the icon inside it.
