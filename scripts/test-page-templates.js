@@ -15,6 +15,7 @@
 const assert = require('assert');
 const {
   validateTemplate, renderTemplatePage, groupAssetVariants, parseCaption,
+  assignVoiceSegments,
 } = require('../page-templates');
 
 let n = 0;
@@ -170,6 +171,38 @@ ok('audio and promptless assets never group', () => {
     { url: 'b', prompt: 'gpt-image-2 · high' },
   ]);
   assert.strictEqual(out.ladders.length, 0);
+});
+
+// ── hands-free attribution ──────────────────────────────────────────────────
+ok('a sentence lands on the card showing when the sentence STARTED', () => {
+  // card a up at 0, card b at 5s, card c at 11s
+  const tl = [{ item: 'a', at: 0 }, { item: 'b', at: 5000 }, { item: 'c', at: 11000 }];
+  const per = assignVoiceSegments([
+    { start: 0.4, text: 'love this one.' },
+    { start: 4.6, text: 'the hat is wrong though.' },   // starts on a, finishes over b
+    { start: 6.2, text: 'this one is better.' },
+    { start: 12.0, text: 'skip it.' },
+  ], tl);
+  assert.strictEqual(per.a, 'love this one. the hat is wrong though.');
+  assert.strictEqual(per.b, 'this one is better.');
+  assert.strictEqual(per.c, 'skip it.');
+});
+
+ok('cards she said nothing on are absent; empty segments drop', () => {
+  const per = assignVoiceSegments([
+    { start: 0.2, text: '  ' }, { start: 7, text: 'only this.' },
+  ], [{ item: 'a', at: 0 }, { item: 'b', at: 5000 }, { item: 'c', at: 9000 }]);
+  assert.deepStrictEqual(per, { b: 'only this.' });
+});
+
+ok('speech before the deck (negative clock skew) still lands on the first card', () => {
+  const per = assignVoiceSegments([{ start: 0, text: 'hello.' }],
+    [{ item: 'x', at: 250 }]);
+  assert.deepStrictEqual(per, { x: 'hello.' });
+});
+
+ok('an empty timeline attributes nothing rather than guessing', () => {
+  assert.deepStrictEqual(assignVoiceSegments([{ start: 1, text: 'words' }], []), {});
 });
 
 console.log(`all ${n} checks passed`);

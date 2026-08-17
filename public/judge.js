@@ -192,14 +192,19 @@
       }).catch(function () { /* the page's own thread still has it */ });
     }
 
-    // ── TAP-TO-RECORD (v1 of the voice notes — Aug 2026). One tap starts,
-    // one tap stops; the recording is pinned to the card it STARTED on, so
-    // swiping onward while finishing a sentence cannot mis-file it. The
-    // server stores the audio and appends the transcript to that card's note
-    // thread (POST /page-voice); an asset-backed card mirrors to the Assets
-    // thread. Hands-free continuous mode is deliberately NOT here yet — it
-    // ships only after the in-app mic probe proves the iframe can record.
-    var mrec = null, recIt = null;
+    // ── THE MIC (Aug 2026). One tap starts, one tap stops — and what happens
+    // in between decides which kind of note it is, so there is no mode
+    // toggle to remember:
+    //   stayed on one card  → the transcript lands on THAT card
+    //     (pinned to where the recording STARTED, so finishing a sentence
+    //     while swiping onward cannot mis-file it — POST /page-voice);
+    //   swiped while talking → HANDS-FREE: the page logs when each card came
+    //     up, the server transcribes once with sentence start-times, and
+    //     each sentence lands on the card showing when she STARTED saying it
+    //     (POST /page-voice-session; built the day her in-app mic probe
+    //     passed, 2026-08-17). Every note carries the recording's url and
+    //     its card's timestamp, so the original is always a tap away.
+    var mrec = null, recIt = null, recStart = 0, recTimeline = null;
     function recActive() { return !!mrec; }
     function toast(msg) {
       var t = document.createElement('div');
@@ -219,18 +224,43 @@
         var chunks = [];
         mrec = new MediaRecorder(stream);
         recIt = items[cur];
+        recStart = Date.now();
+        recTimeline = [{ item: recIt.id, at: 0 }];
         mrec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
         mrec.onstop = function () {
           stream.getTracks().forEach(function (t) { t.stop(); });
           mrec = null;
           var it = recIt || items[cur];
-          recIt = null;
+          var tl = recTimeline || [];
+          recIt = null; recTimeline = null;
           render();
           var blob = new Blob(chunks, { type: chunks[0] && chunks[0].type || 'audio/webm' });
-          if (blob.size > 5000000) { toast('That one’s too long to keep here — under ~3 minutes.'); return; }
+          if (blob.size > 20000000) { toast('That one’s too long to keep here — under ~20 minutes.'); return; }
           if (!blob.size) return;
           var rd = new FileReader();
           rd.onloadend = function () {
+            if (tl.length > 1) {
+              // she swiped while talking — split the one recording across
+              // the cards, each sentence to the card it started on
+              toast('Splitting the voice notes across ' + tl.length + ' cards…');
+              fetch('/api/chatfeed/page-voice-session', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat: chat, sheet: sheet, audio: rd.result, timeline: tl }),
+              }).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || !d.ok) { toast('Couldn’t save that voice session.'); return; }
+                var ids = Object.keys(d.perCard || {});
+                Object.keys(d.texts || {}).forEach(function (id) { notes[id] = d.texts[id]; });
+                ids.forEach(function (id) {
+                  var target = null;
+                  items.forEach(function (x) { if (x.id === id) target = x; });
+                  if (target) mirrorNote(target, d.perCard[id] + ' (voice: ' + d.url + ')');
+                });
+                toast('Voice notes on ' + ids.length + ' card' + (ids.length === 1 ? '' : 's')
+                  + ' — open a card to read its part.');
+                if (view === 'card') render();
+              }).catch(function () { toast('Couldn’t save that voice session.'); });
+              return;
+            }
             toast('Saving the voice note…');
             fetch('/api/chatfeed/page-voice', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -352,6 +382,12 @@
     }
 
     function render(flash) {
+      // hands-free: while the mic runs, every card change is logged so the
+      // recording can be split back onto the cards afterwards
+      if (mrec && recTimeline && view === 'card' && items[cur]
+          && recTimeline[recTimeline.length - 1].item !== items[cur].id) {
+        recTimeline.push({ item: items[cur].id, at: Date.now() - recStart });
+      }
       var judged = items.filter(function (it) { return verdicts[it.id] !== undefined; }).length;
       var top = '<div class="jg-top"><span class="jg-count">'
         + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
@@ -466,7 +502,9 @@
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
           + ' — nothing has to be marked. ' : '')
-        + (voice ? 'The mic records a voice note onto this card: tap to start, tap to stop. ' : '')
+        + (voice ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
+          + ' card and it lands there — or keep talking WHILE you swipe, and each'
+          + ' sentence lands on the card you were looking at when you started it. ' : '')
         + 'Top row: undo the last one, the grid shows every pile —'
         + ' tap any tile there to open it again.</div>';
       h.addEventListener('click', function () { h.remove(); });
