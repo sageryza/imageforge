@@ -165,5 +165,6 @@ Review deck: chat `xi-card-design`, page "XI cards — batch 1"
 (`template:'deck'`, states **sparked / almost / nothing**, voice notes ON —
 a spoken sentence of the memory a card triggers is exactly the material the
 card's future art gets designed from). Read verdicts back:
-`GET /api/chatfeed/verdict?chat=xi-card-design&sheet=<sheet id from the
-page post>`. Batch 2 tunes on whichever lane and categories spark.
+`GET /api/chatfeed/verdict?chat=xi-card-design&sheet=page-v9bIL7ob2HwqWfRnGvPK`
+(verdict keys = card ids, slugs of the captions). Batch 2 tunes on whichever
+lane and categories spark.
