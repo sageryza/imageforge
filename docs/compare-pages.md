@@ -471,8 +471,15 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     maybe/later or her own words via `states:[{key:'done',label:'done'},…]`,
     and `voice:true` puts a tap-to-record mic on every card (the transcript
     lands on the card's note thread via `POST /page-voice`, audio kept in
-    Storage). Approving a storybook page by page, walking a to-do list,
-    picking keepers — all this template.
+    Storage). **HANDS-FREE is the same mic, no toggle** (Aug 2026 — built the
+    day her in-app mic probe passed): keep talking WHILE swiping and the page
+    logs when each card came up; on stop, `POST /page-voice-session`
+    transcribes once (whisper-1 — its segments carry start times) and each
+    sentence lands on the card showing when the sentence STARTED
+    (`assignVoiceSegments` in page-templates.js, tested). Every note carries
+    the recording's url + the card's timestamp. ~0.6c/min. Approving a
+    storybook page by page, walking a to-do list, picking keepers — all this
+    template.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,

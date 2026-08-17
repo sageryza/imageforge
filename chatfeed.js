@@ -3159,6 +3159,78 @@ router.post('/page-voice', express.json({ limit: '8mb' }), async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ─── Hands-free voice: one recording, split across the cards she swiped ─────
+// (Aug 2026 — built the day her in-app mic probe passed.) The deck keeps ONE
+// recording running while she swipes and logs when each card came up; this
+// route transcribes the whole thing with whisper-1 (verbose_json — its
+// segments carry start times, which gpt-4o-mini-transcribe does not return)
+// and lands each sentence on the card that was showing when the sentence
+// STARTED (assignVoiceSegments in page-templates.js — the tested half).
+// Every card's text is appended to its note thread with the recording's url
+// and that card's timestamp, so she can always hear the original. Without an
+// OPENAI key the recording still saves — filed whole onto the first card
+// rather than lost. ~0.6c/min.
+router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, res) => {
+  try {
+    const { chat, sheet, timeline, audio } = req.body || {};
+    if (!chat || !sheet) return res.status(400).json({ error: 'chat and sheet required' });
+    if (!Array.isArray(timeline) || !timeline.length) {
+      return res.status(400).json({ error: 'timeline required: [{item, at}] ms offsets' });
+    }
+    const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
+    if (!m) return res.status(400).json({ error: 'audio must be a data:audio/… URL' });
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length) return res.status(400).json({ error: 'empty recording' });
+    const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+    const safe = (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`page-voice/${safe(sheet)}/session-${Date.now()}.${ext}`);
+    await file.save(buf, { contentType: m[1].split(';')[0], resumable: false });
+    await file.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    let perCard = {};
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const form = new FormData();
+        form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `session.${ext}`);
+        form.append('model', 'whisper-1');
+        form.append('response_format', 'verbose_json');
+        const r = await globalThis.fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: form,
+        });
+        const t = await r.json();
+        perCard = pageTemplates.assignVoiceSegments(t.segments || [], timeline);
+      } catch (err) { console.error('voice-session transcription failed:', err.message); }
+    }
+    if (!Object.keys(perCard).length) {
+      // untranscribed (no key / whisper down / silence): the recording is
+      // still hers — file it whole on the first card rather than lose it
+      perCard = { [String(timeline[0].item)]: '(voice session, untranscribed)' };
+    }
+    const vdb = admin.firestore();
+    const vid = `${String(chat).slice(0, 80)}__${String(sheet).slice(0, 80)}`;
+    const vref = vdb.collection('forge-chat-verdicts').doc(vid);
+    const cur = ((await vref.get()).data() || {});
+    const texts = {};
+    const tl = timeline.map((e) => ({ item: String(e.item), at: Number(e.at) || 0 }))
+      .sort((a, b) => a.at - b.at);
+    const stampOf = (item) => {
+      const e = tl.find((x) => x.item === item);
+      const s = Math.max(0, Math.round((e ? e.at : 0) / 1000));
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    };
+    for (const [item, said] of Object.entries(perCard)) {
+      const prev = (cur.texts || {})[item] || '';
+      const line = `— me: ${said} (voice @${stampOf(item)}: ${url})`;
+      texts[item] = ((prev ? `${prev}\n\n` : '') + line).slice(0, 2000);
+    }
+    await vref.set({ chat, sheet, updatedAt: new Date().toISOString(), texts }, { merge: true });
+    res.json({ ok: true, url, perCard, texts });
+  } catch (err) { fail(res, err); }
+});
+
 // ─── Verdicts on a Compare page ─────────────────────────────────────────────
 // Check pages need a yes/no per item that survives the tab closing, so the chat
 // can read back what she decided instead of asking her to recite it.

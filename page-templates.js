@@ -318,7 +318,36 @@ function groupAssetVariants(assets) {
   return { ladders, variants };
 }
 
+// ─── Hands-free voice: who was she talking about? ───────────────────────────
+// The deck's hands-free mode (Aug 2026, gated on her live mic probe — passed
+// 2026-08-17 on her iPhone, in-app): ONE recording runs while she swipes; the
+// page logs when each card came up ({item, at} ms offsets); whisper returns
+// SENTENCE-ish segments with start times; and each segment belongs to the
+// card that was showing WHEN THE SENTENCE STARTED — she starts talking about
+// a card while looking at it, so a sentence finished over the next card
+// still lands on the one she meant. Pure, so the attribution rule — the part
+// that would be annoying to get wrong — is pinned by tests.
+//   segments: [{ start (sec), text }], timeline: [{ item, at (ms) }]
+//   → { <item>: 'joined text' } (cards she said nothing on are absent)
+function assignVoiceSegments(segments, timeline) {
+  const tl = (timeline || [])
+    .filter((e) => e && e.item !== undefined && Number.isFinite(Number(e.at)))
+    .map((e) => ({ item: String(e.item), at: Number(e.at) }))
+    .sort((a, b) => a.at - b.at);
+  if (!tl.length) return {};
+  const out = {};
+  for (const s of segments || []) {
+    const text = String((s && s.text) || '').trim();
+    if (!text) continue;
+    const t = Number(s.start || 0) * 1000;
+    let card = tl[0].item;
+    for (const e of tl) { if (e.at <= t) card = e.item; else break; }
+    out[card] = out[card] ? `${out[card]} ${text}` : text;
+  }
+  return out;
+}
+
 module.exports = {
   TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
-  parseCaption, normContent,
+  parseCaption, normContent, assignVoiceSegments,
 };
