@@ -2236,6 +2236,114 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
   }
 });
 
+// META ASSETS (Aug 2026, Sophie: "pull every asset from every chat into one
+// place … automatic … in order of when it was filed"). The /assets page's one
+// read: every chat's Assets tab, interleaved newest-first. NOTHING files into
+// this — it is a view over forge-chat-assets, so a filing into any chat's tab
+// is here with no extra step. Rows keep their origin `chat` because that is
+// the vote's identity: the page ♥/✕/notes against the origin chat's own vote
+// doc (same deterministic id the tab uses), which is what makes a heart here
+// BE the heart there, in both directions, with no mirroring machinery.
+// Ordering/union rules live in meta-assets.js (pure, tested).
+const metaAssets = require('./meta-assets');
+// The full list is rebuilt at most once a minute — one collection read
+// (~5k docs) serving every page of the walk; a fresh filing shows within 60s
+// (the page is a review surface, not a live feed).
+let metaAssetsCache = null;
+let metaAssetsCacheAt = 0;
+const META_ASSETS_TTL = 60 * 1000;
+app.get('/api/gallery/assets/all', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    if (!admin.apps.length) return res.json({ assets: [], total: 0, offset: 0, limit: 0 });
+    const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 150));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    if (!metaAssetsCache || Date.now() - metaAssetsCacheAt > META_ASSETS_TTL || req.query.fresh) {
+      // select() keeps the scan to the fields the union needs — no vote
+      // threads, no wip bookkeeping, riding along.
+      const snap = await admin.firestore().collection('forge-chat-assets')
+        .select('chat', 'url', 'created', 'prompt', 'description',
+          'promptStyle', 'promptContent', 'kind', 'hash', 'md5').get();
+      metaAssetsCache = metaAssets.buildMetaAssets(snap.docs.map((d) => d.data()));
+      metaAssetsCacheAt = Date.now();
+    }
+    const total = metaAssetsCache.length;
+    const assets = metaAssetsCache.slice(offset, offset + limit).map((a) => {
+      const o = { chat: a.chat, url: a.url, prompt: a.prompt,
+        created: a.ms ? new Date(a.ms).toISOString() : '' };
+      if (a.alts.length) o.alts = a.alts;
+      if (a.description) o.description = a.description;
+      if (a.kind) o.kind = a.kind;
+      if (a.promptStyle) o.promptStyle = a.promptStyle;
+      if (a.promptContent) o.promptContent = a.promptContent;
+      return o;
+    });
+    // What she calls each chat — off the registry's own cached read, so this
+    // costs nothing (never a second cache of that collection).
+    try {
+      const reg = await require('./chatfeed').registry();
+      assets.forEach((a) => {
+        const c = (reg.chats || {})[a.chat];
+        if (c && c.displayName) a.name = c.displayName;
+      });
+    } catch (e) { /* names are best-effort */ }
+    // Same direct-thumb contract as the per-chat route: content-addressed
+    // 480px webp straight off storage's CDN, warmed when missing.
+    {
+      const bucket = admin.storage().bucket();
+      const warm = [];
+      assets.forEach((a) => {
+        if (a.kind === 'audio') return;
+        if (!THUMB_HOSTS.test(a.url)) return;
+        a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
+        warm.push(a.url);
+      });
+      if (warm.length) warmThumbs(warm, 480);
+    }
+    // Votes/notes for THIS page only, fetched by their deterministic doc ids
+    // (chat+url, plus each alt path — a ♥ left on the other copy still counts).
+    try {
+      const db = admin.firestore();
+      const refs = [];
+      const slots = [];
+      assets.forEach((a) => {
+        [a.url].concat(a.alts || []).forEach((u) => {
+          refs.push(assetVoteRef(a.chat, u));
+          slots.push(a);
+        });
+      });
+      for (let i = 0; i < refs.length; i += 250) {
+        const snaps = await db.getAll(...refs.slice(i, i + 250));
+        snaps.forEach((s, j) => {
+          if (!s.exists) return;
+          const v = s.data();
+          const a = slots[i + j];
+          // The primary url's ref comes first per asset, so it wins over an alt's.
+          if (v.vote && !a.vote) a.vote = v.vote;
+          if (v.note && !a.note) a.note = v.note;
+          if (v.done) a.done = true;
+          const thread = assetThread(v);
+          if (thread.length && !a.thread) {
+            a.thread = thread;
+            a.waiting = assetWaiting(thread);
+            const last = thread[thread.length - 1];
+            if (last.from === 'chat'
+              && (Date.parse(last.at || '') || 0) > (Date.parse(v.seenAt || '') || 0)) {
+              a.unread = true;
+            }
+          }
+        });
+      }
+    } catch (e) { /* votes are best-effort */ }
+    res.json({ assets, total, offset, limit });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Cleanup: delete forge-chat-assets caption records for a chat, optionally
 // only those whose url contains a substring (e.g. "/characters/" to remove the
 // duplicate label records that pointed at the portrait's own url instead of
@@ -2674,6 +2782,12 @@ app.get('/writing', serveGated('writing.html'));
 // attached, and a reply box (chats pick replies up on their hourly checks).
 // Regenerate with scripts/gen-chats.py. Same gate as the Studio.
 app.get('/chats', serveGated('chats.html'));
+
+// Meta Assets: every chat's Assets tab in one automatic, filing-ordered place
+// (nothing files into it — it reads what the tabs already hold). ♥/✕/notes
+// land on the origin chat's own vote doc, so curation here and in the chat's
+// tab are the same record. Same gate as the Studio.
+app.get('/assets', serveGated('assets.html', { pill: true }));
 
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.

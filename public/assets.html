@@ -1,0 +1,512 @@
+<!doctype html>
+<!-- META ASSETS (Aug 2026, Sophie: "pull every asset from every chat into one
+     place … automatic, they won't have to file them themselves … in order of
+     when it was filed. It will look the same as the normal assets … if an
+     image gets hearted or ✕'d here, the heart also applies to the original
+     image in the chat and vice versa").
+
+     One read: GET /api/gallery/assets/all — every chat's Assets tab,
+     interleaved newest-first. NOTHING files into this page; it is a view over
+     forge-chat-assets, so a filing into any chat's tab is here automatically.
+
+     THE SYNC IS FREE BY DESIGN: every row carries its origin chat, and the
+     ♥/✕/note here POSTs against that chat's own vote doc (the same
+     deterministic chat+url id the chat's tab uses) — so a heart here IS the
+     heart there, in both directions, with no mirroring machinery to drift.
+
+     The look and the widgets are the chat Assets tab's own (chats.html):
+     the tile grid, the New/♥/Hide ✕ filter, the search box on the house
+     grammar, the lightbox with ♥/✕ over the image, the PROMPT overlay
+     (Content first), the note thread underneath. One addition earns its
+     place: the origin chat's name rides under each label, because on a mixed
+     page "whose is this" is part of what a tile says.
+
+     Pill contract (this page is served with the injected pill): the pill's
+     own element palette already matches this paper theme; the page script is
+     an IIFE; taps pause the autoscroll through window.__scrollTap(e) (shared
+     skip list); the lightbox freezes the page and restores scrollY.
+     Rules for pages: .claude/skills/new-page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Meta Assets</title>
+<style>
+:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7; }
+@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --rose:#c98a99; --chg:#e08b84; --barbg:#211e19;}}
+:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --rose:#c98a99; --chg:#e08b84; --barbg:#211e19;}
+:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7;}
+html{background:var(--paper);}
+body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:Georgia,serif;}
+[hidden]{display:none !important}
+.wrap{max-width:34em; margin:0 auto; padding:calc(14px + env(safe-area-inset-top)) 5vw calc(16vh + env(safe-area-inset-bottom));}
+/* The title, once — the pill owns the top-right corner, so the row stops 64px
+   short of it (56 is a hair too tight at 390pt; measured on /chunking). */
+.app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
+.app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
+  color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
+.state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
+.state.more{padding:1.4em 0;}
+/* ── the Assets tab's own widgets, verbatim from chats.html ─────────────── */
+.arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
+.afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
+.afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.04em; padding:7px 12px; margin:0; cursor:pointer;}
+.afilter button+button{border-left:1px solid var(--line);}
+.afilter button.on{background:var(--rose); color:#fff;}
+.asearch{position:relative; margin:0 0 12px;}
+.asearch input{width:100%; box-sizing:border-box; font-family:Georgia,serif;
+  font-size:15px; color:var(--ink); background:var(--barbg); border:1.5px solid var(--line); border-radius:6px;
+  padding:9px 38px 9px 12px;}
+.asearch input:focus{outline:none; border-color:var(--rose);}
+.asearch input::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
+.qclear{position:absolute; right:2px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
+.assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
+.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; text-align:left;}
+.assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
+.assetgrid .lbl{font-size:11px; line-height:1.3; color:var(--ink2); margin-top:3px; text-align:left; word-break:break-word;}
+/* the one addition: whose tab this tile lives in */
+.assetgrid .who{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink2); opacity:.75; margin-top:2px; text-align:left; word-break:break-word;}
+.assetgrid .acell{position:relative;}
+.vote{width:29px; height:29px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  background:rgba(250,247,240,.82); color:#6b6357;}
+.vote svg{width:15px; height:15px; display:block;}
+.vote.heart.on{background:#c96a5e; color:#fff;}
+.vote.nope.on{background:#3a3530; color:#fff;}
+.assetgrid .vote{position:absolute; top:5px;}
+.assetgrid .vote.heart{left:5px;}
+.assetgrid .vote.nope{right:5px;}
+.assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
+.assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
+  font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center; padding:0 4px;}
+/* ── the lightbox, verbatim from chats.html ─────────────────────────────── */
+#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
+#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
+#clightbox.hastalk img{max-height:46vh;}
+#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
+#clightbox .cltag + .clcap{margin-top:4px;}
+#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px; text-align:center; letter-spacing:.12em; text-transform:uppercase;}
+#clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
+#clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
+.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
+.lbtop .vote{width:38px; height:38px;}
+.lbtop .vote svg{width:18px; height:18px;}
+.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;}
+.promptbtn.on{background:#3a3530; color:#faf7f0;}
+.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;
+  padding:56px 16px 16px; box-sizing:border-box;}
+.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}
+.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:7px 0; cursor:pointer;}
+.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
+.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
+  font-size:14px; line-height:1.55; white-space:pre-wrap; word-break:break-word;}
+.lbtalk{width:min(92vw,360px); margin-top:12px;}
+.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:6px;}
+.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:Georgia,serif;
+  font-size:14px; line-height:1.45; word-break:break-word; white-space:pre-wrap;}
+.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
+.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
+.lbmsg.pending{opacity:.55;}
+.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
+.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
+.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
+  font-family:Georgia,serif; font-size:14px; padding:9px 11px;}
+.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
+.lbnote .notesend svg{width:18px; height:18px; display:block;}
+#toast{position:fixed; bottom:calc(64px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:13px;
+  padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:40; white-space:nowrap;}
+</style>
+<body>
+<div class="wrap">
+  <header class="app-header"><h1>Meta Assets</h1></header>
+  <div id="content"><div class="state">Loading images&hellip;</div></div>
+</div>
+<div id="clightbox"></div>
+<div id="toast"></div>
+<script>
+(function(){   // IIFE — the injected pill runs in global scope; never collide
+'use strict';
+var STUDIO_TOKEN='__STUDIO_TOKEN__';
+var TOKEN=STUDIO_TOKEN.indexOf('__')===0?'':STUDIO_TOKEN;
+function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
+function scrollStop(){ if(window.__scrollStop) window.__scrollStop(); }
+// Any tap pauses the autoscroll; the pill itself (and the shared interactive
+// skip list) is exempt — __scrollTap(e) carries the list, never call it bare.
+document.addEventListener('pointerdown', function(e){ if(window.__scrollTap) window.__scrollTap(e); }, true);
+
+// ── The house search grammar, the same four-box parser chats.html carries ──
+function qparse(q){
+  var groups=[], re=/(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext=false, notNext=false;
+  while((m=re.exec(String(q||'')))){
+    var quoted=m[2]!==undefined, raw=quoted?m[2]:m[3], bare=!m[1]&&!quoted;
+    if(bare&&/^or$/i.test(raw)){ orNext=true; continue; }
+    if(bare&&/^and$/i.test(raw)) continue;
+    if(bare&&/^not$/i.test(raw)){ notNext=true; continue; }
+    var v=String(raw==null?'':raw).toLowerCase().replace(/\s+/g,' ').trim();
+    if(!v) continue;
+    var rx=null;
+    try{ rx=new RegExp((/^[a-z0-9]/i.test(v)?'\\b':'')
+      +v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+'),'i'); }catch(_){ rx=null; }
+    if(!rx) continue;
+    var neg=!!m[1]||notNext, last=groups[groups.length-1];
+    if(orNext&&last&&!last.neg&&!neg) last.terms.push(rx);
+    else groups.push({neg:neg, terms:[rx]});
+    orNext=false; notNext=false;
+  }
+  return groups;
+}
+function qmatch(hay, groups){
+  for(var i=0;i<groups.length;i++){
+    var g=groups[i], hit=false;
+    for(var j=0;j<g.terms.length;j++){ if(g.terms[j].test(hay)){ hit=true; break; } }
+    if(g.neg?hit:!hit) return false;
+  }
+  return true;
+}
+// Search as she DICTATES — iOS dictation can fill a field without firing
+// `input`, so the box polls its value while focused (chats.html's liveInput).
+function liveInput(el, fn){
+  var last=el.value, timer=null;
+  function fire(){ if(el.value===last) return; last=el.value; fn(); }
+  ['input','change','compositionupdate','compositionend','keyup','paste']
+    .forEach(function(ev){ el.addEventListener(ev, function(){ setTimeout(fire,0); }); });
+  el.addEventListener('focus', function(){ clearInterval(timer); timer=setInterval(fire,150); });
+  el.addEventListener('blur', function(){ clearInterval(timer); timer=null; fire(); });
+  return { sync:function(){ last=el.value; } };
+}
+
+var HEART='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+// What she calls the chat — the display name when the registry has one.
+function whoLabel(it){ return it.name || it.chat || ''; }
+
+// ── The lightbox — the chat tab's own, with the origin chat named under the
+//    caption. Votes and notes go to it.chat, which IS the sync. ────────────
+function lightbox(url, asset){
+  scrollStop();
+  var lbY=window.scrollY;
+  var lb=document.getElementById('clightbox');
+  lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
+  lb.classList.remove('hastalk');
+  var promptBtn=null;
+  if(asset && (asset.promptStyle||asset.promptContent)){
+    var wrap=lb.querySelector('.clwrap');
+    var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
+    ov.onclick=function(e){ e.stopPropagation(); };
+    var tog=document.createElement('div'); tog.className='lbptog';
+    var sb=document.createElement('button'); sb.textContent='Style';
+    var cb=document.createElement('button'); cb.textContent='Content';
+    var txt=document.createElement('div'); txt.className='lbptext';
+    // CONTENT IS THE DEFAULT SIDE (Sophie's rule; style wins only when it is
+    // the only half on file).
+    var side=asset.promptContent?'content':'style';
+    function paintSide(){
+      sb.classList.toggle('on', side==='style');
+      cb.classList.toggle('on', side==='content');
+      txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
+      txt.scrollTop=0;
+    }
+    sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
+    cb.onclick=function(e){ e.stopPropagation(); side='content'; paintSide(); };
+    tog.appendChild(sb); tog.appendChild(cb);
+    ov.appendChild(tog); ov.appendChild(txt);
+    paintSide();
+    wrap.appendChild(ov);
+    promptBtn=document.createElement('button');
+    promptBtn.className='promptbtn'; promptBtn.textContent='Prompt';
+    promptBtn.onclick=function(e){
+      e.stopPropagation();
+      var open=ov.style.display==='none';
+      ov.style.display=open?'flex':'none';
+      wrap.classList.toggle('pon', open);
+      promptBtn.classList.toggle('on', open);
+    };
+  }
+  if(asset && asset._cast){
+    var row=document.createElement('div'); row.className='lbtop';
+    row.onclick=function(e){ e.stopPropagation(); };
+    var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
+    var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+    var talk=document.createElement('div'); talk.className='lbtalk';
+    talk.onclick=function(e){ e.stopPropagation(); };
+    var th=document.createElement('div'); th.className='lbthread';
+    function paintThread(){
+      th.innerHTML='';
+      var msgs=asset.thread||[];
+      msgs.forEach(function(m){
+        var b=document.createElement('div');
+        b.className='lbmsg '+(m.from==='chat'?'them':'me');
+        b.textContent=m.text;
+        th.appendChild(b);
+      });
+      th.style.display=msgs.length?'':'none';
+      th.scrollTop=th.scrollHeight;
+    }
+    var nw=document.createElement('div'); nw.className='lbnote';
+    var ni=document.createElement('input'); ni.placeholder='Write a note…';
+    var ns=document.createElement('button'); ns.className='notesend';
+    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
+    function sendNote(){
+      var t=(ni.value||'').trim();
+      if(!t) return;
+      ni.value='';
+      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
+      paintThread();
+      var el=th.lastChild;
+      el.classList.add('pending');
+      function attempt(){
+        el.classList.remove('failed'); el.classList.add('pending');
+        asset._noteSend(t, function(ok){
+          el.classList.remove('pending');
+          if(ok) return;
+          el.classList.add('failed');
+          el.title='Not sent — tap to try again';
+          el.onclick=function(e){ e.stopPropagation(); attempt(); };
+        });
+      }
+      attempt();
+    }
+    ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
+    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
+    nw.appendChild(ni); nw.appendChild(ns);
+    talk.appendChild(th); talk.appendChild(nw);
+    paintThread();
+    if(asset._markSeen) asset._markSeen();
+    asset._lbPaint=function(){
+      hb.classList.toggle('on', asset.vote==='like');
+      xb.classList.toggle('on', asset.vote==='dislike');
+    };
+    asset._lbPaint();
+    hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
+    xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
+    row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
+    lb.appendChild(row);
+    lb.appendChild(talk);
+    lb.classList.add('hastalk');
+  }
+  if(promptBtn && !promptBtn.parentNode){
+    var prow=document.createElement('div'); prow.className='lbtop';
+    prow.style.justifyContent='center';
+    prow.onclick=function(e){ e.stopPropagation(); };
+    prow.appendChild(promptBtn); lb.appendChild(prow);
+  }
+  var tag=asset?String(asset.prompt||''):'';
+  if(/^from /.test(tag)) tag='';
+  var cap=asset?(asset.description||''):'';
+  if(!cap && tag){ cap=tag; tag=''; }
+  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
+  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
+  var who=asset?whoLabel(asset):'';
+  if(who){ var wc=document.createElement('div'); wc.className='clwho'; wc.textContent=who; lb.appendChild(wc); }
+  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.onclick=function(){ if(asset) asset._lbPaint=null;
+    var f=document.activeElement; if(f && f.blur) f.blur();
+    lb.style.display='none'; lb.innerHTML='';
+    lb.classList.remove('hastalk'); document.body.style.overflow='';
+    window.scrollTo(0,lbY);
+    requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
+}
+
+// ── The page: one grid over every chat, paged as she scrolls ──────────────
+var PAGE=150;
+var content=document.getElementById('content');
+api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var a=(d&&d.assets)||[];
+    content.innerHTML='';
+    if(!a.length){ content.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images filed anywhere yet.'})); return; }
+    var cells=[], filter=null, q='';
+    // Everything written about an image is searchable — its label, the
+    // model/quality caption, both prompt halves, the note thread, AND (here)
+    // the chat it came from, so "witch" finds a whole chat's tiles.
+    function haystack(it){
+      if(it._hay==null){
+        var t=[it.description, it.prompt, it.promptStyle, it.promptContent, it.note, it.chat, it.name];
+        (it.thread||[]).forEach(function(m){ t.push(m.text); });
+        it._hay=t.filter(Boolean).join(' \n ').toLowerCase();
+      }
+      return it._hay;
+    }
+    function applyFilter(){
+      var shown=0, groups=q?qparse(q):[];
+      cells.forEach(function(c){
+        var v=c.it.vote||null, show=true;
+        if(filter==='new') show=!v;
+        else if(filter==='like') show=(v==='like');
+        else if(filter==='nox') show=(v!=='dislike');
+        if(show && groups.length) show=qmatch(haystack(c.it), groups);
+        if(c.it._broken) show=false;
+        c.cell.style.display=show?'':'none';
+        if(show) shown++;
+      });
+      none.style.display=(shown||!cells.length)?'none':'';
+    }
+    var seg=document.createElement('div'); seg.className='afilter';
+    [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
+      var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
+      sb.onclick=function(){
+        filter = filter===m[0] ? null : m[0];
+        seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===filter); });
+        applyFilter();
+      };
+      seg.appendChild(sb);
+    });
+    var arow=document.createElement('div'); arow.className='arow';
+    arow.appendChild(seg);
+    content.appendChild(arow);
+    var srow=document.createElement('div'); srow.className='asearch';
+    var si=document.createElement('input'); si.type='search';
+    si.autocapitalize='none'; si.autocorrect='off';
+    var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
+    sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
+    var siLive=liveInput(si, function(){
+      q=(si.value||'').trim().toLowerCase();
+      sx.style.display=q?'':'none';
+      applyFilter();
+    });
+    sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
+    srow.appendChild(si); srow.appendChild(sx);
+    content.appendChild(srow);
+    var none=document.createElement('div'); none.className='state';
+    none.textContent='No images match that.'; none.style.display='none';
+    content.appendChild(none);
+    var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(ents){
+      ents.forEach(function(en){
+        if(!en.isIntersecting) return;
+        var im=en.target;
+        if(im.dataset.src){ im.src=im.dataset.src; im.removeAttribute('data-src'); }
+        io.unobserve(im);
+      });
+    }, {rootMargin:'900px 0px'}) : null;
+    var grid=document.createElement('div'); grid.className='assetgrid';
+    function voteBtns(cell,it){
+      var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
+      var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+      var nb=document.createElement('div'); nb.className='nbadge';
+      function unreadCount(){
+        if(!it.unread) return 0;
+        var n=0, t=it.thread||[];
+        for(var i=t.length-1;i>=0 && t[i].from==='chat';i--) n++;
+        return n||1;
+      }
+      function paint(){
+        hb.classList.toggle('on', it.vote==='like');
+        xb.classList.toggle('on', it.vote==='dislike');
+        cell.classList.toggle('nay', it.vote==='dislike');
+        var n=unreadCount();
+        nb.textContent=n?String(n):'';
+        nb.style.display=n?'':'none';
+        if(it._lbPaint) it._lbPaint();
+        applyFilter();
+      }
+      // THE SYNC: the vote is written to the ORIGIN chat's own vote doc
+      // (chat+url), so this heart and the one in that chat's Assets tab are
+      // one record — either surface shows what the other did.
+      function cast(v){
+        var next = it.vote===v ? null : v;
+        api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:it.chat,url:it.url,vote:next})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
+          .catch(function(){ toast('Couldn’t save that'); });
+      }
+      it._cast=cast;
+      it._noteSend=function(text,cb){
+        var t=String(text||'').trim();
+        if(!t){ if(cb)cb(false); return; }
+        api('/api/gallery/assets/note',{method:'POST',
+          body:JSON.stringify({chat:it.chat,url:it.url,text:t,from:'sophie'})})
+          .then(function(r){ return r.json().then(function(d){ return {s:r.status,d:d}; }); })
+          .then(function(x){
+            if(!x.d.ok) throw new Error(x.d.error||'failed');
+            it.note=t;
+            if(x.d.thread) it.thread=x.d.thread;
+            it._hay=null;
+            if(cb)cb(true);
+          })
+          .catch(function(e){ toast((e&&e.message)||'Couldn’t send that note'); if(cb)cb(false); });
+      };
+      it._markSeen=function(){
+        if(!it.unread) return;
+        it.unread=false; paint();
+        api('/api/gallery/assets/note',{method:'POST',
+          body:JSON.stringify({chat:it.chat,url:it.url,seen:true})}).catch(function(){});
+      };
+      hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
+      xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
+      paint();
+      cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
+    }
+    function addTiles(list){ list.forEach(function(it){
+      var cell=document.createElement('div'); cell.className='acell';
+      var b=document.createElement('button');
+      var cap=it.description||'';
+      var tag=String(it.prompt||'');
+      if(!cap && tag && !/^from /.test(tag)) cap=tag;
+      var lbl=cap?'<div class="lbl">'+esc(cap)+'</div>':'';
+      var who=whoLabel(it);
+      var wl=who?'<div class="who">'+esc(who)+'</div>':'';
+      var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
+      var srcAttr = io ? 'data-src' : 'src';
+      b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl+wl;
+      var img=b.querySelector('img'), triedFb=false;
+      img.onerror=function(){
+        if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
+        it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
+      };
+      b.onclick=function(){ lightbox(it.url, it); };
+      cell.appendChild(b); voteBtns(cell,it);
+      if(io) io.observe(img);
+      cells.push({cell:cell, it:it});
+      grid.appendChild(cell);
+    }); }
+    addTiles(a);
+    content.appendChild(grid);
+    var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
+    var more=document.createElement('div'); more.className='state more';
+    more.style.display='none'; content.appendChild(more);
+    function nextPage(){
+      if(busy || loaded>=total) return;
+      busy=true; more.textContent='Loading more…'; more.style.display='';
+      api('/api/gallery/assets/all?limit='+PAGE+'&offset='+loaded)
+        .then(function(r){return r.json()})
+        .then(function(p){
+          var got=(p&&p.assets)||[];
+          if(p&&p.total) total=p.total;
+          loaded+=got.length;
+          addTiles(got);
+          applyFilter();
+          busy=false;
+          more.style.display='none';
+          if(!got.length) loaded=total;
+          if(loaded<total) watchTail();
+        })
+        .catch(function(){ busy=false; more.textContent='Couldn\u2019t load more — scroll to retry.'; });
+    }
+    var tailIO=null;
+    function watchTail(){
+      if(loaded>=total) return;
+      if(!('IntersectionObserver' in window)){ more.style.display=''; more.textContent='Load more'; more.onclick=nextPage; return; }
+      if(tailIO) tailIO.disconnect();
+      tailIO=new IntersectionObserver(function(es){
+        if(es.some(function(e){return e.isIntersecting;})){ tailIO.disconnect(); nextPage(); }
+      },{rootMargin:'800px 0px'});
+      var last=grid.lastElementChild;
+      if(last) tailIO.observe(last);
+    }
+    watchTail();
+  })
+  .catch(function(){ content.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
+})();
+</script>
+</body>
