@@ -287,6 +287,18 @@ favorites re-ran at **high** on the same prompts for a medium/high duo.
 Baked-in captions (the live deck has them) are deliberately NOT in round 1 —
 style first, lettering later.
 
+**Round 1 results (2026-08-17):** 12 mediums + 2 highs, all filed (Assets
+tab + My Creations, sweep clean), review grid "XI card art — style test v1"
+(sheet `page-xvoa0xWXjSeVt6KRR8m0`). The restraint language HELD — all
+three styles came back genuinely un-fussy. Claude's two high picks:
+PRETENDED TO BE ASLEEP · silkscreen (red/black/kraft, the light-beam
+composition) and THE KITCHEN, LATE AT NIGHT · ink & wash (the most
+old-book voice, on her anchor card). Observed: gpt-image-2 does not hold a
+palette across quality tiers — the high silkscreen re-drew with a red door
+where the medium's was black; a chosen deck style will need its palette
+named IN the style half (e.g. "navy, brick red, cream only") if she wants
+consistency card to card. Total spend: ~$1.06 (12 × 5.3¢ + 2 × 21.1¢).
+
 ## Live-deck housekeeping spotted while reading
 
 The live midjourney deck carries two exact duplicate captions:
