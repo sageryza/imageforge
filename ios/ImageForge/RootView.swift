@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit   // UIImage(systemName:) — the SF Symbol existence check in ToolGlyph
 
 /// The tools the bottom bar can rotate through. Home (the grid) and Gallery
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
@@ -118,9 +119,20 @@ enum Tool: String, CaseIterable, Identifiable {
         case .freeform:  return "scribble.variable"
         // fallback; .vector uses a custom asset (see customIcon)
         case .vector:    return "point.topleft.down.curvedto.point.bottomright.up"
-        // A strip cut into pieces — the library of PARTS, not of films. (Not
-        // rectangle.grid.2x2: .lessons already wears that one.)
-        case .chunking:  return "rectangle.split.3x1"
+        // A stack of playable pieces — the library of PARTS you already own.
+        //
+        // It was `rectangle.split.3x1`, which is the SAME symbol .blocks wears
+        // (Sophie, Aug 2026: she couldn't tell the two apart). Both live under
+        // the film filter, so the clash was two cards a row apart carrying one
+        // glyph. The note it shipped with dodged .lessons' grid and walked
+        // straight into Cutting Blocks' strip.
+        //
+        // The family reads: cutting tools wear scissors and cut strips
+        // (.cutroom, .blocks, .cutmarks); Chunking is a SHELF, so it wears a
+        // stack — and the play mark says the things on the shelf are footage,
+        // not stills. Distinct from `film` (Movies) and `film.stack` (Films,
+        // whole films, no play mark).
+        case .chunking:  return "play.square.stack"
         // Moments stacked in an order, with one of them picked up — the whole
         // tool is moving a card up and down a list.
         case .timeline:  return "list.bullet.indent"
@@ -187,7 +199,7 @@ enum Tool: String, CaseIterable, Identifiable {
                             .forgeToolBar("Vector")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
-        case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "rectangle.grid.2x2")
+        case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack")
                             .forgeToolBar("Chunking")
         // Story Timeline: a shelf of stories, then one open. The page answers
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
@@ -246,9 +258,19 @@ struct ToolGlyph: View {
                 // line with its neighbours.
                 .frame(height: size * 1.2)
         } else {
-            Image(systemName: tool.icon)
+            Image(systemName: Self.resolve(tool.icon))
                 .font(.system(size: size, weight: weight))
         }
+    }
+
+    /// An SF Symbol name the running OS doesn't know renders as NOTHING —
+    /// `Image(systemName:)` doesn't fall back and doesn't warn on screen, so a
+    /// tile just goes blank and the tool looks broken rather than mis-drawn.
+    /// Newer symbols are the ones at risk (the app deploys back to iOS 16), and
+    /// picking one is a taste call made in a chat with no device to check on,
+    /// so the check happens here once instead of being remembered every time.
+    static func resolve(_ name: String) -> String {
+        UIImage(systemName: name) != nil ? name : "square.stack"
     }
 }
 
