@@ -165,6 +165,13 @@ setTimeout(function(){
   ok(m.querySelector('.jg-navzone.next') && m.querySelector('.jg-navzone.prev'),
      'browse mode has edge tap zones');
   ok(m.querySelector('.jg-mic'), 'voice on = a mic on the card');
+  // the XI overlap: corner controls get their own strip — with voice on,
+  // every card reserves it, and the mic may never sit on the words
+  ok(m.querySelector('.jg-card').classList.contains('ctl'),
+     'voice on = the card reserves a controls strip');
+  var mic=m.querySelector('.jg-mic'), mr=mic.getBoundingClientRect();
+  var media=m.querySelector('.jg-media, .jg-cardtext'), tr=media.getBoundingClientRect();
+  ok(mr.top >= tr.bottom - 1, 'the mic sits BELOW the content, never on it');
   var before=posts('/api/chatfeed/verdict').length;
   m.querySelector('.jg-navzone.next').click();
   ok(count()==='2 of 3' && posts('/api/chatfeed/verdict').length===before,
