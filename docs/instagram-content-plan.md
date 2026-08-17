@@ -1,4 +1,30 @@
-# Secretly a Witch — Instagram content plan (v1, 2026-08-17)
+# Secretly a Witch — Instagram content plan (2026-08-17)
+
+## Round 2 (same day, after her v1 review)
+
+Her verdicts on v1: ♥ apothecary shelf, salt line, burning name, "I don't
+chase. I bind." meme; maybe on The Tower; ✕ moon altar and sigil smoke (the
+sigil smoke retired — physically impossible smoke reads as AI, her catch).
+Standing note: the whole set ran **literally too dark** — hard to see what's
+happening. Fix is in the style line, not the palette: v2 keeps ink/plum/gold
+but adds "generous golden candlelight and a soft ambient fill so every detail
+stays readable in the shadows".
+
+- **Three v2 re-runs at HIGH quality** (her pick of three): salt line,
+  apothecary shelf, graveyard picnic — new tiles labeled "IG mock v2 high —
+  …, brighter"; v1 tiles kept for comparison.
+- **Deck #2: "Style concepts v1 — swipe what I should mock up"** — 20
+  text-only style-direction pitches (linocut, comic-book recurring witch,
+  lo-fi meme, tarot-card frame, zine collage, dark academia, Victorian
+  séance, stained glass, botanical plate, pastel goth, VHS horror, neon
+  occult, her own watercolor, celestial chart, manuscript marginalia, pulp
+  paperback, embroidery sampler, felt diorama, typewriter, photocopied
+  flyer). She swipes; the keepers get real mockups next round.
+- Tall format answered: gpt-image-2 offers square, 2:3 tall, 3:2 wide — 2:3
+  is the closest to Instagram's 4:5 portrait; final posts crop a little top
+  and bottom.
+
+## Round 1 (original plan)
 
 The working plan behind the chat `secretly-witch-instagram-content`. Sophie
 asked for two content tracks for the @secretlyawitch Instagram, delivered as a
