@@ -1,0 +1,47 @@
+{
+  "slug": "memoryfight-warm",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/memoryfight-warm-reel-draft-v1.mp4",
+  "total_seconds": 24.8,
+  "scene_durations": {
+    "f01": 5.310204,
+    "f02": 4.5877550000000005,
+    "f03": 3.0,
+    "f04": 3.2,
+    "f05": 4.868163,
+    "f06": 3.8
+  },
+  "stills": {
+    "f01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/stills/f01.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. ",
+      "content": "A couple mid-argument across their kitchen counter in warm evening light, both gesturing at once over unwashed mugs, exasperated but domestic, a tabby cat watching from the counter end."
+    },
+    "f02": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/stills/f02.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. ",
+      "content": "In the living room she makes exaggerated air quotes while he throws both hands up toward the ceiling, mid-eye-roll, a couch and warm lamps behind them."
+    },
+    "f03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/stills/f03.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. ",
+      "content": "The two of them suddenly quiet, leaning shoulder to shoulder over one phone held between them on the couch, both squinting at the screen skeptically."
+    },
+    "f05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/memoryfight-warm/stills/f05.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. ",
+      "content": "The couple on the couch gone soft, her head tipping toward his shoulder, both half-smiling at the phone while the tabby cat climbs deliberately into both their laps at once."
+    }
+  },
+  "memcards": {
+    "m1": {
+      "caption": "The day we got the cat \u2014 two Novembers ago",
+      "content": "A young couple crouched side by side at an animal-shelter cage on a rainy afternoon, a small tabby cat reaching one paw out of the cage toward both of their outstretched hands at once."
+    }
+  },
+  "cost": {
+    "images": 0.0,
+    "clips": 0.0,
+    "music": 0.0,
+    "total": 0.0
+  }
+}

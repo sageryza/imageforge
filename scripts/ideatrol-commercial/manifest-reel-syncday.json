@@ -1,0 +1,59 @@
+{
+  "slug": "syncday",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/syncday-reel-draft-v1.mp4",
+  "total_seconds": 35.2,
+  "scene_durations": {
+    "w01": 2.8,
+    "w02": 1.6,
+    "w03": 2.8,
+    "w04": 2.8,
+    "w05": 2.6,
+    "w06": 2.3,
+    "w07": 2.6,
+    "w08": 2.3,
+    "w09": 2.9,
+    "w10": 2.5,
+    "w11": 3.6,
+    "w12": 2.8,
+    "w13": 3.6
+  },
+  "stills": {
+    "w01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w01.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "She wakes in morning light and squints toward her phone on the nightstand, hair across the pillow."
+    },
+    "w03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w03.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "In a warm coffee shop a barista holds up a paper cup and calls out a name; she looks up sharply from her table, caught mid-reach."
+    },
+    "w05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w05.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "A single white feather resting on the empty bus seat beside her; she looks down at it, city passing in the window behind."
+    },
+    "w07": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w07.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "She stops in the doorway of a small record shop strung with lights, listening to something, a slow half-smile arriving."
+    },
+    "w09": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w09.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "Three crows sitting in a row on a power line against a violet dusk sky; she watches from the sidewalk below, small in the frame."
+    },
+    "w12": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/syncday/stills/w12.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "Close on her face at night lit softly by her phone, one eyebrow rising, delighted and slightly unnerved."
+    }
+  },
+  "memcards": {},
+  "cost": {
+    "images": 0.36,
+    "clips": 0.36,
+    "music": 0.05,
+    "total": 0.77
+  }
+}

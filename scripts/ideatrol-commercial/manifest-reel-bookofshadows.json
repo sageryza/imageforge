@@ -1,0 +1,57 @@
+{
+  "slug": "bookofshadows",
+  "final_url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/bookofshadows-reel-draft-v1.mp4",
+  "total_seconds": 33.8,
+  "scene_durations": {
+    "v01": 3.6,
+    "v02": 4.091429,
+    "v03": 2.8,
+    "v04": 2.6,
+    "v05": 2.7,
+    "v06": 2.3,
+    "v07": 2.7,
+    "v08": 2.3,
+    "v09": 3.4,
+    "v10": 3.742857,
+    "v11": 3.6
+  },
+  "stills": {
+    "v01": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v01.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. ",
+      "content": "Weathered old hands writing with a dip pen in a thick leather journal by candlelight, pressed flowers and a key on the wooden table."
+    },
+    "v02": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v02.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. ",
+      "content": "A kitchen shelf of labeled herb jars and a worn handwritten recipe card propped against a lit candle, warm evening light."
+    },
+    "v03": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v03.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "She sits up in bed at 3 AM reaching urgently for her phone on the nightstand, moonlight through the window."
+    },
+    "v05": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v05.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "A candle flame bending sideways in a completely still room while she watches it, intrigued, dark plum evening light."
+    },
+    "v07": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v07.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "She holds a small glass jar of water up toward a full moon in the window, checking it against the light."
+    },
+    "v10": {
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/bookofshadows/stills/v10.png",
+      "style": "Vertical cinematic still from a warm romantic short-film style social media commercial, natural golden lighting, soft depth of field, photorealistic. The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. ",
+      "content": "She sits curled on a windowsill at night scrolling her phone contentedly, a cat against her knee, city lights soft behind the glass."
+    }
+  },
+  "memcards": {},
+  "cost": {
+    "images": 0.36,
+    "clips": 0.36,
+    "music": 0.05,
+    "total": 0.77
+  }
+}
