@@ -43,6 +43,66 @@ const LANE_B = [
   'THE JUNK DRAWER', 'THE NIGHT THE POWER WENT OUT',
 ];
 
+// ── batch 2 (2026-08-17, Sophie: "double or triple the cards") — 131 new.
+// Every card carries an APERTURE tag from the two-kinds split (docs/xi-cards.md):
+// ANCHOR = a scene/act/object specific enough to SEE (picture first, memory
+// follows); OPEN = a shape/outcome that fits thousands of moments (search
+// first, memory condenses). The tag is DEALING logic, not card identity —
+// all cards stay one type; a dealt pair works best as anchor + open.
+
+const OPEN_2 = [
+  'NEVER TOLD ANYONE', 'TOLD EVERYONE', 'IT WENT TOO FAR', 'EVERYONE FOUND OUT',
+  'DID IT ANYWAY', "ALMOST DIDN'T GO", 'SHOULD HAVE STAYED HOME',
+  "STILL DON'T KNOW WHY", 'WOULD DO IT AGAIN', 'NEVER AGAIN', 'NEVER SAID IT',
+  'LAUGHED ABOUT IT LATER', "COULDN'T EXPLAIN IT", 'KNEW SOMETHING WAS WRONG',
+  'PRETENDED EVERYTHING WAS FINE', 'MADE IT WEIRD', "DIDN'T TAKE IT SERIOUSLY ENOUGH",
+  'GOT MY HOPES UP', 'TALKED MYSELF INTO IT', 'TALKED MYSELF OUT OF IT',
+  'CHANGED THE SUBJECT', 'PLAYED IT COOL', 'FINALLY LET IT GO', 'NEVER GOT TO ASK',
+  'FOUND OUT YEARS LATER', 'EVERYONE KNEW BUT ME', 'NOBODY ELSE SAW IT',
+  'COUNTED THE DAYS', 'LOST TRACK OF TIME', "WASN'T READY",
+  'THOUGHT I WAS THE ONLY ONE', 'GAVE IT ONE MORE CHANCE', "DIDN'T KNOW WHEN TO STOP",
+  'TOOK IT OUT ON SOMEONE', 'MADE IT UP AS I WENT', 'HOPED NO ONE WOULD ASK',
+  "DIDN'T WANT IT TO END", 'WANTED TO BE CAUGHT', 'FORGAVE THEM ANYWAY',
+  'STILL KNOW IT BY HEART', 'ALMOST CALLED', 'THE ONE EVERYONE WARNED ME ABOUT',
+];
+const ACTS_2 = [
+  'CLIMBED OUT THE WINDOW', 'HID IN THE BATHROOM', 'SLEPT IN MY CLOTHES',
+  'ATE CAKE FOR BREAKFAST', 'DROVE AROUND WITH NOWHERE TO GO', 'SAT ON THE ROOF',
+  'SWAM AFTER DARK', 'BURIED SOMETHING IN THE YARD', 'BUILT A FORT',
+  'WROTE ON THE FOGGY WINDOW', 'SLEPT WITH THE LIGHT ON', 'WORE IT UNTIL IT FELL APART',
+  'HELD THE FLASHLIGHT', 'LICKED THE BOWL', 'RODE WITH THE WINDOWS DOWN',
+  'FELL ASLEEP IN THE SUN', 'STAYED IN THE SHOWER TOO LONG', 'WAITED BY THE PHONE',
+  'READ IT OVER AND OVER', 'SAVED THE VOICEMAIL', 'SPLIT THE LAST PIECE',
+  'SNUCK SNACKS IN', 'STAYED UP TO FINISH IT', 'WOKE UP BEFORE THE ALARM',
+  'FAKED KNOWING THE WORDS', 'FOUND THE HIDDEN PRESENTS',
+  'PUT IT BACK BEFORE ANYONE NOTICED', 'COPIED THE ANSWERS',
+  'GOT THE WIND KNOCKED OUT OF ME', 'JUMPED FROM TOO HIGH', 'RAN THROUGH THE SPRINKLER',
+  'SHARED HEADPHONES', 'PASSED NOTES', 'SLID ACROSS THE FLOOR IN SOCKS',
+  'WATCHED FROM THE STAIRS', 'TALKED IN THE DARK', "WORE SOMEONE'S JACKET HOME",
+  'COUNTED SECONDS TO THE THUNDER', 'ORDERED THE SAME THING EVERY TIME',
+  "SAT AT THE KIDS' TABLE", 'DANCED IN THE KITCHEN', 'CRIED AT A COMMERCIAL',
+  'SCREAMED INTO A PILLOW', 'JUMPED ON THE BED', 'ATE UNTIL IT HURT',
+  'COLD IN A WET SWIMSUIT', 'HELD THE MUG WITH BOTH HANDS', 'RAN JUST TO RUN',
+  'NEVER USED THE GOOD ONES', 'KEPT THEIR HANDWRITING', 'DROVE PAST THE OLD HOUSE',
+  'THEIR SONG CAME ON', 'SPENT MY FIRST PAYCHECK', 'PRETENDED TO BE OLDER',
+];
+const SCENES_2 = [
+  "A SLEEPING BAG ON SOMEONE'S FLOOR", 'THE SCHOOL BUS WINDOW', 'A TENT IN THE RAIN',
+  'THE SMELL OF FRESH-CUT GRASS', 'THE ICE CREAM TRUCK SONG', 'THE AIR BEFORE A STORM',
+  'THE END OF THE DIVING BOARD', 'AN EMPTY SCHOOL HALLWAY', 'THE LAST NIGHT OF THE TRIP',
+  'THE SOUND OF KEYS IN THE DOOR', 'A TV ON IN THE OTHER ROOM',
+  'THE SMELL OF BREAKFAST FROM BED', 'THE FIRST WARM DAY', 'SNOW UNDER A STREETLIGHT',
+  'INSIDE THE CAR WASH', 'A GROCERY STORE, LATE', 'THE COOL SIDE OF THE PILLOW',
+  'THE MOON THROUGH THE WINDOW', 'A SCREEN DOOR SLAMMING', 'A BONFIRE', 'A BASEMENT',
+  'THE LUNCH TABLE', 'THE BLEACHERS', 'A GAS STATION, MIDDLE OF NOWHERE',
+  "SOMEONE ELSE'S REFRIGERATOR", 'A PHONE CORD STRETCHED TO ITS LIMIT',
+];
+const THINGS_2 = [
+  'A HAND-ME-DOWN', 'THE GOOD SCISSORS', 'THE KEY UNDER THE MAT',
+  'A MIX SOMEONE MADE ME', 'A SHOEBOX OF PHOTOS', "THE DRAWER I WASN'T SUPPOSED TO OPEN",
+  'A SUBSTITUTE TEACHER', 'THE ONE WHO ALWAYS WAVED', 'A FRIEND I NEVER MET IN PERSON',
+];
+
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
 // The canonical batch-1 order: one Lane B card after every 4 Lane A cards
@@ -56,6 +116,32 @@ function cards() {
     if (bi < LANE_B.length) out.push(LANE_B[bi++]);
   }
   return out.map((cap) => ({ id: slug(cap), cap }));
+}
+
+// Batch 2's deck order: anchors round-robin across their three groups (acts /
+// scenes / things) so the swipe stays varied, with an OPEN card woven in
+// after every 2 anchors (89 anchors : 42 opens ≈ 2:1).
+function cards2() {
+  const groups = [ACTS_2.slice(), SCENES_2.slice(), THINGS_2.slice()];
+  const anchors = [];
+  while (groups.some((g) => g.length)) {
+    for (const g of groups) { if (g.length) anchors.push(g.shift()); }
+  }
+  const opens = OPEN_2.slice();
+  const out = [];
+  while (anchors.length || opens.length) {
+    for (let k = 0; k < 2 && anchors.length; k++) out.push(anchors.shift());
+    if (opens.length) out.push(opens.shift());
+  }
+  return out.map((cap) => ({ id: slug(cap), cap }));
+}
+
+// Aperture tag per batch-2 card id (for reading verdicts by kind later).
+function kinds2() {
+  const m = {};
+  OPEN_2.forEach((c) => { m[slug(c)] = 'open'; });
+  [...ACTS_2, ...SCENES_2, ...THINGS_2].forEach((c) => { m[slug(c)] = 'anchor'; });
+  return m;
 }
 
 const CHAT = 'xi-card-design';
@@ -75,6 +161,24 @@ function deckBody() {
       ],
       voice: true,
       items: cards().map((c) => ({ id: c.id, text: c.cap })),
+    },
+  };
+}
+
+// ── batch 2 singles deck (same rig as batch 1's; separate page + sheet so
+// her batch-1 progress stands) ──
+function deck2Body() {
+  return {
+    chat: CHAT, session: SESSION, title: 'XI cards — batch 2', template: 'deck',
+    data: {
+      help: 'Batch 2 — 131 new cards to choose from, for whenever there is time. Same marks: sparked = a real memory surfaced · almost = something stirred · nothing. A written or spoken memory counts as sparked by itself — no need to also tap.',
+      states: [
+        { key: true, label: 'sparked' },
+        { key: 'almost', label: 'almost' },
+        { key: false, label: 'nothing' },
+      ],
+      voice: true,
+      items: cards2().map((c) => ({ id: c.id, text: c.cap })),
     },
   };
 }
@@ -328,11 +432,11 @@ function pairsBody() {
 async function main() {
   const mode = process.argv[2];
   const outIx = process.argv.indexOf('--out');
-  if (!['deck', 'pairs'].includes(mode)) {
-    console.error('usage: node scripts/xi-pages.js deck|pairs [--out file.html]');
+  if (!['deck', 'deck2', 'pairs'].includes(mode)) {
+    console.error('usage: node scripts/xi-pages.js deck|deck2|pairs [--out file.html]');
     process.exit(1);
   }
-  const body = mode === 'deck' ? deckBody() : pairsBody();
+  const body = mode === 'deck' ? deckBody() : mode === 'deck2' ? deck2Body() : pairsBody();
   if (outIx > 0) {
     if (mode === 'pairs') require('fs').writeFileSync(process.argv[outIx + 1], body.html);
     else require('fs').writeFileSync(process.argv[outIx + 1], JSON.stringify(body, null, 2));
@@ -347,7 +451,7 @@ async function main() {
   console.log(await r.text());
 }
 
-module.exports = { cards, deckBody, pairsBody, pairsHtml, CHAT };
+module.exports = { cards, cards2, kinds2, deckBody, deck2Body, pairsBody, pairsHtml, CHAT };
 
 if (require.main === module) {
   main().catch((e) => { console.error('FAILED', e.message); process.exit(1); });

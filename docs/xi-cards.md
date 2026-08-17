@@ -39,6 +39,49 @@ still count for dedupe (old memories resolve against them).
   Mirrors are fine (`MISSED IT BY A MINUTE` mirrors `IN THE NICK OF TIME` —
   deliberate); twins are not.
 
+## Two kinds of card — the APERTURE split (2026-08-17, from her first pair data)
+
+Sophie, after her first pairs session: some pairs were hard "if they're both
+concrete… which makes me wonder if you think there should be two different
+kinds of cards." The answer settled on: **yes — but the split is APERTURE,
+not the old event/twist grammar.**
+
+- **ANCHOR** — names a scene, act, or object specific enough to SEE:
+  `THE KITCHEN, LATE AT NIGHT`, `PRETENDED TO BE ASLEEP`, `THE JUNK DRAWER`.
+  The picture comes first, the memory follows. Best solo triggers.
+- **OPEN** — names a shape or outcome that fits thousands of moments:
+  `GOT AWAY WITH IT`, `NEVER TOLD ANYONE`, `DIDN'T WANT IT TO END`. The
+  search comes first, a memory condenses out of it. Best pairing glue.
+
+**The pair rule the data supports: deal ANCHOR + OPEN.** The anchor picks
+the scene; the open sweeps a searchlight across it. Two anchors only
+intersect when both are high-traffic (`THE BACK SEAT` × `FELL ASLEEP ON THE
+WAY HOME`); two narrow anchors are usually empty (`THE KITCHEN, LATE AT
+NIGHT` × `FAKED BEING SICK` — her exact example). Two opens intersect fine
+but go mushy — that is what the retired abstract cards felt like.
+
+Measured on her first session (aggregate only — the memories themselves stay
+in the app, not in this public repo): 7 written pair memories; 5 of the 7
+held ONE scene anchor (the kitchen) against acts/opens and produced real
+memories; the scene × scene pair drifted into a memory of just one card. A
+pair that "fails" still tends to trigger off a single card — the pair is a
+prompt, not a contract — but a game rule that wants a memory of BOTH cards
+should deal anchor + open.
+
+Two design consequences, deliberately NOT built yet:
+- **The tag is DEALING logic, not card identity.** All cards stay one type
+  (her decision stands); the deck just knows each card's aperture and deals
+  pairs one-of-each. On a board, checkerboard the two tags and every
+  touching pair is anchor + open — the versus board's cream/white squares
+  already do two-role layout, so the machinery exists to repurpose.
+- **A card can also be too narrow for a given PERSON** (`FAKED BEING SICK`
+  gave her nothing even solo — she never did it). That is a frequency
+  problem, not an aperture problem; the sparked/nothing votes find those
+  per player, and no theory should defend a card the votes kill.
+
+Reading verdicts by kind: `kinds2()` in `scripts/xi-pages.js` maps batch-2
+card ids to `anchor`/`open`; batch 1's split is the two lists below.
+
 ## Batch 1 — 67 cards (posted as deck page "XI cards — batch 1")
 
 Two lanes. Lane A is the house voice. **Lane B is an experiment**: scenes &
@@ -135,6 +178,32 @@ Growing up:
 - THE JUNK DRAWER
 - THE NIGHT THE POWER WENT OUT
 
+### Batch 1 by aperture (44 anchors · 23 opens)
+
+- **Anchors (30 acts + all 14 scenes):** PRETENDED TO BE ASLEEP · SNUCK OUT
+  · LISTENED AT THE DOOR · READ SOMETHING I SHOULDN'T HAVE · FAKED BEING
+  SICK · TOOK THE DARE · LEARNED A BAD WORD · GOT CALLED BY MY FULL NAME ·
+  PRETENDED NOT TO SEE THEM · WAVED UNTIL THEY WERE OUT OF SIGHT · HID IT
+  SO WELL I LOST IT · BROKE SOMETHING AND SAID NOTHING · WROTE IT AND NEVER
+  SENT IT · SANG AT THE TOP OF MY LUNGS · FELL ASLEEP ON THE WAY HOME ·
+  STAYED IN THE CAR FOR THE SONG · GOT LOCKED OUT · REGRETTED THE HAIRCUT ·
+  ATE IT TO BE POLITE · NODDED LIKE I UNDERSTOOD · TALKED UNTIL THE PHONE
+  DIED · PACKED IN A HURRY · TOOK THE LONG WAY HOME · RACED THE STREETLIGHTS
+  HOME · WATCHED FROM THE WINDOW · LET IT RING · MADE THE SAME WISH EVERY
+  YEAR · ATE STANDING OVER THE SINK · STAYED HOME SICK · WAITED TO BE PICKED
+  UP · plus every Lane B scene/sense card.
+- **Opens (23):** GOT AWAY WITH IT · MADE A FRIEND FOR ONE DAY · NEVER SAW
+  THEM AGAIN · WAS SOMEBODY'S FAVORITE · KEPT SOMEONE'S SECRET · SHARED A
+  LOOK WITH A STRANGER · WAITED UP · DIDN'T KNOW IT WAS THE LAST TIME ·
+  KEPT IT FOR NO REASON · NEVER GAVE IT BACK · NEVER FOUND IT · SAVED UP
+  FOR IT · LAUGHED UNTIL IT HURT · TRIED NOT TO LAUGH · WON SOMETHING SMALL
+  · MISSED IT BY A MINUTE · SLEPT THROUGH IT · WORE THE WRONG THING ·
+  STAYED TOO LATE · LEFT WITHOUT SAYING GOODBYE · GOT THE CALL · WANTED TO
+  GO HOME · GOT PICKED LAST.
+- Borderliners are real (PRETENDED NOT TO SEE THEM is a visible act that
+  happens everywhere) — the bin is for dealing, not identity; when in doubt
+  file by whether the picture or the search comes first.
+
 ### Pairs that show the one-type model working
 
 - NEVER GAVE IT BACK + NEVER SAW THEM AGAIN
@@ -151,6 +220,34 @@ Growing up:
   ache vs. generic waiting).
 - MISSED IT BY A MINUTE mirrors live `IN THE NICK OF TIME`.
 - RACED THE STREETLIGHTS HOME is generational — flagged for Sophie's call.
+
+## Batch 2 — 131 cards (posted as deck page "XI cards — batch 2", 2026-08-17)
+
+Sophie's ask: "make a larger deck double or triple the cards for me to
+choose from and we'll put that aside for later." Batch 1 + 2 = **198 cards
+≈ triple**. The full list lives in `scripts/xi-pages.js` (the ONE source —
+`OPEN_2` / `ACTS_2` / `SCENES_2` / `THINGS_2`), aperture-tagged from birth:
+**42 opens + 89 anchors** (54 acts, 26 scenes/senses, 9 things/people).
+Composition follows the batch-1 lesson: batch 1 ran anchor-heavy in acts, so
+batch 2 adds a real OPEN lane (the pairing glue), plus new anchor veins:
+rituals (COUNTED SECONDS TO THE THUNDER), the phone suite (WAITED BY THE
+PHONE · SAVED THE VOICEMAIL · READ IT OVER AND OVER — pairs with batch 1's
+LET IT RING / ALMOST CALLED / TALKED UNTIL THE PHONE DIED), body joys
+(RAN JUST TO RUN · COLD IN A WET SWIMSUIT), household lore (THE GOOD
+SCISSORS · NEVER USED THE GOOD ONES), and quiet-grief anchors (KEPT THEIR
+HANDWRITING · DROVE PAST THE OLD HOUSE · THEIR SONG CAME ON). Regional
+cards were screened for HER geography (no fireflies in Portland — cut).
+
+Deck order on the page: anchors round-robin across acts/scenes/things with
+an open woven in after every 2, so the swipe stays varied. Read back:
+`GET /api/chatfeed/verdict?chat=xi-card-design&sheet=page-TbYkwaqRTKBV0Z013pzG`.
+**A written or spoken memory counts as sparked on its own** — she should
+never have to double-mark (the help card says so, and any scoring script
+must treat `texts[id]` present as a spark).
+
+Pairs testing for batch 2 waits until she has chosen keepers — then a
+keepers-only pairs page (optionally + batch-1 keepers and live-deck
+cross-pairs) replaces walking all 19,900 combinations.
 
 ## Live-deck housekeeping spotted while reading
 
