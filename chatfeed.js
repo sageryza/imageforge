@@ -3203,4 +3203,7 @@ router.get('/verdict', async (req, res) => {
 
 // compileQuery/queryMatches/snippetAnchor are exported for the search tests —
 // they are pure, so the grammar is testable without Firestore or a server.
-module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor };
+// `registry` is exported so brief.js can read the SAME 5-minute cache the feed
+// already keeps rather than opening a second one — two caches of one collection
+// is how a stale answer gets served from whichever module happened to answer.
+module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry };

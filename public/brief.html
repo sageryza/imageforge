@@ -1,0 +1,313 @@
+<!doctype html>
+<!-- What's New — the update button's page (Aug 2026, Sophie: "an update button
+     on the home screen … the top five things I might want to be updated on, and
+     then maybe some lower priority things, and ideally images that chats made
+     or links to compare pages").
+
+     The front for /api/brief. It writes NOTHING: reading the brief is not
+     checking a chat off, so nothing here clears her Update tab.
+
+     House kit it follows:
+       tool.css          the look; title once (the native bar carries it)
+       #help / .helpcard the explanation, behind the "?" — never on the page
+       no .btn.star      nothing here spends a model call, so no star
+       lightbox          a tapped picture freezes the page and restores scrollY
+     Rules for pages: .claude/skills/new-page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What's New</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+  /* THE INJECTED PILL IGNORES :root — public/pill-inject.html declares its own
+     palette ON the element (.float), and an element's own custom property beats
+     an inherited one, so a page that only sets :root gets a near-black pill on
+     its own paper. Out-specify it (measured 2026-08-15 on /chunking). */
+  body.tool .float{ --paper:#faf9f7; --ink:#3a3530; --ink2:#9e9590;
+    --chg:#b48b6a; --rose:#a5586a; }
+  :root{ --rose:#a5586a; }
+
+  /* 64, not tool.css's 56: the pill's left edge lands at x=326 on a 390pt
+     phone, so a 56px reserve leaves the last 8px of the "?" dead. */
+  .tool .head{ padding-right:64px; }
+
+  /* The one status line — a count, not an instruction. */
+  .strip{ font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--dim); padding:10px 64px 2px 2px; }
+  .strip b{ color:var(--rose); font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; margin-bottom:10px; padding:12px 14px; }
+  .card.needs{ border-color:#e6cdd3; }
+  .crow{ display:flex; align-items:baseline; gap:8px; }
+  .why{ font-size:10px; letter-spacing:1.1px; text-transform:uppercase;
+    color:var(--dim); flex:0 0 auto; }
+  .card.needs .why{ color:var(--rose); }
+  .nm{ font-size:15px; font-weight:600; color:var(--ink); flex:1;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ago{ font-size:11px; color:var(--dim); flex:0 0 auto; }
+  /* The pill is fixed over roughly y 14-192, which is the TOP card's own top
+     row — its time rendered underneath it and could not be read (a scrolled
+     card passing under the pill is fine; one parked there is not). */
+  #cards .card:first-child .crow{ padding-right:60px; }
+  .line{ font-size:14px; line-height:1.5; margin:6px 0 0; color:var(--ink); }
+  .card.needs .line{ color:var(--rose); }
+  /* Her own note, in her own style — italic, quiet, never rewritten by a chat. */
+  .note{ font-size:13px; line-height:1.45; margin:5px 0 0; color:var(--dim);
+    font-style:italic; }
+
+  .pics{ display:flex; gap:6px; margin-top:9px; }
+  .pics figure{ margin:0; flex:1 1 0; min-width:0; }
+  .pics img{ width:100%; aspect-ratio:1; object-fit:cover; display:block;
+    border:1px solid var(--border); border-radius:var(--r); background:#fff; }
+  .pics figcaption{ font-size:10px; line-height:1.3; color:var(--dim);
+    margin-top:3px; overflow:hidden; display:-webkit-box;
+    -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+  /* Links out: each hugs its own words (never a full-width slab). */
+  .links{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .lk{ display:inline-flex; align-items:center; gap:5px; font:inherit;
+    font-size:13px; max-width:100%; text-decoration:none;
+    border:1px solid var(--border); border-radius:var(--r);
+    background:transparent; color:var(--ink); padding:6px 9px; cursor:pointer; }
+  /* A chip hugs its words — but a Compare page's title can be a sentence, and
+     an un-capped one stretches the chip into the full-width slab the button
+     rule exists to prevent. Cap the WORDS, not the box. */
+  .lk .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:190px; }
+  .lk svg{ width:14px; height:14px; flex:0 0 auto; stroke:currentColor;
+    fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .lk.fresh{ border-color:var(--accent); color:var(--accent); }
+  .lk.open{ border-color:var(--accent); color:var(--accent); }
+
+  /* The Update card — what she asked for, what it did, what's next. BEHIND A
+     ⌄, the way it is in the Chats app, and for the reason she gave there: "not
+     fully in the message, because it would crowd things, but more as a button
+     I could click and it would pop out". Three of these open at once is most
+     of a screen. */
+  .exp{ margin-top:8px; width:26px; height:26px; border-radius:50%; padding:0;
+    border:1px solid var(--border); background:transparent; color:var(--dim);
+    font:inherit; font-size:13px; line-height:1; cursor:pointer; }
+  .exp[aria-expanded="true"]{ color:var(--accent); border-color:var(--accent); }
+  .det{ margin-top:9px; border-top:1px solid var(--border); padding-top:8px; }
+  .det p{ margin:0 0 6px; font-size:13px; line-height:1.5; }
+  .det p:last-child{ margin-bottom:0; }
+  .det b{ display:block; font-size:10px; letter-spacing:1.1px;
+    text-transform:uppercase; color:var(--dim); font-weight:600; }
+
+  .alsohead{ font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--dim); margin:18px 0 8px 2px; }
+  .card.quiet{ padding:10px 12px; }
+  .card.quiet .nm{ font-size:14px; font-weight:500; }
+  .card.quiet .line{ font-size:13px; color:var(--dim); }
+  /* …but an ask stays rose even down here: rose is "waiting on you", and it is
+     the one thing worth spotting while scrolling past the quiet pile. */
+  .card.quiet.needs .line{ color:var(--rose); }
+
+  .empty{ font-size:14px; color:var(--dim); padding:26px 2px; }
+
+  /* Lightbox: freezes the page behind it, restores where she was on close. */
+  .lb{ position:fixed; inset:0; z-index:40; background:rgba(24,21,17,.94);
+    display:flex; align-items:center; justify-content:center; padding:14px; }
+  .lb img{ max-width:100%; max-height:88vh; object-fit:contain; }
+  .lb .cap{ position:absolute; left:14px; right:14px; bottom:calc(14px + env(safe-area-inset-bottom));
+    color:#f2ede3; font-size:13px; line-height:1.45; text-align:center; }
+</style>
+
+<body class="tool">
+<header class="head">
+  <div class="eyebrow tool-eyebrow">WHAT'S NEW</div>
+  <button id="help" aria-label="what this is">?</button>
+</header>
+<div class="helpcard" id="helpcard" hidden>
+  <b>The five things worth knowing right now</b>, then the quieter ones under
+  them. A chat is here because it needs something from you, because it replied
+  since you last ticked it off, or because it posted a page or made pictures.
+  <br><br><b>Rose means it's waiting on you.</b>
+  <br><br>Nothing here ticks anything off — that's still the ✓ in Chats, so a
+  card stays until you check it there. Tap a chat's name to open it, a picture
+  to see it big, a page to read it.
+</div>
+
+<main>
+  <div class="strip" id="strip"></div>
+  <div id="cards"></div>
+  <div class="alsohead" id="alsohead" hidden>Also</div>
+  <div id="also"></div>
+  <div class="row"><button class="btn ghost" id="refresh">Refresh</button></div>
+</main>
+
+<div class="lb" id="lb" hidden></div>
+
+<script>
+(function () {   /* IIFE — the injected pill runs in global scope declaring var
+                    raf / I / playing; a page-level let of the same name kills
+                    its script at parse time. */
+'use strict';
+var STUDIO_TOKEN = '__STUDIO_TOKEN__';
+var TOK = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+var $ = function (id) { return document.getElementById(id); };
+
+var ICON = {
+  page: '<svg viewBox="0 0 24 24"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 4v6h6"/></svg>',
+  link: '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>',
+  film: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M16 4v16M3 10h18M3 14h18"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg>'
+};
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+/* Times in her units — a card is read at a glance, so "4h" beats a timestamp. */
+function ago(iso) {
+  var t = Date.parse(iso || '');
+  if (!t) return '';
+  var m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'now';
+  if (m < 60) return m + 'm';
+  var h = Math.round(m / 60);
+  if (h < 24) return h + 'h';
+  var d = Math.round(h / 24);
+  return d < 7 ? d + 'd' : Math.round(d / 7) + 'w';
+}
+
+/* ── the lightbox ────────────────────────────────────────────────────────
+   The house contract, all four parts: pause the autoscroll, lock the page,
+   SAVE window.scrollY on open and restore it on close (locking alone does not
+   stop window.scrollBy, which is what moved the page under her before). */
+var savedY = 0;
+function openImage(url, cap) {
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY;
+  var lb = $('lb');
+  lb.innerHTML = '<img src="' + esc(url) + '" alt="">'
+    + (cap ? '<div class="cap">' + esc(cap) + '</div>' : '');
+  lb.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeImage() {
+  var lb = $('lb');
+  if (lb.hidden) return false;
+  lb.hidden = true;
+  lb.innerHTML = '';
+  document.body.style.overflow = '';
+  window.scrollTo(0, savedY);
+  return true;
+}
+$('lb').addEventListener('click', closeImage);
+
+/* The native chevron asks the page first: close the picture before leaving. */
+window.__navBack = function () { return closeImage(); };
+
+/* ── rendering ──────────────────────────────────────────────────────────── */
+function pics(c) {
+  if (!c.images || !c.images.length) return '';
+  return '<div class="pics">' + c.images.map(function (im) {
+    var cap = im.label || im.caption || '';
+    return '<figure><img loading="lazy" src="' + esc(im.url) + '" alt="'
+      + esc(cap) + '" data-full="' + esc(im.url) + '" data-cap="' + esc(cap) + '">'
+      + (cap ? '<figcaption>' + esc(cap) + '</figcaption>' : '') + '</figure>';
+  }).join('') + '</div>';
+}
+
+function links(c) {
+  var out = [];
+  out.push('<a class="lk open" href="/chats?chat=' + encodeURIComponent(c.chat) + '">'
+    + ICON.chat + '<span class="t">Open</span></a>');
+  (c.pages || []).forEach(function (p) {
+    out.push('<a class="lk' + (p.isNew ? ' fresh' : '') + '" href="' + esc(p.url) + '">'
+      + ICON.page + '<span class="t">' + esc(p.title) + '</span></a>');
+  });
+  /* The chat's pinned deliverable — the thing she keeps coming back to. Only
+     while it is CURRENT (what's behind it moved in the chat's last turn), so
+     the row stays news and not a permanent bookmark shelf. */
+  if (c.pinned && c.pinned.current) {
+    out.push('<a class="lk fresh" href="' + esc(c.pinned.url) + '">'
+      + (c.pinned.kind === 'film' ? ICON.film : ICON.link)
+      + '<span class="t">' + esc(c.pinned.title || 'Pinned') + '</span></a>');
+  }
+  return '<div class="links">' + out.join('') + '</div>';
+}
+
+function detail(c) {
+  if (!c.update) return '';
+  var u = c.update, out = '';
+  if (u.asked) out += '<p><b>You asked</b>' + esc(u.asked) + '</p>';
+  if (u.did) out += '<p><b>They did</b>' + esc(u.did) + '</p>';
+  if (u.next) out += '<p><b>Next</b>' + esc(u.next) + '</p>';
+  if (!out) return '';
+  return '<button class="exp" aria-expanded="false" aria-label="what happened">⌄</button>'
+    + '<div class="det" hidden>' + out + '</div>';
+}
+
+function card(c, quiet) {
+  return '<article class="card' + (c.need ? ' needs' : '') + (quiet ? ' quiet' : '') + '">'
+    + '<div class="crow"><span class="why">' + esc(c.why) + '</span>'
+    + '<span class="nm">' + esc(c.name) + '</span>'
+    + '<span class="ago">' + esc(ago(c.at)) + '</span></div>'
+    + (c.line ? '<p class="line">' + esc(c.line) + '</p>' : '')
+    + (c.note ? '<p class="note">' + esc(c.note) + '</p>' : '')
+    + (quiet ? '' : pics(c))
+    + links(c)
+    + (quiet ? '' : detail(c))
+    + '</article>';
+}
+
+function strip(n) {
+  var bits = [];
+  if (n.needs) bits.push('<b>' + n.needs + ' waiting on you</b>');
+  if (n.unseen) bits.push(n.unseen + ' new');
+  if (n.pages) bits.push(n.pages + ' page' + (n.pages > 1 ? 's' : ''));
+  if (n.images) bits.push(n.images + ' picture' + (n.images > 1 ? 's' : ''));
+  return bits.join(' · ');
+}
+
+function render(b) {
+  $('strip').innerHTML = strip(b.counts || {});
+  $('cards').innerHTML = (b.top || []).length
+    ? b.top.map(function (c) { return card(c, false); }).join('')
+    : '<div class="empty">Nothing new.</div>';
+  $('also').innerHTML = (b.more || []).map(function (c) { return card(c, true); }).join('');
+  $('alsohead').hidden = !(b.more || []).length;
+  document.querySelectorAll('.pics img').forEach(function (img) {
+    img.addEventListener('click', function () {
+      openImage(img.getAttribute('data-full'), img.getAttribute('data-cap'));
+    });
+  });
+  document.querySelectorAll('.exp').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var det = btn.nextElementSibling;
+      det.hidden = !det.hidden;
+      btn.setAttribute('aria-expanded', det.hidden ? 'false' : 'true');
+      btn.textContent = det.hidden ? '⌄' : '⌃';
+    });
+  });
+}
+
+function load(fresh) {
+  $('strip').textContent = 'Reading…';
+  var opts = TOK ? { headers: { 'x-studio-token': TOK } } : {};
+  fetch('/api/brief?top=5&more=12' + (fresh ? '&fresh=1' : ''), opts)
+    .then(function (r) { return r.json(); })
+    .then(function (b) {
+      if (b && b.error) { $('strip').textContent = b.error; return; }
+      render(b);
+    })
+    .catch(function (e) { $('strip').textContent = String(e.message || e); });
+}
+
+$('refresh').addEventListener('click', function () { load(true); });
+$('help').addEventListener('click', function () {
+  $('helpcard').hidden = !$('helpcard').hidden;
+});
+$('helpcard').addEventListener('click', function () { $('helpcard').hidden = true; });
+
+load(false);
+/* The web view stays alive behind the app; coming back to it must not show
+   yesterday's brief. */
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) load(false);
+});
+})();
+</script>
