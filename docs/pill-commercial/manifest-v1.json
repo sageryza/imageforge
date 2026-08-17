@@ -1,0 +1,227 @@
+{
+  "filmUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/thresholdyn-v1.mp4",
+  "filmLocal": "/tmp/claude-0/-home-user-imageforge/d55c4977-23ad-5a4c-83fb-fe71904b5bb3/scratchpad/thresholdyn/thresholdyn-v1.mp4",
+  "durationSec": 82.399,
+  "voice": "ElevenLabs \"Bill\" (premade) · eleven_multilingual_v2 · stability 0.5, similarity 0.75, style 0, speaker_boost",
+  "segs": [
+    {
+      "shots": [
+        "bw-kitchen"
+      ],
+      "text": "You walked in here for a reason.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "bw-stare"
+      ],
+      "text": "That reason... is gone.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "bw-garage",
+        "bw-hallway",
+        "bw-pantry"
+      ],
+      "text": "Doorway Onset Purpose Loss — D.O.P.L. — strikes nine out of ten adults every single time they change rooms. For decades, sufferers had no choice but to stand in the doorway, retrace their steps... or simply begin a new life in the room they now occupy.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "color-snap",
+        "product-hero"
+      ],
+      "text": "Introducing Thresholdyn. The first once-daily treatment that lets you walk into a room — and still know why.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "ladder",
+        "book"
+      ],
+      "text": "With Thresholdyn, your purpose crosses the doorway with you.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "kayak",
+        "porch",
+        "dogwalk",
+        "garden"
+      ],
+      "text": "Thresholdyn is not for everyone. Do not take Thresholdyn if you are allergic to Thresholdyn, doorways, or knowing things. Side effects may include: remembering things you had preferred to forget, knowing why you're in every room all the time, an inability to wander, spontaneous errand completion, and telling people what you actually came over to say. In rare cases, users have remembered why they got married. Do not operate a hallway until you know how Thresholdyn affects you. If you experience a sense of purpose lasting more than four hours, that's the intended effect. Ask your doctor if remembering is right for you.",
+      "tempo": 1.3
+    },
+    {
+      "shots": [
+        "slowmo-door"
+      ],
+      "text": "Thresholdyn. Walk in like you mean it.",
+      "tempo": 1
+    },
+    {
+      "shots": [
+        "endcard"
+      ],
+      "text": null,
+      "tempo": 1
+    }
+  ],
+  "shots": [
+    {
+      "id": "bw-kitchen",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-bw-kitchen.png",
+      "made": 1786993889578.053,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. A woman in her forties stands in the middle of a sunlit suburban kitchen holding a single screwdriver, utterly lost expression, staring into space.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. ",
+      "content": "A woman in her forties stands in the middle of a sunlit suburban kitchen holding a single screwdriver, utterly lost expression, staring into space.",
+      "motion": "The woman slowly looks around the kitchen, bewildered; camera holds still.",
+      "animated": true
+    },
+    {
+      "id": "bw-stare",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-bw-stare.png",
+      "made": 1786993884558.053,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. Close-up of a woman in her forties looking down at a screwdriver held in her hand as if she has never seen it before, baffled expression, suburban kitchen behind her.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. ",
+      "content": "Close-up of a woman in her forties looking down at a screwdriver held in her hand as if she has never seen it before, baffled expression, suburban kitchen behind her.",
+      "motion": "She slowly turns the screwdriver in her hand, tilting her head in confusion.",
+      "animated": true
+    },
+    {
+      "id": "bw-garage",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-bw-garage.png",
+      "made": 1786993887554.053,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. A middle-aged man stands frozen just inside a garage doorway, one hand raised in a forgotten gesture, completely lost.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. ",
+      "content": "A middle-aged man stands frozen just inside a garage doorway, one hand raised in a forgotten gesture, completely lost.",
+      "motion": "The man scratches his head slowly, shifting his weight, lost.",
+      "animated": true
+    },
+    {
+      "id": "bw-hallway",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-bw-hallway.png",
+      "made": 1786993885194.053,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. A woman walks backward down a home hallway retracing her steps, looking at the floor, confused.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. ",
+      "content": "A woman walks backward down a home hallway retracing her steps, looking at the floor, confused.",
+      "motion": "She steps slowly backward down the hallway, glancing side to side.",
+      "animated": true
+    },
+    {
+      "id": "bw-pantry",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-bw-pantry.png",
+      "made": 1786993929442.052,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. A young man stands in a pantry doorway staring blankly at the shelves, holding car keys, completely lost.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, black and white, desaturated, flat overcast window light, melancholy mood. ",
+      "content": "A young man stands in a pantry doorway staring blankly at the shelves, holding car keys, completely lost.",
+      "motion": "He stares at the shelves, then slowly raises the car keys and looks at them, baffled.",
+      "animated": true
+    },
+    {
+      "id": "color-snap",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-color-snap.png",
+      "made": 1786993927518.052,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A woman in her forties in a sunlit suburban kitchen snaps her fingers and strides confidently toward a kitchen drawer, purposeful smile.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A woman in her forties in a sunlit suburban kitchen snaps her fingers and strides confidently toward a kitchen drawer, purposeful smile.",
+      "motion": "She snaps her fingers and strides confidently toward the drawer, full of purpose.",
+      "animated": true
+    },
+    {
+      "id": "product-hero",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-product-hero.png",
+      "made": 1786993932558.052,
+      "prompt": "Photorealistic television commercial product shot, crisp studio lighting, flat solid backdrop with no gradients. An amber prescription pill bottle with a white cap and a clean label reading \"THRESHOLDYN\" stands on a flat matte coral-pink backdrop with a soft shadow, a few small white pills beside it.",
+      "style": "Photorealistic television commercial product shot, crisp studio lighting, flat solid backdrop with no gradients. ",
+      "content": "An amber prescription pill bottle with a white cap and a clean label reading \"THRESHOLDYN\" stands on a flat matte coral-pink backdrop with a soft shadow, a few small white pills beside it.",
+      "motion": "The pill bottle rotates slowly in place, studio light glinting softly on the amber plastic.",
+      "animated": true
+    },
+    {
+      "id": "ladder",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-ladder.png",
+      "made": 1786993942686.0518,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A middle-aged man walks into a garage and immediately lifts a ladder off the wall, purposeful confident smile.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A middle-aged man walks into a garage and immediately lifts a ladder off the wall, purposeful confident smile.",
+      "motion": "He lifts the ladder smoothly off the wall and turns to carry it out, smiling.",
+      "animated": true
+    },
+    {
+      "id": "book",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-book.png",
+      "made": 1786993968386.0513,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A grandmother enters a cozy den and pulls one specific book from a bookshelf, satisfied smile.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A grandmother enters a cozy den and pulls one specific book from a bookshelf, satisfied smile.",
+      "motion": "She slides the book off the shelf and holds it to her chest, pleased.",
+      "animated": true
+    },
+    {
+      "id": "kayak",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-kayak.png",
+      "made": 1786993972798.051,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A group of happy adults in life vests kayaking across a sparkling lake, laughing.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A group of happy adults in life vests kayaking across a sparkling lake, laughing.",
+      "motion": "The kayakers paddle forward, water sparkling, everyone laughing.",
+      "animated": true
+    },
+    {
+      "id": "porch",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-porch.png",
+      "made": 1786993973894.051,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A couple laughs together on a porch swing at sunset holding glasses of lemonade.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A couple laughs together on a porch swing at sunset holding glasses of lemonade.",
+      "motion": "The porch swing sways gently as the couple laughs together.",
+      "animated": true
+    },
+    {
+      "id": "dogwalk",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-dogwalk.png",
+      "made": 1786994030950.0498,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A man walks a golden retriever through a leafy park, waving cheerfully to a neighbor.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A man walks a golden retriever through a leafy park, waving cheerfully to a neighbor.",
+      "motion": "The man and the dog walk forward as he waves cheerfully to a neighbor.",
+      "animated": true
+    },
+    {
+      "id": "garden",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-garden.png",
+      "made": 1786994018034.05,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A woman waters bright garden flowers with a metal watering can, smiling contentedly.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A woman waters bright garden flowers with a metal watering can, smiling contentedly.",
+      "motion": "Water arcs gently from the can onto the flowers as she smiles.",
+      "animated": true
+    },
+    {
+      "id": "slowmo-door",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-slowmo-door.png",
+      "made": 1786994009390.0503,
+      "prompt": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. A woman in her forties walks through a home doorway directly toward the camera in triumphant slow motion, holding a screwdriver slightly aloft like a torch, confident smile, warm backlight.",
+      "style": "Photorealistic cinematic still from an American prescription drug television commercial, shot on 35mm, shallow depth of field, warm golden-hour light, gently saturated hopeful mood. ",
+      "content": "A woman in her forties walks through a home doorway directly toward the camera in triumphant slow motion, holding a screwdriver slightly aloft like a torch, confident smile, warm backlight.",
+      "motion": "She strides toward the camera in slow motion, screwdriver raised, hair moving softly, triumphant.",
+      "animated": true
+    },
+    {
+      "id": "endcard",
+      "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/pill-commercial/still-endcard.png",
+      "made": 1786994003678.0503,
+      "prompt": "A minimalist television commercial end card: flat solid cream background, centered large elegant dark navy serif text \"THRESHOLDYN\" with a small trademark symbol, beneath it smaller italic navy text \"Walk in like you mean it.\", and at the bottom a single line of small gray text \"doorzepam maleate\". Clean typography, perfectly flat design, no gradients, no other elements.",
+      "style": "",
+      "content": "A minimalist television commercial end card: flat solid cream background, centered large elegant dark navy serif text \"THRESHOLDYN\" with a small trademark symbol, beneath it smaller italic navy text \"Walk in like you mean it.\", and at the bottom a single line of small gray text \"doorzepam maleate\". Clean typography, perfectly flat design, no gradients, no other elements.",
+      "motion": null,
+      "animated": false
+    }
+  ],
+  "cost": {
+    "stills": 0.9450000000000001,
+    "clips": 0.84
+  }
+}

@@ -57,7 +57,7 @@ const SEGS = [
   { shots: ['bw-garage', 'bw-hallway', 'bw-pantry'], text: 'Doorway Onset Purpose Loss — D.O.P.L. — strikes nine out of ten adults every single time they change rooms. For decades, sufferers had no choice but to stand in the doorway, retrace their steps... or simply begin a new life in the room they now occupy.' },
   { shots: ['color-snap', 'product-hero'], text: 'Introducing Thresholdyn. The first once-daily treatment that lets you walk into a room — and still know why.' },
   { shots: ['ladder', 'book'], text: 'With Thresholdyn, your purpose crosses the doorway with you.' },
-  { shots: ['kayak', 'porch', 'dogwalk', 'garden'], tempo: 1.2, text: 'Thresholdyn is not for everyone. Do not take Thresholdyn if you are allergic to Thresholdyn, doorways, or knowing things. Side effects may include: remembering things you had preferred to forget, knowing why you\'re in every room all the time, an inability to wander, spontaneous errand completion, and telling people what you actually came over to say. In rare cases, users have remembered why they got married. Do not operate a hallway until you know how Thresholdyn affects you. If you experience a sense of purpose lasting more than four hours, that\'s the intended effect. Ask your doctor if remembering is right for you.' },
+  { shots: ['kayak', 'porch', 'dogwalk', 'garden'], tempo: 1.3, text: 'Thresholdyn is not for everyone. Do not take Thresholdyn if you are allergic to Thresholdyn, doorways, or knowing things. Side effects may include: remembering things you had preferred to forget, knowing why you\'re in every room all the time, an inability to wander, spontaneous errand completion, and telling people what you actually came over to say. In rare cases, users have remembered why they got married. Do not operate a hallway until you know how Thresholdyn affects you. If you experience a sense of purpose lasting more than four hours, that\'s the intended effect. Ask your doctor if remembering is right for you.' },
   { shots: ['slowmo-door'], text: 'Thresholdyn. Walk in like you mean it.' },
   { shots: ['endcard'], text: null, holdSec: 3.2 }, // silent hold on the end card
 ];
@@ -90,6 +90,14 @@ async function retry(times, fn, label) {
 async function genImage(shot) {
   const prompt = shot.style + shot.content;
   const made = Date.now();
+  { // resume: an already-rendered still is never re-bought
+    const local = OUT(`still-${shot.id}.png`);
+    if (fs.existsSync(local) && fs.statSync(local).size > 10000) {
+      const url = await upload(local, `pill-commercial/still-${shot.id}.png`, 'image/png');
+      log(`still ${shot.id} reused from disk`);
+      return { ...shot, prompt, local, url, made: fs.statSync(local).mtimeMs };
+    }
+  }
   const j = await retry(3, async () => {
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -112,6 +120,7 @@ async function genImage(shot) {
 async function genVO(seg, idx) {
   if (!seg.text) return { ...seg, idx };
   const mp3 = OUT(`vo-${idx}.mp3`);
+  if (fs.existsSync(mp3) && fs.statSync(mp3).size > 1000) { log(`vo ${idx} reused`); return { ...seg, idx, mp3 }; }
   await retry(3, async () => {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_192`, {
       method: 'POST',
@@ -153,6 +162,8 @@ async function replicatePredict(version, input) {
 }
 async function genClip(shot) {
   if (!shot.motion) return shot; // endcard stays a still
+  { const local = OUT(`clip-${shot.id}.mp4`);
+    if (fs.existsSync(local) && fs.statSync(local).size > 50000) { log(`clip ${shot.id} reused`); return { ...shot, clip: local }; } }
   const p = await retry(2, () => replicatePredict(WAN.version, {
     image: shot.url, prompt: shot.motion, resolution: '480p',
     num_frames: 81, frames_per_second: 16, interpolate_output: true, go_fast: true,
@@ -165,11 +176,14 @@ async function genClip(shot) {
 }
 
 // ─── Stage D: assembly ──────────────────────────────────────────────
+// The static ffmpeg's stream-copy concat (demuxer AND concat: protocol)
+// segfaults in this sandbox — measured live. The concat FILTER path works
+// (proved on the audio), so video assembly is one filter-graph encode.
 function assemble(shots, segs) {
   const byId = Object.fromEntries(shots.map(s => [s.id, s]));
-  const vlist = [], alist = [];
+  const inputs = [], chains = [], wavs = [];
+  let vIdx = 0;
   segs.forEach((seg, i) => {
-    // segment audio length
     let speech = 0;
     if (seg.mp3) speech = probeDur(seg.mp3) / (seg.tempo || 1);
     const total = seg.text ? PRE_GAP + speech + POST_GAP : seg.holdSec;
@@ -185,33 +199,35 @@ function assemble(shots, segs) {
     } else {
       run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', segDur.toFixed(3), '-c:a', 'pcm_s16le', wav]);
     }
-    alist.push(wav);
-    // shots → per-shot frame budget
+    wavs.push(wav);
+    // shots → per-shot frame budget, each a chain into the concat filter
     const n = seg.shots.length;
     const base = Math.floor(framesTotal / n);
     seg.shots.forEach((id, k) => {
       const frames = base + (k < framesTotal - base * n ? 1 : 0);
       const dur = (frames / FPS).toFixed(4);
       const s = byId[id];
-      const ts = OUT(`shot-${i}-${k}-${id}.ts`);
       const scale = `fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1`;
       if (s.clip) {
-        run(FFMPEG, ['-y', '-i', s.clip, '-vf', `${scale},tpad=stop_mode=clone:stop_duration=12,trim=duration=${dur},setpts=PTS-STARTPTS`,
-          '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-f', 'mpegts', ts]);
+        inputs.push('-i', s.clip);
+        chains.push(`[${vIdx}:v]${scale},tpad=stop_mode=clone:stop_duration=15,trim=duration=${dur},setpts=PTS-STARTPTS[v${vIdx}]`);
       } else {
-        run(FFMPEG, ['-y', '-loop', '1', '-t', dur, '-i', s.local, '-vf', scale,
-          '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-f', 'mpegts', ts]);
+        inputs.push('-loop', '1', '-t', dur, '-i', s.local);
+        chains.push(`[${vIdx}:v]${scale},trim=duration=${dur},setpts=PTS-STARTPTS[v${vIdx}]`);
       }
-      vlist.push(ts);
-      log(`shot ${id} cut to ${dur}s`);
+      log(`shot ${id} allotted ${dur}s`);
+      vIdx++;
     });
   });
-  fs.writeFileSync(OUT('vlist.txt'), vlist.map(f => `file '${f}'`).join('\n'));
-  fs.writeFileSync(OUT('alist.txt'), alist.map(f => `file '${f}'`).join('\n'));
-  run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', OUT('vlist.txt'), '-c', 'copy', OUT('all.ts')]);
-  run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', OUT('alist.txt'), '-c:a', 'pcm_s16le', OUT('full.wav')]);
+  const graph = chains.join(';') + ';' + chains.map((_, i) => `[v${i}]`).join('') + `concat=n=${vIdx}:v=1:a=0[vout]`;
+  fs.writeFileSync(OUT('graph.txt'), graph);
+  run(FFMPEG, ['-y', ...inputs, '-filter_complex_script', OUT('graph.txt'), '-map', '[vout]',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', OUT('video.mp4')]);
+  // audio: concat filter (the demuxer segfaults here too)
+  const aIn = wavs.flatMap(w => ['-i', w]);
+  run(FFMPEG, ['-y', ...aIn, '-filter_complex', `concat=n=${wavs.length}:v=0:a=1[a]`, '-map', '[a]', '-c:a', 'pcm_s16le', OUT('full.wav')]);
   const total = probeDur(OUT('full.wav'));
-  run(FFMPEG, ['-y', '-i', OUT('all.ts'), '-i', OUT('full.wav'),
+  run(FFMPEG, ['-y', '-i', OUT('video.mp4'), '-i', OUT('full.wav'),
     '-af', `afade=t=out:st=${(total - 0.8).toFixed(2)}:d=0.8`,
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-shortest', OUT('thresholdyn-v1.mp4')]);
   log(`assembled: ${total.toFixed(1)}s`);
