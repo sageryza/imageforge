@@ -56,6 +56,21 @@
     // (compare.css .cmp-note-open — see the note-affordance rule there)
     '.jg-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;' +
     ' padding:12px;position:relative;}' +
+    // corner controls need their own strip on a SHORT card: a one-line text
+    // card put the mic ON the words and the note + out of reach (Sophie
+    // caught it live on the XI deck, Aug 2026) — the bottom padding is the
+    // controls\' room, reserved whenever a corner control exists
+    '.jg-card.ctl{padding-bottom:52px;}' +
+    // aspect:\'square\' — a card deck\'s cards are SQUARE (the XI ask): the
+    // media area keeps a 1:1 box, images cover it, words center in it
+    '.jg-media.sq figure{aspect-ratio:1;overflow:hidden;border-radius:6px;}' +
+    '.jg-media.sq img{width:100%;height:100%;max-height:none;object-fit:cover;}' +
+    // width:100% is load-bearing: with only aspect-ratio, the box resolves
+    // its width from the 58vh max-height and OVERFLOWS the screen (measured
+    // 472px wide at 390 — the card ran off the right edge)
+    '.jg-cardtext.sq{aspect-ratio:1;width:100%;display:flex;align-items:center;' +
+    ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
+    ' max-height:none;overflow-y:auto;}' +
     '.jg-media{display:flex;gap:8px;justify-content:center;}' +
     '.jg-media figure{margin:0;flex:1;min-width:0;text-align:center;}' +
     '.jg-media .tag{display:block;font:700 11px/1 -apple-system,sans-serif;' +
@@ -303,12 +318,15 @@
       cur = u.i; view = 'card'; render(true);
     }
 
+    // aspect:'square' (Aug 2026, the XI deck): a card deck's cards keep a 1:1
+    // face — images cover the square, words center in it
+    var sq = opts.aspect === 'square' ? ' sq' : '';
     function mediaHtml(it) {
       // a TEMPLATE item's words render ESCAPED — template data carries no
       // HTML by design (page-templates.js); `card` below stays page-authored
       // trusted HTML for hand-built judge pages
       if (it.text && !it.img && !it.pair && !it.card) {
-        return '<div class="jg-cardtext">' + esc(it.text) + '</div>';
+        return '<div class="jg-cardtext' + sq + '">' + esc(it.text) + '</div>';
       }
       if (it.card) return '<div class="jg-cardtext">' + it.card + '</div>';
       if (it.pair) {
@@ -318,7 +336,7 @@
             + (p.full ? ' data-full="' + esc(p.full) + '"' : '') + '></figure>';
         }).join('') + '</div>';
       }
-      return '<div class="jg-media"><figure><img class="zoom" src="' + esc(it.img) + '"'
+      return '<div class="jg-media' + sq + '"><figure><img class="zoom" src="' + esc(it.img) + '"'
         + ' alt="' + esc(it.label || '') + '"'
         + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure></div>';
     }
@@ -374,8 +392,12 @@
             + '<button class="jg-btn maybe' + lit('maybe') + '" data-act="maybe" aria-label="Maybe">' + I.maybe + '</button>'
             + '<button class="jg-btn yes' + lit(true) + '" data-act="yes" aria-label="Love">' + I.heart + '</button>';
         }
+        // the controls strip: reserved whenever a corner control could sit on
+        // the content — the mic (voice) always, and the note + on a short
+        // text-only card (the XI overlap)
+        var ctl = voice || (it.text && !it.img && !it.pair && !it.card) ? ' ctl' : '';
         mount.innerHTML = '<div class="jg" data-nostop>' + top
-          + '<div class="jg-card' + (flash ? ' jg-flash' : '') + '">'
+          + '<div class="jg-card' + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
           // backwards or forwards") — the middle still opens the lightbox

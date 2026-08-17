@@ -41,6 +41,10 @@
     '.gd-it .tag{display:block;font:700 11px/1 -apple-system,sans-serif;' +
     ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}' +
     '.gd-it img{width:100%;height:auto;border-radius:4px;display:block;}' +
+    // aspect:"square" — every tile face is 1:1 (a card deck, the XI ask)
+    '.gd-sq img{aspect-ratio:1;height:auto;object-fit:cover;}' +
+    '.gd-sq .gd-txt{aspect-ratio:1;width:100%;display:flex;align-items:center;' +
+    ' justify-content:center;text-align:center;padding:8%;box-sizing:border-box;}' +
     '.gd-txt{font-size:15px;line-height:1.45;color:var(--ink);word-break:break-word;}' +
     '.gd-cap{font:500 11px/1.3 -apple-system,sans-serif;color:var(--ink2);}' +
     '.gd-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto;}' +
@@ -171,7 +175,8 @@
               + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '>'
             : '<div class="gd-txt">' + esc(it.text || '') + '</div>';
           var cap = [it.model, it.quality].filter(Boolean).join(' · ');
-          return '<div class="gd-it" data-item="' + esc(it.id) + '"'
+          return '<div class="gd-it' + (opts.aspect === 'square' ? ' gd-sq' : '')
+            + '" data-item="' + esc(it.id) + '"'
             + ' style="flex:0 0 ' + basis + '">'
             + (it.label ? '<span class="tag">' + esc(it.label) + '</span>' : '')
             + media

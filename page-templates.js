@@ -128,6 +128,10 @@ function validateTemplate(template, data) {
   if (help) out.help = help;
   const states = cleanStates(data.states);
   if (states) out.states = states;
+  // aspect:'square' — every card/tile face keeps 1:1 (a card deck — the XI
+  // chat's ask, Aug 2026). The only aspect there is; anything else is the
+  // item's own natural shape, which is the default.
+  if (data.aspect === 'square') out.aspect = 'square';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {

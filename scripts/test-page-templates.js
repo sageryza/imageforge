@@ -71,6 +71,13 @@ ok('states clean to key+label pairs; fewer than 2 means default buttons', () => 
   assert.strictEqual(v2.data.states, undefined);
 });
 
+ok("aspect:'square' rides through validation; anything else is dropped", () => {
+  const v = validateTemplate('deck', { aspect: 'square', items: [{ label: 'a', text: 't' }] });
+  assert.strictEqual(v.data.aspect, 'square');
+  const v2 = validateTemplate('grid', { aspect: 'wide', groups: [{ items: [{ label: 'a', text: 't' }] }] });
+  assert.strictEqual(v2.data.aspect, undefined);
+});
+
 ok('grid: groups validate and items count against one cap', () => {
   const v = validateTemplate('grid', { groups: [
     { label: 'Penny — which quality?', items: [
