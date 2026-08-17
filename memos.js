@@ -238,6 +238,25 @@ async function appendToManifest(record) {
   throw new Error('could not update the manifest — too many concurrent writes');
 }
 
+// ── who wants to know when a recording lands ───────────────────────────────
+//
+// Search keeps an index of every transcript in the library, and an index that
+// only moves when somebody taps a button is an index that is wrong: measured
+// Aug 2026 it held 1,035 of these 1,137 recordings, so anything she had
+// recorded lately returned NO hits — which reads as the recording not
+// existing, not as a stale index.
+//
+// Listeners fire only when a record was really appended (never for a
+// duplicate), and a listener that throws is swallowed: filing a recording is
+// the important half and must not fail because something downstream did.
+const filedListeners = [];
+function onFiled(fn) { if (typeof fn === 'function') filedListeners.push(fn); }
+function notifyFiled(record) {
+  for (const fn of filedListeners) {
+    try { fn(record); } catch (err) { console.warn('memo onFiled listener failed —', err.message); }
+  }
+}
+
 async function classify(transcript, spokenTitle) {
   if (!deps.chat) return null;
   const list = CATEGORIES.map(([k, d]) => `- ${k}: ${d}`).join('\n');
@@ -366,6 +385,8 @@ async function fileIntoArchive({ buf, ext = 'm4a', title = '', dur = 0, stamp = 
   // five of those were already sitting in the archive (one of them 14MB).
   if (merged.skipped) {
     await (await bucket()).file(objectPath).delete().catch(() => {});
+  } else {
+    notifyFiled(record);
   }
   return {
     skipped: !!merged.skipped,
@@ -520,6 +541,10 @@ async function restampRecord({ id, stamp, iso = '', force = false }) {
   rec.date = stamp.slice(0, 10);
   rec.restampedFrom = was;
   const count = await writeManifest(manifest, generation);
+  // A restamp gives a record a NEW id, which to an index keyed by id is a
+  // recording gone and another arrived — so the same listeners hear about it
+  // and Search re-files its passages under the id it now has.
+  notifyFiled(rec);
   return { changed: true, was, memo: rec, count };
 }
 
@@ -636,9 +661,10 @@ async function memoAudioToFile(id, destPath) {
 }
 
 // readManifest is exported so Search can index the archive's transcripts
-// without a second copy of the manifest contract.
+// without a second copy of the manifest contract; onFiled is how it hears
+// about a new one without either module requiring the other in a circle.
 module.exports = {
   router, init, fileIntoArchive, md5Of, audioHash, transcriptTwin,
-  unstampedRecords, restampRecord,
+  unstampedRecords, restampRecord, onFiled,
   readManifest, writeManifest, streamMemoAudio, memoAudioToFile,
 };
