@@ -61,11 +61,13 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — TLDR first · answer her questions before anything else,
-each one **repeated verbatim in bold with the answer plainly underneath** (see
-*Answering a question*) · small question, short answer · full clickable links ·
-no markdown tables · times in 12-hour Pacific · files and images LAST · working
-links at the very bottom.
+**Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
+what changes what she does next — detail goes behind "want the long version?"
+or into the PR description) · TLDR first · answer her questions before
+anything else, each one **repeated verbatim in bold with the answer plainly
+underneath** (see *Answering a question*) · small question, short answer ·
+full clickable links · no markdown tables · times in 12-hour Pacific · files
+and images LAST · working links at the very bottom.
 
 ## Where everything is
 
@@ -1480,6 +1482,20 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   same message — **her question repeated verbatim in bold, the answer plainly
   underneath it** (full rule + the Questions button that reads them: *Answering
   a question* in the Chats app section).
+- **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
+  2026, Sophie: "a lot of my responses are really long and it's actually
+  annoying cause I don't wanna read through it all").** The default reply is a
+  few short paragraphs: the TLDR, her questions answered, and only the facts
+  that change what she does or decides next. Cut the rest — play-by-play of
+  the work, options you didn't take, recaps of things she already knows,
+  restated plans, closing summaries, next-step menus she didn't ask for.
+  Detail that genuinely matters goes behind an offer ("want the long
+  version?") or into the PR description / a doc she can open — never into the
+  reply by default. Output tokens also bill at several times the input rate,
+  so a long reply costs real money on top of her reading time — but her
+  reading time is the reason. "Small question → short answer" and "quick
+  question mode" below are the tighter ends of the same dial, not exceptions
+  to a verbose default.
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
