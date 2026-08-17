@@ -279,6 +279,7 @@ loadConfig().then(() => {
   const cuttingroom = require('./cuttingroom');
   const cutmarks = require('./cutmarks');
   const blocks = require('./blocks');
+  const pausing = require('./pausing');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -382,6 +383,13 @@ loadConfig().then(() => {
   // as marked before anything is cut for real. Was a hand-authored Compare
   // page (v14) with no server behind it; see docs/audio-pipeline.md.
   app.use('/api/blocks', blocks.router);
+  // Pausing: how long a beat sits. The Cutting Room can only REMOVE a pause
+  // (compressed to ~0.28s); this sets a length, adds a pause where there is
+  // none, builds it out of the recording's own room tone rather than digital
+  // silence, and plays HER edit rather than the source. Pause detection is
+  // imported from cuttingroom.js, never re-implemented; the edit itself is
+  // pause-plan.js, shared with the page. docs/audio-pipeline.md, hole 2.
+  app.use('/api/pausing', pausing.router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
@@ -2892,6 +2900,19 @@ app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 // mark, reorder and hear before cutting. Engine is /api/blocks (blocks.js).
 // Same gate; the line list scrolls, so it carries the shared autoscroll pill.
 app.get('/blocks', serveGated('blocks.html', { pill: true }));
+// Pausing: set how long a pause is, add one where there is none, and hear the
+// edit rather than the source. Engine is /api/pausing (pausing.js). Same gate;
+// the transcript scrolls, so it carries the shared autoscroll pill.
+app.get('/pausing', serveGated('pausing.html', { pill: true }));
+// The edit itself — the ONE description of what her pause marks do to a
+// recording, loaded by the render on the server AND by the page in the
+// browser, so the preview she approves by ear is the take she gets. Public
+// and immutable-ish: it is code, it holds nothing of hers.
+app.get('/pause-plan.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pause-plan.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name
