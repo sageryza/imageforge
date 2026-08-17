@@ -71,11 +71,18 @@ ok('states clean to key+label pairs; fewer than 2 means default buttons', () => 
   assert.strictEqual(v2.data.states, undefined);
 });
 
-ok("aspect:'square' rides through validation; anything else is dropped", () => {
+ok('the aspect menu rides through validation; off-menu shapes are dropped', () => {
   const v = validateTemplate('deck', { aspect: 'square', items: [{ label: 'a', text: 't' }] });
   assert.strictEqual(v.data.aspect, 'square');
+  const vp = validateTemplate('deck', { aspect: 'portrait', items: [{ label: 'a', text: 't' }] });
+  assert.strictEqual(vp.data.aspect, 'portrait');
   const v2 = validateTemplate('grid', { aspect: 'wide', groups: [{ items: [{ label: 'a', text: 't' }] }] });
   assert.strictEqual(v2.data.aspect, undefined);
+  // one card may pick its own shape off the same menu
+  const vi = validateTemplate('deck', { aspect: 'square', items: [
+    { label: 'a', text: 't', aspect: 'portrait' }, { label: 'b', text: 't', aspect: 'oval' }] });
+  assert.strictEqual(vi.data.items[0].aspect, 'portrait');
+  assert.strictEqual(vi.data.items[1].aspect, undefined);
 });
 
 ok('grid: groups validate and items count against one cap', () => {

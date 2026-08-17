@@ -61,14 +61,14 @@
     // caught it live on the XI deck, Aug 2026) — the bottom padding is the
     // controls\' room, reserved whenever a corner control exists
     '.jg-card.ctl{padding-bottom:52px;}' +
-    // aspect:\'square\' — a card deck\'s cards are SQUARE (the XI ask): the
-    // media area keeps a 1:1 box, images cover it, words center in it
-    '.jg-media.sq figure{aspect-ratio:1;overflow:hidden;border-radius:6px;}' +
+    // the card-face menu (square / portrait / landscape — page-templates.js
+    // ASPECTS): the ratio is set INLINE per card so one deck can mix shapes;
+    // this class carries the rest — images cover the face, words center in
+    // it. width:100% is load-bearing: with only an aspect-ratio, the box
+    // resolves its width from the 58vh max-height instead.
+    '.jg-media.sq figure{overflow:hidden;border-radius:6px;}' +
     '.jg-media.sq img{width:100%;height:100%;max-height:none;object-fit:cover;}' +
-    // width:100% is load-bearing: with only aspect-ratio, the box resolves
-    // its width from the 58vh max-height and OVERFLOWS the screen (measured
-    // 472px wide at 390 — the card ran off the right edge)
-    '.jg-cardtext.sq{aspect-ratio:1;width:100%;display:flex;align-items:center;' +
+    '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
     '.jg-media{display:flex;gap:8px;justify-content:center;}' +
@@ -318,15 +318,20 @@
       cur = u.i; view = 'card'; render(true);
     }
 
-    // aspect:'square' (Aug 2026, the XI deck): a card deck's cards keep a 1:1
-    // face — images cover the square, words center in it
-    var sq = opts.aspect === 'square' ? ' sq' : '';
+    // the card-face menu (Aug 2026): square (the XI deck), portrait (a story
+    // fragment's rectangle), landscape. The page picks one; a single item
+    // may pick its own. Anything else keeps the item's natural shape.
+    var AR = { square: '1/1', portrait: '5/7', landscape: '7/5' };
+    function arOf(it) { return AR[it.aspect] || AR[opts.aspect] || ''; }
     function mediaHtml(it) {
+      var ar = arOf(it);
+      var sq = ar ? ' sq' : '';
+      var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';
       // a TEMPLATE item's words render ESCAPED — template data carries no
       // HTML by design (page-templates.js); `card` below stays page-authored
       // trusted HTML for hand-built judge pages
       if (it.text && !it.img && !it.pair && !it.card) {
-        return '<div class="jg-cardtext' + sq + '">' + esc(it.text) + '</div>';
+        return '<div class="jg-cardtext' + sq + '"' + ars + '>' + esc(it.text) + '</div>';
       }
       if (it.card) return '<div class="jg-cardtext">' + it.card + '</div>';
       if (it.pair) {
@@ -336,7 +341,7 @@
             + (p.full ? ' data-full="' + esc(p.full) + '"' : '') + '></figure>';
         }).join('') + '</div>';
       }
-      return '<div class="jg-media' + sq + '"><figure><img class="zoom" src="' + esc(it.img) + '"'
+      return '<div class="jg-media' + sq + '"><figure' + ars + '><img class="zoom" src="' + esc(it.img) + '"'
         + ' alt="' + esc(it.label || '') + '"'
         + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure></div>';
     }
