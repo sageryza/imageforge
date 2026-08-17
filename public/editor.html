@@ -169,6 +169,9 @@ const ICON = {
   // The Cutting Room's own glyph — a button that opens another tool wears
   // THAT tool's icon (design rule), and scissors is what its tile carries.
   scissors:'<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>',
+  // Cut Marks' glyph — its tile is SF Symbols `timeline.selection` (a
+  // selection box astride a timeline), hand-inlined the way brand glyphs are.
+  timesel:'<svg viewBox="0 0 24 24"><path d="M2 12h4"/><path d="M18 12h4"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 12h4"/></svg>',
 };
 const prevBtn = id => `<button class="icon play" data-prev="${esc(id)}" aria-label="Play preview">${ICON.play}</button>`;
 
@@ -764,6 +767,8 @@ function renderRenders() {
     <div class="card">
       <div class="row"><div class="grow tiny">${esc(new Date(r.at).toLocaleString())}${r.seconds ? ' · ' + Math.round(r.seconds) + 's' : ''}${r.cards ? ' · ' + r.cards + ' cards' : ''}</div>
       ${i === 0 ? '<span class="chip">newest</span>' : ''}
+      <button class="icon" data-cutmarks="${esc(r.url)}" data-cutname="${esc((ep.title || 'Episode') + ' — cut ' + cutNumber(r, n - i))}"
+        aria-label="Nudge the edges by ear in Cut Marks" title="Nudge the edges by ear in Cut Marks">${ICON.timesel}</button>
       <button class="icon" data-cutroom="${esc(r.url)}" data-cutname="${esc((ep.title || 'Episode') + ' — cut ' + cutNumber(r, n - i))}"
         aria-label="Take the pauses out in the Cutting Room" title="Take the pauses out in the Cutting Room">${ICON.scissors}</button></div>
       <audio controls preload="none" src="${esc(r.url)}"></audio>
@@ -781,6 +786,14 @@ function renderRenders() {
 // __navBack (Cutting Room: room → its list) and falls through to the web
 // view's own history, which lands back here. Same path Search already uses.
 $('#renders').addEventListener('click', (e) => {
+  // Cut Marks is the EXACT-CUT stop between word cut and polish: an edge the
+  // transcript cutter couldn't hear gets tapped and nudged by a tenth there.
+  const cm = e.target.closest('[data-cutmarks]');
+  if (cm) {
+    location.href = '/cutmarks?url=' + encodeURIComponent(cm.dataset.cutmarks)
+      + '&name=' + encodeURIComponent(cm.dataset.cutname);
+    return;
+  }
   const b = e.target.closest('[data-cutroom]');
   if (!b) return;
   location.href = '/cuttingroom?url=' + encodeURIComponent(b.dataset.cutroom)

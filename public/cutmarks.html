@@ -126,6 +126,8 @@
   .rrow{cursor:pointer}
   .rrow .save{color:var(--goldline); padding:8px; display:flex}
   .rrow .save svg{width:16px; height:16px}
+  .rrow .tool{color:var(--goldline); padding:8px; display:flex; background:none; border:none}
+  .rrow .tool svg{width:16px; height:16px}
 
   /* the transport lives centered right under the video/audio card (Sophie:
      "so it's right there"), not down in the bottom bar */
@@ -261,7 +263,7 @@
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="6" rx="2"/><path d="M9 6v12"/></svg></span><span>on a piece row, the scissors drop that piece and the curled arrow puts it back; ▶ plays just that piece</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></span><span>−.1 and +.1 nudge a mark by a tenth of a second; tapping its time jumps the playhead there</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span><span>undo the last change — tap again to step further back (marks and drops; renders never overwrite anything)</span></div>
-  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with the dropped pieces gone — the original is never touched. Audio cuts land in your audio library too.</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with the dropped pieces gone — the original is never touched. Audio cuts land in your audio library too, and the scissors on a finished cut send it on to the Cutting Room, where pauses and filler words come out on its transcript.</span></div>
 </div>
 
 <!-- confirm -->
@@ -648,9 +650,16 @@ function rebuild() {
   const renders = doc.renders || [];
   $('rendersWrap').hidden = !renders.length;
   if (renders.length) {
+    // A finished audio cut's next stop on the map is POLISH — the scissors
+    // (the Cutting Room's own tile glyph, the same button the Episode
+    // Editor's render rows carry) send it there. Video has nowhere to go:
+    // the Cutting Room is audio-only.
     $('renders').innerHTML = renders.map((r, i) => '<div class="rrow row" data-i="' + i + '" style="padding:9px 4px;border-top:1px solid var(--line)">'
       + '<div class="grow"><div style="font-weight:600;font-size:14px">' + fmt(r.seconds) + ' · ' + r.kept + ' pieces kept</div>'
       + '<div class="tiny">' + fmtDate(r.at) + ' · ' + r.removed + 's removed</div></div>'
+      + (doc.kind !== 'video'
+        ? '<button class="tool pol" data-u="' + esc(r.url) + '" aria-label="Take the pauses and filler out in the Cutting Room" title="Take the pauses and filler out in the Cutting Room">' + I.scis + '</button>'
+        : '')
       + '<a class="save" href="' + esc(r.url) + '" download title="Open the file">' + I.open + '</a></div>').join('');
     const first = $('renders').firstElementChild;
     if (first) first.style.borderTop = 'none';
@@ -742,6 +751,14 @@ function stopRenderPlayback() {
 }
 $('renders').onclick = (e) => {
   if (e.target.closest('.save')) return;   // the link does its own thing
+  const pol = e.target.closest('.pol');
+  if (pol) {
+    // hand the cut on to the Cutting Room — its /open is content-addressed,
+    // so tapping this twice resumes the same marking there
+    location.href = '/cuttingroom?url=' + encodeURIComponent(pol.dataset.u)
+      + '&name=' + encodeURIComponent((doc.title || 'Recording') + ' — cut');
+    return;
+  }
   const row = e.target.closest('.rrow'); if (!row) return;
   const r = (doc.renders || [])[Number(row.dataset.i)];
   if (!r) return;
@@ -827,8 +844,24 @@ window.__navBack = () => {
   return false;
 };
 
-const openId = localStorage.getItem('cutmarks_open');
-if (openId) enterRoom(openId); else showHome();
+// ── hand-off in: /cutmarks?url=…&name=…&kind=… ──────────────────────
+// Another room sending a finished file here for the by-ear pass — the
+// Episode Editor's and Cutting Blocks' render rows are the first two. /open
+// is content-addressed, so a url already opened before RESUMES that marking
+// instead of re-probing. The param is stripped once used: a reload should
+// land wherever she actually is, not yank her back into the handed-off file
+// (the Cutting Room's rule, copied exactly).
+const handoff = new URLSearchParams(location.search).get('url');
+if (handoff && /^https:\/\//.test(handoff)) {
+  const q = new URLSearchParams(location.search);
+  const handoffName = q.get('name') || 'Recording';
+  const handoffKind = q.get('kind') === 'video' ? 'video' : 'audio';
+  history.replaceState(null, '', location.pathname);
+  openMedia(handoff, handoffName, handoffKind, null, null);
+} else {
+  const openId = localStorage.getItem('cutmarks_open');
+  if (openId) enterRoom(openId); else showHome();
+}
 })();
 </script>
 </body>
