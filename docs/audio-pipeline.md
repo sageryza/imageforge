@@ -154,7 +154,8 @@ These are the ones worth building, and none of them is a missing button:
   episode id. The Episode Editor → Cutting Room hand-off passes a url and a
   name and nothing else, so marks, labels, speaker and order do not travel.
   Walking the whole S therefore means re-deciding the same things in four
-  places.
+  places. **A shape is proposed — see *The PROJECT across the rooms* below
+  (2026-08-17); it is waiting on Sophie's pick and must not be built first.**
 
 ## "Make everything point at each other" — what already does
 
@@ -171,24 +172,86 @@ of them is close to done:
 - Cutting Room → Story Room (`scratchpad.attachVoiceUrl`)
 - Episode Editor render → Cutting Room (the scissors, `editor.html`)
 
-**The two that are missing:**
+**The two that were missing — WIRED 2026-08-17:**
 
-- **Cut Marks is a dead end in BOTH directions.** It imports only utilities
-  from the editor (`audioDuration`, `uploadPublic`) — nothing hands off INTO
-  it but a raw url, and its renders hand off to nothing. It is stop 6 of 8,
-  in the middle of the road.
-- **Voice Studio hands off to nothing at all** (zero references in
-  `voicelab.js`). A rendered line has to be downloaded and re-uploaded by
-  hand — and VOICE is one of the two tributaries INTO blocks on the map, so
-  that connection does not exist yet.
+- ~~**Cut Marks is a dead end in BOTH directions.**~~ **Both directions exist
+  now.** The way in: `/cutmarks?url=…&name=…&kind=…` is a hand-off entry
+  (the Cutting Room's rule copied exactly — content-addressed resume, param
+  stripped once used), and both the Episode Editor's and Cutting Blocks'
+  render rows carry a Cut Marks button (its `timeline.selection` glyph) —
+  the exact-cut stop between word cut and polish, for the edge no transcript
+  cutter could hear. The way out: an audio render row's scissors send the
+  cut on to the Cutting Room (`/cuttingroom?url=`), the same button the
+  editor's render rows already carried. (Also measured while wiring: audio
+  renders were ALREADY filing into the audio library — `forge-audio`, batch
+  `cut-marks`, hash-deduped — so every room's source list could see them;
+  what was missing was the button, not the plumbing.) Video renders still
+  hand off to nothing: the Cutting Room is audio-only, and that is the
+  correct dead end until a video room exists downstream.
+- ~~**Voice Studio hands off to nothing at all.**~~ **VOICE → BLOCKS exists
+  now**, and it is the map's own arrow: a finished render's card (TTS and
+  voice-changed both) carries a Blocks button that unfolds her open Blocks
+  projects and lands the line in the tapped one — `POST /api/blocks/:id/line
+  { url, text }` files it as an added card whose voice is ALREADY rendered
+  (an `added` entry + its `ttsUrls` mp3, id minted transactionally so it can
+  never collide with one the page mints). Nothing is re-paid: the render's
+  Storage mp3 is the file the Blocks render concatenates.
+
+Cutting Blocks' render rows gained the same onward pair while the buttons
+were being made (Cut Marks + Cutting Room) — a finished cut at the top of
+the pipeline had the same missing next step.
 
 **(b) A PROJECT that carries state across the rooms — barely started.** This is
 the third structural hole above, and it is the big build: every room is
 content-addressed by its own source url, so marks, labels, speaker and order
-never travel.
+never travel. **A shape is PROPOSED below (2026-08-17) and is waiting on
+Sophie — do not build it before she has said which version she wants.**
 
 **Order matters: build the BLOCKS tool before wiring (a).** Wiring hand-offs
 into a Compare page means wiring the thing that is about to be replaced.
+
+## The PROJECT across the rooms — proposed shape (2026-08-17, AWAITING SOPHIE)
+
+Nothing here is built. This is the proposal for hole (b), written down so the
+chat that builds it starts from a decision instead of a blank page.
+
+**The observation that shrinks the problem: lineage is already derivable.**
+Every hand-off passes a render url, and each room content-addresses its doc by
+the source url it was opened on — so a render url in one room IS the source
+url of the next room's doc. Joining `renders[].url` in `forge-blocks` /
+`forge-cutroom` / `forge-cutmarks` / the editor's episodes against
+`source.url` in the others reconstructs the whole walk of any lineage with
+ZERO new state, no migration, and nothing that can drift. The wiring above
+makes this true for every hand-off that goes through a button.
+
+**Three versions, smallest first:**
+
+1. **The resolver only (derive, store nothing).** `GET /api/audio/walk?url=`
+   walks the joins both ways and answers the chain: which recording this
+   started as, which rooms it passed through, which cut it became. Each room's
+   page shows a one-line "came from · went on to" strip from it, tappable to
+   reopen the upstream/downstream doc. What it cannot do: carry a decision —
+   the title is still re-typed per room and the speaker map still lives only
+   in Blocks.
+2. **A light project id threaded through the hand-offs.** Version 1, plus:
+   the first room mints `forge-audio-projects/<id>` holding `title`, a
+   `speakers` map (Blocks' `whoOver` seeds it), and the trail; every hand-off
+   appends `&project=<id>` and each room stamps `project` on its own doc and
+   READS the title/speakers instead of re-asking. Names travel; geometry does
+   not. A room opened raw (no param) just has no project — nothing breaks.
+3. **Marks travel too.** Deliberately NOT proposed: the rooms' coordinate
+   systems are different on purpose (word ranges over a transcript, seconds
+   on a clock, cards over blocks), every real cut re-listens anyway, and
+   translating marks between them is where the bugs would live — the
+   two-tier timing rule exists precisely because bulk timings don't survive
+   a room change.
+
+**The recommendation is 2** — it is 1 plus one small doc, it kills the
+re-deciding (the same title typed four times, the speaker decided twice), and
+it leaves each room's marking machinery exactly as it is. But it is Sophie's
+call, and the question for her is one line: *should a project carry just the
+name and who-speaks across the rooms (cheap, recommended), or do you want
+your marks to follow you too (expensive, and each room re-listens anyway)?*
 
 ## The Search index runs behind the memo archive (measured 2026-08-15)
 
