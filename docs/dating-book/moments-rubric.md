@@ -11,19 +11,29 @@
 
 1. **3 moments + 3 backups.** Each moment = one line of what happened, a
    CAPTION, and an image PROMPT (see below).
-2. **A TIMELINE** — the raw events of the date in order, arrow-separated
-   ("coffee house → bus → his house → pasta → …"). Extract only; illustration
-   of timelines comes later. One per date.
+2. **A TIMELINE — TWO LENGTHS (her ask after griffin)** — the raw events of
+   the date in order, arrow-separated. A SHORT one (bare stops: "coffee house
+   → bus → his house → pasta → motorcycle → goodbye") and a LONG one with
+   the parenthetical detail per stop. Extract only; illustration comes later.
 3. **A CAPTION per moment** — **bold title** on top, *italic line* under it.
    **The register is funny — snarky or self-deprecating is welcome (Sophie,
    Aug 2026):** the line is taken out of context, so it's disconnected from
    the source and judged less — that's the opportunity. Her worked example
    for the cheese grater: *"I was starting to understand why he didn't get
    along with his roommate."* Rules of the register:
+   - **CLARITY FIRST (her correction after griffin — "I think you
+     overcorrected with the snarkiness"): what the moment actually WAS must
+     be clear.** Sometimes the moment is funny enough alone and needs no
+     context; sometimes it makes no sense without context and the caption's
+     job is to plainly supply it (Centimeters: *"he would only give me his
+     height in centimeters"* — that IS the joke).
    - Her journal line verbatim WHEN it already lands (*"I was a sloth, not
      moving at all, waiting for this torture to be over"* needs nothing).
    - A punched-up or composed line is ALLOWED — but in her deadpan, wry
-     voice, and flagged as composed when delivered so she can veto.
+     voice, restrained, and flagged as composed when delivered so she can
+     veto. Her rewrite of an overcooked one, for calibration: chalkboard of
+     polite ways to say no → *"turns out even if it's written down it still
+     hurts"*.
    - No Claude-isms (see `docs/witch-school-lessons.md` voice rules): no
      negation-pivot, no mic-drop closers, no profound-simplicity.
 4. **STATISTICS** — gather per date, for the book's charts:
@@ -48,6 +58,13 @@
   satisfying to see it really exist, makes it less amorphous.
 - A caption can carry a moment whose image is only okay; if the caption is
   doing all the work, keep looking.
+- **PAIRING: an image may put two things together that sat together in the
+  scene** (her example via ChatGPT's pass: the lego collection next to the
+  egg breakfast plate; same shape: the pancake plate next to his little
+  speaker). Use when the pair tells the story better than either alone.
+- **A metaphor moment can be tried BOTH ways** — e.g. the griffin sloth as
+  humans pretending to be animals AND as actual animals cuddling; render
+  both, she picks (both are kept in the gallery regardless).
 
 ## Style — the prompt recipe (moments)
 
@@ -72,9 +89,9 @@ that doc should be updated — flag, don't silently rewrite it.
 ## Cast notes (for prompts that show the man)
 
 - **David (the cheese grater date):** striking red hair, very pale skin,
-  looked boyish ("kind of like a little boy") though 22. His height is
-  unknown BY DESIGN — he'd only give it in centimeters; never put a height
-  in his prompts.
+  looked boyish ("kind of like a little boy") though 22. 5'8" (Sophie does
+  know — the centimeters thing was the date's joke, not a permanent mystery).
+  Still no need for height in prompts.
 
 ## Process
 
