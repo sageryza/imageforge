@@ -100,9 +100,18 @@
     '.jg-momtop{display:flex;align-items:center;justify-content:flex-end;gap:10px;' +
     ' padding:14px 0 0;}' +
     '.jg-pilesbtn{border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;' +
-    ' font:600 12px/1 -apple-system,sans-serif;padding:7px 14px;border-radius:10px;}' +
+    ' font:600 12px/1 -apple-system,sans-serif;padding:7px 14px;border-radius:8px;' +
+    ' display:flex;align-items:center;justify-content:center;}' +
+    // EVERY GLYPH IS CENTRED IN ITS OWN BUTTON (Aug 2026, her report: "the
+    // heart and the ex are not aligned with their buttons and neither is the
+    // ?"). compare.css's global `button` rule sets display:inline-flex and
+    // align-items:center but NO justify-content, so a button with a fixed
+    // width holds its glyph against the left edge — invisible on a button
+    // that hugs its words, obvious on a 62px square. Any fixed-size button
+    // here has to say justify-content:center itself.
     '.jg-momq{width:30px;height:30px;border-radius:50%;border:1px solid #DDD3C0;' +
-    ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;}' +
+    ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;' +
+    ' display:flex;align-items:center;justify-content:center;}' +
     // her boxes sit straight on the cream — the house card chrome disappears,
     // and the stack takes the middle of the screen, centred like her mockup.
     // `safe center` so a stack taller than the screen scrolls INSIDE this box
@@ -125,9 +134,13 @@
     // had it, next to Piles; inside the stack it drifts to mid-screen on a
     // tall phone, which is a lot lower down). Pinned here it always sits the
     // same distance under the Piles row, whatever the card holds.
-    '.jg.mom>.who,.jg-mom .who{text-align:center;padding:10px 0 4px;' +
-    ' font:600 22px/1.25 Newsreader,Georgia,\'Times New Roman\',serif;color:#262016;}' +
-    '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;' +
+    // …and it is her RUST, in the sans, sitting a little further down (her
+    // ask — the one part of the card that is deliberately NOT the mockup's
+    // serif, so the name reads as a label over the moment rather than as
+    // more of the writing)
+    '.jg.mom>.who,.jg-mom .who{text-align:center;padding:22px 0 4px;' +
+    ' font:600 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;}' +
+    '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:10px;' +
     ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
     '.jg-mombox .eyebrow{font:700 10px/1.3 -apple-system,sans-serif;' +
     ' letter-spacing:.14em;text-transform:uppercase;color:#C25E4C;}' +
@@ -140,7 +153,7 @@
     '.jg-mombox .cap{margin:0;font:italic 500 16px/1.4 Newsreader,Georgia,' +
     ' \'Times New Roman\',serif;color:#262016;}' +
     // a picture rides in the stack as its own rounded panel, the boxes\' radius
-    '.jg-mom figure{margin:0;overflow:hidden;border-radius:16px;' +
+    '.jg-mom figure{margin:0;overflow:hidden;border-radius:10px;' +
     ' border:1px solid rgba(0,0,0,0.06);}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
@@ -153,15 +166,16 @@
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
     '.jg.mom .jg-piles h2:first-child{margin-top:14px;}' +
-    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:17px;' +
+    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:10px;' +
     ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
-    ' font-size:21px;line-height:1;padding:0;}' +
+    ' font-size:21px;line-height:1;padding:0;' +
+    ' display:flex;align-items:center;justify-content:center;}' +
     // the ♥ draws optically smaller than the ✕ at the same size — 24px reads
     // as the mockup\'s 21px ✓ did
     '.jg-mombtn.yes{font-size:24px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
     '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
-    ' border-radius:14px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
+    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
     ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-momnote::placeholder{color:#A99E8B;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +

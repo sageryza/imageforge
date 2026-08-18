@@ -526,6 +526,21 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the page already shows the page's name, so the `<h1>` was the name
       twice, the second time in 26px serif eating the top third of the
       screen. The `<title>` tag still names it in a browser tab.
+    - **Every fixed-size button says `justify-content:center` ITSELF**
+      ("the heart and the ex are not aligned with their buttons and neither
+      is the ?"). `compare.css`'s global `button` rule sets
+      `display:inline-flex; align-items:center` but no `justify-content` —
+      harmless on a button that hugs its words, and a visible mistake on a
+      62px square, where the glyph sits against the left edge. Anything
+      giving a button a fixed width here has to centre its own contents.
+    - **Her radii came DOWN from the mockup at her ask** ("make all the
+      rounded corners a little bit less rounded and more square"): boxes and
+      the ✕/♥ 10px, the note box 9px, Piles 8px — partway from her mockup's
+      16/17/14 toward the house 6px, not all the way.
+    - **The NAME is her rust, in the SANS** (asked for after seeing it live):
+      `#C25E4C`, `-apple-system`, sitting a little further down. It is the
+      one part of the card deliberately not in the Newsreader serif — the
+      moment, the caption and everything else still are.
     - **One gutter, so the rows line up** ("lots of things are
       misaligned"). The moment deck fills the viewport (`100dvh`, nothing
       scrolls) and every row — progress line, Piles, boxes, footer ✕/♥ —
