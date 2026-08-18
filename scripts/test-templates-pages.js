@@ -311,11 +311,16 @@ setTimeout(function(){
   ok(!!mom, 'a card with parts renders in the moment style');
   ok(getComputedStyle(document.body).backgroundColor==='rgb(247, 242, 232)',
      'the page wears her cream (#F7F2E8), not the house paper');
-  var who=mom.querySelector('.who'), eb=mom.querySelector('.eyebrow');
+  // the name is pinned in the top chrome, under the Piles row — not inside
+  // the centred stack, where it would drift to mid-screen on a tall phone
+  var who=m.querySelector('.jg.mom>.who'), eb=mom.querySelector('.eyebrow');
   var wr=who.getBoundingClientRect(), mr=mom.getBoundingClientRect();
   var cLeft=mr.left+mom.clientLeft, cMid=cLeft+mom.clientWidth/2;
   ok(Math.abs((wr.left+wr.right)/2-cMid)<2, 'the name is CENTRED');
   ok(eb.getBoundingClientRect().top>wr.bottom, 'the name sits ABOVE the eyebrow — lower down the card');
+  var topRow=m.querySelector('.jg-momtop').getBoundingClientRect();
+  ok(wr.top>=topRow.bottom-1 && wr.top-topRow.bottom<40,
+     'it sits just under the Piles row — a little lower, not mid-screen');
   ok(getComputedStyle(who).fontFamily.indexOf('Newsreader')>=0, 'the name is her Newsreader serif');
   var boxes=mom.querySelectorAll('.jg-mombox');
   ok(boxes.length===3 && !mom.querySelector('hr'),
@@ -329,12 +334,34 @@ setTimeout(function(){
      'the caption box is labelled Caption (her v2 word)');
   ok(document.documentElement.scrollWidth<=document.documentElement.clientWidth,
      'nothing overflows the screen');
+  // ONE SCREEN: her design does not scroll, and no autoscroll pill rides it
+  ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
+     'the page does not scroll — it is one screen');
+  ok(!document.querySelector('.float')
+     && !!document.querySelector('meta[name="forge-pill"][content="off"]'),
+     'no autoscroll pill on a deck — there is nothing to scroll');
+  ok(!document.querySelector('h1'),
+     'no page title of its own — the app header already names it');
   // her chrome: progress line + Piles + ? up top, her footer below the card
   ok(!!m.querySelector('.jg-prog i') && !!m.querySelector('.jg-pilesbtn')
      && !m.querySelector('.jg-count') && !m.querySelector('[data-act="undo"]'),
      'her top chrome: progress line and Piles, no count and no undo');
   var row=m.querySelector('.jg-momrow');
   var btns=row?row.querySelectorAll('.jg-mombtn'):[];
+  // EVERY ROW ON THE SAME EDGES — the misalignment she reported
+  var L0=Math.round(boxes[0].getBoundingClientRect().left);
+  var R0=Math.round(boxes[0].getBoundingClientRect().right);
+  var prog=m.querySelector('.jg-prog').getBoundingClientRect();
+  var q=m.querySelector('.jg-momq').getBoundingClientRect();
+  ok(Math.round(prog.left)===L0 && Math.round(prog.right)===R0,
+     'the progress line spans the boxes\\' width');
+  ok(Math.abs(Math.round(q.right)-R0)<=1,
+     'the ? ends on the boxes\\' right edge — got '+Math.round(q.right)+' vs '+R0);
+  ok(Math.abs(Math.round(btns[0].getBoundingClientRect().left)-L0)<=1
+     && Math.abs(Math.round(btns[1].getBoundingClientRect().right)-R0)<=1,
+     'the ✕ and ♥ sit on the boxes\\' own edges');
+  ok(Math.round(row.getBoundingClientRect().bottom)<=window.innerHeight,
+     'the footer sits on the screen, not below it');
   ok(row && btns.length===2 && btns[0].textContent==='✕' && btns[1].textContent==='♥'
      && !m.querySelector('.jg-btn'),
      'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
@@ -353,7 +380,8 @@ setTimeout(function(){
     var m2=document.querySelector('.jg-mom');
     ok(m2 && !m2.querySelector('.eyebrow') && m2.querySelectorAll('.jg-mombox').length===1,
        'a one-text card shows a single box, no empty parts');
-    ok(!!m2.querySelector('.who') && !!m2.querySelector('.moment'), 'it still shows name + words');
+    ok(!!document.querySelector('.jg.mom>.who') && !!m2.querySelector('.moment'),
+       'it still shows name + words');
     // her note box: typing saves onto this card's thread
     var nb=document.querySelector('.jg-momnote');
     nb.value='too sweet'; nb.dispatchEvent(new Event('input'));

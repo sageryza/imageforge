@@ -498,7 +498,11 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     boxes — "Illustration", …), `img`, then `caption` (an italic quote under
     `captionLabel`, default "Caption"). A card carrying any of
     who/eyebrow/sections/caption gets this look automatically;
-    `style:'moment'` opts plain text cards in too. **A moment deck wears the
+    `style:'moment'` opts plain text cards in too. **The date's NAME is drawn
+    in the page's top chrome, one row under "Piles" — not inside the card**
+    (her ask was "a little bit lower down and centered"; inside the centred
+    stack it drifts to mid-screen on a tall phone, which is a lot lower
+    down). **A moment deck wears the
     whole mockup chrome** (her second choice, asked and answered Aug 2026):
     the thin progress line + "Piles" + "?" replace the count/undo top row,
     and each date card's footer is her ✕ · "Note for Claude…" box · ♥
@@ -506,6 +510,31 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     yes/no (piles named Yes/No/Unsure, the mockup's words), no maybe/later,
     no mic and no corner note +. The note box saves through the same
     verdict-doc thread and Assets-tab mirror as the + note everywhere else.
+  - **A DECK IS ONE SCREEN, SO IT CARRIES NO AUTOSCROLL PILL AND — when it
+    is a moment deck — NO TITLE OF ITS OWN (Aug 2026, her report on the live
+    date deck: "the auto scroll pill is still there, but it doesn't need to
+    be because the page doesn't scroll at all… you added an extra header at
+    the top and very big font").** Three leftovers of the generic page
+    skeleton, all fixed in `renderTemplatePage`/judge.js, and worth knowing
+    before building anything else that lives on one screen:
+    - **The pill.** `renderTemplatePage` emits the pill's own head-safe
+      opt-out (`<meta name="forge-pill" content="off">`) for every `deck`
+      page — one card at a time never scrolls, so the pill was chrome with
+      nothing to drive, parked over the top-right corner. **The `grid`
+      template does scroll and keeps its pill.**
+    - **The `<h1>`.** A moment deck renders none: the app's own header above
+      the page already shows the page's name, so the `<h1>` was the name
+      twice, the second time in 26px serif eating the top third of the
+      screen. The `<title>` tag still names it in a browser tab.
+    - **One gutter, so the rows line up** ("lots of things are
+      misaligned"). The moment deck fills the viewport (`100dvh`, nothing
+      scrolls) and every row — progress line, Piles, boxes, footer ✕/♥ —
+      shares the same 22px gutter, where the old layout had three different
+      left edges (compare.css's `.wrap` padding, a 56px pill reservation, a
+      centred footer). The stack centres itself in what's left with
+      `justify-content:safe center` and scrolls INSIDE its own box when a
+      card is too tall — with `scrollbar-width:none`, because a 15px desktop
+      scrollbar inside that box pulls the cards off everyone else's edge.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,
