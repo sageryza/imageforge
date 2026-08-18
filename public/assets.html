@@ -64,16 +64,35 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .asearch input:focus{outline:none; border-color:var(--rose);}
 .asearch input::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
 .qclear{position:absolute; right:2px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
-.assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
-.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; text-align:left;}
+/* minmax(0,1fr), NOT bare 1fr, and min-width:0 down the chain (found live
+   2026-08-18 on Sophie's phone, second visit): a bare 1fr track can never
+   shrink below its content's automatic minimum size, and in WebKit the
+   nowrap .who line's minimum is the FULL untruncated chat name (~200px) —
+   the max-width:100% clamp is indefinite during intrinsic sizing there — so
+   every tile blew out to the longest chat name on the page and the grid ran
+   ~630pt wide on a 390pt screen ("every image way too big", panning
+   sideways). Chromium clamps that minimum, which is why no headless test
+   reproduced it. minmax(0,1fr) caps each track at a third of the container
+   BY CONSTRUCTION, whatever any engine thinks the content wants. */
+.assetgrid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:.4em 0 2em;}
+.assetgrid .acell{min-width:0;}
+.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; text-align:left; min-width:0;}
+/* The TILE button needs an explicit width: a <button> shrink-wraps to its
+   content even as display:flex (it never stretches like a div), so the
+   nowrap chat-name line inflated it to the string's width and the image
+   followed at 100% of that. Scoped off the ♥/✕ circles — this selector on
+   the bare `button` outranks .vote and a width there stretched the circles
+   across the tile (both halves caught by the headless test). */
+.assetgrid .acell>button:not(.vote){width:100%;}
 .assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
 /* Two lines on the tile, no more (Sophie, Aug 2026) — the full text lives in
    the lightbox caption. */
 .assetgrid .lbl{font-size:11px; line-height:1.3; color:var(--ink2); margin-top:3px; text-align:left; word-break:break-word;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-/* the one addition: whose tab this tile lives in */
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-width:0; max-width:100%;}
+/* the one addition: whose tab this tile lives in. min-width:0 — a nowrap
+   flex item's automatic minimum is the whole string; see the grid note. */
 .assetgrid .who{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--ink2); opacity:.75; margin-top:2px; text-align:left; max-width:100%;
+  color:var(--ink2); opacity:.75; margin-top:2px; text-align:left; max-width:100%; min-width:0; align-self:stretch;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .assetgrid .acell{position:relative;}
 .vote{width:29px; height:29px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
