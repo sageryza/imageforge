@@ -2220,3 +2220,34 @@
     the row renders, is tappable where it is drawn, a link pin opens instead of
     embedding, the tag shows on a fresh pin and stays off a stale one and off
     an uncounted one — verified failing without the feature).
+  - **TAP-TO-NOTE on a pinned FILM (Aug 2026, Sophie: "I watch the video but I
+    can tap it and then the video pauses and a field comes up where I can
+    write a note and then once I tap done, the video keeps playing and the
+    note disappears and gets sent to you or whatever chat I'm using it for
+    because this could be reusable not just for this").** Built INTO the
+    full-screen player (`openPinned`), so every chat that pins a film gets it
+    with zero setup — that is the reusable half of her ask.
+    - **The tap layer stops above the native control bar** (bottom 24% left
+      uncovered): play, scrub and the close ✕ stay reachable; a tap anywhere
+      on the picture pauses and raises the sheet.
+    - **Every note carries the video position** — the sheet shows "Note at
+      0:41" and the filed text leads with `[0:41]`, so "towards the beginning"
+      arrives as a timestamp the chat can act on without guessing.
+    - **Notes land on the FILM's own url thread** via the asset-note machinery
+      (`POST /api/gallery/assets/note`, from `sophie`) — the same
+      `forge-asset-votes` docs the picture notes use, so a chat's normal sweep
+      (`GET /api/gallery/assets/notes?chat=`) finds film notes with no new
+      reader, and it answers ON the note exactly like an image note. Nothing
+      new is filed anywhere; the route takes any url.
+    - **The mic files a VOICE note**: recorded in the sheet (the judge deck's
+      MediaRecorder pattern), uploaded and transcribed server-side
+      (`POST /api/gallery/assets/note-voice` — gpt-4o-mini-transcribe, the
+      mechanical-extraction model), appended as `[0:41] words (voice: url)`
+      on the same thread. The recording is kept; the transcript is a
+      convenience, never a replacement.
+    - **Done with an empty box is a Cancel**, not an error — she tapped to
+      pause, changed her mind, the film just resumes. Films only: an audio
+      pin draws no tap layer.
+    - Test: `node scripts/test-chats-film-note.js` (the real page, headless —
+      the layer's geometry vs the control bar, pause + stamp, the POST body,
+      resume on Done and Cancel, films-only).

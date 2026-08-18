@@ -2576,6 +2576,56 @@ app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
   }
 });
 
+// A VOICE note on a film's thread (Aug 2026 — the tap-to-note player on a
+// pinned film; chats.html records, this uploads + transcribes and appends
+// "[video time] words (voice: url)" onto the same forge-asset-votes thread the
+// typed notes use, so a chat's normal notes sweep finds both). The recording
+// itself is kept — the transcript is a convenience, never a replacement.
+// Transcription is mechanical extraction, so gpt-4o-mini-transcribe is right
+// here (the which-model rules).
+app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, url, t, audio } = req.body || {};
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
+    if (!m) return res.status(400).json({ error: 'audio must be a data:audio/… URL' });
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length) return res.status(400).json({ error: 'empty recording' });
+    const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`film-notes/${require('crypto').createHash('sha1').update(String(url)).digest('hex').slice(0, 12)}-${Date.now()}.${ext}`);
+    await file.save(buf, { contentType: m[1].split(';')[0], resumable: false });
+    await file.makePublic();
+    const voiceUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    let transcript = '';
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const form = new FormData();
+        form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `note.${ext}`);
+        form.append('model', 'gpt-4o-mini-transcribe');
+        const r = await globalThis.fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: form,
+        });
+        const tr = await r.json();
+        if (tr && tr.text) transcript = String(tr.text).trim().slice(0, ASSET_NOTE_MAX - 200);
+      } catch (err) { console.error('film note transcription failed:', err.message); }
+    }
+    const stamp = /^\d+:\d\d$/.test(String(t || '')) ? `[${t}] ` : '';
+    const line = `${stamp}${transcript || '(voice note)'} (voice: ${voiceUrl})`;
+    const ref = assetVoteRef(chat, url);
+    const out = await appendAssetMessage(ref, chat, url, 'sophie', line);
+    res.json({ ok: true, url: voiceUrl, transcript, message: out.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Every image in this chat that has a note thread — what a chat reads to find
 // what Sophie asked and what it already answered. Images she never wrote on are
 // omitted, so this stays small next to the full assets list. `waiting:'chat'`
