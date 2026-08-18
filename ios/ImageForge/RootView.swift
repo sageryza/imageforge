@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline, review
     var id: String { rawValue }
 
     var title: String {
@@ -43,6 +43,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
         case .timeline:  return "Story Timeline"
+        case .review:    return "Review Queue"
         }
     }
 
@@ -81,6 +82,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
+        case .review:    return "Everything still waiting on your swipe — one pile."
         }
     }
 
@@ -142,6 +144,9 @@ enum Tool: String, CaseIterable, Identifiable {
         // Moments stacked in an order, with one of them picked up — the whole
         // tool is moving a card up and down a list.
         case .timeline:  return "list.bullet.indent"
+        // A list with check marks — the pile of things waiting to be worked
+        // through. Distinct from .lessons' plain grid and .timeline's list.
+        case .review:    return "checklist"
         }
     }
 
@@ -212,6 +217,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
         case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent")
                             .forgeToolBar("Story Timeline")
+        // Review Queue: rows link OUT to the decks and grids themselves, so it
+        // gets its own wrapper (in-view navigation + history-stepping chevron)
+        // rather than GatedWebTool, which bounces off-path links to Safari.
+        case .review:    ReviewQueueView()
         }
     }
 }
@@ -536,6 +545,8 @@ struct RootView: View {
             if t == .chunking { return false }
             // Story Timeline is served with { pill: true } as well.
             if t == .timeline { return false }
+            // Review Queue is served with { pill: true } as well.
+            if t == .review { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills
             // drew and the speed label read "Fast" twice (Sophie's

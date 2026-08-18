@@ -375,6 +375,7 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
+  app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
@@ -759,6 +760,10 @@ app.get('/timeline', serveGated('timeline.html', { pill: true }));
 // quieter ones under them, each carrying the pictures that chat made and the
 // Compare pages it posted. Reads /api/brief; writes nothing.
 app.get('/brief', serveGated('brief.html', { pill: true }));
+// Review Queue: every deck/grid template page still waiting on her, with how
+// far through each she is. Reads /api/review; the only write is her own ✕
+// ("not a review", a reviewHidden stamp on the page doc).
+app.get('/review', serveGated('review.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
