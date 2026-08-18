@@ -768,6 +768,8 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
 .noterow .noteshow{color:var(--ink2); font-style:italic; cursor:pointer; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* the waiting-for line sits above her note in the thread, same italic voice */
+.noterow .waitline{color:var(--ink); font-style:italic; margin:0 0 2px;}
 .noterow .noteshow.has{color:var(--ink);}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
@@ -965,6 +967,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
 .askbox .arctags + .orggrp{margin-top:2px;}
+/* THE WAITING-FOR LINE (Aug 2026) — her answer to the box the `waiting for
+   something` tag opens. Bold prefix, her words plain, in the same italic note
+   voice as everything else on that row; tappable in both places it appears. */
+.waitline{display:block; cursor:pointer;}
+.waitline b{font-style:normal;}
+.waitedit{display:block; width:100%; text-align:left; background:none; border:0;
+  padding:8px 0 0; margin:0; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2);}
+.waitedit b{color:var(--ink);}
 /* The one line under the Organize chips, and the note on the sheet it opens
    (Aug 2026). Plain text, not a button-looking thing: most days there is
    nothing to change in there, and it is really a sentence that happens to be
@@ -1608,6 +1619,8 @@ paintPill();
 
 
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// The open thread's note repainter — see where it is set, in openChat.
+var threadNote=null;
 // Feed-wide settings from the server (registry __settings doc). appAccount =
 // which Claude account is signed into the iOS app right now ("1"/"2").
 var settings={};
@@ -1820,8 +1833,15 @@ function statusLinesHtml(name, fallback){
   // supersede a line she wrote herself, which is why it is its own field and
   // not stored in `sophieNote`. It sits ABOVE need/doing because an archived
   // chat has no live ask worth reading.
+  // WAITING FOR WINS THE LINE while it is set (Aug 2026, her ask: it "gets
+  // added to the note for the chat at the top"). Only one line shows on a row,
+  // and this is the most specific thing she has deliberately typed about the
+  // chat — it also disappears by itself when she takes the tag off, which her
+  // note never does. Her note is still the line underneath it in the thread.
+  var wait=waitingHtml(name);
   var line=st.note || st.wrap || st.need || st.doing || fallback || '';
-  var out=line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
+  var out=wait ? '<span class="cr-note">'+wait+'</span>' : '';
+  if(!wait && line) out='<span class="cr-note">'+esc(line)+'</span>';
   // v11 hook telemetry (Aug 2026): the turn-start ping carries the installed
   // hook's md5 and the server marks the chat stale when it isn't the current
   // one — so Sophie sees WHICH chats need the self-heal paste instead of
@@ -3179,6 +3199,27 @@ var PILE_SEEDS=['look at','stories','come back to','witch','tech','xi',
 // The one word that ALSO routes: a chat carrying it becomes a row in the Review
 // Queue at /review, her pile of everything waiting on her.
 var REVIEW_LABEL='to be reviewed';
+// ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+// condition for the `waiting for something` tag — it should also trigger a text
+// box that asks me what is it waiting for, and then that gets added to the note
+// for the chat at the top: it says in bold `Waiting for:` and then my
+// content") -----------------------------------------------------------------
+// The tag on its own says a chat is stuck and nothing else; waiting on WHAT was
+// in her head and nowhere on the screen. Her answer lives in `waitingFor` and
+// NOT in `sophieNote` — a chat must never overwrite a line she wrote — and the
+// server clears it the moment the tag comes off, so a stale wait can't outlive
+// the thing it was waiting for. Copies of the server's constants, pinned equal
+// by a test, same as PILE_SEEDS.
+var WAIT_LABEL='waiting for something';
+var WAIT_ASK='What is it waiting for?';
+var WAIT_PREFIX='Waiting for:';
+function waitingOf(name){ return String((chats[name]&&chats[name].waitingFor)||'').trim(); }
+// The line itself, bold prefix + her words. One renderer, so the home row and
+// the thread can never word it differently.
+function waitingHtml(name){
+  var v=waitingOf(name);
+  return v ? '<b>'+esc(WAIT_PREFIX)+'</b> '+esc(v) : '';
+}
 function pileList(){
   var p=settings&&settings.pileLabels;
   return Array.isArray(p) ? p.slice() : PILE_SEEDS.slice();
@@ -3545,7 +3586,8 @@ function saveLabels(names, opt, done){
   var prev={};
   names.forEach(function(n){
     var r=chats[n]=chats[n]||{};
-    prev[n]={labels:chatLabels(n), at:r.filedAt||'', cat:r.category, tags:r.tags};
+    prev[n]={labels:chatLabels(n), at:r.filedAt||'', cat:r.category, tags:r.tags,
+      waiting:r.waitingFor||''};
     var next;
     if(opt.set) next=opt.set.slice();
     else {
@@ -3554,6 +3596,10 @@ function saveLabels(names, opt, done){
     }
     r.labels=next; r.tags=next.slice(); r.category=next[0]||'';
     if(next.length) r.filedAt=new Date().toISOString(); else delete r.filedAt;
+    // The waiting-for answer belongs to the TAG — the server drops it in
+    // labelPatch when the word goes, and the optimistic copy has to agree or
+    // the line survives the tag until the next reload.
+    if(next.indexOf(WAIT_LABEL)<0) delete r.waitingFor;
   });
   // Remember any new word locally too, or the chip vanishes again the moment
   // the optimistic write is the only thing carrying it — the empty-folder bug
@@ -3573,6 +3619,7 @@ function saveLabels(names, opt, done){
         if(prev[n].tags===undefined) delete r.tags; else r.tags=prev[n].tags;
         if(prev[n].cat===undefined) delete r.category; else r.category=prev[n].cat;
         if(prev[n].at) r.filedAt=prev[n].at; else delete r.filedAt;
+        if(prev[n].waiting) r.waitingFor=prev[n].waiting;
       });
       if(opt.repaint) opt.repaint();
       renderHome(); toast('Couldn\u2019t save that');
@@ -4943,8 +4990,16 @@ function openChat(name, keepScroll, focusId, noFetch){
   nrow.appendChild(qbtn);
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
-    nwrap.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
+    // The waiting-for line sits ABOVE her note rather than replacing it — this
+    // is the one place with room for both, and they are two different things
+    // (one belongs to the tag and clears with it, the other is hers). Tapping
+    // it re-opens the same box the tag opened.
+    var w=waitingHtml(name);
+    nwrap.innerHTML=(w? '<span class="waitline">'+w+'</span>' : '')
+      +'<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
     nwrap.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+    var wl=nwrap.querySelector('.waitline');
+    if(wl) wl.onclick=function(){ askWaiting(name, paintNote); };
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
@@ -4966,6 +5021,11 @@ function openChat(name, keepScroll, focusId, noFetch){
     ta.addEventListener('blur',save);
   }
   paintNote();
+  // The sheets that can change this line (Organize, and the waiting-for box)
+  // live outside openChat, and renderHome only repaints the LIST — so without
+  // this the note row keeps whatever it was painted with when the thread
+  // opened, and her answer only appears after a reload.
+  threadNote=paintNote;
   chatPanel.appendChild(nrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
   // The messages live in their OWN box so the Questions list can take their
@@ -5699,6 +5759,58 @@ function openPage(p){
 //
 // Tagging a chat takes it off the unfiled home list by design, so the toast
 // names the word: otherwise picking one looks like the chat vanished.
+// WHAT IS IT WAITING FOR — the box the `waiting for something` tag opens (Aug
+// 2026, Sophie: "it should also trigger a text box that asks me what is it
+// waiting for, and then that gets added to the note for the chat at the top").
+//
+// Opens on the tap that puts the tag ON, and again from the line itself when
+// she wants to change it. Prefilled, because arriving empty on a chat that
+// already says what it is waiting for reads as an invitation to retype it.
+// Saving empty just leaves the tag with nothing written under it — the tag is
+// hers to remove, not this box's.
+function askWaiting(name, after){
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq'; q.textContent=WAIT_ASK;
+  box.appendChild(q);
+  var inp=document.createElement('input'); inp.type='text'; inp.className='arcnote';
+  inp.maxLength=200; inp.value=waitingOf(name);
+  inp.placeholder='the API key, her go-ahead, Tuesday…';
+  inp.setAttribute('aria-label', WAIT_ASK);
+  box.appendChild(inp);
+  var was=waitingOf(name), saved=was;
+  function save(){
+    var nv=inp.value.replace(/\s+/g,' ').trim();
+    if(nv===saved) return;
+    saved=nv;
+    chats[name]=chats[name]||{}; chats[name].waitingFor=nv||null; saveCache();
+    api('/api/chatfeed/waiting',{method:'POST',body:JSON.stringify({chat:name, text:nv})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        chats[name].waitingFor=was||null; saved=was; saveCache();
+        toast('Couldn\u2019t save that');
+      });
+  }
+  // `liveInput` because iOS DICTATION can fill a field without ever firing
+  // `input` — she never types — and it also fires on blur. Save again on the
+  // way out for the tap that goes straight from the box to Done.
+  liveInput(inp, save);
+  var arow=document.createElement('div'); arow.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){
+    save(); wrap.remove(); if(after) after();
+    if(threadNote) threadNote();
+    renderHome();
+  }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  arow.appendChild(done); box.appendChild(arow);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap);
+  setTimeout(function(){ inp.focus(); }, 30);
+}
+
 // WHICH WORDS FILE A CHAT AWAY (Aug 2026, Sophie: "tagging shouldn't hide
 // everything, or maybe just for certain categories … whereas other ones
 // shouldn't take it off the main feed"). Every word in the vocabulary, lit if
@@ -5812,6 +5924,11 @@ function askOrganize(name){
   function setLabel(c, on){
     saveLabels([name], on?{add:[c],repaint:paintLabels}:{remove:[c],repaint:paintLabels});
     paintLabels();
+    // ONE WORD ASKS A QUESTION — `waiting for something` wants to know what.
+    // The box opens on the tap that puts it on; taking the tag off clears the
+    // answer (the server does that in labelPatch, and so does saveLabels here).
+    if(on && c===WAIT_LABEL){ askWaiting(name, paintWait); }
+    paintWait();
     // THE TOAST SAYS WHICH KIND OF WORD IT WAS. A pile takes the chat off the
     // main list and a plain tag does not, and the two look identical as chips —
     // so the sentence she reads at the moment of tapping is where that shows.
@@ -5823,10 +5940,25 @@ function askOrganize(name){
   }
   function clearLabels(){
     saveLabels([name], {set:[], repaint:paintLabels});
-    paintLabels();
+    paintLabels(); paintWait();
     toast('Out of every pile');
   }
   paintLabels();
+
+  // The answer, under the chips, while the tag is on — tap to change it. It is
+  // here as well as on the row because this is the screen the tag was put on
+  // from, and a line she cannot find is a line she stops trusting.
+  var wl=document.createElement('button'); wl.type='button'; wl.className='waitedit';
+  function paintWait(){
+    var on=chatLabels(name).indexOf(WAIT_LABEL)>-1;
+    wl.hidden=!on;
+    if(!on) return;
+    var v=waitingOf(name);
+    wl.innerHTML=v ? waitingHtml(name) : '<b>'+esc(WAIT_PREFIX)+'</b> say what it is waiting for';
+  }
+  wl.onclick=function(e){ e.stopPropagation(); askWaiting(name, function(){ paintWait(); }); };
+  box.appendChild(wl);
+  paintWait();
 
   // WHICH WORDS FILE A CHAT AWAY — one line under the chips, opening the
   // switch. It is a sentence rather than a control because most days there is
@@ -5852,6 +5984,9 @@ function askOrganize(name){
     wrap.remove(); document.body.style.overflow='';
     // The home list may be a different list now — a filed chat leaves the
     // unfiled pile — so repaint it rather than leaving a stale screen behind.
+    // The thread's note row too: the waiting-for line lives on it and the tag
+    // that carries it may have just come off.
+    if(threadNote) threadNote();
     renderHome(); saveCache();
   }
   done.onclick=function(e){ e.stopPropagation(); close(); };
