@@ -125,6 +125,12 @@ const OFFERED_VOICE_IDS = [
   'ZOw6P0YnswJ6JNjpj9wF', // Steve Ryza (her dad — NOT Steve Herrington, a different person)
   't5WywHVtMw3aenhWkKCz', // Sophie — instant (Aug 14), from one 3½-min memo with its long pauses cut
   '7Se81wBB6ZL5kXV2XKu5', // Sophie — instant v2 (Aug 14, stories), 12 min of her narrating, conditioned
+  'Aqp0rbLX5c0qpiPc83tG', // Snake Boy (instant), from a single voice message, Aug 17 2026
+  'P2uTIAEYFFIwOWTtuIlC', // Snake Boy (sad) — a separate clone, not a settings tweak: this page
+  // always renders at the stock 0.5/0.75/0 settings (see the file header), so
+  // the only way to get a slower/sadder Snake Boy here is a voice trained on
+  // audio that already sounds that way. Built from a 0.82-stability/0.74-style
+  // STS render of the same source line, Aug 18 2026.
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -153,6 +159,8 @@ const VOICE_COLORS = {
   ZOw6P0YnswJ6JNjpj9wF: '#6f8fa8', // Steve Ryza — steel blue. Deliberately NOT in the orange
   // family: orange is Steve Herrington, a different man, and pairing the two colours was
   // the visual version of the mistake that put them in one comparison (Aug 2026).
+  Aqp0rbLX5c0qpiPc83tG: '#b7a98f', // Snake Boy (instant) — sand
+  P2uTIAEYFFIwOWTtuIlC: '#7d7488', // Snake Boy (sad) — the same family, greyed and darker
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 
