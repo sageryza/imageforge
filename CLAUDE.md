@@ -1999,6 +1999,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   answers `brevo:false`). `POST /invite` refuses with which one is missing
   rather than half-sending; run it with `dryRun:true` first, the same guard the
   App Store metadata workflow gets. Tests: `node scripts/test-fruit.js`.
+- **Opinions** (`opinions.js`, `/api/opinions`, page at `/opinions`, no iOS
+  tile yet) — the decide-on-things game from Sophie's commercial concept (Aug
+  2026): two ideas side by side — businesses, things to make, app ideas, or
+  two pictures — tap the better one, and the picked side stamps **GOOD IDEA**
+  (the other BAD IDEA). Relentlessly encouraging by design: a streak, an
+  accolade ladder (Opinion Haver → Chief Opinion Officer), and a headline
+  that keeps telling her she has good opinions. **It costs nothing** — no
+  model calls; the feed is PRELOADED from committed `opinions-feed.json`
+  (image sides point at committed webps) plus Firestore extras any chat can
+  add (`POST /api/opinions/items {items:[{kind,category,q,a,b}]}` — commit
+  seed edits for curated sets, POST for drive-by ideas; a POSTed id colliding
+  with the seed is refused, committed wins). Picks are ONE doc per item id in
+  `forge-opinions` (re-picking updates in place — changing her mind, never a
+  duplicate); notes ride the same doc via the small + on a card. Item ids
+  are permanent — renaming one orphans her pick. One screen, never scrolls,
+  no pill. Tests: `node scripts/test-opinions.js` (pure).
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,
