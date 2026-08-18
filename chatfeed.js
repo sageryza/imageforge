@@ -783,6 +783,10 @@ router.post('/', async (req, res) => {
     res.json({ ok: true, id: msgId });
     if (!working) {
       sortChat(doc.chat).catch(() => { /* sorting must never fail a post */ });
+      // A finished reply is the true "the wake was delivered" signal — clear
+      // any pending wake-queue entry for this chat, even if the switchboard
+      // never got to its wake-done (chat-wake.js has the design).
+      require('./chat-wake').noteReply(db, doc.chat);
     }
   } catch (err) { fail(res, err); }
 });
@@ -3272,6 +3276,12 @@ router.get('/verdict', async (req, res) => {
     res.status(502).json({ error: err.message });
   }
 });
+
+// The wake-up doorbell (Aug 2026): message a chat from the app and it actually
+// wakes. Routes live in chat-wake.js; it shares this router, the registry
+// cache and the session-first resolution so a wake can never target a chat the
+// feed itself wouldn't. Full design: docs/chats-wake-doorbell.md.
+require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolveChat });
 
 // compileQuery/queryMatches/snippetAnchor are exported for the search tests —
 // they are pure, so the grammar is testable without Firestore or a server.
