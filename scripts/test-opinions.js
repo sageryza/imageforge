@@ -41,6 +41,28 @@ ok(missingFiles.length === 0, 'every image side points at a committed file'
   + (missingFiles.length ? ' — missing: ' + missingFiles.join(', ') : ''));
 ok(items.every(it => CATEGORIES.includes(it.category)), 'every category known');
 
+/* ── the modes ─────────────────────────────────────────────────────────── */
+const easy = items.filter(it => it.mode === 'easy');
+const hard = items.filter(it => it.mode === 'hard');
+const feed = items.filter(it => !it.mode);
+ok(easy.length >= 5, `easy mode has a real deck (${easy.length})`);
+ok(hard.length >= 5, `hard mode has a real deck (${hard.length})`);
+ok(feed.length >= 20, `the plain feed still has a real deck (${feed.length})`);
+ok(easy.every(it => it.right === 'a' || it.right === 'b'), 'every easy item names its right answer');
+ok(hard.every(it => !it.right), 'no hard item claims a right answer');
+ok(hard.every(it => it.a.info && it.b.info), 'every hard side carries a more-information line');
+ok(items.filter(it => it.verb === 'shoot').length >= 3, 'the gun appears');
+ok(validItem({ kind: 'text', category: 'wild', mode: 'hard', right: 'a', a: { t: 'x' }, b: { t: 'y' } }) !== null,
+  'a right answer outside easy mode is refused');
+ok(validItem({ kind: 'text', category: 'wild', mode: 'weird', a: { t: 'x' }, b: { t: 'y' } }) !== null,
+  'an unknown mode is refused');
+ok(validItem({ kind: 'text', category: 'wild', verb: 'stab', a: { t: 'x' }, b: { t: 'y' } }) !== null,
+  'an unknown verb is refused');
+const cleaned = cleanItem({ kind: 'text', category: 'wild', mode: 'hard', verb: 'shoot', q: 'Q',
+  a: { t: 'L', info: 'the dog is mean' }, b: { t: 'R', info: 'so is the cat' } });
+ok(cleaned.mode === 'hard' && cleaned.verb === 'shoot' && cleaned.a.info === 'the dog is mean',
+  'cleanItem keeps mode, verb and info');
+
 /* ── the accolade ladder ───────────────────────────────────────────────── */
 ok(accoladeFor(0) === null, 'no accolade before the first pick');
 ok(accoladeFor(1) && accoladeFor(1).name === 'Opinion Haver', 'first pick earns Opinion Haver');

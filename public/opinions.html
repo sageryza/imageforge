@@ -50,6 +50,20 @@ h1.tool-eyebrow{
   padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
 }
 
+/* ── the mode row: hairline tabs, the line under the one she's in ─────── */
+#modes{
+  flex:0 0 auto;display:flex;margin:6px 18px 0;border-bottom:1px solid var(--line);
+}
+#modes button{
+  flex:0 0 auto;background:none;border:none;cursor:pointer;padding:8px 0 9px;
+  margin-right:22px;font-family:-apple-system,system-ui,sans-serif;font-size:12px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);position:relative;
+}
+#modes button.on{color:var(--ink)}
+#modes button.on::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink);
+}
+
 /* ── the validation, always on ────────────────────────────────────────── */
 #praise{
   flex:0 0 auto;text-align:center;font-size:22px;line-height:1.25;
@@ -75,6 +89,8 @@ h1.tool-eyebrow{
 .opt .t{font-size:18px;line-height:1.3;margin-top:8px}
 .opt .s{font-family:-apple-system,system-ui,sans-serif;font-size:12.5px;line-height:1.45;color:var(--ink2);margin-top:7px}
 .opt.txt .t{font-size:19px}
+/* The hard-mode dossier line: more information: "the dog is mean" */
+.opt .info{font-size:13px;font-style:italic;line-height:1.45;color:var(--gold);margin-top:10px}
 /* The verdict stamps. The picked side is always the good idea. */
 .stamp{
   position:absolute;top:14px;left:50%;transform:translateX(-50%) rotate(-9deg);
@@ -85,6 +101,17 @@ h1.tool-eyebrow{
 .opt.good .stamp{opacity:1;color:var(--green);border-color:var(--green)}
 .opt.bad  .stamp{opacity:1;color:var(--rose);border-color:var(--rose);transform:translateX(-50%) rotate(9deg)}
 .opt.bad{opacity:.55}
+
+/* ── the gun (shoot matchups): sits at the bottom, one bullet ─────────── */
+#gunrow{
+  flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 0 0;color:var(--ink);
+}
+#gunrow svg{width:30px;height:30px;fill:currentColor}
+#gunrow small{
+  font-family:-apple-system,system-ui,sans-serif;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+}
 /* The note affordance: a small + in the BOTTOM-right; a written note shows. */
 .addnote{
   position:absolute;right:8px;bottom:6px;width:22px;height:22px;border-radius:50%;
@@ -166,10 +193,21 @@ h1.tool-eyebrow{
   </span>
 </header>
 
+<div id="modes">
+  <button data-mode="easy">Easy</button>
+  <button data-mode="feed">Feed</button>
+  <button data-mode="hard">Hard</button>
+</div>
+
 <div id="praise">You have opinions.</div>
 <div id="q"></div>
 
 <div id="arena"></div>
+
+<div id="gunrow" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v10h4v3h-3.2l-1.1 7H8.5l1.3-7H8v-3h2z"/></svg>
+  <small>one bullet</small>
+</div>
 
 <div id="foot">
   <button class="round" id="undo" aria-label="Undo" disabled>
@@ -188,11 +226,14 @@ h1.tool-eyebrow{
 <div id="toast" hidden><div></div></div>
 
 <div id="helpcard" hidden><div>
-  Two ideas at a time — tap the better one. Whatever you pick was the good
-  idea. Your picks save as you go, your streak grows as you decide, and
-  accolades arrive as you rack up opinions. The little <b>+</b> on a card
-  leaves a note on that idea for the chats to read. There are no wrong
-  answers, only good opinions.
+  Two things at a time — tap the better one. <b>Easy</b> has right answers
+  (get them right, keep your streak). <b>Feed</b> is ideas — businesses,
+  things to make, pictures — and whatever you pick was the good idea.
+  <b>Hard</b> is ethically ambiguous and completely insane; read the
+  <i>more information</i> lines carefully. When the gun appears you have one
+  bullet — tap the side to shoot. Picks save as you go, accolades arrive as
+  you rack up opinions, and the little <b>+</b> on a card leaves a note for
+  the chats to read.
 </div></div>
 
 <script>
@@ -222,6 +263,32 @@ h1.tool-eyebrow{
   var queue = [], qi = 0, history = [];
   var streak = 0, busy = false;
   var lineAt = 0;
+  // Easy is the opening mode on purpose — the hook. Her last mode sticks.
+  var MODE = localStorage.getItem('opinions-mode') || 'easy';
+  function inMode(it) {
+    if (MODE === 'easy') return it.mode === 'easy';
+    if (MODE === 'hard') return it.mode === 'hard';
+    return !it.mode;
+  }
+  function buildQueue() {
+    var mine = items.filter(inMode);
+    queue = mine.filter(function (it) { return !picks[it.id] || !picks[it.id].pick; });
+    if (!queue.length) queue = mine.slice();
+    qi = 0; history = [];
+  }
+  var modeRow = document.getElementById('modes');
+  function paintModes() {
+    modeRow.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-mode') === MODE);
+    });
+  }
+  modeRow.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || busy) return;
+    MODE = b.getAttribute('data-mode');
+    localStorage.setItem('opinions-mode', MODE);
+    paintModes(); setStreak(0); buildQueue(); render();
+  });
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -279,7 +346,8 @@ h1.tool-eyebrow{
     var s = it[key];
     var body = (s.img ? '<img src="' + esc(s.img) + '" alt="" draggable="false">' : '')
       + '<div class="t">' + esc(s.t) + '</div>'
-      + (s.s ? '<div class="s">' + esc(s.s) + '</div>' : '');
+      + (s.s ? '<div class="s">' + esc(s.s) + '</div>' : '')
+      + (s.info ? '<div class="info">more information: &ldquo;' + esc(s.info) + '&rdquo;</div>' : '');
     var saved = picks[it.id] || {};
     var note = saved.noteSide === key && saved.note ? '<span class="mynote">' + esc(saved.note) + '</span>' : '';
     return '<div class="opt' + (s.img ? '' : ' txt') + '" data-side="' + key + '">'
@@ -289,6 +357,7 @@ h1.tool-eyebrow{
 
   function render() {
     var it = queue[qi];
+    document.getElementById('gunrow').hidden = !(it && it.verb === 'shoot');
     if (!it) return finish();
     elQ.textContent = it.q || 'Which one?';
     arena.innerHTML = side(it, 'a') + side(it, 'b');
@@ -298,25 +367,46 @@ h1.tool-eyebrow{
         choose(it, el.getAttribute('data-side'));
       });
     });
-    elCount.textContent = (pickedCount() + 1) + ' of ' + items.length;
+    var mine = items.filter(inMode);
+    var done = mine.filter(function (m) { return picks[m.id] && picks[m.id].pick; }).length;
+    elCount.textContent = Math.min(done + 1, mine.length) + ' of ' + mine.length;
     bUndo.disabled = !history.length;
   }
 
   function choose(it, key) {
     if (busy) return;
     busy = true;
+    var shoot = it.verb === 'shoot';
+    var gotRight = !it.right || it.right === key;
     var opts = arena.querySelectorAll('.opt');
     opts.forEach(function (el) {
-      var mine = el.getAttribute('data-side') === key;
-      el.classList.add(mine ? 'good' : 'bad');
-      el.querySelector('.stamp').textContent = mine ? 'GOOD IDEA' : 'BAD IDEA';
+      var s = el.getAttribute('data-side');
+      var mine = s === key;
+      if (shoot) {
+        // The chosen side is the one shot. Whether that was wise is the game.
+        el.classList.add(mine ? 'bad' : 'good');
+        el.querySelector('.stamp').textContent = mine ? 'BANG' : 'SPARED';
+      } else if (it.right) {
+        // Easy mode tells the truth: the stamps follow the right answer.
+        var isRight = s === it.right;
+        el.classList.add(isRight ? 'good' : 'bad');
+        el.querySelector('.stamp').textContent = isRight ? 'GOOD IDEA' : 'BAD IDEA';
+      } else {
+        el.classList.add(mine ? 'good' : 'bad');
+        el.querySelector('.stamp').textContent = mine ? 'GOOD IDEA' : 'BAD IDEA';
+      }
     });
     picks[it.id] = picks[it.id] || {};
     picks[it.id].pick = key;
     history.push(it.id);
     post('/pick', { id: it.id, pick: key });
-    setStreak(streak + 1);
-    praise();
+    if (gotRight) {
+      setStreak(streak + 1);
+      if (it.right) elPraise.textContent = shoot ? 'Right call.' : 'Correct, obviously.';
+      else praise();
+    } else {
+      elPraise.textContent = 'We saw nothing.';
+    }
     var n = pickedCount();
     var a = accoladeFor(n);
     if (a && a.n === n) toast(a);
@@ -370,7 +460,7 @@ h1.tool-eyebrow{
       + '<div class="row"><button class="btn ghost" id="again">Go through them again</button></div>'
       + '</div>';
     document.getElementById('again').addEventListener('click', function () {
-      queue = items.slice(); qi = 0; history = [];
+      queue = items.filter(inMode); qi = 0; history = [];
       setStreak(0); render();
     });
   }
@@ -394,9 +484,8 @@ h1.tool-eyebrow{
       lines = d.lines || [];
       // Unpicked first, in feed order; already-picked ones wait behind them so
       // "go through them again" can revisit, but a fresh open starts on news.
-      queue = items.filter(function (it) { return !picks[it.id] || !picks[it.id].pick; });
-      if (!queue.length) queue = items.slice();
-      qi = 0;
+      paintModes();
+      buildQueue();
       setBadge();
       render();
     })
