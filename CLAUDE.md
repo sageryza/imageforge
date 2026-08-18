@@ -1683,9 +1683,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   bytes. **A shared stamp is NOT a duplicate** and never dedupes anything.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
-  tabs: SPEAK (TTS, stock v2 defaults, no settings by design) and CHANGE
+  tabs: TEXT (TTS, stock v2 defaults, no settings by design) and VOICE
   (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
-  and swaps only the voice). Her words stay in the box after a render.
+  and swaps only the voice). Her words stay in the box after a render. The page
+  carries NO header of its own (the native bar has the title) and no character
+  counts; credits live behind the ⓘ on the tab row.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable
