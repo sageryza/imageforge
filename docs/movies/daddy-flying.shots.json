@@ -1,0 +1,45 @@
+{
+  "page": "assets/daddy-flying-page.jpg",
+  "size": [1080, 1620],
+  "fps": 30,
+  "dissolve": 0.6,
+  "margin": 0.05,
+
+  "_note": "Rects are pixels on the trimmed 1122x1378 page. The four panels sit at x 65-531 / 590-1056 and y 32-701 / 733-1336; each panel's caption is the strip under its art. The durations are a reading pace - re-time them to Dad's take with --fit-audio, or by hand, shot by shot.",
+
+  "boxes": {
+    "panel1":      [65, 32, 466, 388],
+    "panel2":      [590, 32, 466, 512],
+    "panel3":      [65, 733, 466, 477],
+    "panel4":      [590, 733, 466, 481],
+    "caption1":    [65, 420, 466, 281],
+    "caption2":    [590, 544, 466, 157],
+    "caption3":    [65, 1210, 466, 126],
+    "caption4":    [590, 1214, 466, 122],
+
+    "daddy-face":  [88, 49, 230, 250],
+    "the-finger":  [228, 184, 190, 170],
+    "her-face":    [353, 84, 200, 260],
+    "the-boy-up":  [683, 49, 300, 430],
+    "the-window":  [858, 319, 190, 150],
+    "boy-falling": [223, 749, 240, 300],
+    "boy-face":    [273, 779, 160, 150],
+    "dave":        [633, 739, 400, 340],
+    "dave-eyes":   [693, 819, 290, 190]
+  },
+
+  "shots": [
+    {"name": "the whole page",        "from": "page",        "to": "page",       "zoom": 1.05, "sec": 5.0, "ease": "inout"},
+    {"name": "daddy",                 "from": "panel1",      "to": "daddy-face", "sec": 5.5},
+    {"name": "the pointing",          "from": "the-finger",  "to": "her-face",   "sec": 4.5},
+    {"name": "a freeloader",          "from": "caption1",    "zoom": 1.05,       "sec": 5.5},
+    {"name": "the bunk room",         "from": "panel2",      "to": "the-boy-up", "sec": 6.0},
+    {"name": "almost to the ceiling", "from": "caption2",    "zoom": 1.04,       "sec": 4.0},
+    {"name": "the moon",              "from": "the-window",  "zoom": 1.12,       "sec": 3.5},
+    {"name": "and Dave did too",      "from": "boy-falling", "to": "boy-face",   "sec": 5.5},
+    {"name": "Dave did too",          "from": "caption3",    "zoom": 1.05,       "sec": 3.0},
+    {"name": "Dave",                  "from": "dave",        "to": "dave-eyes",  "sec": 6.5},
+    {"name": "same birthday",         "from": "caption4",    "zoom": 1.05,       "sec": 3.5},
+    {"name": "back out",              "from": "panel4",      "to": "page",       "sec": 5.5, "ease": "out"}
+  ]
+}
