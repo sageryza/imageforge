@@ -215,6 +215,17 @@ def witui_html(st):
 {rows}
 </body>"""
 
+
+def statcard_html(text):
+    return f"""<body style="{BODY}background:#0a0a0a;display:flex;align-items:center;
+justify-content:center;text-align:center">
+<div style="padding:0 44px">
+  <div style="width:34px;height:1px;background:#6b6249;margin:0 auto 26px"></div>
+  <div style="color:#f0e9d8;font-family:Georgia,serif;font-size:25px;
+    line-height:1.55">{text}</div>
+</div>
+</body>"""
+
 def endcard_html(style):
     if style == "black":
         return f"""<body style="{BODY}background:#000"></body>"""
@@ -316,6 +327,10 @@ for sc in REEL["scenes"]:
             f = os.path.join(ROOT, "frames", f"{sid}-{i}.png")
             frame_plan[sid].append((f, st["hold"], st.get("pop", False)))
             shots.append({"file": f, "html": witui_html(st)})
+    elif sc["kind"] == "statcard":
+        f = os.path.join(ROOT, "frames", f"{sid}.png")
+        frame_plan[sid] = [(f, sc["dur"], False)]
+        shots.append({"file": f, "html": statcard_html(sc["text"])})
     elif sc["kind"] == "endcard":
         f = os.path.join(ROOT, "frames", f"{sid}.png")
         frame_plan[sid] = [(f, sc["dur"], False)]
@@ -328,7 +343,7 @@ log(f"stage 3: {len(shots)} UI frames rendered")
 # ── 4. timeline ──────────────────────────────────────────────────────
 sdur = {}
 for sc in REEL["scenes"]:
-    if sc["kind"] in ("chat", "appui", "memui", "witui", "endcard"):
+    if sc["kind"] in ("chat", "appui", "memui", "witui", "statcard", "endcard"):
         sdur[sc["id"]] = sum(h for _, h, _ in frame_plan[sc["id"]])
     else:
         sdur[sc["id"]] = sc["dur"]
@@ -465,7 +480,7 @@ for sc in REEL["scenes"]:
     dur = sdur[sid]
     part = os.path.join(ROOT, "parts", f"{sid}.mp4")
     parts.append(part)
-    if sc["kind"] in ("chat", "appui", "memui", "witui", "endcard"):
+    if sc["kind"] in ("chat", "appui", "memui", "witui", "statcard", "endcard"):
         minis = []
         for i, (f, hold, _) in enumerate(frame_plan[sid]):
             mini = os.path.join(ROOT, "parts", f"{sid}-{i}.mp4")
