@@ -226,6 +226,53 @@ async function routeTests() {
   r = await call(post, {});
   ok('an empty body is refused', r.code === 400);
 
+  // ---- A PILE, OR JUST A WORD (Aug 2026 v2) ------------------------------
+  // Combining the fields gave every tag word a folder's power to hide a chat.
+  // Only a PILE does now, and the seed is her folder vocabulary FROZEN the day
+  // they merged — reading `__settings.categories` instead would make every new
+  // word she types a trapdoor, since every new word joins that list.
+  const pile = handlerFor(router, 'post', '/pile');
+  const pileGet = handlerFor(router, 'get', '/pile');
+  ok('POST /pile exists', !!pile);
+  const seeded = await call(pileGet, {});
+  ok('with nothing stored, the seed is the answer',
+    (seeded.body.piles || []).indexOf('stories') > -1
+    && (seeded.body.piles || []).indexOf('to be reviewed') > -1,
+    JSON.stringify(seeded.body.piles));
+  ok('…and a tag word is NOT in it', (seeded.body.piles || []).indexOf('bug fix') < 0);
+  ok('…and the review word is named back', seeded.body.review === 'to be reviewed');
+
+  r = await call(pile, { label: 'images', pile: true });
+  ok('flipping a word on answers the WHOLE list, not a diff',
+    (r.body.piles || []).indexOf('images') > -1 && (r.body.piles || []).length > 5,
+    JSON.stringify(r.body.piles));
+  ok('…and stores it that way',
+    (reg().__settings.pileLabels || []).indexOf('images') > -1);
+  await call(pile, { label: 'stories', pile: false });
+  ok('flipping a seeded word OFF takes it out for good',
+    (reg().__settings.pileLabels || []).indexOf('stories') < 0,
+    JSON.stringify(reg().__settings.pileLabels));
+  ok('…and leaves the others alone',
+    (reg().__settings.pileLabels || []).indexOf('witch') > -1);
+  r = await call(pile, {});
+  ok('a pile flip with no word is refused', r.code === 400);
+
+  // the two copies of the seed, pinned equal — same reason as TAGS/TAG_LIST
+  const pageSrc = fs.readFileSync(path.join(ROOT, 'public', 'chats.html'), 'utf8');
+  const lift = (src, marker) => {
+    const i = src.indexOf(marker);
+    if (i < 0) return null;
+    const a = src.indexOf('[', i); const b = src.indexOf(']', a);
+    try { return JSON.parse(src.slice(a, b + 1).replace(/'/g, '"')); } catch { return null; }
+  };
+  const srvSeed = lift(fs.readFileSync(path.join(ROOT, 'chatfeed.js'), 'utf8'), 'const PILE_SEEDS = [');
+  const pgSeed = lift(pageSrc, 'var PILE_SEEDS=[');
+  ok('the page and the server know the SAME pile seed',
+    srvSeed && JSON.stringify(srvSeed) === JSON.stringify(pgSeed),
+    JSON.stringify(srvSeed) + ' vs ' + JSON.stringify(pgSeed));
+  ok('the review word matches too',
+    /REVIEW_LABEL\s*=\s*'to be reviewed'/.test(pageSrc));
+
   // ---- the two legacy routes, kept lossless ------------------------------
   const cat = handlerFor(router, 'post', '/category');
   const tags = handlerFor(router, 'post', '/tags');
@@ -276,7 +323,8 @@ async function pageTests() {
         truncated: [], messages: since ? [] : MSGS, delta: !!since,
       }));
     }
-    if (url.pathname === '/api/chatfeed/labels' && req.method === 'POST') {
+    if ((url.pathname === '/api/chatfeed/labels' || url.pathname === '/api/chatfeed/pile')
+        && req.method === 'POST') {
       let body = '';
       req.on('data', (c) => body += c);
       req.on('end', () => {
@@ -366,8 +414,56 @@ async function pageTests() {
       JSON.stringify((posts[posts.length - 1] || {}).labels) === '[]',
       JSON.stringify(posts[posts.length - 1]));
 
-    // the old shape reads as both words on the page too
+    // ---- A PILE, OR JUST A WORD ------------------------------------------
+    // Sophie, the day after the merge: "tagging shouldn't hide everything …
+    // whereas other ones shouldn't take it off the main feed". A plain word
+    // leaves the chat exactly where it was; a pile word takes it off the list;
+    // and which is which is one tap in the sheet behind the line under the
+    // chips.
+    await chip('Bug fix');
+    await page.waitForTimeout(200);
     await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(200);
+    await page.click('#back');
+    await page.waitForTimeout(200);
+    ok('a plain tag leaves the chat on the main list',
+      !!(await page.$('#grid [data-chat="nothing-yet"]')));
+
+    await page.click('#grid [data-chat="nothing-yet"]');
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .pilelink');
+    ok('the line names the words that are doing the hiding',
+      /take a chat off the main list/.test(await page.$eval('.askwrap .pilelink', (n) => n.textContent)));
+    await page.click('.askwrap .pilelink');
+    await page.waitForTimeout(200);
+    // the switch stacks ON TOP of the Organize sheet, so everything here is
+    // scoped to the last one — the first is the sheet underneath.
+    const top = '.askwrap:last-of-type';
+    ok('the switch opens on the question',
+      (await page.$eval(top + ' .archq', (n) => n.textContent)) === 'Which words file a chat away?');
+    const pileLit = await page.$$eval(top + ' .arctags .catchip.on', (ns) => ns.map((n) => n.textContent.trim()));
+    ok('her folders arrive lit', pileLit.indexOf('Witch') > -1 && pileLit.indexOf('Stories') > -1,
+      pileLit.join(','));
+    ok('…and the tag words do not', pileLit.indexOf('Bug fix') < 0, pileLit.join(','));
+    await (await page.$(top + ' .arctags button:text-is("Bug fix")')).click();
+    await page.waitForTimeout(250);
+    const pileSaved = posts[posts.length - 1];
+    ok('flipping a word posts the flip, not the chat',
+      pileSaved && pileSaved.label === 'bug fix' && pileSaved.pile === true,
+      JSON.stringify(pileSaved));
+    await page.click(top + ' .askrow .go');
+    await page.waitForTimeout(150);
+    await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(150);
+    await page.click('#back');
+    await page.waitForTimeout(250);
+    ok('once the word is a pile, the chat it is on leaves the list',
+      !(await page.$('#grid [data-chat="nothing-yet"]')));
+
+    // the old shape reads as both words on the page too
+    await page.click('#grid [data-chat="both-ways"]').catch(() => {});
+    await page.waitForTimeout(100);
     await page.waitForTimeout(150);
     await page.click('#backbtn').catch(() => {});
     await page.goto(base + '/chats');

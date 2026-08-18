@@ -965,6 +965,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
 .askbox .arctags + .orggrp{margin-top:2px;}
+/* The one line under the Organize chips, and the note on the sheet it opens
+   (Aug 2026). Plain text, not a button-looking thing: most days there is
+   nothing to change in there, and it is really a sentence that happens to be
+   tappable. */
+.pilelink{display:block; width:100%; text-align:left; background:none; border:0;
+  padding:8px 0 0; margin:0; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2); text-decoration:underline;
+  text-decoration-color:var(--line); text-underline-offset:3px;}
+.pilenote{margin:-4px 0 10px; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2);}
 .askbox .arctags input{font-family:'EBGaramond',Georgia,serif; font-size:15px; color:var(--ink);
   background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:5px 9px;
   width:6.5em; min-width:0;}
@@ -3148,6 +3158,35 @@ function chatLabels(name){
 // The FIRST label, for the handful of places that still want one word — the
 // toast after filing, the optimistic mirror written next to `labels`.
 function chatCat(name){ return chatLabels(name)[0]||''; }
+// ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
+// "tagging shouldn't hide everything, or maybe just for certain categories —
+// like `to be reviewed` should send it to the review pile … whereas other ones
+// shouldn't take it off the main feed") -------------------------------------
+// A FOLDER always took a chat off the main list (her rule: "when I mark
+// something as a story it takes it out of the normal list"), so combining the
+// two fields quietly gave every tag word the same power. It doesn't have it any
+// more: a label is a PILE or it is just a word on the chat.
+//
+// `PILE_SEEDS` is her folder vocabulary FROZEN on 2026-08-18, the day the
+// fields merged, so the app behaves exactly as it did before and a word she
+// invents tomorrow is a plain tag rather than a trapdoor. It is a second copy
+// of the one in chatfeed.js, pinned equal by a test, for the same reason
+// TAG_LIST is: the page must not spend a request to learn thirteen words.
+// `settings.pileLabels` replaces it WHOLESALE once she touches the switch.
+var PILE_SEEDS=['look at','stories','come back to','witch','tech','xi',
+  'just for fun','weird games','meta','dream app','chunk making',
+  'waiting for something','to be reviewed'];
+// The one word that ALSO routes: a chat carrying it becomes a row in the Review
+// Queue at /review, her pile of everything waiting on her.
+var REVIEW_LABEL='to be reviewed';
+function pileList(){
+  var p=settings&&settings.pileLabels;
+  return Array.isArray(p) ? p.slice() : PILE_SEEDS.slice();
+}
+function isPile(c){ return pileList().indexOf(c)>-1; }
+// Is this chat FILED — i.e. off the unfiled home list? Only a pile word does
+// it. A chat wearing nothing but `images` stays exactly where it was.
+function chatFiled(name){ return chatLabels(name).some(isPile); }
 // ---- COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
 // back to and later categories") ------------------------------------------
 // She had two names for one intention: the COME BACK TO folder on this list,
@@ -3707,14 +3746,11 @@ function renderHome(){
   // the WHOLE screen, the hidden pile included: a bar counting chats from a
   // folder she isn't looking at would be noise.
   // …but a filed chat COMES BACK when it answers — see chatBack above.
-  // UNFILED = carries no word at all, now that folders and tags are one field.
-  // Measured against her live registry the day this shipped: of 333 chats only
-  // 21 carried a tag and only 3 of those were live — and all 3 were already in
-  // a folder, so nothing changed list on deploy. That measurement is the whole
-  // reason a tag is allowed to file a chat: if tagging had been quietly moving
-  // chats off her inbox, this would have needed a migration instead.
+  // UNFILED = carries no PILE word (chatFiled). Plain tags leave a chat exactly
+  // where it was — Sophie, the day after the merge: "tagging shouldn't hide
+  // everything … whereas other ones shouldn't take it off the main feed".
   live=live.filter(function(n){
-    return cat ? chatInCat(n,cat) : (!chatLabels(n).length || chatBack(n, lastOf(g,n)));
+    return cat ? chatInCat(n,cat) : (!chatFiled(n) || chatBack(n, lastOf(g,n)));
   });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
@@ -5663,6 +5699,65 @@ function openPage(p){
 //
 // Tagging a chat takes it off the unfiled home list by design, so the toast
 // names the word: otherwise picking one looks like the chat vanished.
+// WHICH WORDS FILE A CHAT AWAY (Aug 2026, Sophie: "tagging shouldn't hide
+// everything, or maybe just for certain categories … whereas other ones
+// shouldn't take it off the main feed"). Every word in the vocabulary, lit if
+// it is a PILE. One tap flips one word, and the flip is global — this is about
+// the word, not about the chat she happens to be in.
+//
+// It starts from `PILE_SEEDS` (her folder vocabulary the day categories and
+// tags merged), so the first thing she sees here is exactly the behaviour she
+// already had. Her first tap writes the WHOLE list to `__settings.pileLabels`,
+// which then replaces the seed — a stored diff against a default that grows
+// every time she types a new word would mean something different next week.
+function askPiles(after){
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq';
+  q.textContent='Which words file a chat away?';
+  box.appendChild(q);
+  var sub=document.createElement('p'); sub.className='pilenote';
+  sub.textContent='A lit word takes a chat off the main list until it answers you. The rest are just words on the chat.';
+  box.appendChild(sub);
+  var row=document.createElement('div'); row.className='arctags'; box.appendChild(row);
+  function paint(){
+    row.innerHTML='';
+    fileVocab().forEach(function(c){
+      var on=isPile(c);
+      var b=document.createElement('button'); b.type='button';
+      b.className='catchip'+(on?' on':'');
+      b.textContent=catLabel(c);
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.onclick=function(e){ e.stopPropagation(); flip(c, !on); };
+      row.appendChild(b);
+    });
+  }
+  function flip(c, on){
+    var was=pileList();
+    var next=on ? (was.indexOf(c)>-1?was:was.concat(c)) : was.filter(function(x){ return x!==c; });
+    settings=settings||{}; settings.pileLabels=next;
+    paint();
+    // The home list behind this sheet is a different list now — a word that
+    // stopped filing hands its chats straight back.
+    renderHome();
+    api('/api/chatfeed/pile',{method:'POST',body:JSON.stringify({label:c, pile:on})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        settings.pileLabels=was; paint(); renderHome(); toast('Couldn\u2019t save that');
+      });
+  }
+  paint();
+  var arow=document.createElement('div'); arow.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){ wrap.remove(); if(after) after(); }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  arow.appendChild(done); box.appendChild(arow);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap);
+}
+
 function askOrganize(name){
   scrollStop();
   var wrap=document.createElement('div'); wrap.className='askwrap';
@@ -5717,7 +5812,14 @@ function askOrganize(name){
   function setLabel(c, on){
     saveLabels([name], on?{add:[c],repaint:paintLabels}:{remove:[c],repaint:paintLabels});
     paintLabels();
-    toast(on ? ('Tagged '+catLabel(c)) : ('Took off '+catLabel(c)));
+    // THE TOAST SAYS WHICH KIND OF WORD IT WAS. A pile takes the chat off the
+    // main list and a plain tag does not, and the two look identical as chips —
+    // so the sentence she reads at the moment of tapping is where that shows.
+    // Without it, filing looks like the chat vanished (the reason this toast
+    // has always named the folder) and tagging looks like nothing happened.
+    if(!on) toast('Took off '+catLabel(c));
+    else if(isPile(c)) toast('Filed under '+catLabel(c)+' — off the main list');
+    else toast('Tagged '+catLabel(c));
   }
   function clearLabels(){
     saveLabels([name], {set:[], repaint:paintLabels});
@@ -5725,6 +5827,24 @@ function askOrganize(name){
     toast('Out of every pile');
   }
   paintLabels();
+
+  // WHICH WORDS FILE A CHAT AWAY — one line under the chips, opening the
+  // switch. It is a sentence rather than a control because most days there is
+  // nothing to change here; it names the words that are doing it, so the
+  // answer to "why did that chat disappear" is on the same screen as the tap
+  // that did it.
+  var pl=document.createElement('button'); pl.type='button'; pl.className='pilelink';
+  function paintPileLink(){
+    var on=pileList().filter(function(c){ return fileVocab().indexOf(c)>-1; });
+    pl.textContent = on.length
+      ? on.slice(0,3).map(catLabel).join(' · ')
+        + (on.length>3 ? ' and '+(on.length-3)+' more' : '')
+        + ' take a chat off the main list — change'
+      : 'No word takes a chat off the main list — change';
+  }
+  paintPileLink();
+  pl.onclick=function(e){ e.stopPropagation(); askPiles(function(){ paintPileLink(); paintLabels(); }); };
+  box.appendChild(pl);
 
   var row=document.createElement('div'); row.className='askrow';
   var done=document.createElement('button'); done.className='go'; done.textContent='Done';

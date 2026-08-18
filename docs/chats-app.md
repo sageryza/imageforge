@@ -847,13 +847,42 @@
   - **The two legacy routes are kept LOSSLESS** — `/category` replaces only the
     FOLDER words and leaves the tag words alone, `/tags` the reverse. So a tap
     on a cached page can never silently wipe labels it was never able to show.
-  - **A TAG FILES A CHAT NOW**, because there is only one kind of word: the
-    unfiltered home is still the UNFILED pile, and "unfiled" means carrying no
-    word at all. **Measured before shipping it**: of 333 chats only 21 carried
-    a tag and only 3 of those were live — and all 3 were already in a folder,
-    so not one chat changed list on deploy. That measurement is the whole
-    reason this was allowed; if tagging had been about to move chats off her
-    inbox it would have needed a migration instead.
+  - **A PILE, OR JUST A WORD (Aug 2026 v2, Sophie the next day: "tagging
+    shouldn't hide everything, or maybe just for certain categories — like
+    `to be reviewed` should send it to the review pile … whereas other ones
+    shouldn't take it off the main feed").** The merge shipped with one
+    consequence nobody asked for: a FOLDER always took a chat off the main list
+    (her own rule), so once tags were the same field, tagging a chat `images`
+    hid it too. A label now carries one property — is it a **pile**. A pile
+    takes the chat off the unfiled home list; every other word is just a word
+    on the chat and changes nothing about where it shows.
+    - **The seed is FROZEN**: `PILE_SEEDS` is her folder vocabulary as measured
+      2026-08-18, the day the fields merged, so the app behaves exactly as it
+      did before and a word she invents tomorrow is a plain tag rather than a
+      trapdoor. **Reading `__settings.categories` instead would be
+      self-defeating** — every new word joins that list, so every new word
+      would file. Two copies (`chatfeed.js`, `chats.html`), pinned equal by
+      `test-chats-labels.js`, same reason as TAGS/TAG_LIST.
+    - **`__settings.pileLabels` replaces the seed WHOLESALE** once she touches
+      the switch — it is the answer, not a diff against a default that grows
+      every time she types a word. `POST /api/chatfeed/pile {label, pile}`
+      writes the whole resulting list; `GET /pile` reads it.
+    - **The switch is one line under the Organize sheet's chips** (`.pilelink`,
+      naming the words that are doing the hiding) opening a small stacked sheet
+      of the whole vocabulary as toggles. It is a sentence rather than a
+      control because most days there is nothing to change in there — and it
+      puts the answer to "why did that chat disappear" on the same screen as
+      the tap that did it. **The toast says which kind of word it was too**
+      ("Filed under Stories — off the main list" vs "Tagged images"), because
+      the two look identical as chips.
+    - The merge itself was **measured before shipping**: of 333 chats only 21
+      carried a tag and only 3 of those were live — and all 3 were already in a
+      folder, so not one chat changed list on deploy.
+  - **`to be reviewed` ALSO FEEDS THE REVIEW QUEUE** (`REVIEW_LABEL`, one
+    constant shared with `review.js`). A chat carrying it becomes a row at
+    `/review` — the label is the whole mechanism, nothing is filed or stamped,
+    so the row appears when she tags the chat and goes when the word comes off.
+    See *THE REVIEW QUEUE* in `CLAUDE.md`.
   - **The home chip row shows LESS than the sheets do** (`catList()` vs
     `fileVocab()`): the ten old tag words are offerable everywhere but only
     reach the row once something is actually wearing one. The row is a filter

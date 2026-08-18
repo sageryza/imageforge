@@ -397,12 +397,14 @@ async function pageTests() {
     await page.click('#thread header .no .archlink.hide-r').catch(() => {});
     await page.goto(base + '/chats');
     await page.waitForSelector('#grid');
-    // A TAG FILES A CHAT NOW (Aug 2026 — categories and tags became one field
-    // at her ask). live-one was tagged `bug fix` two steps ago, so it has left
-    // the unfiled list the way a folder always did; the sheet's own chips are
-    // the same chips the home row files with.
-    ok('a chat tagged in the sheet has left the unfiled list',
-      !(await page.$('#grid [data-chat="live-one"]')));
+    // A PLAIN TAG DOES NOT FILE A CHAT (Aug 2026 v2, Sophie: "tagging shouldn't
+    // hide everything … whereas other ones shouldn't take it off the main
+    // feed"). Combining the two fields briefly gave every tag word a folder's
+    // power to hide a chat; only a PILE word (`PILE_SEEDS` / `pileLabels`) has
+    // it now, and `bug fix` is not one — so live-one, tagged two steps ago, is
+    // still sitting on her list.
+    ok('a chat tagged in the sheet is still on the unfiled list',
+      !!(await page.$('#grid [data-chat="live-one"]')));
     ok('no tag filter row on the chat list', !(await page.$('#grid .arctagrow')));
 
     await page.click('#archlink');
@@ -431,9 +433,7 @@ async function pageTests() {
     ok('the filter is really set right now',
       await page.evaluate(() => window.__archTag()) === 'bug fix');
     await page.reload();
-    // …not on live-one, which is tagged and therefore filed now — wait for the
-    // list itself.
-    await page.waitForSelector('#grid');
+    await page.waitForSelector('#grid [data-chat="live-one"]');
     await page.click('#archlink');
     await page.waitForSelector('#grid .arctagrow');
     ok('a reload opens the archive on everything again',
