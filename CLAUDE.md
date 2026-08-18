@@ -1147,6 +1147,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   ladders; near-variant prompts are only FLAGGED
   (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
   call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
+  **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
+  and it is automatic (Aug 2026, her own "Decision Deck v2", built for the
+  dating book).** Give a deck item any of `who` (the name — her rust, centred
+  under the header), `eyebrow`, `text` (the moment), `sections:[{label,text}]`,
+  `caption`, `img` — every part OPTIONAL, a card renders only what it carries
+  — and the deck comes out in her design: white boxes on her cream, the
+  Newsreader serif, one screen with no scrolling, her ✕ · "Note for
+  Claude…" · ♥ footer. **A hand-built page CANNOT get this** — `card:'<html>'`
+  items are excluded by design, and a page posted as `html` is frozen the day
+  it is posted. So a text deck that hand-rolls its own card styling is not a
+  style choice, it is opting out of hers.
 - **START FROM THE SHELL** — `public/compare-shell.html`, which links
   `/compare.css` (the one house look AND the `:root` tokens the injected
   autoscroll pill styles itself from) and `/compare.js` (the one house
