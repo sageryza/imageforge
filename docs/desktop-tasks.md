@@ -64,7 +64,37 @@ Then she says one thing to the terminal chat and the whole queue runs.
 
 ## OPEN
 
-*(nothing queued yet)*
+### Hand Apple's Voice Memos transcripts to the archive
+- **Why:** 94 of the 1,137 archived recordings have NO transcript — too long
+  for the server's 45-minute ceiling, over Whisper's 24MB cap, heard as empty,
+  or a failed enrich. Search searches words, so those recordings are invisible
+  in it, and a search that finds nothing reads as a recording that doesn't
+  exist. Voice Memos already transcribed them on the phone, for free, including
+  the long ones — but only this Mac can read Apple's database.
+- **Expect ~57, not 94** (measured live 2026-08-17): 11 of the 94 are
+  zero-length and 26 more are under 5 seconds, so there is nothing for Apple to
+  have transcribed either. The 57 that carry real audio are **66.5 hours**,
+  14 of them over an hour each — those are the ones the server's ceiling
+  refused, and the whole point of this.
+- **Where:** anywhere (it needs no checkout — the script is served by the app)
+- **Run:**
+  ```bash
+  curl -fsSL https://imageforge-q125.onrender.com/import-apple-transcripts.mjs -o /tmp/apple-tx.mjs && node /tmp/apple-tx.mjs --dry-run
+  ```
+  It reads Apple's database, matches each recording to its archive record, and
+  prints what it found and what it would fill — sending nothing. Then, to
+  actually send them, the same line without `--dry-run`:
+  ```bash
+  node /tmp/apple-tx.mjs
+  ```
+- **If it says it found no transcript text:** the layout differs on this OS
+  version. Run `node /tmp/apple-tx.mjs --report` and paste the output back —
+  the reader fits itself to whatever it is told.
+- **Needs from her:** nothing, it just runs. Open the Voice Memos app once
+  first if it has never been opened on this Mac. Safe to re-run: it only ever
+  fills records that have no words, and the server refuses to overwrite one
+  that does.
+- **Queued:** 2026-08-17 by search-index-rebuild
 
 ---
 

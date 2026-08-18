@@ -68,7 +68,9 @@ by-ear pass after it, for what the machine could not hear.
 6. **EXACT CUT** — the by-ear pass after it: tap the spot on the playhead,
    nudge by a tenth (`cutmarks.js`).
 7. **POLISH** — pauses out and filler out (`cuttingroom.js`), and their LENGTH
-   set (or a new one added) in the **Pausing tool** artifact. The last pass.
+   set (or a new one added) in **Pausing** (`pausing.js`, `/pausing`). The last
+   pass, and the two halves are deliberately separate rooms: removing a beat is
+   a cut, shaping one is rhythm.
 8. **THE CUT** — the finished audio.
 
 Flowing **into** BLOCKS:
@@ -100,17 +102,16 @@ Only in **Cut Marks**:
 - Cut at the exact tapped moment
 - Video, not just audio
 
-Only in **the Pausing tool** (a Compare page, not a tool):
+Only in **Pausing** (`pausing.js` + `/pausing` — a real tool since Aug 2026;
+it was a Compare page when this list was written):
 
 - Set how LONG a pause is — the Cutting Room only removes one, compressed to
   ~0.28s
 - Add a pause where there is none
-- Build a pause out of the recording's OWN room tone (the quietest 120ms,
-  trimmed or looped), never digital silence — digital silence is what made the
-  45% line sound bungled
-- Play HER EDIT rather than the film: the page decodes the film once and
-  rebuilds it in memory with her pauses and cuts applied, because "I need to be
-  able to hear it to know how long of a pause I want"
+- Build a pause out of the recording's OWN room tone, trimmed or looped, never
+  digital silence — digital silence is what made the 45% line sound bungled
+- Play HER EDIT rather than the source, because "I need to be able to hear it
+  to know how long of a pause I want"
 
 Only in **the Cutting Room**: pauses and filler out (i.e. *removing* them).
 
@@ -144,17 +145,45 @@ These are the ones worth building, and none of them is a missing button:
   shipped, on a 17s clip: listen job ~6s, 45 words → 3 sentence-level lines
   whose word ranges tile the source exactly. Tests:
   `node scripts/test-blocks.js`.
-- **The polish pass is split across a tool and an artifact.** The Cutting Room
-  removes a pause; the Pausing tool shapes one. Rhythm — how long a beat sits —
-  is the half that only exists as a page, and it is the half that decides how a
-  cut actually sounds.
+- ~~**The polish pass is split across a tool and an artifact.**~~ **BUILT —
+  `pausing.js` + `/pausing`, Aug 2026.** The Cutting Room removes a pause; the
+  Pausing tool shapes one, and rhythm — how long a beat sits — was the half
+  that existed only as "Evan — the pause timeline (v7b)", a hand-authored
+  Compare page whose whole state lived in a chat's verdict fields. It is now
+  `forge-pausing` (content-addressed by the source url, so re-opening
+  resumes), a page at `/pausing`, and an iOS tile under the FILM filter.
+  **Three design decisions worth carrying forward:**
+  - **Detection is IMPORTED, never re-implemented.** `cuttingroom.js` now
+    exports `breathCuts`, `roomToneCuts`, `mergeRanges` and `rmsProfile`
+    alongside `chunkedWords`/`cutSection`. Those passes carry measured
+    constants (the -7dB relative threshold, the sustained-energy veto, the
+    0.10s speech margins); a second copy would find DIFFERENT pauses and the
+    same recording would read differently in two rooms. The detection hands
+    back ranges to REMOVE, already inset by KEEP/2 either side — this tool
+    takes that inset back off to get the GAP, and no further.
+  - **The EDIT is one shared file.** `pause-plan.js` is loaded by the render
+    on the server and served to the page at `/pause-plan.js`. She sets a
+    length by ear, so the preview she approves has to be the take she gets;
+    two implementations would drift and the tool would quietly stop being
+    trustworthy.
+  - **The unit of listening is the PARAGRAPH.** The artifact decoded one
+    90-second film and rebuilt the whole thing on every play; ninety minutes
+    decoded is most of a gigabyte of Float32 in a WKWebView. The server cuts
+    a paragraph span once (banked, `/api/search/clip-span`), the page decodes
+    it, and the pauses are spliced in the browser — so changing a length and
+    hearing it still costs no round trip.
+  Tests: `node scripts/test-pausing.js` (the detection arithmetic and the
+  shared plan, pure) and `node scripts/test-pausing-page.js` (the real page in
+  headless Chromium, asserting on the SAMPLES it hands the speakers — a pause
+  is quiet and NON-ZERO, which is the finding the whole tool is built on).
 - **Nothing carries a project across the rooms.** Each room is
   content-addressed by its own source url — `forge-cutroom` by sha1 of the
   audio url, `forge-cutmarks` by sha1 of the url, the Episode Editor by
   episode id. The Episode Editor → Cutting Room hand-off passes a url and a
   name and nothing else, so marks, labels, speaker and order do not travel.
   Walking the whole S therefore means re-deciding the same things in four
-  places.
+  places. **A shape is proposed — see *The PROJECT across the rooms* below
+  (2026-08-17); it is waiting on Sophie's pick and must not be built first.**
 
 ## "Make everything point at each other" — what already does
 
@@ -171,24 +200,86 @@ of them is close to done:
 - Cutting Room → Story Room (`scratchpad.attachVoiceUrl`)
 - Episode Editor render → Cutting Room (the scissors, `editor.html`)
 
-**The two that are missing:**
+**The two that were missing — WIRED 2026-08-17:**
 
-- **Cut Marks is a dead end in BOTH directions.** It imports only utilities
-  from the editor (`audioDuration`, `uploadPublic`) — nothing hands off INTO
-  it but a raw url, and its renders hand off to nothing. It is stop 6 of 8,
-  in the middle of the road.
-- **Voice Studio hands off to nothing at all** (zero references in
-  `voicelab.js`). A rendered line has to be downloaded and re-uploaded by
-  hand — and VOICE is one of the two tributaries INTO blocks on the map, so
-  that connection does not exist yet.
+- ~~**Cut Marks is a dead end in BOTH directions.**~~ **Both directions exist
+  now.** The way in: `/cutmarks?url=…&name=…&kind=…` is a hand-off entry
+  (the Cutting Room's rule copied exactly — content-addressed resume, param
+  stripped once used), and both the Episode Editor's and Cutting Blocks'
+  render rows carry a Cut Marks button (its `timeline.selection` glyph) —
+  the exact-cut stop between word cut and polish, for the edge no transcript
+  cutter could hear. The way out: an audio render row's scissors send the
+  cut on to the Cutting Room (`/cuttingroom?url=`), the same button the
+  editor's render rows already carried. (Also measured while wiring: audio
+  renders were ALREADY filing into the audio library — `forge-audio`, batch
+  `cut-marks`, hash-deduped — so every room's source list could see them;
+  what was missing was the button, not the plumbing.) Video renders still
+  hand off to nothing: the Cutting Room is audio-only, and that is the
+  correct dead end until a video room exists downstream.
+- ~~**Voice Studio hands off to nothing at all.**~~ **VOICE → BLOCKS exists
+  now**, and it is the map's own arrow: a finished render's card (TTS and
+  voice-changed both) carries a Blocks button that unfolds her open Blocks
+  projects and lands the line in the tapped one — `POST /api/blocks/:id/line
+  { url, text }` files it as an added card whose voice is ALREADY rendered
+  (an `added` entry + its `ttsUrls` mp3, id minted transactionally so it can
+  never collide with one the page mints). Nothing is re-paid: the render's
+  Storage mp3 is the file the Blocks render concatenates.
+
+Cutting Blocks' render rows gained the same onward pair while the buttons
+were being made (Cut Marks + Cutting Room) — a finished cut at the top of
+the pipeline had the same missing next step.
 
 **(b) A PROJECT that carries state across the rooms — barely started.** This is
 the third structural hole above, and it is the big build: every room is
 content-addressed by its own source url, so marks, labels, speaker and order
-never travel.
+never travel. **A shape is PROPOSED below (2026-08-17) and is waiting on
+Sophie — do not build it before she has said which version she wants.**
 
 **Order matters: build the BLOCKS tool before wiring (a).** Wiring hand-offs
 into a Compare page means wiring the thing that is about to be replaced.
+
+## The PROJECT across the rooms — proposed shape (2026-08-17, AWAITING SOPHIE)
+
+Nothing here is built. This is the proposal for hole (b), written down so the
+chat that builds it starts from a decision instead of a blank page.
+
+**The observation that shrinks the problem: lineage is already derivable.**
+Every hand-off passes a render url, and each room content-addresses its doc by
+the source url it was opened on — so a render url in one room IS the source
+url of the next room's doc. Joining `renders[].url` in `forge-blocks` /
+`forge-cutroom` / `forge-cutmarks` / the editor's episodes against
+`source.url` in the others reconstructs the whole walk of any lineage with
+ZERO new state, no migration, and nothing that can drift. The wiring above
+makes this true for every hand-off that goes through a button.
+
+**Three versions, smallest first:**
+
+1. **The resolver only (derive, store nothing).** `GET /api/audio/walk?url=`
+   walks the joins both ways and answers the chain: which recording this
+   started as, which rooms it passed through, which cut it became. Each room's
+   page shows a one-line "came from · went on to" strip from it, tappable to
+   reopen the upstream/downstream doc. What it cannot do: carry a decision —
+   the title is still re-typed per room and the speaker map still lives only
+   in Blocks.
+2. **A light project id threaded through the hand-offs.** Version 1, plus:
+   the first room mints `forge-audio-projects/<id>` holding `title`, a
+   `speakers` map (Blocks' `whoOver` seeds it), and the trail; every hand-off
+   appends `&project=<id>` and each room stamps `project` on its own doc and
+   READS the title/speakers instead of re-asking. Names travel; geometry does
+   not. A room opened raw (no param) just has no project — nothing breaks.
+3. **Marks travel too.** Deliberately NOT proposed: the rooms' coordinate
+   systems are different on purpose (word ranges over a transcript, seconds
+   on a clock, cards over blocks), every real cut re-listens anyway, and
+   translating marks between them is where the bugs would live — the
+   two-tier timing rule exists precisely because bulk timings don't survive
+   a room change.
+
+**The recommendation is 2** — it is 1 plus one small doc, it kills the
+re-deciding (the same title typed four times, the speaker decided twice), and
+it leaves each room's marking machinery exactly as it is. But it is Sophie's
+call, and the question for her is one line: *should a project carry just the
+name and who-speaks across the rooms (cheap, recommended), or do you want
+your marks to follow you too (expensive, and each room re-listens anyway)?*
 
 ## The Search index runs behind the memo archive (measured 2026-08-15)
 
@@ -210,10 +301,12 @@ Compare pages (**353** total), then reading every one that touches audio.
 
 Still only a page:
 
-- **Pausing tool** — `evan-story-visual-summary`, Aug 10, page
-  `s9rSf9bZo0AqnScX0OON` (titled "Evan — the pause timeline (v7b)"). The one
-  above. This is also the page behind CLAUDE.md's CORS finding: it `fetch()`es
-  audio and `decodeAudioData`s it, which a same-origin test cannot exercise.
+- ~~**Pausing tool**~~ — `evan-story-visual-summary`, Aug 10, page
+  `s9rSf9bZo0AqnScX0OON` (titled "Evan — the pause timeline (v7b)"). **Became
+  a real tool Aug 2026 — `pausing.js` + `/pausing`;** the page is still the
+  reference for what it does. This is also the page behind CLAUDE.md's CORS
+  finding: it `fetch()`es audio and `decodeAudioData`s it, which a same-origin
+  test cannot exercise.
 - **Cutting blocks v14** — `cutting-blocks-artifact`, Aug 12,
   `ePKqeMJOATGCz7MJa9lA`.
 - **Every passage — pick the cuts (v3)** — `illustrated-cannon-passage`, Aug 8.
@@ -391,7 +484,8 @@ Three things must NOT be folded in while doing it, all decided already:
   what the Cutting Room is for.
 - **Her voice is never loudnormed**, anywhere on the path.
 - **A pause is never digital silence.** Build it from the recording's own room
-  tone, trimmed or looped — the Pausing tool's finding, and it is audible.
+  tone, trimmed or looped — Pausing's finding, and it is audible. `pause-plan.js`
+  is where that rule now lives in code, for both the preview and the render.
 
 And one implementation rule the repo already paid for: **there is ONE cutter**
 (`editor.js` — `phraseSpan` → `clampBounds` → `detectSilences`/`snapToSilence`

@@ -480,6 +480,76 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     the recording's url + the card's timestamp. ~0.6c/min. Approving a
     storybook page by page, walking a to-do list, picking keepers — all this
     template.
+  - **THE MOMENT CARD — her own design, the deck's TEXT STYLE (Aug 2026,
+    Sophie's "Decision Deck v2" canvas: "wire that in as the Tinder text
+    style… the dates have multiple components that all need to be included
+    together, but some might have just one text or they might have like a
+    text and an image" — and "exactly exactly exactly like it does in the
+    demo").** Built for the dating book's date cards, and copied EXACTLY
+    from her v2 mockup — her hex palette (cream `#F7F2E8`, white boxes
+    `#FFFDF8` on `#E7DECF`, rust `#C25E4C`, ink `#262016`), the Newsreader
+    serif (Google Fonts, fetched by judge.js once per page), each part in
+    its own white rounded box — deliberately NOT the house tokens; do not
+    "fix" it back. Every part is OPTIONAL and a card renders only what it
+    carries, in this order: `who` (the date's name — **centred, on its own
+    line above the boxes**, lower than the mockup's header row, her ask),
+    `eyebrow` (the small rust line) + `text` (the moment, in the serif)
+    sharing the first box, `sections:[{label,text}]` (any number of labelled
+    boxes — "Illustration", …), `img`, then `caption` (an italic quote under
+    `captionLabel`, default "Caption"). A card carrying any of
+    who/eyebrow/sections/caption gets this look automatically;
+    `style:'moment'` opts plain text cards in too. **The date's NAME is drawn
+    in the page's top chrome, one row under "Piles" — not inside the card**
+    (her ask was "a little bit lower down and centered"; inside the centred
+    stack it drifts to mid-screen on a tall phone, which is a lot lower
+    down). **A moment deck wears the
+    whole mockup chrome** (her second choice, asked and answered Aug 2026):
+    the thin progress line + "Piles" + "?" replace the count/undo top row,
+    and each date card's footer is her ✕ · "Note for Claude…" box · ♥
+    (the mockup's ✓ swapped for a ♥ at her ask) — so these decks have only
+    yes/no (piles named Yes/No/Unsure, the mockup's words), no maybe/later,
+    no mic and no corner note +. The note box saves through the same
+    verdict-doc thread and Assets-tab mirror as the + note everywhere else.
+  - **A DECK IS ONE SCREEN, SO IT CARRIES NO AUTOSCROLL PILL AND — when it
+    is a moment deck — NO TITLE OF ITS OWN (Aug 2026, her report on the live
+    date deck: "the auto scroll pill is still there, but it doesn't need to
+    be because the page doesn't scroll at all… you added an extra header at
+    the top and very big font").** Three leftovers of the generic page
+    skeleton, all fixed in `renderTemplatePage`/judge.js, and worth knowing
+    before building anything else that lives on one screen:
+    - **The pill.** `renderTemplatePage` emits the pill's own head-safe
+      opt-out (`<meta name="forge-pill" content="off">`) for every `deck`
+      page — one card at a time never scrolls, so the pill was chrome with
+      nothing to drive, parked over the top-right corner. **The `grid`
+      template does scroll and keeps its pill.**
+    - **The `<h1>`.** A moment deck renders none: the app's own header above
+      the page already shows the page's name, so the `<h1>` was the name
+      twice, the second time in 26px serif eating the top third of the
+      screen. The `<title>` tag still names it in a browser tab.
+    - **Every fixed-size button says `justify-content:center` ITSELF**
+      ("the heart and the ex are not aligned with their buttons and neither
+      is the ?"). `compare.css`'s global `button` rule sets
+      `display:inline-flex; align-items:center` but no `justify-content` —
+      harmless on a button that hugs its words, and a visible mistake on a
+      62px square, where the glyph sits against the left edge. Anything
+      giving a button a fixed width here has to centre its own contents.
+    - **Her radii came DOWN from the mockup at her ask** ("make all the
+      rounded corners a little bit less rounded and more square"): boxes and
+      the ✕/♥ 10px, the note box 9px, Piles 8px — partway from her mockup's
+      16/17/14 toward the house 6px, not all the way.
+    - **The NAME is her rust, in the SANS** (asked for after seeing it live):
+      `#C25E4C`, `-apple-system`, sitting a little further down. It is the
+      one part of the card deliberately not in the Newsreader serif — the
+      moment, the caption and everything else still are.
+    - **One gutter, so the rows line up** ("lots of things are
+      misaligned"). The moment deck fills the viewport (`100dvh`, nothing
+      scrolls) and every row — progress line, Piles, boxes, footer ✕/♥ —
+      shares the same 22px gutter, where the old layout had three different
+      left edges (compare.css's `.wrap` padding, a 56px pill reservation, a
+      centred footer). The stack centres itself in what's left with
+      `justify-content:safe center` and scrolls INSIDE its own box when a
+      card is too tall — with `scrollbar-width:none`, because a 15px desktop
+      scrollbar inside that box pulls the cards off everyone else's edge.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,
@@ -501,9 +571,18 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     where the variation set starts and stops, and posts the grid itself
     (Sophie's rule, Aug 2026: the server files only what is provable; the
     chat deciphers the rest).
+  - **THE TOUR (Aug 2026, Sophie: "a tutorial where the buttons are
+    highlighted or everything else is tinted and it has a little
+    explanations").** `window.__compareTour({key, steps:[{sel,text}], auto})`
+    in `/compare.js` — coach marks: the page dims, each control shows
+    through a gold spotlight with one line under it, any tap steps forward.
+    A served template page plays its tour ONCE per device (localStorage)
+    and offers "SHOW ME AROUND" behind the "?" forever. Any hand-built page
+    may call it too — never hand-roll a spotlight overlay.
   - Tests: `node scripts/test-page-templates.js` (validation, rendering,
     grouping — pure) and `node scripts/test-templates-pages.js` (both stock
-    pages driven in headless Chromium, mirror posts included).
+    pages driven in headless Chromium, mirror posts included, plus the tour
+    on a fresh device).
   **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
   is PICKING/CHOOSING across a set rather than reading a comparison, start
   from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,

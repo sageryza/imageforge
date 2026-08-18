@@ -175,6 +175,9 @@ async function readPad(padId) {
     descriptionAudio: v.descriptionAudio || null,
     voiceover: v.voiceover || null,
     episodes: Array.isArray(v.episodes) ? v.episodes : [],
+    // The recordings this story came OUT of — voice memos (and interviews)
+    // attached by id. See sourceAudios below.
+    sources: Array.isArray(v.sources) ? v.sources : [],
     updatedAt: v.updatedAt || 0,
   };
 }
@@ -194,11 +197,35 @@ async function episodeAudios(ids) {
     const r = (Array.isArray(v.renders) && v.renders[0]) || null;
     if (!r || !r.url) return;
     out.push({
+      kind: 'episode',
       episodeId: s.id, title: v.title || 'Untitled episode',
       url: r.url, seconds: r.seconds || null, at: r.at || null,
     });
   });
   return out;
+}
+
+// Resolve a story's attached SOURCE RECORDINGS — the voice memos it came out
+// of (an interview works the same way). The name, date and length are stored
+// on the story when it is attached, so drawing the list costs no index read;
+// the URL is built HERE, per request, because a memo's bytes are not public
+// and the proxy carries the studio token — storing that url would bake in a
+// token that can change under it. (An interview's audio IS public, so its own
+// url is stored and used as-is.)
+function sourceAudios(sources, req) {
+  if (!Array.isArray(sources) || !sources.length) return [];
+  const base = (process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '')
+    || `${req.protocol}://${req.get('host')}`;
+  const token = process.env.STUDIO_TOKEN || '';
+  return sources.slice(0, 60).map((s) => ({
+    kind: 'source',
+    src: s.src,
+    title: s.title || s.src,
+    date: s.date || null,
+    seconds: s.seconds || null,
+    url: s.url
+      || `${base}/api/search/audio/${encodeURIComponent(s.src)}${token ? `?token=${encodeURIComponent(token)}` : ''}`,
+  }));
 }
 
 const router = express.Router();
@@ -221,7 +248,10 @@ router.get('/', async (req, res) => {
     const pid = padIdOf(req);
     res.set('Cache-Control', 'no-store');
     const pad = await readPad(pid);
-    res.json({ ...pad, audios: await episodeAudios(pad.episodes), pad: pid });
+    // ONE list — the waveform button holds everything attached to the story,
+    // the finished cuts and the raw recordings alike (Sophie, Aug 2026).
+    const audios = (await episodeAudios(pad.episodes)).concat(sourceAudios(pad.sources, req));
+    res.json({ ...pad, audios, pad: pid });
   } catch (e) { fail(res, e); }
 });
 
@@ -246,6 +276,54 @@ router.post('/episode', async (req, res) => {
       return next;
     });
     res.json({ ok: true, pad: pid, episodes });
+  } catch (e) { fail(res, e); }
+});
+
+// Attach (or detach) a SOURCE RECORDING — a voice memo, or an interview —
+// to this story. (Aug 2026, Sophie: "I would make it so that a story can hold
+// multiple audios, but I think I would hide them all behind a single icon that
+// has a wave form".) Identified by its SEARCH INDEX id, which is the id every
+// other hand-off already speaks, so the same recording is the same thing in
+// the Search page, the Cutting Room and here.
+//
+// Like /episode and /category, deliberately NO updatedAt bump: connecting a
+// recording that already exists is not a story edit, so it must not stale the
+// film or reshuffle the shelf.
+router.post('/audio', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const src = String(req.body.src || '').trim();
+    if (!src) return res.status(400).json({ error: 'src required' });
+    let entry = null;
+    if (!req.body.remove) {
+      // Lazily required: search.js pulls in the editor and the memo archive,
+      // and nothing else in this module needs either of them.
+      const { loadIndex } = require('./search');
+      const index = await loadIndex();
+      const found = index.sources[`m:${src}`] || index.sources[`v:${src}`];
+      if (!found) return res.status(400).json({ error: 'that recording is not in the search index' });
+      entry = {
+        src,
+        kind: found.k || 'memo',
+        title: found.title || src,
+        date: found.date || null,
+        seconds: found.seconds || null,
+        // A memo's url is derived per request (see sourceAudios); an
+        // interview's is public and keeps working forever, so store it.
+        url: found.k === 'memo' ? null : (found.audioUrl || null),
+        at: Date.now(),
+      };
+    }
+    const sources = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().sources)) ? snap.data().sources : [];
+      // Attaching one twice moves it to the end rather than doubling it.
+      const next = cur.filter((x) => x && x.src !== src);
+      if (entry) next.push(entry);
+      tx.set(padRef(pid), { sources: next }, { merge: true });
+      return next;
+    });
+    res.json({ ok: true, pad: pid, sources });
   } catch (e) { fail(res, e); }
 });
 

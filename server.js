@@ -96,6 +96,14 @@ app.get('/push-memos.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
 });
 
+// The Mac-side Apple-transcript importer, served the same way. Voice Memos
+// transcribes on the phone for free — including the recordings the server's
+// own ceiling and Whisper's size cap could never handle — and only her Mac can
+// read that database. Same deal as the push: no credentials in the script.
+app.get('/import-apple-transcripts.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/import-apple-transcripts.mjs');
+});
+
 app.get('/push-journal.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
 });
@@ -279,6 +287,7 @@ loadConfig().then(() => {
   const cuttingroom = require('./cuttingroom');
   const cutmarks = require('./cutmarks');
   const blocks = require('./blocks');
+  const pausing = require('./pausing');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -366,6 +375,7 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
+  app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
@@ -382,6 +392,13 @@ loadConfig().then(() => {
   // as marked before anything is cut for real. Was a hand-authored Compare
   // page (v14) with no server behind it; see docs/audio-pipeline.md.
   app.use('/api/blocks', blocks.router);
+  // Pausing: how long a beat sits. The Cutting Room can only REMOVE a pause
+  // (compressed to ~0.28s); this sets a length, adds a pause where there is
+  // none, builds it out of the recording's own room tone rather than digital
+  // silence, and plays HER edit rather than the source. Pause detection is
+  // imported from cuttingroom.js, never re-implemented; the edit itself is
+  // pause-plan.js, shared with the page. docs/audio-pipeline.md, hole 2.
+  app.use('/api/pausing', pausing.router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
@@ -743,6 +760,10 @@ app.get('/timeline', serveGated('timeline.html', { pill: true }));
 // quieter ones under them, each carrying the pictures that chat made and the
 // Compare pages it posted. Reads /api/brief; writes nothing.
 app.get('/brief', serveGated('brief.html', { pill: true }));
+// Review Queue: every deck/grid template page still waiting on her, with how
+// far through each she is. Reads /api/review; the only write is her own ✕
+// ("not a review", a reviewHidden stamp on the page doc).
+app.get('/review', serveGated('review.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
@@ -2892,6 +2913,19 @@ app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 // mark, reorder and hear before cutting. Engine is /api/blocks (blocks.js).
 // Same gate; the line list scrolls, so it carries the shared autoscroll pill.
 app.get('/blocks', serveGated('blocks.html', { pill: true }));
+// Pausing: set how long a pause is, add one where there is none, and hear the
+// edit rather than the source. Engine is /api/pausing (pausing.js). Same gate;
+// the transcript scrolls, so it carries the shared autoscroll pill.
+app.get('/pausing', serveGated('pausing.html', { pill: true }));
+// The edit itself — the ONE description of what her pause marks do to a
+// recording, loaded by the render on the server AND by the page in the
+// browser, so the preview she approves by ear is the take she gets. Public
+// and immutable-ish: it is code, it holds nothing of hers.
+app.get('/pause-plan.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pause-plan.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name

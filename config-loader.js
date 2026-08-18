@@ -54,6 +54,11 @@ const MANAGED_KEYS = [
   // https://secretlyawitch.com). Rarely need setting — they exist so e.g. a
   // future shop.secretlyawitch.com can take over without a code change.
   'WITCH_STORE_ORIGIN', 'WITCH_SITE_ORIGIN',
+  // Chat wake-up (chat-wake.js): one switchboard routine per Claude account.
+  // The trigger ids are not credentials (an id can't be fired without its
+  // token); the tokens are, and only Sophie can mint them (claude.ai routines
+  // UI → the routine → API trigger → Generate token).
+  'WAKE_TRIGGER_1', 'WAKE_TRIGGER_2', 'WAKE_FIRE_TOKEN_1', 'WAKE_FIRE_TOKEN_2',
 ];
 
 // The Anthropic key already lives in its OWN Firestore doc (`config/anthropic`,

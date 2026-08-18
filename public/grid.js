@@ -261,7 +261,42 @@
         },
       });
     }
-    if (opts.help && window.__compareHelp) window.__compareHelp({ html: opts.help });
+    // THE TOUR (Aug 2026, Sophie): each control spotlighted, the rest
+    // tinted, a line of explanation. Plays once on a template grid's first
+    // open; replayable from the "?" forever.
+    function tourSteps() {
+      var steps = [{ sel: '.gd-row', text: 'Each row is one comparison — the things on '
+        + 'it differ by exactly one thing, named in the label above each.' }];
+      steps.push(states
+        ? { sel: '.gd-state', text: 'Mark an item with one of these — tap the same one '
+          + 'again to unmark it.' }
+        : { sel: '.gd-vote.yes', text: '♥ keeps it, ✕ passes. On images from the Assets '
+          + 'tab, the same heart shows up there too — the two always agree.' });
+      steps.push({ sel: '.gd-prompt', text: 'PROMPT shows the exact text that made this '
+        + 'image — what it depicts first, the style behind the second tab.' });
+      steps.push({ sel: '.cmp-note-open', text: 'The + writes a note on this one — '
+        + 'answers come back in the same thread.' });
+      steps.push({ sel: '.gd-it img', text: 'Tap any picture to see it big; tap again '
+        + 'to come back exactly where you were.' });
+      return steps;
+    }
+    function startTour(auto) {
+      if (!window.__compareTour) return;
+      window.__compareTour({ key: 'grid', auto: !!auto, steps: tourSteps() });
+    }
+    if (window.__compareHelp) {
+      window.__compareHelp({ html: (opts.help ? opts.help + '<br><br>' : '')
+        + '<button type="button" class="gd-tourgo">SHOW ME AROUND</button>' });
+      document.addEventListener('click', function (e) {
+        if (e.target && e.target.className === 'gd-tourgo') {
+          setTimeout(function () { startTour(false); }, 60);
+        }
+      });
+    }
+    if (opts.tour === 'auto') {
+      // after the notes kit has drawn the + so the tour can point at one
+      setTimeout(function () { startTour(true); }, 800);
+    }
 
     // resume: the page's own verdicts first; an Assets-tab ♥/✕ fills in any
     // asset item the page has no verdict for, so the two surfaces agree in

@@ -57,6 +57,9 @@
 //   POST   /:id/state       → { patch } — merge a whitelisted slice of her
 //                             marking state (marks/custom/whoOver/added/…)
 //   POST   /:id/title       → { title }
+//   POST   /:id/line        → { url, text } — a spoken line handed in from
+//                             another room (the Voice Studio); lands as an
+//                             added line with its audio already rendered
 //   POST   /:id/render      → bake the cut she has marked (background job)
 //   GET    /:id/job         → { job, renders }
 //   DELETE /:id             → remove the project (Storage files stay)
@@ -221,6 +224,22 @@ function makeSections(blocks) {
     });
   }
   return secs;
+}
+
+// ─── a spoken line arriving from another room ───────────────────────
+// The page numbers the lines she types n0, n1, … and derives the next free
+// number by scanning what it drew. A line added from OUTSIDE the page (the
+// Voice Studio hand-off) must mint an id the page can never mint again, so
+// scan every place an id can live — a line can be in `order` after its
+// `added` entry was edited away, and vice versa.
+function nextLineId(added, ttsUrls, order) {
+  let n = 0;
+  [].concat(Object.keys(added || {}), Object.keys(ttsUrls || {}), Array.isArray(order) ? order : [])
+    .forEach((k) => {
+      const m = /^n(\d+)$/.exec(String(k));
+      if (m) n = Math.max(n, Number(m[1]) + 1);
+    });
+  return `n${n}`;
 }
 
 // ─── background jobs (the editor.js startJob pattern, on this collection) ──
@@ -530,6 +549,42 @@ router.post('/:id/title', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// A spoken line from another room — the Voice Studio hand-off (VOICE is one
+// of the two tributaries into BLOCKS on the pipeline map, and until this
+// route existed the connection meant download + re-upload by hand). The line
+// lands exactly as if she had typed it and its voice were already rendered:
+// an `added` entry (the words on the card) plus its `ttsUrls` mp3, minted a
+// fresh n<k> id in a transaction. Field-path updates, not a map stamp, so a
+// concurrent state save can't be reverted by this write — though a Blocks
+// page already OPEN on this project still holds the old maps and its next
+// full flush of `added`/`ttsUrls` can drop the new line; reopening shows it.
+// That is the same last-writer rule every field here already lives under.
+router.post('/:id/line', async (req, res) => {
+  try {
+    const lineUrl = String((req.body && req.body.url) || '').trim();
+    const text = String((req.body && req.body.text) || '').trim().slice(0, 600);
+    if (!/^https:\/\/storage\.googleapis\.com\//.test(lineUrl)) {
+      return res.status(400).json({ error: 'a spoken line must be a storage.googleapis.com url' });
+    }
+    if (!text) return res.status(400).json({ error: 'the spoken text is required' });
+    const d = db();
+    if (!d) throw new Error('Firestore unavailable');
+    const ref = d.collection(COL).doc(String(req.params.id));
+    const lineId = await d.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error('no such project');
+      const id = nextLineId(snap.get('added'), snap.get('ttsUrls'), snap.get('order'));
+      tx.update(ref, {
+        [`added.${id}`]: text,
+        [`ttsUrls.${id}`]: lineUrl,
+        updatedAt: nowIso(),
+      });
+      return id;
+    });
+    res.json({ ok: true, lineId });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
 router.post('/:id/render', async (req, res) => {
   try {
     const doc = await loadDoc(req.params.id);
@@ -563,5 +618,5 @@ router.delete('/:id', async (req, res) => {
 module.exports = {
   router,
   // exported for scripts/test-blocks.js — the pure halves, no network
-  makeBlocks, makeSections, rangesOf, parseCards, projectId,
+  makeBlocks, makeSections, rangesOf, parseCards, projectId, nextLineId,
 };

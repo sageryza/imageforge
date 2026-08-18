@@ -57,6 +57,9 @@ const pill = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 // the fetch recorder loads FIRST so every template post is captured; images
 // come from data: URLs so the harness serves no pictures
 const SPY = `<script>
+// these runs test the controls, not the tour — mark it seen up front
+// (the tour run below seeds nothing and tests the tour itself)
+try{localStorage.setItem('cmp-tour-deck','1');localStorage.setItem('cmp-tour-grid','1');}catch(_){}
 window.__posts=[]; (function(){ var rf=window.fetch.bind(window);
 window.fetch=function(u,o){ if(o&&o.method==='POST'){ try{ window.__posts.push({u:String(u),b:JSON.parse(o.body)}); }catch(_){} }
 return rf(u,o); }; })();
@@ -256,10 +259,168 @@ function run(name, html) {
   });
 }
 
+// the TOUR run seeds nothing, so the coach marks auto-play — first open of a
+// served template page on a fresh device
+function tourPage() {
+  const v = validateTemplate('deck', { voice: true, items: [
+    { id: 'a', label: 'first', img: IMG }, { id: 'b', label: 'second', img: IMG },
+  ] });
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  var t=document.querySelector('.cmp-tour');
+  ok(!!t, 'the tour auto-plays on a fresh device');
+  var ring=t&&t.querySelector('.cmp-tour-ring');
+  ok(ring && ring.getBoundingClientRect().width>10, 'the spotlight ring frames a control');
+  var count=t&&t.querySelector('.ct-count').textContent;
+  ok(/^1 of \\d+$/.test(count||''), 'it starts at step 1 — got "'+count+'"');
+  t.click();
+  ok(t.querySelector('.ct-count').textContent.indexOf('2 of')===0, 'a tap anywhere advances');
+  t.querySelector('.ct-skip').click();
+  ok(!document.querySelector('.cmp-tour'), 'SKIP puts it away');
+  var again=window.__compareTour({key:'deck',auto:true,steps:[{sel:'.jg-card',text:'x'}]});
+  ok(again===false, 'seen once = never auto-plays again');
+  fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+}, 900);
+</script>`;
+  return SPY.replace("localStorage.setItem('cmp-tour-deck','1');", '')
+    + renderTemplatePage({
+      template: 'deck', title: 'Tour test v1', chat: 't', sheet: 'page-t', data: v.data,
+    }) + pill + TEST;
+}
+
+// the MOMENT card — her "Decision Deck v2" design wired in as the deck's
+// text style, copied exactly: white boxes on her cream, Newsreader, her
+// footer (✕ · Note for Claude · ♥)
+function momentPage() {
+  const v = validateTemplate('deck', { items: [
+    { id: 'm1', who: 'Maya', eyebrow: 'Moment · Ch. 1',
+      text: 'Forty minutes choosing between two photos.',
+      sections: [{ label: 'Illustration', text: 'A grid of nearly identical selfies.' }],
+      caption: 'Both are you. Neither feels like it.' },
+    { id: 'm2', who: 'Theo', text: 'Just one line, nothing else.' },
+    { id: 'm3', who: 'Sam', text: 'Words and a picture together.', img: IMG },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  function posts(u){ return window.__posts.filter(function(p){ return p.u.indexOf(u)>=0; }); }
+  var m=document.getElementById('judge');
+  var mom=m.querySelector('.jg-mom');
+  ok(!!mom, 'a card with parts renders in the moment style');
+  ok(getComputedStyle(document.body).backgroundColor==='rgb(247, 242, 232)',
+     'the page wears her cream (#F7F2E8), not the house paper');
+  // the name is pinned in the top chrome, under the Piles row — not inside
+  // the centred stack, where it would drift to mid-screen on a tall phone
+  var who=m.querySelector('.jg.mom>.who'), eb=mom.querySelector('.eyebrow');
+  var wr=who.getBoundingClientRect(), mr=mom.getBoundingClientRect();
+  var cLeft=mr.left+mom.clientLeft, cMid=cLeft+mom.clientWidth/2;
+  ok(Math.abs((wr.left+wr.right)/2-cMid)<2, 'the name is CENTRED');
+  ok(eb.getBoundingClientRect().top>wr.bottom, 'the name sits ABOVE the eyebrow — lower down the card');
+  var topRow=m.querySelector('.jg-momtop').getBoundingClientRect();
+  ok(wr.top>=topRow.bottom-1 && wr.top-topRow.bottom<40,
+     'it sits just under the Piles row — a little lower, not mid-screen');
+  ok(getComputedStyle(who).fontFamily.indexOf('Newsreader')<0
+     && getComputedStyle(who).color==='rgb(194, 94, 76)',
+     'the name is her RUST, and NOT the serif — got '+getComputedStyle(who).color);
+  ok(getComputedStyle(mom.querySelector('.moment')).fontFamily.indexOf('Newsreader')>=0,
+     'the moment itself is still her Newsreader serif');
+  var boxes=mom.querySelectorAll('.jg-mombox');
+  ok(boxes.length===3 && !mom.querySelector('hr'),
+     'moment, section and caption each get their own white box — no hairline');
+  ok(getComputedStyle(boxes[0]).borderRadius==='10px'
+     && getComputedStyle(boxes[0]).backgroundColor==='rgb(255, 253, 248)',
+     'the boxes are her white boxes, squarer than the mockup at her ask');
+  ok(getComputedStyle(mom.querySelector('.cap')).fontStyle==='italic', 'the caption is italic');
+  ok(mom.querySelector('.jg-mombox .seclabel:last-of-type') &&
+     boxes[2].querySelector('.seclabel').textContent==='Caption',
+     'the caption box is labelled Caption (her v2 word)');
+  ok(document.documentElement.scrollWidth<=document.documentElement.clientWidth,
+     'nothing overflows the screen');
+  // ONE SCREEN: her design does not scroll, and no autoscroll pill rides it
+  ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
+     'the page does not scroll — it is one screen');
+  ok(!document.querySelector('.float')
+     && !!document.querySelector('meta[name="forge-pill"][content="off"]'),
+     'no autoscroll pill on a deck — there is nothing to scroll');
+  ok(!document.querySelector('h1'),
+     'no page title of its own — the app header already names it');
+  // her chrome: progress line + Piles + ? up top, her footer below the card
+  ok(!!m.querySelector('.jg-prog i') && !!m.querySelector('.jg-pilesbtn')
+     && !m.querySelector('.jg-count') && !m.querySelector('[data-act="undo"]'),
+     'her top chrome: progress line and Piles, no count and no undo');
+  var row=m.querySelector('.jg-momrow');
+  var btns=row?row.querySelectorAll('.jg-mombtn'):[];
+  // EVERY ROW ON THE SAME EDGES — the misalignment she reported
+  var L0=Math.round(boxes[0].getBoundingClientRect().left);
+  var R0=Math.round(boxes[0].getBoundingClientRect().right);
+  var prog=m.querySelector('.jg-prog').getBoundingClientRect();
+  var q=m.querySelector('.jg-momq').getBoundingClientRect();
+  ok(Math.round(prog.left)===L0 && Math.round(prog.right)===R0,
+     'the progress line spans the boxes\\' width');
+  ok(Math.abs(Math.round(q.right)-R0)<=1,
+     'the ? ends on the boxes\\' right edge — got '+Math.round(q.right)+' vs '+R0);
+  ok(Math.abs(Math.round(btns[0].getBoundingClientRect().left)-L0)<=1
+     && Math.abs(Math.round(btns[1].getBoundingClientRect().right)-R0)<=1,
+     'the ✕ and ♥ sit on the boxes\\' own edges');
+  ok(Math.round(row.getBoundingClientRect().bottom)<=window.innerHeight,
+     'the footer sits on the screen, not below it');
+  ok(row && btns.length===2 && btns[0].textContent==='✕' && btns[1].textContent==='♥'
+     && !m.querySelector('.jg-btn'),
+     'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
+  function off(el){ var r=document.createRange(); r.selectNodeContents(el);
+    var g=r.getBoundingClientRect(), b=el.getBoundingClientRect();
+    return [Math.abs((g.left+g.right)/2-(b.left+b.right)/2),
+            Math.abs((g.top+g.bottom)/2-(b.top+b.bottom)/2)]; }
+  var offs=[off(btns[0]),off(btns[1]),off(m.querySelector('.jg-momq'))];
+  ok(offs.every(function(d){ return d[0]<1.5 && d[1]<1.5; }),
+     'the ✕, the ♥ and the ? are centred in their own buttons — got '
+     + offs.map(function(d){ return d[0].toFixed(1)+'/'+d[1].toFixed(1); }).join(' '));
+  ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
+     && !m.querySelector('.jg-mic'),
+     'the Note for Claude box sits between them — no corner + and no mic');
+  ok(m.querySelector('.jg-card').classList.contains('momcard')
+     && !m.querySelector('.jg-card').classList.contains('ctl'),
+     'the house card chrome disappears behind her boxes');
+  // the ♥ saves a yes and steps forward, exactly like the mockup
+  btns[1].click();
+  var pv=posts('/api/chatfeed/verdict').pop();
+  ok(pv && pv.b.ok===true && pv.b.item==='m1', 'the heart saves a yes');
+  setTimeout(function(){
+    // 2 — parts she did not send simply do not appear
+    var m2=document.querySelector('.jg-mom');
+    ok(m2 && !m2.querySelector('.eyebrow') && m2.querySelectorAll('.jg-mombox').length===1,
+       'a one-text card shows a single box, no empty parts');
+    ok(!!document.querySelector('.jg.mom>.who') && !!m2.querySelector('.moment'),
+       'it still shows name + words');
+    // her note box: typing saves onto this card's thread
+    var nb=document.querySelector('.jg-momnote');
+    nb.value='too sweet'; nb.dispatchEvent(new Event('input'));
+    document.querySelector('.jg-navzone.next').click();
+    setTimeout(function(){
+      var m3=document.querySelector('.jg-mom');
+      ok(m3 && !!m3.querySelector('.moment') && !!m3.querySelector('figure img'),
+         'a card can carry words AND a picture');
+      var pn=posts('/api/chatfeed/verdict').filter(function(p){ return p.b.text; }).pop();
+      ok(pn && pn.b.item==='m2' && pn.b.text.indexOf('too sweet')>=0,
+         'the note box saves onto its card');
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+    }, 900);
+  }, 260);
+}, 700);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'deck', title: 'Moment test v2', chat: 't', sheet: 'page-m', data: v.data,
+  }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
     const b = await run('deck', deckPage());
-    console.log(`all ${a + b} checks passed`);
+    const c = await run('tour', tourPage());
+    const d = await run('moment', momentPage());
+    console.log(`all ${a + b + c + d} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();

@@ -12,13 +12,22 @@ html{background:var(--paper);}
 body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 [hidden]{display:none !important;}
 .wrap{max-width:34em; margin:0 auto; padding:5vh 5vw 16vh;}
-/* The autoscroll pill floats over the top-right corner, so every header row
-   reserves that column (the /chats rule — a control there is untappable). */
-.no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase; padding-right:56px;}
-h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em; padding-right:56px;}
-.rule{height:1px; background:var(--line); margin:1em 0 1.6em;}
 .state{font-style:italic; color:var(--ink2); text-align:center; padding:2.5em 0;}
-.credits{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em; color:var(--ink2); margin:-0.8em 0 1.4em; padding-right:56px;}
+/* NO PAGE HEADER (Sophie, Aug 2026: "it says Voice Studio twice, once at the
+   top and once below it… get rid of basically the whole header, including the
+   line"). The native tool bar already carries the title, so the page's own
+   brand row, h1, credits line and rule are gone and the tabs are the first
+   thing on screen. The credits moved behind the ⓘ on the tab row.
+   The autoscroll pill still floats over the top-right corner, so the rows that
+   now sit in its band (the tabs, the voice squares, the dropdown) each keep the
+   56px reserve — a control there is untappable. */
+.info{flex:0 0 auto; width:22px; height:22px; align-self:center; margin-right:10px;
+  border-radius:50%; border:1.2px solid var(--line); background:none; color:var(--ink2);
+  cursor:pointer; padding:0; font-family:-apple-system,sans-serif; font-size:12px; line-height:1;
+  display:flex; align-items:center; justify-content:center;}
+.info:focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
+.credits{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em;
+  color:var(--ink2); margin:-6px 0 12px; padding-right:56px;}
 .sect{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.24em; color:var(--ink2); text-transform:uppercase; margin:1.8em 0 .7em;}
 /* Voice picker: a row of rounded SQUARES, one per person, read by colour
    (Sophie, Aug 2026 — a scrolling list of names was too slow to use). The
@@ -29,21 +38,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.15em 0 .3em; padding
    row out, aspect-ratio keeps them square, and max-width stops three voices
    from becoming three slabs. At 375px (5vw padding each side, 56px reserved
    for the pill) that lands 7 squares at ~35px. */
+/* SQUARES, not circles (Sophie, Aug 2026: "make the little icons into squares
+   instead of circles"). The Lucide `user` glyph that used to sit on each one is
+   gone — its head is a circle and at ~30px it was most of what the swatch read
+   as. A voice is a flat colour square now, and the dropdown under it is still
+   the fallback for "who is who". */
 .vrow{display:flex; flex-wrap:nowrap; gap:6px; padding-right:56px;}
 .vbtn{flex:1 1 0; min-width:0; max-width:40px; aspect-ratio:1;
-  border-radius:6px; border:1.5px solid transparent;
-  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+  border-radius:3px; border:1.5px solid transparent;
+  display:block; cursor:pointer; padding:0;
   background:var(--line); position:relative;}
-.vbtn svg{width:56%; height:56%; stroke:#fff; fill:none; stroke-width:1.9;
-  stroke-linecap:round; stroke-linejoin:round;}
 /* Selected: an ink ring with a paper gap, so it reads on any pastel. */
 .vbtn.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--paper) inset;}
 .vbtn:focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
-.vsel{display:block; width:100%; box-sizing:border-box; margin-top:10px; max-width:22em;
+/* The dropdown sits in the pill's band now that the header is gone, so it is
+   capped short of that column as well as at its reading width. */
+.vsel{display:block; width:100%; box-sizing:border-box; margin-top:10px;
+  max-width:min(22em, calc(100% - 56px));
   font-family:'EBGaramond',Georgia,serif; font-size:1em; color:var(--ink);
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:9px 11px;}
-.vname{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.06em;
-  color:var(--ink2); margin-top:8px; min-height:1.2em;}
 .voice{display:flex; align-items:baseline; gap:8px; text-align:left; width:100%; box-sizing:border-box;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink);
   font-family:'EBGaramond',Georgia,serif; font-size:1.05em; padding:10px 56px 10px 12px; cursor:pointer;}
@@ -54,21 +67,29 @@ textarea{display:block; width:100%; box-sizing:border-box; min-height:7.5em; res
   font-family:'EBGaramond',Georgia,serif; font-size:17px; line-height:1.45;
   border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); padding:10px 12px;}
 textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
-.renderrow{display:flex; align-items:center; gap:12px; margin-top:10px;}
+/* stretch, so Render and Clear are the same height by construction — their
+   borders differ by half a pixel and padding alone left them one pixel apart. */
+.renderrow{display:flex; align-items:stretch; gap:12px; margin-top:10px;}
+/* Render / Apply voice are the SAME HEIGHT as Clear (Sophie, Aug 2026: "make
+   the render button smaller, make it the same height as the clear button").
+   Same padding and the same 11px sans line as .clrbtn, so the two agree by
+   construction rather than by two numbers that have to be kept equal; the ink
+   border and the weight are what still say which one is the action. */
 .gobtn{border:1.5px solid var(--ink); border-radius:6px; background:var(--barbg); color:var(--ink);
-  font-family:'EBGaramond',Georgia,serif; font-weight:600; font-size:1.1em; padding:9px 22px; cursor:pointer;
-  display:flex; align-items:center; gap:8px;}
-.gobtn svg{width:17px; height:17px;}
+  font-family:-apple-system,sans-serif; font-weight:600; font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; padding:9px 14px; cursor:pointer;
+  display:flex; align-items:center; gap:7px;}
+.gobtn svg{width:13px; height:13px;}
 .gobtn:disabled{opacity:.4;}
 /* Clearing is DELIBERATE (Sophie, Aug 2026: the words stay in the box unless
    she clears them). Only shows when there is something to clear, and it hugs
-   its word — never a slab beside Render. */
-.clrbtn{width:auto; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+   its word — never a slab beside Render. It sits at the FAR RIGHT of the row
+   (her ask, Aug 2026), which is also as far from Render as the row allows. */
+.clrbtn{width:auto; flex:0 0 auto; margin-left:auto; border:1px solid var(--line); border-radius:6px;
   background:var(--barbg); color:var(--ink2); cursor:pointer; padding:9px 14px;
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;}
 .clrbtn:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
 [hidden]{display:none !important;}
-.count{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2); letter-spacing:.04em;}
 /* A render: label (her words), meta line, the native player. */
 .render{border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:12px; margin-bottom:12px;}
 .render .rtext{font-size:1.02em; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
@@ -76,6 +97,25 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .render audio{width:100%; display:block;}
 .render.pending .rmeta .spin{color:var(--rose);}
 .render .rerr{font-family:-apple-system,sans-serif; font-size:12px; color:var(--chg);}
+/* → Cutting Blocks. VOICE is one of the two tributaries into BLOCKS on the
+   pipeline map, and until this button the connection meant download +
+   re-upload by hand. It sits on the meta row of a finished render; tapping
+   it unfolds the open Blocks projects, tapping one lands the line there. The
+   glyph is Cutting Blocks' own tile (design rule: a button that opens
+   another tool wears THAT tool's icon). */
+.render .toblocks{margin-left:auto; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:5px 9px;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  display:flex; align-items:center; gap:6px;}
+.render .toblocks svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
+.render .bsent{margin-left:auto; flex:0 0 auto; font-family:-apple-system,sans-serif; font-size:10px;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--ink2);}
+.bpick{margin-top:8px; border-top:1px solid var(--line); padding-top:8px;}
+.bpick .bp{display:block; width:100%; text-align:left; box-sizing:border-box; border:1px solid var(--line);
+  border-radius:6px; background:var(--barbg); color:var(--ink); font-family:'EBGaramond',Georgia,serif;
+  font-size:1em; padding:8px 11px; margin-bottom:6px; cursor:pointer;}
+.bpick .bnote{font-family:-apple-system,sans-serif; font-size:11px; color:var(--ink2);}
 /* TWO TABS — SPEAK and CHANGE (Aug 2026, Sophie: "a separate hairline tab in
    the voice studio"). The witch-shop / chats `.acctabs` pattern verbatim: no
    boxes, two half-width labels over a hairline, the line sliding under the one
@@ -101,9 +141,16 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   transform:translateX(var(--tx,0));}
 .acctabs.tl::after{transition:transform .2s ease, width .2s ease;}
 /* The recorder. A round record button (the one circle this page has — the
-   no-pills rule exempts circular icon buttons), then the file picker beside
-   it as plain words, because "or a file" is the fallback, not the headline. */
-.recrow{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+   no-pills rule exempts circular icon buttons), CENTRED (Sophie, Aug 2026:
+   "put the record button right in the middle, rather than on the left").
+   Three tracks rather than a centred flex row, because a centred row moves the
+   record button every time the timer next to it changes width: the outer
+   tracks are equal 1fr, so the middle one is the middle of the page whatever
+   sits either side. The file picker is the fallback, so it is an icon on the
+   right, not a headline in words. */
+.recrow{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px;}
+.recrow .rectime{justify-self:end;}
+.recrow .filebtn{justify-self:end;}
 .recbtn{width:52px; height:52px; flex:0 0 auto; border-radius:50%; cursor:pointer;
   border:1.5px solid var(--ink); background:var(--barbg);
   display:flex; align-items:center; justify-content:center; padding:0;}
@@ -114,41 +161,57 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 .recbtn:focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
 .rectime{font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.1em; color:var(--ink2);}
 .rectime.live{color:var(--chg);}
-.filebtn{width:auto; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
-  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:9px 14px;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;}
+/* Just the folder glyph — "or a file" is the fallback, and the words were the
+   longest thing in the row (Sophie, Aug 2026: "make the choose a file button
+   just an icon rather than words"). The label survives as aria-label/title. */
+.filebtn{width:38px; height:38px; flex:0 0 auto; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); color:var(--ink2); cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center;}
+.filebtn svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;}
 .filebtn:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
-/* The take she is about to change: its name, a player, and a way to drop it. */
-.take{border:1px solid var(--line); border-radius:6px; background:var(--barbg); padding:12px; margin-top:14px;}
-.take .tkname{font-size:1.02em; line-height:1.3;}
-.take .tkmeta{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--ink2); margin:6px 0 8px;}
+/* The take she is about to change: a player, and a way to drop it.
+   NOTHING ELSE (Sophie, Aug 2026: "get rid of where it says recorded take 4
+   seconds, because that's the only thing this is, and I can see the number of
+   seconds in the play button area"). A take she PICKED still shows its file
+   name — that one is the only way to tell which file she chose. */
+.take{position:relative; border:1px solid var(--line); border-radius:6px;
+  background:var(--barbg); padding:12px; margin-top:14px;}
+.take .tkname{font-size:1.02em; line-height:1.3; margin-bottom:8px; padding-right:32px;}
 .take audio{width:100%; display:block;}
-.take .tkdrop{margin-top:10px; border:none; background:none; cursor:pointer; padding:0;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
-  text-transform:uppercase; color:var(--chg);}
+/* Dropping a take is an ✕ in the CORNER, never a word beside the player
+   (Sophie, Aug 2026: "drop this take is right next to the play button, so I'm
+   afraid I'll accidentally delete my take rather than pressing play"), and it
+   asks before it drops. The recorder is the one input she cannot get back. */
+.take .tkx{position:absolute; top:6px; right:6px; width:26px; height:26px;
+  border:none; background:none; color:var(--ink2); cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center; border-radius:6px;}
+.take .tkx svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8;
+  stroke-linecap:round;}
+.take .tkx:focus-visible{outline:2px solid var(--rose); outline-offset:1px;}
+.take .tkask{position:absolute; inset:0; border-radius:6px; background:var(--barbg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;}
+.take .tkask .q{font-size:1.02em;}
+.take .tkask .row{display:flex; gap:10px;}
+.take .tkask button{border:1px solid var(--line); border-radius:6px; background:var(--barbg);
+  color:var(--ink2); cursor:pointer; padding:8px 14px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;}
+.take .tkask button.yes{border-color:var(--chg); color:var(--chg);}
 .bar{height:3px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:10px;}
 .bar i{display:block; height:100%; background:var(--ink); width:0;}
 .render .rsrc{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.12em;
   text-transform:uppercase; color:var(--ink2); margin:8px 0 4px;}
 </style>
 <div class="wrap">
-  <header>
-    <div class="no">Deck Factory</div>
-    <h1>Voice Studio</h1>
-    <div class="credits" id="credits"></div>
-    <div class="rule"></div>
-  </header>
-
   <div class="acctabs" id="tabs" data-on="0">
-    <button class="acctab on" id="tab-say" type="button">Speak</button>
-    <button class="acctab" id="tab-change" type="button">Change</button>
+    <button class="info" id="info" type="button" aria-label="What a render costs">i</button>
+    <button class="acctab on" id="tab-say" type="button">Text</button>
+    <button class="acctab" id="tab-change" type="button">Voice</button>
   </div>
+  <div class="credits" id="credits" hidden></div>
 
-  <div class="sect">Voice</div>
   <div class="vrow" id="voices"><div class="state">Loading your voices&hellip;</div></div>
   <select class="vsel" id="vsel" aria-label="Pick a voice by name"></select>
-  <div class="vname" id="vname"></div>
 
   <div id="pane-say">
     <div class="sect">Words</div>
@@ -159,7 +222,6 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
         Render
       </button>
       <button class="clrbtn" id="clr" hidden>Clear</button>
-      <span class="count" id="count"></span>
     </div>
 
     <div class="sect">Renders</div>
@@ -169,18 +231,19 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
   <div id="pane-change" hidden>
     <div class="sect">Recording</div>
     <div class="recrow">
-      <button class="recbtn" id="rec" type="button" aria-label="Record"><span class="dot"></span></button>
       <span class="rectime" id="rectime"></span>
-      <button class="filebtn" id="pick" type="button">Choose a file</button>
+      <button class="recbtn" id="rec" type="button" aria-label="Record"><span class="dot"></span></button>
+      <button class="filebtn" id="pick" type="button" title="Choose a file" aria-label="Choose a file">
+        <svg viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+      </button>
       <input type="file" id="file" accept="audio/*" hidden>
     </div>
     <div class="take" id="take" hidden></div>
     <div class="renderrow">
       <button class="gobtn" id="chgo" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
-        Change
+        Apply voice
       </button>
-      <span class="count" id="chcount"></span>
     </div>
     <div class="bar" id="upbar" hidden><i></i></div>
 
@@ -192,36 +255,39 @@ textarea:focus{outline:2px solid var(--ink2); outline-offset:1px;}
 var API='/api/voicelab';
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── credits line: what a render spends, against what's left ──
+// ── credits: behind the ⓘ (Sophie, Aug 2026 — it is a thing she checks, not a
+// thing she reads on every visit, so it costs a tap instead of a line). The
+// fetch still runs at boot: the number has to be there when she taps.
+var creditsEl=document.getElementById('credits');
 fetch(API+'/status').then(function(r){return r.json()}).then(function(s){
   if(s && s.credits && s.credits.limit){
     var left=s.credits.limit-s.credits.used;
-    document.getElementById('credits').textContent=
+    creditsEl.textContent=
       left.toLocaleString()+' credits left this month · 1 credit per character';
   }
 }).catch(function(){});
+document.getElementById('info').onclick=function(){
+  if(!creditsEl.textContent) creditsEl.textContent='Credits couldn’t be read right now.';
+  creditsEl.hidden=!creditsEl.hidden;
+};
 
 // ── voices ──
 var picked=null;
-// Lucide `user` — one white glyph on every square; the colour says who it is.
-var USER_SVG='<svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 fetch(API+'/voices').then(function(r){return r.json()}).then(function(d){
   var box=document.getElementById('voices'); box.innerHTML='';
-  var sel=document.getElementById('vsel'), nm=document.getElementById('vname');
+  var sel=document.getElementById('vsel');
   var vs=(d&&d.voices)||[];
   if(!vs.length){ box.innerHTML='<div class="state">No voices found on the account.</div>'; sel.style.display='none'; return; }
   function choose(v,i){
     picked=v;
     box.querySelectorAll('.vbtn').forEach(function(x,k){ x.classList.toggle('on',k===i); });
     sel.selectedIndex=i;
-    nm.textContent=v.name;
     paintGo();
   }
   vs.forEach(function(v,i){
     var b=document.createElement('button'); b.className='vbtn'; b.type='button';
     b.style.background=v.color||'var(--line)';
     b.title=v.name; b.setAttribute('aria-label',v.name);
-    b.innerHTML=USER_SVG;
     b.onclick=function(){ choose(v,i); };
     box.appendChild(b);
     var o=document.createElement('option'); o.textContent=v.name; sel.appendChild(o);
@@ -231,7 +297,7 @@ fetch(API+'/voices').then(function(r){return r.json()}).then(function(d){
 }).catch(function(){ document.getElementById('voices').innerHTML='<div class="state">Couldn’t load voices.</div>'; });
 
 // ── words + render button ──
-var ta=document.getElementById('text'), go=document.getElementById('go'), count=document.getElementById('count');
+var ta=document.getElementById('text'), go=document.getElementById('go');
 var clr=document.getElementById('clr');
 // Her words STAY (Sophie, Aug 2026: "text stays in the text box unless I clear
 // it intentionally"). She re-renders the same line across voices constantly, so
@@ -241,7 +307,6 @@ var TKEY='voicelab_text';
 function paintGo(){
   if(typeof paintCh==='function') paintCh();   // the picker feeds both panes
   var n=(ta.value||'').trim().length;
-  count.textContent=n?n.toLocaleString()+' characters = '+n.toLocaleString()+' credits':'';
   go.disabled=!(picked && n);
   clr.hidden=!(ta.value||'').length;
 }
@@ -257,8 +322,13 @@ function boxFor(r){ return (r&&r.kind==='sts') ? cbox : rbox; }
 function pendingIds(){ try{ return JSON.parse(localStorage.getItem('voicelab.pending')||'[]'); }catch(_){ return []; } }
 function setPending(ids){ localStorage.setItem('voicelab.pending', JSON.stringify(ids)); }
 var cards={};
+var rdata={};    // render id -> its latest doc, for the Blocks hand-off
+var sentTo={};   // render id -> the Blocks project title it landed in (this visit)
+// Cutting Blocks' tile glyph — SF `rectangle.split.3x1`, hand-inlined.
+var BLOCKS_SVG='<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="2"/><path d="M9 8v8"/><path d="M15 8v8"/></svg>';
 function card(r){
   var el=cards[r.id];
+  rdata[r.id]=r;
   if(!el){
     el=document.createElement('div'); el.className='render'; el.dataset.id=r.id;
     cards[r.id]=el;
@@ -269,10 +339,16 @@ function card(r){
   }
   // No delete button on a render — Sophie's request (an accidental tap could
   // lose one; a chat can still remove strays via DELETE /render/:id).
-  var meta=[esc(r.voiceName||''), (r.chars||0).toLocaleString()+' chars'];
+  // The voice, and nothing else — no character count anywhere on the page
+  // (Sophie, Aug 2026: "I don't need to know how many characters everything is").
   var body='<div class="rtext">'+esc(r.text)+'</div>'
-    +'<div class="rmeta"><span>'+meta.join(' · ')+'</span>'
+    +'<div class="rmeta"><span>'+esc(r.voiceName||'')+'</span>'
     +(r.status==='rendering'?'<span class="spin">rendering…</span>':'')
+    +(r.status==='done' && r.url
+      ? (sentTo[r.id]
+        ? '<span class="bsent">in “'+esc(sentTo[r.id])+'”</span>'
+        : '<button class="toblocks" data-id="'+esc(r.id)+'" title="Land this line in a Cutting Blocks project">'+BLOCKS_SVG+' Blocks</button>')
+      : '')
     +'</div>';
   if(r.status==='done' && r.url) body+='<audio controls preload="metadata" src="'+esc(r.url)+'"></audio>';
   if(r.kind==='sts' && r.sourceUrl){
@@ -283,6 +359,46 @@ function card(r){
   el.className='render'+(r.status==='rendering'?' pending':'');
   el.innerHTML=body;
 }
+// ── the Blocks hand-off: pick a project, land the line ──
+// The picker unfolds INSIDE the render's card (no overlay machinery on this
+// page, and the card is the thing being sent). A second tap on the button
+// folds it away. POST /api/blocks/:id/line files the line as an added card
+// whose voice is already rendered — nothing is re-paid.
+function openBlocksPick(id){
+  var el=cards[id], r=rdata[id]; if(!el||!r||!r.url) return;
+  var old=el.querySelector('.bpick'); if(old){ old.remove(); return; }
+  var box=document.createElement('div'); box.className='bpick';
+  box.innerHTML='<div class="bnote">loading projects…</div>';
+  el.appendChild(box);
+  fetch('/api/blocks/').then(function(x){return x.json()}).then(function(d){
+    var ps=((d&&d.projects)||[]).filter(function(p){ return p.status==='ready'; }).slice(0,12);
+    if(!ps.length){
+      box.innerHTML='<div class="bnote">No open Blocks projects yet — open a recording in Cutting Blocks first, then send this line again.</div>';
+      return;
+    }
+    box.innerHTML='<div class="bnote" style="margin-bottom:6px">Land this line in…</div>'
+      +ps.map(function(p){ return '<button class="bp" data-p="'+esc(p.id)+'">'+esc(p.title||'untitled')+'</button>'; }).join('');
+    box.onclick=function(ev){
+      var b=ev.target.closest('.bp'); if(!b) return;
+      var pid=b.dataset.p, title=b.textContent;
+      b.disabled=true;
+      fetch('/api/blocks/'+pid+'/line',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({url:r.url, text:r.text||('a line in '+(r.voiceName||'a voice'))})})
+        .then(function(x){return x.json()})
+        .then(function(res){
+          if(!res.ok) throw new Error(res.error||'failed');
+          sentTo[id]=title;
+          card(r);   // repaint — the card now says where the line went
+        })
+        .catch(function(err){ alert(err.message||'Couldn’t send it to Blocks'); b.disabled=false; });
+    };
+  }).catch(function(){ box.innerHTML='<div class="bnote">Couldn’t reach Cutting Blocks.</div>'; });
+}
+document.addEventListener('click', function(e){
+  var tb=e.target.closest('.toblocks');
+  if(tb) openBlocksPick(tb.dataset.id);
+});
+
 function poll(id){
   fetch(API+'/render/'+id).then(function(r){return r.json()}).then(function(d){
     if(d && d.id) card(d);
@@ -349,18 +465,18 @@ function showTab(i){
 }
 document.getElementById('tab-say').onclick=function(){ showTab(0); };
 document.getElementById('tab-change').onclick=function(){ showTab(1); };
-// SPEAK is lit in the markup and showTab does not run at boot, so the line has
+// TEXT is lit in the markup and showTab does not run at boot, so the line has
 // to be measured once here or the page would open with no line under anything.
 tabLine();
 
-var take=null;                 // {blob, name, ext, seconds}
-var chgo=document.getElementById('chgo'), chcount=document.getElementById('chcount');
+var take=null;                 // {blob, name, ext, seconds, rec}
+var chgo=document.getElementById('chgo');
 var takeBox=document.getElementById('take'), upbar=document.getElementById('upbar');
 var takeUrl=null;
+var X_SVG='<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
 function paintCh(){
   chgo.disabled = !(picked && take);
-  chcount.textContent = take ? ((take.blob.size/1048576).toFixed(1)+' MB') : '';
 }
 function setTake(t){
   if(takeUrl){ URL.revokeObjectURL(takeUrl); takeUrl=null; }
@@ -368,12 +484,27 @@ function setTake(t){
   if(!t){ takeBox.hidden=true; takeBox.innerHTML=''; paintCh(); return; }
   takeUrl=URL.createObjectURL(t.blob);
   takeBox.hidden=false;
-  takeBox.innerHTML='<div class="tkname">'+esc(t.name)+'</div>'
-    +'<div class="tkmeta">'+esc(t.ext)+' · '+(t.blob.size/1048576).toFixed(1)+' MB</div>'
+  // A recording needs no name — it is the only thing this card can be, and the
+  // player already shows its length. A PICKED file keeps its file name, which
+  // is the only way to tell which one she chose.
+  takeBox.innerHTML=(t.rec?'':'<div class="tkname">'+esc(t.name)+'</div>')
     +'<audio controls preload="metadata" src="'+takeUrl+'"></audio>'
-    +'<button class="tkdrop" type="button">Drop this take</button>';
-  takeBox.querySelector('.tkdrop').onclick=function(){ setTake(null); };
+    +'<button class="tkx" type="button" aria-label="Drop this take">'+X_SVG+'</button>';
+  takeBox.querySelector('.tkx').onclick=askDrop;
   paintCh();
+}
+// The ✕ asks first. It covers the card rather than opening a dialog, so the
+// answer is in the same place as the question and a stray tap outside changes
+// nothing.
+function askDrop(){
+  if(takeBox.querySelector('.tkask')) return;
+  var ask=document.createElement('div'); ask.className='tkask';
+  ask.innerHTML='<div class="q">Drop this take?</div>'
+    +'<div class="row"><button type="button" class="no">Keep it</button>'
+    +'<button type="button" class="yes">Drop</button></div>';
+  ask.querySelector('.no').onclick=function(){ ask.remove(); };
+  ask.querySelector('.yes').onclick=function(){ setTake(null); };
+  takeBox.appendChild(ask);
 }
 
 // Recording. iOS Safari has no WebM — `audio/mp4` is what it can record, so
@@ -413,7 +544,9 @@ recBtn.onclick=function(){
       var secs=Math.round((Date.now()-t0)/1000);
       recTime.textContent='';
       if(!blob.size){ alert('That take came back empty.'); return; }
-      setTake({blob:blob, ext:extFor(type), seconds:secs,
+      // `name` still rides along — it is what the CHANGED card is titled by,
+      // and the server stores it. It just isn't drawn on the take any more.
+      setTake({blob:blob, ext:extFor(type), seconds:secs, rec:true,
                name:'Recorded take · '+secs+'s'});
     };
     mr.start();

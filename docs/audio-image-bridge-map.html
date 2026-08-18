@@ -1,0 +1,289 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The bridge — blocks to storyboard</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  /* The blush board language is the pipeline family's (s-curve-content-pipeline
+     v8 → audio-pipeline-map → image-pipeline-map). This is the FOURTH drawing:
+     not a road of its own but the first BRIDGE between two of them — the audio
+     road's BLOCKS connected to the image road's WINDOW. Connections drawn as
+     pinned strings (her ask: Dexter-board connections), everything else stays
+     family: same colors, same cut-out drawings, same dashed-gold = not built. */
+  :root {
+    --blush: #f7ebe7; --blush2: #ecd7d2; --track: #e0c6bf;
+    --road: #f1dfda; --edge: #d9bcb4;
+    --goldfill: #c9a961; --blushink: #6f5450;
+  }
+  h1 {
+    font: 600 21px/1.25 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .045em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  /* hairline tabs — TWO here; the sliding line measures (100% - 56px)/2 and
+     the 56px reserve is the pill's corner */
+  .tabs {
+    position: relative; display: flex; border-bottom: 1px solid #e6d2cd;
+    margin: 0 0 14px; padding-right: 56px;
+  }
+  .tab {
+    flex: 1 1 0; min-width: 0; padding: 7px 4px 9px;
+    border: none; background: none; cursor: pointer;
+    font: 10px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.on { color: var(--ink); }
+  .tabs::after {
+    content: ''; position: absolute; left: 0; bottom: -1px; height: 2px;
+    width: calc((100% - 56px) / 2); background: var(--ink);
+    transform: translateX(0); transition: transform .2s ease;
+  }
+  .tabs[data-on="1"]::after { transform: translateX(100%); }
+  .board {
+    position: relative; background: var(--blush); border: 1px solid #e6d2cd;
+    border-radius: 6px; padding: 8px 2px 10px;
+  }
+  .board svg { display: block; width: 100%; height: auto; }
+  .stoplist { display: flex; flex-direction: column; gap: 6px; }
+  .stop {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    background: var(--blush); border: 1.5px solid var(--track);
+    border-radius: 6px; padding: 9px 30px 9px 10px;
+    color: inherit; text-decoration: none;
+  }
+  .stop svg.g { flex: 0 0 40px; width: 40px; height: 40px; }
+  .stop .nm {
+    font: 600 11px/1.2 -apple-system, sans-serif; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--blushink);
+  }
+  .stop .what { font: 12px/1.35 Georgia, serif; color: var(--ink2); }
+  .stop.none { border-style: dashed; }
+  .stop .tag {
+    font: 700 8.5px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--rose); border: 1px solid var(--rose);
+    border-radius: 3px; padding: 2px 4px; margin-left: 6px; display: inline-block;
+    vertical-align: 1px;
+  }
+</style>
+
+<div class="wrap">
+  <h1>The bridge v1 — blocks to storyboard</h1>
+
+  <div class="tabs" id="tabs" data-on="0" data-nostop>
+    <button class="tab on" data-tab="0" type="button">Map</button>
+    <button class="tab" data-tab="1" type="button">Steps</button>
+  </div>
+
+  <div id="view-map">
+    <div class="board" data-item="bridge-map" data-nostop>
+      <svg id="path" viewBox="0 0 440 560" role="img" aria-label="the audio to image bridge"></svg>
+    </div>
+  </div>
+
+  <div id="view-steps" hidden>
+    <div class="stoplist" id="steplist" data-nostop></div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  var SVG = 'http://www.w3.org/2000/svg';
+  var C = { road: '#f1dfda', edge: '#d9bcb4', gold: '#c9a961',
+            ink: '#6f5450', card: '#ecd7d2' };
+
+  /* the family's already-paid-for cut-out drawings */
+  var V = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/vector/';
+  var CUT = V + 'pipeline-icons-cut/';
+  var CUT2 = V + 'pipeline-icons-2-cut/';
+  var ART = {
+    mic: CUT2 + 'mic-cut.png',
+    blocks: CUT + 'blocks-cut.png',
+    zine: CUT2 + 'zine-cut.png',
+    window: CUT + 'window-cut.png',
+    scissors: CUT + 'scissors-cut.png',
+    screen: CUT2 + 'screen-cut.png',
+  };
+
+  function el(n, a) {
+    var e = document.createElementNS(SVG, n);
+    for (var k in a) e.setAttribute(k, a[k]);
+    return e;
+  }
+  function cell(g, url, cx, cy, s) {
+    g.appendChild(el('image', {
+      href: url, x: cx - s / 2, y: cy - s / 2, width: s, height: s,
+      preserveAspectRatio: 'xMidYMid meet',
+    }));
+  }
+  function txt(x, y, words, size, color, anchor) {
+    var t = el('text', { x: x, y: y, 'text-anchor': anchor || 'middle',
+      fill: color || C.ink, 'paint-order': 'stroke', stroke: '#f7ebe7',
+      'stroke-width': 3 });
+    t.style.font = '600 ' + (size || 9.5) + 'px -apple-system, sans-serif';
+    t.style.letterSpacing = '.07em';
+    t.textContent = words;
+    return t;
+  }
+  function pin(x, y) { return el('circle', { cx: x, cy: y, r: 3, fill: 'var(--rose)' }); }
+
+  var svg = document.getElementById('path');
+
+  function draw() {
+    svg.textContent = '';
+
+    /* ── the audio road's top: INPUT down to BLOCKS ─────────────────────
+       drawn as the family road — the same short stretch every sibling map
+       walks, stroked twice, edges under surface */
+    var RX = 120;
+    ['M' + RX + ' 52 L' + RX + ' 168'].forEach(function (d) {
+      svg.appendChild(el('path', { d: d, fill: 'none', stroke: C.edge, 'stroke-width': 27, 'stroke-linecap': 'round' }));
+      svg.appendChild(el('path', { d: d, fill: 'none', stroke: C.road, 'stroke-width': 22, 'stroke-linecap': 'round' }));
+    });
+
+    /* the fan: BLOCKS breaks the recording into sentence blocks (drawn before
+       the cards so cards sit over their lines) */
+    var cardYs = [248, 288, 328, 368];
+    cardYs.forEach(function (cy) {
+      svg.appendChild(el('path', {
+        d: 'M' + RX + ' 190 Q 82 ' + (cy - 20) + ' 82 ' + (cy - 14),
+        fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    });
+
+    /* INPUT — any recording */
+    var gi = el('g', {});
+    cell(gi, ART.mic, RX, 52, 46);
+    svg.appendChild(gi);
+    svg.appendChild(txt(150, 56, 'INPUT', 9.5, C.ink, 'start'));
+
+    /* BLOCKS — a real tool now (/blocks), tap goes there */
+    var gb = el('g', { 'data-go': '/blocks' });
+    gb.style.cursor = 'pointer';
+    cell(gb, ART.blocks, RX, 168, 46);
+    svg.appendChild(gb);
+    svg.appendChild(txt(150, 172, 'CUTTING BLOCKS', 9.5, C.ink, 'start'));
+
+    /* ── the block cards: sentence-level blocks, two text dashes each ── */
+    cardYs.forEach(function (cy) {
+      svg.appendChild(el('rect', { x: 28, y: cy - 14, width: 108, height: 28,
+        rx: 5, fill: C.card, stroke: 'var(--track)', 'stroke-width': 1.5 }));
+      svg.appendChild(el('rect', { x: 38, y: cy - 6, width: 66, height: 2.5, rx: 1.25, fill: C.edge }));
+      svg.appendChild(el('rect', { x: 38, y: cy + 2, width: 44, height: 2.5, rx: 1.25, fill: C.edge }));
+    });
+
+    /* ── ONE SHEET on the image side: 2×2, low quality ─────────────────
+       dashed gold outer ring = the general door is not built (the vector
+       room owns the sheet-and-cut machinery but welds it to pastel) */
+    svg.appendChild(el('rect', { x: 246, y: 240, width: 162, height: 162, rx: 8,
+      fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    svg.appendChild(el('rect', { x: 252, y: 246, width: 150, height: 150, rx: 6,
+      fill: C.road, stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(el('path', { d: 'M327 246 L327 396 M252 321 L402 321',
+      fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(txt(327, 232, 'ONE SHEET · LOW · 2¢'));
+
+    /* ── the Dexter strings: each block pinned to its quarter panel.
+       gold + dashed because the bridge itself is the thing not built yet */
+    var quads = [[289.5, 283.5], [364.5, 283.5], [289.5, 358.5], [364.5, 358.5]];
+    cardYs.forEach(function (cy, i) {
+      var q = quads[i];
+      svg.appendChild(el('path', {
+        d: 'M136 ' + cy + ' Q 194 ' + ((cy + q[1]) / 2) + ' ' + q[0] + ' ' + q[1],
+        fill: 'none', stroke: C.gold, 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }));
+    });
+    cardYs.forEach(function (cy, i) {
+      var q = quads[i];
+      svg.appendChild(pin(136, cy));
+      svg.appendChild(pin(q[0], q[1]));
+    });
+    svg.appendChild(txt(191, 310, 'AUTOMATIC', 8.5, C.gold));
+    svg.appendChild(txt(327, 416, '½¢ A PANEL · ¼ THE COST'));
+
+    /* ── cut, and the storyboard at the bottom ────────────────────────── */
+    svg.appendChild(el('path', { d: 'M327 422 L327 442',
+      fill: 'none', stroke: C.edge, 'stroke-width': 1.5 }));
+    svg.appendChild(el('path', { d: 'M327 448 l-4 -7h8z', fill: C.edge }));
+    var gs = el('g', {});
+    cell(gs, ART.scissors, 300, 432, 30);
+    svg.appendChild(gs);
+
+    /* the strip: the blocks in order, each wearing its quarter panel —
+       one dashed gold ring around the whole thing, because it is the
+       second half of what is not built */
+    svg.appendChild(el('rect', { x: 89, y: 452, width: 262, height: 84, rx: 8,
+      fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    [101, 163, 225, 287].forEach(function (fx) {
+      svg.appendChild(el('rect', { x: fx, y: 460, width: 52, height: 52, rx: 5,
+        fill: C.card, stroke: 'var(--track)', 'stroke-width': 1.5 }));
+      svg.appendChild(el('rect', { x: fx + 8, y: 520, width: 36, height: 2.5,
+        rx: 1.25, fill: C.edge }));
+    });
+    svg.appendChild(txt(220, 552, 'THE STORYBOARD — WORDS + PICTURE PER BEAT'));
+  }
+
+  svg.addEventListener('click', function (e) {
+    var g = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+    if (g && g.getAttribute('data-go')) location.href = g.getAttribute('data-go');
+  });
+
+  /* ── the steps tab — one row per piece, notes on each ──────────────── */
+  var STEPS = [
+    { id: 'in', label: 'INPUT', art: 'mic',
+      what: 'any recording — a memo, an interview passage, a script read in her voice. the capture library already holds them' },
+    { id: 'blocks', label: 'CUTTING BLOCKS', art: 'blocks', href: '/blocks',
+      what: 'the recording cut into sentence-level blocks — split, meld, locked in / not sure / out. built, /blocks' },
+    { id: 'bridge', label: 'THE BRIDGE', art: 'zine', none: 'not built',
+      what: 'each block’s words become a content prompt, automatically — a block IS the WORDS stop of the image road, which has no tool of its own' },
+    { id: 'sheet', label: 'ONE SHEET, QUARTER PANELS', art: 'window', none: 'pastel only', href: '/vector',
+      what: 'four blocks to one low sheet, 2¢ — cut into quarter panels, ½¢ each. the vector room owns the machinery but welds it to the pastel style' },
+    { id: 'board', label: 'THE STORYBOARD', art: 'screen', none: 'not built',
+      what: 'the blocks in order, each wearing its panel — storyboard quality on purpose. polish stays on the image road: wardrobe, wooden, gold, later' },
+  ];
+  var list = document.getElementById('steplist');
+  STEPS.forEach(function (st) {
+    var row = document.createElement(st.href ? 'a' : 'div');
+    row.className = 'stop' + (st.none ? ' none' : '');
+    row.setAttribute('data-item', 'step-' + st.id);
+    if (st.href) row.href = st.href;
+    var gs2 = document.createElementNS(SVG, 'svg');
+    gs2.setAttribute('viewBox', '0 0 36 36'); gs2.setAttribute('class', 'g');
+    var gg = el('g', {});
+    if (st.none) gg.appendChild(el('rect', { x: 1, y: 1, width: 34, height: 34,
+      rx: 5, fill: 'none', stroke: C.gold, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    cell(gg, ART[st.art], 18, 18, 35.7);
+    gs2.appendChild(gg);
+    row.appendChild(gs2);
+    var tx = document.createElement('div');
+    tx.innerHTML = '<div class="nm"></div><div class="what"></div>';
+    var nm = tx.querySelector('.nm');
+    nm.textContent = st.label;
+    if (st.none) {
+      var tag = document.createElement('span');
+      tag.className = 'tag'; tag.textContent = st.none;
+      nm.appendChild(tag);
+    }
+    tx.querySelector('.what').textContent = st.what;
+    row.appendChild(tx);
+    list.appendChild(row);
+  });
+
+  /* ── tabs ──────────────────────────────────────────────────────────── */
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    var n = b.getAttribute('data-tab');
+    tabs.setAttribute('data-on', n);
+    tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t === b); });
+    document.getElementById('view-map').hidden = n !== '0';
+    document.getElementById('view-steps').hidden = n !== '1';
+  });
+
+  draw();
+  if (window.__compareHelp) window.__compareHelp({ html:
+    '<p>The first bridge between the audio road and the image road: a recording goes into Cutting Blocks, and each block automatically becomes a quarter-panel storyboard image.</p>' +
+    '<p>Four blocks share ONE low sheet (2¢), cut into quarters — so each panel is ½¢, a quarter of the cost. Storyboarding money, not polish money: a panel’s only job is <i>does the beat read?</i> Polish stays on the image road (wardrobe, wooden, gold) for later.</p>' +
+    '<p>Gold dashed = not built yet. The strings are the bridge itself; the sheet machinery exists in the vector room but is welded to pastel.</p>' +
+    '<p>Tap BLOCKS or the sheet to open their tools. Leave a note on the map or any step with the + in its corner.</p>' });
+  if (window.__compareNotes) window.__compareNotes({ chat: 'audio-image-pipeline-merge-01wkqt', sheet: 'bridge1-s5' });
+})();
+</script>
+<style>[hidden]{display:none !important}</style>

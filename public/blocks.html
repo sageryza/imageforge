@@ -1056,18 +1056,36 @@
       if(res.status && res.status!=='ready') openProject(PID);   // the listen job finished
     }).catch(function(){ jobT=setTimeout(pollJob, 4000); });
   }
+  /* A finished cut's next stops on the map: EXACT CUT (Cut Marks — nudge an
+     edge by a tenth, by ear) and POLISH (the Cutting Room — pauses and
+     filler out on the transcript). Each button wears that tool's own glyph
+     (design rule): Cut Marks' timeline.selection, the Cutting Room's
+     scissors. Both /open routes are content-addressed, so tapping twice
+     resumes the same marking over there. */
+  var TIMESEL='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M2 12h4"/><path d="M18 12h4"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 12h4"/></svg>';
+  var SCISSORS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>';
+  function cutName(){
+    var t=document.querySelector('header h1');
+    return ((t && t.textContent) || 'Cutting Blocks')+' — cut';
+  }
   function paintRenders(list){
     var host=document.getElementById('renders'); host.innerHTML='';
     (list||[]).forEach(function(r){
       var d=document.createElement('div');
       d.className='rnd';
       d.innerHTML='<button class="btn plain" data-u="'+r.url+'">&#9654;</button>'
-        +'<span>'+fmt(r.seconds||0)+' · '+(r.pieces||0)+' pieces</span>'
+        +'<span style="flex:1">'+fmt(r.seconds||0)+' · '+(r.pieces||0)+' pieces</span>'
+        +'<button class="btn plain" data-cm="'+r.url+'" aria-label="Nudge the edges by ear in Cut Marks" title="Nudge the edges by ear in Cut Marks" style="display:flex;align-items:center">'+TIMESEL+'</button>'
+        +'<button class="btn plain" data-cr="'+r.url+'" aria-label="Take the pauses and filler out in the Cutting Room" title="Take the pauses and filler out in the Cutting Room" style="display:flex;align-items:center">'+SCISSORS+'</button>'
         +'<a class="btn plain" href="'+r.url+'" style="text-decoration:none">Open</a>';
       host.appendChild(d);
     });
   }
   document.getElementById('renders').addEventListener('click', function(e){
+    var cm=e.target.closest('button[data-cm]');
+    if(cm){ location.href='/cutmarks?url='+encodeURIComponent(cm.dataset.cm)+'&name='+encodeURIComponent(cutName()); return; }
+    var cr=e.target.closest('button[data-cr]');
+    if(cr){ location.href='/cuttingroom?url='+encodeURIComponent(cr.dataset.cr)+'&name='+encodeURIComponent(cutName()); return; }
     var b=e.target.closest('button[data-u]'); if(!b) return;
     stopAll(); cutAu.src=b.dataset.u; cutAu.play().catch(function(){});
   });

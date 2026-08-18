@@ -89,10 +89,14 @@ function cleanItem(raw, taken, fallback) {
   if (!raw || typeof raw !== 'object') return null;
   const it = {};
   const img = STR(raw.img, 500);
-  const text = STR(raw.text, 600);
-  if (!img && !text) return null;              // an item is a picture or words
+  const text = STR(raw.text, 1500);
+  // an item is a picture, words, or the moment card's PARTS (a date card may
+  // carry only an eyebrow and its sections — no single `text` at all)
+  const parts = ['who', 'eyebrow', 'caption'].some((k) => STR(raw[k], 200))
+    || (Array.isArray(raw.sections) && raw.sections.length);
+  if (!img && !text && !parts) return null;
   if (img) it.img = img;
-  if (!img && text) it.text = text;
+  if (text) it.text = text;   // a moment card may carry BOTH words and a picture
   const full = STR(raw.full, 500);
   if (full) it.full = full;
   it.label = STR(raw.label, 200);
@@ -102,6 +106,31 @@ function cleanItem(raw, taken, fallback) {
   for (const k of ['model', 'quality']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
   if (ASPECTS[raw.aspect]) it.aspect = raw.aspect;   // one card may differ from its page
+  // THE MOMENT CARD — the date card (Aug 2026, Sophie's own design, wired in
+  // from her "Decision Deck v2" canvas). Every part is OPTIONAL and a card
+  // renders only what it carries: "not all the cards will be used every
+  // time… some might have just one text or they might have like a text and
+  // an image".
+  //   who      the date's name — centred, its own line (lower than the
+  //            mockup's header row, her ask)
+  //   eyebrow  the small rust line inside the first white box
+  //   text     the moment itself, in the serif, same box
+  //   sections [{label, text}] — any number of labelled white boxes
+  //   caption  an italic quote, under `captionLabel` (default "Caption")
+  //   img      a picture, which may sit with any of the above
+  for (const k of ['who', 'eyebrow', 'caption', 'captionLabel']) {
+    const v = STR(raw[k], 200); if (v) it[k] = v;
+  }
+  if (Array.isArray(raw.sections)) {
+    const secs = [];
+    for (const sec of raw.sections.slice(0, 8)) {
+      if (!sec || typeof sec !== 'object') continue;
+      const label = STR(sec.label, 60), body = STR(sec.text, 1500);
+      if (!body) continue;
+      secs.push(label ? { label, text: body } : { text: body });
+    }
+    if (secs.length) it.sections = secs;
+  }
   it.id = STR(raw.id, 60) || null;
   if (it.id) { if (taken.has(it.id)) return { dup: it.id }; taken.add(it.id); }
   else it.id = deriveId(it, taken, fallback);
@@ -141,6 +170,10 @@ function validateTemplate(template, data) {
   // the page's card-face shape — see ASPECTS above. Items may override one
   // by one; anything not on the menu keeps the item's natural shape.
   if (ASPECTS[data.aspect]) out.aspect = data.aspect;
+  // style:'moment' puts PLAIN text cards into the same serif look; a card
+  // carrying who/eyebrow/sections/caption gets it automatically, so most
+  // decks never need this flag.
+  if (data.style === 'moment') out.style = 'moment';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -193,17 +226,44 @@ function validateTemplate(template, data) {
 // top, scripts in an IIFE-free single call (grid.js/judge.js are IIFEs
 // themselves and __pageData is a var, so nothing collides with the pill's
 // globals). kitWarnings never fires on one of these.
+// Is this deck built from her date cards? The same test judge.js makes on the
+// client, needed here because the page's CHROME differs for one (no title of
+// its own, one screen, no pill).
+function isMomentDeck(template, data) {
+  if (template !== 'deck' || !data) return false;
+  if (data.style === 'moment') return true;
+  return (data.items || []).some((it) => it && !it.pair && !it.card
+    && (it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)));
+}
+
 function renderTemplatePage({ template, title, chat, sheet, data }) {
-  const payload = JSON.stringify({ chat, sheet, ...data }).replace(/</g, '\\u003c');
+  // tour:'auto' — a SERVED template page plays its coach-mark tour once per
+  // device (compare.js __compareTour); hand-built pages opt in themselves
+  const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...data }).replace(/</g, '\\u003c');
   const mountId = template === 'grid' ? 'grid' : 'judge';
   const tplScript = template === 'grid' ? '/grid.js' : '/judge.js';
   const call = template === 'grid' ? 'window.__grid(window.__pageData)'
     : 'window.__judge(window.__pageData)';
+  // NO AUTOSCROLL PILL ON A DECK (Aug 2026, Sophie, on her own date deck:
+  // "the auto scroll pill is still there, but it doesn't need to be because
+  // the page doesn't scroll at all"). A deck is one card at a time and never
+  // scrolls — that is judge.js's whole premise — so the pill was chrome with
+  // nothing to drive, sitting over the top-right corner. The grid DOES scroll
+  // and keeps its pill. `meta forge-pill` is the pill's own head-safe opt-out.
+  const noPill = template === 'deck'
+    ? '<meta name="forge-pill" content="off">\n' : '';
+  // A MOMENT DECK CARRIES NO TITLE OF ITS OWN (same report: "you added an
+  // extra header at the top and very big font"). Her design has no title —
+  // the app's own header above the page already shows the page's name, so an
+  // <h1> here is the name twice, the second time in 26px serif eating the
+  // top third of the screen. The <title> tag still names it everywhere else.
+  const h1 = isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
     + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+    + noPill
     + `<title>${esc(title)}</title>\n`
     + '<link rel="stylesheet" href="/compare.css">\n'
-    + `<div class="wrap">\n<h1>${esc(title)}</h1>\n<div id="${mountId}"></div>\n</div>\n`
+    + `<div class="wrap">\n${h1}<div id="${mountId}"></div>\n</div>\n`
     + '<script src="/compare.js"></script>\n'
     + `<script src="${tplScript}"></script>\n`
     + `<script>var __pageData = ${payload}; ${call};</script>\n`;
@@ -349,5 +409,5 @@ function assignVoiceSegments(segments, timeline) {
 
 module.exports = {
   TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
-  parseCaption, normContent, assignVoiceSegments,
+  parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };

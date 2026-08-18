@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, timeline, review
     var id: String { rawValue }
 
     var title: String {
@@ -29,6 +29,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .search:    return "Search"
         case .cutmarks:  return "Cut Marks"
         case .blocks:    return "Cutting Blocks"
+        case .pausing:   return "Pausing"
         case .chats:     return "Chats"
         case .test:      return "Test Station"
         case .dump:      return "Dump"
@@ -42,6 +43,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
         case .timeline:  return "Story Timeline"
+        case .review:    return "Review Queue"
         }
     }
 
@@ -66,6 +68,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .search:    return "Find any words in every interview and every memo."
         case .cutmarks:  return "Mark your own cuts on a video or recording — no transcript."
         case .blocks:    return "Break a recording into lines — split, mark, reorder, hear it."
+        case .pausing:   return "Set how long a pause is — or put one where there is none."
         case .chats:     return "Every chat's updates in one feed — read or listen."
         case .test:      return "Run one prompt through the house styles."
         case .dump:      return "Send whole albums here — sort them out later."
@@ -79,6 +82,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "Drawings that stay sharp at any size. Recolour them free."
         case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
+        case .review:    return "Everything still waiting on your swipe — one pile."
         }
     }
 
@@ -100,6 +104,10 @@ enum Tool: String, CaseIterable, Identifiable {
         case .search:    return "magnifyingglass"
         case .cutmarks:  return "timeline.selection"
         case .blocks:    return "rectangle.split.3x1"
+        // Two upright bars with air between them — a rest, the thing this
+        // tool actually shapes. Distinct from the cutting family's scissors
+        // and split strips: nothing here removes anything, it sets a length.
+        case .pausing:   return "pause"
         case .chats:     return "bubble.left.and.bubble.right"
         case .test:      return "testtube.2"   // fallback; .test uses a custom asset (see customIcon)
         // Arrow down into a tray — the inbox glyph.
@@ -136,6 +144,9 @@ enum Tool: String, CaseIterable, Identifiable {
         // Moments stacked in an order, with one of them picked up — the whole
         // tool is moving a card up and down a list.
         case .timeline:  return "list.bullet.indent"
+        // A list with check marks — the pile of things waiting to be worked
+        // through. Distinct from .lessons' plain grid and .timeline's list.
+        case .review:    return "checklist"
         }
     }
 
@@ -177,6 +188,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .search:    SearchView()
         case .cutmarks:  CutMarksView()
         case .blocks:    BlocksView()
+        case .pausing:   PausingView()
         case .chats:     ChatFeedView()
         case .test:      TestStationView()
         case .dump:      DumpView().forgeToolBar("Dump")
@@ -205,6 +217,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
         case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent")
                             .forgeToolBar("Story Timeline")
+        // Review Queue: rows link OUT to the decks and grids themselves, so it
+        // gets its own wrapper (in-view navigation + history-stepping chevron)
+        // rather than GatedWebTool, which bounces off-path links to Safari.
+        case .review:    ReviewQueueView()
         }
     }
 }
@@ -516,6 +532,8 @@ struct RootView: View {
             if t == .cutmarks { return false }
             // Cutting Blocks too — same family, same injected pill.
             if t == .blocks { return false }
+            // Pausing too — same family, same injected pill.
+            if t == .pausing { return false }
             // Scratch Pad is a web page with its own injected pill — showing
             // the native one too would stack two pills.
             if t == .scratchpad { return false }
@@ -527,6 +545,8 @@ struct RootView: View {
             if t == .chunking { return false }
             // Story Timeline is served with { pill: true } as well.
             if t == .timeline { return false }
+            // Review Queue is served with { pill: true } as well.
+            if t == .review { return false }
             // Voice Studio is served with { pill: true } as well — it was the
             // one injected-pill page missing from this list, so both pills
             // drew and the speed label read "Fast" twice (Sophie's
@@ -620,8 +640,8 @@ private struct HomeGrid: View {
     /// - **Song Station** is gone from every grid — "get rid of song station
     ///   altogether". The tool, its page and `deckfactory://song` all still
     ///   work; it simply has no card anywhere now.
-    private static let movieTools: [Tool] = [.movie, .films, .blocks, .cutroom, .cutmarks, .editor,
-                                             .voice, .search, .character, .chunking]
+    private static let movieTools: [Tool] = [.movie, .films, .blocks, .cutroom, .pausing, .cutmarks,
+                                             .editor, .voice, .search, .character, .chunking]
 
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the

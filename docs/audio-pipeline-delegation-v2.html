@@ -1,0 +1,75 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audio pipeline — who does what v2</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+.job{border-top:1px solid var(--chg);padding:11px 0 9px}
+.job:first-of-type{border-top:0}
+.job h2{font:600 15px/1.3 -apple-system,'Helvetica Neue',sans-serif;margin:0 0 3px;color:var(--ink)}
+.who{font:500 12px/1.4 -apple-system,'Helvetica Neue',sans-serif;color:#6b6255;margin:0 0 3px}
+.who b{color:var(--ink);font-weight:600}
+.why{font:400 13px/1.45 -apple-system,'Helvetica Neue',sans-serif;color:#6b6255;margin:0}
+.after{font:400 11px/1.4 -apple-system,'Helvetica Neue',sans-serif;color:#8a8172;margin:3px 0 0}
+.done h2, .parked h2{text-decoration:line-through; text-decoration-color:#8a8172; color:#8a8172}
+.done .why, .parked .why{color:#8a8172}
+.tag{font:700 10px/1 -apple-system,sans-serif; letter-spacing:.08em; text-transform:uppercase;
+  border:1px solid var(--chg); color:var(--chg); border-radius:3px; padding:2px 5px; margin-left:6px;
+  display:inline-block; text-decoration:none}
+.parked .tag{border-color:#8a8172; color:#8a8172}
+</style>
+
+<div class="wrap">
+  <h1>Audio pipeline — who does what v2</h1>
+
+  <div class="job done" data-item="job-blocks">
+    <h2>1 · Build CUTTING BLOCKS as a real tool<span class="tag">done</span></h2>
+    <p class="who"><b>This chat</b></p>
+    <p class="why">Merged (#1281), deployed, verified end to end on a real recording. Live at /blocks with an iOS tile.</p>
+  </div>
+
+  <div class="job" data-item="job-pausing">
+    <h2>2 · The Pausing tool</h2>
+    <p class="who"><b>New chat (account 2)</b> · Opus 5</p>
+    <p class="why">Exists only as a Compare artifact. Silence detection already lives in cuttingroom.js — porting it to a surface, self-contained.</p>
+    <p class="after">Brief written — paste it whenever.</p>
+  </div>
+
+  <div class="job" data-item="job-index">
+    <h2>3 · Search index auto-rebuild</h2>
+    <p class="who"><b>New chat (account 2)</b> · Opus 5</p>
+    <p class="why">102 memos are unreachable from Search, which silently breaks SLICE IN for anything recent. Mechanical: rebuild on ingest, re-embed after.</p>
+    <p class="after">Brief written — this is the one that almost got forgotten.</p>
+  </div>
+
+  <div class="job" data-item="job-wiring">
+    <h2>4 · Make everything point at each other</h2>
+    <p class="who"><b>New chat (account 2)</b> · Opus 5</p>
+    <p class="why">Cut Marks has no way in or out; Voice Studio has no outbound. Plus the bigger one — a project that carries state between rooms.</p>
+    <p class="after">Was waiting on Blocks — unblocked now.</p>
+  </div>
+
+  <div class="job" data-item="job-script">
+    <h2>5 · SCRIPT — voice memo in, cut script out</h2>
+    <p class="who"><b>New chat</b> · the route calls claude-fable-5</p>
+    <p class="why">Not the Story Timeline: Timeline arranges her own dictated moments with no model call; SCRIPT has a model write cuttable lines from a rambling memo and lands them in Blocks. See the chat for the full answer.</p>
+    <p class="after">Waiting on her go after the clarification.</p>
+  </div>
+
+  <div class="job parked" data-item="job-cannon">
+    <h2>6 · Cannon picks → a real episode<span class="tag">parked</span></h2>
+    <p class="who"><b>Sophie's call, Aug 2026</b></p>
+    <p class="why">Larger job that doesn't need to be done right now. The seven audiobooks stay transcribed and searchable; nothing decays.</p>
+  </div>
+
+  <div class="job" data-item="job-order">
+    <h2>Where it stands</h2>
+    <p class="why">1 done. 2, 3, 4 ready to paste into account-2 chats today. 5 on her word. 6 parked.</p>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'audio-pipeline-tool', sheet: 'delegation-v2' });
+})();
+</script>

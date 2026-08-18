@@ -107,24 +107,23 @@ router.get('/status', async (req, res) => {
 // noise on a picker whose whole point is HER people. Cloning someone new =
 // add the id here; deleting a voice just drops it from the list on its own,
 // since the account query no longer returns it.
+//
+// CULLED Aug 18 2026 at Sophie's ask — Richard, Richard v2, Richard v3, Miriam,
+// Gilad, Alpha and "Sophie — doctor" came off the picker. The voices still exist
+// on the ElevenLabs account and nothing was deleted there: dropping an id here
+// is the whole undo, so putting one back is one line.
 const OFFERED_VOICE_IDS = [
   'UTkHGl2ImiT6gwtAFCql', // Sophie — morning (her professional clone)
   '15zm3wIS3FnEV3LX1Aa5', // Jonathan (annoyed)
   'XnL2M6RBESG5keWHuX0d', // Michael White
   'Ai0X93qaXBDloK1HAn87', // Steve Herrington
-  'FuJyIifktGclboKz9PFi', // Miriam
-  'eCJN3vIzJhxIxE216PIO', // Alpha
   'abAxVEBvVZF5ZLCb4HTw', // Sean (mad)
   'esVJEBbgfINGxR9bUuYQ', // Doug
-  'ws4szZn8cc3SmgDP6TlK', // Gilad
-  'Kvw6tPclr4WMpfwDrCe7', // Richard
-  'RMHCDmd78OJFe4tkgMIM', // Sophie — doctor
-  'ujnBQ7fLtwPbmA1LqLPI', // Richard v2 (separated by loudness)
-  'T9Hb8IjCmtu9eiwmHocH', // Richard v3 (word-exact — pitch AND loudness must agree)
   'EYB97SPMtZYwRMBdkH7a', // Sophie — doctor v2 (separated by transcript)
   'ZOw6P0YnswJ6JNjpj9wF', // Steve Ryza (her dad — NOT Steve Herrington, a different person)
   't5WywHVtMw3aenhWkKCz', // Sophie — instant (Aug 14), from one 3½-min memo with its long pauses cut
   '7Se81wBB6ZL5kXV2XKu5', // Sophie — instant v2 (Aug 14, stories), 12 min of her narrating, conditioned
+  'Aqp0rbLX5c0qpiPc83tG', // Snake Boy (instant), from a single voice message, Aug 17 2026
 ];
 // One flat pastel per person, so the picker is a row of coloured squares she
 // reads by colour rather than by scrolling a list of names (Sophie, Aug 2026:
@@ -136,23 +135,17 @@ const VOICE_COLORS = {
   '15zm3wIS3FnEV3LX1Aa5': '#9fbcd8', // Jonathan (annoyed) — blue
   abAxVEBvVZF5ZLCb4HTw: '#e0c97a', // Sean (mad) — yellow
   XnL2M6RBESG5keWHuX0d: '#b9a4d4', // Michael White — violet
-  FuJyIifktGclboKz9PFi: '#8f95c9', // Miriam — indigo
   Ai0X93qaXBDloK1HAn87: '#e6a877', // Steve Herrington — orange
-  eCJN3vIzJhxIxE216PIO: '#a7c4a0', // Alpha — green
-  // Sophie picked the seven above by name; these two are mine for now
+  // Sophie picked the ones above by name; the rest are mine for now
   // ("pick your own colours for now"), kept clear of every one of hers.
   esVJEBbgfINGxR9bUuYQ: '#c98f86', // Doug — terracotta
-  ws4szZn8cc3SmgDP6TlK: '#8fb8b5', // Gilad — teal
-  Kvw6tPclr4WMpfwDrCe7: '#a8a49c', // Richard — stone
-  RMHCDmd78OJFe4tkgMIM: '#d9a6b4', // Sophie — doctor — a second pink, next to her own
-  ujnBQ7fLtwPbmA1LqLPI: '#8e9aa0', // Richard v2 — slate
-  T9Hb8IjCmtu9eiwmHocH: '#6b7379', // Richard v3 — a darker slate, a shade off v1's stone
   EYB97SPMtZYwRMBdkH7a: '#e3b3bd', // Sophie — doctor v2
   t5WywHVtMw3aenhWkKCz: '#d6b0c4', // Sophie — instant (Aug 14) — a third pink, beside her other two
   '7Se81wBB6ZL5kXV2XKu5': '#cfa2b8', // Sophie — instant v2 (stories) — the same pink a shade deeper than v1
   ZOw6P0YnswJ6JNjpj9wF: '#6f8fa8', // Steve Ryza — steel blue. Deliberately NOT in the orange
   // family: orange is Steve Herrington, a different man, and pairing the two colours was
   // the visual version of the mistake that put them in one comparison (Aug 2026).
+  Aqp0rbLX5c0qpiPc83tG: '#b7a98f', // Snake Boy (instant) — sand
 };
 const PALETTE = ['#9fbcd8', '#e0c97a', '#b9a4d4', '#a7c4a0', '#e2b48c', '#9cc4c2', '#d4a58c', '#d9a7a7'];
 

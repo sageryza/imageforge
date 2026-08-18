@@ -14,15 +14,37 @@ route to bring it back. Film renders record per-unit audio receipts on
 `film.notes` ('her voice' / 'tts' / 'quiet') — read them before debugging
 any "it used the wrong voice" report. The title row is sticky; placement
 slots are short centered dashes.
-**LISTEN ROWS — Episode Editor episodes linked to a story (Aug 2026,
-Sophie: the NDE montages "should be connected to their stories so I can
-listen to them when I go to their story").** A story doc may carry
-`episodes: [episodeId, …]` (forge-editor ids); `GET /api/scratchpad/`
-resolves each to its NEWEST render live (`audios` on the response — a
-re-render in the editor reaches the story with no re-link) and the page
-shows a listen row per episode under the title (play · name · length,
-sharing the page's one player). Link with `POST /api/scratchpad/episode
-{pad, episodeId, remove?}` — like /category it does NOT bump updatedAt.
+**LISTEN ROWS — everything audio attached to a story, behind ONE waveform
+button (Aug 2026, Sophie: the NDE montages "should be connected to their
+stories so I can listen to them when I go to their story", then "a story can
+hold multiple audios … hide them all behind a single icon that has a wave
+form so I can click that button and see all the audios that are attached").**
+The waveform on the title row opens a sheet holding TWO kinds in one list,
+because from her side they are one thing — the audio on this story:
+- **Episodes** cut from the story in the Episode Editor. `episodes:
+  [episodeId, …]` (forge-editor ids), resolved to their NEWEST render live,
+  so a re-render in the editor reaches the story with no re-link. Link with
+  `POST /api/scratchpad/episode {pad, episodeId, remove?}`.
+- **Source recordings** — the voice memos the story came OUT of. `sources:
+  [{src, kind, title, date, seconds, url?}]`, identified by SEARCH INDEX id
+  (`m:<id>` / `v:<id>` without the prefix), which is the id the Search page
+  and the Cutting Room hand-off already speak. Attach with `POST
+  /api/scratchpad/audio {pad, src, remove?}`; it validates the id against
+  the index and stores the name/date/length it had then, so drawing the list
+  costs no index read. **A memo's URL is built per request, never stored** —
+  memo bytes are not public and the proxy carries the studio token, so a
+  stored url would bake in a token that can change under it; an interview's
+  audio IS public and its url is stored as-is.
+
+Both arrive merged as `audios` on `GET /api/scratchpad/`, each row carrying
+its `kind`. Rows share the page's ONE player (play · name · date · length),
+so a tap replaces whatever is speaking and never stacks; **the sheet does not
+stop the player on close**, so a recording she started keeps going while she
+reads the beats it became. No audio attached → **no button at all**. Like
+/category, neither route bumps updatedAt: connecting a recording that already
+exists is not a story edit, so it must not stale the film or reshuffle the
+shelf. Removing one is a chat call (`remove:true`) — there is no ✕ on the row
+yet.
 All 12 NDE-category stories were linked to their montage episodes on
 2026-08-11 (`node scripts/link-episodes-to-stories.js`, idempotent;
 "NDE · all the supercuts" carries all 11). Tests:
