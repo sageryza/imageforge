@@ -174,6 +174,84 @@
   .minefoot button { background:none; border:none; cursor:pointer; font:11px 'Courier Prime', monospace;
                      color:rgba(20,19,26,.5); border-bottom:1px dashed rgba(20,19,26,.4); padding:0; }
 
+  /* ── the compose sheet (the artboard's stage 1 + stage 2) ── */
+  .sheet { position:fixed; inset:0; margin:0 auto; max-width:480px; z-index:8; background:var(--cream);
+           animation:sheetup .35s cubic-bezier(.2,.9,.3,1) both; display:flex; flex-direction:column;
+           gap:12px; padding:20px 22px calc(24px + env(safe-area-inset-bottom)); overflow-y:auto; }
+  .shead { display:flex; justify-content:space-between; align-items:baseline; }
+  .smark { font:20px 'Baveuse', sans-serif; color:var(--ink); }
+  .shead button { background:none; border:none; font:16px 'Courier Prime', monospace; color:var(--brown); cursor:pointer; }
+  .st { display:flex; flex-direction:column; gap:12px; flex:1; }
+  .srow { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; }
+  .srow .sq { font:italic 400 14px 'EB Garamond', serif; color:var(--ink); }
+  .sbtns { display:flex; gap:8px; }
+  .sbtns button { width:42px; height:42px; border:none; background:var(--brown); color:var(--cream);
+                  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+  #micBtn { border-radius:16px 22px 14px 20px; }
+  #micBtn.rec { background:var(--ink); }
+  #fileBtn { border-radius:20px 14px 22px 16px; }
+  .chips { display:flex; gap:8px; align-items:center; }
+  .chips button { font:11.5px 'Courier Prime', monospace; padding:8px 12px; cursor:pointer;
+                  border:1px solid rgba(20,19,26,.35); background:transparent; color:rgba(20,19,26,.6); }
+  #lucidBtn { border-radius:14px 20px 16px 22px; }
+  #recurBtn { border-radius:16px 22px 14px 20px; }
+  .chips button.on { background:var(--brown); color:var(--cream); border-color:var(--brown); }
+  .shardrow { display:flex; gap:8px; justify-content:center; align-items:center; }
+  .shardrow span { font:11px 'Courier Prime', monospace; color:rgba(20,19,26,.45); }
+  .shardrow button { font:11.5px 'Courier Prime', monospace; background:#f4f0e5;
+                     border:1px dashed rgba(20,19,26,.4); color:rgba(20,19,26,.65);
+                     padding:7px 12px; border-radius:16px 22px 14px 20px; cursor:pointer; }
+  .blobbtn { align-self:center; font:15px 'Courier Prime', monospace; background:var(--brown); color:var(--cream);
+             border:none; padding:13px 30px; border-radius:60% 40% 55% 45%/45% 55% 40% 60%; cursor:pointer; }
+  .blobbtn[disabled] { opacity:.5; }
+  .threehead { font:11px 'Courier Prime', monospace; color:rgba(20,19,26,.5); }
+  .three { display:flex; gap:10px; }
+  .three textarea { flex:1; min-width:0; height:82px; min-height:82px; font:400 13px/1.4 'EB Garamond', serif;
+                    border:1px solid rgba(20,19,26,.4); border-radius:14px 20px 12px 18px; padding:10px;
+                    text-align:center; }
+  .sfoot { margin-top:auto; display:flex; flex-direction:column; gap:12px;
+           border-top:1px dashed rgba(20,19,26,.3); padding-top:14px; }
+  .moodrow { display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap; }
+  .moodrow > span { font:11px 'Courier Prime', monospace; color:rgba(20,19,26,.5); }
+  .moods { display:flex; gap:6px; flex-wrap:wrap; }
+  .moods button { font:11.5px 'Courier Prime', monospace; padding:7px 11px; border-radius:14px 20px 12px 18px;
+                  border:1px solid rgba(20,19,26,.35); cursor:pointer; background:transparent;
+                  color:rgba(20,19,26,.6); }
+  .moods button.on { background:var(--brown); color:var(--cream); border-color:var(--brown); }
+  .streakline { text-align:center; font:11px/1.7 'Courier Prime', monospace; color:rgba(20,19,26,.45); }
+  /* stage 2 */
+  .illus { aspect-ratio:1/1; width:74%; align-self:center; box-sizing:border-box;
+           background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 6px,#e9e4d6 6px,#e9e4d6 12px);
+           border:1.5px solid var(--ink); animation:blob 12s ease-in-out infinite; overflow:hidden;
+           position:relative; display:flex; align-items:center; justify-content:center; flex:none; }
+  .illus img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .illus .working { font:11px 'Courier Prime', monospace; color:var(--brown); text-align:center; padding:0 14px;
+                    animation:inkpulse 1.6s ease-in-out infinite; }
+  .illus .werr { font:11px 'Courier Prime', monospace; color:var(--brown); text-align:center; padding:0 14px; }
+  .slots { display:flex; gap:10px; width:74%; align-self:center; }
+  .slots .slot { flex:1; display:flex; flex-direction:column; gap:4px; align-items:center; min-width:0; }
+  .slots .sq2 { width:100%; aspect-ratio:1/1; box-sizing:border-box;
+                background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 5px,#e9e4d6 5px,#e9e4d6 10px);
+                border:1px solid var(--ink); border-radius:12px 18px 10px 16px;
+                display:flex; align-items:center; justify-content:center; }
+  .slots .sq2 span { font:11px 'Courier Prime', monospace; color:var(--brown);
+                     animation:inkpulse 1.6s ease-in-out infinite; }
+  .slots .slab { font:10px 'Courier Prime', monospace; color:rgba(20,19,26,.55); max-width:100%;
+                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preview { font:400 15px/1.5 'EB Garamond', serif; color:var(--ink); white-space:pre-wrap; }
+  .preview button { background:none; border:none; font:11px 'Courier Prime', monospace; color:var(--brown);
+                    cursor:pointer; padding:0; border-bottom:1px dashed var(--brown); }
+  .seenby { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:auto; }
+  .seenby > span { font:italic 400 14px 'EB Garamond', serif; color:var(--ink); }
+  .dial { display:flex; background:#f4f0e5; border:1.5px solid var(--ink);
+          border-radius:18px 26px 16px 24px/22px 16px 24px 18px; padding:3px;
+          animation:wobble 8s ease-in-out infinite; }
+  .dial button { font:11.5px 'Courier Prime', monospace; padding:8px 12px; border:none; cursor:pointer;
+                 background:transparent; color:rgba(20,19,26,.65); }
+  .dial button:first-child { border-radius:14px 20px 12px 18px/16px 12px 18px 14px; }
+  .dial button:last-child { border-radius:20px 12px 18px 14px/14px 18px 12px 20px; }
+  .dial button.on { background:var(--brown); color:var(--cream); }
+
   /* sign-in */
   .gate { padding:70px 26px 40px; max-width:420px; margin:0 auto; }
   .gate .mark { font-size:42px; display:block; }
@@ -243,10 +321,66 @@
   <main>
     <section id="scr-feed"></section>
     <section id="scr-mine" hidden></section>
-    <section id="scr-compose" hidden></section>
     <section id="scr-dream" hidden></section>
   </main>
   <div class="confess" id="confess"><button id="confessBtn">it&rsquo;s coming back to me&hellip;</button></div>
+  <div class="sheet" id="sheet" hidden>
+    <div class="shead">
+      <span class="smark">dreams</span>
+      <button id="sheetX" aria-label="close">×</button>
+    </div>
+    <div class="st" id="st1">
+      <div class="srow">
+        <span class="sq">what did you dream last night?</span>
+        <span class="sbtns">
+          <button id="micBtn" title="speak it"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10v1a7 7 0 0 0 14 0v-1"></path><path d="M12 18v4"></path></svg></button>
+          <button id="fileBtn" title="upload a recording"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path><path d="M14 2v5h5"></path></svg></button>
+          <input id="fileInput" type="file" accept="audio/*" hidden>
+        </span>
+      </div>
+      <textarea id="draft" placeholder="i dreamt…"></textarea>
+      <div class="chips">
+        <button id="lucidBtn">✦ lucid</button>
+        <button id="recurBtn">↻ recurring</button>
+      </div>
+      <div class="shardrow">
+        <span>can't remember?</span>
+        <button id="shardBtn">✳ start with a shard</button>
+      </div>
+      <button class="blobbtn" id="illusBtn">illustrate it</button>
+      <div class="threehead">three things that stayed with you when you woke —</div>
+      <div class="three">
+        <textarea class="el" placeholder="…"></textarea>
+        <textarea class="el" placeholder="…"></textarea>
+        <textarea class="el" placeholder="…"></textarea>
+      </div>
+      <div class="sfoot">
+        <div class="moodrow">
+          <span>how did it feel?</span>
+          <div class="moods">
+            <button data-mood="soft">soft</button>
+            <button data-mood="anxious">anxious</button>
+            <button data-mood="tender">tender</button>
+            <button data-mood="strange">strange</button>
+          </div>
+        </div>
+        <div class="streakline" id="streakLine">dreams fade in the first ten minutes — write fast</div>
+      </div>
+    </div>
+    <div class="st" id="st2" hidden>
+      <div class="illus" id="illusBox"><span class="working">reading your dream… illustrating it in your ink</span></div>
+      <div class="slots" id="slots"></div>
+      <div class="preview" id="preview"></div>
+      <div class="seenby">
+        <span>seen by</span>
+        <div class="dial">
+          <button data-s="everyone" class="on">✳ everyone</button>
+          <button data-s="private">◦ just me</button>
+        </div>
+      </div>
+      <button class="blobbtn" id="shareBtn2">share your dream</button>
+    </div>
+  </div>
 </div>
 
 </div>
@@ -564,7 +698,7 @@ function drawComments(comments, thread){
 }
 
 /* ── views ── */
-var scr = { feed: null, mine: null, compose: null, dream: null };
+var scr = { feed: null, mine: null, dream: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
   document.getElementById('confess').hidden = (which !== 'feed');
@@ -635,25 +769,201 @@ async function renderFeed(){
   }
 }
 
-/* ── compose ── */
+/* ── the compose sheet (stage 1 → stage 2, per the artboard) ──
+   Speak it / upload a recording go through POST /transcribe and land in the
+   same box as typing. "illustrate it" saves the dream (with mood, lucid,
+   recurring and the three things — captured now, no later moment knows them)
+   and starts the drawing as a background job (~2¢/page, gpt-image-2 low, the
+   dream-zine engine). Stage 2 polls the job; "share your dream" publishes the
+   night to everyone, "just me" keeps it private. If she shares while the ink
+   is still working, the words go out now and the pictures follow by
+   themselves the moment the job lands (localStorage carries the intent across
+   a closed sheet, and across a relaunch). Circles (☾) arrive with the
+   sharing-flow phase. */
+var sheetState = null;
+var composeInfo = null;   // /me: streak + last night, fetched once per open
+
 function openCompose(){
-  scr.compose.innerHTML =
-    '<div class="h2" style="margin-top:18px">what did you dream last night?</div>' +
-    '<textarea id="cap" placeholder="i dreamt\u2026"></textarea>' +
-    '<button class="btn" id="saveBtn">save dream</button>' +
-    '<div class="quiet">Saves privately to my dreams. The next screen is where you draw it, ' +
-    'and where you choose what to share.</div>';
-  go('compose');
-  document.getElementById('saveBtn').addEventListener('click', async function(){
-    var t = document.getElementById('cap').value.trim();
-    if (!t) { document.getElementById('cap').focus(); return; }
-    this.disabled = true;
-    try {
-      var d = await api('/dreams', { body: { text: t } });
-      toast('saved to my dreams');
-      openDream(d.id, 'mine');
-    } catch (e) { toast(e.message); this.disabled = false; }
-  });
+  sheetState = { stage: 1, dreamId: null, share: 'everyone', mood: null,
+                 lucid: false, recur: false, expanded: false, poll: null, rec: null };
+  var sh = document.getElementById('sheet');
+  document.getElementById('st1').hidden = false;
+  document.getElementById('st2').hidden = true;
+  document.getElementById('draft').value = '';
+  document.querySelectorAll('.three .el').forEach(function(t){ t.value = ''; });
+  document.querySelectorAll('.moods button, #lucidBtn, #recurBtn').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('micBtn').classList.remove('rec');
+  document.getElementById('illusBtn').disabled = false;
+  sh.hidden = false;
+  document.body.style.overflow = 'hidden';
+  api('/me').then(function(r){
+    composeInfo = r;
+    var line = 'dreams fade in the first ten minutes — write fast';
+    if (r.streak > 0) {
+      line = '☾ night ' + r.streak + ' of your streak' +
+        (r.lastNight ? ' · last night: ' + r.lastNight.toLowerCase() : '') + '<br>' + line;
+    }
+    document.getElementById('streakLine').innerHTML = line;
+  }).catch(function(){});
+}
+function closeCompose(){
+  clearTimeout(sheetState && sheetState.poll);
+  if (sheetState && sheetState.rec) { try { sheetState.rec.stop(); } catch (e) {} }
+  document.getElementById('sheet').hidden = true;
+  document.body.style.overflow = '';
+}
+
+var SHARDS = ['i was somewhere i knew, but it was wrong ',
+              'it started in the middle of something ',
+              'there was water where there should not have been ',
+              'someone was there who could not have been '];
+
+/* voice → words: MediaRecorder while the mic button reads dark, then the
+   bytes go to /transcribe and the transcript lands in the box */
+async function toggleRec(){
+  var btn = document.getElementById('micBtn');
+  if (sheetState.rec) { sheetState.rec.stop(); return; }
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) { toast('the microphone said no'); return; }
+  var mime = window.MediaRecorder && MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+  var rec = new MediaRecorder(stream, { mimeType: mime });
+  var chunks = [];
+  rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = function(){
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    sheetState.rec = null;
+    btn.classList.remove('rec');
+    transcribeBlob(new Blob(chunks, { type: mime }));
+  };
+  sheetState.rec = rec;
+  btn.classList.add('rec');
+  rec.start();
+}
+async function transcribeBlob(blob){
+  if (!blob || !blob.size) return;
+  toast('listening back…');
+  try {
+    var tok = await fbAuth.currentUser.getIdToken();
+    var r = await fetch(API + '/transcribe', {
+      method: 'POST', body: blob,
+      headers: { authorization: 'Bearer ' + tok, 'content-type': blob.type || 'audio/mp4' },
+    });
+    var jn = await r.json();
+    if (!r.ok) throw new Error(jn.error || 'something went wrong');
+    var box = document.getElementById('draft');
+    box.value = (box.value.trim() ? box.value.trim() + ' ' : '') + jn.text;
+  } catch (e) { toast(e.message); }
+}
+
+function elemsNow(){
+  return [].map.call(document.querySelectorAll('.three .el'), function(t){ return t.value.trim(); })
+    .filter(Boolean);
+}
+
+async function illustrate(){
+  var text = document.getElementById('draft').value.trim();
+  if (!text) { document.getElementById('draft').focus(); return; }
+  var btn = document.getElementById('illusBtn');
+  btn.disabled = true;
+  try {
+    var d = await api('/dreams', { body: { text: text, mood: sheetState.mood,
+      lucid: sheetState.lucid, recurring: sheetState.recur, elems: elemsNow() } });
+    sheetState.dreamId = d.id;
+    await api('/dreams/' + d.id + '/draw', { body: {} });
+    enterStage2(text);
+  } catch (e) { toast(e.message); btn.disabled = false; }
+}
+
+function enterStage2(text){
+  sheetState.stage = 2;
+  document.getElementById('st1').hidden = true;
+  document.getElementById('st2').hidden = false;
+  document.getElementById('shareBtn2').disabled = false;
+  document.getElementById('illusBox').innerHTML =
+    '<span class="working">reading your dream… illustrating it in your ink</span>';
+  var els = elemsNow();
+  document.getElementById('slots').innerHTML = [0, 1, 2].map(function(i){
+    return '<div class="slot"><div class="sq2"><span>✎</span></div>' +
+      '<div class="slab">' + esc(els[i] || '…') + '</div></div>';
+  }).join('');
+  paintPreview(text);
+  pollDrawing();
+}
+function paintPreview(text){
+  var el = document.getElementById('preview');
+  var t = text.trim();
+  if (sheetState.expanded || t.length <= 150) {
+    el.innerHTML = esc(t) + (t.length > 150 ? ' <button>see less</button>' : '');
+  } else {
+    el.innerHTML = esc(t.slice(0, 150).trim()) + '… <button>see more</button>';
+  }
+  var b = el.querySelector('button');
+  if (b) b.addEventListener('click', function(){ sheetState.expanded = !sheetState.expanded; paintPreview(text); });
+}
+function pollDrawing(){
+  clearTimeout(sheetState.poll);
+  api('/dreams/' + sheetState.dreamId).then(function(d){
+    var box = document.getElementById('illusBox');
+    if (d.panels && d.panels.length) {
+      box.innerHTML = '<img src="' + d.panels[0].url + '" alt="your dream, illustrated">';
+      document.querySelectorAll('#slots .sq2 span').forEach(function(p){ p.remove(); });
+      finishPendingShare();
+      return;
+    }
+    if (d.drawJob && d.drawJob.status === 'failed') {
+      box.innerHTML = '<span class="werr">' + esc(d.drawJob.error || 'the drawing failed') + '</span>';
+      return;
+    }
+    sheetState.poll = setTimeout(pollDrawing, 4000);
+  }).catch(function(){ sheetState.poll = setTimeout(pollDrawing, 6000); });
+}
+
+/* Shared before the ink dried: the words went out already, and the pictures
+   follow by themselves when the job lands — the intent survives a closed
+   sheet and a relaunch. */
+function pendingKey(){ return 'dreamapp-share-when-drawn'; }
+var pendingTimer = null;
+function armPendingWatcher(){
+  if (pendingTimer || !localStorage.getItem(pendingKey())) return;
+  pendingTimer = setInterval(function(){
+    if (!localStorage.getItem(pendingKey())) { clearInterval(pendingTimer); pendingTimer = null; return; }
+    finishPendingShare();
+  }, 8000);
+}
+async function finishPendingShare(){
+  var id = localStorage.getItem(pendingKey());
+  if (!id) return;
+  try {
+    var d = await api('/dreams/' + id);
+    if (d.drawJob && d.drawJob.status === 'failed') { localStorage.removeItem(pendingKey()); return; }
+    if (!d.panels || !d.panels.length) return;   // still drawing — a later pass finishes it
+    await api('/nights/' + id + '/share',
+      { body: { words: true, panels: d.panels.map(function(p){ return { dreamId: id, i: p.i }; }) } });
+    localStorage.removeItem(pendingKey());
+    renderFeed();
+  } catch (e) {}
+}
+
+async function shareDream(){
+  var btn = document.getElementById('shareBtn2');
+  btn.disabled = true;
+  try {
+    if (sheetState.share === 'private') {
+      closeCompose(); renderMine(); toast('kept in your dreams — only you');
+      return;
+    }
+    var d = await api('/dreams/' + sheetState.dreamId);
+    var panels = (d.panels || []).map(function(p){ return { dreamId: d.id, i: p.i }; });
+    await api('/nights/' + sheetState.dreamId + '/share', { body: { words: true, panels: panels } });
+    if (!panels.length && !(d.drawJob && d.drawJob.status === 'failed')) {
+      localStorage.setItem(pendingKey(), sheetState.dreamId);
+      armPendingWatcher();
+    }
+    closeCompose();
+    await renderFeed(); go('feed');
+    toast('you\u2019re in tonight\u2019s feed');
+  } catch (e) { toast(e.message); btn.disabled = false; }
 }
 
 /* ── one dream (detail: name, draw, share) ── */
@@ -822,7 +1132,6 @@ function loadScript(src){ return new Promise(function(ok, bad){
 async function boot(){
   scr.feed = document.getElementById('scr-feed');
   scr.mine = document.getElementById('scr-mine');
-  scr.compose = document.getElementById('scr-compose');
   scr.dream = document.getElementById('scr-dream');
 
   var cfg = await (await fetch('/api/witch/firebase-config')).json();
@@ -846,7 +1155,11 @@ async function boot(){
     user = u;
     document.getElementById('gate').hidden = !!u;
     document.getElementById('app').hidden = !u;
-    if (u) { renderFeed(); renderMine(); go('feed'); }
+    if (u) {
+      renderFeed(); renderMine(); go('feed');
+      finishPendingShare();
+      armPendingWatcher();   // still drawing at relaunch? watch for the ink
+    }
   });
 
   // A popup cannot open inside an embedded web view (and phone browsers block
@@ -905,6 +1218,43 @@ async function boot(){
     else { renderMine(); go('mine'); }
   });
   document.getElementById('confessBtn').addEventListener('click', openCompose);
+  document.getElementById('sheetX').addEventListener('click', closeCompose);
+  document.getElementById('micBtn').addEventListener('click', toggleRec);
+  document.getElementById('fileBtn').addEventListener('click', function(){
+    document.getElementById('fileInput').click();
+  });
+  document.getElementById('fileInput').addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (f) transcribeBlob(f);
+  });
+  document.getElementById('shardBtn').addEventListener('click', function(){
+    document.getElementById('draft').value = SHARDS[Math.floor(Math.random() * SHARDS.length)];
+    document.getElementById('draft').focus();
+  });
+  document.getElementById('lucidBtn').addEventListener('click', function(){
+    sheetState.lucid = this.classList.toggle('on');
+  });
+  document.getElementById('recurBtn').addEventListener('click', function(){
+    sheetState.recur = this.classList.toggle('on');
+  });
+  document.querySelectorAll('.moods button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var was = b.classList.contains('on');
+      document.querySelectorAll('.moods button').forEach(function(x){ x.classList.remove('on'); });
+      sheetState.mood = was ? null : b.dataset.mood;
+      if (!was) b.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.dial button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.dial button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      sheetState.share = b.dataset.s;
+    });
+  });
+  document.getElementById('illusBtn').addEventListener('click', illustrate);
+  document.getElementById('shareBtn2').addEventListener('click', shareDream);
 }
 function showErr(m){ var e = document.getElementById('gateErr'); e.textContent = m; e.hidden = false; }
 function hideErr(){ document.getElementById('gateErr').hidden = true; }
