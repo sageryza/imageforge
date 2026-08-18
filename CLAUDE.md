@@ -1226,8 +1226,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   under the header), `eyebrow`, `text` (the moment), `sections:[{label,text}]`,
   `caption`, `img` — every part OPTIONAL, a card renders only what it carries
   — and the deck comes out in her design: white boxes on her cream, the
-  Newsreader serif, one screen with no scrolling, her ✕ · "Note for
-  Claude…" · ♥ footer. **A hand-built page CANNOT get this** — `card:'<html>'`
+  Newsreader serif, one screen with no scrolling, her footer — ✕ and ♥ above
+  a full-width "Note for Claude…" box. **A hand-built page CANNOT get this** — `card:'<html>'`
   items are excluded by design, and a page posted as `html` is frozen the day
   it is posted. So a text deck that hand-rolls its own card styling is not a
   style choice, it is opting out of hers.

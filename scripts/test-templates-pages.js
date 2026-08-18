@@ -305,6 +305,11 @@ function momentPage() {
       caption: 'Both are you. Neither feels like it.' },
     { id: 'm2', who: 'Theo', text: 'Just one line, nothing else.' },
     { id: 'm3', who: 'Sam', text: 'Words and a picture together.', img: IMG },
+    // long enough to overflow the card box even after the `long` step-down —
+    // the truncation report: the top must stay reachable and the box scroll
+    { id: 'm4', who: 'Ruth', eyebrow: 'Moment · Ch. 4',
+      text: new Array(30).fill('A very long moment that keeps going well past one screen.').join(' '),
+      sections: [{ label: 'Illustration', text: 'A hallway of doors, all ajar.' }] },
   ] });
   if (!v.ok) throw new Error(v.error);
   const TEST = `<script>
@@ -397,7 +402,18 @@ setTimeout(function(){
      + (nz && getComputedStyle(nz).webkitTapHighlightColor));
   ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
      && !m.querySelector('.jg-mic'),
-     'the Note for Claude box sits between them — no corner + and no mic');
+     'the Note for Claude box rides the footer — no corner + and no mic');
+  // the restacked footer (Aug 2026): ✕/♥ a little ABOVE the note box, the
+  // box full width and tall enough to show her words
+  var nbb=row.querySelector('.jg-momnote').getBoundingClientRect();
+  ok(btns[0].getBoundingClientRect().bottom<=nbb.top+1
+     && btns[1].getBoundingClientRect().bottom<=nbb.top+1,
+     'the ✕ and ♥ sit ABOVE the note box');
+  ok(Math.abs(Math.round(nbb.left)-L0)<=1 && Math.abs(Math.round(nbb.right)-R0)<=1,
+     'the note box spans the boxes\\' full width');
+  ok(nbb.height>=90, 'the note box is the bigger one — got '+Math.round(nbb.height));
+  ok(btns[0].getBoundingClientRect().width<=54,
+     'the ✕ and ♥ came down a size to make room');
   ok(m.querySelector('.jg-card').classList.contains('momcard')
      && !m.querySelector('.jg-card').classList.contains('ctl'),
      'the house card chrome disappears behind her boxes');
@@ -427,7 +443,25 @@ setTimeout(function(){
       var pn=posts('/api/chatfeed/verdict').filter(function(p){ return p.b.text; }).pop();
       ok(pn && pn.b.item==='m2' && pn.b.text.indexOf('too sweet')>=0,
          'the note box saves onto its card');
-      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+      // 4 — the LONG card: type steps down, the top stays reachable, and
+      // what still does not fit scrolls inside the box (never truncated)
+      document.querySelector('.jg-navzone.next').click();
+      setTimeout(function(){
+        var m4=document.querySelector('.jg-mom');
+        var card4=document.querySelector('.jg-card.momcard');
+        ok(m4 && m4.classList.contains('long'),
+           'a card that overflows steps its type down');
+        ok(parseFloat(getComputedStyle(m4.querySelector('.moment')).fontSize)===16,
+           'the top blurb comes down toward the other blurbs\\' size');
+        ok(m4.getBoundingClientRect().top>=card4.getBoundingClientRect().top-1
+           && card4.scrollTop===0,
+           'the stack starts at the TOP of its box — nothing clipped above');
+        ok(card4.scrollHeight>card4.clientHeight+1,
+           'and the rest scrolls inside the box, never hidden');
+        ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
+           'the page itself still never scrolls');
+        fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+      }, 260);
     }, 900);
   }, 260);
 }, 700);

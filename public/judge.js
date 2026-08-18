@@ -114,21 +114,35 @@
     ' display:flex;align-items:center;justify-content:center;}' +
     // her boxes sit straight on the cream — the house card chrome disappears,
     // and the stack takes the middle of the screen, centred like her mockup.
-    // `safe center` so a stack taller than the screen scrolls INSIDE this box
-    // from its top rather than having its head clipped off (plain centring
-    // overflows both ways); the page itself still never scrolls.
+    // CENTRED BY AUTO MARGINS, NOT justify-content (Aug 2026, her report:
+    // "the text gets truncated if it's too long and hidden"). The first cut
+    // said `justify-content:safe center`, but iOS Safari has no `safe`, fell
+    // back to plain `center`, and a stack taller than the box was clipped at
+    // BOTH ends with the top unreachable by any scroll. The auto margins on
+    // .jg-mom centre a short stack identically and resolve to 0 when it
+    // overflows, so a tall card scrolls inside this box from its top — in
+    // every browser. The page itself still never scrolls.
     // …and the scroller takes NO WIDTH when it does scroll: a desktop
     // scrollbar is 15px of layout inside this box, which would pull the
     // boxes 15px off the edges every other row sits on (iOS overlay
     // scrollbars hide it, so it only shows up on a short window)
     '.jg-card.momcard{background:transparent;border:0;padding:0;flex:1;min-height:0;' +
-    ' display:flex;flex-direction:column;justify-content:center;' +
-    ' justify-content:safe center;overflow-y:auto;scrollbar-width:none;}' +
+    ' display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;}' +
     '.jg-card.momcard::-webkit-scrollbar,.jg.mom .jg-piles::-webkit-scrollbar' +
     ' {width:0;height:0;}' +
     '.jg.mom .jg-piles{scrollbar-width:none;}' +
     '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;width:100%;' +
-    ' padding:2px 0;}' +
+    ' margin:auto 0;padding:2px 0;}' +
+    // A LONG CARD FITS ITSELF (Aug 2026, her report + her own fix list: the
+    // top blurb "is bigger than the other blurbs"): when the stack overflows
+    // its box, render() adds `long` — the moment drops from 21px toward the
+    // other blurbs' size, the gaps tighten, and most long cards come back to
+    // one screen. A card still too tall after that scrolls (above). Short
+    // cards keep her Decision Deck sizes exactly.
+    '.jg-mom.long{gap:9px;}' +
+    '.jg-mom.long .moment{font-size:16px;line-height:1.42;}' +
+    '.jg-mom.long .cap{font-size:14px;}' +
+    '.jg-mom.long .jg-mombox{padding:12px 14px;gap:5px;}' +
     // THE NAME IS PART OF THE TOP, not of the centred stack (her ask was "a
     // little bit lower down and centered" — one row below where the mockup
     // had it, next to Piles; inside the stack it drifts to mid-screen on a
@@ -161,24 +175,29 @@
     ' border:1px solid rgba(0,0,0,0.06);}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
-    // the footer's ✕ and ♥ sit on the SAME edges as the boxes above them
-    // (space-between), the note box centred between them — her mockup's
-    // proportions without the three mismatched left edges
-    '.jg-momrow{display:flex;align-items:center;justify-content:space-between;gap:14px;' +
-    ' padding:16px 0 6px;}' +
+    // THE FOOTER, RESTACKED (Aug 2026, her ask: "the note box is just too
+    // small — it should be bigger so I can see more of my words in it, and
+    // the heart and the ex can go a little above it and maybe be a tiny bit
+    // smaller to make room"): the ✕ and ♥ in their own row — still on the
+    // boxes' edges (space-between) — with the note box FULL WIDTH and about
+    // four lines tall underneath
+    '.jg-momrow{display:flex;flex-direction:column;gap:10px;padding:12px 0 6px;}' +
+    '.jg-mombtns{display:flex;align-items:center;justify-content:space-between;gap:14px;}' +
     // the piles view scrolls inside its own box on a moment deck, so the
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
     '.jg.mom .jg-piles h2:first-child{margin-top:14px;}' +
-    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:10px;' +
+    // 52px — a tiny bit smaller than the mockup's 62, her ask, to make room
+    // for the bigger note box under them
+    '.jg-mombtn{flex:none;width:52px;height:52px;border-radius:10px;' +
     ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
-    ' font-size:21px;line-height:1;padding:0;' +
+    ' font-size:18px;line-height:1;padding:0;' +
     ' display:flex;align-items:center;justify-content:center;}' +
-    // the ♥ draws optically smaller than the ✕ at the same size — 24px reads
-    // as the mockup\'s 21px ✓ did
-    '.jg-mombtn.yes{font-size:24px;}' +
+    // the ♥ draws optically smaller than the ✕ at the same size — 21px reads
+    // as the ✕\'s 18px does
+    '.jg-mombtn.yes{font-size:21px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
-    '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
+    '.jg-momnote{width:100%;height:96px;box-sizing:border-box;' +
     ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
     // 13px, HER SIZE — and the iOS focus-zoom it would normally cause is
     // headed off by the viewport instead (maximum-scale=1, page-templates.js
@@ -318,6 +337,47 @@
           + '@0,6..72,400..700;1,6..72,400..600&display=swap';
         document.head.appendChild(pre); document.head.appendChild(fl);
       }
+      // THE KEYBOARD MUST NOT COVER THE NOTE BOX (Aug 2026, her report: "I'm
+      // usually using the microphone, but the keyboard still comes up and
+      // blocks the note box" — iOS raises the keyboard for dictation too).
+      // The deck is one fixed screen with nothing to scroll, so WebKit has no
+      // way to bring the box into view itself; instead the column follows the
+      // VISUAL viewport: while the note box is focused the deck's height
+      // becomes the visible height above the keyboard — the card shrinks
+      // (flex:1, and it scrolls inside itself) and the footer stays on
+      // screen. In the app the page lives in a SAME-ORIGIN iframe under the
+      // viewer's top bar, and the keyboard signal only lands on the TOP
+      // window's visualViewport — so we listen there and subtract the
+      // iframe's own top. Cleared the moment the keyboard goes.
+      (function () {
+        var topWin = window;
+        try { if (window.top && window.top.document) topWin = window.top; } catch (_) { /* cross-origin — stay local */ }
+        var vv = topWin.visualViewport || window.visualViewport;
+        if (!vv) return;
+        var kbFit = function () {
+          var col = mount.querySelector('.jg.mom');
+          if (!col) return;
+          var el = document.activeElement;
+          var typing = el && el.classList && el.classList.contains('jg-momnote');
+          // the layout viewport is the keyboard-free baseline (window.innerHeight
+          // tracks the visual viewport on iOS, so it can't be the reference)
+          var base = topWin.document.documentElement.clientHeight;
+          var frameTop = 0;
+          try {
+            if (window.frameElement) frameTop = window.frameElement.getBoundingClientRect().top;
+          } catch (_) { /* cross-origin — treat as top-level */ }
+          if (typing && vv.height < base - 60) {
+            col.style.height = Math.max(200, Math.round(vv.height - frameTop)) + 'px';
+            window.scrollTo(0, 0);   // WebKit nudges the page under the box — pin it back
+          } else {
+            col.style.height = '';
+          }
+        };
+        vv.addEventListener('resize', kbFit);
+        vv.addEventListener('scroll', kbFit);
+        document.addEventListener('focusin', kbFit);
+        document.addEventListener('focusout', function () { setTimeout(kbFit, 60); });
+      })();
     }
 
     // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
@@ -644,14 +704,17 @@
               + '" data-state="' + i + '">' + esc(s.label) + '</button>';
           }).join('');
         } else if (momUI) {
-          // her footer, exactly: the big rounded-square ✕ and ♥ (the mockup's
-          // ✓, swapped for a heart at her ask) with the note box between
-          // them; a decided card paints its button dark, like the mockup
-          row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
+          // her footer: the rounded-square ✕ and ♥ (the mockup's ✓, swapped
+          // for a heart at her ask) in their own row, the note box full
+          // width under them (Aug 2026 — bigger box, buttons a little above
+          // and a tiny bit smaller, her ask); a decided card paints its
+          // button dark, like the mockup
+          row = '<div class="jg-mombtns">'
+            + '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
             + ' aria-label="No">✕</button>'
-            + '<textarea class="jg-momnote" rows="2" placeholder="Note for Claude…"></textarea>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
-            + ' aria-label="Yes">♥</button>';
+            + ' aria-label="Yes">♥</button></div>'
+            + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>';
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
           row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -691,6 +754,14 @@
           + '</div>'
           + '<div class="' + (momUI ? 'jg-momrow' : 'jg-row') + '">' + row + '</div></div>';
         if (momUI) {
+          // a card that overflows its box steps its type down (the `long`
+          // rules above) — measured on the real layout, so only the cards
+          // that need it change and her sizes hold everywhere else
+          var mcard = mount.querySelector('.jg-card.momcard');
+          var mstack = mount.querySelector('.jg-mom');
+          if (mcard && mstack && mcard.scrollHeight > mcard.clientHeight + 1) {
+            mstack.classList.add('long');
+          }
           // her note box: always open, holds HER latest message and edits it
           // in place — the debounced save and the Assets-tab mirror are the
           // same machinery the + note uses, only the clothes changed
@@ -755,7 +826,7 @@
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
           ? '♥ yes, ✕ no — marking one never moves you on, so you can change '
-            + 'your mind. The box between them is a note for this card, saved '
+            + 'your mind. The box under them is a note for this card, saved '
             + 'as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
           + 'Each one saves the moment you tap it.' });
@@ -788,7 +859,7 @@
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
         : momDeck
-          ? '♥ yes · ✕ no — neither one moves you on · the box between them is '
+          ? '♥ yes · ✕ no — neither one moves you on · the box under them is '
             + 'a note that saves as you type.'
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
