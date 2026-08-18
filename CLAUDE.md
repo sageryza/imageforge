@@ -1967,6 +1967,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — pill palette, the pill's corner over the top card, the lightbox
     contract, the ⌄).
+- **THE REVIEW QUEUE** (`review.js`, `/api/review`, page at `/review`, iOS
+  tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
+  to be reviewed and I'd like one screen that shows all the things waiting to
+  be reviewed". One screen, every deck/grid TEMPLATE page across every chat,
+  with how far through each she is; tapping a row opens the page itself.
+  Measured the day it was built: 9 template pages, 285 items, 9 decided.
+  - **Everything is DERIVED, nothing is filed**: the item lists are the pages'
+    own frozen Storage JSON (cached forever per id — a new version is a new
+    page), her progress is the verdict doc (`<chat>__page-<id>`), names come
+    from the registry cache. No model call, no cost; the answer is held 60s.
+  - **The 'later' rule**: on stock-states pages `'later'` counts as still
+    waiting (it is literally "declined to sort now" — judge.js), shown apart
+    ("4 of 28 · 2 later"). A page with its OWN states counts every one.
+  - **Hand-built HTML pages are OUT by design** — their items live in markup,
+    and a guessed total is a wrong number in front of her.
+  - **Not every deck is a review** (the template demos, a browse deck): the ✕
+    on a row is hers — "not a review" — and stamps `reviewHidden` on the page
+    doc (the ONLY write here). Hidden rows keep a pile behind the DONE tab
+    and un-hide with ↩; nothing is deleted. A superseded page is on no list.
+  - The first TWO rows step their ✕ left of the injected pill's corner —
+    proved untappable in headless before the reserve; two rows not one,
+    because ?embed=1 drops the header and lifts the second row into the band.
+  - Tests: `node scripts/test-review.js` (the decision table, pure) and
+    `node scripts/test-review-page.js` (the real page + the real injected
+    pill, headless — tabs, the ✕/↩ POSTs, the pill palette).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the
