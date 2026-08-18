@@ -321,6 +321,44 @@ pure, no network.
   it lands instead of whenever somebody remembers to rebuild the index — see
   the Search section for what the sync does and what it costs. A restamp
   notifies too: a new id is, to an id-keyed index, one gone and one arrived.
+- **APPLE'S OWN TRANSCRIPTS FILL THE GAPS — one line on her Mac (Aug 2026).**
+  Measured 2026-08-17: **94 of the 1,137 records carry no transcript at all** —
+  over the 45-minute ceiling, over Whisper's 24MB cap, heard as empty, or a
+  failed enrich that banked the audio and moved on. Search searches WORDS, so
+  those recordings are invisible in it. **Realistically ~57 of the 94 can be
+  filled** — 11 are zero-length and 26 more are under 5 seconds, so Apple has
+  nothing for them either; the 57 with real audio are **66.5 hours**, 14 of
+  them over an hour each. Voice Memos already transcribed them on
+  the phone, free, the long ones included, and **only her Mac can read that
+  database** — so the Mac hands the words over and the server does the rest,
+  exactly like the push:
+  `curl -fsSL <app>/import-apple-transcripts.mjs -o /tmp/apple-tx.mjs && node
+  /tmp/apple-tx.mjs` (`--dry-run` first; queued in `docs/desktop-tasks.md`).
+  - **FILL ONLY, NEVER OVERWRITE.** `POST /api/memos/transcript {id,
+    transcript}` refuses a record that already has words: two transcripts of
+    the same audio disagree in small ways, and swapping the one Search indexed
+    for another is how a passage she found yesterday stops matching tomorrow.
+    Filling one re-runs `classify` (it had no words, so its `cat` was a
+    placeholder) and notifies `onFiled`, so Search picks it up by itself.
+    `GET /api/memos/untranscribed` is the list of empty ones with their
+    `stamp|duration` match keys.
+  - **THE SCRIPT DISCOVERS THE SCHEMA; IT DOES NOT ASSUME ONE.** Apple has
+    moved transcripts between layouts across OS versions, and a guessed column
+    name that isn't there returns zero rows — which reads exactly like "you
+    have no transcripts". So it scans for columns/tables mentioning
+    transcription, says what it found and how it read them, and handles three
+    layouts: a text column on the recording row, a segment table joined back by
+    a recording link (re-joined in time order), and an archived blob (plutil,
+    falling back to text runs). Found nothing → it says so, exits non-zero and
+    points at `--report`, whose output is what a chat needs to fit the reader.
+  - Matching is `stamp|duration`, the same key the push filters on — never the
+    stamp alone. Two recordings sharing a minute AND a rounded length are
+    reported and left alone rather than guessed.
+  - Tests: `node scripts/test-apple-transcripts.js` — drives the real script
+    end to end with no Mac and no network (fixture databases in all three
+    layouts, `sqlite3` shimmed onto PATH with `node:sqlite`, a stub archive).
+    Its own earned bug: the harness first used `execFileSync`, which blocks the
+    event loop the stub server runs on, so the child's fetch deadlocked.
 - **Transcription is UNCONDITIONAL** (Sophie 2026-08-05) — no toggles;
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead

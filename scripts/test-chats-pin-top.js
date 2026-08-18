@@ -64,7 +64,7 @@ const MSGS = [
   { id: 'm2', chat: 'middle', from: 'claude', text: 'an hour ago', tldr: 'middle', created: iso(T0 - HOUR), postedAt: iso(T0 - HOUR) },
   { id: 'm3', chat: 'newest', from: 'claude', text: 'just now', tldr: 'newest', created: iso(T0 - 1000), postedAt: iso(T0 - 1000) },
 ];
-const posted = { pin: [], category: [], tags: [] };
+const posted = { pin: [], labels: [] };
 let pinFails = false;
 
 const server = http.createServer((req, res) => {
@@ -82,7 +82,7 @@ const server = http.createServer((req, res) => {
         newest: { lastSeen: MSGS[2].created },
       } }));
   }
-  const sink = { '/api/chatfeed/pin-top': 'pin', '/api/chatfeed/category': 'category', '/api/chatfeed/tags': 'tags' }[url.pathname];
+  const sink = { '/api/chatfeed/pin-top': 'pin', '/api/chatfeed/labels': 'labels' }[url.pathname];
   if (sink && req.method === 'POST') {
     let body = '';
     req.on('data', (c) => { body += c; });
@@ -156,57 +156,66 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
     fail('the pin is still in the thread header — she asked for it on the main page instead');
   } else ok();
 
-  // ── 9. ORGANIZE — folders and tags, from inside the chat ──────────────────
+  // ── 9. ORGANIZE — one row of words, from inside the chat ─────────────────
+  // It shipped as FOLDER (one) over TAGS (many) and the two became ONE field in
+  // Aug 2026 at her ask ("let you be in multiple categories or tags at once"),
+  // so the sheet is one row of chips now: several lit at once, each tap its own
+  // add or remove, and None the way out of all of them.
   await page.click('#thread header .no .orgbtn');
-  await page.waitForSelector('.askwrap .askbox .orggrp', { timeout: 3000 })
+  await page.waitForSelector('.askwrap .askbox .arctags', { timeout: 3000 })
     .catch(() => fail('the organize button opened nothing'));
   ok();
-  const groups = await page.$$eval('.askwrap .orggrp', (ns) => ns.map((n) => n.textContent.toLowerCase()));
-  if (groups.join('|') !== 'folder|tags') {
-    fail('the sheet is not folders + tags — ' + JSON.stringify(groups));
+  const groups = await page.$$eval('.askwrap .orggrp', (ns) => ns.length);
+  if (groups) fail('the sheet still splits into sections — there is one kind of chip now');
+  else ok();
+  const rows9 = await page.$$eval('.askwrap .arctags', (ns) => ns.length);
+  if (rows9 !== 1) fail('the sheet should hold exactly one row of chips, saw ' + rows9);
+  else ok();
+  const chips = () => page.$$eval('.askwrap .arctags button',
+    (ns) => ns.map((b) => b.textContent + (b.classList.contains('on') ? '*' : '')));
+  const words = await chips();
+  if (!words.includes('Tech') || !words.includes('Stories')) {
+    fail('the sheet does not offer her folders — ' + JSON.stringify(words));
   } else ok();
-  // Her own folders are offered, and an unfiled chat arrives with None lit.
-  const chips = (i) => page.$$eval('.askwrap .arctags', (rows, n) =>
-    Array.from(rows[n].querySelectorAll('button')).map((b) => b.textContent + (b.classList.contains('on') ? '*' : '')), i);
-  const folders = await chips(0);
-  if (!folders.includes('Tech') || !folders.includes('Stories')) {
-    fail('the sheet does not offer her folders — ' + JSON.stringify(folders));
+  if (!words.includes('Bug fix')) {
+    fail('the sheet does not offer the old tag words — ' + JSON.stringify(words));
   } else ok();
-  if (!folders.includes('None*')) fail('an unfiled chat did not arrive with None lit — ' + JSON.stringify(folders));
+  if (!words.includes('None*')) fail('an unlabelled chat did not arrive with None lit — ' + JSON.stringify(words));
   else ok();
   // Filing writes the SAME route the select bar uses, one chat at a time…
-  const fRow = (await page.$$('.askwrap .arctags'))[0];
-  await (await fRow.$('button:text-is("Tech")')).click();
-  await page.waitForTimeout(200);
-  const cat = posted.category[0];
-  if (!cat || cat.category !== 'tech' || !Array.isArray(cat.chats) || cat.chats[0] !== 'newest') {
-    fail('filing from the sheet did not POST /category for this chat — ' + JSON.stringify(cat || null));
+  const tap = async (label) => {
+    await (await page.$('.askwrap .arctags button:text-is("' + label + '")')).click();
+    await page.waitForTimeout(200);
+  };
+  await tap('Tech');
+  const cat = posted.labels[0];
+  if (!cat || JSON.stringify(cat.add) !== '["tech"]' || !Array.isArray(cat.chats) || cat.chats[0] !== 'newest') {
+    fail('filing from the sheet did not POST /labels for this chat — ' + JSON.stringify(cat || null));
   } else ok();
-  // …and the sheet repaints, so the folder it is in now is the lit one and
-  // None has gone out. A chat has exactly ONE folder.
-  const after = await chips(0);
+  // …and the sheet repaints, so the word it now carries is the lit one and None
+  // has gone out.
+  const after = await chips();
   if (!after.includes('Tech*') || after.includes('None*')) {
-    fail('the sheet did not move the light onto the new folder — ' + JSON.stringify(after));
+    fail('the sheet did not light the word it just filed — ' + JSON.stringify(after));
   } else ok();
-  // Tags are the second row, and they are MANY — two taps, two tags on file.
-  const tagBtns = await (await page.$$('.askwrap .arctags'))[1].$$('button');
-  if (tagBtns.length < 3) fail('the sheet offers no tag vocabulary');
-  else ok();
-  await tagBtns[0].click();
-  await tagBtns[1].click();
-  await page.waitForTimeout(150);
-  const lastTags = posted.tags[posted.tags.length - 1];
-  if (!lastTags || lastTags.chat !== 'newest' || (lastTags.tags || []).length !== 2) {
-    fail('tagging from the sheet did not POST two tags — ' + JSON.stringify(posted.tags));
+  // MANY AT ONCE — the whole point of the merge. A second word joins the first
+  // rather than replacing it.
+  await tap('Bug fix');
+  const both = await chips();
+  if (!both.includes('Tech*') || !both.includes('Bug fix*')) {
+    fail('a second word did not join the first — ' + JSON.stringify(both));
   } else ok();
-  // Tapping the folder it is in takes it back out — one control, both ways.
+  if (JSON.stringify((posted.labels[1] || {}).add) !== '["bug fix"]') {
+    fail('the second tap was not its own add — ' + JSON.stringify(posted.labels));
+  } else ok();
+  // Tapping a lit word takes it back off — one control, both ways.
   // (Also what puts this chat back on the unfiled list for the rest of the
   // test: filing it really did take it off.)
-  await (await (await page.$$('.askwrap .arctags'))[0].$('button:text-is("Tech")')).click();
-  await page.waitForTimeout(200);
-  const out = await chips(0);
-  if (!out.includes('None*') || out.includes('Tech*')) {
-    fail('tapping the lit folder did not take the chat out of it — ' + JSON.stringify(out));
+  await tap('Tech');
+  await tap('Bug fix');
+  const out = await chips();
+  if (!out.includes('None*') || out.includes('Tech*') || out.includes('Bug fix*')) {
+    fail('tapping the lit words did not take the chat out of them — ' + JSON.stringify(out));
   } else ok();
   await page.click('.askwrap .askrow button.go');
   await page.waitForFunction(() => !document.querySelector('.askwrap'), null, { timeout: 2000 })

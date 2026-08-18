@@ -255,14 +255,19 @@ body.native header #storiesbtn{position:static;}
 #lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
   background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
-/* Listen rows — episodes cut from this story's material in the Episode
-   Editor (the NDE montages live here). One row per linked episode: play,
-   the episode's name, its length. They share the page's one player, so a
-   tap replaces whatever is speaking, never stacks. */
+/* Listen rows — every recording attached to this story, behind the waveform
+   button on the title row (Aug 2026, Sophie: "a story can hold multiple
+   audios … hide them all behind a single icon that has a wave form"). Two
+   kinds share the list: episodes cut from this story in the Episode Editor
+   (the NDE montages), and the SOURCE recordings it came out of — the voice
+   memos. They share the page's one player, so a tap replaces whatever is
+   speaking, never stacks. */
 #audios{margin-top:.6em;}
-.aurow{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);}
+.aurow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
 .aurow:first-child{border-top:1px solid var(--line);}
-.aurow .aunm{flex:1; min-width:0; font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.aurow .autxt{flex:1; min-width:0;}
+.aurow .aunm{font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.aurow .audate{font-size:.8em; color:var(--ink2); margin-top:2px;}
 .aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
@@ -280,13 +285,13 @@ body.native header #storiesbtn{position:static;}
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
     <button class="iconbtn" id="descbtn" hidden aria-label="About this story — what you said about it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg></button>
+    <button class="iconbtn" id="audiobtn" hidden aria-label="Every recording attached to this story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></button>
     <button class="iconbtn" id="playbtn" hidden aria-label="Watch the film"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg></button>
     <button class="iconbtn" id="drawallbtn" hidden aria-label="Draw every beat that has words but no picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></button>
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
-  <div id="audios" hidden></div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
 </div>
@@ -312,6 +317,18 @@ body.native header #storiesbtn{position:static;}
     </div>
     <div id="inboxgrid"></div>
     <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+  </div>
+</div>
+
+<!-- Every recording attached to this story, behind the waveform button:
+     the memos it came out of, and the episodes cut from it. -->
+<div class="sheet" id="ausheet" hidden>
+  <div class="wrap">
+    <div class="sheethead">
+      <button class="iconbtn" id="auclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <div class="no">Audio on this story</div>
+    </div>
+    <div id="audios"></div>
   </div>
 </div>
 
@@ -574,12 +591,15 @@ function renderFilm(){
   note.textContent=msg;
   document.getElementById('filmrow').hidden=!msg;
 }
-/* ── listen: episodes cut from this story in the Episode Editor ─────
+/* ── listen: every recording attached to this story ─────────────────
    (Aug 2026, Sophie: the NDE montages "should be connected to their
-   stories so I can listen to them when I go to their story".) GET /
-   resolves each linked episode's newest render server-side (`audios`);
-   the rows reuse the page's ONE player, so a tap replaces whatever is
-   speaking — a beat's line, another episode — never stacks. */
+   stories so I can listen to them when I go to their story"; then "a
+   story can hold multiple audios … hide them all behind a single icon
+   that has a wave form".) Two kinds arrive in ONE `audios` list from
+   GET /: the linked episodes, resolved to their newest render, and the
+   source recordings — the voice memos the story came out of. The rows
+   reuse the page's ONE player, so a tap replaces whatever is speaking —
+   a beat's line, another recording — never stacks. */
 var audios=[];
 var AU_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
 var AU_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>';
@@ -599,7 +619,9 @@ player.addEventListener('pause',auGlyphs);
 player.addEventListener('ended',auGlyphs);
 function renderAudios(){
   var box=document.getElementById('audios');
-  box.innerHTML=''; box.hidden=!audios.length;
+  box.innerHTML='';
+  /* No recordings, no button — an empty sheet is a tap that says nothing. */
+  document.getElementById('audiobtn').hidden=!audios.length;
   audios.forEach(function(a){
     var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
     var b=document.createElement('button'); b.className='iconbtn';
@@ -613,13 +635,32 @@ function renderAudios(){
       else { player.pause(); player.src=a.url; player.play(); }
       auGlyphs();
     };
+    var tx=document.createElement('div'); tx.className='autxt';
     var nm=document.createElement('div'); nm.className='aunm'; nm.textContent=a.title;
+    tx.appendChild(nm);
+    /* A memo's date is how she recognises it — it is what the Memos app
+       shows under the name. An episode has no date worth the line. */
+    if(a.date){
+      var dt=document.createElement('div'); dt.className='audate'; dt.textContent=a.date;
+      tx.appendChild(dt);
+    }
     var du=document.createElement('div'); du.className='audur'; du.textContent=fmtDur(a.seconds);
-    row.appendChild(b); row.appendChild(nm); row.appendChild(du);
+    row.appendChild(b); row.appendChild(tx); row.appendChild(du);
     box.appendChild(row);
   });
   auGlyphs();
 }
+/* The sheet deliberately does NOT stop the player on close: a recording she
+   started is meant to keep going while she reads the beats it became. */
+document.getElementById('audiobtn').onclick=function(ev){
+  ev.stopPropagation();
+  var sh=document.getElementById('ausheet');
+  sh.hidden=false; sh.scrollTop=0; lock(true);
+};
+document.getElementById('auclose').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('ausheet').hidden=true; lock(false);
+};
 
 function playFilm(){
   if(!film||!film.url)return;
@@ -1241,6 +1282,8 @@ window.__navBack=function(){
     if(fillBeat){ var b=fillBeat; fillBeat=null; openBeat(b); } else lock(false);
     return true;
   }
+  el=document.getElementById('ausheet');
+  if(!el.hidden){ document.getElementById('auclose').click(); return true; }
   el=document.getElementById('descsheet');
   if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('stories');

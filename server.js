@@ -96,6 +96,14 @@ app.get('/push-memos.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
 });
 
+// The Mac-side Apple-transcript importer, served the same way. Voice Memos
+// transcribes on the phone for free — including the recordings the server's
+// own ceiling and Whisper's size cap could never handle — and only her Mac can
+// read that database. Same deal as the push: no credentials in the script.
+app.get('/import-apple-transcripts.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/import-apple-transcripts.mjs');
+});
+
 app.get('/push-journal.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
 });
@@ -367,6 +375,7 @@ loadConfig().then(() => {
   app.use('/api/gdrive', gdrive.router); // Google Drive OAuth (read/move/rename/trash)
   app.use('/api/chatfeed', chatfeed.router); // the Chat app (replies from every chat, in one feed)
   app.use('/api/brief', require('./brief').router); // the update button — the five things worth knowing, then the quieter ones
+  app.use('/api/review', require('./review').router); // the review queue — every deck/grid page still waiting on her
   app.use('/api/googleads', googleads.router); // Google Ads API credential health check
   app.use('/api/character', character.router); // Character Creator (photo + name -> diary-comic ref)
   app.use('/api/tarot-email', tarotEmail.router); // tap-to-reveal Card of the Day email (Brevo)
@@ -751,6 +760,10 @@ app.get('/timeline', serveGated('timeline.html', { pill: true }));
 // quieter ones under them, each carrying the pictures that chat made and the
 // Compare pages it posted. Reads /api/brief; writes nothing.
 app.get('/brief', serveGated('brief.html', { pill: true }));
+// Review Queue: every deck/grid template page still waiting on her, with how
+// far through each she is. Reads /api/review; the only write is her own ✕
+// ("not a review", a reviewHidden stamp on the page doc).
+app.get('/review', serveGated('review.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
@@ -2558,6 +2571,56 @@ app.post('/api/gallery/assets/note', express.json(), async (req, res) => {
     const out = await appendAssetMessage(ref, chat, url, from, t);
     res.json({ ok: true, message: out.message, thread: out.thread,
       waiting: assetWaiting(out.thread) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A VOICE note on a film's thread (Aug 2026 — the tap-to-note player on a
+// pinned film; chats.html records, this uploads + transcribes and appends
+// "[video time] words (voice: url)" onto the same forge-asset-votes thread the
+// typed notes use, so a chat's normal notes sweep finds both). The recording
+// itself is kept — the transcript is a convenience, never a replacement.
+// Transcription is mechanical extraction, so gpt-4o-mini-transcribe is right
+// here (the which-model rules).
+app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const { chat, url, t, audio } = req.body || {};
+    if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
+    if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
+    const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
+    if (!m) return res.status(400).json({ error: 'audio must be a data:audio/… URL' });
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length) return res.status(400).json({ error: 'empty recording' });
+    const ext = m[1].includes('mp4') ? 'm4a' : m[1].split('/')[1].split(';')[0];
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`film-notes/${require('crypto').createHash('sha1').update(String(url)).digest('hex').slice(0, 12)}-${Date.now()}.${ext}`);
+    await file.save(buf, { contentType: m[1].split(';')[0], resumable: false });
+    await file.makePublic();
+    const voiceUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    let transcript = '';
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const form = new FormData();
+        form.append('file', new Blob([buf], { type: m[1].split(';')[0] }), `note.${ext}`);
+        form.append('model', 'gpt-4o-mini-transcribe');
+        const r = await globalThis.fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: form,
+        });
+        const tr = await r.json();
+        if (tr && tr.text) transcript = String(tr.text).trim().slice(0, ASSET_NOTE_MAX - 200);
+      } catch (err) { console.error('film note transcription failed:', err.message); }
+    }
+    const stamp = /^\d+:\d\d$/.test(String(t || '')) ? `[${t}] ` : '';
+    const line = `${stamp}${transcript || '(voice note)'} (voice: ${voiceUrl})`;
+    const ref = assetVoteRef(chat, url);
+    const out = await appendAssetMessage(ref, chat, url, 'sophie', line);
+    res.json({ ok: true, url: voiceUrl, transcript, message: out.message });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

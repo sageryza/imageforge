@@ -1,0 +1,314 @@
+<!doctype html>
+<!-- Review Queue — one screen of everything waiting to be reviewed (Aug 2026,
+     Sophie: "right now I have a pile of things that need to be reviewed and
+     I'd like one screen that shows all the things waiting to be reviewed").
+
+     The front for /api/review: every deck/grid template page across every
+     chat, with how far through each she is. Tapping a row opens the page
+     itself; the ✕ on a row is "not a review" (a browse deck, a demo), which
+     stamps it hidden — the hidden pile lives under the DONE tab and un-hides
+     with one tap. Nothing else here writes anything.
+
+     House kit it follows:
+       tool.css           the look; title once (the native bar carries it)
+       .acctabs           WAITING · DONE — the hairline row, line measured
+       #help / .helpcard  the explanation behind the "?" — never on the page
+       no .btn.star       nothing here spends a model call
+     Rules for pages: .claude/skills/new-page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Review Queue</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+  /* THE INJECTED PILL IGNORES :root — it declares its own palette ON .float,
+     so out-specify it (the /chunking finding, 2026-08-15). */
+  body.tool .float{ --paper:#faf9f7; --ink:#3a3530; --ink2:#9e9590;
+    --chg:#b48b6a; --rose:#a5586a; }
+  :root{ --rose:#a5586a; }
+
+  /* 64, not 56: the pill's left edge lands at x=326 on a 390pt phone, so a
+     56px reserve leaves the last 8px of the "?" dead. */
+  .tool .head{ padding-right:64px; }
+
+  /* WAITING · DONE — the hairline row, the voice.html pattern verbatim: the
+     sliding line MEASURES the lit tab (tabLine below), never a tab count. It
+     sits inside the pill's band, so the row keeps the 64px corner for taps. */
+  .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--border);
+    margin:0 0 12px; padding-right:64px; }
+  .acctab{ flex:1 1 0; min-width:0; padding:7px 4px 9px; border:none; background:none;
+    cursor:pointer; font:inherit; font-size:10px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--dim); -webkit-tap-highlight-color:transparent; }
+  .acctab.on{ color:var(--ink); }
+  .acctabs::after{ content:''; position:absolute; left:0; bottom:-1px; height:2px;
+    width:var(--tw,0); background:var(--ink); transform:translateX(var(--tx,0)); }
+  .acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
+
+  .strip{ font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--dim); padding:0 64px 10px 2px; }
+  .strip b{ color:var(--rose); font-weight:600; }
+
+  /* A row: thumb · words · ✕. The row is one tap (open the page); the ✕ is
+     its own small target outside the link. */
+  .qrow{ display:flex; align-items:center; gap:11px; background:var(--surface);
+    border:1px solid var(--border); border-radius:12px; margin-bottom:8px;
+    padding:9px 10px; }
+  .qgo{ display:flex; align-items:center; gap:11px; flex:1; min-width:0;
+    text-decoration:none; color:inherit; }
+  .qth{ width:52px; height:52px; flex:0 0 auto; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface2); object-fit:cover;
+    display:block; }
+  .qth.ph{ display:flex; align-items:center; justify-content:center; color:var(--dim); }
+  .qth.ph svg{ width:22px; height:22px; stroke:currentColor; fill:none;
+    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .qtx{ flex:1; min-width:0; }
+  .qt{ display:block; font-size:14px; font-weight:600; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qm{ display:block; font-size:11px; color:var(--dim); margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Progress: a thin flat bar (solid fill — no gradients, ever) + the count. */
+  .qp{ display:flex; align-items:center; gap:7px; margin-top:5px; }
+  .qbar{ flex:1; height:3px; border-radius:2px; background:var(--border); overflow:hidden; }
+  .qbar i{ display:block; height:100%; background:var(--accent); }
+  .qn{ font-size:11px; color:var(--dim); flex:0 0 auto; }
+  .qrow.due .qn{ color:var(--rose); }
+  /* The pill is fixed over roughly x 326-374 / y 14-192 — which is the first
+     rows' own right edge, so their ✕ was untappable (proved in headless: the
+     pill's button intercepted the click). The first TWO rows step their ✕
+     left of the corner — two, not one, because ?embed=1 drops the header and
+     shifts the second row up into the band. From the third row down the
+     corner is clear and rows use the full width. */
+  #pane-wait .qrow:nth-child(-n+2), #pane-done .qrow:nth-child(-n+2){ padding-right:60px; }
+  /* ✕ / ↩ — a small circular icon button (the allowed circle). */
+  .qx{ width:26px; height:26px; flex:0 0 auto; border-radius:50%; padding:0;
+    border:1px solid var(--border); background:transparent; color:var(--dim);
+    font:inherit; font-size:13px; line-height:1; cursor:pointer; }
+
+  .pilehead{ font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--dim); margin:18px 0 8px 2px; }
+  .empty{ font-size:14px; color:var(--dim); padding:26px 2px; }
+</style>
+
+<body class="tool">
+<header class="head">
+  <div class="eyebrow tool-eyebrow">REVIEW QUEUE</div>
+  <button id="help" aria-label="what this is">?</button>
+</header>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Everything still waiting on your review</b> — every swipe deck and
+  comparison grid any chat has posted, with how far through it you are. Tap a
+  row to review; your swipes save as you go, so a row leaves this list by
+  itself when you finish it.
+  <br><br><b>Chats show up here too</b> — tag a chat <i>to be reviewed</i> in the
+  Chats app and it lands in this pile, with whatever it says it needs from you.
+  The ✕ on a chat row takes that tag back off.
+  <br><br><b>✕ means "not a review"</b> — a browse deck or a demo you'll never
+  swipe. It moves the row to a hidden pile behind DONE, where ↩ brings it back.
+  <br><br>Later stays counted as waiting — it's the pile you asked to come
+  back to.
+</div>
+
+<main>
+  <div class="acctabs" id="tabs">
+    <button class="acctab on" id="tab-wait" type="button">Waiting</button>
+    <button class="acctab" id="tab-done" type="button">Done</button>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div id="pane-wait"></div>
+  <div id="pane-done" hidden></div>
+  <div class="row"><button class="btn ghost" id="refresh">Refresh</button></div>
+</main>
+
+<script>
+(function () {   /* IIFE — the injected pill declares var raf / I / playing in
+                    global scope; a page-level let of the same name kills it. */
+'use strict';
+var STUDIO_TOKEN = '__STUDIO_TOKEN__';
+var TOK = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+var $ = function (id) { return document.getElementById(id); };
+var HEADERS = TOK ? { 'x-studio-token': TOK, 'content-type': 'application/json' }
+  : { 'content-type': 'application/json' };
+
+/* A text-only deck (date cards) has no picture — a small card-stack glyph
+   (Lucide `layers`-style lines, inlined) holds the thumb's place. */
+var CARDS = '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="14" height="18" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/></svg>';
+/* Lucide `message-square` — a chat row is not a deck of cards, and the glyph is
+   the only thing on the row that says so before she reads it. */
+var BUBBLE = '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+function ago(iso) {
+  var t = Date.parse(iso || '');
+  if (!t) return '';
+  var m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'now';
+  if (m < 60) return m + 'm';
+  var h = Math.round(m / 60);
+  if (h < 24) return h + 'h';
+  var d = Math.round(h / 24);
+  return d < 7 ? d + 'd' : Math.round(d / 7) + 'w';
+}
+
+function row(r, kind) {
+  var pct = r.total ? Math.round((r.decided / r.total) * 100) : 0;
+  var count = kind === 'wait'
+    ? (r.decided ? r.decided + ' of ' + r.total : r.total + ' to go')
+      + (r.later ? ' · ' + r.later + ' later' : '')
+    : r.total + ' done';
+  var thumb = r.thumb
+    ? '<img class="qth" loading="lazy" src="' + esc(r.thumb) + '" alt="">'
+    : '<span class="qth ph">' + (r.kind === 'chat' ? BUBBLE : CARDS) + '</span>';
+  /* A CHAT ROW has nothing to count through — it is here because she put
+     `to be reviewed` on it, and it leaves when that word comes off. So it
+     carries no bar and no "3 of 12": the second line is the chat's own name and
+     the first is what it says it needs from her, which the status card already
+     wrote. The ✕ takes the label off (POST /reviewed), the same write her chips
+     in the Chats app make. */
+  var chat = r.kind === 'chat';
+  return '<article class="qrow' + (kind === 'wait' && !r.decided ? ' due' : '') + '">'
+    + '<a class="qgo" href="' + esc(r.url) + '">'
+    + thumb
+    + '<span class="qtx">'
+    + '<span class="qt">' + esc(chat ? r.name : r.title) + '</span>'
+    + '<span class="qm">' + esc(chat ? 'chat' : r.name + ' · ' + r.template)
+      + ' · ' + esc(ago(r.created)) + '</span>'
+    + (chat
+      ? (r.title ? '<span class="qp"><span class="qn">' + esc(r.title) + '</span></span>' : '')
+      : '<span class="qp"><span class="qbar"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="qn">' + esc(count) + '</span></span>')
+    + '</span></a>'
+    + (kind === 'hidden'
+      ? '<button class="qx" data-unhide="' + esc(r.id) + '" aria-label="put it back">↩</button>'
+      : kind === 'wait'
+        ? (chat
+          ? '<button class="qx" data-reviewed="' + esc(r.chat) + '" aria-label="done reviewing">✕</button>'
+          : '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>')
+        : '')
+    + '</article>';
+}
+
+var Q = null;
+
+function render() {
+  if (!Q) return;
+  var c = Q.counts || {};
+  /* Chats have no cards to count, so they are named apart rather than folded
+     into a card total that would then be a lie. */
+  var bits = [];
+  if (c.items) bits.push(c.items + ' card' + (c.items === 1 ? '' : 's') + ' to go');
+  if (c.chats) bits.push(c.chats + ' chat' + (c.chats === 1 ? '' : 's'));
+  $('strip').innerHTML = c.pages
+    ? '<b>' + c.pages + ' waiting</b>' + (bits.length ? ' · ' + bits.join(' · ') : '')
+    : 'Nothing waiting';
+  $('pane-wait').innerHTML = (Q.waiting || []).length
+    ? Q.waiting.map(function (r) { return row(r, 'wait'); }).join('')
+    : '<div class="empty">Nothing waiting — the pile is clear.</div>';
+  $('pane-done').innerHTML = ((Q.done || []).length
+    ? Q.done.map(function (r) { return row(r, 'done'); }).join('')
+    : '<div class="empty">Nothing finished yet.</div>')
+    + ((Q.hidden || []).length
+      ? '<div class="pilehead">Hidden</div>'
+        + Q.hidden.map(function (r) { return row(r, 'hidden'); }).join('')
+      : '');
+  /* A thumb whose Storage object is gone falls back to the card glyph —
+     never a broken-image icon in the row. */
+  document.querySelectorAll('img.qth').forEach(function (img) {
+    img.addEventListener('error', function () {
+      var ph = document.createElement('span');
+      ph.className = 'qth ph';
+      ph.innerHTML = CARDS;
+      img.replaceWith(ph);
+    });
+  });
+  /* The ✕ on a CHAT row: takes `to be reviewed` off it, which is the same write
+     her chips make in the Chats app — never a second stamp that could disagree
+     with the label. */
+  document.querySelectorAll('[data-reviewed]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      fetch('/api/review/reviewed', { method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ chat: btn.getAttribute('data-reviewed') }) })
+        .then(function (r) { return r.json(); })
+        .then(function () { load(true); })
+        .catch(function () { btn.disabled = false; });
+    });
+  });
+  document.querySelectorAll('[data-hide],[data-unhide]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-hide') || btn.getAttribute('data-unhide');
+      var on = btn.hasAttribute('data-hide');
+      btn.disabled = true;
+      fetch('/api/review/hide', { method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ id: id, hidden: on }) })
+        .then(function (r) { return r.json(); })
+        .then(function () { load(true); })
+        .catch(function () { btn.disabled = false; });
+    });
+  });
+}
+
+function load(fresh) {
+  $('strip').textContent = 'Reading…';
+  fetch('/api/review' + (fresh ? '?fresh=1' : ''), TOK ? { headers: { 'x-studio-token': TOK } } : {})
+    .then(function (r) { return r.json(); })
+    .then(function (b) {
+      if (b && b.error) { $('strip').textContent = b.error; return; }
+      Q = b;
+      render();
+    })
+    .catch(function (e) { $('strip').textContent = String(e.message || e); });
+}
+
+/* ── the hairline tabs: the line measures the lit tab (voice.html verbatim) ── */
+var tabs = $('tabs');
+function tabLine() {
+  var on = tabs.querySelector('.acctab.on'); if (!on) return;
+  var r = tabs.getBoundingClientRect(), t = on.getBoundingClientRect();
+  if (!t.width) return;
+  tabs.style.setProperty('--tw', t.width + 'px');
+  tabs.style.setProperty('--tx', (t.left - r.left - tabs.clientLeft) + 'px');
+  if (!tabs.__tl) { tabs.__tl = 1; requestAnimationFrame(function () { tabs.classList.add('tl'); }); }
+}
+/* A resize SNAPS (only a tap slides) — and it measures a FRAME later, because
+   resize fires before the new layout is committed. */
+window.addEventListener('resize', function () {
+  tabs.classList.remove('tl'); tabs.__tl = 0; requestAnimationFrame(tabLine);
+}, { passive: true });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
+function showTab(which) {
+  $('tab-wait').classList.toggle('on', which === 'wait');
+  $('tab-done').classList.toggle('on', which === 'done');
+  $('pane-wait').hidden = which !== 'wait';
+  $('pane-done').hidden = which !== 'done';
+  tabLine();
+}
+$('tab-wait').addEventListener('click', function () { showTab('wait'); });
+$('tab-done').addEventListener('click', function () { showTab('done'); });
+
+/* The native chevron asks the page first: close the "?" card before leaving. */
+window.__navBack = function () {
+  if (!$('helpcard').hidden) { $('helpcard').hidden = true; return true; }
+  return false;
+};
+
+$('refresh').addEventListener('click', function () { load(true); });
+$('help').addEventListener('click', function () { $('helpcard').hidden = !$('helpcard').hidden; });
+$('helpcard').addEventListener('click', function () { $('helpcard').hidden = true; });
+
+load(false);
+tabLine();
+/* The web view stays alive behind the app; coming back must not show a stale
+   pile — and coming BACK from reviewing a page is exactly when it changed. */
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) load(true);
+});
+/* bfcache: iOS restores the page instantly on back-swipe with no visibility
+   change — pageshow with persisted covers that path. */
+window.addEventListener('pageshow', function (e) { if (e.persisted) load(true); });
+})();
+</script>

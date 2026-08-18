@@ -656,6 +656,44 @@ them off the reference sheet, not off the old filenames.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **THE WAKE DOORBELL (Aug 2026) — the app is not read-only anymore.** Each
+  thread has a composer; Send posts her message to the feed AND rings
+  `POST /api/chatfeed/wake`, which fires the account's SWITCHBOARD chat over
+  the public Routines API; the switchboard then wakes the target chat, which
+  sweeps its feed replies and answers. Full design + the measured findings
+  that shaped it: `docs/chats-wake-doorbell.md`. What EVERY chat must do:
+  - **Register yourself wakeable, once per session** (no token, no Sophie
+    step): create a no-schedule self-bound trigger with your own tools —
+    `create_trigger { name: "wake: <your slug>", prompt: "<wake prompt
+    below>" }` (omit cron/run_once — a poke-only routine), then
+    `POST /api/chatfeed/wake-register { chat, session, triggerId, account }`
+    (`session` = your `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`;
+    `account` = your `FORGE_ACCOUNT`). Write the trigger's prompt for a wake:
+    "Sophie pinged this chat from the Chats app — sweep your feed replies,
+    asset notes/votes and the to-do list, act, and answer."
+  - **NEVER attach `text` to a wake fire** — a fire with text spawns a stray
+    NEW chat; only a contentless fire re-enters the bound session (measured
+    2026-07-31). The message always rides the feed, never the ping.
+  - **Waking a sibling chat yourself** (fan-out, e.g. the morning-ideas
+    flow): look it up in `GET /api/chatfeed/wake-registry`, post the task as
+    a feed reply addressed to it, then `fire_trigger` its `triggerId` with NO
+    text (same account only). If it shows in ListAgents it's awake —
+    SendMessage it instead.
+  - **The account-2 switchboard is the chats-app-messaging chat** (trigger
+    `trig_01JWxYFQzEJVRxToP6EdDbmR`, token in Render env
+    `WAKE_FIRE_TOKEN_2`). Its duties on a wake ping: `GET
+    /api/chatfeed/wake-queue?account=2` → deliver each entry (SendMessage if
+    the target is listed awake, else `fire_trigger` its trigger, no text; an
+    entry naming ITSELF = just answer Sophie's message, never self-fire) →
+    `POST /wake-done {chat}` each. Don't message Sophie about routine
+    dispatches. Maintenance: its routine carries a placeholder
+    `run_once_at` 2027-06-01 (kept so the routines UI shows it); when it
+    fires, the routine self-disables — re-arm with `update_trigger`
+    (new far-future `run_once_at`, `enabled:true`) or account-2 wakes die.
+  - **Account 1 has no switchboard yet** — building it = any account-1 chat
+    repeats the register step, Sophie mints its API token in THAT account's
+    routines UI, and `WAKE_TRIGGER_1` + `WAKE_FIRE_TOKEN_1` land in Render
+    env.
 - **THE ARCHIVE WRAP-UP — what the chat was about and what went down (Aug
   2026, Sophie: "whenever I'm about to archive a chat the last message of the
   chat is them explaining what the chat was about … and that could go into the
@@ -834,12 +872,31 @@ them off the reference sheet, not off the old filenames.
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag
   and categorize which is already on the front page but so far it doesn't work
-  within there").** The tag icon in a thread's header opens a sheet with her
-  FOLDERS (one per chat, `POST /category`) over the TAG vocabulary (many,
-  `POST /tags`) — both already existed, neither was reachable from a thread.
+  within there").** The tag icon in a thread's header opens a sheet of her own
+  words — one row of chips, several lit at once — which shipped as her FOLDERS
+  (one per chat) over a fixed TAG vocabulary (many); both already existed and
+  neither was reachable from a thread.
   Everything saves on the tap. **Filing is still HERS, not yours** — the
   server files chats by itself (`chat-sort.js`); do not POST a category.
-  Same test file.
+  **CATEGORIES AND TAGS ARE ONE FIELD SINCE AUG 2026** (Sophie: "you can only
+  be in one category at a time … combine them and let you be in multiple
+  categories or tags at once") — `labels`, an array, many per chat, her own
+  words, one row of chips in the sheet. `POST /api/chatfeed/labels
+  {chat|chats, labels?|add?|remove?}` is the write; `category` and `tags` are
+  still MIRRORED on every write (first label / whole set) for the cached page
+  on her phone and for every reader that was never touched, so don't drop
+  them. **A LABEL IS A PILE OR JUST A WORD (Aug 2026 v2, Sophie: "tagging
+  shouldn't hide everything … whereas other ones shouldn't take it off the main
+  feed")** — only a PILE word takes a chat off the unfiled home list, seeded
+  from her folder vocabulary frozen the day the fields merged (`PILE_SEEDS`)
+  and switched per word in the Organize sheet (`POST /pile`). **And `to be
+  reviewed` also puts the chat in the Review Queue** at `/review`. **And
+  `waiting for something` OPENS A BOX** asking what it is waiting for; her
+  answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
+  bold **Waiting for:** line on the chat's row and above her note in the
+  thread, and is DELETED the moment the tag comes off — a second asking word is
+  not yours to declare. Full rules in `docs/chats-app.md`; tests `node
+  scripts/test-chats-labels.js` and the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1147,6 +1204,17 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   ladders; near-variant prompts are only FLAGGED
   (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
   call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
+  **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
+  and it is automatic (Aug 2026, her own "Decision Deck v2", built for the
+  dating book).** Give a deck item any of `who` (the name — her rust, centred
+  under the header), `eyebrow`, `text` (the moment), `sections:[{label,text}]`,
+  `caption`, `img` — every part OPTIONAL, a card renders only what it carries
+  — and the deck comes out in her design: white boxes on her cream, the
+  Newsreader serif, one screen with no scrolling, her ✕ · "Note for
+  Claude…" · ♥ footer. **A hand-built page CANNOT get this** — `card:'<html>'`
+  items are excluded by design, and a page posted as `html` is frozen the day
+  it is posted. So a text deck that hand-rolls its own card styling is not a
+  style choice, it is opting out of hers.
 - **START FROM THE SHELL** — `public/compare-shell.html`, which links
   `/compare.css` (the one house look AND the `:root` tokens the injected
   autoscroll pill styles itself from) and `/compare.js` (the one house
@@ -1734,8 +1802,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Story
 - **The pad IS the Story Room now (Aug 2026)** — `/storyroom` serves the pad page
   and the app's Story Room tile opens it. The OLD board surface (`storyroom.html`,
-  `/api/story/*`) stays in the repo, unpointed. Stories can carry **listen rows**
-  linking to Episode Editor episodes, resolved to their newest render live.
+  `/api/story/*`) stays in the repo, unpointed. Stories carry **listen rows**
+  behind ONE waveform button on the title row (Aug 2026): the Episode Editor
+  episodes cut from the story, resolved to their newest render live, AND the
+  **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,
+  `src` = the Search index id). No audio attached → no button.
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
@@ -1967,6 +2038,41 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
     headless — pill palette, the pill's corner over the top card, the lightbox
     contract, the ⌄).
+- **THE REVIEW QUEUE** (`review.js`, `/api/review`, page at `/review`, iOS
+  tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
+  to be reviewed and I'd like one screen that shows all the things waiting to
+  be reviewed". One screen, every deck/grid TEMPLATE page across every chat,
+  with how far through each she is; tapping a row opens the page itself.
+  Measured the day it was built: 9 template pages, 285 items, 9 decided.
+  - **Everything is DERIVED, nothing is filed**: the item lists are the pages'
+    own frozen Storage JSON (cached forever per id — a new version is a new
+    page), her progress is the verdict doc (`<chat>__page-<id>`), names come
+    from the registry cache. No model call, no cost; the answer is held 60s.
+  - **The 'later' rule**: on stock-states pages `'later'` counts as still
+    waiting (it is literally "declined to sort now" — judge.js), shown apart
+    ("4 of 28 · 2 later"). A page with its OWN states counts every one.
+  - **A CHAT SHE TAGGED `to be reviewed` IS A ROW TOO (Aug 2026, Sophie: "that
+    particular category should take it off the main feed and also put it into
+    the review area").** THE LABEL IS THE WHOLE MECHANISM — nothing filed,
+    nothing stamped, no second list to fall out of step with the chips in the
+    Chats app: the word goes on and the row appears, the word comes off (or she
+    taps ✕ here, which is the same write, `POST /reviewed`) and it goes. The
+    row leads with her name for the chat and carries what the chat says it
+    needs — its status card's `need`, already written. No bar and never DONE:
+    there is nothing to count through. Archived/deleted/moved chats are out.
+    The word is `REVIEW_LABEL` in `chatfeed.js`, one constant both modules read.
+  - **Hand-built HTML pages are OUT by design** — their items live in markup,
+    and a guessed total is a wrong number in front of her.
+  - **Not every deck is a review** (the template demos, a browse deck): the ✕
+    on a row is hers — "not a review" — and stamps `reviewHidden` on the page
+    doc (the ONLY write here). Hidden rows keep a pile behind the DONE tab
+    and un-hide with ↩; nothing is deleted. A superseded page is on no list.
+  - The first TWO rows step their ✕ left of the injected pill's corner —
+    proved untappable in headless before the reserve; two rows not one,
+    because ?embed=1 drops the header and lifts the second row into the band.
+  - Tests: `node scripts/test-review.js` (the decision table, pure) and
+    `node scripts/test-review-page.js` (the real page + the real injected
+    pill, headless — tabs, the ✕/↩ POSTs, the pill palette).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the

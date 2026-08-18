@@ -182,11 +182,13 @@ setTimeout(function(){
   m.querySelector('.jg-navzone.prev').click();
   ok(count()==='1 of 3', 'the left edge goes back');
 
-  // ♥ mirrors the asset vote, advances ONE step, and shows lit on return
+  // ♥ mirrors the asset vote, LIGHTS IN PLACE, and never moves the deck
   m.querySelector('[data-act="yes"]').click();
   var pm=posts('/api/gallery/assets/vote').pop();
   ok(pm && pm.b.vote==='like' && pm.b.url.indexOf('/d/a.png')>0, 'a heart mirrors the asset vote');
-  ok(count()==='2 of 3', 'browse advances one step, not to first-unjudged');
+  ok(count()==='1 of 3', 'a MARK NEVER MOVES THE DECK — only the edges do');
+  ok(m.querySelector('[data-act="yes"]').classList.contains('on'), 'the verdict lights in place');
+  m.querySelector('.jg-navzone.next').click();
   m.querySelector('.jg-navzone.prev').click();
   ok(m.querySelector('[data-act="yes"]').classList.contains('on'), 'the verdict shows lit when she returns');
 
@@ -197,7 +199,10 @@ setTimeout(function(){
   m2.querySelectorAll('.jg-chip')[0].click();
   var pv=posts('/api/chatfeed/verdict').pop();
   ok(pv && pv.b.ok==='done' && pv.b.item==='t1', "a chip saves its string ('done')");
-  m2.querySelectorAll('.jg-chip')[1].click();   // judging the LAST card lands on piles
+  ok(m2.querySelector('.jg-count').textContent==='1 of 2', 'a chip does not move the deck either');
+  m2.querySelector('.jg-navzone.next').click();          // the EDGE moves it
+  m2.querySelectorAll('.jg-chip')[1].click();
+  m2.querySelector('[data-act="piles"]').click();
   var heads=[].map.call(m2.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
   ok(heads.join('|')==='done · 1|in progress · 1', 'piles take their names from the states');
 
@@ -321,13 +326,20 @@ setTimeout(function(){
   var topRow=m.querySelector('.jg-momtop').getBoundingClientRect();
   ok(wr.top>=topRow.bottom-1 && wr.top-topRow.bottom<40,
      'it sits just under the Piles row — a little lower, not mid-screen');
-  ok(getComputedStyle(who).fontFamily.indexOf('Newsreader')>=0, 'the name is her Newsreader serif');
+  ok(getComputedStyle(who).fontFamily.indexOf('Newsreader')<0
+     && getComputedStyle(who).color==='rgb(194, 94, 76)',
+     'the name is her RUST, and NOT the serif — got '+getComputedStyle(who).color);
+  ok(getComputedStyle(who).textTransform==='uppercase'
+     && parseInt(getComputedStyle(who).fontWeight,10)<600,
+     'the name is CAPS, and the sans-caps rule keeps it off bold');
+  ok(getComputedStyle(mom.querySelector('.moment')).fontFamily.indexOf('Newsreader')>=0,
+     'the moment itself is still her Newsreader serif');
   var boxes=mom.querySelectorAll('.jg-mombox');
   ok(boxes.length===3 && !mom.querySelector('hr'),
      'moment, section and caption each get their own white box — no hairline');
-  ok(getComputedStyle(boxes[0]).borderRadius==='16px'
+  ok(getComputedStyle(boxes[0]).borderRadius==='10px'
      && getComputedStyle(boxes[0]).backgroundColor==='rgb(255, 253, 248)',
-     'the boxes are her white rounded boxes');
+     'the boxes are her white boxes, squarer than the mockup at her ask');
   ok(getComputedStyle(mom.querySelector('.cap')).fontStyle==='italic', 'the caption is italic');
   ok(mom.querySelector('.jg-mombox .seclabel:last-of-type') &&
      boxes[2].querySelector('.seclabel').textContent==='Caption',
@@ -365,6 +377,24 @@ setTimeout(function(){
   ok(row && btns.length===2 && btns[0].textContent==='✕' && btns[1].textContent==='♥'
      && !m.querySelector('.jg-btn'),
      'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
+  function off(el){ var r=document.createRange(); r.selectNodeContents(el);
+    var g=r.getBoundingClientRect(), b=el.getBoundingClientRect();
+    return [Math.abs((g.left+g.right)/2-(b.left+b.right)/2),
+            Math.abs((g.top+g.bottom)/2-(b.top+b.bottom)/2)]; }
+  var offs=[off(btns[0]),off(btns[1]),off(m.querySelector('.jg-momq'))];
+  ok(offs.every(function(d){ return d[0]<1.5 && d[1]<1.5; }),
+     'the ✕, the ♥ and the ? are centred in their own buttons — got '
+     + offs.map(function(d){ return d[0].toFixed(1)+'/'+d[1].toFixed(1); }).join(' '));
+  // her size, and the page pinned so iOS cannot zoom itself instead
+  ok(parseFloat(getComputedStyle(row.querySelector('.jg-momnote')).fontSize)===13,
+     'the note box is HER 13px, not inflated to dodge the iOS zoom');
+  ok(/maximum-scale=1/.test((document.querySelector('meta[name="viewport"]')||{})
+       .getAttribute('content')||''),
+     'the viewport pins the scale, so a focused field cannot zoom the page');
+  var nz=m.querySelector('.jg-navzone');
+  ok(nz && getComputedStyle(nz).webkitTapHighlightColor.split(' ').join('')==='rgba(0,0,0,0)',
+     'the edge zones flash NO grey bar when she taps the side — got '
+     + (nz && getComputedStyle(nz).webkitTapHighlightColor));
   ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
      && !m.querySelector('.jg-mic'),
      'the Note for Claude box sits between them — no corner + and no mic');
@@ -375,6 +405,10 @@ setTimeout(function(){
   btns[1].click();
   var pv=posts('/api/chatfeed/verdict').pop();
   ok(pv && pv.b.ok===true && pv.b.item==='m1', 'the heart saves a yes');
+  ok(document.querySelector('.jg.mom>.who').textContent==='Maya'
+     && document.querySelector('.jg-mombtn.yes').classList.contains('on'),
+     'and leaves her ON the same moment, marked');
+  m.querySelector('.jg-navzone.next').click();   // only the EDGE moves it
   setTimeout(function(){
     // 2 — parts she did not send simply do not appear
     var m2=document.querySelector('.jg-mom');

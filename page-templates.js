@@ -259,7 +259,15 @@ function renderTemplatePage({ template, title, chat, sheet, data }) {
   // top third of the screen. The <title> tag still names it everywhere else.
   const h1 = isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
-    + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+    // maximum-scale=1 — NOT a passing detail (Aug 2026, Sophie's call): iOS
+    // auto-zooms the page whenever it focuses a field under 16px, and on a
+    // one-screen deck that zoom has nowhere to go. The two ways out are
+    // inflating every field to 16px or pinning the scale; she picked the
+    // scale, twice, in her own words ("I would prefer not to have pinch
+    // [zoom] and for it not to be 16 PX… I don't need pinch zoom"). So the
+    // type stays HER size and the page stops zooming itself.
+    + '<meta name="viewport" content="width=device-width, initial-scale=1, '
+    + 'maximum-scale=1, user-scalable=no, viewport-fit=cover">\n'
     + noPill
     + `<title>${esc(title)}</title>\n`
     + '<link rel="stylesheet" href="/compare.css">\n'

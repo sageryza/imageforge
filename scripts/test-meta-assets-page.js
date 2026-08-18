@@ -45,6 +45,14 @@ const ASSETS = [
     url: 'http://127.0.0.1:PORT/i/appmade.png', prompt: 'gpt-image-2 · low',
     description: 'a fox in a yellow raincoat', promptContent: 'a fox in a yellow raincoat',
     created: iso(T0 - 4000) },
+  // a hostile tile: the nowrap chat-name line is the widest thing on the page
+  // — its automatic minimum blew the 1fr tracks out on WebKit (2026-08-18),
+  // so the grid must stay one screen wide with this on board
+  { chat: 'an-absurdly-long-branch-slug-that-keeps-going-and-going-forever',
+    name: 'AN ABSURDLY LONG CHAT NAME THAT KEEPS GOING AND GOING FOREVER AND EVER',
+    url: 'http://127.0.0.1:PORT/i/longname.png',
+    description: 'Supercalifragilisticexpialidociousunbreakablelabelwordthatneverends',
+    created: iso(T0 - 5000) },
 ];
 
 const votes = [];   // every vote POST the page sends, captured
@@ -70,7 +78,11 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/assets') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8'));
+    // WITH the injected pill, exactly as serveGated sends it — testing the
+    // bare file is how the tap-starts-autoscroll bug shipped (the pill's
+    // toggle gesture only exists on the served page).
+    return res.end(fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8')
+      + fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8'));
   }
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{}');
 });
@@ -102,7 +114,7 @@ const server = http.createServer((req, res) => {
       fail('tiles not in filing order: ' + JSON.stringify(caps));
     }
     const whos = await page.$$eval('.assetgrid .acell .who', (es) => es.map((e) => e.textContent));
-    if (whos.join('|') !== 'Evan|Dating Book|Witch School|My Creations') {
+    if (whos.join('|') !== 'Evan|Dating Book|Witch School|My Creations|AN ABSURDLY LONG CHAT NAME THAT KEEPS GOING AND GOING FOREVER AND EVER') {
       fail('origin chat names missing from tiles: ' + JSON.stringify(whos));
     }
     // tile labels clamp to two lines — the full text lives in the lightbox
@@ -140,8 +152,17 @@ const server = http.createServer((req, res) => {
     await page.fill('.asearch input', '');
     await page.waitForFunction(() => {
       const es = [...document.querySelectorAll('.assetgrid .acell')];
-      return es.filter((e) => e.style.display !== 'none').length === 4;
+      return es.filter((e) => e.style.display !== 'none').length === 5;
     });
+
+    // the grid stays ONE SCREEN wide even with the hostile tile on board —
+    // the WebKit 1fr blowout regression (2026-08-18), pinned geometrically
+    const layout = await page.evaluate(() => ({
+      scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+      cellW: Math.round(document.querySelector('.acell').getBoundingClientRect().width),
+    }));
+    if (layout.scrollW > layout.innerW) fail('page overflows horizontally: ' + JSON.stringify(layout));
+    if (layout.cellW > 135) fail('grid tile wider than a third of the screen: ' + layout.cellW);
 
     // 5 — lightbox freezes the page and restores scrollY
     // Click via the DOM, not page.click — playwright would scroll the tile
@@ -213,7 +234,31 @@ const server = http.createServer((req, res) => {
       fail('playground query wrong: ' + page.url());
     }
 
-    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons');
+    await page.goto(`http://127.0.0.1:${port}/assets`);   // step 9 left us on /playground
+    await page.waitForSelector('.assetgrid .acell');
+
+    // 10 — the two live regressions from Sophie's phone (2026-08-18), pinned:
+    // every input is at least 16px (iOS auto-zooms on focusing anything
+    // smaller, the zoom ignores user-scalable=no, and the page sticks zoomed)…
+    const small = await page.$$eval('input', (es) => es
+      .map((e) => ({ f: parseFloat(getComputedStyle(e).fontSize) }))
+      .filter((x) => x.f < 16).length);
+    if (small) fail(small + ' input(s) under 16px — iOS focus auto-zoom trap');
+    // …and a tap on plain content must PAUSE the autoscroll, never start it;
+    // only the pill's own play button starts.
+    const pill = await page.$('.float');
+    if (!pill) fail('injected pill missing from the test serve');
+    await page.click('.app-header');   // non-interactive page chrome
+    let playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (playing) fail('a content tap STARTED the autoscroll');
+    await page.click('#vmid');         // the pill's play — the one legitimate start
+    playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (!playing) fail('the pill play button no longer starts the scroll (tap handler eats it?)');
+    await page.click('.app-header');   // and any content tap pauses it again
+    playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (playing) fail('a content tap did not pause the running autoscroll');
+
+    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons, pill tap rules, 16px inputs');
   } finally {
     await browser.close();
     server.close();

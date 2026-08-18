@@ -526,6 +526,48 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the page already shows the page's name, so the `<h1>` was the name
       twice, the second time in 26px serif eating the top third of the
       screen. The `<title>` tag still names it in a browser tab.
+    - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
+      "hearting, heart or exing should not move the moment, only tapping on
+      the sides should go to the next moment"). In BROWSE mode — which every
+      template deck is — marking and moving are separate gestures: the ♥/✕
+      light in place so she can mark, re-read and change her mind, and only
+      the edge taps and the swipe navigate. A deck with `browse:false` (and a
+      hand-built judge page) has no edges to tap, so there the verdict still
+      advances — that is the classic Tinder page and its only way forward.
+    - **THE PAGE IS PINNED SO IT CANNOT ZOOM ITSELF — the TYPE STAYS HER SIZE
+      (Aug 2026, and she settled it twice).** iOS auto-zooms the whole page
+      whenever it focuses a field under 16px, and on a one-screen deck that
+      zoom has nowhere to go. There are exactly two cures: inflate every
+      field to 16px, or pin the page scale. 16px shipped first and she asked
+      for it back — "I would prefer not to have pinch [zoom] and for it not
+      to be 16 PX… now it's too big… I don't need pinch zoom" — so the boxes
+      are 13px/14px again and `maximum-scale=1, user-scalable=no` rides the
+      viewport. **DO NOT raise a field to 16px to dodge the zoom.** The lock
+      is applied in TWO places on purpose: `renderTemplatePage`'s meta (no
+      flash of a zoomable page) and `compare.js` at runtime, which is what
+      reaches the hand-built pages posted months ago — their HTML is frozen,
+      but they all still link that file.
+    - **AN EDGE TAP FLASHES NOTHING** — `-webkit-tap-highlight-color:
+      transparent` on `.jg-navzone`, because iOS paints a grey slab over the
+      whole 26%-wide zone otherwise ("gray bars that show up when I tap the
+      side of the page"). The card moving is the feedback.
+    - **Every fixed-size button says `justify-content:center` ITSELF**
+      ("the heart and the ex are not aligned with their buttons and neither
+      is the ?"). `compare.css`'s global `button` rule sets
+      `display:inline-flex; align-items:center` but no `justify-content` —
+      harmless on a button that hugs its words, and a visible mistake on a
+      62px square, where the glyph sits against the left edge. Anything
+      giving a button a fixed width here has to centre its own contents.
+    - **Her radii came DOWN from the mockup at her ask** ("make all the
+      rounded corners a little bit less rounded and more square"): boxes and
+      the ✕/♥ 10px, the note box 9px, Piles 8px — partway from her mockup's
+      16/17/14 toward the house 6px, not all the way.
+    - **The NAME is her rust, in the SANS, in CAPS** (asked for after seeing
+      it live): `#C25E4C`, `-apple-system`, uppercase, sitting a little
+      further down. Caps in the sans bring the house sans rule with them —
+      not bold, `.04em` of tracking (design-rules.md). It is the
+      one part of the card deliberately not in the Newsreader serif — the
+      moment, the caption and everything else still are.
     - **One gutter, so the rows line up** ("lots of things are
       misaligned"). The moment deck fills the viewport (`100dvh`, nothing
       scrolls) and every row — progress line, Piles, boxes, footer ✕/♥ —

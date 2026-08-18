@@ -178,6 +178,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
   width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
   color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
+/* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie: "I watch the video but I can
+   tap it and then the video pauses and a field comes up where I can write a
+   note and then once I tap done, the video keeps playing and the note
+   disappears and gets sent to you or whatever chat I'm using it for").
+   The tap layer stops above the native control bar so play/scrub still work;
+   the sheet is flat solid ink (no gradients, ever), buttons hug their words. */
+#pinfull .notetap{position:absolute; left:0; right:0; top:0; bottom:24%; z-index:1;}
+#pinfull .nsheet{position:absolute; left:0; right:0; bottom:0; z-index:4; background:#17140f;
+  color:#e8e2d6; padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);
+  display:flex; flex-direction:column; gap:9px; font-family:Georgia,serif;}
+#pinfull .nsheet .nt{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; color:#97907f;}
+#pinfull .nsheet textarea{width:100%; min-height:62px; box-sizing:border-box; padding:8px;
+  border:1px solid #3a352c; border-radius:6px; background:#211d16; color:#e8e2d6; font:inherit; font-size:16px;}
+#pinfull .nsheet .row{display:flex; gap:10px; align-items:center;}
+#pinfull .nsheet .row button{border:1px solid #3a352c; border-radius:6px; background:#211d16;
+  color:#e8e2d6; font:inherit; font-size:14px; padding:7px 14px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+#pinfull .nsheet .send{background:#e8e2d6; color:#17140f; border-color:#e8e2d6;}
+#pinfull .nsheet .mic{display:flex; align-items:center; justify-content:center; width:38px; padding:7px 0;}
+#pinfull .nsheet .mic.on{background:#b3443f; border-color:#b3443f; color:#fff;}
+#pinfull .nsheet .st{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; color:#97907f; min-height:14px;}
 .renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
 .renamebtn:active{color:var(--ink);}
 .nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
@@ -768,9 +788,21 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
 .noterow .noteshow{color:var(--ink2); font-style:italic; cursor:pointer; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* the waiting-for line sits above her note in the thread, same italic voice */
+.noterow .waitline{color:var(--ink); font-style:italic; margin:0 0 2px;}
 .noterow .noteshow.has{color:var(--ink);}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
+/* The composer — message a chat from inside its thread (Aug 2026). Sending
+   posts her message to the feed and rings the wake doorbell (chat-wake.js),
+   so the chat wakes up and answers instead of waiting to be opened on
+   claude.ai. Rounded rectangles, no pills — house rules. */
+.composer{margin:12px 0 4px;}
+.composer textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:52px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
+.composer textarea:focus{outline:none; border-color:var(--rose);}
+.composer .cbar{display:flex; align-items:center; gap:10px; margin-top:6px;}
+.composer .comp-status{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
+.composer .comp-send{flex:none;}
 /* ---- QUESTIONS (Aug 2026) ---------------------------------------------------
    Her questions in this chat, each with the answer that came back.
    IT IS THE MESSAGE LIST, SWAPPED (Sophie, 2026-08-14, after the first attempt
@@ -945,14 +977,35 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    why only one of the two marks looked dead. */
 .arctags .arcmark.on svg{fill:currentColor;}
 .arctags .arcdiv{width:1px; align-self:stretch; background:var(--line); margin:0 2px;}
-/* ORGANIZE — the two section labels in the sheet behind the tag icon (Aug
-   2026, Sophie). Sans, caps, not bold, like every other label in this app.
-   They exist because the sheet holds two different things — a chat has ONE
-   folder and MANY tags — and an unlabelled wall of identical chips gives her
-   no way to know which tap is which. */
+/* ORGANIZE's section labels — kept, UNUSED, on purpose. The sheet held two
+   different things (ONE folder over MANY tags) and an unlabelled wall of
+   identical chips gave no clue which tap was which; the two became one field
+   in Aug 2026, so there is nothing left to tell apart and the labels came off
+   with the split. The rule survives them: bring this back the moment a second
+   kind of chip lands in that sheet. Sans, caps, not bold, like every other
+   label in this app. */
 .orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
 .askbox .arctags + .orggrp{margin-top:2px;}
+/* THE WAITING-FOR LINE (Aug 2026) — her answer to the box the `waiting for
+   something` tag opens. Bold prefix, her words plain, in the same italic note
+   voice as everything else on that row; tappable in both places it appears. */
+.waitline{display:block; cursor:pointer;}
+.waitline b{font-style:normal;}
+.waitedit{display:block; width:100%; text-align:left; background:none; border:0;
+  padding:8px 0 0; margin:0; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2);}
+.waitedit b{color:var(--ink);}
+/* The one line under the Organize chips, and the note on the sheet it opens
+   (Aug 2026). Plain text, not a button-looking thing: most days there is
+   nothing to change in there, and it is really a sentence that happens to be
+   tappable. */
+.pilelink{display:block; width:100%; text-align:left; background:none; border:0;
+  padding:8px 0 0; margin:0; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2); text-decoration:underline;
+  text-decoration-color:var(--line); text-underline-offset:3px;}
+.pilenote{margin:-4px 0 10px; font-family:'EBGaramond',Georgia,serif; font-size:13px;
+  line-height:1.35; color:var(--ink2);}
 .askbox .arctags input{font-family:'EBGaramond',Georgia,serif; font-size:15px; color:var(--ink);
   background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:5px 9px;
   width:6.5em; min-width:0;}
@@ -1586,6 +1639,8 @@ paintPill();
 
 
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
+// The open thread's note repainter — see where it is set, in openChat.
+var threadNote=null;
 // Feed-wide settings from the server (registry __settings doc). appAccount =
 // which Claude account is signed into the iOS app right now ("1"/"2").
 var settings={};
@@ -1798,8 +1853,15 @@ function statusLinesHtml(name, fallback){
   // supersede a line she wrote herself, which is why it is its own field and
   // not stored in `sophieNote`. It sits ABOVE need/doing because an archived
   // chat has no live ask worth reading.
+  // WAITING FOR WINS THE LINE while it is set (Aug 2026, her ask: it "gets
+  // added to the note for the chat at the top"). Only one line shows on a row,
+  // and this is the most specific thing she has deliberately typed about the
+  // chat — it also disappears by itself when she takes the tag off, which her
+  // note never does. Her note is still the line underneath it in the thread.
+  var wait=waitingHtml(name);
   var line=st.note || st.wrap || st.need || st.doing || fallback || '';
-  var out=line ? '<span class="cr-note">'+esc(line)+'</span>' : '';
+  var out=wait ? '<span class="cr-note">'+wait+'</span>' : '';
+  if(!wait && line) out='<span class="cr-note">'+esc(line)+'</span>';
   // v11 hook telemetry (Aug 2026): the turn-start ping carries the installed
   // hook's md5 and the server marks the chat stale when it isn't the current
   // one — so Sophie sees WHICH chats need the self-heal paste instead of
@@ -3109,7 +3171,83 @@ function catsShown(){ return catsOpen || !!cat; }
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
 var starOnly=false;
-function chatCat(name){ return (chats[name]&&chats[name].category)||''; }
+// ---- CATEGORIES AND TAGS ARE ONE THING (Aug 2026, Sophie: "right now you can
+// only be in one category at a time, for example witch or to be reviewed, and
+// you can't add tags — I think it would make sense to just combine them and let
+// you be in multiple categories or tags at once") ----------------------------
+// One field, `labels`, many per chat, her own words. A chat is in every pile it
+// carries a word for.
+//
+// READ THE OLD SHAPE TOO, and never write only the new one: a chat with no
+// `labels` reads as its `category` and its `tags` unioned, so every chat she
+// has ever filed arrives correctly labelled with no backfill, and the build on
+// her phone — which can be days old — still finds what it is looking for
+// (the server mirrors `category` = the first label and `tags` = the set on
+// every write; see the header block in chatfeed.js).
+function chatLabels(name){
+  var r=chats[name]||{};
+  var raw = Array.isArray(r.labels) ? r.labels
+    : [].concat(r.category||[], Array.isArray(r.tags)?r.tags:[]);
+  var out=[];
+  raw.forEach(function(c){
+    c=String(c||'').trim().toLowerCase();
+    if(c && out.indexOf(c)<0) out.push(c);
+  });
+  return out;
+}
+// The FIRST label, for the handful of places that still want one word — the
+// toast after filing, the optimistic mirror written next to `labels`.
+function chatCat(name){ return chatLabels(name)[0]||''; }
+// ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
+// "tagging shouldn't hide everything, or maybe just for certain categories —
+// like `to be reviewed` should send it to the review pile … whereas other ones
+// shouldn't take it off the main feed") -------------------------------------
+// A FOLDER always took a chat off the main list (her rule: "when I mark
+// something as a story it takes it out of the normal list"), so combining the
+// two fields quietly gave every tag word the same power. It doesn't have it any
+// more: a label is a PILE or it is just a word on the chat.
+//
+// `PILE_SEEDS` is her folder vocabulary FROZEN on 2026-08-18, the day the
+// fields merged, so the app behaves exactly as it did before and a word she
+// invents tomorrow is a plain tag rather than a trapdoor. It is a second copy
+// of the one in chatfeed.js, pinned equal by a test, for the same reason
+// TAG_LIST is: the page must not spend a request to learn thirteen words.
+// `settings.pileLabels` replaces it WHOLESALE once she touches the switch.
+var PILE_SEEDS=['look at','stories','come back to','witch','tech','xi',
+  'just for fun','weird games','meta','dream app','chunk making',
+  'waiting for something','to be reviewed'];
+// The one word that ALSO routes: a chat carrying it becomes a row in the Review
+// Queue at /review, her pile of everything waiting on her.
+var REVIEW_LABEL='to be reviewed';
+// ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+// condition for the `waiting for something` tag — it should also trigger a text
+// box that asks me what is it waiting for, and then that gets added to the note
+// for the chat at the top: it says in bold `Waiting for:` and then my
+// content") -----------------------------------------------------------------
+// The tag on its own says a chat is stuck and nothing else; waiting on WHAT was
+// in her head and nowhere on the screen. Her answer lives in `waitingFor` and
+// NOT in `sophieNote` — a chat must never overwrite a line she wrote — and the
+// server clears it the moment the tag comes off, so a stale wait can't outlive
+// the thing it was waiting for. Copies of the server's constants, pinned equal
+// by a test, same as PILE_SEEDS.
+var WAIT_LABEL='waiting for something';
+var WAIT_ASK='What is it waiting for?';
+var WAIT_PREFIX='Waiting for:';
+function waitingOf(name){ return String((chats[name]&&chats[name].waitingFor)||'').trim(); }
+// The line itself, bold prefix + her words. One renderer, so the home row and
+// the thread can never word it differently.
+function waitingHtml(name){
+  var v=waitingOf(name);
+  return v ? '<b>'+esc(WAIT_PREFIX)+'</b> '+esc(v) : '';
+}
+function pileList(){
+  var p=settings&&settings.pileLabels;
+  return Array.isArray(p) ? p.slice() : PILE_SEEDS.slice();
+}
+function isPile(c){ return pileList().indexOf(c)>-1; }
+// Is this chat FILED — i.e. off the unfiled home list? Only a pile word does
+// it. A chat wearing nothing but `images` stays exactly where it was.
+function chatFiled(name){ return chatLabels(name).some(isPile); }
 // ---- COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
 // back to and later categories") ------------------------------------------
 // She had two names for one intention: the COME BACK TO folder on this list,
@@ -3146,7 +3284,7 @@ function rebuildComeBack(g){
 }
 // The one test for "is this chat in that folder", used by the chip's count,
 // the list and the archive alike.
-function chatInCat(name,c){ return chatCat(name)===c || (c===CB_CAT && !!cbBox[name]); }
+function chatInCat(name,c){ return chatLabels(name).indexOf(c)>-1 || (c===CB_CAT && !!cbBox[name]); }
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
 // everything worked out, and then another one that's pretty much trash but I'm
@@ -3165,11 +3303,16 @@ function chatInCat(name,c){ return chatCat(name)===c || (c===CB_CAT && !!cbBox[n
 // about how well a chat went; a tag says what it WAS, a chat can carry several,
 // and the row at the top of the archive is how she finds one again.
 //
-// THE VOCABULARY IS FIXED and matches `TAGS` in chatfeed.js — a typed tag is a
-// typo away from its own orphan pile, and the point is that the same kind of
-// work lands under the same word every time. Her five first, in her words, then
-// five that cover what this app actually spends its days on. A test pins the
-// two copies equal.
+// THE VOCABULARY WAS FIXED, AND ISN'T ANY MORE (Aug 2026, Sophie: "you can't
+// add tags … let you be in multiple categories or tags at once"). These ten
+// words are SEEDS now, not the whole list: they still match `TAGS` in
+// chatfeed.js (a test pins the two copies equal, because the legacy `/tags`
+// route still checks a write against them), and `fileVocab()` offers them
+// alongside her own folder names. The old argument for a fixed list — a typed
+// tag is a typo away from its own orphan pile — lost to her ask; folders were
+// always free text, so refusing her a word here only meant the two halves could
+// never become one. Lower-casing everything on the way in is what is left of
+// that guard.
 var TAG_LIST=['bug fix','new feature','built','story','quick question',
   'images','film','audio','writing','research'];
 // A chat with no `tags` of its own inherits ONE from the piles it used to live
@@ -3181,9 +3324,17 @@ var TAG_LIST=['bug fix','new feature','built','story','quick question',
 // inherits one. A live chat opening the sheet for the first time must show
 // nothing picked, or every chat she archives arrives pre-tagged with a word
 // she never chose.
+// Now that the two fields are one, THIS IS `chatLabels` plus one derivation
+// that only the archive needs: a chat with no words of its own that was
+// archived under the old BUILT pile (which was the ABSENCE of a mark) reads as
+// `built`. That is what put the 97 chats already in the archive under a tag the
+// day the piles became tags, and it still costs no backfill. It is a MIGRATION,
+// not a default — only an ARCHIVED chat inherits one, or every chat she
+// archives would arrive pre-tagged with a word she never chose.
 function chatTags(name){
   var r=chats[name]||{};
-  if(Array.isArray(r.tags)) return r.tags.slice();
+  var mine=chatLabels(name);
+  if(mine.length) return mine;
   if(!r.archived) return [];
   return r.archiveKind==='other' ? [] : ['built'];
 }
@@ -3297,8 +3448,18 @@ function catList(){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
   Object.keys(chats).forEach(function(n){
-    var c=chatCat(n); if(c && out.indexOf(c)<0) out.push(c);
+    chatLabels(n).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); });
   });
+  return out;
+}
+// EVERYTHING SHE CAN FILE UNDER, which is deliberately LONGER than the row
+// above: the ten old tag words ride along here so nothing already tagged loses
+// its chip and the vocabulary she had keeps working, but they only reach the
+// home row once something is actually wearing one. The row is a filter she
+// reads past on every screen; the sheets are somewhere she went on purpose.
+function fileVocab(){
+  var out=catList();
+  TAG_LIST.forEach(function(t){ if(out.indexOf(t)<0) out.push(t); });
   return out;
 }
 function catLabel(c){ return c.charAt(0).toUpperCase()+c.slice(1); }
@@ -3426,51 +3587,101 @@ function mkPick(name){
   b.onclick=function(e){ e.stopPropagation(); togglePick(name, b.closest('.crow,.tile')); };
   return b;
 }
+// ---- THE ONE WRITER, for every chip on every surface ------------------------
+// The select bar, the Organize sheet and the archive sheet all file through
+// here, so the three can never disagree about what a tap means.
+//
+// Optimistic, with the roll-back, and it writes the `filedAt` stamp ITSELF
+// rather than leaving it to the server's own: without it a chat with an unread
+// reply files itself and reappears on the same repaint (`chatBack`), which
+// reads as filing doing nothing. It also mirrors `category` + `tags` exactly
+// the way the server does, so a repaint before the answer comes back shows the
+// same thing a reload would.
+//
+// `opt.add` / `opt.remove` are PER-CHAT edits — which is what a bulk gesture
+// needs now that a chat can be in several piles: she picks six chats and taps
+// `witch`, and the ones already in `to be reviewed` keep it. `opt.set` replaces
+// the lot (that is None, and nothing else).
+function saveLabels(names, opt, done){
+  var prev={};
+  names.forEach(function(n){
+    var r=chats[n]=chats[n]||{};
+    prev[n]={labels:chatLabels(n), at:r.filedAt||'', cat:r.category, tags:r.tags,
+      waiting:r.waitingFor||''};
+    var next;
+    if(opt.set) next=opt.set.slice();
+    else {
+      next=chatLabels(n).filter(function(t){ return (opt.remove||[]).indexOf(t)<0; });
+      (opt.add||[]).forEach(function(t){ if(next.indexOf(t)<0) next.push(t); });
+    }
+    r.labels=next; r.tags=next.slice(); r.category=next[0]||'';
+    if(next.length) r.filedAt=new Date().toISOString(); else delete r.filedAt;
+    // The waiting-for answer belongs to the TAG — the server drops it in
+    // labelPatch when the word goes, and the optimistic copy has to agree or
+    // the line survives the tag until the next reload.
+    if(next.indexOf(WAIT_LABEL)<0) delete r.waitingFor;
+  });
+  // Remember any new word locally too, or the chip vanishes again the moment
+  // the optimistic write is the only thing carrying it — the empty-folder bug
+  // (Aug 2026) arriving by a different door.
+  (opt.add||[]).concat(opt.set||[]).forEach(function(c){
+    settings=settings||{};
+    settings.categories=(settings.categories||[]).slice();
+    if(c && settings.categories.indexOf(c)<0) settings.categories.push(c);
+  });
+  var body={chats:names};
+  if(opt.set) body.labels=opt.set; else { if(opt.add) body.add=opt.add; if(opt.remove) body.remove=opt.remove; }
+  return api('/api/chatfeed/labels',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; if(done) done(); })
+    .catch(function(){
+      names.forEach(function(n){
+        var r=chats[n]; r.labels=prev[n].labels;
+        if(prev[n].tags===undefined) delete r.tags; else r.tags=prev[n].tags;
+        if(prev[n].cat===undefined) delete r.category; else r.category=prev[n].cat;
+        if(prev[n].at) r.filedAt=prev[n].at; else delete r.filedAt;
+        if(prev[n].waiting) r.waitingFor=prev[n].waiting;
+      });
+      if(opt.repaint) opt.repaint();
+      renderHome(); toast('Couldn\u2019t save that');
+    });
+}
 // One filing call for the whole selection, then out of select mode — filing is
 // the end of the gesture, not a thing to keep doing.
-// Files the picked chats under `c` — and with NOTHING picked but a name given,
-// just creates the category. That combination used to toast "Nothing picked"
-// and throw the name away, which is how a category Sophie made never appeared.
+// A chip ADDS its word to everything picked (a chat can be in several piles
+// now); None takes them out of all of them. With NOTHING picked but a word
+// given it just MAKES the word, which is how a category Sophie made once got
+// thrown away with a "Nothing picked" toast.
 function filePicked(c){
   var names=Object.keys(picked);
   if(!names.length && !c){ toast('Nothing picked'); return; }
-  // The optimistic write has to carry `filedAt` as well as the category, or a
-  // chat with an unread reply would file itself and reappear on the same
-  // repaint (chatBack), which reads as filing doing nothing. The server stamps
-  // its own from the same tap; a second's difference is immaterial.
-  var now=new Date().toISOString();
-  var prev={};
-  names.forEach(function(n){
-    prev[n]={cat:chatCat(n), at:(chats[n]&&chats[n].filedAt)||''};
-    chats[n]=chats[n]||{}; chats[n].category=c;
-    if(c) chats[n].filedAt=now; else delete chats[n].filedAt;
-  });
-  if(c){
+  if(!names.length){
     settings=settings||{};
     settings.categories=(settings.categories||[]).slice();
     if(settings.categories.indexOf(c)<0) settings.categories.push(c);
+    exitSelect(); renderHome(); toast('Made '+catLabel(c));
+    api('/api/chatfeed/labels',{method:'POST',body:JSON.stringify({labels:[c]})});
+    return;
   }
+  var opt = c ? {add:[c]} : {set:[]};
   exitSelect();
+  // The optimistic write FIRST, then the repaint — `saveLabels` mutates
+  // synchronously and only the network half is a promise, so painting before
+  // it would draw the list the tap was meant to change.
+  saveLabels(names, opt);
   renderHome();
-  toast(!c ? 'Cleared' : names.length ? (names.length+' → '+catLabel(c)) : ('Made '+catLabel(c)));
-  api('/api/chatfeed/category',{method:'POST',body:JSON.stringify({chats:names, category:c})})
-    .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-    .catch(function(){
-      names.forEach(function(n){
-        chats[n].category=prev[n].cat;
-        if(prev[n].at) chats[n].filedAt=prev[n].at; else delete chats[n].filedAt;
-      });
-      renderHome(); toast('Couldn’t save that');
-    });
+  toast(!c ? 'Cleared' : (names.length+' \u2192 '+catLabel(c)));
 }
 function paintSelBar(){
   var bar=document.getElementById('selbar');
   if(!selMode){ if(bar) bar.remove(); document.body.style.paddingTop=''; return; }
   if(!bar){ bar=document.createElement('div'); bar.id='selbar'; bar.className='selbar'; document.body.appendChild(bar); }
   var n=selCount();
-  bar.innerHTML='<div class="sb-n">'+(n? n+' picked — file '+(n===1?'it':'them')+' under' : 'Tap the chats you want to file')+'</div>';
+  bar.innerHTML='<div class="sb-n">'+(n? n+' picked — tag '+(n===1?'it':'them') : 'Tap the chats you want to file')+'</div>';
   var row=document.createElement('div'); row.className='sb-row';
-  catList().forEach(function(c){
+  // The WHOLE vocabulary here, not just the folders on the home row: bulk
+  // filing is exactly where the old tag words are worth reaching, and a chip
+  // adds rather than replaces now, so a second tap is a second word.
+  fileVocab().forEach(function(c){
     var b=document.createElement('button'); b.className='catchip'; b.textContent=catLabel(c);
     b.onclick=function(){ filePicked(c); };
     row.appendChild(b);
@@ -3602,8 +3813,11 @@ function renderHome(){
   // the WHOLE screen, the hidden pile included: a bar counting chats from a
   // folder she isn't looking at would be noise.
   // …but a filed chat COMES BACK when it answers — see chatBack above.
+  // UNFILED = carries no PILE word (chatFiled). Plain tags leave a chat exactly
+  // where it was — Sophie, the day after the merge: "tagging shouldn't hide
+  // everything … whereas other ones shouldn't take it off the main feed".
   live=live.filter(function(n){
-    return cat ? chatInCat(n,cat) : (!chatCat(n) || chatBack(n, lastOf(g,n)));
+    return cat ? chatInCat(n,cat) : (!chatFiled(n) || chatBack(n, lastOf(g,n)));
   });
   var names=live.filter(function(n){ return !chatHidden(n, lastOf(g,n)); });
   var hid=live.filter(function(n){ return chatHidden(n, lastOf(g,n)); });
@@ -4062,7 +4276,11 @@ function renderTrash(el){
 // means "something answered you over there"; an archived chat answering is not
 // that, and she asked for the plain totals off the category chips already.
 function renderArchive(el,g,arch){
-  var live=TAG_LIST.filter(function(t){
+  // Every word actually worn by something in here, in the vocabulary's order —
+  // the folders now too, since they and the tags became one field. The order
+  // matters: `fileVocab` puts her own names first and the ten legacy tag words
+  // last, so the row reads the way the sheets do.
+  var live=fileVocab().filter(function(t){
     return arch.some(function(n){ return chatTags(n).indexOf(t)>-1; });
   });
   if(live.length){
@@ -4070,7 +4288,10 @@ function renderArchive(el,g,arch){
     [''].concat(live).forEach(function(t){
       var b=document.createElement('button');
       b.className='catchip'+(archTag===t?' on':'');
-      b.textContent=t||'All';
+      // Capitalised like every other `.catchip` on the app — the row offers her
+      // own folder names now that folders and tags are one field, and `witch`
+      // beside `Witch` on the home row would read as two different things.
+      b.textContent=t?catLabel(t):'All';
       b.onclick=function(){ archTag=t; renderHome(); window.scrollTo(0,0); };
       row.appendChild(b);
     });
@@ -4430,7 +4651,7 @@ window.__pinCurrent=pinCurrent;
 // Full-screen player for the pinned deliverable. Follows the house overlay
 // rule: stop the autoscroll, lock the background, and restore the EXACT scroll
 // position on close (overflow:hidden alone does not stop window.scrollBy).
-function openPinned(pin){
+function openPinned(pin, chatName){
   window.__scrollStop&&window.__scrollStop();
   var y=window.scrollY;
   var w=document.createElement('div'); w.id='pinfull';
@@ -4438,7 +4659,10 @@ function openPinned(pin){
   v.src=pin.url; v.controls=true; v.autoplay=true; v.setAttribute('playsinline','');
   var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
   x.setAttribute('aria-label','Close');
-  function close(){ try{ v.pause(); }catch(_){ } w.remove();
+  var mrec=null;
+  function close(){ try{ v.pause(); }catch(_){ }
+    if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; }
+    w.remove();
     document.body.style.overflow=''; window.scrollTo(0,y);
     document.removeEventListener('keydown',esckey); }
   function esckey(e){ if(e.key==='Escape') close(); }
@@ -4446,6 +4670,81 @@ function openPinned(pin){
   w.onclick=function(e){ if(e.target===w) close(); };
   document.addEventListener('keydown',esckey);
   w.appendChild(v); w.appendChild(x);
+
+  // TAP-TO-NOTE (Aug 2026, Sophie's design — tap pauses, a field comes up,
+  // Done resumes and the note goes to the chat). The note lands on the FILM's
+  // own url thread via the asset-note machinery, stamped with the video time,
+  // so the chat that pinned it sweeps film notes exactly like image notes
+  // (GET /api/gallery/assets/notes) and can answer on the note itself.
+  // Films only, and only when we know which chat the pin belongs to.
+  if(pin.kind!=='audio' && chatName){
+    var tap=document.createElement('div'); tap.className='notetap';
+    tap.setAttribute('aria-label','Tap to pause and leave a note');
+    var sheet=null;
+    var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+    var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+    tap.onclick=function(){
+      if(sheet) return;
+      try{ v.pause(); }catch(_){ }
+      var t=fmtT(v.currentTime);
+      sheet=document.createElement('div'); sheet.className='nsheet';
+      sheet.innerHTML='<div class="nt">Note at '+t+' — it goes to this chat</div>'
+        +'<textarea aria-label="Your note"></textarea>'
+        +'<div class="row"><button class="mic" aria-label="Record a voice note">'+MIC+'</button>'
+        +'<span class="st"></span><span style="flex:1"></span>'
+        +'<button class="cxl">Cancel</button><button class="send">Done</button></div>';
+      var ta=sheet.querySelector('textarea'), st=sheet.querySelector('.st');
+      var micB=sheet.querySelector('.mic');
+      function resume(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; }
+        if(sheet){ sheet.remove(); sheet=null; } v.play().catch(function(){}); }
+      sheet.querySelector('.cxl').onclick=resume;
+      sheet.querySelector('.send').onclick=function(){
+        var text=ta.value.trim();
+        if(!text){ resume(); return; }
+        st.textContent='Sending…';
+        fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text:'['+t+'] '+text }) })
+          .then(function(r){ return r.json(); })
+          .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; } resume(); })
+          .catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
+      };
+      // the mic: one tap records, the second stops; the server transcribes it
+      // and files "[time] words (voice: url)" on the same thread
+      micB.onclick=function(){
+        if(mrec){ try{ mrec.stop(); }catch(_){ mrec=null; micB.classList.remove('on'); } return; }
+        if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
+          st.textContent='The mic isn’t available here — typed notes still work.'; return;
+        }
+        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+          var chunks=[];
+          mrec=new MediaRecorder(stream);
+          micB.classList.add('on'); st.textContent='Recording — tap the mic again to finish';
+          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+          mrec.onstop=function(){
+            stream.getTracks().forEach(function(tr){ tr.stop(); });
+            mrec=null; micB.classList.remove('on');
+            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+            if(!blob.size){ st.textContent=''; return; }
+            if(blob.size>8000000){ st.textContent='That one’s too long — keep it under a few minutes.'; return; }
+            st.textContent='Saving the voice note…';
+            var rd=new FileReader();
+            rd.onloadend=function(){
+              fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ chat: chatName, url: pin.url, t: t, audio: rd.result }) })
+                .then(function(r){ return r.json(); })
+                .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t save the voice note.'; return; } resume(); })
+                .catch(function(){ st.textContent='Couldn’t save the voice note.'; });
+            };
+            rd.readAsDataURL(blob);
+          };
+          mrec.start();
+        }).catch(function(){ st.textContent='The mic isn’t available here — typed notes still work.'; });
+      };
+      w.appendChild(sheet);
+      ta.focus();
+    };
+    w.appendChild(tap);
+  }
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
 // QUESTIONS — every question she asked in this chat, each with the answer that
@@ -4533,7 +4832,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     b.setAttribute('aria-label',(isLink?'Open ':'Play ')+label+(cur?' — current':''));
     b.onclick=function(){
       if(isLink){ window.open(pin.url,'_blank','noopener'); return; }
-      openPinned(pin);
+      openPinned(pin, name);
     };
     head.appendChild(b);
   })();
@@ -4789,8 +5088,16 @@ function openChat(name, keepScroll, focusId, noFetch){
   nrow.appendChild(qbtn);
   function paintNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
-    nwrap.innerHTML='<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
+    // The waiting-for line sits ABOVE her note rather than replacing it — this
+    // is the one place with room for both, and they are two different things
+    // (one belongs to the tag and clears with it, the other is hers). Tapping
+    // it re-opens the same box the tag opened.
+    var w=waitingHtml(name);
+    nwrap.innerHTML=(w? '<span class="waitline">'+w+'</span>' : '')
+      +'<span class="noteshow'+(v?' has':'')+'">'+(v? esc(v) : '+ note for this chat')+'</span>';
     nwrap.querySelector('.noteshow').onclick=function(){ editChatNote(); };
+    var wl=nwrap.querySelector('.waitline');
+    if(wl) wl.onclick=function(){ askWaiting(name, paintNote); };
   }
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
@@ -4812,6 +5119,11 @@ function openChat(name, keepScroll, focusId, noFetch){
     ta.addEventListener('blur',save);
   }
   paintNote();
+  // The sheets that can change this line (Organize, and the waiting-for box)
+  // live outside openChat, and renderHome only repaints the LIST — so without
+  // this the note row keeps whatever it was painted with when the thread
+  // opened, and her answer only appears after a reload.
+  threadNote=paintNote;
   chatPanel.appendChild(nrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
   // The messages live in their OWN box so the Questions list can take their
@@ -4821,6 +5133,62 @@ function openChat(name, keepScroll, focusId, noFetch){
   var mlist=document.createElement('div');
   chatPanel.appendChild(mlist);
   if(!list.length) mlist.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  // ---- The composer (Aug 2026) — message this chat from its thread --------
+  // Send = POST /reply (the message, exactly as the hook would file it) then
+  // POST /wake (the doorbell). The status line under the box says honestly
+  // what the wake did; the message itself is safe in the feed either way.
+  // Design + machinery: chat-wake.js and docs/chats-wake-doorbell.md.
+  var comp=document.createElement('div'); comp.className='composer';
+  var compTa=document.createElement('textarea'); compTa.placeholder='Message this chat…'; compTa.maxLength=8000;
+  var compBar=document.createElement('div'); compBar.className='cbar';
+  // WAKE IS HER CHOICE PER SEND (Aug 2026, Sophie: "sometimes I just wanna
+  // give them feedback and have it come in the next time they hear from me").
+  // Lit = ring the doorbell now (the default); unlit = a quiet drop the chat
+  // reads whenever it's next up. The toggle only changes whether the page
+  // rings — the message files identically either way.
+  var compWake=document.createElement('button'); compWake.className='tbtn comp-wake on'; compWake.textContent='wake';
+  compWake.setAttribute('aria-pressed','true');
+  compWake.onclick=function(){
+    var on=!compWake.classList.contains('on');
+    compWake.classList.toggle('on', on);
+    compWake.setAttribute('aria-pressed', on?'true':'false');
+    compStat.textContent=on?'':'Will send quietly — no wake-up';
+  };
+  var compStat=document.createElement('span'); compStat.className='comp-status';
+  var compSend=document.createElement('button'); compSend.className='tbtn comp-send'; compSend.textContent='Send';
+  compBar.appendChild(compWake); compBar.appendChild(compStat); compBar.appendChild(compSend);
+  comp.appendChild(compTa); comp.appendChild(compBar);
+  compSend.onclick=function(){
+    var v=compTa.value.trim(); if(!v||compSend.disabled) return;
+    var ring=compWake.classList.contains('on');
+    compSend.disabled=true; compStat.textContent='Sending…';
+    api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:name, text:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        // her message shows in the thread right away — no refresh round-trip
+        mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
+        compTa.value='';
+        if(chats[name]) chats[name].archived=false;   // /reply unarchives server-side
+        if(!ring) return {status:'quiet'};
+        return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:name})})
+          .then(function(r){return r.json()})
+          .catch(function(){ return {status:'wake-failed'}; });
+      })
+      .then(function(w){
+        if(!w) return;
+        var s=w.status;
+        compStat.textContent=
+          s==='quiet' ? 'Sent quietly — they’ll read it next time they’re up'
+          : s==='fired' ? 'Sent — waking them up; the reply lands here in a minute or two'
+          : s==='queued' ? 'Sent — a wake is already on its way'
+          : s==='not-wakeable' ? 'Sent — this chat isn’t wakeable yet, so it’ll see this next time it’s up'
+          : s==='no-switchboard' ? 'Sent — waking isn’t set up for this account yet'
+          : 'Sent';
+        compSend.disabled=false;
+      })
+      .catch(function(){ compStat.textContent=''; compSend.disabled=false; toast('Couldn’t send that'); });
+  };
+  chatPanel.appendChild(comp);
   // Each row is indexed once against the text it was built from, not re-read
   // out of the DOM on every keystroke.
   var mrows=[];
@@ -4890,6 +5258,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   function showQuestions(on){
     qOn=on;
     mlist.style.display=on?'none':'';
+    comp.style.display=on?'none':'';         // the composer belongs to the messages
     srow.style.display=on?'none':'';         // that box searches messages
     scount.style.display=on?'none':scount.textContent?'':'none';
     qpanel.style.display=on?'':'none';
@@ -5471,21 +5840,134 @@ function openPage(p){
 // and categorize which is already on the front page but so far it doesn't work
 // within there").
 //
-// Two sections, because they are two different things and she named both:
-//   FOLDER — exactly ONE per chat, the home screen's own `catList()`. Picking
-//     one is the same call the Select bar makes (`POST /category` with a
-//     one-name list), including the `filedAt` stamp: without it a chat with an
-//     unread reply files itself and reappears on the same repaint (`chatBack`),
-//     which reads as filing doing nothing. That bug is why the stamp is copied
-//     here rather than left to the server's own.
-//   TAGS — MANY per chat, the fixed `TAG_LIST` vocabulary, the same chips the
-//     archive sheet writes and the archive's filter row reads.
+// It shipped as TWO SECTIONS — FOLDER (exactly one per chat, her own names)
+// over TAGS (many, a fixed ten words) — and she asked for them combined: "you
+// can only be in one category at a time, for example witch or to be reviewed,
+// and you can't add tags … let you be in multiple categories or tags at once."
+// So it is ONE row of chips over one field (`labels`): every chip toggles,
+// several can be on at once, and the New… box makes a word that did not exist.
 //
 // Everything SAVES ON THE TAP, like the archive sheet — there is no OK button
 // to miss, and closing can never lose a choice. Done just shuts it.
 //
-// Filing a chat takes it off the unfiled home list by design, so the toast
-// names the folder: otherwise picking one looks like the chat vanished.
+// The write goes through `saveLabels`, the one writer the Select bar and the
+// archive sheet also use, which carries the `filedAt` stamp itself: without it
+// a chat with an unread reply files itself and reappears on the same repaint
+// (`chatBack`), which reads as filing doing nothing.
+//
+// Tagging a chat takes it off the unfiled home list by design, so the toast
+// names the word: otherwise picking one looks like the chat vanished.
+// WHAT IS IT WAITING FOR — the box the `waiting for something` tag opens (Aug
+// 2026, Sophie: "it should also trigger a text box that asks me what is it
+// waiting for, and then that gets added to the note for the chat at the top").
+//
+// Opens on the tap that puts the tag ON, and again from the line itself when
+// she wants to change it. Prefilled, because arriving empty on a chat that
+// already says what it is waiting for reads as an invitation to retype it.
+// Saving empty just leaves the tag with nothing written under it — the tag is
+// hers to remove, not this box's.
+function askWaiting(name, after){
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq'; q.textContent=WAIT_ASK;
+  box.appendChild(q);
+  var inp=document.createElement('input'); inp.type='text'; inp.className='arcnote';
+  inp.maxLength=200; inp.value=waitingOf(name);
+  inp.placeholder='the API key, her go-ahead, Tuesday…';
+  inp.setAttribute('aria-label', WAIT_ASK);
+  box.appendChild(inp);
+  var was=waitingOf(name), saved=was;
+  function save(){
+    var nv=inp.value.replace(/\s+/g,' ').trim();
+    if(nv===saved) return;
+    saved=nv;
+    chats[name]=chats[name]||{}; chats[name].waitingFor=nv||null; saveCache();
+    api('/api/chatfeed/waiting',{method:'POST',body:JSON.stringify({chat:name, text:nv})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        chats[name].waitingFor=was||null; saved=was; saveCache();
+        toast('Couldn\u2019t save that');
+      });
+  }
+  // `liveInput` because iOS DICTATION can fill a field without ever firing
+  // `input` — she never types — and it also fires on blur. Save again on the
+  // way out for the tap that goes straight from the box to Done.
+  liveInput(inp, save);
+  var arow=document.createElement('div'); arow.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){
+    save(); wrap.remove(); if(after) after();
+    if(threadNote) threadNote();
+    renderHome();
+  }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  arow.appendChild(done); box.appendChild(arow);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap);
+  setTimeout(function(){ inp.focus(); }, 30);
+}
+
+// WHICH WORDS FILE A CHAT AWAY (Aug 2026, Sophie: "tagging shouldn't hide
+// everything, or maybe just for certain categories … whereas other ones
+// shouldn't take it off the main feed"). Every word in the vocabulary, lit if
+// it is a PILE. One tap flips one word, and the flip is global — this is about
+// the word, not about the chat she happens to be in.
+//
+// It starts from `PILE_SEEDS` (her folder vocabulary the day categories and
+// tags merged), so the first thing she sees here is exactly the behaviour she
+// already had. Her first tap writes the WHOLE list to `__settings.pileLabels`,
+// which then replaces the seed — a stored diff against a default that grows
+// every time she types a new word would mean something different next week.
+function askPiles(after){
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq';
+  q.textContent='Which words file a chat away?';
+  box.appendChild(q);
+  var sub=document.createElement('p'); sub.className='pilenote';
+  sub.textContent='A lit word takes a chat off the main list until it answers you. The rest are just words on the chat.';
+  box.appendChild(sub);
+  var row=document.createElement('div'); row.className='arctags'; box.appendChild(row);
+  function paint(){
+    row.innerHTML='';
+    fileVocab().forEach(function(c){
+      var on=isPile(c);
+      var b=document.createElement('button'); b.type='button';
+      b.className='catchip'+(on?' on':'');
+      b.textContent=catLabel(c);
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.onclick=function(e){ e.stopPropagation(); flip(c, !on); };
+      row.appendChild(b);
+    });
+  }
+  function flip(c, on){
+    var was=pileList();
+    var next=on ? (was.indexOf(c)>-1?was:was.concat(c)) : was.filter(function(x){ return x!==c; });
+    settings=settings||{}; settings.pileLabels=next;
+    paint();
+    // The home list behind this sheet is a different list now — a word that
+    // stopped filing hands its chats straight back.
+    renderHome();
+    api('/api/chatfeed/pile',{method:'POST',body:JSON.stringify({label:c, pile:on})})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+      .catch(function(){
+        settings.pileLabels=was; paint(); renderHome(); toast('Couldn\u2019t save that');
+      });
+  }
+  paint();
+  var arow=document.createElement('div'); arow.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){ wrap.remove(); if(after) after(); }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  arow.appendChild(done); box.appendChild(arow);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap);
+}
+
 function askOrganize(name){
   scrollStop();
   var wrap=document.createElement('div'); wrap.className='askwrap';
@@ -5493,23 +5975,33 @@ function askOrganize(name){
   var q=document.createElement('p'); q.className='archq'; q.textContent='Organize this chat';
   box.appendChild(q);
 
-  // ---- FOLDER (one) --------------------------------------------------------
-  var fl=document.createElement('div'); fl.className='orggrp'; fl.textContent='Folder';
-  box.appendChild(fl);
-  var frow=document.createElement('div'); frow.className='arctags'; box.appendChild(frow);
-  function paintFolders(){
-    frow.innerHTML='';
-    var now=chatCat(name);
-    catList().forEach(function(c){
+  // ---- ONE SET OF CHIPS (Aug 2026) ----------------------------------------
+  // It shipped as two labelled sections — FOLDER (one, her own names) above
+  // TAGS (many, a fixed ten words) — because they were two different fields.
+  // They are one field now at her ask, so they are one row of chips: every one
+  // toggles, several can be on, and the New… box makes a word that did not
+  // exist. The section labels came off with the split — with one set of chips
+  // there is nothing to tell apart, and `Organize this chat` at the top
+  // already says what the row is.
+  var trow=document.createElement('div'); trow.className='arctags'; box.appendChild(trow);
+  function paintLabels(){
+    trow.innerHTML='';
+    var mine=chatLabels(name);
+    fileVocab().forEach(function(c){
+      var on=mine.indexOf(c)>-1;
       var b=document.createElement('button'); b.type='button';
-      b.className='catchip'+(now===c?' on':'');
+      b.className='catchip'+(on?' on':'');
       b.textContent=catLabel(c);
-      b.setAttribute('aria-pressed', now===c ? 'true' : 'false');
-      // Tapping the folder it is ALREADY in takes it out — one control, both
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      // Tapping a word it already carries takes it off — one control, both
       // directions, the way every other toggle on this screen works.
-      b.onclick=function(e){ e.stopPropagation(); setFolder(now===c ? '' : c); };
-      frow.appendChild(b);
+      b.onclick=function(e){ e.stopPropagation(); setLabel(c, !on); };
+      trow.appendChild(b);
     });
+    var none=document.createElement('button'); none.type='button';
+    none.className='catchip'+(mine.length?'':' on'); none.textContent='None';
+    none.onclick=function(e){ e.stopPropagation(); clearLabels(); };
+    trow.appendChild(none);
     var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
     inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
     // Enter OR tapping away — she dictates these, and dictation often ends with
@@ -5519,66 +6011,70 @@ function askOrganize(name){
       var v=(inp.value||'').trim().toLowerCase().slice(0,40);
       if(!v) return;
       inp.value='';
-      settings=settings||{};
-      settings.categories=(settings.categories||[]).slice();
-      if(settings.categories.indexOf(v)<0) settings.categories.push(v);
-      setFolder(v);
+      setLabel(v, true);
     }
     inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
     inp.onblur=takeNew;
-    var none=document.createElement('button'); none.type='button';
-    none.className='catchip'+(now?'':' on'); none.textContent='None';
-    none.onclick=function(e){ e.stopPropagation(); setFolder(''); };
     // None first, then the New box LAST — the box is the widest thing in the
-    // row and putting it mid-row (which is where the Select bar has it) leaves
-    // the folders reading around a hole.
-    frow.appendChild(none);
-    frow.appendChild(inp);
+    // row and putting it mid-row leaves the words reading around a hole.
+    trow.appendChild(inp);
   }
-  function setFolder(c){
-    var prevC=chatCat(name), prevAt=(chats[name]&&chats[name].filedAt)||'';
-    chats[name]=chats[name]||{}; chats[name].category=c;
-    if(c) chats[name].filedAt=new Date().toISOString(); else delete chats[name].filedAt;
-    paintFolders();
-    toast(c ? ('Filed under '+catLabel(c)) : 'Out of every folder');
-    api('/api/chatfeed/category',{method:'POST',body:JSON.stringify({chats:[name], category:c})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-      .catch(function(){
-        chats[name].category=prevC;
-        if(prevAt) chats[name].filedAt=prevAt; else delete chats[name].filedAt;
-        paintFolders(); toast('Couldn’t save that');
-      });
+  function setLabel(c, on){
+    saveLabels([name], on?{add:[c],repaint:paintLabels}:{remove:[c],repaint:paintLabels});
+    paintLabels();
+    // ONE WORD ASKS A QUESTION — `waiting for something` wants to know what.
+    // The box opens on the tap that puts it on; taking the tag off clears the
+    // answer (the server does that in labelPatch, and so does saveLabels here).
+    if(on && c===WAIT_LABEL){ askWaiting(name, paintWait); }
+    paintWait();
+    // THE TOAST SAYS WHICH KIND OF WORD IT WAS. A pile takes the chat off the
+    // main list and a plain tag does not, and the two look identical as chips —
+    // so the sentence she reads at the moment of tapping is where that shows.
+    // Without it, filing looks like the chat vanished (the reason this toast
+    // has always named the folder) and tagging looks like nothing happened.
+    if(!on) toast('Took off '+catLabel(c));
+    else if(isPile(c)) toast('Filed under '+catLabel(c)+' — off the main list');
+    else toast('Tagged '+catLabel(c));
   }
-  paintFolders();
+  function clearLabels(){
+    saveLabels([name], {set:[], repaint:paintLabels});
+    paintLabels(); paintWait();
+    toast('Out of every pile');
+  }
+  paintLabels();
 
-  // ---- TAGS (many) ---------------------------------------------------------
-  var tl=document.createElement('div'); tl.className='orggrp'; tl.textContent='Tags';
-  box.appendChild(tl);
-  var trow=document.createElement('div'); trow.className='arctags'; box.appendChild(trow);
-  var tags=chatTags(name).slice();
-  TAG_LIST.forEach(function(t){
-    var b=document.createElement('button'); b.type='button';
-    b.className='catchip'+(tags.indexOf(t)>-1?' on':'');
-    b.textContent=t;
-    b.setAttribute('aria-pressed', tags.indexOf(t)>-1 ? 'true' : 'false');
-    b.onclick=function(e){
-      e.stopPropagation();
-      var was=tags.slice(), i=tags.indexOf(t);
-      if(i>-1) tags.splice(i,1); else tags.push(t);
-      b.classList.toggle('on', tags.indexOf(t)>-1);
-      b.setAttribute('aria-pressed', tags.indexOf(t)>-1 ? 'true' : 'false');
-      chats[name]=chats[name]||{}; chats[name].tags=tags.slice();
-      api('/api/chatfeed/tags',{method:'POST',body:JSON.stringify({chat:name, tags:tags})})
-        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-        .catch(function(){
-          tags=was; chats[name].tags=was.slice();
-          b.classList.toggle('on', was.indexOf(t)>-1);
-          b.setAttribute('aria-pressed', was.indexOf(t)>-1 ? 'true' : 'false');
-          toast('Couldn’t save that tag');
-        });
-    };
-    trow.appendChild(b);
-  });
+  // The answer, under the chips, while the tag is on — tap to change it. It is
+  // here as well as on the row because this is the screen the tag was put on
+  // from, and a line she cannot find is a line she stops trusting.
+  var wl=document.createElement('button'); wl.type='button'; wl.className='waitedit';
+  function paintWait(){
+    var on=chatLabels(name).indexOf(WAIT_LABEL)>-1;
+    wl.hidden=!on;
+    if(!on) return;
+    var v=waitingOf(name);
+    wl.innerHTML=v ? waitingHtml(name) : '<b>'+esc(WAIT_PREFIX)+'</b> say what it is waiting for';
+  }
+  wl.onclick=function(e){ e.stopPropagation(); askWaiting(name, function(){ paintWait(); }); };
+  box.appendChild(wl);
+  paintWait();
+
+  // WHICH WORDS FILE A CHAT AWAY — one line under the chips, opening the
+  // switch. It is a sentence rather than a control because most days there is
+  // nothing to change here; it names the words that are doing it, so the
+  // answer to "why did that chat disappear" is on the same screen as the tap
+  // that did it.
+  var pl=document.createElement('button'); pl.type='button'; pl.className='pilelink';
+  function paintPileLink(){
+    var on=pileList().filter(function(c){ return fileVocab().indexOf(c)>-1; });
+    pl.textContent = on.length
+      ? on.slice(0,3).map(catLabel).join(' · ')
+        + (on.length>3 ? ' and '+(on.length-3)+' more' : '')
+        + ' take a chat off the main list — change'
+      : 'No word takes a chat off the main list — change';
+  }
+  paintPileLink();
+  pl.onclick=function(e){ e.stopPropagation(); askPiles(function(){ paintPileLink(); paintLabels(); }); };
+  box.appendChild(pl);
 
   var row=document.createElement('div'); row.className='askrow';
   var done=document.createElement('button'); done.className='go'; done.textContent='Done';
@@ -5586,6 +6082,9 @@ function askOrganize(name){
     wrap.remove(); document.body.style.overflow='';
     // The home list may be a different list now — a filed chat leaves the
     // unfiled pile — so repaint it rather than leaving a stale screen behind.
+    // The thread's note row too: the waiting-for line lives on it and the tag
+    // that carries it may have just come off.
+    if(threadNote) threadNote();
     renderHome(); saveCache();
   }
   done.onclick=function(e){ e.stopPropagation(); close(); };
@@ -5690,26 +6189,26 @@ function askArchive(name, cb){
   var div=document.createElement('span'); div.className='arcdiv';
   tagrow.appendChild(div);
 
-  var picked=chatTags(name).slice();
-  TAG_LIST.forEach(function(t){
+  // The SAME vocabulary the home row and the Organize sheet file into — one
+  // field since categories and tags were combined (Aug 2026), so the word she
+  // puts on a chat as she archives it is the word she can find it under
+  // afterwards, and a chat she had already filed arrives with that word lit.
+  // Chips only, no New… box: this sheet is a decision about ONE chat on the way
+  // past, and inventing vocabulary belongs where she is organizing.
+  fileVocab().forEach(function(t){
     var b=document.createElement('button'); b.type='button';
-    b.className='catchip'+(picked.indexOf(t)>-1?' on':'');
-    b.textContent=t;
-    b.setAttribute('aria-pressed', picked.indexOf(t)>-1 ? 'true' : 'false');
+    b.textContent=catLabel(t); b.className='catchip';
+    function paint(){
+      var on=chatTags(name).indexOf(t)>-1;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    paint();
     b.onclick=function(e){
       e.stopPropagation();
-      var was=picked.slice(), i=picked.indexOf(t);
-      if(i>-1) picked.splice(i,1); else picked.push(t);
-      b.classList.toggle('on', picked.indexOf(t)>-1);
-      b.setAttribute('aria-pressed', picked.indexOf(t)>-1 ? 'true' : 'false');
-      chats[name]=chats[name]||{}; chats[name].tags=picked.slice();
-      api('/api/chatfeed/tags',{method:'POST',body:JSON.stringify({chat:name, tags:picked})})
-        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-        .catch(function(){
-          picked=was; chats[name].tags=was.slice();
-          b.classList.toggle('on', was.indexOf(t)>-1);
-          toast('Couldn’t save that tag');
-        });
+      var on=chatTags(name).indexOf(t)>-1;
+      saveLabels([name], on?{remove:[t],repaint:paint}:{add:[t],repaint:paint});
+      paint();
     };
     tagrow.appendChild(b);
   });

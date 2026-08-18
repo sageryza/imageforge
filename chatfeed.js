@@ -783,6 +783,10 @@ router.post('/', async (req, res) => {
     res.json({ ok: true, id: msgId });
     if (!working) {
       sortChat(doc.chat).catch(() => { /* sorting must never fail a post */ });
+      // A finished reply is the true "the wake was delivered" signal — clear
+      // any pending wake-queue entry for this chat, even if the switchboard
+      // never got to its wake-done (chat-wake.js has the design).
+      require('./chat-wake').noteReply(db, doc.chat);
     }
   } catch (err) { fail(res, err); }
 });
@@ -1531,101 +1535,322 @@ router.post('/archive-kind', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// TAGS ON AN ARCHIVED CHAT (Aug 2026, Sophie: "rather than having the
-// built/other tabs I think it would be better to have actual Tags … then I can
-// click the tag or tags that fit it best and it will be stored with those tags
-// and then those tags become a list of options at the top of the archive that I
-// can click on and filter by").
+// ---- ONE PILE OF LABELS — categories AND tags, many per chat (Aug 2026) ----
+// Sophie: "right now you can only be in one category at a time, for example
+// witch or to be reviewed, and you can't add tags. I think it would make sense
+// to just combine them and let you be in multiple categories or tags at once."
 //
-// This REPLACES the BUILT / OTHER piles, which were one binary judgement made at
-// the moment of archiving. Tags are several, they say what the chat WAS rather
-// than how well it went, and they are the filter row on the archive — so the
-// question "where's the chat where we fixed that bug" has an answer.
+// Two fields used to sit side by side and neither could do the other's job:
+//   • `category` — exactly ONE per chat, free text, her own folder names. A
+//     chat about witch work that also needed reviewing had to pick.
+//   • `tags` — MANY per chat, but a FIXED ten-word vocabulary she could not add
+//     to, and only ever reachable on the way past (the archive sheet, later the
+//     Organize sheet).
+// They are ONE THING now: `labels`, an array, her vocabulary, add your own.
 //
-// A FIXED VOCABULARY (`TAGS` below), not free text. A typed tag is a typo away
-// from its own orphan pile, and the whole value here is that the same work
-// lands under the same word every time. Growing the list is a one-line change
-// when she asks for a word that is missing.
+// NOTHING IS MIGRATED AND NOTHING IS DESTROYED, in both directions:
+//   • Reading — a chat with no `labels` reads as `category` + `tags` unioned
+//     (`labelsOf`), so all 276 chats arrive correctly labelled the day this
+//     ships with no backfill, and the old data still means what it meant.
+//   • Writing — every write MIRRORS the pair: `category` = the first label,
+//     `tags` = the whole set. Her phone runs a cached page for days, so the
+//     build she is looking at while this deploys must keep working — and so
+//     must every reader that was never touched (chat-sort.js's vocabulary and
+//     examples, brief.js, the /sort diagnostics, the backfill scripts).
+// Drop the mirrors only once no cached page can still be reading them, which
+// is months, not days — and then only by changing those readers in the same
+// commit.
 //
-// `archiveKind` is deliberately left ALONE — it is not migrated and not deleted.
-// The old BUILT pile reads as the `built` tag by derivation in the page, so the
-// 97 chats already in there arrive tagged without a backfill, and nothing is
-// destroyed if this is ever reconsidered.
-//
-// Same phantom-row guard as /archive-kind: a merge-set on a missing doc CREATES
-// it, and every pile derives from the registry keys.
+// THE VOCABULARY IS FREE TEXT NOW, which reverses the old tag rule ("a typed
+// tag is a typo away from its own orphan pile"). That rule lost to her ask:
+// folders were always free text and she names things herself, so refusing her
+// a word here only meant the two halves could never merge. The ten legacy tag
+// words survive as SEEDS in the page, so nothing already tagged loses its chip.
 const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
   'images', 'film', 'audio', 'writing', 'research'];
+
+// ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
+// "tagging shouldn't hide everything, or maybe just for certain categories —
+// like `to be reviewed` should send it to the review pile … whereas other ones
+// shouldn't take it off the main feed") ------------------------------------
+// Combining the two fields had one consequence nobody asked for: a FOLDER
+// always took a chat off the main list (her own rule — "when I mark something
+// as a story it takes it out of the normal list"), and once tags were the same
+// field, tagging a chat `images` hid it too.
+//
+// So a label carries one property: is it a PILE. A pile takes the chat off the
+// unfiled home list; every other word is just a word on the chat and changes
+// nothing about where it shows.
+//
+// THE SEED IS FROZEN ON PURPOSE. It is her folder vocabulary as measured on
+// 2026-08-18, the day the two fields merged — so the app behaves EXACTLY as it
+// did before the merge, and a word she invents tomorrow is a plain tag rather
+// than a trapdoor. Reading `__settings.categories` instead would have been
+// self-defeating: every new word joins that list, so every new word would file.
+// `__settings.pileLabels` overrides the seed WHOLESALE once she touches the
+// switch — it is the answer, not a diff.
+const PILE_SEEDS = ['look at', 'stories', 'come back to', 'witch', 'tech', 'xi',
+  'just for fun', 'weird games', 'meta', 'dream app', 'chunk making',
+  'waiting for something', 'to be reviewed'];
+
+// The one word that ALSO routes: a chat carrying it becomes a row in the Review
+// Queue (`review.js`), her pile of everything waiting on her. Hers, and named
+// here so the two modules can never disagree about the spelling.
+const REVIEW_LABEL = 'to be reviewed';
+
+// ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+// condition for the `waiting for something` tag — it should also trigger a text
+// box that asks me what is it waiting for, and then that gets added to the note
+// for the chat at the top: it says in bold `Waiting for:` and then my
+// content") ---------------------------------------------------------------
+// `waiting for something` on its own says a chat is stuck and nothing else. The
+// thing worth knowing — waiting on WHAT — was in her head and nowhere on the
+// screen, so the tag could not tell her whether the wait was over.
+//
+// The answer lives in its own field, `waitingFor`, and NOT in `sophieNote`: a
+// chat must never overwrite a line she wrote (the standing rule), and this one
+// is tied to the tag rather than to the chat. Taking the tag off clears it,
+// which is what keeps a stale "waiting for the API key" from outliving the wait.
+//
+// ONE word asks, and a second is not mine to declare — same rule as the pinned
+// link. If another word should ask something, she says so first.
+const WAIT_LABEL = 'waiting for something';
+const WAIT_ASK = 'What is it waiting for?';
+const WAIT_PREFIX = 'Waiting for:';
+const WAIT_MAX = 200;
+
+function pileList(settings) {
+  const s = settings || {};
+  return Array.isArray(s.pileLabels) ? cleanLabels(s.pileLabels) : PILE_SEEDS.slice();
+}
+function isPile(label, settings) {
+  return pileList(settings).indexOf(String(label || '').trim().toLowerCase()) > -1;
+}
+
+const LABEL_MAX = 40;      // one label, characters — the old `category` cap
+const LABELS_MAX = 20;     // labels on one chat, a backstop and nothing more
+
+// Lower-cased, trimmed, de-duped, capped. Lower-case because she DICTATES
+// these and dictation capitalises the first word at random — "Witch" and
+// "witch" as two chips is the orphan-pile problem arriving by another door.
+function cleanLabels(list) {
+  return (Array.isArray(list) ? list : [list])
+    .map((t) => String(t == null ? '' : t).trim().toLowerCase().slice(0, LABEL_MAX))
+    .filter((t, i, a) => t && a.indexOf(t) === i)
+    .slice(0, LABELS_MAX);
+}
+
+// What a registry doc's labels ARE, old shape or new. The union is what makes
+// the merge retroactive: a chat filed under `witch` and tagged `bug fix` reads
+// as both without anything having been rewritten.
+function labelsOf(reg) {
+  const r = reg || {};
+  if (Array.isArray(r.labels)) return cleanLabels(r.labels);
+  return cleanLabels([].concat(r.category || [], Array.isArray(r.tags) ? r.tags : []));
+}
+
+// The patch that writes a label set — the ONE place the mirrors are kept in
+// step, so no route can write half of it.
+//
+// `filedAt` is stamped on every write that leaves the chat labelled, not only
+// the first: re-filing has to renew the stamp past an unread reply or the chat
+// bounces straight back onto the main list and filing reads as doing nothing
+// (`chatBack` in chats.html). `catBy: 'sophie'` because the app is the only
+// caller of these routes — the auto-sorter writes its own field directly, and
+// one tap from her locks a chat away from it forever.
+function labelPatch(labels, { by = 'sophie' } = {}) {
+  const del = admin.firestore.FieldValue.delete();
+  const clean = cleanLabels(labels);
+  // The waiting-for line belongs to the TAG, not to the chat: the moment the
+  // word comes off, the answer goes with it. Otherwise "waiting for the API
+  // key" sits on a chat that stopped waiting weeks ago — and a stale line she
+  // wrote herself is worse than no line at all.
+  const waiting = clean.indexOf(WAIT_LABEL) > -1 ? {} : { waitingFor: del };
+  if (!clean.length) {
+    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting };
+  }
+  return {
+    labels: clean,
+    category: clean[0],
+    tags: clean,
+    filedAt: new Date().toISOString(),
+    catBy: by,
+    ...waiting,
+  };
+}
+
+// Remember every word she has ever made, on the `__settings` doc, so an EMPTY
+// label outlives the filing that created it (Aug 2026 — she made a category,
+// nothing happened to be picked at the time, and the chip never existed).
+async function rememberLabels(labels) {
+  const clean = cleanLabels(labels);
+  if (!clean.length) return;
+  await regRef(SETTINGS_DOC).set(
+    { categories: admin.firestore.FieldValue.arrayUnion(...clean) }, { merge: true });
+}
+
+// Apply a change to one or many chats. `set` replaces the whole label set;
+// `add`/`remove` are per-chat edits, which is what a bulk gesture needs — she
+// picks six chats and taps `witch`, and the ones already in `to be reviewed`
+// keep it. That is the whole difference from the old bulk filing, which could
+// only overwrite.
+//
+// A name with no registry doc is SKIPPED, never written: `set(…, merge)` on a
+// missing doc CREATES it and every pile derives from the registry keys, so one
+// typo would put a phantom row in her list that only the Admin SDK can remove.
+// That has happened here before.
+async function applyLabels(names, { set = null, add = [], remove = [] } = {}) {
+  const resolved = await Promise.all(names.map((n) => followMoves(n)));
+  const snaps = await Promise.all(resolved.map((n) => db().collection(REG).doc(n).get()));
+  const live = [], missing = [], out = {};
+  const batch = db().batch();
+  const drop = cleanLabels(remove);
+  const put = cleanLabels(add);
+  resolved.forEach((n, i) => {
+    if (!snaps[i].exists) { missing.push(n); return; }
+    let next;
+    if (set) next = cleanLabels(set);
+    else {
+      next = labelsOf(snaps[i].data()).filter((t) => drop.indexOf(t) < 0);
+      put.forEach((t) => { if (next.indexOf(t) < 0) next.push(t); });
+      next = cleanLabels(next);
+    }
+    live.push(n); out[n] = next;
+    batch.set(regRef(n), labelPatch(next), { merge: true });
+  });
+  if (live.length) await batch.commit();
+  return { chats: live, missing, labels: out };
+}
+
+function labelNames(body) {
+  return (Array.isArray(body.chats) ? body.chats : [body.chat])
+    .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
+}
+
+// THE ONE WRITE. `{chat|chats, labels:[…]}` replaces, `{chats, add, remove}`
+// edits — and either half may be a string or an array. With no chats at all
+// but a word given, it just MAKES the label (that is how an empty one gets
+// created, and the reason /category learned the same trick).
+router.post('/labels', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = labelNames(body);
+    const set = Array.isArray(body.labels) ? body.labels
+      : (typeof body.labels === 'string' ? [body.labels] : null);
+    const add = body.add == null ? [] : body.add;
+    const remove = body.remove == null ? [] : body.remove;
+    if (!names.length && !set && !cleanLabels(add).length) {
+      return res.status(400).json({ error: 'chat or labels required' });
+    }
+    await rememberLabels([].concat(set || [], add));
+    if (!names.length) return res.json({ ok: true, chats: [], labels: {} });
+    const r = await applyLabels(names, { set, add, remove });
+    res.json({ ok: true, ...r });
+  } catch (err) { fail(res, err); }
+});
+
+// The vocabulary the page seeds its chips from. Named `tags` in the answer
+// because that is what the route has always returned and a cached page reads
+// it; `labels` is the same list under the name the field now uses.
+router.get('/tags', (_req, res) => res.json({ tags: TAGS, labels: TAGS }));
+
+// WHICH WORDS ARE PILES — one switch per word, her hand only.
+// `POST /pile { label, pile }` stores the WHOLE resulting list on __settings,
+// seeded from PILE_SEEDS the first time she touches it, because a diff against
+// a moving default is a list that means something different next week.
+// GET answers the current list so a page that has never seen a write still
+// knows (the feed carries `pileLabels` in `settings` too, once it exists).
+router.get('/pile', async (_req, res) => {
+  try {
+    const reg = await registry();
+    res.json({ piles: pileList(reg.settings), seeds: PILE_SEEDS, review: REVIEW_LABEL });
+  } catch (err) { fail(res, err); }
+});
+
+// WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
+// tag opens. Its own field so it can never overwrite a note she wrote, and it
+// is cleared by `labelPatch` the moment the tag comes off.
+router.post('/waiting', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const chat = String(body.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const text = String(body.text == null ? '' : body.text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+    const slug = await followMoves(chat);
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, waitingFor: text });
+  } catch (err) { fail(res, err); }
+});
+
+router.post('/pile', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const label = String(body.label || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    if (!label) return res.status(400).json({ error: 'label required' });
+    const reg = await registry();
+    const cur = pileList(reg.settings);
+    const on = body.pile !== false;
+    const next = on
+      ? (cur.indexOf(label) > -1 ? cur : cur.concat(label))
+      : cur.filter((c) => c !== label);
+    await regRef(SETTINGS_DOC).set({ pileLabels: next }, { merge: true });
+    res.json({ ok: true, label, pile: on, piles: next });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- The two legacy routes, kept LOSSLESS ----------------------------------
+// Her phone can run a build from days ago, and both of these are wired to live
+// chips on it. Each one now edits only the half of the label set it knows
+// about, so a tap on an old page can never silently wipe labels it was never
+// able to show:
+//   • /category replaces the FOLDER words (anything outside the old fixed tag
+//     vocabulary) and leaves the tag words alone.
+//   • /tags replaces the TAG words and leaves the folders alone.
+// A new page uses neither — it posts /labels.
+router.post('/category', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const names = labelNames(body);
+    const category = String(body.category || '').trim().slice(0, LABEL_MAX);
+    if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
+    await rememberLabels([category]);
+    if (!names.length) return res.json({ ok: true, chats: [], category: category || null });
+    // keep the tag half, replace the folder half
+    const resolved = await Promise.all(names.map((n) => followMoves(n)));
+    const snaps = await Promise.all(resolved.map((n) => db().collection(REG).doc(n).get()));
+    const batch = db().batch();
+    const live = [];
+    resolved.forEach((n, i) => {
+      if (!snaps[i].exists) return;
+      const keep = labelsOf(snaps[i].data()).filter((t) => TAGS.indexOf(t) > -1);
+      const next = cleanLabels([].concat(category || [], keep));
+      live.push(n);
+      batch.set(regRef(n), labelPatch(next), { merge: true });
+    });
+    if (live.length) await batch.commit();
+    res.json({ ok: true, chats: live, category: category || null });
+  } catch (err) { fail(res, err); }
+});
 
 router.post('/tags', async (req, res) => {
   try {
     const { chat, tags } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     if (!Array.isArray(tags)) return res.status(400).json({ error: 'tags array required' });
-    // Unknown words are dropped rather than refused: a page on an old build
-    // sending a retired tag must not fail her whole save.
-    const clean = tags.map((t) => String(t || '').trim().toLowerCase())
-      .filter((t, i, a) => TAGS.indexOf(t) > -1 && a.indexOf(t) === i).slice(0, TAGS.length);
     const slug = await followMoves(String(chat).slice(0, 60));
     const snap = await db().collection(REG).doc(slug).get();
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
-    await regRef(slug).set(
-      { tags: clean.length ? clean : admin.firestore.FieldValue.delete() }, { merge: true });
-    res.json({ ok: true, chat: slug, tags: clean });
-  } catch (err) { fail(res, err); }
-});
-
-// The vocabulary itself, so the page never hard-codes a second copy that can
-// drift from the one the writes are checked against.
-router.get('/tags', (_req, res) => res.json({ tags: TAGS }));
-
-// File chats under a category — the chips where the LIST/TILES toggle used to
-// be (Aug 2026, Sophie: "category tags, the first two I can think of are
-// stories and tech"). One field on the registry doc, so it rides the cached
-// read the icons already use, exactly like the Dump's `track`.
-//
-// Takes ONE chat or a whole selection (`chats:[…]`), because filing is a bulk
-// gesture there: she picks several rows in select mode and taps a category
-// once. An empty category clears the field back to unfiled.
-// A CATEGORY IS A THING, not just a side effect of filing (Aug 2026 — Sophie
-// made one and it wasn't there: she typed a name in select mode with no chats
-// picked, so nothing was written and the chip never existed). The name is now
-// remembered on the `__settings` doc, so an EMPTY folder survives, and a
-// request with no chats at all is valid — that is how a category gets created
-// on its own.
-router.post('/category', async (req, res) => {
-  try {
-    const body = req.body || {};
-    const names = (Array.isArray(body.chats) ? body.chats : [body.chat])
-      .filter(Boolean).map((c) => String(c).slice(0, 60)).slice(0, 200);
-    const category = String(body.category || '').trim().slice(0, 40);
-    if (!names.length && !category) return res.status(400).json({ error: 'chat or category required' });
-    if (names.length) {
-      const del = admin.firestore.FieldValue.delete();
-      const val = category || del;
-      // `filedAt` = the moment it went into the folder, so the app can tell a
-      // reply that arrived AFTER filing from the one that was already sitting
-      // there unread. Without it, filing a chat she hadn't opened would put it
-      // straight back on the main list and read as filing not working. A chat
-      // taken out of every folder loses the stamp with the category.
-      const stamp = category ? new Date().toISOString() : del;
-      // WHO FILED IT (Aug 2026, with auto-sorting — see chat-sort.js). This
-      // route is HER hand: the app is the only thing that calls it, and the
-      // auto-sorter writes its own field directly. So everything through here
-      // is stamped `sophie` and the sorter will never touch that chat again.
-      // Deliberately NOT a flag the page has to send: her phone runs a cached
-      // page for days, so a new-build-only flag would leave her own filing
-      // looking automatic and open to being overwritten.
-      const batch = db().batch();
-      names.forEach((n) => batch.set(regRef(n),
-        { category: val, filedAt: stamp, catBy: category ? 'sophie' : del }, { merge: true }));
-      await batch.commit();
-    }
-    if (category) {
-      await regRef(SETTINGS_DOC).set(
-        { categories: admin.firestore.FieldValue.arrayUnion(category) }, { merge: true });
-    }
-    res.json({ ok: true, chats: names, category: category || null });
+    // keep the folder half, replace the tag half. Unknown words are still
+    // dropped on THIS route — an old page can only mean the fixed vocabulary,
+    // so anything else in its body is a word it read off a newer write.
+    const keep = labelsOf(snap.data()).filter((t) => TAGS.indexOf(t) < 0);
+    const clean = cleanLabels(tags).filter((t) => TAGS.indexOf(t) > -1);
+    const next = cleanLabels([].concat(keep, clean));
+    await regRef(slug).set(labelPatch(next), { merge: true });
+    res.json({ ok: true, chat: slug, tags: clean, labels: next });
   } catch (err) { fail(res, err); }
 });
 
@@ -1720,6 +1945,12 @@ async function sortChat(chat, { force = false, dry = false, stampNow = false } =
   // folder she may have been finding it in for weeks.
   const patch = { catTriedAt: now, archiveHint: hint, archiveWhy: stateWhy, pendingAsk: ask };
   if (pick) {
+    // The label set, and its two mirrors — `labelPatch`'s fields written by
+    // hand because this one stamps `catBy:'auto'` and its own `filedAt` rule
+    // (below), which is the whole difference between the sorter's filing and
+    // hers. It only ever writes into an EMPTY set, so nothing of hers is lost.
+    patch.labels = [pick];
+    patch.tags = [pick];
     patch.category = pick;
     patch.catBy = 'auto';
     patch.catWhy = why;          // why it went there — for her and for an audit
@@ -3273,9 +3504,18 @@ router.get('/verdict', async (req, res) => {
   }
 });
 
+// The wake-up doorbell (Aug 2026): message a chat from the app and it actually
+// wakes. Routes live in chat-wake.js; it shares this router, the registry
+// cache and the session-first resolution so a wake can never target a chat the
+// feed itself wouldn't. Full design: docs/chats-wake-doorbell.md.
+require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolveChat });
+
 // compileQuery/queryMatches/snippetAnchor are exported for the search tests —
 // they are pure, so the grammar is testable without Firestore or a server.
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry };
+module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+  TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
+  PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };

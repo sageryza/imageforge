@@ -273,6 +273,10 @@ button, .btn {
 .cmp-note.folded .cmp-note-more::before { content: '▸ '; }
 .cmp-note-box {
   display: none; width: 100%; margin-top: 8px;
+  /* 14px, HER SIZE. iOS auto-zooms a focused field under 16px — that is
+     headed off by the VIEWPORT (compare.js locks maximum-scale), never by
+     inflating the type: 16px shipped for one round and she asked for it back
+     ("the text is big now and I don't need pinch zoom"). */
   font: 14px/1.45 Georgia, 'Times New Roman', serif;
   color: var(--ink); background: var(--paper);
   border: 1px solid var(--line); border-radius: 6px;

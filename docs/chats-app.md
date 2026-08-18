@@ -498,15 +498,20 @@
   click on and filter by").** This REPLACED the BUILT / OTHER hairline piles
   below, which were one binary judgement about how well a chat went; a tag says
   what the chat WAS, a chat can carry several, and the row is how she finds one
-  again. `tags: []` on the registry doc, `POST /api/chatfeed/tags {chat, tags}`.
-  - **The vocabulary is FIXED and lives in two places** — `TAGS` in
-    `chatfeed.js` and `TAG_LIST` in `chats.html` (the page must not spend a
-    request to learn ten words). `node scripts/test-chats-archive-tags.js`
-    pins them equal; drift means she files a tag the server drops. Her five
-    are `bug fix · new feature · built · story · quick question`, then
-    `images · film · audio · writing · research`. Growing it is a one-line
-    change in both. **Free text was refused deliberately**: a typed tag is a
-    typo away from its own orphan pile.
+  again. **The `tags` field is gone — it and `category` became ONE field,
+  `labels`, in Aug 2026** (see *ONE PILE OF LABELS* under the category chips
+  below); the archive row now offers her folder names too, and the sheet writes
+  `POST /api/chatfeed/labels` like every other chip surface.
+  - **The ten words are SEEDS, not the vocabulary** — `TAGS` in `chatfeed.js`
+    and `TAG_LIST` in `chats.html`, still pinned equal by
+    `node scripts/test-chats-archive-tags.js` because the legacy `/tags` route
+    checks a cached page's write against them. Her five are
+    `bug fix · new feature · built · story · quick question`, then
+    `images · film · audio · writing · research`. **Free text was refused
+    deliberately and that was REVERSED at her ask** ("you can't add tags"):
+    folders were always typed, so a fixed list here is what kept the two halves
+    from ever being one. Lower-casing on the way in is what is left of the
+    orphan-pile guard.
   - **HER OWN LINE IS IN THE SHEET TOO (Aug 2026, Sophie: "I'd like to also be
     able to leave my own note … it would show up in the archive as a little
     italic line underneath the bold title of the chat like the notes to myself
@@ -814,10 +819,109 @@
   is deliberately kept**, her ask, flip the const to bring it back), and the
   tool row now holds category chips plus two icon-only buttons (select,
   refresh — refresh lost its word to save the space).
-  - **A category is one `category` field on the registry doc**
-    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
-    `track` in another costume, and it takes a whole selection in one call
-    because filing is a bulk gesture. Empty category clears it.
+  **ONE PILE OF LABELS — categories AND tags, many per chat (Aug 2026,
+  Sophie: "right now you can only be in one category at a time, for example
+  witch or to be reviewed, and you can't add tags. I think it would make sense
+  to just combine them and let you be in multiple categories or tags at
+  once").** Two fields sat side by side and neither could do the other's job:
+  `category` was exactly ONE per chat in her own free-text names, `tags` were
+  MANY but locked to ten words she could not add to. They are ONE field now —
+  `labels`, an array, her vocabulary — and a chat is in every pile it carries a
+  word for. `POST /api/chatfeed/labels {chat|chats:[…], labels?|add?|remove?}`
+  is the one write; every chip surface (the Select bar, Organize, the archive
+  sheet) goes through `saveLabels` in `chats.html` to reach it.
+  - **`add`/`remove` are PER-CHAT edits, and that is what a bulk gesture
+    needs**: she picks six chats and taps `witch`, and the ones already in
+    `to be reviewed` keep it. `labels` replaces the set (that is None, and
+    nothing else). A word with no chats picked just MAKES the word.
+  - **NOTHING WAS MIGRATED, in either direction.** Reading: a chat with no
+    `labels` reads as `category` + `tags` unioned (`labelsOf` in `chatfeed.js`,
+    `chatLabels` in `chats.html`), so all 333 chats arrived correctly labelled
+    on deploy. Writing: every write MIRRORS the pair — `category` = the first
+    label, `tags` = the whole set — because her phone runs a cached page for
+    days and because `chat-sort.js`, `brief.js`, the `/sort` diagnostics and
+    the backfill scripts were never touched. **Drop a mirror and nothing fails
+    loudly**; her filing just quietly stops meaning anything on the build she
+    is holding. Drop them only once no cached page can still read them, and
+    only by changing those readers in the same commit.
+  - **The two legacy routes are kept LOSSLESS** — `/category` replaces only the
+    FOLDER words and leaves the tag words alone, `/tags` the reverse. So a tap
+    on a cached page can never silently wipe labels it was never able to show.
+  - **A PILE, OR JUST A WORD (Aug 2026 v2, Sophie the next day: "tagging
+    shouldn't hide everything, or maybe just for certain categories — like
+    `to be reviewed` should send it to the review pile … whereas other ones
+    shouldn't take it off the main feed").** The merge shipped with one
+    consequence nobody asked for: a FOLDER always took a chat off the main list
+    (her own rule), so once tags were the same field, tagging a chat `images`
+    hid it too. A label now carries one property — is it a **pile**. A pile
+    takes the chat off the unfiled home list; every other word is just a word
+    on the chat and changes nothing about where it shows.
+    - **The seed is FROZEN**: `PILE_SEEDS` is her folder vocabulary as measured
+      2026-08-18, the day the fields merged, so the app behaves exactly as it
+      did before and a word she invents tomorrow is a plain tag rather than a
+      trapdoor. **Reading `__settings.categories` instead would be
+      self-defeating** — every new word joins that list, so every new word
+      would file. Two copies (`chatfeed.js`, `chats.html`), pinned equal by
+      `test-chats-labels.js`, same reason as TAGS/TAG_LIST.
+    - **`__settings.pileLabels` replaces the seed WHOLESALE** once she touches
+      the switch — it is the answer, not a diff against a default that grows
+      every time she types a word. `POST /api/chatfeed/pile {label, pile}`
+      writes the whole resulting list; `GET /pile` reads it.
+    - **The switch is one line under the Organize sheet's chips** (`.pilelink`,
+      naming the words that are doing the hiding) opening a small stacked sheet
+      of the whole vocabulary as toggles. It is a sentence rather than a
+      control because most days there is nothing to change in there — and it
+      puts the answer to "why did that chat disappear" on the same screen as
+      the tap that did it. **The toast says which kind of word it was too**
+      ("Filed under Stories — off the main list" vs "Tagged images"), because
+      the two look identical as chips.
+    - The merge itself was **measured before shipping**: of 333 chats only 21
+      carried a tag and only 3 of those were live — and all 3 were already in a
+      folder, so not one chat changed list on deploy.
+  - **ONE WORD ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+    condition for the `waiting for something` tag — it should also trigger a
+    text box that asks me what is it waiting for, and then that gets added to
+    the note for the chat at the top: it says in bold `Waiting for:` and then
+    my content").** The tag on its own says a chat is stuck and nothing else;
+    waiting on WHAT was in her head and nowhere on the screen, so the tag could
+    not tell her whether the wait was over.
+    - **Its own field, `waitingFor` — never `sophieNote`.** A chat must never
+      overwrite a line she wrote (the standing rule), and this line belongs to
+      the TAG rather than to the chat: `labelPatch` DELETES it the moment the
+      word comes off, whichever way it comes off, so "waiting for the API key"
+      cannot outlive the wait. `POST /api/chatfeed/waiting {chat, text}`.
+    - **Where it shows.** On the home row it WINS the one line (`waitingHtml`
+      before `note || wrap || need || doing`) — only one line shows there, this
+      is the most specific thing she deliberately typed, and it clears itself,
+      which her note never does. In the thread it sits ABOVE her note rather
+      than replacing it: two different things, and that row has room for both.
+      Both are tappable and re-open the same box, prefilled.
+    - `WAIT_LABEL` / `WAIT_ASK` / `WAIT_PREFIX` are constants in `chatfeed.js`
+      with copies in `chats.html`, pinned equal by the test. **A second asking
+      word is not mine to declare** — same rule as the pinned link: describe
+      the case and let her say yes.
+    - The box uses `liveInput`, like every other field here — iOS dictation can
+      fill an input without ever firing `input`.
+    - **`threadNote`** is the open thread's note repainter, set in `openChat`:
+      the sheets that change this line live outside it and `renderHome` only
+      repaints the LIST, so without it her answer appeared only after a reload.
+  - **`to be reviewed` ALSO FEEDS THE REVIEW QUEUE** (`REVIEW_LABEL`, one
+    constant shared with `review.js`). A chat carrying it becomes a row at
+    `/review` — the label is the whole mechanism, nothing is filed or stamped,
+    so the row appears when she tags the chat and goes when the word comes off.
+    See *THE REVIEW QUEUE* in `CLAUDE.md`.
+  - **The home chip row shows LESS than the sheets do** (`catList()` vs
+    `fileVocab()`): the ten old tag words are offerable everywhere but only
+    reach the row once something is actually wearing one. The row is a filter
+    she reads past on every screen; the sheets are somewhere she went on
+    purpose.
+  - Tests: `node scripts/test-chats-labels.js` (the route, the mirrors, the old
+    shape still reading, the legacy routes, and the real Organize sheet).
+  - **A category is one `category` field on the registry doc** — was, until the
+    merge above; `POST /api/chatfeed/category {chat|chats:[…], category}` is
+    still live as the legacy half. It was the Dump's `track` in another
+    costume, and it takes a whole selection in one call because filing is a
+    bulk gesture. Empty category clears it.
   - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
     exist before anything is filed; anything typed into select mode's New…
     box joins them. Tapping the LIT chip clears back to everything — the Dump
@@ -864,12 +968,14 @@
     back to and later categories" — confirmed as the chat-list FOLDER and the
     UPDATE screen's BOX).** She had two names for one intention and two places
     to go looking.
-    - **One word and one pile — deliberately NOT one field.** `category` files
-      a chat forever; `newsQueue` files ONE update until something newer lands
+    - **One word and one pile — deliberately NOT one field.** A label files a
+      chat forever; `newsQueue` files ONE update until something newer lands
       and then hands it back. Folding either into the other loses something
-      real: make the box write a category and a chat she defers an update from
-      is yanked out of Stories (a chat can only be in one folder); make the
-      folder write a queue and her filing expires on its own.
+      real: make the folder write a queue and her filing expires on its own.
+      (The other half of this argument — that a chat deferred from the Update
+      box would be yanked out of Stories, since a chat could only be in one
+      folder — died with the merge above. The expiry half is what still keeps
+      them apart.)
     - So the Update box is **labelled** "Come back to" (`NEWS_QS`) while its
       **stored value stays `later`** — the rename is a word, not a migration,
       and nothing already filed had to move. `NEWS_QUEUES` in `chatfeed.js`
@@ -1380,13 +1486,15 @@
     them, which is a round trip out of the chat she is reading and back. TAGS
     only ever appeared on the way past, inside the archive sheet, so a chat
     she was *not* archiving could not be tagged at all.
-  - **Two sections because they are two different things**, labelled, because
-    an unlabelled wall of identical chips gives no clue which tap is which:
-    **FOLDER** is exactly one per chat (`catList()`, `POST /category` with a
-    one-name list, plus a New… box and None), **TAGS** is many (`TAG_LIST`,
-    `POST /tags`) — the same vocabulary the archive sheet writes and the
-    archive's filter row reads.
-  - **Tapping the folder a chat is already in takes it out** — one control,
+  - **It shipped as two labelled sections and is ONE ROW OF CHIPS now** (Aug
+    2026 — the merge above). FOLDER (exactly one per chat) over TAGS (many, a
+    fixed ten words) needed labels because an unlabelled wall of identical
+    chips gives no clue which tap is which; with one kind of word there is
+    nothing to tell apart, so `.orggrp` went unused (kept in the CSS, with the
+    rule: bring it back the moment a second kind of chip lands in that sheet).
+    Every chip toggles, several can be lit, and the New… box makes a word that
+    did not exist.
+  - **Tapping a word a chat already carries takes it off** — one control,
     both directions, like every other toggle on this screen.
   - **The `filedAt` stamp is written client-side here too**, copied from
     `filePicked` and not left to the server's own: without it a chat with an
@@ -2112,3 +2220,34 @@
     the row renders, is tappable where it is drawn, a link pin opens instead of
     embedding, the tag shows on a fresh pin and stays off a stale one and off
     an uncounted one — verified failing without the feature).
+  - **TAP-TO-NOTE on a pinned FILM (Aug 2026, Sophie: "I watch the video but I
+    can tap it and then the video pauses and a field comes up where I can
+    write a note and then once I tap done, the video keeps playing and the
+    note disappears and gets sent to you or whatever chat I'm using it for
+    because this could be reusable not just for this").** Built INTO the
+    full-screen player (`openPinned`), so every chat that pins a film gets it
+    with zero setup — that is the reusable half of her ask.
+    - **The tap layer stops above the native control bar** (bottom 24% left
+      uncovered): play, scrub and the close ✕ stay reachable; a tap anywhere
+      on the picture pauses and raises the sheet.
+    - **Every note carries the video position** — the sheet shows "Note at
+      0:41" and the filed text leads with `[0:41]`, so "towards the beginning"
+      arrives as a timestamp the chat can act on without guessing.
+    - **Notes land on the FILM's own url thread** via the asset-note machinery
+      (`POST /api/gallery/assets/note`, from `sophie`) — the same
+      `forge-asset-votes` docs the picture notes use, so a chat's normal sweep
+      (`GET /api/gallery/assets/notes?chat=`) finds film notes with no new
+      reader, and it answers ON the note exactly like an image note. Nothing
+      new is filed anywhere; the route takes any url.
+    - **The mic files a VOICE note**: recorded in the sheet (the judge deck's
+      MediaRecorder pattern), uploaded and transcribed server-side
+      (`POST /api/gallery/assets/note-voice` — gpt-4o-mini-transcribe, the
+      mechanical-extraction model), appended as `[0:41] words (voice: url)`
+      on the same thread. The recording is kept; the transcript is a
+      convenience, never a replacement.
+    - **Done with an empty box is a Cancel**, not an error — she tapped to
+      pause, changed her mind, the film just resumes. Films only: an audio
+      pin draws no tap layer.
+    - Test: `node scripts/test-chats-film-note.js` (the real page, headless —
+      the layer's geometry vs the control bar, pause + stamp, the POST body,
+      resume on Done and Cancel, films-only).

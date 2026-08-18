@@ -1,18 +1,22 @@
 #!/usr/bin/env node
-/* Tests the Story Room's LISTEN rows — the Episode Editor episodes linked to
- * a story (Aug 2026, Sophie: the NDE montages "should be connected to their
- * stories so I can listen to them when I go to their story").
+/* Tests the Story Room's LISTEN rows — every recording attached to a story,
+ * behind the waveform button (Aug 2026, Sophie: the NDE montages "should be
+ * connected to their stories so I can listen to them when I go to their
+ * story", then "a story can hold multiple audios … hide them all behind a
+ * single icon that has a wave form").
  *
  *   node scripts/test-storyroom-listen.js
  *
  * Drives the REAL built page (public/scratchpad.html) in headless Chromium
  * against a stub API. Checks:
- *   1. a story whose GET / carries `audios` shows one row per episode —
- *      play button, the episode's title, its m:ss length
- *   2. tapping play points the page's ONE shared player at that render's url
- *      and flips the row's glyph to pause; tapping again pauses
- *   3. starting a second row replaces the first (never stacks)
- *   4. a story with no linked episodes shows no rows at all
+ *   1. the rows live behind the waveform button, not in the page flow, and
+ *      the button opens them
+ *   2. one row per attached recording — play button, its title, its m:ss
+ *      length — episodes and source memos alike, and a memo carries its date
+ *   3. tapping play points the page's ONE shared player at that url and flips
+ *      the row's glyph to pause; tapping again pauses
+ *   4. starting a second row replaces the first (never stacks)
+ *   5. a story with nothing attached shows no waveform button at all
  *
  * Skips with exit 0 if playwright/Chromium isn't installed.
  */
@@ -43,8 +47,11 @@ function browserPath() {
 const PUB = path.join(__dirname, '..', 'public');
 
 const AUDIOS = [
-  { episodeId: 'ep1', title: 'Telepathy', url: 'https://storage.example.test/editor/ep1-1.mp3', seconds: 649, at: '2026-08-02T19:37:27.543Z' },
-  { episodeId: 'ep2', title: 'The Grass', url: 'https://storage.example.test/editor/ep2-1.mp3', seconds: 40.3, at: '2026-08-02T20:11:15.431Z' },
+  { kind: 'episode', episodeId: 'ep1', title: 'Telepathy', url: 'https://storage.example.test/editor/ep1-1.mp3', seconds: 649, at: '2026-08-02T19:37:27.543Z' },
+  { kind: 'episode', episodeId: 'ep2', title: 'The Grass', url: 'https://storage.example.test/editor/ep2-1.mp3', seconds: 40.3, at: '2026-08-02T20:11:15.431Z' },
+  // A source recording — a voice memo the story came out of. Its url is the
+  // gated proxy, and it is the one kind that carries a date.
+  { kind: 'source', src: '2026-07-09_1048', title: 'Reflections on Intention and Visualization', url: 'https://stub.test/api/search/audio/2026-07-09_1048', seconds: 736, date: '2026-07-09' },
 ];
 
 // ?pad=empty answers with no audios — case 4.
@@ -53,7 +60,9 @@ function padDoc(url) {
   return {
     title: empty ? 'set theory' : 'NDE · Telepathy', beats: [], film: null,
     films: [], inbox: null, description: '', descriptionAudio: null,
-    voiceover: null, episodes: empty ? [] : AUDIOS.map((a) => a.episodeId),
+    voiceover: null,
+    episodes: empty ? [] : AUDIOS.filter((a) => a.episodeId).map((a) => a.episodeId),
+    sources: empty ? [] : [{ src: '2026-07-09_1048', kind: 'memo', title: 'Reflections on Intention and Visualization', date: '2026-07-09', seconds: 736 }],
     audios: empty ? [] : AUDIOS, updatedAt: 5, pad: empty ? 'empty' : 'ndepad',
   };
 }
@@ -100,20 +109,30 @@ function ok(cond, msg) {
     HTMLMediaElement.prototype.pause = function () { this._playing = false; this.dispatchEvent(new Event('pause')); };
   });
   await page.goto(base + '/scratchpad.html');
-  await page.waitForSelector('#audios .aurow');
+  await page.waitForSelector('#audios .aurow', { state: 'attached' });
 
-  // 1 — the rows
+  // 1 — behind the waveform button, not in the page flow
+  ok(await page.$eval('#ausheet', (el) => el.hidden), 'the rows start hidden behind the button');
+  ok(!(await page.$eval('#audiobtn', (el) => el.hidden)), 'the waveform button shows when audio is attached');
+  await page.click('#audiobtn');
+  ok(!(await page.$eval('#ausheet', (el) => el.hidden)), 'tapping the waveform opens the list');
+
+  // 2 — the rows
   const rows = await page.$$eval('#audios .aurow', (els) => els.map((el) => ({
     name: el.querySelector('.aunm').textContent,
     dur: el.querySelector('.audur').textContent,
+    date: el.querySelector('.audate') ? el.querySelector('.audate').textContent : '',
     hasBtn: Boolean(el.querySelector('.iconbtn')),
   })));
-  ok(rows.length === 2, `two listen rows render (got ${rows.length})`);
+  ok(rows.length === 3, `three listen rows render (got ${rows.length})`);
   ok(rows[0].name === 'Telepathy' && rows[0].dur === '10:49', `first row is Telepathy · 10:49 (got ${rows[0].name} · ${rows[0].dur})`);
   ok(rows[1].name === 'The Grass' && rows[1].dur === '0:40', `second row is The Grass · 0:40 (got ${rows[1].name} · ${rows[1].dur})`);
+  ok(rows[2].name.startsWith('Reflections') && rows[2].dur === '12:16', `the memo rides the same list (got ${rows[2].name} · ${rows[2].dur})`);
+  ok(rows[2].date === '2026-07-09', `the memo carries its date (got "${rows[2].date}")`);
+  ok(rows[0].date === '' && rows[1].date === '', 'an episode shows no date line');
   ok(rows.every((r) => r.hasBtn), 'every row carries a play button');
 
-  // 2 — play → shared player src + pause glyph; tap again pauses
+  // 3 — play → shared player src + pause glyph; tap again pauses
   await page.click('#audios .aurow:nth-child(1) .iconbtn');
   let st = await page.evaluate(() => ({
     src: player.src, playing: !player.paused,
@@ -127,7 +146,7 @@ function ok(cond, msg) {
   ok(!st.playing, 'second tap pauses');
   ok(st.glyph1 === 'play', 'glyph flips back to play');
 
-  // 3 — a second row replaces the first
+  // 4 — a second row replaces the first
   await page.click('#audios .aurow:nth-child(1) .iconbtn');
   await page.click('#audios .aurow:nth-child(2) .iconbtn');
   st = await page.evaluate(() => ({
@@ -138,14 +157,15 @@ function ok(cond, msg) {
   ok(st.src === AUDIOS[1].url && st.playing, 'starting a second row replaces the first');
   ok(st.glyph1 === 'play' && st.glyph2 === 'pause', 'only the speaking row wears the pause glyph');
 
-  // 4 — a story with no episodes shows nothing (fresh page: the shared
-  // page's init script would put the NDE pad back on navigation)
+  // 5 — a story with nothing attached shows no button (fresh page: the
+  // shared page's init script would put the NDE pad back on navigation)
   const page2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page2.addInitScript(() => { localStorage.setItem('scratchpad_pad', 'empty'); });
   await page2.goto(base + '/scratchpad.html');
   await page2.waitForFunction(() => document.getElementById('title').textContent.length > 0);
-  const hidden = await page2.$eval('#audios', (el) => el.hidden && el.children.length === 0);
-  ok(hidden, 'a story with no linked episodes shows no listen rows');
+  const hidden = await page2.$eval('#audiobtn', (el) => el.hidden);
+  const norows = await page2.$eval('#audios', (el) => el.children.length === 0);
+  ok(hidden && norows, 'a story with nothing attached shows no waveform button');
 
   await browser.close();
   server.close();
