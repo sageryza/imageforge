@@ -299,6 +299,20 @@ were answered Aug 11. Verbatim, the substantive ones:
 
 ## Open — asked and never answered
 
+**Update 2026-08-18 (chat `evan-film-collected`):** Sophie answered in chat.
+(1) delegated — decision is DELETE; the ten objects are listed and the delete
+is scripted (`scripts/delete-evan-charlie-clone-leftovers.js`) but this
+session's permission layer refused the Storage delete, so it still needs one
+run from a session that may delete. (2) medium or high for the FINAL film,
+decided later — not low. (3) she will probably supply different pictures for
+the narrator; until then nothing is canon, and the prompts for the missing
+beats are banked in `docs/evan-film-missing-prompts.md` to run once the card
+locks. The same day **evan-v14.mp4** was rendered from the live 148-key marks
+(`scripts/evan-v14-rebuild/`, pinned in that chat): 4:09.6, 47 shots,
+vo-verify PASS with the ring pause declared, video==audio to one frame.
+
+The original three, as they stood:
+
 1. **The clone leftovers** in `voice-clones/evan-charlie/` — delete or keep?
 2. **Low vs medium art** for the final film — never put to her.
 3. **Which narrator is canon** — the Aug 10 bob or the Aug 16 braids.
