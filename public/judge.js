@@ -68,31 +68,61 @@
     // resolves its width from the 58vh max-height instead.
     '.jg-media.sq figure{overflow:hidden;border-radius:6px;}' +
     '.jg-media.sq img{width:100%;height:100%;max-height:none;object-fit:cover;}' +
-    // THE MOMENT CARD — the date card, her own design (Aug 2026), wired in as
-    // the deck's TEXT STYLE. Her rhythm and sizes; the house tokens, which
-    // her palette already matched (her rust is our --rose, her paper ours).
-    // The NAME sits centred on its own line at the top of the card, lower
-    // than the header line it lived on in the mockup (her ask).
-    '.jg-mom{display:flex;flex-direction:column;gap:18px;text-align:left;' +
-    ' max-height:62vh;overflow-y:auto;padding:2px 2px 0;}' +
-    '.jg-mom .who{align-self:center;text-align:center;font:600 22px/1.25 Georgia,' +
-    ' \'Times New Roman\',serif;color:var(--ink);}' +
-    '.jg-mom .eyebrow{font:700 11px/1.3 -apple-system,sans-serif;letter-spacing:.14em;' +
-    ' text-transform:uppercase;color:var(--rose);}' +
-    // clamp so her 25px survives a wide phone and never overflows a narrow one
-    '.jg-mom .moment{margin:0;font:500 clamp(19px,5.6vw,25px)/1.32 Georgia,' +
-    ' \'Times New Roman\',serif;color:var(--ink);text-wrap:pretty;}' +
-    '.jg-mom hr{border:0;height:1px;background:var(--line);margin:0;width:100%;}' +
-    '.jg-mom .sec{display:flex;flex-direction:column;gap:6px;}' +
-    '.jg-mom .seclabel{font:600 11px/1.3 -apple-system,sans-serif;letter-spacing:.12em;' +
-    ' text-transform:uppercase;color:var(--ink2);}' +
-    '.jg-mom .sec p{margin:0;font:14.5px/1.5 -apple-system,sans-serif;color:var(--ink);' +
-    ' opacity:.86;text-wrap:pretty;}' +
-    '.jg-mom .sec p.cap{font:italic 500 17px/1.4 Georgia,\'Times New Roman\',serif;' +
-    ' opacity:1;}' +
-    '.jg-mom figure{margin:0;overflow:hidden;border-radius:6px;}' +
-    '.jg-mom figure img{width:100%;display:block;border-radius:6px;}' +
+    // THE MOMENT CARD — the date card, HER OWN design ("Decision Deck v2",
+    // Aug 2026), wired in as the deck's TEXT STYLE and copied EXACTLY at her
+    // ask ("exactly exactly exactly like it does in the demo"): each part in
+    // its own white rounded box on her cream, the Newsreader serif, her hex
+    // palette — deliberately NOT the house tokens. The NAME sits centred on
+    // its own line above the boxes, lower than the header row it lived on in
+    // the mockup (her ask). The footer is hers too — ✕ · Note for Claude · ♥
+    // (the mockup's ✓ swapped for a ♥, her call) — chosen over the four
+    // house verdicts, so a moment deck has no maybe/later and no mic.
+    '.jg-mombg{background:#F7F2E8;}' +
+    '.jg-prog{height:3px;border-radius:999px;background:#E7DECF;overflow:hidden;}' +
+    '.jg-prog i{display:block;height:100%;border-radius:999px;background:#C25E4C;' +
+    ' transition:width .25s ease;}' +
+    // the right padding is the pill\'s reserved corner, same as .jg-top
+    '.jg-momtop{display:flex;align-items:center;justify-content:flex-end;gap:10px;' +
+    ' padding:14px 56px 0 0;}' +
+    '.jg-pilesbtn{border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;' +
+    ' font:600 12px/1 -apple-system,sans-serif;padding:7px 14px;border-radius:10px;}' +
+    '.jg-momq{width:30px;height:30px;border-radius:50%;border:1px solid #DDD3C0;' +
+    ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;}' +
+    // her boxes sit straight on the cream — the house card chrome disappears
+    '.jg-card.momcard{background:transparent;border:0;padding:0;}' +
+    '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;padding:2px 0;}' +
+    '.jg-mom .who{align-self:center;text-align:center;padding-top:10px;' +
+    ' font:600 22px/1.25 Newsreader,Georgia,\'Times New Roman\',serif;color:#262016;}' +
+    '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;' +
+    ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
+    '.jg-mombox .eyebrow{font:700 10px/1.3 -apple-system,sans-serif;' +
+    ' letter-spacing:.14em;text-transform:uppercase;color:#C25E4C;}' +
+    '.jg-mombox .moment{margin:0;font:500 21px/1.34 Newsreader,Georgia,' +
+    ' \'Times New Roman\',serif;color:#262016;text-wrap:pretty;}' +
+    '.jg-mombox .seclabel{font:700 10px/1.3 -apple-system,sans-serif;' +
+    ' letter-spacing:.14em;text-transform:uppercase;color:#8A7F6E;}' +
+    '.jg-mombox .sectext{margin:0;font:400 14px/1.5 -apple-system,sans-serif;' +
+    ' color:#4C4335;text-wrap:pretty;}' +
+    '.jg-mombox .cap{margin:0;font:italic 500 16px/1.4 Newsreader,Georgia,' +
+    ' \'Times New Roman\',serif;color:#262016;}' +
+    // a picture rides in the stack as its own rounded panel, the boxes\' radius
+    '.jg-mom figure{margin:0;overflow:hidden;border-radius:16px;' +
+    ' border:1px solid rgba(0,0,0,0.06);}' +
+    '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
+    '.jg-momrow{display:flex;align-items:center;justify-content:center;gap:14px;' +
+    ' padding:14px 0 8px;}' +
+    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:17px;' +
+    ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
+    ' font-size:21px;line-height:1;padding:0;}' +
+    // the ♥ draws optically smaller than the ✕ at the same size — 24px reads
+    // as the mockup\'s 21px ✓ did
+    '.jg-mombtn.yes{font-size:24px;}' +
+    '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
+    '.jg-momnote{flex:1;min-width:0;max-width:190px;height:62px;box-sizing:border-box;' +
+    ' border-radius:14px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
+    ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
+    '.jg-momnote::placeholder{color:#A99E8B;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -196,7 +226,30 @@
       : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
 
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
-    var noteTimer = null;
+    var noteTimer = null, momNote = null;
+
+    // A MOMENT DECK — any deck carrying her date cards — wears her Decision
+    // Deck chrome whole: her cream behind the page, the Newsreader serif
+    // (fetched once from Google Fonts, Georgia the fallback while it loads),
+    // the thin progress line, Piles + ? up top, her footer on every date card.
+    var momDeck = opts.style === 'moment' || items.some(function (x) { return isMoment(x); });
+    if (momDeck && !states) {
+      // the piles speak the mockup's words — ♥ and ✕ are the only verdicts
+      piles = [{ key: true, name: 'Yes' }, { key: false, name: 'No' },
+        { key: undefined, name: 'Unsure' }];
+    }
+    if (momDeck) {
+      document.body.classList.add('jg-mombg');
+      if (!document.getElementById('jg-newsreader')) {
+        var pre = document.createElement('link');
+        pre.rel = 'preconnect'; pre.href = 'https://fonts.googleapis.com';
+        var fl = document.createElement('link');
+        fl.id = 'jg-newsreader'; fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght'
+          + '@0,6..72,400..700;1,6..72,400..600&display=swap';
+        document.head.appendChild(pre); document.head.appendChild(fl);
+      }
+    }
 
     // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
     // page and the tab "should agree"). Only the boolean pair mirrors —
@@ -322,12 +375,20 @@
     }
     window.addEventListener('pagehide', function () {
       // a half-typed note survives leaving (same contract as __compareNotes)
-      var box = mount.querySelector('.cmp-note-box');
       var it = items[cur];
-      if (!box || !it || !box.value.trim()) return;
+      if (!it) return;
+      var text = null;
+      var mb = mount.querySelector('.jg-momnote');
+      if (mb && momNote && momNote.item === it.id && mb.value.trim()) {
+        text = momNote.compose();   // her box edits the thread's last message
+      } else {
+        var box = mount.querySelector('.cmp-note-box');
+        if (box && box.value.trim()) text = box.value;
+      }
+      if (!text) return;
       try {
         navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
-          chat: chat, sheet: sheet, item: it.id, text: box.value,
+          chat: chat, sheet: sheet, item: it.id, text: text,
         })], { type: 'application/json' }));
       } catch (_) { /* nothing else to do */ }
     });
@@ -389,29 +450,30 @@
         || (opts.style === 'moment' && it.text));
     }
     function momentHtml(it, ar) {
-      var head = '';
-      if (it.who) head += '<div class="who">' + esc(it.who) + '</div>';
-      if (it.eyebrow) head += '<div class="eyebrow">' + esc(it.eyebrow) + '</div>';
-      if (it.text) head += '<p class="moment">' + esc(it.text) + '</p>';
-      var body = '';
+      var out = '';
+      if (it.who) out += '<div class="who">' + esc(it.who) + '</div>';
+      // box one: the eyebrow and the moment share a box, exactly her mockup
+      var first = '';
+      if (it.eyebrow) first += '<span class="eyebrow">' + esc(it.eyebrow) + '</span>';
+      if (it.text) first += '<p class="moment">' + esc(it.text) + '</p>';
+      if (first) out += '<div class="jg-mombox">' + first + '</div>';
       (it.sections || []).forEach(function (sec) {
-        body += '<div class="sec">'
+        out += '<div class="jg-mombox">'
           + (sec.label ? '<span class="seclabel">' + esc(sec.label) + '</span>' : '')
-          + '<p>' + esc(sec.text) + '</p></div>';
+          + '<p class="sectext">' + esc(sec.text) + '</p></div>';
       });
       if (it.img) {
-        body += '<figure' + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+        out += '<figure' + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
           + '<img class="zoom' + (ar ? ' fill' : '') + '" src="' + esc(it.img) + '"'
           + ' alt="' + esc(it.label || '') + '"'
           + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure>';
       }
       if (it.caption) {
-        body += '<div class="sec"><span class="seclabel">'
-          + esc(it.captionLabel || 'Suggested caption') + '</span>'
+        out += '<div class="jg-mombox"><span class="seclabel">'
+          + esc(it.captionLabel || 'Caption') + '</span>'
           + '<p class="cap">\u201c' + esc(it.caption) + '\u201d</p></div>';
       }
-      // the hairline earns its place only BETWEEN the moment and what follows
-      return '<div class="jg-mom">' + head + (head && body ? '<hr>' : '') + body + '</div>';
+      return '<div class="jg-mom">' + out + '</div>';
     }
     function mediaHtml(it) {
       var ar = arOf(it);
@@ -450,12 +512,25 @@
         recTimeline.push({ item: items[cur].id, at: Date.now() - recStart });
       }
       var judged = items.filter(function (it) { return verdicts[it.id] !== undefined; }).length;
-      var top = '<div class="jg-top"><span class="jg-count">'
-        + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
-                            : (cur + 1) + ' of ' + items.length) + '</span>'
-        + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
-        + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
-        + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
+      var top;
+      if (momDeck) {
+        // her chrome: the thin progress line (position through the deck, like
+        // the mockup), then Piles + ? — the name that lived on this row sits
+        // lower now, centred on the card (her ask)
+        var pct = Math.round(((view === 'piles' ? items.length : cur) / items.length) * 100);
+        top = '<div class="jg-prog"><i style="width:' + pct + '%"></i></div>'
+          + '<div class="jg-momtop">'
+          + '<button class="jg-pilesbtn" data-act="piles">Piles</button>'
+          + '<button class="jg-momq" data-act="help" aria-label="What the buttons mean">?</button>'
+          + '</div>';
+      } else {
+        top = '<div class="jg-top"><span class="jg-count">'
+          + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
+                              : (cur + 1) + ' of ' + items.length) + '</span>'
+          + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
+          + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
+          + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
+      }
 
       // data-nostop: in the app a Compare page is EMBEDDED (chats.html's
       // parent pill + its tap-to-toggle gesture on this document). A judge
@@ -480,6 +555,9 @@
       } else {
         var it = items[cur];
         var v = verdicts[it.id];
+        // a date card gets her footer whole (✕ · note · ♥); her own words
+        // (states) still win when a page sends them
+        var momUI = isMoment(it) && !states;
         var row;
         if (states) {
           // her own words as chips — a button is only as wide as its words
@@ -487,6 +565,15 @@
             return '<button class="jg-chip' + (v === s.key ? ' on' : '')
               + '" data-state="' + i + '">' + esc(s.label) + '</button>';
           }).join('');
+        } else if (momUI) {
+          // her footer, exactly: the big rounded-square ✕ and ♥ (the mockup's
+          // ✓, swapped for a heart at her ask) with the note box between
+          // them; a decided card paints its button dark, like the mockup
+          row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
+            + ' aria-label="No">✕</button>'
+            + '<textarea class="jg-momnote" rows="2" placeholder="Note for Claude…"></textarea>'
+            + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
+            + ' aria-label="Yes">♥</button>';
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
           row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -496,30 +583,55 @@
         }
         // the controls strip: reserved whenever a corner control could sit on
         // the content — the mic (voice) always, and the note + on a short
-        // text-only card (the XI overlap)
-        var ctl = voice || isMoment(it)
-          || (it.text && !it.img && !it.pair && !it.card) ? ' ctl' : '';
+        // text-only card (the XI overlap). Her footer has no corner controls,
+        // so a date card reserves nothing.
+        var ctl = !momUI && (voice || isMoment(it)
+          || (it.text && !it.img && !it.pair && !it.card)) ? ' ctl' : '';
         mount.innerHTML = '<div class="jg" data-nostop>' + top
-          + '<div class="jg-card' + ctl + (flash ? ' jg-flash' : '') + '">'
+          + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
           // backwards or forwards") — the middle still opens the lightbox
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
           + mediaHtml(it)
-          + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
+          // a date card carries no label line, no corner note and no mic —
+          // her footer below IS the whole control surface (the exact-demo
+          // choice, Aug 2026)
+          + (!momUI && it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
           // the note is a small + in the card's bottom-right corner; a
           // written one SHOWS as her words, never as an open textarea
           // (Sophie, Aug 2026 — same contract as compare.js's __compareNotes)
-          + '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
+          + (momUI ? '' : '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
           + '<button type="button" class="cmp-note-open" aria-label="a note about this one">'
           + PLUS_SVG + '</button>'
           + '<div class="cmp-note-text"></div>'
-          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>'
-          + (voice ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
+          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>')
+          + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div>'
-          + '<div class="jg-row">' + row + '</div></div>';
+          + '<div class="' + (momUI ? 'jg-momrow' : 'jg-row') + '">' + row + '</div></div>';
+        if (momUI) {
+          // her note box: always open, holds HER latest message and edits it
+          // in place — the debounced save and the Assets-tab mirror are the
+          // same machinery the + note uses, only the clothes changed
+          var mbox = mount.querySelector('.jg-momnote');
+          var MS = window.__compareShell || {};
+          var mmsgs = MS.parseNoteThread ? MS.parseNoteThread(notes[it.id] || '') : [];
+          var mdraft = '';
+          if (mmsgs.length && mmsgs[mmsgs.length - 1].who === 'me') mdraft = mmsgs.pop().text;
+          mbox.value = mdraft;
+          var mcompose = function () {
+            return MS.threadField ? MS.threadField(mmsgs, mbox.value) : (mbox.value || '').trim();
+          };
+          momNote = { item: it.id, compose: mcompose };
+          mbox.addEventListener('input', function () { saveNote(it.id, mcompose()); });
+          mbox.addEventListener('blur', function () {
+            var t = mbox.value.trim();
+            if (t && t !== mdraft) { mirrorNote(it, t); mdraft = t; }
+          });
+          return;
+        }
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
         // the thread is painted by the shared kit, so hers and the chat's
@@ -560,9 +672,12 @@
           + 'edge of the card (or swipe) to move through the deck — you never have to '
           + 'mark a card to keep going.' });
       }
-      steps.push({ sel: '.jg-row', text: states
+      steps.push({ sel: momDeck && !states ? '.jg-momrow' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
-        : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
+        : momDeck
+          ? '♥ yes, ✕ no — and the box between them is a note for this card, '
+            + 'saved as you type.'
+          : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
           + 'Each one saves the moment you tap it.' });
       if (voice) {
         steps.push({ sel: '.jg-mic', text: 'The mic: tap to start talking, tap again to '
@@ -592,15 +707,18 @@
       // `help: '…'` to __judge and it leads the card, above the buttons key.
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
-        : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
+        : momDeck
+          ? '♥ yes · ✕ no · the box between them is a note that saves as you type.'
+          : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
           + ' — nothing has to be marked. ' : '')
-        + (voice ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
+        + (voice && !momDeck ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
           + ' card and it lands there — or keep talking WHILE you swipe, and each'
           + ' sentence lands on the card you were looking at when you started it. ' : '')
-        + 'Top row: undo the last one, the grid shows every pile —'
+        + (momDeck ? 'Piles up top shows everything you’ve sorted —'
+          : 'Top row: undo the last one, the grid shows every pile —')
         + ' tap any tile there to open it again.<br><br>'
         + '<button type="button" class="jg-tourgo">SHOW ME AROUND</button></div>';
       h.addEventListener('click', function (e) {
