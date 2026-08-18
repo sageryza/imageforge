@@ -1153,5 +1153,298 @@
         "text": "Or you could just read the dream."
       }
     ]
+  },
+  "reverie3": {
+    "title": "dreams \u2014 R\u00eaverie v3 (pencil, really weird)",
+    "music": "sparse ethereal ambient strings and sustained glass tones, mysterious, floating, minimal, slow",
+    "music_end": 16.6,
+    "announcer": "XrExE9yKIg1WjnnlVkGX",
+    "character": "pFZP5JQG7iQjIQuC4Bku",
+    "chars": {
+      "MUSE": "The same ethereal woman appears: long flowing dark hair, a long white silk gown. ",
+      "DANA": "The same woman appears: mid 20s, messy bun, oversized grey hoodie. "
+    },
+    "scenes": [
+      {
+        "id": "m01",
+        "kind": "dream",
+        "dur": 3.4,
+        "content": "Two elegant dancers waltzing in an empty ballroom, caught mid-morph into each other \u2014 their faces trading places, their long hair flowing between them like one shared stream of ink.",
+        "motion": "the dancers turn slowly; their faces continue trading; the shared hair stream flows",
+        "quality": "high"
+      },
+      {
+        "id": "m02",
+        "kind": "dream",
+        "dur": 3.2,
+        "content": "An endless terrace of row houses where every open front door reveals another, smaller house inside it, receding forever toward a low full moon.",
+        "motion": "the doors open inward one after another, forever; the moon glows at the end",
+        "quality": "high"
+      },
+      {
+        "id": "m03",
+        "kind": "dream",
+        "dur": 2.6,
+        "content": "A woman gliding down a hallway of doors that shrink to the size of mice in the far distance; with every door she passes she is smaller.",
+        "motion": "she glides past the doors, growing smaller; the far doors flicker",
+        "quality": "high"
+      },
+      {
+        "id": "m04",
+        "kind": "dream",
+        "dur": 3.0,
+        "content": "A night sky holding hundreds of white feathers perfectly still; one single feather falls past a moon that is much too close.",
+        "motion": "the one feather falls slowly; the frozen feathers tremble faintly; the moon looms",
+        "quality": "high"
+      },
+      {
+        "id": "m05",
+        "kind": "dream",
+        "dur": 3.4,
+        "content": "A woman standing in mirror-still water while a white horse walks slowly behind her; the horse's reflection in the water is a swan mid-glide.",
+        "motion": "the horse walks; the swan reflection glides in step; ripples spread",
+        "quality": "high"
+      },
+      {
+        "id": "n06",
+        "kind": "endcard",
+        "dur": 1.3,
+        "style": "black"
+      },
+      {
+        "id": "n07",
+        "kind": "live",
+        "chars": [
+          "DANA"
+        ],
+        "dur": 3.6,
+        "content": "She eats cereal at a bright, completely ordinary morning kitchen counter, scrolling her phone with one thumb, entirely unbothered, daylight, full color.",
+        "motion": "she chews cereal and scrolls, unbothered; the spoon clinks; morning light is flat and normal"
+      },
+      {
+        "id": "n08",
+        "kind": "appui",
+        "dur_states": [
+          1.5,
+          1.7
+        ],
+        "embed": "m05",
+        "name": "last night &middot; Dana",
+        "sub": "we kept trading faces and the houses wouldn't end?? woke up thirsty"
+      },
+      {
+        "id": "n09",
+        "kind": "endcard",
+        "dur": 3.4,
+        "style": "dreams"
+      }
+    ],
+    "segments": [
+      {
+        "id": "w1",
+        "v": "C",
+        "scene": "m01",
+        "off": 0.9,
+        "text": "The night..."
+      },
+      {
+        "id": "w2",
+        "v": "C",
+        "scene": "m02",
+        "off": 0.5,
+        "text": "...remembers what you cannot."
+      },
+      {
+        "id": "w3",
+        "v": "C",
+        "scene": "m04",
+        "off": 0.5,
+        "text": "To fall... is to fly... asleep."
+      },
+      {
+        "id": "w4",
+        "v": "C",
+        "scene": "m05",
+        "off": 1.0,
+        "text": "R\u00eaverie."
+      },
+      {
+        "id": "d1",
+        "v": "A",
+        "scene": "n07",
+        "off": 0.6,
+        "text": "Or you could just read the dream."
+      }
+    ]
+  },
+  "everydream2": {
+    "title": "dreams \u2014 Every night v2 (B&W + stats + real site)",
+    "music": "slow melancholy solo piano, sparse and emotional, gentle charity appeal, quiet",
+    "announcer": "JBFqnCBsd6RMkjVDRZzb",
+    "character": "JBFqnCBsd6RMkjVDRZzb",
+    "chars": {
+      "HIM": "The same man appears: 30s, short beard, plain navy t-shirt. ",
+      "HER": "The same woman appears: 30s, shoulder-length copper hair, cream pajama shirt. "
+    },
+    "scenes": [
+      {
+        "id": "e01",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "HIM"
+        ],
+        "dur": 3.2,
+        "content": "He sleeps deeply in a plain bedroom in cold pre-dawn light, one arm off the bed, utterly still. Black and white.",
+        "motion": "black and white film. his chest rises and falls slowly; the light barely shifts; curtains hang still"
+      },
+      {
+        "id": "s1",
+        "kind": "statcard",
+        "dur": 4.6,
+        "text": "In clinical observation, 4 in 5 dreams are recalled at waking &mdash; and lost before breakfast."
+      },
+      {
+        "id": "p02",
+        "kind": "dream",
+        "dur": 3.2,
+        "content": "A magnificent dream: an enormous gentle whale drifting over a city skyline at night \u2014 but the drawing is half dissolved, its edges fading away into blank paper.",
+        "motion": "the whale drifts slowly; the drawing's edges dissolve further into blank paper; stars fade"
+      },
+      {
+        "id": "e04",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "HER"
+        ],
+        "dur": 2.8,
+        "content": "She sits up in bed reaching for something that is already gone, her hand closing on empty air, her face falling, plain cold morning light. Black and white.",
+        "motion": "black and white film. her hand closes slowly on nothing; she stares at her empty palm; her shoulders drop"
+      },
+      {
+        "id": "s2",
+        "kind": "statcard",
+        "dur": 5.0,
+        "text": "The average adult loses an estimated 1,825 dreams per year. Fewer than 40 are ever described to another person."
+      },
+      {
+        "id": "p04",
+        "kind": "dream",
+        "dur": 3.0,
+        "content": "An almost-empty page of a dream journal: only a faint pencil outline of a single door remains in one corner, the rest of the page blank paper.",
+        "motion": "the faint door outline flickers and fades a little more; the page stays empty"
+      },
+      {
+        "id": "e07",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "HIM"
+        ],
+        "dur": 3.0,
+        "content": "He stares into his coffee at a kitchen table, trying and failing to remember something, defeated, cold morning light. Black and white.",
+        "motion": "black and white film. he stirs the coffee without drinking; stares into it; slowly shakes his head"
+      },
+      {
+        "id": "s3",
+        "kind": "statcard",
+        "dur": 4.4,
+        "text": "94% of flying dreams end before landing. No destination has ever been recovered."
+      },
+      {
+        "id": "f01",
+        "kind": "file",
+        "dur": 6.5
+      },
+      {
+        "id": "p07",
+        "kind": "live",
+        "chars": [
+          "HER"
+        ],
+        "dur": 3.2,
+        "content": "She types into her phone in bed by warm lamplight at night, a small satisfied smile, cozy golden light, full color.",
+        "motion": "she types softly and smiles; the lamp glows warmer; she settles into the pillow"
+      },
+      {
+        "id": "p08",
+        "kind": "endcard",
+        "dur": 3.6,
+        "style": "dreams"
+      }
+    ],
+    "segments": [
+      {
+        "id": "g1",
+        "v": "A",
+        "scene": "e01",
+        "off": 0.6,
+        "text": "Every night... thousands of dreams go unrecorded."
+      },
+      {
+        "id": "gs1",
+        "v": "A",
+        "scene": "s1",
+        "off": 0.4,
+        "text": "In clinical observation, four out of five dreams are recalled at waking \u2014 and lost before breakfast."
+      },
+      {
+        "id": "g2",
+        "v": "A",
+        "scene": "p02",
+        "off": 0.4,
+        "text": "This one lasted eleven seconds past waking."
+      },
+      {
+        "id": "g3",
+        "v": "A",
+        "scene": "e04",
+        "off": 0.4,
+        "text": "By breakfast, it was gone... forever."
+      },
+      {
+        "id": "gs2",
+        "v": "A",
+        "scene": "s2",
+        "off": 0.4,
+        "text": "The average adult loses an estimated one thousand, eight hundred and twenty-five dreams per year. Fewer than forty are ever described to another person."
+      },
+      {
+        "id": "g4",
+        "v": "A",
+        "scene": "p04",
+        "off": 0.3,
+        "text": "All she could tell her friends was: you were there. And there was a door... or something."
+      },
+      {
+        "id": "g5",
+        "v": "A",
+        "scene": "e07",
+        "off": 0.5,
+        "text": "It doesn't have to be this way."
+      },
+      {
+        "id": "gs3",
+        "v": "A",
+        "scene": "s3",
+        "off": 0.4,
+        "text": "Ninety-four percent of flying dreams end before landing. No destination has ever been recovered."
+      },
+      {
+        "id": "g6",
+        "v": "A",
+        "scene": "f01",
+        "off": 0.6,
+        "text": "For zero dollars a month... you can save them all."
+      },
+      {
+        "id": "g7",
+        "v": "A",
+        "scene": "p08",
+        "off": 0.5,
+        "text": "dreams. Don't let another one get away."
+      }
+    ]
   }
 }
