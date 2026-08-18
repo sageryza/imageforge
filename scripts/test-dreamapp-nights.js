@@ -25,7 +25,7 @@ Module._resolveFilename = function (req, ...rest) {
   if (req === './movies' || req === 'firebase-admin' || req === 'express') return req;
   return realResolve.call(this, req, ...rest);
 };
-require.cache.movies = { id: 'movies', filename: 'movies', loaded: true, exports: { makeDreamPagesV2: () => {} } };
+require.cache.movies = { id: 'movies', filename: 'movies', loaded: true, exports: { makeDreamPagesV2: () => {}, transcribeAudio: () => {} } };
 require.cache['./movies'] = require.cache.movies;
 require.cache['firebase-admin'] = { id: 'firebase-admin', filename: 'firebase-admin', loaded: true, exports: { apps: [], firestore: () => null } };
 require.cache.express = {
@@ -33,6 +33,7 @@ require.cache.express = {
   exports: Object.assign(() => ({}), {
     Router: () => new Proxy({}, { get: () => () => {} }),
     json: () => () => {},
+    raw: () => () => {},
   }),
 };
 

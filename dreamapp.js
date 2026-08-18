@@ -26,7 +26,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
-const { makeDreamPagesV2 } = require('./movies');
+const { makeDreamPagesV2, transcribeAudio } = require('./movies');
 
 const router = express.Router();
 
@@ -124,6 +124,23 @@ const db = () => (admin.apps.length ? admin.firestore() : null);
 
 // The feed's day. US Pacific — the feed turns over with the morning.
 const feedDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+// The compose footer's "night N of your streak": consecutive nights WRITTEN
+// (not shared), counting back from today — or from yesterday, because a streak
+// is not broken by a night you haven't written down yet this morning.
+function streakOf(nightDays, today) {
+  const has = new Set(nightDays);
+  const day = (iso, back) => {
+    const p = String(iso).split('-').map(Number);
+    const d = new Date(Date.UTC(p[0], p[1] - 1, p[2] - back));
+    return d.toISOString().slice(0, 10);
+  };
+  let start = has.has(today) ? today : (has.has(day(today, 1)) ? day(today, 1) : null);
+  if (!start) return 0;
+  let n = 0;
+  while (has.has(day(start, n))) n++;
+  return n;
+}
 
 // ── auth: every route below /status requires a membry ID token ─────────────
 async function identify(req) {
@@ -230,6 +247,8 @@ function mine(doc) {
     panels: (doc.panels || []).map((p) => ({ i: p.i, url: p.url, captions: p.captions, public: !!p.public })),
     drawJob: doc.drawJob || null, drawnAt: doc.drawnAt || null,
     feltCount: doc.feltCount || 0,
+    mood: doc.mood || null, lucid: !!doc.lucid, recurring: !!doc.recurring,
+    elems: doc.elems || [],
   };
 }
 
@@ -251,8 +270,38 @@ router.get('/me', async (req, res) => {
   try {
     const shared = await sharedToday(req.user.uid);
     const todays = await db().collection(DREAMS).where('publicOn', '==', feedDay()).get();
-    res.json({ name: req.user.name, sharedToday: shared, today: feedDay(), count: todays.size });
+    // The compose footer: streak + the newest night before today, by title.
+    const own = (await db().collection(DREAMS).where('uid', '==', req.user.uid).get())
+      .docs.map((d) => d.data());
+    const today = feedDay();
+    const streak = streakOf([...new Set(own.map(nightOf))], today);
+    const last = own.filter((d) => nightOf(d) < today)
+      .sort((a, b) => (nightOf(a) < nightOf(b) ? 1 : -1))[0] || null;
+    res.json({ name: req.user.name, sharedToday: shared, today, count: todays.size,
+               streak, lastNight: last ? (last.title || 'a dream') : null });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Voice → words, for the compose sheet's mic and upload-a-recording buttons.
+// Raw audio bytes in (the JSON body parser above ignores non-JSON types), the
+// transcript out; the dream still goes through POST /dreams as typed text, so
+// speaking is the same pipeline as writing. ~$0.006/min, once per recording.
+router.post('/transcribe', express.raw({ type: () => true, limit: '30mb' }), async (req, res) => {
+  try {
+    if (limited(`transcribe:${req.user.uid}`, 30, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'that is a lot of recordings — try again in a bit' });
+    }
+    const buf = req.body;
+    if (!buf || !buf.length) return res.status(400).json({ error: 'empty recording' });
+    const mime = String(req.headers['content-type'] || 'audio/mp4').split(';')[0];
+    const ext = { 'audio/webm': 'webm', 'video/webm': 'webm', 'audio/mp4': 'm4a', 'audio/mpeg': 'mp3',
+                  'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/ogg': 'ogg', 'audio/aac': 'aac',
+                  'video/mp4': 'mp4' }[mime] || 'm4a';
+    const t = await transcribeAudio(buf, 'dream.' + ext);
+    const text = String(t.text || '').trim();
+    if (!text) return res.status(422).json({ error: "couldn't make out any words in that recording" });
+    res.json({ text, duration: t.duration });
+  } catch (e) { res.status(502).json({ error: e.message }); }
 });
 
 router.post('/dreams', async (req, res) => {
@@ -263,9 +312,19 @@ router.post('/dreams', async (req, res) => {
     const text = String(req.body?.text || '').trim();
     if (text.length < TEXT_MIN) return res.status(400).json({ error: 'write the dream down first' });
     if (text.length > TEXT_MAX) return res.status(400).json({ error: `keep it under ${TEXT_MAX} characters` });
+    // The compose sheet's marks — captured when the dream is written, because
+    // no later moment knows them. Stored, not yet shown anywhere.
+    const MOODS = new Set(['soft', 'anxious', 'tender', 'strange']);
+    const mood = MOODS.has(req.body?.mood) ? req.body.mood : null;
+    const lucid = req.body?.lucid === true;
+    const recurring = req.body?.recurring === true;
+    const elems = Array.isArray(req.body?.elems)
+      ? req.body.elems.slice(0, 3).map((e) => String(e || '').trim().slice(0, 80)).filter(Boolean)
+      : [];
     const ref = db().collection(DREAMS).doc();
     const doc = {
       id: ref.id, uid: req.user.uid, name: req.user.name, text,
+      mood, lucid, recurring, elems,
       title: null, createdAt: new Date().toISOString(),
       // THE NIGHT IS STAMPED WHEN THE DREAM IS WRITTEN, not when it is shared.
       // `publicOn` is a publication date and always was; using it to group the
@@ -585,4 +644,4 @@ router.post('/dreams/:id/comments', async (req, res) => {
 
 // The night rules are exported for their test — they are pure, and they are
 // the load-bearing half of "one night is one entry".
-module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf };
+module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf, streakOf };
