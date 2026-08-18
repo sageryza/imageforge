@@ -45,6 +45,14 @@ const ASSETS = [
     url: 'http://127.0.0.1:PORT/i/appmade.png', prompt: 'gpt-image-2 · low',
     description: 'a fox in a yellow raincoat', promptContent: 'a fox in a yellow raincoat',
     created: iso(T0 - 4000) },
+  // a hostile tile: the nowrap chat-name line is the widest thing on the page
+  // — its automatic minimum blew the 1fr tracks out on WebKit (2026-08-18),
+  // so the grid must stay one screen wide with this on board
+  { chat: 'an-absurdly-long-branch-slug-that-keeps-going-and-going-forever',
+    name: 'AN ABSURDLY LONG CHAT NAME THAT KEEPS GOING AND GOING FOREVER AND EVER',
+    url: 'http://127.0.0.1:PORT/i/longname.png',
+    description: 'Supercalifragilisticexpialidociousunbreakablelabelwordthatneverends',
+    created: iso(T0 - 5000) },
 ];
 
 const votes = [];   // every vote POST the page sends, captured
@@ -106,7 +114,7 @@ const server = http.createServer((req, res) => {
       fail('tiles not in filing order: ' + JSON.stringify(caps));
     }
     const whos = await page.$$eval('.assetgrid .acell .who', (es) => es.map((e) => e.textContent));
-    if (whos.join('|') !== 'Evan|Dating Book|Witch School|My Creations') {
+    if (whos.join('|') !== 'Evan|Dating Book|Witch School|My Creations|AN ABSURDLY LONG CHAT NAME THAT KEEPS GOING AND GOING FOREVER AND EVER') {
       fail('origin chat names missing from tiles: ' + JSON.stringify(whos));
     }
     // tile labels clamp to two lines — the full text lives in the lightbox
@@ -144,8 +152,17 @@ const server = http.createServer((req, res) => {
     await page.fill('.asearch input', '');
     await page.waitForFunction(() => {
       const es = [...document.querySelectorAll('.assetgrid .acell')];
-      return es.filter((e) => e.style.display !== 'none').length === 4;
+      return es.filter((e) => e.style.display !== 'none').length === 5;
     });
+
+    // the grid stays ONE SCREEN wide even with the hostile tile on board —
+    // the WebKit 1fr blowout regression (2026-08-18), pinned geometrically
+    const layout = await page.evaluate(() => ({
+      scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+      cellW: Math.round(document.querySelector('.acell').getBoundingClientRect().width),
+    }));
+    if (layout.scrollW > layout.innerW) fail('page overflows horizontally: ' + JSON.stringify(layout));
+    if (layout.cellW > 135) fail('grid tile wider than a third of the screen: ' + layout.cellW);
 
     // 5 — lightbox freezes the page and restores scrollY
     // Click via the DOM, not page.click — playwright would scroll the tile
