@@ -179,12 +179,13 @@
     '.jg-mombtn.yes{font-size:24px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
     '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
-    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:8px 12px;' +
-    // 16px EXACTLY, or iOS zooms the page in the moment she starts typing
-    // (Safari auto-zooms any focused field under 16px — she caught it here).
-    // The alternative, maximum-scale=1 on the viewport, buys the same thing
-    // by taking her pinch-zoom away everywhere; the type is the cheaper fix.
-    ' font:400 16px/1.3 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
+    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
+    // 13px, HER SIZE — and the iOS focus-zoom it would normally cause is
+    // headed off by the viewport instead (maximum-scale=1, page-templates.js
+    // + compare.js). 16px was tried first and she asked for it back: "I would
+    // prefer not to have pinch [zoom] and for it not to be 16 PX… now it's
+    // too big… I don't need pinch zoom." Do NOT raise this to dodge the zoom.
+    ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-momnote::placeholder{color:#A99E8B;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
@@ -212,8 +213,13 @@
     '.jg-chip.on{color:var(--paper);background:var(--ink);border-color:var(--ink);}' +
     // the browse tap zones: the card's left/right edges page the deck; the
     // middle stays the picture's own tap (lightbox)
+    // -webkit-tap-highlight-color: iOS paints a grey slab over the whole
+    // 26%-wide zone on every tap ("gray bars that show up when I tap the side
+    // of the page"). The edges are meant to be invisible — the card moving IS
+    // the feedback — so the highlight goes.
     '.jg-navzone{position:absolute;top:0;bottom:0;width:26%;background:transparent;' +
-    ' border:0;border-radius:0;padding:0;z-index:2;}' +
+    ' border:0;border-radius:0;padding:0;z-index:2;' +
+    ' -webkit-tap-highlight-color:transparent;}' +
     '.jg-navzone.prev{left:0;}.jg-navzone.next{right:0;}' +
     // tap-to-record, bottom-left corner (the note + owns bottom-right)
     '.jg-mic{position:absolute;left:8px;bottom:8px;width:30px;height:30px;z-index:3;' +

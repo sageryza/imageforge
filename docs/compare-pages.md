@@ -534,12 +534,23 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the edge taps and the swipe navigate. A deck with `browse:false` (and a
       hand-built judge page) has no edges to tap, so there the verdict still
       advances — that is the classic Tinder page and its only way forward.
-    - **ANY FIELD SHE TYPES IN IS 16px, NEVER LESS** — iOS Safari zooms the
-      whole page the moment it focuses a field under 16px, and on a
-      one-screen deck that zoom has nowhere to go. Both boxes are 16px now
-      (`.jg-momnote` here, `.cmp-note-box` in compare.css). The other fix,
-      `maximum-scale=1` on the viewport, buys the same thing by taking her
-      pinch-zoom away on every page — the type size is the cheaper trade.
+    - **THE PAGE IS PINNED SO IT CANNOT ZOOM ITSELF — the TYPE STAYS HER SIZE
+      (Aug 2026, and she settled it twice).** iOS auto-zooms the whole page
+      whenever it focuses a field under 16px, and on a one-screen deck that
+      zoom has nowhere to go. There are exactly two cures: inflate every
+      field to 16px, or pin the page scale. 16px shipped first and she asked
+      for it back — "I would prefer not to have pinch [zoom] and for it not
+      to be 16 PX… now it's too big… I don't need pinch zoom" — so the boxes
+      are 13px/14px again and `maximum-scale=1, user-scalable=no` rides the
+      viewport. **DO NOT raise a field to 16px to dodge the zoom.** The lock
+      is applied in TWO places on purpose: `renderTemplatePage`'s meta (no
+      flash of a zoomable page) and `compare.js` at runtime, which is what
+      reaches the hand-built pages posted months ago — their HTML is frozen,
+      but they all still link that file.
+    - **AN EDGE TAP FLASHES NOTHING** — `-webkit-tap-highlight-color:
+      transparent` on `.jg-navzone`, because iOS paints a grey slab over the
+      whole 26%-wide zone otherwise ("gray bars that show up when I tap the
+      side of the page"). The card moving is the feedback.
     - **Every fixed-size button says `justify-content:center` ITSELF**
       ("the heart and the ex are not aligned with their buttons and neither
       is the ?"). `compare.css`'s global `button` rule sets
