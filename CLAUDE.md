@@ -1745,8 +1745,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Story
 - **The pad IS the Story Room now (Aug 2026)** — `/storyroom` serves the pad page
   and the app's Story Room tile opens it. The OLD board surface (`storyroom.html`,
-  `/api/story/*`) stays in the repo, unpointed. Stories can carry **listen rows**
-  linking to Episode Editor episodes, resolved to their newest render live.
+  `/api/story/*`) stays in the repo, unpointed. Stories carry **listen rows**
+  behind ONE waveform button on the title row (Aug 2026): the Episode Editor
+  episodes cut from the story, resolved to their newest render live, AND the
+  **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,
+  `src` = the Search index id). No audio attached → no button.
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
