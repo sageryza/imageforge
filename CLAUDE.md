@@ -656,6 +656,44 @@ them off the reference sheet, not off the old filenames.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
+- **THE WAKE DOORBELL (Aug 2026) — the app is not read-only anymore.** Each
+  thread has a composer; Send posts her message to the feed AND rings
+  `POST /api/chatfeed/wake`, which fires the account's SWITCHBOARD chat over
+  the public Routines API; the switchboard then wakes the target chat, which
+  sweeps its feed replies and answers. Full design + the measured findings
+  that shaped it: `docs/chats-wake-doorbell.md`. What EVERY chat must do:
+  - **Register yourself wakeable, once per session** (no token, no Sophie
+    step): create a no-schedule self-bound trigger with your own tools —
+    `create_trigger { name: "wake: <your slug>", prompt: "<wake prompt
+    below>" }` (omit cron/run_once — a poke-only routine), then
+    `POST /api/chatfeed/wake-register { chat, session, triggerId, account }`
+    (`session` = your `CLAUDE_CODE_REMOTE_SESSION_ID` without `cse_`;
+    `account` = your `FORGE_ACCOUNT`). Write the trigger's prompt for a wake:
+    "Sophie pinged this chat from the Chats app — sweep your feed replies,
+    asset notes/votes and the to-do list, act, and answer."
+  - **NEVER attach `text` to a wake fire** — a fire with text spawns a stray
+    NEW chat; only a contentless fire re-enters the bound session (measured
+    2026-07-31). The message always rides the feed, never the ping.
+  - **Waking a sibling chat yourself** (fan-out, e.g. the morning-ideas
+    flow): look it up in `GET /api/chatfeed/wake-registry`, post the task as
+    a feed reply addressed to it, then `fire_trigger` its `triggerId` with NO
+    text (same account only). If it shows in ListAgents it's awake —
+    SendMessage it instead.
+  - **The account-2 switchboard is the chats-app-messaging chat** (trigger
+    `trig_01JWxYFQzEJVRxToP6EdDbmR`, token in Render env
+    `WAKE_FIRE_TOKEN_2`). Its duties on a wake ping: `GET
+    /api/chatfeed/wake-queue?account=2` → deliver each entry (SendMessage if
+    the target is listed awake, else `fire_trigger` its trigger, no text; an
+    entry naming ITSELF = just answer Sophie's message, never self-fire) →
+    `POST /wake-done {chat}` each. Don't message Sophie about routine
+    dispatches. Maintenance: its routine carries a placeholder
+    `run_once_at` 2027-06-01 (kept so the routines UI shows it); when it
+    fires, the routine self-disables — re-arm with `update_trigger`
+    (new far-future `run_once_at`, `enabled:true`) or account-2 wakes die.
+  - **Account 1 has no switchboard yet** — building it = any account-1 chat
+    repeats the register step, Sophie mints its API token in THAT account's
+    routines UI, and `WAKE_TRIGGER_1` + `WAKE_FIRE_TOKEN_1` land in Render
+    env.
 - **THE ARCHIVE WRAP-UP — what the chat was about and what went down (Aug
   2026, Sophie: "whenever I'm about to archive a chat the last message of the
   chat is them explaining what the chat was about … and that could go into the

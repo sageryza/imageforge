@@ -771,6 +771,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .noterow .noteshow.has{color:var(--ink);}
 .noterow textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:64px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
 .noterow textarea:focus{outline:none; border-color:var(--rose);}
+/* The composer — message a chat from inside its thread (Aug 2026). Sending
+   posts her message to the feed and rings the wake doorbell (chat-wake.js),
+   so the chat wakes up and answers instead of waiting to be opened on
+   claude.ai. Rounded rectangles, no pills — house rules. */
+.composer{margin:12px 0 4px;}
+.composer textarea{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px; min-height:52px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--barbg); color:var(--ink); resize:vertical;}
+.composer textarea:focus{outline:none; border-color:var(--rose);}
+.composer .cbar{display:flex; align-items:center; gap:10px; margin-top:6px;}
+.composer .comp-status{flex:1; min-width:0; font-style:italic; font-size:.85em; color:var(--ink2);}
+.composer .comp-send{flex:none;}
 /* ---- QUESTIONS (Aug 2026) ---------------------------------------------------
    Her questions in this chat, each with the answer that came back.
    IT IS THE MESSAGE LIST, SWAPPED (Sophie, 2026-08-14, after the first attempt
@@ -4929,6 +4939,46 @@ function openChat(name, keepScroll, focusId, noFetch){
   var mlist=document.createElement('div');
   chatPanel.appendChild(mlist);
   if(!list.length) mlist.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  // ---- The composer (Aug 2026) — message this chat from its thread --------
+  // Send = POST /reply (the message, exactly as the hook would file it) then
+  // POST /wake (the doorbell). The status line under the box says honestly
+  // what the wake did; the message itself is safe in the feed either way.
+  // Design + machinery: chat-wake.js and docs/chats-wake-doorbell.md.
+  var comp=document.createElement('div'); comp.className='composer';
+  var compTa=document.createElement('textarea'); compTa.placeholder='Message this chat…'; compTa.maxLength=8000;
+  var compBar=document.createElement('div'); compBar.className='cbar';
+  var compStat=document.createElement('span'); compStat.className='comp-status';
+  var compSend=document.createElement('button'); compSend.className='tbtn comp-send'; compSend.textContent='Send';
+  compBar.appendChild(compStat); compBar.appendChild(compSend);
+  comp.appendChild(compTa); comp.appendChild(compBar);
+  compSend.onclick=function(){
+    var v=compTa.value.trim(); if(!v||compSend.disabled) return;
+    compSend.disabled=true; compStat.textContent='Sending…';
+    api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:name, text:v})})
+      .then(function(r){return r.json()})
+      .then(function(d){ if(!d.ok) throw 0;
+        // her message shows in the thread right away — no refresh round-trip
+        mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
+        compTa.value='';
+        if(chats[name]) chats[name].archived=false;   // /reply unarchives server-side
+        return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:name})})
+          .then(function(r){return r.json()})
+          .catch(function(){ return {status:'wake-failed'}; });
+      })
+      .then(function(w){
+        if(!w) return;
+        var s=w.status;
+        compStat.textContent=
+          s==='fired' ? 'Sent — waking them up; the reply lands here in a minute or two'
+          : s==='queued' ? 'Sent — a wake is already on its way'
+          : s==='not-wakeable' ? 'Sent — this chat isn’t wakeable yet, so it’ll see this next time it’s up'
+          : s==='no-switchboard' ? 'Sent — waking isn’t set up for this account yet'
+          : 'Sent';
+        compSend.disabled=false;
+      })
+      .catch(function(){ compStat.textContent=''; compSend.disabled=false; toast('Couldn’t send that'); });
+  };
+  chatPanel.appendChild(comp);
   // Each row is indexed once against the text it was built from, not re-read
   // out of the DOM on every keystroke.
   var mrows=[];
@@ -4998,6 +5048,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   function showQuestions(on){
     qOn=on;
     mlist.style.display=on?'none':'';
+    comp.style.display=on?'none':'';         // the composer belongs to the messages
     srow.style.display=on?'none':'';         // that box searches messages
     scount.style.display=on?'none':scount.textContent?'':'none';
     qpanel.style.display=on?'':'none';
