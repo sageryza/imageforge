@@ -325,7 +325,10 @@ pure, no network.
   Measured 2026-08-17: **94 of the 1,137 records carry no transcript at all** —
   over the 45-minute ceiling, over Whisper's 24MB cap, heard as empty, or a
   failed enrich that banked the audio and moved on. Search searches WORDS, so
-  those recordings are invisible in it. Voice Memos already transcribed them on
+  those recordings are invisible in it. **Realistically ~57 of the 94 can be
+  filled** — 11 are zero-length and 26 more are under 5 seconds, so Apple has
+  nothing for them either; the 57 with real audio are **66.5 hours**, 14 of
+  them over an hour each. Voice Memos already transcribed them on
   the phone, free, the long ones included, and **only her Mac can read that
   database** — so the Mac hands the words over and the server does the rest,
   exactly like the push:

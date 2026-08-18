@@ -71,6 +71,11 @@ Then she says one thing to the terminal chat and the whole queue runs.
   in it, and a search that finds nothing reads as a recording that doesn't
   exist. Voice Memos already transcribed them on the phone, for free, including
   the long ones — but only this Mac can read Apple's database.
+- **Expect ~57, not 94** (measured live 2026-08-17): 11 of the 94 are
+  zero-length and 26 more are under 5 seconds, so there is nothing for Apple to
+  have transcribed either. The 57 that carry real audio are **66.5 hours**,
+  14 of them over an hour each — those are the ones the server's ceiling
+  refused, and the whole point of this.
 - **Where:** anywhere (it needs no checkout — the script is served by the app)
 - **Run:**
   ```bash
