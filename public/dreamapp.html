@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>dreams</title>
+<!-- What a friend sees when Sophie texts them the link. The picture is on the
+     onrender host on purpose: it resolves whichever address she sent. -->
+<meta name="description" content="Write down what you dreamt, have it drawn as comic pages, and share as much or as little of it as you like.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="you were in my dreams">
+<meta property="og:title" content="you were in my dreams">
+<meta property="og:description" content="Write down what you dreamt, have it drawn as comic pages, and share as much or as little of it as you like. Dreams sit in the feed under their date, with no names on them.">
+<meta property="og:url" content="https://youwereinmydreams.com/">
+<meta property="og:image" content="https://imageforge-q125.onrender.com/dream-sunflowers.png">
+<meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Courier+Prime&display=swap" rel="stylesheet">
 <style>
   /* Baveuse (Typodermic freeware) self-hosted — the wordmark must not hang on
@@ -551,6 +561,22 @@ function fitCard(card){
   more.hidden = !cut;
 }
 
+// Re-fit every card, keeping whatever she is reading exactly where it is.
+function refit(root){
+  var cards = [].slice.call(root.querySelectorAll('.dcard'));
+  if (!cards.length) return;
+  // The anchor is the first card the viewport still touches; offsetTop is
+  // measured against the same offsetParent before and after, so the delta is
+  // honest even though the cards are mid-wobble.
+  var anchor = null, off = 0;
+  for (var i = 0; i < cards.length; i++) {
+    var top = cards[i].offsetTop - window.scrollY;
+    if (top + cards[i].offsetHeight > 0) { anchor = cards[i]; off = top; break; }
+  }
+  cards.forEach(fitCard);
+  if (anchor && window.scrollY > 0) window.scrollTo(0, Math.max(0, anchor.offsetTop - off));
+}
+
 function wireDreams(root){
   root.querySelectorAll('.dcard').forEach(function(card){
     var id = card.dataset.id;
@@ -698,8 +724,23 @@ async function renderFeed(){
     });
     el.innerHTML = html;
     wireDreams(el);
+    // The serif arrives from a font CDN, and a title that re-wraps changes how
+    // many lines fit beside its picture — so the fit is taken again once it
+    // lands. It has to hold her place while it does: a card ABOVE the viewport
+    // changing height moves the page under her thumb, which is the same bug
+    // the lightbox rules exist to prevent, arriving seconds after she stopped
+    // touching anything.
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function(){ el.querySelectorAll('.dcard').forEach(fitCard); });
+      var painted = Date.now();
+      document.fonts.ready.then(function(){
+        // Only while the feed is still settling, or while she is still at the
+        // top of it. A font that lands late (a slow CDN, a cold cache) would
+        // otherwise re-lay the page out mid-read — and if the shift makes the
+        // page SHORTER the browser clamps her scroll, so even holding an
+        // anchor cannot put her back. A fit taken on the fallback serif is a
+        // line out at worst; a page that moves under her thumb is the bug.
+        if (Date.now() - painted < 2000 || window.scrollY === 0) refit(el);
+      });
     }
   } catch (e) {
     el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';

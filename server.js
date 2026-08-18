@@ -87,6 +87,11 @@ app.use((req, res, next) => {
   next(); // everything else (/, /api/*, /blog, static assets) flows through
 });
 
+// The dream feed's own front door — youwereinmydreams.com serves the app at
+// `/`. Must sit ABOVE express.static and the `/` route below, both of which
+// would otherwise answer with the studio hub. Inert on every other host.
+app.use(require('./dream-host').middleware(__dirname));
+
 app.use(express.static(__dirname + '/public'));
 
 // The Mac-side voice-memo pusher, served so it can be run without cloning the

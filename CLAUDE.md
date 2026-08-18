@@ -231,7 +231,9 @@ around them change, so verify the labels and use these for the URL.
   - Domains: https://admin.shopify.com/store/cod-god-inc/settings/domains
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
-- **Hover** (DNS for secretlyawitch.com — NOT Shopify): https://www.hover.com/domain/secretlyawitch.com
+- **Hover** (DNS for BOTH her domains — NOT Shopify, NOT Render):
+  - secretlyawitch.com: https://www.hover.com/domain/secretlyawitch.com
+  - youwereinmydreams.com: https://www.hover.com/domain/youwereinmydreams.com
 - **Cloud environment on ACCOUNT 1 — there is exactly ONE, so the Setup
   script has no wrong box to land in (measured 2026-08-14 via
   `list_environments` on an iOS-origin session).** `env_011CUK6hCggHt2xBmWdmSdND`,
@@ -270,6 +272,20 @@ around them change, so verify the labels and use these for the URL.
   - Illustrated Zine (Talking to Myself): https://imageforge-q125.onrender.com/talking
   - Gallery: https://imageforge-q125.onrender.com/gallery
   - **Secretly a Witch** (public witchy app): https://imageforge-q125.onrender.com/witch
+  - **youwereinmydreams.com → the dream feed (bought Aug 2026, Hover).** The
+    front door is `dream-host.js`, mounted above `express.static` in
+    `server.js`: on that host `/` IS the dream app (`public/dreamapp.html`),
+    `/dreamfeed` 301s to `/`, `robots.txt` keeps the API and the studio out,
+    and a studio page typed on that host 301s to the feed. Every other host
+    is untouched — `/dreamfeed` still serves the page on onrender. **The
+    domain needs three flips, all doable from her phone:** Render → the
+    service's Settings → Custom Domains → add the apex and www; Hover → DNS →
+    `A @ 216.24.57.1` and `CNAME www imageforge-q125.onrender.com` (Hover has
+    no ALIAS, so the apex is an A record; leave the MX records alone or her
+    email stops); Firebase → membry-df528 → Authentication → Settings →
+    Authorized domains → add both hostnames, or Google sign-in fails on the
+    new domain with nothing in the UI to explain it. Test:
+    `node scripts/test-dream-host.js`.
   - **secretlyawitch.com → the witch app (July 2026).** The server is
     host-aware: on `secretlyawitch.com` the witch app serves at `/`, old
     Shopify-storefront paths 301 to `WITCH_STORE_ORIGIN` (default
