@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,500;1,600&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#dcd6c8;font-family:'EB Garamond',serif}a{color:#7a4a3a}a:hover{color:#14131a}
+@keyframes wobble{0%,100%{transform:rotate(-.6deg) skewX(-.4deg)}50%{transform:rotate(.7deg) skewX(.5deg)}}
+@keyframes breathe{0%,100%{border-radius:14px 34px 16px 28px/26px 14px 30px 16px}50%{border-radius:30px 14px 26px 16px/14px 28px 16px 26px}}
+@keyframes blob{0%,100%{border-radius:60% 40% 55% 45%/45% 55% 40% 60%}50%{border-radius:45% 55% 40% 60%/60% 40% 55% 45%}}
+</style></helmet>
+<div style="padding:36px 40px 60px">
+  <div style="max-width:760px;margin-bottom:28px">
+    <div style="font:600 24px 'EB Garamond',serif;font-style:italic;color:#14131a">sharing flow — who sees the dream</div>
+    <div style="font:12.5px/1.6 'Courier Prime',monospace;color:rgba(20,19,26,.55);margin-top:6px">three audiences: <b>everyone ✳</b> · <b>a circle ☾</b> (named friend groups) · <b>just me ◦</b> (the vault). read left to right: choosing the audience in compose → how the card looks in the feed for each → where private dreams live. <a href="Dream Feed Prototype.dc.html">← back to the feed prototype</a></div>
+  </div>
+  <div style="display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap">
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:12px 'Courier Prime',monospace;color:#7a4a3a">1 · after saving — a feed-true preview, one quiet toggle beneath it</div>
+      <div style="width:390px;height:800px;background:#ece7dc;border:3px solid #14131a;border-radius:38px;overflow:hidden;box-shadow:0 18px 44px rgba(20,19,26,.25)">
+        <div style="height:100%;box-sizing:border-box;padding:30px 20px 28px;display:flex;flex-direction:column;gap:22px;justify-content:center">
+          <div style="text-align:center">
+            <div style="font:600 22px 'EB Garamond',serif;font-style:italic;color:#14131a">here's how it will look</div>
+            <div style="font:11px 'Courier Prime',monospace;color:rgba(20,19,26,.5);margin-top:4px">illustrated while you typed ✓</div>
+          </div>
+          <div style="border:2px solid #14131a;padding:16px;background:#f4f0e5;animation:breathe 9s ease-in-out infinite,wobble 8s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 20px/1.25 'EB Garamond',serif;color:#14131a">The Whale Again</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.45);white-space:nowrap">you ☾</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:stretch;margin-top:10px">
+              <div style="flex:1;min-height:140px;background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 6px,#e9e4d6 6px,#e9e4d6 12px);border:1.5px solid #14131a;animation:blob 12s ease-in-out infinite;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span style="font:10px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">illustration</span></div>
+              <div style="flex:1;font:400 14.5px/1.5 'EB Garamond',serif;color:#14131a">The whale is back. It has opinions about my parking now. <span style="color:#7a4a3a">@theo</span> refused to mediate.</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <div style="font:400 15px 'EB Garamond',serif;font-style:italic;color:#14131a">seen by</div>
+            <div style="display:flex;background:#f4f0e5;border:1px solid rgba(20,19,26,.25);border-radius:22px;padding:3px">
+              <span style="font:12.5px 'Courier Prime',monospace;padding:9px 18px;border-radius:19px;color:rgba(20,19,26,.65)">✳ everyone</span>
+              <span style="font:12.5px 'Courier Prime',monospace;padding:9px 18px;border-radius:19px;background:#7a4a3a;color:#ece7dc">☾ night shift</span>
+              <span style="font:12.5px 'Courier Prime',monospace;padding:9px 18px;border-radius:19px;color:rgba(20,19,26,.65)">◦ just me</span>
+            </div>
+            <div style="font:10.5px/1.5 'Courier Prime',monospace;color:rgba(20,19,26,.45);text-align:center">tap ☾ again to switch circles · @theo sees it either way, he's in it</div>
+          </div>
+          <div style="align-self:center;font:15px 'Courier Prime',monospace;background:#14131a;color:#ece7dc;padding:14px 34px;border-radius:60% 40% 55% 45%/45% 55% 40% 60%;animation:wobble 6s ease-in-out infinite">dream it in ☾</div>
+        </div>
+      </div>
+      <div style="width:390px;background:#f4f0e5;border:1.5px dashed rgba(20,19,26,.35);border-radius:16px;padding:18px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+        <div style="font:11px 'Courier Prime',monospace;color:#7a4a3a">other toggle treatments — same choice, quieter or quirkier</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">a · ink underline — barely a control</div>
+          <div style="display:flex;gap:22px;font:13px 'Courier Prime',monospace;color:rgba(20,19,26,.55)">
+            <span>✳ everyone</span>
+            <span style="color:#7a4a3a;border-bottom:2.5px solid #7a4a3a;padding-bottom:3px">☾ night shift</span>
+            <span>◦ just me</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">b · one cycling line — tap to change</div>
+          <div style="font:400 16px 'EB Garamond',serif;font-style:italic;color:#14131a">seen by <span style="color:#7a4a3a;border-bottom:1.5px dashed #7a4a3a">night shift ☾</span> <span style="font:11px 'Courier Prime',monospace;color:rgba(20,19,26,.4)">(tap to change)</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">c · moon-phase dial — ✳ full public, ☾ half, ◦ dark</div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(20,19,26,.4);background:#14131a;opacity:.35"></span>
+            <span style="width:34px;height:34px;border-radius:50%;border:2px solid #7a4a3a;background:linear-gradient(90deg,#7a4a3a 50%,#f4f0e5 50%)"></span>
+            <span style="width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(20,19,26,.4);background:#f4f0e5;opacity:.5"></span>
+            <span style="font:12px 'Courier Prime',monospace;color:#7a4a3a">half moon = a circle</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:12px 'Courier Prime',monospace;color:#7a4a3a">2 · the same dream in the feed, per audience</div>
+      <div style="width:390px;background:#ece7dc;border:3px solid #14131a;border-radius:34px;overflow:hidden;box-shadow:0 18px 44px rgba(20,19,26,.25)">
+        <div style="padding:20px 18px 24px;display:flex;flex-direction:column;gap:18px">
+          <div style="font:11px 'Courier Prime',monospace;color:rgba(20,19,26,.5);text-align:center">— shared with everyone ✳ —</div>
+          <div style="border:2px solid #14131a;padding:16px;background:#f4f0e5;animation:breathe 9s ease-in-out infinite,wobble 7s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 20px/1.25 'EB Garamond',serif;color:#14131a">The Whale Again</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.45);white-space:nowrap">jonah ✳</div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:10px">
+              <div style="flex:1;min-height:120px;background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 6px,#e9e4d6 6px,#e9e4d6 12px);border:1.5px solid #14131a;animation:blob 12s ease-in-out infinite;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span style="font:10px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">illustration</span></div>
+              <div style="flex:1;font:400 14px/1.5 'EB Garamond',serif;color:#14131a">The whale is back. It has opinions about my parking now.</div>
+            </div>
+          </div>
+          <div style="font:11px 'Courier Prime',monospace;color:rgba(20,19,26,.5);text-align:center">— shared with a circle ☾ —</div>
+          <div style="border:2px solid #14131a;padding:16px;background:#14131a;color:#ece7dc;animation:breathe 11s ease-in-out infinite reverse,wobble 8s 1s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 20px/1.25 'EB Garamond',serif">The Whale Again</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:rgba(236,231,220,.45);white-space:nowrap">jonah ☾ night shift</div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:10px">
+              <div style="flex:1;font:400 14px/1.5 'EB Garamond',serif">The whale is back. It has opinions about my parking now.</div>
+              <div style="flex:1;min-height:120px;background:repeating-linear-gradient(45deg,#221f2b,#221f2b 6px,#2a2735 6px,#2a2735 12px);border:1.5px solid #ece7dc;animation:blob 12s 2s ease-in-out infinite;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></div>
+            </div>
+            <div style="font:10.5px 'Courier Prime',monospace;color:oklch(75% .09 189);margin-top:8px">only night shift can see this. it never leaves the circle.</div>
+          </div>
+          <div style="font:11px 'Courier Prime',monospace;color:rgba(20,19,26,.5);text-align:center">— kept private ◦ (only in your vault) —</div>
+          <div style="border:2px dashed rgba(20,19,26,.45);padding:16px;background:transparent;animation:wobble 9s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 20px/1.25 'EB Garamond',serif;color:#14131a">The Whale Again</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:#7a4a3a;white-space:nowrap">you ◦</div>
+            </div>
+            <div style="font:400 14px/1.5 'EB Garamond',serif;color:#14131a;margin-top:8px">The whale is back. It has opinions about my parking now.</div>
+            <div style="font:10.5px 'Courier Prime',monospace;color:rgba(20,19,26,.45);margin-top:8px">nobody else will ever see this · <span style="color:#7a4a3a;border-bottom:1px solid #7a4a3a">release it later →</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:12px 'Courier Prime',monospace;color:#7a4a3a">3 · the vault — private dreams live here</div>
+      <div style="width:390px;background:#14131a;border:3px solid #14131a;border-radius:34px;overflow:hidden;box-shadow:0 18px 44px rgba(20,19,26,.35)">
+        <div style="padding:22px 22px 26px;display:flex;flex-direction:column;gap:16px;color:#ece7dc">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font:600 24px 'EB Garamond',serif;font-style:italic">the vault</div>
+            <div style="font:11px 'Courier Prime',monospace;color:rgba(236,231,220,.5)">◦ only you</div>
+          </div>
+          <div style="font:12px/1.55 'Courier Prime',monospace;color:rgba(236,231,220,.55)">7 dreams nobody has seen. they still get illustrated — the ink just stays in the dark.</div>
+          <div style="border:1.5px dashed rgba(236,231,220,.4);padding:14px;border-radius:14px 22px 12px 20px;animation:wobble 8s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 18px/1.25 'EB Garamond',serif">The Whale Again</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:rgba(236,231,220,.4)">last night</div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:8px">
+              <div style="flex:1;min-height:100px;background:repeating-linear-gradient(45deg,#221f2b,#221f2b 6px,#2a2735 6px,#2a2735 12px);border:1.5px solid rgba(236,231,220,.5);animation:blob 12s ease-in-out infinite;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span style="font:10px 'Courier Prime',monospace;color:rgba(236,231,220,.45)">illustration</span></div>
+              <div style="flex:1;font:400 13.5px/1.5 'EB Garamond',serif">The whale is back. It has opinions about my parking now.</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:10px;font:11px 'Courier Prime',monospace">
+              <span style="color:oklch(75% .09 189);border-bottom:1px solid oklch(75% .09 189)">release to a circle ☾</span>
+              <span style="color:oklch(75% .09 189);border-bottom:1px solid oklch(75% .09 189)">to everyone ✳</span>
+            </div>
+          </div>
+          <div style="border:1.5px dashed rgba(236,231,220,.4);padding:14px;border-radius:20px 12px 22px 14px;animation:wobble 10s 1s ease-in-out infinite">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font:600 18px/1.25 'EB Garamond',serif">Untitled, Embarrassing</div>
+              <div style="font:10.5px 'Courier Prime',monospace;color:rgba(236,231,220,.4)">tuesday</div>
+            </div>
+            <div style="font:400 13.5px/1.5 'EB Garamond',serif;margin-top:6px">I proposed to the concept of Wednesday. It said it needed to think.</div>
+          </div>
+          <div style="font:10.5px/1.5 'Courier Prime',monospace;color:rgba(236,231,220,.4);border-top:1px dashed rgba(236,231,220,.25);padding-top:10px">dreams with tagged people can't go in the vault — untag them first, or let them see it.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
