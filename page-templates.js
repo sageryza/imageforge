@@ -226,6 +226,16 @@ function validateTemplate(template, data) {
 // top, scripts in an IIFE-free single call (grid.js/judge.js are IIFEs
 // themselves and __pageData is a var, so nothing collides with the pill's
 // globals). kitWarnings never fires on one of these.
+// Is this deck built from her date cards? The same test judge.js makes on the
+// client, needed here because the page's CHROME differs for one (no title of
+// its own, one screen, no pill).
+function isMomentDeck(template, data) {
+  if (template !== 'deck' || !data) return false;
+  if (data.style === 'moment') return true;
+  return (data.items || []).some((it) => it && !it.pair && !it.card
+    && (it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)));
+}
+
 function renderTemplatePage({ template, title, chat, sheet, data }) {
   // tour:'auto' — a SERVED template page plays its coach-mark tour once per
   // device (compare.js __compareTour); hand-built pages opt in themselves
@@ -234,11 +244,26 @@ function renderTemplatePage({ template, title, chat, sheet, data }) {
   const tplScript = template === 'grid' ? '/grid.js' : '/judge.js';
   const call = template === 'grid' ? 'window.__grid(window.__pageData)'
     : 'window.__judge(window.__pageData)';
+  // NO AUTOSCROLL PILL ON A DECK (Aug 2026, Sophie, on her own date deck:
+  // "the auto scroll pill is still there, but it doesn't need to be because
+  // the page doesn't scroll at all"). A deck is one card at a time and never
+  // scrolls — that is judge.js's whole premise — so the pill was chrome with
+  // nothing to drive, sitting over the top-right corner. The grid DOES scroll
+  // and keeps its pill. `meta forge-pill` is the pill's own head-safe opt-out.
+  const noPill = template === 'deck'
+    ? '<meta name="forge-pill" content="off">\n' : '';
+  // A MOMENT DECK CARRIES NO TITLE OF ITS OWN (same report: "you added an
+  // extra header at the top and very big font"). Her design has no title —
+  // the app's own header above the page already shows the page's name, so an
+  // <h1> here is the name twice, the second time in 26px serif eating the
+  // top third of the screen. The <title> tag still names it everywhere else.
+  const h1 = isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
     + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+    + noPill
     + `<title>${esc(title)}</title>\n`
     + '<link rel="stylesheet" href="/compare.css">\n'
-    + `<div class="wrap">\n<h1>${esc(title)}</h1>\n<div id="${mountId}"></div>\n</div>\n`
+    + `<div class="wrap">\n${h1}<div id="${mountId}"></div>\n</div>\n`
     + '<script src="/compare.js"></script>\n'
     + `<script src="${tplScript}"></script>\n`
     + `<script>var __pageData = ${payload}; ${call};</script>\n`;
@@ -384,5 +409,5 @@ function assignVoiceSegments(segments, timeline) {
 
 module.exports = {
   TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
-  parseCaption, normContent, assignVoiceSegments,
+  parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };

@@ -77,21 +77,55 @@
     // the mockup (her ask). The footer is hers too — ✕ · Note for Claude · ♥
     // (the mockup's ✓ swapped for a ♥, her call) — chosen over the four
     // house verdicts, so a moment deck has no maybe/later and no mic.
-    '.jg-mombg{background:#F7F2E8;}' +
+    // ONE SCREEN, ONE GUTTER (Aug 2026, her report on the live page: "lots of
+    // things are misaligned", and the page scrolled when her design does not).
+    // Her mockup is a fixed phone frame, so the deck fills the viewport and
+    // NOTHING scrolls: the boxes take the middle and centre themselves, the
+    // footer sits on the bottom. Every row — progress line, Piles, boxes,
+    // footer — shares ONE 22px gutter, so their edges line up down the screen;
+    // the old layout inherited compare.css's .wrap padding for the boxes, a
+    // 56px pill reservation on the top row and a centred footer, which is
+    // three different left edges. The page-level pill is gone too
+    // (page-templates.js), so no corner is reserved for it any more.
+    '.jg-mombg{background:#F7F2E8;padding:0;height:100vh;height:100dvh;overflow:hidden;}' +
+    '.jg-mombg .wrap{max-width:none;height:100%;padding:0;}' +
+    '.jg-mombg #judge,.jg-mombg .jg.mom{height:100%;}' +
+    '.jg.mom{display:flex;flex-direction:column;box-sizing:border-box;max-width:680px;' +
+    ' margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 22px' +
+    ' max(10px,env(safe-area-inset-bottom)) 22px;}' +
+    '.jg.mom>*{flex:none;}' +
     '.jg-prog{height:3px;border-radius:999px;background:#E7DECF;overflow:hidden;}' +
     '.jg-prog i{display:block;height:100%;border-radius:999px;background:#C25E4C;' +
     ' transition:width .25s ease;}' +
-    // the right padding is the pill\'s reserved corner, same as .jg-top
     '.jg-momtop{display:flex;align-items:center;justify-content:flex-end;gap:10px;' +
-    ' padding:14px 56px 0 0;}' +
+    ' padding:14px 0 0;}' +
     '.jg-pilesbtn{border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;' +
     ' font:600 12px/1 -apple-system,sans-serif;padding:7px 14px;border-radius:10px;}' +
     '.jg-momq{width:30px;height:30px;border-radius:50%;border:1px solid #DDD3C0;' +
     ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;}' +
-    // her boxes sit straight on the cream — the house card chrome disappears
-    '.jg-card.momcard{background:transparent;border:0;padding:0;}' +
-    '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;padding:2px 0;}' +
-    '.jg-mom .who{align-self:center;text-align:center;padding-top:10px;' +
+    // her boxes sit straight on the cream — the house card chrome disappears,
+    // and the stack takes the middle of the screen, centred like her mockup.
+    // `safe center` so a stack taller than the screen scrolls INSIDE this box
+    // from its top rather than having its head clipped off (plain centring
+    // overflows both ways); the page itself still never scrolls.
+    // …and the scroller takes NO WIDTH when it does scroll: a desktop
+    // scrollbar is 15px of layout inside this box, which would pull the
+    // boxes 15px off the edges every other row sits on (iOS overlay
+    // scrollbars hide it, so it only shows up on a short window)
+    '.jg-card.momcard{background:transparent;border:0;padding:0;flex:1;min-height:0;' +
+    ' display:flex;flex-direction:column;justify-content:center;' +
+    ' justify-content:safe center;overflow-y:auto;scrollbar-width:none;}' +
+    '.jg-card.momcard::-webkit-scrollbar,.jg.mom .jg-piles::-webkit-scrollbar' +
+    ' {width:0;height:0;}' +
+    '.jg.mom .jg-piles{scrollbar-width:none;}' +
+    '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;width:100%;' +
+    ' padding:2px 0;}' +
+    // THE NAME IS PART OF THE TOP, not of the centred stack (her ask was "a
+    // little bit lower down and centered" — one row below where the mockup
+    // had it, next to Piles; inside the stack it drifts to mid-screen on a
+    // tall phone, which is a lot lower down). Pinned here it always sits the
+    // same distance under the Piles row, whatever the card holds.
+    '.jg.mom>.who,.jg-mom .who{text-align:center;padding:10px 0 4px;' +
     ' font:600 22px/1.25 Newsreader,Georgia,\'Times New Roman\',serif;color:#262016;}' +
     '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;' +
     ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
@@ -110,8 +144,15 @@
     ' border:1px solid rgba(0,0,0,0.06);}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
-    '.jg-momrow{display:flex;align-items:center;justify-content:center;gap:14px;' +
-    ' padding:14px 0 8px;}' +
+    // the footer's ✕ and ♥ sit on the SAME edges as the boxes above them
+    // (space-between), the note box centred between them — her mockup's
+    // proportions without the three mismatched left edges
+    '.jg-momrow{display:flex;align-items:center;justify-content:space-between;gap:14px;' +
+    ' padding:16px 0 6px;}' +
+    // the piles view scrolls inside its own box on a moment deck, so the
+    // page still never scrolls
+    '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
+    '.jg.mom .jg-piles h2:first-child{margin-top:14px;}' +
     '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:17px;' +
     ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
     ' font-size:21px;line-height:1;padding:0;}' +
@@ -119,7 +160,7 @@
     // as the mockup\'s 21px ✓ did
     '.jg-mombtn.yes{font-size:24px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
-    '.jg-momnote{flex:1;min-width:0;max-width:190px;height:62px;box-sizing:border-box;' +
+    '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
     ' border-radius:14px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
     ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-momnote::placeholder{color:#A99E8B;}' +
@@ -449,9 +490,11 @@
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
-    function momentHtml(it, ar) {
+    // `hoisted` — the name is being drawn in the page's top chrome instead
+    // (a moment deck), so the stack starts at the first box
+    function momentHtml(it, ar, hoisted) {
       var out = '';
-      if (it.who) out += '<div class="who">' + esc(it.who) + '</div>';
+      if (it.who && !hoisted) out += '<div class="who">' + esc(it.who) + '</div>';
       // box one: the eyebrow and the moment share a box, exactly her mockup
       var first = '';
       if (it.eyebrow) first += '<span class="eyebrow">' + esc(it.eyebrow) + '</span>';
@@ -475,11 +518,11 @@
       }
       return '<div class="jg-mom">' + out + '</div>';
     }
-    function mediaHtml(it) {
+    function mediaHtml(it, hoisted) {
       var ar = arOf(it);
       var sq = ar ? ' sq' : '';
       var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';
-      if (isMoment(it)) return momentHtml(it, ar);
+      if (isMoment(it)) return momentHtml(it, ar, hoisted);
       // a TEMPLATE item's words render ESCAPED — template data carries no
       // HTML by design (page-templates.js); `card` below stays page-authored
       // trusted HTML for hand-built judge pages
@@ -512,6 +555,7 @@
         recTimeline.push({ item: items[cur].id, at: Date.now() - recStart });
       }
       var judged = items.filter(function (it) { return verdicts[it.id] !== undefined; }).length;
+      var momCls = momDeck ? ' mom' : '';
       var top;
       if (momDeck) {
         // her chrome: the thin progress line (position through the deck, like
@@ -550,7 +594,7 @@
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>';
         }).join('');
-        mount.innerHTML = '<div class="jg" data-nostop>' + top + '<div class="jg-piles">'
+        mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top + '<div class="jg-piles">'
           + (sections || '<p class="mini">Nothing here yet.</p>') + '</div></div>';
       } else {
         var it = items[cur];
@@ -587,14 +631,15 @@
         // so a date card reserves nothing.
         var ctl = !momUI && (voice || isMoment(it)
           || (it.text && !it.img && !it.pair && !it.card)) ? ' ctl' : '';
-        mount.innerHTML = '<div class="jg" data-nostop>' + top
+        mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top
+          + (momUI && it.who ? '<div class="who">' + esc(it.who) + '</div>' : '')
           + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
           // backwards or forwards") — the middle still opens the lightbox
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
-          + mediaHtml(it)
+          + mediaHtml(it, momUI)
           // a date card carries no label line, no corner note and no mic —
           // her footer below IS the whole control surface (the exact-demo
           // choice, Aug 2026)
