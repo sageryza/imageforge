@@ -289,11 +289,64 @@ setTimeout(function(){
     }) + pill + TEST;
 }
 
+// the MOMENT card — her Decision Deck design wired in as the deck's text style
+function momentPage() {
+  const v = validateTemplate('deck', { items: [
+    { id: 'm1', who: 'Maya', eyebrow: 'Illustration moment · Ch. 1',
+      text: 'Forty minutes choosing between two photos.',
+      sections: [{ label: 'The illustration', text: 'A grid of nearly identical selfies.' }],
+      caption: 'Both are you. Neither feels like it.' },
+    { id: 'm2', who: 'Theo', text: 'Just one line, nothing else.' },
+    { id: 'm3', who: 'Sam', text: 'Words and a picture together.', img: IMG },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  var m=document.getElementById('judge');
+  var mom=m.querySelector('.jg-mom');
+  ok(!!mom, 'a card with parts renders in the moment style');
+  var who=mom.querySelector('.who'), eb=mom.querySelector('.eyebrow');
+  var wr=who.getBoundingClientRect(), mr=mom.getBoundingClientRect();
+  var cLeft=mr.left+mom.clientLeft, cMid=cLeft+mom.clientWidth/2;
+  ok(Math.abs((wr.left+wr.right)/2-cMid)<2, 'the name is CENTRED');
+  ok(eb.getBoundingClientRect().top>wr.bottom, 'the name sits ABOVE the eyebrow — lower down the card');
+  ok(getComputedStyle(who).fontFamily.indexOf('Georgia')>=0, 'the name is the serif');
+  ok(mom.querySelectorAll('.sec').length===2 && !!mom.querySelector('hr'),
+     'sections + caption render, with the hairline between');
+  ok(getComputedStyle(mom.querySelector('.cap')).fontStyle==='italic', 'the caption is italic');
+  ok(document.documentElement.scrollWidth<=document.documentElement.clientWidth,
+     'nothing overflows the screen');
+  ok(m.querySelector('.jg-card').classList.contains('ctl'),
+     'a moment card reserves the controls strip');
+  // 2 — parts she did not send simply do not appear
+  m.querySelector('.jg-navzone.next').click();
+  setTimeout(function(){
+    var m2=document.querySelector('.jg-mom');
+    ok(m2 && !m2.querySelector('.eyebrow') && !m2.querySelector('.sec') && !m2.querySelector('hr'),
+       'a one-text card shows no empty eyebrow, sections or rule');
+    ok(!!m2.querySelector('.who') && !!m2.querySelector('.moment'), 'it still shows name + words');
+    document.querySelector('.jg-navzone.next').click();
+    setTimeout(function(){
+      var m3=document.querySelector('.jg-mom');
+      ok(m3 && !!m3.querySelector('.moment') && !!m3.querySelector('figure img'),
+         'a card can carry words AND a picture');
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+    }, 260);
+  }, 260);
+}, 700);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'deck', title: 'Moment test v1', chat: 't', sheet: 'page-m', data: v.data,
+  }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
     const b = await run('deck', deckPage());
     const c = await run('tour', tourPage());
-    console.log(`all ${a + b + c} checks passed`);
+    const d = await run('moment', momentPage());
+    console.log(`all ${a + b + c + d} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();

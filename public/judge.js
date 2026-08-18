@@ -68,6 +68,31 @@
     // resolves its width from the 58vh max-height instead.
     '.jg-media.sq figure{overflow:hidden;border-radius:6px;}' +
     '.jg-media.sq img{width:100%;height:100%;max-height:none;object-fit:cover;}' +
+    // THE MOMENT CARD — the date card, her own design (Aug 2026), wired in as
+    // the deck's TEXT STYLE. Her rhythm and sizes; the house tokens, which
+    // her palette already matched (her rust is our --rose, her paper ours).
+    // The NAME sits centred on its own line at the top of the card, lower
+    // than the header line it lived on in the mockup (her ask).
+    '.jg-mom{display:flex;flex-direction:column;gap:18px;text-align:left;' +
+    ' max-height:62vh;overflow-y:auto;padding:2px 2px 0;}' +
+    '.jg-mom .who{align-self:center;text-align:center;font:600 22px/1.25 Georgia,' +
+    ' \'Times New Roman\',serif;color:var(--ink);}' +
+    '.jg-mom .eyebrow{font:700 11px/1.3 -apple-system,sans-serif;letter-spacing:.14em;' +
+    ' text-transform:uppercase;color:var(--rose);}' +
+    // clamp so her 25px survives a wide phone and never overflows a narrow one
+    '.jg-mom .moment{margin:0;font:500 clamp(19px,5.6vw,25px)/1.32 Georgia,' +
+    ' \'Times New Roman\',serif;color:var(--ink);text-wrap:pretty;}' +
+    '.jg-mom hr{border:0;height:1px;background:var(--line);margin:0;width:100%;}' +
+    '.jg-mom .sec{display:flex;flex-direction:column;gap:6px;}' +
+    '.jg-mom .seclabel{font:600 11px/1.3 -apple-system,sans-serif;letter-spacing:.12em;' +
+    ' text-transform:uppercase;color:var(--ink2);}' +
+    '.jg-mom .sec p{margin:0;font:14.5px/1.5 -apple-system,sans-serif;color:var(--ink);' +
+    ' opacity:.86;text-wrap:pretty;}' +
+    '.jg-mom .sec p.cap{font:italic 500 17px/1.4 Georgia,\'Times New Roman\',serif;' +
+    ' opacity:1;}' +
+    '.jg-mom figure{margin:0;overflow:hidden;border-radius:6px;}' +
+    '.jg-mom figure img{width:100%;display:block;border-radius:6px;}' +
+    '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -353,10 +378,46 @@
     // may pick its own. Anything else keeps the item's natural shape.
     var AR = { square: '1/1', portrait: '5/7', landscape: '7/5' };
     function arOf(it) { return AR[it.aspect] || AR[opts.aspect] || ''; }
+    // THE MOMENT CARD (Aug 2026, Sophie's Decision Deck design). Every part is
+    // optional and the card renders only what it carries — "some might have
+    // just one text or they might have like a text and an image". A card with
+    // any of who/eyebrow/sections/caption gets this look automatically;
+    // style:'moment' opts PLAIN text cards in too.
+    function isMoment(it) {
+      if (it.pair || it.card) return false;
+      return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
+        || (opts.style === 'moment' && it.text));
+    }
+    function momentHtml(it, ar) {
+      var head = '';
+      if (it.who) head += '<div class="who">' + esc(it.who) + '</div>';
+      if (it.eyebrow) head += '<div class="eyebrow">' + esc(it.eyebrow) + '</div>';
+      if (it.text) head += '<p class="moment">' + esc(it.text) + '</p>';
+      var body = '';
+      (it.sections || []).forEach(function (sec) {
+        body += '<div class="sec">'
+          + (sec.label ? '<span class="seclabel">' + esc(sec.label) + '</span>' : '')
+          + '<p>' + esc(sec.text) + '</p></div>';
+      });
+      if (it.img) {
+        body += '<figure' + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+          + '<img class="zoom' + (ar ? ' fill' : '') + '" src="' + esc(it.img) + '"'
+          + ' alt="' + esc(it.label || '') + '"'
+          + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure>';
+      }
+      if (it.caption) {
+        body += '<div class="sec"><span class="seclabel">'
+          + esc(it.captionLabel || 'Suggested caption') + '</span>'
+          + '<p class="cap">\u201c' + esc(it.caption) + '\u201d</p></div>';
+      }
+      // the hairline earns its place only BETWEEN the moment and what follows
+      return '<div class="jg-mom">' + head + (head && body ? '<hr>' : '') + body + '</div>';
+    }
     function mediaHtml(it) {
       var ar = arOf(it);
       var sq = ar ? ' sq' : '';
       var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';
+      if (isMoment(it)) return momentHtml(it, ar);
       // a TEMPLATE item's words render ESCAPED — template data carries no
       // HTML by design (page-templates.js); `card` below stays page-authored
       // trusted HTML for hand-built judge pages
@@ -405,9 +466,9 @@
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
             + members.map(function (it) {
-              if (it.card || (it.text && !it.img && !it.pair)) {
+              if (it.card || (it.text && !it.img && !it.pair) || (isMoment(it) && !it.img)) {
                 return '<button class="txt" data-open="' + esc(it.id) + '">'
-                  + esc(it.label || it.text || it.id) + '</button>';
+                  + esc(it.who || it.label || it.text || it.id) + '</button>';
               }
               var src = it.pair ? it.pair[0].img : it.img;
               return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
@@ -436,7 +497,8 @@
         // the controls strip: reserved whenever a corner control could sit on
         // the content — the mic (voice) always, and the note + on a short
         // text-only card (the XI overlap)
-        var ctl = voice || (it.text && !it.img && !it.pair && !it.card) ? ' ctl' : '';
+        var ctl = voice || isMoment(it)
+          || (it.text && !it.img && !it.pair && !it.card) ? ' ctl' : '';
         mount.innerHTML = '<div class="jg" data-nostop>' + top
           + '<div class="jg-card' + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck

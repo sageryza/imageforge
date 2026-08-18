@@ -89,10 +89,14 @@ function cleanItem(raw, taken, fallback) {
   if (!raw || typeof raw !== 'object') return null;
   const it = {};
   const img = STR(raw.img, 500);
-  const text = STR(raw.text, 600);
-  if (!img && !text) return null;              // an item is a picture or words
+  const text = STR(raw.text, 1500);
+  // an item is a picture, words, or the moment card's PARTS (a date card may
+  // carry only an eyebrow and its sections — no single `text` at all)
+  const parts = ['who', 'eyebrow', 'caption'].some((k) => STR(raw[k], 200))
+    || (Array.isArray(raw.sections) && raw.sections.length);
+  if (!img && !text && !parts) return null;
   if (img) it.img = img;
-  if (!img && text) it.text = text;
+  if (text) it.text = text;   // a moment card may carry BOTH words and a picture
   const full = STR(raw.full, 500);
   if (full) it.full = full;
   it.label = STR(raw.label, 200);
@@ -102,6 +106,29 @@ function cleanItem(raw, taken, fallback) {
   for (const k of ['model', 'quality']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
   if (ASPECTS[raw.aspect]) it.aspect = raw.aspect;   // one card may differ from its page
+  // THE MOMENT CARD — the date card (Aug 2026, Sophie's own design, wired in
+  // from her Decision Deck canvas). Every part is OPTIONAL and a card renders
+  // only what it carries: "not all the cards will be used every time… some
+  // might have just one text or they might have like a text and an image".
+  //   who      the date's name — centred, its own line
+  //   eyebrow  the small rust line above it (chapter, kind, whatever)
+  //   text     the moment itself, in the serif
+  //   sections [{label, text}] — any number of labelled blocks
+  //   caption  an italic quote, under `captionLabel` (default "Suggested caption")
+  //   img      a picture, which may sit with any of the above
+  for (const k of ['who', 'eyebrow', 'caption', 'captionLabel']) {
+    const v = STR(raw[k], 200); if (v) it[k] = v;
+  }
+  if (Array.isArray(raw.sections)) {
+    const secs = [];
+    for (const sec of raw.sections.slice(0, 8)) {
+      if (!sec || typeof sec !== 'object') continue;
+      const label = STR(sec.label, 60), body = STR(sec.text, 1500);
+      if (!body) continue;
+      secs.push(label ? { label, text: body } : { text: body });
+    }
+    if (secs.length) it.sections = secs;
+  }
   it.id = STR(raw.id, 60) || null;
   if (it.id) { if (taken.has(it.id)) return { dup: it.id }; taken.add(it.id); }
   else it.id = deriveId(it, taken, fallback);
@@ -141,6 +168,10 @@ function validateTemplate(template, data) {
   // the page's card-face shape — see ASPECTS above. Items may override one
   // by one; anything not on the menu keeps the item's natural shape.
   if (ASPECTS[data.aspect]) out.aspect = data.aspect;
+  // style:'moment' puts PLAIN text cards into the same serif look; a card
+  // carrying who/eyebrow/sections/caption gets it automatically, so most
+  // decks never need this flag.
+  if (data.style === 'moment') out.style = 'moment';
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
