@@ -501,9 +501,18 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     where the variation set starts and stops, and posts the grid itself
     (Sophie's rule, Aug 2026: the server files only what is provable; the
     chat deciphers the rest).
+  - **THE TOUR (Aug 2026, Sophie: "a tutorial where the buttons are
+    highlighted or everything else is tinted and it has a little
+    explanations").** `window.__compareTour({key, steps:[{sel,text}], auto})`
+    in `/compare.js` — coach marks: the page dims, each control shows
+    through a gold spotlight with one line under it, any tap steps forward.
+    A served template page plays its tour ONCE per device (localStorage)
+    and offers "SHOW ME AROUND" behind the "?" forever. Any hand-built page
+    may call it too — never hand-roll a spotlight overlay.
   - Tests: `node scripts/test-page-templates.js` (validation, rendering,
     grouping — pure) and `node scripts/test-templates-pages.js` (both stock
-    pages driven in headless Chromium, mirror posts included).
+    pages driven in headless Chromium, mirror posts included, plus the tour
+    on a fresh device).
   **THE JUDGE PAGE — "Tinder style", her name for it (Aug 2026).** When she
   is PICKING/CHOOSING across a set rather than reading a comparison, start
   from **`public/judge-shell.html`** + `/judge.js`: one thing at a time, big,

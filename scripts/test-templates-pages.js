@@ -57,6 +57,9 @@ const pill = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 // the fetch recorder loads FIRST so every template post is captured; images
 // come from data: URLs so the harness serves no pictures
 const SPY = `<script>
+// these runs test the controls, not the tour — mark it seen up front
+// (the tour run below seeds nothing and tests the tour itself)
+try{localStorage.setItem('cmp-tour-deck','1');localStorage.setItem('cmp-tour-grid','1');}catch(_){}
 window.__posts=[]; (function(){ var rf=window.fetch.bind(window);
 window.fetch=function(u,o){ if(o&&o.method==='POST'){ try{ window.__posts.push({u:String(u),b:JSON.parse(o.body)}); }catch(_){} }
 return rf(u,o); }; })();
@@ -256,10 +259,41 @@ function run(name, html) {
   });
 }
 
+// the TOUR run seeds nothing, so the coach marks auto-play — first open of a
+// served template page on a fresh device
+function tourPage() {
+  const v = validateTemplate('deck', { voice: true, items: [
+    { id: 'a', label: 'first', img: IMG }, { id: 'b', label: 'second', img: IMG },
+  ] });
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  var t=document.querySelector('.cmp-tour');
+  ok(!!t, 'the tour auto-plays on a fresh device');
+  var ring=t&&t.querySelector('.cmp-tour-ring');
+  ok(ring && ring.getBoundingClientRect().width>10, 'the spotlight ring frames a control');
+  var count=t&&t.querySelector('.ct-count').textContent;
+  ok(/^1 of \\d+$/.test(count||''), 'it starts at step 1 — got "'+count+'"');
+  t.click();
+  ok(t.querySelector('.ct-count').textContent.indexOf('2 of')===0, 'a tap anywhere advances');
+  t.querySelector('.ct-skip').click();
+  ok(!document.querySelector('.cmp-tour'), 'SKIP puts it away');
+  var again=window.__compareTour({key:'deck',auto:true,steps:[{sel:'.jg-card',text:'x'}]});
+  ok(again===false, 'seen once = never auto-plays again');
+  fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+}, 900);
+</script>`;
+  return SPY.replace("localStorage.setItem('cmp-tour-deck','1');", '')
+    + renderTemplatePage({
+      template: 'deck', title: 'Tour test v1', chat: 't', sheet: 'page-t', data: v.data,
+    }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
     const b = await run('deck', deckPage());
-    console.log(`all ${a + b} checks passed`);
+    const c = await run('tour', tourPage());
+    console.log(`all ${a + b + c} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();

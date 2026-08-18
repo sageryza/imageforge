@@ -488,6 +488,39 @@
       }
     }
 
+    // THE TOUR (Aug 2026, Sophie): first open of a template deck plays the
+    // coach marks once — each control spotlighted, the rest tinted, a line
+    // of explanation, tap to step. Replayable from the "?" forever.
+    function tourSteps() {
+      var steps = [];
+      if (browse) {
+        steps.push({ sel: '.jg-card', text: 'One card at a time. Tap the left or right '
+          + 'edge of the card (or swipe) to move through the deck — you never have to '
+          + 'mark a card to keep going.' });
+      }
+      steps.push({ sel: '.jg-row', text: states
+        ? 'Mark a card with one of these — tap the same one again to unmark it.'
+        : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
+          + 'Each one saves the moment you tap it.' });
+      if (voice) {
+        steps.push({ sel: '.jg-mic', text: 'The mic: tap to start talking, tap again to '
+          + 'stop. Stay on one card and the note lands there — or keep talking while you '
+          + 'swipe, and each sentence lands on the card you were looking at.' });
+      }
+      steps.push({ sel: '.cmp-note-open', text: 'The + writes a note on this card — '
+        + 'typed notes and voice notes end up in the same thread.' });
+      steps.push({ sel: '[data-act="undo"]', text: 'Undo the last thing you marked.' });
+      steps.push({ sel: '[data-act="piles"]', text: 'The piles: everything you’ve '
+        + 'sorted, grouped. Tap any tile there to open its card again.' });
+      steps.push({ sel: '[data-act="help"]', text: 'The ? explains this page any time — '
+        + 'and “show me around” in there replays this tour.' });
+      return steps;
+    }
+    function startTour(auto) {
+      if (!window.__compareTour) return;
+      window.__compareTour({ key: 'deck', auto: !!auto, steps: tourSteps() });
+    }
+
     function showHelp() {
       var h = document.createElement('div');
       h.className = 'jg-help';
@@ -506,8 +539,14 @@
           + ' card and it lands there — or keep talking WHILE you swipe, and each'
           + ' sentence lands on the card you were looking at when you started it. ' : '')
         + 'Top row: undo the last one, the grid shows every pile —'
-        + ' tap any tile there to open it again.</div>';
-      h.addEventListener('click', function () { h.remove(); });
+        + ' tap any tile there to open it again.<br><br>'
+        + '<button type="button" class="jg-tourgo">SHOW ME AROUND</button></div>';
+      h.addEventListener('click', function (e) {
+        h.remove();
+        if (e.target && e.target.className === 'jg-tourgo') {
+          setTimeout(function () { startTour(false); }, 60);
+        }
+      });
       document.body.appendChild(h);
     }
 
@@ -551,6 +590,12 @@
         if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
         nav(dx < 0 ? 1 : -1);   // swipe left = forward, the deck convention
       });
+    }
+
+    // first-ever open of a template deck: the tour plays once, after the
+    // resume pass has painted the real state (never again — localStorage)
+    if (opts.tour === 'auto') {
+      setTimeout(function () { if (view === 'card') startTour(true); }, 600);
     }
 
     // resume: her earlier verdicts and notes come back off the doc
