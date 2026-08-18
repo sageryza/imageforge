@@ -481,21 +481,31 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     storybook page by page, walking a to-do list, picking keepers — all this
     template.
   - **THE MOMENT CARD — her own design, the deck's TEXT STYLE (Aug 2026,
-    Sophie's Decision Deck canvas: "wire that in as the Tinder text style…
-    the dates have multiple components that all need to be included
+    Sophie's "Decision Deck v2" canvas: "wire that in as the Tinder text
+    style… the dates have multiple components that all need to be included
     together, but some might have just one text or they might have like a
-    text and an image").** Built for the dating book's date cards. Every
-    part is OPTIONAL and a card renders only what it carries, in this order:
-    `who` (the date's name — **centred, on its own line at the top of the
-    card**, her ask), `eyebrow` (the small rust line), `text` (the moment, in
-    the serif), a hairline, `sections:[{label,text}]` (any number of
-    labelled blocks — "The illustration", …), `img`, then `caption` (an
-    italic quote under `captionLabel`, default "Suggested caption").
-    A card carrying any of who/eyebrow/sections/caption gets this look
-    automatically; `style:'moment'` opts plain text cards in too. Her
-    palette already WAS the house palette (her rust = `--rose`, her paper =
-    `--paper`), so it is her rhythm and sizes in the house tokens — no
-    imported font, no second look.
+    text and an image" — and "exactly exactly exactly like it does in the
+    demo").** Built for the dating book's date cards, and copied EXACTLY
+    from her v2 mockup — her hex palette (cream `#F7F2E8`, white boxes
+    `#FFFDF8` on `#E7DECF`, rust `#C25E4C`, ink `#262016`), the Newsreader
+    serif (Google Fonts, fetched by judge.js once per page), each part in
+    its own white rounded box — deliberately NOT the house tokens; do not
+    "fix" it back. Every part is OPTIONAL and a card renders only what it
+    carries, in this order: `who` (the date's name — **centred, on its own
+    line above the boxes**, lower than the mockup's header row, her ask),
+    `eyebrow` (the small rust line) + `text` (the moment, in the serif)
+    sharing the first box, `sections:[{label,text}]` (any number of labelled
+    boxes — "Illustration", …), `img`, then `caption` (an italic quote under
+    `captionLabel`, default "Caption"). A card carrying any of
+    who/eyebrow/sections/caption gets this look automatically;
+    `style:'moment'` opts plain text cards in too. **A moment deck wears the
+    whole mockup chrome** (her second choice, asked and answered Aug 2026):
+    the thin progress line + "Piles" + "?" replace the count/undo top row,
+    and each date card's footer is her ✕ · "Note for Claude…" box · ♥
+    (the mockup's ✓ swapped for a ♥ at her ask) — so these decks have only
+    yes/no (piles named Yes/No/Unsure, the mockup's words), no maybe/later,
+    no mic and no corner note +. The note box saves through the same
+    verdict-doc thread and Assets-tab mirror as the + note everywhere else.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,

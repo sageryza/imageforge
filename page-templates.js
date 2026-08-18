@@ -107,14 +107,16 @@ function cleanItem(raw, taken, fallback) {
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
   if (ASPECTS[raw.aspect]) it.aspect = raw.aspect;   // one card may differ from its page
   // THE MOMENT CARD — the date card (Aug 2026, Sophie's own design, wired in
-  // from her Decision Deck canvas). Every part is OPTIONAL and a card renders
-  // only what it carries: "not all the cards will be used every time… some
-  // might have just one text or they might have like a text and an image".
-  //   who      the date's name — centred, its own line
-  //   eyebrow  the small rust line above it (chapter, kind, whatever)
-  //   text     the moment itself, in the serif
-  //   sections [{label, text}] — any number of labelled blocks
-  //   caption  an italic quote, under `captionLabel` (default "Suggested caption")
+  // from her "Decision Deck v2" canvas). Every part is OPTIONAL and a card
+  // renders only what it carries: "not all the cards will be used every
+  // time… some might have just one text or they might have like a text and
+  // an image".
+  //   who      the date's name — centred, its own line (lower than the
+  //            mockup's header row, her ask)
+  //   eyebrow  the small rust line inside the first white box
+  //   text     the moment itself, in the serif, same box
+  //   sections [{label, text}] — any number of labelled white boxes
+  //   caption  an italic quote, under `captionLabel` (default "Caption")
   //   img      a picture, which may sit with any of the above
   for (const k of ['who', 'eyebrow', 'caption', 'captionLabel']) {
     const v = STR(raw[k], 200); if (v) it[k] = v;

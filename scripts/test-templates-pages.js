@@ -289,12 +289,14 @@ setTimeout(function(){
     }) + pill + TEST;
 }
 
-// the MOMENT card — her Decision Deck design wired in as the deck's text style
+// the MOMENT card — her "Decision Deck v2" design wired in as the deck's
+// text style, copied exactly: white boxes on her cream, Newsreader, her
+// footer (✕ · Note for Claude · ♥)
 function momentPage() {
   const v = validateTemplate('deck', { items: [
-    { id: 'm1', who: 'Maya', eyebrow: 'Illustration moment · Ch. 1',
+    { id: 'm1', who: 'Maya', eyebrow: 'Moment · Ch. 1',
       text: 'Forty minutes choosing between two photos.',
-      sections: [{ label: 'The illustration', text: 'A grid of nearly identical selfies.' }],
+      sections: [{ label: 'Illustration', text: 'A grid of nearly identical selfies.' }],
       caption: 'Both are you. Neither feels like it.' },
     { id: 'm2', who: 'Theo', text: 'Just one line, nothing else.' },
     { id: 'm3', who: 'Sam', text: 'Words and a picture together.', img: IMG },
@@ -303,41 +305,73 @@ function momentPage() {
   const TEST = `<script>
 setTimeout(function(){
   var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  function posts(u){ return window.__posts.filter(function(p){ return p.u.indexOf(u)>=0; }); }
   var m=document.getElementById('judge');
   var mom=m.querySelector('.jg-mom');
   ok(!!mom, 'a card with parts renders in the moment style');
+  ok(getComputedStyle(document.body).backgroundColor==='rgb(247, 242, 232)',
+     'the page wears her cream (#F7F2E8), not the house paper');
   var who=mom.querySelector('.who'), eb=mom.querySelector('.eyebrow');
   var wr=who.getBoundingClientRect(), mr=mom.getBoundingClientRect();
   var cLeft=mr.left+mom.clientLeft, cMid=cLeft+mom.clientWidth/2;
   ok(Math.abs((wr.left+wr.right)/2-cMid)<2, 'the name is CENTRED');
   ok(eb.getBoundingClientRect().top>wr.bottom, 'the name sits ABOVE the eyebrow — lower down the card');
-  ok(getComputedStyle(who).fontFamily.indexOf('Georgia')>=0, 'the name is the serif');
-  ok(mom.querySelectorAll('.sec').length===2 && !!mom.querySelector('hr'),
-     'sections + caption render, with the hairline between');
+  ok(getComputedStyle(who).fontFamily.indexOf('Newsreader')>=0, 'the name is her Newsreader serif');
+  var boxes=mom.querySelectorAll('.jg-mombox');
+  ok(boxes.length===3 && !mom.querySelector('hr'),
+     'moment, section and caption each get their own white box — no hairline');
+  ok(getComputedStyle(boxes[0]).borderRadius==='16px'
+     && getComputedStyle(boxes[0]).backgroundColor==='rgb(255, 253, 248)',
+     'the boxes are her white rounded boxes');
   ok(getComputedStyle(mom.querySelector('.cap')).fontStyle==='italic', 'the caption is italic');
+  ok(mom.querySelector('.jg-mombox .seclabel:last-of-type') &&
+     boxes[2].querySelector('.seclabel').textContent==='Caption',
+     'the caption box is labelled Caption (her v2 word)');
   ok(document.documentElement.scrollWidth<=document.documentElement.clientWidth,
      'nothing overflows the screen');
-  ok(m.querySelector('.jg-card').classList.contains('ctl'),
-     'a moment card reserves the controls strip');
-  // 2 — parts she did not send simply do not appear
-  m.querySelector('.jg-navzone.next').click();
+  // her chrome: progress line + Piles + ? up top, her footer below the card
+  ok(!!m.querySelector('.jg-prog i') && !!m.querySelector('.jg-pilesbtn')
+     && !m.querySelector('.jg-count') && !m.querySelector('[data-act="undo"]'),
+     'her top chrome: progress line and Piles, no count and no undo');
+  var row=m.querySelector('.jg-momrow');
+  var btns=row?row.querySelectorAll('.jg-mombtn'):[];
+  ok(row && btns.length===2 && btns[0].textContent==='✕' && btns[1].textContent==='♥'
+     && !m.querySelector('.jg-btn'),
+     'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
+  ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
+     && !m.querySelector('.jg-mic'),
+     'the Note for Claude box sits between them — no corner + and no mic');
+  ok(m.querySelector('.jg-card').classList.contains('momcard')
+     && !m.querySelector('.jg-card').classList.contains('ctl'),
+     'the house card chrome disappears behind her boxes');
+  // the ♥ saves a yes and steps forward, exactly like the mockup
+  btns[1].click();
+  var pv=posts('/api/chatfeed/verdict').pop();
+  ok(pv && pv.b.ok===true && pv.b.item==='m1', 'the heart saves a yes');
   setTimeout(function(){
+    // 2 — parts she did not send simply do not appear
     var m2=document.querySelector('.jg-mom');
-    ok(m2 && !m2.querySelector('.eyebrow') && !m2.querySelector('.sec') && !m2.querySelector('hr'),
-       'a one-text card shows no empty eyebrow, sections or rule');
+    ok(m2 && !m2.querySelector('.eyebrow') && m2.querySelectorAll('.jg-mombox').length===1,
+       'a one-text card shows a single box, no empty parts');
     ok(!!m2.querySelector('.who') && !!m2.querySelector('.moment'), 'it still shows name + words');
+    // her note box: typing saves onto this card's thread
+    var nb=document.querySelector('.jg-momnote');
+    nb.value='too sweet'; nb.dispatchEvent(new Event('input'));
     document.querySelector('.jg-navzone.next').click();
     setTimeout(function(){
       var m3=document.querySelector('.jg-mom');
       ok(m3 && !!m3.querySelector('.moment') && !!m3.querySelector('figure img'),
          'a card can carry words AND a picture');
+      var pn=posts('/api/chatfeed/verdict').filter(function(p){ return p.b.text; }).pop();
+      ok(pn && pn.b.item==='m2' && pn.b.text.indexOf('too sweet')>=0,
+         'the note box saves onto its card');
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
-    }, 260);
+    }, 900);
   }, 260);
 }, 700);
 </script>`;
   return SPY + renderTemplatePage({
-    template: 'deck', title: 'Moment test v1', chat: 't', sheet: 'page-m', data: v.data,
+    template: 'deck', title: 'Moment test v2', chat: 't', sheet: 'page-m', data: v.data,
   }) + pill + TEST;
 }
 
