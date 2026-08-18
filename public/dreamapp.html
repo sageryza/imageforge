@@ -26,6 +26,10 @@
   @keyframes wobble{0%,100%{transform:rotate(-.6deg) skewX(-.4deg)}50%{transform:rotate(.7deg) skewX(.5deg)}}
   @keyframes breathe{0%,100%{border-radius:14px 60px 18px 46px/40px 16px 52px 18px}50%{border-radius:52px 16px 44px 20px/18px 48px 16px 42px}}
   @keyframes blob{0%,100%{border-radius:60% 40% 55% 45%/45% 55% 40% 60%}50%{border-radius:45% 55% 40% 60%/60% 40% 55% 45%}}
+  /* the blob's own radii are percentages, which on a full-width picture melt it
+     into a lozenge and eat the corners of a comic page — open, the morph keeps
+     going in PIXELS so the picture stays readable. */
+  @keyframes blobopen{0%,100%{border-radius:42px 26px 38px 30px/30px 40px 26px 44px}50%{border-radius:26px 44px 28px 40px/44px 26px 42px 28px}}
   @keyframes rise{from{opacity:0;transform:translateY(30px) rotate(1.2deg)}to{opacity:1;transform:none}}
   @keyframes inkpulse{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes sheetup{from{transform:translateY(100%)}to{transform:none}}
@@ -67,11 +71,36 @@
   .dhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
   .dttl { font:600 19px/1.25 'EB Garamond', serif; }
   .dby { font:10.5px 'Courier Prime', monospace; opacity:.45; white-space:nowrap; }
-  .dbody { font:400 14.5px/1.5 'EB Garamond', serif; white-space:pre-wrap; }
-  .dbody.clamped { display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
+  .dbody { font:400 14.5px/1.5 'EB Garamond', serif; white-space:pre-wrap;
+           --lh:21.75px; --lines:6; }
+  /* ── the fold sits ON the last line, never under it (Sophie: "I want the
+     see more button to be on the same last line of the text rather than
+     underneath it") ── -webkit-line-clamp cannot hold a button, so the clamp
+     is a plain max-height and the button is a right float with `clear:both`
+     sitting below a zero-width float one line SHORT of the clamp: the only
+     line it can land on is the last one, and the words wrap around it.
+     `fold` is set by JS and only where the words really were cut — the
+     ::before float would otherwise stretch this block (overflow:hidden makes
+     it a BFC) to the full clamp height on a two-line dream. */
+  .dbody.clamped { max-height:calc(var(--lines) * var(--lh)); overflow:hidden; }
+  .dbody.clamped.fold::before { content:''; float:left; width:0;
+                                height:calc((var(--lines) - 1) * var(--lh)); }
+  .dbody .dmore { float:right; clear:both; margin-left:8px;
+                  height:var(--lh); display:inline-flex; align-items:flex-end; }
+  .dbody.clamped .dmore::before { content:'\2026'; margin-right:5px; }
   .dmore { background:none; border:none; cursor:pointer; align-self:flex-start; padding:0;
-           font:11px 'Courier Prime', monospace; color:var(--brown); border-bottom:1px dashed var(--brown); }
-  .dark .dmore { color:var(--cream); opacity:.65; border-bottom-color:currentColor; }
+           font:11px 'Courier Prime', monospace; color:var(--brown); }
+  .dmore span { border-bottom:1px dashed currentColor; }
+  .dtxt > .dmore { float:none; }
+  .dark .dmore { color:var(--cream); opacity:.65; }
+
+  /* ── opened, the picture comes up to its normal size and the words run
+     UNDER it (Sophie) — the side-by-side row is the collapsed shape only, and
+     a full-width read squeezed into half the card was the thing to fix. */
+  .dcard.open .drow, .dcard.open .drow.rev { flex-direction:column; }
+  .dcard.open .blob { flex:none; width:100%; aspect-ratio:auto; align-self:stretch;
+                      animation:blobopen 12s ease-in-out infinite; }
+  .dcard.open .blob img { position:static; width:100%; height:auto; display:block; }
   .dmeta { display:flex; gap:14px; font:10.5px 'Courier Prime', monospace; opacity:.55;
            margin-top:auto; padding-top:6px; }
   .dmeta span { cursor:pointer; }
@@ -89,9 +118,9 @@
 
   /* dividers between days, the end-of-night note */
   .fdiv { display:flex; align-items:center; gap:12px; padding:6px 4px; }
-  .fdiv span.l { flex:1; border-top:1px dashed rgba(20,19,26,.35); }
-  .fdiv span.t { font:11px 'Courier Prime', monospace; color:rgba(20,19,26,.5); }
-  .fend { text-align:center; font:italic 600 16px/1.5 'EB Garamond', serif;
+  .fdiv span.l { flex:1; border-top:1px solid var(--brown); }
+  .fdiv span.t { font:11px 'Courier Prime', monospace; color:var(--brown); }
+  .fend { text-align:center; font:400 16px/1.5 'EB Garamond', serif;
           color:rgba(20,19,26,.6); padding:14px 24px 4px; }
 
   /* the confess button */
@@ -617,7 +646,9 @@ function meltCard(n, dark, rev, dur){
     '<div class="drow' + (rev ? ' rev' : '') + '">' + blob +
       '<div class="dtxt">' +
         '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span><span class="dby">\u2733</span></div>' +
-        (words ? '<div class="dbody clamped">' + esc(words) + '</div><button class="dmore" hidden>see more</button>' : '') +
+        (words ? '<div class="dbody clamped">' +
+                   '<button class="dmore" hidden><span>see more</span></button>' + esc(words) +
+                 '</div>' : '') +
         meta +
       '</div>' +
     '</div>' +
@@ -625,16 +656,53 @@ function meltCard(n, dark, rev, dur){
   '</article>';
 }
 
+/* ── the words are cut to the PICTURE's height (Sophie: "truncate the text
+   that goes next to the picture enough so that the picture and the words are
+   about equal length vertically") ──
+   The blob is a square of half the row, so its height is settled by layout
+   alone — it does not wait on the image — and the lines that fit are whatever
+   is left over once the title and the metadata row have taken their share.
+   offsetHeight, never getBoundingClientRect: the card carries a wobble
+   rotation and a rect would read the rotated box, a couple of px too tall.
+   It also re-decides whether there is anything to fold, so it is safe to run
+   again once the serif has loaded and the title may have re-wrapped. */
+function fitCard(card){
+  var body = card.querySelector('.dbody'), more = card.querySelector('.dmore');
+  if (!body || !more || card.classList.contains('open')) return;
+  var txt = card.querySelector('.dtxt'), blob = card.querySelector('.blob');
+  if (blob) {
+    var lh = parseFloat(getComputedStyle(body).lineHeight) || 21.75;
+    var gap = parseFloat(getComputedStyle(txt).rowGap) || 0;
+    var other = gap * (txt.children.length - 1);
+    for (var i = 0; i < txt.children.length; i++) {
+      if (txt.children[i] !== body) other += txt.children[i].offsetHeight;
+    }
+    var lines = Math.floor((blob.offsetHeight - other) / lh);
+    body.style.setProperty('--lines', Math.max(3, Math.min(12, lines)));
+  }
+  var cut = body.scrollHeight - body.clientHeight > 4;
+  body.classList.toggle('fold', cut);
+  more.hidden = !cut;
+}
+
 function wireDreams(root){
   root.querySelectorAll('.dcard').forEach(function(card){
     var id = card.dataset.id;
     // the fold shows only where the clamp really cut the words
     var body = card.querySelector('.dbody'), more = card.querySelector('.dmore');
-    if (body && more && body.scrollHeight - body.clientHeight > 4) {
-      more.hidden = false;
+    if (body && more) {
+      fitCard(card);
       more.addEventListener('click', function(){
-        var open = body.classList.toggle('clamped') === false;
-        more.textContent = open ? 'see less' : 'see more';
+        var txt = card.querySelector('.dtxt');
+        var open = !card.classList.contains('open');
+        card.classList.toggle('open', open);
+        body.classList.toggle('clamped', !open);
+        // The button lives INSIDE the words while they are cut (that is what
+        // puts it on the last line) and moves out below them when they are
+        // open, where a float would strand it at the top of the block.
+        if (open) txt.insertBefore(more, body.nextSibling);
+        else body.insertBefore(more, body.firstChild);
+        more.querySelector('span').textContent = open ? 'see less' : 'see more';
         if (!open) {
           var r = card.getBoundingClientRect();
           if (r.top < 0) window.scrollTo(0, window.scrollY + r.top - 8);
@@ -753,10 +821,10 @@ async function renderFeed(){
     };
     if (days[0] === f.today) {
       html += byDay[f.today].map(drawCard).join('');
-      html += '<div class="fend">\u2733 that\u2019s all the dreams for the night \u2014 come back tomorrow \u2733</div>';
+      html += '<div class="fend">that\u2019s all the dreams for the night \u2014 come back tomorrow</div>';
       days.shift();
     } else {
-      html += '<div class="fend">\u2733 no dreams in the pile yet tonight \u2014 yours could be the first \u2733</div>';
+      html += '<div class="fend">no dreams in the pile yet tonight \u2014 yours could be the first</div>';
     }
     days.forEach(function(k){
       html += '<div class="fdiv"><span class="l"></span><span class="t">' + divLabel(k, f.today) + '</span><span class="l"></span></div>';
@@ -764,6 +832,9 @@ async function renderFeed(){
     });
     el.innerHTML = html;
     wireDreams(el);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ el.querySelectorAll('.dcard').forEach(fitCard); });
+    }
   } catch (e) {
     el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
   }
