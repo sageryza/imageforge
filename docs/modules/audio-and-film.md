@@ -313,6 +313,14 @@ pure, no network.
   real deduping (every manifest record carries `hash`). The internal clock
   is the moment recording STOPPED, which is why hand-built stamps went wrong
   (2026-08-05: filed `_1330`, her phone said 1:28) — don't guess it.
+- **A filed recording TELLS SEARCH (Aug 2026).** `fileIntoArchive` notifies
+  `memos.onFiled` listeners once a record is really appended (never for a
+  duplicate; a listener that throws is swallowed — filing is the half that
+  must not fail), and `search.js` registers one that arms its append-only
+  index sync. That is the whole reason a recording is findable minutes after
+  it lands instead of whenever somebody remembers to rebuild the index — see
+  the Search section for what the sync does and what it costs. A restamp
+  notifies too: a new id is, to an id-keyed index, one gone and one arrived.
 - **Transcription is UNCONDITIONAL** (Sophie 2026-08-05) — no toggles;
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead
@@ -714,6 +722,118 @@ pure, no network.
   `docs/nde-precise-cutting.md`), so filler removal by transcript is partial;
   the pause detection catches many of them anyway as breath pauses.
 
+## Pausing (`pausing.js`, `/pausing`) — how long a beat sits
+
+The other half of the polish pass, and the half that decides how a cut
+actually sounds. Shipped Aug 2026; before that it existed only as a
+hand-authored Compare page, "Evan — the pause timeline (v7b)" in the chat
+`evan-story-visual-summary`, page `s9rSf9bZo0AqnScX0OON` — still worth reading
+as the reference for what the tool does.
+
+**What it is for.** The Cutting Room can REMOVE a pause: it compresses one to
+`KEEP` (~0.28s) and that is the only length it has. Nothing else in the app
+could make a pause 1.2 seconds, or put a pause somewhere she never left one.
+Four things lived on that page and nowhere else, and they are the tool:
+
+1. **Setting a LENGTH**, not just removing — the whole idea of rhythm.
+2. **ADDING a pause** where the recording has none.
+3. Building it out of the recording's **OWN ROOM TONE**.
+4. **Playing HER EDIT** rather than the source (Sophie: "I need to be able to
+   hear it to know how long of a pause I want"). Pressing play used to play
+   the recording as it is, so a pause she had just set sounded exactly the
+   same and there was no way to judge a length.
+
+**A pause is never digital silence.** This is the finding the tool is built
+on: a room has a floor, and a pause rebuilt as zero samples reads as a
+dropout — it is what made the "45 percent" line sound bungled. So every pause
+is real audio out of her own recording, and the only question is which piece:
+
+- an **existing gap** lends its own air, trimmed if she shortened it and
+  repeated if she lengthened it — the best possible source, because it is
+  literally the room at that exact moment;
+- an **added pause** has no gap of its own, so it borrows the quietest
+  sustained stretch of the same file, baked once during the listen job to
+  `pausing/<id>/room.wav` and read by both the preview and the render.
+
+Fades are 12ms on the OUTER edges of a pause piece and nowhere else. A fade at
+every loop boundary pumps audibly on room tone; a butt join between two copies
+of near-silence does not.
+
+**Detection is imported, never re-implemented.** `cuttingroom.js` exports
+`breathCuts`, `roomToneCuts`, `mergeRanges` and `rmsProfile` — the
+vo-remove-pauses passes (see `docs/nde-precise-cutting.md`, "Noisy pauses":
+breath and mouth noise sit only 4-7dB under quiet speech, so no absolute
+silence threshold finds these pauses). Every constant in them is a measured
+finding. A second copy would find DIFFERENT pauses and the same recording
+would read differently in two rooms.
+
+Those passes hand back ranges to REMOVE, **already inset by `KEEP`/2 on both
+sides**. Pausing wants the GAP, so `pausesFrom` takes that inset back off —
+and no further, because the 0.10s margins inside `breathCuts` are deliberate
+protection for the speech either side. Get this wrong and every pause she is
+shown is 0.28s shorter than the one she hears: the tool's whole job, silently
+off by a beat. Two filters then apply: below **0.35s** a gap is articulation
+rather than rhythm and gets no chip (a chip on every comma buries the pauses
+that matter), and head/tail air is a TRIM, which is the Cutting Room's job.
+
+**The edit itself is ONE shared file.** `pause-plan.js` is loaded by the
+render on the server (`require('./pause-plan')`) and served to the page at
+`/pause-plan.js`. She sets a length by EAR, so the 1.2s she approved in the
+preview has to be the 1.2s that comes out of the render — two implementations
+would drift and the tool would quietly stop being trustworthy. `planEdit`
+turns her marks into ITEMS over the original timeline and walks them into
+PIECES that tile it exactly: a gap in them is audio silently dropped out of
+her recording, an overlap is audio played twice. Picking the length a gap
+already had is **not a change** (re-cutting a gap to itself would add two
+fade-joins to audio that needed none), and overlaps are dropped rather than
+merged.
+
+**It does not cut words.** The reference page had a CUT mode; the Cutting Room
+and Cutting Blocks both do that properly, with the re-listen every real word
+cut needs. Pausing only ever touches AIR, which is why its word timings never
+have to be cut-accurate and it never re-listens. "out" is 0.08s of room tone —
+an elision, not a splice.
+
+**The unit of listening is the PARAGRAPH.** The artifact decoded one 90-second
+film into memory and rebuilt the whole thing on every play. A real recording
+can be ninety MINUTES, which decoded is most of a gigabyte of Float32 in a
+WKWebView. So the server cuts a paragraph span once (`/api/search/clip-span`,
+banked immutably, ~45KB for a sheet preview), the page decodes it, and her
+pauses are spliced in the browser — which keeps the thing that mattered:
+changing a length and hearing it with no round trip. Paragraphs are derived
+client-side, broken at the LONGEST pauses, and the page opens FOLDED to them
+(the progressive-expansion rule) and draws words only where she goes in.
+
+**Undo collapses consecutive changes to one pause into one step.** Deciding a
+length is a run of taps — 0.4, then 0.8, then 1.2, listening to each — and one
+entry per tap means undo walks back through her auditioning instead of back
+out of the pause. Adding a pause opens the sheet, so add-then-length was two
+entries and one undo left an unwanted pause sitting at its old length (caught
+by the page test).
+
+**Data.** One doc per recording in `forge-pausing` (deckfactory),
+content-addressed by a sha1 of the source url so re-opening resumes. Words in
+Storage (`pausing/<id>/words.json`); only `set` and `added` — her marking
+state, the part that changes — live on the doc, through a whitelisted
+`POST /:id/state`. Renders capped at 8. **Her voice is never loudnormed.**
+
+**Money.** Opening a recording transcribes it, ~$0.006/min, once ever per
+recording. Previews are ffmpeg span cuts, banked forever. Rendering is ffmpeg
+on our own box. Nothing spends on load.
+
+**Routes** (mounted at `/api/pausing`, STUDIO_TOKEN gate, only `/status`
+open): `GET /status` · `GET /sources` · `GET /` · `POST /open` ·
+`GET /:id` · `POST /:id/state` · `GET /:id/plan` (her edit as the render will
+perform it — free, no ffmpeg) · `POST /:id/title` · `POST /:id/render` ·
+`GET /:id/job` · `DELETE /:id`.
+
+**Tests.** `node scripts/test-pausing.js` — the inset arithmetic, the room-tone
+pick, and the shared plan's tiling, pure and no network. `node
+scripts/test-pausing-page.js` — the real page in headless Chromium against a
+synthetic recording the stub cuts on demand, asserting on the SAMPLES the page
+hands the speakers: the pause must be quiet AND non-zero. A regression there is
+invisible in code review and obvious in her ears.
+
 ## Search (`search.js`) — every transcript, one search
 - `search.js` (`/api/search`, page at `/search`, iOS tile "Search", SF Symbol
   `magnifyingglass`, deep link `deckfactory://search`) — one search across
@@ -797,10 +917,41 @@ pure, no network.
   the phone.
 - **The index** lives at Storage `search-index/index-v1.json` (~10MB, ~600ms to
   load, ~49MB heap) and is cached in process for 15 min. Built from Firestore +
-  the memo manifest; a rebuild is FREE (no paid API) and runs as a background
-  job via `POST /reindex` (the page has a "Rebuild the index" button). A
-  missing index builds itself on first use. **Re-index after ingesting new
-  videos or a batch of memos**, or they aren't findable.
+  the memo manifest; a rebuild is FREE of paid APIs and runs as a background job
+  via `POST /reindex` (the page has a "Rebuild the index" button). A missing
+  index builds itself on first use.
+- **IT CATCHES ITSELF UP NOW — nobody re-indexes after an ingest (Aug 2026).**
+  It used to move only when somebody tapped the button, and nobody did:
+  **measured Aug 2026 it held 1,035 recordings against the archive's 1,137**.
+  Anything she had recorded lately returned nothing, which reads as the
+  recording not existing — and it silently broke the SLICE IN hand-off
+  (Search → Cutting Room) for everything recent.
+  - **A sync APPENDS; it does not rebuild.** A full rebuild re-chunks
+    everything, which renumbers every position and so invalidates every vector
+    — meaning search then wants the ~$0.05 whole-library re-embed. Per memo
+    that is ~$5 and gigabytes of Storage traffic for one Mac catch-up run of
+    ~100 recordings. Appending leaves every existing position — and every
+    embedding already paid for — untouched, so a new memo costs only its own
+    ~2 passages, about **$0.000004**.
+  - **A recording that is GONE loses its `sources` entry, and its chunks stay
+    where they are.** Both searches already skip a chunk whose source is
+    missing, so it vanishes from results without renumbering anything behind
+    it. `counts.dead` is what that costs in file size — the honest argument for
+    an occasional full rebuild, and the only thing a rebuild now reclaims.
+  - **Debounced, and the delta comes from the LIBRARIES, not from a queue.**
+    `memos.fileIntoArchive` notifies Search (`memos.onFiled` — one listener
+    covers the Mac push, the share sheet, a Story Room paste and a chat's
+    pasted file, since they all funnel through it); the flush runs after 45s of
+    quiet, capped at 5 min from the first mark, so a 100-recording burst is ONE
+    index write and ONE tail embed. It then asks "what does the archive hold
+    that the index doesn't", so a restart, a crash, an ingest path that said
+    nothing, and the 102-recording backlog all heal through the same code with
+    nothing to replay. A search arms the same check at most every 30 min as a
+    backstop (that is what catches a video ingested straight into Firestore on
+    her Mac). Force it with `POST /api/search/sync`; `GET` it to watch.
+  - New interview docs are found with a Firestore `select()` id listing (no
+    transcript bodies pulled just to ask what's new), and a doc that has no
+    transcript YET adds no source — or it would count as indexed forever after.
 - **Chunks OVERLAP on purpose** (step 30s / span 48s; memos 700 chars / step
   460). Terms are ANDed, so two words spoken in one breath either side of a
   boundary would find NOTHING — "darius pyramids" really did miss the memo that
@@ -828,12 +979,22 @@ pure, no network.
   Buffer with no JSON parsing. Native 1536-dim float32 would have been 79MB.
   Whole-library cost was **$0.046**, ~16s; a query costs one tiny embedding
   (~$0.000002) and a linear dot-product pass (~150ms).
-- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt` + chunk count must
-  match). Chunk N in the vector file has to be chunk N in the index, so a
-  reindex that re-chunks makes them stale — meaning search returns **409 with
-  `code:'stale-vectors'`** (or `'no-vectors'`) and the page offers a one-tap
-  re-embed with the price on the button, instead of silently ranking against
-  the wrong passages. **Re-embed after any reindex that changes chunking.**
+- **Vectors are KEYED TO THE INDEX BUILD** (`meta.builtAt`, the model and the
+  dimensions must match). Chunk N in the vector file has to be chunk N in the
+  index, so a full reindex re-chunks and makes them stale — meaning search
+  returns **409 with `code:'stale-vectors'`** (or `'no-vectors'`) and the page
+  offers a one-tap re-embed with the price on the button, instead of silently
+  ranking against the wrong passages. **`POST /reindex` now re-embeds by
+  itself** (`{embed:false}` opts out): a rebuild that leaves meaning search
+  broken until someone happens to switch modes is how it stayed broken.
+- **A vector file is valid as a PREFIX, which is what lets the index move
+  without paying $0.05 (Aug 2026).** Since a sync only appends, vectors
+  covering the first N chunks are still exactly right about those N —
+  `vectorState()` calls that **partial**, meaning search ranks the N and
+  reports `pending`, and the sync embeds the tail (a fraction of a cent). Only
+  a real mismatch is **stale**. So a memo filed a minute ago can never break
+  meaning search for the rest of the library, and a missing `OPENAI_API_KEY`
+  costs the tail, not the mode.
 - **Similarity is a RANKING, not a set — hence two floors.** Every chunk gets a
   score, so with no cut-off "the heart holds the soul" honestly reported
   **1,080** passages and pure nonsense still reported 23. Measured on this
@@ -854,9 +1015,14 @@ pure, no network.
   streamer implementation: `memos.streamMemoAudio(id, req, res, {dreamsOnly})`.
 - **Routes** (STUDIO_TOKEN gate, only `/status` open): `GET /status`,
   `GET /?q=&mode=words|meaning&kind=&limit=&offset=`, `GET /sources`,
-  `POST|GET /reindex`, **`POST|GET /embed`** (build/inspect the vectors),
-  `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`, `POST /to-cutroom`.
-  Deep link a query with `/search?q=darius`.
+  `POST|GET /reindex`, **`POST|GET /sync`** (catch up with the libraries — see
+  above; normally nobody's job), **`POST|GET /embed`** (build/inspect the
+  vectors), `GET /clip?src=&t=`, `GET /audio/:id`, `POST /to-editor`,
+  `POST /to-cutroom`. Deep link a query with `/search?q=darius`.
+- **Tests:** `node scripts/test-search-sync.js` — the append rules, pure, no
+  Firestore and no API key (positions never renumbered, a gone recording
+  dropped by source not by slot, a failed manifest read never mistaken for an
+  emptied archive, and the prefix/stale vector states).
 - **Playback gotcha, earned:** the `<audio>` element is `preload="none"`, so
   waiting for `loadedmetadata` BEFORE calling `play()` deadlocks — nothing
   loads until play, so the event never fires. `play()` must be called

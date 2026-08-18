@@ -33,6 +33,13 @@
 // missing index builds itself on first use. A rebuild is free: it reads
 // Firestore + the manifest and spends nothing on any paid API.
 //
+// IT KEEPS ITSELF CURRENT — see "keeping the index current" below. An index
+// that only moves when somebody taps a button is an index that is wrong:
+// measured Aug 2026 it held 1,035 of the archive's 1,137 recordings, so
+// everything she had recorded lately returned NOTHING — and no hits reads as
+// "that recording doesn't exist", not as "the index is stale". It silently
+// broke the SLICE IN hand-off for anything recent.
+//
 // TWO MODES, because they answer different questions. WORDS (default) is
 // keyword: terms ANDed, "quoted phrases", proximity scoring — instant, free,
 // exact, and what "darius" needs. MEANING is embeddings: ask for "the part
@@ -291,16 +298,10 @@ async function buildIndex(progress = () => {}) {
   const index = {
     version: 1,
     builtAt: new Date().toISOString(),
-    counts: {
-      chunks: chunks.length,
-      sources: Object.keys(sources).length,
-      nde: Object.values(sources).filter((s) => s.k === 'nde').length,
-      memo: Object.values(sources).filter((s) => s.k === 'memo').length,
-      chars: chunks.reduce((n, c) => n + c.x.length, 0),
-    },
     sources,
     chunks,
   };
+  index.counts = countIndex(index);
 
   progress('saving the index');
   const b = bucket();
@@ -315,8 +316,28 @@ async function buildIndex(progress = () => {}) {
   return index;
 }
 
+// A chunk whose source has been dropped (see planSync) is skipped by both
+// searches, so `dead` is the only place it shows up — it is what makes the
+// case for a full rebuild readable instead of invisible.
+function countIndex(index) {
+  const sources = Object.values(index.sources || {});
+  let dead = 0;
+  let chars = 0;
+  for (const c of index.chunks) {
+    if (index.sources[c.s]) chars += c.x.length; else dead++;
+  }
+  return {
+    chunks: index.chunks.length,
+    sources: sources.length,
+    nde: sources.filter((s) => s.k === 'nde').length,
+    memo: sources.filter((s) => s.k === 'memo').length,
+    chars,
+    dead,
+  };
+}
+
 async function loadIndex({ force = false } = {}) {
-  if (!force && cache && (Date.now() - cache.at) < CACHE_MS) return cache.index;
+  if (!force && cache && (Date.now() - cache.at) < CACHE_MS) { maybeSync('a search'); return cache.index; }
   if (building) return building;
   building = (async () => {
     const b = bucket();
@@ -332,7 +353,7 @@ async function loadIndex({ force = false } = {}) {
     }
     return buildIndex();
   })();
-  try { return await building; } finally { building = null; }
+  try { return await building; } finally { building = null; maybeSync('a search'); }
 }
 
 // ─── embeddings ─────────────────────────────────────────────────────
@@ -388,36 +409,34 @@ function quantize(vec, target, offset) {
   }
 }
 
-async function buildVectors(progress = () => {}) {
-  const index = await loadIndex();
-  const n = index.chunks.length;
-  const data = new Int8Array(n * EMBED_DIMS);
-
-  // Batches run a few at a time: sequential would take ~10 minutes for 65
-  // requests, and flooding them risks a rate limit for no real gain.
+// Embed `chunks` into `data` starting at chunk position `base`. One
+// implementation for the whole library and for the tail a sync appends, so the
+// batching, the retries and the quantization can't drift apart between them.
+//
+// Batches run a few at a time: sequential would take ~10 minutes for 65
+// requests, and flooding them risks a rate limit for no real gain.
+async function embedRange(chunks, data, base = 0, progress = () => {}) {
+  const n = chunks.length;
   const batches = [];
   for (let i = 0; i < n; i += EMBED_BATCH) batches.push(i);
   let done = 0;
   for (let b = 0; b < batches.length; b += EMBED_PARALLEL) {
     const slice = batches.slice(b, b + EMBED_PARALLEL);
     await Promise.all(slice.map(async (start) => {
-      const chunk = index.chunks.slice(start, start + EMBED_BATCH);
+      const part = chunks.slice(start, start + EMBED_BATCH);
       // An empty string is rejected by the API; a space embeds harmlessly.
-      const vecs = await embed(chunk.map((c) => c.x.slice(0, 8000) || ' '));
-      vecs.forEach((v, k) => quantize(v, data, (start + k) * EMBED_DIMS));
-      done += chunk.length;
+      const vecs = await embed(part.map((c) => c.x.slice(0, 8000) || ' '));
+      vecs.forEach((v, k) => quantize(v, data, (base + start + k) * EMBED_DIMS));
+      done += part.length;
     }));
     progress(`embedding ${done} of ${n}`);
   }
+}
 
-  const meta = {
-    version: 1, model: EMBED_MODEL, dims: EMBED_DIMS, chunks: n,
-    builtAt: index.builtAt,               // ties these vectors to that chunking
-    embeddedAt: new Date().toISOString(),
-  };
+async function saveVectors(data, meta) {
   const b = bucket();
   if (b) {
-    await b.file(VECTORS_PATH).save(Buffer.from(data.buffer), {
+    await b.file(VECTORS_PATH).save(Buffer.from(data.buffer, data.byteOffset, data.byteLength), {
       contentType: 'application/octet-stream',
       metadata: { cacheControl: 'no-cache' }, resumable: false,
     });
@@ -428,6 +447,40 @@ async function buildVectors(progress = () => {}) {
   }
   vecCache = { at: Date.now(), meta, data };
   return meta;
+}
+
+async function buildVectors(progress = () => {}) {
+  const index = await loadIndex();
+  const n = index.chunks.length;
+  const data = new Int8Array(n * EMBED_DIMS);
+  await embedRange(index.chunks, data, 0, progress);
+  return saveVectors(data, {
+    version: 1, model: EMBED_MODEL, dims: EMBED_DIMS, chunks: n,
+    builtAt: index.builtAt,               // ties these vectors to that chunking
+    embeddedAt: new Date().toISOString(),
+  });
+}
+
+// What the vector file is worth against the index in hand. Four answers, and
+// the interesting one is PARTIAL: because a sync only ever APPENDS (positions
+// are never renumbered — see planSync), a vector file that covers the first N
+// chunks is still exactly right about those N. So a memo filed a minute ago
+// leaves meaning search working on everything else while its own passages wait
+// for the tail embed, instead of 409-ing the whole mode.
+function vectorState(index, meta) {
+  const total = index.chunks.length;
+  if (!meta) return { state: 'none', embedded: 0, pending: total };
+  const mismatched = meta.builtAt !== index.builtAt
+    || meta.chunks > total
+    || meta.dims !== EMBED_DIMS
+    || meta.model !== EMBED_MODEL;
+  if (mismatched) return { state: 'stale', embedded: 0, pending: total };
+  const embedded = meta.chunks;
+  return {
+    state: embedded >= total ? 'current' : 'partial',
+    embedded,
+    pending: total - embedded,
+  };
 }
 
 async function loadVectors() {
@@ -450,30 +503,17 @@ async function loadVectors() {
 
 // Rank every chunk by cosine similarity to the query. A linear pass over
 // ~13k × 512 int8 dot products is a few milliseconds — no ANN index to
-// maintain, and no approximation to explain away.
-async function searchMeaning(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
-  const vectors = await loadVectors();
-  if (!vectors) {
-    const err = new Error('meaning search needs the passages embedded first');
-    err.code = 'no-vectors';
-    throw err;
-  }
-  if (vectors.meta.builtAt !== index.builtAt || vectors.meta.chunks !== index.chunks.length) {
-    const err = new Error('the index was rebuilt since these passages were embedded — re-embed to use meaning search');
-    err.code = 'stale-vectors';
-    throw err;
-  }
-
-  const [raw] = await embed([q]);
-  const qv = new Float32Array(EMBED_DIMS);
-  let norm = 0;
-  for (let i = 0; i < EMBED_DIMS; i++) norm += raw[i] * raw[i];
-  norm = Math.sqrt(norm) || 1;
-  for (let i = 0; i < EMBED_DIMS; i++) qv[i] = raw[i] / norm;
-
-  const { data } = vectors;
+// maintain, and no approximation to explain away. Pure, so it can be tested
+// without an API key.
+//
+// It scores only what the vector file actually COVERS: a chunk past `embedded`
+// has no vector yet (the sync appended it and the tail embed hasn't run), and
+// one whose source was dropped is unreachable — scoring either would rank the
+// query against whatever bytes happen to sit at that position.
+function rankByVector(index, qv, data, { embedded = 0, kind = '' } = {}) {
+  const n = Math.min(embedded, index.chunks.length);
   const scored = [];
-  for (let c = 0; c < index.chunks.length; c++) {
+  for (let c = 0; c < n; c++) {
     const chunk = index.chunks[c];
     const src = index.sources[chunk.s];
     if (!src) continue;
@@ -484,6 +524,41 @@ async function searchMeaning(index, q, { limit = 25, offset = 0, kind = '' } = {
     scored.push({ c: chunk, src, score: dot / 127 });
   }
   scored.sort((a, b) => b.score - a.score);
+  return scored;
+}
+
+// Why meaning search can't answer, or null when it can. STALE IS ASKED FIRST:
+// it reports `embedded: 0` exactly like a missing vector file does, and the
+// page acts on which of the two it is (a re-embed offer either way, but only
+// one of them means the passages moved).
+function meaningBlock(st) {
+  if (st.state === 'stale') {
+    const err = new Error('the index was rebuilt since these passages were embedded — re-embed to use meaning search');
+    err.code = 'stale-vectors';
+    return err;
+  }
+  if (!st.embedded) {
+    const err = new Error('meaning search needs the passages embedded first');
+    err.code = 'no-vectors';
+    return err;
+  }
+  return null;
+}
+
+async function searchMeaning(index, q, { limit = 25, offset = 0, kind = '' } = {}) {
+  const vectors = await loadVectors();
+  const st = vectorState(index, vectors ? vectors.meta : null);
+  const blocked = meaningBlock(st);
+  if (blocked) throw blocked;
+
+  const [raw] = await embed([q]);
+  const qv = new Float32Array(EMBED_DIMS);
+  let norm = 0;
+  for (let i = 0; i < EMBED_DIMS; i++) norm += raw[i] * raw[i];
+  norm = Math.sqrt(norm) || 1;
+  for (let i = 0; i < EMBED_DIMS; i++) qv[i] = raw[i] / norm;
+
+  const scored = rankByVector(index, qv, vectors.data, { embedded: st.embedded, kind });
 
   // Similarity is a RANKING, not a set: every chunk gets a score, so without a
   // cut-off "the heart holds the soul" honestly reported 1,080 passages and
@@ -497,8 +572,312 @@ async function searchMeaning(index, q, { limit = 25, offset = 0, kind = '' } = {
   const top = scored.length ? scored[0].score : 0;
   const floor = Math.max(0.38, top * 0.85);
   const relevant = scored.filter((s) => s.score >= floor).slice(0, MAX_HITS * 2);
-  return finish(relevant, { limit, offset });
+  // `pending` is the newest passages, indexed but not embedded yet — say so
+  // rather than let a just-filed recording read as one that isn't there.
+  return { ...finish(relevant, { limit, offset }), pending: st.pending };
 }
+
+// ─── keeping the index current ──────────────────────────────────────
+// The index used to move only when somebody tapped "Rebuild the index", and
+// nobody did: measured Aug 2026 it held 1,035 recordings against the archive's
+// 1,137. A recording she made last week returned nothing, which reads as the
+// recording not existing.
+//
+// WHY THIS APPENDS INSTEAD OF REBUILDING. A full rebuild is free in money but
+// far from cheap: it reads 77 Firestore interview docs and the whole memo
+// manifest, writes a ~10MB index, and — because the vectors are keyed to the
+// build — invalidates every embedding, so meaning search then wants the
+// ~$0.05, ~16s whole-library re-embed. Running that per memo would turn one
+// Mac catch-up run of ~100 recordings into ~$5 and gigabytes of Storage
+// traffic, for perhaps two new passages each.
+//
+// So a sync APPENDS. The index is a flat list and the vectors are keyed by
+// POSITION, so adding at the end leaves every existing position — and
+// therefore every embedding already paid for — untouched. A new memo costs
+// only its own chunks: ~2 passages, ~$0.000004. Removing a recording is the
+// one thing that would renumber, so a gone source is DROPPED FROM `sources`
+// and its chunks left where they are: both searches already skip a chunk whose
+// source is missing, so it disappears from results without moving anything
+// behind it. `counts.dead` says how much of the file that has cost, which is
+// the honest argument for an occasional full rebuild.
+//
+// IT IS DEBOUNCED, and it works out the delta from the LIBRARIES rather than
+// from what it remembers. A hundred recordings arriving over a few minutes
+// collapse into one index write and one tail embed; and because the delta is
+// "what does the archive hold that the index doesn't", a restart, a crash, an
+// ingest path that forgot to say anything, and today's 102-recording backlog
+// are all healed by the same code — nothing has to be replayed.
+const SYNC_QUIET_MS = Number(process.env.SEARCH_SYNC_QUIET_MS || 45 * 1000);
+const SYNC_MAX_WAIT_MS = Number(process.env.SEARCH_SYNC_MAX_WAIT_MS || 5 * 60 * 1000);
+// How often a plain search is allowed to arm a check. The ingest hook is what
+// makes a sync prompt; this is the backstop for anything that lands without
+// one (a video ingested straight into Firestore on her Mac, a restart).
+const SYNC_CHECK_MS = Number(process.env.SEARCH_SYNC_CHECK_MS || 30 * 60 * 1000);
+// A doc body per new interview, so one sync can't sit there pulling a whole
+// re-ingested library into memory. The rest arrive on the next one.
+const SYNC_MAX_NEW_NDE = 25;
+
+let syncTimer = null;
+let syncArmedAt = 0;
+let syncing = null;
+let syncJob = null;        // { status, reason, at, added, dropped, vectors, error }
+let lastSyncTry = 0;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Work out what the index is missing, and what it holds that the libraries no
+// longer do. Pure, so the whole rule is testable without Firestore:
+//   memos   — the manifest's records, or null when the archive couldn't be
+//             read (a failed read must never look like an emptied library)
+//   ndeIds  — every interview doc id, or null on the same terms
+//   ndeDocs — the bodies of the interview docs the index doesn't have yet
+function planSync({ index, memos: memoRecords = null, ndeIds = null, ndeDocs = [] }) {
+  const have = index.sources || {};
+  const sources = {};
+  const chunks = [];
+  const drop = [];
+
+  if (Array.isArray(memoRecords)) {
+    const live = new Set();
+    for (const m of memoRecords) {
+      if (!m || !m.id) continue;
+      const key = `m:${m.id}`;
+      live.add(key);
+      // No transcript, nothing to search — and leaving it out means a memo
+      // whose words arrive later (an enrich retry) is still picked up.
+      if (!m.transcript) continue;
+      if (have[key] || sources[key]) continue;
+      sources[key] = {
+        k: 'memo',
+        id: m.id,
+        title: m.title || m.date || m.id,
+        who: m.cat || '',
+        date: m.date || null,
+        seconds: m.dur || null,
+        desc: m.desc || '',
+        audioUrl: null, // proxied — memo bytes are not public (see header)
+      };
+      for (const x of splitChars(m.transcript, MEMO_CHUNK_CHARS)) chunks.push({ s: key, t: null, x });
+    }
+    // Prune only when the read really answered. An empty list is a failed or
+    // half-configured read far more often than an emptied archive, and a wrong
+    // prune quietly removes real recordings from every result.
+    if (live.size) {
+      for (const key of Object.keys(have)) {
+        if (have[key].k === 'memo' && !live.has(key)) drop.push(key);
+      }
+    }
+  }
+
+  for (const { id, doc } of ndeDocs) {
+    const key = `v:${id}`;
+    if (have[key] || sources[key]) continue;
+    const before = chunks.length;
+    ndeChunks(doc || {}, key, chunks);
+    if (chunks.length === before) continue;  // transcribed later — sync will see it then
+    sources[key] = {
+      k: 'nde',
+      id,
+      title: doc.title || doc.experiencerName || id,
+      who: doc.experiencerName || doc.channelTitle || '',
+      date: (doc.publishedAt || doc.createdAt || '').slice(0, 10) || null,
+      audioUrl: doc.audioUrl || editor.defaultAudioUrl(id),
+      url: doc.url || null,
+    };
+  }
+  if (Array.isArray(ndeIds) && ndeIds.length) {
+    const live = new Set(ndeIds.map((id) => `v:${id}`));
+    for (const key of Object.keys(have)) {
+      if (have[key].k === 'nde' && !live.has(key)) drop.push(key);
+    }
+  }
+
+  // Positions CONTINUE — never renumbered. This one line is what keeps every
+  // embedding already paid for valid.
+  let i = index.chunks.length;
+  chunks.forEach((c) => { c.i = i++; });
+  return { sources, chunks, drop };
+}
+
+function applyPlan(index, plan) {
+  for (const key of plan.drop) delete index.sources[key];
+  Object.assign(index.sources, plan.sources);
+  for (const c of plan.chunks) index.chunks.push(c);
+  index.counts = countIndex(index);
+  index.syncedAt = new Date().toISOString();
+  index.syncs = (index.syncs || 0) + 1;
+  return index;
+}
+
+// Read the CURRENT stored index (never the in-process cache — a query
+// memoises normalised text onto the cached chunks, and stringifying that back
+// would double the stored file), append what's new, write it once under a
+// generation precondition so two syncs can't lose each other's work.
+async function syncIndex() {
+  const b = bucket();
+  if (!b) throw new Error('Storage unavailable — nothing to sync');
+  const f = b.file(INDEX_PATH);
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let index = null;
+    let generation = null;
+    try {
+      const [buf] = await f.download();
+      const [meta] = await f.getMetadata();
+      const parsed = JSON.parse(buf.toString());
+      if (parsed && Array.isArray(parsed.chunks) && parsed.sources) {
+        index = parsed;
+        generation = meta.generation;
+      }
+    } catch { /* never built — fall through */ }
+    if (!index) {
+      const built = await buildIndex();
+      return { built: true, added: 0, sources: 0, dropped: 0, counts: built.counts };
+    }
+
+    let memoRecords = null;
+    try {
+      memoRecords = (await memos.readManifest()).manifest.memos || [];
+    } catch (err) {
+      // The membry credential may be absent (local dev) — interviews still sync.
+      console.warn('search sync: memo archive unavailable —', err.message);
+    }
+
+    let ndeIds = null;
+    const ndeDocs = [];
+    const d = db();
+    if (d) {
+      try {
+        // `select()` with no fields lists ids without pulling 3.5M characters
+        // of transcript back just to ask which ones are new.
+        const snap = await d.collection(NDE_COLLECTION).select().get();
+        ndeIds = snap.docs.map((s) => s.id);
+        const missing = ndeIds.filter((id) => !index.sources[`v:${id}`]);
+        for (const id of missing.slice(0, SYNC_MAX_NEW_NDE)) {
+          const doc = await d.collection(NDE_COLLECTION).doc(id).get();
+          if (doc.exists) ndeDocs.push({ id, doc: doc.data() || {} });
+        }
+      } catch (err) {
+        console.warn('search sync: interviews unavailable —', err.message);
+        ndeIds = null;
+      }
+    }
+
+    const plan = planSync({ index, memos: memoRecords, ndeIds, ndeDocs });
+    if (!plan.chunks.length && !plan.drop.length) {
+      return { added: 0, sources: 0, dropped: 0, counts: index.counts };
+    }
+
+    applyPlan(index, plan);
+    try {
+      await f.save(JSON.stringify(index), {
+        contentType: 'application/json',
+        metadata: { cacheControl: 'no-cache' },
+        resumable: false,
+        preconditionOpts: { ifGenerationMatch: generation },
+      });
+    } catch (err) {
+      const code = err && (err.code || err.status);
+      if (code === 412 && attempt < 3) { await sleep(400 * attempt); continue; }
+      throw err;
+    }
+    cache = { at: Date.now(), index };
+    return {
+      added: plan.chunks.length,
+      sources: Object.keys(plan.sources).length,
+      dropped: plan.drop.length,
+      counts: index.counts,
+    };
+  }
+  throw new Error('the index kept changing under this sync — try again');
+}
+
+// Embed only the tail the sync appended, and append it to the vector file.
+// Nothing already embedded is re-read or re-paid for.
+async function syncVectors(index, progress = () => {}) {
+  const vectors = await loadVectors();
+  const st = vectorState(index, vectors ? vectors.meta : null);
+  // Nothing embedded, or a full rebuild moved the ground under them: this is
+  // the paid whole-library job, not a tail, so it waits for a deliberate tap.
+  if (st.state === 'none' || st.state === 'stale') return { state: st.state, embedded: 0 };
+  if (st.state === 'current') return { state: 'current', embedded: 0 };
+
+  const from = st.embedded;
+  const total = index.chunks.length;
+  const data = new Int8Array(total * EMBED_DIMS);
+  data.set(vectors.data.subarray(0, from * EMBED_DIMS));
+  await embedRange(index.chunks.slice(from), data, from, progress);
+  await saveVectors(data, {
+    ...vectors.meta,
+    chunks: total,
+    embeddedAt: new Date().toISOString(),
+  });
+  return { state: 'current', embedded: total - from };
+}
+
+// Index first, vectors after — and a failed tail embed (no API key, OpenAI
+// down) leaves the sync reporting DONE, because the words are searchable
+// either way and only meaning search is waiting.
+async function runSync(reason = '') {
+  if (syncing) return syncing;
+  lastSyncTry = Date.now();
+  syncing = (async () => {
+    const started = Date.now();
+    syncJob = { status: 'running', reason, label: 'reading the libraries', at: started };
+    try {
+      const out = await syncIndex();
+      let vectors = { state: 'skipped' };
+      if (out.added) {
+        syncJob = { ...syncJob, label: 'embedding the new passages' };
+        try {
+          vectors = await syncVectors(cache ? cache.index : await loadIndex(),
+            (label) => { syncJob = { ...syncJob, label }; });
+        } catch (err) {
+          console.warn('search sync: tail embed failed —', err.message);
+          vectors = { state: 'failed', error: err.message };
+        }
+      }
+      syncJob = { status: 'done', reason, at: Date.now(), took: Date.now() - started, ...out, vectors };
+    } catch (err) {
+      console.warn('search sync failed:', err.message);
+      syncJob = { status: 'failed', reason, at: Date.now(), error: err.message };
+    }
+    return syncJob;
+  })();
+  try { return await syncing; } finally { syncing = null; }
+}
+
+// Arm a sync for QUIET from now, but never push it out past MAX_WAIT from the
+// first mark — so a steady trickle of uploads still gets indexed while it runs
+// rather than only when it stops.
+function scheduleSync(reason = 'ingest') {
+  if (!syncArmedAt) syncArmedAt = Date.now();
+  const waited = Date.now() - syncArmedAt;
+  const delay = Math.max(0, Math.min(SYNC_QUIET_MS, SYNC_MAX_WAIT_MS - waited));
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    syncArmedAt = 0;
+    runSync(reason).catch(() => {});
+  }, delay);
+  // The http server keeps the process alive; this timer shouldn't keep a
+  // script or a test alive on its own.
+  if (syncTimer.unref) syncTimer.unref();
+  return { armed: true, inMs: delay, reason };
+}
+
+function maybeSync(reason) {
+  if (Date.now() - lastSyncTry < SYNC_CHECK_MS) return null;
+  lastSyncTry = Date.now();
+  return scheduleSync(reason);
+}
+
+// A recording reaches Search by itself. memos.fileIntoArchive is THE one way
+// anything enters the library (the Mac push, the iOS share sheet, a Story Room
+// paste, a chat with a pasted file all funnel through it), so one listener
+// covers every path — and the sync works out the delta itself, so a path that
+// never fires this still heals on the next search.
+memos.onFiled(() => scheduleSync('a recording was filed'));
 
 // ─── scoring ────────────────────────────────────────────────────────
 // Count word-boundary occurrences of one term. A prefix match counts at a
@@ -655,8 +1034,12 @@ router.get('/status', (req, res) => {
   res.json({
     ok: true,
     firebase: admin.apps.length > 0,
-    index: cache ? { built: true, ...cache.index.counts, builtAt: cache.index.builtAt } : { built: false },
+    index: cache
+      ? { built: true, ...cache.index.counts, builtAt: cache.index.builtAt, syncedAt: cache.index.syncedAt || null }
+      : { built: false },
     job,
+    sync: syncJob,
+    syncArmed: !!syncTimer,
   });
 });
 
@@ -667,7 +1050,7 @@ router.get('/sources', async (req, res) => {
     const list = Object.values(index.sources).map((s) => ({
       kind: s.k, id: s.id, title: s.title, who: s.who || null, date: s.date || null,
     }));
-    res.json({ counts: index.counts, builtAt: index.builtAt, sources: list });
+    res.json({ counts: index.counts, builtAt: index.builtAt, syncedAt: index.syncedAt || null, sources: list });
   } catch (err) { fail(res, err); }
 });
 
@@ -701,15 +1084,36 @@ router.get('/', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// A FULL rebuild — re-chunks everything from scratch, which renumbers every
+// position and therefore invalidates every vector. It re-embeds afterwards by
+// default (~$0.05, ~16s) because the alternative is leaving meaning search
+// broken until someone happens to switch to that mode and read a 409. Pass
+// `{ embed:false }` to rebuild the words only.
+//
+// A rebuild is NOT how new recordings get in — that is the append-only sync
+// above, which costs a fraction of a cent. Rebuild to reclaim `counts.dead`,
+// or when the chunking itself changes.
 router.post('/reindex', async (req, res) => {
   try {
     if (job && job.status === 'running') return res.json({ job });
+    const alsoEmbed = req.body ? req.body.embed !== false : true;
     job = { status: 'running', label: 'starting', at: Date.now(), error: null };
     // Background job (house rule): answer now, rebuild behind it.
     (async () => {
       try {
         const index = await buildIndex((label) => { job = { ...job, label }; });
         job = { status: 'done', label: 'ready', at: Date.now(), counts: index.counts, error: null };
+        if (alsoEmbed && process.env.OPENAI_API_KEY) {
+          if (embedJob && embedJob.status === 'running') return;
+          embedJob = { status: 'running', label: 'reading the passages', at: Date.now(), error: null };
+          try {
+            const meta = await buildVectors((label) => { embedJob = { ...embedJob, label }; });
+            embedJob = { status: 'done', label: 'ready', at: Date.now(), meta, error: null };
+          } catch (err) {
+            console.warn('search reindex re-embed failed:', err.message);
+            embedJob = { status: 'failed', label: 'failed', at: Date.now(), error: err.message };
+          }
+        }
       } catch (err) {
         console.warn('search reindex failed:', err.message);
         job = { status: 'failed', label: 'failed', at: Date.now(), error: err.message };
@@ -720,6 +1124,26 @@ router.post('/reindex', async (req, res) => {
 });
 
 router.get('/reindex', (req, res) => res.json({ job }));
+
+// Catch the index up with the libraries — appended, cheap, and normally
+// nobody's job: filing a recording arms this by itself and a search arms it as
+// a backstop. The route exists so a chat or the page can force it now.
+router.post('/sync', async (req, res) => {
+  try {
+    if (syncJob && syncJob.status === 'running') return res.json({ job: syncJob });
+    // Background job (house rule): runSync stamps syncJob before its first
+    // await, so the answer already carries the running job.
+    runSync('asked for').catch(() => {});
+    res.json({ job: syncJob });
+  } catch (err) { fail(res, err); }
+});
+
+router.get('/sync', (req, res) => res.json({
+  job: syncJob,
+  armed: !!syncTimer,
+  quietMs: SYNC_QUIET_MS,
+  index: cache ? { chunks: cache.index.counts.chunks, dead: cache.index.counts.dead || 0, syncedAt: cache.index.syncedAt || null } : null,
+}));
 
 // Embed every passage so meaning search works. Paid, but once: ~2.3M tokens of
 // text-embedding-3-small ≈ $0.05 for the whole library, then every search is
@@ -745,13 +1169,18 @@ router.get('/embed', async (req, res) => {
   try {
     const v = await loadVectors();
     const index = cache ? cache.index : null;
+    // stale = a rebuild moved every position, so chunk N no longer means the
+    // same passage and the whole library needs re-reading. partial = the sync
+    // appended passages whose tail embed hasn't run yet, which costs a
+    // fraction of a cent and needs nobody.
+    const st = index ? vectorState(index, v ? v.meta : null) : null;
     res.json({
       job: embedJob,
       embedded: !!v,
       meta: v ? v.meta : null,
-      // Stale = the index was rebuilt after these vectors were made, so chunk
-      // N no longer means the same passage.
-      stale: !!(v && index && (v.meta.builtAt !== index.builtAt || v.meta.chunks !== index.chunks.length)),
+      state: st ? st.state : null,
+      pending: st ? st.pending : null,
+      stale: !!(st && st.state === 'stale'),
     });
   } catch (err) { fail(res, err); }
 });
@@ -1164,4 +1593,8 @@ module.exports = {
   router, loadIndex, buildIndex, search, parseQuery, normalize, splitChars,
   // meaning search — exported so a script can embed the library offline
   buildVectors, loadVectors, searchMeaning,
+  // keeping it current — planSync / vectorState / rankByVector are pure, which
+  // is how the append rules are tested without Firestore or an API key
+  runSync, scheduleSync, syncIndex, syncVectors,
+  planSync, applyPlan, countIndex, vectorState, rankByVector, meaningBlock,
 };

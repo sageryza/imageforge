@@ -1,0 +1,611 @@
+<!doctype html>
+<!-- META ASSETS (Aug 2026, Sophie: "pull every asset from every chat into one
+     place … automatic, they won't have to file them themselves … in order of
+     when it was filed. It will look the same as the normal assets … if an
+     image gets hearted or ✕'d here, the heart also applies to the original
+     image in the chat and vice versa").
+
+     One read: GET /api/gallery/assets/all — every chat's Assets tab,
+     interleaved newest-first. NOTHING files into this page; it is a view over
+     forge-chat-assets, so a filing into any chat's tab is here automatically.
+
+     THE SYNC IS FREE BY DESIGN: every row carries its origin chat, and the
+     ♥/✕/note here POSTs against that chat's own vote doc (the same
+     deterministic chat+url id the chat's tab uses) — so a heart here IS the
+     heart there, in both directions, with no mirroring machinery to drift.
+
+     The look and the widgets are the chat Assets tab's own (chats.html):
+     the tile grid, the New/♥/Hide ✕ filter, the search box on the house
+     grammar, the lightbox with ♥/✕ over the image, the PROMPT overlay
+     (Content first), the note thread underneath. One addition earns its
+     place: the origin chat's name rides under each label, because on a mixed
+     page "whose is this" is part of what a tile says.
+
+     Pill contract (this page is served with the injected pill): the pill's
+     own element palette already matches this paper theme; the page script is
+     an IIFE; taps pause the autoscroll through window.__scrollTap(e) (shared
+     skip list); the lightbox freezes the page and restores scrollY.
+     Rules for pages: .claude/skills/new-page. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Meta Assets</title>
+<style>
+:root{ --paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7; }
+@media (prefers-color-scheme: dark){:root{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --rose:#c98a99; --chg:#e08b84; --barbg:#211e19;}}
+:root[data-theme="dark"]{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --line:#37322a; --rose:#c98a99; --chg:#e08b84; --barbg:#211e19;}
+:root[data-theme="light"]{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --line:#d9d2c2; --rose:#a5586a; --chg:#b3443f; --barbg:#fffdf7;}
+html{background:var(--paper);}
+body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--ink); font-family:Georgia,serif;}
+[hidden]{display:none !important}
+.wrap{max-width:34em; margin:0 auto; padding:calc(14px + env(safe-area-inset-top)) 5vw calc(16vh + env(safe-area-inset-bottom));}
+/* The title, once — the pill owns the top-right corner, so the row stops 64px
+   short of it (56 is a hair too tight at 390pt; measured on /chunking). */
+.app-header{display:flex; align-items:center; min-height:34px; padding-right:64px; margin:0 0 14px;}
+.app-header h1{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em;
+  color:var(--ink2); text-transform:uppercase; font-weight:400; margin:0;}
+.state{font-style:italic; color:var(--ink2); text-align:center; padding:4em 0;}
+.state.more{padding:1.4em 0;}
+/* ── the Assets tab's own widgets, verbatim from chats.html ─────────────── */
+.arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
+.afilter{display:flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; background:var(--barbg); flex:none;}
+.afilter button{border:none; background:transparent; color:var(--ink2); font-family:-apple-system,sans-serif; font-size:11px;
+  letter-spacing:.04em; padding:7px 12px; margin:0; cursor:pointer;}
+.afilter button+button{border-left:1px solid var(--line);}
+.afilter button.on{background:var(--rose); color:#fff;}
+.asearch{position:relative; margin:0 0 12px;}
+.asearch input{width:100%; box-sizing:border-box; font-family:Georgia,serif;
+  font-size:15px; color:var(--ink); background:var(--barbg); border:1.5px solid var(--line); border-radius:6px;
+  padding:9px 38px 9px 12px;}
+.asearch input:focus{outline:none; border-color:var(--rose);}
+.asearch input::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
+.qclear{position:absolute; right:2px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
+.assetgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.4em 0 2em;}
+.assetgrid button{position:relative; margin:0; padding:0; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; text-align:left;}
+.assetgrid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; background:var(--barbg);}
+/* Two lines on the tile, no more (Sophie, Aug 2026) — the full text lives in
+   the lightbox caption. */
+.assetgrid .lbl{font-size:11px; line-height:1.3; color:var(--ink2); margin-top:3px; text-align:left; word-break:break-word;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* the one addition: whose tab this tile lives in */
+.assetgrid .who{font-family:-apple-system,sans-serif; font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink2); opacity:.75; margin-top:2px; text-align:left; max-width:100%;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.assetgrid .acell{position:relative;}
+.vote{width:29px; height:29px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  background:rgba(250,247,240,.82); color:#6b6357;}
+.vote svg{width:15px; height:15px; display:block;}
+.vote.heart.on{background:#c96a5e; color:#fff;}
+.vote.nope.on{background:#3a3530; color:#fff;}
+.assetgrid .vote{position:absolute; top:5px;}
+.assetgrid .vote.heart{left:5px;}
+.assetgrid .vote.nope{right:5px;}
+.assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
+.assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
+  font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center; padding:0 4px;}
+/* ── the lightbox, verbatim from chats.html ─────────────────────────────── */
+#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
+#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
+#clightbox.hastalk img{max-height:46vh;}
+#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
+#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
+#clightbox .cltag + .clcap{margin-top:4px;}
+#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px; text-align:center; letter-spacing:.12em; text-transform:uppercase;}
+#clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
+#clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
+.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
+.lbtop .vote{width:38px; height:38px;}
+.lbtop .vote svg{width:18px; height:18px;}
+/* The action icons under the image: open the chat it came from, re-run it in
+   the Playground, save to Photos. Small circles, one glyph each. */
+.lbacts{display:flex; gap:14px; margin-top:10px; justify-content:center;}
+.lbacts button{width:34px; height:34px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(250,247,240,.9); color:#3a3530; display:flex; align-items:center; justify-content:center; padding:0;}
+.lbacts button svg{width:17px; height:17px; display:block;}
+.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;}
+.promptbtn.on{background:#3a3530; color:#faf7f0;}
+.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;
+  padding:56px 16px 16px; box-sizing:border-box;}
+.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}
+.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;
+  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:7px 0; cursor:pointer;}
+.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
+.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
+  font-size:14px; line-height:1.55; white-space:pre-wrap; word-break:break-word;}
+.lbtalk{width:min(92vw,360px); margin-top:12px;}
+.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:6px;}
+.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:Georgia,serif;
+  font-size:14px; line-height:1.45; word-break:break-word; white-space:pre-wrap;}
+.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
+.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
+.lbmsg.pending{opacity:.55;}
+.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
+.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
+.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
+  font-family:Georgia,serif; font-size:14px; padding:9px 11px;}
+.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
+.lbnote .notesend svg{width:18px; height:18px; display:block;}
+#toast{position:fixed; bottom:calc(64px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:13px;
+  padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:40; white-space:nowrap;}
+</style>
+<body>
+<div class="wrap">
+  <header class="app-header"><h1>Meta Assets</h1></header>
+  <div id="content"><div class="state">Loading images&hellip;</div></div>
+</div>
+<div id="clightbox"></div>
+<div id="toast"></div>
+<script>
+(function(){   // IIFE — the injected pill runs in global scope; never collide
+'use strict';
+var STUDIO_TOKEN='__STUDIO_TOKEN__';
+var TOKEN=STUDIO_TOKEN.indexOf('__')===0?'':STUDIO_TOKEN;
+function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token':TOKEN,'Content-Type':'application/json'},opt.headers||{}); return fetch(path,opt); }
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
+function scrollStop(){ if(window.__scrollStop) window.__scrollStop(); }
+// Any tap pauses the autoscroll; the pill itself (and the shared interactive
+// skip list) is exempt — __scrollTap(e) carries the list, never call it bare.
+document.addEventListener('pointerdown', function(e){ if(window.__scrollTap) window.__scrollTap(e); }, true);
+// The app's nav-bar chevron asks the page first: close the lightbox if it's
+// open, else let the app step back / leave the tool.
+window.__navBack=function(){
+  var lb=document.getElementById('clightbox');
+  if(lb && lb.style.display==='flex'){ if(lb.onclick) lb.onclick(); return true; }
+  return false;
+};
+
+// ── The house search grammar, the same four-box parser chats.html carries ──
+function qparse(q){
+  var groups=[], re=/(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext=false, notNext=false;
+  while((m=re.exec(String(q||'')))){
+    var quoted=m[2]!==undefined, raw=quoted?m[2]:m[3], bare=!m[1]&&!quoted;
+    if(bare&&/^or$/i.test(raw)){ orNext=true; continue; }
+    if(bare&&/^and$/i.test(raw)) continue;
+    if(bare&&/^not$/i.test(raw)){ notNext=true; continue; }
+    var v=String(raw==null?'':raw).toLowerCase().replace(/\s+/g,' ').trim();
+    if(!v) continue;
+    var rx=null;
+    try{ rx=new RegExp((/^[a-z0-9]/i.test(v)?'\\b':'')
+      +v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+'),'i'); }catch(_){ rx=null; }
+    if(!rx) continue;
+    var neg=!!m[1]||notNext, last=groups[groups.length-1];
+    if(orNext&&last&&!last.neg&&!neg) last.terms.push(rx);
+    else groups.push({neg:neg, terms:[rx]});
+    orNext=false; notNext=false;
+  }
+  return groups;
+}
+function qmatch(hay, groups){
+  for(var i=0;i<groups.length;i++){
+    var g=groups[i], hit=false;
+    for(var j=0;j<g.terms.length;j++){ if(g.terms[j].test(hay)){ hit=true; break; } }
+    if(g.neg?hit:!hit) return false;
+  }
+  return true;
+}
+// Search as she DICTATES — iOS dictation can fill a field without firing
+// `input`, so the box polls its value while focused (chats.html's liveInput).
+function liveInput(el, fn){
+  var last=el.value, timer=null;
+  function fire(){ if(el.value===last) return; last=el.value; fn(); }
+  ['input','change','compositionupdate','compositionend','keyup','paste']
+    .forEach(function(ev){ el.addEventListener(ev, function(){ setTimeout(fire,0); }); });
+  el.addEventListener('focus', function(){ clearInterval(timer); timer=setInterval(fire,150); });
+  el.addEventListener('blur', function(){ clearInterval(timer); timer=null; fire(); });
+  return { sync:function(){ last=el.value; } };
+}
+
+var HEART='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+// Lucide messages-square — the Chats tool's bubbles, for "open the chat".
+var CHATICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-8a2 2 0 0 1-2-2v-1"/></svg>';
+// Lucide arrow-down-to-line — save to Photos (the iOS gallery's own glyph).
+var SAVEICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>';
+
+// The Playground's own wire-loop drawing (the shared tool glyph — a button
+// that opens another tool wears THAT tool's icon). Mirrors ICON_PLAY in
+// scripts/gen-scratchpad.py / Assets.xcassets/Playground.imageset.
+var PLAYICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="currentColor" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg>';
+
+// ── Save to Photos, the Playground's own three-path saver ─────────────────
+// 1. In the app, the native forgeSave bridge writes it to the photo library.
+// 2. In Safari, the share sheet (needs the blob ALREADY fetched — a download
+//    inside the tap handler makes navigator.share reject silently).
+// 3. A plain download for a desktop browser.
+var lbBlob=null;
+function prefetchBlob(url){
+  lbBlob=null;
+  fetch(url).then(function(r){ return r.blob(); })
+    .then(function(b){ lbBlob={url:url, blob:b}; }).catch(function(){});
+}
+function nativeSaver(){ try{ return window.webkit.messageHandlers.forgeSave; }catch(e){ return null; } }
+window.__saveResult=function(ok,msg){ toast(msg||(ok?'Saved to Photos':'Couldn’t save that')); };
+function saveImage(url){
+  var native=nativeSaver();
+  if(native){ native.postMessage(url); toast('Saving…'); return; }
+  if(!(lbBlob && lbBlob.url===url)){ toast('Still loading that image — try again'); return; }
+  var ext=((lbBlob.blob.type||'').split('/')[1]||'png').replace('jpeg','jpg');
+  var file=null;
+  try{ file=new File([lbBlob.blob],'image.'+ext,{type:lbBlob.blob.type||'image/png'}); }catch(e){}
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file]})
+      .catch(function(err){ if(err&&err.name!=='AbortError') toast('Couldn’t open the share sheet'); });
+    return;
+  }
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(lbBlob.blob); a.download='image.'+ext;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── Open in the Playground: land with this image's settings prefilled ─────
+// Only offered when the exact prompt is on file (promptContent) — the same
+// query promptlab.html already reads (?prompt=&style=&quality=). The style is
+// recognised from the filed style half / caption; unknown looks land on
+// ChatGPT, which is the Playground's own fallback.
+function playgroundQuery(it){
+  if(!it || !it.promptContent) return null;
+  var made=((it.promptStyle||'')+' '+(it.prompt||'')).toLowerCase();
+  var style=/hoonie/.test(made)?'hoonie'
+    :/(wtr|watercolor)/.test(made)?'watercolor'
+    :/scarry/.test(made)?'scarry'
+    :/pastel/.test(made)?'pastel':'chatgpt';
+  var q='prompt='+encodeURIComponent(it.promptContent)+'&style='+style;
+  var m=made.match(/\b(low|medium|high)\b/);
+  if(m) q+='&quality='+m[1];
+  return q;
+}
+
+// What she calls the chat — the display name when the registry has one.
+function whoLabel(it){ return it.name || it.chat || ''; }
+
+// ── The lightbox — the chat tab's own, with the origin chat named under the
+//    caption. Votes and notes go to it.chat, which IS the sync. ────────────
+function lightbox(url, asset){
+  scrollStop();
+  var lbY=window.scrollY;
+  var lb=document.getElementById('clightbox');
+  lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
+  lb.classList.remove('hastalk');
+  prefetchBlob(url);   // so Save has the bytes in hand by the time she taps
+  // The action icons, directly under the picture: the chat it came from, the
+  // Playground with this prompt prefilled, save to Photos.
+  if(asset){
+    var acts=document.createElement('div'); acts.className='lbacts';
+    acts.onclick=function(e){ e.stopPropagation(); };
+    if(asset.chat && !asset.app){
+      var cbn=document.createElement('button'); cbn.innerHTML=CHATICON;
+      cbn.setAttribute('aria-label','Open the chat');
+      cbn.onclick=function(e){ e.stopPropagation(); location.href='/chats?chat='+encodeURIComponent(asset.chat); };
+      acts.appendChild(cbn);
+    }
+    var pq=playgroundQuery(asset);
+    if(pq){
+      var pbn=document.createElement('button'); pbn.innerHTML=PLAYICON;
+      pbn.setAttribute('aria-label','Open in Playground');
+      pbn.onclick=function(e){ e.stopPropagation(); location.href='/playground?'+pq; };
+      acts.appendChild(pbn);
+    }
+    var dbn=document.createElement('button'); dbn.innerHTML=SAVEICON;
+    dbn.setAttribute('aria-label','Save to Photos');
+    dbn.onclick=function(e){ e.stopPropagation(); saveImage(url); };
+    acts.appendChild(dbn);
+    lb.appendChild(acts);
+  }
+  var promptBtn=null;
+  if(asset && (asset.promptStyle||asset.promptContent)){
+    var wrap=lb.querySelector('.clwrap');
+    var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
+    ov.onclick=function(e){ e.stopPropagation(); };
+    var tog=document.createElement('div'); tog.className='lbptog';
+    var sb=document.createElement('button'); sb.textContent='Style';
+    var cb=document.createElement('button'); cb.textContent='Content';
+    var txt=document.createElement('div'); txt.className='lbptext';
+    // CONTENT IS THE DEFAULT SIDE (Sophie's rule; style wins only when it is
+    // the only half on file).
+    var side=asset.promptContent?'content':'style';
+    function paintSide(){
+      sb.classList.toggle('on', side==='style');
+      cb.classList.toggle('on', side==='content');
+      txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
+      txt.scrollTop=0;
+    }
+    sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
+    cb.onclick=function(e){ e.stopPropagation(); side='content'; paintSide(); };
+    tog.appendChild(sb); tog.appendChild(cb);
+    ov.appendChild(tog); ov.appendChild(txt);
+    paintSide();
+    wrap.appendChild(ov);
+    promptBtn=document.createElement('button');
+    promptBtn.className='promptbtn'; promptBtn.textContent='Prompt';
+    promptBtn.onclick=function(e){
+      e.stopPropagation();
+      var open=ov.style.display==='none';
+      ov.style.display=open?'flex':'none';
+      wrap.classList.toggle('pon', open);
+      promptBtn.classList.toggle('on', open);
+    };
+  }
+  if(asset && asset._cast){
+    var row=document.createElement('div'); row.className='lbtop';
+    row.onclick=function(e){ e.stopPropagation(); };
+    var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
+    var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+    var talk=document.createElement('div'); talk.className='lbtalk';
+    talk.onclick=function(e){ e.stopPropagation(); };
+    var th=document.createElement('div'); th.className='lbthread';
+    function paintThread(){
+      th.innerHTML='';
+      var msgs=asset.thread||[];
+      msgs.forEach(function(m){
+        var b=document.createElement('div');
+        b.className='lbmsg '+(m.from==='chat'?'them':'me');
+        b.textContent=m.text;
+        th.appendChild(b);
+      });
+      th.style.display=msgs.length?'':'none';
+      th.scrollTop=th.scrollHeight;
+    }
+    var nw=document.createElement('div'); nw.className='lbnote';
+    var ni=document.createElement('input'); ni.placeholder='Write a note…';
+    var ns=document.createElement('button'); ns.className='notesend';
+    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
+    function sendNote(){
+      var t=(ni.value||'').trim();
+      if(!t) return;
+      ni.value='';
+      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
+      paintThread();
+      var el=th.lastChild;
+      el.classList.add('pending');
+      function attempt(){
+        el.classList.remove('failed'); el.classList.add('pending');
+        asset._noteSend(t, function(ok){
+          el.classList.remove('pending');
+          if(ok) return;
+          el.classList.add('failed');
+          el.title='Not sent — tap to try again';
+          el.onclick=function(e){ e.stopPropagation(); attempt(); };
+        });
+      }
+      attempt();
+    }
+    ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
+    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
+    nw.appendChild(ni); nw.appendChild(ns);
+    talk.appendChild(th); talk.appendChild(nw);
+    paintThread();
+    if(asset._markSeen) asset._markSeen();
+    asset._lbPaint=function(){
+      hb.classList.toggle('on', asset.vote==='like');
+      xb.classList.toggle('on', asset.vote==='dislike');
+    };
+    asset._lbPaint();
+    hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
+    xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
+    row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
+    lb.appendChild(row);
+    lb.appendChild(talk);
+    lb.classList.add('hastalk');
+  }
+  if(promptBtn && !promptBtn.parentNode){
+    var prow=document.createElement('div'); prow.className='lbtop';
+    prow.style.justifyContent='center';
+    prow.onclick=function(e){ e.stopPropagation(); };
+    prow.appendChild(promptBtn); lb.appendChild(prow);
+  }
+  var tag=asset?String(asset.prompt||''):'';
+  if(/^from /.test(tag)) tag='';
+  var cap=asset?(asset.description||''):'';
+  if(!cap && tag){ cap=tag; tag=''; }
+  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
+  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
+  var who=asset?whoLabel(asset):'';
+  if(who){ var wc=document.createElement('div'); wc.className='clwho'; wc.textContent=who; lb.appendChild(wc); }
+  lb.style.display='flex'; document.body.style.overflow='hidden';
+  lb.onclick=function(){ if(asset) asset._lbPaint=null;
+    var f=document.activeElement; if(f && f.blur) f.blur();
+    lb.style.display='none'; lb.innerHTML='';
+    lb.classList.remove('hastalk'); document.body.style.overflow='';
+    window.scrollTo(0,lbY);
+    requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
+}
+
+// ── The page: one grid over every chat, paged as she scrolls ──────────────
+var PAGE=150;
+var content=document.getElementById('content');
+api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var a=(d&&d.assets)||[];
+    content.innerHTML='';
+    if(!a.length){ content.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images filed anywhere yet.'})); return; }
+    var cells=[], filter=null, q='';
+    // Everything written about an image is searchable — its label, the
+    // model/quality caption, both prompt halves, the note thread, AND (here)
+    // the chat it came from, so "witch" finds a whole chat's tiles.
+    function haystack(it){
+      if(it._hay==null){
+        var t=[it.description, it.prompt, it.promptStyle, it.promptContent, it.note, it.chat, it.name];
+        (it.thread||[]).forEach(function(m){ t.push(m.text); });
+        it._hay=t.filter(Boolean).join(' \n ').toLowerCase();
+      }
+      return it._hay;
+    }
+    function applyFilter(){
+      var shown=0, groups=q?qparse(q):[];
+      cells.forEach(function(c){
+        var v=c.it.vote||null, show=true;
+        if(filter==='new') show=!v;
+        else if(filter==='like') show=(v==='like');
+        else if(filter==='nox') show=(v!=='dislike');
+        if(show && groups.length) show=qmatch(haystack(c.it), groups);
+        if(c.it._broken) show=false;
+        c.cell.style.display=show?'':'none';
+        if(show) shown++;
+      });
+      none.style.display=(shown||!cells.length)?'none':'';
+    }
+    var seg=document.createElement('div'); seg.className='afilter';
+    [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
+      var sb=document.createElement('button'); sb.textContent=m[1]; sb.dataset.f=m[0];
+      sb.onclick=function(){
+        filter = filter===m[0] ? null : m[0];
+        seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.f===filter); });
+        applyFilter();
+      };
+      seg.appendChild(sb);
+    });
+    var arow=document.createElement('div'); arow.className='arow';
+    arow.appendChild(seg);
+    content.appendChild(arow);
+    var srow=document.createElement('div'); srow.className='asearch';
+    var si=document.createElement('input'); si.type='search';
+    si.autocapitalize='none'; si.autocorrect='off';
+    var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
+    sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
+    var siLive=liveInput(si, function(){
+      q=(si.value||'').trim().toLowerCase();
+      sx.style.display=q?'':'none';
+      applyFilter();
+    });
+    sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
+    srow.appendChild(si); srow.appendChild(sx);
+    content.appendChild(srow);
+    var none=document.createElement('div'); none.className='state';
+    none.textContent='No images match that.'; none.style.display='none';
+    content.appendChild(none);
+    var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(ents){
+      ents.forEach(function(en){
+        if(!en.isIntersecting) return;
+        var im=en.target;
+        if(im.dataset.src){ im.src=im.dataset.src; im.removeAttribute('data-src'); }
+        io.unobserve(im);
+      });
+    }, {rootMargin:'900px 0px'}) : null;
+    var grid=document.createElement('div'); grid.className='assetgrid';
+    function voteBtns(cell,it){
+      var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
+      var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
+      var nb=document.createElement('div'); nb.className='nbadge';
+      function unreadCount(){
+        if(!it.unread) return 0;
+        var n=0, t=it.thread||[];
+        for(var i=t.length-1;i>=0 && t[i].from==='chat';i--) n++;
+        return n||1;
+      }
+      function paint(){
+        hb.classList.toggle('on', it.vote==='like');
+        xb.classList.toggle('on', it.vote==='dislike');
+        cell.classList.toggle('nay', it.vote==='dislike');
+        var n=unreadCount();
+        nb.textContent=n?String(n):'';
+        nb.style.display=n?'':'none';
+        if(it._lbPaint) it._lbPaint();
+        applyFilter();
+      }
+      // THE SYNC: the vote is written to the ORIGIN chat's own vote doc
+      // (chat+url), so this heart and the one in that chat's Assets tab are
+      // one record — either surface shows what the other did.
+      function cast(v){
+        var next = it.vote===v ? null : v;
+        api('/api/gallery/assets/vote',{method:'POST',body:JSON.stringify({chat:it.chat,url:it.url,vote:next})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw 0; it.vote=next; paint(); })
+          .catch(function(){ toast('Couldn’t save that'); });
+      }
+      it._cast=cast;
+      it._noteSend=function(text,cb){
+        var t=String(text||'').trim();
+        if(!t){ if(cb)cb(false); return; }
+        api('/api/gallery/assets/note',{method:'POST',
+          body:JSON.stringify({chat:it.chat,url:it.url,text:t,from:'sophie'})})
+          .then(function(r){ return r.json().then(function(d){ return {s:r.status,d:d}; }); })
+          .then(function(x){
+            if(!x.d.ok) throw new Error(x.d.error||'failed');
+            it.note=t;
+            if(x.d.thread) it.thread=x.d.thread;
+            it._hay=null;
+            if(cb)cb(true);
+          })
+          .catch(function(e){ toast((e&&e.message)||'Couldn’t send that note'); if(cb)cb(false); });
+      };
+      it._markSeen=function(){
+        if(!it.unread) return;
+        it.unread=false; paint();
+        api('/api/gallery/assets/note',{method:'POST',
+          body:JSON.stringify({chat:it.chat,url:it.url,seen:true})}).catch(function(){});
+      };
+      hb.onclick=function(e){ e.stopPropagation(); cast('like'); };
+      xb.onclick=function(e){ e.stopPropagation(); cast('dislike'); };
+      paint();
+      cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
+    }
+    function addTiles(list){ list.forEach(function(it){
+      var cell=document.createElement('div'); cell.className='acell';
+      var b=document.createElement('button');
+      var cap=it.description||'';
+      var tag=String(it.prompt||'');
+      if(!cap && tag && !/^from /.test(tag)) cap=tag;
+      var lbl=cap?'<div class="lbl">'+esc(cap)+'</div>':'';
+      var who=whoLabel(it);
+      var wl=who?'<div class="who">'+esc(who)+'</div>':'';
+      var thumb=it.thumb||assetThumb(it.url), fb=assetThumb(it.url);
+      var srcAttr = io ? 'data-src' : 'src';
+      b.innerHTML='<img alt="" decoding="async" '+srcAttr+'="'+esc(thumb)+'">'+lbl+wl;
+      var img=b.querySelector('img'), triedFb=false;
+      img.onerror=function(){
+        if(!triedFb && it.thumb){ triedFb=true; img.src=fb; return; }
+        it._broken=true; cell.style.display='none'; if(it._lbPaint) it._lbPaint();
+      };
+      b.onclick=function(){ lightbox(it.url, it); };
+      cell.appendChild(b); voteBtns(cell,it);
+      if(io) io.observe(img);
+      cells.push({cell:cell, it:it});
+      grid.appendChild(cell);
+    }); }
+    addTiles(a);
+    content.appendChild(grid);
+    var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
+    var more=document.createElement('div'); more.className='state more';
+    more.style.display='none'; content.appendChild(more);
+    function nextPage(){
+      if(busy || loaded>=total) return;
+      busy=true; more.textContent='Loading more…'; more.style.display='';
+      api('/api/gallery/assets/all?limit='+PAGE+'&offset='+loaded)
+        .then(function(r){return r.json()})
+        .then(function(p){
+          var got=(p&&p.assets)||[];
+          if(p&&p.total) total=p.total;
+          loaded+=got.length;
+          addTiles(got);
+          applyFilter();
+          busy=false;
+          more.style.display='none';
+          if(!got.length) loaded=total;
+          if(loaded<total) watchTail();
+        })
+        .catch(function(){ busy=false; more.textContent='Couldn\u2019t load more — scroll to retry.'; });
+    }
+    var tailIO=null;
+    function watchTail(){
+      if(loaded>=total) return;
+      if(!('IntersectionObserver' in window)){ more.style.display=''; more.textContent='Load more'; more.onclick=nextPage; return; }
+      if(tailIO) tailIO.disconnect();
+      tailIO=new IntersectionObserver(function(es){
+        if(es.some(function(e){return e.isIntersecting;})){ tailIO.disconnect(); nextPage(); }
+      },{rootMargin:'800px 0px'});
+      var last=grid.lastElementChild;
+      if(last) tailIO.observe(last);
+    }
+    watchTail();
+  })
+  .catch(function(){ content.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
+})();
+</script>
+</body>
