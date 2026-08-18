@@ -46,3 +46,50 @@ The audio of record for v14:
 `nde-episodes/editor/page-cuts/dcfcc1b923d09f7d1e826025af33b29a1aca6420.mp3`
 (4:09.6, deckfactory). The film:
 `story/films/evan-v14.mp4` (membry).
+
+## v15 (2026-08-18, same day) — the quirks Sophie heard, found and fixed
+
+Sophie reported "weird extra sounds, little uh sounds" near the beginning of
+v14. Measured (whisper read-back of the film + windowed re-listens of the
+master), they were three classes of defect, all inherited from cutting at the
+bulk-pass block times:
+
+1. **Time-overlapping adjacent spans replay a fragment.** b05's block ends at
+   29.84 while b06 starts at 29.4 — the film played 0.44s twice ("I sai–said").
+   The known trap from `docs/nde-precise-cutting.md`, present in the page's own
+   preview cutter because cards cut as separate parts.
+2. **Trailing false starts inside kept spans.** b08 ends with an untranscribed
+   "I—" grunt plus ~1.3s of air before the next splice; her b12 split kept a
+   dangling "I" after "face."; b41 ends with "It—". Sound exactly like stray
+   "uh"s.
+3. **Clipped words at splice edges.** Bulk block times drift up to ~1.6s on
+   this master: "in science journals?", "There's a rat.", "Okay, I said" were
+   all partly or wholly cut in v14 (3-word losses sit under vo-verify's
+   4-word radar — match% was the only trace).
+
+The fix, in `fix-audio.js` (run before `build-v15.js`):
+
+- **Merge** consecutive same-source parts that overlap or sit within 0.35s —
+  continuous audio plays once, natural beats survive, no mid-speech fade dip.
+- **Re-listen at every splice edge** (windowed word-timestamp transcription,
+  cached in `seam-cache.json`) and set the edge to the real word time ±0.12s.
+  **Match the occurrence CLOSEST to the expected time** — first/last matching
+  both chose a wrong repeat of a phrase ("He said" pulled a CUT block into the
+  film; "the face" left cut words in). That bug shipped in the first v15 build
+  and was caught by the read-back gate before delivery.
+- **Three trailing fragments dropped**, named to Sophie: b08's "I—", the
+  dangling "I" of her b12 split, b41's "It—".
+
+Her notes survey (Assets threads across the four Evan chats) also re-picked
+five shots: the patio phone-rings (her "go with it" note), her own Playground
+Sheldrake image ("this is a better one for the Sheldrake image"), the
+same-size both-on-the-call redraw, the Parent-Trap-wrappers crackly call, the
+couch-and-glass-door Spanish-house rat, and the casual-bystanders sidewalk rat
+for her dad's story. The dream crowd keeps the medium crowd image — in the
+dream "they were ALL watching".
+
+v15 of record: audio
+`nde-episodes/editor/page-cuts/a86a026565da41b43792229a8ba17e35e62e3686.mp3`
+(after closest-match fix the key changed — see `audio-v15-url.txt` in the work
+dir for the live one), film `story/films/evan-v15.mp4` (4:20.5, 52 shots,
+vo-verify PASS, keeps at 2.5-4.0, 89.4-90.8, 255.3-256.8).
