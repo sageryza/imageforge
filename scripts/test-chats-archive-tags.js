@@ -260,7 +260,10 @@ async function pageTests() {
         truncated: [], messages: since ? [] : MSGS, delta: !!since,
       }));
     }
-    if (url.pathname === '/api/chatfeed/tags' && req.method === 'POST') return take('tags');
+    // Since folders and tags became ONE field (Aug 2026) the sheet writes
+    // through /labels like every other chip surface: `{chats:['live-one'],
+    // add:['bug fix']}` to put a word on, `remove` to take it off.
+    if (url.pathname === '/api/chatfeed/labels' && req.method === 'POST') return take('tags');
     if (url.pathname === '/api/chatfeed/chatnote' && req.method === 'POST') return take('note');
     if (url.pathname === '/api/chatfeed/star' && req.method === 'POST') return take('star');
     if (url.pathname === '/api/chatfeed/chat-bookmark' && req.method === 'POST') return take('bmk');
@@ -333,8 +336,8 @@ async function pageTests() {
       (await page.$eval('.askwrap .arcstar svg path', (n) => getComputedStyle(n).fill)) !== 'none');
 
     const chips = await page.$$eval('.askwrap .arctags .catchip', (ns) => ns.map((n) => n.textContent.trim()));
-    ok('her five tags are all offered',
-      ['bug fix', 'new feature', 'built', 'story', 'quick question'].every((t) => chips.indexOf(t) > -1),
+    ok('her five tags are all offered among the merged vocabulary',
+      ['Bug fix', 'New feature', 'Built', 'Story', 'Quick question'].every((t) => chips.indexOf(t) > -1),
       chips.join(' · '));
     ok('none of them is picked on a chat with no tags',
       await page.$$eval('.askwrap .arctags .catchip.on', (ns) => ns.length) === 0);
@@ -344,25 +347,26 @@ async function pageTests() {
       if (b) b.click();
       return !!b;
     }, label);
-    ok('tapping a tag needs the chip to be there', await chip('bug fix'));
+    ok('tapping a tag needs the chip to be there', await chip('Bug fix'));
     await page.waitForTimeout(200);
     ok('tapping a tag lights it',
       await page.$$eval('.askwrap .arctags .catchip.on', (ns) => ns.length) === 1);
     ok('…and saves it on the tap, not on Archive',
-      posts.tags.length === 1 && posts.tags[0].chat === 'live-one'
-      && JSON.stringify(posts.tags[0].tags) === '["bug fix"]', JSON.stringify(posts.tags));
+      posts.tags.length === 1 && JSON.stringify(posts.tags[0].chats) === '["live-one"]'
+      && JSON.stringify(posts.tags[0].add) === '["bug fix"]', JSON.stringify(posts.tags));
     ok('nothing has been archived yet', posts.archive.length === 0);
 
     // a second tag rides along with the first
-    await chip('story');
+    await chip('Story');
     await page.waitForTimeout(200);
     ok('a second tag joins rather than replacing',
-      JSON.stringify((posts.tags[1] || {}).tags) === '["bug fix","story"]', JSON.stringify(posts.tags));
+      JSON.stringify((posts.tags[1] || {}).add) === '["story"]'
+      && !(posts.tags[1] || {}).labels, JSON.stringify(posts.tags));
     // …and tapping it again takes it off
-    await chip('story');
+    await chip('Story');
     await page.waitForTimeout(200);
     ok('tapping a lit tag un-picks it',
-      JSON.stringify((posts.tags[2] || {}).tags) === '["bug fix"]', JSON.stringify(posts.tags));
+      JSON.stringify((posts.tags[2] || {}).remove) === '["story"]', JSON.stringify(posts.tags));
 
     // ---- her own note ----------------------------------------------------
     ok('there is one note box, and it is a single line',
@@ -392,7 +396,13 @@ async function pageTests() {
     // ---- the archive's filter row ----------------------------------------
     await page.click('#thread header .no .archlink.hide-r').catch(() => {});
     await page.goto(base + '/chats');
-    await page.waitForSelector('#grid [data-chat="live-one"]');
+    await page.waitForSelector('#grid');
+    // A TAG FILES A CHAT NOW (Aug 2026 — categories and tags became one field
+    // at her ask). live-one was tagged `bug fix` two steps ago, so it has left
+    // the unfiled list the way a folder always did; the sheet's own chips are
+    // the same chips the home row files with.
+    ok('a chat tagged in the sheet has left the unfiled list',
+      !(await page.$('#grid [data-chat="live-one"]')));
     ok('no tag filter row on the chat list', !(await page.$('#grid .arctagrow')));
 
     await page.click('#archlink');
@@ -401,18 +411,18 @@ async function pageTests() {
     const filters = await page.$$eval('#grid .arctagrow .catchip', (ns) => ns.map((n) => n.textContent.trim()));
     ok('ALL leads the row', filters[0] === 'All', filters.join(' · '));
     ok('the tags actually in the archive are offered',
-      filters.indexOf('bug fix') > -1 && filters.indexOf('built') > -1, filters.join(' · '));
+      filters.indexOf('Bug fix') > -1 && filters.indexOf('Built') > -1, filters.join(' · '));
     ok('a tag nobody used is NOT offered — the row is not the whole vocabulary',
-      filters.indexOf('research') < 0 && filters.indexOf('audio') < 0, filters.join(' · '));
+      filters.indexOf('Research') < 0 && filters.indexOf('Audio') < 0, filters.join(' · '));
     ok('both archived chats are showing under All', (await rows()).length === 2, (await rows()).join(','));
 
     // the no-backfill rule: an archived chat with no tags reads as `built`
-    await page.click('#grid .arctagrow .catchip:nth-of-type(' + (filters.indexOf('built') + 1) + ')');
+    await page.click('#grid .arctagrow .catchip:nth-of-type(' + (filters.indexOf('Built') + 1) + ')');
     await page.waitForTimeout(200);
     ok('filtering by BUILT finds the chat that carries no tags at all',
       JSON.stringify(await rows()) === '["we-built-it"]', (await rows()).join(','));
 
-    await page.click('#grid .arctagrow .catchip:nth-of-type(' + (filters.indexOf('bug fix') + 1) + ')');
+    await page.click('#grid .arctagrow .catchip:nth-of-type(' + (filters.indexOf('Bug fix') + 1) + ')');
     await page.waitForTimeout(200);
     ok('filtering by BUG FIX finds only the tagged one',
       JSON.stringify(await rows()) === '["the-bug"]', (await rows()).join(','));
@@ -421,7 +431,9 @@ async function pageTests() {
     ok('the filter is really set right now',
       await page.evaluate(() => window.__archTag()) === 'bug fix');
     await page.reload();
-    await page.waitForSelector('#grid [data-chat="live-one"]');
+    // …not on live-one, which is tagged and therefore filed now — wait for the
+    // list itself.
+    await page.waitForSelector('#grid');
     await page.click('#archlink');
     await page.waitForSelector('#grid .arctagrow');
     ok('a reload opens the archive on everything again',

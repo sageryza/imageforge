@@ -122,8 +122,21 @@ function sortableCategories(settings, chats) {
     if (!out.some((x) => norm(x) === norm(v))) out.push(v);
   };
   ((settings && settings.categories) || []).forEach(add);
-  Object.keys(chats || {}).forEach((n) => add((chats[n] || {}).category));
+  Object.keys(chats || {}).forEach((n) => regLabels(chats[n]).forEach(add));
   return out;
+}
+
+/**
+ * A chat's labels — categories and tags are ONE multi-valued field now
+ * (`labels`, Aug 2026; see the header block in chatfeed.js). Old docs carry
+ * `category` + `tags` instead and are read as the union of the two, so the
+ * vocabulary this file learns is the same one either way, with no backfill.
+ */
+function regLabels(reg) {
+  const r = reg || {};
+  const raw = Array.isArray(r.labels) ? r.labels
+    : [].concat(r.category || [], Array.isArray(r.tags) ? r.tags : []);
+  return raw.map((c) => String(c || '').trim()).filter(Boolean);
 }
 
 /**
@@ -140,10 +153,15 @@ function examplesFor(chats, cats, per = 8) {
   cats.forEach((c) => { out[c] = []; });
   Object.keys(chats || {}).forEach((n) => {
     const reg = chats[n] || {};
-    if (!reg.category || reg.catBy === 'auto' || reg.deletedAt) return;
-    const hit = cats.find((c) => norm(c) === norm(reg.category));
-    if (!hit || out[hit].length >= per) return;
-    out[hit].push(String(reg.displayName || n).slice(0, 60));
+    const mine = regLabels(reg);
+    if (!mine.length || reg.catBy === 'auto' || reg.deletedAt) return;
+    // A chat she put in three places teaches all three — that is the point of
+    // letting it be in three places.
+    mine.forEach((c) => {
+      const hit = cats.find((x) => norm(x) === norm(c));
+      if (!hit || out[hit].length >= per) return;
+      out[hit].push(String(reg.displayName || n).slice(0, 60));
+    });
   });
   return out;
 }
@@ -381,6 +399,7 @@ function pickCategory(out, cats) {
 }
 
 module.exports = {
+  regLabels,
   TRIAGE, MIN_MESSAGES, RETRY_MS, BEFORE_EVERYTHING, SORT_SYS,
   RESORT_GROWTH, RESORT_MIN_NEW, RESORT_REST_MS,
   sortableCategories, examplesFor, shouldAutoSort, filedStamp, archiveHint, pickState, pendingAsk,
