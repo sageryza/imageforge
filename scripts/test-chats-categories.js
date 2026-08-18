@@ -6,7 +6,7 @@
 // Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. the LIST/TILES toggle is gone and the home is the list,
 //   2. the seeded chips (Stories, Tech) are there before anything is filed,
-//   3. select mode picks chats and one chip files the lot (POST /category),
+//   3. select mode picks chats and one chip files the lot (POST /labels),
 //   4. FILING MOVES a chat: it leaves the unfiltered list, the chip counts it,
 //      and a lit chip is that folder (tapping it again clears back),
 //   5. a category typed into the bar's New… box becomes a chip of its own,
@@ -65,7 +65,10 @@ const server = http.createServer((req, res) => {
       messages: since ? [] : MSGS, delta: !!since,
     }));
   }
-  if (url.pathname === '/api/chatfeed/category' && req.method === 'POST') {
+  // The one write since folders and tags became one field (Aug 2026): a chip
+  // sends `{chats, add:['tech']}`, None sends `{chats, labels:[]}`, and a word
+  // typed with nothing picked sends `{labels:['errands']}` and no chats at all.
+  if (url.pathname === '/api/chatfeed/labels' && req.method === 'POST') {
     let body = '';
     req.on('data', (c) => body += c);
     req.on('end', () => {
@@ -139,8 +142,8 @@ const openTags = async (page) => {
   await page.$$eval('#selbar .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
   await page.waitForFunction(() => !document.getElementById('selbar'), null, { timeout: 4000 })
     .catch(() => fail('filing did not leave select mode'));
-  const post = catPosts.find((p) => p.category === 'tech');
-  if (!post || post.chats.length !== 2) fail('POST /category wrong: ' + JSON.stringify(catPosts));
+  const post = catPosts.find((p) => (p.add || []).indexOf('tech') > -1);
+  if (!post || post.chats.length !== 2) fail('POST /labels wrong: ' + JSON.stringify(catPosts));
 
   // 4. the two filed chats LEFT the unfiltered list, and the chip counts them
   let rows = await listed(page);
@@ -174,7 +177,7 @@ const openTags = async (page) => {
     .catch(() => fail('Enter in the New… box did not file the pick'));
   cs = await chips(page);
   if (cs.indexOf('Crystals') < 0) fail('typed category never became a chip: ' + cs.join(','));
-  if (!catPosts.some((p) => p.category === 'crystals' && p.chats[0] === 'chat-c')) fail('POST /category missed the typed one');
+  if (!catPosts.some((p) => (p.add || []).indexOf('crystals') > -1 && p.chats[0] === 'chat-c')) fail('POST /labels missed the typed one');
 
   // 8. a name typed with NOTHING picked, committed by tapping away — this pair
   //    is exactly how a category she made never appeared
@@ -192,9 +195,9 @@ const openTags = async (page) => {
   await page.waitForFunction(
     () => [...document.querySelectorAll('#catrow .catchip')].some((n) => n.firstChild && n.firstChild.textContent.trim() === 'Errands'),
     null, { timeout: 4000 }).catch(() => fail('a category made with nothing picked did not appear'));
-  const made = catPosts.find((p) => p.category === 'errands');
-  if (!made) fail('POST /category never fired for the empty category');
-  if (made && made.chats.length) fail('the empty category filed chats it should not have: ' + JSON.stringify(made));
+  const made = catPosts.find((p) => (p.labels || []).indexOf('errands') > -1);
+  if (!made) fail('POST /labels never fired for the empty category');
+  if (made && (made.chats || []).length) fail('the empty category filed chats it should not have: ' + JSON.stringify(made));
 
   // 7. the answered badge: chat-a and chat-b are filed under Tech and neither
   //    has been opened, so Tech carries a 2

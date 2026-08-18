@@ -498,15 +498,20 @@
   click on and filter by").** This REPLACED the BUILT / OTHER hairline piles
   below, which were one binary judgement about how well a chat went; a tag says
   what the chat WAS, a chat can carry several, and the row is how she finds one
-  again. `tags: []` on the registry doc, `POST /api/chatfeed/tags {chat, tags}`.
-  - **The vocabulary is FIXED and lives in two places** — `TAGS` in
-    `chatfeed.js` and `TAG_LIST` in `chats.html` (the page must not spend a
-    request to learn ten words). `node scripts/test-chats-archive-tags.js`
-    pins them equal; drift means she files a tag the server drops. Her five
-    are `bug fix · new feature · built · story · quick question`, then
-    `images · film · audio · writing · research`. Growing it is a one-line
-    change in both. **Free text was refused deliberately**: a typed tag is a
-    typo away from its own orphan pile.
+  again. **The `tags` field is gone — it and `category` became ONE field,
+  `labels`, in Aug 2026** (see *ONE PILE OF LABELS* under the category chips
+  below); the archive row now offers her folder names too, and the sheet writes
+  `POST /api/chatfeed/labels` like every other chip surface.
+  - **The ten words are SEEDS, not the vocabulary** — `TAGS` in `chatfeed.js`
+    and `TAG_LIST` in `chats.html`, still pinned equal by
+    `node scripts/test-chats-archive-tags.js` because the legacy `/tags` route
+    checks a cached page's write against them. Her five are
+    `bug fix · new feature · built · story · quick question`, then
+    `images · film · audio · writing · research`. **Free text was refused
+    deliberately and that was REVERSED at her ask** ("you can't add tags"):
+    folders were always typed, so a fixed list here is what kept the two halves
+    from ever being one. Lower-casing on the way in is what is left of the
+    orphan-pile guard.
   - **HER OWN LINE IS IN THE SHEET TOO (Aug 2026, Sophie: "I'd like to also be
     able to leave my own note … it would show up in the archive as a little
     italic line underneath the bold title of the chat like the notes to myself
@@ -814,10 +819,53 @@
   is deliberately kept**, her ask, flip the const to bring it back), and the
   tool row now holds category chips plus two icon-only buttons (select,
   refresh — refresh lost its word to save the space).
-  - **A category is one `category` field on the registry doc**
-    (`POST /api/chatfeed/category {chat|chats:[…], category}`) — the Dump's
-    `track` in another costume, and it takes a whole selection in one call
-    because filing is a bulk gesture. Empty category clears it.
+  **ONE PILE OF LABELS — categories AND tags, many per chat (Aug 2026,
+  Sophie: "right now you can only be in one category at a time, for example
+  witch or to be reviewed, and you can't add tags. I think it would make sense
+  to just combine them and let you be in multiple categories or tags at
+  once").** Two fields sat side by side and neither could do the other's job:
+  `category` was exactly ONE per chat in her own free-text names, `tags` were
+  MANY but locked to ten words she could not add to. They are ONE field now —
+  `labels`, an array, her vocabulary — and a chat is in every pile it carries a
+  word for. `POST /api/chatfeed/labels {chat|chats:[…], labels?|add?|remove?}`
+  is the one write; every chip surface (the Select bar, Organize, the archive
+  sheet) goes through `saveLabels` in `chats.html` to reach it.
+  - **`add`/`remove` are PER-CHAT edits, and that is what a bulk gesture
+    needs**: she picks six chats and taps `witch`, and the ones already in
+    `to be reviewed` keep it. `labels` replaces the set (that is None, and
+    nothing else). A word with no chats picked just MAKES the word.
+  - **NOTHING WAS MIGRATED, in either direction.** Reading: a chat with no
+    `labels` reads as `category` + `tags` unioned (`labelsOf` in `chatfeed.js`,
+    `chatLabels` in `chats.html`), so all 333 chats arrived correctly labelled
+    on deploy. Writing: every write MIRRORS the pair — `category` = the first
+    label, `tags` = the whole set — because her phone runs a cached page for
+    days and because `chat-sort.js`, `brief.js`, the `/sort` diagnostics and
+    the backfill scripts were never touched. **Drop a mirror and nothing fails
+    loudly**; her filing just quietly stops meaning anything on the build she
+    is holding. Drop them only once no cached page can still read them, and
+    only by changing those readers in the same commit.
+  - **The two legacy routes are kept LOSSLESS** — `/category` replaces only the
+    FOLDER words and leaves the tag words alone, `/tags` the reverse. So a tap
+    on a cached page can never silently wipe labels it was never able to show.
+  - **A TAG FILES A CHAT NOW**, because there is only one kind of word: the
+    unfiltered home is still the UNFILED pile, and "unfiled" means carrying no
+    word at all. **Measured before shipping it**: of 333 chats only 21 carried
+    a tag and only 3 of those were live — and all 3 were already in a folder,
+    so not one chat changed list on deploy. That measurement is the whole
+    reason this was allowed; if tagging had been about to move chats off her
+    inbox it would have needed a migration instead.
+  - **The home chip row shows LESS than the sheets do** (`catList()` vs
+    `fileVocab()`): the ten old tag words are offerable everywhere but only
+    reach the row once something is actually wearing one. The row is a filter
+    she reads past on every screen; the sheets are somewhere she went on
+    purpose.
+  - Tests: `node scripts/test-chats-labels.js` (the route, the mirrors, the old
+    shape still reading, the legacy routes, and the real Organize sheet).
+  - **A category is one `category` field on the registry doc** — was, until the
+    merge above; `POST /api/chatfeed/category {chat|chats:[…], category}` is
+    still live as the legacy half. It was the Dump's `track` in another
+    costume, and it takes a whole selection in one call because filing is a
+    bulk gesture. Empty category clears it.
   - **`CAT_SEEDS` = `['stories','tech']`** (the two she named), so the chips
     exist before anything is filed; anything typed into select mode's New…
     box joins them. Tapping the LIT chip clears back to everything — the Dump
@@ -864,12 +912,14 @@
     back to and later categories" — confirmed as the chat-list FOLDER and the
     UPDATE screen's BOX).** She had two names for one intention and two places
     to go looking.
-    - **One word and one pile — deliberately NOT one field.** `category` files
-      a chat forever; `newsQueue` files ONE update until something newer lands
+    - **One word and one pile — deliberately NOT one field.** A label files a
+      chat forever; `newsQueue` files ONE update until something newer lands
       and then hands it back. Folding either into the other loses something
-      real: make the box write a category and a chat she defers an update from
-      is yanked out of Stories (a chat can only be in one folder); make the
-      folder write a queue and her filing expires on its own.
+      real: make the folder write a queue and her filing expires on its own.
+      (The other half of this argument — that a chat deferred from the Update
+      box would be yanked out of Stories, since a chat could only be in one
+      folder — died with the merge above. The expiry half is what still keeps
+      them apart.)
     - So the Update box is **labelled** "Come back to" (`NEWS_QS`) while its
       **stored value stays `later`** — the rename is a word, not a migration,
       and nothing already filed had to move. `NEWS_QUEUES` in `chatfeed.js`
@@ -1380,13 +1430,15 @@
     them, which is a round trip out of the chat she is reading and back. TAGS
     only ever appeared on the way past, inside the archive sheet, so a chat
     she was *not* archiving could not be tagged at all.
-  - **Two sections because they are two different things**, labelled, because
-    an unlabelled wall of identical chips gives no clue which tap is which:
-    **FOLDER** is exactly one per chat (`catList()`, `POST /category` with a
-    one-name list, plus a New… box and None), **TAGS** is many (`TAG_LIST`,
-    `POST /tags`) — the same vocabulary the archive sheet writes and the
-    archive's filter row reads.
-  - **Tapping the folder a chat is already in takes it out** — one control,
+  - **It shipped as two labelled sections and is ONE ROW OF CHIPS now** (Aug
+    2026 — the merge above). FOLDER (exactly one per chat) over TAGS (many, a
+    fixed ten words) needed labels because an unlabelled wall of identical
+    chips gives no clue which tap is which; with one kind of word there is
+    nothing to tell apart, so `.orggrp` went unused (kept in the CSS, with the
+    rule: bring it back the moment a second kind of chip lands in that sheet).
+    Every chip toggles, several can be lit, and the New… box makes a word that
+    did not exist.
+  - **Tapping a word a chat already carries takes it off** — one control,
     both directions, like every other toggle on this screen.
   - **The `filedAt` stamp is written client-side here too**, copied from
     `filePicked` and not left to the server's own: without it a chat with an

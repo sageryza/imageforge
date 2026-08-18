@@ -834,12 +834,21 @@ them off the reference sheet, not off the old filenames.
   Sophie: "an ability to tag or categorize something from within the chat
   itself … an icon that says organize and then it pulls up the ability to tag
   and categorize which is already on the front page but so far it doesn't work
-  within there").** The tag icon in a thread's header opens a sheet with her
-  FOLDERS (one per chat, `POST /category`) over the TAG vocabulary (many,
-  `POST /tags`) — both already existed, neither was reachable from a thread.
+  within there").** The tag icon in a thread's header opens a sheet of her own
+  words — one row of chips, several lit at once — which shipped as her FOLDERS
+  (one per chat) over a fixed TAG vocabulary (many); both already existed and
+  neither was reachable from a thread.
   Everything saves on the tap. **Filing is still HERS, not yours** — the
   server files chats by itself (`chat-sort.js`); do not POST a category.
-  Same test file.
+  **CATEGORIES AND TAGS ARE ONE FIELD SINCE AUG 2026** (Sophie: "you can only
+  be in one category at a time … combine them and let you be in multiple
+  categories or tags at once") — `labels`, an array, many per chat, her own
+  words, one row of chips in the sheet. `POST /api/chatfeed/labels
+  {chat|chats, labels?|add?|remove?}` is the write; `category` and `tags` are
+  still MIRRORED on every write (first label / whole set) for the cached page
+  on her phone and for every reader that was never touched, so don't drop
+  them. Full rules in `docs/chats-app.md`; tests
+  `node scripts/test-chats-labels.js` and the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
