@@ -53,8 +53,13 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .afilter button+button{border-left:1px solid var(--line);}
 .afilter button.on{background:var(--rose); color:#fff;}
 .asearch{position:relative; margin:0 0 12px;}
+/* 16px MINIMUM on every input on this page (found live 2026-08-18 on Sophie's
+   phone): iOS auto-zooms when an input under 16px gets focus, that zoom
+   IGNORES user-scalable=no — and user-scalable=no then blocks pinching back
+   out, so one tap on a 15px search box left the whole page stuck zoomed
+   ~1.7x, panning sideways. chats.html's search box is 16px for this reason. */
 .asearch input{width:100%; box-sizing:border-box; font-family:Georgia,serif;
-  font-size:15px; color:var(--ink); background:var(--barbg); border:1.5px solid var(--line); border-radius:6px;
+  font-size:16px; color:var(--ink); background:var(--barbg); border:1.5px solid var(--line); border-radius:6px;
   padding:9px 38px 9px 12px;}
 .asearch input:focus{outline:none; border-color:var(--rose);}
 .asearch input::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
@@ -124,7 +129,7 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
 .lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
 .lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
-  font-family:Georgia,serif; font-size:14px; padding:9px 11px;}
+  font-family:Georgia,serif; font-size:16px; padding:9px 11px;}   /* 16px floor — see .asearch */
 .lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
 .lbnote .notesend svg{width:18px; height:18px; display:block;}
@@ -149,9 +154,16 @@ function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.st
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
 function scrollStop(){ if(window.__scrollStop) window.__scrollStop(); }
-// Any tap pauses the autoscroll; the pill itself (and the shared interactive
-// skip list) is exempt — __scrollTap(e) carries the list, never call it bare.
-document.addEventListener('pointerdown', function(e){ if(window.__scrollTap) window.__scrollTap(e); }, true);
+// Any tap PAUSES the autoscroll — and only pauses (found live 2026-08-18 on
+// Sophie's phone): __scrollTap is the tap-to-TOGGLE gesture, so wiring it to
+// every pointerdown made any tap on non-interactive content START the scroll.
+// On a grid you browse by tapping, only the pill may start it. The pill
+// itself is exempt so a stop here can't repaint it mid-press and eat its
+// click (the Cut Marks bug).
+document.addEventListener('pointerdown', function(e){
+  if(e.target && e.target.closest && e.target.closest('.float')) return;
+  if(window.__scrollStop) window.__scrollStop();
+}, true);
 // The app's nav-bar chevron asks the page first: close the lightbox if it's
 // open, else let the app step back / leave the tool.
 window.__navBack=function(){
