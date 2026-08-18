@@ -385,8 +385,16 @@ setTimeout(function(){
   ok(offs.every(function(d){ return d[0]<1.5 && d[1]<1.5; }),
      'the ✕, the ♥ and the ? are centred in their own buttons — got '
      + offs.map(function(d){ return d[0].toFixed(1)+'/'+d[1].toFixed(1); }).join(' '));
-  ok(parseFloat(getComputedStyle(row.querySelector('.jg-momnote')).fontSize)>=16,
-     'the note box is 16px+ so iOS cannot zoom the page when she types');
+  // her size, and the page pinned so iOS cannot zoom itself instead
+  ok(parseFloat(getComputedStyle(row.querySelector('.jg-momnote')).fontSize)===13,
+     'the note box is HER 13px, not inflated to dodge the iOS zoom');
+  ok(/maximum-scale=1/.test((document.querySelector('meta[name="viewport"]')||{})
+       .getAttribute('content')||''),
+     'the viewport pins the scale, so a focused field cannot zoom the page');
+  var nz=m.querySelector('.jg-navzone');
+  ok(nz && getComputedStyle(nz).webkitTapHighlightColor.split(' ').join('')==='rgba(0,0,0,0)',
+     'the edge zones flash NO grey bar when she taps the side — got '
+     + (nz && getComputedStyle(nz).webkitTapHighlightColor));
   ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
      && !m.querySelector('.jg-mic'),
      'the Note for Claude box sits between them — no corner + and no mic');

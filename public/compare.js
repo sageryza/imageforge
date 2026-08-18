@@ -109,6 +109,30 @@
 
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 
+  /* 3b — NO SELF-ZOOM ON A FOCUSED FIELD (Aug 2026, Sophie: "I would prefer
+     not to have pinch [zoom] and for it not to be 16 PX… I don't need pinch
+     zoom"). iOS zooms the whole page whenever it focuses an input under 16px,
+     and the only two cures are inflating every field to 16px or pinning the
+     page scale. She picked the scale, so her type stays her size.
+
+     Done HERE, at runtime, rather than only in the page skeleton, because
+     every Compare page ever posted links this file — a hand-built page from
+     months ago is frozen HTML and would otherwise keep zooming forever. A
+     page that has already said maximum-scale is left alone. */
+  (function () {
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (!vp) {
+      vp = document.createElement('meta');
+      vp.setAttribute('name', 'viewport');
+      vp.setAttribute('content', 'width=device-width, initial-scale=1');
+      document.head.appendChild(vp);
+    }
+    var content = vp.getAttribute('content') || '';
+    if (/maximum-scale/i.test(content)) return;
+    vp.setAttribute('content', content.replace(/\s*,\s*$/, '')
+      + ', maximum-scale=1, user-scalable=no');
+  })();
+
   window.__compareShell.openImage = open;
   window.__compareShell.closeImage = close;
 
