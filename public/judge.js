@@ -138,8 +138,12 @@
     // ask — the one part of the card that is deliberately NOT the mockup's
     // serif, so the name reads as a label over the moment rather than as
     // more of the writing)
+    // CAPS at her ask — and caps in the sans bring the house rule with them
+    // (design-rules.md: the sans is caps, NOT bold, with a little tracking,
+    // because caps set solid read as a block)
     '.jg.mom>.who,.jg-mom .who{text-align:center;padding:22px 0 4px;' +
-    ' font:600 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;}' +
+    ' font:500 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;' +
+    ' text-transform:uppercase;letter-spacing:.04em;}' +
     '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:10px;' +
     ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
     '.jg-mombox .eyebrow{font:700 10px/1.3 -apple-system,sans-serif;' +
@@ -175,8 +179,12 @@
     '.jg-mombtn.yes{font-size:24px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
     '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
-    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
-    ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
+    ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:8px 12px;' +
+    // 16px EXACTLY, or iOS zooms the page in the moment she starts typing
+    // (Safari auto-zooms any focused field under 16px — she caught it here).
+    // The alternative, maximum-scale=1 on the viewport, buys the same thing
+    // by taking her pinch-zoom away everywhere; the type is the cheaper fix.
+    ' font:400 16px/1.3 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
     '.jg-momnote::placeholder{color:#A99E8B;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
@@ -462,8 +470,14 @@
       post({ item: it.id, ok: val });
       if (val === true || val === false || prev === true || prev === false) mirrorVote(it, val);
       if (browse) {
-        // a judged card steps FORWARD, never jumps — her order stays hers
-        if (val !== null) { if (cur < items.length - 1) cur += 1; else view = 'piles'; }
+        // A MARK NEVER MOVES THE DECK (Aug 2026, Sophie, on her date deck:
+        // "hearting, heart or exing should not move the moment, only tapping
+        // on the sides should go to the next moment"). Marking and moving are
+        // separate gestures here: the ♥/✕ stay put so she can mark, re-read,
+        // change her mind, then leave when she is ready. Only the edge taps
+        // and the swipe navigate. (A deck with no browse mode has no edges to
+        // tap, so there the verdict still advances — that is the classic
+        // Tinder page and its only way forward.)
       } else {
         var next = firstUnjudged();
         if (next === -1) { view = 'piles'; } else { cur = next; }
@@ -728,14 +742,15 @@
       var steps = [];
       if (browse) {
         steps.push({ sel: '.jg-card', text: 'One card at a time. Tap the left or right '
-          + 'edge of the card (or swipe) to move through the deck — you never have to '
-          + 'mark a card to keep going.' });
+          + 'edge of the card (or swipe) to move through the deck — that is the only '
+          + 'thing that moves you, so marking a card never carries you off it.' });
       }
       steps.push({ sel: momDeck && !states ? '.jg-momrow' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
-          ? '♥ yes, ✕ no — and the box between them is a note for this card, '
-            + 'saved as you type.'
+          ? '♥ yes, ✕ no — marking one never moves you on, so you can change '
+            + 'your mind. The box between them is a note for this card, saved '
+            + 'as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
           + 'Each one saves the moment you tap it.' });
       if (voice) {
@@ -767,7 +782,8 @@
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
         : momDeck
-          ? '♥ yes · ✕ no · the box between them is a note that saves as you type.'
+          ? '♥ yes · ✕ no — neither one moves you on · the box between them is '
+            + 'a note that saves as you type.'
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'

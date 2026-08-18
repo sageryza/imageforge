@@ -885,8 +885,18 @@ them off the reference sheet, not off the old filenames.
   {chat|chats, labels?|add?|remove?}` is the write; `category` and `tags` are
   still MIRRORED on every write (first label / whole set) for the cached page
   on her phone and for every reader that was never touched, so don't drop
-  them. Full rules in `docs/chats-app.md`; tests
-  `node scripts/test-chats-labels.js` and the same file as the tags above.
+  them. **A LABEL IS A PILE OR JUST A WORD (Aug 2026 v2, Sophie: "tagging
+  shouldn't hide everything … whereas other ones shouldn't take it off the main
+  feed")** — only a PILE word takes a chat off the unfiled home list, seeded
+  from her folder vocabulary frozen the day the fields merged (`PILE_SEEDS`)
+  and switched per word in the Organize sheet (`POST /pile`). **And `to be
+  reviewed` also puts the chat in the Review Queue** at `/review`. **And
+  `waiting for something` OPENS A BOX** asking what it is waiting for; her
+  answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
+  bold **Waiting for:** line on the chat's row and above her note in the
+  thread, and is DELETED the moment the tag comes off — a second asking word is
+  not yours to declare. Full rules in `docs/chats-app.md`; tests `node
+  scripts/test-chats-labels.js` and the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -2041,6 +2051,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The 'later' rule**: on stock-states pages `'later'` counts as still
     waiting (it is literally "declined to sort now" — judge.js), shown apart
     ("4 of 28 · 2 later"). A page with its OWN states counts every one.
+  - **A CHAT SHE TAGGED `to be reviewed` IS A ROW TOO (Aug 2026, Sophie: "that
+    particular category should take it off the main feed and also put it into
+    the review area").** THE LABEL IS THE WHOLE MECHANISM — nothing filed,
+    nothing stamped, no second list to fall out of step with the chips in the
+    Chats app: the word goes on and the row appears, the word comes off (or she
+    taps ✕ here, which is the same write, `POST /reviewed`) and it goes. The
+    row leads with her name for the chat and carries what the chat says it
+    needs — its status card's `need`, already written. No bar and never DONE:
+    there is nothing to count through. Archived/deleted/moved chats are out.
+    The word is `REVIEW_LABEL` in `chatfeed.js`, one constant both modules read.
   - **Hand-built HTML pages are OUT by design** — their items live in markup,
     and a guessed total is a wrong number in front of her.
   - **Not every deck is a review** (the template demos, a browse deck): the ✕

@@ -98,6 +98,9 @@
   comparison grid any chat has posted, with how far through it you are. Tap a
   row to review; your swipes save as you go, so a row leaves this list by
   itself when you finish it.
+  <br><br><b>Chats show up here too</b> — tag a chat <i>to be reviewed</i> in the
+  Chats app and it lands in this pile, with whatever it says it needs from you.
+  The ✕ on a chat row takes that tag back off.
   <br><br><b>✕ means "not a review"</b> — a browse deck or a demo you'll never
   swipe. It moves the row to a hidden pile behind DONE, where ↩ brings it back.
   <br><br>Later stays counted as waiting — it's the pile you asked to come
@@ -128,6 +131,9 @@ var HEADERS = TOK ? { 'x-studio-token': TOK, 'content-type': 'application/json' 
 /* A text-only deck (date cards) has no picture — a small card-stack glyph
    (Lucide `layers`-style lines, inlined) holds the thumb's place. */
 var CARDS = '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="14" height="18" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/></svg>';
+/* Lucide `message-square` — a chat row is not a deck of cards, and the glyph is
+   the only thing on the row that says so before she reads it. */
+var BUBBLE = '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -148,7 +154,6 @@ function ago(iso) {
 }
 
 function row(r, kind) {
-  var left = r.total - r.decided;
   var pct = r.total ? Math.round((r.decided / r.total) * 100) : 0;
   var count = kind === 'wait'
     ? (r.decided ? r.decided + ' of ' + r.total : r.total + ' to go')
@@ -156,20 +161,32 @@ function row(r, kind) {
     : r.total + ' done';
   var thumb = r.thumb
     ? '<img class="qth" loading="lazy" src="' + esc(r.thumb) + '" alt="">'
-    : '<span class="qth ph">' + CARDS + '</span>';
+    : '<span class="qth ph">' + (r.kind === 'chat' ? BUBBLE : CARDS) + '</span>';
+  /* A CHAT ROW has nothing to count through — it is here because she put
+     `to be reviewed` on it, and it leaves when that word comes off. So it
+     carries no bar and no "3 of 12": the second line is the chat's own name and
+     the first is what it says it needs from her, which the status card already
+     wrote. The ✕ takes the label off (POST /reviewed), the same write her chips
+     in the Chats app make. */
+  var chat = r.kind === 'chat';
   return '<article class="qrow' + (kind === 'wait' && !r.decided ? ' due' : '') + '">'
     + '<a class="qgo" href="' + esc(r.url) + '">'
     + thumb
     + '<span class="qtx">'
-    + '<span class="qt">' + esc(r.title) + '</span>'
-    + '<span class="qm">' + esc(r.name) + ' · ' + esc(r.template) + ' · ' + esc(ago(r.created)) + '</span>'
-    + '<span class="qp"><span class="qbar"><i style="width:' + pct + '%"></i></span>'
-    + '<span class="qn">' + esc(count) + '</span></span>'
+    + '<span class="qt">' + esc(chat ? r.name : r.title) + '</span>'
+    + '<span class="qm">' + esc(chat ? 'chat' : r.name + ' · ' + r.template)
+      + ' · ' + esc(ago(r.created)) + '</span>'
+    + (chat
+      ? (r.title ? '<span class="qp"><span class="qn">' + esc(r.title) + '</span></span>' : '')
+      : '<span class="qp"><span class="qbar"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="qn">' + esc(count) + '</span></span>')
     + '</span></a>'
     + (kind === 'hidden'
       ? '<button class="qx" data-unhide="' + esc(r.id) + '" aria-label="put it back">↩</button>'
       : kind === 'wait'
-        ? '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>'
+        ? (chat
+          ? '<button class="qx" data-reviewed="' + esc(r.chat) + '" aria-label="done reviewing">✕</button>'
+          : '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>')
         : '')
     + '</article>';
 }
@@ -179,8 +196,13 @@ var Q = null;
 function render() {
   if (!Q) return;
   var c = Q.counts || {};
+  /* Chats have no cards to count, so they are named apart rather than folded
+     into a card total that would then be a lie. */
+  var bits = [];
+  if (c.items) bits.push(c.items + ' card' + (c.items === 1 ? '' : 's') + ' to go');
+  if (c.chats) bits.push(c.chats + ' chat' + (c.chats === 1 ? '' : 's'));
   $('strip').innerHTML = c.pages
-    ? '<b>' + c.pages + ' waiting</b> · ' + c.items + ' card' + (c.items === 1 ? '' : 's') + ' to go'
+    ? '<b>' + c.pages + ' waiting</b>' + (bits.length ? ' · ' + bits.join(' · ') : '')
     : 'Nothing waiting';
   $('pane-wait').innerHTML = (Q.waiting || []).length
     ? Q.waiting.map(function (r) { return row(r, 'wait'); }).join('')
@@ -200,6 +222,19 @@ function render() {
       ph.className = 'qth ph';
       ph.innerHTML = CARDS;
       img.replaceWith(ph);
+    });
+  });
+  /* The ✕ on a CHAT row: takes `to be reviewed` off it, which is the same write
+     her chips make in the Chats app — never a second stamp that could disagree
+     with the label. */
+  document.querySelectorAll('[data-reviewed]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      fetch('/api/review/reviewed', { method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ chat: btn.getAttribute('data-reviewed') }) })
+        .then(function (r) { return r.json(); })
+        .then(function () { load(true); })
+        .catch(function () { btn.disabled = false; });
     });
   });
   document.querySelectorAll('[data-hide],[data-unhide]').forEach(function (btn) {

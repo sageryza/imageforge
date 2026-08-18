@@ -51,14 +51,25 @@ const row = (o) => ({
   url: '/api/chatfeed/page/' + o.id, total: o.total, decided: o.decided || 0,
   later: o.later || 0, thumb: o.thumb || '', at: new Date().toISOString(),
 });
+// A CHAT ROW (Aug 2026) — she put `to be reviewed` on a chat and it turns up
+// here. Nothing to count through, so it carries no bar and its ✕ takes the
+// label off rather than hiding a page.
+const chatRow = {
+  kind: 'chat', id: 'chat-witch-shop', chat: 'witch-shop', name: 'The witch shop',
+  title: 'pick a palette, 10 seconds', template: 'chat',
+  created: new Date(Date.now() - 7200e3).toISOString(),
+  at: new Date(Date.now() - 7200e3).toISOString(),
+  url: '/chats?chat=witch-shop', total: 0, decided: 0, later: 0, thumb: '',
+};
 const QUEUE = {
   waiting: [
     row({ id: 'w1', title: 'XI cards — batch 2', total: 131 }),                    // untouched text deck
     row({ id: 'w2', title: 'Instagram ideas v1', total: 28, decided: 4, later: 2, thumb: PX }),
+    chatRow,
   ],
   done: [row({ id: 'd1', title: 'Style test v1', template: 'grid', total: 16, decided: 16, thumb: PX })],
   hidden: [row({ id: 'h1', title: 'Deck template demo', total: 4 })],
-  counts: { pages: 2, items: 155, done: 1 },
+  counts: { pages: 3, items: 155, chats: 1, done: 1 },
   generatedAt: new Date().toISOString(),
 };
 
@@ -100,11 +111,13 @@ const QUEUE = {
 
   // ── it drew ──────────────────────────────────────────────────────────────
   ok('no page errors (the pill did not kill the script, nor it the pill)', errors.length === 0);
-  is('the waiting rows drew', await page.locator('#pane-wait .qrow').count(), 2);
-  is('the strip counts the pile', (await page.locator('#strip').textContent()).trim(),
-    '2 waiting · 155 cards to go');
-  ok('an untouched row reads due (rose count)',
-    await page.locator('#pane-wait .qrow.due').count() === 1);
+  is('the waiting rows drew', await page.locator('#pane-wait .qrow').count(), 3);
+  is('the strip counts the pile, chats named apart from the cards',
+    (await page.locator('#strip').textContent()).trim(),
+    '3 waiting · 155 cards to go · 1 chat');
+  ok('an untouched row reads due (rose count) — the deck nobody has swiped and '
+    + 'the chat waiting on her, not the one she is part-way through',
+    await page.locator('#pane-wait .qrow.due').count() === 2);
   is('a text deck draws the card glyph, not a broken image',
     await page.locator('#pane-wait .qrow').first().locator('.qth.ph svg').count(), 1);
   ok('a started row says how far and what is parked for later',
@@ -113,6 +126,21 @@ const QUEUE = {
   is('a row is a link to the page itself',
     await page.locator('#pane-wait .qrow').first().locator('a.qgo').getAttribute('href'),
     '/api/chatfeed/page/w1');
+
+  // ── a chat row ───────────────────────────────────────────────────────────
+  const crow = page.locator('#pane-wait .qrow').nth(2);
+  is('a chat row opens the CHAT, not a page',
+    await crow.locator('a.qgo').getAttribute('href'), '/chats?chat=witch-shop');
+  is('it leads with her name for the chat',
+    (await crow.locator('.qt').textContent()).trim(), 'The witch shop');
+  ok('it says it is a chat', (await crow.locator('.qm').textContent()).indexOf('chat') === 0);
+  ok('it carries no progress bar — there is nothing to count through',
+    await crow.locator('.qbar').count() === 0);
+  ok('it shows what the chat says it needs',
+    (await crow.locator('.qn').textContent()).trim() === 'pick a palette, 10 seconds');
+  ok('its ✕ takes the label off rather than hiding a page',
+    await crow.locator('[data-reviewed="witch-shop"]').count() === 1
+    && await crow.locator('[data-hide]').count() === 0);
 
   // ── the pill contract ────────────────────────────────────────────────────
   ok('the injected pill is there', await page.locator('.float').count() > 0);

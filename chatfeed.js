@@ -1569,6 +1569,64 @@ router.post('/archive-kind', async (req, res) => {
 const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
   'images', 'film', 'audio', 'writing', 'research'];
 
+// ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
+// "tagging shouldn't hide everything, or maybe just for certain categories —
+// like `to be reviewed` should send it to the review pile … whereas other ones
+// shouldn't take it off the main feed") ------------------------------------
+// Combining the two fields had one consequence nobody asked for: a FOLDER
+// always took a chat off the main list (her own rule — "when I mark something
+// as a story it takes it out of the normal list"), and once tags were the same
+// field, tagging a chat `images` hid it too.
+//
+// So a label carries one property: is it a PILE. A pile takes the chat off the
+// unfiled home list; every other word is just a word on the chat and changes
+// nothing about where it shows.
+//
+// THE SEED IS FROZEN ON PURPOSE. It is her folder vocabulary as measured on
+// 2026-08-18, the day the two fields merged — so the app behaves EXACTLY as it
+// did before the merge, and a word she invents tomorrow is a plain tag rather
+// than a trapdoor. Reading `__settings.categories` instead would have been
+// self-defeating: every new word joins that list, so every new word would file.
+// `__settings.pileLabels` overrides the seed WHOLESALE once she touches the
+// switch — it is the answer, not a diff.
+const PILE_SEEDS = ['look at', 'stories', 'come back to', 'witch', 'tech', 'xi',
+  'just for fun', 'weird games', 'meta', 'dream app', 'chunk making',
+  'waiting for something', 'to be reviewed'];
+
+// The one word that ALSO routes: a chat carrying it becomes a row in the Review
+// Queue (`review.js`), her pile of everything waiting on her. Hers, and named
+// here so the two modules can never disagree about the spelling.
+const REVIEW_LABEL = 'to be reviewed';
+
+// ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+// condition for the `waiting for something` tag — it should also trigger a text
+// box that asks me what is it waiting for, and then that gets added to the note
+// for the chat at the top: it says in bold `Waiting for:` and then my
+// content") ---------------------------------------------------------------
+// `waiting for something` on its own says a chat is stuck and nothing else. The
+// thing worth knowing — waiting on WHAT — was in her head and nowhere on the
+// screen, so the tag could not tell her whether the wait was over.
+//
+// The answer lives in its own field, `waitingFor`, and NOT in `sophieNote`: a
+// chat must never overwrite a line she wrote (the standing rule), and this one
+// is tied to the tag rather than to the chat. Taking the tag off clears it,
+// which is what keeps a stale "waiting for the API key" from outliving the wait.
+//
+// ONE word asks, and a second is not mine to declare — same rule as the pinned
+// link. If another word should ask something, she says so first.
+const WAIT_LABEL = 'waiting for something';
+const WAIT_ASK = 'What is it waiting for?';
+const WAIT_PREFIX = 'Waiting for:';
+const WAIT_MAX = 200;
+
+function pileList(settings) {
+  const s = settings || {};
+  return Array.isArray(s.pileLabels) ? cleanLabels(s.pileLabels) : PILE_SEEDS.slice();
+}
+function isPile(label, settings) {
+  return pileList(settings).indexOf(String(label || '').trim().toLowerCase()) > -1;
+}
+
 const LABEL_MAX = 40;      // one label, characters — the old `category` cap
 const LABELS_MAX = 20;     // labels on one chat, a backstop and nothing more
 
@@ -1603,8 +1661,13 @@ function labelsOf(reg) {
 function labelPatch(labels, { by = 'sophie' } = {}) {
   const del = admin.firestore.FieldValue.delete();
   const clean = cleanLabels(labels);
+  // The waiting-for line belongs to the TAG, not to the chat: the moment the
+  // word comes off, the answer goes with it. Otherwise "waiting for the API
+  // key" sits on a chat that stopped waiting weeks ago — and a stale line she
+  // wrote herself is worse than no line at all.
+  const waiting = clean.indexOf(WAIT_LABEL) > -1 ? {} : { waitingFor: del };
   if (!clean.length) {
-    return { labels: del, category: del, tags: del, filedAt: del, catBy: del };
+    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting };
   }
   return {
     labels: clean,
@@ -1612,6 +1675,7 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
     tags: clean,
     filedAt: new Date().toISOString(),
     catBy: by,
+    ...waiting,
   };
 }
 
@@ -1689,6 +1753,53 @@ router.post('/labels', async (req, res) => {
 // because that is what the route has always returned and a cached page reads
 // it; `labels` is the same list under the name the field now uses.
 router.get('/tags', (_req, res) => res.json({ tags: TAGS, labels: TAGS }));
+
+// WHICH WORDS ARE PILES — one switch per word, her hand only.
+// `POST /pile { label, pile }` stores the WHOLE resulting list on __settings,
+// seeded from PILE_SEEDS the first time she touches it, because a diff against
+// a moving default is a list that means something different next week.
+// GET answers the current list so a page that has never seen a write still
+// knows (the feed carries `pileLabels` in `settings` too, once it exists).
+router.get('/pile', async (_req, res) => {
+  try {
+    const reg = await registry();
+    res.json({ piles: pileList(reg.settings), seeds: PILE_SEEDS, review: REVIEW_LABEL });
+  } catch (err) { fail(res, err); }
+});
+
+// WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
+// tag opens. Its own field so it can never overwrite a note she wrote, and it
+// is cleared by `labelPatch` the moment the tag comes off.
+router.post('/waiting', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const chat = String(body.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const text = String(body.text == null ? '' : body.text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+    const slug = await followMoves(chat);
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, waitingFor: text });
+  } catch (err) { fail(res, err); }
+});
+
+router.post('/pile', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const label = String(body.label || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    if (!label) return res.status(400).json({ error: 'label required' });
+    const reg = await registry();
+    const cur = pileList(reg.settings);
+    const on = body.pile !== false;
+    const next = on
+      ? (cur.indexOf(label) > -1 ? cur : cur.concat(label))
+      : cur.filter((c) => c !== label);
+    await regRef(SETTINGS_DOC).set({ pileLabels: next }, { merge: true });
+    res.json({ ok: true, label, pile: on, piles: next });
+  } catch (err) { fail(res, err); }
+});
 
 // ---- The two legacy routes, kept LOSSLESS ----------------------------------
 // Her phone can run a build from days ago, and both of these are wired to live
@@ -3405,4 +3516,6 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
-  TAGS, cleanLabels, labelsOf, labelPatch };
+  TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
+  PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };

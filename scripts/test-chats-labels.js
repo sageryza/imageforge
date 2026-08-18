@@ -226,6 +226,87 @@ async function routeTests() {
   r = await call(post, {});
   ok('an empty body is refused', r.code === 400);
 
+  // ---- A PILE, OR JUST A WORD (Aug 2026 v2) ------------------------------
+  // Combining the fields gave every tag word a folder's power to hide a chat.
+  // Only a PILE does now, and the seed is her folder vocabulary FROZEN the day
+  // they merged — reading `__settings.categories` instead would make every new
+  // word she types a trapdoor, since every new word joins that list.
+  const pile = handlerFor(router, 'post', '/pile');
+  const pileGet = handlerFor(router, 'get', '/pile');
+  ok('POST /pile exists', !!pile);
+  const seeded = await call(pileGet, {});
+  ok('with nothing stored, the seed is the answer',
+    (seeded.body.piles || []).indexOf('stories') > -1
+    && (seeded.body.piles || []).indexOf('to be reviewed') > -1,
+    JSON.stringify(seeded.body.piles));
+  ok('…and a tag word is NOT in it', (seeded.body.piles || []).indexOf('bug fix') < 0);
+  ok('…and the review word is named back', seeded.body.review === 'to be reviewed');
+
+  r = await call(pile, { label: 'images', pile: true });
+  ok('flipping a word on answers the WHOLE list, not a diff',
+    (r.body.piles || []).indexOf('images') > -1 && (r.body.piles || []).length > 5,
+    JSON.stringify(r.body.piles));
+  ok('…and stores it that way',
+    (reg().__settings.pileLabels || []).indexOf('images') > -1);
+  await call(pile, { label: 'stories', pile: false });
+  ok('flipping a seeded word OFF takes it out for good',
+    (reg().__settings.pileLabels || []).indexOf('stories') < 0,
+    JSON.stringify(reg().__settings.pileLabels));
+  ok('…and leaves the others alone',
+    (reg().__settings.pileLabels || []).indexOf('witch') > -1);
+  r = await call(pile, {});
+  ok('a pile flip with no word is refused', r.code === 400);
+
+  // ---- A WORD THAT ASKS A QUESTION (Aug 2026 v3) -------------------------
+  // `waiting for something` opens a box; her answer lives in `waitingFor`, its
+  // own field, because a chat must never overwrite a line she wrote — and the
+  // answer dies with the tag so a stale wait cannot outlive the thing it was
+  // waiting for.
+  const waiting = handlerFor(router, 'post', '/waiting');
+  ok('POST /waiting exists', !!waiting);
+  await call(post, { chat: 'plain', labels: ['waiting for something'] });
+  r = await call(waiting, { chat: 'plain', text: '  the API   key  ' });
+  ok('the answer is stored, whitespace tidied', reg().plain.waitingFor === 'the API key',
+    JSON.stringify(reg().plain.waitingFor));
+  ok('…and answered back', r.body && r.body.waitingFor === 'the API key');
+  r = await call(waiting, { chat: 'nobody-here', text: 'x' });
+  ok('a chat that does not exist is NOT created', reg()['nobody-here'] === undefined && r.code === 404);
+  r = await call(waiting, { text: 'x' });
+  ok('a body with no chat is refused', r.code === 400);
+  await call(waiting, { chat: 'plain', text: '' });
+  ok('an empty answer DELETES the field', reg().plain.waitingFor === undefined);
+
+  // the tag comes off → the answer goes with it, whichever way it comes off
+  await call(waiting, { chat: 'plain', text: 'her go-ahead' });
+  await call(post, { chat: 'plain', add: ['meta'] });
+  ok('another word does not disturb it', reg().plain.waitingFor === 'her go-ahead');
+  await call(post, { chat: 'plain', remove: ['waiting for something'] });
+  ok('taking the tag off clears the answer', reg().plain.waitingFor === undefined);
+  await call(post, { chat: 'plain', labels: ['waiting for something'] });
+  await call(waiting, { chat: 'plain', text: 'Tuesday' });
+  await call(post, { chat: 'plain', labels: [] });
+  ok('…and so does clearing every word', reg().plain.waitingFor === undefined);
+
+  // the two copies of the seed, pinned equal — same reason as TAGS/TAG_LIST
+  const pageSrc = fs.readFileSync(path.join(ROOT, 'public', 'chats.html'), 'utf8');
+  const lift = (src, marker) => {
+    const i = src.indexOf(marker);
+    if (i < 0) return null;
+    const a = src.indexOf('[', i); const b = src.indexOf(']', a);
+    try { return JSON.parse(src.slice(a, b + 1).replace(/'/g, '"')); } catch { return null; }
+  };
+  const srvSeed = lift(fs.readFileSync(path.join(ROOT, 'chatfeed.js'), 'utf8'), 'const PILE_SEEDS = [');
+  const pgSeed = lift(pageSrc, 'var PILE_SEEDS=[');
+  ok('the page and the server know the SAME pile seed',
+    srvSeed && JSON.stringify(srvSeed) === JSON.stringify(pgSeed),
+    JSON.stringify(srvSeed) + ' vs ' + JSON.stringify(pgSeed));
+  ok('the review word matches too',
+    /REVIEW_LABEL\s*=\s*'to be reviewed'/.test(pageSrc));
+  ok('and so do the three waiting-for constants',
+    /WAIT_LABEL\s*=\s*'waiting for something'/.test(pageSrc)
+    && /WAIT_ASK\s*=\s*'What is it waiting for\?'/.test(pageSrc)
+    && /WAIT_PREFIX\s*=\s*'Waiting for:'/.test(pageSrc));
+
   // ---- the two legacy routes, kept lossless ------------------------------
   const cat = handlerFor(router, 'post', '/category');
   const tags = handlerFor(router, 'post', '/tags');
@@ -272,11 +353,12 @@ async function pageTests() {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({
         build: 'test-build-1', chats: CHATS,
-        settings: { appAccount: '1', categories: ['witch', 'to be reviewed'] },
+        settings: { appAccount: '1', categories: ['witch', 'to be reviewed', 'waiting for something'] },
         truncated: [], messages: since ? [] : MSGS, delta: !!since,
       }));
     }
-    if (url.pathname === '/api/chatfeed/labels' && req.method === 'POST') {
+    if ((url.pathname === '/api/chatfeed/labels' || url.pathname === '/api/chatfeed/pile'
+        || url.pathname === '/api/chatfeed/waiting') && req.method === 'POST') {
       let body = '';
       req.on('data', (c) => body += c);
       req.on('end', () => {
@@ -366,8 +448,129 @@ async function pageTests() {
       JSON.stringify((posts[posts.length - 1] || {}).labels) === '[]',
       JSON.stringify(posts[posts.length - 1]));
 
-    // the old shape reads as both words on the page too
+    // ---- THE WORD THAT ASKS A QUESTION -----------------------------------
+    // Sophie: "it should also trigger a text box that asks me what is it
+    // waiting for, and then that gets added to the note for the chat at the
+    // top: it says in bold `Waiting for:` and then my content."
+    await chip('Waiting for something');
+    await page.waitForSelector('.askwrap:last-of-type .arcnote', { timeout: 3000 })
+      .catch(() => ok('the tag opens a box', false));
+    const wtop = '.askwrap:last-of-type';
+    ok('the box asks her question, in her words',
+      (await page.$eval(wtop + ' .archq', (n) => n.textContent)) === 'What is it waiting for?');
+    await page.fill(wtop + ' .arcnote', 'the API key');
+    await page.click(wtop + ' .askrow .go');
+    await page.waitForTimeout(250);
+    const wpost = posts.filter((p) => p.text !== undefined).pop();
+    ok('her answer posts against the chat',
+      wpost && wpost.chat === 'nothing-yet' && wpost.text === 'the API key',
+      JSON.stringify(wpost));
+    ok('the sheet shows it back under the chips',
+      /Waiting for:.*the API key/.test(await page.$eval('.askwrap .waitedit', (n) => n.textContent)));
     await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(150);
+    ok('the thread shows it above her note',
+      /Waiting for:.*the API key/.test(await page.$eval('#thread .waitline', (n) => n.textContent)));
+    ok('…with the prefix in bold and only the prefix',
+      (await page.$eval('#thread .waitline b', (n) => n.textContent)) === 'Waiting for:');
+    await page.click('#back');
+    await page.waitForTimeout(200);
+    // `waiting for something` is one of her folder words, so it is a PILE and
+    // the chat has left the unfiled list — look at it inside its own folder,
+    // which is where she would.
+    if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
+    await page.$$eval('#catrow .catchip', (ns) => {
+      const b = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Waiting for something');
+      if (b) b.click();
+    });
+    await page.waitForTimeout(200);
+    ok('and it is the line on the home row',
+      /Waiting for:.*the API key/.test(
+        await page.$eval('#grid [data-chat="nothing-yet"] .cr-note', (n) => n.textContent)));
+    ok('…with only the prefix bold there too',
+      (await page.$eval('#grid [data-chat="nothing-yet"] .cr-note b', (n) => n.textContent)) === 'Waiting for:');
+
+    // taking the tag off takes the answer with it
+    await page.click('#grid [data-chat="nothing-yet"]');
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .arctags');
+    await chip('Waiting for something');
+    await page.waitForTimeout(200);
+    ok('taking the tag off clears the answer',
+      !(await page.$('.askwrap .waitedit:not([hidden])')));
+    await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(150);
+    ok('…and the line is gone from the thread', !(await page.$('#thread .waitline')));
+    await page.click('#back');
+    await page.waitForTimeout(200);
+    // out of that folder, and back on the unfiled list where the rest of the
+    // test expects it
+    // tap the LIT folder chip to come back out — one tap, and not a sweep over
+    // every lit chip: a detached node still fires its handler when clicked, so
+    // closing the row first and then clicking the (now removed) folder chip
+    // sets the filter straight back on.
+    await page.$$eval('#catrow .catchip', (ns) => {
+      const b = ns.find((n) => n.classList.contains('on') && !n.classList.contains('tagsbtn')
+        && !n.classList.contains('starchip'));
+      if (b) b.click();
+    });
+    await page.waitForTimeout(200);
+
+    // ---- A PILE, OR JUST A WORD ------------------------------------------
+    // Sophie, the day after the merge: "tagging shouldn't hide everything …
+    // whereas other ones shouldn't take it off the main feed". A plain word
+    // leaves the chat exactly where it was; a pile word takes it off the list;
+    // and which is which is one tap in the sheet behind the line under the
+    // chips.
+    await page.click('#grid [data-chat="nothing-yet"]');
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .arctags');
+    await chip('Bug fix');
+    await page.waitForTimeout(200);
+    await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(200);
+    await page.click('#back');
+    await page.waitForTimeout(200);
+    ok('a plain tag leaves the chat on the main list',
+      !!(await page.$('#grid [data-chat="nothing-yet"]')));
+
+    await page.click('#grid [data-chat="nothing-yet"]');
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .pilelink');
+    ok('the line names the words that are doing the hiding',
+      /take a chat off the main list/.test(await page.$eval('.askwrap .pilelink', (n) => n.textContent)));
+    await page.click('.askwrap .pilelink');
+    await page.waitForTimeout(200);
+    // the switch stacks ON TOP of the Organize sheet, so everything here is
+    // scoped to the last one — the first is the sheet underneath.
+    const top = '.askwrap:last-of-type';
+    ok('the switch opens on the question',
+      (await page.$eval(top + ' .archq', (n) => n.textContent)) === 'Which words file a chat away?');
+    const pileLit = await page.$$eval(top + ' .arctags .catchip.on', (ns) => ns.map((n) => n.textContent.trim()));
+    ok('her folders arrive lit', pileLit.indexOf('Witch') > -1 && pileLit.indexOf('Stories') > -1,
+      pileLit.join(','));
+    ok('…and the tag words do not', pileLit.indexOf('Bug fix') < 0, pileLit.join(','));
+    await (await page.$(top + ' .arctags button:text-is("Bug fix")')).click();
+    await page.waitForTimeout(250);
+    const pileSaved = posts[posts.length - 1];
+    ok('flipping a word posts the flip, not the chat',
+      pileSaved && pileSaved.label === 'bug fix' && pileSaved.pile === true,
+      JSON.stringify(pileSaved));
+    await page.click(top + ' .askrow .go');
+    await page.waitForTimeout(150);
+    await page.click('.askwrap .askrow .go');
+    await page.waitForTimeout(150);
+    await page.click('#back');
+    await page.waitForTimeout(250);
+    ok('once the word is a pile, the chat it is on leaves the list',
+      !(await page.$('#grid [data-chat="nothing-yet"]')));
+
+    // the old shape reads as both words on the page too
+    await page.click('#grid [data-chat="both-ways"]').catch(() => {});
+    await page.waitForTimeout(100);
     await page.waitForTimeout(150);
     await page.click('#backbtn').catch(() => {});
     await page.goto(base + '/chats');
