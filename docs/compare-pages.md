@@ -480,6 +480,22 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     the recording's url + the card's timestamp. ~0.6c/min. Approving a
     storybook page by page, walking a to-do list, picking keepers — all this
     template.
+  - **THE MOMENT CARD — her own design, the deck's TEXT STYLE (Aug 2026,
+    Sophie's Decision Deck canvas: "wire that in as the Tinder text style…
+    the dates have multiple components that all need to be included
+    together, but some might have just one text or they might have like a
+    text and an image").** Built for the dating book's date cards. Every
+    part is OPTIONAL and a card renders only what it carries, in this order:
+    `who` (the date's name — **centred, on its own line at the top of the
+    card**, her ask), `eyebrow` (the small rust line), `text` (the moment, in
+    the serif), a hairline, `sections:[{label,text}]` (any number of
+    labelled blocks — "The illustration", …), `img`, then `caption` (an
+    italic quote under `captionLabel`, default "Suggested caption").
+    A card carrying any of who/eyebrow/sections/caption gets this look
+    automatically; `style:'moment'` opts plain text cards in too. Her
+    palette already WAS the house palette (her rust = `--rose`, her paper =
+    `--paper`), so it is her rhythm and sizes in the house tokens — no
+    imported font, no second look.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,
