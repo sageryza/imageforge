@@ -7,6 +7,19 @@
 // how far through it she is. Measured the day it was built (2026-08-18): 9
 // template pages holding 285 items, 9 of them decided — the pile was real.
 //
+// ---- AND THE CHATS SHE MARKED (Aug 2026, Sophie, the day after: "`to be
+// reviewed` should send it to the review pile … another chat just built a
+// review interface where everything I need to review gets piled up and I can
+// review them all at once").
+// A chat carrying the label `to be reviewed` (chatfeed.js's REVIEW_LABEL) is a
+// row here too. THE LABEL IS THE WHOLE MECHANISM — nothing is filed, nothing
+// is stamped, and there is no second list to fall out of step with the chips
+// in the Chats app: she puts the word on and the row appears, she takes it off
+// (or taps ✕ here, which is the same write) and it goes. A chat row is never
+// DONE — there is nothing to count through — and archived, deleted and
+// tombstoned chats are skipped because she has finished with those already.
+// It costs nothing extra: the registry read was already here for chat names.
+//
 // WHAT COUNTS AS WAITING, and why it can be derived instead of filed:
 //   • The queue is the TEMPLATE pages (deck/grid, page-templates.js). Their
 //     item lists are data the server holds (chat-pages/<id>.json), and her
@@ -40,6 +53,7 @@
 //   GET  /status          → { ok, firebase }
 //   GET  /?fresh=1        → { waiting:[row], done:[row], hidden:[row], counts }
 //   POST /hide { id, hidden } → stamps reviewHidden on the page doc
+//   POST /reviewed { chat }   → takes `to be reviewed` off a chat
 //
 // Tests: node scripts/test-review.js (the whole decision table, pure fixtures;
 // plus the real page headless when playwright is around).
@@ -70,6 +84,20 @@ function clean(v, n) {
 function ms(iso) {
   const t = Date.parse(String(iso || ''));
   return Number.isFinite(t) ? t : 0;
+}
+
+/** A registry doc's labels, old shape or new — the same union `chatfeed.js`
+ *  reads, inlined here so the pure half stays driveable with fixtures. */
+function chatLabels(reg) {
+  const r = reg || {};
+  const raw = Array.isArray(r.labels) ? r.labels
+    : [].concat(r.category || [], Array.isArray(r.tags) ? r.tags : []);
+  const out = [];
+  raw.forEach((c) => {
+    const v = String(c || '').trim().toLowerCase();
+    if (v && out.indexOf(v) < 0) out.push(v);
+  });
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +143,7 @@ function pageProgress(ids, custom, verdictItems) {
  * @param {object}   input.verdicts `<chat>__page-<id>` → verdict doc data
  * @param {object}   input.chats    registry map, slug → doc (displayName)
  */
-function buildQueue({ pages, items, verdicts, chats }) {
+function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
   const waiting = []; const done = []; const hidden = [];
   (pages || []).forEach((p) => {
     if (!p || !p.id || !p.chat || p.superseded) return;
@@ -141,9 +169,50 @@ function buildQueue({ pages, items, verdicts, chats }) {
       // the newest touch — her last verdict when there is one, else the post
       at: clean(vdoc.updatedAt, 40) || clean(p.created, 40),
     };
+    row.kind = 'page';
     if (p.reviewHidden) { hidden.push(row); return; }
     (decided >= ids.length ? done : waiting).push(row);
   });
+  // ---- CHATS SHE HAS MARKED FOR REVIEW (Aug 2026, Sophie: "`to be reviewed`
+  // should send it to the review pile … another chat just built a review
+  // interface where everything I need to review gets piled up") -------------
+  // The label is the whole mechanism — she puts `to be reviewed` on a chat in
+  // the Chats app and it turns up here, she takes it off (or taps ✕ here,
+  // which is the same write) and it goes. Nothing is filed, nothing is
+  // stamped, and there is no second list to fall out of step with the chips.
+  //
+  // A chat row is NEVER 'done': there is nothing to count through, so the only
+  // way out is the label coming off. Archived and deleted chats are skipped —
+  // she has already finished with those.
+  const label = String(reviewLabel || '').trim().toLowerCase();
+  if (label) {
+    Object.keys(chats || {}).forEach((slug) => {
+      const reg = chats[slug] || {};
+      if (reg.archived || reg.deletedAt || reg.movedTo) return;
+      if (chatLabels(reg).indexOf(label) < 0) return;
+      const at = [reg.updAt, reg.statusAt, reg.lastHerAt, reg.filedAt]
+        .map((v) => clean(v, 40)).filter(Boolean).sort().pop() || '';
+      waiting.push({
+        kind: 'chat',
+        id: 'chat-' + slug,
+        chat: slug,
+        name: clean(reg.displayName, 80) || slug,
+        // What it is waiting on her FOR, in the words the chat already wrote —
+        // its status card's ask first, then her own note, then what it last
+        // said it did. Nothing new to post, and no model call.
+        title: clean(reg.statusNeed, 140) || clean(reg.sophieNote, 140)
+          || clean(reg.statusDoing, 140) || 'Waiting on you',
+        template: 'chat',
+        created: at,
+        at,
+        url: '/chats?chat=' + encodeURIComponent(slug),
+        total: 0,
+        decided: 0,
+        later: 0,
+        thumb: '',
+      });
+    });
+  }
   // Waiting: newest post first — the feed's own order, so the pile reads the
   // way everything else does. Done and hidden: most recently touched first.
   waiting.sort((a, b) => ms(b.created) - ms(a.created));
@@ -156,6 +225,7 @@ function buildQueue({ pages, items, verdicts, chats }) {
     counts: {
       pages: waiting.length,
       items: waiting.reduce((n, r) => n + (r.total - r.decided), 0),
+      chats: waiting.filter((r) => r.kind === 'chat').length,
       done: done.length,
     },
   };
@@ -230,7 +300,9 @@ router.get('/', async (req, res) => {
     ]);
     const verdicts = {};
     vsnaps.forEach((d) => { if (d.exists) verdicts[d.id] = d.data(); });
-    const body = buildQueue({ pages, items, verdicts, chats: reg.chats || {} });
+    const body = buildQueue({
+      pages, items, verdicts, chats: reg.chats || {}, reviewLabel: chatfeed.REVIEW_LABEL,
+    });
     body.generatedAt = new Date().toISOString();
     cache = body;
     cacheAt = Date.now();
@@ -255,4 +327,19 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router, buildQueue, pageItems, pageProgress };
+// "I'm done with this one" on a CHAT row — the ✕ takes the label off, which is
+// the same write her chips make in the Chats app. Deliberately not a stamp of
+// its own: two ways to say the same thing is how a row comes back tomorrow
+// wearing a label that says it is still waiting.
+router.post('/reviewed', async (req, res) => {
+  try {
+    const chat = clean(req.body && req.body.chat, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const out = await chatfeed.applyLabels([chat], { remove: [chatfeed.REVIEW_LABEL] });
+    if (!out.chats.length) return res.status(404).json({ error: 'no such chat' });
+    cache = null;
+    res.json({ ok: true, chat, labels: out.labels[out.chats[0]] });
+  } catch (err) { fail(res, err); }
+});
+
+module.exports = { router, buildQueue, pageItems, pageProgress, chatLabels };
