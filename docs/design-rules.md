@@ -101,6 +101,23 @@ The house rules that only bite when you are actually building a page, an iOS scr
   - Same idea as `scripts/selfcare-thumbs.js`, which does this for the sticker
     and stamp art.
 
+- **A PAGE SHE CAN TYPE IN PINS ITS SCALE — never inflate the field instead
+  (Aug 2026, Sophie, twice, on two different surfaces).** iOS zooms the whole
+  page whenever it focuses a field under 16px. There are exactly two cures:
+  raise every field to 16px, or pin the page scale with
+  `maximum-scale=1, user-scalable=no` in the viewport meta. She saw both and
+  settled it — "I would prefer not to have pinch [zoom] and for it not to be
+  16 PX… now it's too big… I don't need pinch zoom" — so **the type stays her
+  size and the page stops zooming itself.** The Chats app, the pad, the Story
+  Room and the Writing Room already did this; it now holds across every page
+  in `public/` that carries an input, a textarea or a contenteditable, plus
+  the Compare templates (`renderTemplatePage`, and `compare.js` at runtime for
+  the frozen hand-built pages).
+  - She reported it on a date deck, then on the dream app's character field
+    (14px) — one defect that any new page can be born with, which is why it
+    is a TEST and not a fix: `node scripts/test-no-zoom.js` fails naming any
+    page with a field whose viewport does not pin the scale.
+
 - **THE SANS IS CAPS AND NOT BOLD — the SERIF is untouched by this rule (Aug
   2026, Sophie: "whenever this font is shown it should generally be
   capitalized and not bold", then, when it was read as universal: "that was
