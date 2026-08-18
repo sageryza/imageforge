@@ -3,7 +3,8 @@
 // (docs/dream-feed-designs/), ported onto the live shared dream feed. Drives
 // the REAL public/dreamapp.html against a stub API + stubbed Firebase auth
 // and asserts the design facts that make it "exact":
-//   1. the header wordmark asks for Baveuse; "tonight" sits right of it,
+//   1. the header wordmark asks for Baveuse; the one other word in it is the
+//      way to the other view ("tonight" was taken out, Sophie Aug 2026),
 //   2. cards ALTERNATE dark (her alternateDark tweak) and the illustration
 //      blob alternates sides among the cards that have one,
 //   3. your own card carries no heart/comment row (unattributed feed: the
@@ -12,7 +13,8 @@
 //   5. ✎ opens the inline thread; the whisper box posts on Enter and the
 //      count updates,
 //   6. "see more" appears only where the six-line clamp really cut,
-//   7. tonight's run ends on the end-of-night note; older days get the
+//   7. tonight's run ends on nothing (the sign-off line was taken out, Sophie
+//      Aug 2026); older days get the
 //      dashed divider with the artboard's label shape,
 //   8. the confess button shows on the feed and leaves with it,
 //   9. tapping the blob opens the lightbox, locks the page, restores the
@@ -108,7 +110,10 @@ const FIREBASE_STUB = `
   // 1. header
   const mark = await page.$eval('#app .mark', (el) => getComputedStyle(el).fontFamily);
   ok(/Baveuse/i.test(mark), 'wordmark asks for Baveuse');
-  ok(await page.$eval('.fnow', (el) => el.textContent) === 'tonight', '"tonight" sits in the header');
+  // "get rid of tonight in the corner and call my dreams archive vs feed (just
+  // two views)" — Sophie, Aug 2026.
+  ok((await page.$$('.fnow')).length === 0, 'no "tonight" in the header');
+  ok((await page.$eval('#navMine', (el) => el.textContent)) === 'archive', 'the other view is the archive');
 
   // 2. alternation
   const cards = await page.$$eval('.dcard', (els) => els.map((el) => ({
@@ -148,7 +153,7 @@ const FIREBASE_STUB = `
   // 7. structure: end note + dividers
   const seq = await page.$eval('#scr-feed', (el) =>
     [...el.children].map((c) => c.classList.contains('dcard') ? 'card' : c.classList.contains('fend') ? 'end' : c.classList.contains('fdiv') ? 'div' : '?').join(','));
-  ok(seq === 'card,card,card,end,div,card,div,card', 'tonight, the end-of-night note, then divided days');
+  ok(seq === 'card,card,card,div,card,div,card', 'tonight, then divided days, with no sign-off line');
   const divs = await page.$$eval('.fdiv .t', (els) => els.map((e) => e.textContent));
   ok(divs[0] === 'last night · monday, august 17', 'yesterday reads "last night · …"');
   ok(divs[1] === 'sunday, august 16', 'older days read as plain lowercase dates');
