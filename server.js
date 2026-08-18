@@ -96,6 +96,14 @@ app.get('/push-memos.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-memos.mjs');
 });
 
+// The Mac-side Apple-transcript importer, served the same way. Voice Memos
+// transcribes on the phone for free — including the recordings the server's
+// own ceiling and Whisper's size cap could never handle — and only her Mac can
+// read that database. Same deal as the push: no credentials in the script.
+app.get('/import-apple-transcripts.mjs', (req, res) => {
+  res.type('text/javascript').sendFile(__dirname + '/scripts/import-apple-transcripts.mjs');
+});
+
 app.get('/push-journal.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
 });

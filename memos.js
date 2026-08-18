@@ -553,6 +553,115 @@ async function backupManifest(manifest, tag) {
   await (await bucket()).file(name).save(JSON.stringify(manifest), { contentType: 'application/json' });
 }
 
+// ── Apple's own transcripts ────────────────────────────────────────────────
+//
+// 94 of the 1,137 records carry NO transcript at all (measured 2026-08-17 —
+// the archive holds 1,137 and Search indexes the 1,043 that have words). Each
+// one is a recording the server could not transcribe: over the MAX_MIN
+// ceiling, over Whisper's 24MB cap, heard as empty, or a failed enrich that
+// banked the audio and moved on. Search searches WORDS, so those recordings
+// are invisible in it — and a search that finds nothing reads as a recording
+// that doesn't exist.
+//
+// Voice Memos already transcribed them, on her phone, for free, including the
+// long ones. That text lives in Apple's own database, which ONLY her Mac can
+// read — so the Mac hands the words over (scripts/import-apple-transcripts.mjs)
+// and the server does everything that needs a credential, exactly like the
+// push. Nothing here transcribes anything.
+//
+// FILL ONLY, NEVER OVERWRITE. A record that already has words keeps them: two
+// transcripts of the same audio disagree in small ways, and quietly swapping
+// the one Search indexed for another is how a passage she found yesterday
+// stops matching tomorrow. This route is for the empty ones.
+const MAX_TRANSCRIPT = Number(process.env.MEMO_MAX_TRANSCRIPT || 400000);
+
+// What a client that CAN answer needs to match its own copy against: the id to
+// send back, and the same `stamp|duration` key the Mac push already filters on
+// (see /status — a stamp alone names several recordings).
+function untranscribedRecords(memos) {
+  return memos.filter(m => !m.transcript).map(m => ({
+    id: m.id,
+    key: `${stampOf(m.id) || stampOf(m.file) || ''}|${Math.round(Number(m.dur) || 0)}`,
+    dur: Math.round(Number(m.dur) || 0),
+    date: m.date || null,
+    cat: m.cat || null,
+    title: m.title || null,
+  }));
+}
+
+// Give one record its words. Classifying happens BEFORE the read-modify-write
+// so a multi-second model call never widens the window another writer has to
+// lose against — the same reason fileIntoArchive enriches before it appends.
+async function setTranscript(id, transcript, { source = 'apple' } = {}) {
+  const text = String(transcript || '').replace(/\r\n?/g, '\n').trim();
+  if (text.length < 8) throw new Error('that transcript is empty');
+  if (text.length > MAX_TRANSCRIPT) throw new Error(`that transcript is over ${MAX_TRANSCRIPT} characters`);
+
+  const { manifest } = await readManifest();
+  const found = manifest.memos.find(m => m.id === id || m.file === id);
+  if (!found) throw new Error(`no record called ${id}`);
+  if (found.transcript) return { skipped: true, reason: 'it already has words', memo: found };
+
+  // It had no words, so whatever cat it carries is a placeholder ('toolong',
+  // 'empty', or the 'note' a failed enrich leaves) — now it can be filed for
+  // real, and the Dreams filter starts matching it.
+  const sort = await classify(text, found.title || '');
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const { manifest: fresh, generation } = await readManifest();
+    const rec = fresh.memos.find(m => m.id === id || m.file === id);
+    if (!rec) throw new Error(`no record called ${id}`);
+    if (rec.transcript) return { skipped: true, reason: 'it already has words', memo: rec };
+    rec.transcript = text;
+    rec.transcriptFrom = source;
+    if (sort) {
+      if (sort.category) rec.cat = sort.category;
+      if (!rec.title && sort.title) rec.title = sort.title;
+      if (!rec.desc && sort.description) rec.desc = sort.description;
+      if ((!rec.keywords || !rec.keywords.length) && Array.isArray(sort.keywords)) rec.keywords = sort.keywords;
+    }
+    // The enrich failed once; it has been answered by other means.
+    if (rec.enrichError) delete rec.enrichError;
+    try {
+      const count = await writeManifest(fresh, generation);
+      // Search indexes words, so a record that just got some is new to it.
+      notifyFiled(rec);
+      return { skipped: false, memo: rec, count };
+    } catch (err) {
+      const code = err && (err.code || err.status);
+      if (code !== 412 && attempt === 5) throw err;
+      await new Promise(r => setTimeout(r, attempt * 400));
+    }
+  }
+  throw new Error('could not update the manifest — too many concurrent writes');
+}
+
+// GET /untranscribed — the records with no words, so the one machine that has
+// Apple's transcripts knows which ones are worth sending.
+router.get('/untranscribed', gate, async (req, res) => {
+  try {
+    const { manifest } = await readManifest();
+    const records = untranscribedRecords(manifest.memos);
+    res.json({ ok: true, count: records.length, total: manifest.count, records });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /transcript {id, transcript, source?} — fill one empty record.
+router.post('/transcript', gate, express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    const { id, transcript, source } = req.body || {};
+    if (!id || !transcript) return res.status(400).json({ error: 'need id and transcript' });
+    const out = await setTranscript(String(id), transcript, {
+      source: String(source || 'apple').slice(0, 40),
+    });
+    res.json({ ok: true, skipped: !!out.skipped, reason: out.reason, memo: out.memo, count: out.count });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // GET /unstamped — the records whose date is only a guess, so a client that
 // CAN answer (the Mac, which has Apple's database) knows what to look up.
 router.get('/unstamped', gate, async (req, res) => {
@@ -666,5 +775,6 @@ async function memoAudioToFile(id, destPath) {
 module.exports = {
   router, init, fileIntoArchive, md5Of, audioHash, transcriptTwin,
   unstampedRecords, restampRecord, onFiled,
+  untranscribedRecords, setTranscript,
   readManifest, writeManifest, streamMemoAudio, memoAudioToFile,
 };
