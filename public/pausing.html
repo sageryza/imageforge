@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pausing</title>
+<!--
+  pausing.html — THE PAUSING TOOL. Engine is /api/pausing (pausing.js); the
+  pipeline map is docs/audio-pipeline.md.
+
+  This page is a PORT of "Evan — the pause timeline (v7b)", a hand-authored
+  Compare page, and the four things it did that nothing else in the app could
+  are the reason the tool exists: set how LONG a pause is, ADD one where
+  there is none, build it out of the recording's OWN room tone, and PLAY HER
+  EDIT rather than the source. The comments below marked (v7b) are that
+  page's findings, kept verbatim where the next version can't lose them.
+
+  WHAT MOVED, and why. The artifact decoded ONE 90-second film into memory
+  and rebuilt the whole thing on every play. A real recording can be ninety
+  MINUTES — decoded, that is most of a gigabyte of Float32 in a WKWebView —
+  so the unit of listening here is the PARAGRAPH: the server cuts that span
+  once (banked forever), the page decodes it, and her pauses are spliced into
+  it in the browser. That keeps the thing that mattered — changing a length
+  and hearing it with no round trip — while working on a recording that
+  wouldn't fit.
+
+  THE EDIT ITSELF IS NOT DEFINED HERE. /pause-plan.js is the same file the
+  server's render loads, so what she approves by ear is literally what gets
+  baked. Never re-derive a plan locally.
+
+  Palette is the Cutting Room / Cutting Blocks / Episode Editor family — the
+  audio tools read as one set. The pill's own five tokens (--ink --paper
+  --chg --ink2 --rose) are declared here too, or it renders black on
+  transparent.
+-->
+<style>
+  :root{
+    --paper:#FAF7F1; --card:#FFFFFF; --line:#E4DFD4; --ink:#23201B; --soft:#7A7266;
+    --gold:#E0A94A; --goldline:#C79633; --cream:#F7F1E3; --bad:#B4462F;
+    /* the injected autoscroll pill styles itself from these */
+    --ink2:#7A7266; --chg:#C79633; --rose:#B4462F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding-bottom:120px}
+  /* [hidden] must ALWAYS win — an author display rule silently overrides the
+     UA default (the bug that broke the Episode Editor's back button). */
+  [hidden]{display:none !important}
+  /* Inside the app the native nav bar carries the title AND the back chevron,
+     so the page hides its own (the Episode Editor pattern). */
+  body.native #back{display:none !important}
+  body.embed .tool-eyebrow, body.native .tool-eyebrow{display:none}
+  /* The INJECTED pill declares its own palette ON the element, which beats
+     anything inherited from :root — so a served page has to out-specify it
+     or the pill lands near-black on warm paper (measured on /chunking). */
+  body .float{--paper:#FAF7F1; --ink:#23201B; --ink2:#7A7266; --chg:#C79633; --rose:#B4462F}
+
+  /* ── header ────────────────────────────────────────────────────────── */
+  header{position:sticky; top:0; z-index:9; background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:calc(11px + env(safe-area-inset-top)) 64px 10px 14px;  /* 64: the pill's corner */
+    display:flex; align-items:center; gap:10px}
+  header h1{margin:0; font-size:13px; font-weight:600; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--soft); flex:1}
+  #back{background:none; border:0; color:var(--goldline); padding:0; cursor:pointer;
+    display:flex; align-items:center; flex:none}
+  #helpbtn{flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--goldline);
+    background:transparent; color:var(--goldline); font:600 13px/1 -apple-system,sans-serif; cursor:pointer}
+  .helpcard{position:fixed; inset:auto 12px auto 12px; top:70px; z-index:60; background:var(--card);
+    border:1.5px solid var(--line); border-radius:6px; padding:14px 15px; font-size:14px; line-height:1.5;
+    box-shadow:0 8px 30px rgba(0,0,0,.14)}
+  .helpcard b{color:var(--goldline)}
+  .helpcard p{margin:0 0 9px}
+  .helpcard p:last-child{margin:0}
+
+  main{padding:10px 12px}
+  .btn{background:var(--cream); border:1px solid var(--goldline); color:var(--goldline);
+    border-radius:6px; padding:8px 13px; font:600 14px/1 -apple-system,sans-serif; cursor:pointer}
+  .btn.plain{border-color:var(--line); color:var(--soft); background:var(--card); font-weight:400}
+  .btn[disabled]{opacity:.4}
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .muted{color:var(--soft); font-size:13px}
+  svg{flex:0 0 auto; display:block}
+
+  /* ── the recordings list ───────────────────────────────────────────── */
+  .src{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:10px 11px; margin-bottom:6px; cursor:pointer; color:inherit; font:inherit}
+  .src .nm{flex:1; font-size:14px; line-height:1.35}
+  .src .mt{font:600 11px/1 -apple-system,sans-serif; color:var(--soft); flex:none}
+  .src .dot{flex:none; width:7px; height:7px; border-radius:50%; background:var(--gold)}
+  /* The hairline tab rows measure their own underline — no row anywhere
+     declares a tab count, so adding one costs no layout work. */
+  /* padding-right 64: the pill's corner. 56 is a hair too tight — the pill's
+     left edge lands at x=326 on a 390pt screen, so a 56px reserve leaves the
+     last 8px of the rightmost tab dead (measured on /chunking). */
+  .acctabs{display:flex; border-bottom:1px solid var(--line); margin-bottom:10px;
+    position:relative; padding-right:64px}
+  .acctabs button{flex:1; background:none; border:0; padding:9px 0 8px; cursor:pointer;
+    font:600 11px/1 -apple-system,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--soft)}
+  .acctabs button.on{color:var(--ink)}
+  .acctabs .ul{position:absolute; bottom:-1px; left:0; height:1.5px; background:var(--ink);
+    transition:transform .16s ease}
+
+  /* ── the working bar ───────────────────────────────────────────────── */
+  #bar{position:sticky; top:calc(42px + env(safe-area-inset-top)); z-index:8;
+    background:var(--paper); border-bottom:1px solid var(--line);
+    padding:7px 64px 8px 0; display:flex; align-items:center; gap:8px}
+  #bar .modes{display:flex; gap:5px}
+  #bar .modes button{padding:7px 9px; border-radius:6px; border:1.5px solid var(--line);
+    background:transparent; color:var(--soft); cursor:pointer;
+    font:600 10px/1 -apple-system,sans-serif; letter-spacing:.05em}
+  #bar .modes button.on{border-color:var(--goldline); background:rgba(199,150,51,.13); color:var(--goldline)}
+  #bar .sp{flex:1}
+  #bar .ic{width:32px; height:32px; border-radius:6px; border:1.5px solid var(--line);
+    background:transparent; color:var(--soft); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0}
+  #bar .ic:disabled{opacity:.35}
+  #tally{font:600 11px/1.3 -apple-system,sans-serif; color:var(--soft)}
+  #tally em{font-style:normal; color:var(--goldline)}
+
+  /* ── paragraphs ────────────────────────────────────────────────────── */
+  /* PROGRESSIVE EXPANSION: the page opens at the shape of the recording —
+     paragraphs, folded — and expands only where she goes in. A ninety-minute
+     transcript with every word in the DOM is also simply too much page. */
+  .para{border:1.5px solid var(--line); border-radius:6px; margin:8px 0; background:var(--card);
+    overflow:hidden}
+  .para .hd{display:flex; align-items:center; gap:9px; padding:9px 10px; cursor:pointer}
+  .para .ti{flex:1; font:600 13px/1.35 -apple-system,sans-serif; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .para .mk{font:600 10px/1 -apple-system,sans-serif; color:var(--goldline); flex:none}
+  .para .pl{flex:none; width:28px; height:28px; border-radius:6px; border:1.5px solid var(--line);
+    background:transparent; color:var(--goldline); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0}
+  .para .bd{padding:2px 11px 13px; font-size:15px; line-height:2.25; border-top:1px solid var(--line)}
+  .para.on{border-color:var(--goldline)}
+
+  .w{color:var(--ink); padding:1px 0; cursor:pointer}
+  .w.now{background:rgba(199,150,51,.24); border-radius:3px; box-shadow:0 0 0 2px rgba(199,150,51,.24)}
+
+  /* THE PAUSE CHIP (v7b) — the bar's height IS the length, so a glance down
+     the paragraph reads as rhythm rather than as numbers. */
+  .p{display:inline-flex; align-items:center; gap:3px; vertical-align:middle;
+    border:1.5px solid var(--line); background:transparent; border-radius:6px;
+    padding:1px 5px; margin:0 2px; cursor:pointer; font:600 10px/1 -apple-system,sans-serif}
+  .p i{display:block; width:3px; height:10px; background:var(--line); border-radius:1px}
+  .p.mid i{height:15px}
+  .p.long i{height:20px}
+  .p b{color:var(--soft); font-weight:600}
+  .p s{color:var(--bad); text-decoration:line-through; font-weight:600}
+  .p.set{border-color:var(--goldline); background:rgba(199,150,51,.13)}
+  .p.set b{color:var(--goldline)}
+  .p.set i{background:var(--goldline)}
+  .p.add{border-style:dashed; border-color:var(--goldline)}
+  .p.add b{color:var(--goldline)}
+  .p.on{box-shadow:0 0 0 2px rgba(199,150,51,.3)}
+
+  /* ── the sheet ─────────────────────────────────────────────────────── */
+  #sheet{position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--paper);
+    border-top:1.5px solid var(--line); padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+  #sheet .ctx{font-size:13px; color:var(--soft); margin:0 0 10px; padding-right:26px}
+  #sheet .ctx em{color:var(--ink); font-style:normal; font-weight:600}
+  #sheet .lens{display:flex; gap:6px; margin-bottom:6px}
+  #sheet .lens button{flex:1; padding:11px 4px; border-radius:6px; border:1.5px solid var(--line);
+    background:transparent; color:var(--ink); font:14px/1 -apple-system,sans-serif; cursor:pointer}
+  #sheet .lens button.sel{border-color:var(--goldline); background:rgba(199,150,51,.13);
+    color:var(--goldline); font-weight:700}
+  /* PUT IT BACK LEADS THE SHEET (v7b) — she reaches for it when she has
+     fumbled, and hunting for the original length is the one thing she
+     genuinely cannot reconstruct. */
+  #sheet .undo-row{display:flex; gap:6px; margin-bottom:6px}
+  #sheet .undo-row button{padding:10px 12px; border-radius:6px; border:1.5px solid var(--goldline);
+    background:transparent; color:var(--goldline); font:600 13px/1 -apple-system,sans-serif; cursor:pointer}
+  #sheet .undo-row button.drop{border-color:var(--bad); color:var(--bad)}
+  #sheet .close{position:absolute; top:8px; right:12px; border:0; background:none;
+    color:var(--soft); font-size:22px; line-height:1; cursor:pointer; padding:2px 6px}
+
+  /* ── takes ─────────────────────────────────────────────────────────── */
+  .take{background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:10px 11px; margin-bottom:6px}
+  .take audio{width:100%; margin-top:7px}
+  #jobline{font-size:13px; color:var(--goldline); margin:8px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="back" aria-label="back" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  </button>
+  <h1 class="eyebrow tool-eyebrow">Pausing</h1>
+  <button id="helpbtn" aria-label="what this does">?</button>
+</header>
+
+<main>
+  <!-- screen 1: what to open -->
+  <section id="pick">
+    <div class="acctabs" id="picktabs">
+      <button data-t="src" class="on">Recordings</button>
+      <button data-t="mine">Open</button>
+      <span class="ul"></span>
+    </div>
+    <div id="srclist"></div>
+    <div id="minelist" hidden></div>
+  </section>
+
+  <!-- screen 2: the recording -->
+  <section id="work" hidden>
+    <div id="bar">
+      <div class="modes">
+        <button data-m="read" class="on">READ</button>
+        <button data-m="add">+ PAUSE</button>
+      </div>
+      <span class="sp"></span>
+      <span id="tally"></span>
+      <button class="ic" id="undo" aria-label="undo" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      </button>
+    </div>
+    <div class="acctabs" id="worktabs">
+      <button data-t="pauses" class="on">Pauses</button>
+      <button data-t="takes">Takes</button>
+      <span class="ul"></span>
+    </div>
+    <div id="jobline" hidden></div>
+    <div id="paras"></div>
+    <div id="takes" hidden>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn" id="render">Render this</button>
+      </div>
+      <div id="takelist"></div>
+    </div>
+  </section>
+</main>
+
+<div id="sheet" hidden>
+  <button class="close" aria-label="close">&times;</button>
+  <p class="ctx"></p>
+  <div class="undo-row" id="sheetback"></div>
+  <div class="lens" id="lens1"></div>
+  <div class="lens" id="lens2"></div>
+</div>
+
+<script src="/pause-plan.js"></script>
+<script>
+/* The injected pill runs in GLOBAL scope declaring var raf / var I / var
+   playing — a page-level `let raf` kills its script at parse time (empty
+   stretched buttons, no scrolling). Everything below is in an IIFE and
+   var-only, and only __navBack is exposed. */
+(function () {
+  'use strict';
+  var API = '/api/pausing';
+  var TOKEN = new URLSearchParams(location.search).get('token') || '';
+  function url(p) { return API + p + (TOKEN ? (p.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN) : ''); }
+  function spanUrl(src, t0, t1) {
+    var p = '/api/search/clip-span?src=' + encodeURIComponent(src) + '&t0=' + t0.toFixed(2) + '&t1=' + t1.toFixed(2);
+    return p + (TOKEN ? '&token=' + encodeURIComponent(TOKEN) : '');
+  }
+  function getJSON(u, opts) {
+    return fetch(u, opts).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) throw new Error(j && j.error ? j.error : 'request failed');
+        return j;
+      });
+    });
+  }
+  function postJSON(u, body) {
+    return getJSON(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  }
+  function fmt(s) { return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+  function el(id) { return document.getElementById(id); }
+
+  var PLAN = window.__pausePlan;
+
+  /* ── audio context ───────────────────────────────────────────────────
+     iOS only lets audio start from inside a real gesture, and every path
+     here creates the context AFTER an await (a fetch, a decode) by which
+     point the tap has expired and playback silently does nothing — which is
+     exactly how the artifact failed on a walk (v7b). So unlock
+     synchronously on the first touch anywhere, long before anything is
+     downloaded. */
+  var ctx = null;
+  function AC() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') { try { ctx.resume(); } catch (_) {} }
+    return ctx;
+  }
+  ['pointerdown', 'touchstart', 'click'].forEach(function (ev) {
+    document.addEventListener(ev, function () { try { AC(); } catch (_) {} }, true);
+  });
+
+  /* ── state ───────────────────────────────────────────────────────────── */
+  var doc = null, words = [], pauses = [], byId = {}, paras = [];
+  var chosen = {}, added = {};      // her answers — the two saved fields
+  var mode = 'read';
+  var roomBuf = null;
+  var clips = {};                   // span key → {url, buf}
+  var node = null, stopAt = 0, playSegs = null, raf = 0, nowEl = null, playingKey = '';
+  var hist = [];
+
+  /* ── undo (v7b) — a session-only stack of restore closures, the Cut Marks
+     pattern. Every change records how to put things back BEFORE it changes
+     them, so a mis-tap while she is still learning the modes costs one tap.
+     Capped; never persisted (a stale undo across days is a trap).
+
+     CONSECUTIVE CHANGES TO ONE PAUSE COLLAPSE INTO ONE STEP. Deciding a
+     length is a run of taps — 0.4, then 0.8, then 1.2, listening to each —
+     and every one of those pushing its own entry means undo walks back
+     through her auditioning instead of back out of the pause. Worse: adding
+     a pause opens the sheet, so an add and its first length were two
+     entries and one undo left an unwanted pause sitting there at its old
+     length. The FIRST entry for a chip is the one worth keeping, because it
+     restores the state before she started on it. */
+  function record(key, fn) {
+    var top = hist[hist.length - 1];
+    if (top && top.key === key) return;
+    hist.push({ key: key, fn: fn });
+    if (hist.length > 60) hist.shift();
+    el('undo').disabled = false;
+  }
+  function undo() {
+    var step = hist.pop();
+    if (!step) return;
+    step.fn();
+    el('undo').disabled = hist.length === 0;
+  }
+
+  /* ── saving ──────────────────────────────────────────────────────────── */
+  var saveTimer = 0;
+  function save() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      postJSON(url('/' + doc.id + '/state'), { patch: { set: chosen, added: added } })
+        .catch(function (e) { console.warn('pausing: save failed —', e.message); });
+    }, 400);
+    tally();
+  }
+
+  function plan() {
+    return PLAN.planEdit({ pauses: pauses, set: chosen, added: added, words: words, dur: doc.seconds });
+  }
+  function tally() {
+    var p = plan();
+    var n = p.items.length;
+    var d = p.delta;
+    el('tally').innerHTML = n
+      ? '<em>' + n + '</em> changed · ' + (d >= 0 ? '+' : '') + d.toFixed(1) + 's'
+      : '';
+  }
+
+  /* ── the edit, spliced into a decoded span ────────────────────────────
+     `base` is the absolute time of buf[0]. Returns the edited buffer plus a
+     map from playback time back to ORIGINAL time, because her edit has moved
+     everything and the read-along has to follow the words, not the samples.
+
+     NEVER DIGITAL SILENCE (v7b) — a pause is the recording's own room tone,
+     trimmed or looped. Zero samples is what made the "45 percent" line sound
+     bungled. An existing gap lends its own air; an added one borrows the
+     baked room tone. Same rule the server's render obeys. */
+  function editSpan(buf, base, items, from, to) {
+    var sr = buf.sampleRate, src = buf.getChannelData(0);
+    var pieces = [], t = from, total = 0, i;
+    for (i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it.a < t - 0.001 || it.a > to) continue;
+      if (it.a > t + 0.005) { pieces.push({ k: 'a', a: t, b: it.a }); total += it.a - t; }
+      pieces.push({ k: 'p', src: it.kind === 'set' ? { a: it.a, b: it.b } : null, len: it.len });
+      total += it.len;
+      t = it.b;
+    }
+    if (to > t + 0.005) { pieces.push({ k: 'a', a: t, b: to }); total += to - t; }
+
+    var out = AC().createBuffer(1, Math.max(1, Math.ceil(total * sr)), sr);
+    var dst = out.getChannelData(0);
+    var w = 0, segs = [];
+    pieces.forEach(function (pc) {
+      var n, f, k;
+      if (pc.k === 'a') {
+        var i0 = Math.max(0, Math.round((pc.a - base) * sr));
+        var i1 = Math.min(src.length, Math.round((pc.b - base) * sr));
+        n = Math.max(0, i1 - i0);
+        if (n) dst.set(src.subarray(i0, i0 + n), w);
+        segs.push({ p: w / sr, o: pc.a });
+        w += n;
+        return;
+      }
+      var rd = null, ra = 0, rn = 0;
+      if (pc.src) {
+        rd = src;
+        ra = Math.max(0, Math.round((pc.src.a - base) * sr));
+        rn = Math.max(0, Math.min(src.length - ra, Math.round((pc.src.b - pc.src.a) * sr)));
+      } else if (roomBuf) {
+        rd = roomBuf.getChannelData(0);
+        ra = 0;
+        rn = rd.length;
+      }
+      n = Math.round(pc.len * sr);
+      var done = 0;
+      while (rd && rn > 0 && done < n) {
+        var take = Math.min(rn, n - done);
+        dst.set(rd.subarray(ra, ra + take), w + done);
+        done += take;
+      }
+      // 12ms on the OUTER edges only. A fade at every loop boundary pumps
+      // audibly on room tone; a butt join between two copies of near-silence
+      // does not. The server bakes it exactly this way.
+      f = Math.min(Math.round(0.012 * sr), Math.floor(n / 3));
+      for (k = 0; k < f; k++) { dst[w + k] *= k / f; dst[w + n - 1 - k] *= k / f; }
+      w += n;
+    });
+    return { buf: out, segs: segs };
+  }
+
+  /* ── span clips: cut once on the server, banked forever ──────────────
+     ~45KB for a sheet preview, so they still work when the whole recording
+     would not (v7b). */
+  function spanClip(t0, t1) {
+    var key = t0.toFixed(2) + '-' + t1.toFixed(2);
+    if (clips[key] && clips[key].buf) return Promise.resolve(clips[key].buf);
+    return new Promise(function (res, rej) {
+      var tries = 0;
+      (function go() {
+        fetch(spanUrl(doc.source.url, t0, t1)).then(function (r) { return r.json(); }).then(function (j) {
+          if (j.status === 'ready') return res(j.url);
+          if (j.status === 'failed' || ++tries > 25) return rej(new Error(j.error || 'clip failed'));
+          setTimeout(go, 900);
+        }).catch(rej);
+      })();
+    }).then(function (u) {
+      return fetch(u).then(function (r) { return r.arrayBuffer(); });
+    }).then(function (b) {
+      return AC().decodeAudioData(b);
+    }).then(function (buf) {
+      clips[key] = { buf: buf };
+      if (Object.keys(clips).length > 8) delete clips[Object.keys(clips)[0]];
+      return buf;
+    });
+  }
+
+  function loadRoom() {
+    if (roomBuf || !doc.roomUrl) return Promise.resolve(roomBuf);
+    return fetch(doc.roomUrl).then(function (r) { return r.arrayBuffer(); })
+      .then(function (b) { return AC().decodeAudioData(b); })
+      .then(function (buf) { roomBuf = buf; return buf; })
+      .catch(function () { return null; });   // best effort: a set pause still previews
+  }
+
+  /* ── playback ────────────────────────────────────────────────────────── */
+  function halt() {
+    if (node) { try { node.onended = null; node.stop(); } catch (_) {} node = null; }
+    cancelAnimationFrame(raf);
+    playSegs = null;
+    playingKey = '';
+    if (nowEl) { nowEl.classList.remove('now'); nowEl = null; }
+    paintPlay();
+  }
+  function pToO(p) {
+    if (!playSegs || !playSegs.length) return p;
+    for (var i = playSegs.length - 1; i >= 0; i--) if (p >= playSegs[i].p) return playSegs[i].o + (p - playSegs[i].p);
+    return playSegs[0].o;
+  }
+  function tick() {
+    if (!node) return;
+    var o = pToO(AC().currentTime - stopAt);
+    var lo = 0, hi = words.length - 1, hit = -1;
+    while (lo <= hi) { var mid = (lo + hi) >> 1; if (words[mid].start <= o) { hit = mid; lo = mid + 1; } else hi = mid - 1; }
+    var e = hit >= 0 ? document.getElementById('w' + hit) : null;
+    if (e && e !== nowEl) {
+      if (nowEl) nowEl.classList.remove('now');
+      nowEl = e;
+      e.classList.add('now');
+      var r = e.getBoundingClientRect(), h = window.innerHeight;
+      if (r.top < h * 0.2 || r.bottom > h * 0.8) {
+        try { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { e.scrollIntoView(); }
+      }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function playBuf(buf, segs, key) {
+    AC();
+    halt();
+    node = ctx.createBufferSource();
+    node.buffer = buf;
+    node.connect(ctx.destination);
+    node.onended = function () { halt(); };
+    stopAt = ctx.currentTime + 0.03;
+    node.start(stopAt);
+    playSegs = segs;
+    playingKey = key || '';
+    paintPlay();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+  }
+
+  var ICON = {
+    play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+    pause: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>',
+    wait: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8" opacity=".3"/><path d="M12 4a8 8 0 0 1 8 8"/></svg>'
+  };
+  function paintPlay() {
+    [].forEach.call(document.querySelectorAll('.para .pl'), function (b) {
+      b.innerHTML = playingKey === b.dataset.k ? ICON.pause : ICON.play;
+    });
+  }
+
+  /* PLAY IS HER EDIT, NOT THE SOURCE (v7b, Sophie: "I need to be able to
+     hear it to know how long of a pause I want"). Pressing play used to
+     play the recording as it is, so a pause she had just set sounded
+     exactly the same and there was no way to judge a length. */
+  function playPara(idx, fromT) {
+    var pa = paras[idx];
+    if (playingKey === 'para' + idx) { halt(); return; }
+    var t0 = Math.max(0, pa.t0 - 0.25), t1 = Math.min(doc.seconds, pa.t1 + 0.25);
+    var btn = document.querySelector('.para[data-i="' + idx + '"] .pl');
+    if (btn) btn.innerHTML = ICON.wait;
+    Promise.all([spanClip(t0, t1), loadRoom()]).then(function (r) {
+      var mix = editSpan(r[0], t0, plan().items, fromT == null ? t0 : Math.max(t0, fromT), t1);
+      playBuf(mix.buf, mix.segs, 'para' + idx);
+    }).catch(function (err) {
+      paintPlay();
+      note(navigator.onLine === false ? 'offline' : 'that bit would not play — ' + err.message);
+    });
+  }
+
+  /* ── the sheet ───────────────────────────────────────────────────────── */
+  var cur = null;   // the chip whose sheet is open
+  // Absolute lengths, because "how long of a pause" is what she is deciding.
+  var LENS1 = [['', 'out', 0.08], ['', '0.25', 0.25], ['', '0.4', 0.4], ['keep', 'leave it', null]];
+  var LENS2 = [['', '0.8', 0.8], ['', '1.2', 1.2], ['', '1.8', 1.8], ['', '2.5', 2.5]];
+
+  function chipData(btn) {
+    var id = btn.dataset.id;
+    if (id.charAt(0) === 'a') {
+      return { id: id, add: true, len: PLAN.clampLen(added[id]) || 0.8, was: 0, a: PLAN.addAt(words, +id.slice(1)), b: null };
+    }
+    var p = byId[id];
+    return { id: id, add: false, len: p.len, was: p.len, a: p.a, b: p.b, chosen: chosen[id] };
+  }
+
+  function openSheet(btn) {
+    halt();
+    if (cur) cur.classList.remove('on');
+    cur = btn;
+    btn.classList.add('on');
+    var g = chipData(btn);
+    var sheet = el('sheet');
+
+    el('sheetback').innerHTML = '';
+    if (!g.add && chosen[g.id] !== undefined && chosen[g.id] !== '') {
+      var back = document.createElement('button');
+      back.dataset.v = 'keep';
+      back.textContent = 'put it back — ' + g.was.toFixed(2) + 's';
+      el('sheetback').appendChild(back);
+    }
+    if (g.add) {
+      var drop = document.createElement('button');
+      drop.className = 'drop';
+      drop.dataset.v = 'remove';
+      drop.textContent = 'not here after all';
+      el('sheetback').appendChild(drop);
+    }
+    sheet.querySelector('.ctx').innerHTML = g.add
+      ? 'A new pause here'
+      : ('This pause is <em>' + g.was.toFixed(2) + 's</em>');
+
+    [['lens1', LENS1], ['lens2', LENS2]].forEach(function (pair) {
+      var host = el(pair[0]);
+      host.innerHTML = '';
+      pair[1].forEach(function (spec) {
+        if (spec[0] === 'keep' && g.add) return;           // an added pause has no "leave it"
+        var b = document.createElement('button');
+        b.dataset.v = spec[0] === 'keep' ? 'keep' : String(spec[2]);
+        b.textContent = spec[1];
+        host.appendChild(b);
+      });
+    });
+    markSel(g);
+    sheet.hidden = false;
+    preview(g, currentLen(g));
+  }
+  function currentLen(g) {
+    if (g.add) return PLAN.clampLen(added[g.id]) || 0.8;
+    var v = PLAN.clampLen(chosen[g.id]);
+    return v === null ? g.was : v;
+  }
+  function markSel(g) {
+    var v = g.add ? String(PLAN.clampLen(added[g.id]) || 0.8)
+      : (chosen[g.id] === undefined || chosen[g.id] === '' || chosen[g.id] === 'keep' ? 'keep' : String(PLAN.clampLen(chosen[g.id])));
+    [].forEach.call(el('sheet').querySelectorAll('.lens button'), function (b) {
+      b.classList.toggle('sel', b.dataset.v === v);
+    });
+  }
+
+  // Hear the pause IN CONTEXT at the length she just tapped — 1.6s of speech
+  // either side, so it is a beat between two phrases and not an isolated
+  // stretch of air.
+  function preview(g, len) {
+    var a = g.add ? g.a : g.a, b = g.add ? g.a : g.b;
+    var t0 = Math.max(0, a - 1.6), t1 = Math.min(doc.seconds, b + 1.6);
+    var item = { kind: g.add ? 'add' : 'set', id: g.id, a: a, b: b, len: len };
+    Promise.all([spanClip(t0, t1), loadRoom()]).then(function (r) {
+      if (cur !== null && cur.dataset.id === g.id) {
+        var mix = editSpan(r[0], t0, [item], t0, t1);
+        playBuf(mix.buf, mix.segs, 'sheet');
+      }
+    }).catch(function (err) {
+      note('no preview for that one — ' + err.message);
+    });
+  }
+
+  el('sheet').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-v]');
+    if (!b || !cur) return;
+    var g = chipData(cur);
+    var node2 = cur, anchor = cur.previousSibling, parent = cur.parentNode;
+    var prevChosen = chosen[g.id], prevAdded = added[g.id];
+
+    if (b.dataset.v === 'remove') {
+      // its own key, never the chip's: undo after "not here after all"
+      // should bring the pause BACK, not fall through to the add's own
+      // restore and remove it a second time
+      record('del:' + g.id, function () {
+        if (anchor && anchor.parentNode === parent) anchor.after(node2); else parent.prepend(node2);
+        added[g.id] = prevAdded;
+        save();
+      });
+      delete added[g.id];
+      cur.remove();
+      cur = null;
+      el('sheet').hidden = true;
+      halt();
+      save();
+      return;
+    }
+
+    record(g.id, function () {
+      if (g.add) added[g.id] = prevAdded; else chosen[g.id] = prevChosen;
+      if (!g.add && prevChosen === undefined) delete chosen[g.id];
+      paintChip(node2);
+      save();
+    });
+    if (g.add) added[g.id] = b.dataset.v === 'keep' ? 0.8 : Number(b.dataset.v);
+    else chosen[g.id] = b.dataset.v === 'keep' ? '' : b.dataset.v;
+    paintChip(cur);
+    markSel(chipData(cur));
+    save();
+    preview(chipData(cur), currentLen(chipData(cur)));
+  });
+  el('sheet').querySelector('.close').addEventListener('click', function () {
+    el('sheet').hidden = true;
+    halt();
+    if (cur) { cur.classList.remove('on'); cur = null; }
+  });
+
+  /* ── drawing ─────────────────────────────────────────────────────────── */
+  function chipHTML(id) {
+    var b = document.createElement('button');
+    b.className = 'p';
+    b.dataset.id = id;
+    b.innerHTML = '<i></i><b></b><s></s>';
+    paintChip(b);
+    return b;
+  }
+  function paintChip(b) {
+    var id = b.dataset.id;
+    var add = id.charAt(0) === 'a';
+    var was = add ? 0 : byId[id].len;
+    var v = add ? (PLAN.clampLen(added[id]) || 0.8) : PLAN.clampLen(chosen[id]);
+    var shown = v === null ? was : v;
+    b.className = 'p' + (shown >= 1.2 ? ' long' : shown >= 0.6 ? ' mid' : '')
+      + (add ? ' add set' : (v === null ? '' : ' set'));
+    b.querySelector('b').textContent = shown.toFixed(2);
+    b.querySelector('s').textContent = (!add && v !== null && Math.abs(v - was) > 0.02) ? was.toFixed(2) : '';
+  }
+
+  function drawPara(pa, host) {
+    host.innerHTML = '';
+    var chips = {};
+    pauses.forEach(function (p) { if (p.wi >= pa.wi0 && p.wi <= pa.wi1) chips[p.wi] = p.id; });
+    for (var i = pa.wi0; i <= pa.wi1; i++) {
+      var s = document.createElement('span');
+      s.className = 'w';
+      s.id = 'w' + i;
+      s.dataset.i = String(i);
+      s.textContent = words[i].word;
+      host.appendChild(s);
+      host.appendChild(document.createTextNode(' '));
+      if (chips[i]) { host.appendChild(chipHTML(chips[i])); host.appendChild(document.createTextNode(' ')); }
+      if (added['a' + i] !== undefined) { host.appendChild(chipHTML('a' + i)); host.appendChild(document.createTextNode(' ')); }
+    }
+  }
+
+  function drawParas() {
+    var host = el('paras');
+    host.innerHTML = '';
+    paras.forEach(function (pa, i) {
+      var d = document.createElement('div');
+      d.className = 'para';
+      d.dataset.i = String(i);
+      var n = 0;
+      pauses.forEach(function (p) { if (p.wi >= pa.wi0 && p.wi <= pa.wi1 && PLAN.clampLen(chosen[p.id]) !== null) n++; });
+      Object.keys(added).forEach(function (k) { var wi = +k.slice(1); if (wi >= pa.wi0 && wi <= pa.wi1) n++; });
+      d.innerHTML = '<div class="hd"><button class="pl" data-k="para' + i + '" aria-label="play this">'
+        + ICON.play + '</button><span class="ti"></span>'
+        + '<span class="mk">' + (n ? n + ' set' : '') + '</span></div>'
+        + '<div class="bd" hidden></div>';
+      d.querySelector('.ti').textContent = pa.title;
+      host.appendChild(d);
+    });
+  }
+
+  el('paras').addEventListener('click', function (e) {
+    var play = e.target.closest('.pl');
+    if (play) {
+      e.stopPropagation();
+      playPara(+play.closest('.para').dataset.i, null);
+      return;
+    }
+    var chip = e.target.closest('.p');
+    if (chip) { openSheet(chip); return; }
+    var w = e.target.closest('.w');
+    if (w) {
+      var idx = +w.dataset.i;
+      var pi = +w.closest('.para').dataset.i;
+      if (mode === 'add') {
+        var id = 'a' + idx;
+        if (added[id] !== undefined) return;
+        added[id] = 0.8;
+        var chipEl = chipHTML(id);
+        w.after(document.createTextNode(' '), chipEl);
+        // keyed by the chip, so the length she picks in the sheet that
+         // opens next collapses into this one step — one undo, no pause
+        record(id, function () { delete added[id]; chipEl.remove(); el('sheet').hidden = true; save(); });
+        save();
+        openSheet(chipEl);
+      } else {
+        playPara(pi, words[idx].start);
+      }
+      return;
+    }
+    var hd = e.target.closest('.hd');
+    if (!hd) return;
+    var card = hd.closest('.para');
+    var body = card.querySelector('.bd');
+    if (body.hidden) {
+      drawPara(paras[+card.dataset.i], body);
+      body.hidden = false;
+      card.classList.add('on');
+    } else {
+      body.hidden = true;
+      body.innerHTML = '';
+      card.classList.remove('on');
+    }
+  });
+
+  el('bar').addEventListener('click', function (e) {
+    var m = e.target.closest('.modes button');
+    if (m) {
+      mode = m.dataset.m;
+      [].forEach.call(el('bar').querySelectorAll('.modes button'), function (x) { x.classList.toggle('on', x === m); });
+      halt();
+      return;
+    }
+    if (e.target.closest('#undo')) { halt(); undo(); }
+  });
+
+  /* ── paragraphs, derived ─────────────────────────────────────────────
+     Broken at the LONGEST pauses, which is where a recording actually
+     changes subject, aiming at roughly a minute each rather than a fixed
+     count. Titles are the paragraph's own first words — never a model call,
+     never invented. */
+  function makeParas() {
+    var target = Math.max(1, Math.round(words.length / 130));
+    var breaks = pauses.slice().sort(function (a, b) { return b.len - a.len; })
+      .slice(0, Math.max(0, target - 1))
+      .map(function (p) { return p.wi + 1; })
+      .filter(function (v) { return v > 0 && v < words.length; })
+      .sort(function (a, b) { return a - b; });
+    var cuts = [0].concat(breaks, [words.length]);
+    var out = [];
+    for (var i = 0; i + 1 < cuts.length; i++) {
+      var a = cuts[i], z = cuts[i + 1] - 1;
+      if (z < a) continue;
+      out.push({
+        wi0: a, wi1: z,
+        t0: words[a].start, t1: words[z].end,
+        title: words.slice(a, a + 7).map(function (w) { return w.word; }).join(' ').replace(/[.,!?]+$/, ''),
+      });
+    }
+    return out;
+  }
+
+  /* ── the recordings list ─────────────────────────────────────────────── */
+  function note(msg) {
+    var line = el('jobline');
+    line.hidden = !msg;
+    line.textContent = msg || '';
+  }
+  function loadSources() {
+    getJSON(url('/sources')).then(function (j) {
+      var host = el('srclist');
+      host.innerHTML = '';
+      (j.sources || []).forEach(function (s) {
+        var b = document.createElement('button');
+        b.className = 'src';
+        b.innerHTML = '<span class="nm"></span><span class="mt"></span>';
+        b.querySelector('.nm').textContent = s.name;
+        b.querySelector('.mt').textContent = s.seconds ? fmt(s.seconds) : '';
+        if (s.project) b.prepend(Object.assign(document.createElement('span'), { className: 'dot' }));
+        b.addEventListener('click', function () { open(s.url, s.name, s.itemId); });
+        host.appendChild(b);
+      });
+      if (!host.children.length) host.innerHTML = '<p class="muted">Nothing in the audio library yet.</p>';
+    }).catch(function (e) { el('srclist').innerHTML = '<p class="muted">' + e.message + '</p>'; });
+  }
+  function loadMine() {
+    getJSON(url('/')).then(function (j) {
+      var host = el('minelist');
+      host.innerHTML = '';
+      (j.projects || []).forEach(function (p) {
+        var b = document.createElement('button');
+        b.className = 'src';
+        b.innerHTML = '<span class="nm"></span><span class="mt"></span>';
+        b.querySelector('.nm').textContent = p.title;
+        b.querySelector('.mt').textContent = p.changes ? p.changes + ' set' : (p.status === 'ready' ? p.pauseCount + ' pauses' : p.status);
+        b.addEventListener('click', function () { location.hash = p.id; openDoc(p.id); });
+        host.appendChild(b);
+      });
+      if (!host.children.length) host.innerHTML = '<p class="muted">Nothing open yet.</p>';
+    }).catch(function (e) { el('minelist').innerHTML = '<p class="muted">' + e.message + '</p>'; });
+  }
+
+  function open(u, name, itemId) {
+    note('opening…');
+    postJSON(url('/open'), { url: u, name: name, itemId: itemId }).then(function (j) {
+      location.hash = j.id;
+      openDoc(j.id);
+    }).catch(function (e) { note(e.message); });
+  }
+
+  var pollTimer = 0;
+  function openDoc(id) {
+    clearTimeout(pollTimer);
+    el('pick').hidden = true;
+    el('work').hidden = false;
+    el('back').hidden = !!window.__nativeNavBar;
+    note('reading the recording…');
+    el('paras').innerHTML = '';
+    getJSON(url('/' + id)).then(function (j) {
+      doc = j.project;
+      if (doc.status !== 'ready') {
+        var jb = doc.job || {};
+        note(jb.error ? 'that failed — ' + jb.error : (jb.label || 'reading the recording…')
+          + (jb.total > 1 ? ' (' + jb.done + '/' + jb.total + ')' : ''));
+        if (!jb.error) pollTimer = setTimeout(function () { openDoc(id); }, 3000);
+        return;
+      }
+      note('');
+      pauses = doc.pauses || [];
+      byId = {};
+      pauses.forEach(function (p) { byId[p.id] = p; });
+      chosen = doc.set || {};
+      added = doc.added || {};
+      return fetch(doc.wordsUrl).then(function (r) { return r.json(); }).then(function (wj) {
+        words = wj.words || [];
+        paras = makeParas();
+        drawParas();
+        drawTakes();
+        // the server's own reading of her edit, on open — the render performs
+        // this exact plan, and it costs nothing to ask
+        return getJSON(url('/' + id + '/plan')).then(function (p) {
+          el('tally').innerHTML = p.items.length
+            ? '<em>' + p.items.length + '</em> changed · ' + (p.delta >= 0 ? '+' : '') + p.delta.toFixed(1) + 's'
+            : '';
+        }).catch(function () { tally(); });
+      });
+    }).catch(function (e) { note(e.message); });
+  }
+
+  function drawTakes() {
+    var host = el('takelist');
+    host.innerHTML = '';
+    ((doc && doc.renders) || []).forEach(function (r) {
+      var d = document.createElement('div');
+      d.className = 'take';
+      d.innerHTML = '<div class="muted"></div><audio controls preload="none"></audio>';
+      d.querySelector('.muted').textContent = fmt(r.seconds || 0) + ' · ' + (r.changes || 0) + ' changed'
+        + (r.delta ? ' · ' + (r.delta >= 0 ? '+' : '') + r.delta.toFixed(1) + 's' : '');
+      d.querySelector('audio').src = r.url;
+      host.appendChild(d);
+    });
+    if (!host.children.length) host.innerHTML = '<p class="muted">No takes yet.</p>';
+  }
+
+  el('render').addEventListener('click', function () {
+    halt();
+    note('rendering…');
+    postJSON(url('/' + doc.id + '/render'), {}).then(function () { pollJob(); })
+      .catch(function (e) { note(e.message); });
+  });
+  function pollJob() {
+    getJSON(url('/' + doc.id + '/job')).then(function (j) {
+      var jb = j.job || {};
+      if (jb.status === 'running') {
+        note(jb.label || 'rendering…');
+        setTimeout(pollJob, 2500);
+        return;
+      }
+      if (jb.status === 'error') { note('that failed — ' + jb.error); return; }
+      note('');
+      doc.renders = j.renders || [];
+      drawTakes();
+    }).catch(function (e) { note(e.message); });
+  }
+
+  /* ── tabs (the rows measure their own underline) ──────────────────────── */
+  function wireTabs(id, onPick) {
+    var row = el(id);
+    var ul = row.querySelector('.ul');
+    var btns = [].slice.call(row.querySelectorAll('button'));
+    function place(i) { ul.style.width = 'calc((100% - 64px) / ' + btns.length + ')'; ul.style.transform = 'translateX(' + (i * 100) + '%)'; }
+    row.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      btns.forEach(function (x, i) { x.classList.toggle('on', x === b); if (x === b) place(i); });
+      onPick(b.dataset.t);
+    });
+    place(0);
+  }
+  wireTabs('picktabs', function (t) {
+    el('srclist').hidden = t !== 'src';
+    el('minelist').hidden = t !== 'mine';
+    if (t === 'mine') loadMine();
+  });
+  wireTabs('worktabs', function (t) {
+    el('paras').hidden = t !== 'pauses';
+    el('takes').hidden = t !== 'takes';
+    if (t === 'takes') halt();
+  });
+
+  /* ── the "?" card: the explanation lives here, never on the page ─────── */
+  var helpOpen = null;
+  el('helpbtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (helpOpen) { helpOpen.remove(); helpOpen = null; return; }
+    var c = document.createElement('div');
+    c.className = 'helpcard';
+    c.innerHTML = '<p>Every number on a pause is <b>how long it sits</b>. '
+      + 'Tap one and pick a length — it plays straight back, so you can hear it before you keep it.</p>'
+      + '<p><b>+ PAUSE</b> then a word puts a new pause after that word.</p>'
+      + '<p>A pause is built out of this recording’s own room tone, never silence. '
+      + '<b>▶</b> on a paragraph plays it the way you have marked it, not the way it was.</p>'
+      + '<p><b>Render this</b> bakes the whole recording. Free.</p>';
+    document.body.appendChild(c);
+    helpOpen = c;
+    setTimeout(function () {
+      document.addEventListener('click', function once() {
+        if (helpOpen) { helpOpen.remove(); helpOpen = null; }
+        document.removeEventListener('click', once);
+      });
+    }, 0);
+  });
+
+  /* ── back ────────────────────────────────────────────────────────────── */
+  function toList() {
+    halt();
+    clearTimeout(pollTimer);
+    location.hash = '';
+    doc = null;
+    el('work').hidden = true;
+    el('pick').hidden = false;
+    el('sheet').hidden = true;
+    el('back').hidden = true;
+    loadSources();
+  }
+  el('back').addEventListener('click', toList);
+  // The native nav bar's chevron asks the page first: inside a recording it
+  // steps back to the list, on the list it lets the tool close.
+  window.__navBack = function () {
+    if (el('sheet').hidden === false) { el('sheet').hidden = true; halt(); return true; }
+    if (!el('work').hidden) { toList(); return true; }
+    return false;
+  };
+  if (window.__nativeNavBar) document.body.classList.add('native');
+
+  loadSources();
+  if (location.hash.length > 1) openDoc(location.hash.slice(1));
+}());
+</script>
+</body>
+</html>

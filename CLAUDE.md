@@ -61,11 +61,13 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 - **Merge your own PRs** when CI is green — don't park them as drafts.
 - **Measure, never reason, about other sessions or the environment.**
 
-**Writing the reply** — TLDR first · answer her questions before anything else,
-each one **repeated verbatim in bold with the answer plainly underneath** (see
-*Answering a question*) · small question, short answer · full clickable links ·
-no markdown tables · times in 12-hour Pacific · files and images LAST · working
-links at the very bottom.
+**Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
+what changes what she does next — detail goes behind "want the long version?"
+or into the PR description) · TLDR first · answer her questions before
+anything else, each one **repeated verbatim in bold with the answer plainly
+underneath** (see *Answering a question*) · small question, short answer ·
+full clickable links · no markdown tables · times in 12-hour Pacific · files
+and images LAST · working links at the very bottom.
 
 ## Where everything is
 
@@ -1480,6 +1482,20 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   same message — **her question repeated verbatim in bold, the answer plainly
   underneath it** (full rule + the Questions button that reads them: *Answering
   a question* in the Chats app section).
+- **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
+  2026, Sophie: "a lot of my responses are really long and it's actually
+  annoying cause I don't wanna read through it all").** The default reply is a
+  few short paragraphs: the TLDR, her questions answered, and only the facts
+  that change what she does or decides next. Cut the rest — play-by-play of
+  the work, options you didn't take, recaps of things she already knows,
+  restated plans, closing summaries, next-step menus she didn't ask for.
+  Detail that genuinely matters goes behind an offer ("want the long
+  version?") or into the PR description / a doc she can open — never into the
+  reply by default. Output tokens also bill at several times the input rate,
+  so a long reply costs real money on top of her reading time — but her
+  reading time is the reason. "Small question → short answer" and "quick
+  question mode" below are the tighter ends of the same dial, not exceptions
+  to a verbose default.
 - **Small question → short answer.** When Sophie asks a quick or small
   question, reply with just the answer — no suggestions about what to do next,
   no updates on work already done, no recaps. Save those for when she asks.
@@ -1585,6 +1601,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   blocks live in Storage. Transcription is ~$0.006/min, once ever per
   recording; rendering is ffmpeg on our own box, free. Tests:
   `node scripts/test-blocks.js`. **Full details: `docs/audio-pipeline.md`.**
+- **Pausing** (`pausing.js`, `/api/pausing`, page at `/pausing`, iOS tile under
+  the FILM filter) — the BOTTOM of the audio pipeline, and the other half of
+  the polish pass: **how long a beat sits**. The Cutting Room can only REMOVE a
+  pause (compressed to ~0.28s, its one length); here she sets a length, ADDS a
+  pause where the recording has none, and hears her EDIT rather than the
+  source ("I need to be able to hear it to know how long of a pause I want").
+  It was a hand-authored Compare page ("Evan — the pause timeline v7b") with
+  its whole state in a chat's verdict fields.
+  **Three things not to undo.** (1) **Pause detection is IMPORTED** —
+  `cuttingroom.js` exports `breathCuts`/`roomToneCuts`/`mergeRanges`/
+  `rmsProfile` and this module calls them; every constant in them is a measured
+  finding, so a second copy would find different pauses and the same recording
+  would read differently in two rooms. Those passes return ranges to REMOVE,
+  inset by KEEP/2 either side — Pausing takes the inset back off to get the
+  GAP, and no further (the 0.10s margins are speech protection). (2) **A PAUSE
+  IS NEVER DIGITAL SILENCE** — it is the recording's own room tone, an existing
+  gap lending its own air (trimmed or looped) and an added pause borrowing the
+  quietest stretch of the file, baked once at `pausing/<id>/room.wav`. Zero
+  samples read as a dropout; that is what made the "45 percent" line sound
+  bungled. (3) **The edit is ONE file** — `pause-plan.js`, loaded by the render
+  on the server AND served to the page at `/pause-plan.js`, because she
+  approves a length by ear and the preview has to be the take. It does not cut
+  WORDS (that is the Cutting Room's and Cutting Blocks' job, with the re-listen
+  a real word cut needs); "out" is 0.08s of room tone, an elision. Listening is
+  per PARAGRAPH — the server cuts that span once via `/api/search/clip-span`
+  and the page splices in the browser, so changing a length costs no round
+  trip; ninety minutes decoded would be most of a gigabyte in a WKWebView.
+  Transcription ~$0.006/min once ever per recording; everything else is free.
+  Tests: `node scripts/test-pausing.js` (pure) and `node
+  scripts/test-pausing-page.js` (the real page, headless, asserting on the
+  SAMPLES — a pause must be quiet and NON-ZERO).
+  **Full details: `docs/audio-pipeline.md`.**
 - **Chunking** (`clips.js`, `/api/clips`, page at `/chunking` — `/clips` is an
   alias — iOS tile under the FILM filter) — the clip LIBRARY: every short
   self-contained piece the app has made, on one shelf, four to a row with names
@@ -1635,9 +1683,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   bytes. **A shared stamp is NOT a duplicate** and never dedupes anything.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Voice Studio** (`voicelab.js`, `/voice`) — her cloned voices, two hairline
-  tabs: SPEAK (TTS, stock v2 defaults, no settings by design) and CHANGE
+  tabs: TEXT (TTS, stock v2 defaults, no settings by design) and VOICE
   (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
-  and swaps only the voice). Her words stay in the box after a render.
+  and swaps only the voice). Her words stay in the box after a render. The page
+  carries NO header of its own (the native bar has the title) and no character
+  counts; credits live behind the ⓘ on the tab row.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable

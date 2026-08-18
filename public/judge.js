@@ -68,6 +68,102 @@
     // resolves its width from the 58vh max-height instead.
     '.jg-media.sq figure{overflow:hidden;border-radius:6px;}' +
     '.jg-media.sq img{width:100%;height:100%;max-height:none;object-fit:cover;}' +
+    // THE MOMENT CARD — the date card, HER OWN design ("Decision Deck v2",
+    // Aug 2026), wired in as the deck's TEXT STYLE and copied EXACTLY at her
+    // ask ("exactly exactly exactly like it does in the demo"): each part in
+    // its own white rounded box on her cream, the Newsreader serif, her hex
+    // palette — deliberately NOT the house tokens. The NAME sits centred on
+    // its own line above the boxes, lower than the header row it lived on in
+    // the mockup (her ask). The footer is hers too — ✕ · Note for Claude · ♥
+    // (the mockup's ✓ swapped for a ♥, her call) — chosen over the four
+    // house verdicts, so a moment deck has no maybe/later and no mic.
+    // ONE SCREEN, ONE GUTTER (Aug 2026, her report on the live page: "lots of
+    // things are misaligned", and the page scrolled when her design does not).
+    // Her mockup is a fixed phone frame, so the deck fills the viewport and
+    // NOTHING scrolls: the boxes take the middle and centre themselves, the
+    // footer sits on the bottom. Every row — progress line, Piles, boxes,
+    // footer — shares ONE 22px gutter, so their edges line up down the screen;
+    // the old layout inherited compare.css's .wrap padding for the boxes, a
+    // 56px pill reservation on the top row and a centred footer, which is
+    // three different left edges. The page-level pill is gone too
+    // (page-templates.js), so no corner is reserved for it any more.
+    '.jg-mombg{background:#F7F2E8;padding:0;height:100vh;height:100dvh;overflow:hidden;}' +
+    '.jg-mombg .wrap{max-width:none;height:100%;padding:0;}' +
+    '.jg-mombg #judge,.jg-mombg .jg.mom{height:100%;}' +
+    '.jg.mom{display:flex;flex-direction:column;box-sizing:border-box;max-width:680px;' +
+    ' margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 22px' +
+    ' max(10px,env(safe-area-inset-bottom)) 22px;}' +
+    '.jg.mom>*{flex:none;}' +
+    '.jg-prog{height:3px;border-radius:999px;background:#E7DECF;overflow:hidden;}' +
+    '.jg-prog i{display:block;height:100%;border-radius:999px;background:#C25E4C;' +
+    ' transition:width .25s ease;}' +
+    '.jg-momtop{display:flex;align-items:center;justify-content:flex-end;gap:10px;' +
+    ' padding:14px 0 0;}' +
+    '.jg-pilesbtn{border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;' +
+    ' font:600 12px/1 -apple-system,sans-serif;padding:7px 14px;border-radius:10px;}' +
+    '.jg-momq{width:30px;height:30px;border-radius:50%;border:1px solid #DDD3C0;' +
+    ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;}' +
+    // her boxes sit straight on the cream — the house card chrome disappears,
+    // and the stack takes the middle of the screen, centred like her mockup.
+    // `safe center` so a stack taller than the screen scrolls INSIDE this box
+    // from its top rather than having its head clipped off (plain centring
+    // overflows both ways); the page itself still never scrolls.
+    // …and the scroller takes NO WIDTH when it does scroll: a desktop
+    // scrollbar is 15px of layout inside this box, which would pull the
+    // boxes 15px off the edges every other row sits on (iOS overlay
+    // scrollbars hide it, so it only shows up on a short window)
+    '.jg-card.momcard{background:transparent;border:0;padding:0;flex:1;min-height:0;' +
+    ' display:flex;flex-direction:column;justify-content:center;' +
+    ' justify-content:safe center;overflow-y:auto;scrollbar-width:none;}' +
+    '.jg-card.momcard::-webkit-scrollbar,.jg.mom .jg-piles::-webkit-scrollbar' +
+    ' {width:0;height:0;}' +
+    '.jg.mom .jg-piles{scrollbar-width:none;}' +
+    '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;width:100%;' +
+    ' padding:2px 0;}' +
+    // THE NAME IS PART OF THE TOP, not of the centred stack (her ask was "a
+    // little bit lower down and centered" — one row below where the mockup
+    // had it, next to Piles; inside the stack it drifts to mid-screen on a
+    // tall phone, which is a lot lower down). Pinned here it always sits the
+    // same distance under the Piles row, whatever the card holds.
+    '.jg.mom>.who,.jg-mom .who{text-align:center;padding:10px 0 4px;' +
+    ' font:600 22px/1.25 Newsreader,Georgia,\'Times New Roman\',serif;color:#262016;}' +
+    '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;' +
+    ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
+    '.jg-mombox .eyebrow{font:700 10px/1.3 -apple-system,sans-serif;' +
+    ' letter-spacing:.14em;text-transform:uppercase;color:#C25E4C;}' +
+    '.jg-mombox .moment{margin:0;font:500 21px/1.34 Newsreader,Georgia,' +
+    ' \'Times New Roman\',serif;color:#262016;text-wrap:pretty;}' +
+    '.jg-mombox .seclabel{font:700 10px/1.3 -apple-system,sans-serif;' +
+    ' letter-spacing:.14em;text-transform:uppercase;color:#8A7F6E;}' +
+    '.jg-mombox .sectext{margin:0;font:400 14px/1.5 -apple-system,sans-serif;' +
+    ' color:#4C4335;text-wrap:pretty;}' +
+    '.jg-mombox .cap{margin:0;font:italic 500 16px/1.4 Newsreader,Georgia,' +
+    ' \'Times New Roman\',serif;color:#262016;}' +
+    // a picture rides in the stack as its own rounded panel, the boxes\' radius
+    '.jg-mom figure{margin:0;overflow:hidden;border-radius:16px;' +
+    ' border:1px solid rgba(0,0,0,0.06);}' +
+    '.jg-mom figure img{width:100%;display:block;}' +
+    '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
+    // the footer's ✕ and ♥ sit on the SAME edges as the boxes above them
+    // (space-between), the note box centred between them — her mockup's
+    // proportions without the three mismatched left edges
+    '.jg-momrow{display:flex;align-items:center;justify-content:space-between;gap:14px;' +
+    ' padding:16px 0 6px;}' +
+    // the piles view scrolls inside its own box on a moment deck, so the
+    // page still never scrolls
+    '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
+    '.jg.mom .jg-piles h2:first-child{margin-top:14px;}' +
+    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:17px;' +
+    ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
+    ' font-size:21px;line-height:1;padding:0;}' +
+    // the ♥ draws optically smaller than the ✕ at the same size — 24px reads
+    // as the mockup\'s 21px ✓ did
+    '.jg-mombtn.yes{font-size:24px;}' +
+    '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
+    '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
+    ' border-radius:14px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
+    ' font:400 13px/1.45 -apple-system,sans-serif;color:#262016;outline:none;resize:none;}' +
+    '.jg-momnote::placeholder{color:#A99E8B;}' +
     '.jg-cardtext.sq{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:10%;box-sizing:border-box;' +
     ' max-height:none;overflow-y:auto;}' +
@@ -171,7 +267,30 @@
       : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
 
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
-    var noteTimer = null;
+    var noteTimer = null, momNote = null;
+
+    // A MOMENT DECK — any deck carrying her date cards — wears her Decision
+    // Deck chrome whole: her cream behind the page, the Newsreader serif
+    // (fetched once from Google Fonts, Georgia the fallback while it loads),
+    // the thin progress line, Piles + ? up top, her footer on every date card.
+    var momDeck = opts.style === 'moment' || items.some(function (x) { return isMoment(x); });
+    if (momDeck && !states) {
+      // the piles speak the mockup's words — ♥ and ✕ are the only verdicts
+      piles = [{ key: true, name: 'Yes' }, { key: false, name: 'No' },
+        { key: undefined, name: 'Unsure' }];
+    }
+    if (momDeck) {
+      document.body.classList.add('jg-mombg');
+      if (!document.getElementById('jg-newsreader')) {
+        var pre = document.createElement('link');
+        pre.rel = 'preconnect'; pre.href = 'https://fonts.googleapis.com';
+        var fl = document.createElement('link');
+        fl.id = 'jg-newsreader'; fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght'
+          + '@0,6..72,400..700;1,6..72,400..600&display=swap';
+        document.head.appendChild(pre); document.head.appendChild(fl);
+      }
+    }
 
     // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
     // page and the tab "should agree"). Only the boolean pair mirrors —
@@ -297,12 +416,20 @@
     }
     window.addEventListener('pagehide', function () {
       // a half-typed note survives leaving (same contract as __compareNotes)
-      var box = mount.querySelector('.cmp-note-box');
       var it = items[cur];
-      if (!box || !it || !box.value.trim()) return;
+      if (!it) return;
+      var text = null;
+      var mb = mount.querySelector('.jg-momnote');
+      if (mb && momNote && momNote.item === it.id && mb.value.trim()) {
+        text = momNote.compose();   // her box edits the thread's last message
+      } else {
+        var box = mount.querySelector('.cmp-note-box');
+        if (box && box.value.trim()) text = box.value;
+      }
+      if (!text) return;
       try {
         navigator.sendBeacon('/api/chatfeed/verdict', new Blob([JSON.stringify({
-          chat: chat, sheet: sheet, item: it.id, text: box.value,
+          chat: chat, sheet: sheet, item: it.id, text: text,
         })], { type: 'application/json' }));
       } catch (_) { /* nothing else to do */ }
     });
@@ -353,10 +480,49 @@
     // may pick its own. Anything else keeps the item's natural shape.
     var AR = { square: '1/1', portrait: '5/7', landscape: '7/5' };
     function arOf(it) { return AR[it.aspect] || AR[opts.aspect] || ''; }
-    function mediaHtml(it) {
+    // THE MOMENT CARD (Aug 2026, Sophie's Decision Deck design). Every part is
+    // optional and the card renders only what it carries — "some might have
+    // just one text or they might have like a text and an image". A card with
+    // any of who/eyebrow/sections/caption gets this look automatically;
+    // style:'moment' opts PLAIN text cards in too.
+    function isMoment(it) {
+      if (it.pair || it.card) return false;
+      return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
+        || (opts.style === 'moment' && it.text));
+    }
+    // `hoisted` — the name is being drawn in the page's top chrome instead
+    // (a moment deck), so the stack starts at the first box
+    function momentHtml(it, ar, hoisted) {
+      var out = '';
+      if (it.who && !hoisted) out += '<div class="who">' + esc(it.who) + '</div>';
+      // box one: the eyebrow and the moment share a box, exactly her mockup
+      var first = '';
+      if (it.eyebrow) first += '<span class="eyebrow">' + esc(it.eyebrow) + '</span>';
+      if (it.text) first += '<p class="moment">' + esc(it.text) + '</p>';
+      if (first) out += '<div class="jg-mombox">' + first + '</div>';
+      (it.sections || []).forEach(function (sec) {
+        out += '<div class="jg-mombox">'
+          + (sec.label ? '<span class="seclabel">' + esc(sec.label) + '</span>' : '')
+          + '<p class="sectext">' + esc(sec.text) + '</p></div>';
+      });
+      if (it.img) {
+        out += '<figure' + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+          + '<img class="zoom' + (ar ? ' fill' : '') + '" src="' + esc(it.img) + '"'
+          + ' alt="' + esc(it.label || '') + '"'
+          + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure>';
+      }
+      if (it.caption) {
+        out += '<div class="jg-mombox"><span class="seclabel">'
+          + esc(it.captionLabel || 'Caption') + '</span>'
+          + '<p class="cap">\u201c' + esc(it.caption) + '\u201d</p></div>';
+      }
+      return '<div class="jg-mom">' + out + '</div>';
+    }
+    function mediaHtml(it, hoisted) {
       var ar = arOf(it);
       var sq = ar ? ' sq' : '';
       var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';
+      if (isMoment(it)) return momentHtml(it, ar, hoisted);
       // a TEMPLATE item's words render ESCAPED — template data carries no
       // HTML by design (page-templates.js); `card` below stays page-authored
       // trusted HTML for hand-built judge pages
@@ -389,12 +555,26 @@
         recTimeline.push({ item: items[cur].id, at: Date.now() - recStart });
       }
       var judged = items.filter(function (it) { return verdicts[it.id] !== undefined; }).length;
-      var top = '<div class="jg-top"><span class="jg-count">'
-        + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
-                            : (cur + 1) + ' of ' + items.length) + '</span>'
-        + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
-        + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
-        + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
+      var momCls = momDeck ? ' mom' : '';
+      var top;
+      if (momDeck) {
+        // her chrome: the thin progress line (position through the deck, like
+        // the mockup), then Piles + ? — the name that lived on this row sits
+        // lower now, centred on the card (her ask)
+        var pct = Math.round(((view === 'piles' ? items.length : cur) / items.length) * 100);
+        top = '<div class="jg-prog"><i style="width:' + pct + '%"></i></div>'
+          + '<div class="jg-momtop">'
+          + '<button class="jg-pilesbtn" data-act="piles">Piles</button>'
+          + '<button class="jg-momq" data-act="help" aria-label="What the buttons mean">?</button>'
+          + '</div>';
+      } else {
+        top = '<div class="jg-top"><span class="jg-count">'
+          + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
+                              : (cur + 1) + ' of ' + items.length) + '</span>'
+          + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
+          + '<button class="jg-ic" data-act="piles" aria-label="Piles">' + I.grid + '</button>'
+          + '<button class="jg-ic txt" data-act="help" aria-label="What the icons mean">?</button></div>';
+      }
 
       // data-nostop: in the app a Compare page is EMBEDDED (chats.html's
       // parent pill + its tap-to-toggle gesture on this document). A judge
@@ -405,20 +585,23 @@
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
             + members.map(function (it) {
-              if (it.card || (it.text && !it.img && !it.pair)) {
+              if (it.card || (it.text && !it.img && !it.pair) || (isMoment(it) && !it.img)) {
                 return '<button class="txt" data-open="' + esc(it.id) + '">'
-                  + esc(it.label || it.text || it.id) + '</button>';
+                  + esc(it.who || it.label || it.text || it.id) + '</button>';
               }
               var src = it.pair ? it.pair[0].img : it.img;
               return '<button data-open="' + esc(it.id) + '"><img src="' + esc(src)
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>';
         }).join('');
-        mount.innerHTML = '<div class="jg" data-nostop>' + top + '<div class="jg-piles">'
+        mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top + '<div class="jg-piles">'
           + (sections || '<p class="mini">Nothing here yet.</p>') + '</div></div>';
       } else {
         var it = items[cur];
         var v = verdicts[it.id];
+        // a date card gets her footer whole (✕ · note · ♥); her own words
+        // (states) still win when a page sends them
+        var momUI = isMoment(it) && !states;
         var row;
         if (states) {
           // her own words as chips — a button is only as wide as its words
@@ -426,6 +609,15 @@
             return '<button class="jg-chip' + (v === s.key ? ' on' : '')
               + '" data-state="' + i + '">' + esc(s.label) + '</button>';
           }).join('');
+        } else if (momUI) {
+          // her footer, exactly: the big rounded-square ✕ and ♥ (the mockup's
+          // ✓, swapped for a heart at her ask) with the note box between
+          // them; a decided card paints its button dark, like the mockup
+          row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
+            + ' aria-label="No">✕</button>'
+            + '<textarea class="jg-momnote" rows="2" placeholder="Note for Claude…"></textarea>'
+            + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
+            + ' aria-label="Yes">♥</button>';
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
           row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -435,29 +627,56 @@
         }
         // the controls strip: reserved whenever a corner control could sit on
         // the content — the mic (voice) always, and the note + on a short
-        // text-only card (the XI overlap)
-        var ctl = voice || (it.text && !it.img && !it.pair && !it.card) ? ' ctl' : '';
-        mount.innerHTML = '<div class="jg" data-nostop>' + top
-          + '<div class="jg-card' + ctl + (flash ? ' jg-flash' : '') + '">'
+        // text-only card (the XI overlap). Her footer has no corner controls,
+        // so a date card reserves nothing.
+        var ctl = !momUI && (voice || isMoment(it)
+          || (it.text && !it.img && !it.pair && !it.card)) ? ' ctl' : '';
+        mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top
+          + (momUI && it.who ? '<div class="who">' + esc(it.who) + '</div>' : '')
+          + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
           // backwards or forwards") — the middle still opens the lightbox
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
-          + mediaHtml(it)
-          + (it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
+          + mediaHtml(it, momUI)
+          // a date card carries no label line, no corner note and no mic —
+          // her footer below IS the whole control surface (the exact-demo
+          // choice, Aug 2026)
+          + (!momUI && it.label ? '<div class="jg-label">' + esc(it.label) + '</div>' : '')
           // the note is a small + in the card's bottom-right corner; a
           // written one SHOWS as her words, never as an open textarea
           // (Sophie, Aug 2026 — same contract as compare.js's __compareNotes)
-          + '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
+          + (momUI ? '' : '<div class="cmp-note' + (notes[it.id] ? ' has' : '') + '">'
           + '<button type="button" class="cmp-note-open" aria-label="a note about this one">'
           + PLUS_SVG + '</button>'
           + '<div class="cmp-note-text"></div>'
-          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>'
-          + (voice ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
+          + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>')
+          + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div>'
-          + '<div class="jg-row">' + row + '</div></div>';
+          + '<div class="' + (momUI ? 'jg-momrow' : 'jg-row') + '">' + row + '</div></div>';
+        if (momUI) {
+          // her note box: always open, holds HER latest message and edits it
+          // in place — the debounced save and the Assets-tab mirror are the
+          // same machinery the + note uses, only the clothes changed
+          var mbox = mount.querySelector('.jg-momnote');
+          var MS = window.__compareShell || {};
+          var mmsgs = MS.parseNoteThread ? MS.parseNoteThread(notes[it.id] || '') : [];
+          var mdraft = '';
+          if (mmsgs.length && mmsgs[mmsgs.length - 1].who === 'me') mdraft = mmsgs.pop().text;
+          mbox.value = mdraft;
+          var mcompose = function () {
+            return MS.threadField ? MS.threadField(mmsgs, mbox.value) : (mbox.value || '').trim();
+          };
+          momNote = { item: it.id, compose: mcompose };
+          mbox.addEventListener('input', function () { saveNote(it.id, mcompose()); });
+          mbox.addEventListener('blur', function () {
+            var t = mbox.value.trim();
+            if (t && t !== mdraft) { mirrorNote(it, t); mdraft = t; }
+          });
+          return;
+        }
         var box = mount.querySelector('.cmp-note-box');
         var open = mount.querySelector('.cmp-note-open');
         // the thread is painted by the shared kit, so hers and the chat's
@@ -488,6 +707,42 @@
       }
     }
 
+    // THE TOUR (Aug 2026, Sophie): first open of a template deck plays the
+    // coach marks once — each control spotlighted, the rest tinted, a line
+    // of explanation, tap to step. Replayable from the "?" forever.
+    function tourSteps() {
+      var steps = [];
+      if (browse) {
+        steps.push({ sel: '.jg-card', text: 'One card at a time. Tap the left or right '
+          + 'edge of the card (or swipe) to move through the deck — you never have to '
+          + 'mark a card to keep going.' });
+      }
+      steps.push({ sel: momDeck && !states ? '.jg-momrow' : '.jg-row', text: states
+        ? 'Mark a card with one of these — tap the same one again to unmark it.'
+        : momDeck
+          ? '♥ yes, ✕ no — and the box between them is a note for this card, '
+            + 'saved as you type.'
+          : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
+          + 'Each one saves the moment you tap it.' });
+      if (voice) {
+        steps.push({ sel: '.jg-mic', text: 'The mic: tap to start talking, tap again to '
+          + 'stop. Stay on one card and the note lands there — or keep talking while you '
+          + 'swipe, and each sentence lands on the card you were looking at.' });
+      }
+      steps.push({ sel: '.cmp-note-open', text: 'The + writes a note on this card — '
+        + 'typed notes and voice notes end up in the same thread.' });
+      steps.push({ sel: '[data-act="undo"]', text: 'Undo the last thing you marked.' });
+      steps.push({ sel: '[data-act="piles"]', text: 'The piles: everything you’ve '
+        + 'sorted, grouped. Tap any tile there to open its card again.' });
+      steps.push({ sel: '[data-act="help"]', text: 'The ? explains this page any time — '
+        + 'and “show me around” in there replays this tour.' });
+      return steps;
+    }
+    function startTour(auto) {
+      if (!window.__compareTour) return;
+      window.__compareTour({ key: 'deck', auto: !!auto, steps: tourSteps() });
+    }
+
     function showHelp() {
       var h = document.createElement('div');
       h.className = 'jg-help';
@@ -497,17 +752,26 @@
       // `help: '…'` to __judge and it leads the card, above the buttons key.
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
-        : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
+        : momDeck
+          ? '♥ yes · ✕ no · the box between them is a note that saves as you type.'
+          : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
           + ' — nothing has to be marked. ' : '')
-        + (voice ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
+        + (voice && !momDeck ? 'The mic records a voice note: tap to start, tap to stop. Stay on one'
           + ' card and it lands there — or keep talking WHILE you swipe, and each'
           + ' sentence lands on the card you were looking at when you started it. ' : '')
-        + 'Top row: undo the last one, the grid shows every pile —'
-        + ' tap any tile there to open it again.</div>';
-      h.addEventListener('click', function () { h.remove(); });
+        + (momDeck ? 'Piles up top shows everything you’ve sorted —'
+          : 'Top row: undo the last one, the grid shows every pile —')
+        + ' tap any tile there to open it again.<br><br>'
+        + '<button type="button" class="jg-tourgo">SHOW ME AROUND</button></div>';
+      h.addEventListener('click', function (e) {
+        h.remove();
+        if (e.target && e.target.className === 'jg-tourgo') {
+          setTimeout(function () { startTour(false); }, 60);
+        }
+      });
       document.body.appendChild(h);
     }
 
@@ -551,6 +815,12 @@
         if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
         nav(dx < 0 ? 1 : -1);   // swipe left = forward, the deck convention
       });
+    }
+
+    // first-ever open of a template deck: the tour plays once, after the
+    // resume pass has painted the real state (never again — localStorage)
+    if (opts.tour === 'auto') {
+      setTimeout(function () { if (view === 'card') startTour(true); }, 600);
     }
 
     // resume: her earlier verdicts and notes come back off the doc

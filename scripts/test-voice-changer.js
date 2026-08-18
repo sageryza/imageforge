@@ -115,8 +115,8 @@ const ok = (m) => console.log('  ok — ' + m);
       on: row.dataset.on,
     };
   });
-  if (shape.tabs.join('|') !== 'Speak|Change') fail('tabs read ' + shape.tabs.join('|'));
-  else ok('two tabs: Speak · Change');
+  if (shape.tabs.join('|') !== 'Text|Voice') fail('tabs read ' + shape.tabs.join('|'));
+  else ok('two tabs: Text · Voice');
   if (shape.boxed) fail('a tab is drawn as a box — the pattern is labels over a hairline');
   else if (shape.rule === '0px') fail('the tab row has no hairline');
   else ok('labels over a hairline, no boxes');
@@ -126,8 +126,8 @@ const ok = (m) => console.log('  ok — ' + m);
     ch: !document.getElementById('pane-change').hidden,
     picker: !!document.querySelector('.vrow .vbtn'),
   }));
-  if (!panes.say || panes.ch) fail('the page should open on Speak');
-  else ok('opens on Speak');
+  if (!panes.say || panes.ch) fail('the page should open on Text');
+  else ok('opens on Text');
 
   await page.click('#tab-change');
   panes = await page.evaluate(() => ({
@@ -137,8 +137,8 @@ const ok = (m) => console.log('  ok — ' + m);
     on: document.getElementById('tabs').dataset.on,
     lit: document.getElementById('tab-change').classList.contains('on'),
   }));
-  if (panes.say || !panes.ch) fail('tapping Change did not swap the lower half');
-  else ok('Change swaps the lower half');
+  if (panes.say || !panes.ch) fail('tapping Voice did not swap the lower half');
+  else ok('the Voice tab swaps the lower half');
   if (!panes.picker) fail('the voice picker vanished — it is shared by both tabs');
   else ok('the voice picker is shared, not swapped');
   if (panes.on !== '1' || !panes.lit) fail('the sliding line / lit tab did not follow');
@@ -146,8 +146,8 @@ const ok = (m) => console.log('  ok — ' + m);
 
   // 2 — a file makes a take, and Change lights up only then
   let goState = await page.evaluate(() => document.getElementById('chgo').disabled);
-  if (!goState) fail('Change was enabled with no recording');
-  else ok('Change is dead until there is something to change');
+  if (!goState) fail('Apply voice was enabled with no recording');
+  else ok('Apply voice is dead until there is something to change');
 
   await page.setInputFiles('#file', {
     name: 'take.m4a', mimeType: 'audio/mp4', buffer: Buffer.from('0123456789abcdef'.repeat(64)),
@@ -157,16 +157,32 @@ const ok = (m) => console.log('  ok — ' + m);
     dis: document.getElementById('chgo').disabled,
     name: (document.querySelector('#take .tkname') || {}).textContent,
     plays: !!document.querySelector('#take audio'),
-    drop: !!document.querySelector('#take .tkdrop'),
+    drop: !!document.querySelector('#take .tkx'),
+    dropInFlow: !!(document.querySelector('#take .tkx')
+      && getComputedStyle(document.querySelector('#take .tkx')).position === 'absolute'),
   }));
-  if (goState.dis) fail('Change stayed dead after a file was picked');
-  else ok('picking a file lights Change');
+  if (goState.dis) fail('Apply voice stayed dead after a file was picked');
+  else ok('picking a file lights Apply voice');
   if (goState.name !== 'take.m4a') fail('the take is not named after the file: ' + goState.name);
   else ok('the take carries the file name');
   if (!goState.plays) fail('she cannot hear the take before spending on it');
   else ok('the take is playable before she sends it');
   if (!goState.drop) fail('no way to drop a take');
   else ok('a take can be dropped');
+  if (!goState.dropInFlow) fail('the drop control is back in the flow beside the player');
+  else ok('drop is an \u2715 in the corner, not a word beside play');
+
+  // 2b — the \u2715 ASKS before it drops (an accidental tap must not cost the take)
+  await page.click('#take .tkx');
+  const asked = await page.evaluate(() => ({
+    ask: !!document.querySelector('#take .tkask'),
+    still: !document.getElementById('take').hidden,
+  }));
+  if (!asked.ask || !asked.still) fail('the \u2715 dropped the take with no confirm');
+  else ok('the \u2715 asks first');
+  await page.click('#take .tkask .no');
+  if (await page.evaluate(() => document.getElementById('take').hidden)) fail('Keep it dropped the take anyway');
+  else ok('Keep it keeps the take');
 
   // 3 — the send
   await page.click('#chgo');

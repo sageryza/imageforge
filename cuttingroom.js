@@ -880,4 +880,11 @@ module.exports = {
   // here the hard way (the 75s chunking, the re-listen before every real cut);
   // a second copy would drift and sound different.
   chunkedWords, cutSection, downloadTo, fileIntoAudioLibrary,
+  // exported for pausing.js — PAUSE DETECTION, the vo-remove-pauses passes.
+  // The Pausing tool needs the same pauses this room finds (it shapes what
+  // this room removes), and every constant in here is a measured finding:
+  // the -7dB relative threshold, the sustained-energy veto, the 0.10s speech
+  // margins, the 8% floor percentile. A second copy would find DIFFERENT
+  // pauses, so the same recording would read differently in two rooms.
+  breathCuts, roomToneCuts, mergeRanges, rmsProfile, KEEP,
 };

@@ -279,6 +279,7 @@ loadConfig().then(() => {
   const cuttingroom = require('./cuttingroom');
   const cutmarks = require('./cutmarks');
   const blocks = require('./blocks');
+  const pausing = require('./pausing');
   const googleads = require('./googleads');
   app.use('/api/etsy', etsy.router);
   // No /report route exists on etsy.router, so requests fall through to here.
@@ -382,6 +383,13 @@ loadConfig().then(() => {
   // as marked before anything is cut for real. Was a hand-authored Compare
   // page (v14) with no server behind it; see docs/audio-pipeline.md.
   app.use('/api/blocks', blocks.router);
+  // Pausing: how long a beat sits. The Cutting Room can only REMOVE a pause
+  // (compressed to ~0.28s); this sets a length, adds a pause where there is
+  // none, builds it out of the recording's own room tone rather than digital
+  // silence, and plays HER edit rather than the source. Pause detection is
+  // imported from cuttingroom.js, never re-implemented; the edit itself is
+  // pause-plan.js, shared with the page. docs/audio-pipeline.md, hole 2.
+  app.use('/api/pausing', pausing.router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
@@ -2236,6 +2244,137 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
   }
 });
 
+// META ASSETS (Aug 2026, Sophie: "pull every asset from every chat into one
+// place … automatic … in order of when it was filed"). The /assets page's one
+// read: every chat's Assets tab, interleaved newest-first. NOTHING files into
+// this — it is a view over forge-chat-assets, so a filing into any chat's tab
+// is here with no extra step. Rows keep their origin `chat` because that is
+// the vote's identity: the page ♥/✕/notes against the origin chat's own vote
+// doc (same deterministic id the tab uses), which is what makes a heart here
+// BE the heart there, in both directions, with no mirroring machinery.
+// Ordering/union rules live in meta-assets.js (pure, tested).
+const metaAssets = require('./meta-assets');
+// The full list is rebuilt at most once a minute — one collection read
+// (~5k docs) serving every page of the walk; a fresh filing shows within 60s
+// (the page is a review surface, not a live feed).
+let metaAssetsCache = null;
+let metaAssetsCacheAt = 0;
+const META_ASSETS_TTL = 60 * 1000;
+app.get('/api/gallery/assets/all', async (req, res) => {
+  if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  res.set('Cache-Control', 'no-store');
+  try {
+    if (!admin.apps.length) return res.json({ assets: [], total: 0, offset: 0, limit: 0 });
+    const limit = Math.min(300, Math.max(1, parseInt(req.query.limit, 10) || 150));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    if (!metaAssetsCache || Date.now() - metaAssetsCacheAt > META_ASSETS_TTL || req.query.fresh) {
+      // select() keeps the scan to the fields the union needs — no vote
+      // threads, no wip bookkeeping, riding along.
+      const snap = await admin.firestore().collection('forge-chat-assets')
+        .select('chat', 'url', 'created', 'prompt', 'description',
+          'promptStyle', 'promptContent', 'kind', 'hash', 'md5').get();
+      // The APP-MADE half of My Creations (stickers, dream pages, in-app
+      // generations) lives only in the iOS gallery — pull it in so pointing
+      // that tile here loses nothing. Chat deliverables' hook copies (prompt
+      // "from <chat>") and urls a chat already filed are skipped in the
+      // builder; best-effort, exactly like the per-chat route's creations read.
+      let creations = [];
+      try {
+        await storyDb();
+        if (storyApp) {
+          const uid = await galleryUid();
+          const csnap = await storyApp.firestore().collection('users').doc(uid)
+            .collection('creations')
+            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt').get();
+          creations = csnap.docs.map((d) => {
+            const c = d.data() || {};
+            return { url: c.url, prompt: c.prompt, type: c.type, model: c.model,
+              quality: c.quality, style: c.style,
+              ms: c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0 };
+          });
+        }
+      } catch (e) { /* uid discovery unavailable */ }
+      metaAssetsCache = metaAssets.buildMetaAssets(snap.docs.map((d) => d.data()), creations);
+      metaAssetsCacheAt = Date.now();
+    }
+    const total = metaAssetsCache.length;
+    const assets = metaAssetsCache.slice(offset, offset + limit).map((a) => {
+      const o = { chat: a.chat, url: a.url, prompt: a.prompt,
+        created: a.ms ? new Date(a.ms).toISOString() : '' };
+      if (a.alts.length) o.alts = a.alts;
+      if (a.description) o.description = a.description;
+      if (a.kind) o.kind = a.kind;
+      if (a.promptStyle) o.promptStyle = a.promptStyle;
+      if (a.promptContent) o.promptContent = a.promptContent;
+      if (a.app) { o.app = true; o.name = 'My Creations'; }
+      return o;
+    });
+    // What she calls each chat — off the registry's own cached read, so this
+    // costs nothing (never a second cache of that collection).
+    try {
+      const reg = await require('./chatfeed').registry();
+      assets.forEach((a) => {
+        if (a.app) return;
+        const c = (reg.chats || {})[a.chat];
+        if (c && c.displayName) a.name = c.displayName;
+      });
+    } catch (e) { /* names are best-effort */ }
+    // Same direct-thumb contract as the per-chat route: content-addressed
+    // 480px webp straight off storage's CDN, warmed when missing.
+    {
+      const bucket = admin.storage().bucket();
+      const warm = [];
+      assets.forEach((a) => {
+        if (a.kind === 'audio') return;
+        if (!THUMB_HOSTS.test(a.url)) return;
+        a.thumb = `https://storage.googleapis.com/${bucket.name}/${thumbName(a.url, 480)}`;
+        warm.push(a.url);
+      });
+      if (warm.length) warmThumbs(warm, 480);
+    }
+    // Votes/notes for THIS page only, fetched by their deterministic doc ids
+    // (chat+url, plus each alt path — a ♥ left on the other copy still counts).
+    try {
+      const db = admin.firestore();
+      const refs = [];
+      const slots = [];
+      assets.forEach((a) => {
+        [a.url].concat(a.alts || []).forEach((u) => {
+          refs.push(assetVoteRef(a.chat, u));
+          slots.push(a);
+        });
+      });
+      for (let i = 0; i < refs.length; i += 250) {
+        const snaps = await db.getAll(...refs.slice(i, i + 250));
+        snaps.forEach((s, j) => {
+          if (!s.exists) return;
+          const v = s.data();
+          const a = slots[i + j];
+          // The primary url's ref comes first per asset, so it wins over an alt's.
+          if (v.vote && !a.vote) a.vote = v.vote;
+          if (v.note && !a.note) a.note = v.note;
+          if (v.done) a.done = true;
+          const thread = assetThread(v);
+          if (thread.length && !a.thread) {
+            a.thread = thread;
+            a.waiting = assetWaiting(thread);
+            const last = thread[thread.length - 1];
+            if (last.from === 'chat'
+              && (Date.parse(last.at || '') || 0) > (Date.parse(v.seenAt || '') || 0)) {
+              a.unread = true;
+            }
+          }
+        });
+      }
+    } catch (e) { /* votes are best-effort */ }
+    res.json({ assets, total, offset, limit });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Cleanup: delete forge-chat-assets caption records for a chat, optionally
 // only those whose url contains a substring (e.g. "/characters/" to remove the
 // duplicate label records that pointed at the portrait's own url instead of
@@ -2675,6 +2814,12 @@ app.get('/writing', serveGated('writing.html'));
 // Regenerate with scripts/gen-chats.py. Same gate as the Studio.
 app.get('/chats', serveGated('chats.html'));
 
+// Meta Assets: every chat's Assets tab in one automatic, filing-ordered place
+// (nothing files into it — it reads what the tabs already hold). ♥/✕/notes
+// land on the origin chat's own vote doc, so curation here and in the chat's
+// tab are the same record. Same gate as the Studio.
+app.get('/assets', serveGated('assets.html', { pill: true }));
+
 // Blog Studio: SEO blog posts (long-tail keyword research → written post +
 // images → publish to the Shopify store blog). Same gate as the Studio.
 // On the public witch domain (or with ?public=1 for previewing) /blog is the
@@ -2755,6 +2900,19 @@ app.get('/cutmarks', serveGated('cutmarks.html', { pill: true }));
 // mark, reorder and hear before cutting. Engine is /api/blocks (blocks.js).
 // Same gate; the line list scrolls, so it carries the shared autoscroll pill.
 app.get('/blocks', serveGated('blocks.html', { pill: true }));
+// Pausing: set how long a pause is, add one where there is none, and hear the
+// edit rather than the source. Engine is /api/pausing (pausing.js). Same gate;
+// the transcript scrolls, so it carries the shared autoscroll pill.
+app.get('/pausing', serveGated('pausing.html', { pill: true }));
+// The edit itself — the ONE description of what her pause marks do to a
+// recording, loaded by the render on the server AND by the page in the
+// browser, so the preview she approves by ear is the take she gets. Public
+// and immutable-ish: it is code, it holds nothing of hers.
+app.get('/pause-plan.js', (req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/pause-plan.js');
+});
 // Chunking: the clip library — a shelf of every short self-contained piece the
 // app has made, four to a row, with search as the whole interface. Engine is
 // /api/clips (clips.js). `/clips` is the honest alias; `/chunking` is the name

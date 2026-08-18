@@ -173,6 +173,48 @@ ok('audio and promptless assets never group', () => {
   assert.strictEqual(out.ladders.length, 0);
 });
 
+// ── the moment card (her Decision Deck design) ──────────────────────────────
+ok('a moment card validates on its PARTS alone — no single text needed', () => {
+  const v = validateTemplate('deck', { items: [
+    { id: 'm1', who: 'Maya', eyebrow: 'Moment · Ch. 1',
+      sections: [{ label: 'The illustration', text: 'A grid of selfies.' }] },
+  ] });
+  assert.strictEqual(v.ok, true);
+  const it = v.data.items[0];
+  assert.strictEqual(it.who, 'Maya');
+  assert.strictEqual(it.eyebrow, 'Moment · Ch. 1');
+  assert.deepStrictEqual(it.sections, [{ label: 'The illustration', text: 'A grid of selfies.' }]);
+});
+
+ok('a moment card may carry BOTH words and a picture', () => {
+  const v = validateTemplate('deck', { items: [
+    { id: 'm', who: 'Theo', text: 'The quiet Sunday.', img: `${SG}/a/sunday.png` },
+  ] });
+  assert.strictEqual(v.data.items[0].text, 'The quiet Sunday.');
+  assert.strictEqual(v.data.items[0].img, `${SG}/a/sunday.png`);
+});
+
+ok('sections drop the bodyless ones and survive without a label', () => {
+  const v = validateTemplate('deck', { items: [
+    { id: 'm', who: 'Sam', sections: [
+      { label: 'Kept', text: 'has a body' }, { label: 'Dropped', text: '  ' }, { text: 'no label' }] },
+  ] });
+  assert.deepStrictEqual(v.data.items[0].sections,
+    [{ label: 'Kept', text: 'has a body' }, { text: 'no label' }]);
+});
+
+ok("style:'moment' rides through; an unknown style is dropped", () => {
+  assert.strictEqual(validateTemplate('deck', { style: 'moment',
+    items: [{ label: 'a', text: 't' }] }).data.style, 'moment');
+  assert.strictEqual(validateTemplate('deck', { style: 'fancy',
+    items: [{ label: 'a', text: 't' }] }).data.style, undefined);
+});
+
+ok('an item with nothing at all is still refused', () => {
+  const v = validateTemplate('deck', { items: [{ label: 'empty' }] });
+  assert.strictEqual(v.ok, false);
+});
+
 // ── hands-free attribution ──────────────────────────────────────────────────
 ok('a sentence lands on the card showing when the sentence STARTED', () => {
   // card a up at 0, card b at 5s, card c at 11s
