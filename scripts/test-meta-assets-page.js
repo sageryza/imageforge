@@ -70,7 +70,11 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/assets') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8'));
+    // WITH the injected pill, exactly as serveGated sends it — testing the
+    // bare file is how the tap-starts-autoscroll bug shipped (the pill's
+    // toggle gesture only exists on the served page).
+    return res.end(fs.readFileSync(path.join(PUB, 'assets.html'), 'utf8')
+      + fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8'));
   }
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{}');
 });
@@ -213,7 +217,31 @@ const server = http.createServer((req, res) => {
       fail('playground query wrong: ' + page.url());
     }
 
-    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons');
+    await page.goto(`http://127.0.0.1:${port}/assets`);   // step 9 left us on /playground
+    await page.waitForSelector('.assetgrid .acell');
+
+    // 10 — the two live regressions from Sophie's phone (2026-08-18), pinned:
+    // every input is at least 16px (iOS auto-zooms on focusing anything
+    // smaller, the zoom ignores user-scalable=no, and the page sticks zoomed)…
+    const small = await page.$$eval('input', (es) => es
+      .map((e) => ({ f: parseFloat(getComputedStyle(e).fontSize) }))
+      .filter((x) => x.f < 16).length);
+    if (small) fail(small + ' input(s) under 16px — iOS focus auto-zoom trap');
+    // …and a tap on plain content must PAUSE the autoscroll, never start it;
+    // only the pill's own play button starts.
+    const pill = await page.$('.float');
+    if (!pill) fail('injected pill missing from the test serve');
+    await page.click('.app-header');   // non-interactive page chrome
+    let playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (playing) fail('a content tap STARTED the autoscroll');
+    await page.click('#vmid');         // the pill's play — the one legitimate start
+    playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (!playing) fail('the pill play button no longer starts the scroll (tap handler eats it?)');
+    await page.click('.app-header');   // and any content tap pauses it again
+    playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
+    if (playing) fail('a content tap did not pause the running autoscroll');
+
+    console.log('test-meta-assets-page: all good — order, sync-to-origin-chat, filters, lightbox contract, action icons, pill tap rules, 16px inputs');
   } finally {
     await browser.close();
     server.close();
