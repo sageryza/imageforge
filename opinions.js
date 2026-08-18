@@ -93,6 +93,13 @@ function accoladeFor(count) {
 
 /* ── item validation (shared by the seed load and POST /items) ─────────── */
 const CATEGORIES = ['look', 'make', 'business', 'app', 'wild'];
+// Modes (Aug 2026, Sophie): 'easy' = the hook — matchups with an obviously
+// right answer ('right' names the side; picking it is a point, picking the
+// other gets a raised eyebrow instead of a stamp party). 'hard' = ethically
+// ambiguous but completely insane; no right side, sides carry a
+// `more information: "…"` line (`info`). No mode = the normal feed.
+// verb 'shoot' draws the gun: one bullet, tap the side to shoot.
+const MODES = ['easy', 'hard'];
 const clip = (s, n) => String(s == null ? '' : s).slice(0, n);
 const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -101,6 +108,10 @@ function validItem(it) {
   if (!it || typeof it !== 'object') return 'not an object';
   if (it.kind !== 'text' && it.kind !== 'image') return 'kind must be text|image';
   if (!CATEGORIES.includes(it.category)) return 'category must be ' + CATEGORIES.join('|');
+  if (it.mode != null && !MODES.includes(it.mode)) return 'mode must be ' + MODES.join('|');
+  if (it.verb != null && it.verb !== 'shoot') return 'verb must be shoot';
+  if (it.right != null && it.right !== 'a' && it.right !== 'b') return 'right must be a|b';
+  if (it.right != null && it.mode !== 'easy') return 'right belongs to easy mode';
   for (const side of ['a', 'b']) {
     const s = it[side];
     if (!s || !s.t) return side + '.t required';
@@ -114,14 +125,19 @@ function cleanItem(it) {
     const o = { t: clip(s.t, 120) };
     if (s.s) o.s = clip(s.s, 160);
     if (s.img) o.img = clip(s.img, 500);
+    if (s.info) o.info = clip(s.info, 200);
     return o;
   };
-  return {
+  const out = {
     id: slug(it.id) || 'op-' + crypto.createHash('sha1')
       .update(`${it.a.t}|${it.b.t}`).digest('hex').slice(0, 10),
     kind: it.kind, category: it.category,
     q: clip(it.q, 120), a: side(it.a), b: side(it.b),
   };
+  if (it.mode) out.mode = it.mode;
+  if (it.verb) out.verb = it.verb;
+  if (it.right) out.right = it.right;
+  return out;
 }
 
 // Seed first, then extras that don't collide with a seed id (committed wins),
