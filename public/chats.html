@@ -4947,12 +4947,26 @@ function openChat(name, keepScroll, focusId, noFetch){
   var comp=document.createElement('div'); comp.className='composer';
   var compTa=document.createElement('textarea'); compTa.placeholder='Message this chat…'; compTa.maxLength=8000;
   var compBar=document.createElement('div'); compBar.className='cbar';
+  // WAKE IS HER CHOICE PER SEND (Aug 2026, Sophie: "sometimes I just wanna
+  // give them feedback and have it come in the next time they hear from me").
+  // Lit = ring the doorbell now (the default); unlit = a quiet drop the chat
+  // reads whenever it's next up. The toggle only changes whether the page
+  // rings — the message files identically either way.
+  var compWake=document.createElement('button'); compWake.className='tbtn comp-wake on'; compWake.textContent='wake';
+  compWake.setAttribute('aria-pressed','true');
+  compWake.onclick=function(){
+    var on=!compWake.classList.contains('on');
+    compWake.classList.toggle('on', on);
+    compWake.setAttribute('aria-pressed', on?'true':'false');
+    compStat.textContent=on?'':'Will send quietly — no wake-up';
+  };
   var compStat=document.createElement('span'); compStat.className='comp-status';
   var compSend=document.createElement('button'); compSend.className='tbtn comp-send'; compSend.textContent='Send';
-  compBar.appendChild(compStat); compBar.appendChild(compSend);
+  compBar.appendChild(compWake); compBar.appendChild(compStat); compBar.appendChild(compSend);
   comp.appendChild(compTa); comp.appendChild(compBar);
   compSend.onclick=function(){
     var v=compTa.value.trim(); if(!v||compSend.disabled) return;
+    var ring=compWake.classList.contains('on');
     compSend.disabled=true; compStat.textContent='Sending…';
     api('/api/chatfeed/reply',{method:'POST',body:JSON.stringify({chat:name, text:v})})
       .then(function(r){return r.json()})
@@ -4961,6 +4975,7 @@ function openChat(name, keepScroll, focusId, noFetch){
         mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
         compTa.value='';
         if(chats[name]) chats[name].archived=false;   // /reply unarchives server-side
+        if(!ring) return {status:'quiet'};
         return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:name})})
           .then(function(r){return r.json()})
           .catch(function(){ return {status:'wake-failed'}; });
@@ -4969,7 +4984,8 @@ function openChat(name, keepScroll, focusId, noFetch){
         if(!w) return;
         var s=w.status;
         compStat.textContent=
-          s==='fired' ? 'Sent — waking them up; the reply lands here in a minute or two'
+          s==='quiet' ? 'Sent quietly — they’ll read it next time they’re up'
+          : s==='fired' ? 'Sent — waking them up; the reply lands here in a minute or two'
           : s==='queued' ? 'Sent — a wake is already on its way'
           : s==='not-wakeable' ? 'Sent — this chat isn’t wakeable yet, so it’ll see this next time it’s up'
           : s==='no-switchboard' ? 'Sent — waking isn’t set up for this account yet'

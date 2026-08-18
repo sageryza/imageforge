@@ -114,6 +114,23 @@ const ok = () => { checks++; };
   if (posted.length !== 2) fail('second send did not make both POSTs');
   else ok();
 
+  // ── 5b. the wake toggle: lit by default; off = a quiet drop, ONE post ─────
+  if (!await page.$('#thread .composer .comp-wake.on')) fail('the wake toggle is not lit by default');
+  else ok();
+  posted.length = 0;
+  await page.click('#thread .composer .comp-wake');
+  await page.fill('#thread .composer textarea', 'just feedback, no rush');
+  await page.click('#thread .composer .comp-send');
+  await page.waitForFunction(() => /quietly/i.test(
+    (document.querySelector('#thread .composer .comp-status') || {}).textContent || ''), null, { timeout: 4000 });
+  ok();
+  if (posted.length !== 1 || posted[0].path !== '/api/chatfeed/reply') fail('a quiet send still rang the doorbell: ' + JSON.stringify(posted));
+  else ok();
+  // …and the toggle stays where she put it for the next send in this thread
+  if (await page.$('#thread .composer .comp-wake.on')) fail('the toggle re-lit itself after a quiet send');
+  else ok();
+  await page.click('#thread .composer .comp-wake');   // back on for the hit test
+
   // ── 6. tappable where drawn ───────────────────────────────────────────────
   const box = await page.$eval('#thread .composer .comp-send', (n) => { const r = n.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
   const hit = await page.evaluate(({ x, y }) => {
