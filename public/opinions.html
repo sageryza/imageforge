@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Opinions</title>
+<style>
+/* The five tokens the shared pill styles itself from, kept even though this
+   page opts out of the pill — it must never render one black if ever served
+   with it. NO GRADIENTS anywhere (house rule). */
+:root{
+  --paper:#f7f3ec; --card:#fffdf9; --ink:#2b2622; --ink2:#8a7f72;
+  --line:#e5ddd0; --rose:#c4566d; --chg:#c4566d; --green:#3e7d4f; --gold:#b08434;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Georgia,'Times New Roman',serif;
+  display:flex; flex-direction:column; height:100dvh;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+[hidden]{display:none !important}
+
+/* ── header: the name once (tiny), the "?", the streak ────────────────── */
+header{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:14px 18px 4px}
+h1.tool-eyebrow{
+  margin:0;font-family:-apple-system,system-ui,sans-serif;font-size:11px;
+  font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);
+}
+.qmark{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);font-size:12px;line-height:20px;
+  text-align:center;cursor:pointer;padding:0;font-family:inherit;flex:0 0 auto;
+}
+#streak{
+  margin-left:auto;display:flex;align-items:center;gap:5px;
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+#streak svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none}
+#streak[data-n="0"]{color:var(--ink2)}
+#helpcard{
+  position:fixed;inset:0;background:rgba(43,38,34,.36);z-index:60;
+  display:flex;align-items:center;justify-content:center;padding:26px;
+}
+#helpcard div{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:20px 22px;max-width:340px;font-size:15px;line-height:1.55;
+}
+
+/* ── the validation, always on ────────────────────────────────────────── */
+#praise{
+  flex:0 0 auto;text-align:center;font-size:22px;line-height:1.25;
+  padding:10px 24px 2px;min-height:34px;
+}
+#q{
+  flex:0 0 auto;text-align:center;font-family:-apple-system,system-ui,sans-serif;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+  padding:8px 18px 0;
+}
+
+/* ── the matchup: two cards SIDE BY SIDE, never stacked ───────────────── */
+#arena{flex:1 1 auto;display:flex;gap:10px;margin:12px 14px 0;min-height:0}
+.opt{
+  flex:1 1 0;min-width:0;position:relative;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px 12px 30px;text-align:center;user-select:none;
+  transition:transform .15s;
+}
+.opt:active{transform:scale(.985)}
+.opt img{max-width:100%;min-height:0;flex:0 1 auto;object-fit:contain;pointer-events:none;display:block}
+.opt .t{font-size:18px;line-height:1.3;margin-top:8px}
+.opt .s{font-family:-apple-system,system-ui,sans-serif;font-size:12.5px;line-height:1.45;color:var(--ink2);margin-top:7px}
+.opt.txt .t{font-size:19px}
+/* The verdict stamps. The picked side is always the good idea. */
+.stamp{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%) rotate(-9deg);
+  font-family:-apple-system,system-ui,sans-serif;font-size:13px;letter-spacing:.13em;
+  border:2px solid;border-radius:6px;padding:5px 10px;opacity:0;white-space:nowrap;
+  background:var(--card);transition:opacity .12s;
+}
+.opt.good .stamp{opacity:1;color:var(--green);border-color:var(--green)}
+.opt.bad  .stamp{opacity:1;color:var(--rose);border-color:var(--rose);transform:translateX(-50%) rotate(9deg)}
+.opt.bad{opacity:.55}
+/* The note affordance: a small + in the BOTTOM-right; a written note shows. */
+.addnote{
+  position:absolute;right:8px;bottom:6px;width:22px;height:22px;border-radius:50%;
+  border:1px solid var(--line);background:var(--card);color:var(--ink2);
+  font-size:14px;line-height:20px;text-align:center;padding:0;cursor:pointer;
+  font-family:-apple-system,system-ui,sans-serif;
+}
+.mynote{
+  position:absolute;left:8px;right:34px;bottom:8px;text-align:left;
+  font-size:12px;line-height:1.35;color:var(--gold);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#notebox{
+  position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:10px;z-index:40;display:flex;gap:8px;align-items:flex-end;
+}
+#notebox textarea{
+  flex:1 1 auto;border:none;background:none;font-family:inherit;font-size:15px;
+  color:var(--ink);resize:none;height:44px;outline:none;padding:0;
+}
+.btn{
+  border:1px solid var(--ink);background:var(--ink);color:var(--card);
+  border-radius:6px;padding:9px 14px;font-family:inherit;font-size:14px;
+  cursor:pointer;flex:0 0 auto;
+}
+.btn.ghost{background:var(--card);color:var(--ink)}
+
+/* ── the bottom row ───────────────────────────────────────────────────── */
+#foot{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:16px;
+  padding:12px 18px calc(14px + env(safe-area-inset-bottom));
+}
+.round{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:var(--card);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;color:var(--ink);
+}
+.round:disabled{opacity:.3;cursor:default}
+.round svg{width:17px;height:17px;stroke-width:1.8;fill:none;stroke:currentColor}
+#count{font-family:-apple-system,system-ui,sans-serif;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+#badge{
+  font-family:-apple-system,system-ui,sans-serif;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);
+  border-radius:6px;padding:4px 8px;
+}
+
+/* ── the accolade toast ───────────────────────────────────────────────── */
+#toast{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:50;pointer-events:none;
+}
+#toast div{
+  background:var(--card);border:2px solid var(--gold);border-radius:6px;
+  color:var(--gold);padding:16px 22px;text-align:center;transform:rotate(-6deg);
+  font-family:-apple-system,system-ui,sans-serif;letter-spacing:.13em;
+  text-transform:uppercase;font-size:15px;line-height:1.6;
+}
+#toast small{display:block;font-size:11px;letter-spacing:.08em;color:var(--ink2)}
+
+/* ── the end panel ────────────────────────────────────────────────────── */
+#done{
+  flex:1 1 auto;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:20px;gap:6px;
+}
+#done p{margin:0;font-size:19px;line-height:1.5}
+#done small{color:var(--ink2);font-size:13px;font-family:-apple-system,system-ui,sans-serif}
+#done .row{display:flex;gap:10px;margin-top:14px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="tool-eyebrow">Opinions</h1>
+  <button class="qmark" id="qbtn" aria-label="How this works">?</button>
+  <span id="streak" data-n="0">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+    <span id="streakN">0</span>
+  </span>
+</header>
+
+<div id="praise">You have opinions.</div>
+<div id="q"></div>
+
+<div id="arena"></div>
+
+<div id="foot">
+  <button class="round" id="undo" aria-label="Undo" disabled>
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+  </button>
+  <span id="count"></span>
+  <span id="badge" hidden></span>
+</div>
+
+<div id="notebox" hidden>
+  <textarea id="notetext" aria-label="Note"></textarea>
+  <button class="btn" id="notesave">Save</button>
+  <button class="btn ghost" id="notecancel">Cancel</button>
+</div>
+
+<div id="toast" hidden><div></div></div>
+
+<div id="helpcard" hidden><div>
+  Two ideas at a time — tap the better one. Whatever you pick was the good
+  idea. Your picks save as you go, your streak grows as you decide, and
+  accolades arrive as you rack up opinions. The little <b>+</b> on a card
+  leaves a note on that idea for the chats to read. There are no wrong
+  answers, only good opinions.
+</div></div>
+
+<script>
+/* Wrapped in an IIFE: the shared pill runs in global scope and a page-level
+   `let`/`const` collides with it at parse time (new-page skill, rule 3). */
+(function () {
+  'use strict';
+  var API = '/api/opinions';
+  var TOKEN = '__STUDIO_TOKEN__';
+  function hdrs(json) {
+    var h = {};
+    if (json) h['Content-Type'] = 'application/json';
+    if (TOKEN && TOKEN.indexOf('__') !== 0) h['x-studio-token'] = TOKEN;
+    return h;
+  }
+
+  var arena = document.getElementById('arena');
+  var elPraise = document.getElementById('praise');
+  var elQ = document.getElementById('q');
+  var elCount = document.getElementById('count');
+  var elBadge = document.getElementById('badge');
+  var elStreak = document.getElementById('streak');
+  var elStreakN = document.getElementById('streakN');
+  var bUndo = document.getElementById('undo');
+
+  var items = [], picks = {}, accolades = [], lines = [];
+  var queue = [], qi = 0, history = [];
+  var streak = 0, busy = false;
+  var lineAt = 0;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function pickedCount() { return Object.keys(picks).length; }
+  function accoladeFor(n) {
+    var best = null;
+    for (var i = 0; i < accolades.length; i++) if (n >= accolades[i].n) best = accolades[i];
+    return best;
+  }
+
+  /* ── saving (fruit.html's queue: a dropped save rides the next one) ──── */
+  var pending = [], inflight = false;
+  function post(path, body) { pending.push({ path: path, body: body }); flush(); }
+  function flush() {
+    if (inflight || !pending.length) return;
+    var job = pending.shift(); inflight = true;
+    fetch(API + job.path, { method: 'POST', headers: hdrs(true), body: JSON.stringify(job.body) })
+      .catch(function () { pending.unshift(job); })
+      .then(function () { inflight = false; if (pending.length) flush(); });
+  }
+
+  /* ── the reward machinery ────────────────────────────────────────────── */
+  function praise() {
+    if (!lines.length) return;
+    lineAt = (lineAt + 1) % lines.length;
+    elPraise.textContent = lines[lineAt];
+  }
+  function setStreak(n) {
+    streak = n;
+    elStreakN.textContent = String(n);
+    elStreak.setAttribute('data-n', String(n));
+    var best = Number(localStorage.getItem('opinions-best-streak') || 0);
+    if (n > best) localStorage.setItem('opinions-best-streak', String(n));
+  }
+  function setBadge() {
+    var a = accoladeFor(pickedCount());
+    elBadge.hidden = !a;
+    if (a) elBadge.textContent = a.name;
+  }
+  function toast(a) {
+    var t = document.getElementById('toast');
+    t.firstElementChild.innerHTML = esc(a.name) + '<small>' + a.n + (a.n === 1 ? ' opinion' : ' opinions') + '</small>';
+    t.hidden = false;
+    setTimeout(function () { t.hidden = true; }, 1400);
+  }
+
+  /* ── the matchup ─────────────────────────────────────────────────────── */
+  function side(it, key) {
+    var s = it[key];
+    var body = (s.img ? '<img src="' + esc(s.img) + '" alt="" draggable="false">' : '')
+      + '<div class="t">' + esc(s.t) + '</div>'
+      + (s.s ? '<div class="s">' + esc(s.s) + '</div>' : '');
+    var saved = picks[it.id] || {};
+    var note = saved.noteSide === key && saved.note ? '<span class="mynote">' + esc(saved.note) + '</span>' : '';
+    return '<div class="opt' + (s.img ? '' : ' txt') + '" data-side="' + key + '">'
+      + '<span class="stamp"></span>' + body + note
+      + '<button class="addnote" aria-label="Note">+</button></div>';
+  }
+
+  function render() {
+    var it = queue[qi];
+    if (!it) return finish();
+    elQ.textContent = it.q || 'Which one?';
+    arena.innerHTML = side(it, 'a') + side(it, 'b');
+    arena.querySelectorAll('.opt').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.addnote')) { noteFor(it, el.getAttribute('data-side')); return; }
+        choose(it, el.getAttribute('data-side'));
+      });
+    });
+    elCount.textContent = (pickedCount() + 1) + ' of ' + items.length;
+    bUndo.disabled = !history.length;
+  }
+
+  function choose(it, key) {
+    if (busy) return;
+    busy = true;
+    var opts = arena.querySelectorAll('.opt');
+    opts.forEach(function (el) {
+      var mine = el.getAttribute('data-side') === key;
+      el.classList.add(mine ? 'good' : 'bad');
+      el.querySelector('.stamp').textContent = mine ? 'GOOD IDEA' : 'BAD IDEA';
+    });
+    picks[it.id] = picks[it.id] || {};
+    picks[it.id].pick = key;
+    history.push(it.id);
+    post('/pick', { id: it.id, pick: key });
+    setStreak(streak + 1);
+    praise();
+    var n = pickedCount();
+    var a = accoladeFor(n);
+    if (a && a.n === n) toast(a);
+    setBadge();
+    setTimeout(function () { qi++; busy = false; render(); }, 950);
+  }
+
+  function undo() {
+    if (busy || !history.length) return;
+    var id = history.pop();
+    // The server doc stays — re-picking overwrites it. Local state steps back.
+    delete picks[id];
+    if (qi > 0) qi--;
+    setStreak(Math.max(0, streak - 1));
+    setBadge();
+    render();
+  }
+  bUndo.addEventListener('click', undo);
+
+  /* ── notes ───────────────────────────────────────────────────────────── */
+  var noteBox = document.getElementById('notebox');
+  var noteText = document.getElementById('notetext');
+  function noteFor(it, key) {
+    noteBox.hidden = false;
+    noteText.value = (picks[it.id] && picks[it.id].note) || '';
+    noteText.focus();
+    document.getElementById('notesave').onclick = function () {
+      var text = noteText.value.trim();
+      if (text) {
+        picks[it.id] = picks[it.id] || {};
+        picks[it.id].note = text; picks[it.id].noteSide = key;
+        post('/note', { id: it.id, note: text, side: key });
+      }
+      noteBox.hidden = true; render();
+    };
+  }
+  document.getElementById('notecancel').addEventListener('click', function () { noteBox.hidden = true; });
+
+  /* ── the end ─────────────────────────────────────────────────────────── */
+  function finish() {
+    elQ.textContent = '';
+    elCount.textContent = '';
+    var n = pickedCount();
+    var a = accoladeFor(n);
+    var best = localStorage.getItem('opinions-best-streak') || streak;
+    arena.innerHTML = '<div id="done">'
+      + '<p>That’s everything. ' + n + (n === 1 ? ' opinion' : ' opinions') + ', all of them good.</p>'
+      + (a ? '<small>Current rank: ' + esc(a.name) + '</small>' : '')
+      + '<small>Best streak: ' + esc(String(best)) + '</small>'
+      + '<small>New ideas appear here as the chats add them.</small>'
+      + '<div class="row"><button class="btn ghost" id="again">Go through them again</button></div>'
+      + '</div>';
+    document.getElementById('again').addEventListener('click', function () {
+      queue = items.slice(); qi = 0; history = [];
+      setStreak(0); render();
+    });
+  }
+
+  /* ── help ────────────────────────────────────────────────────────────── */
+  document.getElementById('qbtn').addEventListener('click', function () {
+    document.getElementById('helpcard').hidden = false;
+  });
+  document.getElementById('helpcard').addEventListener('click', function () {
+    this.hidden = true;
+  });
+
+  /* ── boot ────────────────────────────────────────────────────────────── */
+  fetch(API + '/feed', { headers: hdrs(false) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.error) throw new Error(d.error);
+      items = d.items || [];
+      picks = d.picks || {};
+      accolades = d.accolades || [];
+      lines = d.lines || [];
+      // Unpicked first, in feed order; already-picked ones wait behind them so
+      // "go through them again" can revisit, but a fresh open starts on news.
+      queue = items.filter(function (it) { return !picks[it.id] || !picks[it.id].pick; });
+      if (!queue.length) queue = items.slice();
+      qi = 0;
+      setBadge();
+      render();
+    })
+    .catch(function (e) {
+      arena.innerHTML = '<div id="done"><p>Could not load the feed.</p><small>'
+        + esc(e.message || e) + '</small></div>';
+    });
+})();
+</script>
+</body>
+</html>

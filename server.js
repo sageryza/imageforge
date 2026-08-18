@@ -410,6 +410,7 @@ loadConfig().then(() => {
   // them. Nothing here generates anything; it is a shelf and a search box.
   app.use('/api/clips', require('./clips').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  app.use('/api/opinions', require('./opinions').router); // Opinions: pick between two ideas, GOOD IDEA stamps, streaks — the preloaded decide-on-things game
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
   app.use('/api/stripe', stripeMod.createRouter({
@@ -773,6 +774,11 @@ app.get('/review', serveGated('review.html', { pill: true }));
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.
 app.get('/doors', serveGated('doors.html'));
+// Opinions: the decide-on-things game — two ideas side by side, tap the
+// better one, GOOD IDEA / BAD IDEA stamps, a streak and accolades. Preloaded
+// from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
+// one screen, the page never scrolls.
+app.get('/opinions', serveGated('opinions.html'));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).
