@@ -542,6 +542,105 @@
       .join('\n\n');
   };
 
+  /* 7 — THE TOUR (Aug 2026, Sophie: "a tutorial where the buttons are
+     highlighted or everything else is tinted and it has a little
+     explanations"). Coach marks, one control at a time: the page dims, the
+     current control shows through a spotlight, a small card says what it
+     does, and ANY tap steps forward (skip is on the card). One shared
+     implementation so every page's tour feels the same:
+
+       window.__compareTour({ key: 'deck', steps: [
+         { sel: '.jg-mic', text: 'Tap to record…' }, … ] })
+
+     `key` remembers "seen" in localStorage (cmp-tour-<key>), so pass
+     auto:true to play it once per device and never again — the caller's
+     "?" card should offer a replay. A step whose selector matches nothing
+     is skipped, so one steps list serves pages with optional controls. */
+  var tourEl = null;
+  function tourSeen(key) {
+    try { return !!localStorage.getItem('cmp-tour-' + key); } catch (_) { return true; }
+  }
+  function tourMark(key) {
+    try { localStorage.setItem('cmp-tour-' + key, '1'); } catch (_) { /* private mode */ }
+  }
+  window.__compareTour = function (opts) {
+    opts = opts || {};
+    var steps = (opts.steps || []).filter(function (s) {
+      return s && s.sel && document.querySelector(s.sel);
+    });
+    if (!steps.length || tourEl) return false;
+    if (opts.auto && opts.key && tourSeen(opts.key)) return false;
+    if (opts.key) tourMark(opts.key);
+    if (!document.getElementById('cmp-tour-css')) {
+      var st = document.createElement('style');
+      st.id = 'cmp-tour-css';
+      st.textContent =
+        '.cmp-tour{position:fixed;inset:0;z-index:64;}' +
+        // the spotlight IS the tint: one ring whose shadow covers the rest
+        '.cmp-tour-ring{position:fixed;border-radius:8px;pointer-events:none;' +
+        ' box-shadow:0 0 0 200vmax rgba(20,18,15,.62);border:1.5px solid var(--gold,#b98a2f);' +
+        ' transition:all .22s ease;}' +
+        '.cmp-tour-card{position:fixed;left:14px;right:14px;background:var(--paper,#fffdf8);' +
+        ' border:1px solid var(--line,#e7dfd0);border-radius:6px;padding:12px 14px;' +
+        ' font-size:15px;line-height:1.5;color:var(--ink,#2b2724);' +
+        ' box-shadow:0 6px 24px rgba(0,0,0,.2);}' +
+        '.cmp-tour-card .n{font:700 11px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
+        ' color:var(--gold,#b98a2f);padding-bottom:6px;display:flex;justify-content:space-between;}' +
+        '.cmp-tour-card .n button{border:0;background:none;padding:0;color:var(--ink2,#7a736c);' +
+        ' font:600 11px/1 -apple-system,sans-serif;letter-spacing:.08em;}' +
+        '.cmp-tour-card .hint{padding-top:8px;font-size:11.5px;color:var(--ink2,#7a736c);}';
+      document.head.appendChild(st);
+    }
+    var i = 0;
+    tourEl = document.createElement('div');
+    tourEl.className = 'cmp-tour';
+    tourEl.setAttribute('data-nostop', '');   // a tour tap must never start the autoscroll
+    tourEl.innerHTML = '<div class="cmp-tour-ring"></div><div class="cmp-tour-card">'
+      + '<div class="n"><span class="ct-count"></span><button type="button" class="ct-skip">SKIP</button></div>'
+      + '<div class="ct-text"></div><div class="hint">tap anywhere for the next one</div></div>';
+    document.body.appendChild(tourEl);
+    function close() {
+      if (!tourEl) return;
+      tourEl.remove(); tourEl = null;
+      window.removeEventListener('resize', place);
+    }
+    function place() {
+      if (!tourEl) return;
+      var s = steps[i];
+      var t = document.querySelector(s.sel);
+      if (!t) { next(); return; }
+      try { t.scrollIntoView({ block: 'center' }); } catch (_) { /* fixed pages */ }
+      var r = t.getBoundingClientRect();
+      var ring = tourEl.querySelector('.cmp-tour-ring');
+      ring.style.left = (r.left - 6) + 'px';
+      ring.style.top = (r.top - 6) + 'px';
+      ring.style.width = (r.width + 12) + 'px';
+      ring.style.height = (r.height + 12) + 'px';
+      tourEl.querySelector('.ct-count').textContent = (i + 1) + ' of ' + steps.length;
+      tourEl.querySelector('.ct-text').textContent = s.text || '';
+      var card = tourEl.querySelector('.cmp-tour-card');
+      // the card sits under the spotlight when there's room, else above it
+      card.style.top = ''; card.style.bottom = '';
+      if (r.bottom + 130 < window.innerHeight) card.style.top = (r.bottom + 14) + 'px';
+      else card.style.top = Math.max(10, r.top - 120) + 'px';
+      var last = i === steps.length - 1;
+      tourEl.querySelector('.hint').textContent = last ? 'tap anywhere to finish'
+        : 'tap anywhere for the next one';
+    }
+    function next() {
+      i += 1;
+      if (i >= steps.length) { close(); return; }
+      place();
+    }
+    tourEl.addEventListener('click', function (e) {
+      if (e.target && e.target.className === 'ct-skip') { close(); return; }
+      next();
+    });
+    window.addEventListener('resize', place);
+    place();
+    return true;
+  };
+
   window.__compareNotes = function (opts) {
     noteCfg = { chat: (opts || {}).chat, sheet: (opts || {}).sheet,
       onMessage: (opts || {}).onMessage || null };

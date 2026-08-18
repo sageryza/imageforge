@@ -194,7 +194,9 @@ function validateTemplate(template, data) {
 // themselves and __pageData is a var, so nothing collides with the pill's
 // globals). kitWarnings never fires on one of these.
 function renderTemplatePage({ template, title, chat, sheet, data }) {
-  const payload = JSON.stringify({ chat, sheet, ...data }).replace(/</g, '\\u003c');
+  // tour:'auto' — a SERVED template page plays its coach-mark tour once per
+  // device (compare.js __compareTour); hand-built pages opt in themselves
+  const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...data }).replace(/</g, '\\u003c');
   const mountId = template === 'grid' ? 'grid' : 'judge';
   const tplScript = template === 'grid' ? '/grid.js' : '/judge.js';
   const call = template === 'grid' ? 'window.__grid(window.__pageData)'
