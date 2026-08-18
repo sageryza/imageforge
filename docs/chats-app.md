@@ -878,6 +878,33 @@
     - The merge itself was **measured before shipping**: of 333 chats only 21
       carried a tag and only 3 of those were live — and all 3 were already in a
       folder, so not one chat changed list on deploy.
+  - **ONE WORD ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+    condition for the `waiting for something` tag — it should also trigger a
+    text box that asks me what is it waiting for, and then that gets added to
+    the note for the chat at the top: it says in bold `Waiting for:` and then
+    my content").** The tag on its own says a chat is stuck and nothing else;
+    waiting on WHAT was in her head and nowhere on the screen, so the tag could
+    not tell her whether the wait was over.
+    - **Its own field, `waitingFor` — never `sophieNote`.** A chat must never
+      overwrite a line she wrote (the standing rule), and this line belongs to
+      the TAG rather than to the chat: `labelPatch` DELETES it the moment the
+      word comes off, whichever way it comes off, so "waiting for the API key"
+      cannot outlive the wait. `POST /api/chatfeed/waiting {chat, text}`.
+    - **Where it shows.** On the home row it WINS the one line (`waitingHtml`
+      before `note || wrap || need || doing`) — only one line shows there, this
+      is the most specific thing she deliberately typed, and it clears itself,
+      which her note never does. In the thread it sits ABOVE her note rather
+      than replacing it: two different things, and that row has room for both.
+      Both are tappable and re-open the same box, prefilled.
+    - `WAIT_LABEL` / `WAIT_ASK` / `WAIT_PREFIX` are constants in `chatfeed.js`
+      with copies in `chats.html`, pinned equal by the test. **A second asking
+      word is not mine to declare** — same rule as the pinned link: describe
+      the case and let her say yes.
+    - The box uses `liveInput`, like every other field here — iOS dictation can
+      fill an input without ever firing `input`.
+    - **`threadNote`** is the open thread's note repainter, set in `openChat`:
+      the sheets that change this line live outside it and `renderHome` only
+      repaints the LIST, so without it her answer appeared only after a reload.
   - **`to be reviewed` ALSO FEEDS THE REVIEW QUEUE** (`REVIEW_LABEL`, one
     constant shared with `review.js`). A chat carrying it becomes a row at
     `/review` — the label is the whole mechanism, nothing is filed or stamped,

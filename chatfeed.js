@@ -1598,6 +1598,27 @@ const PILE_SEEDS = ['look at', 'stories', 'come back to', 'witch', 'tech', 'xi',
 // here so the two modules can never disagree about the spelling.
 const REVIEW_LABEL = 'to be reviewed';
 
+// ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
+// condition for the `waiting for something` tag — it should also trigger a text
+// box that asks me what is it waiting for, and then that gets added to the note
+// for the chat at the top: it says in bold `Waiting for:` and then my
+// content") ---------------------------------------------------------------
+// `waiting for something` on its own says a chat is stuck and nothing else. The
+// thing worth knowing — waiting on WHAT — was in her head and nowhere on the
+// screen, so the tag could not tell her whether the wait was over.
+//
+// The answer lives in its own field, `waitingFor`, and NOT in `sophieNote`: a
+// chat must never overwrite a line she wrote (the standing rule), and this one
+// is tied to the tag rather than to the chat. Taking the tag off clears it,
+// which is what keeps a stale "waiting for the API key" from outliving the wait.
+//
+// ONE word asks, and a second is not mine to declare — same rule as the pinned
+// link. If another word should ask something, she says so first.
+const WAIT_LABEL = 'waiting for something';
+const WAIT_ASK = 'What is it waiting for?';
+const WAIT_PREFIX = 'Waiting for:';
+const WAIT_MAX = 200;
+
 function pileList(settings) {
   const s = settings || {};
   return Array.isArray(s.pileLabels) ? cleanLabels(s.pileLabels) : PILE_SEEDS.slice();
@@ -1640,8 +1661,13 @@ function labelsOf(reg) {
 function labelPatch(labels, { by = 'sophie' } = {}) {
   const del = admin.firestore.FieldValue.delete();
   const clean = cleanLabels(labels);
+  // The waiting-for line belongs to the TAG, not to the chat: the moment the
+  // word comes off, the answer goes with it. Otherwise "waiting for the API
+  // key" sits on a chat that stopped waiting weeks ago — and a stale line she
+  // wrote herself is worse than no line at all.
+  const waiting = clean.indexOf(WAIT_LABEL) > -1 ? {} : { waitingFor: del };
   if (!clean.length) {
-    return { labels: del, category: del, tags: del, filedAt: del, catBy: del };
+    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting };
   }
   return {
     labels: clean,
@@ -1649,6 +1675,7 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
     tags: clean,
     filedAt: new Date().toISOString(),
     catBy: by,
+    ...waiting,
   };
 }
 
@@ -1737,6 +1764,24 @@ router.get('/pile', async (_req, res) => {
   try {
     const reg = await registry();
     res.json({ piles: pileList(reg.settings), seeds: PILE_SEEDS, review: REVIEW_LABEL });
+  } catch (err) { fail(res, err); }
+});
+
+// WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
+// tag opens. Its own field so it can never overwrite a note she wrote, and it
+// is cleared by `labelPatch` the moment the tag comes off.
+router.post('/waiting', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const chat = String(body.chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    const text = String(body.text == null ? '' : body.text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+    const slug = await followMoves(chat);
+    const snap = await db().collection(REG).doc(slug).get();
+    if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
+    await regRef(slug).set(
+      { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    res.json({ ok: true, chat: slug, waitingFor: text });
   } catch (err) { fail(res, err); }
 });
 
@@ -3472,4 +3517,5 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
-  PILE_SEEDS, REVIEW_LABEL, pileList, isPile };
+  PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };

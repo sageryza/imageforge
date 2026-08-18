@@ -890,9 +890,13 @@ them off the reference sheet, not off the old filenames.
   feed")** — only a PILE word takes a chat off the unfiled home list, seeded
   from her folder vocabulary frozen the day the fields merged (`PILE_SEEDS`)
   and switched per word in the Organize sheet (`POST /pile`). **And `to be
-  reviewed` also puts the chat in the Review Queue** at `/review`. Full rules
-  in `docs/chats-app.md`; tests `node scripts/test-chats-labels.js` and the
-  same file as the tags above.
+  reviewed` also puts the chat in the Review Queue** at `/review`. **And
+  `waiting for something` OPENS A BOX** asking what it is waiting for; her
+  answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
+  bold **Waiting for:** line on the chat's row and above her note in the
+  thread, and is DELETED the moment the tag comes off — a second asking word is
+  not yours to declare. Full rules in `docs/chats-app.md`; tests `node
+  scripts/test-chats-labels.js` and the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
