@@ -1,0 +1,613 @@
+{
+  "note": "Science School niche lessons — card text + art prompts, v1 review copy. Source of truth for the Compare review page (build-niche-page.js) and, once approved, for the art spec JSONs. Art prompts are the CONTENT half; the style block gets copied from cell-lesson-spec.json (pastel on white, whiten) at generation time. Quiz cards carry no art.",
+  "lessons": [
+    {
+      "key": "tm",
+      "title": "Theory of Mind (v2 — tightened)",
+      "sub": "Cognitive science. Rewritten from v1 on Sophie's feedback: fewer experiments, faster middle. 9 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "tm-01",
+          "kicker": "Theory of Mind",
+          "h": "Two pictures at once",
+          "body": "Think of the last surprise party you kept quiet about, or a spoiler you swallowed. To pull that off you held two pictures of the world at the same time — the true one, and the wrong one in someone else’s head — and steered by both. Psychologists call that ability <b>theory of mind</b>. This lesson is where the idea came from, the cliff in childhood where it switches on, and who else turns out to have it.",
+          "art": "A large lightbulb shape drawn twice side by side, one holding a whole apple and the other holding the same apple with a bite taken out, a small four-point star between them. Flat and simple."
+        },
+        {
+          "id": "tm-02",
+          "kicker": "Pennsylvania, 1978",
+          "h": "Sarah watches a man struggle",
+          "body": "<b>David Premack and Guy Woodruff</b> showed videotapes to <b>Sarah</b>, a chimpanzee, of a man struggling — locked in a cage, shivering by an unlit heater. Offered photographs, Sarah kept choosing the solution: the key, the lit wick. Their paper asked “Does the chimpanzee have a theory of mind?”, and the word <i>theory</i> was chosen with care: a want or a belief cannot be seen, only inferred from behaviour, the way a scientist works with invisible things.",
+          "art": "An old television set showing a simple key on its screen, and beside it a photograph card of a padlock, connected by a thin dotted line. Flat and simple.",
+          "faq": [
+            { "q": "Who was Sarah?", "a": "An adult chimp raised around people, already famous from Premack’s language experiments — she “wrote” with plastic tokens on a board." },
+            { "q": "Did she pass everything?", "a": "Nearly every trial. But sceptics pointed out she might just know that keys go with locks from experience, no thought about the man’s mind required — and that objection is the next card." }
+          ]
+        },
+        {
+          "id": "tm-03",
+          "kicker": "The objection",
+          "h": "Only a wrong belief can prove it",
+          "body": "The journal printed replies alongside the paper, and the philosophers — <b>Daniel Dennett</b> among them — converged on one point. As long as what the other fellow believes is <i>true</i>, you can predict him without touching his mind at all: just predict the world. The clean test is a <b>false belief</b> — to guess where a man will look for a thing that was moved behind his back, you must carry his out-of-date picture of the world separately from your own. That one paragraph of criticism designed the next forty years of experiments.",
+          "art": "Two simple maps of the same three islands side by side, the left one correct and the right one with an island missing, a compass rose above the pair. Flat and simple."
+        },
+        {
+          "id": "tm-04",
+          "kicker": "Salzburg, 1983",
+          "h": "The chocolate test",
+          "body": "<b>Heinz Wimmer and Josef Perner</b> staged a puppet show. Maxi puts his chocolate in the <b>blue</b> cupboard and goes out to play; his mother moves it to the <b>green</b> one. Where will Maxi look when he comes back? Three-year-olds answered <i>green</i> — where it really is — with total confidence; the flip to blue arrives around the fourth birthday, in country after country. A doll version, <b>Sally-Anne</b> (1985), became one of the most famous tests in psychology.",
+          "art": "Two kitchen cupboards side by side, one blue and one green, with a small chocolate bar visible inside the open green one and a dotted arrow curving from the blue to the green. Flat and simple.",
+          "faq": [
+            { "q": "Do babies really not know until four?", "a": "Wordless versions that just track where babies stare suggest 15-month-olds already expect people to act on false beliefs — but replications have gone both ways, and the field is still openly arguing about how much the babies are doing. The four-year-old result itself is not in dispute." }
+          ]
+        },
+        {
+          "id": "tm-05",
+          "kicker": "The pencil trick",
+          "h": "Your own mind, thirty seconds ago",
+          "body": "Show a three-year-old a Smarties tube and ask what’s inside: “Smarties.” Open it — it holds pencils. Now ask what they thought was inside <i>before</i> it was opened: “<b>Pencils.</b> I always knew.” Ask what the next child will guess: “pencils” (Perner, Leekam and Wimmer, 1987). At three, a false belief cannot be reconstructed even when it was your own, moments earlier. Whatever arrives at four covers your own past mind too.",
+          "art": "A bright candy tube tipped over with three pencils sliding out of it onto the table, one loose candy sitting apart. Flat and simple."
+        },
+        {
+          "id": "tm-06",
+          "kicker": "Try it",
+          "h": "Check your knowing",
+          "quiz": [
+            { "q": "It is called a “theory” of mind because…", "a": ["beliefs and wants can’t be seen, only inferred", "it was still unproven in 1978", "psychologists liked the word"], "ok": 0, "tell": "You never observe a belief. You build a theory of invisible things from what people do, and predict with it." },
+            { "q": "Asked where Maxi will look for his moved chocolate, three-year-olds point to…", "a": ["the blue cupboard he left it in", "the cupboard where it really is", "both cupboards"], "ok": 1, "tell": "What they know themselves, they hand to everyone else. The flip comes around the fourth birthday." },
+            { "q": "Shown that the Smarties tube holds pencils, a three-year-old says they originally thought it held…", "a": ["Smarties", "pencils — and that they always knew", "nothing"], "ok": 1, "tell": "A false belief can’t be reconstructed at three, even about your own mind." }
+          ]
+        },
+        {
+          "id": "tm-07",
+          "kicker": "The correction",
+          "h": "It fails in both directions",
+          "body": "When Sally-Anne was first run in 1985, only 20% of autistic children passed — against 85% of typically developing children — and the result hardened into a strong claim: “mindblindness,” a missing mind-reading module. <b>Damian Milton</b>, an autistic sociologist, published the correction in 2012: run the test the other way round and non-autistic people are just as poor at reading autistic minds. He called it the <b>double empathy problem</b> — two different kinds of mind, each opaque to the other — and a decade of studies since has largely backed him.",
+          "art": "Two arched bridges reaching toward each other from opposite cliffs and stopping short of meeting in the middle, a small four-point star in the gap between them. Flat and simple."
+        },
+        {
+          "id": "tm-08",
+          "kicker": "2016",
+          "h": "The year the animals answered",
+          "body": "In Vienna, ravens who had used a peephole themselves later guarded their food caches whenever that hole stood open and raven sounds played next door — an unseen watcher, imagined from their own remembered seeing (<b>Bugnyar</b>). In Leipzig and Kyoto, eye-tracked <b>chimpanzees, bonobos and orangutans</b> watched films of a man whose hidden object was moved behind his back — and their gaze ran <i>ahead</i> of him to the empty place where he wrongly believed it was (<b>Krupenye and Kano</b>). Thirty-eight years on, the best answer to Premack’s title: probably — at least in the way a baby has one.",
+          "art": "A large black raven in profile beside a wooden wall with one small round hole in it, a single eye drawn inside the hole. Flat and simple."
+        },
+        {
+          "id": "tm-09",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "Every thriller runs on you doing, effortlessly, what this lesson is about. Alfred Hitchcock explained it to François Truffaut with a bomb under a café table: keep it secret and the blast buys fifteen seconds of surprise; show the audience first and the same scene becomes fifteen minutes of suspense, powered entirely by a false belief you are holding on the characters’ behalf.<br><br><b>Tonight:</b> in whatever you watch, catch one scene that only works because you know something a character doesn’t — then count how many minds the story is asking you to run at once. ✦",
+          "art": "A small round café table with a long tablecloth, two empty chairs, and a little round bomb with a lit sparking fuse tucked in the shadow underneath. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "hb",
+      "title": "The Habsburgs",
+      "sub": "What two centuries of marrying inside one family did to its genes, its children and its throne. 9 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "hb-01",
+          "kicker": "The Habsburgs",
+          "h": "The family that married itself",
+          "body": "For two hundred years the most powerful family in Europe kept its crowns by marrying inside itself — uncle to niece, first cousin to first cousin, generation after generation. You can watch the consequences arrive in their own commissioned portraits: the same long jaw, growing, painting by painting. This lesson is what happens inside the genes when a family tree stops branching.",
+          "art": "A family tree drawn as a formal diagram of small gold crowns joined by lines, where several lines curve back and reconnect to crowns on their own branch. Flat and simple."
+        },
+        {
+          "id": "hb-02",
+          "kicker": "The strategy",
+          "h": "Let others wage war",
+          "body": "The family motto said it plainly: <i>Bella gerant alii, tu felix Austria nube</i> — let others wage war; you, happy Austria, marry. Where rival dynasties spent armies, the Habsburgs spent weddings, and it worked: by the 1500s the family held Spain, Austria, the Netherlands and half the Americas. Keeping that empire meant keeping the blood inside — of eleven marriages in the Spanish line, nine were between close relatives.",
+          "art": "A large ornate wedding ring standing upright on a map of Europe, casting a shadow shaped like a crown across the continent. Flat and simple."
+        },
+        {
+          "id": "hb-03",
+          "kicker": "The mechanism",
+          "h": "What a recessive gene is",
+          "body": "You carry two copies of nearly every gene, one from each parent. Many harmful versions are <b>recessive</b> — one bad copy does nothing, because the good copy covers for it. Everybody carries a few of these, silently. Marry a stranger and your silent flaws almost never line up with theirs; marry your niece and you are matching flaws against a copy of your own list. Inbreeding invents nothing new — it uncovers what was already there, twice.",
+          "art": "Two rows of paired shapes like a matching game, most pairs one filled and one hollow, and a single pair at the end where both shapes are filled, circled. Flat and simple."
+        },
+        {
+          "id": "hb-04",
+          "kicker": "The count",
+          "h": "What it cost the children",
+          "body": "Geneticists led by <b>Gonzalo Alvarez</b> traced three thousand relatives across sixteen generations (2009). In the last Spanish Habsburg families, of 34 royal children, ten died before their first birthday and seventeen — half — before their tenth. The villages around the palaces, far poorer, hungrier and colder, lost about one baby in five. The most privileged children in Europe were dying at twice the rate of peasants’ children.",
+          "art": "A row of small identical cradles, several of them empty and draped with a thin cloth, one small four-point star above the row. Flat and simple."
+        },
+        {
+          "id": "hb-05",
+          "kicker": "Tordesillas",
+          "h": "Joanna the Mad",
+          "body": "Joanna of Castile — <i>Juana la Loca</i> — inherited Castile in 1504 and spent her last forty-six years confined in a palace at Tordesillas, declared unfit to rule, gripped by paranoia and melancholia that historians still argue over. Her son and her daughter married their own cousins in turn, and Joanna sits again and again in the family tree of every Spanish Habsburg after her — the same inheritance, folded back in with each generation.",
+          "art": "A tall narrow tower with one small lit window high up, a queen’s crown resting on the windowsill. Flat and simple."
+        },
+        {
+          "id": "hb-06",
+          "kicker": "The portraits",
+          "h": "Measuring the jaw",
+          "body": "In 2019, researchers showed 66 court portraits of fifteen Habsburgs to ten maxillofacial surgeons — doctors who diagnose jaw deformity for a living — and had them score each face (<b>Vilas and colleagues</b>). Then they set the scores against each member’s inbreeding coefficient, computed from the family tree. The two lines tracked: the more inbred the sitter, the stronger the jutting <b>Habsburg jaw</b>. The court painters, hired to flatter, had recorded the evidence anyway.",
+          "art": "An ornate empty picture frame on an easel, and beside it a clipboard holding a simple chart with a rising line. Flat and simple."
+        },
+        {
+          "id": "hb-07",
+          "kicker": "Madrid, 1700",
+          "h": "The last Habsburg",
+          "body": "<b>Charles II of Spain</b> could not speak until four or walk until eight; his jaw was so misaligned he could barely chew, and his court called him <i>El Hechizado</i> — the Bewitched — and ordered exorcisms. His inbreeding coefficient was <b>0.254</b>, slightly higher than a child of a brother and sister, though his parents were “only” uncle and niece: two centuries of compounding. He died childless in 1700 at thirty-eight, the dynasty died with him, and Europe went to war over the empty throne.",
+          "art": "A large empty throne with a crown resting on the seat, one thin crack running through the throne’s tall back. Flat and simple."
+        },
+        {
+          "id": "hb-08",
+          "kicker": "Try it",
+          "h": "Check your knowing",
+          "quiz": [
+            { "q": "A recessive gene causes harm when…", "a": ["you carry one copy", "you carry two copies", "it mutates"], "ok": 1, "tell": "One bad copy is covered by the good one. Marrying close relatives is how two copies of the same silent flaw end up in one child." },
+            { "q": "Compared to nearby villages, the Habsburg children died…", "a": ["at about the same rate", "at half the rate", "at roughly twice the rate"], "ok": 2, "tell": "Half of 34 royal children died before ten; the villages lost about one baby in five — with none of the palace’s food, warmth or doctors." },
+            { "q": "Charles II’s inbreeding coefficient matched a child of…", "a": ["first cousins", "an uncle and niece", "a brother and sister"], "ok": 2, "tell": "His parents were uncle and niece, but two hundred years of repeated close marriage compounds — 0.254 is past the brother-sister mark of 0.25." }
+          ]
+        },
+        {
+          "id": "hb-09",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "The portraits are all online — Titian’s Charles V, Velázquez’s Philip IV, and Juan Carreño de Miranda’s Charles II. Painters paid to flatter kings for two centuries, and the jaw comes through anyway, growing.<br><br><b>Tonight:</b> look up those three portraits in order and watch a gene assert itself across a hundred and fifty years of oil paint. ✦",
+          "art": "Three ornate picture frames in a row, empty except that each frame’s bottom edge dips lower than the one before it. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "ob",
+      "title": "One Big Bed",
+      "sub": "How everyone slept before bedrooms — and before eight straight hours. 8 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "ob-01",
+          "kicker": "One Big Bed",
+          "h": "The private bedroom is new",
+          "body": "You close a door, turn off the light, and sleep alone or with one chosen person for eight unbroken hours. Nearly every piece of that sentence is historically strange. For most of human history sleep was public, shared, interrupted, and social — and your body still remembers. This lesson is how people actually slept, starting in a Viking hall.",
+          "art": "A single closed door standing alone in empty space with a crescent moon above it, and stretching away behind it a long row of many small sleeping mats side by side. Flat and simple."
+        },
+        {
+          "id": "ob-02",
+          "kicker": "The longhouse",
+          "h": "A whole household, one room",
+          "body": "A Viking <b>longhouse</b> was one long room around a central open hearth. Wide benches ran down both walls — workbench and dining seat by day, and at night, spread with furs and hides, the bed for the entire household: family, children, farmhands, guests, everyone around the one fire, with the animals stabled behind a partition at the far end. Warmth was the architecture; a person sleeping apart would simply have been cold.",
+          "art": "A long simple hall in cross-section with a small fire at the center, low wide benches running along both walls topped with folded furs, and a little goat behind a fence at one end. Flat and simple."
+        },
+        {
+          "id": "ob-03",
+          "kicker": "The norm",
+          "h": "Strangers in the same bed",
+          "body": "Sharing a bed stayed ordinary for centuries after the Vikings — whole families in one bed, servants on the same floor, and at an inn a traveller paid for a <i>place</i> in a bed, not the bed itself, and climbed in next to whoever had arrived first. Diaries record the etiquette: which side you took, keeping to your edge, not hogging the blanket. Sleep was a social arrangement, with manners.",
+          "art": "One very wide bed with a single long blanket and four nightcaps poking out of it in a row, a pair of travelling boots waiting on the floor beside it. Flat and simple."
+        },
+        {
+          "id": "ob-04",
+          "kicker": "Ware, ~1590",
+          "h": "The Great Bed",
+          "body": "An inn in the town of Ware built the idea into furniture: the <b>Great Bed of Ware</b>, over ten feet by ten feet of carved oak, reportedly room for four couples side by side. It became famous enough that Shakespeare reached for it as a measure of hugeness in <i>Twelfth Night</i> — a sheet “big enough for the bed of Ware.” Centuries of guests carved their initials into it and pressed wax seals into the wood; it stands in the Victoria and Albert Museum today, initials and all.",
+          "art": "An enormous four-poster bed with tall carved columns and a canopy, drawn grandly oversized next to a tiny ordinary bed for scale. Flat and simple."
+        },
+        {
+          "id": "ob-05",
+          "kicker": "First sleep",
+          "h": "The night had an intermission",
+          "body": "Historian <b>Roger Ekirch</b> kept meeting a phrase in old court records and diaries: “after first sleep.” Witnesses used it the way we’d say “around midnight” — assuming everyone knew. Before artificial light, people went to bed at dark, slept a <b>first sleep</b>, woke for an hour or two — to pray, talk, tend the fire, visit — then took a <b>second sleep</b> until morning. Thousands of references, across languages and centuries, all treating the waking hour as unremarkable.",
+          "art": "A tall candle marked like a clock burned down to its middle, with a crescent moon on one side of it and the same moon slightly higher on the other side. Flat and simple."
+        },
+        {
+          "id": "ob-06",
+          "kicker": "The lab check",
+          "h": "Fourteen hours of dark",
+          "body": "In 1992 the psychiatrist <b>Thomas Wehr</b> gave volunteers a pre-industrial night: fourteen hours of darkness, every night, for weeks. Their sleep pulled apart on its own — into two bouts of several hours with a quiet waking hour or two between them. Nobody told the volunteers what shape was expected; the pattern from the court records simply reassembled itself once the electric evening was taken away.",
+          "art": "A simple horizontal timeline bar shaded dark at both ends with a thin bright gap at the center, small four-point stars above the gap. Flat and simple."
+        },
+        {
+          "id": "ob-07",
+          "kicker": "What changed",
+          "h": "Gaslight, privacy, eight hours",
+          "body": "Cheap artificial light pushed bedtime later and squeezed the night; the growing cult of privacy gave first the wealthy, then everyone, separate rooms and separate beds. By the late 1800s the segmented night was gone from living memory, and the eight-hour unbroken block — a pattern your great-great-grandparents would have found odd — became the definition of sleeping <i>well</i>. The two-sleep pattern survives today mostly as its ghost: the 3 a.m. waking people lie awake worrying about.",
+          "art": "An old street gaslamp glowing on one side and a small dark bedroom window on the other, a thin line dividing the picture down the middle. Flat and simple."
+        },
+        {
+          "id": "ob-08",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "Ekirch’s references were hiding in plain sight for centuries because nobody thought to ask how people used to sleep — everyone assumed sleep had no history.<br><br><b>Tonight:</b> if you surface in the small hours, note the time before you drift back. You are running the oldest sleep schedule there is, and for most of history the hour had a name and company in it. ✦",
+          "art": "An open window at night with a crescent moon and three small four-point stars, a steaming cup sitting on the windowsill. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "dp",
+      "title": "The Dancing Plague",
+      "sub": "Strasbourg, 1518: hundreds of people who could not stop dancing. 6 cards, 6 pictures.",
+      "cards": [
+        {
+          "id": "dp-01",
+          "kicker": "Strasbourg, 1518",
+          "h": "Frau Troffea starts to dance",
+          "body": "In July 1518, in the streets of Strasbourg, a woman known as <b>Frau Troffea</b> began to dance. There was no music. She danced through the day, into the night, and was still dancing days later — feet bloody, past exhaustion, apparently unable to stop. Within a week, some thirty people had joined her.",
+          "art": "A single pair of worn red dancing shoes alone on cobblestones, small motion lines around them, one four-point star above. Flat and simple."
+        },
+        {
+          "id": "dp-02",
+          "kicker": "The spread",
+          "h": "Four hundred dancers",
+          "body": "By August the chronicles put the number as high as <b>400</b> — men and women dancing in the streets, in guildhalls, day and night, many begging to be freed of it as they danced. Several accounts say dancers died of strokes, heart attacks and sheer exhaustion, some claiming a dozen or more a day at the peak; the records disagree on the count, but they agree the dancing itself was killing people.",
+          "art": "Many pairs of worn shoes scattered across a town square drawn from above, thin looping dotted trails tangling between them. Flat and simple."
+        },
+        {
+          "id": "dp-03",
+          "kicker": "The cure",
+          "h": "The city prescribes more dancing",
+          "body": "Strasbourg’s physicians ruled the cause was “hot blood,” and the council’s cure followed the diagnosis: let them dance it out. The city cleared guildhalls, erected a stage at the grain market, and <b>hired musicians and strong men</b> to keep the afflicted moving. It was the worst possible move — a public stage and pipers turned a strange affliction into a spectacle, and the plague grew.",
+          "art": "A small wooden stage with a bagpipe and a fiddle propped on it, surrounded by many more scattered pairs of shoes than before. Flat and simple."
+        },
+        {
+          "id": "dp-04",
+          "kicker": "The end",
+          "h": "The shrine on the hill",
+          "body": "When the dancing would not burn out, the city reversed itself: banned public music and dancing outright, and carted the dancers to the mountain shrine of <b>Saint Vitus</b> — the saint whose curse was believed to cause compulsive dance. Wrapped in red shoes and led around the altar, the afflicted gradually stilled, and by September the plague was over. It was not the first: the Rhine valley had seen at least ten dancing outbreaks before, including one in 1374 that spread city to city.",
+          "art": "A small chapel on top of a steep hill with a winding path leading up to it, a pair of red shoes resting at the chapel door. Flat and simple."
+        },
+        {
+          "id": "dp-05",
+          "kicker": "The why",
+          "h": "A believed curse, under famine",
+          "body": "Ergot — a hallucinogenic mould on rye — gets suggested, but its convulsions and constricted blood flow make days of coordinated dancing about impossible. The historian <b>John Waller</b>, who studied the outbreak most closely, argues for <b>mass psychogenic illness</b>: 1518 Strasbourg was starving after ruined harvests, riddled with smallpox and syphilis — and its people <i>believed</i> in St. Vitus’ dancing curse. Extreme stress plus total belief can produce trance states, and trance follows the script a culture hands it. In 1518, the script was dance.",
+          "art": "A single stalk of rye leaning against a small saint’s medallion, a thin crack running through the ground beneath both. Flat and simple."
+        },
+        {
+          "id": "dp-06",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "The mechanism’s gentlest form is still everywhere: behaviour is contagious, and the body follows a crowd without asking permission.<br><br><b>Tonight:</b> yawn deliberately in company and count how long the yawn takes to come back to you. Then imagine that loop running through a starving city that believed in a dancing curse. ✦",
+          "art": "Two round faces in profile facing each other, both mid-yawn with mouths open, a small four-point star travelling on a dotted arc between them. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "ph",
+      "title": "The Pump Handle",
+      "sub": "London, 1854: a map, a doubted doctor, and the birth of epidemiology. 8 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "ph-01",
+          "kicker": "Soho, 1854",
+          "h": "The blue death",
+          "body": "At the end of August 1854, cholera detonated in one small neighbourhood of London. Around <b>Broad Street</b>, some six hundred people died within ten days — healthy in the morning, dead by nightfall, skin tinged blue from fluid loss. It was the worst outbreak the city had seen, and it stopped because one doctor drew a map.",
+          "art": "A dense row of small London townhouses with several doors marked by thin black bars stacked above them like tally marks. Flat and simple."
+        },
+        {
+          "id": "ph-02",
+          "kicker": "The theory",
+          "h": "Everyone knew it was the air",
+          "body": "Official medicine blamed <b>miasma</b> — disease carried by foul air, rising off the Thames and the city’s filth. It fit experience: the poor stank and sickened; the heights of Hampstead smelled sweet and stayed well. The physician <b>John Snow</b> doubted it. Cholera attacked the gut, not the lungs — which pointed at something swallowed, not something breathed. He had published the idea five years earlier and been politely ignored.",
+          "art": "A curling cloud of grey vapor drawn over rooftops, and below it a small drinking glass of water circled with a thin line. Flat and simple."
+        },
+        {
+          "id": "ph-03",
+          "kicker": "The map",
+          "h": "Deaths, stacked by address",
+          "body": "Snow walked the parish door to door in the middle of the outbreak, asking each stricken household one question: where do you get your water? Then he drew the neighbourhood and stacked a black bar at each address for every death. The bars piled up around the water pump on Broad Street and thinned with every street away from it. The picture said what the theory could not get heard: the deaths had a <i>center</i>, and the center was a pump.",
+          "art": "A simple street map with a hand water pump at the center and small black bars stacked at the houses, the stacks tallest near the pump and shorter farther away. Flat and simple."
+        },
+        {
+          "id": "ph-04",
+          "kicker": "The exception",
+          "h": "The brewery that stayed well",
+          "body": "The strongest evidence was the people who <i>didn’t</i> die. The Broad Street brewery, seventy workers, sat in the middle of the dying and lost almost no one — the men drank their allowance of beer, brewed with boiled water from the brewery’s own well. The workhouse around the corner, over five hundred of the parish’s poorest, had its own well too, and stayed nearly untouched while the houses around it emptied.",
+          "art": "A large wooden beer barrel with a small foaming mug on top, standing inside a thin protective circle, black tally bars visible outside the circle. Flat and simple."
+        },
+        {
+          "id": "ph-05",
+          "kicker": "The widow",
+          "h": "The death that proved it",
+          "body": "One dot on the map was miles wrong: a widow in clean-aired Hampstead, dead of cholera, nowhere near Soho. Snow rode up and found the detail that clinched the case — she had once lived on Broad Street, <b>liked the taste of the pump’s water</b>, and paid a cart to bring her a bottle. Her delivery came on August 31st; she died two days later. No miasma travels by private bottle. Her niece in Islington drank from the same bottle, and died too.",
+          "art": "A corked glass bottle of water standing alone on a small delivery cart, a long thin dotted line trailing behind it toward a distant pump. Flat and simple."
+        },
+        {
+          "id": "ph-06",
+          "kicker": "September 8",
+          "h": "The handle comes off",
+          "body": "Snow took the map to the parish Board of Guardians and asked for one small thing: remove the pump’s handle. They did it — skeptical, but it was cheap — and the outbreak, already fading as people fled, ended. The victory stayed local: the Board of Health rejected Snow’s conclusion, the miasma theory held the field, and once the panic passed <b>the parish put the handle back on</b>. Snow died in 1858, four years before London’s sewers proved him right, still a minority of one.",
+          "art": "A street water pump drawn missing its handle, the detached handle lying on the cobblestones beside it. Flat and simple."
+        },
+        {
+          "id": "ph-07",
+          "kicker": "The skeptic",
+          "h": "Whitehead and the baby",
+          "body": "The local curate, <b>Henry Whitehead</b>, knew every family in the parish and set out to prove Snow wrong. His own interviews kept landing on Snow’s side — and it was Whitehead who found the source itself: baby <b>Frances Lewis</b> of 40 Broad Street, sick with cholera days before the outbreak, whose mother had rinsed the soiled napkins into the house cesspool. The cesspool’s brickwork stood three feet from the well, and was leaking into it. The map’s center had an address.",
+          "art": "A cutaway view underground showing a leaking brick cesspool beside a stone well shaft, a thin dotted trickle crossing the small gap between them. Flat and simple."
+        },
+        {
+          "id": "ph-08",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "Every outbreak map on the news — every cluster chart, every contact trace — is a descendant of Snow’s stacked black bars.<br><br><b>Tonight:</b> find out where your own tap water actually comes from — the reservoir, river or wells it starts in. Most people can’t name it; in 1854 not knowing was the difference between households that lived and died. ✦",
+          "art": "A single water faucet with a long thin line running from it across the picture to a small distant lake ringed by hills. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "rg",
+      "title": "The Radium Girls",
+      "sub": "The women who painted glowing watch dials, and what their case changed. 8 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "rg-01",
+          "kicker": "New Jersey, 1917",
+          "h": "The ghost girls",
+          "body": "The dial-painters walked home glowing. Studio dust settled on their dresses and hair, and in the dark they shimmered — the neighbours called them <b>ghost girls</b>. It was one of the best jobs a working-class woman could get: skilled, well paid, and glamorous, painting watch faces with luminous paint whose magic ingredient was <b>radium</b>. Some girls painted their nails and teeth with it for a laugh. When one blew her nose, her handkerchief glowed.",
+          "art": "A simple dress on a hanger and a hairbrush beside it, both outlined in a soft pale green glow against a darker dusk background. Flat and simple."
+        },
+        {
+          "id": "rg-02",
+          "kicker": "The tonic",
+          "h": "Radium was the health craze",
+          "body": "Radium — discovered by <b>Marie Curie</b> in 1898 — was being sold as medicine. Radium water tonics, radium face creams, radium chocolate. The millionaire <b>Eben Byers</b> drank around 1,400 bottles of a tonic called Radithor and died in 1932, buried in a lead-lined coffin, under the era’s most famous headline: <i>“The Radium Water Worked Fine Until His Jaw Came Off.”</i> The dial-painters weren’t warned about their paint, because almost nobody believed there was anything to warn about.",
+          "art": "An old-fashioned medicine bottle with a glowing liquid inside, standing on a druggist’s counter beside a small stack of coins. Flat and simple."
+        },
+        {
+          "id": "rg-03",
+          "kicker": "The technique",
+          "h": "Lip, dip, paint",
+          "body": "The numbers on a watch dial are tiny, so the studios taught a technique for keeping the brush sharp: point it with your lips. <b>Lip, dip, paint</b> — a fine point, a touch of paint, a stroke, and back to the lips, hundreds of times a day. A dial-painter swallowed a little radium with every point. Asked, the managers said the paint was harmless; the company’s own chemists, meanwhile, handled it with tongs behind lead screens.",
+          "art": "A fine paintbrush standing upright in a small pot of glowing green paint beside a large open pocket watch with an unfinished number ring. Flat and simple."
+        },
+        {
+          "id": "rg-04",
+          "kicker": "1922",
+          "h": "Mollie Maggia’s jaw",
+          "body": "The body files radium next to calcium and lays it into <b>bone</b>, where it keeps radiating. It surfaced first as toothaches. Dial-painter <b>Amelia “Mollie” Maggia</b>’s teeth came out one by one, the sockets refusing to heal; then her dentist, probing an abscess, found her jawbone so honeycombed it came away at a touch. She died in 1922 at twenty-four, and the death certificate said syphilis — a slander that suited her employer fine. Her sisters, painters at the same table, were already sickening.",
+          "art": "A dentist’s small round mirror tool lying beside a single tooth on a cloth, a faint green glow around the tooth. Flat and simple."
+        },
+        {
+          "id": "rg-05",
+          "kicker": "The fight",
+          "h": "Grace Fryer finds a lawyer",
+          "body": "<b>Grace Fryer</b>, five years out of the studio and sick in the spine, spent two years looking for a lawyer willing to sue U.S. Radium — the statute of limitations had “expired,” since radium poisoning takes years to appear. In 1927 a young attorney took the case for her and four others. By trial, none of the five could raise an arm to take the oath; two were bedridden. The papers called them <b>the Radium Girls</b>, and the country read every word.",
+          "art": "A courtroom witness stand with a small glowing wristwatch resting on the rail where a hand would go. Flat and simple."
+        },
+        {
+          "id": "rg-06",
+          "kicker": "1928",
+          "h": "The settlement",
+          "body": "Days before trial, U.S. Radium settled: $10,000 each, plus $600 a year for life and all medical bills — <i>for as long as they suffered from radium poisoning</i>, a clause the company expected to be brief. The publicity did what the payment couldn’t: lip-pointing ended, industrial safety standards for radioactive work were written, and the case became a founding precedent for an employee’s right to sue over an occupational disease — law that had barely existed before five dying women forced it.",
+          "art": "An old-fashioned fountain pen resting on a signed document, with a small glowing watch face sitting beside the signature line like a paperweight. Flat and simple."
+        },
+        {
+          "id": "rg-07",
+          "kicker": "The long glow",
+          "h": "Half-life: 1,600 years",
+          "body": "Radium-226’s half-life is about 1,600 years, so the women’s bones still hold it. Decades later, researchers measured the surviving painters and exhumed the dead — with the families’ consent — to map exactly what a lifetime of internal radiation does; those body-burden studies underpinned the safety limits that protected the atomic workers of the 1940s and everyone in radiation work since. A Geiger counter passed over certain graves in Orange, New Jersey and Ottawa, Illinois still clicks today.",
+          "art": "A simple headstone with a small bouquet, and thin concentric arcs rising quietly from the ground in front of it. Flat and simple."
+        },
+        {
+          "id": "rg-08",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "Glow-in-the-dark didn’t go away — your watch hands, stick-on stars and exit signs now glow with phosphors and tritium, chemistries adopted <i>because</i> of this story.<br><br><b>Tonight:</b> find one thing in your home that glows, and check what makes it glow. The label that tells you is part of what the Radium Girls’ settlement bought. ✦",
+          "art": "A child’s bedroom ceiling corner scattered with glowing stick-on four-point stars, a bed’s headboard just visible below. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "mu",
+      "title": "Universe 25",
+      "sub": "The mouse paradise that ended itself — and what it did and didn’t prove. 8 cards, 8 pictures.",
+      "cards": [
+        {
+          "id": "mu-01",
+          "kicker": "Universe 25",
+          "h": "A paradise, built on purpose",
+          "body": "In 1968, at the National Institute of Mental Health, the ecologist <b>John Calhoun</b> built a mouse heaven: a walled square enclosure, endless food and water, perfect weather, no predators, no disease worth the name. He called it Universe 25 — the twenty-fifth of his rodent worlds — and stocked it with four pairs of healthy mice. It was designed to answer one question: with every material problem removed, what happens to a society?",
+          "art": "A clean white walled square enclosure drawn from above like an architectural plan, with neat rows of feeding ports along the walls and four small mice at the center. Flat and simple."
+        },
+        {
+          "id": "mu-02",
+          "kicker": "The boom",
+          "h": "Doubling every two months",
+          "body": "The colony exploded, doubling roughly every 55 days. Room and food existed for thousands more than were ever born — the universe was built to hold nearly 4,000 mice. On day 560 the population peaked at about <b>2,200</b>, still far below the walls’ capacity, and stopped growing. The limit the mice hit was not food, water or space. It was each other.",
+          "art": "A rising curve drawn with small mouse silhouettes packed along it, the curve flattening at the top well below a dotted ceiling line above. Flat and simple."
+        },
+        {
+          "id": "mu-03",
+          "kicker": "The sink",
+          "h": "Roles run out",
+          "body": "A mouse society has a geography of roles — territories to hold, nests to defend, litters to raise — and roles ran out long before space did. Surplus males with nothing to defend gathered in the middle and turned on each other in bursts of pointless violence; defeated ones went limp and withdrew entirely. Nursing mothers, harassed in undefended nests, began abandoning litters. Calhoun named the pattern the <b>behavioral sink</b>: crowding’s damage arriving through social breakdown rather than shortage.",
+          "art": "A nest drawn as a neat circle of straw standing empty, with many mouse silhouettes crowded shoulder to shoulder in the space around it facing different directions. Flat and simple."
+        },
+        {
+          "id": "mu-04",
+          "kicker": "The beautiful ones",
+          "h": "Sleek, unharmed, alone",
+          "body": "The strangest class appeared late: mice Calhoun called <b>the beautiful ones</b>. They fought no one, courted no one, raised nothing. They ate, slept and groomed — perfect, glossy fur, no scars — and ignored every other mouse completely. Raised inside the breakdown, they never learned mouse society at all; they were the healthiest-looking animals in the universe and the deadest end in it.",
+          "art": "One sleek well-groomed mouse sitting alone before a small mirror, many faint mouse silhouettes far away behind it. Flat and simple."
+        },
+        {
+          "id": "mu-05",
+          "kicker": "The end",
+          "h": "Extinction with full feeders",
+          "body": "After day 600, no pup survived to adulthood; conception itself dwindled and stopped. The population slid downhill for years — food hoppers full the entire time — and on day 1,588 the last mouse died. Even mid-decline, mice moved to fresh empty universes did not resume breeding: whatever had been lost was in the mice now, not the crowding. Calhoun, biblically minded, called it the “second death” — the death of the society preceding the death of its members.",
+          "art": "A full food hopper spilling a small heap of grain onto clean white floor, one tiny mouse silhouette walking away toward the empty edge of the picture. Flat and simple."
+        },
+        {
+          "id": "mu-06",
+          "kicker": "The honest card",
+          "h": "What it did and didn’t show",
+          "body": "Universe 25 is retold constantly as a prophecy: cities = the sink, modern men = the beautiful ones. Hold it more carefully. It was mice — a species without language, trade, or the ability to build a new room. Studies of human density have come back inconsistent: crowding’s effects in people track autonomy and social role far more than headcount. And historians note the experiment’s design funneled mice into collisions a real habitat would diffuse. It is a genuine, spectacular result about social collapse in mice — and every human lesson drawn from it is an argument, not a finding.",
+          "art": "A small mouse silhouette and a large human silhouette standing on opposite pans of a balance scale that does not balance, a question of unequal weight. Flat and simple."
+        },
+        {
+          "id": "mu-07",
+          "kicker": "Calhoun’s own moral",
+          "h": "He thought design could fix it",
+          "body": "Calhoun himself never read his mice as doom. He spent his later career on the opposite question — how to design space and society so roles <i>don’t</i> run out, coining the idea of a “conceptual space” humans can grow into when physical roles saturate: art, science, invention. His own summary of the work was closer to a warning about meaninglessness than about headcount: creatures with nothing left to do, no place to matter in, stop becoming anything at all.",
+          "art": "The same white walled enclosure from above, redrawn with added partitions, bridges and small stairways making many separate rooms, small mice spread comfortably through them. Flat and simple."
+        },
+        {
+          "id": "mu-08",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "The sink was measured in collisions — encounters nobody chose.<br><br><b>Tonight:</b> in any shared space, watch how people spend effort <i>not</i> colliding: the bench seat left empty between strangers, the elevator eyes, the queue spacing itself. That constant quiet work is what Calhoun’s mice, in the end, could no longer do. ✦",
+          "art": "A long park bench with two figures seated at its far opposite ends and a wide empty space between them, one small four-point star above the gap. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "lg",
+      "title": "The Longitude Prize",
+      "sub": "Two thousand drowned sailors, a £20,000 prize, and the carpenter who solved it. 7 cards, 7 pictures.",
+      "cards": [
+        {
+          "id": "lg-01",
+          "kicker": "Scilly, 1707",
+          "h": "Four ships onto the rocks",
+          "body": "On a foggy October night in 1707, a Royal Navy fleet sailing home miscalculated where it was — east-west position at sea being, at that date, educated guesswork — and drove onto the rocks of the Isles of Scilly. Four warships sank, including the flagship of Admiral Sir Cloudesley Shovell; somewhere between 1,400 and 2,000 men drowned in one night. The disaster made the ancient navigation problem a national emergency with a name: <b>longitude</b>.",
+          "art": "A jagged black rock rising from stylized waves with a ship’s broken mast leaning against it, rain drawn as thin diagonal lines. Flat and simple."
+        },
+        {
+          "id": "lg-02",
+          "kicker": "The problem",
+          "h": "Longitude is a clock",
+          "body": "Latitude is easy — the sun and stars give it away. Longitude is <i>time</i>: the Earth turns 15 degrees an hour, so if you know it’s noon where you are and simultaneously 3 p.m. back home, you are 45 degrees west of home. Noon where you are is easy — the sun tells you. The killer is knowing, months into a voyage, what time it is <i>back home</i>: it demands a clock that keeps home time perfectly on a pitching, rolling, freezing, salt-soaked ship, and every pendulum clock on Earth went useless the moment it left the dock.",
+          "art": "A globe divided by a few clean meridian lines with a small sun above one line and a small clock face above another. Flat and simple."
+        },
+        {
+          "id": "lg-03",
+          "kicker": "1714",
+          "h": "Twenty thousand pounds",
+          "body": "Parliament’s <b>Longitude Act</b> posted £20,000 — several million today — for any practical method accurate to half a degree across the Atlantic, and created a Board of Longitude to judge. Serious science held that the answer would come from the sky: tables of the moon’s motion, read like a celestial clock. The astronomers ran the Board. Almost nobody expected the answer to come from a village carpenter with no formal education.",
+          "art": "A large formal parchment with a wax seal, a heap of gold coins stacked on its corner, and above it a crescent moon and a pocket watch facing each other like rivals. Flat and simple."
+        },
+        {
+          "id": "lg-04",
+          "kicker": "The carpenter",
+          "h": "Harrison builds the sea clock",
+          "body": "<b>John Harrison</b>, a self-taught Yorkshire joiner who had built precision clocks partly out of <i>wood</i>, spent forty years on the problem. His first sea clocks were beautiful brass machines the size of ovens; the breakthrough, <b>H4</b> of 1759, looked like an oversized pocket watch, five inches across, with a mechanism unlike anything before it. On its trial voyage to Jamaica in 1761 it lost <b>5.1 seconds</b> in 81 days at sea — accuracy the astronomers had called impossible for any machine.",
+          "art": "An open pocket watch drawn large and centered showing a beautiful minimal dial, standing on a wooden workbench with a few fine tools beside it. Flat and simple."
+        },
+        {
+          "id": "lg-05",
+          "kicker": "The Board",
+          "h": "Winning wasn’t enough",
+          "body": "The Board of Longitude — chaired in time by <b>Nevil Maskelyne</b>, Astronomer Royal and champion of the rival lunar method — called the Jamaica result luck and demanded a second trial. H4 came back from Barbados three times more accurate than the prize required. The Board paid Harrison in fractions, demanded he surrender his watches and drawings, and set conditions that kept moving. The sea trials were over; the committee fight consumed another decade.",
+          "art": "A long committee table with tall empty chairs behind it, and before it a small pocket watch sitting alone on a velvet cushion. Flat and simple."
+        },
+        {
+          "id": "lg-06",
+          "kicker": "1773",
+          "h": "The King intervenes",
+          "body": "Harrison’s son got the family’s case to <b>George III</b>, who tested the next watch, H5, at his private observatory for ten weeks and watched it perform almost perfectly. The King’s recorded verdict: <i>“By God, Harrison, I will see you righted!”</i> Under royal pressure, Parliament voted Harrison £8,750 in 1773 — a payment, pointedly not the prize, which was never formally awarded to anyone. He was eighty. He died three years later, and copies of his watch went to sea with Captain Cook.",
+          "art": "A crown resting on a table beside the open pocket watch, the two objects at last side by side, small four-point stars above them. Flat and simple."
+        },
+        {
+          "id": "lg-07",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "Position-by-clock is still how it’s done: every GPS satellite carries atomic clocks, and your phone finds you by comparing their time signals — Harrison’s method, run on clocks that lose a second per million years.<br><br><b>Tonight:</b> open your phone’s map and watch the blue dot find you. The dot is made of time. ✦",
+          "art": "A satellite with small solar panel wings above a curved horizon, a thin dotted line dropping to a small map pin below, a tiny clock face drawn on the satellite’s body. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "am",
+      "title": "The Antikythera Mechanism",
+      "sub": "The 2,000-year-old computer from a shipwreck. 6 cards, 6 pictures.",
+      "cards": [
+        {
+          "id": "am-01",
+          "kicker": "1901",
+          "h": "Corpses and horses on the seabed",
+          "body": "Sponge divers sheltering off the islet of <b>Antikythera</b> dove a new spot and surfaced babbling about corpses and horses on the seabed. They had found an ancient Roman-era wreck full of Greek bronze and marble statuary — the “corpses” — and spent a year salvaging it. Among the treasure hauled to Athens was an unglamorous corroded lump the size of a shoebox, which sat in the museum while the statues took the glory.",
+          "art": "An old-fashioned diving helmet resting on the seabed beside a classical marble arm and a small corroded rectangular lump, thin bubbles rising. Flat and simple."
+        },
+        {
+          "id": "am-02",
+          "kicker": "The lump",
+          "h": "It has gears",
+          "body": "In 1902 the lump split, and an archaeologist noticed something impossible inside: a <b>bronze gear wheel</b> — then more. Precision-cut toothed gears in Mediterranean archaeology are not supposed to exist for another thousand-plus years. The fragments held at least <b>30 interlocking gears</b>, plates crowded with Greek inscriptions, and the remains of dials — a machine, from roughly the second or first century BC.",
+          "art": "A cracked corroded lump split open like a geode, with clean bronze gear teeth visible inside the crack, one small four-point star above. Flat and simple."
+        },
+        {
+          "id": "am-03",
+          "kicker": "What it does",
+          "h": "A machine for the sky",
+          "body": "Turn its hand crank and the machine computed the heavens: the sun and moon’s positions in the zodiac, the moon’s phase, a 19-year calendar reconciling months to years, the four-year cycle of the games at Olympia — and, on a rear spiral dial, <b>eclipse predictions</b>, built on the 223-month Saros cycle the Babylonians had extracted from centuries of records. It even reproduced the moon’s speeding and slowing with an off-center pin-and-slot gear — astronomy cast in bronze.",
+          "art": "A hand crank turning a train of a few meshed gears, with a sun disc, a crescent moon and a small dark eclipse disc arranged along the top edge. Flat and simple."
+        },
+        {
+          "id": "am-04",
+          "kicker": "Reading it",
+          "h": "An eight-ton X-ray",
+          "body": "The physicist <b>Derek de Solla Price</b> spent decades on the fragments (“Gears from the Greeks,” 1974), but the machine’s full reading took modern imaging: in 2005 an eight-ton micro-CT scanner was shipped to Athens to see through the corrosion. The scans found gears buried inside solid mineral crust — and thousands of characters of hidden inscription, including what amounts to the machine’s own <b>user manual</b> engraved on its plates. Reconstruction papers are still appearing; the front gear train wasn’t convincingly solved until 2021.",
+          "art": "A large scanner ring with the small corroded lump passing through it, and on the far side the same lump drawn as a clean X-ray view full of visible gears. Flat and simple."
+        },
+        {
+          "id": "am-05",
+          "kicker": "The gap",
+          "h": "Fourteen hundred quiet years",
+          "body": "Nothing of comparable mechanical complexity survives from anywhere on Earth for roughly <b>1,400 years</b>, until the astronomical cathedral clocks of medieval Europe. The mechanism was likely not unique — Cicero describes a bronze planetary machine attributed to Archimedes — which makes the silence stranger: an entire engineering tradition existed, served kings and scholars, and then dropped out of history so completely that its one surviving product reads as an anachronism. Knowledge, it turns out, can sink.",
+          "art": "A long horizontal timeline with a small gear at the far left end and a cathedral clock face at the far right end, and nothing but flat empty line between them. Flat and simple."
+        },
+        {
+          "id": "am-06",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "One of the machine’s gear trains embodies the 19-year <b>Metonic cycle</b>: the moon’s phases repeat on the same calendar dates every 19 years.<br><br><b>Tonight:</b> look at the moon and note the date. On this date 19 years from now, it will look the same — a fact a bronze machine on a doomed ship was carrying to somebody two thousand years ago. ✦",
+          "art": "A crescent moon above a small calendar page, connected by a wide dotted arc that loops far out to the side and returns to the same calendar page. Flat and simple."
+        }
+      ]
+    },
+    {
+      "key": "er",
+      "title": "Ergot in Salem?",
+      "sub": "The moldy-rye theory of the witch trials — its rise, and its fall. 6 cards, 6 pictures.",
+      "cards": [
+        {
+          "id": "er-01",
+          "kicker": "Salem, 1692",
+          "h": "The fits",
+          "body": "It began with the girls’ <b>fits</b>: convulsions, choking, pricking skin, visions of specters biting them. Within a year, twenty people were dead — nineteen hanged and one pressed under stones — on the testimony of the afflicted. What actually happened to those girls’ bodies has been argued about for three centuries, and in 1976 a young scientist proposed the tidiest answer anyone had ever offered: it was the bread.",
+          "art": "A plain colonial meetinghouse on a hill under a heavy sky, a single loaf of bread sitting oversized in the foreground. Flat and simple."
+        },
+        {
+          "id": "er-02",
+          "kicker": "The theory",
+          "h": "The fungus in the rye",
+          "body": "<b>Ergot</b> is a fungus that infects rye in damp seasons, and its alkaloids are chemical cousins of LSD — Albert Hofmann first made LSD <i>from</i> ergot compounds. Eaten in bread, ergot can cause <b>convulsive ergotism</b>: spasms, crawling-skin sensations, hallucinations. Graduate student <b>Linnda Caporael</b> noticed the fit: 1691 had been a damp growing year, rye was the village staple, and the afflicted girls’ symptoms read like an ergotism casebook. <i>Science</i> published her paper in April 1976.",
+          "art": "A tall stalk of rye with several dark curved ergot spurs on the grain head, drawn large and botanical against clean space. Flat and simple."
+        },
+        {
+          "id": "er-03",
+          "kicker": "The appeal",
+          "h": "Why everyone wanted it true",
+          "body": "The theory ran through the press like fire, and it still circulates as settled fact. The appeal is obvious: it converts a shameful moral catastrophe into an accident of chemistry. Nobody’s daughters lied; nobody’s neighbours settled scores; the village was simply, blamelessly, poisoned. A tidy physical cause asks nothing of anyone — which is exactly why it deserved a hard look.",
+          "art": "A newspaper front page drawn simply with a large picture of a rye stalk on it, small four-point stars around the masthead. Flat and simple."
+        },
+        {
+          "id": "er-04",
+          "kicker": "The rebuttal",
+          "h": "Eight months later, in the same journal",
+          "body": "Psychologists <b>Nicholas Spanos and Jack Gottlieb</b> answered in <i>Science</i> that December. Convulsive ergotism strikes where diets lack vitamin A — Salem, a farming village beside a fishing port, had fish and dairy in abundance, which pushes ergot poisoning toward gangrene, and nobody in Salem lost limbs. Ergotism hits whole households that share a loaf — Salem’s afflicted were one or two girls per family while everyone ate the same bread. And the fits arrived and stopped <i>on cue</i>: in court, precisely when the accused entered, and never when the girls were out of the story’s eye.",
+          "art": "A balance scale with a rye stalk on one pan and a stack of court papers on the other, the papers’ side sitting decisively lower. Flat and simple."
+        },
+        {
+          "id": "er-05",
+          "kicker": "Where it stands",
+          "h": "The messier answer",
+          "body": "Historians have overwhelmingly sided with the rebuttal. The picture the records support is human, not fungal: a village at war with itself over land and church factions, a frontier terrorized by real raids, a legal system that admitted “spectral evidence,” girls whose performances were shaped — sincerely or not — by what the adults around them needed to see, and judges who kept score. The chemistry theory survives in circulation because it is <i>easier to hold</i> than that. The records are the harder read, and the truer one.",
+          "art": "A tangle of many thin lines connecting small houses, a church and a courthouse into a knotted web, one straight simple line lying discarded beneath the tangle. Flat and simple."
+        },
+        {
+          "id": "er-06",
+          "kicker": "After",
+          "h": "Tonight",
+          "body": "“One hidden cause explains the whole mess” is a shape of story the mind loves, and it is worth learning to feel it click.<br><br><b>Tonight:</b> take one tidy explanation you’ve carried for years — about an event, a person, a place — and spend five minutes finding out who published the rebuttal. There usually is one, and it is usually less famous than the theory. ✦",
+          "art": "A single perfect puzzle piece lying beside a puzzle whose hole is clearly a different shape, drawn plainly with generous space. Flat and simple."
+        }
+      ]
+    }
+  ]
+}
