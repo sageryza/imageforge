@@ -413,25 +413,50 @@ pure, no network.
   ROW** (Sophie, Aug 2026: "a lot smaller and definitely all fit on one row").
   `.vbtn` is `flex:1 1 0` with `max-width:40px` and `aspect-ratio:1`, so any
   number of people fits any phone; the dropdown under it is the who-is-who
-  fallback. **`OFFERED_VOICE_IDS` is an explicit ALLOWLIST** — empty would
+  fallback, and there is **no name line under it** — the dropdown already says
+  who is picked. Each square is a FLAT COLOUR, no glyph (Sophie, Aug 2026:
+  "make the little icons into squares instead of circles" — the Lucide `user`
+  that used to sit on them is mostly a circular head at 30px).
+  **`OFFERED_VOICE_IDS` is an explicit ALLOWLIST** — empty would
   sweep in every Voice Library professional on the account. Cloning someone
-  new = add the id + a colour there.
+  new = add the id + a colour there; **culling one is just dropping its id**,
+  which is how Richard v1/v2/v3, Miriam, Gilad, Alpha and "Sophie — doctor"
+  came off the picker on Aug 18 2026. Nothing was deleted at ElevenLabs.
 - **Her words STAY in the box** (Sophie, Aug 2026): a render does not empty it
   and neither does leaving the page (`localStorage['voicelab_text']`), because
   she runs the same line through voice after voice. **Clear** is the only
-  thing that empties it, and it only shows when there is something to clear.
-- **TWO TABS — SPEAK · CHANGE (Aug 2026, Sophie: "a separate hairline tab in
-  the voice studio").** The house `.acctabs` hairline pattern. The tabs swap
-  only the LOWER half; **the voice picker is SHARED**, because "which voice"
-  means the same thing on both sides (words to say / voice to become).
-  - **CHANGE is speech-to-speech** — `POST /v1/speech-to-speech/{voice}` on
+  thing that empties it, and it only shows when there is something to clear —
+  at the FAR RIGHT of the row, as far from Render as the row allows.
+- **NO PAGE HEADER, and NO CHARACTER COUNTS ANYWHERE (Aug 18 2026, Sophie:
+  "it says Voice Studio twice, once at the top and once below it… get rid of
+  basically the whole header, including the line" / "I don't need to know how
+  many characters everything is").** The native tool bar carries the title, so
+  the page's brand row, h1, credits line and rule are gone and the tabs are the
+  first thing on screen. The credits moved **behind an ⓘ** at the left of the
+  tab row — the number is still fetched at boot, it just costs a tap to read.
+  Render and Apply voice are the same height as Clear (`align-items:stretch`
+  on `.renderrow`, because their borders differ by half a pixel).
+  The rows that now sit in the injected pill's top-right band each keep the
+  56px reserve, `.vsel` included (`max-width:min(22em, calc(100% - 56px))`).
+- **TWO TABS — TEXT · VOICE (Aug 2026, Sophie: "a separate hairline tab in
+  the voice studio"; renamed from SPEAK · CHANGE on Aug 18 — "rather than
+  speak it should say text, because it's text to speech, and change should say
+  voice, because it's voice to speech").** The house `.acctabs` hairline
+  pattern. The tabs swap only the LOWER half; **the voice picker is SHARED**,
+  because "which voice" means the same thing on both sides (words to say /
+  voice to become). The picker's own "VOICE" section label is gone — it sat
+  above a row of coloured squares and said nothing the squares didn't.
+  - **The VOICE tab is speech-to-speech** — `POST /v1/speech-to-speech/{voice}` on
     **`eleven_multilingual_sts_v2`** (verified live against `/v1/models`:
     `can_do_voice_conversion`, 29 languages). It keeps the PERFORMANCE —
     timing, emphasis, where a laugh lands — and swaps only the voice, which
     is the whole reason it isn't just TTS. **No v3 here either**, same rule
     as her TTS.
   - **Two ways in: record in the page, or choose a file** (a Voice Memo, once
-    it is in Files). `recMime()` asks the browser what it can record —
+    it is in Files). The record button sits in the MIDDLE of its row — three
+    grid tracks (`1fr auto 1fr`), not a centred flex row, so the timer growing
+    beside it never moves it — and the file picker is a **folder icon**, since
+    it is the fallback, not the headline. `recMime()` asks the browser what it can record —
     **iOS Safari has no WebM, `audio/mp4` is what it records**, so never
     assume a container. Recording needs `mic: true` on the `/voice`
     `GatedWebTool`; the file picker works with no build.
@@ -439,7 +464,14 @@ pure, no network.
     (`voice-lab/sources/<id>.<ext>`, her ask: "the recorded voice will also
     save to firebase"), so a failed or refused conversion still leaves her
     the take. A finished change plays BOTH halves.
-  - **The take SURVIVES the send**, the same reason her words do.
+  - **The take SURVIVES the send**, the same reason her words do. Dropping it
+    is an **✕ in the take card's top-right corner, and it asks first** (Sophie,
+    Aug 2026: "drop this take is right next to the play button, so I'm afraid
+    I'll accidentally delete my take rather than pressing play"). The confirm
+    covers the card rather than opening a dialog, so the answer is where the
+    question is. A RECORDED take draws no name — the player already shows its
+    length — while a PICKED file keeps its file name, the only thing that says
+    which file she chose.
   - `POST /change?voiceId=&voiceName=&ext=&name=` takes the audio as the
     **RAW body** (base64 in JSON inflates a memo by a third — the
     `audio.js` `/upload-file` precedent) and the page sends it with XHR so a
