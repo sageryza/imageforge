@@ -48,7 +48,7 @@ def upload(path, dest, ctype):
     return run(["node", os.path.join(HOME, "upload.mjs"), path, dest, ctype]).stdout.strip().splitlines()[-1]
 
 # ── gpt stills ───────────────────────────────────────────────────────
-def gen_image(path, prompt, size, edit_ref=None):
+def gen_image(path, prompt, size, edit_ref=None, quality="medium"):
     if os.path.exists(path):
         return
     for attempt in range(3):
@@ -58,17 +58,17 @@ def gen_image(path, prompt, size, edit_ref=None):
                     r = requests.post("https://api.openai.com/v1/images/edits",
                         headers={"Authorization": f"Bearer {OA_KEY}"},
                         data={"model": "gpt-image-2", "prompt": prompt,
-                              "size": size, "quality": "medium", "n": "1"},
+                              "size": size, "quality": quality, "n": "1"},
                         files=[("image[]", ("style-ref.jpg", f, "image/jpeg"))],
                         timeout=300)
-                COST["images"] += 0.07
+                COST["images"] += 0.28 if quality == "high" else 0.07
             else:
                 r = requests.post("https://api.openai.com/v1/images/generations",
                     headers={"Authorization": f"Bearer {OA_KEY}"},
                     json={"model": "gpt-image-2", "prompt": prompt,
-                          "size": size, "quality": "medium", "n": 1},
+                          "size": size, "quality": quality, "n": 1},
                     timeout=300)
-                COST["images"] += 0.06
+                COST["images"] += 0.25 if quality == "high" else 0.06
             r.raise_for_status()
             open(path, "wb").write(base64.b64decode(r.json()["data"][0]["b64_json"]))
             log(f"image {os.path.basename(path)} done")
@@ -126,7 +126,8 @@ def chat_html(states_msgs, typing, header):
   color:#555;font-size:15px;line-height:40px;padding-left:16px">Message</div>
 </body>"""
 
-def appui_html(thumb_path, highlight):
+def appui_html(thumb_path, highlight, name="last night &middot; Maya",
+               sub="&#9789; a dream about someone"):
     btn = ("<div style='margin-top:12px;display:inline-block;background:#6b5aa0;"
            "color:#f0eaf8;font-size:15px;padding:9px 22px;border-radius:6px'>read</div>"
            if highlight else "")
@@ -136,13 +137,13 @@ def appui_html(thumb_path, highlight):
 <div style="color:#7d738f;font-size:13px;margin-top:4px">the night feed</div>
 <div style="margin:36px 26px 0;background:#221c2e;border-radius:12px;padding:14px;{ring}">
   <img src="{b64img(thumb_path)}" style="width:100%;height:330px;object-fit:cover;border-radius:8px">
-  <div style="color:#e8e2f2;font-size:17px;margin-top:12px;text-align:left">last night &middot; Maya</div>
-  <div style="color:#7d738f;font-size:13px;margin-top:3px;text-align:left">&#9789; a dream about someone</div>
+  <div style="color:#e8e2f2;font-size:17px;margin-top:12px;text-align:left">{name}</div>
+  <div style="color:#7d738f;font-size:13px;margin-top:3px;text-align:left">{sub}</div>
   {btn}
 </div>
 </body>"""
 
-def memui_html(card_path, caption, idx, total, sub="Sophie &middot; ages 6&ndash;8"):
+def memui_html(card_path, caption, idx, total):
     dots = "".join(
         f"<span style='display:inline-block;width:7px;height:7px;border-radius:50%;"
         f"margin:0 4px;background:{'#22201b' if i == idx else '#d8cfb8'}'></span>"
@@ -150,7 +151,7 @@ def memui_html(card_path, caption, idx, total, sub="Sophie &middot; ages 6&ndash
     return f"""<body style="{BODY}background:#faf4e6;text-align:center">
 <div style="padding-top:52px;color:#22201b;font-family:Georgia,serif;font-size:24px;
   letter-spacing:0.04em">Memory Library</div>
-<div style="color:#8a8371;font-size:13px;font-style:italic;margin-top:4px">{sub}</div>
+<div style="color:#8a8371;font-size:13px;font-style:italic;margin-top:4px">Sophie &middot; ages 6&ndash;8</div>
 <div style="margin:30px 30px 0;background:#fffdf6;border:1px solid #e3dbc6;border-radius:6px;
   padding:14px">
   <img src="{b64img(card_path)}" style="width:100%;height:420px;object-fit:cover;border-radius:4px">
@@ -215,6 +216,8 @@ def witui_html(st):
 </body>"""
 
 def endcard_html(style):
+    if style == "black":
+        return f"""<body style="{BODY}background:#000"></body>"""
     if style == "witch":
         return f"""<body style="{BODY}background:#14101c;text-align:center">
 <div style="padding-top:290px;color:#c9a86a;font-family:Georgia,serif;font-size:42px">Secretly a Witch</div>
@@ -265,14 +268,17 @@ jobs = []
 for sc in REEL["scenes"]:
     if sc["kind"] == "live":
         jobs.append((os.path.join(ROOT, "stills", f"{sc['id']}.png"),
-                     still_prompt(sc), "1024x1536", None))
+                     still_prompt(sc), "1024x1536", None,
+                     sc.get("quality", "medium")))
     elif sc["kind"] == "dream":
         jobs.append((os.path.join(ROOT, "stills", f"{sc['id']}.png"),
-                     DREAM_PRE + sc["content"], "1024x1536", STYLE_REF))
+                     DREAM_PRE + sc["content"], "1024x1536", STYLE_REF,
+                     sc.get("quality", "medium")))
     elif sc["kind"] == "memui":
         for card in sc["cards"]:
             jobs.append((os.path.join(ROOT, "stills", f"{card['id']}.png"),
-                         DREAM_PRE + card["content"], "1024x1024", STYLE_REF))
+                         DREAM_PRE + card["content"], "1024x1024", STYLE_REF,
+                         sc.get("quality", "medium")))
 log(f"stage 2: {len(jobs)} gpt images")
 with ThreadPoolExecutor(4) as ex:
     list(ex.map(lambda j: gen_image(*j), jobs))
@@ -294,7 +300,8 @@ for sc in REEL["scenes"]:
         for i, hold in enumerate(sc["dur_states"]):
             f = os.path.join(ROOT, "frames", f"{sid}-{i}.png")
             frame_plan[sid].append((f, hold, i == 0))
-            shots.append({"file": f, "html": appui_html(thumb, i == 1)})
+            kw = {k: sc[k] for k in ("name", "sub") if k in sc}
+            shots.append({"file": f, "html": appui_html(thumb, i == 1, **kw)})
     elif sc["kind"] == "memui":
         frame_plan[sid] = []
         for i, (hold, card) in enumerate(zip(sc["dur_states"], sc["cards"])):
@@ -302,8 +309,7 @@ for sc in REEL["scenes"]:
             frame_plan[sid].append((f, hold, True))
             shots.append({"file": f, "html": memui_html(
                 os.path.join(ROOT, "stills", f"{card['id']}.png"),
-                card["caption"], i, len(sc["cards"]),
-                **({"sub": REEL["mem_sub"]} if REEL.get("mem_sub") else {}))})
+                card["caption"], i, len(sc["cards"]))})
     elif sc["kind"] == "witui":
         frame_plan[sid] = []
         for i, st in enumerate(sc["states"]):
@@ -494,10 +500,11 @@ run([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", video]
 inputs, filters, mixes = [], [], []
 idx = 0
 if piano:
+    mend = min(float(REEL.get("music_end", TOTAL)), TOTAL)
     inputs += ["-stream_loop", "-1", "-i", piano]
     filters.append(f"[{idx}:a]aresample=44100,aformat=channel_layouts=stereo,"
                    f"volume=0.16,afade=t=in:d=1.0,"
-                   f"afade=t=out:st={TOTAL-2.5:.2f}:d=2.5,atrim=0:{TOTAL:.3f}[mus]")
+                   f"afade=t=out:st={mend-2.0:.2f}:d=2.0,atrim=0:{mend:.3f}[mus]")
     mixes.append("[mus]")
     idx += 1
 for seg in REEL.get("segments", []):
@@ -515,7 +522,7 @@ for at, sfile in events:
     mixes.append(f"[s{idx}]")
     idx += 1
 fc = (";".join(filters) + f";{''.join(mixes)}amix=inputs={len(mixes)}:"
-      f"duration=longest:normalize=0,alimiter=limit=0.95,atrim=0:{TOTAL:.3f}[out]")
+      f"duration=longest:normalize=0,alimiter=limit=0.95,apad,atrim=0:{TOTAL:.3f}[out]")
 audio = os.path.join(ROOT, "out", "audio.m4a")
 run([FFMPEG, "-y"] + inputs + ["-filter_complex", fc, "-map", "[out]",
      "-t", str(TOTAL), "-c:a", "aac", "-b:a", "192k", audio])
@@ -530,6 +537,7 @@ manifest = {
     "slug": SLUG, "final_url": final_url, "total_seconds": round(TOTAL, 1),
     "scene_durations": sdur,
     "stills": {sc["id"]: {"url": still_urls.get(sc["id"]),
+                          "quality": sc.get("quality", "medium"),
                           "style": (LIVE_BW if sc.get("bw") else LIVE_CO) +
                                    "".join(REEL["chars"][c] for c in sc.get("chars", []))
                                    if sc["kind"] == "live" else

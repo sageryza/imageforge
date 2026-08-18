@@ -531,6 +531,11 @@ app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.
 // Public/ungated on purpose: family opens it from a text with no studio token.
 app.get('/pills', (req, res) => { res.sendFile(__dirname + '/public/pills.html'); });
 
+// The Screening Room — every film from the commercials chat, lightbox player.
+// Public/ungated like /pills; the film list lives in Storage commercials/index.json
+// so adding a film is a JSON upload, no deploy.
+app.get('/screening', (req, res) => { res.sendFile(__dirname + '/public/screening.html'); });
+
 // The favorite-fruit poll. BOTH pages are PUBLIC and ungated on purpose: /fruit
 // is opened from an email by Sophie's family, who have no studio token and
 // never will, and the person id in the link is the only identity there is.

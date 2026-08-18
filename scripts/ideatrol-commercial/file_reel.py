@@ -11,14 +11,10 @@ ROOT = os.path.join(HOME, "reels", SLUG)
 m = json.load(open(os.path.join(ROOT, "manifest.json")))
 LABELS = json.load(open(LABELS_PATH))
 BASE = "https://imageforge-q125.onrender.com"
-# Chat identity comes from the running session, never hardcoded — a later
-# session reusing a hardcoded slug/session files into the WRONG chat.
-SESSION = os.environ.get("CLAUDE_CODE_REMOTE_SESSION_ID", "").removeprefix("cse_")
-CHAT = os.environ.get("FORGE_CHAT") or requests.get(
-    f"{BASE}/api/chatfeed/name", params={"chat": "", "session": SESSION},
-    timeout=30).json()["chat"]
+CHAT = "fictional-pill-commercial"
+SESSION = "01Em65jpY2vw2daUnGVYZBtQ"
 ENV = {**os.environ, "NODE_PATH": os.path.join(HOME, "node_modules"),
-       "GALLERY_UID": os.environ.get("GALLERY_UID", "kWNQSEqZ4mdLMsd1QZgDP7UFc1m1")}
+       "GALLERY_UID": "kWNQSEqZ4mdLMsd1QZgDP7UFc1m1"}
 
 ok = 0
 items = []
@@ -30,12 +26,13 @@ for sid, (label, override) in LABELS.items():
         continue
     r = requests.post(f"{BASE}/api/gallery", json={
         "assetsOnly": True, "chat": CHAT, "url": url,
-        "description": label, "prompt": "gpt-image-2 · medium"}, timeout=30)
+        "description": label,
+        "prompt": f"gpt-image-2 · {st.get('quality', 'medium')}"}, timeout=30)
     ok += 1 if r.ok else 0
     if st.get("content"):
         items.append({"url": url,
                       "style": (st.get("style") or "(no style prefix)") +
-                               " [1024x1536 · medium]",
+                               f" [1024x1536 · {st.get('quality', 'medium')}]",
                       "content": st["content"]})
 if items:
     r = requests.post(f"{BASE}/api/gallery/assets/prompt",
@@ -52,7 +49,8 @@ for sid, (label, override) in LABELS.items():
     p = subprocess.run(
         ["node", "scripts/post-to-gallery.js", "--url", url,
          "--prompt", (st.get("content") or label)[:400], "--model", "gpt-image-2",
-         "--quality", "medium", "--source", "claude", "--created", str(mt)],
+         "--quality", st.get("quality", "medium"), "--source", "claude",
+         "--created", str(mt)],
         cwd="/home/user/imageforge", env=ENV, capture_output=True, text=True)
     if p.returncode != 0:
         print(f"creations {sid} FAILED: {p.stderr[-150:]}")

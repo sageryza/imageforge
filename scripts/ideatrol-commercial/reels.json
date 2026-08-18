@@ -1,982 +1,1157 @@
 {
- "birdcostume": {
-  "title": "dreams — the bird costume",
-  "music": "soft dreamy lo-fi pop with gentle keys and vinyl warmth, romantic, light, upbeat",
-  "announcer": null,
-  "character": "bIHbv24MWmeRgasZH58o",
-  "chars": {
-   "GIRL": "The same young woman appears: early 20s, long dark wavy hair, soft freckles, mustard-yellow cardigan. ",
-   "BOY": "The same young man appears: early 20s, tousled brown curls, warm smile, olive-green t-shirt. "
+  "birdcostume": {
+    "title": "dreams \u2014 the bird costume",
+    "music": "soft dreamy lo-fi pop with gentle keys and vinyl warmth, romantic, light, upbeat",
+    "announcer": null,
+    "character": "bIHbv24MWmeRgasZH58o",
+    "chars": {
+      "GIRL": "The same young woman appears: early 20s, long dark wavy hair, soft freckles, mustard-yellow cardigan. ",
+      "BOY": "The same young man appears: early 20s, tousled brown curls, warm smile, olive-green t-shirt. "
+    },
+    "chat_header": "Leo",
+    "scenes": [
+      {
+        "id": "b01",
+        "kind": "live",
+        "chars": [
+          "GIRL"
+        ],
+        "dur": 3.0,
+        "content": "She lies on her stomach on a bed in a cozy evening bedroom with string lights, texting on her phone and giggling to herself, warm lamp glow.",
+        "motion": "she giggles at her phone and kicks her feet slowly; the string lights twinkle"
+      },
+      {
+        "id": "b02",
+        "kind": "chat",
+        "phone_of": "her",
+        "states": [
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ]
+            ],
+            "hold": 1.4,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ]
+            ],
+            "typing": "them",
+            "hold": 0.9
+          },
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ],
+              [
+                "them",
+                "who"
+              ]
+            ],
+            "hold": 1.0,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ],
+              [
+                "them",
+                "who"
+              ],
+              [
+                "me",
+                "you \ud83d\ude0c"
+              ]
+            ],
+            "hold": 1.2,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ],
+              [
+                "them",
+                "who"
+              ],
+              [
+                "me",
+                "you \ud83d\ude0c"
+              ],
+              [
+                "them",
+                "what happened??"
+              ]
+            ],
+            "hold": 1.1,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "me",
+                "guess who was in my dream last night \ud83d\udc40"
+              ],
+              [
+                "them",
+                "who"
+              ],
+              [
+                "me",
+                "you \ud83d\ude0c"
+              ],
+              [
+                "them",
+                "what happened??"
+              ],
+              [
+                "me",
+                "i'm not telling"
+              ]
+            ],
+            "hold": 1.5,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "b03",
+        "kind": "live",
+        "chars": [
+          "BOY"
+        ],
+        "dur": 2.6,
+        "content": "He sits on a couch at night lit by his phone screen, a slow mischievous smirk spreading across his face.",
+        "motion": "his smirk grows; he taps the phone once, deliberately"
+      },
+      {
+        "id": "b04",
+        "kind": "appui",
+        "dur_states": [
+          1.2,
+          1.5
+        ],
+        "embed": "b05"
+      },
+      {
+        "id": "b05",
+        "kind": "dream",
+        "dur": 3.2,
+        "content": "A young woman and a young man kissing under an enormous full moon in a night sky full of stars.",
+        "motion": "gentle hand-drawn sketch animation; the moon glows brighter; their hair moves in the night wind"
+      },
+      {
+        "id": "b06",
+        "kind": "dream",
+        "dur": 3.2,
+        "content": "Mid-embrace, the young man is transforming into a large gentle songbird, feathers unfurling from his arms while the young woman watches in wonder.",
+        "motion": "feathers unfurl from his arms; pencil lines shimmer; she lifts a hand in wonder"
+      },
+      {
+        "id": "b07",
+        "kind": "dream",
+        "dur": 2.8,
+        "content": "A large songbird flying away over moonlit rooftops into the starry night, a single feather drifting down toward the young woman below.",
+        "motion": "the bird flies into the distance; the single feather spirals slowly down"
+      },
+      {
+        "id": "b08",
+        "kind": "live",
+        "chars": [
+          "BOY"
+        ],
+        "dur": 2.2,
+        "content": "Close on his face lit by phone glow, eyes widening from surprise into delighted scheming.",
+        "motion": "he looks up from the phone slowly, nodding to himself with growing delight"
+      },
+      {
+        "id": "b09",
+        "kind": "chat",
+        "phone_of": "her",
+        "states": [
+          {
+            "msgs": [
+              [
+                "them",
+                "i read your dream on dreams \ud83d\ude0f"
+              ]
+            ],
+            "hold": 1.4,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "them",
+                "i read your dream on dreams \ud83d\ude0f"
+              ],
+              [
+                "them",
+                "wanna recreate it?"
+              ]
+            ],
+            "hold": 1.2,
+            "pop": true
+          },
+          {
+            "msgs": [
+              [
+                "them",
+                "i read your dream on dreams \ud83d\ude0f"
+              ],
+              [
+                "them",
+                "wanna recreate it?"
+              ]
+            ],
+            "typing": "me",
+            "hold": 0.9
+          },
+          {
+            "msgs": [
+              [
+                "them",
+                "i read your dream on dreams \ud83d\ude0f"
+              ],
+              [
+                "them",
+                "wanna recreate it?"
+              ],
+              [
+                "me",
+                "...come over"
+              ]
+            ],
+            "hold": 1.6,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "b10",
+        "kind": "live",
+        "chars": [
+          "BOY"
+        ],
+        "dur": 3.4,
+        "sfx": "doorbell",
+        "content": "Seen from inside an open front doorway at night: he stands on the porch wearing a full fluffy bluebird costume with a soft yellow beak hood, completely earnest, porch light glowing.",
+        "motion": "he stands proudly in the bird costume and adjusts the beak hood slightly; a moth flutters past the porch light"
+      },
+      {
+        "id": "b11",
+        "kind": "live",
+        "chars": [
+          "GIRL"
+        ],
+        "dur": 3.0,
+        "content": "Close on her in the doorway wearing a cute date-night outfit and lip gloss, processing what she is seeing, a long slow blink, the very beginning of a fond smile.",
+        "motion": "she blinks once, slowly; her head tilts; the fond smile almost arrives"
+      },
+      {
+        "id": "b12",
+        "kind": "endcard",
+        "dur": 3.5,
+        "style": "dreams"
+      }
+    ]
   },
-  "chat_header": "Leo",
-  "scenes": [
-   {
-    "id": "b01",
-    "kind": "live",
-    "chars": [
-     "GIRL"
+  "skipsmalltalk": {
+    "title": "Memory Library \u2014 skip the small talk",
+    "music": "quirky lighthearted pizzicato strings with light hand percussion, playful, warm, upbeat",
+    "announcer": "nPczCjzI2devNBz1zQrb",
+    "character": "bIHbv24MWmeRgasZH58o",
+    "chars": {
+      "XGIRL": "The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. ",
+      "DATE": "The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. "
+    },
+    "scenes": [
+      {
+        "id": "x01",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "XGIRL",
+          "DATE"
+        ],
+        "dur": 4.2,
+        "content": "Across a small cafe table, the earnest young man is mid-question with polite enthusiasm while she rests her chin in her hand, eyes glazed with polite exhaustion. Black and white.",
+        "motion": "black and white film. his lips move earnestly; she blinks slowly, chin in hand; steam rises from the cups"
+      },
+      {
+        "id": "x02",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "XGIRL"
+        ],
+        "dur": 3.2,
+        "content": "A different earnest young man mid-sentence across a different diner table, the same young woman with the same glazed politeness, a different cafe. Black and white.",
+        "motion": "black and white film. the new man gestures mid-question; she nods on autopilot; a waiter passes behind"
+      },
+      {
+        "id": "x03",
+        "kind": "live",
+        "chars": [
+          "XGIRL",
+          "DATE"
+        ],
+        "dur": 3.4,
+        "content": "She slides her phone across the cafe table toward the earnest young man with one raised eyebrow and a small knowing smile, warm color blooming into the scene.",
+        "motion": "the phone slides across the table; color warms the scene; her eyebrow lifts"
+      },
+      {
+        "id": "x04",
+        "kind": "memui",
+        "dur_states": [
+          2.6,
+          2.6,
+          2.6
+        ],
+        "cards": [
+          {
+            "id": "m1",
+            "caption": "The laundry chute dare \u2014 age 7",
+            "content": "A small girl peering nervously into an open laundry chute door in a 1990s hallway while her best friend gestures grandly for her to climb in."
+          },
+          {
+            "id": "m2",
+            "caption": "The bathtub potion incident \u2014 age 6",
+            "content": "Two small girls in pajamas at a bathroom sink, one gleefully pouring a rainbow of bottles into the swirling water with mad-scientist delight."
+          },
+          {
+            "id": "m3",
+            "caption": "Hide and seek, abandoned \u2014 age 8",
+            "content": "A small girl peeking out of a dark hallway closet, far down the hall a babysitter and a boy calmly playing cards at the kitchen table."
+          }
+        ]
+      },
+      {
+        "id": "x05",
+        "kind": "live",
+        "chars": [
+          "DATE"
+        ],
+        "dur": 3.4,
+        "content": "The earnest young man holds her phone in both hands, outraged on her behalf, mouth open mid-exclamation, leaning forward.",
+        "motion": "he leans forward, gesturing with the phone, genuinely invested"
+      },
+      {
+        "id": "x06",
+        "kind": "live",
+        "chars": [
+          "XGIRL",
+          "DATE"
+        ],
+        "dur": 3.4,
+        "content": "The two of them deep in animated conversation over empty coffee cups at golden hour, both laughing, the phone forgotten between them.",
+        "motion": "they laugh together; she gestures mid-story; golden light flickers through the window"
+      },
+      {
+        "id": "x07",
+        "kind": "endcard",
+        "dur": 3.8,
+        "style": "memorylibrary"
+      }
     ],
-    "dur": 3.0,
-    "content": "She lies on her stomach on a bed in a cozy evening bedroom with string lights, texting on her phone and giggling to herself, warm lamp glow.",
-    "motion": "she giggles at her phone and kicks her feet slowly; the string lights twinkle"
-   },
-   {
-    "id": "b02",
-    "kind": "chat",
-    "phone_of": "her",
-    "states": [
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ]
-      ],
-      "hold": 1.4,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ]
-      ],
-      "typing": "them",
-      "hold": 0.9
-     },
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ],
-       [
-        "them",
-        "who"
-       ]
-      ],
-      "hold": 1.0,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ],
-       [
-        "them",
-        "who"
-       ],
-       [
-        "me",
-        "you 😌"
-       ]
-      ],
-      "hold": 1.2,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ],
-       [
-        "them",
-        "who"
-       ],
-       [
-        "me",
-        "you 😌"
-       ],
-       [
-        "them",
-        "what happened??"
-       ]
-      ],
-      "hold": 1.1,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "me",
-        "guess who was in my dream last night 👀"
-       ],
-       [
-        "them",
-        "who"
-       ],
-       [
-        "me",
-        "you 😌"
-       ],
-       [
-        "them",
-        "what happened??"
-       ],
-       [
-        "me",
-        "i'm not telling"
-       ]
-      ],
-      "hold": 1.5,
-      "pop": true
-     }
+    "segments": [
+      {
+        "id": "a1",
+        "v": "A",
+        "scene": "x01",
+        "off": 0.5,
+        "text": "First date number four. Favorite-color question... number four."
+      },
+      {
+        "id": "a2",
+        "v": "A",
+        "scene": "x02",
+        "off": 0.3,
+        "text": "It's not the dating. It's the loading screen."
+      },
+      {
+        "id": "a3",
+        "v": "A",
+        "scene": "x03",
+        "off": 0.4,
+        "text": "Memory Library. Skip the small talk."
+      },
+      {
+        "id": "c1",
+        "v": "C",
+        "scene": "x05",
+        "off": 0.5,
+        "text": "Wait \u2014 they stopped LOOKING for you?"
+      },
+      {
+        "id": "a4",
+        "v": "A",
+        "scene": "x06",
+        "off": 0.6,
+        "text": "Three memories in."
+      }
     ]
-   },
-   {
-    "id": "b03",
-    "kind": "live",
-    "chars": [
-     "BOY"
-    ],
-    "dur": 2.6,
-    "content": "He sits on a couch at night lit by his phone screen, a slow mischievous smirk spreading across his face.",
-    "motion": "his smirk grows; he taps the phone once, deliberately"
-   },
-   {
-    "id": "b04",
-    "kind": "appui",
-    "dur_states": [
-     1.2,
-     1.5
-    ],
-    "embed": "b05"
-   },
-   {
-    "id": "b05",
-    "kind": "dream",
-    "dur": 3.2,
-    "content": "A young woman and a young man kissing under an enormous full moon in a night sky full of stars.",
-    "motion": "gentle hand-drawn sketch animation; the moon glows brighter; their hair moves in the night wind"
-   },
-   {
-    "id": "b06",
-    "kind": "dream",
-    "dur": 3.2,
-    "content": "Mid-embrace, the young man is transforming into a large gentle songbird, feathers unfurling from his arms while the young woman watches in wonder.",
-    "motion": "feathers unfurl from his arms; pencil lines shimmer; she lifts a hand in wonder"
-   },
-   {
-    "id": "b07",
-    "kind": "dream",
-    "dur": 2.8,
-    "content": "A large songbird flying away over moonlit rooftops into the starry night, a single feather drifting down toward the young woman below.",
-    "motion": "the bird flies into the distance; the single feather spirals slowly down"
-   },
-   {
-    "id": "b08",
-    "kind": "live",
-    "chars": [
-     "BOY"
-    ],
-    "dur": 2.2,
-    "content": "Close on his face lit by phone glow, eyes widening from surprise into delighted scheming.",
-    "motion": "he looks up from the phone slowly, nodding to himself with growing delight"
-   },
-   {
-    "id": "b09",
-    "kind": "chat",
-    "phone_of": "her",
-    "states": [
-     {
-      "msgs": [
-       [
-        "them",
-        "i read your dream on dreams 😏"
-       ]
-      ],
-      "hold": 1.4,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "them",
-        "i read your dream on dreams 😏"
-       ],
-       [
-        "them",
-        "wanna recreate it?"
-       ]
-      ],
-      "hold": 1.2,
-      "pop": true
-     },
-     {
-      "msgs": [
-       [
-        "them",
-        "i read your dream on dreams 😏"
-       ],
-       [
-        "them",
-        "wanna recreate it?"
-       ]
-      ],
-      "typing": "me",
-      "hold": 0.9
-     },
-     {
-      "msgs": [
-       [
-        "them",
-        "i read your dream on dreams 😏"
-       ],
-       [
-        "them",
-        "wanna recreate it?"
-       ],
-       [
-        "me",
-        "...come over"
-       ]
-      ],
-      "hold": 1.6,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "b10",
-    "kind": "live",
-    "chars": [
-     "BOY"
-    ],
-    "dur": 3.4,
-    "sfx": "doorbell",
-    "content": "Seen from inside an open front doorway at night: he stands on the porch wearing a full fluffy bluebird costume with a soft yellow beak hood, completely earnest, porch light glowing.",
-    "motion": "he stands proudly in the bird costume and adjusts the beak hood slightly; a moth flutters past the porch light"
-   },
-   {
-    "id": "b11",
-    "kind": "live",
-    "chars": [
-     "GIRL"
-    ],
-    "dur": 3.0,
-    "content": "Close on her in the doorway wearing a cute date-night outfit and lip gloss, processing what she is seeing, a long slow blink, the very beginning of a fond smile.",
-    "motion": "she blinks once, slowly; her head tilts; the fond smile almost arrives"
-   },
-   {
-    "id": "b12",
-    "kind": "endcard",
-    "dur": 3.5,
-    "style": "dreams"
-   }
-  ]
- },
- "skipsmalltalk": {
-  "title": "Memory Library — skip the small talk",
-  "music": "quirky lighthearted pizzicato strings with light hand percussion, playful, warm, upbeat",
-  "announcer": "nPczCjzI2devNBz1zQrb",
-  "character": "bIHbv24MWmeRgasZH58o",
-  "chars": {
-   "XGIRL": "The same young woman appears: late 20s, curly dark shoulder-length hair, gold hoop earrings, rust-orange sweater. ",
-   "DATE": "The same earnest young man appears: late 20s, neat dark hair, denim jacket over a white tee. "
   },
-  "scenes": [
-   {
-    "id": "x01",
-    "kind": "live",
-    "bw": true,
-    "chars": [
-     "XGIRL",
-     "DATE"
+  "syncday": {
+    "title": "Secretly a Witch \u2014 synchronicity day",
+    "music": "mysterious warm folk with soft plucked strings and gentle chimes, wonder, quiet build",
+    "announcer": null,
+    "character": "cgSgspJ2msm6clMCkdW9",
+    "chars": {
+      "WGIRL": "The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. "
+    },
+    "scenes": [
+      {
+        "id": "w01",
+        "dur": 2.8,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "She wakes in morning light and squints toward her phone on the nightstand, hair across the pillow.",
+        "motion": "she stirs and reaches for the phone, blinking; morning light shifts"
+      },
+      {
+        "id": "w02",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "lock",
+            "text": "7:11",
+            "date": "Wednesday, August 12",
+            "hold": 1.6,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "w03",
+        "dur": 2.8,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "In a warm coffee shop a barista holds up a paper cup and calls out a name; she looks up sharply from her table, caught mid-reach.",
+        "motion": "the barista lifts the cup; her head snaps up; steam curls"
+      },
+      {
+        "id": "w04",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A synchronicity",
+            "text": "the barista just called out Marlene \u2014 my grandmother's name",
+            "hold": 2.8,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "w05",
+        "dur": 2.6,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "A single white feather resting on the empty bus seat beside her; she looks down at it, city passing in the window behind.",
+        "motion": "the bus sways gently; she picks up the feather and turns it in the light"
+      },
+      {
+        "id": "w06",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A synchronicity",
+            "text": "white feather on the 44 bus, seat by the window",
+            "hold": 2.3,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "w07",
+        "dur": 2.6,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "She stops in the doorway of a small record shop strung with lights, listening to something, a slow half-smile arriving.",
+        "motion": "she tilts her head, listening; the string lights flicker; her smile grows"
+      },
+      {
+        "id": "w08",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A synchronicity",
+            "text": "that song again. twice in one hour",
+            "hold": 2.3,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "w09",
+        "dur": 2.9,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "Three crows sitting in a row on a power line against a violet dusk sky; she watches from the sidewalk below, small in the frame.",
+        "motion": "the crows shift on the wire, one flaps; dusk light deepens; she stands still"
+      },
+      {
+        "id": "w10",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A synchronicity",
+            "text": "three crows at dusk, watching me back",
+            "hold": 2.5,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "w11",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "feed",
+            "hold": 3.6,
+            "pop": true,
+            "rows": [
+              {
+                "text": "three crows at dusk, watching me back",
+                "who": "you \u00b7 just now",
+                "mine": true
+              },
+              {
+                "text": "crows on the wire outside the laundromat. staring",
+                "who": "R. \u00b7 1 hour ago"
+              },
+              {
+                "text": "found a white feather inside my car??",
+                "who": "M. \u00b7 tonight"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "w12",
+        "dur": 2.8,
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "content": "Close on her face at night lit softly by her phone, one eyebrow rising, delighted and slightly unnerved.",
+        "motion": "her eyebrow rises slowly; she glances up from the phone and back; a small wondering smile"
+      },
+      {
+        "id": "w13",
+        "kind": "endcard",
+        "dur": 3.6,
+        "style": "witch"
+      }
     ],
-    "dur": 4.2,
-    "content": "Across a small cafe table, the earnest young man is mid-question with polite enthusiasm while she rests her chin in her hand, eyes glazed with polite exhaustion. Black and white.",
-    "motion": "black and white film. his lips move earnestly; she blinks slowly, chin in hand; steam rises from the cups"
-   },
-   {
-    "id": "x02",
-    "kind": "live",
-    "bw": true,
-    "chars": [
-     "XGIRL"
-    ],
-    "dur": 3.2,
-    "content": "A different earnest young man mid-sentence across a different diner table, the same young woman with the same glazed politeness, a different cafe. Black and white.",
-    "motion": "black and white film. the new man gestures mid-question; she nods on autopilot; a waiter passes behind"
-   },
-   {
-    "id": "x03",
-    "kind": "live",
-    "chars": [
-     "XGIRL",
-     "DATE"
-    ],
-    "dur": 3.4,
-    "content": "She slides her phone across the cafe table toward the earnest young man with one raised eyebrow and a small knowing smile, warm color blooming into the scene.",
-    "motion": "the phone slides across the table; color warms the scene; her eyebrow lifts"
-   },
-   {
-    "id": "x04",
-    "kind": "memui",
-    "dur_states": [
-     2.6,
-     2.6,
-     2.6
-    ],
-    "cards": [
-     {
-      "id": "m1",
-      "caption": "The laundry chute dare — age 7",
-      "content": "A small girl peering nervously into an open laundry chute door in a 1990s hallway while her best friend gestures grandly for her to climb in."
-     },
-     {
-      "id": "m2",
-      "caption": "The bathtub potion incident — age 6",
-      "content": "Two small girls in pajamas at a bathroom sink, one gleefully pouring a rainbow of bottles into the swirling water with mad-scientist delight."
-     },
-     {
-      "id": "m3",
-      "caption": "Hide and seek, abandoned — age 8",
-      "content": "A small girl peeking out of a dark hallway closet, far down the hall a babysitter and a boy calmly playing cards at the kitchen table."
-     }
+    "segments": [
+      {
+        "id": "c1",
+        "v": "C",
+        "scene": "w12",
+        "off": 0.5,
+        "text": "Well... that's weird."
+      }
     ]
-   },
-   {
-    "id": "x05",
-    "kind": "live",
-    "chars": [
-     "DATE"
-    ],
-    "dur": 3.4,
-    "content": "The earnest young man holds her phone in both hands, outraged on her behalf, mouth open mid-exclamation, leaning forward.",
-    "motion": "he leans forward, gesturing with the phone, genuinely invested"
-   },
-   {
-    "id": "x06",
-    "kind": "live",
-    "chars": [
-     "XGIRL",
-     "DATE"
-    ],
-    "dur": 3.4,
-    "content": "The two of them deep in animated conversation over empty coffee cups at golden hour, both laughing, the phone forgotten between them.",
-    "motion": "they laugh together; she gestures mid-story; golden light flickers through the window"
-   },
-   {
-    "id": "x07",
-    "kind": "endcard",
-    "dur": 3.8,
-    "style": "memorylibrary"
-   }
-  ],
-  "segments": [
-   {
-    "id": "a1",
-    "v": "A",
-    "scene": "x01",
-    "off": 0.5,
-    "text": "First date number four. Favorite-color question... number four."
-   },
-   {
-    "id": "a2",
-    "v": "A",
-    "scene": "x02",
-    "off": 0.3,
-    "text": "It's not the dating. It's the loading screen."
-   },
-   {
-    "id": "a3",
-    "v": "A",
-    "scene": "x03",
-    "off": 0.4,
-    "text": "Memory Library. Skip the small talk."
-   },
-   {
-    "id": "c1",
-    "v": "C",
-    "scene": "x05",
-    "off": 0.5,
-    "text": "Wait — they stopped LOOKING for you?"
-   },
-   {
-    "id": "a4",
-    "v": "A",
-    "scene": "x06",
-    "off": 0.6,
-    "text": "Three memories in."
-   }
-  ]
- },
- "syncday": {
-  "title": "Secretly a Witch — synchronicity day",
-  "music": "mysterious warm folk with soft plucked strings and gentle chimes, wonder, quiet build",
-  "announcer": null,
-  "character": "cgSgspJ2msm6clMCkdW9",
-  "chars": {
-   "WGIRL": "The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. "
   },
-  "scenes": [
-   {
-    "id": "w01",
-    "dur": 2.8,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
+  "bookofshadows": {
+    "title": "Secretly a Witch \u2014 the book",
+    "music": "warm mystical waltz with music box and soft strings, intimate, candlelit",
+    "announcer": "EXAVITQu4vr4xnSDxMaL",
+    "character": "cgSgspJ2msm6clMCkdW9",
+    "chars": {
+      "WGIRL": "The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. "
+    },
+    "scenes": [
+      {
+        "id": "v01",
+        "kind": "live",
+        "dur": 3.6,
+        "content": "Weathered old hands writing with a dip pen in a thick leather journal by candlelight, pressed flowers and a key on the wooden table.",
+        "motion": "the pen moves slowly across the page; the candle flame sways; dust drifts in the light"
+      },
+      {
+        "id": "v02",
+        "kind": "live",
+        "dur": 3.0,
+        "content": "A kitchen shelf of labeled herb jars and a worn handwritten recipe card propped against a lit candle, warm evening light.",
+        "motion": "the candle flickers; a linen curtain moves gently; shadows breathe"
+      },
+      {
+        "id": "v03",
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "dur": 2.8,
+        "content": "She sits up in bed at 3 AM reaching urgently for her phone on the nightstand, moonlight through the window.",
+        "motion": "she sits up quickly and grabs the phone, eyes still half in the dream"
+      },
+      {
+        "id": "v04",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A dream",
+            "text": "flying over the reservoir again. third time this month",
+            "hold": 2.6,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "v05",
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "dur": 2.7,
+        "content": "A candle flame bending sideways in a completely still room while she watches it, intrigued, dark plum evening light.",
+        "motion": "the flame leans and holds; she leans closer; nothing else moves"
+      },
+      {
+        "id": "v06",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A day note",
+            "text": "the candle leaned west the whole hour",
+            "hold": 2.3,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "v07",
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "dur": 2.7,
+        "content": "She holds a small glass jar of water up toward a full moon in the window, checking it against the light.",
+        "motion": "she turns the jar slowly; moonlight glints through the water"
+      },
+      {
+        "id": "v08",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "entry",
+            "type": "A spell",
+            "text": "moon water, first quarter, windowsill",
+            "hold": 2.3,
+            "pop": true
+          }
+        ]
+      },
+      {
+        "id": "v09",
+        "kind": "witui",
+        "states": [
+          {
+            "view": "book",
+            "hold": 3.4,
+            "pop": true,
+            "rows": [
+              {
+                "tag": "A DREAM \u00b7 TONIGHT",
+                "text": "flying over the reservoir again. third time this month"
+              },
+              {
+                "tag": "A DAY NOTE \u00b7 TUESDAY",
+                "text": "the candle leaned west the whole hour"
+              },
+              {
+                "tag": "A SPELL \u00b7 FIRST QUARTER",
+                "text": "moon water, first quarter, windowsill"
+              },
+              {
+                "tag": "A SYNCHRONICITY \u00b7 LAST WEEK",
+                "text": "three crows at dusk, watching me back"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "v10",
+        "kind": "live",
+        "chars": [
+          "WGIRL"
+        ],
+        "dur": 3.2,
+        "content": "She sits curled on a windowsill at night scrolling her phone contentedly, a cat against her knee, city lights soft behind the glass.",
+        "motion": "she scrolls slowly; the cat's tail curls; city lights twinkle"
+      },
+      {
+        "id": "v11",
+        "kind": "endcard",
+        "dur": 3.6,
+        "style": "witchbook"
+      }
     ],
-    "content": "She wakes in morning light and squints toward her phone on the nightstand, hair across the pillow.",
-    "motion": "she stirs and reaches for the phone, blinking; morning light shifts"
-   },
-   {
-    "id": "w02",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "lock",
-      "text": "7:11",
-      "date": "Wednesday, August 12",
-      "hold": 1.6,
-      "pop": true
-     }
+    "segments": [
+      {
+        "id": "n1",
+        "v": "A",
+        "scene": "v01",
+        "off": 0.5,
+        "text": "Witches have always kept a book."
+      },
+      {
+        "id": "n2",
+        "v": "A",
+        "scene": "v02",
+        "off": 0.3,
+        "text": "The spells. The signs. The dreams worth keeping."
+      },
+      {
+        "id": "n3",
+        "v": "A",
+        "scene": "v03",
+        "off": 0.4,
+        "text": "Yours is in your pocket."
+      },
+      {
+        "id": "n4",
+        "v": "A",
+        "scene": "v10",
+        "off": 0.5,
+        "text": "The Book of Shadows \u2014 inside Secretly a Witch."
+      }
     ]
-   },
-   {
-    "id": "w03",
-    "dur": 2.8,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "content": "In a warm coffee shop a barista holds up a paper cup and calls out a name; she looks up sharply from her table, caught mid-reach.",
-    "motion": "the barista lifts the cup; her head snaps up; steam curls"
-   },
-   {
-    "id": "w04",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A synchronicity",
-      "text": "the barista just called out Marlene — my grandmother's name",
-      "hold": 2.8,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "w05",
-    "dur": 2.6,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "content": "A single white feather resting on the empty bus seat beside her; she looks down at it, city passing in the window behind.",
-    "motion": "the bus sways gently; she picks up the feather and turns it in the light"
-   },
-   {
-    "id": "w06",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A synchronicity",
-      "text": "white feather on the 44 bus, seat by the window",
-      "hold": 2.3,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "w07",
-    "dur": 2.6,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "content": "She stops in the doorway of a small record shop strung with lights, listening to something, a slow half-smile arriving.",
-    "motion": "she tilts her head, listening; the string lights flicker; her smile grows"
-   },
-   {
-    "id": "w08",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A synchronicity",
-      "text": "that song again. twice in one hour",
-      "hold": 2.3,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "w09",
-    "dur": 2.9,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "content": "Three crows sitting in a row on a power line against a violet dusk sky; she watches from the sidewalk below, small in the frame.",
-    "motion": "the crows shift on the wire, one flaps; dusk light deepens; she stands still"
-   },
-   {
-    "id": "w10",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A synchronicity",
-      "text": "three crows at dusk, watching me back",
-      "hold": 2.5,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "w11",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "feed",
-      "hold": 3.6,
-      "pop": true,
-      "rows": [
-       {
-        "text": "three crows at dusk, watching me back",
-        "who": "you · just now",
-        "mine": true
-       },
-       {
-        "text": "crows on the wire outside the laundromat. staring",
-        "who": "R. · 1 hour ago"
-       },
-       {
-        "text": "found a white feather inside my car??",
-        "who": "M. · tonight"
-       }
-      ]
-     }
-    ]
-   },
-   {
-    "id": "w12",
-    "dur": 2.8,
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "content": "Close on her face at night lit softly by her phone, one eyebrow rising, delighted and slightly unnerved.",
-    "motion": "her eyebrow rises slowly; she glances up from the phone and back; a small wondering smile"
-   },
-   {
-    "id": "w13",
-    "kind": "endcard",
-    "dur": 3.6,
-    "style": "witch"
-   }
-  ],
-  "segments": [
-   {
-    "id": "c1",
-    "v": "C",
-    "scene": "w12",
-    "off": 0.5,
-    "text": "Well... that's weird."
-   }
-  ]
- },
- "bookofshadows": {
-  "title": "Secretly a Witch — the book",
-  "music": "warm mystical waltz with music box and soft strings, intimate, candlelit",
-  "announcer": "EXAVITQu4vr4xnSDxMaL",
-  "character": "cgSgspJ2msm6clMCkdW9",
-  "chars": {
-   "WGIRL": "The same young woman appears: late 20s, long black hair with curtain bangs, silver rings, dark green jacket. "
   },
-  "scenes": [
-   {
-    "id": "v01",
-    "kind": "live",
-    "dur": 3.6,
-    "content": "Weathered old hands writing with a dip pen in a thick leather journal by candlelight, pressed flowers and a key on the wooden table.",
-    "motion": "the pen moves slowly across the page; the candle flame sways; dust drifts in the light"
-   },
-   {
-    "id": "v02",
-    "kind": "live",
-    "dur": 3.0,
-    "content": "A kitchen shelf of labeled herb jars and a worn handwritten recipe card propped against a lit candle, warm evening light.",
-    "motion": "the candle flickers; a linen curtain moves gently; shadows breathe"
-   },
-   {
-    "id": "v03",
-    "kind": "live",
-    "chars": [
-     "WGIRL"
+  "reverie": {
+    "title": "dreams \u2014 R\u00eaverie (the gorgeous nonsense)",
+    "music": "sparse ethereal ambient strings and sustained glass tones, mysterious, floating, minimal, slow",
+    "music_end": 16.6,
+    "announcer": "XrExE9yKIg1WjnnlVkGX",
+    "character": "pFZP5JQG7iQjIQuC4Bku",
+    "chars": {
+      "MUSE": "The same ethereal woman appears: long flowing dark hair, a long white silk gown. ",
+      "DANA": "The same woman appears: mid 20s, messy bun, oversized grey hoodie. "
+    },
+    "scenes": [
+      {
+        "id": "n01",
+        "kind": "live",
+        "bw": true,
+        "dur": 3.4,
+        "content": "An enormous white curtain billowing slowly in an empty grand marble room at night, moonlight pouring through tall windows. Black and white.",
+        "motion": "black and white film. the curtain billows in slow motion; moonlight shifts across the marble"
+      },
+      {
+        "id": "n02",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 3.2,
+        "content": "She walks impossibly slowly down an empty colonnade of tall stone arches, gown and hair floating behind her as if underwater. Black and white.",
+        "motion": "black and white film. she glides forward in slow motion; the gown and hair float; dust drifts in the light"
+      },
+      {
+        "id": "n03",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 2.6,
+        "content": "Extreme close-up of her face, eyes closed then opening very slowly, lips parting as if to whisper something important. Black and white.",
+        "motion": "black and white film. her eyes open in extreme slow motion; her lips part; a strand of hair drifts across"
+      },
+      {
+        "id": "n04",
+        "kind": "live",
+        "bw": true,
+        "dur": 3.0,
+        "content": "A single white feather falling through a black void past an enormous pale moon. Black and white.",
+        "motion": "black and white film. the feather tumbles down in slow motion; the moon glows softly"
+      },
+      {
+        "id": "n05",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 3.4,
+        "content": "She stands in shallow mirror-still water, the white gown spreading around her on the surface; far behind her a white horse walks slowly past, for no reason. Black and white.",
+        "motion": "black and white film. ripples spread from her gown; the horse walks slowly across the background; her reflection wavers"
+      },
+      {
+        "id": "n06",
+        "kind": "endcard",
+        "dur": 1.3,
+        "style": "black"
+      },
+      {
+        "id": "n07",
+        "kind": "live",
+        "chars": [
+          "DANA"
+        ],
+        "dur": 3.6,
+        "content": "She eats cereal at a bright, completely ordinary morning kitchen counter, scrolling her phone with one thumb, entirely unbothered, daylight, full color.",
+        "motion": "she chews cereal and scrolls, unbothered; the spoon clinks; morning light is flat and normal"
+      },
+      {
+        "id": "n08",
+        "kind": "appui",
+        "dur_states": [
+          1.5,
+          1.7
+        ],
+        "embed": "n05",
+        "name": "last night &middot; Dana",
+        "sub": "white curtains, a feather, a horse?? woke up thirsty"
+      },
+      {
+        "id": "n09",
+        "kind": "endcard",
+        "dur": 3.4,
+        "style": "dreams"
+      }
     ],
-    "dur": 2.8,
-    "content": "She sits up in bed at 3 AM reaching urgently for her phone on the nightstand, moonlight through the window.",
-    "motion": "she sits up quickly and grabs the phone, eyes still half in the dream"
-   },
-   {
-    "id": "v04",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A dream",
-      "text": "flying over the reservoir again. third time this month",
-      "hold": 2.6,
-      "pop": true
-     }
+    "segments": [
+      {
+        "id": "w1",
+        "v": "C",
+        "scene": "n01",
+        "off": 0.9,
+        "text": "The night..."
+      },
+      {
+        "id": "w2",
+        "v": "C",
+        "scene": "n02",
+        "off": 0.5,
+        "text": "...remembers what you cannot."
+      },
+      {
+        "id": "w3",
+        "v": "C",
+        "scene": "n04",
+        "off": 0.5,
+        "text": "To fall... is to fly... asleep."
+      },
+      {
+        "id": "w4",
+        "v": "C",
+        "scene": "n05",
+        "off": 1.0,
+        "text": "R\u00eaverie."
+      },
+      {
+        "id": "d1",
+        "v": "A",
+        "scene": "n07",
+        "off": 0.6,
+        "text": "Or you could just read the dream."
+      }
     ]
-   },
-   {
-    "id": "v05",
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "dur": 2.7,
-    "content": "A candle flame bending sideways in a completely still room while she watches it, intrigued, dark plum evening light.",
-    "motion": "the flame leans and holds; she leans closer; nothing else moves"
-   },
-   {
-    "id": "v06",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A day note",
-      "text": "the candle leaned west the whole hour",
-      "hold": 2.3,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "v07",
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "dur": 2.7,
-    "content": "She holds a small glass jar of water up toward a full moon in the window, checking it against the light.",
-    "motion": "she turns the jar slowly; moonlight glints through the water"
-   },
-   {
-    "id": "v08",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "entry",
-      "type": "A spell",
-      "text": "moon water, first quarter, windowsill",
-      "hold": 2.3,
-      "pop": true
-     }
-    ]
-   },
-   {
-    "id": "v09",
-    "kind": "witui",
-    "states": [
-     {
-      "view": "book",
-      "hold": 3.4,
-      "pop": true,
-      "rows": [
-       {
-        "tag": "A DREAM · TONIGHT",
-        "text": "flying over the reservoir again. third time this month"
-       },
-       {
-        "tag": "A DAY NOTE · TUESDAY",
-        "text": "the candle leaned west the whole hour"
-       },
-       {
-        "tag": "A SPELL · FIRST QUARTER",
-        "text": "moon water, first quarter, windowsill"
-       },
-       {
-        "tag": "A SYNCHRONICITY · LAST WEEK",
-        "text": "three crows at dusk, watching me back"
-       }
-      ]
-     }
-    ]
-   },
-   {
-    "id": "v10",
-    "kind": "live",
-    "chars": [
-     "WGIRL"
-    ],
-    "dur": 3.2,
-    "content": "She sits curled on a windowsill at night scrolling her phone contentedly, a cat against her knee, city lights soft behind the glass.",
-    "motion": "she scrolls slowly; the cat's tail curls; city lights twinkle"
-   },
-   {
-    "id": "v11",
-    "kind": "endcard",
-    "dur": 3.6,
-    "style": "witchbook"
-   }
-  ],
-  "segments": [
-   {
-    "id": "n1",
-    "v": "A",
-    "scene": "v01",
-    "off": 0.5,
-    "text": "Witches have always kept a book."
-   },
-   {
-    "id": "n2",
-    "v": "A",
-    "scene": "v02",
-    "off": 0.3,
-    "text": "The spells. The signs. The dreams worth keeping."
-   },
-   {
-    "id": "n3",
-    "v": "A",
-    "scene": "v03",
-    "off": 0.4,
-    "text": "Yours is in your pocket."
-   },
-   {
-    "id": "n4",
-    "v": "A",
-    "scene": "v10",
-    "off": 0.5,
-    "text": "The Book of Shadows — inside Secretly a Witch."
-   }
-  ]
- },
- "memoryfight-warm": {
-  "music": "gentle comedic pizzicato and warm strings, light domestic tension easing, playful",
-  "announcer": "nPczCjzI2devNBz1zQrb",
-  "character": "cgSgspJ2msm6clMCkdW9",
-  "chars": {
-   "FGIRL": "The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. ",
-   "FGUY": "The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. "
   },
-  "title": "Memory Library — the fight (warm cut)",
-  "scenes": [
-   {
-    "id": "f01",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
+  "everydream": {
+    "title": "dreams \u2014 Every night (the sad piano appeal)",
+    "music": "slow melancholy solo piano, sparse and emotional, gentle charity appeal, quiet",
+    "announcer": "JBFqnCBsd6RMkjVDRZzb",
+    "character": "JBFqnCBsd6RMkjVDRZzb",
+    "chars": {
+      "HIM": "The same man appears: 30s, short beard, plain navy t-shirt. ",
+      "HER": "The same woman appears: 30s, shoulder-length copper hair, cream pajama shirt. "
+    },
+    "scenes": [
+      {
+        "id": "p01",
+        "kind": "live",
+        "chars": [
+          "HIM"
+        ],
+        "dur": 3.2,
+        "content": "He sleeps deeply in a plain bedroom in cold grey pre-dawn light, one arm off the bed, utterly still.",
+        "motion": "his chest rises and falls slowly; the cold light barely shifts; curtains hang still"
+      },
+      {
+        "id": "p02",
+        "kind": "dream",
+        "dur": 3.2,
+        "content": "A magnificent dream: an enormous gentle whale drifting over a city skyline at night \u2014 but the drawing is half dissolved, its edges fading away into blank paper.",
+        "motion": "the whale drifts slowly; the drawing's edges dissolve further into blank paper; stars fade"
+      },
+      {
+        "id": "p03",
+        "kind": "live",
+        "chars": [
+          "HER"
+        ],
+        "dur": 2.8,
+        "content": "She sits up in bed reaching for something that is already gone, her hand closing on empty air, her face falling, plain cold morning light.",
+        "motion": "her hand closes slowly on nothing; she stares at her empty palm; her shoulders drop"
+      },
+      {
+        "id": "p04",
+        "kind": "dream",
+        "dur": 3.0,
+        "content": "An almost-empty page of a dream journal: only a faint pencil outline of a single door remains in one corner, the rest of the page blank paper.",
+        "motion": "the faint door outline flickers and fades a little more; the page stays empty"
+      },
+      {
+        "id": "p05",
+        "kind": "live",
+        "chars": [
+          "HIM"
+        ],
+        "dur": 3.0,
+        "content": "He stares into his coffee at a kitchen table, trying and failing to remember something, defeated, cold morning light.",
+        "motion": "he stirs the coffee without drinking; stares into it; slowly shakes his head"
+      },
+      {
+        "id": "p06",
+        "kind": "appui",
+        "dur_states": [
+          1.5,
+          1.7
+        ],
+        "embed": "p02",
+        "name": "3:47 AM &middot; saved",
+        "sub": "the whale over the city \u2014 all of it"
+      },
+      {
+        "id": "p07",
+        "kind": "live",
+        "chars": [
+          "HER"
+        ],
+        "dur": 3.2,
+        "content": "She types into her phone in bed by warm lamplight at night, a small satisfied smile, cozy golden light, full color.",
+        "motion": "she types softly and smiles; the lamp glows warmer; she settles into the pillow"
+      },
+      {
+        "id": "p08",
+        "kind": "endcard",
+        "dur": 3.6,
+        "style": "dreams"
+      }
     ],
-    "dur": 4.2,
-    "content": "A couple mid-argument across their kitchen counter in warm evening light, both gesturing at once over unwashed mugs, exasperated but domestic, a tabby cat watching from the counter end.",
-    "motion": "both talk over each other with rising hand gestures; the cat's tail flicks; neither backs down"
-   },
-   {
-    "id": "f02",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.4,
-    "content": "In the living room she makes exaggerated air quotes while he throws both hands up toward the ceiling, mid-eye-roll, a couch and warm lamps behind them.",
-    "motion": "her air quotes punch the air; his hands fly up; he turns half away in disbelief"
-   },
-   {
-    "id": "f03",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.0,
-    "content": "The two of them suddenly quiet, leaning shoulder to shoulder over one phone held between them on the couch, both squinting at the screen skeptically.",
-    "motion": "they lean in together; the phone light catches their faces; eyebrows rise in unison"
-   },
-   {
-    "id": "f04",
-    "kind": "memui",
-    "dur_states": [
-     3.2
-    ],
-    "cards": [
-     {
-      "id": "m1",
-      "caption": "The day we got the cat — two Novembers ago",
-      "content": "A young couple crouched side by side at an animal-shelter cage on a rainy afternoon, a small tabby cat reaching one paw out of the cage toward both of their outstretched hands at once."
-     }
+    "segments": [
+      {
+        "id": "g1",
+        "v": "A",
+        "scene": "p01",
+        "off": 0.6,
+        "text": "Every night... thousands of dreams go unrecorded."
+      },
+      {
+        "id": "g2",
+        "v": "A",
+        "scene": "p02",
+        "off": 0.4,
+        "text": "This one lasted eleven seconds past waking."
+      },
+      {
+        "id": "g3",
+        "v": "A",
+        "scene": "p03",
+        "off": 0.4,
+        "text": "By breakfast, it was gone... forever."
+      },
+      {
+        "id": "g4",
+        "v": "A",
+        "scene": "p04",
+        "off": 0.3,
+        "text": "All she could tell her friends was: you were there. And there was a door... or something."
+      },
+      {
+        "id": "g5",
+        "v": "A",
+        "scene": "p05",
+        "off": 0.5,
+        "text": "It doesn't have to be this way."
+      },
+      {
+        "id": "g6",
+        "v": "A",
+        "scene": "p07",
+        "off": 0.5,
+        "text": "For zero dollars a month... you can save them all."
+      },
+      {
+        "id": "g7",
+        "v": "A",
+        "scene": "p08",
+        "off": 0.5,
+        "text": "dreams. Don't let another one get away."
+      }
     ]
-   },
-   {
-    "id": "f05",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.6,
-    "content": "The couple on the couch gone soft, her head tipping toward his shoulder, both half-smiling at the phone while the tabby cat climbs deliberately into both their laps at once.",
-    "motion": "her head tips to his shoulder; he huffs a laugh; the cat settles across both laps"
-   },
-   {
-    "id": "f06",
-    "kind": "endcard",
-    "dur": 3.8,
-    "style": "memorylibrary"
-   }
-  ],
-  "segments": [
-   {
-    "id": "a1",
-    "v": "A",
-    "scene": "f01",
-    "off": 0.5,
-    "text": "Every couple has this fight. The one about how the thing actually went."
-   },
-   {
-    "id": "a2",
-    "v": "A",
-    "scene": "f02",
-    "off": 0.3,
-    "text": "Someone said something. Someone definitely never said that."
-   },
-   {
-    "id": "a3",
-    "v": "A",
-    "scene": "f03",
-    "off": 0.4,
-    "text": "Memory Library. The receipts."
-   },
-   {
-    "id": "c1",
-    "v": "C",
-    "scene": "f05",
-    "off": 0.4,
-    "text": "...it was the cat's idea."
-   },
-   {
-    "id": "a4",
-    "v": "A",
-    "scene": "f05",
-    "off": 2.2,
-    "text": "Memory Library. Keep the whole story."
-   }
-  ],
-  "mem_sub": "the two of us"
- },
- "memoryfight-spiky": {
-  "music": "gentle comedic pizzicato and warm strings, light domestic tension easing, playful",
-  "announcer": "nPczCjzI2devNBz1zQrb",
-  "character": "cgSgspJ2msm6clMCkdW9",
-  "chars": {
-   "FGIRL": "The same young woman appears: late 20s, auburn hair in a messy bun, cream knit cardigan, tiny gold necklace. ",
-   "FGUY": "The same young man appears: early 30s, short dark beard, navy henley, kind tired eyes. "
   },
-  "title": "Memory Library — the fight (spiky cut)",
-  "scenes": [
-   {
-    "id": "f01",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
+  "reverie2": {
+    "title": "dreams \u2014 R\u00eaverie v2 (weirder, high stills)",
+    "music": "sparse ethereal ambient strings and sustained glass tones, mysterious, floating, minimal, slow",
+    "music_end": 16.6,
+    "announcer": "XrExE9yKIg1WjnnlVkGX",
+    "character": "pFZP5JQG7iQjIQuC4Bku",
+    "chars": {
+      "MUSE": "The same ethereal woman appears: long flowing dark hair, a long white silk gown. ",
+      "DANA": "The same woman appears: mid 20s, messy bun, oversized grey hoodie. "
+    },
+    "scenes": [
+      {
+        "id": "n01",
+        "kind": "live",
+        "bw": true,
+        "dur": 3.4,
+        "content": "A grand empty marble room where snow is falling gently from the ceiling, indoors; an enormous white curtain billows in slow motion in moonlight. Black and white.",
+        "motion": "black and white film. snow falls slowly indoors; the curtain billows; flakes settle on the marble",
+        "quality": "high"
+      },
+      {
+        "id": "n02",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 3.2,
+        "content": "She glides along the ceiling of a tall stone colonnade as if it were the floor \u2014 upside down, her gown and long hair hanging down toward the real floor far below. Black and white.",
+        "motion": "black and white film. she glides forward upside down along the ceiling; her gown and hair hang and sway toward the floor below",
+        "quality": "high"
+      },
+      {
+        "id": "n03",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 2.6,
+        "content": "Extreme close-up of her face as her eyes open very slowly: reflected in each eye is a small full moon. Black and white.",
+        "motion": "black and white film. her eyes open in slow motion; the two tiny moons in them glimmer; a strand of hair drifts",
+        "quality": "high"
+      },
+      {
+        "id": "n04",
+        "kind": "live",
+        "bw": true,
+        "dur": 3.0,
+        "content": "Hundreds of white feathers hang perfectly motionless in a black void around an enormous, slightly too-close pale moon; one single feather is falling. Black and white.",
+        "motion": "black and white film. the one feather falls slowly past the frozen others; the moon glows; nothing else moves",
+        "quality": "high"
+      },
+      {
+        "id": "n05",
+        "kind": "live",
+        "bw": true,
+        "chars": [
+          "MUSE"
+        ],
+        "dur": 3.4,
+        "content": "She stands in shallow mirror-still water, the white gown spreading around her on the surface; behind her a white horse walks slowly past \u2014 but its reflection in the water is a white swan. Black and white.",
+        "motion": "black and white film. the horse walks; its swan reflection glides in step with it; ripples spread from her gown",
+        "quality": "high"
+      },
+      {
+        "id": "n06",
+        "kind": "endcard",
+        "dur": 1.3,
+        "style": "black"
+      },
+      {
+        "id": "n07",
+        "kind": "live",
+        "chars": [
+          "DANA"
+        ],
+        "dur": 3.6,
+        "content": "She eats cereal at a bright, completely ordinary morning kitchen counter, scrolling her phone with one thumb, entirely unbothered, daylight, full color.",
+        "motion": "she chews cereal and scrolls, unbothered; the spoon clinks; morning light is flat and normal"
+      },
+      {
+        "id": "n08",
+        "kind": "appui",
+        "dur_states": [
+          1.5,
+          1.7
+        ],
+        "embed": "n05",
+        "name": "last night &middot; Dana",
+        "sub": "indoor snow, a horse that was also a swan?? woke up thirsty"
+      },
+      {
+        "id": "n09",
+        "kind": "endcard",
+        "dur": 3.4,
+        "style": "dreams"
+      }
     ],
-    "dur": 4.2,
-    "content": "A couple mid-argument across their kitchen counter in warm evening light, both gesturing at once over unwashed mugs, exasperated but domestic, a tabby cat watching from the counter end.",
-    "motion": "both talk over each other with rising hand gestures; the cat's tail flicks; neither backs down"
-   },
-   {
-    "id": "f02",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.4,
-    "content": "In the living room she makes exaggerated air quotes while he throws both hands up toward the ceiling, mid-eye-roll, a couch and warm lamps behind them.",
-    "motion": "her air quotes punch the air; his hands fly up; he turns half away in disbelief"
-   },
-   {
-    "id": "f03",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.0,
-    "content": "The two of them suddenly quiet, leaning shoulder to shoulder over one phone held between them on the couch, both squinting at the screen skeptically.",
-    "motion": "they lean in together; the phone light catches their faces; eyebrows rise in unison"
-   },
-   {
-    "id": "f04",
-    "kind": "memui",
-    "dur_states": [
-     3.2
-    ],
-    "cards": [
-     {
-      "id": "m1",
-      "caption": "The day we got the cat — two Novembers ago",
-      "content": "A young couple crouched side by side at an animal-shelter cage on a rainy afternoon, a small tabby cat reaching one paw out of the cage toward both of their outstretched hands at once."
-     }
+    "segments": [
+      {
+        "id": "w1",
+        "v": "C",
+        "scene": "n01",
+        "off": 0.9,
+        "text": "The night..."
+      },
+      {
+        "id": "w2",
+        "v": "C",
+        "scene": "n02",
+        "off": 0.5,
+        "text": "...remembers what you cannot."
+      },
+      {
+        "id": "w3",
+        "v": "C",
+        "scene": "n04",
+        "off": 0.5,
+        "text": "To fall... is to fly... asleep."
+      },
+      {
+        "id": "w4",
+        "v": "C",
+        "scene": "n05",
+        "off": 1.0,
+        "text": "R\u00eaverie."
+      },
+      {
+        "id": "d1",
+        "v": "A",
+        "scene": "n07",
+        "off": 0.6,
+        "text": "Or you could just read the dream."
+      }
     ]
-   },
-   {
-    "id": "f05",
-    "kind": "live",
-    "chars": [
-     "FGIRL",
-     "FGUY"
-    ],
-    "dur": 3.6,
-    "content": "She holds the phone triumphantly an inch from his face with a vindicated grin; he squints at the screen with his arms crossed while the tabby cat sits on the couch back judging him.",
-    "motion": "she waggles the phone in his face; his jaw sets; the cat stares him down"
-   },
-   {
-    "id": "f06",
-    "kind": "endcard",
-    "dur": 3.8,
-    "style": "memorylibrary"
-   }
-  ],
-  "segments": [
-   {
-    "id": "a1",
-    "v": "A",
-    "scene": "f01",
-    "off": 0.5,
-    "text": "Every couple has this fight. The one about how the thing actually went."
-   },
-   {
-    "id": "a2",
-    "v": "A",
-    "scene": "f02",
-    "off": 0.3,
-    "text": "Someone said something. Someone definitely never said that."
-   },
-   {
-    "id": "a3",
-    "v": "A",
-    "scene": "f03",
-    "off": 0.4,
-    "text": "Memory Library. The receipts."
-   },
-   {
-    "id": "c1",
-    "v": "C",
-    "scene": "f05",
-    "off": 0.4,
-    "text": "I told you."
-   },
-   {
-    "id": "a4",
-    "v": "A",
-    "scene": "f05",
-    "off": 1.9,
-    "text": "Memory Library. Settle it."
-   }
-  ],
-  "mem_sub": "the two of us"
- }
+  }
 }
