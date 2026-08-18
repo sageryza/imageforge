@@ -239,9 +239,14 @@ h1.tool-eyebrow{
   function flush() {
     if (inflight || !pending.length) return;
     var job = pending.shift(); inflight = true;
+    var failed = false;
     fetch(API + job.path, { method: 'POST', headers: hdrs(true), body: JSON.stringify(job.body) })
-      .catch(function () { pending.unshift(job); })
-      .then(function () { inflight = false; if (pending.length) flush(); });
+      .catch(function () { failed = true; pending.unshift(job); })
+      .then(function () {
+        inflight = false;
+        // A dropped save waits for the next one (or a beat), never a tight loop.
+        if (pending.length) { if (failed) setTimeout(flush, 2500); else flush(); }
+      });
   }
 
   /* ── the reward machinery ────────────────────────────────────────────── */
