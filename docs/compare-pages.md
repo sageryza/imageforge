@@ -556,6 +556,17 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the stack starts at the top instead of centring, reserving the buttons'
       height at the bottom of the scroller. **A short card is untouched** —
       the big centred name is the design there.
+    - **A LONG CARD GETS A MINI AUTOSCROLL, AND HER ✕/♥ ARE DRAWN BY HAND
+      (Aug 2026 v2).** "Only appears when the text is very long and is smaller
+      than the normal one and just like on the side of the screen": a 28px
+      button on the right edge driving the CARD's scroller (the page still
+      never scrolls), shown only while the card actually overflows. A new card
+      starts it stopped; the same card is left alone, because `fonts.ready`
+      re-syncs after the serif lands and a blanket stop there killed the
+      scroll a second in. The position accumulates in JS — `scrollTop +=
+      0.37` snaps to the same integer every frame and moves nothing.
+      The ✕ and ♥ (`MOM_X` / `MOM_HEART`) are filled outlines with chisel
+      caps rather than the plain characters, at her ask.
     - **A DECK OPENED FROM THE REVIEW QUEUE HAS A BACK MARK** — `?clean=1` is
       both the door (no `<h1>`) and the signal; judge.js draws a chevron at
       the left of the top row and `history.back()`s to the queue. A deck

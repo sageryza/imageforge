@@ -218,9 +218,13 @@
     ' display:flex;align-items:center;justify-content:center;}' +
     // they keep the boxes' own edges, the way the row used to
     '.jg-mombtn.no{left:0;}.jg-mombtn.yes{right:0;}' +
-    // the ♥ draws optically smaller than the ✕ at the same size — 21px reads
-    // as the ✕\'s 18px does
-    '.jg-mombtn.yes{font-size:21px;}' +
+    // the hand-drawn marks (MOM_X / MOM_HEART) are FILLED paths — an explicit
+    // fill, because a host page with an `svg{fill:none}` rule would otherwise
+    // hollow them out (the trap the injected pill already defends against)
+    '.jg-mombtn svg{width:22px;height:22px;fill:currentColor;stroke:none;display:block;}' +
+    // the ♥ draws optically smaller than the ✕ at the same size, as it did
+    // when both were characters
+    '.jg-mombtn.yes svg{width:23px;height:23px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
     // the note IS the footer row now — full width, four lines of her words
     '.jg-momnote{display:block;width:100%;margin:0;height:96px;box-sizing:border-box;' +
@@ -288,6 +292,25 @@
     '.jg-momtop .jg-back{margin-right:auto;}' +
     '.jg-back svg{width:16px;height:16px;}' +
     '.jg.mom .jg-back{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
+    // ── THE MINI AUTOSCROLL (Aug 2026, Sophie, on a card too long to fit:
+    // "ideally you would add a conditional auto scroll thing, but only appears
+    // when the text is very long and is smaller than the normal one and just
+    // like on the side of the screen"). A deck carries no house pill — one
+    // card at a time never scrolls the PAGE — but a long card scrolls inside
+    // itself, and that is the one thing here worth driving. So: the pill's job
+    // at the pill's scale, one small button on the side, and only while the
+    // card in front of her actually overflows.
+    // `[hidden]` needs the attribute selector to out-specify the display rule
+    // above it — the house `[hidden]` trap, every toggling page has to.
+    '.jg-mini{position:fixed;right:6px;top:50%;transform:translateY(-50%);z-index:40;' +
+    ' width:28px;height:28px;border-radius:50%;padding:0;' +
+    ' border:1px solid var(--line);background:var(--surface);color:var(--ink);' +
+    ' display:flex;align-items:center;justify-content:center;' +
+    ' -webkit-tap-highlight-color:transparent;}' +
+    '.jg-mini[hidden]{display:none;}' +
+    '.jg-mini svg{width:13px;height:13px;fill:currentColor;stroke:none;display:block;}' +
+    // on a moment deck it wears her cream palette, like everything else there
+    '.jg-mombg .jg-mini{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
     '.jg-piles h2{margin-top:22px;}' +
     // ── THE PILES FOOTER (Aug 2026, Sophie — two asks, one row). "Take away
     // the chat list at the bottom and instead offer a link back to the chat in
@@ -328,8 +351,35 @@
   var PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
     + ' stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
+  // ── HER ✕ AND ♥, DRAWN BY HAND (Aug 2026, Sophie, pointing at the ✕ inside
+  // one of her own cards: "can you make this X that I gave as a screenshot,
+  // and make the heart actually kind of a handwriting look?"). The glyphs were
+  // the plain ✕ and ♥ CHARACTERS in the system sans — geometric, evenly
+  // weighted, and the only two marks on a card that is otherwise all her
+  // serif and her cream. These are drawn as filled strokes with real stroke
+  // contrast (thick through the middle, tapering at the ends, each stroke
+  // slightly bowed and the two of them crossing a hair off-centre) so they
+  // read as PEN rather than as UI. Deliberately not Lucide: the house line
+  // icons are for chrome, and this is inside her own design.
+  // Each stroke is a filled outline, not a `stroke` — that is what buys the
+  // weight through the middle and the CHISEL CAP at each end (the short flat
+  // the two edges close across), the marks a broad nib leaves. The two strokes
+  // cross a little below centre and neither is quite the other's mirror.
+  var MOM_X = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M4.28 4.92 Q9.31 14.69 19.08 19.72 L19.72 19.08 Q14.69 9.31 4.92 4.28 Z"/>'
+    + '<path d="M19.52 5.12 Q14.62 14.82 5.12 19.92 L4.48 19.28 Q9.38 9.58 18.88 4.48 Z"/>'
+    + '</svg>';
+  // one lopsided heart — the left lobe a little lower and tighter than the
+  // right, the tip a hair left of centre, the way one comes out of a pen
+  var MOM_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M11.4 21.2 C8.4 18.5 3 14.4 2.6 10.3 C2.2 6.8 5.2 4.2 8.2 5.1'
+    + ' C9.9 5.6 11.1 6.8 11.9 8.2 C12.8 6.6 14.3 5.2 16.2 5 C19.4 4.7 21.8 7.4 21.2 10.7'
+    + ' C20.5 14.7 14.4 18.6 11.4 21.2 Z"/></svg>';
+
   var I = {
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.4v13.2L18.6 12z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="5.4" width="3.2" height="13.2" rx="1"/><rect x="13.8" y="5.4" width="3.2" height="13.2" rx="1"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     heart: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     maybe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg>',
@@ -720,6 +770,11 @@
     }
 
     function render(flash) {
+      // the mini autoscroll asks "does this card overflow?" a frame later, so
+      // it measures the DOM this call is about to write — scheduled here, at
+      // the top, because both branches below end in their own way (the moment
+      // branch returns early) and this is the one place that covers all of it
+      requestAnimationFrame(miniSync);
       // hands-free: while the mic runs, every card change is logged so the
       // recording can be split back onto the cards afterwards
       if (mrec && recTimeline && view === 'card' && items[cur]
@@ -813,9 +868,9 @@
           // as the row itself underneath. A decided card paints its button
           // dark, like the mockup.
           row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
-            + ' aria-label="No">✕</button>'
+            + ' aria-label="No">' + MOM_X + '</button>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
-            + ' aria-label="Yes">♥</button>'
+            + ' aria-label="Yes">' + MOM_HEART + '</button>'
             + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>';
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
@@ -1014,6 +1069,81 @@
       else if (act === 'done') stampReview({ done: true }, 'Marked done.');
       else if (act === 'piles') { view = view === 'piles' ? 'card' : 'piles'; render(); }
     });
+
+    // ── THE MINI AUTOSCROLL — conditional, small, on the side of the screen
+    // (Aug 2026, her ask; see the CSS above). It drives the CARD's own
+    // scroller, never the window: on a deck the page does not scroll at all,
+    // so a house pill would have nothing to move.
+    var mini = null, miniRaf = null, miniOn = false, miniFor = null;
+    /** The scroller in front of her, only if it actually overflows — that IS
+     *  the "only appears when the text is very long" condition, measured
+     *  rather than guessed from a character count (the .long class is a
+     *  layout rule; this is about what genuinely does not fit). */
+    function cardScroller() {
+      var els = mount.querySelectorAll('.jg-card.momcard, .jg-cardtext');
+      for (var i = 0; i < els.length; i += 1) {
+        if (els[i].scrollHeight > els[i].clientHeight + 4) return els[i];
+      }
+      return null;
+    }
+    function miniStop() {
+      miniOn = false;
+      if (miniRaf) cancelAnimationFrame(miniRaf);
+      miniRaf = null;
+      if (mini) mini.innerHTML = I.play;
+    }
+    function miniToggle() {
+      if (miniOn) { miniStop(); return; }
+      var el = cardScroller();
+      if (!el) return;
+      miniOn = true;
+      mini.innerHTML = I.pause;
+      var last = 0;
+      // THE POSITION IS KEPT HERE, NOT READ BACK OFF THE ELEMENT. At reading
+      // pace one frame is ~0.37px, and `scrollTop += 0.37` snaps to the same
+      // integer every frame, so the card never moved at all (measured — the
+      // first version of this scrolled precisely 0px). Accumulating in JS and
+      // assigning the absolute value survives whatever the browser rounds to.
+      var pos = el.scrollTop;
+      var step = function (ts) {
+        if (!miniOn) return;
+        // ~22px a second — reading pace, the speed the house pill creeps at
+        if (last) { pos += (ts - last) * 0.022; el.scrollTop = pos; }
+        last = ts;
+        if (pos + el.clientHeight >= el.scrollHeight - 1) { miniStop(); return; }
+        miniRaf = requestAnimationFrame(step);
+      };
+      miniRaf = requestAnimationFrame(step);
+    }
+    /** After every render (and on a resize): show it only where it has work.
+     *  It lives on the BODY, not inside the card, so the deck's edge taps and
+     *  swipe never see it — a tap on it must not page the deck. */
+    function miniSync() {
+      var over = cardScroller();
+      if (!over) { miniStop(); miniFor = null; if (mini) mini.hidden = true; return; }
+      if (!mini) {
+        mini = document.createElement('button');
+        mini.type = 'button';
+        mini.className = 'jg-mini';
+        mini.setAttribute('aria-label', 'scroll this card');
+        mini.innerHTML = I.play;
+        mini.addEventListener('click', function (e) { e.stopPropagation(); miniToggle(); });
+        document.body.appendChild(mini);
+      }
+      // A NEW CARD starts stopped; the SAME card is left alone. This is not a
+      // nicety: the serif lands late and `fonts.ready` re-syncs on top of a
+      // scroll she has already started, so a blanket stop here killed the
+      // autoscroll a second after she tapped it (caught in headless, and it
+      // would have been worse on her phone, where the font comes over the
+      // network). A re-render — including the one a ♥ causes — does replace
+      // the element, so a tap still pauses the scroll, as the house rule says.
+      if (over !== miniFor) { miniStop(); miniFor = over; }
+      mini.hidden = false;
+    }
+    // the serif arrives after first paint and changes every height, so the
+    // question "does this overflow?" has to be asked again once it lands
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(miniSync);
+    window.addEventListener('resize', miniSync, { passive: true });
 
     // history.back() returns to the queue exactly as she left it — same scroll,
     // same tab — and the direct link is the fallback for a deck opened cold.
