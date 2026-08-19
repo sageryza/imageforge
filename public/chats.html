@@ -1457,6 +1457,24 @@ function liveInput(el, fn){
   return { sync:function(){ last=el.value; } };
 }
 
+// ── RETURN SENDS THE SEARCH ──────────────────────────────────────────────
+// (Aug 2026, Sophie: "only the check mark sends the search on its way. I'd
+// like the return button to do the same. Also send it on its way. period.")
+// The ✓ that ends dictation was the only key that finished a query: a lone
+// <input type=search> outside a <form> has nothing to submit to, so Return
+// did nothing at all. Now it ends the search the way the ✓ does — runs it
+// NOW, with no debounce left to wait out — and drops the keyboard, because
+// what she wants to be looking at after Return is the answer, not her own
+// words behind a keyboard covering half of them.
+function enterSubmits(el, fn){
+  el.addEventListener('keydown', function(e){
+    if(e.key!=='Enter' && e.keyCode!==13) return;
+    e.preventDefault();
+    if(fn) fn();
+    el.blur();
+  });
+}
+
 // ── The hairline tab rows' sliding line ──────────────────────────────────
 // It measures `.acctab.on` and writes the line's real width and offset. NO row
 // declares a tab count anywhere, which is the point: the count used to live in
@@ -2132,11 +2150,17 @@ function paintSearch(){
 }
 function setSearchOpen(on){
   searchOpen=!!on;
-  // Closing throws the query away — a folded-away bar still holding words
-  // would leave the results list up with nothing on screen explaining why.
+  // Closing clears the box — a folded-away bar still holding words would
+  // leave the results list up with nothing on screen explaining why. The
+  // words are only REMEMBERED for a minute (see _restoreRecentSearch), which
+  // is a different thing: nothing is on screen until she opens the bar again.
   if(!searchOpen && window._resetSearch) window._resetSearch();
   paintSearch();
-  if(searchOpen){ var i=document.getElementById('qsearch'); if(i) i.focus(); }
+  if(searchOpen){
+    var i=document.getElementById('qsearch'); if(i) i.focus();
+    // …and if she was searching a moment ago, the words are still there.
+    if(window._restoreRecentSearch) window._restoreRecentSearch();
+  }
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // Leaving UPDATE drops whatever was picked there — a selection is a gesture
@@ -5375,6 +5399,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     scount.textContent=hits? (hits+' message'+(hits===1?'':'s')) : 'No messages match that';
   }
   var sinpLive=liveInput(sinp, applyMsgFilter);
+  // Return here just ends it and drops the keyboard (the filtering is already
+  // live) — sync'd for the same reason as the home bar.
+  enterSubmits(sinp, function(){ applyMsgFilter(); sinpLive.sync(); });
   sclr.onclick=function(){ sinp.value=''; sinpLive.sync(); applyMsgFilter(); sinp.focus(); };
   // ---- Questions, in the messages' place ----------------------------------
   // The button on the note row swaps the two boxes and swaps them back — no
@@ -5523,11 +5550,14 @@ function openChat(name, keepScroll, focusId, noFetch){
         si.autocapitalize='none'; si.autocorrect='off';
         var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
         sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
-        var siLive=liveInput(si, function(){
+        function readSearch(){
           q=(si.value||'').trim().toLowerCase();
           sx.style.display=q?'':'none';
           applyFilter();
-        });
+        }
+        var siLive=liveInput(si, readSearch);
+        // Same as everywhere else: Return ends it and the keyboard goes.
+        enterSubmits(si, function(){ readSearch(); siLive.sync(); });
         sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
         srow.appendChild(si); srow.appendChild(sx);
         assetsPanel.appendChild(srow);
@@ -6662,7 +6692,7 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // The ✕'s visibility is the ROW's business now (it is shown whenever the
   // bar is open, because it doubles as the way to fold the bar away), so
   // nothing here touches its display.
-  window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
+  window._resetSearch=function(){ clearTimeout(t); if(qi){ qi.value=''; } showGrid(); };
   // Is there a search on screen right now? Words in the box AND a results list
   // standing in the grid's place — a query she typed but that matched nothing
   // still counts, since the answer "no matches" is one she is reading.
@@ -6686,9 +6716,42 @@ document.getElementById('back').onclick=function(){ goHome(); };
       return e.replace(rx,'<b>$1</b>');
     }catch(_){ return e; }
   }
+  // ---- THE LAST SEARCH IS STILL THERE FOR A MINUTE (Aug 2026, Sophie: "I'd
+  // also like it to show the last search that was made if it was made in the
+  // last, say, one minute"). Opening the bar seconds after closing it is
+  // almost always the SAME hunt continuing — the chat she opened wasn't the
+  // one, a mis-tap sent her home — and re-dictating the words was the cost of
+  // every one of those. After a minute it is a new hunt and the box opens
+  // empty, which is the old rule and still the right default for a bar that
+  // is meant to start blank. sessionStorage rather than a variable, so a
+  // reload inside that minute (the app repaints its webview freely) keeps it,
+  // and a cold launch never does.
+  var RECENT_MS=60000, RECENT_KEY='forgeLastSearch';
+  function remember(q){
+    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now()})); }catch(_){ }
+  }
+  function recent(){
+    try{
+      var r=JSON.parse(sessionStorage.getItem(RECENT_KEY)||'null');
+      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r.q : '';
+    }catch(_){ return ''; }
+  }
+  // Tapping the glass while a search is open means "a NEW one" — so it forgets
+  // the old words outright, or closing the bar right after would bring back
+  // exactly the query she just cleared.
+  window._forgetSearch=function(){ try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ } };
+  // Only ever fills a box she left EMPTY, and only on the way in — never over
+  // words already in front of her.
+  window._restoreRecentSearch=function(){
+    if(!qi || qi.value.trim()) return false;
+    var q=recent(); if(!q) return false;
+    qi.value=q; live.sync(); run(q);
+    return true;
+  };
   function run(q){
     q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
+    remember(q);
     api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
       .then(function(r){return r.json()})
       .then(function(d){
@@ -6719,6 +6782,12 @@ document.getElementById('back').onclick=function(){ goHome(); };
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
   var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  // Return runs it immediately rather than waiting out the 220ms debounce,
+  // then the keyboard goes — see enterSubmits.
+  // …and `live.sync()` after it: the blur Return performs would otherwise be
+  // liveInput's first sight of dictated text (the 150ms poll may not have
+  // ticked yet), and it would schedule a second, identical run 220ms later.
+  enterSubmits(qi, function(){ clearTimeout(t); run(qi.value); live.sync(); });
   var _reset=window._resetSearch;
   window._resetSearch=function(){ _reset(); live.sync(); };
   // THE ✕ IS THE WAY OUT, and only that (see paintSearch for her ask). It used
@@ -6823,10 +6892,12 @@ document.getElementById('back').onclick=function(){ goHome(); };
 })();
 // The glass opens a search — and while one is open it starts the NEXT one:
 // the words go, the bar and the keyboard stay, so a second search is one tap
-// from the first. (Closing still throws the query away, so either route ends
-// at an empty box; this is the route that doesn't cost the keyboard.)
+// from the first. Both routes end at an empty box; this is the one that
+// doesn't cost the keyboard, and the only one that FORGETS the query outright
+// (closing keeps it for a minute — see _restoreRecentSearch).
 document.getElementById('searchbtn').onclick=function(){
   if(searchOpen){
+    if(window._forgetSearch) window._forgetSearch();
     if(window._resetSearch) window._resetSearch();
     var i=document.getElementById('qsearch'); if(i) i.focus();
     return;
