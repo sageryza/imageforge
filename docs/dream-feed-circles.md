@@ -104,6 +104,16 @@ can be in many circles at once.
   a circle ☾" on a private dream; the release is just a share with
   `audience:'circle'` later.
 
+> **Update 2026-08-19, later the same day — a DREAM is the entry now, not a
+> night** (Sophie: "they should save as separate dreams" — the night grouping
+> read as her dreams appended to each other). The night routes are gone;
+> sharing is one toggle, `POST /dreams/:id/audience {audience:
+> 'everyone'|'friends'|'private'}`, sitting at the TOP of the dream screen.
+> THE DIAL's reach rule (accepted friends + routed teams) carried over
+> unchanged — `canRead` now judges a dream doc instead of a night's spine.
+> Sharing is capped at three dreams a day and drawings at three a night
+> (`SHARES_PER_DAY` / `DRAWS_PER_DAY` in dreamapp.js), counted from the docs.
+
 ## Server shape (for the build phase — not built)
 
 - `forge-dreamapp-circles`: one doc per circle
