@@ -184,6 +184,12 @@
     ' border:1px solid rgba(0,0,0,0.06);}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
+    // a picture with no card-face shape: the panel shrinks to it and the
+    // height is capped, so the card stays one screen (Aug 2026 v3, when every
+    // deck became hers). object-fit would letterbox inside a full-width box
+    // and put cream margins inside her border — hugging avoids that entirely.
+    '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
+    '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
     // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
     // note box is just too small — it should be bigger so I can see more of my
     // words in it, and the heart and the ex can go a little above it and maybe
@@ -197,6 +203,11 @@
     // the boxes' own left and right edges, so nothing gained a fourth
     // alignment) and the footer is the note box, directly under the content.
     '.jg-momfoot{position:relative;padding:6px 0 2px;}' +
+    // the mic sits in the note box's own bottom-right corner, and the box
+    // gives it room so her typing never runs under it
+    '.jg-momfoot .jg-mic{left:auto;right:10px;bottom:10px;border-color:#DDD3C0;' +
+    ' background:#FFFDF8;color:#262016;}' +
+    '.jg-momfoot.mic .jg-momnote{padding-right:46px;}' +
     // a LONG card starts its stack at the TOP and runs down under the floating
     // buttons ("so the content comes down a little farther") — centring it
     // would leave exactly the empty band she was pointing at. It reserves the
@@ -434,7 +445,9 @@
     // Deck chrome whole: her cream behind the page, the Newsreader serif
     // (fetched once from Google Fonts, Georgia the fallback while it loads),
     // the thin progress line, Piles + ? up top, her footer on every date card.
-    var momDeck = opts.style === 'moment' || items.some(function (x) { return isMoment(x); });
+    var herLook = opts.look === 'mom';
+    var momDeck = herLook || opts.style === 'moment'
+      || items.some(function (x) { return isMoment(x); });
     if (momDeck && !states) {
       // the piles speak the mockup's words — ♥ and ✕ are the only verdicts
       piles = [{ key: true, name: 'Yes' }, { key: false, name: 'No' },
@@ -695,9 +708,17 @@
     // style:'moment' opts PLAIN text cards in too.
     function isMoment(it) {
       if (it.pair || it.card) return false;
+      // `look:'mom'` — a TEMPLATE deck, so every card is one of hers, picture
+      // or words (Aug 2026 v3: "make the single image review surface the same
+      // general template as the text one"). The older tests stand: a page that
+      // asked for style:'moment', or a card carrying any of her parts.
+      if (herLook && (it.text || it.img)) return true;
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
+    // her NAME line: the card's own `who`, else the label it was filed under —
+    // which is what a picture card carries ("XI — the hermit v1")
+    function momName(it) { return it.who || it.label || ''; }
     // "IF THE TEXT IS REALLY LONG" (Aug 2026, Sophie) — the card's own words,
     // counted across every part it carries. Measured against her live deck:
     // the card she reported scrolling holds ~530 characters, and the cards
@@ -716,7 +737,7 @@
     // (a moment deck), so the stack starts at the first box
     function momentHtml(it, ar, hoisted) {
       var out = '';
-      if (it.who && !hoisted) out += '<div class="who">' + esc(it.who) + '</div>';
+      if (momName(it) && !hoisted) out += '<div class="who">' + esc(momName(it)) + '</div>';
       // box one: the eyebrow and the moment share a box, exactly her mockup
       var first = '';
       if (it.eyebrow) first += '<span class="eyebrow">' + esc(it.eyebrow) + '</span>';
@@ -728,7 +749,11 @@
           + '<p class="sectext">' + esc(sec.text) + '</p></div>';
       });
       if (it.img) {
-        out += '<figure' + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
+        // no card-face shape asked for → the panel HUGS the picture and caps
+        // its height, so a picture card is one screen like everything else
+        // here (a page or item that names an aspect keeps filling that shape)
+        out += '<figure class="' + (ar ? 'ar' : 'hug') + '"'
+          + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
           + '<img class="zoom' + (ar ? ' fill' : '') + '" src="' + esc(it.img) + '"'
           + ' alt="' + esc(it.label || '') + '"'
           + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure>';
@@ -814,7 +839,23 @@
       // parent pill + its tap-to-toggle gesture on this document). A judge
       // page has nothing to scroll, so no tap here may ever START the scroll.
       if (view === 'piles') {
-        var sections = piles.map(function (p) {
+        // HER PILES ARE Yes / No / Unsure — but a card marked before this deck
+        // became hers may hold 'maybe' or 'later', and a pile list that cannot
+        // name them would drop those cards off the screen entirely. So a
+        // legacy pile is added only when something is actually in it (measured
+        // across her live decks the day this shipped: 16 verdicts, one
+        // 'maybe', no 'later'), and it sits before Unsorted, which stays last.
+        var shown = piles;
+        if (momDeck && !states) {
+          var legacy = [];
+          [['maybe', 'Maybe'], ['later', 'Later']].forEach(function (p) {
+            if (items.some(function (it) { return verdicts[it.id] === p[0]; })) {
+              legacy.push({ key: p[0], name: p[1] });
+            }
+          });
+          if (legacy.length) shown = piles.slice(0, -1).concat(legacy, piles.slice(-1));
+        }
+        var sections = shown.map(function (p) {
           var members = items.filter(function (it) { return verdicts[it.id] === p.key; });
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
@@ -871,7 +912,14 @@
             + ' aria-label="No">' + MOM_X + '</button>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
             + ' aria-label="Yes">' + MOM_HEART + '</button>'
-            + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>';
+            + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>'
+            // THE MIC SURVIVED THE MOVE (Aug 2026 v3). Her date decks never had
+            // one, but every live picture deck is posted with voice:true —
+            // measured, all five — so folding them into her look would have
+            // taken the hands-free notes away. It rides in the note box's own
+            // corner: the two ways of leaving a note on one card, together.
+            + (voice ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
+              + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '');
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
           row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -886,7 +934,7 @@
         var ctl = !momUI && (voice || isMoment(it)
           || (it.text && !it.img && !it.pair && !it.card)) ? ' ctl' : '';
         mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top
-          + (momUI && it.who ? '<div class="who">' + esc(it.who) + '</div>' : '')
+          + (momUI && momName(it) ? '<div class="who">' + esc(momName(it)) + '</div>' : '')
           + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
@@ -909,7 +957,8 @@
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div>'
-          + '<div class="' + (momUI ? 'jg-momfoot' : 'jg-row') + '">' + row + '</div></div>';
+          + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '') : 'jg-row')
+          + '">' + row + '</div></div>';
         if (momUI) {
           // a card that overflows its box steps its type down (the `long`
           // rules above) — measured on the real layout, so only the cards

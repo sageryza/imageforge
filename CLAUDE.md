@@ -2229,6 +2229,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **EVERY DECK IS HER DECK NOW (Aug 2026 v3, Sophie: "I think we should
+    just make the single image review surface the same general template as
+    the text one").** Her Decision Deck chrome — the cream, one screen, the
+    progress line with **Piles** and the "?", the ✕/♥ floating on the content
+    with the note box under it — was the date cards' alone, and a deck of
+    PICTURES wore the house look instead: a count, three unlabelled gold
+    circles, four verdict buttons. That is what hid Skip/Done from her: the
+    piles view existed, but the way in was an unlabelled grid icon. So
+    `renderTemplatePage` tells judge.js `look:'mom'` for every `deck`, and
+    every card — picture, words, or both — is one of hers. The item's `label`
+    becomes the name over the picture; a picture with no `aspect` sits in a
+    panel that HUGS it, capped at 56vh, so a picture card is one screen like
+    everything else. **A hand-built judge page (judge-shell.html) never comes
+    through the renderer, so nothing already posted restyles itself** — and a
+    test pins that.
+    - **The mic survived the move**, deliberately: her date decks never had
+      one, but all five live picture decks are posted with `voice:true`
+      (measured), so folding them into her look would have taken the
+      hands-free notes away. It rides in the note box's own corner.
+    - **Four verdicts became two**, matching her date cards. Measured across
+      her live decks the day this shipped: 16 verdicts, **one** `maybe`, no
+      `later`. A **Maybe/Later pile is still listed when something is
+      actually in it**, so the one legacy mark cannot vanish off the screen.
+    - A deck with its own `states` keeps its chips — her words still win.
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
     appears when the text is very long and is smaller than the normal one and

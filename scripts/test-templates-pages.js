@@ -304,38 +304,57 @@ setTimeout(function(){
   var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
   function posts(u){ return window.__posts.filter(function(p){ return p.u.indexOf(u)>=0; }); }
   var m=document.getElementById('judge');
-  function count(){ return m.querySelector('.jg-count').textContent; }
+  function who(){ var w=m.querySelector('.jg.mom>.who'); return w?w.textContent:''; }
+
+  // EVERY DECK IS HER DECK (Aug 2026 v3: "make the single image review
+  // surface the same general template as the text one") — a deck of PICTURES
+  // now wears the chrome the date cards had to itself
+  ok(!!m.querySelector('.jg.mom') && !m.querySelector('.jg-count')
+     && !!m.querySelector('.jg-prog') && !!m.querySelector('.jg-pilesbtn'),
+     'a picture deck wears her chrome — the progress line and Piles, no count');
+  ok(getComputedStyle(document.body).backgroundColor==='rgb(247, 242, 232)',
+     'and her cream behind it');
+  ok(m.querySelectorAll('.jg-mombtn').length===2 && !m.querySelector('.jg-btn'),
+     'her two marks, not the four house verdicts');
+  ok(!!m.querySelector('.jg-momnote'), 'and her note box, not a corner +');
+  ok(who()==='first', 'the item label becomes the name over the picture');
+  ok(!!m.querySelector('.jg-mom figure.hug img'),
+     'the picture sits in her panel, hugged and height-capped');
 
   // browse: edge taps page the deck, no verdict required, none posted
   ok(m.querySelector('.jg-navzone.next') && m.querySelector('.jg-navzone.prev'),
      'browse mode has edge tap zones');
-  ok(m.querySelector('.jg-mic'), 'voice on = a mic on the card');
-  // the XI overlap: corner controls get their own strip — with voice on,
-  // every card reserves it, and the mic may never sit on the words
-  ok(m.querySelector('.jg-card').classList.contains('ctl'),
-     'voice on = the card reserves a controls strip');
+  // THE MIC SURVIVED THE MOVE — every live deck is posted with voice on
   var mic=m.querySelector('.jg-mic'), mr=mic.getBoundingClientRect();
-  var media=m.querySelector('.jg-media, .jg-cardtext'), tr=media.getBoundingClientRect();
+  ok(!!mic, 'voice on = the mic is still there');
+  var nb=m.querySelector('.jg-momnote').getBoundingClientRect();
+  ok(mr.right<=nb.right+1 && mr.bottom<=nb.bottom+1 && mr.top>=nb.top-1,
+     'it rides in the note box\\'s own corner');
+  var tr=m.querySelector('.jg-mom').getBoundingClientRect();
   ok(mr.top >= tr.bottom - 1, 'the mic sits BELOW the content, never on it');
   var before=posts('/api/chatfeed/verdict').length;
   m.querySelector('.jg-navzone.next').click();
-  ok(count()==='2 of 3' && posts('/api/chatfeed/verdict').length===before,
+  ok(who()==='second' && posts('/api/chatfeed/verdict').length===before,
      'tapping the right edge moves forward and judges nothing');
   m.querySelector('.jg-navzone.prev').click();
-  ok(count()==='1 of 3', 'the left edge goes back');
+  ok(who()==='first', 'the left edge goes back');
 
   // ♥ mirrors the asset vote, LIGHTS IN PLACE, and never moves the deck
   m.querySelector('[data-act="yes"]').click();
   var pm=posts('/api/gallery/assets/vote').pop();
   ok(pm && pm.b.vote==='like' && pm.b.url.indexOf('/d/a.png')>0, 'a heart mirrors the asset vote');
-  ok(count()==='1 of 3', 'a MARK NEVER MOVES THE DECK — only the edges do');
+  ok(who()==='first', 'a MARK NEVER MOVES THE DECK — only the edges do');
   ok(m.querySelector('[data-act="yes"]').classList.contains('on'), 'the verdict lights in place');
   m.querySelector('.jg-navzone.next').click();
   m.querySelector('.jg-navzone.prev').click();
   ok(m.querySelector('[data-act="yes"]').classList.contains('on'), 'the verdict shows lit when she returns');
 
-  // the second deck: her words as chips, saved as strings, piles named by them
+  // THE SECOND DECK IS HAND-BUILT (window.__judge direct, no look:'mom'), so
+  // it still wears the house look — that is the guarantee that unifying the
+  // TEMPLATE did not restyle every judge page ever posted
   var m2=document.getElementById('judge2');
+  ok(!!m2.querySelector('.jg-count') && !m2.querySelector('.jg.mom'),
+     'a hand-built judge page keeps the house look');
   var chips=[].map.call(m2.querySelectorAll('.jg-chip'), function(b){ return b.textContent; });
   ok(chips.join('|')==='done|in progress', 'custom states render her words');
   m2.querySelectorAll('.jg-chip')[0].click();

@@ -239,20 +239,32 @@ function validateTemplate(template, data) {
 // top, scripts in an IIFE-free single call (grid.js/judge.js are IIFEs
 // themselves and __pageData is a var, so nothing collides with the pill's
 // globals). kitWarnings never fires on one of these.
-// Is this deck built from her date cards? The same test judge.js makes on the
-// client, needed here because the page's CHROME differs for one (no title of
-// its own, one screen, no pill).
-function isMomentDeck(template, data) {
-  if (template !== 'deck' || !data) return false;
-  if (data.style === 'moment') return true;
-  return (data.items || []).some((it) => it && !it.pair && !it.card
-    && (it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)));
+// EVERY DECK IS HER DECK NOW (Aug 2026 v3, Sophie: "I think we should just
+// make the single image review surface the same general template as the text
+// one"). The date cards' chrome — her cream, one screen, the progress line
+// with Piles and the "?", her ✕/♥ footer — was the moment deck's alone, and a
+// deck of pictures wore the house look instead: a count, three unlabelled
+// gold circles, four verdict buttons. Two review surfaces, one of them the one
+// she asked for. So the test is simply "is it a deck": judge.js is told
+// `look:'mom'` and this says the page carries no <h1> of its own, because her
+// design has none and the body is a fixed one-screen box that an h1 would
+// push out of.
+// (Kept as a named function, and still false for `grid` — that template
+// scrolls and keeps the house chrome and its pill.)
+function isMomentDeck(template) {
+  return template === 'deck';
 }
 
 function renderTemplatePage({ template, title, heading, chat, sheet, data, clean }) {
   // tour:'auto' — a SERVED template page plays its coach-mark tour once per
   // device (compare.js __compareTour); hand-built pages opt in themselves
-  const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...data }).replace(/</g, '\\u003c');
+  // look:'mom' — her deck chrome for EVERY deck (see isMomentDeck above). A
+  // hand-built judge page (judge-shell.html) never comes through here, so
+  // those keep the house look and nothing already posted restyles itself
+  // except the template decks, which is the point.
+  const look = template === 'deck' ? { look: 'mom' } : {};
+  const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...look, ...data })
+    .replace(/</g, '\\u003c');
   const mountId = template === 'grid' ? 'grid' : 'judge';
   const tplScript = template === 'grid' ? '/grid.js' : '/judge.js';
   const call = template === 'grid' ? 'window.__grid(window.__pageData)'
@@ -282,7 +294,7 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
   // for the hundredth time in the biggest type on screen. `<title>` keeps the
   // full name, so the browser tab and any share sheet still carry it.
   const head = String(heading || title || '');
-  const h1 = clean || isMomentDeck(template, data) ? '' : `<h1>${esc(head)}</h1>\n`;
+  const h1 = clean || isMomentDeck(template) ? '' : `<h1>${esc(head)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
     // maximum-scale=1 — NOT a passing detail (Aug 2026, Sophie's call): iOS
     // auto-zooms the page whenever it focuses a field under 16px, and on a
