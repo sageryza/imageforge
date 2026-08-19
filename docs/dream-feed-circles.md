@@ -30,6 +30,10 @@ then we'll also have something called circles except I won't call it circles
   elegant"). Accept on the friends screen or the profile; the holding-hands
   moment on the yes. `forge-dreamapp-friends`; a ☾ friends night reaches
   accepted friends OR routed teams.
+- **And tagging shipped the same night** — the namesake: "who was in it?"
+  friend chips on both sharing surfaces; only the tagged friend ever sees
+  anything ("you were in this dream" on their card). `tags` on the dream
+  doc, `POST /dreams/:id/tags`, `scripts/test-dreamapp-tags.js`.
 
 The seen-by dial in the live app had two stops (✳ everyone · ◦ just me); this
 was the design for the third, the one the Sharing Flow artboard sketched
