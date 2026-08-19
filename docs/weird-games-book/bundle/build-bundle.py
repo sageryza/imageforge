@@ -62,20 +62,17 @@ GAMES = [
 
  ("Menu Roulette", "regulars-v1.webp",
   "Everyone orders for the person to their left. No vetoes; whatever arrives is "
-  "yours.\n\n(Shares its illustration with The Anniversary.)"),
+  "yours."),
 
  ("The Anniversary", "regulars-v1.webp",
   "Inform the staff it’s a special occasion that makes no sense — “our "
-  "three-and-a-half-month friendaversary” — and see what the restaurant does.\n\n"
-  "(Shares its illustration with Menu Roulette.)"),
+  "three-and-a-half-month friendaversary” — and see what the restaurant does."),
 
  ("Reunions", "nice-to-meet-you-v1.webp",
-  "Greet strangers as long-lost friends and commit until they “remember” you.\n\n"
-  "(Shares its illustration with Diplomats.)"),
+  "Greet strangers as long-lost friends and commit until they “remember” you."),
 
  ("Diplomats", "nice-to-meet-you-v1.webp",
-  "Introduce your friend to everyone with escalating invented titles.\n\n"
-  "(Shares its illustration with Reunions.)"),
+  "Introduce your friend to everyone with escalating invented titles."),
 
  ("Tourists", "tourists-v1.webp",
   "Be tourists in your own neighborhood. Photograph the mailbox. Consult an "
@@ -165,11 +162,24 @@ def build():
 
     shutil.copy(os.path.join(ART, COVER), os.path.join(stage, 'images', '00-cover.webp'))
 
+    # Two games can share one illustration. The picture is copied ONCE and named
+    # for every game that uses it — a second copy under a second name is the same
+    # bytes twice, which reads as a mistake to anyone opening the folder.
+    shared = {}
+    for i, (name, img, _) in enumerate(GAMES, 1):
+        shared.setdefault(img, []).append((i, name))
+
+    dest_for = {}
+    for img, users in shared.items():
+        nums = '-'.join(f'{i:02d}' for i, _ in users)
+        names = '-and-'.join(slug(n) for _, n in users)
+        dest = f'{nums}-{names}.webp'
+        shutil.copy(os.path.join(ART, img), os.path.join(stage, 'images', dest))
+        dest_for[img] = dest
+
     lines = ['WEIRD GAMES TO PLAY WITH FRIENDS', '', 'Cover illustration: images/00-cover.webp', '']
     for i, (name, img, rules) in enumerate(GAMES, 1):
-        dest = f'{i:02d}-{slug(name)}.webp'
-        shutil.copy(os.path.join(ART, img), os.path.join(stage, 'images', dest))
-        lines += [f'{i}. {name.upper()}', '', rules, '', f'Illustration: images/{dest}', '', '—' * 3, '']
+        lines += [f'{i}. {name.upper()}', '', rules, '', f'Illustration: images/{dest_for[img]}', '', '\u2014' * 3, '']
 
     with open(os.path.join(stage, 'games.txt'), 'w') as f:
         f.write('\n'.join(lines).rstrip() + '\n')
@@ -178,9 +188,10 @@ def build():
     with zipfile.ZipFile(zpath, 'w', zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(stage):
             for fn in sorted(files):
-                p = os.path.join(root, fn)
-                z.write(p, os.path.relpath(p, OUT))
-    print(f'{len(GAMES)} games + cover -> {zpath} ({os.path.getsize(zpath)//1024} KB)')
+                fp = os.path.join(root, fn)
+                z.write(fp, os.path.relpath(fp, OUT))
+    imgs = 1 + len(dest_for)
+    print(f'{len(GAMES)} games, {imgs} images -> {zpath} ({os.path.getsize(zpath)//1024} KB)')
 
 
 if __name__ == '__main__':
