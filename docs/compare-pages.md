@@ -556,6 +556,19 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the stack starts at the top instead of centring, reserving the buttons'
       height at the bottom of the scroller. **A short card is untouched** —
       the big centred name is the design there.
+    - **EVERY DECK WEARS HER LOOK (Aug 2026 v3, Sophie: "make the single
+      image review surface the same general template as the text one").**
+      `renderTemplatePage` passes `look:'mom'` for every `deck`, so a deck of
+      pictures gets the cream, the progress line, the **Piles** word, and the
+      ✕/♥ + note footer the date cards had to themselves — which is also what
+      fixes "there's no way to skip", since the way into the piles view was an
+      unlabelled grid icon. An item's `label` becomes the name over its
+      picture; a picture with no `aspect` sits in a panel that hugs it, capped
+      at 56vh. The mic stays (every live deck is posted with `voice:true`);
+      four verdicts become two, with a Maybe/Later pile still listed when a
+      legacy mark is in it; a deck with its own `states` keeps its chips.
+      **Hand-built judge pages are untouched** — they never come through the
+      renderer, and a test pins that.
     - **A LONG CARD GETS A MINI AUTOSCROLL, AND HER ✕/♥ ARE DRAWN BY HAND
       (Aug 2026 v2).** "Only appears when the text is very long and is smaller
       than the normal one and just like on the side of the screen": a 28px
