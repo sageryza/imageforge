@@ -110,12 +110,17 @@ const FADE = 10;  // frames of fade on a card
   const song = script.song || {};
   const landsAt = starts[script.beats.findIndex(b => b.id === song.landsOn)] ?? 0;
   const from = Math.max(0, (song.hook || 0) - landsAt);
+  // `until` stops the track at a timestamp rather than at the end of the film,
+  // so the picture can outlive the music — the closing card plays in the quiet
+  // after the hook, instead of dragging in whatever the next verse is about.
+  const runs = song.until ? Math.max(0.5, song.until - from) : t;
+  const fade = Math.min(1.2, runs / 3);
   if (audio) {
     execFileSync(FFMPEG, [
-      '-y', '-i', silent, '-ss', from.toFixed(2), '-i', audio,
+      '-y', '-i', silent, '-ss', from.toFixed(2), '-t', runs.toFixed(2), '-i', audio,
       '-map', '0:v', '-map', '1:a', '-t', t.toFixed(2),
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
-      '-af', `afade=t=out:st=${(t - 1.2).toFixed(2)}:d=1.2`,
+      '-af', `afade=t=out:st=${(runs - fade).toFixed(2)}:d=${fade.toFixed(2)},apad`,
       '-movflags', '+faststart', outMp4,
     ], { stdio: ['pipe', 'pipe', 'inherit'] });
   }

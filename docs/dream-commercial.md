@@ -108,11 +108,9 @@ Sophie found the song and sent it in, in her own words:
   shows (she found them; a chat here had wrongly reported them unpublished):
 
   > You was in my dream last night
-  > Pulling my hair, holding me tight
-  > Kissing me good, touching me right
-  > I'm yours if you're mine
-  > Let's light and get high
-  > … Sprinkle the dust, let's fly / I'll meet you in Venus
+
+  (the rest of the verse is in Spotify's now-playing pane — it is a
+  copyrighted lyric, so it is referenced here rather than reproduced)
 
   **It is "dream", singular, and "You was"** — so the hook is not quite the
   domain, which is worth knowing before anyone builds copy on a verbatim
@@ -225,12 +223,48 @@ Checked rather than assumed: the finished film's own audio transcribes with
 so the word "dream" lands as the card comes up. The mp4 carries ~15 seconds of
 the record — fine for her own review, and exactly what the licence note below
 is about for anything public.
-v3 (the song on it — the current cut):
+v4 (the song from 1:04, the line at the end — the current cut):
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v4.mp4
+v3 (the song, building into the hook):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v3.mp4
 v1 (the kitchen dream):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v1.mp4
 v2 (the lyric's dream, silent):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v2.mp4
+
+#### v4 — the song opens it, and the line closes it (2026-08-19)
+
+Sophie, after v3: start the track **at 1:04** (v3 opened ten seconds early so
+the hook would arrive on the end card), and "you forgot the last part that says
+now it doesn't have to be a secret". So the film was turned inside out:
+
+- **The hook is the first thing you hear** — `song.landsOn` is the OPENING
+  beat now, so the track starts at 1:04.52 over the app screen rather than
+  building toward it.
+- **"now it doesn't have to be a secret" is the CLOSER**, its own dark card
+  after the end card, where it used to open the film. Read that way from "the
+  last part" — it also plays better there, because with the hook on top the
+  line is the answer to it rather than a set-up for it. If she meant it should
+  still open, it is one beat to move back.
+- **The music STOPS before the film does** (`song.until`, new): the verse turns
+  to getting high about eight seconds past the hook, which is not this ad, so
+  the track runs 1:04.5 → 1:12.5 and fades, and the closing line plays in the
+  quiet. `apad` fills the rest so the mp4 keeps continuous audio.
+
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v4.mp4
+
+#### The opening she actually wants — grainy black-and-white, waiting on her yes
+
+Her description (2026-08-19): "black-and-white footage of sort of grainy
+close-up, confusing shots of someone getting their hair pulled and just like
+hand on leg or thigh, and one more shot". That is the DREAM shown the way it
+felt, before the app shows it written down — and the contrast is the point:
+photographic and unreadable, then her ink drawing sitting calmly in a text box.
+**She asked for the prompts before the pictures**, so nothing is drawn yet;
+three portrait 1024x1536 shots at medium (~4.1c each) go in front of the app
+beat once she says yes. Written as skin-and-shadow crops with no identifiable
+face, both because that is the shot she described and because gpt-image-2
+refuses anything more explicit — and a dream-app refusal is terminal.
 
 ### Before it can go in a public commercial
 
