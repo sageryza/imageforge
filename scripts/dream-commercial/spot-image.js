@@ -17,18 +17,10 @@
 // Needs OPENAI_API_KEY + FIREBASE_SERVICE_ACCOUNT.
 const { makeDreamImage } = require(require('path').join(__dirname, '..', '..', 'movies'));
 
-// --as-written draws the text HANDED IN, with no planning model in between.
-// Without it a describer model turns the dream into a scene of its own
-// invention first, which is right for a real dream and wrong when the words
-// already are the picture. It also makes the filed `content` half exactly the
-// words that were drawn, which is what the house prompt rules ask for.
 (async () => {
-  const args = process.argv.slice(2);
-  const asWritten = args.includes('--as-written');
-  const text = args.filter(a => a !== '--as-written')[0];
-  if (!text) { console.error('usage: node spot-image.js "<the dream>" [--as-written]'); process.exit(1); }
+  const text = process.argv[2];
+  if (!text) { console.error('usage: node spot-image.js "<the dream>"'); process.exit(1); }
   const dream = { id: 'spot-prop', dreamText: text, castApproved: [], driftCues: [] };
-  if (asWritten) dream.imagePlan = text;
   const page = await makeDreamImage(dream, 'medium', async (d, t, label) => process.stdout.write(label + '\n'));
   console.log(JSON.stringify({ url: page.url, imagePlan: page.imagePlan, promptUsed: page.promptUsed, spend: dream.spend }, null, 2));
 })().catch(e => { console.error(e); process.exit(1); });
