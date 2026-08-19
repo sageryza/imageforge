@@ -72,7 +72,7 @@ async function replicate(job) {
     // A 2x2 sheet of 2:3 portrait panels is 4:3 overall, so each sliced panel
     // comes out in the film's own aspect instead of needing a letterbox.
     aspect_ratio: job.aspect || (job.grid ? '4:3' : '2:3'), output_format: 'webp',
-    guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
+    guidance_scale: 3, output_quality: 100, prompt_strength: 0.8,
     num_inference_steps: 28, seed: job.seed ?? 85,
   };
   const res = await fetch('https://api.replicate.com/v1/predictions', {
