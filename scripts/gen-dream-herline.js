@@ -72,6 +72,10 @@ const VARIANTS = {
   // v2 pushes on the ROWS, not the corners — v1 came back as tidy rows of
   // rounded rectangles, which is the part that still read as a grid.
   amorphous2: 'Draw: [content] — lay it out as panels, but not squares and not rows: amorphous, irregular shapes of different sizes, flowing and overlapping across the page, no grid, no rows, no straight borders.',
+  // 2026-08-19, her note ON the monkey image ("I asked you to say something
+  // like a minimal text only. I meant on this image that's why I put it
+  // here"): the plain line plus that one sentence, nothing else changed.
+  minimal: 'Draw: [content] — render as a single image, not a grid, not split panels. Minimal text only.',
   // 2026-08-19, three notes on the monkey tile at once: "choose a single
   // salient image from the dream and illustrate that and ignore the rest",
   // "say something like minimal text only", and "you probably don't need the

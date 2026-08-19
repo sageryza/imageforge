@@ -80,6 +80,10 @@ function gridPage() {
       { id: 'o1', label: 'one', img: IMG }, { id: 'o2', label: 'two', img: IMG },
       { id: 'o3', label: 'three', text: 'a to-do line <b>escaped</b>' },
     ] },
+    // 2026-08-19: six items must WRAP at three, never sit as one row of six
+    // ~50px tiles (the threshold-ladder page bug).
+    { label: 'six on a ladder', items: [1, 2, 3, 4, 5, 6].map((n) => (
+      { id: 's' + n, label: 'v' + n, img: IMG })) },
   ] });
   if (!v.ok) throw new Error(v.error);
   const TEST = `<script>
@@ -89,10 +93,16 @@ setTimeout(function(){
   var m=document.getElementById('grid');
   var rows=m.querySelectorAll('.gd-row');
   var r1=rows[0].querySelectorAll('.gd-it'), r2=rows[1].querySelectorAll('.gd-it');
-  ok(rows.length===2 && r1.length===2 && r2.length===3, 'two groups render their items');
+  ok(rows.length===3 && r1.length===2 && r2.length===3, 'the groups render their items');
   var basis=function(el){ return (el.getAttribute('style')||'').replace(/\\s+/g,''); };
   ok(basis(r1[0]).indexOf('/2)')>0 && basis(r2[0]).indexOf('/3)')>0,
      'two share a row in halves, three in thirds — got ' + basis(r1[0]) + ' & ' + basis(r2[0]));
+  var r3=rows[2].querySelectorAll('.gd-it');
+  ok(r3.length===6 && basis(r3[0]).indexOf('/3)')>0,
+     'six wrap at thirds, not sixths — got ' + basis(r3[0]));
+  var img1=r1[0].querySelector('img');
+  ok(img1 && r1[0].getBoundingClientRect().width - img1.getBoundingClientRect().width < 3,
+     'the picture fills its cell edge to edge, no side padding');
   ok(r1[0].querySelector('.tag').textContent==='medium'
      && r1[0].querySelector('.tag').nextElementSibling.tagName==='IMG',
      'the label sits ON TOP of the picture');
@@ -131,7 +141,7 @@ setTimeout(function(){
     var medHeart=m.querySelector('[data-item="p-med"] .gd-vote.yes');
     ok(medHeart && medHeart.classList.contains('on'),
        'an Assets-tab heart fills in an unjudged item on load');
-    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===5,
+    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===11,
        'every item carries the note +');
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
   }, 400);
