@@ -1,0 +1,115 @@
+{
+  "styleBase": "Still frame from a glossy American prescription-drug TV commercial, photorealistic cinematic 35mm film look, soft diffused light, shallow depth of field, gentle lens bloom, pristine art-directed set, pastel wardrobe, suburban optimism",
+  "size": "1536x1024",
+  "quality": "medium",
+  "spots": [
+    {
+      "spot": "Somnivex",
+      "tint": ", twilight blue and lavender palette, faint dreamlike haze",
+      "frames": [
+        {
+          "n": 1,
+          "label": "Somnivex 1 of 6 — she misses her grandmother (kitchen window, dusk)",
+          "content": "a woman in her late 30s with wavy auburn hair wearing a cream linen blouse stands at a kitchen window at dusk, holding a framed photograph of her grandmother, wistful gentle expression, neighborhood porch lights soft in the background"
+        },
+        {
+          "n": 2,
+          "label": "Somnivex 2 of 6 — product shot on the nightstand",
+          "content": "product shot of an amber prescription pill bottle labeled \"SOMNIVEX\" standing on a wooden nightstand in moonlight beside a glass of water and folded reading glasses, moonbeam through gauzy curtains"
+        },
+        {
+          "n": 3,
+          "label": "Somnivex 3 of 6 — she falls asleep",
+          "content": "the same woman with wavy auburn hair asleep and serene under a white quilt in a moonlit bedroom, one hand relaxed on the pillow, curtains breathing in a night breeze"
+        },
+        {
+          "n": 4,
+          "label": "Somnivex 4 of 6 — the porch swing dream",
+          "content": "dream scene: the woman with wavy auburn hair sits beside a silver-haired grandmother in a lilac floral house dress on a white porch swing at night, both laughing, a mason jar of lemonade between them, hundreds of golden fireflies, the edges of the frame softly luminous"
+        },
+        {
+          "n": 5,
+          "label": "Somnivex 5 of 6 — dancing under the dream moon",
+          "content": "wide dream shot: the woman with wavy auburn hair and the silver-haired grandmother in the lilac floral house dress dance together in a moonlit meadow under an enormous full moon, fireflies rising around them, gentle glowing mist, joyful"
+        },
+        {
+          "n": 6,
+          "label": "Somnivex 6 of 6 — end card: Be there.",
+          "content": "closing title card: the word \"SOMNIVEX\" in an elegant serif wordmark centered over a soft twilight sky full of fireflies, beneath it a smaller tagline reading \"Be there.\""
+        }
+      ]
+    },
+    {
+      "spot": "Placebrex",
+      "tint": ", warm honey golden-hour palette",
+      "frames": [
+        {
+          "n": 1,
+          "label": "Placebrex 1 of 6 — the wheat field walk",
+          "content": "a serene woman in her 40s with long dark hair wearing a white linen dress walks through a golden wheat field at golden hour, trailing her hand across the tops of the wheat, eyes closed, slight smile"
+        },
+        {
+          "n": 2,
+          "label": "Placebrex 2 of 6 — the golden retriever",
+          "content": "a golden retriever leaping to catch a frisbee in mid-air over a sunlit suburban lawn with a sprinkler rainbow, ecstatic, motion frozen mid-jump"
+        },
+        {
+          "n": 3,
+          "label": "Placebrex 3 of 6 — the dawn kayak",
+          "content": "the same woman in her 40s with long dark hair paddling a red kayak across a glassy mountain lake at dawn, low mist on the water, a perfect mirror reflection"
+        },
+        {
+          "n": 4,
+          "label": "Placebrex 4 of 6 — product shot: active ingredient nothing",
+          "content": "product shot of a minimalist matte white pill bottle labeled \"PLACEBREX\" on a white marble counter in bright morning light, beneath the name a small line reading \"active ingredient: nothing\", one pure white round pill beside the bottle"
+        },
+        {
+          "n": 5,
+          "label": "Placebrex 5 of 6 — the backyard dinner",
+          "content": "a multigenerational family laughing around a long backyard dinner table under string lights at dusk, the woman in the white linen dress raising a glass at the center, warm and abundant"
+        },
+        {
+          "n": 6,
+          "label": "Placebrex 6 of 6 — end card: It's working because you think it is.",
+          "content": "closing title card: the word \"PLACEBREX\" in a clean modern sans-serif wordmark centered on a soft warm cream background with a faint sunrise glow, beneath it a smaller tagline reading \"It's working because you think it is.\""
+        }
+      ]
+    },
+    {
+      "spot": "Oblivane",
+      "tint": ", cozy dim living-room palette lit by television glow",
+      "frames": [
+        {
+          "n": 1,
+          "label": "Oblivane 1 of 6 — the finale is over",
+          "content": "a man in his mid 30s with short curly dark hair wearing a grey henley sits alone on a couch at night lit only by television glow, remote hanging loose in his hand, staring hollow-eyed at credits rolling on the TV, an empty snack bowl beside him"
+        },
+        {
+          "n": 2,
+          "label": "Oblivane 2 of 6 — product shot by the remote",
+          "content": "product shot of a deep blue pill bottle labeled \"OBLIVANE\" standing on a coffee table beside a TV remote and a full bowl of popcorn, lit by soft television glow in a dark living room"
+        },
+        {
+          "n": 3,
+          "label": "Oblivane 3 of 6 — the plot leaves quietly",
+          "content": "the same man with short curly dark hair asleep in a recliner under a knit blanket, soft glowing ribbons of television-static light drifting up and away from his head like fireflies leaving, dark cozy living room, peaceful"
+        },
+        {
+          "n": 4,
+          "label": "Oblivane 4 of 6 — new to you",
+          "content": "the same man with short curly dark hair leaning toward the TV with intrigued delight, face lit by the screen, the TV showing a streaming menu with a large banner reading \"NEW TO YOU\", popcorn bowl in his lap"
+        },
+        {
+          "n": 5,
+          "label": "Oblivane 5 of 6 — the gasp, again",
+          "content": "the man with short curly dark hair and a woman with a blond bob on the couch under one blanket mid-gasp at a plot twist, popcorn flying from the bowl, faces lit with total delight by the television glow"
+        },
+        {
+          "n": 6,
+          "label": "Oblivane 6 of 6 — end card: Watch it again. For the first time.",
+          "content": "closing title card: a couple silhouetted from behind on a couch before a large glowing television screen, on the screen the word \"OBLIVANE\" in a bold wordmark and beneath it a smaller tagline reading \"Watch it again. For the first time.\""
+        }
+      ]
+    }
+  ]
+}
