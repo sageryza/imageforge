@@ -119,8 +119,16 @@ const FIREBASE_STUB = `
   const text = await page.$eval('#scr-dream', (el) => el.textContent);
   ok(!/until midnight/.test(text), 'no "In today\'s feed until midnight." line');
 
-  // 4: the floating close, reachable from anywhere in a long dream
+  // 4: the floating close, reachable from anywhere in a long dream — and an
+  // icon-only circle (Sophie: "less obtrusive … it's just like an icon")
   ok(!(await page.$eval('#closewrap', (el) => el.hidden)), 'a floating close rides the dream screen');
+  const closeLook = await page.$eval('#closeDream', (el) => ({
+    words: el.textContent.trim(), svg: !!el.querySelector('svg'),
+    round: getComputedStyle(el).borderRadius, w: el.getBoundingClientRect().width,
+  }));
+  ok(closeLook.words === '' && closeLook.svg, 'it is an icon, no words on it');
+  ok(closeLook.round === '50%' && closeLook.w < 60,
+    'a small circle — less obtrusive (' + Math.round(closeLook.w) + 'px)');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(80);
   const deep = await page.$eval('#closewrap button', (el) => {

@@ -305,6 +305,20 @@ function repairJob(doc) {
   return doc;
 }
 
+// A dream can sit NAMELESS forever: before every write here merged
+// (2026-08-19), the old draw job's full-doc write could land over
+// writeTitle's and erase the name — two of Sophie's own dreams did, and their
+// archive rows read "finding its name…" with nothing coming. Serving a
+// titleless dream re-kicks the namer, once per process; the client's poll
+// picks the name up when it lands.
+const NAMING = new Set();
+function healTitle(doc) {
+  if (doc.title || !doc.text || NAMING.has(doc.id)) return doc;
+  NAMING.add(doc.id);
+  writeTitle(doc.id, doc.text);
+  return doc;
+}
+
 // What the owner sees of their own dream.
 function mine(doc) {
   return {
@@ -436,7 +450,7 @@ router.post('/dreams', async (req, res) => {
 
 router.get('/dreams', async (req, res) => {
   try {
-    const docs = (await ownDocs(req.user.uid)).map(repairJob)
+    const docs = (await ownDocs(req.user.uid)).map(repairJob).map(healTitle)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 100);
     res.json({ dreams: docs.map(mine) });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -446,7 +460,7 @@ router.get('/dreams/:id', async (req, res) => {
   try {
     const snap = await db().collection(DREAMS).doc(req.params.id).get();
     if (!snap.exists || snap.data().uid !== req.user.uid) return res.status(404).json({ error: 'not found' });
-    res.json(mine(repairJob(snap.data())));
+    res.json(mine(healTitle(repairJob(snap.data()))));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
