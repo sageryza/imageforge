@@ -469,9 +469,29 @@
       setTimeout(function () { startTour(true); }, 800);
     }
 
-    // resume: the page's own verdicts first; an Assets-tab ♥/✕ fills in any
-    // asset item the page has no verdict for, so the two surfaces agree in
-    // BOTH directions on load
+    // rebuild one tile's buttons — used when the Assets tab hands us something
+    // the page's frozen data never had (a filed prompt earns a PROMPT button)
+    function repaintActs(id) {
+      var host = mount.querySelector('[data-item="' + id + '"] .gd-acts');
+      if (!host) return;
+      host.innerHTML = actsHtml(byId[id]);
+      paintActs(id);
+    }
+
+    // resume: the page's own verdicts first; then the chat's Assets tab fills
+    // in what the page is missing — an Assets-tab ♥/✕ for any item with no
+    // verdict (so the two surfaces agree in BOTH directions), AND THE FILED
+    // PROMPT for any item whose data never carried one.
+    //
+    // THE PROMPT FILL (Aug 2026, Sophie: "I don't see a prompt box for this
+    // chat"). A template page's DATA is frozen at post time, so a page whose
+    // chat left promptStyle/promptContent out of its items can never grow a
+    // PROMPT button — even though the pictures themselves have their prompts
+    // filed against them in the Assets tab. Reading them here fixes every page
+    // ALREADY POSTED, with nothing to re-post, and costs no extra request: the
+    // Assets read is the one this block already makes. The page's own data
+    // still wins where it has any — a chat that filed a page-specific prompt
+    // meant it.
     fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)
       + '&sheet=' + encodeURIComponent(sheet))
       .then(function (r) { return r.ok ? r.json() : {}; })
@@ -483,23 +503,45 @@
         });
         Object.keys(byId).forEach(paintActs);
         var wantAssets = Object.keys(byId).some(function (id) {
-          return byId[id].url && verdicts[id] === undefined;
+          var it = byId[id];
+          if (!it.url) return false;
+          return verdicts[id] === undefined
+            || !(it.promptContent || it.promptStyle);
         });
         if (!wantAssets) return null;
-        return fetch('/api/gallery/assets?chat=' + encodeURIComponent(chat))
+        return fetch('/api/gallery/assets?chat=' + encodeURIComponent(chat) + '&limit=500')
           .then(function (r) { return r.ok ? r.json() : {}; })
           .catch(function () { return {}; })
           .then(function (a) {
-            var votes = {};
+            var votes = {}; var rows = {};
             ((a && a.assets) || []).forEach(function (as) {
               if (as.vote) votes[as.url] = as.vote === 'like';
+              rows[as.url] = as;
+              // one picture can sit at two storage paths; the union hands the
+              // others along as `alts`, and the page may name either
+              (as.alts || []).forEach(function (u) {
+                rows[u] = as;
+                if (as.vote) votes[u] = as.vote === 'like';
+              });
             });
             Object.keys(byId).forEach(function (id) {
               var it = byId[id];
-              if (verdicts[id] === undefined && it.url && votes[it.url] !== undefined) {
+              if (!it.url) return;
+              if (verdicts[id] === undefined && votes[it.url] !== undefined) {
                 verdicts[id] = votes[it.url];
                 paintActs(id);
               }
+              var as = rows[it.url];
+              if (!as || (it.promptContent || it.promptStyle)) return;
+              if (!as.promptContent && !as.promptStyle) return;
+              it.promptStyle = as.promptStyle || '';
+              it.promptContent = as.promptContent || '';
+              // …and the caption too, when the page never carried one
+              if (!it.model && !it.quality) {
+                var cap = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})$/i.exec(String(as.prompt || '').trim());
+                if (cap) { it.model = cap[1].trim(); it.quality = cap[2].trim().toLowerCase(); }
+              }
+              repaintActs(id);   // the PROMPT button exists now
             });
           });
       });
