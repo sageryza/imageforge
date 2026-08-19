@@ -180,7 +180,7 @@ async function whitenBackground(buf, tol = 46) {
   while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
   const out = Buffer.from(data);
   for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
-  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp().toBuffer();
+  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp({ lossless: true }).toBuffer();
 }
 
 async function generate(prompt, refs) {

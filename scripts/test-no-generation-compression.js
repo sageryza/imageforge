@@ -36,6 +36,29 @@ const SKIP = new Set(['node_modules', '.git', 'out', 'ios', 'voices', 'refs', 'd
 // Only an actual form.append / JSON field counts as a violation.
 const CALL = /(?:form\.append\(\s*['"]output_compression['"]|output_compression\s*:)/;
 
+// The FOUR shapes a lossy original sneaks in as (2026-08-19 — the first
+// sweep only knew the first one, and the other three were found live the
+// same day, on a second and third look Sophie asked for):
+//   1  output_compression on an OpenAI images call
+//   2  output_quality below 100 on a Replicate input — Flux's webp/jpg
+//      encode is lossy at that quality (its default is 80); originals go
+//      output_format png instead
+//   3  a raw-pixel sharp reconstruction saved without `lossless` — the
+//      whitenBackground shape, where the re-encode REPLACES the original
+//   4  a bare `.webp()` anywhere — it silently defaults to lossy quality 80
+// Display copies (the thumbs/ service, webp-assets.js, poster frames) stay
+// lossy on purpose: they are DERIVED, and the original they derive from is
+// untouched. Every one of them passes an explicit `quality:` on a resized
+// copy, so none of these patterns matches them.
+const CHECKS = [
+  { name: 'output_compression on a generation call', re: CALL },
+  { name: 'lossy output_quality on a Replicate input',
+    re: /output_quality\s*:\s*(?!100\b)\d+/ },
+  { name: 'raw-pixel re-encode without lossless (whitenBackground shape)',
+    re: /raw:\s*\{[^}]*\}\s*\}\s*\)\s*\.webp\(\s*(?!\{\s*lossless)/ },
+  { name: 'bare .webp() — silent default quality 80', re: /\.webp\(\s*\)/ },
+];
+
 const hits = [];
 (function walk(dir) {
   for (const name of fs.readdirSync(dir)) {
@@ -45,7 +68,9 @@ const hits = [];
     if (st.isDirectory()) { walk(full); continue; }
     if (!name.endsWith('.js') || full === __filename) continue;
     fs.readFileSync(full, 'utf8').split('\n').forEach((line, i) => {
-      if (CALL.test(line)) hits.push(`${path.relative(ROOT, full)}:${i + 1}  ${line.trim()}`);
+      for (const c of CHECKS) {
+        if (c.re.test(line)) hits.push(`${path.relative(ROOT, full)}:${i + 1}  [${c.name}]  ${line.trim()}`);
+      }
     });
   }
 })(ROOT);
@@ -58,4 +83,4 @@ if (hits.length) {
   console.log('server.js) and leave the original alone.');
   process.exit(1);
 }
-console.log('PASS: no generation call sets output_compression (originals stay full quality)');
+console.log('PASS: no generation path is lossy — no output_compression, no lossy output_quality, no unguarded raw re-encode, no bare .webp() (originals stay full quality)');
