@@ -408,6 +408,7 @@
     <section id="scr-dream" hidden></section>
     <section id="scr-teams" hidden></section>
     <section id="scr-friends" hidden></section>
+    <section id="scr-dreamer" hidden></section>
   </main>
   <div class="confess" id="confess"><div class="cstack">
     <button id="confessBtn">add last night&rsquo;s dream</button>
@@ -489,6 +490,8 @@ var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d
 var HEART = '<svg class="i" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
 // Lucide heart-handshake (v1.32.0, exact path) — the holding-hands moment.
 var HANDS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"/></svg>';
+// Lucide user-round — the way into a dreamer's profile from their card.
+var WHO = '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
 var BUBBLE = '<svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
 var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
 
@@ -662,6 +665,7 @@ function meltCard(n, dark, rev, dur){
     '<div class="dmeta">' +
       '<span class="likebtn' + (n.felt ? ' on' : '') + '">' + HEART + (n.feltCount || 0) + '</span>' +
       '<span class="cmtbtn">' + BUBBLE + (n.commentCount || 0) + '</span>' +
+      '<span class="whobtn" title="their dreams">' + WHO + '</span>' +
     '</div>';
   // A ☾ friends card says so in the corner and always wears the dark card
   // (the sharing-flow artboard's rule) — the only marker any card carries.
@@ -792,6 +796,10 @@ function wireDreams(root){
       thread.hidden = !thread.hidden;
       if (!thread.hidden && !thread.dataset.loaded) loadComments(id, thread, cmt);
     });
+    // Nameless, not anonymous (Sophie): the sheet shows no name, but a dream
+    // opens into its dreamer's profile — all their dreams you can see.
+    var who = card.querySelector('.whobtn');
+    if (who) who.addEventListener('click', function(){ openDreamer(id); });
   });
 }
 
@@ -836,7 +844,7 @@ function drawComments(comments, thread){
 }
 
 /* ── views ── */
-var scr = { feed: null, mine: null, dream: null, teams: null, friends: null };
+var scr = { feed: null, mine: null, dream: null, teams: null, friends: null, dreamer: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
   // Leaving the feed takes an opened card with it. The floating close serves
@@ -1350,10 +1358,11 @@ function legacyCopy(text){
 
 /* ── friends — mutual, ask-and-accept (THE DIAL in dreamapp.js) ──
    "Like following on Instagram except you can't follow someone, you have to
-   let them accept you — a two-way Facebook model" (Sophie). Your personal
-   link asks; nothing happens until the owner says yes; the yes is the
-   holding-hands moment, on BOTH phones — the accepter right on the tap, the
-   asker the next time the app checks (boot, or opening this screen). */
+   let them accept you — a two-way Facebook model" (Sophie). The ask happens
+   on a dreamer's PROFILE (below), reached from their dream in the feed — no
+   links, no directory; nothing happens until the owner says yes; the yes is
+   the holding-hands moment, on BOTH phones — the accepter right on the tap,
+   the asker the next time the app checks (boot, or opening this screen). */
 async function renderFriends(){
   var el = scr.friends;
   el.innerHTML = '<div class="backrow"><button id="frBack">' + BACK + 'back</button></div>' +
@@ -1373,18 +1382,20 @@ async function renderFriends(){
     });
     html += '<div class="h2">your friends</div>';
     if (!r.friends.length) {
-      html += '<div class="quiet">no friends yet — your link below is how they arrive.</div>';
+      html += '<div class="quiet">no friends yet.</div>';
     }
     r.friends.forEach(function(f){
       html += '<div class="share-item"><span class="lab">' + esc(f.name) + '</span>' +
         '<button class="st" data-un="' + f.id + '">remove</button></div>';
     });
     if (r.waiting.length) {
-      html += '<div class="quiet">waiting on: ' + r.waiting.map(function(w){ return esc(w.name); }).join(' · ') + '</div>';
+      // no names — you asked nameless profiles, and they stay that way
+      // until the yes
+      html += '<div class="quiet">waiting on ' + r.waiting.length +
+        (r.waiting.length === 1 ? ' answer' : ' answers') + '</div>';
     }
-    html += '<div class="minefoot" style="justify-content:flex-start;padding:18px 0 0">' +
-      '<button data-mylink="' + esc(location.origin + '/f/' + r.code) + '">copy your friend link</button></div>' +
-      '<div class="quiet">whoever opens it can ask to be your friend — nothing happens until you say yes. ' +
+    html += '<div class="quiet">you make friends from their dreams — tap the little person on ' +
+      'a dream in the feed and ask there. nothing happens until the other side says yes. ' +
       '☾ friends dreams reach everyone on this screen, plus any dream team you switched on.</div>';
     el.innerHTML = html;
     wireBack();
@@ -1410,15 +1421,6 @@ async function renderFriends(){
         if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'sure?'; return; }
         try { await api('/friends/remove', { body: { id: b.dataset.un } }); renderFriends(); }
         catch (e) { toast(e.message); }
-      });
-    });
-    el.querySelectorAll('[data-mylink]').forEach(function(b){
-      b.addEventListener('click', function(){
-        var link = b.dataset.mylink;
-        var done = function(){ toast('link copied — text it to a friend'); };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(link).then(done).catch(function(){ legacyCopy(link); done(); });
-        } else { legacyCopy(link); done(); }
       });
     });
   } catch (e) {
@@ -1464,29 +1466,80 @@ function checkHands(){
   api('/friends').then(syncHands).catch(function(){});
 }
 
-/* Arrived through a personal friend link (/f/<code>): ask once signed in,
-   then fold the address home. Two crossed asks are mutual consent, so the
-   answer can already be friendship. */
-var askedFromPath = false;
-function friendFromPath(){
-  var m = location.pathname.match(/^\/f\/([A-Za-z0-9_-]{6,})$/);
-  if (!m || askedFromPath) return;
-  askedFromPath = true;
-  var home = /youwereinmydreams/.test(location.hostname) ? '/' : '/dreamfeed';
-  api('/friends/request', { body: { code: m[1] } }).then(function(r){
-    history.replaceState({}, '', home);
-    if (r.state === 'friends') { celebrateHands(r.name); return; }
-    if (r.state === 'asked' && r.id) {
-      var was = [];
-      try { was = JSON.parse(localStorage.getItem(handsKey()) || '[]'); } catch (e) {}
-      if (was.indexOf(r.id) === -1) { was.push(r.id); localStorage.setItem(handsKey(), JSON.stringify(was)); }
+/* ── a dreamer's profile — nameless, not anonymous (Sophie) ──
+   "The name doesn't show on the sheet, but if you click on the dream
+   there's a way to see all the dreams from that person — basically there is
+   a profile, but their name isn't attached." Reached from any card's
+   "their dreams"; carries the one friend button ("ask if they want to be
+   friends", her words); the name appears only once you're holding hands. */
+var dreamerId = null;
+function openDreamer(id){ dreamerId = id; renderDreamer(); go('dreamer'); }
+async function renderDreamer(){
+  var el = scr.dreamer;
+  var backHtml = '<div class="backrow"><button id="drBack">' + BACK + 'back</button></div>';
+  var wireBack = function(){
+    document.getElementById('drBack').addEventListener('click', function(){ renderFeed(); go('feed'); });
+  };
+  el.innerHTML = backHtml + '<div class="quiet">loading…</div>';
+  wireBack();
+  try {
+    var r = await api('/dreamer/' + dreamerId);
+    var friendRow = '';
+    if (r.state === 'none') {
+      friendRow = '<div class="minefoot" style="justify-content:flex-start;padding:2px 0 6px">' +
+        '<button data-ask>ask if they want to be friends</button></div>';
+    } else if (r.state === 'asked') {
+      friendRow = '<div class="quiet" style="margin-top:0">you asked — it’s their yes now</div>';
+    } else if (r.state === 'asks-you') {
+      friendRow = '<div class="minefoot" style="justify-content:flex-start;padding:2px 0 6px">' +
+        '<button data-dyes="' + esc(r.pairId) + '">they asked you — say yes</button></div>';
+    } else if (r.state === 'friends') {
+      friendRow = '<div class="quiet" style="margin-top:0">☾ you’re holding hands</div>';
     }
-    toast(r.state === 'waiting' ? 'already asked — ' + r.name + ' hasn’t said yes yet'
-                                : 'asked ' + r.name + ' — it’s their yes now');
-  }).catch(function(e){
-    history.replaceState({}, '', home);
-    toast(e.message);
-  });
+    var html = backHtml +
+      '<div class="h2">' + (r.name ? esc(r.name) + '’s dreams' : 'their dreams') + '</div>' +
+      friendRow;
+    var card = 0, img = 0;
+    (r.dreams || []).forEach(function(n){
+      feedEntry[n.id] = n;
+      var hasImg = !!n.cover;
+      html += meltCard(n, card % 2 === 1, hasImg && img % 2 === 1, 8 + (card % 4));
+      card++;
+      if (hasImg) img++;
+    });
+    if (!(r.dreams || []).length) html += '<div class="quiet">nothing shared yet.</div>';
+    el.innerHTML = html;
+    wireBack();
+    wireDreams(el);
+    // every card here is the same dreamer — the way in would only loop
+    el.querySelectorAll('.whobtn').forEach(function(b){ b.hidden = true; });
+    var ask = el.querySelector('[data-ask]');
+    if (ask) ask.addEventListener('click', async function(){
+      ask.disabled = true;
+      try {
+        var a = await api('/friends/ask', { body: { dream: dreamerId } });
+        if (a.state === 'friends') { celebrateHands(a.name || 'a dreamer'); renderDreamer(); return; }
+        if (a.state === 'asked' && a.id) {
+          var was = [];
+          try { was = JSON.parse(localStorage.getItem(handsKey()) || '[]'); } catch (e) {}
+          if (was.indexOf(a.id) === -1) { was.push(a.id); localStorage.setItem(handsKey(), JSON.stringify(was)); }
+        }
+        renderDreamer();
+      } catch (e) { toast(e.message); ask.disabled = false; }
+    });
+    var dyes = el.querySelector('[data-dyes]');
+    if (dyes) dyes.addEventListener('click', async function(){
+      dyes.disabled = true;
+      try {
+        var a = await api('/friends/accept', { body: { id: dyes.dataset.dyes } });
+        celebrateHands(a.name);
+        renderDreamer();
+      } catch (e) { toast(e.message); dyes.disabled = false; }
+    });
+  } catch (e) {
+    el.innerHTML = backHtml + '<div class="err">' + esc(e.message) + '</div>';
+    wireBack();
+  }
 }
 
 /* Arrived through an invite link (/t/<code>): join once signed in, then fold
@@ -1516,6 +1569,7 @@ async function boot(){
   scr.dream = document.getElementById('scr-dream');
   scr.teams = document.getElementById('scr-teams');
   scr.friends = document.getElementById('scr-friends');
+  scr.dreamer = document.getElementById('scr-dreamer');
 
   var cfg = await (await fetch('/api/witch/firebase-config')).json();
   var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
@@ -1541,7 +1595,6 @@ async function boot(){
     if (u) {
       renderFeed(); renderMine(); go('feed');
       joinFromPath();        // came in through a dream-team invite link
-      friendFromPath();      // came in through someone's friend link
       checkHands();          // an ask of yours said yes while you were away?
     }
   });
