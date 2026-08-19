@@ -86,6 +86,9 @@
   /* worn ONLY by a ☾ friends card — the ✳ that sat on every dream is gone
      (Sophie); this one says who can see it, which is information */
   .dby { font:10.5px 'Courier Prime', monospace; opacity:.45; white-space:nowrap; }
+  /* visible only on a card where YOU were tagged — the app's namesake line */
+  .youin { font:italic 600 13px/1.4 'EB Garamond', serif; color:var(--brown); }
+  .dark .youin { color:#d9b3c0; }
   .dbody { font:400 14.5px/1.5 'EB Garamond', serif; white-space:pre-wrap;
            --lh:21.75px; --lines:6; }
   /* ── the fold sits ON the last line, never under it (Sophie: "I want the
@@ -473,6 +476,10 @@
         </div>
       </div>
       <div class="quiet" id="friendNote" style="text-align:center" hidden>your accepted friends, plus any dream team you switched on</div>
+      <div class="moodrow" id="tagRow" hidden>
+        <span>who was in it?</span>
+        <div class="moods" id="tagChips"></div>
+      </div>
       <button class="blobbtn" id="shareBtn2">share your dream</button>
     </div>
   </div>
@@ -678,6 +685,7 @@ function meltCard(n, dark, rev, dur){
       '<div class="dtxt">' +
         '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span>' +
           (frd ? '<span class="dby">☾ friends</span>' : '') + '</div>' +
+        (n.taggedYou ? '<div class="youin">you were in this dream</div>' : '') +
         (n.words ? '<div class="dbody clamped">' +
                    '<button class="dmore" hidden><span>see more</span></button>' + esc(n.words) +
                  '</div>' : '') +
@@ -966,7 +974,7 @@ var composeInfo = null;   // /me: streak, fetched once per open
 
 function openCompose(){
   sheetState = { stage: 1, dreamId: null, share: 'everyone', mood: null,
-                 lucid: false, recur: false, expanded: false, poll: null, rec: null };
+                 lucid: false, recur: false, expanded: false, poll: null, rec: null, tags: [] };
   var sh = document.getElementById('sheet');
   document.getElementById('st1').hidden = false;
   document.getElementById('st2').hidden = true;
@@ -1090,8 +1098,41 @@ function enterStage2(text){
       '<div class="slab">' + esc(els[i] || '…') + '</div></div>';
   }).join('');
   paintPreview(text);
+  paintTagRow();
   pollDrawing();
 }
+
+/* ── who was in it? — tagging, the app's namesake (Sophie, 2026-08-19:
+   "the ability to tag someone in your dream … should be on the dream
+   sharing page"). Chips of your FRIENDS' names on both sharing surfaces;
+   the whole selection posts at once, and only the tagged friend ever sees
+   anything — "you were in this dream" on their card. */
+var friendsCache = null;
+function friendsOnce(){
+  if (friendsCache) return Promise.resolve(friendsCache);
+  return api('/friends').then(function(r){ friendsCache = r.friends || []; return friendsCache; });
+}
+function tagChip(f, on){
+  return '<button data-pair="' + esc(f.pair || f.id) + '"' + (on ? ' class="on"' : '') + '>' +
+    esc(f.name) + '</button>';
+}
+function paintTagRow(){
+  friendsOnce().then(function(fs){
+    var row = document.getElementById('tagRow');
+    if (!fs.length || !sheetState || sheetState.stage !== 2) { row.hidden = true; return; }
+    var box = document.getElementById('tagChips');
+    box.innerHTML = fs.map(function(f){ return tagChip(f, sheetState.tags.indexOf(f.id) !== -1); }).join('');
+    row.hidden = false;
+    box.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i = sheetState.tags.indexOf(b.dataset.pair);
+        if (i === -1) sheetState.tags.push(b.dataset.pair); else sheetState.tags.splice(i, 1);
+        b.classList.toggle('on', i === -1);
+      });
+    });
+  }).catch(function(){});
+}
+
 function paintPreview(text){
   var el = document.getElementById('preview');
   var t = text.trim();
@@ -1127,6 +1168,9 @@ async function shareDream(){
   var btn = document.getElementById('shareBtn2');
   btn.disabled = true;
   try {
+    if (sheetState.tags.length) {
+      await api('/dreams/' + sheetState.dreamId + '/tags', { body: { pairs: sheetState.tags } });
+    }
     if (sheetState.share === 'private') {
       closeCompose(); renderMine(); toast('kept in your archive — only you');
       return;
@@ -1194,6 +1238,8 @@ async function renderDream(){
     (aud === 'friends'
       ? '<div class="quiet" style="text-align:center">your accepted friends, plus any dream team you switched on</div>'
       : '') +
+    '<div class="moodrow" id="dreamTags" hidden>' +
+      '<span>who was in it?</span><div class="moods"></div></div>' +
     '<div class="post">' +
     (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
     '<div class="meta">' + ago(d.createdAt) + ' ago</div>' +
@@ -1210,6 +1256,24 @@ async function renderDream(){
       else toast(e.message);
     }
   });
+  // who was in it — chips saved on the tap, like the dial above them
+  friendsOnce().then(function(fs){
+    var row = document.getElementById('dreamTags');
+    if (!row || !fs.length) return;
+    var picked = (d.tags || []).map(function(t){ return t.pair; });
+    var box = row.querySelector('.moods');
+    box.innerHTML = fs.map(function(f){ return tagChip(f, picked.indexOf(f.id) !== -1); }).join('');
+    row.hidden = false;
+    box.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var i = picked.indexOf(b.dataset.pair);
+        if (i === -1) picked.push(b.dataset.pair); else picked.splice(i, 1);
+        b.classList.toggle('on', i === -1);
+        try { await api('/dreams/' + openDreamId + '/tags', { body: { pairs: picked } }); }
+        catch (e) { toast(e.message); }
+      });
+    });
+  }).catch(function(){});
   el.querySelectorAll('#audDial button').forEach(function(b){
     b.addEventListener('click', async function(){
       if (b.classList.contains('on')) return;
