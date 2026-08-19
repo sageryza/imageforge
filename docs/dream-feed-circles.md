@@ -80,6 +80,18 @@ can be in many circles at once.
   a circle ☾" on a private dream; the release is just a share with
   `audience:'circle'` later.
 
+> **Update 2026-08-19 — the app moved under this design.** A DREAM is the
+> entry now, not a night (Sophie: "they should save as separate dreams"), the
+> night routes are gone, and sharing is `POST /dreams/:id/audience
+> {audience: 'everyone'|'friends'|'private'}`. The **☾ friends stop already
+> exists** in the seen-by dial (compose stage 2 and the dream screen): it
+> stores `audience:'friends'` and, until circles are built, the feed shows a
+> friends dream ONLY to its own dreamer (the safe direction) with a note
+> saying circles aren't open yet. So the build phase below starts from that:
+> replace "night" with "dream" throughout, and wire the existing friends
+> audience to real circle membership (`circleId` beside `audience`). Sharing
+> is also capped at three dreams a day (`SHARES_PER_DAY` in dreamapp.js).
+
 ## Server shape (for the build phase — not built)
 
 - `forge-dreamapp-circles`: one doc per circle

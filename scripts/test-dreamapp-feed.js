@@ -1,25 +1,26 @@
 #!/usr/bin/env node
-// THE MELT FEED (Aug 2026) — the 2a artboard from the Claude Designs canvas
-// (docs/dream-feed-designs/), ported onto the live shared dream feed. Drives
-// the REAL public/dreamapp.html against a stub API + stubbed Firebase auth
-// and asserts the design facts that make it "exact":
-//   1. the header wordmark asks for Baveuse; the one other word in it is the
-//      way to the other view ("tonight" was taken out, Sophie Aug 2026),
-//   2. cards ALTERNATE dark (her alternateDark tweak) and the illustration
-//      blob alternates sides among the cards that have one,
-//   3. your own card carries no heart/comment row (unattributed feed: the
-//      byline slot holds only the audience glyph),
-//   4. the heart is a courier span — tapping it posts /felt and flips ♡→♥,
-//   5. ✎ opens the inline thread; the whisper box posts on Enter and the
-//      count updates,
+// THE MELT FEED (Aug 2026) — the 2a artboard, one DREAM per card since
+// 2026-08-19 (Sophie: "they should save as separate dreams"). Drives the REAL
+// public/dreamapp.html against a stub API + stubbed Firebase auth and asserts
+// the design facts that make it hers:
+//   1. the header wordmark asks for Baveuse, and tapping it goes home to the
+//      feed from any view (Sophie: "it should take me back to the feed"),
+//   2. cards ALTERNATE dark and the illustration blob alternates sides,
+//   3. your own card carries no heart/comment row, and the little ✳ byline
+//      stars are GONE (Sophie: "I would get rid of it"),
+//   4. the heart is a real outlined SVG in the pale mauve pink, big enough to
+//      see — tapping it posts /felt, fills it, and updates the count,
+//   5. the comment icon is a BUBBLE (not a pencil ✎), the box says "leave a
+//      comment…" (not "whisper back…"), the empty state says "no comments
+//      yet.", the thread border is SOLID not dashed — and posting on Enter
+//      updates the count,
 //   6. "see more" appears only where the six-line clamp really cut,
-//   7. tonight's run ends on nothing (the sign-off line was taken out, Sophie
-//      Aug 2026); older days get the
-//      dashed divider with the artboard's label shape,
-//   8. the confess button shows on the feed and leaves with it,
+//   7. tonight's run ends on nothing; older days get the divider,
+//   8. the confess button says "add last night's dream" with "it's coming
+//      back to me…" as a line UNDER it, and leaves with the feed,
 //   9. tapping the blob opens the lightbox, locks the page, restores the
-//      exact scroll on close (house overlay rule),
-//  10. nothing of the old design survives: no fuchsia, no bottom nav.
+//      exact scroll on close (house overlay rule) — no feature button,
+//  10. nothing of the old design: no fuchsia, no bottom nav, no page errors.
 //
 //   npm install playwright-core --no-save && node scripts/test-dreamapp-feed.js
 const http = require('http');
@@ -32,25 +33,25 @@ const PNG = Buffer.from(
 
 const today = '2026-08-18';
 const LONG = Array(40).fill('The staircase kept adding steps as I climbed.').join(' ');
-const nights = [
+// One card per DREAM: words ride the entry itself, one cover picture.
+const dreams = [
   { id: 'n1', title: 'The Xylophone Teeth', mine: false, publicOn: today, createdAt: today + 'T08:00:00Z',
-    dreams: [{ id: 'n1', title: 'The Xylophone Teeth', words: 'My teeth were a xylophone. Someone played them beautifully. I was furious.' }],
-    panels: [{ dreamId: 'n1', i: 0, url: '/img/1.png' }, { dreamId: 'n1', i: 1, url: '/img/1b.png' }],
-    cover: { dreamId: 'n1', i: 0, url: '/img/1.png' }, feltCount: 41, felt: false, commentCount: 6 },
+    words: 'My teeth were a xylophone. Someone played them beautifully. I was furious.',
+    panels: [{ i: 0, url: '/img/1.png' }], cover: { i: 0, url: '/img/1.png' },
+    feltCount: 41, felt: false, commentCount: 6 },
   { id: 'n2', title: 'The Whale Again', mine: true, publicOn: today, createdAt: today + 'T07:00:00Z',
-    dreams: [{ id: 'n2', title: 'The Whale Again', words: 'The whale is back. It has opinions about my parking now.' }],
-    panels: [{ dreamId: 'n2', i: 0, url: '/img/2.png' }], cover: { dreamId: 'n2', i: 0, url: '/img/2.png' },
+    words: 'The whale is back. It has opinions about my parking now.',
+    panels: [{ i: 0, url: '/img/2.png' }], cover: { i: 0, url: '/img/2.png' },
     feltCount: 17, felt: false, commentCount: 2 },
   { id: 'n3', title: 'The Same Word', mine: false, publicOn: today, createdAt: today + 'T06:00:00Z',
-    dreams: [{ id: 'n3', title: 'The Same Word', words: LONG }], panels: [], cover: null,
-    feltCount: 9, felt: true, commentCount: 1 },
+    words: LONG, panels: [], cover: null, feltCount: 9, felt: true, commentCount: 1 },
   { id: 'n4', title: 'The Peephole Moon', mine: false, publicOn: '2026-08-17', createdAt: '2026-08-17T06:00:00Z',
-    dreams: [{ id: 'n4', title: 'The Peephole Moon', words: 'The moon was a peephole. Someone knocked.' }],
-    panels: [{ dreamId: 'n4', i: 0, url: '/img/4.png' }], cover: { dreamId: 'n4', i: 0, url: '/img/4.png' },
+    words: 'The moon was a peephole. Someone knocked.',
+    panels: [{ i: 0, url: '/img/4.png' }], cover: { i: 0, url: '/img/4.png' },
     feltCount: 33, felt: false, commentCount: 8 },
   { id: 'n5', title: 'Weather Chess', mine: false, publicOn: '2026-08-16', createdAt: '2026-08-16T06:00:00Z',
-    dreams: [{ id: 'n5', title: 'Weather Chess', words: 'Her bishop was a light drizzle.' }],
-    panels: [{ dreamId: 'n5', i: 0, url: '/img/5.png' }], cover: { dreamId: 'n5', i: 0, url: '/img/5.png' },
+    words: 'Her bishop was a light drizzle.',
+    panels: [{ i: 0, url: '/img/5.png' }], cover: { i: 0, url: '/img/5.png' },
     feltCount: 12, felt: false, commentCount: 3 },
 ];
 
@@ -62,11 +63,12 @@ const srv = http.createServer((req, res) => {
   if (u === '/' || u === '/dreamfeed') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PAGE); }
   if (u.startsWith('/img/')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
   if (u === '/api/witch/firebase-config') return json({ apiKey: 'x', authDomain: 'x', projectId: 'x' });
-  if (u === '/api/dreamapp/feed') return json({ sealed: false, today, nights });
+  if (u === '/api/dreamapp/feed') return json({ sealed: false, today, dreams });
   if (u === '/api/dreamapp/dreams' && req.method === 'GET') return json({ dreams: [] });
   if (/^\/api\/dreamapp\/dreams\/n\d+\/felt$/.test(u)) return json({ felt: true, feltCount: 42 });
   if (/^\/api\/dreamapp\/dreams\/n\d+\/comments$/.test(u)) {
-    if (req.method === 'POST') return json({ comment: { name: 'you', text: 'a whisper', at: new Date().toISOString() }, commentCount: 7 });
+    if (req.method === 'POST') return json({ comment: { name: 'you', text: 'a reply', at: new Date().toISOString() }, commentCount: 7 });
+    if (u.includes('/n4/')) return json({ comments: [] });   // the empty-state card
     return json({ comments: [{ name: 'mira', text: 'the ink got this exactly right', at: today + 'T09:00:00Z' }] });
   }
   res.writeHead(404); res.end('{}');
@@ -107,42 +109,76 @@ const FIREBASE_STUB = `
   let fails = 0;
   const ok = (cond, name) => { console.log((cond ? '  ok' : 'FAIL') + ' — ' + name); if (!cond) fails++; };
 
-  // 1. header
+  // 1. header — and the wordmark is the way home
   const mark = await page.$eval('#app .mark', (el) => getComputedStyle(el).fontFamily);
   ok(/Baveuse/i.test(mark), 'wordmark asks for Baveuse');
-  // "get rid of tonight in the corner and call my dreams archive vs feed (just
-  // two views)" — Sophie, Aug 2026.
   ok((await page.$$('.fnow')).length === 0, 'no "tonight" in the header');
   ok((await page.$eval('#navMine', (el) => el.textContent)) === 'archive', 'the other view is the archive');
+  await page.click('#navMine');
+  ok(await page.$eval('#scr-feed', (el) => el.hidden), 'the archive replaces the feed');
+  await page.click('#markBtn');
+  await page.waitForSelector('.dcard');
+  ok(!(await page.$eval('#scr-feed', (el) => el.hidden)), 'tapping the wordmark returns to the feed');
 
   // 2. alternation
   const cards = await page.$$eval('.dcard', (els) => els.map((el) => ({
     id: el.dataset.id, dark: el.classList.contains('dark'),
     rev: !!el.querySelector('.drow.rev'), img: !!el.querySelector('.blob'),
   })));
-  ok(cards.length === 5, 'five night cards drawn');
+  ok(cards.length === 5, 'five dream cards drawn');
   ok(cards.map((c) => c.dark).join() === 'false,true,false,true,false', 'cards alternate dark');
   ok(cards.filter((c) => c.img).map((c) => c.rev).join() === 'false,true,false,true', 'the blob alternates sides');
 
-  // 3. own card, unattributed byline
+  // 3. own card, and no byline stars anywhere
   ok(await page.$eval('[data-id="n2"]', (el) => !el.querySelector('.dmeta')), 'own card has no heart/comment row');
-  const bys = await page.$$eval('.dby', (els) => els.map((e) => e.textContent));
-  ok(bys.every((b) => b === '✳'), 'byline slots hold only the audience glyph');
+  ok((await page.$$('.dby')).length === 0, 'the little ✳ byline stars are gone');
 
-  // 4. heart
+  // 4. the heart: a real outlined SVG, mauve, big enough to see
+  const heart = await page.$eval('[data-id="n1"] .likebtn', (el) => {
+    const svg = el.querySelector('svg.i');
+    const c = getComputedStyle(el);
+    const r = svg ? svg.getBoundingClientRect() : { width: 0, height: 0 };
+    return { hasSvg: !!svg, w: r.width, h: r.height, color: c.color,
+             fill: svg ? getComputedStyle(svg).fill : '' };
+  });
+  ok(heart.hasSvg, 'the heart is an SVG icon, not a text glyph');
+  ok(heart.w >= 15 && heart.h >= 15, 'and it is big enough to see (' + Math.round(heart.w) + 'px)');
+  ok(heart.color === 'rgb(196, 147, 164)', 'in the pale mauve pink (' + heart.color + ')');
+  ok(heart.fill === 'none', 'outlined while un-felt');
   await page.click('[data-id="n1"] .likebtn', { force: true });  // the cards never stop breathing
   await page.waitForFunction(() => document.querySelector('[data-id="n1"] .likebtn').textContent.includes('42'));
-  ok(true, 'heart posts /felt and repaints ♥ 42');
+  ok(true, 'heart posts /felt and repaints the count 42');
   ok(calls.some((c) => c === 'POST /api/dreamapp/dreams/n1/felt'), 'felt call reached the API');
+  ok(await page.$eval('[data-id="n1"] .likebtn svg.i', (el) => getComputedStyle(el).fill !== 'none'),
+    'a felt heart fills in');
 
-  // 5. comments
+  // 5. comments: bubble icon, plain copy, solid borders
+  const bubblePath = await page.$eval('[data-id="n1"] .cmtbtn', (el) => {
+    const svg = el.querySelector('svg.i');
+    return svg ? svg.querySelector('path').getAttribute('d') : '';
+  });
+  ok(/^M7\.9 20A9 9/.test(bubblePath), 'the comment icon is the message bubble, not a pencil');
   await page.click('[data-id="n1"] .cmtbtn', { force: true });
   await page.waitForSelector('[data-id="n1"] .whisper');
-  ok((await page.$eval('[data-id="n1"] .crow .who', (el) => el.textContent)) === 'mira', 'comment rows show who whispered');
-  await page.fill('[data-id="n1"] .whisper', 'a whisper');
+  ok((await page.$eval('[data-id="n1"] .whisper', (el) => el.placeholder)) === 'leave a comment…',
+    'the box says "leave a comment…"');
+  const threadLook = await page.$eval('[data-id="n1"] .dthread', (el) => {
+    const c = getComputedStyle(el);
+    const box = getComputedStyle(el.querySelector('.whisper'));
+    return { top: c.borderTopStyle, box: box.borderTopStyle };
+  });
+  ok(threadLook.top === 'solid' && threadLook.box === 'solid', 'no dashed lines in the thread');
+  ok((await page.$eval('[data-id="n1"] .crow .who', (el) => el.textContent)) === 'mira', 'comment rows show who wrote');
+  await page.fill('[data-id="n1"] .whisper', 'a reply');
   await page.press('[data-id="n1"] .whisper', 'Enter');
   await page.waitForFunction(() => document.querySelector('[data-id="n1"] .cmtbtn').textContent.includes('7'));
-  ok(true, 'the whisper box posts on Enter and the ✎ count updates');
+  ok(true, 'the comment box posts on Enter and the count updates');
+
+  // the empty state
+  await page.click('[data-id="n4"] .cmtbtn', { force: true });
+  await page.waitForSelector('[data-id="n4"] .whisper');
+  ok((await page.$eval('[data-id="n4"] [data-empty] .said', (el) => el.textContent)) === 'no comments yet.',
+    'an empty thread says "no comments yet."');
 
   // 6. clamp
   const mores = await page.$$eval('.dcard', (els) => els.map((el) => {
@@ -150,7 +186,7 @@ const FIREBASE_STUB = `
   }));
   ok(mores.every((m) => m.more === (m.id === 'n3')), '"see more" only where the clamp cut (the long dream)');
 
-  // 7. structure: end note + dividers
+  // 7. structure: dividers, no sign-off
   const seq = await page.$eval('#scr-feed', (el) =>
     [...el.children].map((c) => c.classList.contains('dcard') ? 'card' : c.classList.contains('fend') ? 'end' : c.classList.contains('fdiv') ? 'div' : '?').join(','));
   ok(seq === 'card,card,card,div,card,div,card', 'tonight, then divided days, with no sign-off line');
@@ -158,24 +194,38 @@ const FIREBASE_STUB = `
   ok(divs[0] === 'last night · monday, august 17', 'yesterday reads "last night · …"');
   ok(divs[1] === 'sunday, august 16', 'older days read as plain lowercase dates');
 
-  // 8. confess button
-  ok(await page.$eval('#confessBtn', (el) => el.textContent.indexOf('coming back to me') !== -1), 'the confess button carries the artboard copy');
+  // 8. the confess button: the plain ask on it, the poetic line under it
+  ok(await page.$eval('#confessBtn', (el) => /add last night’s dream/.test(el.textContent)),
+    'the button says "add last night\'s dream"');
+  const sub = await page.$eval('#confess .csub', (el) => {
+    const r = el.getBoundingClientRect();
+    const b = document.getElementById('confessBtn').getBoundingClientRect();
+    return { text: el.textContent, below: r.top >= b.bottom - 1 };
+  });
+  ok(/coming back to me…/.test(sub.text), 'with "it\'s coming back to me…" as its own line');
+  ok(sub.below, 'sitting UNDER the button');
   await page.click('#navMine');
   ok(await page.$eval('#confess', (el) => el.hidden), 'leaving the feed takes the button with it');
   ok((await page.$eval('#navMine', (el) => el.textContent)) === 'feed', 'the header word swaps to the way back');
   await page.click('#navMine');
   await page.waitForSelector('.dcard');
+  // renderFeed() is async: wait for the round-trip's re-render to LAND (the
+  // fresh cards have their threads closed again) before measuring scroll —
+  // a re-render arriving mid-lightbox shortens the page under the restore.
+  await page.waitForSelector('[data-id="n1"] .dthread[hidden]', { state: 'attached' });
 
-  // 9. lightbox contract — click a card already in view, so the scroll the
-  // close must restore is the one the tap really happened at
+  // 9. lightbox contract
+  // Scroll, read, and tap in one evaluate — a playwright click would re-scroll
+  // the forever-wobbling card and move the position the close must restore.
   const yBefore = await page.evaluate(() => {
     document.querySelector('[data-id="n4"]').scrollIntoView({ block: 'center' });
-    return window.scrollY;
+    const y = window.scrollY;
+    document.querySelector('[data-id="n4"] .blob').click();
+    return y;
   });
-  await page.click('[data-id="n4"] .blob', { force: true });
   await page.waitForSelector('#lb:not([hidden])');
   ok((await page.$eval('body', (el) => el.style.overflow)) === 'hidden', 'the lightbox locks the page behind it');
-  ok(await page.$eval('#lbfeat', (el) => el.hidden), 'feature-this-one stays hidden on a night that is not yours');
+  ok(!(await page.$('#lbfeat')), 'no feature button — one picture per dream');
   await page.click('.lb', { position: { x: 10, y: 10 }, force: true });
   const after = await page.evaluate(() => ({ hidden: document.getElementById('lb').hidden, y: window.scrollY }));
   ok(after.hidden, 'tapping beside the picture closes the lightbox');
