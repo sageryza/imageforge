@@ -964,6 +964,50 @@
     - Select mode's own filing chips are untouched — the whole vocabulary is
       always there to file into, whatever the row above is doing. Test:
       `node scripts/test-chats-tags-button.js`.
+  - **TWO KINDS OF TAG, AND ONLY THE TASK ONES SHOW BY DEFAULT (Aug 2026 v2,
+    Sophie, from a screenshot of the open row stacking ~18 chips one or two
+    to a line: "there are two different types of tags — category tags like
+    witch and dream app and xi, and task tags like in progress and come back
+    to … the default view should only show the progress tags, but there can
+    be a see more button that shows the category tags also, and if they're
+    both shown there should be some sort of distinction between them like a
+    small red line or a label").**
+    - **`TASK_LABELS`** (chats.html) is the split, and it is **presentation
+      only** — nothing about filing, piles or chat-sort reads it, and a word
+      not on it lands in the categories group, the safe default for anything
+      she invents. Task = where the work stands (`look at`, `come back to`,
+      `in progress`, `waiting for something`, `to be reviewed`, `to read`,
+      `built`, `failed`); category = what the chat is (witch, stories, dream
+      app, …). Moving a word between groups is editing that one array.
+    - TAGS opens on the task words (in `TASK_LABELS` order) plus **SEE MORE**
+      (`.morechip`), which carries the folded categories' summed red number —
+      the same never-silence-a-reply rule TAGS itself follows while shut.
+      Tapping it unfolds the categories under **`.catdiv`** — a thin red line
+      with CATEGORIES under it, her "small red line or a label" — and the
+      chip goes. `catsMore` resets when TAGS closes, so every open lands on
+      the default; a lit CATEGORY filter forces both open (`catsMoreShown`),
+      the same silent-filter rule as `catsShown`.
+  - **THE ROW RUNS FULL WIDTH AND FLOWS AROUND THE PILL (Aug 2026 v2, same
+    message: "the tags are going really far down because they are not allowed
+    to go into the left most part … get rid of the refresh button … make the
+    tags take up the full width but skip where the auto scroll pill is").**
+    - `.toolrow` is a **block with inline flow** now, not a flex line: the
+      select icon is simply first in the flow and chips wrap under it to the
+      full width. The old flex layout penned every chip into the column right
+      of the icons — that was the stack down the screen.
+    - **`#pillnotch`** is a right float sized at paint time
+      (`sizePillNotch()`) to however much of the pill's fixed band (y 14-192)
+      the row still occupies — lines beside it shorten, lines below run full
+      width. It replaces the blanket `padding-right:64px`, which reserved the
+      corner on EVERY line including the twenty below the pill.
+    - **The tool row's refresh icon is GONE** ("I never use it anymore") —
+      the page polls on its own; the thread header keeps its own refresh.
+      `window.__reload()` keeps the tap's exact behaviour for the tests.
+    - The archive's `.catrow.arctagrow` keeps the flex layout — the inline
+      flow is scoped `#toolrow .catrow`.
+    - Test: `node scripts/test-chats-tags-button.js` — the groups, the sums,
+      the reset, and the layout measured on real geometry (a line below the
+      pill band may only break when the next chip truly wouldn't fit).
   - **COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
     back to and later categories" — confirmed as the chat-list FOLDER and the
     UPDATE screen's BOX).** She had two names for one intention and two places

@@ -140,7 +140,7 @@ const shown = (page) => page.evaluate(() => ({
 
   // 4. a short list shows neither
   few = true;
-  await page.click('#refresh');
+  await page.evaluate(() => window.__reload());  // the refresh button is gone (Aug 2026)
   await page.waitForFunction(() => document.querySelectorAll('#grid .crow[data-chat]').length <= 2,
     null, { timeout: 6000 }).catch(() => fail('the short list never rendered'));
   await page.waitForTimeout(150);

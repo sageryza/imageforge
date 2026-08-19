@@ -97,6 +97,8 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
 const openTags = async (page) => {
   await page.waitForSelector('#catrow .tagsbtn');
   if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
+  // Category words live behind SEE MORE now (Aug 2026) — unfold them too.
+  if (await page.$('#catrow .morechip')) await page.click('#catrow .morechip');
 };
 const chipText = (page, label) => page.$$eval('#catrow .catchip',
   (ns, l) => (ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === l) || {}).textContent || '', label);
