@@ -1,0 +1,24 @@
+[
+ {
+  "id": "cover-high-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v6/cover-high-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: a dark house interior at night where a group of friends converges on a staircase landing, each holding a single lit tea light candle, two of them shaking hands formally as if just meeting, one standing with knees pressed tightly together, one carrying a small supermarket basket holding a single item, an elevator's warm light spilling through a doorway at the edge with its doors just closing, a glint of blue pool water visible below the banister, everyone slightly out of breath and delighted, darkness everywhere except the stairs. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "high",
+  "size": "1024x1536",
+  "split": null
+ },
+ {
+  "id": "groundhog-day-high-v1",
+  "file": "/tmp/claude-0/-home-user/065dc6ec-6a6e-5cde-9e60-5130984db6e5/scratchpad/weird-games-v6/groundhog-day-high-v1.webp",
+  "prompt": "Use the attached image as a style reference. Only use its style, not its content \u2014 do not copy anything depicted in it. You do not have to copy its colors.\n\nDraw: the same small house party shown twice side by side like two frames of a film, identical people frozen in identical mid-toast poses in both halves with one tiny detail different between them, and in both halves the same reluctant guest stuck playing chess in the corner. No text or lettering anywhere.",
+  "refs": [
+   "/home/user/imageforge/refs/sage-sandy-mirror.png"
+  ],
+  "quality": "high",
+  "size": "1536x1024",
+  "split": null
+ }
+]
