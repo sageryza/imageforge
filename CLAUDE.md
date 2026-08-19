@@ -943,8 +943,17 @@ them off the reference sheet, not off the old filenames.
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
   bold **Waiting for:** line on the chat's row and above her note in the
   thread, and is DELETED the moment the tag comes off — a second asking word is
-  not yours to declare. Full rules in `docs/chats-app.md`; tests `node
-  scripts/test-chats-labels.js` and the same file as the tags above.
+  not yours to declare. **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
+  never' isn't on the tag list in the account area" → "give them both a
+  chip").** `come back to` had one because it was already a folder of hers;
+  `in a minute` and `maybe never` were invented as boxes and had no door
+  outside the Update tab. `QUEUE_CATS` in `chats.html` is the join, and the
+  two new words appear ONLY while their box holds something — they are not
+  seeded into her vocabulary and leave the row when she empties it. Filing is
+  unchanged: deferring one update still leaves the chat on the main list.
+  Full rules in `docs/chats-app.md`; tests `node
+  scripts/test-chats-labels.js`, `node scripts/test-chats-queue-chips.js` and
+  the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name

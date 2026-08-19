@@ -1037,6 +1037,29 @@
       the auto-return rule is the box's, and the folder must not contradict it.
     - Test: `node scripts/test-chats-come-back-to.js` (verified failing against
       a folder that only reads `category`).
+  - **…AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie, pointing at the
+    labels row: "'maybe never' isn't on the tag list in the account area" →
+    "give them both a chip").** Only `later` had ever been joined to a word,
+    because only `later` already HAD one — she had been filing chats into a
+    "come back to" folder by hand long before the Update screen existed.
+    `in a minute` and `maybe never` were invented as boxes, so a card she put
+    in one was reachable from exactly one screen. Three boxes, one door.
+    - The join is a TABLE now, `QUEUE_CATS` in `chats.html`, and the rest of
+      the file needed no idea it grew: `cbBox` is keyed by WORD rather than by
+      chat, `chatInCat()` reads it, and everything downstream (the counts, the
+      live list, the archive, the hidden pile) follows for free.
+    - **The two new words are NOT seeded into her vocabulary.** They appear on
+      the row only while something is actually in their box and leave again
+      when she empties it — `come back to` is a folder she made and stays put,
+      which is the whole difference. So a word she never uses never squats on
+      her row.
+    - They are **TASK words** (`TASK_LABELS`), sat together in `NEWS_QS`'s
+      order, so the chips and the boxes read the same way round.
+    - Nothing about FILING changed: deferring one update still leaves the chat
+      on the main list, and a superseded card still leaves both the box and
+      the chip at the same moment.
+    - Test: `node scripts/test-chats-queue-chips.js` (verified failing against
+      the one-word join — the two chips simply were not on the row).
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
