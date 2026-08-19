@@ -11,10 +11,11 @@
 //     deletes it
 //   • a page whose data can't be read shows NO wrong numbers — it is skipped
 //   • waiting sorts newest post first; her chat's displayName names the row
-//   • a CHAT carrying `to be reviewed` is a row too (Aug 2026) — the label is
-//     the whole mechanism, so archived/deleted/moved chats and near-miss words
-//     are out, the old `category` shape still reads, and a chat never lands in
-//     DONE because there is nothing to count through
+//   • `reviewDone` — her Done button in the deck's piles area — files a page
+//     as done whatever its cards say (Aug 2026 v2)
+//   • the queue is DECKS AND ONLY DECKS: a chat carrying `to be reviewed` is
+//     NOT a row here any more (same day — the chat is reached from inside its
+//     own deck instead)
 //
 //   node scripts/test-review.js
 
@@ -113,55 +114,55 @@ const deck = (ids, extra) => ({
     q.waiting[0].url, '/api/chatfeed/page/p2?clean=1');
   is('counts: pages waiting', q.counts.pages, 2);
   is('counts: cards to go', q.counts.items, 3);
+  is('the pane no longer counts chats', q.counts.chats, undefined);
   is('a finished row stamps her last touch', q.done[0].at, t(31));
 }
 
-// ── CHATS SHE MARKED FOR REVIEW (Aug 2026, Sophie: "`to be reviewed` should
-//    send it to the review pile … whereas other ones shouldn't take it off the
-//    main feed") ────────────────────────────────────────────────────────────
-// The label IS the mechanism — nothing filed, nothing stamped — so the rules
-// worth pinning are the ones that decide whether a chat is in the pile at all.
+// ── HER DONE BUTTON (Aug 2026 v2, Sophie: "instead offer a skip or done
+//    button in the piles area deck") ─────────────────────────────────────────
+// "I'm finished with this one" is a real answer even when cards are unmarked —
+// a browse she read through, a set she decided about as a whole — so the stamp
+// files the page as done without touching a single verdict.
+{
+  const q = buildQueue({
+    pages: [
+      { id: 'p1', chat: 'xi', title: 'Read through', created: t(1), template: 'deck', reviewDone: true },
+      { id: 'p2', chat: 'xi', title: 'Still going', created: t(2), template: 'deck' },
+      // a skipped page is hidden, and hidden beats done — she said it was
+      // never a review at all
+      { id: 'p3', chat: 'xi', title: 'A demo', created: t(3), template: 'deck',
+        reviewDone: true, reviewHidden: true },
+    ],
+    items: { p1: deck(['a', 'b']), p2: deck(['c', 'd']), p3: deck(['e']) },
+    verdicts: {},
+    chats: {},
+  });
+  is('her Done files it as done with nothing marked', q.done.map((r) => r.id), ['p1']);
+  is('…and it is not still waiting', q.waiting.map((r) => r.id), ['p2']);
+  is('skip wins over done', q.hidden.map((r) => r.id), ['p3']);
+  is('the done page stops counting cards to go', q.counts.items, 2);
+}
+
+// ── DECKS AND ONLY DECKS (Aug 2026 v2, Sophie: "take away the chat list at
+//    the bottom and instead offer a link back to the chat in the piles area")
 {
   const chats = {
     'needs-me': { displayName: 'The witch shop', labels: ['witch', 'to be reviewed'],
       statusNeed: 'pick a palette, 10 seconds', updAt: t(40) },
-    // the OLD pair of fields still reads: `to be reviewed` was her `category`
     'old-shape': { category: 'to be reviewed', statusAt: t(20) },
-    // a plain tag, and a chat in a different pile — neither is review homework
-    'just-tagged': { labels: ['images'], statusAt: t(10) },
-    'in-a-folder': { labels: ['stories'], statusAt: t(10) },
-    // finished with: archived, deleted, and a tombstone
-    'put-away': { labels: ['to be reviewed'], archived: true },
-    'binned': { labels: ['to be reviewed'], deletedAt: t(5) },
-    'moved-on': { labels: ['to be reviewed'], movedTo: 'needs-me' },
-    // the word must match exactly — a near miss is a different word
-    'nearly': { labels: ['to review'] },
   };
   const q = buildQueue({ pages: [], items: {}, verdicts: {}, chats,
     reviewLabel: 'to be reviewed' });
-  const names = q.waiting.map((r) => r.chat).sort();
-  is('only the chats wearing the word are in the pile', names, ['needs-me', 'old-shape']);
-  is('nothing lands in done — a chat leaves when the word comes off', q.done.length, 0);
-  const row = q.waiting.find((r) => r.chat === 'needs-me');
-  is('a chat row says it is a chat', [row.kind, row.template], ['chat', 'chat']);
-  is('it opens the chat, not a page', row.url, '/chats?chat=needs-me');
-  is('it wears her name for the chat', row.name, 'The witch shop');
-  is('its line is what the chat says it needs', row.title, 'pick a palette, 10 seconds');
-  is('nothing to count through', [row.total, row.decided], [0, 0]);
-  is('the chats are counted apart from the cards', [q.counts.chats, q.counts.items], [2, 0]);
-  // a chat with no status card still says something rather than nothing
-  is('a chat with nothing written falls back',
-    q.waiting.find((r) => r.chat === 'old-shape').title, 'Waiting on you');
-  // and with no label configured, nothing at all comes from the registry
-  const off = buildQueue({ pages: [], items: {}, verdicts: {}, chats });
-  is('no review label, no chat rows', off.waiting.length, 0);
+  is('a tagged chat is no longer a row here — the deck holds the link now',
+    [q.waiting.length, q.done.length, q.hidden.length], [0, 0, 0]);
+  is('and nothing counts chats any more', q.counts, { pages: 0, items: 0, done: 0 });
 }
 
 // ── an empty world stays calm ──────────────────────────────────────────────
 {
   const q = buildQueue({ pages: [], items: {}, verdicts: {}, chats: {} });
   is('empty queue', [q.waiting.length, q.done.length, q.hidden.length], [0, 0, 0]);
-  is('empty counts', q.counts, { pages: 0, items: 0, chats: 0, done: 0 });
+  is('empty counts', q.counts, { pages: 0, items: 0, done: 0 });
 }
 
 if (fails.length) {

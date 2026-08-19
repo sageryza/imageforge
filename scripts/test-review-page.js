@@ -9,11 +9,11 @@
 //     first picture, or a text deck's first card's own words; the tile opens
 //     the page CLEAN (?clean=1); an untouched tile reads rose; a faceless
 //     tile gets the card glyph, never a broken image
-//   • tagged CHATS stay rows below the tiles, under their own head
+//   • NO ✕ on a tile (Skip/Done moved into the deck's piles view) and no chat
+//     rows — the queue is decks and only decks
 //   • the WAITING · DONE hairline tabs switch panes and the sliding line
 //     lands under the lit tab (measured, never a count)
-//   • the ✕ POSTs /api/review/hide for that page and re-reads fresh; the
-//     hidden pile's ↩ posts hidden:false
+//   • the hidden pile's ↩ still posts hidden:false — the page's one write
 //   • nothing scrolls sideways on a 390pt phone
 //
 // Playwright is optional — this skips cleanly without it.
@@ -54,16 +54,6 @@ const row = (o) => ({
   url: '/api/chatfeed/page/' + o.id + '?clean=1', total: o.total, decided: o.decided || 0,
   later: o.later || 0, thumb: o.thumb || '', peek: o.peek || '', at: new Date().toISOString(),
 });
-// A CHAT ROW (Aug 2026) — she put `to be reviewed` on a chat and it turns up
-// here. Nothing to count through, so it carries no bar and its ✕ takes the
-// label off rather than hiding a page.
-const chatRow = {
-  kind: 'chat', id: 'chat-witch-shop', chat: 'witch-shop', name: 'The witch shop',
-  title: 'pick a palette, 10 seconds', template: 'chat',
-  created: new Date(Date.now() - 7200e3).toISOString(),
-  at: new Date(Date.now() - 7200e3).toISOString(),
-  url: '/chats?chat=witch-shop', total: 0, decided: 0, later: 0, thumb: '',
-};
 const QUEUE = {
   waiting: [
     // untouched TEXT deck — its tile face is the first card's own words
@@ -71,11 +61,10 @@ const QUEUE = {
     row({ id: 'w2', title: 'Instagram ideas v1', total: 28, decided: 4, later: 2, thumb: PX }),
     // no picture AND no words on file — the card glyph holds the face
     row({ id: 'w3', title: 'Morning ideas', total: 6 }),
-    chatRow,
   ],
   done: [row({ id: 'd1', title: 'Style test v1', template: 'grid', total: 16, decided: 16, thumb: PX })],
   hidden: [row({ id: 'h1', title: 'Deck template demo', total: 4 })],
-  counts: { pages: 4, items: 161, chats: 1, done: 1 },
+  counts: { pages: 3, items: 161, done: 1 },
   generatedAt: new Date().toISOString(),
 };
 
@@ -115,15 +104,15 @@ const QUEUE = {
   await page.goto('https://forge.test/review', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#pane-wait .qtile', { timeout: 5000 }).catch(() => {});
 
-  // ── it drew: tiles for pages, a row for the chat ─────────────────────────
+  // ── it drew: tiles, and nothing but tiles ────────────────────────────────
   ok('no page errors (the pill did not kill the script, nor it the pill)', errors.length === 0);
   is('the page tiles drew', await page.locator('#pane-wait .qtile').count(), 3);
-  is('the tagged chat stays a row below them', await page.locator('#pane-wait .qrow').count(), 1);
-  is('…under its own head',
-    (await page.locator('#pane-wait .pilehead').textContent()).trim(), 'Chats');
-  is('the strip counts the pile, chats named apart from the cards',
-    (await page.locator('#strip').textContent()).trim(),
-    '4 waiting · 161 cards to go · 1 chat');
+  is('no chat rows — the queue is decks and only decks',
+    await page.locator('#pane-wait .qrow').count(), 0);
+  is('no ✕ on a tile — Skip and Done live in the deck now',
+    await page.locator('#pane-wait [data-hide]').count(), 0);
+  is('the strip counts the pile',
+    (await page.locator('#strip').textContent()).trim(), '3 waiting · 161 cards to go');
   ok('an untouched tile reads due (rose count), not the one she is part-way through',
     await page.locator('#pane-wait .qtile.due').count() === 2);
   is('a text deck\'s face is its first card\'s own words',
@@ -150,19 +139,6 @@ const QUEUE = {
     ok('…and every face is square',
       boxes.every((b) => Math.abs(b.width - b.height) < 1.5));
   }
-
-  // ── a chat row ───────────────────────────────────────────────────────────
-  const crow = page.locator('#pane-wait .qrow').first();
-  is('a chat row opens the CHAT, not a page',
-    await crow.locator('a.qgo').getAttribute('href'), '/chats?chat=witch-shop');
-  is('it leads with her name for the chat',
-    (await crow.locator('.qt').textContent()).trim(), 'The witch shop');
-  ok('it says it is a chat', (await crow.locator('.qm').textContent()).indexOf('chat') === 0);
-  ok('it shows what the chat says it needs',
-    (await crow.locator('.qn').textContent()).trim() === 'pick a palette, 10 seconds');
-  ok('its ✕ takes the label off rather than hiding a page',
-    await crow.locator('[data-reviewed="witch-shop"]').count() === 1
-    && await crow.locator('[data-hide]').count() === 0);
 
   // ── the pill contract ────────────────────────────────────────────────────
   ok('the injected pill is there', await page.locator('.float').count() > 0);
@@ -195,15 +171,10 @@ const QUEUE = {
     ok('…and sits under it (x)', Math.abs(line.tx - line.left) < 1.5);
   }
 
-  // ── ✕ hides, ↩ un-hides ─────────────────────────────────────────────────
-  await page.locator('#tab-wait').click();
-  await page.locator('[data-hide="w1"]').click();
-  await page.waitForTimeout(120);
-  is('the ✕ posted the stamp', hides[0], { id: 'w1', hidden: true });
-  await page.locator('#tab-done').click();
+  // ── ↩ un-hides (the page's one write) ───────────────────────────────────
   await page.locator('[data-unhide="h1"]').click();
   await page.waitForTimeout(120);
-  is('the ↩ posted it back', hides[1], { id: 'h1', hidden: false });
+  is('the ↩ posted it back', hides[0], { id: 'h1', hidden: false });
 
   await browser.close();
   if (fails.length) {
