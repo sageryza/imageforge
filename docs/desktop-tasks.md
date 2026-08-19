@@ -96,6 +96,33 @@ Then she says one thing to the terminal chat and the whole queue runs.
   that does.
 - **Queued:** 2026-08-17 by search-index-rebuild
 
+### Turn on the automatic daily Voice Memos push
+- **Why:** Sophie asked for the Mac push to run by itself — at login and once a
+  day — instead of being a command she has to remember. This installs a small
+  launchd agent that runs the existing `push-memos.mjs` (fetched fresh from the
+  server each run, so it never goes stale). One-time install; after this the
+  push needs nobody.
+- **Where:** anywhere (it needs no checkout — the installer is served by the app)
+- **Run:**
+  ```bash
+  curl -fsSL https://imageforge-q125.onrender.com/install-memo-autopush.sh -o /tmp/install-memo-autopush.sh
+  bash /tmp/install-memo-autopush.sh
+  ```
+  It writes the agent, starts the first push immediately, and shows the log.
+- **If the log says "No Voice Memos database":** that's macOS keeping a
+  background job away from the recordings even though Terminal can see them.
+  The installer prints the one-time fix (add the `node` binary it names to
+  System Settings → Privacy & Security → Full Disk Access) — do that, then run
+  the installer once more.
+- **Afterwards:** it runs at every login and daily at 12:00 PM (a run missed
+  while the Mac sleeps happens on the next wake). The log lives at
+  `~/Library/Logs/imageforge-push-memos.log`. Re-running the installer is
+  always safe; uninstall lines are in the script's header.
+- **Needs from her:** nothing beyond the possible Full Disk Access click above.
+- **Queued:** 2026-08-18 by voice-memos-upload-script
+- **If the curl 404s** (deploy not live yet): pull main and run
+  `bash ~/imageforge/scripts/install-memo-autopush.sh` instead — same script.
+
 ---
 
 ## DONE

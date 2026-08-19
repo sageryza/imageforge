@@ -104,6 +104,12 @@ app.get('/import-apple-transcripts.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/import-apple-transcripts.mjs');
 });
 
+// One-time installer for the Mac's launchd agent that runs the push at login
+// and daily — so the pusher above needs no human after this. No credentials.
+app.get('/install-memo-autopush.sh', (req, res) => {
+  res.type('text/x-shellscript').sendFile(__dirname + '/scripts/install-memo-autopush.sh');
+});
+
 app.get('/push-journal.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
 });

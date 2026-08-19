@@ -306,6 +306,19 @@ pure, no network.
   (`audio.js` auto-files each new recording, keeping its own `forge-audio`
   doc with `memoId` as the reference), Story Room voiceover pastes
   (recordings only — TTS renders stay out), and a chat with a pasted file.
+- **The Mac push is AUTOMATIC once installed (Aug 2026, Sophie's ask):**
+  `scripts/install-memo-autopush.sh` (served at `/install-memo-autopush.sh`,
+  queued in `docs/desktop-tasks.md`) writes a launchd agent
+  (`com.imageforge.push-memos`) that runs the push at every login and daily at
+  noon, downloading the CURRENT `push-memos.mjs` from the server each run (with
+  an offline fallback to its cached copy), logging to
+  `~/Library/Logs/imageforge-push-memos.log`. The one macOS trap: a launchd job
+  doesn't inherit Terminal's Full Disk Access, so the agent can be blind to the
+  Voice Memos database Terminal reads fine — the installer detects that exact
+  failure in the first run's log and prints the one-time System Settings fix
+  (add the `node` binary to Full Disk Access). Re-running the installer is
+  always safe. Test: `node scripts/test-memo-autopush.js` (generation on a
+  scratch HOME, no launchd, no Mac).
 - **A chat files a pasted recording with ONE call — never reconstruct the
   stamp by hand:** `POST /api/memos/ingest?title=…&dur=…&ext=m4a` with the
   raw bytes as the body. `stamp` is optional; without it the server derives
