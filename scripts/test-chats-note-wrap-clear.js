@@ -1,0 +1,227 @@
+#!/usr/bin/env node
+// THREE THINGS SHE ASKED FOR IN ONE EVENING (Aug 2026), all on public/chats.html:
+//
+//   A. "i want the archive summary to show below my note, as u said, including
+//      the down arrow to make it longer" — the wrap-up lived on the ARCHIVE
+//      row and only there, which had two consequences she was reading as the
+//      summary not existing at all: on a home row `note || wrap` means a note
+//      SHE wrote takes the line outright (measured 2026-08-19: 71 of the 312
+//      chats carrying a summary also carry a note), and the ⌄ is painted only
+//      in the archive's List view, so the 162 not yet archived had nowhere to
+//      open one.
+//
+//   B. "there's supposed to be an extra button to 'clear' the search, but not
+//      dismiss the search box" — the action existed (the GLASS starts a new
+//      search) but a magnifier does not READ as "clear", so it was a control
+//      she had no reason to try. Now the round ✕ inside the field does it.
+//
+//   C. "can u also put a dividing line between progress and categories in the
+//      archive" — the home row has drawn that line since TAGS folded, but the
+//      SHEETS handed her one jumbled list.
+//
+//   npm install playwright-core --no-save && node scripts/test-chats-note-wrap-clear.js
+//
+// playwright is an optionalDependency, so this skips cleanly without it.
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+let chromium;
+try { ({ chromium } = require('playwright')); }
+catch {
+  try { ({ chromium } = require('playwright-core')); }
+  catch { console.log('SKIP: playwright not installed (npm install playwright-core --no-save)'); process.exit(0); }
+}
+
+const PUB = path.join(__dirname, '..', 'public');
+const T0 = Date.now();
+const iso = (ms) => new Date(ms).toISOString();
+
+const MSGS = [
+  { id: 'm1', chat: 'noted', from: 'claude', text: 'a yellow raincoat', tldr: 'the one', created: iso(T0 - 6e5), postedAt: iso(T0 - 6e5) },
+  { id: 'm2', chat: 'bare', from: 'claude', text: 'crows at dusk', tldr: 'two', created: iso(T0 - 5e5), postedAt: iso(T0 - 5e5) },
+];
+// `noted` has a note AND a full three-depth wrap-up — the case that was
+// invisible everywhere. `bare` has neither, and must show no line and no ⌄.
+const CHATS = {
+  noted: {
+    account: '1', sophieNote: 'waiting on the palette',
+    wrapLine: 'Built the pause timeline and shipped v7b.',
+    wrapUp: 'Built the pause timeline. Shipped v7b. Her lengths are stored per paragraph.',
+    wrapOpen: 'Whether the 45 percent line still reads bungled.',
+    wrapLong: 'Imported the Cutting Room pause passes rather than re-deriving them.\nBaked room tone once per recording.\nListening is per paragraph, spliced in the browser.',
+  },
+  bare: { account: '1' },
+};
+
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, 'http://x');
+  if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
+    const since = url.searchParams.get('since');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      build: 'b1', chats: CHATS,
+      settings: { categories: ['witch', 'stories'] },
+      truncated: [], messages: since ? [] : MSGS, delta: !!since,
+    }));
+  }
+  if (url.pathname === '/api/chatfeed/search') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      results: [{ id: 'm1', chat: 'noted', snippet: 'a yellow raincoat', created: MSGS[0].created }],
+      chatMatches: [],
+    }));
+  }
+  if (url.pathname === '/api/chatfeed/thread') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ messages: MSGS }));
+  }
+  if (url.pathname === '/' || url.pathname === '/chats') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return res.end(fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
+  }
+  const asset = path.join(PUB, url.pathname.replace(/^\/+/, ''));
+  if (/\.(js|css|svg|png|webp)$/.test(url.pathname) && asset.startsWith(PUB) && fs.existsSync(asset)) {
+    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    return res.end(fs.readFileSync(asset));
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ ok: true, messages: [], todos: [], bookmarks: [] }));
+});
+
+let failed = 0;
+const fail = (m) => { console.error('FAIL: ' + m); failed++; process.exitCode = 1; };
+// Dictation, faithfully: the text lands in the field and NO event is fired.
+const dictate = (page, sel, text) => page.evaluate(([s, t]) => {
+  const el = document.querySelector(s); el.focus(); el.value = t;
+}, [sel, text]);
+
+(async () => {
+  await new Promise((r) => server.listen(0, r));
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const preinstalled = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    '/opt/pw-browsers/chromium/chrome-linux/chrome']
+    .find((p) => { try { fs.accessSync(p); return true; } catch { return false; } });
+  const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on('pageerror', (e) => fail('the page threw: ' + e.message));
+
+  await page.goto(base + '/chats');
+  await page.waitForSelector('#grid [data-chat="noted"]');
+
+  // ---- A. the wrap-up under her note, in the thread ---------------------
+  await page.click('#grid [data-chat="noted"]');
+  await page.waitForSelector('#thread .noterow');
+  const order = await page.evaluate(() => {
+    const n = document.querySelector('#thread .noterow');
+    const w = document.querySelector('#thread .threadwrap');
+    if (!w) return { missing: true };
+    return {
+      below: !!(n.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING),
+      note: (n.textContent || '').trim(),
+      line: (w.querySelector('.twline') || {}).textContent || '',
+      hasToggle: !!w.querySelector('.wrapmore'),
+      bodyHidden: (w.querySelector('.wrapfull') || {}).hidden,
+    };
+  });
+  if (order.missing) fail('no wrap-up block in the thread at all');
+  else {
+    if (!order.below) fail('the summary is not BELOW her note');
+    if (!/waiting on the palette/.test(order.note)) fail('her note stopped showing: ' + order.note);
+    if (!/pause timeline/.test(order.line)) fail('the summary line is wrong: ' + order.line);
+    if (!order.hasToggle) fail('no ⌄ to open the longer version');
+    if (order.bodyHidden !== true) fail('the longer version is open before she taps it');
+  }
+  // …and the ⌄ opens the three sentences, with MORE for the long one
+  await page.click('#thread .threadwrap .wrapmore');
+  const opened = await page.evaluate(() => {
+    const b = document.querySelector('#thread .threadwrap .wrapfull');
+    return { hidden: b.hidden, text: b.textContent || '', more: !!b.querySelector('.wrapmore2') };
+  });
+  if (opened.hidden) fail('the ⌄ did not open the summary');
+  if (!/stored per paragraph/.test(opened.text)) fail('the three-sentence version is missing: ' + opened.text);
+  if (!/Still open: .*bungled/.test(opened.text)) fail('the still-open half is missing: ' + opened.text);
+  if (!opened.more) fail('no MORE for the long version');
+  await page.click('#thread .threadwrap .wrapmore2');
+  const long = await page.$eval('#thread .threadwrap .wrapfull', (b) => ({
+    text: b.textContent || '', bullets: b.querySelectorAll('.wrapbul').length,
+  }));
+  if (!/Baked room tone/.test(long.text)) fail('MORE did not show the long version');
+  if (long.bullets < 3) fail('the long version is not bulleted: ' + long.bullets);
+
+  // a chat with no wrap-up shows nothing rather than an empty caption
+  await page.click('#back');
+  await page.waitForSelector('#grid [data-chat="bare"]');
+  await page.click('#grid [data-chat="bare"]');
+  await page.waitForSelector('#thread .noterow');
+  const bare = await page.evaluate(() => {
+    const w = document.querySelector('#thread .threadwrap');
+    return { there: !!w, shown: !!(w && !w.hidden && w.textContent.trim()) };
+  });
+  if (bare.shown) fail('a chat with no summary is showing an empty wrap-up block');
+  await page.click('#back');
+  await page.waitForSelector('#grid [data-chat="noted"]');
+
+  // ---- B. clear the words WITHOUT dismissing the bar --------------------
+  await page.click('#searchbtn');
+  await page.waitForSelector('#qsearch', { state: 'visible' });
+  if (await page.$eval('#qwipe', (n) => getComputedStyle(n).display !== 'none')) {
+    fail('the clear button is showing on an empty box');
+  }
+  await dictate(page, '#qsearch', 'raincoat');
+  await page.press('#qsearch', 'Enter');
+  await page.waitForSelector('#searchresults .sres', { timeout: 4000 })
+    .catch(() => fail('the search never ran'));
+  await page.evaluate(() => document.getElementById('qsearch').focus());
+  await page.waitForFunction(() => document.getElementById('qwipe').classList.contains('on'), null, { timeout: 3000 })
+    .catch(() => fail('the clear button never appeared with words in the box'));
+  await page.click('#qwipe');
+  const wiped = await page.evaluate(() => ({
+    words: document.getElementById('qsearch').value,
+    barOpen: document.getElementById('searchrow').classList.contains('on'),
+    focused: document.activeElement === document.getElementById('qsearch'),
+    results: document.getElementById('searchresults').style.display,
+    grid: getComputedStyle(document.getElementById('grid')).display,
+    wipeShown: document.getElementById('qwipe').classList.contains('on'),
+  }));
+  if (wiped.words !== '') fail('the clear button left words in the box: ' + JSON.stringify(wiped.words));
+  if (!wiped.barOpen) fail('the clear button DISMISSED the search box — that is the ✕\'s job, not this one');
+  if (!wiped.focused) fail('the clear button dropped the keyboard');
+  if (wiped.results !== 'none') fail('the stale results are still up');
+  if (wiped.grid === 'none') fail('the chat list did not come back');
+  if (wiped.wipeShown) fail('the clear button is still showing on the now-empty box');
+  // and the ✕ still LEAVES, one tap, as before
+  await page.click('#qclear');
+  if (await page.$eval('#searchrow', (n) => n.classList.contains('on'))) fail('the ✕ stopped closing the bar');
+
+  // ---- C. a line between the progress words and the categories ----------
+  await page.click('#grid [data-chat="noted"]');
+  await page.waitForSelector('#thread .archlink.arch-r, #thread .archlink');
+  await page.$$eval('#thread .archlink', (ns) => { (ns.find((n) => /archive/i.test(n.getAttribute('aria-label') || '')) || ns[0]).click(); });
+  await page.waitForSelector('.askbox .arctags .catchip');
+  const sheet = await page.$$eval('.askbox .arctags > *', (ns) => ns.map((n) => ({
+    div: n.classList.contains('catdiv'),
+    label: (n.textContent || '').trim(),
+    chip: n.classList.contains('catchip'),
+  })));
+  const dv = sheet.findIndex((x) => x.div);
+  if (dv < 0) fail('no dividing line in the archive sheet');
+  else {
+    const TASK = ['Look at', 'Come back to', 'In progress', 'Waiting for something',
+      'To be reviewed', 'To read', 'Built', 'Failed'];
+    const above = sheet.slice(0, dv).filter((x) => x.chip).map((x) => x.label);
+    const below = sheet.slice(dv + 1).filter((x) => x.chip).map((x) => x.label);
+    if (!above.length || !below.length) fail('the line has nothing on one side of it');
+    above.forEach((w) => { if (TASK.indexOf(w) < 0) fail('"' + w + '" is a category but sits above the line'); });
+    below.forEach((w) => { if (TASK.indexOf(w) > -1) fail('"' + w + '" is a progress word but sits below the line'); });
+    if (!/categor/i.test(sheet[dv].label)) fail('the divider does not name the group below it: ' + sheet[dv].label);
+    // and it really breaks the line in a flex row, rather than sitting beside a chip
+    const full = await page.$eval('.askbox .arctags .catdiv', (n) =>
+      Math.round(n.getBoundingClientRect().width) >= Math.round(n.parentNode.getBoundingClientRect().width) - 2);
+    if (!full) fail('the divider does not span the row, so it sits beside a chip instead of breaking the line');
+  }
+
+  await browser.close();
+  server.close();
+  if (!failed) console.log('PASS: the summary sits under her note with its ⌄, the words clear without losing the bar, and the sheet is ruled off');
+})().catch((e) => { console.error('FAIL: ' + e.message); process.exit(1); });

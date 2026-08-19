@@ -1060,6 +1060,25 @@
       the chip at the same moment.
     - Test: `node scripts/test-chats-queue-chips.js` (verified failing against
       the one-word join — the two chips simply were not on the row).
+    - **A derived word is a FILTER, not a folder** (`queueOnly()`): `in a
+      minute` and `maybe never` are on the home row but are kept OUT of
+      `fileVocab()`, so no filing sheet offers them. Tapping one in a sheet
+      would put it on a chat as a real label, where it would not empty itself
+      when the card is superseded and would outlive the box entirely. `come
+      back to` is exempt — a folder she made by hand.
+  - **ONE ROW, TWO GROUPS, A LINE BETWEEN (Aug 2026, Sophie: "can u also put a
+    dividing line between progress and categories in the archive").** The home
+    row has drawn that line since TAGS folded (`.catdiv`), but the SHEETS
+    handed her one jumbled list — `Stories` and `Tech` first because they are
+    the seeds, then `Come back to`, then `Witch`, then `Look at`.
+    - `paintVocabChips(row, mk)` is the one painter: progress words in
+      `TASK_LABELS` order, a `.catdiv` reading CATEGORIES, then the rest. Every
+      sheet that draws `fileVocab()` as chips comes through it — the archive
+      sheet and both Organize rows — so a word is never in the progress group
+      on one screen and the topic group on another.
+    - `.catdiv` is a BLOCK in the home row's inline flow, which is what breaks
+      the chips there. `.arctags` is a flex row, where a block child would sit
+      beside a chip — so inside a sheet it takes `flex-basis:100%`.
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
