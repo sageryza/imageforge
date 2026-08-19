@@ -35,20 +35,27 @@
     '.gd-glabel{font:700 11px/1.4 -apple-system,sans-serif;letter-spacing:.08em;' +
     ' text-transform:uppercase;color:var(--gold);padding:0 0 6px;}' +
     '.gd-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;}' +
+    // The picture fills its cell edge to edge — no inner padding around media
+    // (Sophie, 2026-08-19: the tiles were "already small and then they're also
+    // going inside of a border with padding so it makes them even smaller").
+    // The text bits carry their own padding instead; overflow:hidden lets the
+    // cell's radius clip the image corners.
     '.gd-it{position:relative;background:var(--surface);border:1px solid var(--line);' +
-    ' border-radius:6px;padding:8px 8px 30px;display:flex;flex-direction:column;gap:6px;' +
-    ' min-width:0;box-sizing:border-box;}' +
+    ' border-radius:6px;padding:0 0 30px;display:flex;flex-direction:column;gap:6px;' +
+    ' min-width:0;box-sizing:border-box;overflow:hidden;}' +
     '.gd-it .tag{display:block;font:700 11px/1 -apple-system,sans-serif;' +
-    ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}' +
-    '.gd-it img{width:100%;height:auto;border-radius:4px;display:block;}' +
+    ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);padding:8px 8px 0;}' +
+    '.gd-it img{width:100%;height:auto;border-radius:0;display:block;}' +
     // the card-face menu (square / portrait / landscape) — ratio set inline
     // per tile so one page can mix shapes; the class carries the rest
     '.gd-sq img{height:auto;object-fit:cover;}' +
     '.gd-sq .gd-txt{width:100%;display:flex;align-items:center;' +
     ' justify-content:center;text-align:center;padding:8%;box-sizing:border-box;}' +
-    '.gd-txt{font-size:15px;line-height:1.45;color:var(--ink);word-break:break-word;}' +
-    '.gd-cap{font:500 11px/1.3 -apple-system,sans-serif;color:var(--ink2);}' +
-    '.gd-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto;}' +
+    '.gd-txt{font-size:15px;line-height:1.45;color:var(--ink);word-break:break-word;' +
+    ' padding:8px;}' +
+    '.gd-cap{font:500 11px/1.3 -apple-system,sans-serif;color:var(--ink2);padding:0 8px;}' +
+    '.gd-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto;' +
+    ' padding:0 8px;}' +
     '.gd-vote{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);' +
     ' background:var(--surface);color:var(--ink2);display:flex;align-items:center;' +
     ' justify-content:center;padding:0;}' +
@@ -162,10 +169,13 @@
       });
     }
 
-    // one row per group: N across up to 6, wrapping after — the flex basis
-    // carries the row size so 3 variants genuinely share one row
+    // one row per group, capped at THREE across: 2 share halves, 3 thirds,
+    // and anything larger wraps at 3 — a 6-item group used to land as ONE row
+    // of six ~50px tiles (Sophie, 2026-08-19, on a phone: "six things all in
+    // the same row"). Comparing more than 3 across is unreadable at phone
+    // width whatever the design intent says.
     var html = groups.map(function (g) {
-      var per = Math.min(Math.max(g.items.length, 2), 6);
+      var per = Math.min(Math.max(g.items.length, 2), 3);
       var basis = 'calc((100% - ' + ((per - 1) * 8) + 'px)/' + per + ')';
       return '<div class="gd-group">'
         + (g.label ? '<div class="gd-glabel">' + esc(g.label) + '</div>' : '')
