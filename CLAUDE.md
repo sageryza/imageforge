@@ -2276,6 +2276,37 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **ONE PAGE, TWO VIEWS (Aug 2026 v4, Sophie: "the compare page, and tinder
+    swipe shud be TWO views of the the same page, since they have the same
+    content. that way I can swipe back and forth, and see them at full size,
+    rather than opening and closing").** Every template page now carries BOTH
+    halves behind one hairline switch (SWIPE · COMPARE, `page-views.js`);
+    `template` only decides which it OPENS on. The half that is missing from
+    the data is derived — a grid's groups flatten into the deck's item list, a
+    deck's items become one-card groups — so a page posted either way opens
+    either way, including every page already posted.
+    - **The marks cross by themselves.** Both views have always written the
+      same verdict doc under the same item ids, so switching is a repaint:
+      each view exposes a `refresh()` and re-reads on the way back in. Her
+      place in the deck is kept (`resume(false)` — catching up must not jump
+      her to the first unjudged card).
+    - **The pill is per VIEW, not per page.** A deck is one screen and a grid
+      scrolls, so `meta forge-pill off` could no longer say it: the pill is
+      injected and hidden by the body class instead.
+    - **The deck's height chain runs through the new wrapper** — judge.js
+      sizes off 100% of its mount, so `#pageviews` is a full-height flex
+      column and `#judge` takes what the switch does not. Without that the
+      card floats at the top of a half-height box.
+  - **TAPPING THE PICTURE OPENS THE ASSETS LIGHTBOX, on a swipe card too (Aug
+    2026 v4, Sophie: "I think I want the same exact asset tab formula w heart
+    ex prompt note chat etc in lightbox view, and u can have tinder one choice
+    when not in lightbox").** So the card keeps ONE choice — her ✕/♥ and the
+    note box at the bottom — and everything else about a picture lives behind
+    it: its own ♥/✕, both halves of the prompt, the note thread. The adapter
+    is `asset-view.js`, lifted out of grid.js so a tile and a swipe card open
+    the same thing rather than two copies drifting apart. judge.js drops the
+    `zoom` class when the adapter is present, because that class belongs to
+    compare.js's own document-level lightbox and racing it would be a bug.
   - **EVERY DECK IS HER DECK NOW (Aug 2026 v3, Sophie: "I think we should
     just make the single image review surface the same general template as
     the text one").** Her Decision Deck chrome — the cream, one screen, the
