@@ -60,19 +60,54 @@
     + '[hidden]{display:none !important;}';
   document.head.appendChild(css);
 
-  /** a grid's groups flattened, in order — the deck's item list */
-  function itemsOf(data) {
-    if (data.items && data.items.length) return data.items;
-    var out = [];
-    (data.groups || []).forEach(function (g) {
-      (g.items || []).forEach(function (it) { out.push(it); });
-    });
-    return out;
-  }
   /** a deck's items as one-card groups — the grid's rows */
   function groupsOf(data) {
     if (data.groups && data.groups.length) return data.groups;
     return (data.items || []).map(function (it) { return { items: [it] }; });
+  }
+
+  /* ── SPREADS (Aug 2026, Sophie: "so I can leave a note per card, or per
+     spread. same w heart") ────────────────────────────────────────────────
+     A page is spreads holding cards. A mark can land on either, and both go
+     to the same verdict doc — a spread just needs a key of its own.
+
+     THE `s:` PREFIX IS WHAT KEEPS THEM APART. Item ids are cut down to
+     [a-z0-9_-] when they are derived (page-templates deriveId), so a colon
+     can never appear in one and a spread key can never collide with a card's.
+     The id is derived HERE, from the label and the position, rather than
+     stored: page data is frozen the day it is posted, and deriving it means
+     every page already out there gets spread marks too.
+
+     A ONE-CARD SPREAD GETS NO KEY OF ITS OWN — its card's mark IS the mark,
+     and a second heart for the same picture would be two answers to one
+     question. So only a spread of 2+ is markable as a spread. */
+  function spreadsOf(data) {
+    var taken = {};
+    return groupsOf(data).map(function (g, i) {
+      var items = g.items || [];
+      var sp = { label: g.label || '', items: items };
+      if (items.length > 1) {
+        var base = String(g.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '').slice(0, 40) || ('spread-' + (i + 1));
+        var id = base; var n = 2;
+        while (taken[id]) { id = base + '-' + n; n += 1; }
+        taken[id] = 1;
+        sp.id = 's:' + id;
+      }
+      return sp;
+    });
+  }
+
+  /** the deck's cards: a spread of one is its picture; a spread of several is
+   *  ONE card holding them side by side — which is also the two-up picker she
+   *  asked for ("comparing two different images to each other, and picking
+   *  between them"), falling out of the same shape rather than being a third
+   *  thing to build. */
+  function itemsOf(data) {
+    return spreadsOf(data).map(function (sp) {
+      if (!sp.id) return sp.items[0];
+      return { id: sp.id, label: sp.label, cards: sp.items };
+    });
   }
 
   window.__pageViews = function (opts) {
@@ -118,7 +153,7 @@
         })) || {};
       } else if (!swiping && !started.compare) {
         started.compare = window.__grid(Object.assign({}, data, {
-          mount: '#grid', groups: groupsOf(data),
+          mount: '#grid', groups: spreadsOf(data),
         })) || {};
       } else {
         // COMING BACK: both views write the same verdict doc under the same

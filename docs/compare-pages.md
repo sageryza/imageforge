@@ -556,6 +556,14 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the stack starts at the top instead of centring, reserving the buttons'
       height at the bottom of the scroller. **A short card is untouched** —
       the big centred name is the design there.
+    - **SPREADS HOLD CARDS, AND A MARK LANDS ON EITHER (Aug 2026 v4).** A
+      spread of 2+ gets an `s:`-prefixed key derived from its label
+      (page-views.js) and rides the same verdict doc; a one-card spread gets
+      none, because its card's mark is the mark. Compare view: the spread's
+      ♥/✕ at the end of its name row (the pill's 64px column reserved) and the
+      shared note +. Swipe view: the spread is ONE card, its pictures side by
+      side, the card's marks being the spread's and each picture opening its
+      own lightbox — which is also the two-up picker.
     - **ONE PAGE, TWO VIEWS (Aug 2026 v4).** A template page carries the deck
       AND the grid behind one hairline switch (`page-views.js`); `template`
       only picks the opening view, and the missing half of the data is derived
