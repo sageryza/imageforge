@@ -130,7 +130,11 @@ const y = (page) => page.evaluate(() => window.scrollY);
   await page.click('#clightbox .notesend');
   await page.waitForFunction(() => !!document.querySelector('#clightbox .lbmsg.me'), null, { timeout: 4000 })
     .catch(() => fail('the note never appeared in the thread'));
-  await page.waitForTimeout(200);
+  // POLL for the POST rather than sleeping on it: the bubble is appended
+  // optimistically, so a fixed wait raced the request and failed at random.
+  for (let i = 0; i < 30 && !notesPosted.includes('redo this one warmer'); i += 1) {
+    await page.waitForTimeout(100);
+  }
   if (!notesPosted.includes('redo this one warmer')) fail('the note was never sent to the server');
 
   // 3. the premise: the document CAN move under the open lightbox (this is

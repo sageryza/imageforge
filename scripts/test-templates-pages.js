@@ -44,6 +44,10 @@ const chrome = CANDIDATES.find((p) => { try { fs.accessSync(p); return true; } c
 if (!chrome) { console.log('no Chromium found — skipping (set CHROME_PATH to run)'); process.exit(0); }
 
 const IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='60'%3E%3Crect width='40' height='60' fill='%23c99'/%3E%3C/svg%3E";
+// what the LIGHTBOX opens (an item's `full`): a real picture's proportions, so
+// the overlay geometry under test is the geometry she actually gets — the 40×60
+// tile stand-in renders 60px tall and sits nowhere near the middle of a screen
+const BIG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='600'%3E%3Crect width='400' height='600' fill='%23c99'/%3E%3C/svg%3E";
 const SG = 'https://storage.googleapis.com/test-bucket';
 
 const files = {
@@ -72,7 +76,7 @@ window.addEventListener('error', function(e){
 function gridPage() {
   const v = validateTemplate('grid', { groups: [
     { label: 'Penny — which quality?', items: [
-      { label: 'medium', img: IMG, url: `${SG}/a/p-med.png`, model: 'gpt-image-2',
+      { label: 'medium', img: IMG, full: BIG, url: `${SG}/a/p-med.png`, model: 'gpt-image-2',
         quality: 'medium', promptStyle: 'wtr watercolor drawing', promptContent: 'penny with the blue kleenex' },
       { label: 'high', img: IMG, url: `${SG}/a/p-high.png`, model: 'gpt-image-2',
         quality: 'high', promptStyle: 'wtr watercolor drawing', promptContent: 'penny with the blue kleenex' },
@@ -116,12 +120,39 @@ setTimeout(function(){
   ok(r1[0].firstElementChild.tagName==='IMG'
      && r1[0].querySelector('.gd-sub').textContent==='medium',
      'the picture comes FIRST, the what-changed line under it');
+  var acts=[].map.call(r1[0].querySelectorAll('.gd-acts > button'), function(b){
+    return b.className.replace('gd-','').split(' ')[0] + (b.classList.contains('yes')?'-yes':
+      b.classList.contains('no')?'-no':''); });
+  ok(acts.join(',')==='vote-no,prompt,vote-yes',
+     'PROMPT sits BETWEEN the X and the heart — got ' + acts.join(','));
+  var g2=m.querySelectorAll('.gd-group')[1];
+  ok(getComputedStyle(g2).borderTopStyle==='solid'
+     && parseFloat(getComputedStyle(g2).borderTopWidth)>0,
+     'a rule separates one compared set from the next (rows wrap, so white '
+     + 'space alone cannot say where a set ends)');
+  ok(parseFloat(getComputedStyle(m.querySelector('.gd-group')).borderTopWidth)===0,
+     'but no rule dangles above the first set');
   ok(!r1[0].querySelector('.tag') && !r1[0].querySelector('.gd-cap'),
      'no title above the picture, no extra caption line — minimal, like Assets');
-  ok(m.querySelectorAll('.gd-it .cmp-note-open').length===0 || true, 'notes wire async');
   var txt=r2[2].querySelector('.gd-txt');
   ok(txt && txt.textContent.indexOf('<b>')>=0 && !txt.querySelector('b'),
      'a text item renders its words ESCAPED');
+
+  // THE TITLE FITS ON ONE LINE, and it is the page's own heading — the
+  // "Auto-compare" prefix belongs to the Compare tab's row, not to the
+  // biggest type on her screen (Sophie, Aug 2026)
+  var h1=document.querySelector('.wrap > h1');
+  var h1text=(h1.firstChild&&h1.firstChild.textContent||'').trim();
+  ok(h1text.indexOf('Same style, different subjects')===0 && h1.textContent.indexOf('Auto-compare')<0,
+     'the h1 drops the Auto-compare prefix — got ' + h1text);
+  ok(document.title.indexOf('Auto-compare')===0,
+     'while the browser tab keeps the full name');
+  var fs1=parseFloat(getComputedStyle(h1).fontSize);
+  var lh1=parseFloat(getComputedStyle(h1).lineHeight);
+  ok(h1.scrollHeight <= lh1*1.3,
+     'the title is ONE line — h ' + h1.scrollHeight + ' vs line ' + lh1);
+  ok(fs1 < 26 && fs1 >= 15,
+     'it scaled DOWN to get there, and not into nothing — got ' + fs1 + 'px');
 
   // ♥ on an asset-backed item: verdict + asset-vote mirror, lit; again clears
   var heart=r1[1].querySelector('.gd-vote.yes'); heart.click();
@@ -165,8 +196,9 @@ setTimeout(function(){
     var medHeart=m.querySelector('[data-item="p-med"] .gd-vote.yes');
     ok(medHeart && medHeart.classList.contains('on'),
        'an Assets-tab heart fills in an unjudged item on load');
-    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===13,
-       'every item carries the note +');
+    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===0,
+       'NO note + on a tile — it would cost every tile a line (the note is in '
+       + 'the lightbox)');
 
     // tapping an asset-backed picture opens THE Assets-tab lightbox —
     // heart, note thread, Prompt (Sophie: "identical to what happens when I
@@ -178,6 +210,26 @@ setTimeout(function(){
          'tapping an asset picture opens the Assets lightbox');
       ok(!!clb.querySelector('.lbnote input') && !!clb.querySelector('.promptbtn'),
          'with the note box and the Prompt button');
+      // the BOX comes first and the conversation sits under it (Aug 2026)
+      var kids=[].map.call(clb.querySelector('.lbtalk').children, function(k){
+        return k.className.split(' ')[0]; });
+      ok(kids.join(',')==='lbnote,lbmore,lbthread',
+         'the note box is above the thread — got ' + kids.join(','));
+      var thr=clb.querySelector('.lbthread');
+      ok(thr.getBoundingClientRect().height < window.innerHeight*0.2,
+         'the thread only PEEKS until she asks for it');
+      var mb=clb.querySelector('.lbmore');
+      ok(/\(1\)/.test(mb.textContent), 'the button counts the letters — got ' + mb.textContent);
+      mb.click();
+      var img=clb.querySelector('.clwrap img');
+      var tr=thr.getBoundingClientRect(), ir=img.getBoundingClientRect();
+      ok(clb.querySelector('.lbtalk').classList.contains('big')
+         && tr.top < ir.bottom && tr.bottom > ir.top,
+         'the button throws the conversation OVER the picture — thread '
+         + Math.round(tr.top) + '-' + Math.round(tr.bottom) + ' vs image '
+         + Math.round(ir.top) + '-' + Math.round(ir.bottom));
+      mb.click();
+      ok(!clb.querySelector('.lbtalk').classList.contains('big'), 'and puts it back');
       ok(clb.querySelector('.vote.heart').classList.contains('on'),
          'its heart already agrees with the tile');
       var msgs=clb.querySelectorAll('.lbmsg');
@@ -191,6 +243,9 @@ setTimeout(function(){
       ok(!medHeart.classList.contains('on')
          && m.querySelector('[data-item="p-med"] .gd-vote.no').classList.contains('on'),
          'and the tile underneath repaints to match');
+      ok(clb.hasAttribute('data-nostop'),
+         'the lightbox is marked data-nostop, so tapping out of it never '
+         + 'starts the autoscroll (the app toggle skips [data-nostop])');
       clb.click();
       ok(clb.style.display==='none', 'the backdrop closes it');
       fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
@@ -199,7 +254,11 @@ setTimeout(function(){
 }, 600);
 </script>`;
   return SPY + renderTemplatePage({
-    template: 'grid', title: 'Grid test v1', chat: 't', sheet: 'page-g', data: v.data,
+    template: 'grid', title: 'Auto-compare — same style, different subjects',
+    // long on purpose: the harness window is wider than her phone, so the
+    // title has to be long enough to wrap HERE for the fitter to be tested
+    heading: 'Same style, different subjects — the long-heading case',
+    chat: 't', sheet: 'page-g', data: v.data,
   }) + pill + TEST;
 }
 

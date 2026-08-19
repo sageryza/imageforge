@@ -635,21 +635,42 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       Decision Deck sizes exactly.
   - **`grid`** = the classic one-variable comparison: each group is one row
     wrapping at THREE across (2026-08-19 — six ~50px tiles in one phone row
-    was unreadable, whatever the original 2–6 spec said), and the tile is
-    **minimal like an Assets tile** (same day, Sophie: "the things I need to
-    compare are staggered and the titles are way too long… just the picture
-    and then two lines underneath it saying what changed"): the PICTURE
-    first, so a row lines up, then the label clamped to two lines — the
-    what-changed line — then ♥/✕ + note + PROMPT (the Assets overlay:
-    content/style split, opens on CONTENT, MODEL · QUALITY at the top; when
-    a row's variants differ in their STYLE half, each variant's style tab
-    marks the lines it does not share in rose). **Tapping an asset-backed
-    picture opens THE Assets-tab lightbox** — `/asset-lightbox.js`, the
-    exact code lifted out of chats.html (her ask: "identical to what happens
-    when I open the image in assets"), so the big image, ♥/✕ on its corners,
-    the note THREAD under it and the Prompt button are one implementation on
-    both surfaces; the lightbox ♥ saves the page verdict and the asset vote
-    together, and the tile repaints under it.
+    was unreadable, whatever the original 2–6 spec said), **ruled off from
+    the next group with a hairline** (same day, Sophie: "a line between
+    different sets of things being compared, so that if things … wrapped to
+    the [next] line, I can still tell the difference between that and the
+    next set" — once rows wrap, white space alone cannot say where a set
+    ends). The tile is **minimal like an Assets tile** (Sophie: "the things
+    I need to compare are staggered and the titles are way too long… just
+    the picture and then two lines underneath it saying what changed"): the
+    PICTURE first, so a row lines up, then the label clamped to two lines —
+    the what-changed line — then **✕ · PROMPT · ♥**, the prompt button in
+    the middle, the same order the lightbox row has always had. PROMPT is
+    the Assets overlay (content/style split, opens on CONTENT, MODEL ·
+    QUALITY at the top; when a row's variants differ in their STYLE half,
+    each variant's style tab marks the lines it does not share in rose).
+    **There is NO note + on a tile** (her call, Aug 2026: "it's making an
+    extra line, so could you make it only appear in lightbox view for now —
+    I might rescind that later") — the kit's + sat on its own line under
+    every tile and cost a row of height on a surface whose whole point is
+    seeing the set at once.
+  - **Tapping an asset-backed picture opens THE Assets-tab lightbox** —
+    `/asset-lightbox.js`, the exact code lifted out of chats.html (her ask:
+    "identical to what happens when I open the image in assets"), so the big
+    image, ♥/✕ on its corners, the note box and the Prompt button are one
+    implementation on both surfaces; the lightbox ♥ saves the page verdict
+    and the asset vote together, and the tile repaints under it. **The
+    conversation sits UNDER the box, peeking** (Aug 2026, her rework after
+    living with it: "I wanted it below the text box so most of it will be
+    out of view, and there can just be a button which makes the note texting
+    take up more of a screen, like overlay on top of the actual image") —
+    writing is the common act, re-reading the occasional one, so a
+    `Notes (n)` button throws the thread over the picture, centred on the
+    viewport so it always covers it. And the whole overlay carries
+    `data-nostop`: the app drives an embedded page's scroll with a
+    tap-to-TOGGLE whose skip list is `[data-nostop],img,figure,.cmp-lb`, and
+    without the mark the tap that CLOSED the lightbox started the autoscroll
+    behind it.
   - **THE MIRROR: an item with `url` (its Assets-tab identity — a storage
     `img` is its own by default) keeps the page and the Assets tab AGREEING**
     (Sophie's call): ♥/✕ writes through to the asset vote, a committed note
@@ -658,6 +679,14 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   - **The chrome is rendered at SERVE time** from the current stock renderer,
     so a fix reaches every template page ever posted; the DATA is what's
     frozen (a new version is still a NEW page, same as always).
+  - **THE TITLE FITS ON ONE LINE, and the page's <h1> may be SHORTER than
+    the name the tab lists** (Aug 2026). `compare.js` shrinks a `.wrap > h1`
+    until it stops wrapping — only ever down, and never past 60% of the
+    page's own size, so a title too long even then wraps as before. And
+    `renderTemplatePage` takes a `heading` beside `title`: the tab's row
+    keeps the full name, the page shows the shorter one (her call on the
+    auto pages: "the 'auto compare' only needs to appear in the compare tab,
+    not the actual page"). `<title>` always keeps the full name.
   - **AUTO-FEED — THE SERVER FILES THE COMPARE PAGES ITSELF (Aug 2026 v2,
     Sophie: "the automatic thing doesn't work… if an image is exactly the
     same except one or two variables have been changed, for example the
@@ -673,7 +702,11 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     - **"Auto-compare — same style, different subjects"** — exact-same
       style prompt across different contents (her dream case: one style
       walked across many dreams), shortest content first.
-    Both **update IN PLACE** — the ONE deliberate exception to "a new
+    A row wears a SHORT tag ("Style 1") with the prompt behind the "?" —
+    a group's real header here IS a prompt, and in gold caps between her
+    title and the pictures that is exactly the shape the *nothing to read
+    above the first picture* rule forbids; a page with one group wears no
+    tag at all. Both **update IN PLACE** — the ONE deliberate exception to "a new
     version is a new page": item ids derive from storage filenames, so a
     new image joining a group re-points nothing, the verdict sheet never
     moves, and her ♥/✕/notes survive every update. The doc id is

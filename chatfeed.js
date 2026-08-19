@@ -2842,7 +2842,10 @@ async function runAutoCompare(chat) {
     const v = pageTemplates.validateTemplate('grid', plan.data);
     if (!v.ok) { out.push({ kind: plan.kind, ok: false, error: v.error }); continue; }
     const json = JSON.stringify(v.data);
-    const hash = crypto.createHash('sha1').update(json).digest('hex');
+    // the hash covers the TITLE and HEADING as well as the data, so renaming
+    // either repaints an already-filed page instead of reporting "unchanged"
+    const hash = crypto.createHash('sha1')
+      .update(`${plan.title}\n${plan.heading || ''}\n${json}`).digest('hex');
     const id = `auto-${plan.kind}--${slug.replace(/[^\w.-]+/g, '-')}`;
     const ref = db().collection(PAGES).doc(id);
     const snap = await ref.get();
@@ -2856,11 +2859,13 @@ async function runAutoCompare(chat) {
     });
     const stamp = new Date().toISOString();
     if (snap.exists) {
-      await ref.set({ title: plan.title, dataHash: hash, updated: stamp }, { merge: true });
+      await ref.set({ title: plan.title, heading: plan.heading || '',
+        dataHash: hash, updated: stamp }, { merge: true });
       out.push({ kind: plan.kind, ok: true, id, updated: true });
     } else {
       await ref.set({
-        chat: slug, title: plan.title, created: stamp, updated: stamp,
+        chat: slug, title: plan.title, heading: plan.heading || '',
+        created: stamp, updated: stamp,
         template: 'grid', auto: plan.kind, path: file.name, dataHash: hash,
       });
       try {
@@ -3170,6 +3175,9 @@ router.get('/page/:id', async (req, res) => {
       try { data = JSON.parse(buf.toString('utf8')); } catch (e) { /* renders empty */ }
       let thtml = pageTemplates.renderTemplatePage({
         template: snap.data().template, title: snap.data().title || '',
+        // the page's own <h1> when it differs from the name the Compare tab
+        // lists (an auto page drops its "Auto-compare — " prefix here)
+        heading: snap.data().heading || '',
         chat: snap.data().chat || '', sheet: `page-${snap.id}`, data,
         // ?clean=1 — no h1, straight onto the cards (the Review Queue's door)
         clean: req.query.clean === '1',

@@ -274,10 +274,63 @@ ok('planAutoPages: an over-long subject group keeps the NEWEST and says so', () 
   const subj = planAutoPages(assets).find((p) => p.kind === 'subjects');
   const g = subj.data.groups[0];
   assert.strictEqual(g.items.length, 24);
-  assert.ok(/newest 24 of 30/.test(g.label));
+  // the cap is still NAMED — on the row's short tag, never silently
+  assert.ok(/newest 24 of 30/.test(g.label), g.label);
+  assert.ok(!/dream number/.test(g.label), 'the prompt itself never sits on the row');
   // the six dropped are the six OLDEST (lowest ms)
   assert.ok(!g.items.some((i) => i.label === 'Dream 0'));
   assert.ok(g.items.some((i) => i.label === 'Dream 29'));
+});
+
+ok('planAutoPages: the tab keeps "Auto-compare", the PAGE heading drops it', () => {
+  const { planAutoPages, renderTemplatePage } = require('../page-templates');
+  const plans = planAutoPages([
+    { url: 'u-high', prompt: 'gpt-image-2 · high', promptContent: CONTENT },
+    { url: 'u-low', prompt: 'gpt-image-2 · low', promptContent: CONTENT },
+  ]);
+  const p = plans[0];
+  assert.ok(/^Auto-compare — /.test(p.title));
+  assert.strictEqual(p.heading, 'Same prompt, settings changed');
+  const html = renderTemplatePage({ template: 'grid', title: p.title,
+    heading: p.heading, chat: 'c', sheet: 's', data: p.data });
+  assert.ok(html.includes('<h1>Same prompt, settings changed</h1>'));
+  assert.ok(!/<h1>[^<]*Auto-compare/.test(html));
+  assert.ok(html.includes('<title>Auto-compare — '), 'the browser tab keeps the full name');
+  // and with no heading given, the title is still the h1 (every other page)
+  const plain = renderTemplatePage({ template: 'grid', title: 'Penny v2',
+    chat: 'c', sheet: 's', data: p.data });
+  assert.ok(plain.includes('<h1>Penny v2</h1>'));
+});
+
+ok('planAutoPages: rows wear SHORT tags and the prompts go behind the "?"', () => {
+  const { planAutoPages, validateTemplate } = require('../page-templates');
+  const plans = planAutoPages([
+    { url: 'a1', prompt: 'x · low', promptStyle: 'style ONE <b>with markup</b>',
+      promptContent: 'dream one', description: 'One' },
+    { url: 'a2', prompt: 'x · low', promptStyle: 'style ONE <b>with markup</b>',
+      promptContent: 'dream two', description: 'Two' },
+    { url: 'b1', prompt: 'x · low', promptStyle: 'style TWO entirely',
+      promptContent: 'dream three', description: 'Three' },
+    { url: 'b2', prompt: 'x · low', promptStyle: 'style TWO entirely',
+      promptContent: 'dream four', description: 'Four' },
+  ]);
+  const subj = plans.find((p) => p.kind === 'subjects');
+  assert.deepStrictEqual(subj.data.groups.map((g) => g.label), ['Style 1', 'Style 2']);
+  // the real text is in the help, tagged to match, and ESCAPED (help is HTML)
+  assert.ok(subj.data.help.includes('<b>Style 1</b> — style ONE'));
+  assert.ok(subj.data.help.includes('&lt;b&gt;with markup&lt;/b&gt;'));
+  assert.strictEqual(validateTemplate('grid', subj.data).ok, true);
+});
+
+ok('planAutoPages: ONE group needs no tag at all', () => {
+  const { planAutoPages } = require('../page-templates');
+  const subj = planAutoPages([
+    { url: 'a1', prompt: 'x · low', promptStyle: 'the one style', promptContent: 'dream one' },
+    { url: 'a2', prompt: 'x · low', promptStyle: 'the one style', promptContent: 'dream two' },
+  ]).find((p) => p.kind === 'subjects');
+  assert.strictEqual(subj.data.groups.length, 1);
+  assert.strictEqual(subj.data.groups[0].label, undefined);
+  assert.ok(subj.data.help.includes('<b>Style</b> — the one style'));
 });
 
 ok('planAutoPages: nothing groupable, no plans — and ms never survives validation', () => {
