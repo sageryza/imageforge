@@ -1,0 +1,195 @@
+<!-- The InBetween — a circle ☾ (design v1). Posted to the Compare tab of the
+     dream-feed-sharing-options chat via POST /api/chatfeed/page. Source kept
+     here so the next version starts from a file, not a frozen page.
+     Design doc: docs/dream-feed-circles.md -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The InBetween — a circle ☾ (design v1)</title>
+<link rel="stylesheet" href="/compare.css">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>
+  /* mock screens in the dream app's own palette — content, not chrome; the
+     compare tokens are untouched. */
+  .mkgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+  .mk { margin:0; position:relative; }
+  .mk.wide { grid-column:1 / -1; }
+  .mktag { display:block; font:11px 'Courier Prime', monospace; color:#7a4a3a; margin:0 2px 5px; }
+  .mkscr { background:#ece7dc; border:2px solid #14131a; border-radius:18px 26px 16px 24px;
+           padding:14px 12px; color:#14131a; font:12px/1.5 'EB Garamond', Georgia, serif;
+           display:flex; flex-direction:column; gap:10px; min-height:100px; }
+  .mkc { border:1.5px solid #14131a; background:#f4f0e5; padding:9px 10px;
+         border-radius:8px 22px 10px 18px; }
+  .mkc.dark { background:#14131a; color:#ece7dc; }
+  .mkhead { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .mkttl { font:600 13px/1.25 'EB Garamond', serif; }
+  .mkby { font:8.5px 'Courier Prime', monospace; opacity:.5; white-space:nowrap; }
+  .mkrow { display:flex; gap:7px; align-items:flex-start; margin-top:6px; }
+  .mkblob { flex:1; aspect-ratio:1/1; border:1px solid currentColor; overflow:hidden;
+            border-radius:60% 40% 55% 45%/45% 55% 40% 60%;
+            background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 5px,#e9e4d6 5px,#e9e4d6 10px); }
+  .dark .mkblob { background:repeating-linear-gradient(45deg,#221f2b,#221f2b 5px,#2a2735 5px,#2a2735 10px); }
+  .mkblob img { width:100%; height:100%; object-fit:cover; display:block; }
+  .mkwords { flex:1.4; font:11px/1.45 'EB Garamond', serif; }
+  .mkonly { font:8.5px/1.5 'Courier Prime', monospace; color:oklch(75% .09 189); margin-top:7px; }
+  .mkdiv { display:flex; align-items:center; gap:8px; }
+  .mkdiv i { flex:1; border-top:1px solid #7a4a3a; }
+  .mkdiv b { font:8.5px 'Courier Prime', monospace; color:#7a4a3a; font-weight:400; }
+  .mkq { font:italic 400 13px 'EB Garamond', serif; text-align:center; }
+  .mkdial { display:flex; background:#f4f0e5; border:1.5px solid #14131a; align-self:center;
+            border-radius:18px 26px 16px 24px/22px 16px 24px 18px; padding:3px; }
+  .mkdial span { font:11px 'Courier Prime', monospace; padding:7px 11px; color:rgba(20,19,26,.65);
+                 border-radius:14px 20px 12px 18px/16px 12px 18px 14px; white-space:nowrap; }
+  .mkdial span.on { background:#7a4a3a; color:#ece7dc; }
+  .mkmicro { font:8.5px/1.6 'Courier Prime', monospace; color:rgba(20,19,26,.5); text-align:center; }
+  .dark .mkmicro { color:rgba(236,231,220,.5); text-align:left; }
+  .mkbtn { align-self:center; font:11px 'Courier Prime', monospace; background:#7a4a3a; color:#ece7dc;
+           padding:9px 18px; border-radius:60% 40% 55% 45%/45% 55% 40% 60%; }
+  .mkchips { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+  .mkchips span { font:8.5px 'Courier Prime', monospace; border:1px solid rgba(236,231,220,.45);
+                  color:rgba(236,231,220,.75); padding:4px 8px; border-radius:12px 18px 10px 16px; }
+  .mkchips span.on { background:#ece7dc; color:#14131a; border-color:#ece7dc; }
+  .mkscr .mkchips span { border-color:rgba(20,19,26,.4); color:rgba(20,19,26,.7); }
+  .mklink { border:1px dashed rgba(20,19,26,.45); border-radius:10px 16px 8px 14px; padding:8px 9px;
+            font:8.5px/1.6 'Courier Prime', monospace; color:#7a4a3a; word-break:break-all; }
+  .mkfoot { font:8.5px 'Courier Prime', monospace; opacity:.5; margin-top:7px; display:flex; gap:10px; }
+  .mkbig { font:600 20px 'EB Garamond', serif; font-style:italic; text-align:center; }
+  .mkcycle { display:flex; gap:6px; align-items:center; justify-content:center;
+             font:9px 'Courier Prime', monospace; color:rgba(20,19,26,.65); flex-wrap:wrap; }
+  .mkcycle b { font-weight:400; color:#7a4a3a; border-bottom:1.5px solid #7a4a3a; padding-bottom:1px; }
+</style>
+
+<div class="wrap">
+  <h1>The InBetween — a circle ☾ (design v1)</h1>
+
+  <div class="mkgrid">
+
+    <figure class="mk wide" data-item="dial">
+      <span class="mktag">the dial — a third stop</span>
+      <div class="mkscr">
+        <div class="mkq">seen by</div>
+        <div class="mkdial">
+          <span>✳ everyone</span><span class="on">☾ night shift</span><span>◦ just me</span>
+        </div>
+        <div class="mkmicro">tap ☾ again to switch circles</div>
+        <div class="mkbtn">dream it in ☾</div>
+      </div>
+    </figure>
+
+    <figure class="mk wide" data-item="switch">
+      <span class="mktag">in more than one circle — ☾ cycles · in none — ☾ starts one</span>
+      <div class="mkscr">
+        <div class="mkdial">
+          <span>✳ everyone</span><span class="on">☾ friends</span><span>◦ just me</span>
+        </div>
+        <div class="mkcycle"><b>friends</b><span>→</span><span>close circle</span><span>→</span><span>night shift</span><span>→</span><b>friends</b></div>
+        <div class="mkmicro">"friends" and "close circle" aren't tiers — they're two circles you name</div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="feed">
+      <span class="mktag">one feed, mixed</span>
+      <div class="mkscr">
+        <div class="mkdiv"><i></i><b>last night</b><i></i></div>
+        <div class="mkc">
+          <div class="mkhead"><span class="mkttl">Seminar on Doors</span><span class="mkby">✳</span></div>
+          <div class="mkrow">
+            <div class="mkblob"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/03-seminar-on-doors.webp" alt="Seminar on Doors"></div>
+            <div class="mkwords">Every door graded me as I walked through it…</div>
+          </div>
+        </div>
+        <div class="mkc dark">
+          <div class="mkhead"><span class="mkttl">The Whale Again</span><span class="mkby">☾ night shift</span></div>
+          <div class="mkrow">
+            <div class="mkblob"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again"></div>
+            <div class="mkwords">The whale is back. It has opinions about my parking now.</div>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="open-card">
+      <span class="mktag">the circle card, open</span>
+      <div class="mkscr">
+        <div class="mkc dark">
+          <div class="mkhead"><span class="mkttl">The Whale Again</span><span class="mkby">☾ night shift</span></div>
+          <div class="mkblob" style="aspect-ratio:auto;border-radius:14px 22px 12px 18px;margin-top:7px"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/02-whale-again.webp" alt="The Whale Again" style="aspect-ratio:1/1"></div>
+          <div class="mkwords" style="margin-top:7px">The whale is back. It has opinions about my parking now. Theo refused to mediate…</div>
+          <div class="mkonly">only night shift can see this. it never leaves the circle.</div>
+          <div class="mkfoot"><span>♡ felt · 2</span><span>whisper back · 1</span></div>
+        </div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="guess">
+      <span class="mktag">the game — whose dream?</span>
+      <div class="mkscr">
+        <div class="mkc dark">
+          <div class="mkq" style="font-style:italic">whose dream was this?</div>
+          <div class="mkchips">
+            <span>penny</span><span>jude</span><span class="on">marisol</span><span>theo</span><span>sam</span>
+          </div>
+          <div class="mkmicro" style="margin-top:7px">your guess is only yours — nobody ever sees it</div>
+        </div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="claim">
+      <span class="mktag">the reveal is the dreamer's</span>
+      <div class="mkscr">
+        <div class="mkc dark">
+          <div class="mkby" style="opacity:.5">on your own card</div>
+          <div class="mkrow" style="align-items:center">
+            <span class="mkbtn" style="align-self:flex-start">claim it</span>
+            <span class="mkmicro" style="margin:0">3 have guessed</span>
+          </div>
+        </div>
+        <div class="mkc dark">
+          <div class="mkhead"><span class="mkttl">The Whale Again</span><span class="mkby">☾ marisol's</span></div>
+          <div class="mkonly">claimed · 3 of 5 found her</div>
+        </div>
+        <div class="mkmicro">or never — an unclaimed dream stays a mystery</div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="circles">
+      <span class="mktag">your circles — roster visible, author never</span>
+      <div class="mkscr">
+        <div class="mkc">
+          <div class="mkhead"><span class="mkttl">☾ night shift</span><span class="mkby">6 dreamers</span></div>
+          <div class="mkchips">
+            <span>penny</span><span>jude</span><span>marisol</span><span>theo</span><span>sam</span><span>you</span>
+          </div>
+          <div class="mklink" style="margin-top:8px">youwereinmydreams.com/c/moth-lantern-9x2 · copy</div>
+          <div class="mkmicro" style="text-align:left;margin-top:5px">anyone in the circle can pass the link on</div>
+        </div>
+        <div class="mkbtn" style="background:none;color:#7a4a3a;border:1px dashed #7a4a3a">start a circle</div>
+      </div>
+    </figure>
+
+    <figure class="mk" data-item="invite">
+      <span class="mktag">the invite — what the link opens</span>
+      <div class="mkscr" style="justify-content:center;min-height:190px">
+        <div class="mkbig">☾ night shift</div>
+        <div class="mkmicro">6 dreamers · you were invited</div>
+        <div class="mkmicro">dreams here have no names on them</div>
+        <div class="mkbtn">join the circle</div>
+      </div>
+    </figure>
+
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'dream-feed-sharing-options', sheet: 'circles-design-v1' });
+  window.__compareHelp({ html: '<b>The InBetween — a circle ☾.</b> The middle stop on the '
+    + 'seen-by dial: a named group, spread by invite link — "friends" and "close circle" are '
+    + 'just two circles you name, and you can be in many. Three rules from your dream '
+    + 'journals: the roster is visible but the author never is; any member can pass the '
+    + 'invite on, so a circle outgrows what any one person knows; and guessing is the game — '
+    + 'guesses are private, and only the dreamer can reveal, or never. Comments keep names, '
+    + 'hearts stay anonymous counts, everything rides the one feed. '
+    + 'Leave a note on any screen — the + in its corner.' });
+})();
+</script>

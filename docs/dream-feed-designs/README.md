@@ -22,3 +22,8 @@ so a render without them is misleading.
 Open question before any port: the design shows bylines, @tags and named
 circles, while the live feed posts dreams UNATTRIBUTED (`byTag` in
 `dreamapp.js`) and has one public/private flag per piece.
+**Answered for circles (Aug 2026): the no-names rule wins** — see
+`docs/dream-feed-circles.md` (the ☾ design: roster visible, author never,
+guessing as the game) and `circles-compare-v1.html` here (the Compare page
+posted for review, in the live app's melt-feed language rather than this
+canvas's).
