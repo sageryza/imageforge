@@ -32,6 +32,7 @@
      gradients the no-gradients rule bans. */
   :root {
     --cream:#ece7dc; --card:#f4f0e5; --ink:#14131a; --brown:#7a4a3a; --desk:#dcd6c8;
+    --mauve:#c493a4; /* the hearts — pale mauve pink (Sophie, Aug 2026) */
   }
   @keyframes wobble{0%,100%{transform:rotate(-.6deg) skewX(-.4deg)}50%{transform:rotate(.7deg) skewX(.5deg)}}
   @keyframes breathe{0%,100%{border-radius:14px 60px 18px 46px/40px 16px 52px 18px}50%{border-radius:52px 16px 44px 20px/18px 48px 16px 42px}}
@@ -51,6 +52,8 @@
            display:flex; justify-content:space-between; align-items:baseline;
            background:linear-gradient(var(--cream) 70%, rgba(236,231,220,0)); }
   .mark { font:28px 'Baveuse', sans-serif; color:var(--ink); letter-spacing:.5px; }
+  /* the wordmark is the way home — tapping "dreams" returns to the feed (Sophie) */
+  button.mark { background:none; border:none; padding:0; cursor:pointer; }
   .hright { display:flex; gap:14px; align-items:baseline; }
   .fnow { font:11px 'Courier Prime', monospace; color:var(--brown); }
   /* the one control not on the artboard: the way into your private dreams —
@@ -80,6 +83,8 @@
   .dtxt { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
   .dhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
   .dttl { font:600 19px/1.25 'EB Garamond', serif; }
+  /* worn ONLY by a ☾ friends card — the ✳ that sat on every dream is gone
+     (Sophie); this one says who can see it, which is information */
   .dby { font:10.5px 'Courier Prime', monospace; opacity:.45; white-space:nowrap; }
   .dbody { font:400 14.5px/1.5 'EB Garamond', serif; white-space:pre-wrap;
            --lh:21.75px; --lines:6; }
@@ -95,9 +100,11 @@
   .dbody.clamped { max-height:calc(var(--lines) * var(--lh)); overflow:hidden; }
   .dbody.clamped.fold::before { content:''; float:left; width:0;
                                 height:calc((var(--lines) - 1) * var(--lh)); }
-  .dbody .dmore { float:right; clear:both; margin-left:8px;
+  /* the padding trues the button's baseline up with the serif's — without it
+     the label sat a few px below the line it shares (Sophie: "off the line of
+     the rest of the text"). No ellipsis: she asked for it gone. */
+  .dbody .dmore { float:right; clear:both; margin-left:8px; padding-bottom:3px;
                   height:var(--lh); display:inline-flex; align-items:flex-end; }
-  .dbody.clamped .dmore::before { content:'\2026'; margin-right:5px; }
   .dmore { background:none; border:none; cursor:pointer; align-self:flex-start; padding:0;
            font:11px 'Courier Prime', monospace; color:var(--brown); }
   .dmore span { border-bottom:1px dashed currentColor; }
@@ -111,19 +118,28 @@
   .dcard.open .blob { flex:none; width:100%; aspect-ratio:auto; align-self:stretch;
                       animation:blobopen 12s ease-in-out infinite; }
   .dcard.open .blob img { position:static; width:100%; height:auto; display:block; }
-  .dmeta { display:flex; gap:14px; font:10.5px 'Courier Prime', monospace; opacity:.55;
-           margin-top:auto; padding-top:6px; }
-  .dmeta span { cursor:pointer; }
-  .dthread { border-top:1px dashed rgba(20,19,26,.3); margin-top:12px; padding-top:10px;
+  /* hearts big enough to see, in the pale mauve pink; the comment icon is a
+     BUBBLE, not a pencil (Sophie, Aug 2026) */
+  .dmeta { display:flex; gap:18px; align-items:center; margin-top:auto; padding-top:6px; }
+  .dmeta span { cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                font:12px 'Courier Prime', monospace; color:rgba(20,19,26,.6); }
+  .dmeta .i { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8;
+              stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .dmeta .likebtn { color:var(--mauve); }
+  .dmeta .likebtn.on .i { fill:var(--mauve); }
+  .dark .dmeta span { color:rgba(236,231,220,.65); }
+  .dark .dmeta .likebtn { color:#d9b3c0; }
+  .dark .dmeta .likebtn.on .i { fill:#d9b3c0; }
+  .dthread { border-top:1px solid rgba(20,19,26,.15); margin-top:12px; padding-top:10px;
              display:flex; flex-direction:column; gap:10px; }
-  .dark .dthread { border-top-color:rgba(236,231,220,.3); }
+  .dark .dthread { border-top-color:rgba(236,231,220,.2); }
   .crow { display:flex; gap:8px; align-items:baseline; }
   .crow .who { font:10px 'Courier Prime', monospace; opacity:.4; white-space:nowrap; }
   .crow .said { font:400 13px/1.45 'EB Garamond', serif; }
   .whisper { font:11px 'Courier Prime', monospace; color:inherit; background:none;
-             border:1px dashed rgba(20,19,26,.35); border-radius:14px; padding:8px 12px;
+             border:1px solid rgba(20,19,26,.3); border-radius:8px; padding:8px 12px;
              outline:none; width:100%; }
-  .dark .whisper { border-color:rgba(236,231,220,.35); }
+  .dark .whisper { border-color:rgba(236,231,220,.3); }
   .whisper::placeholder { color:inherit; opacity:.45; }
 
   /* dividers between days, the end-of-night note */
@@ -133,13 +149,17 @@
   .fend { text-align:center; font:400 16px/1.5 'EB Garamond', serif;
           color:rgba(20,19,26,.6); padding:14px 24px 4px; }
 
-  /* the confess button */
-  .confess { position:fixed; left:0; right:0; bottom:0; z-index:6; padding:14px 0 calc(24px + env(safe-area-inset-bottom));
+  /* the confess button — the plain ask ON the button, the poetic line under it
+     (Sophie: "under that weird, long, narrow button, it should say, It's
+     coming back to me") */
+  .confess { position:fixed; left:0; right:0; bottom:0; z-index:6; padding:14px 0 calc(20px + env(safe-area-inset-bottom));
              display:flex; justify-content:center; pointer-events:none;
              background:linear-gradient(rgba(236,231,220,0), var(--cream) 65%); }
+  .confess .cstack { display:flex; flex-direction:column; align-items:center; gap:7px; }
   .confess button { pointer-events:auto; font:15px 'Courier Prime', monospace; background:var(--brown);
                     color:var(--cream); border:none; padding:14px 28px; cursor:pointer;
                     border-radius:60% 40% 55% 45%/45% 55% 40% 60%; animation:wobble 5s ease-in-out infinite; }
+  .csub { font:italic 400 13px 'EB Garamond', serif; color:rgba(20,19,26,.55); }
 
   /* The way out of an opened dream, floating so it is in reach from anywhere
      in a long one (Sophie: "there should also be an option to close that dream
@@ -167,7 +187,6 @@
   /* ── screens NOT yet redesigned (compose, dream detail, my dreams, sign-in).
      Kept functional and re-toned to the melt palette; each gets its exact
      artboard in its own phase — the upload screen is next. ── */
-  .h2 { font:600 20px 'EB Garamond', serif; color:var(--ink); margin:22px 2px 12px; }
   textarea { width:100%; background:#f4f0e5; border:1.5px solid var(--ink); border-radius:10px 18px 12px 16px;
              color:var(--ink); font:400 15px/1.5 'EB Garamond', serif; padding:12px 14px; min-height:140px;
              resize:none; outline:none; }
@@ -179,7 +198,6 @@
   .post .ttl { font:600 19px/1.25 'EB Garamond', serif; }
   .post .meta { font:10.5px 'Courier Prime', monospace; opacity:.55; margin-top:4px; }
   .post .words { margin-top:11px; white-space:pre-wrap; font:400 14.5px/1.5 'EB Garamond', serif; }
-  .post .words .part + .part { margin-top:14px; padding-top:13px; border-top:1px dashed rgba(20,19,26,.25); }
   .naming { font:11px 'Courier Prime', monospace; color:var(--brown); animation:inkpulse 1.1s infinite alternate; }
   .drawing { display:flex; align-items:center; gap:10px; margin-top:12px;
              font:11.5px 'Courier Prime', monospace; color:rgba(20,19,26,.6); }
@@ -191,23 +209,21 @@
   .pgrid img { width:100%; display:block; border-radius:12px 18px 10px 16px; border:1px solid rgba(20,19,26,.35);
                background:#e3ddcf; cursor:zoom-in; }
   .pgrid.cover { grid-template-columns:1fr; }
-  .morep { width:100%; background:none; border:none; color:rgba(20,19,26,.55); cursor:pointer;
-           font:11.5px 'Courier Prime', monospace; display:flex; align-items:center; justify-content:center;
-           gap:6px; padding:9px 0 0; }
-  .morep.stuck { position:sticky; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:4;
-                 color:var(--brown); background:var(--cream); border:1px dashed var(--brown);
-                 border-radius:14px; padding:9px 0; margin-top:11px; }
+  /* rows with a small right-hand toggle — the teams' routing flag, a friend's
+     remove; the same furniture the share screen used to own */
   .share-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px dashed rgba(20,19,26,.2); }
   .share-item:last-of-type { border-bottom:none; }
-  .share-item .thumb { width:34px; height:34px; border-radius:10px; object-fit:cover; flex:none; }
   .share-item .lab { font:400 14.5px 'EB Garamond', serif; }
   .share-item .st { margin-left:auto; border:1px solid rgba(20,19,26,.4); background:none; color:rgba(20,19,26,.6);
                     border-radius:14px 20px 12px 18px; padding:6px 13px; font:12px 'Courier Prime', monospace;
                     min-width:80px; cursor:pointer; }
   .share-item .st.pub { border-color:var(--brown); color:var(--brown); }
+  .h2 { font:600 20px 'EB Garamond', serif; color:var(--ink); margin:22px 2px 12px; }
   .badge { display:inline-block; font:11px 'Courier Prime', monospace; border-radius:14px; padding:3px 8px; }
   .badge.pub { border:1px solid var(--brown); color:var(--brown); }
   .badge.priv { border:1px solid rgba(20,19,26,.3); color:rgba(20,19,26,.55); }
+  svg.i { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8;
+          stroke-linecap:round; stroke-linejoin:round; flex:none; }
   .backrow { display:flex; align-items:center; gap:8px; padding:14px 0 0; }
   .backrow button { background:none; border:none; color:rgba(20,19,26,.55); display:flex; align-items:center;
                     gap:5px; font:12px 'Courier Prime', monospace; padding:4px 6px 4px 0; cursor:pointer; }
@@ -227,8 +243,10 @@
            animation:sheetup .35s cubic-bezier(.2,.9,.3,1) both; display:flex; flex-direction:column;
            gap:12px; padding:20px 22px calc(24px + env(safe-area-inset-bottom)); overflow-y:auto; }
   .shead { display:flex; justify-content:space-between; align-items:baseline; }
-  .smark { font:20px 'Baveuse', sans-serif; color:var(--ink); }
-  .shead button { background:none; border:none; font:16px 'Courier Prime', monospace; color:var(--brown); cursor:pointer; }
+  /* as big as the homepage's wordmark (Sophie), and the same way home */
+  .smark { font:28px 'Baveuse', sans-serif; color:var(--ink); background:none; border:none;
+           padding:0; cursor:pointer; }
+  #sheetX { background:none; border:none; font:16px 'Courier Prime', monospace; color:var(--brown); cursor:pointer; }
   .st { display:flex; flex-direction:column; gap:12px; flex:1; }
   .srow { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; }
   /* not italic, not bold (Sophie) — it is an instruction, not a whisper */
@@ -239,8 +257,9 @@
   #micBtn { border-radius:16px 22px 14px 20px; }
   #micBtn.rec { background:var(--ink); }
   #fileBtn { border-radius:20px 14px 22px 16px; }
-  .chips { display:flex; gap:8px; align-items:center; }
-  .chips button { font:11.5px 'Courier Prime', monospace; padding:8px 12px; cursor:pointer;
+  /* small, glyphless, tucked to the right — recurring then lucid (Sophie) */
+  .chips { display:flex; gap:7px; align-items:center; justify-content:flex-end; }
+  .chips button { font:10.5px 'Courier Prime', monospace; padding:5px 10px; cursor:pointer;
                   border:1px solid rgba(20,19,26,.35); background:transparent; color:rgba(20,19,26,.6); }
   #lucidBtn { border-radius:14px 20px 16px 22px; }
   #recurBtn { border-radius:16px 22px 14px 20px; }
@@ -253,7 +272,6 @@
   .blobbtn { align-self:center; font:15px 'Courier Prime', monospace; background:var(--brown); color:var(--cream);
              border:none; padding:13px 30px; border-radius:60% 40% 55% 45%/45% 55% 40% 60%; cursor:pointer; }
   .blobbtn[disabled] { opacity:.5; }
-  .threehead { font:11px 'Courier Prime', monospace; color:rgba(20,19,26,.5); }
   .three { display:flex; gap:10px; }
   .three textarea { flex:1; min-width:0; height:82px; min-height:82px; font:400 13px/1.4 'EB Garamond', serif;
                     border:1px solid rgba(20,19,26,.4); border-radius:14px 20px 12px 18px; padding:10px;
@@ -267,6 +285,13 @@
                   border:1px solid rgba(20,19,26,.35); cursor:pointer; background:transparent;
                   color:rgba(20,19,26,.6); }
   .moods button.on { background:var(--brown); color:var(--cream); border-color:var(--brown); }
+  /* the fifth feeling is HERS to write (Sophie: one more option they can fill
+     in themselves) — a chip that happens to be an input */
+  .moodfree { font:11.5px 'Courier Prime', monospace; padding:7px 11px; border-radius:14px 20px 12px 18px;
+              border:1px solid rgba(20,19,26,.35); background:transparent; color:rgba(20,19,26,.75);
+              width:104px; outline:none; }
+  .moodfree:focus { border-color:var(--brown); }
+  .moodfree::placeholder { color:rgba(20,19,26,.4); }
   .streakline { text-align:center; font:11px/1.7 'Courier Prime', monospace; color:rgba(20,19,26,.45); }
   /* stage 2 */
   .illus { aspect-ratio:1/1; width:74%; align-self:center; box-sizing:border-box;
@@ -292,6 +317,11 @@
                     cursor:pointer; padding:0; border-bottom:1px dashed var(--brown); }
   .seenby { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:auto; }
   .seenby > span { font:italic 400 14px 'EB Garamond', serif; color:var(--ink); }
+  /* the dream screen's copy of the dial sits at the TOP, above the words (Sophie) */
+  .seenby.sharebar { margin:16px 0 2px; }
+  #drawBtn .star { display:inline-block; width:15px; height:15px; vertical-align:-2px;
+                   color:var(--brown); }
+  #drawBtn .star svg { width:100%; height:100%; display:block; }
   .dial { display:flex; background:#f4f0e5; border:1.5px solid var(--ink);
           border-radius:18px 26px 16px 24px/22px 16px 24px 18px; padding:3px;
           animation:wobble 8s ease-in-out infinite; }
@@ -333,9 +363,6 @@
         display:flex; flex-direction:column; align-items:center; justify-content:center;
         gap:14px; padding:14px; }
   .lb img { max-width:100%; max-height:100%; display:block; }
-  #lbfeat { background:none; border:1px dashed var(--cream); color:var(--cream); border-radius:14px;
-            padding:9px 18px; font:12px 'Courier Prime', monospace; flex:none; cursor:pointer; }
-  #lbfeat[disabled] { opacity:.5; }
 
   .toast { position:fixed; left:50%; bottom:108px; transform:translateX(-50%); z-index:30;
            background:var(--ink); color:var(--cream); border-radius:14px; padding:9px 18px;
@@ -370,7 +397,7 @@
 
 <div id="app" hidden>
   <header>
-    <span class="mark">dreams</span>
+    <button class="mark" id="markBtn">dreams</button>
     <span class="hright">
       <button class="hmine" id="navMine">archive</button>
     </span>
@@ -383,16 +410,19 @@
     <section id="scr-friends" hidden></section>
     <section id="scr-dreamer" hidden></section>
   </main>
-  <div class="confess" id="confess"><button id="confessBtn">it&rsquo;s coming back to me&hellip;</button></div>
+  <div class="confess" id="confess"><div class="cstack">
+    <button id="confessBtn">add last night&rsquo;s dream</button>
+    <span class="csub">it&rsquo;s coming back to me&hellip;</span>
+  </div></div>
   <div class="confess" id="closewrap" hidden><button id="closeDream">close the dream</button></div>
   <div class="sheet" id="sheet" hidden>
     <div class="shead">
-      <span class="smark">dreams</span>
+      <button class="smark" id="smarkBtn">dreams</button>
       <button id="sheetX" aria-label="close">×</button>
     </div>
     <div class="st" id="st1">
       <div class="srow">
-        <span class="sq">add your dream for last night</span>
+        <span class="sq">what did you dream last night?</span>
         <span class="sbtns">
           <button id="micBtn" title="speak it"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10v1a7 7 0 0 0 14 0v-1"></path><path d="M12 18v4"></path></svg></button>
           <button id="fileBtn" title="upload a recording"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path><path d="M14 2v5h5"></path></svg></button>
@@ -401,19 +431,18 @@
       </div>
       <textarea id="draft" placeholder="i dreamt…"></textarea>
       <div class="chips">
-        <button id="lucidBtn">✦ lucid</button>
-        <button id="recurBtn">↻ recurring</button>
+        <button id="recurBtn">recurring</button>
+        <button id="lucidBtn">lucid</button>
       </div>
+      <button class="blobbtn" id="illusBtn">illustrate it</button>
       <div class="shardrow">
         <span>can't remember?</span>
         <button id="shardBtn">✳ start with a shard</button>
       </div>
-      <button class="blobbtn" id="illusBtn">illustrate it</button>
-      <div class="threehead">three things that stayed with you when you woke —</div>
       <div class="three">
-        <textarea class="el" placeholder="…"></textarea>
-        <textarea class="el" placeholder="…"></textarea>
-        <textarea class="el" placeholder="…"></textarea>
+        <textarea class="el"></textarea>
+        <textarea class="el"></textarea>
+        <textarea class="el"></textarea>
       </div>
       <div class="sfoot">
         <div class="moodrow">
@@ -423,9 +452,10 @@
             <button data-mood="anxious">anxious</button>
             <button data-mood="tender">tender</button>
             <button data-mood="strange">strange</button>
+            <input id="moodFree" class="moodfree" placeholder="your own word…" maxlength="24">
           </div>
         </div>
-        <div class="streakline" id="streakLine">dreams fade in the first ten minutes — write fast</div>
+        <div class="streakline" id="streakLine"></div>
       </div>
     </div>
     <div class="st" id="st2" hidden>
@@ -440,13 +470,14 @@
           <button data-s="private">◦ just me</button>
         </div>
       </div>
+      <div class="quiet" id="friendNote" style="text-align:center" hidden>your accepted friends, plus any dream team you switched on</div>
       <button class="blobbtn" id="shareBtn2">share your dream</button>
     </div>
   </div>
 </div>
 
 </div>
-<div class="lb" id="lb" hidden><img id="lbimg" alt=""><button id="lbfeat" hidden></button></div>
+<div class="lb" id="lb" hidden><img id="lbimg" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -459,9 +490,9 @@ var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d
 var HEART = '<svg class="i" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
 // Lucide heart-handshake (v1.32.0, exact path) — the holding-hands moment.
 var HANDS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"/></svg>';
+// Lucide user-round — the way into a dreamer's profile from their card.
+var WHO = '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
 var BUBBLE = '<svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
-var DOWN = '<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
-var UP = '<svg class="i" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>';
 var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
 
 var fbAuth = null, user = null, signUpMode = false;
@@ -500,20 +531,25 @@ async function api(path, opts){
   if (opts.body) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(opts.body); opts.method = opts.method || 'POST'; }
   var r = await fetch(API + path, opts);
   var j = await r.json();
-  if (!r.ok) throw new Error(j.error || 'something went wrong');
+  if (!r.ok) {
+    var err = new Error(j.error || 'something went wrong');
+    err.status = r.status;
+    err.limit = j.limit;   // 'day' marks the three-a-day doors — those get a pop-up
+    throw err;
+  }
   return j;
 }
 
 /* ── how it works ──
    Written for someone who just followed a link, so it says the two things the
-   screen cannot: a dream is PRIVATE until shared, and sharing is per-piece. */
+   screen cannot: a dream is PRIVATE until shared, and who sees it is one choice. */
 var howY = 0;
 function howCard(){
   return '<div class="how">' +
     '<h3>How this works</h3><ol>' +
     '<li>Write a dream down. It saves to your <b>archive</b>, private — nobody else can see it.</li>' +
-    '<li>Tap <b>draw it</b> and it gets illustrated \u2014 one picture of the dream. That takes a few minutes; you can leave and come back.</li>' +
-    '<li>Then you choose what to share, piece by piece: your words, and each drawing on its own. Anything you leave private stays private.</li>' +
+    '<li>Tap <b>illustrate it</b> and it gets drawn \u2014 one picture of the dream. That takes a few minutes; you can leave and come back. Three dreams get their ink each night.</li>' +
+    '<li>Then choose who sees it: everyone, friends, or just you. You can change your mind anytime.</li>' +
     '<li>What you share joins the day in the feed. Dreams sit under their date with no names on them.</li>' +
     '</ol>' +
     '<button class="close" data-howclose>got it</button>' +
@@ -544,77 +580,67 @@ function closeHow(){
   }
 }
 
+/* A small pop-up for the three-a-day doors (Sophie: "there will be a pop up
+   if they try to illustrate a second one … Sorry, come back tomorrow").
+   Same card as the explainer; it does not touch the body scroll lock, since
+   it can appear over the compose sheet, which holds the lock itself. */
+function popupMsg(msg){
+  if (window.__scrollStop) window.__scrollStop();
+  var w = document.createElement('div');
+  w.className = 'howwrap';
+  w.innerHTML = '<div class="how"><div style="text-align:center">' + esc(msg) + '</div>' +
+    '<button class="close" data-howclose>ok</button></div>';
+  document.body.appendChild(w);
+  w.addEventListener('click', function(e){
+    if (e.target === w || (e.target.closest && e.target.closest('[data-howclose]'))) w.remove();
+  });
+}
+
 /* ── lightbox: a tapped panel opens big ──
    The house rule has two halves and BOTH matter: lock the page behind it, and
    remember where she was, because locking alone doesn't stop the page moving —
    she has to land back exactly where she opened it. */
-var lbY = 0, lbList = [], lbIdx = 0, lbNight = null;
+var lbY = 0, lbList = [], lbIdx = 0;
 function lbShow(){
-  var p = lbList[lbIdx];
-  document.getElementById('lbimg').src = p.url;
-  var btn = document.getElementById('lbfeat');
-  var mine = lbNight && lbNight.mine, many = lbList.length > 1;
-  var isCover = lbNight && lbNight.cover && lbNight.cover.dreamId === p.dreamId && lbNight.cover.i === p.i;
-  btn.hidden = !(mine && many && !isCover);
-  btn.textContent = 'feature this one';
-  btn.disabled = false;
+  document.getElementById('lbimg').src = lbList[lbIdx].url;
 }
-function openLightbox(list, idx, night){
+function openLightbox(list, idx){
   lbY = window.scrollY;
   if (window.__scrollStop) window.__scrollStop();
-  lbList = list; lbIdx = idx || 0; lbNight = night || null;
+  lbList = list; lbIdx = idx || 0;
   document.getElementById('lb').hidden = false;
   document.body.style.overflow = 'hidden';
   lbShow();
-  document.getElementById('lbfeat').onclick = function(){
-    var btn = this, p = lbList[lbIdx];
-    btn.disabled = true;
-    api('/nights/' + lbNight.id + '/cover', { body: { dreamId: p.dreamId, i: Number(p.i) } })
-      .then(function(){ closeLightbox(); renderFeed(); toast('featured'); })
-      .catch(function(e){ btn.disabled = false; toast(e.message); });
-  };
 }
 function closeLightbox(){
   var lb = document.getElementById('lb');
   if (lb.hidden) return;
   lb.hidden = true;
   document.getElementById('lbimg').removeAttribute('src');
-  document.getElementById('lbfeat').hidden = true;
   document.body.style.overflow = '';
   window.scrollTo(0, lbY);
 }
-// Delegated. A feed blob opens the night's panels (tap the picture to see the
-// next); a plain grid image (the detail screen) opens itself.
+// Delegated. A feed blob opens the dream's picture (an old comic dream still
+// pages through its panels on tap); a plain grid image opens itself.
 document.addEventListener('click', function(e){
-  if (e.target.id === 'lbfeat') return;
   if (e.target.id === 'lbimg') {
     if (lbList.length > 1) { lbIdx = (lbIdx + 1) % lbList.length; lbShow(); }
     return;
   }
   var blob = e.target.closest ? e.target.closest('.blob') : null;
   if (blob) {
-    var card = blob.closest('.dcard'), n = feedNight[card.dataset.id];
-    if (n && n.panels && n.panels.length) {
-      var ci = 0, cov = n.cover || n.panels[0];
-      n.panels.forEach(function(p, k){ if (p.dreamId === cov.dreamId && p.i === cov.i) ci = k; });
-      openLightbox(n.panels, ci, n);
-    }
+    var card = blob.closest('.dcard'), n = feedEntry[card.dataset.id];
+    if (n && n.panels && n.panels.length) openLightbox(n.panels, 0);
     return;
   }
   var img = e.target.closest ? e.target.closest('.pgrid img') : null;
-  if (img) { openLightbox([{ url: img.src }], 0, null); return; }
+  if (img) { openLightbox([{ url: img.src }], 0); return; }
   if (e.target.closest && e.target.closest('.lb')) closeLightbox();
 });
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeLightbox(); closeHow(); } });
 
-/* ── panels: three to a row; more than three folds behind "see more" ── */
-/* ── the night's pictures: ONE cover, the rest behind the fold ──
-   Sophie: "it only shows pictures for one and you can see the rest. People can
-   decide to feature a photo if they don't like the one that's chronologically
-   first, but that's the default." So the entry costs the same scroll whatever
-   the night held, and the cover is a CHOICE the dreamer can make rather than an
-   accident of which dream got written down first. */
-// Every page, three across — the private view of your own dream.
+// Every panel, three across — the private view of your own dream. One picture
+// per dream since Aug 2026; an old comic dream still shows all its pages.
 function plainGrid(panels){
   if (!panels.length) return '';
   return '<div class="pgrid">' +
@@ -622,73 +648,36 @@ function plainGrid(panels){
     '</div>';
 }
 
-/* ── ONE fold, used by the words and by the extra panels ──
-   `apply(open)` does the showing; `anchor` is the block being opened, so a
-   close can put its top back on screen instead of leaving her stranded
-   halfway down whatever she just collapsed. */
-function wireFold(btn, anchor, apply, moreLabel){
-  var open = false;
-  function paint(){
-    btn.innerHTML = open ? UP + '<span>see less</span>' : DOWN + '<span>' + moreLabel + '</span>';
-    btn.classList.toggle('stuck', open);
-  }
-  btn.addEventListener('click', function(){
-    open = !open;
-    apply(open);
-    paint();
-    // Measure AFTER the collapse, never before. Closing a very long dream can
-    // shorten the page past the scroll position the browser is holding, so it
-    // CLAMPS — and a delta computed from the old layout then lands the dream
-    // off the bottom of the screen. Reading the new rect and scrolling to it
-    // is right whether or not the clamp bites.
-    if (!open) {
-      var r = anchor.getBoundingClientRect();
-      if (r.top < 0 || r.top > window.innerHeight - 40) window.scrollTo(0, window.scrollY + r.top - 8);
-    }
-  });
-  paint();
-}
-function wirePanels(root){
-  root.querySelectorAll('[data-more]').forEach(function(btn){
-    var rest = btn.parentElement.querySelector('[data-rest]');
-    var anchor = btn.closest('.dream') || btn.parentElement;
-    wireFold(btn, anchor, function(open){ rest.hidden = !open; }, btn.dataset.label);
-  });
-}
-
-/* ── THE MELT FEED — one night is one card, exactly the 2a artboard ──
-   Alternating dark cards (her alternateDark tweak, ON), the illustration in a
-   breathing blob that swaps sides card by card, headline + body in EB
-   Garamond, metadata a courier whisper. Dreams stay unattributed: the byline
-   slot carries only the audience glyph. */
-var feedNight = {};   // id -> night, for the blob lightbox
+/* ── THE MELT FEED — one DREAM is one card (Sophie, 2026-08-19: "they should
+   save as separate dreams" — the night-grouping was what "appended" her
+   dreams to each other, and it is gone). Alternating dark cards (her
+   alternateDark tweak, ON), the illustration in a breathing blob that swaps
+   sides card by card, headline + body in EB Garamond. Dreams stay
+   unattributed — and the byline slot is GONE (Sophie: "these little stars
+   next to all the dreams … I would get rid of it"). */
+var feedEntry = {};   // id -> feed entry, for the blob lightbox
 
 function meltCard(n, dark, rev, dur){
-  var parts = (n.dreams || []).filter(function(d){ return !!d.words; });
-  var words = parts.map(function(d){ return d.words; }).join('\n\n');
-  var hasImg = !!(n.panels && n.panels.length);
-  var cover = n.cover || (hasImg ? n.panels[0] : null);
-  var blob = hasImg
-    ? '<div class="blob"><img src="' + cover.url + '" alt="" loading="lazy"></div>'
+  var blob = n.cover
+    ? '<div class="blob"><img src="' + n.cover.url + '" alt="" loading="lazy"></div>'
     : '';
   var meta = n.mine ? '' :
     '<div class="dmeta">' +
-      '<span class="likebtn' + (n.felt ? ' on' : '') + '">' + (n.felt ? '\u2665' : '\u2661') + ' ' + n.feltCount + '</span>' +
-      '<span class="cmtbtn">\u270e ' + (n.commentCount || 0) + '</span>' +
-      '<span class="whobtn">their dreams</span>' +
+      '<span class="likebtn' + (n.felt ? ' on' : '') + '">' + HEART + (n.feltCount || 0) + '</span>' +
+      '<span class="cmtbtn">' + BUBBLE + (n.commentCount || 0) + '</span>' +
+      '<span class="whobtn" title="their dreams">' + WHO + '</span>' +
     '</div>';
-  // The byline slot carries only the audience: \u2733 for everyone, \u263e friends for
-  // a friends-post (which also always wears the dark card \u2014 the sharing-flow
-  // artboard's rule). Still no names on anything.
+  // A ☾ friends card says so in the corner and always wears the dark card
+  // (the sharing-flow artboard's rule) — the only marker any card carries.
   var frd = n.audience === 'friends';
   return '<article class="dcard' + (dark || frd ? ' dark' : '') + '" data-id="' + n.id + '"' +
     (n.mine ? ' data-mine="1"' : '') + ' style="--dur:' + dur + 's">' +
     '<div class="drow' + (rev ? ' rev' : '') + '">' + blob +
       '<div class="dtxt">' +
-        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span><span class="dby">' +
-          (frd ? '\u263e friends' : '\u2733') + '</span></div>' +
-        (words ? '<div class="dbody clamped">' +
-                   '<button class="dmore" hidden><span>see more</span></button>' + esc(words) +
+        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span>' +
+          (frd ? '<span class="dby">☾ friends</span>' : '') + '</div>' +
+        (n.words ? '<div class="dbody clamped">' +
+                   '<button class="dmore" hidden><span>see more</span></button>' + esc(n.words) +
                  '</div>' : '') +
         meta +
       '</div>' +
@@ -798,7 +787,8 @@ function wireDreams(root){
       // POST — the old page sent a bodyless GET here, which the server never
       // routed, so the heart silently did nothing.
       api('/dreams/' + id + '/felt', { method: 'POST' }).then(function(r){
-        like.textContent = (r.felt ? '\u2665' : '\u2661') + ' ' + r.feltCount;
+        like.innerHTML = HEART + (r.feltCount || 0);
+        like.classList.toggle('on', !!r.felt);
       }).catch(function(e){ toast(e.message); });
     });
     var cmt = card.querySelector('.cmtbtn'), thread = card.querySelector('.dthread');
@@ -820,7 +810,7 @@ async function loadComments(id, thread, cmt){
     var r = await api('/dreams/' + id + '/comments');
     drawComments(r.comments, thread);
     thread.insertAdjacentHTML('beforeend',
-      '<input class="whisper" placeholder="whisper back\u2026" maxlength="800" enterkeyhint="send">');
+      '<input class="whisper" placeholder="leave a comment\u2026" maxlength="800" enterkeyhint="send">');
     var input = thread.querySelector('.whisper');
     input.addEventListener('keydown', async function(e){
       if (e.key !== 'Enter') return;
@@ -833,7 +823,7 @@ async function loadComments(id, thread, cmt){
         var empty = thread.querySelector('[data-empty]');
         if (empty) empty.remove();
         input.insertAdjacentHTML('beforebegin', commentRow(res.comment));
-        cmt.textContent = '\u270e ' + res.commentCount;
+        cmt.innerHTML = BUBBLE + res.commentCount;
       } catch (err) { toast(err.message); }
       input.disabled = false;
       input.focus();
@@ -850,17 +840,19 @@ function commentRow(c){
 function drawComments(comments, thread){
   thread.innerHTML = comments.length
     ? comments.map(commentRow).join('')
-    : '<div class="crow" data-empty><span class="said" style="opacity:.5">no one has whispered yet.</span></div>';
+    : '<div class="crow" data-empty><span class="said" style="opacity:.5">no comments yet.</span></div>';
 }
 
 /* ── views ── */
 var scr = { feed: null, mine: null, dream: null, teams: null, friends: null, dreamer: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
-  // Leaving the feed takes an opened dream with it — the floating close would
-  // otherwise sit over the archive with nothing to close.
+  // Leaving the feed takes an opened card with it. The floating close serves
+  // TWO doors (Sophie: "they should all have a closed button that's
+  // floating"): an opened feed card, and the archive's dream screen — where
+  // it is the way back that doesn't make her scroll to either end.
   openCard = null;
-  document.getElementById('closewrap').hidden = true;
+  document.getElementById('closewrap').hidden = (which !== 'dream');
   document.getElementById('confess').hidden = (which !== 'feed');
   var mineBtn = document.getElementById('navMine');
   // Two views and one word to swap between them (Sophie, Aug 2026): the feed,
@@ -878,7 +870,7 @@ async function renderFeed(){
       var ghosts = '';
       for (var i = 0; i < 3; i++) {
         ghosts += '<article class="dcard' + (i % 2 ? ' dark' : '') + '"><div class="drow"><div class="dtxt">' +
-          '<div class="dhead"><span class="dttl">Somewhere a Door Kept Opening</span><span class="dby">\u2733</span></div>' +
+          '<div class="dhead"><span class="dttl">Somewhere a Door Kept Opening</span></div>' +
           '<div class="dbody">The stairwell went down further than the building did and everyone acted like that was normal\u2026</div>' +
           '</div></div></article>';
       }
@@ -887,20 +879,20 @@ async function renderFeed(){
         '<div class="sealmsg"><div class="inner">' +
         '<div class="big">' + f.count + ' dream' + (f.count === 1 ? '' : 's') + ' from last night</div>' +
         '<div class="sml">share one of yours to read them \u2014 the feed opens for the rest of the day</div>' +
-        '<button id="gateGo">it\u2019s coming back to me\u2026</button>' +
+        '<button id="gateGo">add last night\u2019s dream</button>' +
         '</div></div></div>';
       document.getElementById('gateGo').addEventListener('click', function(){ openCompose(); });
       return;
     }
-    var nights = f.nights || [];
-    feedNight = {};
-    nights.forEach(function(n){ feedNight[n.id] = n; });
+    var entries = f.dreams || [];
+    feedEntry = {};
+    entries.forEach(function(n){ feedEntry[n.id] = n; });
     // Group under the day they were shared, newest first. Tonight's dreams
     // lead with no divider and end with nothing (Sophie had the sign-off line
     // taken out); every older day gets the divider band. The line that shows
     // when nothing has been shared YET is a different one, and stays.
     var byDay = {}, days = [];
-    nights.forEach(function(n){
+    entries.forEach(function(n){
       var k = n.publicOn || String(n.createdAt || '').slice(0, 10);
       if (!byDay[k]) { byDay[k] = []; days.push(k); }
       byDay[k].push(n);
@@ -908,7 +900,7 @@ async function renderFeed(){
     days.sort().reverse();
     var html = '', card = 0, img = 0;
     var drawCard = function(n){
-      var hasImg = !!(n.panels && n.panels.length);
+      var hasImg = !!n.cover;
       var s = meltCard(n, card % 2 === 1, hasImg && img % 2 === 1, 8 + (card % 4));
       card++;
       if (hasImg) img++;
@@ -947,24 +939,28 @@ async function renderFeed(){
       });
     }
   } catch (e) {
-    el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>';
+    // She hit a bare "Load failed" once with no way onward but a full reload —
+    // a transient fetch failure gets a door to try again.
+    el.innerHTML = '<div class="err" style="padding-top:30px">' + esc(e.message) + '</div>' +
+      '<button class="btn" style="width:auto; padding:11px 22px" id="feedRetry">try again</button>';
+    var rb = document.getElementById('feedRetry');
+    if (rb) rb.addEventListener('click', function(){ renderFeed(); });
   }
 }
 
 /* ── the compose sheet (stage 1 → stage 2, per the artboard) ──
    Speak it / upload a recording go through POST /transcribe and land in the
-   same box as typing. "illustrate it" saves the dream (with mood, lucid,
-   recurring and the three things — captured now, no later moment knows them)
-   and starts the drawing as a background job (~2¢/page, gpt-image-2 low, the
-   dream-zine engine). Stage 2 polls the job; "share your dream" publishes the
-   night to everyone or to friends (☾ — reaches the dream teams you routed
-   friends-posts into; see the teams screen), "just me" keeps it private. If
-   she shares while the ink is still working, the words go out now and the
-   pictures follow by themselves the moment the job lands (localStorage
-   carries the intent — id|audience — across a closed sheet, and across a
-   relaunch). */
+   same box as typing. "illustrate it" saves the dream FIRST (with mood, lucid,
+   recurring and the three things — captured now, no later moment knows them),
+   then starts the drawing as a background job (one square medium picture,
+   5.3¢). Three drawings a night: past that the server refuses, the pop-up says
+   come back tomorrow, and the dream is safe in the archive as a draft. Stage 2
+   polls the job; the seen-by dial picks everyone / friends / just me. Sharing
+   while the ink is still working needs no client machinery any more — the
+   server marks a landing picture public by itself when the dream is already
+   out. */
 var sheetState = null;
-var composeInfo = null;   // /me: streak + last night, fetched once per open
+var composeInfo = null;   // /me: streak, fetched once per open
 
 function openCompose(){
   sheetState = { stage: 1, dreamId: null, share: 'everyone', mood: null,
@@ -975,18 +971,22 @@ function openCompose(){
   document.getElementById('draft').value = '';
   document.querySelectorAll('.three .el').forEach(function(t){ t.value = ''; });
   document.querySelectorAll('.moods button, #lucidBtn, #recurBtn').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('moodFree').value = '';
   document.getElementById('micBtn').classList.remove('rec');
   document.getElementById('illusBtn').disabled = false;
+  document.getElementById('friendNote').hidden = true;
+  document.querySelectorAll('#sheet .dial button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.s === 'everyone');
+  });
+  document.getElementById('streakLine').textContent = '';
   sh.hidden = false;
   document.body.style.overflow = 'hidden';
   api('/me').then(function(r){
     composeInfo = r;
-    var line = 'dreams fade in the first ten minutes — write fast';
+    // Just the streak — the write-fast line and "last night: …" are gone (Sophie).
     if (r.streak > 0) {
-      line = '☾ night ' + r.streak + ' of your streak' +
-        (r.lastNight ? ' · last night: ' + r.lastNight.toLowerCase() : '') + '<br>' + line;
+      document.getElementById('streakLine').textContent = '☾ night ' + r.streak + ' of your streak';
     }
-    document.getElementById('streakLine').innerHTML = line;
   }).catch(function(){});
 }
 function closeCompose(){
@@ -1049,13 +1049,30 @@ async function illustrate(){
   if (!text) { document.getElementById('draft').focus(); return; }
   var btn = document.getElementById('illusBtn');
   btn.disabled = true;
+  // Read the free mood box at submit time — iOS dictation can fill a field
+  // without ever firing an input event.
+  var free = document.getElementById('moodFree').value.trim();
+  if (free) sheetState.mood = free;
+  var d;
   try {
-    var d = await api('/dreams', { body: { text: text, mood: sheetState.mood,
+    d = await api('/dreams', { body: { text: text, mood: sheetState.mood,
       lucid: sheetState.lucid, recurring: sheetState.recur, elems: elemsNow() } });
     sheetState.dreamId = d.id;
+  } catch (e) { toast(e.message); btn.disabled = false; return; }
+  try {
     await api('/dreams/' + d.id + '/draw', { body: {} });
-    enterStage2(text);
-  } catch (e) { toast(e.message); btn.disabled = false; }
+  } catch (e) {
+    // The dream is SAVED either way (Sophie: "it should save your dream to
+    // your own private archive even if it's just a draft") — only the ink is
+    // rationed, and the third-of-the-night refusal gets her pop-up.
+    closeCompose();
+    renderMine(); go('mine');
+    popupMsg(e.limit === 'day'
+      ? 'sorry — three dreams get their ink each night. this one is saved in your archive; come back tomorrow.'
+      : e.message + ' — your dream is saved in your archive; you can draw it from there.');
+    return;
+  }
+  enterStage2(text);
 }
 
 function enterStage2(text){
@@ -1091,7 +1108,6 @@ function pollDrawing(){
     if (d.panels && d.panels.length) {
       box.innerHTML = '<img src="' + d.panels[0].url + '" alt="your dream, illustrated">';
       document.querySelectorAll('#slots .sq2 span').forEach(function(p){ p.remove(); });
-      finishPendingShare();
       return;
     }
     if (d.drawJob && d.drawJob.status === 'failed') {
@@ -1102,181 +1118,111 @@ function pollDrawing(){
   }).catch(function(){ sheetState.poll = setTimeout(pollDrawing, 6000); });
 }
 
-/* Shared before the ink dried: the words went out already, and the pictures
-   follow by themselves when the job lands — the intent survives a closed
-   sheet and a relaunch. */
-function pendingKey(){ return 'dreamapp-share-when-drawn'; }
-var pendingTimer = null;
-function armPendingWatcher(){
-  if (pendingTimer || !localStorage.getItem(pendingKey())) return;
-  pendingTimer = setInterval(function(){
-    if (!localStorage.getItem(pendingKey())) { clearInterval(pendingTimer); pendingTimer = null; return; }
-    finishPendingShare();
-  }, 8000);
-}
-async function finishPendingShare(){
-  // Stored as `id|audience`; a value from before the dial had three stops is
-  // a bare id, which reads as everyone.
-  var v = localStorage.getItem(pendingKey());
-  if (!v) return;
-  var id = v.split('|')[0], aud = v.split('|')[1] || 'everyone';
-  try {
-    var d = await api('/dreams/' + id);
-    if (d.drawJob && d.drawJob.status === 'failed') { localStorage.removeItem(pendingKey()); return; }
-    if (!d.panels || !d.panels.length) return;   // still drawing — a later pass finishes it
-    await api('/nights/' + id + '/share',
-      { body: { words: true, audience: aud, panels: d.panels.map(function(p){ return { dreamId: id, i: p.i }; }) } });
-    localStorage.removeItem(pendingKey());
-    renderFeed();
-  } catch (e) {}
-}
-
+/* Sharing while the ink is still working needs nothing from the client: the
+   server marks a landing picture public by itself when the dream is already
+   out (the draw job re-reads the doc as it finishes). */
 async function shareDream(){
   var btn = document.getElementById('shareBtn2');
   btn.disabled = true;
   try {
     if (sheetState.share === 'private') {
-      closeCompose(); renderMine(); toast('kept in your dreams — only you');
+      closeCompose(); renderMine(); toast('kept in your archive — only you');
       return;
     }
-    var aud = sheetState.share === 'friends' ? 'friends' : 'everyone';
-    var d = await api('/dreams/' + sheetState.dreamId);
-    var panels = (d.panels || []).map(function(p){ return { dreamId: d.id, i: p.i }; });
-    await api('/nights/' + sheetState.dreamId + '/share', { body: { words: true, audience: aud, panels: panels } });
-    if (!panels.length && !(d.drawJob && d.drawJob.status === 'failed')) {
-      localStorage.setItem(pendingKey(), sheetState.dreamId + '|' + aud);
-      armPendingWatcher();
-    }
+    await api('/dreams/' + sheetState.dreamId + '/audience', { body: { audience: sheetState.share } });
     closeCompose();
     await renderFeed(); go('feed');
-    toast(aud === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in tonight\u2019s feed');
-  } catch (e) { toast(e.message); btn.disabled = false; }
+    toast(sheetState.share === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in tonight\u2019s feed');
+  } catch (e) {
+    btn.disabled = false;
+    if (e.limit === 'day') popupMsg(e.message + ' — it stays safe in your archive.');
+    else toast(e.message);
+  }
 }
 
-/* ── one dream (detail: name, draw, share) ── */
+/* ── one dream (detail: name, draw, who sees it) ──
+   Per DREAM since 2026-08-19 (the night screen "appended" her dreams). The
+   sharing sits at the TOP as the three-stop dial (Sophie: "have the sharing
+   at the top and make it the toggle thing"), and the floating close button
+   is the way back — a long rambling dream must never strand her scrolling
+   for an exit. The "in today's feed until midnight" line is gone: with the
+   gate off a shared dream simply stays in the feed. */
 var dreamPoll = null;
 function openDream(id, from){
   openDreamId = id; cameFrom = from || 'mine';
   go('dream');
   renderDream();
 }
+function closeDreamScreen(){
+  clearTimeout(dreamPoll);
+  if (cameFrom === 'feed') { renderFeed(); go('feed'); } else { renderMine(); go('mine'); }
+}
+function audLabel(aud){
+  return aud === 'private' ? 'just yours again'
+    : aud === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in the feed';
+}
 async function renderDream(){
   clearTimeout(dreamPoll);
   var el = scr.dream;
-  // The screen is the NIGHT, not one dream — you post once a day, and a long
-  // recording split into several dreams is machinery on the way to the pictures.
-  var night, d;
-  try { night = await api('/nights/' + openDreamId); }
+  var d;
+  try { d = await api('/dreams/' + openDreamId); }
   catch (e) { el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
-  d = (night.dreams || []).find(function(x){ return x.id === openDreamId; }) || night.dreams[0];
-
-  var allPanels = (night.dreams || []).reduce(function(a, x){ return a.concat(x.panels || []); }, []);
-  var drawing = (night.dreams || []).some(function(x){ return x.drawJob && x.drawJob.status === 'drawing'; });
+  var drawing = d.drawJob && d.drawJob.status === 'drawing';
   var failed = d.drawJob && d.drawJob.status === 'failed';
-  var shared = night.shared;
   var drawBlock;
   if (drawing) {
     drawBlock = '<div class="drawing"><span class="pulse"></span>drawing your dream…</div>' +
-      '<div class="pgrid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>' +
+      '<div class="pgrid"><div class="skel"></div></div>' +
       '<div class="quiet">You can leave — the drawing will be here when it’s done.</div>';
-  } else if (allPanels.length) {
-    // Your OWN night, before you have shared it: every page at once. The
-    // one-cover rule is about the FEED — here you are choosing what to share,
-    // so hiding pages behind a fold would hide the thing you came to decide.
-    drawBlock = plainGrid(allPanels);
+  } else if ((d.panels || []).length) {
+    drawBlock = plainGrid(d.panels);
   } else {
-    drawBlock = '<button class="btn sub" id="drawBtn"><span class="star" style="color:var(--fuchsia)">' + STAR + '</span> draw it</button>' +
+    drawBlock = '<button class="btn sub" id="drawBtn"><span class="star">' + STAR + '</span> draw it</button>' +
       (failed ? '<div class="err">' + esc(d.drawJob.error) + '</div>' : '');
   }
-  // SHARING IS THE NIGHT'S, not the dream's (Sophie: "you can only really post
-  // once per day"). Her words are one choice; each picture across the whole
-  // night is its own, named by the dream that drew it.
-  var shareRows = '';
-  if (!drawing) {
-    var pics = [];
-    (night.dreams || []).forEach(function(dd){
-      (dd.panels || []).forEach(function(p){ pics.push({ dreamId: dd.id, i: p.i, url: p.url, public: p.public }); });
-    });
-    shareRows = shareItem('words', 'your words', null, night.wordsPublic, shared) +
-      pics.map(function(p, n){
-        return shareItem('p:' + p.dreamId + ':' + p.i, 'picture ' + (n + 1), p.url, p.public, shared);
-      }).join('');
-  }
+  var aud = d.audience || (d.publicOn ? 'everyone' : 'private');
   el.innerHTML =
     '<div class="backrow"><button id="backBtn">' + BACK + 'back</button></div>' +
+    '<div class="seenby sharebar"><span>seen by</span>' +
+      '<div class="dial" id="audDial">' +
+        '<button data-s="everyone"' + (aud === 'everyone' ? ' class="on"' : '') + '>✳ everyone</button>' +
+        '<button data-s="friends"' + (aud === 'friends' ? ' class="on"' : '') + '>☾ friends</button>' +
+        '<button data-s="private"' + (aud === 'private' ? ' class="on"' : '') + '>◦ just me</button>' +
+      '</div></div>' +
+    (aud === 'friends'
+      ? '<div class="quiet" style="text-align:center">your accepted friends, plus any dream team you switched on</div>'
+      : '') +
     '<div class="post">' +
-    (night.title ? '<div class="ttl">' + esc(night.title) + '</div>' : '<div class="naming">finding its name…</div>') +
-    '<div class="meta">' + ago(night.createdAt) + ' ago · ' +
-    (shared ? '<span class="badge pub">' + (night.audience === 'friends' ? '☾ with your friends' : 'in today’s feed') + '</span>'
-            : '<span class="badge priv">private</span>') + '</div>' +
-    // The whole night's words, in order. Where a long recording was split for
-    // the drawing, the pieces read on as one — that split is machinery.
-    '<div class="words">' + (night.dreams || []).map(function(x){
-      return '<div class="part">' + esc(x.text) + '</div>';
-    }).join('') + '</div>' +
-    drawBlock + '</div>' +
-    (shareRows
-      ? '<div class="h2">Share</div>' + shareRows +
-        (shared ? '<div class="quiet">' + (night.audience === 'friends'
-                    ? 'With your friends until midnight.' : 'In today’s feed until midnight.') + '</div>'
-                : '<div class="seenby" style="margin:14px 0 2px"><span>seen by</span>' +
-                  '<div class="dial" id="dtlDial">' +
-                    '<button data-a="everyone" class="on">✳ everyone</button>' +
-                    '<button data-a="friends">☾ friends</button>' +
-                  '</div></div>' +
-                  '<button class="btn" id="shareBtn">share to today’s feed</button>')
-      : '');
-  wirePanels(el);
-  document.getElementById('backBtn').addEventListener('click', function(){
-    clearTimeout(dreamPoll);
-    if (cameFrom === 'feed') { renderFeed(); go('feed'); } else { renderMine(); go('mine'); }
-  });
+    (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
+    '<div class="meta">' + ago(d.createdAt) + ' ago</div>' +
+    '<div class="words">' + esc(d.text) + '</div>' +
+    drawBlock + '</div>';
+  document.getElementById('backBtn').addEventListener('click', closeDreamScreen);
   var drawBtn = document.getElementById('drawBtn');
   if (drawBtn) drawBtn.addEventListener('click', async function(){
     this.disabled = true;
     try { await api('/dreams/' + openDreamId + '/draw', { body: {} }); renderDream(); }
-    catch (e) { toast(e.message); this.disabled = false; }
+    catch (e) {
+      this.disabled = false;
+      if (e.limit === 'day') popupMsg('sorry — three dreams get their ink each night. come back tomorrow.');
+      else toast(e.message);
+    }
   });
-  el.querySelectorAll('[data-t]').forEach(function(b){
-    b.addEventListener('click', function(){
-      if (shared) return;
-      b.classList.toggle('pub');
-      b.textContent = b.classList.contains('pub') ? 'public' : 'private';
+  el.querySelectorAll('#audDial button').forEach(function(b){
+    b.addEventListener('click', async function(){
+      if (b.classList.contains('on')) return;
+      try {
+        await api('/dreams/' + openDreamId + '/audience', { body: { audience: b.dataset.s } });
+        toast(audLabel(b.dataset.s));
+        renderDream();
+      } catch (e) {
+        if (e.limit === 'day') popupMsg(e.message + ' — it stays safe in your archive.');
+        else toast(e.message);
+      }
     });
   });
-  var dtlAud = 'everyone';
-  el.querySelectorAll('#dtlDial button').forEach(function(b){
-    b.addEventListener('click', function(){
-      el.querySelectorAll('#dtlDial button').forEach(function(x){ x.classList.remove('on'); });
-      b.classList.add('on');
-      dtlAud = b.dataset.a;
-    });
-  });
-  var shareBtn = document.getElementById('shareBtn');
-  if (shareBtn) shareBtn.addEventListener('click', async function(){
-    var words = el.querySelector('[data-t="words"]').classList.contains('pub');
-    var panels = [];
-    el.querySelectorAll('[data-t]').forEach(function(b){
-      if (b.dataset.t === 'words' || !b.classList.contains('pub')) return;
-      var bits = b.dataset.t.split(':');   // p:<dreamId>:<i>
-      panels.push({ dreamId: bits[1], i: parseInt(bits[2], 10) });
-    });
-    this.disabled = true;
-    try {
-      await api('/nights/' + openDreamId + '/share', { body: { words: words, audience: dtlAud, panels: panels } });
-      toast(dtlAud === 'friends' ? 'shared with your friends ☾' : 'you’re in today’s feed');
-      await renderFeed();
-      go('feed');
-    } catch (e) { toast(e.message); this.disabled = false; }
-  });
-  // keep polling while the name or a drawing is still landing
-  if (!night.title || drawing) dreamPoll = setTimeout(renderDream, drawing ? 4000 : 1500);
-}
-function shareItem(key, label, thumb, on, locked){
-  return '<div class="share-item">' + (thumb ? '<img class="thumb" src="' + thumb + '" alt="">' : '') +
-    '<span class="lab">' + label + '</span>' +
-    '<button class="st' + (on ? ' pub' : '') + '" data-t="' + key + '"' + (locked ? ' disabled' : '') + '>' +
-    (on ? 'public' : 'private') + '</button></div>';
+  // keep polling while the name or the drawing is still landing
+  if (!d.title || drawing) dreamPoll = setTimeout(renderDream, drawing ? 4000 : 1500);
 }
 
 /* ── my dreams ── */
@@ -1289,24 +1235,16 @@ async function renderMine(){
       wireMineFoot(el);
       return;
     }
-    // ONE ROW PER NIGHT — you post once a day, so two dreams written the same
-    // night are one thing here too, and the row opens the whole night.
-    var byNight = {}, order = [];
-    r.dreams.forEach(function(d){
-      var k = d.night || String(d.createdAt || '').slice(0, 10);
-      if (!byNight[k]) { byNight[k] = []; order.push(k); }
-      byNight[k].push(d);
-    });
-    order.forEach(function(k){ byNight[k].sort(function(a, b){ return a.createdAt < b.createdAt ? -1 : 1; }); });
-    el.innerHTML = order.map(function(k){
-      var group = byNight[k], first = group[0];
-      var drawing = group.some(function(d){ return d.drawJob && d.drawJob.status === 'drawing'; });
-      return '<button class="jitem" data-id="' + first.id + '"><div class="row">' +
-        '<span class="ttl">' + esc(first.title || 'finding its name…') + '</span>' +
-        (first.publicOn ? '<span class="badge pub">shared</span>' : '<span class="badge priv">private</span>') +
+    // ONE ROW PER DREAM (Sophie, 2026-08-19: "they should save as separate
+    // dreams" — the per-night rows were what read as appended).
+    el.innerHTML = r.dreams.map(function(d){
+      var drawing = d.drawJob && d.drawJob.status === 'drawing';
+      return '<button class="jitem" data-id="' + d.id + '"><div class="row">' +
+        '<span class="ttl">' + esc(d.title || 'finding its name…') + '</span>' +
+        (d.publicOn ? '<span class="badge pub">shared</span>' : '<span class="badge priv">private</span>') +
         (drawing ? '<span class="naming">drawing…</span>' : '') +
-        '<span class="when">' + ago(first.createdAt) + '</span></div>' +
-        '<div class="snip">' + esc(group.map(function(d){ return d.text; }).join(' ')) + '</div></button>';
+        '<span class="when">' + ago(d.createdAt) + '</span></div>' +
+        '<div class="snip">' + esc(d.text) + '</div></button>';
     }).join('');
     el.innerHTML += mineFoot();
     el.querySelectorAll('.jitem').forEach(function(b){
@@ -1444,7 +1382,7 @@ async function renderFriends(){
     });
     html += '<div class="h2">your friends</div>';
     if (!r.friends.length) {
-      html += '<div class="quiet">no friends yet — your link below is how they arrive.</div>';
+      html += '<div class="quiet">no friends yet.</div>';
     }
     r.friends.forEach(function(f){
       html += '<div class="share-item"><span class="lab">' + esc(f.name) + '</span>' +
@@ -1456,8 +1394,8 @@ async function renderFriends(){
       html += '<div class="quiet">waiting on ' + r.waiting.length +
         (r.waiting.length === 1 ? ' answer' : ' answers') + '</div>';
     }
-    html += '<div class="quiet">you make friends from their dreams — open one in the feed, tap ' +
-      '“their dreams”, and ask there. nothing happens until the other side says yes. ' +
+    html += '<div class="quiet">you make friends from their dreams — tap the little person on ' +
+      'a dream in the feed and ask there. nothing happens until the other side says yes. ' +
       '☾ friends dreams reach everyone on this screen, plus any dream team you switched on.</div>';
     el.innerHTML = html;
     wireBack();
@@ -1533,7 +1471,7 @@ function checkHands(){
    there's a way to see all the dreams from that person — basically there is
    a profile, but their name isn't attached." Reached from any card's
    "their dreams"; carries the one friend button ("ask if they want to be
-   friends"); the name appears only once you're holding hands. */
+   friends", her words); the name appears only once you're holding hands. */
 var dreamerId = null;
 function openDreamer(id){ dreamerId = id; renderDreamer(); go('dreamer'); }
 async function renderDreamer(){
@@ -1562,14 +1500,14 @@ async function renderDreamer(){
       '<div class="h2">' + (r.name ? esc(r.name) + '’s dreams' : 'their dreams') + '</div>' +
       friendRow;
     var card = 0, img = 0;
-    (r.nights || []).forEach(function(n){
-      feedNight[n.id] = n;
-      var hasImg = !!(n.panels && n.panels.length);
+    (r.dreams || []).forEach(function(n){
+      feedEntry[n.id] = n;
+      var hasImg = !!n.cover;
       html += meltCard(n, card % 2 === 1, hasImg && img % 2 === 1, 8 + (card % 4));
       card++;
       if (hasImg) img++;
     });
-    if (!(r.nights || []).length) html += '<div class="quiet">nothing shared yet.</div>';
+    if (!(r.dreams || []).length) html += '<div class="quiet">nothing shared yet.</div>';
     el.innerHTML = html;
     wireBack();
     wireDreams(el);
@@ -1656,8 +1594,6 @@ async function boot(){
     document.getElementById('app').hidden = !u;
     if (u) {
       renderFeed(); renderMine(); go('feed');
-      finishPendingShare();
-      armPendingWatcher();   // still drawing at relaunch? watch for the ink
       joinFromPath();        // came in through a dream-team invite link
       checkHands();          // an ask of yours said yes while you were away?
     }
@@ -1712,15 +1648,24 @@ async function boot(){
     document.getElementById('emailBtn').textContent = signUpMode ? 'Create account' : 'Sign in';
     this.textContent = signUpMode ? 'Have an account? Sign in' : 'New here? Create an account';
   });
-  // one header word swaps between the feed and your private dreams; the
-  // vault screen replaces this in the sharing-flow phase
+  // one header word swaps between the feed and your private dreams
   document.getElementById('navMine').addEventListener('click', function(){
     if (scr.feed.hidden) { renderFeed(); go('feed'); }
     else { renderMine(); go('mine'); }
   });
+  // the wordmark is the way home, on the app AND on the compose sheet (Sophie:
+  // "the header at the top … should take me back to the feed")
+  document.getElementById('markBtn').addEventListener('click', function(){
+    renderFeed(); go('feed');
+  });
+  document.getElementById('smarkBtn').addEventListener('click', function(){
+    closeCompose(); renderFeed(); go('feed');
+  });
   document.getElementById('confessBtn').addEventListener('click', openCompose);
+  // one floating close, two doors: an opened feed card, or the dream screen
   document.getElementById('closeDream').addEventListener('click', function(){
     if (openCard) setOpen(openCard, false);
+    else if (!scr.dream.hidden) closeDreamScreen();
   });
   document.getElementById('sheetX').addEventListener('click', closeCompose);
   document.getElementById('micBtn').addEventListener('click', toggleRec);
@@ -1746,15 +1691,23 @@ async function boot(){
     b.addEventListener('click', function(){
       var was = b.classList.contains('on');
       document.querySelectorAll('.moods button').forEach(function(x){ x.classList.remove('on'); });
+      document.getElementById('moodFree').value = '';
       sheetState.mood = was ? null : b.dataset.mood;
       if (!was) b.classList.add('on');
     });
   });
-  document.querySelectorAll('.dial button').forEach(function(b){
+  // the fifth feeling, in her own word — typing it stands the presets down
+  document.getElementById('moodFree').addEventListener('input', function(){
+    var v = this.value.trim();
+    if (v) document.querySelectorAll('.moods button').forEach(function(x){ x.classList.remove('on'); });
+    sheetState.mood = v || null;
+  });
+  document.querySelectorAll('#sheet .dial button').forEach(function(b){
     b.addEventListener('click', function(){
-      document.querySelectorAll('.dial button').forEach(function(x){ x.classList.remove('on'); });
+      document.querySelectorAll('#sheet .dial button').forEach(function(x){ x.classList.remove('on'); });
       b.classList.add('on');
       sheetState.share = b.dataset.s;
+      document.getElementById('friendNote').hidden = (b.dataset.s !== 'friends');
     });
   });
   document.getElementById('illusBtn').addEventListener('click', illustrate);

@@ -21,15 +21,13 @@ const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 const today = '2026-08-18';
-const nights = [
+const dreams = [
   { id: 'n1', title: 'The Xylophone Teeth', mine: false, publicOn: today, createdAt: today + 'T08:00:00Z',
-    audience: 'everyone',
-    dreams: [{ id: 'n1', title: 'The Xylophone Teeth', words: 'My teeth were a xylophone.' }],
-    panels: [{ dreamId: 'n1', i: 0, url: '/img/1.png' }], cover: { dreamId: 'n1', i: 0, url: '/img/1.png' },
+    audience: 'everyone', words: 'My teeth were a xylophone.',
+    panels: [{ i: 0, url: '/img/1.png' }], cover: { i: 0, url: '/img/1.png' },
     feltCount: 4, felt: false, commentCount: 0 },
   { id: 'n2', title: 'The Whale Again', mine: true, publicOn: today, createdAt: today + 'T07:00:00Z',
-    audience: 'everyone',
-    dreams: [{ id: 'n2', title: 'The Whale Again', words: 'The whale is back.' }],
+    audience: 'everyone', words: 'The whale is back.',
     panels: [], cover: null, feltCount: 1, felt: false, commentCount: 0 },
 ];
 
@@ -42,12 +40,12 @@ const srv = http.createServer((req, res) => {
   if (u === '/' || u === '/dreamfeed') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PAGE); }
   if (u.startsWith('/img/')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
   if (u === '/api/witch/firebase-config') return json({ apiKey: 'x', authDomain: 'x', projectId: 'x' });
-  if (u === '/api/dreamapp/feed') return json({ sealed: false, today, nights });
+  if (u === '/api/dreamapp/feed') return json({ sealed: false, today, dreams });
   if (u === '/api/dreamapp/dreams' && req.method === 'GET') return json({ dreams: [] });
   if (u === '/api/dreamapp/friends' && req.method === 'GET') return json({ friends: [], asks: [], waiting: [] });
   if (u === '/api/dreamapp/dreamer/n1') {
     return json({ by: 'aaaa', state: dreamer.state, pairId: dreamer.pairId, name: dreamer.name,
-                  nights: [nights[0]] });
+                  dreams: [dreams[0]] });
   }
   if (u === '/api/dreamapp/friends/ask' && req.method === 'POST') {
     asks.push(u);
@@ -105,7 +103,7 @@ const FIREBASE_STUB = `
   // 2 · nameless until friends, one button
   ok((await page.locator('#scr-dreamer .h2').textContent()) === 'their dreams', 'the profile is nameless');
   ok(await page.locator('#scr-dreamer [data-ask]').count() === 1, 'and carries the one friend button');
-  ok(await page.locator('#scr-dreamer .dcard').count() === 1, 'their visible nights are the body');
+  ok(await page.locator('#scr-dreamer .dcard').count() === 1, 'their visible dreams are the body');
   ok(await page.locator('#scr-dreamer .whobtn:visible').count() === 0, 'no way-in loop on its own cards');
 
   // 3 · asking

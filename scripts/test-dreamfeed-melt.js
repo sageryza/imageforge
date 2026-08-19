@@ -28,27 +28,28 @@ const PUB = path.join(__dirname, '..', 'public');
 const T0 = 1786000000000;
 const para = (n) => Array.from({ length: n }, (_, i) => `sentence number ${i} of this dream, long enough to wrap.`).join(' ');
 
-const night = (id, extra) => ({
+const entry = (id, extra) => ({
   id, by: id.toUpperCase(), mine: false, feltCount: 2, felt: false, commentCount: 1,
   publicOn: '2026-08-08', panels: [], cover: null, ...extra,
 });
-// One picture night (the case notes 1, 2 and 5 are about), one wordy night with
-// no picture, one short one, and a night on an OLDER day so the divider draws.
+// One card per DREAM (2026-08-19). One picture dream (the case notes 1, 2 and
+// 5 are about), one wordy dream with no picture, one short one, and one on an
+// OLDER day so the divider draws.
 const FEED = {
   sealed: false,
   today: '2026-08-08',
-  nights: [
-    night('pic', { title: 'The Time-Travelling Elevator', createdAt: new Date(T0).toISOString(),
-      dreams: [{ id: 'pic', title: 'The Time-Travelling Elevator', words: para(40) }],
-      panels: [{ dreamId: 'pic', i: 0, url: '/px.png?i=0', captions: [] }],
-      cover: { dreamId: 'pic', i: 0, url: '/px.png?i=0', captions: [] } }),
-    night('nopic', { title: 'The Man and the Gas Tank', createdAt: new Date(T0 - 60000).toISOString(),
-      dreams: [{ id: 'nopic', title: 'The Man and the Gas Tank', words: para(40) }] }),
-    night('short', { title: 'The Short One', createdAt: new Date(T0 - 120000).toISOString(),
-      dreams: [{ id: 'short', title: 'The Short One', words: 'a bus. it kept going.' }] }),
-    night('older', { title: 'Ian’s Barn Project', publicOn: '2026-08-07',
+  dreams: [
+    entry('pic', { title: 'The Time-Travelling Elevator', createdAt: new Date(T0).toISOString(),
+      words: para(40),
+      panels: [{ i: 0, url: '/px.png?i=0', captions: [] }],
+      cover: { i: 0, url: '/px.png?i=0', captions: [] } }),
+    entry('nopic', { title: 'The Man and the Gas Tank', createdAt: new Date(T0 - 60000).toISOString(),
+      words: para(40) }),
+    entry('short', { title: 'The Short One', createdAt: new Date(T0 - 120000).toISOString(),
+      words: 'a bus. it kept going.' }),
+    entry('older', { title: 'Ian’s Barn Project', publicOn: '2026-08-07',
       createdAt: new Date(T0 - 86400000).toISOString(),
-      dreams: [{ id: 'older', title: 'Ian’s Barn Project', words: para(30) }] }),
+      words: para(30) }),
   ],
 };
 
@@ -133,6 +134,19 @@ const check = (name, ok, detail) => {
   // a dream that already fits is offered nothing
   check('a short dream is offered no fold', !(await page.locator(`${card('short')} .dmore`).isVisible()));
 
+  // the ellipsis is GONE (Sophie: "get rid of the ellipsis"), and the label's
+  // glyphs sit ON the last line's baseline, not sagging under it (Sophie:
+  // "off the line of the rest of the text").
+  const fold = await page.locator(`${card('nopic')} .dmore`).evaluate((el) => {
+    const before = getComputedStyle(el, '::before').content;
+    const span = el.querySelector('span').getBoundingClientRect();
+    const body = el.closest('.dbody').getBoundingClientRect();
+    return { before, gap: body.bottom - span.bottom };
+  });
+  check('no ellipsis rides the button', fold.before === 'none' || fold.before === 'normal', fold.before);
+  check('the label is lifted onto the text line', fold.gap > 1 && fold.gap < 9,
+    `${fold.gap.toFixed(1)}px above the block's bottom`);
+
   // ── 2. the words are cut to about the picture's height ──
   const blob = await box(`${card('pic')} .blob`);
   const txt = await box(`${card('pic')} .dtxt`);
@@ -172,8 +186,8 @@ const check = (name, ok, detail) => {
     const c = getComputedStyle(el);
     return { text: el.textContent.trim(), style: c.fontStyle, weight: c.fontWeight };
   });
-  check('the compose sheet says "add your dream for last night"',
-    sq.text === 'add your dream for last night', sq.text);
+  check('the compose sheet asks "what did you dream last night?"',
+    sq.text === 'what did you dream last night?', sq.text);
   check('in upright type', sq.style === 'normal', sq.style);
   check('and not bold', Number(sq.weight) <= 400, sq.weight);
   await page.locator('#sheetX').dispatchEvent('click');

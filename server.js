@@ -525,6 +525,8 @@ app.get('/book', (req, res) => { res.sendFile(__dirname + '/public/book.html'); 
 app.get('/dreamfeed', (req, res) => { res.set('Cache-Control', 'no-cache, must-revalidate'); res.sendFile(__dirname + '/public/dreamapp.html'); });
 // A dream-team invite link opens the app on this host too (on the dream
 // domain, dream-host.js answers first) — the page joins after sign-in.
+// (/f/ personal friend links were pulled — friending happens on a dreamer's
+// profile now.)
 app.get('/t/:code', (req, res) => { res.set('Cache-Control', 'no-cache, must-revalidate'); res.sendFile(__dirname + '/public/dreamapp.html'); });
 
 // The Lessons — an Imprint-style hub/map of every finished lesson & story
