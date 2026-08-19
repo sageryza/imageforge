@@ -79,6 +79,7 @@ function buildMetaAssets(docs, creations) {
       prompt: made,                          // the MODEL · QUALITY caption slot
       description: p,                        // what she reviews it by
       promptContent: (c.type || 'image') === 'image' ? p : '',
+      compressedAtBirth: c.compressedAtBirth === true,
     });
   });
   assetUnion.unionAssets(appRecs).forEach((t) => {

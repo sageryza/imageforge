@@ -97,6 +97,13 @@
        what she reviews by, the tag is how it was made. */
     + '#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}\n'
     + '#clightbox .cltag + .clcap{margin-top:4px;}\n'
+    // COMPRESSED AT BIRTH — its own element, never concatenated into the text.
+    // In front of the prompt it has to be unmistakably NOT part of the prompt:
+    // the house rule is that this field holds the exact text that was sent,
+    // character for character, so the mark sits beside the words rather than
+    // inside them. Flat colour, no gradient.
+    + '#clightbox .compflag{color:#c98b7a; font-weight:600; letter-spacing:.04em;}\n'
+    + '#clightbox .lbptext .compflag{display:block; margin-bottom:6px; font-size:11px; text-transform:uppercase;}\n'
     /* the prompt behind the image: covers it completely (that's the point — you
        read the words instead of the picture), Style on the left of the toggle,
        Content on the right. .clwrap only wraps the img so the overlay lands on
@@ -183,6 +190,16 @@
         sb.classList.toggle('on', side === 'style');
         cb.classList.toggle('on', side === 'content');
         txt.textContent = (side === 'style' ? asset.promptStyle : asset.promptContent) || '';
+        // "[compressed]" in front of BOTH halves when this picture's only copy
+        // was encoded lossily before the bytes ever reached us. The flag is the
+        // data (compressedAtBirth, written by scripts/tag-compressed-at-birth.js);
+        // this bracket text is presentation, prepended as its own node so the
+        // prompt underneath stays the exact text that was sent.
+        if (asset.compressedAtBirth) {
+          var cf = document.createElement('span');
+          cf.className = 'compflag'; cf.textContent = '[compressed]';
+          txt.insertBefore(cf, txt.firstChild);
+        }
         txt.scrollTop = 0;
       }
       sb.onclick = function (e) { e.stopPropagation(); side = 'style'; paintSide(); };
@@ -322,7 +339,21 @@
     if (/^from /.test(tag)) tag = '';
     var cap = asset ? (asset.description || '') : '';
     if (!cap && tag) { cap = tag; tag = ''; }
-    if (tag) { var tc = document.createElement('div'); tc.className = 'cltag'; tc.textContent = tag; lb.appendChild(tc); }
+    // "[compressed]" leads the MODEL · QUALITY line. An image with no caption
+    // at all still has to say it, so the mark gets its own tag row rather than
+    // riding on a string that may not exist.
+    var comp = !!(asset && asset.compressedAtBirth);
+    if (comp || tag) {
+      var tc = document.createElement('div'); tc.className = 'cltag';
+      if (comp) {
+        var cf2 = document.createElement('span');
+        cf2.className = 'compflag'; cf2.textContent = '[compressed]';
+        tc.appendChild(cf2);
+        if (tag) tc.appendChild(document.createTextNode(' '));
+      }
+      if (tag) tc.appendChild(document.createTextNode(tag));
+      lb.appendChild(tc);
+    }
     if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; lb.appendChild(cc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');
     if (syncTalk) {

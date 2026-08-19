@@ -428,7 +428,8 @@ final class ForgeService {
                 prompt: data["prompt"] as? String,
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
-                style: data["style"] as? String
+                style: data["style"] as? String,
+                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false
             )
         }
         // Both of these read the SNAPSHOT, never `items`: a doc with no usable
@@ -477,7 +478,8 @@ final class ForgeService {
                 prompt: data["prompt"] as? String,
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
-                style: data["style"] as? String
+                style: data["style"] as? String,
+                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false
             ))
         }
         .sorted { $0.0 < $1.0 }          // oldest first — the order a book reads in

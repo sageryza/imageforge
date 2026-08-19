@@ -63,6 +63,7 @@
         prompt: [it.model, it.quality].filter(Boolean).join(' · '),
         promptStyle: it.promptStyle || '',
         promptContent: it.promptContent || '',
+        compressedAtBirth: !!it.compressedAtBirth,   // the lightbox marks it too
         vote: opts.voteOf ? opts.voteOf(it) : null,
         thread: null,
         _cast: function (v) { if (opts.cast) opts.cast(it, v, a); },

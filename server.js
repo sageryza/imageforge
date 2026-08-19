@@ -2184,6 +2184,11 @@ app.get('/api/gallery/assets', async (req, res) => {
         // The generating prompt, split (see POST /api/gallery/assets/prompt).
         if (a.promptStyle) o.promptStyle = a.promptStyle;
         if (a.promptContent) o.promptContent = a.promptContent;
+        // This picture's only copy was encoded lossily before the bytes reached
+        // us (scripts/tag-compressed-at-birth.js). The flag is the data; the
+        // "[compressed]" the client draws in front of the caption and the
+        // prompt is presentation.
+        if (a.compressedAtBirth) o.compressedAtBirth = true;
         return o;
       });
     // Direct thumbnail URLs: the thumb path is content-addressed, so we can
@@ -2326,7 +2331,8 @@ app.get('/api/gallery/assets/all', async (req, res) => {
       // threads, no wip bookkeeping, riding along.
       const snap = await admin.firestore().collection('forge-chat-assets')
         .select('chat', 'url', 'created', 'prompt', 'description',
-          'promptStyle', 'promptContent', 'kind', 'hash', 'md5').get();
+          'promptStyle', 'promptContent', 'kind', 'hash', 'md5',
+          'compressedAtBirth').get();
       // The APP-MADE half of My Creations (stickers, dream pages, in-app
       // generations) lives only in the iOS gallery — pull it in so pointing
       // that tile here loses nothing. Chat deliverables' hook copies (prompt
@@ -2339,11 +2345,13 @@ app.get('/api/gallery/assets/all', async (req, res) => {
           const uid = await galleryUid();
           const csnap = await storyApp.firestore().collection('users').doc(uid)
             .collection('creations')
-            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt').get();
+            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt',
+              'compressedAtBirth').get();
           creations = csnap.docs.map((d) => {
             const c = d.data() || {};
             return { url: c.url, prompt: c.prompt, type: c.type, model: c.model,
               quality: c.quality, style: c.style,
+              compressedAtBirth: c.compressedAtBirth,
               ms: c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0 };
           });
         }
@@ -2360,6 +2368,7 @@ app.get('/api/gallery/assets/all', async (req, res) => {
       if (a.kind) o.kind = a.kind;
       if (a.promptStyle) o.promptStyle = a.promptStyle;
       if (a.promptContent) o.promptContent = a.promptContent;
+      if (a.compressedAtBirth) o.compressedAtBirth = true;
       if (a.app) { o.app = true; o.name = 'My Creations'; }
       return o;
     });

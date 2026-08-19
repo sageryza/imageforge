@@ -112,6 +112,13 @@
     ' max-width:420px;width:100%;max-height:76vh;overflow:auto;padding:14px 16px;}' +
     '.gd-ovmq{font:700 11px/1 -apple-system,sans-serif;letter-spacing:.08em;' +
     ' text-transform:uppercase;color:var(--gold);padding:0 0 10px;}' +
+    // COMPRESSED AT BIRTH — its own element in front of the caption and of each
+    // prompt half, never concatenated into either. The prompt must stay the
+    // exact text that was sent, so the mark sits beside the words. Flat rose,
+    // no gradient, matching .gd-diff's reasoning above.
+    '.gd-comp{color:var(--chg,#c98b7a);font-weight:700;}' +
+    '.gd-ovtext .gd-comp{display:block;font-size:11px;letter-spacing:.06em;' +
+    ' text-transform:uppercase;margin:0 0 6px;}' +
     '.gd-ovtabs{display:flex;gap:14px;border-bottom:1px solid var(--line);margin:0 0 10px;}' +
     '.gd-ovtabs button{border:0;background:none;padding:0 0 7px;font:600 12px/1 ' +
     ' -apple-system,sans-serif;letter-spacing:.06em;color:var(--ink2);' +
@@ -369,18 +376,24 @@
       }
       var mq = [it.model, it.quality].filter(Boolean).join(' · ');
       var hasC = !!it.promptContent, hasS = !!it.promptStyle;
+      // "[compressed]" leads the caption and each prompt half when this
+      // picture's only copy was encoded lossily before it reached us. The flag
+      // is the data (compressedAtBirth); the bracket text is presentation.
+      var comp = it.compressedAtBirth
+        ? '<span class="gd-comp">[compressed]</span>' : '';
       // CONTENT is the side that opens (Sophie) — style only when it's all there is
       var side = hasC ? 'content' : 'style';
       function paint() {
         ov.innerHTML = '<div class="gd-ovcard">'
-          + (mq ? '<div class="gd-ovmq">' + esc(mq) + '</div>' : '')
+          // the mark still shows on a picture that carries no caption at all
+          + (mq || comp ? '<div class="gd-ovmq">' + comp + (comp && mq ? ' ' : '') + esc(mq) + '</div>' : '')
           + '<div class="gd-ovtabs">'
           + '<button type="button" data-side="content"' + (side === 'content' ? ' class="on"' : '')
           + (hasC ? '' : ' disabled') + '>CONTENT</button>'
           + '<button type="button" data-side="style"' + (side === 'style' ? ' class="on"' : '')
           + (hasS ? '' : ' disabled') + '>STYLE</button>'
           + '</div>'
-          + '<div class="gd-ovtext">'
+          + '<div class="gd-ovtext">' + comp
           + (side === 'content' ? esc(it.promptContent || '') : styleHtml(it)) + '</div>'
           + '</div>';
         ov.querySelectorAll('[data-side]').forEach(function (b) {
@@ -493,11 +506,18 @@
           else delete verdicts[id];            // cleared in the other view
         });
         Object.keys(byId).forEach(paintActs);
+        // THE COMPRESSED FLAG IS ALWAYS WORTH THE READ. A page's data is frozen
+        // at post time and the tagging pass runs long after, so a picture marked
+        // damaged today can only reach an already-posted page from here — the
+        // same argument as THE PROMPT FILL. That does mean a page whose items
+        // all carry verdicts AND prompts now makes this one extra request where
+        // it used to make none; an unmarked damaged picture is the worse trade.
         var wantAssets = Object.keys(byId).some(function (id) {
           var it = byId[id];
           if (!it.url) return false;
           return verdicts[id] === undefined
-            || !(it.promptContent || it.promptStyle);
+            || !(it.promptContent || it.promptStyle)
+            || !it.compressedAtBirth;
         });
         if (!wantAssets) return null;
         return fetch('/api/gallery/assets?chat=' + encodeURIComponent(chat) + '&limit=500')
@@ -523,7 +543,14 @@
                 paintActs(id);
               }
               var as = rows[it.url];
-              if (!as || (it.promptContent || it.promptStyle)) return;
+              if (!as) return;
+              // BEFORE the prompt fill's early return: an item that already
+              // carries its prompt still needs to learn it is damaged, and the
+              // page's own data can never carry that (see wantAssets above).
+              // (the lightbox view is built lazily from `it` by asset-view.js,
+              // so setting it here is enough — same as the prompt fill below)
+              if (as.compressedAtBirth) it.compressedAtBirth = true;
+              if (it.promptContent || it.promptStyle) return;
               if (!as.promptContent && !as.promptStyle) return;
               it.promptStyle = as.promptStyle || '';
               it.promptContent = as.promptContent || '';

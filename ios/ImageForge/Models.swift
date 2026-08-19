@@ -72,14 +72,26 @@ struct Creation: Identifiable, Hashable {
     var model: String? = nil
     var quality: String? = nil
     var style: String? = nil
+    /// This picture's only copy was encoded lossily before the bytes ever
+    /// reached us (written by scripts/tag-compressed-at-birth.js). The flag is
+    /// the data; the "[compressed]" below is presentation.
+    var compressedAtBirth: Bool = false
 
-    /// The line shown under a creation when you open it — model · quality.
+    /// The line shown under a creation when you open it — model · quality,
+    /// led by "[compressed]" when the original was thrown away at birth. A
+    /// picture with no model/quality on file still says it, so the mark never
+    /// depends on a caption that may not exist.
     var madeWith: String? {
         let parts = [model, quality].compactMap { $0?.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        if !parts.isEmpty { return parts.joined(separator: " · ") }
-        let s = style?.trimmingCharacters(in: .whitespaces)
-        return (s?.isEmpty == false) ? s : nil
+        var line: String? = nil
+        if !parts.isEmpty { line = parts.joined(separator: " · ") }
+        else {
+            let s = style?.trimmingCharacters(in: .whitespaces)
+            if s?.isEmpty == false { line = s }
+        }
+        guard compressedAtBirth else { return line }
+        return ["[compressed]", line].compactMap { $0 }.joined(separator: " ")
     }
 }
 
