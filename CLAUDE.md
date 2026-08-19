@@ -2132,6 +2132,28 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
+    Sophie: "ideally you would add a conditional auto scroll thing, but only
+    appears when the text is very long and is smaller than the normal one and
+    just like on the side of the screen").** A deck carries no house pill —
+    one card at a time never scrolls the PAGE — but a long card scrolls
+    INSIDE itself, so this drives the card's own scroller: a 28px button on
+    the right edge, shown only while the card in front of her actually
+    overflows (measured, not guessed from a character count). Two things it
+    had to learn: a NEW card starts stopped but the SAME card is left alone
+    (the serif lands late and `fonts.ready` re-syncs, which killed a scroll a
+    second after she started it), and the position is accumulated in JS —
+    `scrollTop += 0.37` snaps to the same integer every frame and moved the
+    card exactly 0px.
+  - **THE ✕ AND ♥ ARE DRAWN BY HAND (Aug 2026, Sophie, pointing at the ✕
+    inside one of her own cards: "can you make this X that I gave as a
+    screenshot, and make the heart actually kind of a handwriting look?").**
+    They were the plain ✕/♥ CHARACTERS in the system sans — the only two
+    geometric marks on a card that is otherwise all her serif and her cream.
+    `MOM_X` / `MOM_HEART` in judge.js are filled outlines rather than strokes,
+    which is what buys the weight through the middle and the chisel cap at
+    each end; the heart is lopsided on purpose. **Not Lucide** — the house
+    line icons are chrome, and this is inside her own design.
   - **Everything is DERIVED, nothing is filed**: the item lists are the pages'
     own frozen Storage JSON (cached forever per id — a new version is a new
     page), her progress is the verdict doc (`<chat>__page-<id>`), names come

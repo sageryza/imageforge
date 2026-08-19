@@ -383,9 +383,19 @@ setTimeout(function(){
      'the ✕ and ♥ sit on the boxes\\' own edges');
   ok(Math.round(row.getBoundingClientRect().bottom)<=window.innerHeight,
      'the footer sits on the screen, not below it');
-  ok(row && btns.length===2 && btns[0].textContent==='✕' && btns[1].textContent==='♥'
-     && !m.querySelector('.jg-btn'),
+  ok(row && btns.length===2 && btns[0].getAttribute('aria-label')==='No'
+     && btns[1].getAttribute('aria-label')==='Yes' && !m.querySelector('.jg-btn'),
      'her footer: ✕ and ♥ (the ✓ swapped for a heart), not the four house verdicts');
+  // HAND-DRAWN, NOT THE CHARACTERS (Aug 2026: "make this X that I gave as a
+  // screenshot, and make the heart actually kind of a handwriting look") —
+  // filled paths with an explicit fill, so a host svg-fill-none rule can
+  // never hollow them out
+  var gx=btns[0].querySelector('svg'), gh=btns[1].querySelector('svg');
+  ok(gx && gh && gx.querySelectorAll('path').length===2 && gh.querySelectorAll('path').length===1,
+     'the marks are drawn — two crossing strokes and one heart, not ✕/♥ characters');
+  ok(getComputedStyle(gx.querySelector('path')).fill!=='none'
+     && getComputedStyle(gx).getPropertyValue('fill')!=='none',
+     'they are FILLED — got '+getComputedStyle(gx).getPropertyValue('fill'));
   function off(el){ var r=document.createRange(); r.selectNodeContents(el);
     var g=r.getBoundingClientRect(), b=el.getBoundingClientRect();
     return [Math.abs((g.left+g.right)/2-(b.left+b.right)/2),
@@ -516,30 +526,58 @@ setTimeout(function(){
      'and it is small — got '+getComputedStyle(who).fontSize);
   ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
      'the page still does not scroll');
+  // ── the MINI AUTOSCROLL, conditional (Aug 2026: "only appears when the
+  //    text is very long and is smaller than the normal one and just like on
+  //    the side of the screen") ─────────────────────────────────────────────
+  var mini=document.querySelector('.jg-mini');
+  var sc=m.querySelector('.jg-card.momcard');
+  ok(sc.scrollHeight>sc.clientHeight+4, 'this card genuinely overflows');
+  ok(mini && !mini.hidden, 'the mini autoscroll is there for it');
+  var mb=mini.getBoundingClientRect();
+  ok(mb.width<=34, 'it is smaller than the house pill (48) — got '+Math.round(mb.width));
+  ok(window.innerWidth-mb.right<12, 'it sits on the SIDE of the screen');
+  ok(getComputedStyle(mini).position==='fixed', 'and stays put while the card scrolls');
+  ok(!m.contains(mini), 'it lives outside the card, so a tap on it never pages the deck');
   // ── back to the queue ───────────────────────────────────────────────────
   ok(!!m.querySelector('[data-act="back"]'), 'a long deck opened from the queue has a way back');
-  // ── the piles area: the chat link and her two buttons ───────────────────
-  m.querySelector('[data-act="piles"]').click();
+  var top0=sc.scrollTop;
+  mini.click();
   setTimeout(function(){
-    var foot=document.querySelector('.jg-pilefoot');
-    ok(!!foot, 'the piles area carries a footer');
-    var link=foot.querySelector('.jg-pilelink');
-    ok(link && link.getAttribute('href')==='/chats?chat=t',
-       'a link back to the chat — got '+(link&&link.getAttribute('href')));
-    var btns=foot.querySelectorAll('.jg-pilebtn');
-    ok(btns.length===2 && btns[0].textContent==='Skip' && btns[1].textContent==='Done',
-       'Skip and Done, in the piles area');
-    ok(Math.round(btns[0].getBoundingClientRect().width)<110,
-       'the buttons hug their words — got '+Math.round(btns[0].getBoundingClientRect().width));
-    ok(getComputedStyle(btns[0]).borderRadius==='6px', 'rounded rectangles, never pills');
-    btns[0].click();
+    ok(sc.scrollTop>top0, 'tapping it scrolls the card — got '+Math.round(sc.scrollTop));
+    mini.click();
+    var stopped=sc.scrollTop;
     setTimeout(function(){
-      var p=posts('/review').pop();
-      ok(p && p.b.hidden===true && p.u.indexOf('/api/chatfeed/page/q/review')>=0,
-         'Skip stamps the page hidden — got '+(p&&p.u));
-      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
-    }, 300);
-  }, 260);
+      ok(Math.abs(sc.scrollTop-stopped)<1.5, 'tapping again stops it');
+      // the SHORT card next door needs none, so it does not get one
+      m.querySelector('.jg-navzone.next').click();
+      setTimeout(function(){
+        ok(document.querySelector('.jg-mini').hidden,
+           'the short card that fits gets no autoscroll at all');
+        // ── the piles area: the chat link and her two buttons ─────────────
+        m.querySelector('[data-act="piles"]').click();
+        setTimeout(function(){
+          var foot=document.querySelector('.jg-pilefoot');
+          ok(!!foot, 'the piles area carries a footer');
+          var link=foot.querySelector('.jg-pilelink');
+          ok(link && link.getAttribute('href')==='/chats?chat=t',
+             'a link back to the chat — got '+(link&&link.getAttribute('href')));
+          var pb=foot.querySelectorAll('.jg-pilebtn');
+          ok(pb.length===2 && pb[0].textContent==='Skip' && pb[1].textContent==='Done',
+             'Skip and Done, in the piles area');
+          ok(Math.round(pb[0].getBoundingClientRect().width)<110,
+             'the buttons hug their words — got '+Math.round(pb[0].getBoundingClientRect().width));
+          ok(getComputedStyle(pb[0]).borderRadius==='6px', 'rounded rectangles, never pills');
+          pb[0].click();
+          setTimeout(function(){
+            var p=posts('/review').pop();
+            ok(p && p.b.hidden===true && p.u.indexOf('/api/chatfeed/page/q/review')>=0,
+               'Skip stamps the page hidden — got '+(p&&p.u));
+            fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+          }, 300);
+        }, 260);
+      }, 300);
+    }, 200);
+  }, 400);
 }, 700);
 </script>`;
   return SPY + renderTemplatePage({
