@@ -11,13 +11,16 @@
      window.__grid({ chat, sheet, groups: [{ label?, items: […] }],
                      states?, help? })
 
-   Each GROUP is one comparison: its items share a row (2–6 across, 7+
-   wraps), labels ON TOP (the .duo rule), the differing variable as the
+   Each GROUP is one comparison: its items share a row (wrapping at three
+   across), labels ON TOP (the .duo rule), the differing variable as the
    label. Per item: ♥/✕ (or the page's own states — 'done'/'in progress'
    for a to-do), the shared note +, and PROMPT — the Assets tab's overlay
    exactly: MODEL · QUALITY at the top, content/style split, opens on
    CONTENT (Sophie: "the style is the default and I want it to be the
-   content").
+   content"). When a row's variants differ in their STYLE half, the style
+   tab marks the lines this one does not share with the others in rose
+   (Sophie, Aug 2026: "showing the lines that are different in the style
+   tab").
 
    THE MIRROR (Aug 2026, Sophie: the page and the Assets tab "should
    agree"): an item carrying `url` (its Assets-tab identity) writes ♥/✕
@@ -43,8 +46,13 @@
     '.gd-it{position:relative;background:var(--surface);border:1px solid var(--line);' +
     ' border-radius:6px;padding:0 0 30px;display:flex;flex-direction:column;gap:6px;' +
     ' min-width:0;box-sizing:border-box;overflow:hidden;}' +
-    '.gd-it .tag{display:block;font:700 11px/1 -apple-system,sans-serif;' +
-    ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);padding:8px 8px 0;}' +
+    // /1.35 + overflow-wrap — a long label used to clip mid-word at the cell
+    // edge ("DREAM ABOUT CORPOR…", Sophie's screenshot, 2026-08-19): line-height
+    // 1 cut wrapped lines into each other and an unbreakable word ran under
+    // the cell's overflow:hidden. Wrap it instead; never clip her words.
+    '.gd-it .tag{display:block;font:700 11px/1.35 -apple-system,sans-serif;' +
+    ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);' +
+    ' overflow-wrap:anywhere;padding:8px 8px 0;}' +
     '.gd-it img{width:100%;height:auto;border-radius:0;display:block;}' +
     // the card-face menu (square / portrait / landscape) — ratio set inline
     // per tile so one page can mix shapes; the class carries the rest
@@ -81,7 +89,11 @@
     ' border-bottom:2px solid transparent;border-radius:0;}' +
     '.gd-ovtabs button.on{color:var(--ink);border-bottom-color:var(--chg);}' +
     '.gd-ovtext{font-size:14px;line-height:1.55;color:var(--ink);white-space:pre-wrap;' +
-    ' word-break:break-word;}';
+    ' word-break:break-word;}' +
+    // the style lines that DIFFER from the row's other variants (Sophie, Aug
+    // 2026: "ideally showing the lines that are different in the style tab").
+    // A flat rose, no background — mark's default yellow is not the house.
+    '.gd-diff{background:none;color:var(--rose);font-weight:600;}';
   document.head.appendChild(css);
 
   var I = {
@@ -104,8 +116,13 @@
     if (!mount || !groups.length) return;
 
     var byId = {};
+    var mates = {};   // id → the other items in its group (the style-diff basis)
     groups.forEach(function (g) {
-      g.items.forEach(function (it) { if (it && it.id) byId[it.id] = it; });
+      g.items.forEach(function (it) {
+        if (!it || !it.id) return;
+        byId[it.id] = it;
+        mates[it.id] = g.items.filter(function (o) { return o && o !== it; });
+      });
     });
     var verdicts = {};
 
@@ -200,6 +217,40 @@
     mount.innerHTML = html;
 
     // ── the PROMPT overlay — the Assets tab's, to the letter ──
+    // …plus one thing the Assets tab can't do: on the STYLE side, the lines
+    // this variant does NOT share with the row's other variants show in rose
+    // (Sophie, Aug 2026: "ideally showing the lines that are different in the
+    // style tab"). Segments split on newlines, else on sentence marks, and
+    // the raw pieces are rejoined as-is so the exact filed text still reads.
+    function normSeg(s) {
+      return String(s || '').toLowerCase().replace(/\s+/g, ' ')
+        .replace(/[.,;:\s]+$/, '').trim();
+    }
+    function segsOf(s) {
+      s = String(s || '');
+      if (/\n/.test(s)) return s.split(/(\n+)/);
+      return s.match(/[^.;]+[.;]*\s*/g) || [s];
+    }
+    function styleHtml(it) {
+      var own = String(it.promptStyle || '');
+      var others = (mates[it.id] || []).map(function (o) {
+        return String(o.promptStyle || '');
+      }).filter(function (s) {
+        return normSeg(s) && normSeg(s) !== normSeg(own);
+      });
+      if (!own || !others.length) return esc(own);
+      var otherSets = others.map(function (s) {
+        var set = {};
+        segsOf(s).forEach(function (x) { var n = normSeg(x); if (n) set[n] = 1; });
+        return set;
+      });
+      return segsOf(own).map(function (x) {
+        var n = normSeg(x);
+        if (!n) return esc(x);
+        var everywhere = otherSets.every(function (set) { return set[n]; });
+        return everywhere ? esc(x) : '<mark class="gd-diff">' + esc(x) + '</mark>';
+      }).join('');
+    }
     var ov = null;
     function showPrompt(it) {
       if (!ov) {
@@ -223,7 +274,7 @@
           + (hasS ? '' : ' disabled') + '>STYLE</button>'
           + '</div>'
           + '<div class="gd-ovtext">'
-          + esc(side === 'content' ? it.promptContent || '' : it.promptStyle || '') + '</div>'
+          + (side === 'content' ? esc(it.promptContent || '') : styleHtml(it)) + '</div>'
           + '</div>';
         ov.querySelectorAll('[data-side]').forEach(function (b) {
           b.addEventListener('click', function (e) {

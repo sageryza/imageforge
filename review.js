@@ -213,26 +213,30 @@ function buildQueue({ pages, items, verdicts, chats }) {
 // ---------------------------------------------------------------------------
 
 // A template page's data is FROZEN by design (a new version is a new page), so
-// one download per page id per process is the whole Storage cost.
-const itemCache = new Map();   // page id → parsed data JSON (or null on error)
+// one download per page id per process is the whole Storage cost. The one
+// exception is the AUTO pages (auto-compare, chatfeed.js), whose data updates
+// in place — their doc stamps `updated` on every rewrite, so it rides the
+// cache key and a stale copy is re-read exactly once per update.
+const itemCache = new Map();   // page id@updated → parsed data JSON (or null)
+const cacheKey = (p) => `${p.id}@${p.updated || ''}`;
 
 async function loadItems(pages) {
   const bucket = admin.storage().bucket();
-  const missing = pages.filter((p) => !itemCache.has(p.id));
+  const missing = pages.filter((p) => !itemCache.has(cacheKey(p)));
   // a handful at a time — today's queue is nine pages, but be polite anyway
   for (let i = 0; i < missing.length; i += 6) {
     await Promise.all(missing.slice(i, i + 6).map(async (p) => {
       try {
         const [buf] = await bucket.file(p.path || `chat-pages/${p.id}.json`).download();
-        itemCache.set(p.id, JSON.parse(buf.toString('utf8')));
+        itemCache.set(cacheKey(p), JSON.parse(buf.toString('utf8')));
       } catch (e) {
         console.error('[review] page data unreadable', p.id, e.message);
-        itemCache.set(p.id, null);
+        itemCache.set(cacheKey(p), null);
       }
     }));
   }
   const out = {};
-  pages.forEach((p) => { const d = itemCache.get(p.id); if (d) out[p.id] = d; });
+  pages.forEach((p) => { const d = itemCache.get(cacheKey(p)); if (d) out[p.id] = d; });
   return out;
 }
 

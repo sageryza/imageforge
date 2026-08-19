@@ -1983,6 +1983,9 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         }
         if (Object.keys(patch).length) {
           await existing.ref.update(patch);
+          // a MODEL · QUALITY caption is one of the variables the auto-compare
+          // pages group on — filing one re-plans them (debounced, chatfeed.js)
+          if (patch.prompt) require('./chatfeed').autoComparePoke(chatName);
           return res.json({ ok: true, updated: true, deduped: true, url: wipUrl, description: description || existing.data().description || '' });
         }
         return res.json({ ok: true, deduped: true, url: wipUrl, description: existing.data().description || '' });
@@ -2018,6 +2021,10 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       if (kind) wipDoc.kind = kind;
       if (description || autoDescription) wipDoc.description = description || autoDescription;
       await acol.add(wipDoc);
+      const curatedCap = String(prompt || '').trim();
+      if (curatedCap && !/^from /.test(curatedCap)) {
+        require('./chatfeed').autoComparePoke(chatName);
+      }
       return res.json({
         ok: true, assetsOnly: true, url: wipUrl,
         description: description || autoDescription,
@@ -2707,16 +2714,18 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
 });
 
 // VARIANT GROUPS in a chat's Assets tab (Aug 2026 — the auto-feed half of the
-// stock templates; see page-templates.js). Two confidences, deliberately kept
-// apart (Sophie's instinct, made the rule):
-//   ladders  — SAME prompt content, differing MODEL · QUALITY caption or
-//              style. Objective, so POST /api/chatfeed/page with
-//              { template:'grid', from:{assets:true} } auto-files exactly
-//              these and nothing else.
-//   variants — NEAR-identical prompts (one or two lines changed — the
-//              dream-feed case). Only ever FLAGGED here: where a variation
-//              set starts and stops is the chat's call, so the chat reads
-//              this and files the grid page itself.
+// stock templates; see page-templates.js). Three outputs, two confidences,
+// deliberately kept apart (Sophie's instinct, made the rule):
+//   ladders     — SAME prompt content, differing MODEL · QUALITY caption or
+//                 style. Objective — the SERVER auto-files these into the
+//                 chat's standing auto-compare page (runAutoCompare in
+//                 chatfeed.js) whenever a prompt or caption gets filed.
+//   contentSets — SAME style prompt, differing content (one style walked
+//                 across many dreams). Objective, auto-filed the same way.
+//   variants    — NEAR-identical prompts (one or two lines changed). Only
+//                 ever FLAGGED here: where a variation set starts and stops
+//                 is the chat's call, so the chat reads this and files the
+//                 grid page itself.
 app.get('/api/gallery/assets/variants', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -2731,7 +2740,7 @@ app.get('/api/gallery/assets/variants', async (req, res) => {
     const rows = assetUnion.unionAssets(snap.docs.map((d) => assetUnion.assetRecord(d.data())))
       .sort((x, y) => y.ms - x.ms);
     const out = pageTemplates.groupAssetVariants(rows);
-    res.json({ chat, ladders: out.ladders, variants: out.variants });
+    res.json({ chat, ladders: out.ladders, contentSets: out.contentSets, variants: out.variants });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2810,6 +2819,9 @@ app.post('/api/gallery/assets/prompt', express.json({ limit: '2mb' }), async (re
       }
     }
     const failed = results.filter((r) => !r.ok);
+    // filing a prompt is THE trigger for the automatic compare pages — the
+    // groups run on exactly what just landed (debounced per chat, chatfeed.js)
+    if (results.length > failed.length) require('./chatfeed').autoComparePoke(chatName);
     res.json({ ok: !failed.length, saved: results.length - failed.length, results });
   } catch (err) {
     res.status(500).json({ error: err.message });

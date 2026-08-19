@@ -645,15 +645,43 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   - **The chrome is rendered at SERVE time** from the current stock renderer,
     so a fix reaches every template page ever posted; the DATA is what's
     frozen (a new version is still a NEW page, same as always).
-  - **AUTO-FEED: `{ template:'grid', from:{assets:true} }`** builds the page
-    straight out of the chat's Assets tab — but ONLY the objective groups:
-    same prompt content, differing MODEL · QUALITY / style (a quality
-    ladder). **Near-identical prompts (a line added or changed — the
-    dream-feed case) are never auto-filed**: `GET /api/gallery/assets/
-    variants?chat=` FLAGS those clusters and the chat reads them, decides
-    where the variation set starts and stops, and posts the grid itself
-    (Sophie's rule, Aug 2026: the server files only what is provable; the
-    chat deciphers the rest).
+  - **AUTO-FEED — THE SERVER FILES THE COMPARE PAGES ITSELF (Aug 2026 v2,
+    Sophie: "the automatic thing doesn't work… if an image is exactly the
+    same except one or two variables have been changed, for example the
+    quality, then this should automatically file into a compare page").**
+    The first cut left this to the chats (`{ from:{assets:true} }` was a
+    door a chat had to walk through) and nobody walked through it — so
+    filing a prompt or a MODEL · QUALITY caption IS the trigger now.
+    `POST /api/gallery/assets/prompt` and a curated caption filing both poke
+    `runAutoCompare` (chatfeed.js, debounced ~45s per chat), which keeps up
+    to TWO standing grid pages per chat in its Compare tab:
+    - **"Auto-compare — same prompt, settings changed"** — exact-same
+      content prompt, differing quality / model / style half (the ladders).
+    - **"Auto-compare — same style, different subjects"** — exact-same
+      style prompt across different contents (her dream case: one style
+      walked across many dreams), shortest content first.
+    Both **update IN PLACE** — the ONE deliberate exception to "a new
+    version is a new page": item ids derive from storage filenames, so a
+    new image joining a group re-points nothing, the verdict sheet never
+    moves, and her ♥/✕/notes survive every update. The doc id is
+    deterministic (`auto-<kind>--<chat>`), `updated` bumps per rewrite (the
+    Review Queue keys its item cache on it), a push fires only on CREATE,
+    and caps are named in the label ("newest 24 of 31"), never silent.
+    `POST /api/chatfeed/auto-compare {chat}` runs it deliberately — for
+    backfilling a tab whose prompts were filed before this existed.
+    **This only sees what gets FILED**: an image with no prompt on record
+    can never join a group — one more reason the prompt POST is
+    non-negotiable. `{ from:{assets:true} }` still works for a chat that
+    wants its own hand-titled ladder page. **Near-identical prompts (a line
+    added or changed) are still never auto-filed**:
+    `GET /api/gallery/assets/variants?chat=` FLAGS those clusters (and the
+    `contentSets` alongside them) and the chat decides where the variation
+    set starts and stops (Sophie's rule, Aug 2026: the server files only
+    what is provable; the chat deciphers the rest).
+    **The style tab marks the differing lines** (grid.js): when a row's
+    variants differ in their STYLE half, each variant's style overlay shows
+    the lines it does not share with the others in rose — her ask, made for
+    exactly the different-styles-same-dream case.
   - **THE TOUR (Aug 2026, Sophie: "a tutorial where the buttons are
     highlighted or everything else is tinted and it has a little
     explanations").** `window.__compareTour({key, steps:[{sel,text}], auto})`

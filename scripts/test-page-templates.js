@@ -186,6 +186,100 @@ ok('audio and promptless assets never group', () => {
   assert.strictEqual(out.ladders.length, 0);
 });
 
+ok('a style-differing ladder labels by the image, not a repeated quality word', () => {
+  const { ladders } = groupAssetVariants([
+    { url: 's1', prompt: 'gpt-image-2 · medium', promptContent: CONTENT,
+      promptStyle: 'loose watercolor wash', description: 'watercolor take' },
+    { url: 's2', prompt: 'gpt-image-2 · medium', promptContent: CONTENT,
+      promptStyle: 'clean linocut relief print', description: 'linocut take' },
+  ]);
+  assert.strictEqual(ladders.length, 1);
+  assert.deepStrictEqual(ladders[0].items.map((i) => i.label).sort(),
+    ['linocut take', 'watercolor take']);
+});
+
+// ── same style, different subjects (her dream-illustration case) ────────────
+const STYLE = 'diary-comic ink, dream mystery ref attached, 1024x1024';
+ok('same style + different content groups into a contentSet', () => {
+  const out = groupAssetVariants([
+    { url: 'd1', prompt: 'gpt-image-2 · medium', promptStyle: STYLE,
+      promptContent: 'the monkey money dream', description: 'Monkey money', ms: 3 },
+    { url: 'd2', prompt: 'gpt-image-2 · medium', promptStyle: STYLE,
+      promptContent: 'the museum dream with mom, much longer text here',
+      description: 'Museum with mom', ms: 2 },
+  ]);
+  assert.strictEqual(out.contentSets.length, 1);
+  assert.strictEqual(out.contentSets[0].items.length, 2);
+  assert.deepStrictEqual(out.contentSets[0].items.map((i) => i.label).sort(),
+    ['Monkey money', 'Museum with mom']);
+  // the group label is the style's first line, not the whole block
+  assert.ok(out.contentSets[0].label.startsWith('diary-comic ink'));
+});
+
+ok('a contentSet needs a filed style and two DISTINCT contents', () => {
+  // no style filed → "same style" is unprovable → nothing groups
+  assert.strictEqual(groupAssetVariants([
+    { url: 'a', prompt: 'x · low', promptContent: 'dream one' },
+    { url: 'b', prompt: 'x · low', promptContent: 'dream two' },
+  ]).contentSets.length, 0);
+  // same style + same content is a re-roll (or a ladder rung), not a subject
+  assert.strictEqual(groupAssetVariants([
+    { url: 'a', prompt: 'x · low', promptStyle: STYLE, promptContent: 'dream one' },
+    { url: 'b', prompt: 'x · high', promptStyle: STYLE, promptContent: 'dream one' },
+  ]).contentSets.length, 0);
+});
+
+// ── planAutoPages — what the server files by itself ─────────────────────────
+ok('planAutoPages: a ladder and a subject set become the two auto pages', () => {
+  const { planAutoPages } = require('../page-templates');
+  const plans = planAutoPages([
+    { url: 'u-high', prompt: 'gpt-image-2 · high', promptContent: CONTENT, promptStyle: '' },
+    { url: 'u-low', prompt: 'gpt-image-2 · low', promptContent: CONTENT, promptStyle: '' },
+    { url: 'd1', prompt: 'gpt-image-2 · medium', promptStyle: STYLE,
+      promptContent: 'a much much longer dream about the corporate procedure office',
+      description: 'Corporate dream', ms: 2 },
+    { url: 'd2', prompt: 'gpt-image-2 · medium', promptStyle: STYLE,
+      promptContent: 'short dream', description: 'Short dream', ms: 1 },
+  ]);
+  assert.deepStrictEqual(plans.map((p) => p.kind), ['ladders', 'subjects']);
+  // subjects read shortest content first — her threshold-ladder order
+  const subj = plans.find((p) => p.kind === 'subjects');
+  assert.deepStrictEqual(subj.data.groups[0].items.map((i) => i.label),
+    ['Short dream', 'Corporate dream']);
+  // both plans validate as grid pages exactly as the runner will post them
+  for (const p of plans) assert.strictEqual(validateTemplate('grid', p.data).ok, true);
+});
+
+ok('planAutoPages: an over-long subject group keeps the NEWEST and says so', () => {
+  const { planAutoPages } = require('../page-templates');
+  const assets = [];
+  for (let i = 0; i < 30; i += 1) {
+    assets.push({ url: `d${i}`, prompt: 'gpt-image-2 · medium', promptStyle: STYLE,
+      promptContent: `dream number ${i} ${'x'.repeat(i)}`, description: `Dream ${i}`, ms: i });
+  }
+  const subj = planAutoPages(assets).find((p) => p.kind === 'subjects');
+  const g = subj.data.groups[0];
+  assert.strictEqual(g.items.length, 24);
+  assert.ok(/newest 24 of 30/.test(g.label));
+  // the six dropped are the six OLDEST (lowest ms)
+  assert.ok(!g.items.some((i) => i.label === 'Dream 0'));
+  assert.ok(g.items.some((i) => i.label === 'Dream 29'));
+});
+
+ok('planAutoPages: nothing groupable, no plans — and ms never survives validation', () => {
+  const { planAutoPages } = require('../page-templates');
+  assert.deepStrictEqual(planAutoPages([
+    { url: 'a', prompt: 'x · low', promptContent: 'one thing' },
+  ]), []);
+  const plans = planAutoPages([
+    { url: 'd1', prompt: 'x · low', promptStyle: STYLE, promptContent: 'a', ms: 5 },
+    { url: 'd2', prompt: 'x · low', promptStyle: STYLE, promptContent: 'bb', ms: 6 },
+  ]);
+  const v = validateTemplate('grid', plans[0].data);
+  assert.strictEqual(v.ok, true);
+  assert.strictEqual(v.data.groups[0].items[0].ms, undefined);
+});
+
 // ── the moment card (her Decision Deck design) ──────────────────────────────
 ok('a moment card validates on its PARTS alone — no single text needed', () => {
   const v = validateTemplate('deck', { items: [

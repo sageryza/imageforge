@@ -1247,10 +1247,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   don't build HTML at all: `POST /api/chatfeed/page { chat, title,
   template:'deck'|'grid', data }` — the deck is the Tinder pager (browse
   taps/swipe, optional ♥/✕ or her own states, tap-to-record voice notes), the
-  grid is rows of 2–6 with the Assets-style PROMPT overlay; items with an
-  asset `url` mirror ♥/✕/notes to the Assets tab so the two agree. `{
-  template:'grid', from:{assets:true} }` auto-files the chat's quality/model
-  ladders; near-variant prompts are only FLAGGED
+  grid is rows wrapping at three across with the Assets-style PROMPT overlay;
+  items with an asset `url` mirror ♥/✕/notes to the Assets tab so the two
+  agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
+  v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
+  (chatfeed.js), which keeps two standing auto grid pages per chat — same
+  content with a differing quality/model/style, and same style across
+  different subjects — updated in place, her verdicts preserved. So FILE THE
+  PROMPTS; an image with no prompt on record can never join a group.
+  Near-variant prompts (a line changed) are still only FLAGGED
   (`GET /api/gallery/assets/variants?chat=`) — filing those is the chat's
   call. Full contract in `docs/compare-pages.md` (THE STOCK TEMPLATES).
   **WORDS ON A CARD — a date, a moment, a scene — GO IN HER DATE-CARD DESIGN,
