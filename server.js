@@ -2725,6 +2725,10 @@ app.get('/api/gallery/assets/notes', async (req, res) => {
 //                 chatfeed.js) whenever a prompt or caption gets filed.
 //   contentSets — SAME style prompt, differing content (one style walked
 //                 across many dreams). Objective, auto-filed the same way.
+//   reruns      — the SAME prompt at the same model/quality, drawn more than
+//                 once (her grainy-vs-clean pairs: what differed was a
+//                 generation setting nothing ever filed). Auto-filed too, and
+//                 it claims only that they ARE the same prompt, never why.
 //   variants    — NEAR-identical prompts (one or two lines changed). Only
 //                 ever FLAGGED here: where a variation set starts and stops
 //                 is the chat's call, so the chat reads this and files the
@@ -2743,7 +2747,8 @@ app.get('/api/gallery/assets/variants', async (req, res) => {
     const rows = assetUnion.unionAssets(snap.docs.map((d) => assetUnion.assetRecord(d.data())))
       .sort((x, y) => y.ms - x.ms);
     const out = pageTemplates.groupAssetVariants(rows);
-    res.json({ chat, ladders: out.ladders, contentSets: out.contentSets, variants: out.variants });
+    res.json({ chat, ladders: out.ladders, contentSets: out.contentSets,
+      reruns: out.reruns, variants: out.variants });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
