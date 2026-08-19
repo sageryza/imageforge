@@ -30,7 +30,10 @@ for (const it of items) {
   if (why) { invalid++; console.log('      invalid ' + (it && it.id) + ': ' + why); }
   for (const s of ['a', 'b']) {
     const img = it[s] && it[s].img;
-    if (img && !fs.existsSync(path.join(__dirname, '..', 'public', img.replace(/^\//, '')))) {
+    // Committed files must exist; a permanent Storage url (her picked draws)
+    // is taken on faith — it was verified live when it was filed.
+    if (img && !/^https:\/\//.test(img)
+      && !fs.existsSync(path.join(__dirname, '..', 'public', img.replace(/^\//, '')))) {
       missingFiles.push(it.id + '.' + s + ' → ' + img);
     }
   }
