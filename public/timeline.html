@@ -10,7 +10,11 @@
                                        reachable from inside the open editor
        a long unit FOLDS               first and last whole, the middles one
                                        line each; tap one to open it
-     TWO LEVELS, one page: the shelf of stories, and one story open.
+     TWO LEVELS, one page: the shelf of stories, and one story open. The
+     shelf is READ-ONLY on purpose (Sophie: "it's for chats to fill
+     themselves… I just wanna see a list of stories and I can click on one"):
+     a chat POSTs the dictation to /api/timeline/stories and the story
+     appears here; nothing on this page creates one.
      window.__navBack takes the native chevron back to the shelf.
      Nothing here spends money — there is no model call in this tool. -->
 <meta charset="utf-8">
@@ -109,9 +113,8 @@
   <button id="help" aria-label="what this does">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Paste a dictated list</b> and every line becomes a moment you can move.
-  An ALL-CAPS line like <i>SEQUENCE</i> groups what follows into one unit; it
-  will get some of them wrong, which is what the marks in the gaps are for.
+  <b>Chats fill this shelf.</b> Dictate a story's moments to any chat and it
+  files them here; you put them in order.
   <br><br>
   <b>Type a number</b> to send a moment to that place. Single arrows move it one
   step, double ones send it all the way. In the gap between two moments: join
@@ -126,28 +129,13 @@
 </div>
 
 <main>
-  <!-- LEVEL 1 — the shelf -->
+  <!-- LEVEL 1 — the shelf. Just the list: STORIES ARE FILLED BY CHATS through
+       /api/timeline (POST /stories with the dictation), never typed in here —
+       the paste screen shipped first and Sophie cut it ("it's for chats to
+       fill themselves… I just wanna see a list of stories"). -->
   <section id="lvShelf">
-    <div class="step open">
-      <div class="cap"><span class="n">1</span><span class="t">Your stories</span></div>
-      <div class="body">
-        <div class="shelf" id="shelf"></div>
-        <div class="note" id="shelfEmpty" hidden>Nothing here yet.</div>
-      </div>
-    </div>
-    <div class="step open">
-      <div class="cap"><span class="n">2</span><span class="t">Start one</span></div>
-      <div class="body">
-        <label for="newTitle">Name it</label>
-        <input type="text" id="newTitle">
-        <label for="newText">Paste the moments</label>
-        <textarea id="newText" rows="6"></textarea>
-        <div class="row">
-          <button class="btn" id="make">Make the timeline</button>
-          <span class="note" id="makeNote"></span>
-        </div>
-      </div>
-    </div>
+    <div class="shelf" id="shelf"></div>
+    <div class="note" id="shelfNote" hidden>Nothing here yet — a chat fills this from a story you dictate to it.</div>
   </section>
 
   <!-- LEVEL 2 — one story -->
@@ -212,24 +200,9 @@
         b.onclick = function () { open(s.id); };
         box.appendChild(b);
       });
-      $('shelfEmpty').hidden = (d.stories || []).length > 0;
-    }).catch(function (e) { $('makeNote').textContent = String(e.message || e); });
+      $('shelfNote').hidden = (d.stories || []).length > 0;
+    }).catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
   }
-
-  $('make').onclick = function () {
-    var text = $('newText').value.trim();
-    if (!text) { $('makeNote').textContent = 'paste the moments first'; return; }
-    $('make').disabled = true;
-    $('makeNote').textContent = 'making it…';
-    api('/stories', { method: 'POST', body: JSON.stringify({ title: $('newTitle').value, text: text }) })
-      .then(function (s) {
-        $('newTitle').value = ''; $('newText').value = '';
-        $('makeNote').textContent = '';
-        open(s.id);
-      })
-      .catch(function (e) { $('makeNote').textContent = String(e.message || e); })
-      .then(function () { $('make').disabled = false; });
-  };
 
   /* ------------------------------------------------------------ one story */
   var ID = null, MOM = {}, UNITS = [], NODES = {}, opened = {}, LONG = 5;
@@ -255,7 +228,7 @@
       show('story');
       paint();
       window.scrollTo(0, 0);
-    }).catch(function (e) { $('makeNote').textContent = String(e.message || e); });
+    }).catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
   }
 
   function node(id) {
