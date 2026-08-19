@@ -160,6 +160,30 @@ const PROVEN = [
   'miracles/',
 ];
 
+/**
+ * FIXED — a prefix whose writer WAS lossy and has since been repaired, with the
+ * moment the repair landed. A file made before it is damaged; a file made after
+ * it is clean, however small it encodes.
+ *
+ * WHY THIS EXISTS (found 2026-08-19, mid-write). Reading the writer is not
+ * enough on its own — you are reading it TODAY. Both art-mason renderers say
+ * `.webp({ lossless: true })` right now, which looks like proof that their 39
+ * flagged pictures are a flat-art false positive. They are not: `lossless` was
+ * added by eb5c981 (#1416) at 1:44 pm on 2026-08-19, and every one of those 80
+ * objects was written 2026-08-02 to 08-10 — all of them by the LOSSY version.
+ * So they are correctly tagged, and the next batch through the same script will
+ * be correctly left alone.
+ *
+ * THE RULE: date the FIX, not just the writer, and compare it against the
+ * object's own creation time. Without this, the first re-run after a repaired
+ * writer starts producing files would tag clean pictures — and flat art, which
+ * encodes far below the cut while being perfectly intact, is exactly where that
+ * lands.
+ */
+const FIXED = {
+  'story-shorts/art-mason/': '2026-08-19T20:44:16Z',   // eb5c981 (#1416) — .webp({lossless:true})
+};
+
 const args = process.argv.slice(2);
 const has = (f) => args.indexOf(f) >= 0;
 const argOf = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
@@ -197,6 +221,12 @@ function appFor(envName, label) {
  */
 function classify(it) {
   if (!it.bpp) return 'clean';                             // unreadable header
+  // A writer that has since been repaired only damaged what it made BEFORE the
+  // repair. Without the date check the same flat art that was correctly tagged
+  // yesterday gets tagged again tomorrow, when it is genuinely lossless.
+  for (const p of Object.keys(FIXED)) {
+    if (it.name.indexOf(p) === 0 && it.created && it.created >= FIXED[p]) return 'clean';
+  }
   if (startsAny(it.name, NEVER)) {
     const flagged = it.bpp < finder.LOSSY_BPP && Math.max(it.w, it.h) >= finder.FULL_PX;
     return flagged || startsAny(it.name, PROVEN) ? 'never' : 'clean';
@@ -228,7 +258,7 @@ async function scanBucket(bucket) {
     if (verdict === 'clean') return;
     const rec = {
       bucket: bucket.name, name: it.name, bpp: it.bpp, size: it.size, md5: it.md5,
-      proven: startsAny(it.name, PROVEN),
+      created: it.created, proven: startsAny(it.name, PROVEN),
     };
     if (verdict === 'never') { source.push(rec); return; }
     if (verdict === 'hold') { held.push(rec); return; }
@@ -396,7 +426,7 @@ async function main() {
   }
 }
 
-module.exports = { FIELD, NEVER, HOLD, PROVEN, classify, judge, plan };
+module.exports = { FIELD, NEVER, HOLD, PROVEN, FIXED, classify, judge, plan };
 
 if (require.main === module) {
   main().catch((err) => { console.error('failed:', err.stack || err.message); process.exit(1); });

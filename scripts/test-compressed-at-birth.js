@@ -107,6 +107,33 @@ t('a NEVER prefix still wins over a low bpp inside it', () => {
   assert.strictEqual(tagger.classify(obj('storybook/marla/pages/p09.webp', 0.7)), 'never');
 });
 
+console.log('\nA REPAIRED WRITER ONLY DAMAGED WHAT IT MADE BEFORE THE FIX\n');
+
+t('an art-mason panel from before the fix is damaged', () => {
+  // both renderers say .webp({lossless:true}) TODAY, but `lossless` landed in
+  // eb5c981 at 2026-08-19 20:44Z and every one of those 80 objects was written
+  // 08-02 to 08-10. Reading the writer alone would have cleared all 39.
+  assert.strictEqual(tagger.classify({
+    name: 'story-shorts/art-mason/v2/panel-1-v2.webp',
+    bpp: 0.05, w: 1024, h: 1536, created: '2026-08-05T00:00:00.000Z',
+  }), 'damaged');
+});
+
+t('…and one made AFTER the fix is clean, however small it encodes', () => {
+  // flat panel art encodes far under the cut while being perfectly intact
+  assert.strictEqual(tagger.classify({
+    name: 'story-shorts/art-mason/v2/panel-9-v2.webp',
+    bpp: 0.05, w: 1024, h: 1536, created: '2026-08-20T00:00:00.000Z',
+  }), 'clean');
+});
+
+t('a prefix with no fix on record is judged by the screen as before', () => {
+  assert.strictEqual(tagger.classify({
+    name: 'promptlab/runs/x.webp', bpp: 1.4, w: 1024, h: 1536,
+    created: '2026-08-20T00:00:00.000Z',
+  }), 'damaged');
+});
+
 console.log('\nHOLD REPORTS, IT DOES NOT WRITE\n');
 
 t('HOLD is empty now — every held prefix was resolved by reading its writer', () => {
