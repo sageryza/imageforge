@@ -330,6 +330,17 @@ around them change, so verify the labels and use these for the URL.
   merged in the gap. Without that, every deploy waits for the billing-period
   reset. Do NOT keep pushing retrigger commits at this error — the build is
   canceled before it starts, whatever the code says.
+  **A DOCS-ONLY MERGE IS FREE — put `[skip render]` in the squash-merge
+  commit TITLE (Sophie's call, 2026-08-19).** Render skips the deploy
+  entirely when the pushed head commit's message carries that marker, and a
+  skipped deploy burns ZERO build minutes. Nothing under `docs/` is served,
+  so a docs-only diff never needs a deploy, and the next real merge carries
+  the docs out anyway. Measured: 88 of 604 pushes in two weeks (~15%) were
+  docs-only. Use it ONLY when the WHOLE diff is docs/ — a mixed merge must
+  build. (Starter build minutes are $5/1,000 past the included 500; the $25
+  Performance tier is 16-CPU build hardware for giant compile jobs — this
+  repo's build is a small npm install, so it would cost 5× for nothing.
+  Don't suggest it.)
 - **The keep-awake self-ping is now redundant but harmless.** `server.js`
   (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
   10 min via `setInterval` — an **internal self-ping**, not an external uptime
@@ -2267,6 +2278,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
 
 ## Dev workflow
 - Develop on a feature branch, commit + push, open a DRAFT PR.
+- **Merging a DOCS-ONLY PR? Put `[skip render]` in the squash title** — the
+  deploy is skipped and costs zero build minutes; the next code merge ships
+  the docs. Full note in the Render section above.
 - **Claude merges its own PRs — always, without asking.** Standing permission
   (July 2026). When the work is ready, merge it, then watch the post-merge
   deploys/TestFlight and fix anything that breaks.
