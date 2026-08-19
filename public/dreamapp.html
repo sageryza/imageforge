@@ -162,7 +162,7 @@
   .confess button { pointer-events:auto; font:15px 'Courier Prime', monospace; background:var(--brown);
                     color:var(--cream); border:none; padding:14px 28px; cursor:pointer;
                     border-radius:60% 40% 55% 45%/45% 55% 40% 60%; animation:wobble 5s ease-in-out infinite; }
-  .csub { font:italic 400 13px 'EB Garamond', serif; color:rgba(20,19,26,.55); }
+  .csub { font:400 12px 'Courier Prime', monospace; color:rgba(20,19,26,.55); }
 
   /* The way out of an opened dream, floating so it is in reach from anywhere
      in a long one. A small icon-only circle since 2026-08-19 (Sophie: "less
@@ -321,9 +321,18 @@
   .preview button { background:none; border:none; font:11px 'Courier Prime', monospace; color:var(--brown);
                     cursor:pointer; padding:0; border-bottom:1px dashed var(--brown); }
   .seenby { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:auto; }
-  .seenby > span { font:italic 400 14px 'EB Garamond', serif; color:var(--ink); }
-  /* the dream screen's copy of the dial sits at the TOP, above the words (Sophie) */
-  .seenby.sharebar { margin:16px 0 2px; }
+  .seenby > span { font:400 14px 'EB Garamond', serif; color:var(--ink); }
+  /* the dream screen's copy of the dial sits under the picture (Sophie) */
+  .seenby.sharebar { margin:10px 0 2px; }
+  /* the dream screen's top stack: the picture in its goofy frame, centred */
+  .dtop { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:8px; }
+  .dtop .illus { cursor:zoom-in; }
+  /* LISTEN — the big play button in one of the house's weird outlines
+     (Sophie: "a big play button in one of those weird shapes outlines") */
+  .listenbtn { display:flex; align-items:center; gap:9px; margin:4px auto 0; background:none;
+               border:1.5px solid var(--brown); color:var(--brown); padding:13px 26px;
+               font:13.5px 'Courier Prime', monospace; cursor:pointer;
+               animation:breathe 9s ease-in-out infinite; }
   #drawBtn .star { display:inline-block; width:15px; height:15px; vertical-align:-2px;
                    color:var(--brown); }
   #drawBtn .star svg { width:100%; height:100%; display:block; }
@@ -333,6 +342,7 @@
   .dial button { font:11.5px 'Courier Prime', monospace; padding:8px 12px; border:none; cursor:pointer;
                  background:transparent; color:rgba(20,19,26,.65); }
   .dial button:first-child { border-radius:14px 20px 12px 18px/16px 12px 18px 14px; }
+  .dial button:nth-child(2) { border-radius:18px 12px 20px 14px/12px 20px 14px 18px; }
   .dial button:last-child { border-radius:20px 12px 18px 14px/14px 18px 12px 20px; }
   .dial button.on { background:var(--brown); color:var(--cream); }
 
@@ -416,8 +426,8 @@
     <section id="scr-dreamer" hidden></section>
   </main>
   <div class="confess" id="confess"><div class="cstack">
-    <button id="confessBtn">add last night&rsquo;s dream</button>
-    <span class="csub">it&rsquo;s coming back to me&hellip;</span>
+    <button id="confessBtn">it&rsquo;s coming back to me&hellip;</button>
+    <span class="csub">add last night&rsquo;s dream</span>
   </div></div>
   <div class="confess" id="closewrap" hidden><button id="closeDream" aria-label="close the dream"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
   <div class="sheet" id="sheet" hidden>
@@ -470,9 +480,9 @@
       <div class="seenby">
         <span>seen by</span>
         <div class="dial">
-          <button data-s="everyone" class="on">✳ everyone</button>
-          <button data-s="friends">☾ friends</button>
-          <button data-s="private">◦ just me</button>
+          <button data-s="everyone" class="on">everyone</button>
+          <button data-s="friends">friends</button>
+          <button data-s="private">just me</button>
         </div>
       </div>
       <div class="quiet" id="friendNote" style="text-align:center" hidden>your accepted friends, plus any dream team you switched on</div>
@@ -503,6 +513,8 @@ var HANDS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 var WHO = '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
 var BUBBLE = '<svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
 var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
+var PLAY = '<svg class="i" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+var PAUSE = '<svg class="i" viewBox="0 0 24 24"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>';
 
 var fbAuth = null, user = null, signUpMode = false;
 var openDreamId = null, cameFrom = 'mine';
@@ -857,6 +869,7 @@ function drawComments(comments, thread){
 var scr = { feed: null, mine: null, dream: null, teams: null, friends: null, dreamer: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
+  if (which !== 'dream' && typeof stopListen === 'function') stopListen();
   // Leaving the feed takes an opened card with it. The floating close serves
   // TWO doors (Sophie: "they should all have a closed button that's
   // floating"): an opened feed card, and the archive's dream screen — where
@@ -889,7 +902,7 @@ async function renderFeed(){
         '<div class="sealmsg"><div class="inner">' +
         '<div class="big">' + f.count + ' dream' + (f.count === 1 ? '' : 's') + ' from last night</div>' +
         '<div class="sml">share one of yours to read them \u2014 the feed opens for the rest of the day</div>' +
-        '<button id="gateGo">add last night\u2019s dream</button>' +
+        '<button id="gateGo">it\u2019s coming back to me\u2026</button>' +
         '</div></div></div>';
       document.getElementById('gateGo').addEventListener('click', function(){ openCompose(); });
       return;
@@ -974,7 +987,9 @@ var composeInfo = null;   // /me: streak, fetched once per open
 
 function openCompose(){
   sheetState = { stage: 1, dreamId: null, share: 'everyone', mood: null,
-                 lucid: false, recur: false, expanded: false, poll: null, rec: null, tags: [] };
+                 lucid: false, recur: false, expanded: false, poll: null, rec: null,
+                 tags: [],
+                 audios: [] };   // her spoken takes, saved by /transcribe
   var sh = document.getElementById('sheet');
   document.getElementById('st1').hidden = false;
   document.getElementById('st2').hidden = true;
@@ -1044,6 +1059,8 @@ async function transcribeBlob(blob){
     });
     var jn = await r.json();
     if (!r.ok) throw new Error(jn.error || 'something went wrong');
+    // the recording itself rides along, so the dream can be LISTENED to later
+    if (jn.audio) sheetState.audios.push({ url: jn.audio, duration: jn.duration || 0 });
     var box = document.getElementById('draft');
     box.value = (box.value.trim() ? box.value.trim() + ' ' : '') + jn.text;
   } catch (e) { toast(e.message); }
@@ -1066,7 +1083,8 @@ async function illustrate(){
   var d;
   try {
     d = await api('/dreams', { body: { text: text, mood: sheetState.mood,
-      lucid: sheetState.lucid, recurring: sheetState.recur, elems: elemsNow() } });
+      lucid: sheetState.lucid, recurring: sheetState.recur, elems: elemsNow(),
+      audio: sheetState.audios } });
     sheetState.dreamId = d.id;
   } catch (e) { toast(e.message); btn.disabled = false; return; }
   try {
@@ -1201,51 +1219,87 @@ function openDream(id, from){
 }
 function closeDreamScreen(){
   clearTimeout(dreamPoll);
+  stopListen();
   if (cameFrom === 'feed') { renderFeed(); go('feed'); } else { renderMine(); go('mine'); }
 }
 function audLabel(aud){
   return aud === 'private' ? 'just yours again'
     : aud === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in the feed';
 }
+/* ── listening back: the takes play in order, one button toggles ── */
+var listenPlayer = null;
+function stopListen(){
+  if (listenPlayer) { listenPlayer.pause(); listenPlayer = null; }
+  var b = document.getElementById('listenBtn');
+  if (b) b.innerHTML = PLAY + '<span>listen to this dream</span>';
+}
+function startListen(takes){
+  var i = 0;
+  var next = function(){
+    if (!listenPlayer && i > 0) return;   // stopped mid-way
+    if (i >= takes.length) { stopListen(); return; }
+    listenPlayer = new Audio(takes[i].url);
+    listenPlayer.onended = function(){ i++; next(); };
+    listenPlayer.play().catch(function(){ toast('couldn’t play the recording'); stopListen(); });
+  };
+  next();
+  var b = document.getElementById('listenBtn');
+  if (b) b.innerHTML = PAUSE + '<span>pause</span>';
+}
+
 async function renderDream(){
   clearTimeout(dreamPoll);
+  stopListen();
   var el = scr.dream;
   var d;
   try { d = await api('/dreams/' + openDreamId); }
   catch (e) { el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; return; }
   var drawing = d.drawJob && d.drawJob.status === 'drawing';
   var failed = d.drawJob && d.drawJob.status === 'failed';
-  var drawBlock;
+  // HER ORDER (2026-08-19): the picture in its goofy frame on top, then the
+  // sharing dial, then the listen button, then the words.
+  var top;
   if (drawing) {
-    drawBlock = '<div class="drawing"><span class="pulse"></span>drawing your dream…</div>' +
-      '<div class="pgrid"><div class="skel"></div></div>' +
+    top = '<div class="illus"><span class="working">drawing your dream…</span></div>' +
       '<div class="quiet">You can leave — the drawing will be here when it’s done.</div>';
   } else if ((d.panels || []).length) {
-    drawBlock = plainGrid(d.panels);
+    top = '<div class="illus" id="dreamPic"><img src="' + d.panels[0].url + '" alt=""></div>';
   } else {
-    drawBlock = '<button class="btn sub" id="drawBtn"><span class="star">' + STAR + '</span> draw it</button>' +
+    top = '<button class="btn sub" id="drawBtn"><span class="star">' + STAR + '</span> draw it</button>' +
       (failed ? '<div class="err">' + esc(d.drawJob.error) + '</div>' : '');
   }
   var aud = d.audience || (d.publicOn ? 'everyone' : 'private');
+  var takes = d.audio || [];
   el.innerHTML =
     '<div class="backrow"><button id="backBtn">' + BACK + 'back</button></div>' +
+    '<div class="dtop">' + top + '</div>' +
     '<div class="seenby sharebar"><span>seen by</span>' +
       '<div class="dial" id="audDial">' +
-        '<button data-s="everyone"' + (aud === 'everyone' ? ' class="on"' : '') + '>✳ everyone</button>' +
-        '<button data-s="friends"' + (aud === 'friends' ? ' class="on"' : '') + '>☾ friends</button>' +
-        '<button data-s="private"' + (aud === 'private' ? ' class="on"' : '') + '>◦ just me</button>' +
+        '<button data-s="everyone"' + (aud === 'everyone' ? ' class="on"' : '') + '>everyone</button>' +
+        '<button data-s="friends"' + (aud === 'friends' ? ' class="on"' : '') + '>friends</button>' +
+        '<button data-s="private"' + (aud === 'private' ? ' class="on"' : '') + '>just me</button>' +
       '</div></div>' +
     (aud === 'friends'
       ? '<div class="quiet" style="text-align:center">your accepted friends, plus any dream team you switched on</div>'
+      : '') +
+    (takes.length
+      ? '<button class="listenbtn" id="listenBtn">' + PLAY + '<span>listen to this dream</span></button>'
       : '') +
     '<div class="moodrow" id="dreamTags" hidden>' +
       '<span>who was in it?</span><div class="moods"></div></div>' +
     '<div class="post">' +
     (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
     '<div class="meta">' + ago(d.createdAt) + ' ago</div>' +
-    '<div class="words">' + esc(d.text) + '</div>' +
-    drawBlock + '</div>';
+    '<div class="words">' + esc(d.text) + '</div></div>' +
+    // an old comic dream keeps its remaining pages under the words
+    ((d.panels || []).length > 1 ? plainGrid(d.panels.slice(1)) : '');
   document.getElementById('backBtn').addEventListener('click', closeDreamScreen);
+  var pic = document.getElementById('dreamPic');
+  if (pic) pic.addEventListener('click', function(){ openLightbox(d.panels, 0); });
+  var lbtn = document.getElementById('listenBtn');
+  if (lbtn) lbtn.addEventListener('click', function(){
+    if (listenPlayer) stopListen(); else startListen(takes);
+  });
   var drawBtn = document.getElementById('drawBtn');
   if (drawBtn) drawBtn.addEventListener('click', async function(){
     this.disabled = true;
@@ -1728,6 +1782,15 @@ async function boot(){
     closeCompose(); renderFeed(); go('feed');
   });
   document.getElementById('confessBtn').addEventListener('click', openCompose);
+  // An iOS tab restored from a snapshot can hold a render from days ago —
+  // that is exactly how her archive showed one dream on a six-dream account.
+  // Coming back to the app re-reads whichever list screen is up (the feed
+  // only from its top, so the page never moves under her thumb mid-read).
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState !== 'visible' || !user) return;
+    if (!scr.mine.hidden) renderMine();
+    else if (!scr.feed.hidden && !openCard && window.scrollY < 40) renderFeed();
+  });
   // one floating close, two doors: an opened feed card, or the dream screen
   document.getElementById('closeDream').addEventListener('click', function(){
     if (openCard) setOpen(openCard, false);
