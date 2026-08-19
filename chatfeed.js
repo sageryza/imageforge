@@ -501,6 +501,66 @@ function snippetAnchor(src, groups) {
   return best;
 }
 
+// ---- IN THE ORDER SHE TYPED THEM COMES FIRST (Aug 2026, Sophie: "typing
+// `maybe never` finds ... the chats where those words appear in the same order
+// as typed should appear at the top and the ones where they appear anywhere
+// should appear underneath") ------------------------------------------------
+// Bare words AND anywhere in the message, in any order — that is the grammar
+// and it is what she asked for the day it shipped, so this does NOT narrow the
+// results. It only ORDERS them, which is the half that was missing: `maybe
+// never` was answering with a message about "maybe $3-5 a month" above the one
+// that actually says "maybe never", and reaching for quotes to fix that is a
+// tax on every search of more than one word.
+//
+// Three tiers, best first, then newest-first inside each one (the old sort,
+// untouched, and still the whole sort for a one-word query):
+//
+//   0. THE PHRASE — the words adjacent and in her order, exactly what quoting
+//      them would have found. This tier is why she does not have to quote.
+//   1. IN HER ORDER — each word after the one before it, with other words in
+//      between ("maybe you'll never").
+//   2. ANYWHERE — all the words are in the message, the order is not hers.
+//
+// A query with one positive group has nothing to rank and skips all of this.
+// So does one carrying a field term (`tag:`), where "adjacent" is meaningless.
+const rankGroups = (groups) => groups.filter((g) => !g.neg && g.terms.some((t) => t.re));
+// The whole query as one adjacency regex, OR groups included as alternations.
+// Built as its own pass rather than falling out of the walk below, because a
+// left-to-right walk takes the EARLIEST match of each word and would miss the
+// adjacent pair further along ("maybe … never … maybe never" is the phrase).
+function phraseRegex(pos) {
+  if (pos.some((g) => g.terms.some((t) => t.field))) return null;
+  const parts = pos.map((g) => {
+    const alts = g.terms.filter((t) => t.re)
+      .map((t) => t.value.split(' ').map(escRe).join('\\s+'));
+    return alts.length === 1 ? alts[0] : `(?:${alts.join('|')})`;
+  });
+  const lead = /^[a-z0-9]/i.test(pos[0].terms[0].value) ? '\\b' : '';
+  try { return new RegExp(lead + parts.join('\\s+'), 'i'); } catch (e) { return null; }
+}
+// Rank one message: 0 phrase, 1 in her order, 2 anywhere. Lower sorts first.
+function orderRank(src, pos, phraseRe) {
+  if (phraseRe && phraseRe.test(src)) return 0;
+  // Walk left to right taking the earliest match of each group at or after the
+  // end of the last one — greedy-earliest is exactly right for "does an
+  // in-order occurrence exist", since taking anything later can only make the
+  // rest harder to place.
+  let at = 0;
+  for (const g of pos) {
+    let best = -1, len = 0;
+    for (const t of g.terms) {
+      if (!t.re) continue;
+      const rest = src.slice(at);
+      const i = rest.search(t.re);
+      if (i < 0) continue;
+      if (best < 0 || i < best) { best = i; len = (rest.match(t.re) || [''])[0].length; }
+    }
+    if (best < 0) return 2;          // every word is here, but not in her order
+    at += best + len;
+  }
+  return 1;
+}
+
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
@@ -527,8 +587,19 @@ router.get('/search', async (req, res) => {
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
     const hits = searchIndex.filter((m) => queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
-    hits.sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
-    const results = hits.slice(0, limit).map((m) => {
+    // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
+    // Ranked into a parallel array rather than stamped onto the index rows:
+    // those objects are the shared, long-lived search index and a leftover
+    // score from the previous query would sort the next one.
+    const pos = rankGroups(groups);
+    const phraseRe = pos.length > 1 ? phraseRegex(pos) : null;
+    const ranked = hits.map((m) => ({
+      m,
+      rank: pos.length > 1 ? orderRank(m.chat + '\n' + m.tldr + '\n' + m.text, pos, phraseRe) : 0,
+    }));
+    ranked.sort((a, b) => a.rank - b.rank
+      || (a.m.created < b.m.created ? 1 : a.m.created > b.m.created ? -1 : 0));
+    const results = ranked.slice(0, limit).map(({ m }) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
       const inBody = m.text ? snippetAnchor(m.text, groups) : null;
       const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
@@ -3646,6 +3717,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+  rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, pileList, isPile,

@@ -1214,7 +1214,24 @@ them off the reference sheet, not off the old filenames.
   MINUTE** (her ask, same day): reopening the bar inside that minute puts the
   words AND the results back — the same hunt continuing — while the glass
   (a NEW search) forgets them outright and anything older opens empty, which is
-  still the default. **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
+  still the default. **HER ORDER RANKS FIRST — bare words still AND anywhere,
+  but the RESULTS are ordered (Aug 2026, Sophie: "typing `maybe never` finds …
+  the chats where those words appear in the same order as typed should appear
+  at the top and the ones where they appear anywhere should appear
+  underneath").** The grammar is unchanged and nothing is filtered out; the
+  feed's `/search` just sorts into three tiers before recency — **the phrase**
+  (adjacent, in her order — exactly what quoting would have found, which is why
+  she no longer has to quote), then **in her order** with words in between,
+  then **anywhere**. The old sort was recency alone, so `maybe never` answered
+  with "saving maybe $3-5 a month" above the message that literally says
+  "maybe never". Two things not to undo: the phrase is its own regex pass, not
+  a by-product of the left-to-right walk (the walk takes the EARLIEST match of
+  each word and would miss an adjacent pair further along), and the scores go
+  in a parallel array rather than onto the `searchIndex` rows — those objects
+  are the long-lived shared index and a leftover score would sort the next
+  query. A one-word query has nothing to rank and is untouched. Test:
+  `node scripts/test-search-order-rank.js` (pure).
+  **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
   THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
   `return` catalyze a search, in addition to the checkmark — what happened").**
   `enterSubmits` shipped into `public/chats.html` and stopped there; `/search`,
