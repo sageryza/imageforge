@@ -5313,7 +5313,17 @@ function openChat(name, keepScroll, focusId, noFetch){
         // her message shows in the thread right away — no refresh round-trip
         mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
         compTa.value='';
-        if(chats[name]) chats[name].archived=false;   // /reply unarchives server-side
+        // Mirror the registry writes /reply just made, so the send is VISIBLE
+        // when she taps back: the server stamps notifSeenAt (her reply clears
+        // this chat's Update card — see newsFloor) and unarchives, but the
+        // page's registry copy only refreshes on a poll, up to 20s away. She
+        // taps back in two — the card still sitting there is exactly what
+        // read as "we never fixed this" (Sophie, 2026-08-19). The answer her
+        // message prompts is a NEWER arrival, so the card returning WITH the
+        // answer is still the design, not this bug.
+        chats[name]=chats[name]||{};
+        chats[name].archived=false;
+        chats[name].notifSeenAt=d.notifSeenAt||new Date().toISOString();
         if(!ring) return {status:'quiet'};
         return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:name})})
           .then(function(r){return r.json()})
