@@ -172,12 +172,8 @@
       }
       paintActs(it.id);
       // …and into an open lightbox, so its heart agrees with the tile's
-      var la = lbAssets[it.id];
-      if (la) {
-        la.vote = verdicts[it.id] === true ? 'like'
-          : verdicts[it.id] === false ? 'dislike' : null;
-        if (la._lbPaint) la._lbPaint();
-      }
+      views.sync(it, verdicts[it.id] === true ? 'like'
+        : verdicts[it.id] === false ? 'dislike' : null);
     }
 
     // ── the ASSETS lightbox on every asset-backed picture (Aug 2026, Sophie:
@@ -185,81 +181,33 @@
     // when I open the image in assets — I can leave a note, that heart, etc.,
     // and see the prompt… just port that exact code"). /asset-lightbox.js IS
     // that code, lifted out of chats.html; this only feeds it the item.
-    var lbAssets = {};       // item id → the asset view the lightbox drives
-    var notesLoaded = null;  // one fetch per page open; threads keyed by url
+    // ── the ASSETS lightbox on every asset-backed picture (Aug 2026, Sophie:
+    // "when I open up the image, I'd like it to be identical to what happens
+    // when I open the image in assets — I can leave a note, that heart, etc.,
+    // and see the prompt… just port that exact code"). /asset-lightbox.js IS
+    // that code, lifted out of chats.html; /asset-view.js is the adapter that
+    // feeds it an item, shared with judge.js so the swipe card opens the same
+    // thing this tile does.
+    var views = window.__assetViews({
+      chat: chat,
+      voteOf: function (it) {
+        return verdicts[it.id] === true ? 'like'
+          : verdicts[it.id] === false ? 'dislike' : null;
+      },
+      // ♥/✕ in the lightbox: on a ♥/✕ page it IS the page's verdict (and
+      // mirrors to the Assets tab through setVerdict, as always); on an
+      // own-states page the page verdict stays the states', so the heart
+      // casts the ASSET vote alone — exactly what it does in the Assets tab.
+      cast: states
+        ? function (it, v, a) {
+          a.vote = a.vote === v ? null : v;
+          mirrorVote(it, a.vote === 'like' ? true : a.vote === 'dislike' ? false : null);
+          if (a._lbPaint) a._lbPaint();
+        }
+        : function (it, v) { setVerdict(it, v === 'like'); },
+    });
 
-    function loadNotes() {
-      if (!notesLoaded) {
-        notesLoaded = fetch('/api/gallery/assets/notes?chat=' + encodeURIComponent(chat))
-          .then(function (r) { return r.ok ? r.json() : {}; })
-          .catch(function () { return {}; })
-          .then(function (d) {
-            var m = {};
-            ((d && d.notes) || []).forEach(function (n) {
-              if (n && n.url) m[n.url] = n.thread || [];
-            });
-            return m;
-          });
-      }
-      return notesLoaded;
-    }
-
-    function assetFor(it) {
-      var a = lbAssets[it.id];
-      if (a) return a;
-      a = lbAssets[it.id] = {
-        description: it.label || '',
-        prompt: [it.model, it.quality].filter(Boolean).join(' · '),
-        promptStyle: it.promptStyle || '',
-        promptContent: it.promptContent || '',
-        vote: verdicts[it.id] === true ? 'like'
-          : verdicts[it.id] === false ? 'dislike' : null,
-        thread: null,
-        // ♥/✕ in the lightbox: on a ♥/✕ page it IS the page's verdict (and
-        // mirrors to the Assets tab through setVerdict, as always); on an
-        // own-states page the page verdict stays the states', so the heart
-        // casts the ASSET vote alone — exactly what it does in the Assets tab.
-        _cast: states
-          ? function (v) {
-            a.vote = a.vote === v ? null : v;
-            mirrorVote(it, a.vote === 'like' ? true : a.vote === 'dislike' ? false : null);
-            if (a._lbPaint) a._lbPaint();
-          }
-          : function (v) { setVerdict(it, v === 'like'); },
-        _noteSend: function (text, cb) {
-          fetch('/api/gallery/assets/note', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat: chat, url: it.url, text: text, from: 'sophie' }),
-          }).then(function (r) { return r.json(); })
-            .then(function (d) {
-              if (d && d.thread) a.thread = d.thread;
-              cb(!!(d && d.ok));
-            })
-            .catch(function () { cb(false); });
-        },
-      };
-      return a;
-    }
-
-    // a hand-built page that calls __grid directly may not carry the script
-    // tag the template page renders — fetch it once, on the first tap
-    function ensureLightbox(fn) {
-      if (window.__assetLightbox) return fn();
-      var s = document.createElement('script');
-      s.src = '/asset-lightbox.js';
-      s.onload = fn;
-      document.head.appendChild(s);
-    }
-
-    function openAsset(it) {
-      var a = assetFor(it);
-      var open = function () { window.__assetLightbox(it.full || it.img, a); };
-      if (a.thread) return ensureLightbox(open);
-      loadNotes().then(function (map) {
-        a.thread = map[it.url] || [];
-        ensureLightbox(open);
-      });
-    }
+    function openAsset(it) { views.open(it); }
 
     function actsHtml(it) {
       var h = '';
@@ -492,14 +440,16 @@
     // Assets read is the one this block already makes. The page's own data
     // still wins where it has any — a chat that filed a page-specific prompt
     // meant it.
-    fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)
+    function loadVerdicts() {
+      return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)
       + '&sheet=' + encodeURIComponent(sheet))
       .then(function (r) { return r.ok ? r.json() : {}; })
       .catch(function () { return {}; })
       .then(function (d) {
         var iv = (d && d.items) || {};
-        Object.keys(iv).forEach(function (id) {
+        Object.keys(byId).forEach(function (id) {
           if (iv[id] !== null && iv[id] !== undefined) verdicts[id] = iv[id];
+          else delete verdicts[id];            // cleared in the other view
         });
         Object.keys(byId).forEach(paintActs);
         var wantAssets = Object.keys(byId).some(function (id) {
@@ -545,5 +495,11 @@
             });
           });
       });
+    }
+    loadVerdicts();
+
+    // the handle the two-view page holds: a mark she made while swiping shows
+    // on these tiles when she switches back (both views write the same doc)
+    return { refresh: function () { return loadVerdicts(); } };
   };
 })();

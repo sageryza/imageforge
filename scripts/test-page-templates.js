@@ -107,14 +107,19 @@ ok('the stock page carries the whole kit and inlines data safely', () => {
   });
   assert.match(html, /\/compare\.css/);
   assert.match(html, /\/compare\.js/);
+  // ONE PAGE, TWO VIEWS (Aug 2026): every template page carries both halves
+  // and the switch, and `template` only decides which one it opens on
   assert.match(html, /\/grid\.js/);
-  assert.match(html, /__grid\(window\.__pageData\)/);
+  assert.match(html, /\/judge\.js/);
+  assert.match(html, /\/page-views\.js/);
+  assert.match(html, /\/asset-view\.js/);
+  assert.match(html, /start: 'compare'/, 'a grid page opens on the compare view');
   assert.match(html, /Penny &lt;quality&gt; v1<\/h1>/);
   assert.ok(!/<\/script><b>/.test(html), 'a </script> in data cannot break out');
   const deck = renderTemplatePage({ template: 'deck', title: 't', chat: 'c', sheet: 's',
     data: validateTemplate('deck', { items: [{ label: 'a', text: 'x' }] }).data });
   assert.match(deck, /\/judge\.js/);
-  assert.match(deck, /__judge\(window\.__pageData\)/);
+  assert.match(deck, /start: 'swipe'/, 'a deck page opens on the swipe view');
 });
 
 ok('clean drops the h1 — the Review Queue opens straight onto the cards', () => {
@@ -123,7 +128,7 @@ ok('clean drops the h1 — the Review Queue opens straight onto the cards', () =
     sheet: 's', data, clean: true });
   assert.ok(!/<h1>/.test(clean), 'no h1 in a clean render');
   assert.match(clean, /<title>Batch 2<\/title>/, 'the <title> still names it');
-  assert.match(clean, /__judge\(window\.__pageData\)/, 'the deck itself is intact');
+  assert.match(clean, /start: 'swipe'/, 'the deck itself is intact');
   // a clean GRID loses its h1 the same way (it keeps its pill — it scrolls)
   const g = validateTemplate('grid', { groups: [{ items: [{ label: 'a', img: `${SG}/a/a.png` }] }] });
   assert.ok(!/<h1>/.test(renderTemplatePage({ template: 'grid', title: 't', chat: 'c',

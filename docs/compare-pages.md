@@ -556,6 +556,19 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the stack starts at the top instead of centring, reserving the buttons'
       height at the bottom of the scroller. **A short card is untouched** —
       the big centred name is the design there.
+    - **ONE PAGE, TWO VIEWS (Aug 2026 v4).** A template page carries the deck
+      AND the grid behind one hairline switch (`page-views.js`); `template`
+      only picks the opening view, and the missing half of the data is derived
+      (groups flatten to items, items become one-card groups) so pages already
+      posted get both. Both views write the same verdict doc under the same
+      ids, so a mark crosses by itself — each view exposes `refresh()` and
+      re-reads when she switches back, keeping her place in the deck. The pill
+      became a per-view decision (hidden under the deck's body class) rather
+      than the page-level `meta forge-pill off`, and `#pageviews` must be a
+      full-height flex column or the deck loses its height chain.
+      A picture in EITHER view opens the Assets lightbox through
+      `asset-view.js` — heart, both prompt halves, the note thread — so the
+      swipe card keeps just the one choice plus her note box.
     - **EVERY DECK WEARS HER LOOK (Aug 2026 v3, Sophie: "make the single
       image review surface the same general template as the text one").**
       `renderTemplatePage` passes `look:'mom'` for every `deck`, so a deck of
