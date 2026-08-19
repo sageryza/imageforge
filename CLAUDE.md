@@ -1214,9 +1214,25 @@ them off the reference sheet, not off the old filenames.
   MINUTE** (her ask, same day): reopening the bar inside that minute puts the
   words AND the results back — the same hunt continuing — while the glass
   (a NEW search) forgets them outright and anything older opens empty, which is
-  still the default. Tests: `node scripts/test-search-grammar.js`,
+  still the default. **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
+  THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
+  `return` catalyze a search, in addition to the checkmark — what happened").**
+  `enterSubmits` shipped into `public/chats.html` and stopped there; `/search`,
+  `/chunking` and `/assets` were left on `liveInput` alone, so Return never
+  dropped the keyboard and she was left looking at her own words over the
+  answer. `/search` was the worst of the three — its box asks iOS for a SEARCH
+  key with `enterkeyhint="search"`, so the keyboard offered a key wired to
+  nothing, and it had no `liveInput` either, so it never searched as she
+  dictated. **Both helpers are on every live search box now, and each page
+  keeps its own copy** (there is no shared page script to hang them on) —
+  `chats.html` ×3, `search.html`, `clips.html`, `assets.html`;
+  `cuttingroom.html` has always had its own Enter handler, and
+  `storyroom.html` is the unpointed old board surface. Tests:
+  `node scripts/test-search-grammar.js`,
   `node scripts/test-chats-live-search.js`,
-  `node scripts/test-chats-search-return.js`.
+  `node scripts/test-chats-search-return.js`,
+  `node scripts/test-search-return-everywhere.js` (the other three pages,
+  headless — verified failing against the pre-fix pages).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does

@@ -231,6 +231,19 @@ function liveInput(el, fn){
   el.addEventListener('blur', function(){ clearInterval(timer); timer=null; fire(); });
   return { sync:function(){ last=el.value; } };
 }
+// RETURN SENDS THE SEARCH (Aug 2026, Sophie: "only the check mark sends the
+// search on its way. I'd like the return button to do the same"). A lone
+// <input type=search> outside a <form> has nothing to submit to, so Return did
+// nothing at all. It runs the search now and drops the keyboard, so what she is
+// left looking at is the pictures. Wired beside liveInput on every search box.
+function enterSubmits(el, fn){
+  el.addEventListener('keydown', function(e){
+    if(e.key!=='Enter' && e.keyCode!==13) return;
+    e.preventDefault();
+    if(fn) fn();
+    el.blur();
+  });
+}
 
 var HEART='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
 var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
@@ -500,11 +513,15 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     si.autocapitalize='none'; si.autocorrect='off';
     var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
     sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
-    var siLive=liveInput(si, function(){
+    function readSearch(){
       q=(si.value||'').trim().toLowerCase();
       sx.style.display=q?'':'none';
       applyFilter();
-    });
+    }
+    var siLive=liveInput(si, readSearch);
+    // `siLive.sync()` inside it: the blur Return performs would otherwise be
+    // liveInput's first sight of dictated text and would filter a second time.
+    enterSubmits(si, function(){ readSearch(); siLive.sync(); });
     sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
     srow.appendChild(si); srow.appendChild(sx);
     content.appendChild(srow);
