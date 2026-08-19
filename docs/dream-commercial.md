@@ -50,6 +50,40 @@ prompts filed on each. The split that matters for authenticity:
   - Melanie tangled in balls of yarn
   - Tyler's fries falling on the floor
 
+### Her notes on the v1 images (2026-08-19 — all four KEPT for now)
+
+Sophie reviewed the batch: "all the images you made are fine and pretty good
+and will keep them for now." Her honest thoughts, recorded for whoever
+re-rolls later:
+
+- **Protein pile** — she'd imagined a literal PILE, maybe against a white
+  background like a product shot, "so it's extremely comical". The realistic
+  one stays for now; a re-roll goes comical-product-shot.
+- **Bicep kiss** — "perfect gym bro". Don't touch it.
+- **Melanie in yarn** — reads "a little too detailed or grainy" to her; her
+  guess is too many words describing the image. A re-roll should use a much
+  SHORTER image plan (the app's own plans are one paragraph; hers would be
+  2-3 plain sentences).
+- **Tyler's fries** — she'd imagined two gym bros at McDonald's, one having
+  knocked the fries on the floor, all of them down there. The solo kitchen
+  version stays for now.
+
+## Rendering the video (the texting)
+
+`node scripts/dream-commercial/render.js video1.json out.mp4` — no model
+calls, costs nothing, ~2 min. `render.html` is the fake iOS group chat (a
+filmed prop of Messages, deliberately not house chrome), `video1.json` is the
+message script — a future video is a new JSON, nothing else. The driver steps
+the chat one message at a time through headless Chromium (deterministic
+pop-in frames, no wall-clock animation), then assembles 1080x1920 30fps H.264
+with the repo's ffmpeg-static. Title cards and the end card are the dream
+app's palette (cream #f4f0e5 / ink #14131a / blush #d9b3c0) in Newsreader
+italic, fetched at render time with a Liberation Serif fallback. Silent by
+design so far — sound (iMessage pops, VO) is an open question for Sophie.
+
+v1 (0:42, 2026-08-19):
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/commercial-v1.mp4
+
 ## Scenario bank — before → after, for future videos
 
 Each is one video, same structure: 2-3 before beats, the title cards, 2-3

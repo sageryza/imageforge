@@ -1,0 +1,30 @@
+{
+  "chatName": "the boys 💪",
+  "chatAvatar": "B",
+  "people": {
+    "brayden": { "name": "Brayden", "color": "#b0623a" },
+    "tyler":   { "name": "Tyler",   "color": "#5b7d9e" },
+    "jake":    { "name": "Jake",    "color": "#6f8a5a" },
+    "connor":  { "name": "Connor",  "color": "#8a5a7d" }
+  },
+  "steps": [
+    { "type": "msg", "from": "brayden", "stamp": "9:41 PM", "img": "https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1787152858800-7xkzyb.webp", "hold": 2.4 },
+    { "type": "msg", "from": "brayden", "stamp": "9:41 PM", "text": "look at the gains boys 😤", "hold": 2.0 },
+    { "type": "msg", "from": "jake", "stamp": "9:41 PM", "text": "BOULDERS", "hold": 1.5 },
+    { "type": "msg", "from": "tyler", "stamp": "9:41 PM", "img": "https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1787152909167-bx0ap8.webp", "hold": 2.4 },
+    { "type": "msg", "from": "tyler", "stamp": "9:41 PM", "text": "246g protein today. if i don't hit 300 by midnight i literally start shrinking", "hold": 3.0 },
+    { "type": "msg", "from": "jake", "stamp": "9:41 PM", "text": "eat the eggs king", "hold": 1.7 },
+    { "type": "msg", "from": "connor", "stamp": "9:41 PM", "text": "melanie is a bitch btw. she won't sleep with me", "hold": 2.8 },
+    { "type": "card", "bg": "#f4f0e5", "fg": "#14131a", "text": "before the dream", "hold": 2.3 },
+    { "type": "card", "bg": "#14131a", "fg": "#f4f0e5", "text": "after the dream", "clear": true, "hold": 2.3 },
+    { "type": "msg", "from": "jake", "stamp": "8:03 AM", "text": "I think Tyler's going through a lot, because he dreamt of french fries falling on the floor last night.", "hold": 3.4 },
+    { "type": "msg", "from": "tyler", "stamp": "8:03 AM", "text": "there were so many fries 😔", "hold": 2.5 },
+    { "type": "msg", "from": "brayden", "stamp": "8:03 AM", "text": "we're with you brother", "hold": 1.9 },
+    { "type": "msg", "from": "connor", "stamp": "8:04 AM", "text": "melanie has intimacy issues", "hold": 2.3 },
+    { "type": "msg", "from": "you", "side": "you", "stamp": "8:04 AM", "text": "how do you know", "hold": 1.7 },
+    { "type": "msg", "from": "connor", "stamp": "8:04 AM", "img": "https://storage.googleapis.com/membry-df528.firebasestorage.app/claude-deliveries/1787152968974-ddon57.webp", "hold": 2.8 },
+    { "type": "msg", "from": "jake", "stamp": "8:04 AM", "text": "oh damn", "hold": 1.6 },
+    { "type": "msg", "from": "tyler", "stamp": "8:04 AM", "text": "yeah", "hold": 1.9 },
+    { "type": "end", "name": "you were in my dreams", "url": "youwereinmydreams.com", "hold": 3.6 }
+  ]
+}
