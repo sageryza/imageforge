@@ -2266,6 +2266,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **finished reply** (never a draft) and on a new Compare page. They are the
   Update tab's **doorbell, not its replacement**, so a dropped push is never
   lost news. A tap opens THE CHAT IT CAME FROM.
+  **THE BANNER SHOWS WITH THE APP OPEN TOO, SILENTLY (Aug 2026, Sophie:
+  "notifications that come down into the app and appear at the top of the
+  screen while I'm in the app").** `willPresent` returned `[]` until then — the
+  app suppressed every foregrounded notification on the reasoning that the
+  Update tab IS the notification. That is true only on the Chats screen: from
+  the Playground or the Story Room a chat answering her said nothing at all,
+  and the rose "New message" bar on `/chats` names neither the chat nor what it
+  said. It is `[.banner, .list]` and deliberately NOT `.sound` — the buzz is
+  what carries a lock-screen push across the room, and in her hand the banner
+  has already done that. Do not "fix" this back to `[]`.
   **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
   `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
   notify me").** One field, `notify`, on the chat's registry doc beside

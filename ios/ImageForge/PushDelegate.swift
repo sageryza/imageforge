@@ -13,9 +13,23 @@ import UserNotifications
 ///   3. on a notification TAP, land her on the Chats screen's UPDATE tab —
 ///      the push is that tab's doorbell, so the tap opens the door.
 ///
-/// Notifications are SUPPRESSED while the app is foregrounded (willPresent
-/// returns []): if she is already in the app, the Update tab itself is the
-/// notification, and a banner over it would be noise.
+/// A NOTIFICATION SHOWS ITS BANNER EVEN WITH THE APP OPEN (Aug 2026, Sophie:
+/// "notifications that come down into the app and appear at the top of the
+/// screen while I'm in the app, that's a thing I think I've seen other
+/// apps"). v1 suppressed them outright — willPresent returned [] — on the
+/// reasoning that if she is already in the app the Update tab IS the
+/// notification. That reasoning holds only on the Chats screen: the Update
+/// tab is one screen of one tab, so a chat answering her while she is in the
+/// Playground, the Story Room or the gallery said nothing at all, and the
+/// nearest thing (the rose "New message" bar) lives on /chats and names
+/// neither the chat nor what it said. So the banner is drawn now, wherever
+/// she is, and tapping it routes exactly like a lock-screen tap.
+///
+/// NO SOUND while she is looking at the phone — [.banner, .list] and not
+/// .sound. The buzz is what makes a lock-screen push reach her across the
+/// room; in her hand the banner has already done that job, and a chime on top
+/// is the noise the old suppression was rightly worried about. `.list` still
+/// files it in Notification Center, so a banner she swipes past is not lost.
 final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
     /// Set before the UI reacts to a tap; ChatFeedView consumes these when it
@@ -70,11 +84,11 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
         // next launch tries again.
     }
 
-    /// Foregrounded: the app is already the notification. Show nothing.
+    /// Foregrounded: draw the banner anyway, silently (see the note above).
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([])
+        completionHandler([.banner, .list])
     }
 
     /// Tapped: open on the Update tab. The flag is read by ChatFeedView when
