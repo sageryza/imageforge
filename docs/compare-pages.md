@@ -665,9 +665,15 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     living with it: "I wanted it below the text box so most of it will be
     out of view, and there can just be a button which makes the note texting
     take up more of a screen, like overlay on top of the actual image") —
-    writing is the common act, re-reading the occasional one, so a
-    `Notes (n)` button throws the thread over the picture, centred on the
-    viewport so it always covers it. And the whole overlay carries
+    writing is the common act, re-reading the occasional one. A **CHAT**
+    button beside PROMPT in the top row throws the thread over the picture,
+    centred on the viewport so it always covers it — and it appears **only
+    when the thread holds more than the peek can show** (Aug 2026: "only have
+    it show up IF there are extra notes that would need to scroll to see"), so
+    the button means *there is more up there*, never *notes exist*. That is
+    MEASURED (the peek's own overflow, re-checked a frame after the overlay
+    has a size and again on `fonts.ready`), never counted — how much fits
+    depends on how long the letters are. And the whole overlay carries
     `data-nostop`: the app drives an embedded page's scroll with a
     tap-to-TOGGLE whose skip list is `[data-nostop],img,figure,.cmp-lb`, and
     without the mark the tap that CLOSED the lightbox started the autoscroll

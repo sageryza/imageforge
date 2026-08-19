@@ -213,28 +213,35 @@ setTimeout(function(){
       // the BOX comes first and the conversation sits under it (Aug 2026)
       var kids=[].map.call(clb.querySelector('.lbtalk').children, function(k){
         return k.className.split(' ')[0]; });
-      ok(kids.join(',')==='lbnote,lbmore,lbthread',
+      ok(kids.join(',')==='lbnote,lbthread',
          'the note box is above the thread — got ' + kids.join(','));
       var thr=clb.querySelector('.lbthread');
       ok(thr.getBoundingClientRect().height < window.innerHeight*0.2,
          'the thread only PEEKS until she asks for it');
-      var mb=clb.querySelector('.lbmore');
-      ok(/\(1\)/.test(mb.textContent), 'the button counts the letters — got ' + mb.textContent);
+      // CHAT rides beside PROMPT in the top row, and says Chat
+      var mid=clb.querySelector('.lbtop .lbmid');
+      var midkids=[].map.call(mid.children, function(k){ return k.textContent.trim(); });
+      ok(midkids.join(',')==='Prompt,Chat',
+         'CHAT sits next to PROMPT in the top row — got ' + midkids.join(','));
+      var mb=mid.lastElementChild;
+      ok(mb.style.display!=='none',
+         'and it shows, because this thread has more than the peek can hold');
       mb.click();
       var img=clb.querySelector('.clwrap img');
       var tr=thr.getBoundingClientRect(), ir=img.getBoundingClientRect();
       ok(clb.querySelector('.lbtalk').classList.contains('big')
          && tr.top < ir.bottom && tr.bottom > ir.top,
-         'the button throws the conversation OVER the picture — thread '
+         'it throws the conversation OVER the picture — thread '
          + Math.round(tr.top) + '-' + Math.round(tr.bottom) + ' vs image '
          + Math.round(ir.top) + '-' + Math.round(ir.bottom));
+      ok(mb.textContent.trim()==='Hide', 'and reads Hide while it is open');
       mb.click();
       ok(!clb.querySelector('.lbtalk').classList.contains('big'), 'and puts it back');
       ok(clb.querySelector('.vote.heart').classList.contains('on'),
          'its heart already agrees with the tile');
       var msgs=clb.querySelectorAll('.lbmsg');
-      ok(msgs.length===1 && msgs[0].textContent==='warmer next time',
-         'her existing note thread rides in');
+      ok(msgs.length===6 && msgs[0].textContent.indexOf('letter 1')===0,
+         'her existing note thread rides in, oldest first — got ' + msgs.length);
       // the lightbox ✕ lands on the page verdict AND the Assets mirror
       clb.querySelector('.vote.nope').click();
       var pv=posts('/api/chatfeed/verdict').pop(), pm=posts('/api/gallery/assets/vote').pop();
@@ -248,7 +255,22 @@ setTimeout(function(){
          + 'starts the autoscroll (the app toggle skips [data-nostop])');
       clb.click();
       ok(clb.style.display==='none', 'the backdrop closes it');
-      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+
+      // …and the whole point of the button: a thread that already FITS gets
+      // none (p-high carries one short line). Her rule: it means "there is
+      // more up there", not "notes exist".
+      m.querySelector('[data-item="p-high"] img').click();
+      setTimeout(function(){
+        var c2=document.getElementById('clightbox');
+        var mid2=c2.querySelector('.lbtop .lbmid');
+        var chat2=mid2 && mid2.querySelector('.promptbtn + .promptbtn');
+        ok(c2.querySelectorAll('.lbmsg').length===1,
+           'the short thread is there');
+        ok(chat2 && chat2.style.display==='none',
+           'but NO Chat button — nothing is hidden below the peek');
+        c2.click();
+        fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+      }, 500);
     }, 500);
   }, 400);
 }, 600);
@@ -359,8 +381,16 @@ function run(name, html, search) {
       }
       if (route === '/api/gallery/assets/notes') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ notes: [{ url: `${SG}/a/p-med.png`,
-          thread: [{ from: 'sophie', text: 'warmer next time', at: '2026-08-19T00:00:00Z' }] }] }));
+        // p-med: far more letters than the peek can show → the CHAT button
+        // p-high: one short line that fits → no button (her rule)
+        const long = (n) => ({ from: n % 2 ? 'chat' : 'sophie',
+          text: `letter ${n} — ` + 'a long enough line to fill the peek. '.repeat(4),
+          at: '2026-08-19T00:00:0' + n + 'Z' });
+        return res.end(JSON.stringify({ notes: [
+          { url: `${SG}/a/p-med.png`, thread: [1, 2, 3, 4, 5, 6].map(long) },
+          { url: `${SG}/a/p-high.png`,
+            thread: [{ from: 'sophie', text: 'warmer next time', at: '2026-08-19T00:00:00Z' }] },
+        ] }));
       }
       if (route === '/api/gallery/assets') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
