@@ -96,6 +96,22 @@ Then she says one thing to the terminal chat and the whole queue runs.
   that does.
 - **Queued:** 2026-08-17 by search-index-rebuild
 
+- **FAILED 2026-08-18** (terminal chat, macOS 26.1, build 25B78): there are no
+  Apple transcripts on this Mac to import — this is not the "layout differs on
+  this OS version" case the task anticipated. `--dry-run` and `--report` both
+  found 0 transcript columns across all 30 tables of `CloudRecordings.db`, and
+  a hand check agrees: `ZCLOUDRECORDING` (1,197 rows) has no transcript column
+  of any kind, the second database (`EncryptedCloudRecordings.db`) has none
+  either, and the Recordings container holds only `.m4a` and `.waveform` files
+  — the 610 `_FBF` external blobs are audio, not text. The words simply aren't
+  here: Voice Memos transcription is produced per-device, on demand, and is not
+  carried across iCloud, so the phone's transcripts stayed on the phone.
+  Fitting the reader to another schema cannot fix this.
+  **What could work instead** (needs her decision before anything is rewritten):
+  transcribe from the audio this Mac already holds — all 1,196 recordings are
+  on disk, so the 57 wordless ones (66.5 hours) could be chunked under the size
+  cap locally and sent — or export the transcripts off the phone.
+
 ### Turn on the automatic daily Voice Memos push
 - **Why:** Sophie asked for the Mac push to run by itself — at login and once a
   day — instead of being a command she has to remember. This installs a small
