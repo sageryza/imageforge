@@ -92,6 +92,50 @@ read small); and the chat is light mode ("make the background white"). The
 title/end cards are unchanged — they're the app's brand, not the phone UI.
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/commercial-v2.mp4
 
+## The music — "Venus", Afro Comb feat. DOMAINIQ (Sophie, 2026-08-19)
+
+Sophie found the song and sent it in, in her own words:
+
+> This is actually already one of my favorite songs and I think I like this
+> part so it totally fits with my website and would be a good song for one of
+> my commercials.
+
+- **The track:** "Venus" — Afro Comb feat. DOMAINIQ, released on Kitsuné
+  Musique, June 2021. Afro Comb are a North London duo; this one is their
+  deep-house record. https://youtu.be/2uwwVV-bGXU
+- **The part she means starts at 1:04**, as she heard it: *"you were in my
+  dreams last night, pulling my hair, holding me tight … touching me good,
+  touching me …"* (her transcription by ear — nobody has checked it against a
+  printed lyric, and the muffled words are hers to fill in.)
+- **Why it fits, and it is not subtle:** the hook says the domain out loud.
+  The site is **youwereinmydreams.com** and the line is *you were in my
+  dreams last night* — so the song names the product without a single word
+  of ad copy over it. It is also the opposite temperature from the joke: the
+  commercial's humour is dry and deadpan, and a warm, sensual deep-house
+  record under it is what keeps the whole thing from reading as a sketch.
+- **Where it would sit:** the after-the-dream half. The before half is
+  stereotypical guy-chat and wants either silence or the iMessage pops; the
+  track coming in on the title card is the turn. That is the answer to the
+  "sound is an open question" line above, for this cut at least.
+
+### Before it can go in a public commercial
+
+Nothing here is blocking — it is the one thing to do before the song is
+baked into a video that goes out.
+
+- **A commercial needs a sync licence**, which is a different permission from
+  streaming it or playing it. Two rights, always: the **composition** (the
+  writers/publishers) and the **master recording** (the label). Posting a
+  video with the track and no clearance is what gets a YouTube Content ID
+  claim or a takedown, and an ad is the least forgiving use.
+- **The label to ask is Kitsuné Musique** (Maison Kitsuné's music arm, Paris)
+  — an indie, not a major, and a small-scale ask from a small site is exactly
+  the kind of request they answer. Afro Comb themselves are reachable on
+  their own channels and can point at who clears it.
+- **Until it clears**, the honest way to use it is a private/unlisted cut for
+  her own review — the edit gets built to the real song so the timing is real,
+  and the public version swaps to whatever is cleared.
+
 ## Scenario bank — before → after, for future videos
 
 Each is one video, same structure: 2-3 before beats, the title cards, 2-3
