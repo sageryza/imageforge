@@ -22,10 +22,14 @@ then we'll also have something called circles except I won't call it circles
   the original circles design, kept as the study those calls came from.
 - **And friends are REAL, mutual people since the same day** (Sophie: "like
   following on Instagram except you have to let them accept you — a two-way
-  Facebook model"): ask by personal link (`/f/<code>`), accept on the friends
-  screen, the holding-hands moment on the yes. `forge-dreamapp-friends` /
-  `forge-dreamapp-profile`; a ☾ friends night reaches accepted friends OR
-  routed teams.
+  Facebook model"), asked for **on a dreamer's PROFILE**: the sheet is
+  nameless, not anonymous — any dream opens into "their dreams", every night
+  of that person you can see, with the one button ("ask if they want to be
+  friends"). The name appears only once you're friends. A `/f/<code>`
+  personal-link version lived for a few hours and was pulled (Sophie: "not
+  elegant"). Accept on the friends screen or the profile; the holding-hands
+  moment on the yes. `forge-dreamapp-friends`; a ☾ friends night reaches
+  accepted friends OR routed teams.
 
 The seen-by dial in the live app had two stops (✳ everyone · ◦ just me); this
 was the design for the third, the one the Sharing Flow artboard sketched
