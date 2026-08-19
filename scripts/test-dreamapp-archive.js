@@ -29,10 +29,11 @@ const LONG = Array(80).fill('The staircase kept adding steps as I climbed and cl
 const MINE = [
   { id: 'm1', title: 'The Long One', night: today, createdAt: today + 'T08:00:00Z', text: LONG,
     publicOn: null, audience: 'private', wordsPublic: true, drawJob: null,
-    panels: [{ i: 0, url: '/img/a.png', public: false }], feltCount: 0, mood: null, lucid: false, recurring: false, elems: [] },
+    panels: [{ i: 0, url: '/img/a.png', public: false }], feltCount: 0, mood: null, lucid: false, recurring: false, elems: [],
+    audio: [{ url: '/audio/take1.m4a', duration: 60 }, { url: '/audio/take2.m4a', duration: 30 }] },
   { id: 'm2', title: 'And After', night: today, createdAt: today + 'T07:00:00Z', text: 'and then the second part',
     publicOn: today, audience: 'everyone', wordsPublic: true, drawJob: null,
-    panels: [{ i: 0, url: '/img/b.png', public: true }], feltCount: 0, mood: null, lucid: false, recurring: false, elems: [] },
+    panels: [{ i: 0, url: '/img/b.png', public: true }], feltCount: 0, mood: null, lucid: false, recurring: false, elems: [], audio: [] },
 ];
 const state = { audiences: [], refuseShare: false };
 
@@ -99,19 +100,50 @@ const FIREBASE_STUB = `
   const badges = await page.$$eval('.jitem .badge', (els) => els.map((e) => e.textContent));
   ok(badges.join('|') === 'private|shared', 'each row carries its own shared/private badge');
 
-  // 2: the dream screen — sharing at the top
+  // 2: the dream screen — HER ORDER: picture · sharing dial · listen · words
   await page.click('.jitem[data-id="m1"]');
   await page.waitForSelector('#audDial');
   const layout = await page.evaluate(() => {
+    const pic = document.getElementById('dreamPic').getBoundingClientRect();
     const dial = document.getElementById('audDial').getBoundingClientRect();
+    const listen = document.getElementById('listenBtn').getBoundingClientRect();
     const post = document.querySelector('#scr-dream .post').getBoundingClientRect();
-    return { dialAbove: dial.bottom <= post.top,
-             stops: [...document.querySelectorAll('#audDial button')].map((b) => b.dataset.s),
+    const dialBtns = [...document.querySelectorAll('#audDial button')];
+    return { order: pic.bottom <= dial.top + 1 && dial.bottom <= listen.top + 1 && listen.bottom <= post.top + 1,
+             stops: dialBtns.map((b) => b.dataset.s),
+             words: dialBtns.map((b) => b.textContent.trim()),
+             midRadius: getComputedStyle(dialBtns[1]).borderRadius,
+             seenByStyle: getComputedStyle(document.querySelector('.sharebar > span')).fontStyle,
+             goofy: getComputedStyle(document.getElementById('dreamPic')).animationName,
              on: document.querySelector('#audDial button.on').dataset.s };
   });
-  ok(layout.dialAbove, 'the seen-by dial sits ABOVE the dream, at the top');
+  ok(layout.order, 'picture, then the dial, then listen, then the words');
   ok(layout.stops.join(',') === 'everyone,friends,private', 'three stops: everyone · friends · just me');
-  ok(layout.on === 'private', 'and it reflects the dream\'s state (private)');
+  ok(layout.words.join(',') === 'everyone,friends,just me', 'the stops are plain words — no ✳☾◦ glyphs');
+  ok(layout.midRadius !== '0px', 'the friends stop wears a fun shape too (' + layout.midRadius.slice(0, 20) + '…)');
+  ok(layout.seenByStyle === 'normal', '"seen by" is not italic');
+  ok(/blob/.test(layout.goofy), 'the picture sits in the goofy breathing frame (' + layout.goofy + ')');
+  ok(layout.on === 'private', 'and the dial reflects the dream\'s state (private)');
+  const listenLook = await page.$eval('#listenBtn', (el) => ({
+    text: el.textContent.trim(), svg: !!el.querySelector('svg') }));
+  ok(/listen to this dream/.test(listenLook.text) && listenLook.svg, 'a big play button offers "listen to this dream"');
+  // m2 has no recording — no listen button there
+  await page.$eval('#closeDream', (el) => el.click());
+  await page.waitForSelector('.jitem');
+  await page.click('.jitem[data-id="m2"]');
+  // #audDial survives from the last render — wait for m2's OWN title
+  await page.waitForFunction(() => {
+    const t = document.querySelector('#scr-dream .ttl');
+    return t && t.textContent === 'And After';
+  });
+  ok(!(await page.$('#listenBtn')), 'a dream with no recording offers no listen button');
+  await page.$eval('#closeDream', (el) => el.click());
+  await page.waitForSelector('.jitem');
+  await page.click('.jitem[data-id="m1"]');
+  await page.waitForFunction(() => {
+    const t = document.querySelector('#scr-dream .ttl');
+    return t && t.textContent === 'The Long One';
+  });
 
   // 3: nothing of the per-piece era
   ok(!(await page.$('.share-item')), 'no per-picture share rows');

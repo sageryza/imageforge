@@ -16,8 +16,8 @@
 //      updates the count,
 //   6. "see more" appears only where the six-line clamp really cut,
 //   7. tonight's run ends on nothing; older days get the divider,
-//   8. the confess button says "add last night's dream" with "it's coming
-//      back to me…" as a line UNDER it, and leaves with the feed,
+//   8. the confess button says "it's coming back to me…" with "add last
+//      night's dream" as an upright line UNDER it, and leaves with the feed,
 //   9. tapping the blob opens the lightbox, locks the page, restores the
 //      exact scroll on close (house overlay rule) — no feature button,
 //  10. nothing of the old design: no fuchsia, no bottom nav, no page errors.
@@ -194,16 +194,19 @@ const FIREBASE_STUB = `
   ok(divs[0] === 'last night · monday, august 17', 'yesterday reads "last night · …"');
   ok(divs[1] === 'sunday, august 16', 'older days read as plain lowercase dates');
 
-  // 8. the confess button: the plain ask on it, the poetic line under it
-  ok(await page.$eval('#confessBtn', (el) => /add last night’s dream/.test(el.textContent)),
-    'the button says "add last night\'s dream"');
+  // 8. the confess button: the poetic line ON it, the plain ask under it,
+  // upright (Sophie's final call, 2026-08-19)
+  ok(await page.$eval('#confessBtn', (el) => /coming back to me…/.test(el.textContent)),
+    'the button says "it\'s coming back to me…"');
   const sub = await page.$eval('#confess .csub', (el) => {
     const r = el.getBoundingClientRect();
     const b = document.getElementById('confessBtn').getBoundingClientRect();
-    return { text: el.textContent, below: r.top >= b.bottom - 1 };
+    return { text: el.textContent, below: r.top >= b.bottom - 1,
+             style: getComputedStyle(el).fontStyle };
   });
-  ok(/coming back to me…/.test(sub.text), 'with "it\'s coming back to me…" as its own line');
+  ok(/add last night’s dream/.test(sub.text), 'with "add last night\'s dream" as its own line');
   ok(sub.below, 'sitting UNDER the button');
+  ok(sub.style === 'normal', 'and not italic (' + sub.style + ')');
   await page.click('#navMine');
   ok(await page.$eval('#confess', (el) => el.hidden), 'leaving the feed takes the button with it');
   ok((await page.$eval('#navMine', (el) => el.textContent)) === 'feed', 'the header word swaps to the way back');

@@ -15,8 +15,10 @@
 //                         createdAt, night (YYYY-MM-DD PT, stamped at capture),
 //                         publicOn (YYYY-MM-DD PT | null),
 //                         audience ('everyone'|'friends'|'private'),
-//                         wordsPublic, panels:[{i, url, captions, promptUsed,
-//                         public}], drawJob, drawnOn, drawnAt, feltCount }
+//                         audio:[{url, duration}] (her spoken takes — see
+//                         LISTEN below), wordsPublic, panels:[{i, url,
+//                         captions, promptUsed, public}], drawJob, drawnOn,
+//                         drawnAt, feltCount }
 //   forge-dreamapp-felt   one doc per dream+uid (the heart)
 //   forge-dreamapp-comments  one doc per comment { dreamId, uid, name, text, at }
 //   forge-dreamapp-teams  one doc per dream team { id, name, code, createdBy,
@@ -332,6 +334,8 @@ function mine(doc) {
     feltCount: doc.feltCount || 0,
     mood: doc.mood || null, lucid: !!doc.lucid, recurring: !!doc.recurring,
     elems: doc.elems || [],
+    // Only the owner's view carries the recordings — the feed never does.
+    audio: doc.audio || [],
   };
 }
 
@@ -391,10 +395,32 @@ router.get('/me', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── LISTEN — the recording itself is kept (Sophie, 2026-08-19) ──────────────
+// "The primary dream recording method is microphone, so there should be a way
+// to listen to a dream." The bytes used to be transcribed and thrown away;
+// now each take is also saved to Storage and rides the dream doc as
+// audio:[{url, duration}], and the dream screen offers a listen button.
+// Only the DREAMER hears it for now — her spoken voice is not part of what
+// sharing shares; the feed never sends audio.
+const AUDIO_HOST = 'https://storage.googleapis.com/';
+async function saveAudio(buf, mime, ext) {
+  if (!admin.apps.length) return null;
+  try {
+    const bucket = admin.storage().bucket();
+    const name = `dreamapp/audio/${crypto.randomBytes(9).toString('base64url')}.${ext}`;
+    const file = bucket.file(name);
+    await file.save(buf, { metadata: { contentType: mime }, resumable: false });
+    await file.makePublic();
+    return `${AUDIO_HOST}${bucket.name}/${name}`;
+  } catch { return null; }   // best-effort — the words still land without it
+}
+
 // Voice → words, for the compose sheet's mic and upload-a-recording buttons.
 // Raw audio bytes in (the JSON body parser above ignores non-JSON types), the
 // transcript out; the dream still goes through POST /dreams as typed text, so
 // speaking is the same pipeline as writing. ~$0.006/min, once per recording.
+// The recording itself is saved alongside (LISTEN above) and its url comes
+// back for the client to attach to the dream it is writing.
 router.post('/transcribe', express.raw({ type: () => true, limit: '30mb' }), async (req, res) => {
   try {
     if (limited(`transcribe:${req.user.uid}`, 30, 60 * 60 * 1000)) {
@@ -409,7 +435,8 @@ router.post('/transcribe', express.raw({ type: () => true, limit: '30mb' }), asy
     const t = await transcribeAudio(buf, 'dream.' + ext);
     const text = String(t.text || '').trim();
     if (!text) return res.status(422).json({ error: "couldn't make out any words in that recording" });
-    res.json({ text, duration: t.duration });
+    const audio = await saveAudio(buf, mime, ext);
+    res.json({ text, duration: t.duration, audio });
   } catch (e) { res.status(502).json({ error: e.message }); }
 });
 
@@ -431,10 +458,17 @@ router.post('/dreams', async (req, res) => {
     const elems = Array.isArray(req.body?.elems)
       ? req.body.elems.slice(0, 3).map((e) => String(e || '').trim().slice(0, 80)).filter(Boolean)
       : [];
+    // Her spoken takes, already saved by /transcribe — only urls this server
+    // minted are accepted back (LISTEN above).
+    const audio = Array.isArray(req.body?.audio)
+      ? req.body.audio.slice(0, 5)
+          .map((a) => ({ url: String(a?.url || ''), duration: Number(a?.duration) || 0 }))
+          .filter((a) => a.url.startsWith(AUDIO_HOST))
+      : [];
     const ref = db().collection(DREAMS).doc();
     const doc = {
       id: ref.id, uid: req.user.uid, name: req.user.name, text,
-      mood, lucid, recurring, elems,
+      mood, lucid, recurring, elems, audio,
       title: null, createdAt: new Date().toISOString(),
       // The dreamer's own calendar day in PT, stamped at capture — the same
       // boundary the feed uses.
