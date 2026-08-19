@@ -246,6 +246,16 @@ function dumpLabel(record) {
  * deliberate delivery; a curated caption counts too, since the hook's own is
  * always "from <chat>".
  */
+/**
+ * `${slug}`, `$u`, `{{id}}` — a template placeholder that was never expanded.
+ * Storage object names may not contain `$` or `{`, so a url carrying either
+ * after the bucket is a printf artefact, never a picture.
+ */
+function unresolvedUrl(url) {
+  const p = storagePath(url);
+  return p ? /[${}]/.test(p) : false;
+}
+
 function isBackgroundCatch(filing) {
   const f = filing || {};
   if (!f.wip) return false;
@@ -261,6 +271,15 @@ function isBackgroundCatch(filing) {
  */
 function localVerdict(filing) {
   const f = filing || {};
+  // A url carrying an UNEXPANDED SHELL OR TEMPLATE VARIABLE is refused before
+  // anything else, labeled or not, because it can never resolve to an object
+  // (2026-08-19: a chat printed `.../${slug}-dream.webp` and `.../$u.webp` in
+  // its terminal output while looping over real images, and the background
+  // scan filed both as tiles — nameless, promptless, and permanently broken
+  // in her Assets tab). This is the one case where a filing is refused on the
+  // url's SHAPE rather than on what else is on file, and it is safe precisely
+  // because no real Storage object can be reached through it.
+  if (unresolvedUrl(f.url)) return { block: true, reason: 'unresolved-url' };
   if (!f.wip) return { block: false, reason: 'prose-delivery' };
   if (!isBackgroundCatch(f)) return { block: false, reason: 'labeled' };
   // Rule 2 comes FIRST, so a `drops/_thumb/` copy is refused as the derived
@@ -332,6 +351,7 @@ function guardFiling(input) {
 }
 
 module.exports = {
+  unresolvedUrl,
   DERIVED_PREFIXES,
   SOURCE_LIBRARY_PREFIXES,
   DUMP_PREFIX,
