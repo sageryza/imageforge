@@ -1,12 +1,36 @@
 # The InBetween — a circle ☾ (dream feed sharing, design)
 
-**Status: DESIGN, Aug 2026 — posted for Sophie's review as the Compare page
-"The InBetween — a circle ☾ (design v1)" in the dream-feed-sharing-options
-chat. Nothing here is built yet.** The seen-by dial in the live app has two
-stops (✳ everyone · ◦ just me); this is the design for the third, the one the
-Sharing Flow artboard sketched (`docs/dream-feed-designs/Sharing Flow.dc.html`)
-and `dreamapp.html`'s own comment promised ("Circles (☾) arrive with the
-sharing-flow phase").
+**Status: SUPERSEDED the same day it was posted (Aug 2026) — Sophie
+simplified it, and the simpler model is BUILT.** Her call: "it's getting too
+complicated … let's just do everyone and then friends and then just me — and
+then we'll also have something called circles except I won't call it circles
+… maybe we'll call them like dream teams." What shipped (THE DIAL in
+`dreamapp.js`, `scripts/test-dreamapp-teams.js`):
+
+- The dial is **✳ everyone · ☾ friends · ◦ just me** — friends is a fixed
+  middle stop, not a per-post circle picker.
+- **Dream teams** (`forge-dreamapp-teams`) are groups joined by invite link
+  (`/t/<code>`), managed from the archive's "dream teams" screen. A team is a
+  **distribution list, not a second feed**: a post to everyone reaches
+  teammates because it is public, and a post to ☾ friends reaches exactly the
+  people who share a team the author routed friends-posts into (the
+  per-member `friendsToo` toggle — "when you post to friends it also posts to
+  that circle, or that it doesn't").
+- Kept from this design: no-names inside a group, the invite-link-is-the-key
+  pattern, any member can pass the link on. Dropped (for now): the guess
+  game, the claim/reveal, per-post circle choice. The rest of this file is
+  the original circles design, kept as the study those calls came from.
+- **And friends are REAL, mutual people since the same day** (Sophie: "like
+  following on Instagram except you have to let them accept you — a two-way
+  Facebook model"): ask by personal link (`/f/<code>`), accept on the friends
+  screen, the holding-hands moment on the yes. `forge-dreamapp-friends` /
+  `forge-dreamapp-profile`; a ☾ friends night reaches accepted friends OR
+  routed teams.
+
+The seen-by dial in the live app had two stops (✳ everyone · ◦ just me); this
+was the design for the third, the one the Sharing Flow artboard sketched
+(`docs/dream-feed-designs/Sharing Flow.dc.html`) and `dreamapp.html`'s own
+comment promised ("Circles (☾) arrive with the sharing-flow phase").
 
 ## Where the design comes from — Sophie's group dream journals
 
@@ -80,17 +104,15 @@ can be in many circles at once.
   a circle ☾" on a private dream; the release is just a share with
   `audience:'circle'` later.
 
-> **Update 2026-08-19 — the app moved under this design.** A DREAM is the
-> entry now, not a night (Sophie: "they should save as separate dreams"), the
-> night routes are gone, and sharing is `POST /dreams/:id/audience
-> {audience: 'everyone'|'friends'|'private'}`. The **☾ friends stop already
-> exists** in the seen-by dial (compose stage 2 and the dream screen): it
-> stores `audience:'friends'` and, until circles are built, the feed shows a
-> friends dream ONLY to its own dreamer (the safe direction) with a note
-> saying circles aren't open yet. So the build phase below starts from that:
-> replace "night" with "dream" throughout, and wire the existing friends
-> audience to real circle membership (`circleId` beside `audience`). Sharing
-> is also capped at three dreams a day (`SHARES_PER_DAY` in dreamapp.js).
+> **Update 2026-08-19, later the same day — a DREAM is the entry now, not a
+> night** (Sophie: "they should save as separate dreams" — the night grouping
+> read as her dreams appended to each other). The night routes are gone;
+> sharing is one toggle, `POST /dreams/:id/audience {audience:
+> 'everyone'|'friends'|'private'}`, sitting at the TOP of the dream screen.
+> THE DIAL's reach rule (accepted friends + routed teams) carried over
+> unchanged — `canRead` now judges a dream doc instead of a night's spine.
+> Sharing is capped at three dreams a day and drawings at three a night
+> (`SHARES_PER_DAY` / `DRAWS_PER_DAY` in dreamapp.js), counted from the docs.
 
 ## Server shape (for the build phase — not built)
 

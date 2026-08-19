@@ -29,6 +29,11 @@ check('/ serves the app', kind('/') === 'app');
 check('a trailing slash is the same page', kind('//') === 'app');
 check('/dreamfeed folds into /', JSON.stringify(door.decide('/dreamfeed')) === '{"kind":"redirect","to":"/"}');
 check('/robots.txt is served', kind('/robots.txt') === 'robots');
+check('a team invite serves the app', kind('/t/moth-lantern-9x2') === 'app');
+check('a friend link serves the app', kind('/f/x7Kq2mPz9aBc') === 'app');
+check('the bare /t and deeper paths are not pages', kind('/t') === 'pass' && kind('/t/a/b') === 'pass');
+check('robots keeps invites and friend links out',
+  /Disallow: \/t\//.test(door.ROBOTS) && /Disallow: \/f\//.test(door.ROBOTS));
 check('a studio page goes to the feed', kind('/chats') === 'redirect' && kind('/editor') === 'redirect');
 check('the API passes through untouched', kind('/api/dreamapp/feed') === 'pass');
 check('so do the fonts and pictures', kind('/fonts/baveuse.woff') === 'pass' && kind('/dream-sunflowers.png') === 'pass');

@@ -12,7 +12,7 @@
 //      mood typed into the fifth, fill-in-your-own box,
 //   5. stage 2 polls the drawing in; the seen-by dial has THREE stops
 //      (everyone / friends / just me), defaults to everyone, and picking
-//      friends shows the circles-not-open-yet note,
+//      friends shows the who-it-reaches note,
 //   6. share posts POST /dreams/:id/audience (no night routes, no
 //      localStorage intent), and "just me" posts nothing,
 //   7. a draw refused at three-a-night (429, limit:'day') still SAVES the
@@ -157,9 +157,9 @@ const FIREBASE_STUB = `
   ok(stops.join(',') === 'everyone,friends,private', 'the dial has three stops: everyone · friends · just me');
   ok(await page.$eval('#sheet .dial button[data-s="everyone"]', (el) => el.classList.contains('on')),
     'seen by defaults to ✳ everyone');
-  ok(await page.$eval('#friendNote', (el) => el.hidden), 'the circles note stays hidden until friends is picked');
+  ok(await page.$eval('#friendNote', (el) => el.hidden), 'the who-it-reaches note stays hidden until friends is picked');
   await tap('#sheet .dial button[data-s="friends"]');
-  ok(!(await page.$eval('#friendNote', (el) => el.hidden)), 'picking friends shows the circles-not-open-yet note');
+  ok(!(await page.$eval('#friendNote', (el) => el.hidden)), 'picking friends says who it reaches');
   await tap('#sheet .dial button[data-s="everyone"]');
 
   // the drawing lands

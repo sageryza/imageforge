@@ -83,6 +83,9 @@
   .dtxt { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
   .dhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
   .dttl { font:600 19px/1.25 'EB Garamond', serif; }
+  /* worn ONLY by a ☾ friends card — the ✳ that sat on every dream is gone
+     (Sophie); this one says who can see it, which is information */
+  .dby { font:10.5px 'Courier Prime', monospace; opacity:.45; white-space:nowrap; }
   .dbody { font:400 14.5px/1.5 'EB Garamond', serif; white-space:pre-wrap;
            --lh:21.75px; --lines:6; }
   /* ── the fold sits ON the last line, never under it (Sophie: "I want the
@@ -206,6 +209,16 @@
   .pgrid img { width:100%; display:block; border-radius:12px 18px 10px 16px; border:1px solid rgba(20,19,26,.35);
                background:#e3ddcf; cursor:zoom-in; }
   .pgrid.cover { grid-template-columns:1fr; }
+  /* rows with a small right-hand toggle — the teams' routing flag, a friend's
+     remove; the same furniture the share screen used to own */
+  .share-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px dashed rgba(20,19,26,.2); }
+  .share-item:last-of-type { border-bottom:none; }
+  .share-item .lab { font:400 14.5px 'EB Garamond', serif; }
+  .share-item .st { margin-left:auto; border:1px solid rgba(20,19,26,.4); background:none; color:rgba(20,19,26,.6);
+                    border-radius:14px 20px 12px 18px; padding:6px 13px; font:12px 'Courier Prime', monospace;
+                    min-width:80px; cursor:pointer; }
+  .share-item .st.pub { border-color:var(--brown); color:var(--brown); }
+  .h2 { font:600 20px 'EB Garamond', serif; color:var(--ink); margin:22px 2px 12px; }
   .badge { display:inline-block; font:11px 'Courier Prime', monospace; border-radius:14px; padding:3px 8px; }
   .badge.pub { border:1px solid var(--brown); color:var(--brown); }
   .badge.priv { border:1px solid rgba(20,19,26,.3); color:rgba(20,19,26,.55); }
@@ -355,6 +368,15 @@
            background:var(--ink); color:var(--cream); border-radius:14px; padding:9px 18px;
            font:12px 'Courier Prime', monospace; opacity:0; transition:opacity .25s;
            pointer-events:none; white-space:nowrap; }
+
+  /* the holding-hands moment — you just became friends (Sophie, Aug 2026) */
+  .hands { background:var(--ink); color:var(--cream); border:2px solid var(--ink);
+           border-radius:14px 60px 18px 46px/40px 16px 52px 18px; padding:32px 26px;
+           margin:0 26px; text-align:center; max-width:340px;
+           animation:breathe 9s ease-in-out infinite, wobble 6s ease-in-out infinite; }
+  .hands svg { width:110px; height:110px; }
+  .hands .hbig { font:600 22px 'EB Garamond', serif; font-style:italic; margin-top:8px; }
+  .hands .hsml { font:11.5px/1.7 'Courier Prime', monospace; opacity:.7; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -384,6 +406,8 @@
     <section id="scr-feed"></section>
     <section id="scr-mine" hidden></section>
     <section id="scr-dream" hidden></section>
+    <section id="scr-teams" hidden></section>
+    <section id="scr-friends" hidden></section>
   </main>
   <div class="confess" id="confess"><div class="cstack">
     <button id="confessBtn">add last night&rsquo;s dream</button>
@@ -445,7 +469,7 @@
           <button data-s="private">◦ just me</button>
         </div>
       </div>
-      <div class="quiet" id="friendNote" style="text-align:center" hidden>circles aren&rsquo;t open yet &mdash; a friends dream stays just yours until they are</div>
+      <div class="quiet" id="friendNote" style="text-align:center" hidden>your accepted friends, plus any dream team you switched on</div>
       <button class="blobbtn" id="shareBtn2">share your dream</button>
     </div>
   </div>
@@ -463,6 +487,8 @@ var STAR = '<svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d
 // Lucide heart + message-circle. The hand-fitted STAR above stays reserved for
 // "draw it" — the one control here that spends a model call.
 var HEART = '<svg class="i" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+// Lucide heart-handshake (v1.32.0, exact path) — the holding-hands moment.
+var HANDS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"/></svg>';
 var BUBBLE = '<svg class="i" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
 var BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>';
 
@@ -637,11 +663,15 @@ function meltCard(n, dark, rev, dur){
       '<span class="likebtn' + (n.felt ? ' on' : '') + '">' + HEART + (n.feltCount || 0) + '</span>' +
       '<span class="cmtbtn">' + BUBBLE + (n.commentCount || 0) + '</span>' +
     '</div>';
-  return '<article class="dcard' + (dark ? ' dark' : '') + '" data-id="' + n.id + '"' +
+  // A ☾ friends card says so in the corner and always wears the dark card
+  // (the sharing-flow artboard's rule) — the only marker any card carries.
+  var frd = n.audience === 'friends';
+  return '<article class="dcard' + (dark || frd ? ' dark' : '') + '" data-id="' + n.id + '"' +
     (n.mine ? ' data-mine="1"' : '') + ' style="--dur:' + dur + 's">' +
     '<div class="drow' + (rev ? ' rev' : '') + '">' + blob +
       '<div class="dtxt">' +
-        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span></div>' +
+        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span>' +
+          (frd ? '<span class="dby">☾ friends</span>' : '') + '</div>' +
         (n.words ? '<div class="dbody clamped">' +
                    '<button class="dmore" hidden><span>see more</span></button>' + esc(n.words) +
                  '</div>' : '') +
@@ -806,7 +836,7 @@ function drawComments(comments, thread){
 }
 
 /* ── views ── */
-var scr = { feed: null, mine: null, dream: null };
+var scr = { feed: null, mine: null, dream: null, teams: null, friends: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
   // Leaving the feed takes an opened card with it. The floating close serves
@@ -1094,7 +1124,7 @@ async function shareDream(){
     await api('/dreams/' + sheetState.dreamId + '/audience', { body: { audience: sheetState.share } });
     closeCompose();
     await renderFeed(); go('feed');
-    toast(sheetState.share === 'friends' ? 'kept for your friends' : 'you\u2019re in tonight\u2019s feed');
+    toast(sheetState.share === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in tonight\u2019s feed');
   } catch (e) {
     btn.disabled = false;
     if (e.limit === 'day') popupMsg(e.message + ' — it stays safe in your archive.');
@@ -1121,7 +1151,7 @@ function closeDreamScreen(){
 }
 function audLabel(aud){
   return aud === 'private' ? 'just yours again'
-    : aud === 'friends' ? 'kept for your friends' : 'you\u2019re in the feed';
+    : aud === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in the feed';
 }
 async function renderDream(){
   clearTimeout(dreamPoll);
@@ -1152,7 +1182,7 @@ async function renderDream(){
         '<button data-s="private"' + (aud === 'private' ? ' class="on"' : '') + '>◦ just me</button>' +
       '</div></div>' +
     (aud === 'friends'
-      ? '<div class="quiet" style="text-align:center">circles aren’t open yet — a friends dream stays just yours until they are</div>'
+      ? '<div class="quiet" style="text-align:center">your accepted friends, plus any dream team you switched on</div>'
       : '') +
     '<div class="post">' +
     (d.title ? '<div class="ttl">' + esc(d.title) + '</div>' : '<div class="naming">finding its name…</div>') +
@@ -1219,12 +1249,261 @@ async function renderMine(){
   }
 }
 function mineFoot(){
-  return '<div class="minefoot"><button data-how>how this works</button><button data-out>sign out</button></div>';
+  return '<div class="minefoot"><button data-how>how this works</button>' +
+    '<button data-friends>friends</button>' +
+    '<button data-teams>dream teams</button><button data-out>sign out</button></div>';
 }
 function wireMineFoot(el){
   var how = el.querySelector('[data-how]'), out = el.querySelector('[data-out]');
+  var teams = el.querySelector('[data-teams]'), friends = el.querySelector('[data-friends]');
   if (how) how.addEventListener('click', openHow);
+  if (friends) friends.addEventListener('click', function(){ renderFriends(); go('friends'); });
+  if (teams) teams.addEventListener('click', function(){ renderTeams(); go('teams'); });
   if (out) out.addEventListener('click', function(){ fbAuth.signOut(); });
+}
+
+/* ── dream teams — where friends-posts route (see THE DIAL in dreamapp.js) ──
+   A team is joined by its link and nothing else; the roster shows first
+   names, the dreams never do. The one setting is YOUR routing flag per team:
+   do my ☾ friends dreams land here? Posts to everyone reach a team without
+   asking — they are public. */
+async function renderTeams(){
+  var el = scr.teams;
+  el.innerHTML = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>' +
+    '<div class="quiet">loading…</div>';
+  var wireBack = function(){
+    document.getElementById('teamsBack').addEventListener('click', function(){ renderMine(); go('mine'); });
+  };
+  try {
+    var r = await api('/teams');
+    var html = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>';
+    if (!r.teams.length) {
+      html += '<div class="quiet">a dream team is a group of any size — a club, a house, a ' +
+        'constellation. dreams stay nameless inside it, and its invite link is the only way in.</div>';
+    }
+    r.teams.forEach(function(t){
+      var link = location.origin + '/t/' + t.code;
+      html += '<div class="post" data-team="' + t.id + '">' +
+        '<div class="ttl">☾ ' + esc(t.name) + '</div>' +
+        '<div class="meta">' + t.members.map(esc).join(' · ') + '</div>' +
+        '<div class="share-item" style="margin-top:8px"><span class="lab">my ☾ friends dreams land here</span>' +
+          '<button class="st' + (t.friendsToo ? ' pub' : '') + '" data-route>' + (t.friendsToo ? 'yes' : 'no') + '</button></div>' +
+        '<div class="minefoot" style="padding:12px 0 0"><button data-copy="' + esc(link) + '">copy the invite link</button>' +
+        '<button data-leave>leave</button></div>' +
+        '</div>';
+    });
+    html += '<div class="h2">start a dream team</div>' +
+      '<input class="whisper" id="teamName" placeholder="name it…" maxlength="40">' +
+      '<button class="btn" id="teamMake">start it</button>';
+    el.innerHTML = html;
+    wireBack();
+    el.querySelectorAll('[data-copy]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var link = b.dataset.copy;
+        var done = function(){ toast('link copied — send it to anyone you want in'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(done).catch(function(){ legacyCopy(link); done(); });
+        } else { legacyCopy(link); done(); }
+      });
+    });
+    el.querySelectorAll('[data-route]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var id = b.closest('[data-team]').dataset.team;
+        var want = !b.classList.contains('pub');
+        b.disabled = true;
+        try {
+          var t = await api('/teams/' + id + '/route', { body: { friendsToo: want } });
+          b.classList.toggle('pub', t.friendsToo);
+          b.textContent = t.friendsToo ? 'yes' : 'no';
+        } catch (e) { toast(e.message); }
+        b.disabled = false;
+      });
+    });
+    el.querySelectorAll('[data-leave]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        // two taps on purpose — leaving is the one destructive thing here
+        if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'leave — sure?'; return; }
+        var id = b.closest('[data-team]').dataset.team;
+        try { await api('/teams/' + id + '/leave', { method: 'POST' }); renderTeams(); }
+        catch (e) { toast(e.message); }
+      });
+    });
+    document.getElementById('teamMake').addEventListener('click', async function(){
+      var name = document.getElementById('teamName').value.trim();
+      if (!name) { document.getElementById('teamName').focus(); return; }
+      this.disabled = true;
+      try { await api('/teams', { body: { name: name } }); renderTeams(); }
+      catch (e) { toast(e.message); this.disabled = false; }
+    });
+  } catch (e) {
+    el.innerHTML = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>' +
+      '<div class="err">' + esc(e.message) + '</div>';
+    wireBack();
+  }
+}
+function legacyCopy(text){
+  var t = document.createElement('textarea');
+  t.value = text; document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  t.remove();
+}
+
+/* ── friends — mutual, ask-and-accept (THE DIAL in dreamapp.js) ──
+   "Like following on Instagram except you can't follow someone, you have to
+   let them accept you — a two-way Facebook model" (Sophie). Your personal
+   link asks; nothing happens until the owner says yes; the yes is the
+   holding-hands moment, on BOTH phones — the accepter right on the tap, the
+   asker the next time the app checks (boot, or opening this screen). */
+async function renderFriends(){
+  var el = scr.friends;
+  el.innerHTML = '<div class="backrow"><button id="frBack">' + BACK + 'back</button></div>' +
+    '<div class="quiet">loading…</div>';
+  var wireBack = function(){
+    document.getElementById('frBack').addEventListener('click', function(){ renderMine(); go('mine'); });
+  };
+  try {
+    var r = await api('/friends');
+    syncHands(r);
+    var html = '<div class="backrow"><button id="frBack">' + BACK + 'back</button></div>';
+    r.asks.forEach(function(a){
+      html += '<div class="post"><div class="ttl">' + esc(a.name) + '</div>' +
+        '<div class="meta">wants to be your friend</div>' +
+        '<div class="minefoot" style="padding:12px 0 0"><button data-yes="' + a.id + '">say yes</button>' +
+        '<button data-no="' + a.id + '">not now</button></div></div>';
+    });
+    html += '<div class="h2">your friends</div>';
+    if (!r.friends.length) {
+      html += '<div class="quiet">no friends yet — your link below is how they arrive.</div>';
+    }
+    r.friends.forEach(function(f){
+      html += '<div class="share-item"><span class="lab">' + esc(f.name) + '</span>' +
+        '<button class="st" data-un="' + f.id + '">remove</button></div>';
+    });
+    if (r.waiting.length) {
+      html += '<div class="quiet">waiting on: ' + r.waiting.map(function(w){ return esc(w.name); }).join(' · ') + '</div>';
+    }
+    html += '<div class="minefoot" style="justify-content:flex-start;padding:18px 0 0">' +
+      '<button data-mylink="' + esc(location.origin + '/f/' + r.code) + '">copy your friend link</button></div>' +
+      '<div class="quiet">whoever opens it can ask to be your friend — nothing happens until you say yes. ' +
+      '☾ friends dreams reach everyone on this screen, plus any dream team you switched on.</div>';
+    el.innerHTML = html;
+    wireBack();
+    el.querySelectorAll('[data-yes]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        b.disabled = true;
+        try {
+          var a = await api('/friends/accept', { body: { id: b.dataset.yes } });
+          celebrateHands(a.name);
+          renderFriends();
+        } catch (e) { toast(e.message); b.disabled = false; }
+      });
+    });
+    el.querySelectorAll('[data-no]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        try { await api('/friends/remove', { body: { id: b.dataset.no } }); renderFriends(); }
+        catch (e) { toast(e.message); }
+      });
+    });
+    el.querySelectorAll('[data-un]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        // two taps on purpose — unfriending is the one destructive thing here
+        if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'sure?'; return; }
+        try { await api('/friends/remove', { body: { id: b.dataset.un } }); renderFriends(); }
+        catch (e) { toast(e.message); }
+      });
+    });
+    el.querySelectorAll('[data-mylink]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var link = b.dataset.mylink;
+        var done = function(){ toast('link copied — text it to a friend'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(done).catch(function(){ legacyCopy(link); done(); });
+        } else { legacyCopy(link); done(); }
+      });
+    });
+  } catch (e) {
+    el.innerHTML = '<div class="backrow"><button id="frBack">' + BACK + 'back</button></div>' +
+      '<div class="err">' + esc(e.message) + '</div>';
+    wireBack();
+  }
+}
+
+/* The holding-hands moment (Sophie: "some kind of graphic showing holding
+   hands because you just became friends"). Same overlay contract as the
+   how card: page locked behind it, any tap closes, scroll put back. Her
+   line for it says "all of your dreams" — this says just "your dreams",
+   because the vault stays private whatever friendship says. */
+function celebrateHands(name){
+  if (document.getElementById('handswrap')) return;
+  var y = window.scrollY;
+  if (window.__scrollStop) window.__scrollStop();
+  var w = document.createElement('div');
+  w.className = 'howwrap'; w.id = 'handswrap';
+  w.innerHTML = '<div class="hands">' + HANDS +
+    '<div class="hbig">you’re holding hands</div>' +
+    '<div class="hsml">you and ' + esc(name) + ' are friends now — they can see your dreams, and you can see theirs</div></div>';
+  document.body.appendChild(w);
+  document.body.style.overflow = 'hidden';
+  w.addEventListener('click', function(){
+    w.remove();
+    if (document.getElementById('lb').hidden) { document.body.style.overflow = ''; window.scrollTo(0, y); }
+  });
+}
+
+/* The asker's side of the moment: remember which asks are out; the first
+   time one of them comes back accepted, hold hands. */
+function handsKey(){ return 'dreamapp-hands-waiting'; }
+function syncHands(r){
+  var was = [];
+  try { was = JSON.parse(localStorage.getItem(handsKey()) || '[]'); } catch (e) {}
+  var accepted = (r.friends || []).filter(function(f){ return was.indexOf(f.id) !== -1; });
+  localStorage.setItem(handsKey(), JSON.stringify((r.waiting || []).map(function(w){ return w.id; })));
+  if (accepted.length) celebrateHands(accepted[0].name);
+}
+function checkHands(){
+  api('/friends').then(syncHands).catch(function(){});
+}
+
+/* Arrived through a personal friend link (/f/<code>): ask once signed in,
+   then fold the address home. Two crossed asks are mutual consent, so the
+   answer can already be friendship. */
+var askedFromPath = false;
+function friendFromPath(){
+  var m = location.pathname.match(/^\/f\/([A-Za-z0-9_-]{6,})$/);
+  if (!m || askedFromPath) return;
+  askedFromPath = true;
+  var home = /youwereinmydreams/.test(location.hostname) ? '/' : '/dreamfeed';
+  api('/friends/request', { body: { code: m[1] } }).then(function(r){
+    history.replaceState({}, '', home);
+    if (r.state === 'friends') { celebrateHands(r.name); return; }
+    if (r.state === 'asked' && r.id) {
+      var was = [];
+      try { was = JSON.parse(localStorage.getItem(handsKey()) || '[]'); } catch (e) {}
+      if (was.indexOf(r.id) === -1) { was.push(r.id); localStorage.setItem(handsKey(), JSON.stringify(was)); }
+    }
+    toast(r.state === 'waiting' ? 'already asked — ' + r.name + ' hasn’t said yes yet'
+                                : 'asked ' + r.name + ' — it’s their yes now');
+  }).catch(function(e){
+    history.replaceState({}, '', home);
+    toast(e.message);
+  });
+}
+
+/* Arrived through an invite link (/t/<code>): join once signed in, then fold
+   the address back to the app's own home so a reload doesn't re-join. */
+var joinedFromPath = false;
+function joinFromPath(){
+  var m = location.pathname.match(/^\/t\/([A-Za-z0-9_-]{6,})$/);
+  if (!m || joinedFromPath) return;
+  joinedFromPath = true;
+  var home = /youwereinmydreams/.test(location.hostname) ? '/' : '/dreamfeed';
+  api('/teams/join', { body: { code: m[1] } }).then(function(t){
+    history.replaceState({}, '', home);
+    toast('you’re in “' + t.name + '” ☾');
+  }).catch(function(e){
+    history.replaceState({}, '', home);
+    toast(e.message);
+  });
 }
 
 /* ── auth ── */
@@ -1235,6 +1514,8 @@ async function boot(){
   scr.feed = document.getElementById('scr-feed');
   scr.mine = document.getElementById('scr-mine');
   scr.dream = document.getElementById('scr-dream');
+  scr.teams = document.getElementById('scr-teams');
+  scr.friends = document.getElementById('scr-friends');
 
   var cfg = await (await fetch('/api/witch/firebase-config')).json();
   var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
@@ -1259,6 +1540,9 @@ async function boot(){
     document.getElementById('app').hidden = !u;
     if (u) {
       renderFeed(); renderMine(); go('feed');
+      joinFromPath();        // came in through a dream-team invite link
+      friendFromPath();      // came in through someone's friend link
+      checkHands();          // an ask of yours said yes while you were away?
     }
   });
 

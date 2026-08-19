@@ -10,7 +10,7 @@
 //   4. a FLOATING close button rides the dream screen (her long rambling dream
 //      had no way out but scrolling) and it goes back to the archive,
 //   5. tapping a dial stop POSTs /dreams/:id/audience; friends shows the
-//      circles-not-open-yet note,
+//      who-it-reaches note,
 //   6. the share cap answers a pop-up, not a dead toast,
 //   7. the wordmark goes home to the feed from the dream screen too.
 //
@@ -140,8 +140,8 @@ const FIREBASE_STUB = `
     document.querySelector('#audDial button.on').dataset.s === 'friends');
   ok(state.audiences.length === 1 && state.audiences[0].id === 'm1' && state.audiences[0].audience === 'friends',
     'tapping friends posts the audience');
-  ok(/circles aren’t open yet/.test(await page.$eval('#scr-dream', (el) => el.textContent)),
-    'and the circles-not-open-yet note shows');
+  ok(/your accepted friends, plus any dream team/.test(await page.$eval('#scr-dream', (el) => el.textContent)),
+    'and the note says who a friends dream reaches');
 
   // 6: the share cap answers a pop-up
   state.refuseShare = true;
