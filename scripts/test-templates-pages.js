@@ -89,6 +89,12 @@ function gridPage() {
     // ~50px tiles (the threshold-ladder page bug).
     { label: 'six on a ladder', items: [1, 2, 3, 4, 5, 6].map((n) => (
       { id: 's' + n, label: 'v' + n, img: IMG })) },
+    // an item whose page data carries NO prompt — the Assets tab has one on
+    // file for it, and the page must grow the button from that
+    { label: 'prompt only in the Assets tab', items: [
+      { id: 'fillme', label: 'the page data never had a prompt', img: IMG,
+        url: `${SG}/a/p-fill.png` },
+    ] },
     // same dream, two styles — the style tab marks the line they DON'T share
     { label: 'same dream, two styles', items: [
       { id: 'st1', label: 'watercolor', img: IMG,
@@ -107,7 +113,7 @@ setTimeout(function(){
   var m=document.getElementById('grid');
   var rows=m.querySelectorAll('.gd-row');
   var r1=rows[0].querySelectorAll('.gd-it'), r2=rows[1].querySelectorAll('.gd-it');
-  ok(rows.length===4 && r1.length===2 && r2.length===3, 'the groups render their items');
+  ok(rows.length===5 && r1.length===2 && r2.length===3, 'the groups render their items');
   var basis=function(el){ return (el.getAttribute('style')||'').replace(/\\s+/g,''); };
   ok(basis(r1[0]).indexOf('/2)')>0 && basis(r2[0]).indexOf('/3)')>0,
      'two share a row in halves, three in thirds — got ' + basis(r1[0]) + ' & ' + basis(r2[0]));
@@ -256,7 +262,23 @@ setTimeout(function(){
       clb.click();
       ok(clb.style.display==='none', 'the backdrop closes it');
 
-      // …and the whole point of the button: a thread that already FITS gets
+      // THE PROMPT FILL: the page data gave this one nothing, so the button can
+    // only come from the Assets tab's filed prompt (Sophie: "I don't see a
+    // prompt box for this chat")
+    var fill=m.querySelector('[data-item="fillme"]');
+    var fb=fill.querySelector('.gd-prompt');
+    ok(!!fb, 'an item with no prompt in the page data still grows a PROMPT '
+       + 'button, from what is filed against the picture');
+    if(fb){
+      fb.click();
+      var fo=document.querySelector('.gd-ov');
+      ok(fo && fo.querySelector('.gd-ovtext').textContent==='the filed content half'
+         && fo.querySelector('.gd-ovmq').textContent==='gpt-image-2 · low',
+         'and it opens the filed prompt, with the filed caption on top');
+      fo.click();
+    }
+
+    // …and the whole point of the button: a thread that already FITS gets
       // none (p-high carries one short line). Her rule: it means "there is
       // more up there", not "notes exist".
       m.querySelector('[data-item="p-high"] img').click();
@@ -394,7 +416,12 @@ function run(name, html, search) {
       }
       if (route === '/api/gallery/assets') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ assets: [{ url: `${SG}/a/p-med.png`, vote: 'like' }] }));
+        return res.end(JSON.stringify({ assets: [
+          { url: `${SG}/a/p-med.png`, vote: 'like' },
+          // filed against the picture, absent from the page — the fill's job
+          { url: `${SG}/a/p-fill.png`, prompt: 'gpt-image-2 · low',
+            promptStyle: 'the filed style half', promptContent: 'the filed content half' },
+        ] }));
       }
       const hit = files[route];
       if (hit) { res.writeHead(200, { 'Content-Type': hit[0] }); return res.end(hit[1]); }

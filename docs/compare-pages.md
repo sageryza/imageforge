@@ -695,6 +695,17 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     both surfaces; the lightbox ♥ saves the page verdict and the asset vote
     together, and the tile repaints under it.
 >>>>>>> origin/main
+  - **A MISSING PROMPT IS FILLED FROM THE ASSETS TAB ON LOAD (Aug 2026,
+    Sophie: "I don't see a prompt box for this chat").** A template page's
+    DATA is frozen at post time, so a page whose chat left `promptStyle` /
+    `promptContent` out of its items could never grow a PROMPT button — even
+    though the pictures themselves had their prompts filed against them in
+    the Assets tab. grid.js now fills any asset-backed item that lacks one
+    (and the MODEL · QUALITY caption with it) from the Assets read this block
+    already makes, then repaints that tile's buttons. It costs no extra
+    request and it fixes every page ALREADY POSTED, with nothing to re-post —
+    which is the point, because a posted page cannot be edited. The page's
+    own data still wins wherever it has any.
   - **THE MIRROR: an item with `url` (its Assets-tab identity — a storage
     `img` is its own by default) keeps the page and the Assets tab AGREEING**
     (Sophie's call): ♥/✕ writes through to the asset vote, a committed note
