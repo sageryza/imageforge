@@ -2786,6 +2786,49 @@ function newsList(g){
   return newsQ ? items.filter(function(it){ return newsBoxed(it) && newsQueueOf(it.chat)===newsQ; })
                : items.filter(function(it){ return !newsBoxed(it); });
 }
+// ---- THE MAIN LIST IS SORTED INTO THREE KINDS (Aug 2026, Sophie: "the update
+// tab is not working as I'd hoped because it became unmanageable. There's like
+// so many things there — a possible fix is to sort it into deliverables and
+// things that need to be read and things that just need quick decisions.") ----
+// Measured the day she asked (2026-08-19): 33 cards on the main list — 24
+// carried an open `need`, 9 were reply-only, 0 had a fresh deliverable at that
+// moment. One undifferentiated pile, and the asks were drowning everything
+// else — the same shape the brief measured (24 of 33) when it reserved a slot
+// for something to LOOK at.
+//
+// So the main list paints as three sections, in the order she spoke them —
+// DELIVERABLES · TO READ · QUICK DECISIONS — with the big ask pile LAST, so
+// the few things to look at are never buried under two dozen asks. Each card
+// is in exactly ONE section, decided from data already on the card:
+//
+//   1. a fresh deliverable — a Compare page newer than the floor (freshPages
+//      already filters) or a picture newer than it → DELIVERABLES. This
+//      outranks an open `need` on purpose: when a chat delivers a thing AND
+//      asks about it, the thing is what she opens, and the ask still reads on
+//      the card's own status line (need-first would file 24 of 33 cards as
+//      asks and the deliverables would never surface — the brief's finding).
+//   2. else an open `need` on the status card → QUICK DECISIONS: the chat is
+//      waiting on her word.
+//   3. else → TO READ: the reply is the news.
+//
+// DERIVED, never filed — no model call (this screen opens constantly and must
+// spend nothing) and nothing new for a chat to POST (only ~7% ever write a
+// card; a filed kind would be empty for the same reason the Questions list is
+// derived). The pictures on a card are deliberately NOT floor-filtered for
+// display (context), so the freshness test here re-checks created > floor
+// rather than trusting the row.
+//
+// An empty section shows NO header — empty is silent. An open BOX stays one
+// flat list: filing a card into Come back to / In a minute was the triage.
+var NEWS_KINDS=[['look','Deliverables'],['read','To read'],['decide','Quick decisions']];
+function newsKind(it){
+  var floor=newsFloor(it.chat);
+  var fresh=it.pages.length>0 ||
+    it.pics.some(function(p){ return (p.created||'')>floor; });
+  if(fresh) return 'look';
+  if(statusLines(it.chat).need) return 'decide';
+  return 'read';
+}
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
 // Tapping one with nothing picked OPENS that box (tap it again to come back —
 // the category chips' convention, and why there is no "All" chip to reach
@@ -3085,7 +3128,17 @@ function renderNews(el){
     el.innerHTML='';
     var items=newsList(g);
     if(!items.length){ newsEmptyCheck(); return; }
-    items.forEach(function(it){ el.appendChild(newsCard(it)); });
+    if(newsQ){
+      // an open box is already triaged — one flat list, as it always was
+      items.forEach(function(it){ el.appendChild(newsCard(it)); });
+    } else {
+      NEWS_KINDS.forEach(function(pair){
+        var sub=items.filter(function(it){ return newsKind(it)===pair[0]; });
+        if(!sub.length) return;              // an empty section is silent
+        el.appendChild(stHead(pair[1], sub.length));
+        sub.forEach(function(it){ el.appendChild(newsCard(it)); });
+      });
+    }
     paintAcctTabs(g);                        // the badge, once the pictures land
     paintNewsChips(g);                       // …and the boxes' counts with it
     if(window.__jumpsRecheck) window.__jumpsRecheck();

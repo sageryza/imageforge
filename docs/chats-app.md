@@ -1714,6 +1714,41 @@
       filed image is done even when the reply around it isn't. Tests:
       `node scripts/test-chats-news-drafts.js` (the real page, headless;
       verified failing on every point against the pre-change page).
+  - **THE MAIN LIST PAINTS AS THREE SECTIONS (Aug 2026, Sophie: "the update
+    tab is not working as I'd hoped because it became unmanageable. There's
+    like so many things there — a possible fix is to sort it into deliverables
+    and things that need to be read and things that just need quick
+    decisions").** Measured the day she asked (2026-08-19): 33 cards on the
+    main list — 24 carrying an open `need`, 9 reply-only, 0 with a fresh
+    deliverable at that moment. One undifferentiated pile, and the asks were
+    drowning everything else — the same shape the brief measured (24 of 33)
+    when it reserved a slot for something to LOOK at.
+    - **DELIVERABLES · TO READ · QUICK DECISIONS, her spoken order, with the
+      big ask pile LAST** so the few things to look at are never buried under
+      two dozen asks. `.sthead` headers (the Status view's own), each carrying
+      its count; an empty section shows NO header. Cards stay newest-first
+      within a section, and the cards themselves are unchanged — ✓ picking,
+      the boxes, the ⌄ all still work.
+    - **`newsKind(it)` decides, exclusive, in priority order:** (1) a fresh
+      deliverable — a Compare page newer than the floor, or a picture newer
+      than it → DELIVERABLES; (2) else an open `need` on the status card →
+      QUICK DECISIONS; (3) else → TO READ. **A deliverable outranks an open
+      `need` on purpose**: when a chat hands her a thing AND asks about it,
+      the thing is what she opens, and the ask still reads on the card's own
+      status line — need-first would have filed 24 of 33 cards as asks and
+      the deliverables would never have surfaced.
+    - **DERIVED, never filed** — no model call (the screen opens constantly
+      and must spend nothing) and nothing new for chats to POST (only ~7%
+      ever write a card, the same measurement that made the Questions list
+      derived). The freshness test re-checks `created > floor` itself: the
+      pictures ROW is deliberately not floor-filtered (context), so the row
+      showing pictures says nothing about the card being a deliverable.
+    - **An open BOX stays one flat list** — filing a card into Come back to /
+      In a minute was the triage; sectioning inside would sort seven cards
+      she already sorted.
+    - Tests: `node scripts/test-chats-news-sections.js` (the real page,
+      headless — the order, the counts, the need-vs-deliverable priority, the
+      stale-pictures case, the vanishing empty header, the flat box).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
