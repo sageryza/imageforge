@@ -1095,7 +1095,7 @@ body.selecting .jumps{display:none;}
   align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; padding:0;}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
-/* ---- The tool row: select + refresh + the category chips ------------------
+/* ---- The tool row: select + the tag chips ---------------------------------
    Where the LIST/TILES toggle used to be (Aug 2026, Sophie — she stopped
    using tiles, so the toggle was two taps of nothing). The two icon buttons
    sit at the LEFT, where she remembered them ("could you put them back where
@@ -1107,9 +1107,28 @@ body.selecting .jumps{display:none;}
    this could happen only when I select something"). Sticky rather than fixed,
    so the row keeps its place in the layout and nothing under it jumps as it
    pins; it needs the page's own background or the cards read through it. */
-.toolrow{display:flex; align-items:flex-start; gap:8px; margin:0 0 .7em; padding-right:64px;}
+.toolrow{display:block; margin:0 0 .7em;}
+.toolrow::after{content:""; display:block; clear:both;}
+/* The pill's corner, carved out of the flow: a right float whose height is
+   set at paint time to how much of the pill's fixed band (y 14-192) the row
+   still occupies — the lines beside it shorten, the lines below run full
+   width. It replaces the flex row's blanket padding-right:64px, which
+   reserved the corner on EVERY line, including the twenty below the pill. */
+#pillnotch{float:right; width:64px; height:0;}
 body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--paper);
   padding-top:8px; padding-bottom:8px; margin-bottom:calc(.7em - 8px);}
+/* Inside the tool row everything is inline flow (the wrap under the icon is
+   the point); the archive's own .catrow.arctagrow keeps the flex layout. */
+#toolrow .catrow{display:inline;}
+#toolrow .catchip{margin:0 6px 6px 0; vertical-align:top;}
+#toolrow .iconbtn{display:inline-flex; vertical-align:top; margin:0 8px 6px 0;}
+/* The line between the two groups when both are open: her "small red line or
+   a label" — a thin line in the accent, then the group's name under it. A
+   block in the inline flow, so it also breaks the chips onto a new line. */
+.catdiv{display:block; margin:2px 0 8px; font-family:-apple-system,sans-serif;
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--chg);}
+.catdiv::before{content:""; display:block; margin:2px 0 6px;
+  border-top:1px solid color-mix(in srgb, var(--chg) 40%, var(--paper));}
 .catrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0;}
 .catchip{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
@@ -1288,15 +1307,23 @@ body.selecting > .float{display:none !important;}
       </div>
       <div class="rule"></div>
     </header>
-    <!-- The two square icons sit at the LEFT of this row (Aug 2026, Sophie:
-         "I thought that the select box and the other little square icon were
-         on the left before, could you put them back where they were"). The
-         64px reserve at the right stays regardless — that is the floating
-         autoscroll pill's corner (x 324-374, y 14-192), and it is the chips
-         that now run into it. -->
+    <!-- THE CHIPS RUN FULL WIDTH AND FLOW AROUND THE PILL'S CORNER (Aug 2026,
+         Sophie, from the screenshot of the open row: "the tags are going
+         really far down because they are not allowed to go into the left most
+         part … make the tags take up the full width but skip where the auto
+         scroll pill is"). The row is a BLOCK now, not a flex line: the select
+         icon is just the first thing in the flow, the chips wrap under it to
+         the full width, and #pillnotch — a float sized at paint time to
+         however much of the pill's fixed band (y 14-192) this row still sits
+         in — is what carves the top-right corner out. The old flex layout
+         penned every chip into the column right of the icons, which is what
+         stacked twenty of them one or two to a line.
+         THE REFRESH ICON IS GONE (same message: "let's get rid of the refresh
+         button because I never use it anymore") — the page polls on its own
+         and her pull is the big title. -->
     <div id="toolrow" class="toolrow">
+      <div id="pillnotch"></div>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
-      <button id="refresh" class="iconbtn" aria-label="Refresh"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
       <div id="catrow" class="catrow"></div>
     </div>
     <!-- COLLAPSED to the glass until she taps it (Sophie, Aug 2026). The glass
@@ -2011,8 +2038,9 @@ function paintHomeChrome(){
   a.classList.toggle('on', homeView==='archive');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
   // Categories + select file CHATS; bookmarks are messages and status is its
-  // own layout, so both would be controls that do nothing there. Refresh is
-  // useful everywhere, so it stays and the row keeps its place.
+  // own layout, so both would be controls that do nothing there. (The refresh
+  // icon that used to hold this row's place is gone — Aug 2026, Sophie: "I
+  // never use it anymore"; the page polls on its own.)
   // UPDATE is in this set too: its cards are one per chat but they are
   // notifications, not the filing surface — a category chip or a select
   // checkbox there would be a control that does nothing to what is on screen.
@@ -2074,17 +2102,16 @@ function otherView(){
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
-      tools=document.getElementById('toolrow'), ref=document.getElementById('refresh');
+      tools=document.getElementById('toolrow'), ref=document.getElementById('catrow');
   if(!row||!btn) return;
   var todoing=(homeView==='todo');
   var open=searchOpen && !todoing;
   row.classList.toggle('on', open);
   // WITH THE CHIPS GONE THE GLASS JOINS THE TOOL ROW (Sophie caught it on the
-  // UPDATE tab): there, the tool row is one lonely refresh icon and the folded
-  // glass is a second lonely icon on its own row underneath — two rows of
-  // screen spending almost nothing. The glass only needs a row of its own on
-  // the chat list, where the chips are using that width (measured: a third
-  // icon up there wraps them at 375/390).
+  // UPDATE tab): there, the tool row is nearly empty and the folded glass is
+  // a lonely icon on its own row underneath — two rows of screen spending
+  // almost nothing. The glass only needs a row of its own on the chat list,
+  // where the chips are using that width.
   var park = !open && otherView() && !todoing;
   if(park){ if(btn.parentNode!==tools) tools.insertBefore(btn, ref); }
   else if(btn.parentNode!==row) row.insertBefore(btn, row.firstChild);
@@ -3220,6 +3247,33 @@ var catsOpen=false;
 // whenever `cat` is set, which also means the way OUT of a folder (tap the lit
 // chip) is never hidden.
 function catsShown(){ return catsOpen || !!cat; }
+// ---- TWO KINDS OF TAG, AND ONLY ONE SHOWS BY DEFAULT (Aug 2026, Sophie:
+// "there are two different types of tags — category tags like witch and dream
+// app and xi, and task tags like in progress and come back to … the default
+// view should only show the progress tags, but there can be a see more button
+// that shows the category tags also, and if they're both shown there should
+// be some sort of distinction between them like a small red line or a
+// label") --------------------------------------------------------------------
+// The vocabulary had grown to ~18 words and opening TAGS dumped all of them at
+// once. A TASK word says where the work STANDS (come back to, to be reviewed);
+// a CATEGORY word says what the chat IS (witch, stories, dream app). She
+// reaches for the task ones constantly and the topic ones occasionally, so
+// TAGS opens on the task group and SEE MORE unfolds the categories under a
+// thin red line carrying the word CATEGORIES.
+//
+// The list is PRESENTATION ONLY — nothing about filing, piles or chat-sort
+// reads it; a word not on it simply shows in the categories group, which is
+// the safe default for anything she invents. Purely client-side, so moving a
+// word between groups is editing this one array.
+var TASK_LABELS=['look at','come back to','in progress','waiting for something',
+  'to be reviewed','to read','built','failed'];
+function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
+// Session-only like catsOpen, and it RESETS when TAGS closes, so every open
+// starts on the task group — the default view she asked for.
+var catsMore=false;
+// …forced open while a CATEGORY filter is lit, same silent-filter rule as
+// catsShown: the lit chip must be on screen, and the way out with it.
+function catsMoreShown(){ return catsMore || (!!cat && !isTask(cat)); }
 // The ★ chip is a filter like a category, with one deliberate difference: it
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
@@ -3563,7 +3617,7 @@ function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
   // The UPDATE screen borrows this row for its two boxes — same chips, same
   // place, a different thing being filed (see NEWS_QS).
-  if(homeView==='news'){ paintNewsQRow(row,g); return; }
+  if(homeView==='news'){ paintNewsQRow(row,g); sizePillNotch(); return; }
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
@@ -3597,10 +3651,10 @@ function paintCatRow(g){
   // Closing CLEARS the filter. A lit folder forces the row open (catsShown),
   // so without this the button would look dead on the one tap she is most
   // likely to make — and folding a live filter away would hide it.
-  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen) cat=''; renderHome(); window.scrollTo(0,0); };
+  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen){ cat=''; catsMore=false; } renderHome(); window.scrollTo(0,0); };
   row.appendChild(tb);
-  if(!shown) return;
-  cats.forEach(function(e){
+  if(!shown){ sizePillNotch(); return; }
+  var chip=function(e){
     var c=e.name, fresh=e.fresh;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
@@ -3612,7 +3666,45 @@ function paintCatRow(g){
     b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
     b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
-  });
+  };
+  // TASK words first, in workflow order (TASK_LABELS), then the categories —
+  // behind SEE MORE until she asks, under the red line once she has.
+  var tasks=TASK_LABELS
+    .map(function(t){ return cats.filter(function(e){ return e.name===t; })[0]; })
+    .filter(Boolean);
+  var topics=cats.filter(function(e){ return !isTask(e.name); });
+  tasks.forEach(chip);
+  if(topics.length){
+    if(!catsMoreShown()){
+      // The folded categories' unread replies ride on SEE MORE, exactly as
+      // the whole row's ride on TAGS while it is shut — a reply must never be
+      // hidden without a number saying it is there.
+      var tw=topics.reduce(function(n,c){ return n+c.fresh; }, 0);
+      var mb=document.createElement('button');
+      mb.className='catchip morechip';
+      mb.innerHTML='See more'+(tw?'<span class="cc-new">'+tw+'</span>':'');
+      mb.setAttribute('aria-label','Show the category tags'+(tw? ' — '+tw+' answered you':''));
+      mb.onclick=function(){ catsMore=true; renderHome(); };
+      row.appendChild(mb);
+    } else {
+      var d=document.createElement('div');
+      d.className='catdiv'; d.textContent='Categories';
+      row.appendChild(d);
+      topics.forEach(chip);
+    }
+  }
+  sizePillNotch();
+}
+// The notch that carves the autoscroll pill's corner out of the tool row: the
+// pill is FIXED over x 324-374, y 14-192, so the float's height is however
+// much of that band the row still sits in when it paints. Repainted with the
+// row, so opening TAGS (which grows the row into the band) sizes it and a
+// scrolled-down paint collapses it to nothing.
+function sizePillNotch(){
+  var n=document.getElementById('pillnotch'), t=document.getElementById('toolrow');
+  if(!n||!t) return;
+  var top=t.getBoundingClientRect().top;
+  n.style.height=Math.max(0, Math.min(200, 192-top))+'px';
 }
 
 // ---- Select mode -----------------------------------------------------------
@@ -6753,10 +6845,9 @@ document.getElementById('searchbtn').onclick=function(){
 };
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
-// Refresh drops the delivered cache too (Aug 2026) \u2014 with the UPDATE tab reading
-// it, "refresh" has to mean the pictures and pages as well as the messages, or
-// the one-minute TTL quietly outlives the tap.
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };
+// The refresh button is gone (Aug 2026, Sophie) but the tests still need a
+// way to force a reload with fresh caches \u2014 the exact thing its tap did.
+window.__reload=function(){ stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
 // The trash is a room off the ARCHIVE now, so its way out is back to the

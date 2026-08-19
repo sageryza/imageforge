@@ -183,7 +183,7 @@ const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => 
   await page.waitForFunction(() => document.getElementById('htitle').textContent !== 'Status');
   if (!(await page.$('.hidebar'))) fail('chat-parked was not hidden going into the pop-out check');
   answered = true;
-  await page.click('#refresh');
+  await page.evaluate(() => window.__reload());  // the refresh button is gone (Aug 2026)
   await page.waitForFunction(() => !!document.querySelector('#grid > .clist .crow[data-chat="chat-parked"]'),
     null, { timeout: 6000 }).catch(() => fail('a hidden chat that answered did not pop out'));
   if (await page.$('.hidebar')) fail('bar stayed after the last hidden chat popped out');

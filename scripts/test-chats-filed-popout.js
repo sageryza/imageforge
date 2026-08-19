@@ -90,6 +90,8 @@ const openFolder = async (page, on) => {
   // The folders live behind the TAGS button now (Aug 2026) and the row starts
   // shut on every load — open it before reaching for a chip.
   if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
+  // Category words live behind SEE MORE now (Aug 2026) — unfold them too.
+  if (await page.$('#catrow .morechip')) await page.click('#catrow .morechip');
   await page.$$eval('#catrow .catchip', (ns) => {
     const c = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Stories');
     if (c) c.click();

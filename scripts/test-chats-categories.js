@@ -91,7 +91,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 const listed = (page) => page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => n.dataset.chat));
 // the label only: the row LEADS with the ★ chip (no text), and a chip's label
 // runs straight into its red unread badge with no space between them
-const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)',
+const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn):not(.morechip)',
   (ns) => ns.map((n) => n.firstChild.textContent.trim()));
 // The folders live behind the TAGS button now (Aug 2026) and the row starts
 // SHUT on every load, so anything asserting on a chip opens it first. It is a
@@ -99,6 +99,8 @@ const chips = (page) => page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbt
 const openTags = async (page) => {
   await page.waitForSelector('#catrow .tagsbtn');
   if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
+  // Category words live behind SEE MORE now (Aug 2026) — unfold them too.
+  if (await page.$('#catrow .morechip')) await page.click('#catrow .morechip');
   await page.waitForSelector('#catrow .catchip:not(.starchip):not(.tagsbtn)');
 };
 
