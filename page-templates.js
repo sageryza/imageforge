@@ -269,18 +269,13 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
   const look = template === 'deck' ? { look: 'mom' } : {};
   const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...look, ...data })
     .replace(/</g, '\\u003c');
-  const mountId = template === 'grid' ? 'grid' : 'judge';
-  const tplScript = template === 'grid' ? '/grid.js' : '/judge.js';
-  const call = template === 'grid' ? 'window.__grid(window.__pageData)'
-    : 'window.__judge(window.__pageData)';
   // NO AUTOSCROLL PILL ON A DECK (Aug 2026, Sophie, on her own date deck:
   // "the auto scroll pill is still there, but it doesn't need to be because
-  // the page doesn't scroll at all"). A deck is one card at a time and never
-  // scrolls — that is judge.js's whole premise — so the pill was chrome with
-  // nothing to drive, sitting over the top-right corner. The grid DOES scroll
-  // and keeps its pill. `meta forge-pill` is the pill's own head-safe opt-out.
-  const noPill = template === 'deck'
-    ? '<meta name="forge-pill" content="off">\n' : '';
+  // the page doesn't scroll at all"). Still true — but a page holds BOTH views
+  // now, so it can no longer be said in the head: the deck half must hide the
+  // pill and the grid half must have it. page-views.js hides it with the body
+  // class instead, per view. The `meta forge-pill` opt-out stays available for
+  // any page that really is one screen end to end.
   // A MOMENT DECK CARRIES NO TITLE OF ITS OWN (same report: "you added an
   // extra header at the top and very big font"). Her design has no title —
   // the app's own header above the page already shows the page's name, so an
@@ -309,17 +304,28 @@ function renderTemplatePage({ template, title, heading, chat, sheet, data, clean
     // type stays HER size and the page stops zooming itself.
     + '<meta name="viewport" content="width=device-width, initial-scale=1, '
     + 'maximum-scale=1, user-scalable=no, viewport-fit=cover">\n'
-    + noPill
     + `<title>${esc(title)}</title>\n`
     + '<link rel="stylesheet" href="/compare.css">\n'
-    + `<div class="wrap">\n${h1}<div id="${mountId}"></div>\n</div>\n`
+    // ONE PAGE, TWO VIEWS (Aug 2026, Sophie: "the compare page, and tinder
+    // swipe shud be TWO views of the the same page, since they have the same
+    // content. that way I can swipe back and forth, and see them at full
+    // size, rather than opening and closing"). The page carries both mounts
+    // and the switch; `template` now only decides which one it OPENS on. The
+    // pill is left injected and hidden per view by page-views.js — a deck is
+    // one screen and a grid scrolls, and that is a per-view decision the
+    // page-level `meta forge-pill off` could not make.
+    + `<div class="wrap">\n${h1}<div id="pageviews"></div>\n</div>\n`
     + '<script src="/compare.js"></script>\n'
-    // a grid's pictures open THE Assets-tab lightbox (asset-lightbox.js —
-    // heart, note thread, prompt), so the shared file rides along; grid.js
-    // also lazy-loads it for hand-built pages that call __grid directly
-    + (template === 'grid' ? '<script src="/asset-lightbox.js"></script>\n' : '')
-    + `<script src="${tplScript}"></script>\n`
-    + `<script>var __pageData = ${payload}; ${call};</script>\n`;
+    // both views open THE Assets-tab lightbox on a picture (heart, note
+    // thread, prompt) through the shared adapter
+    + '<script src="/asset-lightbox.js"></script>\n'
+    + '<script src="/asset-view.js"></script>\n'
+    + '<script src="/judge.js"></script>\n'
+    + '<script src="/grid.js"></script>\n'
+    + '<script src="/page-views.js"></script>\n'
+    + `<script>var __pageData = ${payload};`
+    + ` window.__pageViews({ data: window.__pageData, start: '${template === 'grid' ? 'compare' : 'swipe'}' });`
+    + '</script>\n';
 }
 
 // ─── The auto-feed half ─────────────────────────────────────────────────────

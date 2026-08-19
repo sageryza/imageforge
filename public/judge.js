@@ -190,6 +190,17 @@
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    // A SPREAD ON ONE CARD: the pictures share the width so they are compared
+    // rather than scrolled between, each under its own name. They shrink as a
+    // spread grows — two get half each, three a third — which is the whole
+    // point of putting them on one card.
+    '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;}' +
+    '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
+    + 'display:flex;flex-direction:column;gap:5px;}' +
+    '.jg-spread figure img{width:100%;height:auto;max-height:44vh;object-fit:contain;'
+    + 'border-radius:10px;border:1px solid rgba(0,0,0,0.06);display:block;}' +
+    '.jg-spread figcaption{font:700 10px/1.3 -apple-system,sans-serif;letter-spacing:.12em;'
+    + 'text-transform:uppercase;color:#8A7F6E;text-align:center;}' +
     // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
     // note box is just too small — it should be bigger so I can see more of my
     // words in it, and the heart and the ex can go a little above it and maybe
@@ -507,6 +518,29 @@
       })();
     }
 
+    // ── TAPPING THE PICTURE OPENS THE ASSETS LIGHTBOX (Aug 2026, Sophie: "I
+    // think I want the same exact asset tab formula w heart ex prompt note
+    // chat etc in lightbox view, and u can have tinder one choice when not in
+    // lightbox"). So the card keeps ONE choice — her ✕/♥ and the note box at
+    // the bottom — and everything else about a picture lives behind the
+    // picture: its own ♥/✕, both halves of the prompt, and the note thread.
+    // /asset-view.js is the adapter, shared with grid.js so a tile and a swipe
+    // card open exactly the same thing. A hand-built judge page that doesn't
+    // carry it keeps compare.js's plain lightbox, which is why this is a
+    // capability test and not an assumption.
+    var views = window.__assetViews ? window.__assetViews({
+      chat: chat,
+      voteOf: function (it) {
+        return verdicts[it.id] === true ? 'like'
+          : verdicts[it.id] === false ? 'dislike' : null;
+      },
+      // the lightbox's ♥/✕ is the CARD's mark when she is on that card —
+      // one verdict, reachable from either surface, never two that disagree
+      cast: function (it, v) {
+        if (items[cur] && items[cur].id === it.id) judge(v === 'like');
+      },
+    }) : null;
+
     // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
     // page and the tab "should agree"). Only the boolean pair mirrors —
     // 'like'/'dislike' are the only words the asset vote speaks.
@@ -662,6 +696,8 @@
       if (val === null) delete verdicts[it.id]; else verdicts[it.id] = val;
       post({ item: it.id, ok: val });
       if (val === true || val === false || prev === true || prev === false) mirrorVote(it, val);
+      // …and into an open lightbox, so its ♥ agrees with the card's
+      if (views) views.sync(it, val === true ? 'like' : val === false ? 'dislike' : null);
       if (browse) {
         // A MARK NEVER MOVES THE DECK (Aug 2026, Sophie, on her date deck:
         // "hearting, heart or exing should not move the moment, only tapping
@@ -712,7 +748,7 @@
       // or words (Aug 2026 v3: "make the single image review surface the same
       // general template as the text one"). The older tests stand: a page that
       // asked for style:'moment', or a card carrying any of her parts.
-      if (herLook && (it.text || it.img)) return true;
+      if (herLook && (it.text || it.img || (it.cards && it.cards.length))) return true;
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
@@ -748,13 +784,36 @@
           + (sec.label ? '<span class="seclabel">' + esc(sec.label) + '</span>' : '')
           + '<p class="sectext">' + esc(sec.text) + '</p></div>';
       });
+      // A SPREAD: several pictures on ONE card, side by side, each named and
+      // each opening its own lightbox (Aug 2026, Sophie: "so I can leave a
+      // note per card, or per spread. same w heart"). The card's ✕/♥ and the
+      // note box below it are the SPREAD's; a picture's own heart, prompt and
+      // note thread live behind the picture. This is also, exactly, the
+      // two-up picker — it falls out of the shape rather than being a third
+      // thing to build.
+      if (it.cards && it.cards.length) {
+        out += '<div class="jg-spread">' + it.cards.map(function (c) {
+          return '<figure class="hug">'
+            + '<img' + (views ? ' data-zoom="' + esc(c.id) + '"' : ' class="zoom"')
+            + ' src="' + esc(c.img) + '" alt="' + esc(c.label || '') + '"'
+            + (c.full ? ' data-full="' + esc(c.full) + '"' : '') + '>'
+            + (c.label ? '<figcaption>' + esc(c.label) + '</figcaption>' : '')
+            + '</figure>';
+        }).join('') + '</div>';
+      }
       if (it.img) {
         // no card-face shape asked for → the panel HUGS the picture and caps
         // its height, so a picture card is one screen like everything else
         // here (a page or item that names an aspect keeps filling that shape)
+        // `zoom` is compare.js's own lightbox, bound at document level. When
+        // the Assets adapter is here the picture must open THAT instead, so
+        // the class comes off and the tap is ours — swapping handlers on the
+        // same class would be a race with a listener we do not own.
         out += '<figure class="' + (ar ? 'ar' : 'hug') + '"'
           + (ar ? ' style="aspect-ratio:' + ar + '"' : '') + '>'
-          + '<img class="zoom' + (ar ? ' fill' : '') + '" src="' + esc(it.img) + '"'
+          + '<img class="' + (views ? '' : 'zoom') + (ar ? ' fill' : '') + '"'
+          + (views ? ' data-zoom="' + esc(it.id) + '"' : '')
+          + ' src="' + esc(it.img) + '"'
           + ' alt="' + esc(it.label || '') + '"'
           + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '></figure>';
       }
@@ -1089,6 +1148,21 @@
     }
 
     mount.addEventListener('click', function (e) {
+      // the picture: hers to open, not compare.js's (see `views` above)
+      var z = e.target && e.target.closest ? e.target.closest('[data-zoom]') : null;
+      if (z && views) {
+        e.preventDefault();
+        var zid = z.getAttribute('data-zoom');
+        // a picture is either a card, or one of the cards ON a spread card —
+        // and either way the lightbox is that PICTURE's, not the spread's
+        var zit = null;
+        items.forEach(function (x) {
+          if (x.id === zid) zit = x;
+          (x.cards || []).forEach(function (c) { if (c.id === zid) zit = c; });
+        });
+        if (zit) views.open(zit);
+        return;
+      }
       var b = e.target && e.target.closest ? e.target.closest('[data-act],[data-open],[data-state]') : null;
       if (!b) return;
       var open = b.getAttribute('data-open');
@@ -1234,22 +1308,35 @@
       setTimeout(function () { if (view === 'card') startTour(true); }, 600);
     }
 
-    // resume: her earlier verdicts and notes come back off the doc
-    fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)
-      + '&sheet=' + encodeURIComponent(sheet))
-      .then(function (r) { return r.ok ? r.json() : {}; })
-      .catch(function () { return {}; })
-      .then(function (d) {
-        var iv = (d && d.items) || {}, tx = (d && d.texts) || {};
-        items.forEach(function (it) {
-          if (iv[it.id] !== undefined && iv[it.id] !== null) verdicts[it.id] = iv[it.id];
-          if (tx[it.id]) notes[it.id] = tx[it.id];
+    // resume: her earlier verdicts and notes come back off the doc.
+    // `move` is false when the deck is only CATCHING UP — the two-view page
+    // re-reads on every switch back, and jumping her to the first unjudged
+    // card would throw away the place she was reading.
+    function resume(move) {
+      return fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(chat)
+        + '&sheet=' + encodeURIComponent(sheet))
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .catch(function () { return {}; })
+        .then(function (d) {
+          var iv = (d && d.items) || {}, tx = (d && d.texts) || {};
+          items.forEach(function (it) {
+            if (iv[it.id] !== undefined && iv[it.id] !== null) verdicts[it.id] = iv[it.id];
+            else delete verdicts[it.id];       // cleared in the other view
+            if (tx[it.id]) notes[it.id] = tx[it.id];
+          });
+          if (move) {
+            var next = firstUnjudged();
+            if (next === -1) view = 'piles'; else cur = next;
+          }
+          render();
         });
-        var next = firstUnjudged();
-        if (next === -1) view = 'piles'; else cur = next;
-        render();
-      });
+    }
+    resume(true);
 
     render();
+    // the handle the two-view page holds, so a mark made in the grid shows
+    // here when she swipes back (both views write the same doc; this is how
+    // the one she returns to finds out)
+    return { refresh: function () { return resume(false); } };
   };
 })();

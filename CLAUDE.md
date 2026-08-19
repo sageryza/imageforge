@@ -775,6 +775,21 @@ them off the reference sheet, not off the old filenames.
     (`buildQuestions` over the whole thread, `!q.answer`), not read out of the
     digest, so the line names loose ends that provably exist; a chat writing
     its own wrap-up can pass `open` too.
+  - **IT ALSO SHOWS IN THE THREAD, UNDER HER NOTE (Aug 2026, Sophie: "i want
+    the archive summary to show below my note, as u said, including the down
+    arrow to make it longer").** It used to live on the ARCHIVE row and only
+    there, which had two consequences she was reading as the summary not
+    existing: a home row is `note || wrap`, so a note SHE wrote takes the line
+    outright (measured 2026-08-19 — **71 of the 312 chats carrying a summary
+    also carry a note**), and the ⌄ is painted only in the archive's LIST view,
+    so the **162 of 312 not yet archived** had nowhere to open one at all. In a
+    thread there is room for both: her note keeps its line and `.threadwrap`
+    sits under it with the same three depths and the same ⌄. `wrapBody()` /
+    `wrapToggle()` / `wrapHasMore()` are shared with the archive row — ONE
+    renderer, so the depths behave the same wherever she opens them — and the
+    Summarize button repaints the thread line (`threadWrap`) the moment it
+    writes, since that sheet is opened from the thread's own header.
+    Test: `node scripts/test-chats-note-wrap-clear.js`.
   - **A freshly written wrap-up reaches an already-open phone on its next
     Refresh**, not instantly: the page paints from its localStorage cache and
     polls only for new MESSAGES (the launch block in `chats.html`). True of
@@ -943,8 +958,17 @@ them off the reference sheet, not off the old filenames.
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
   bold **Waiting for:** line on the chat's row and above her note in the
   thread, and is DELETED the moment the tag comes off — a second asking word is
-  not yours to declare. Full rules in `docs/chats-app.md`; tests `node
-  scripts/test-chats-labels.js` and the same file as the tags above.
+  not yours to declare. **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
+  never' isn't on the tag list in the account area" → "give them both a
+  chip").** `come back to` had one because it was already a folder of hers;
+  `in a minute` and `maybe never` were invented as boxes and had no door
+  outside the Update tab. `QUEUE_CATS` in `chats.html` is the join, and the
+  two new words appear ONLY while their box holds something — they are not
+  seeded into her vocabulary and leave the row when she empties it. Filing is
+  unchanged: deferring one update still leaves the chat on the main list.
+  Full rules in `docs/chats-app.md`; tests `node
+  scripts/test-chats-labels.js`, `node scripts/test-chats-queue-chips.js` and
+  the same file as the tags above.
 - **STATUS CARDS — every chat keeps one, updated at the END of every turn
   (Aug 2026, Sophie's ask: "a line on what they need and a summary of what
   that chat is currently working on").** The card shows under the chat's name
@@ -1249,12 +1273,23 @@ them off the reference sheet, not off the old filenames.
   keeps its own copy** (there is no shared page script to hang them on) —
   `chats.html` ×3, `search.html`, `clips.html`, `assets.html`;
   `cuttingroom.html` has always had its own Enter handler, and
-  `storyroom.html` is the unpointed old board surface. Tests:
+  `storyroom.html` is the unpointed old board surface. **AND THE HOME BAR HAS A
+  CLEAR THAT IS NOT THE WAY OUT (Aug 2026, Sophie: "there's supposed to be an
+  extra button to 'clear' the search, but not dismiss the search box").** The
+  action already existed — the GLASS on the left starts a new search — but a
+  magnifier does not READ as "clear", so it was a control she had no reason to
+  try. A round ✕ inside the field now does the same thing (forget, reset, keep
+  the focus), shown only while there are words to wipe, and deliberately a
+  different mark from the row's bare ✕ so the two never read as one button
+  twice. It is repainted from `run()` as well as from the live handler: dictated
+  text and Return's own `sync()` both fill the box without the live callback
+  ever firing again. Tests:
   `node scripts/test-search-grammar.js`,
   `node scripts/test-chats-live-search.js`,
   `node scripts/test-chats-search-return.js`,
   `node scripts/test-search-return-everywhere.js` (the other three pages,
-  headless — verified failing against the pre-fix pages).
+  headless — verified failing against the pre-fix pages),
+  `node scripts/test-chats-note-wrap-clear.js` (the clear control).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does
@@ -2267,6 +2302,60 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **ONE PAGE, TWO VIEWS (Aug 2026 v4, Sophie: "the compare page, and tinder
+    swipe shud be TWO views of the the same page, since they have the same
+    content. that way I can swipe back and forth, and see them at full size,
+    rather than opening and closing").** Every template page now carries BOTH
+    halves behind one hairline switch (SWIPE · COMPARE, `page-views.js`);
+    `template` only decides which it OPENS on. The half that is missing from
+    the data is derived — a grid's groups flatten into the deck's item list, a
+    deck's items become one-card groups — so a page posted either way opens
+    either way, including every page already posted.
+    - **The marks cross by themselves.** Both views have always written the
+      same verdict doc under the same item ids, so switching is a repaint:
+      each view exposes a `refresh()` and re-reads on the way back in. Her
+      place in the deck is kept (`resume(false)` — catching up must not jump
+      her to the first unjudged card).
+    - **The pill is per VIEW, not per page.** A deck is one screen and a grid
+      scrolls, so `meta forge-pill off` could no longer say it: the pill is
+      injected and hidden by the body class instead.
+    - **The deck's height chain runs through the new wrapper** — judge.js
+      sizes off 100% of its mount, so `#pageviews` is a full-height flex
+      column and `#judge` takes what the switch does not. Without that the
+      card floats at the top of a half-height box.
+  - **A PAGE IS SPREADS HOLDING CARDS, AND A MARK LANDS ON EITHER (Aug 2026
+    v4, Sophie: "so I can leave a note per card, or per spread. same w
+    heart").** A spread of 2+ carries a key of its own — derived in
+    `page-views.js` from its label, **`s:` prefixed so it can never collide
+    with a card's** (item ids are cut to `[a-z0-9_-]`, so a colon cannot
+    appear in one) — and rides the same verdict doc, so nothing new is
+    stored and every page already posted gets it. **A one-card spread gets NO
+    key**: its card's mark IS the mark, and a second heart for the same
+    picture would be two answers to one question.
+    - In the COMPARE view the spread's ♥/✕ sit at the end of its name row
+      (with the pill's 64px column reserved, because the page scrolls and a
+      row passes through that band on its way up), and its note is the shared
+      `__compareNotes` + in the corner — a card's note lives on its picture,
+      in the lightbox, and a spread has no picture.
+    - In the SWIPE view a spread is ONE card: its pictures side by side, each
+      named, the card's ✕/♥ and note box marking the SPREAD, and tapping
+      either picture opening that picture's own lightbox. **That is also
+      exactly the two-up picker** she asked for earlier ("comparing two
+      different images to each other, and picking between them") — it falls
+      out of the shape instead of being a third thing to build.
+    - `paintActs` asks for the spread's own row FIRST: a group contains tiles
+      and a tile has `.gd-acts`, so the plain descendant selector matched a
+      CARD's buttons inside the spread and painted the wrong thing.
+  - **TAPPING THE PICTURE OPENS THE ASSETS LIGHTBOX, on a swipe card too (Aug
+    2026 v4, Sophie: "I think I want the same exact asset tab formula w heart
+    ex prompt note chat etc in lightbox view, and u can have tinder one choice
+    when not in lightbox").** So the card keeps ONE choice — her ✕/♥ and the
+    note box at the bottom — and everything else about a picture lives behind
+    it: its own ♥/✕, both halves of the prompt, the note thread. The adapter
+    is `asset-view.js`, lifted out of grid.js so a tile and a swipe card open
+    the same thing rather than two copies drifting apart. judge.js drops the
+    `zoom` class when the adapter is present, because that class belongs to
+    compare.js's own document-level lightbox and racing it would be a bug.
   - **EVERY DECK IS HER DECK NOW (Aug 2026 v3, Sophie: "I think we should
     just make the single image review surface the same general template as
     the text one").** Her Decision Deck chrome — the cream, one screen, the

@@ -1037,6 +1037,48 @@
       the auto-return rule is the box's, and the folder must not contradict it.
     - Test: `node scripts/test-chats-come-back-to.js` (verified failing against
       a folder that only reads `category`).
+  - **…AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie, pointing at the
+    labels row: "'maybe never' isn't on the tag list in the account area" →
+    "give them both a chip").** Only `later` had ever been joined to a word,
+    because only `later` already HAD one — she had been filing chats into a
+    "come back to" folder by hand long before the Update screen existed.
+    `in a minute` and `maybe never` were invented as boxes, so a card she put
+    in one was reachable from exactly one screen. Three boxes, one door.
+    - The join is a TABLE now, `QUEUE_CATS` in `chats.html`, and the rest of
+      the file needed no idea it grew: `cbBox` is keyed by WORD rather than by
+      chat, `chatInCat()` reads it, and everything downstream (the counts, the
+      live list, the archive, the hidden pile) follows for free.
+    - **The two new words are NOT seeded into her vocabulary.** They appear on
+      the row only while something is actually in their box and leave again
+      when she empties it — `come back to` is a folder she made and stays put,
+      which is the whole difference. So a word she never uses never squats on
+      her row.
+    - They are **TASK words** (`TASK_LABELS`), sat together in `NEWS_QS`'s
+      order, so the chips and the boxes read the same way round.
+    - Nothing about FILING changed: deferring one update still leaves the chat
+      on the main list, and a superseded card still leaves both the box and
+      the chip at the same moment.
+    - Test: `node scripts/test-chats-queue-chips.js` (verified failing against
+      the one-word join — the two chips simply were not on the row).
+    - **A derived word is a FILTER, not a folder** (`queueOnly()`): `in a
+      minute` and `maybe never` are on the home row but are kept OUT of
+      `fileVocab()`, so no filing sheet offers them. Tapping one in a sheet
+      would put it on a chat as a real label, where it would not empty itself
+      when the card is superseded and would outlive the box entirely. `come
+      back to` is exempt — a folder she made by hand.
+  - **ONE ROW, TWO GROUPS, A LINE BETWEEN (Aug 2026, Sophie: "can u also put a
+    dividing line between progress and categories in the archive").** The home
+    row has drawn that line since TAGS folded (`.catdiv`), but the SHEETS
+    handed her one jumbled list — `Stories` and `Tech` first because they are
+    the seeds, then `Come back to`, then `Witch`, then `Look at`.
+    - `paintVocabChips(row, mk)` is the one painter: progress words in
+      `TASK_LABELS` order, a `.catdiv` reading CATEGORIES, then the rest. Every
+      sheet that draws `fileVocab()` as chips comes through it — the archive
+      sheet and both Organize rows — so a word is never in the progress group
+      on one screen and the topic group on another.
+    - `.catdiv` is a BLOCK in the home row's inline flow, which is what breaks
+      the chips there. `.arctags` is a flex row, where a block child would sit
+      beside a chip — so inside a sheet it takes `flex-basis:100%`.
   - **A chip narrows the WHOLE screen, hidden pile included** — a bar
     counting chats from a category she isn't looking at is noise.
   - **Select mode** (the checkbox icon) is the Dump's Select: tap rows, one
@@ -1773,14 +1815,34 @@
       its count; an empty section shows NO header. Cards stay newest-first
       within a section, and the cards themselves are unchanged — ✓ picking,
       the boxes, the ⌄ all still work.
-    - **`newsKind(it)` decides, exclusive, in priority order:** (1) a fresh
-      deliverable — a Compare page newer than the floor, or a picture newer
-      than it → DELIVERABLES; (2) else an open `need` on the status card →
-      QUICK DECISIONS; (3) else → TO READ. **A deliverable outranks an open
+    - **`newsKind(it)` decides, exclusive, in priority order (v2, Aug 2026 —
+      widened the day after it shipped, from her screenshot):** (1) a fresh
+      deliverable — a Compare page newer than the floor, a picture newer than
+      it, **or the chat's pinned FILM/AUDIO re-posted since it** (`newsPin`) →
+      DELIVERABLES; (2) else **a `need` that tells her to go look at a thing**
+      (`NEED_LOOK` — watch/listen/look/peek/open/install/play/tap/test/try/
+      check/review, word-anchored) → DELIVERABLES; (3) else an open `need` →
+      QUICK DECISIONS; (4) else → TO READ. **A deliverable outranks an open
       `need` on purpose**: when a chat hands her a thing AND asks about it,
       the thing is what she opens, and the ask still reads on the card's own
       status line — need-first would have filed 24 of 33 cards as asks and
       the deliverables would never have surfaced.
+    - **v1'S RULE MADE A REAL CARD WRONG, AND THE PIN IS THE FIX (2026-08-19,
+      Sophie: "why is this in the quick decision tab? It's obviously a
+      deliverable. Tell me the rule that made it wrong").** v1's whole idea of
+      a deliverable was Compare pages + gallery images. dream-app-commercial
+      delivered a FILM: images 8:41 am → her ✓ 9:21 → "Dream commercial — v2"
+      pinned 9:28 with need "watch v2, 45 sec" — invisible to v1, so the need
+      filed it under Quick decisions. A film/audio pin re-posted since the
+      floor is now an ARRIVAL in `newsItems` too (a chat can deliver a cut
+      without saying anything — same rule pictures and pages already had). A
+      `link` pin counts for nothing here: it is a bookmark, and Compare pages
+      are already counted.
+    - **Yes, `NEED_LOOK` reads words, which the v3 title parser died for —
+      the stakes are different.** That parser decided what was HIDDEN; a miss
+      here files a card one visible section over on the same screen. Her real
+      needs the day this shipped: "watch v2, 45 sec", "listen through the
+      37", "install build 165" — review tasks wearing a need's clothes.
     - **DERIVED, never filed** — no model call (the screen opens constantly
       and must spend nothing) and nothing new for chats to POST (only ~7%
       ever write a card, the same measurement that made the Questions list
@@ -1792,7 +1854,8 @@
       she already sorted.
     - Tests: `node scripts/test-chats-news-sections.js` (the real page,
       headless — the order, the counts, the need-vs-deliverable priority, the
-      stale-pictures case, the vanishing empty header, the flat box).
+      stale-pictures case, the vanishing empty header, the flat box; v2: the
+      pin-raised card, the go-look need, the stale pin, the link pin).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must

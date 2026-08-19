@@ -354,8 +354,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    fold the bar away. */
 .searchrow{position:relative; margin:0 0 .7em; display:flex; align-items:center; gap:4px;
   padding-right:56px;}
-.searchrow #qsearch,.searchrow .qclear{display:none;}
-.searchrow.on #qsearch{display:block; flex:1; min-width:0; padding-right:14px;}
+.searchrow #qsearch,.searchrow .qclear,.searchrow .qwrap{display:none;}
+.searchrow.on .qwrap{display:block; position:relative; flex:1; min-width:0;}
+.searchrow.on #qsearch{display:block; width:100%; padding-right:34px;}
+/* ---- CLEAR THE WORDS WITHOUT LOSING THE BAR (Aug 2026, Sophie: "there's
+   supposed to be an extra button to 'clear' the search, but not dismiss the
+   search box") ------------------------------------------------------------
+   The action already existed — the GLASS on the left starts a new search —
+   but a magnifier reads as "search", not "clear", so it was a control she had
+   no reason to try. This is the round ✕ every text field on a phone has, INSIDE
+   the box at its right edge, and it only exists while there are words to wipe.
+   It is deliberately a different mark from the row's ✕: filled circle vs bare
+   glyph, inside the field vs beside it, so the two never read as the same
+   button twice.
+   Circular, which is the one shape the no-pills rule exempts. */
+.qwipe{position:absolute; right:7px; top:50%; transform:translateY(-50%);
+  width:19px; height:19px; padding:0; display:none; align-items:center; justify-content:center;
+  border:none; border-radius:50%; background:var(--ink2); color:var(--paper);
+  font-size:14px; line-height:1; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.qwipe.on{display:flex;}
 .searchrow.on .qclear{display:flex; align-items:center; justify-content:center;
   position:static; transform:none; flex:none;}
 /* THE GLASS STAYS BESIDE THE OPEN BAR (Aug 2026) — one control per action:
@@ -718,6 +735,15 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .wrapbul:last-child{margin-bottom:0;}
 .wrapbul::before{content:'•'; position:absolute; left:1px; top:0;}
 .wrapopen{margin-top:9px;}
+/* THE WRAP-UP IN A THREAD, under her note (Aug 2026, her ask). Same three
+   depths as the archive row, laid out as a normal block instead of a sibling
+   of a button — so `.wrapmore` gets its margin back and the line reads as a
+   quiet caption under the note rather than a second note. */
+.threadwrap{margin:-.4em 0 1em;}
+.threadwrap[hidden]{display:none !important;}
+.threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
+.threadwrap .wrapmore{margin:0 0 0 auto;}
+.threadwrap .wrapfull{margin-bottom:0;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
@@ -929,6 +955,11 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    why only one of the two marks looked dead. */
 .arctags .arcmark.on svg{fill:currentColor;}
 .arctags .arcdiv{width:1px; align-self:stretch; background:var(--line); margin:0 2px;}
+/* `.catdiv` is a block in the home row's INLINE flow, which is what breaks the
+   chips onto a new line there. `.arctags` is a flex row, where a block child
+   would just sit beside a chip — so inside a sheet it takes the whole line
+   itself. */
+.arctags .catdiv{flex-basis:100%; width:100%; margin:8px 0 2px;}
 /* ORGANIZE's section labels — kept, UNUSED, on purpose. The sheet held two
    different things (ONE folder over MANY tags) and an unlabelled wall of
    identical chips gave no clue which tap was which; the two became one field
@@ -1284,8 +1315,8 @@ body.selecting > .float{display:none !important;}
          onto a second line, which spends the row this was meant to save. -->
     <div class="searchrow" id="searchrow">
       <button id="searchbtn" class="iconbtn" aria-label="Search all chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
-      <input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off">
-      <button id="qclear" class="qclear" aria-label="Clear the search, or close it">&times;</button>
+      <div class="qwrap"><input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off"><button id="qwipe" class="qwipe" aria-label="Clear the words">&times;</button></div>
+      <button id="qclear" class="qclear" aria-label="Close the search">&times;</button>
     </div>
     <div id="searchresults" style="display:none"></div>
     <!-- The witch shop sheet's Description/Reviews toggle, doing the same job
@@ -1639,6 +1670,9 @@ paintPill();
 var chats={}, msgs=[], cur=null, seen={}, homeY=0, openUrl='', curTab='chat';
 // The open thread's note repainter — see where it is set, in openChat.
 var threadNote=null;
+// …and the wrap-up line under it, for the same reason (the archive sheet's
+// Summarize button writes it while the thread is still on screen).
+var threadWrap=null;
 // Feed-wide settings from the server (registry __settings doc). appAccount =
 // which Claude account is signed into the iOS app right now ("1"/"2").
 var settings={};
@@ -2094,12 +2128,18 @@ function paintSearch(){
   // leaving a search she could still see cost two taps, and the first one
   // looked like it had done nothing but wipe her words. Now:
   //   ✕ (right)     → leave. Always, words or no words, one tap.
-  //   glass (left)  → a NEW search: empty the box, keyboard stays up.
+  //   ○✕ (in field) → wipe the words, KEEP the bar and the keyboard.
+  //   glass (left)  → the same wipe, from the button that opened the bar.
   // The glass is the same button in the same place that opened the bar, so
-  // "tap the glass to search" reads the same whether one is already running.
+  // "tap the glass to search" reads the same whether one is already running —
+  // but a magnifier does not READ as "clear", which is why the round ✕ inside
+  // the field exists too (Aug 2026, Sophie: "there's supposed to be an extra
+  // button to 'clear' the search, but not dismiss the search box"). Same
+  // action, a control she has a reason to press.
   btn.setAttribute('aria-label', open ? 'Clear the search and start a new one' : 'Search all chats');
   var qc=document.getElementById('qclear');
   if(qc) qc.setAttribute('aria-label','Close the search');
+  if(window.__paintWipe) window.__paintWipe();
 }
 function setSearchOpen(on){
   searchOpen=!!on;
@@ -2686,6 +2726,15 @@ function freshPages(pages, floor){
     .sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
     .slice(0,1);
 }
+// The chat's pinned DELIVERABLE, when it is a film or an audio cut — the
+// "actively handing her new versions" half of the pin contract. A `link` pin
+// (a page being worked on) is deliberately not returned: it is a bookmark,
+// not a hand-off, and Compare pages already ride freshPages.
+function newsPin(name){
+  var p=chats[name]&&chats[name].pinned;
+  if(!p || !p.url) return null;
+  return (p.kind==='video'||p.kind==='audio') ? p : null;
+}
 function newsItems(g){
   var ix=newsIndex(), out=[], done={};
   // sortedChatNames covers the registry AND anything in the feed, and this
@@ -2724,6 +2773,14 @@ function newsItems(g){
     if(lastFin) bump(lastFin.created||'');
     pics.forEach(function(p){ bump(p.created||''); });
     pages.forEach(function(p){ bump(p.created||''); });
+    // A RE-PINNED FILM OR AUDIO CUT IS AN ARRIVAL TOO (Aug 2026 v2 — the
+    // dream-commercial card): the pin contract re-posts on every new version,
+    // so pinned.at IS "the chat handed her a new cut", the same deliver-
+    // without-saying-anything rule the pictures and pages already have. Link
+    // pins stay out — a working page is a bookmark, and Compare pages are
+    // already counted above.
+    var pin=newsPin(name);
+    if(pin) bump(pin.at||'');
     // Nothing since the ✓ means nothing to show. Nothing else takes a card
     // off this screen any more — see newsFloor.
     if(!at || at<=floor) return;
@@ -2805,15 +2862,28 @@ function newsList(g){
 // the few things to look at are never buried under two dozen asks. Each card
 // is in exactly ONE section, decided from data already on the card:
 //
-//   1. a fresh deliverable — a Compare page newer than the floor (freshPages
-//      already filters) or a picture newer than it → DELIVERABLES. This
+//   1. a fresh deliverable → DELIVERABLES: a Compare page newer than the
+//      floor (freshPages already filters), a picture newer than it, or the
+//      pinned FILM/AUDIO re-posted since it (newsPin — v2, the card that
+//      taught this rule: "Dream commercial — v2" was pinned seven minutes
+//      after her ✓ and the classifier had no kind that could see a film, so
+//      its "watch v2, 45 sec" ask filed it as a quick decision). This
 //      outranks an open `need` on purpose: when a chat delivers a thing AND
 //      asks about it, the thing is what she opens, and the ask still reads on
 //      the card's own status line (need-first would file 24 of 33 cards as
 //      asks and the deliverables would never surface — the brief's finding).
-//   2. else an open `need` on the status card → QUICK DECISIONS: the chat is
+//   2. else a need that TELLS HER TO GO LOOK AT A THING → DELIVERABLES too
+//      (v2): "watch v2", "listen to two cuts", "install build 165" are review
+//      tasks wearing a need's clothes, not decisions. NEED_LOOK is a small
+//      word-boundary verb list over the need — yes, this reads words, which
+//      the v3 title parser died for; the difference is the stakes. That
+//      parser decided what was HIDDEN from her; a miss here files a card one
+//      visible section over on the same screen, and the verbs are the chats'
+//      own house vocabulary for asks ("listen to two cuts" is this file's
+//      canonical example of a need).
+//   3. else an open `need` on the status card → QUICK DECISIONS: the chat is
 //      waiting on her word.
-//   3. else → TO READ: the reply is the news.
+//   4. else → TO READ: the reply is the news.
 //
 // DERIVED, never filed — no model call (this screen opens constantly and must
 // spend nothing) and nothing new for a chat to POST (only ~7% ever write a
@@ -2825,12 +2895,17 @@ function newsList(g){
 // An empty section shows NO header — empty is silent. An open BOX stays one
 // flat list: filing a card into Come back to / In a minute was the triage.
 var NEWS_KINDS=[['look','Deliverables'],['read','To read'],['decide','Quick decisions']];
+var NEED_LOOK=/\b(watch|listen|look|peek|open|install|play|tap|test|try|check|review)\b/i;
 function newsKind(it){
   var floor=newsFloor(it.chat);
+  var pin=newsPin(it.chat);
   var fresh=it.pages.length>0 ||
-    it.pics.some(function(p){ return (p.created||'')>floor; });
+    it.pics.some(function(p){ return (p.created||'')>floor; }) ||
+    !!(pin && (pin.at||'')>floor);
   if(fresh) return 'look';
-  if(statusLines(it.chat).need) return 'decide';
+  var need=statusLines(it.chat).need;
+  if(need && NEED_LOOK.test(need)) return 'look';
+  if(need) return 'decide';
   return 'read';
 }
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
@@ -3242,7 +3317,11 @@ function catsShown(){ return catsOpen || !!cat; }
 // reads it; a word not on it simply shows in the categories group, which is
 // the safe default for anything she invents. Purely client-side, so moving a
 // word between groups is editing this one array.
-var TASK_LABELS=['look at','come back to','in progress','waiting for something',
+// The three Update boxes sit together, in NEWS_QS's order — they are one
+// family (how soon she means to get to it) and reading them apart would be
+// three unrelated words scattered through the row.
+var TASK_LABELS=['look at','come back to','in a minute','maybe never',
+  'in progress','waiting for something',
   'to be reviewed','to read','built','failed'];
 function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
 // Session-only like catsOpen, and it RESETS when TAGS closes, so every open
@@ -3353,22 +3432,48 @@ function chatFiled(name){ return chatLabels(name).some(isPile); }
 // shows on the main list. Deferring one update is not filing the whole chat
 // away, and making it vanish from the list would be a filing she never asked
 // for.
-var CB_CAT='come back to';
-var CB_QUEUE='later';
-// The chats whose update card is in the box RIGHT NOW, rebuilt each render.
-// Read through newsItems/newsBoxed rather than re-deriving the test, or the
-// chip and the box could disagree about where something is — the one thing
-// the Update screen's own two lists are careful never to do.
+// ---- …AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie: "'maybe never'
+// isn't on the tag list in the account area" → "give them both a chip") ------
+// Only `later` was ever joined to a word on this row, because only `later`
+// already HAD a word — she had been filing chats into a "come back to" folder
+// by hand. The other two boxes were invented on the Update screen and never
+// got a chip, so a card she put in one could be reached from exactly one
+// screen. That is the inconsistency she spotted: three boxes, one door.
+//
+// So the join is a TABLE now rather than a pair, and the rest of this file
+// needs no idea it grew. `in a minute` and `maybe never` are not in her folder
+// vocabulary and are not seeded into it — they appear on the row only while
+// something is actually sitting in their box (catList), and they disappear
+// again when she empties it. Nothing about filing changes: a word she has
+// never used stays off her row, and a chat deferred on the Update screen still
+// shows on the main list (see above).
+//
+// The order matches NEWS_QS, so the chips and the boxes read the same way.
+var QUEUE_CATS=[['later','come back to'],['soon','in a minute'],['never','maybe never']];
+function queueCat(q){
+  for(var i=0;i<QUEUE_CATS.length;i++) if(QUEUE_CATS[i][0]===q) return QUEUE_CATS[i][1];
+  return '';
+}
+// word → { chat:1 } for every chat whose update card is in that box RIGHT NOW,
+// rebuilt each render. Read through newsItems/newsBoxed rather than
+// re-deriving the test, or the chip and the box could disagree about where
+// something is — the one thing the Update screen's own lists are careful never
+// to do.
 var cbBox={};
 function rebuildComeBack(g){
   cbBox={};
   newsItems(g).forEach(function(it){
-    if(newsBoxed(it) && newsQueueOf(it.chat)===CB_QUEUE) cbBox[it.chat]=1;
+    if(!newsBoxed(it)) return;
+    var c=queueCat(newsQueueOf(it.chat));
+    if(!c) return;
+    (cbBox[c]=cbBox[c]||{})[it.chat]=1;
   });
 }
 // The one test for "is this chat in that folder", used by the chip's count,
 // the list and the archive alike.
-function chatInCat(name,c){ return chatLabels(name).indexOf(c)>-1 || (c===CB_CAT && !!cbBox[name]); }
+function chatInCat(name,c){
+  return chatLabels(name).indexOf(c)>-1 || !!(cbBox[c] && cbBox[c][name]);
+}
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
 // everything worked out, and then another one that's pretty much trash but I'm
@@ -3524,10 +3629,14 @@ function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
-  // Never leave the Come back to box without a chip to reach it by: the folder
-  // is in her vocabulary already, but a chat sitting in that box with no chip
-  // on the row would be a pile with no door.
-  if(Object.keys(cbBox).length && out.indexOf(CB_CAT)<0) out.push(CB_CAT);
+  // Never leave an Update box without a chip to reach it by: a chat sitting in
+  // one with no chip on the row would be a pile with no door. `come back to`
+  // is in her vocabulary already; the other two words appear ONLY while their
+  // box has something in it, and leave the row again when she empties it.
+  QUEUE_CATS.forEach(function(pair){
+    var box=cbBox[pair[1]];
+    if(box && Object.keys(box).length && out.indexOf(pair[1])<0) out.push(pair[1]);
+  });
   ((settings&&settings.categories)||[]).forEach(function(c){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
@@ -3541,10 +3650,47 @@ function catList(){
 // its chip and the vocabulary she had keeps working, but they only reach the
 // home row once something is actually wearing one. The row is a filter she
 // reads past on every screen; the sheets are somewhere she went on purpose.
+// A word that is on the home row ONLY because its Update box has something in
+// it is a FILTER, not a folder. Offering it in a FILING sheet would let her
+// stick it on a chat as a real label, where it would then behave nothing like
+// the box it came from — it would not empty itself when the card is superseded
+// and it would outlive the box entirely. `come back to` is exempt: that one is
+// a folder she made by hand, long before the Update screen existed.
+function queueOnly(c){
+  var pair=null;
+  QUEUE_CATS.forEach(function(p){ if(p[1]===c) pair=p; });
+  if(!pair || pair[0]==='later') return false;
+  if((((typeof settings!=='undefined'&&settings)||{}).categories||[]).indexOf(c)>-1) return false;
+  return !Object.keys(chats).some(function(n){ return chatLabels(n).indexOf(c)>-1; });
+}
 function fileVocab(){
-  var out=catList();
+  var out=catList().filter(function(c){ return !queueOnly(c); });
   TAG_LIST.forEach(function(t){ if(out.indexOf(t)<0) out.push(t); });
   return out;
+}
+// ---- ONE ROW, TWO GROUPS, A LINE BETWEEN (Aug 2026, Sophie: "can u also put
+// a dividing line between progress and categories in the archive") -----------
+// The home row has drawn this line since TAGS folded (`.catdiv` — a thin
+// accent rule with the group's name under it), but the SHEETS were still
+// handing her one jumbled list: `Stories` and `Tech` first because they are
+// the seeds, then `Come back to`, then `Witch`, then `Look at`. Two kinds of
+// word — where the work STANDS vs what the chat IS — with nothing between
+// them and no order to read by.
+//
+// Same split the row already uses (`TASK_LABELS` / `isTask`), so a word never
+// sits in the progress group on one screen and the topic group on another.
+// Every sheet that paints `fileVocab()` as chips comes through here.
+function paintVocabChips(row, mk){
+  var vocab=fileVocab();
+  var tasks=TASK_LABELS.filter(function(t){ return vocab.indexOf(t)>-1; });
+  tasks.forEach(function(c){ row.appendChild(mk(c)); });
+  var topics=vocab.filter(function(c){ return !isTask(c); });
+  if(tasks.length && topics.length){
+    var d=document.createElement('div');
+    d.className='catdiv'; d.textContent='Categories';
+    row.appendChild(d);
+  }
+  topics.forEach(function(c){ row.appendChild(mk(c)); });
 }
 function catLabel(c){ return c.charAt(0).toUpperCase()+c.slice(1); }
 // "It came back and she hasn't read it" — a finished reply, not one of her own
@@ -4455,48 +4601,64 @@ function fillWrap(el, text, open){
     o.textContent='Still open: '+open; el.appendChild(o);
   }
 }
+// Is there anything BEHIND the one line — a fuller account or a still-open
+// half? When the line already is the whole thing there is nothing to expand
+// and no ⌄ is drawn.
+function wrapHasMore(r){
+  var full=String(r.wrapUp||'').trim();
+  // What was still open when it stopped (Aug 2026, her ask) — its own
+  // paragraph under the summary, because that is the half she opens this
+  // looking for. A chat that ended settled has none and shows none.
+  var open=String(r.wrapOpen||'').trim();
+  return !((!full || full===String(r.wrapLine||'').trim()) && !open);
+}
+// THE THREE DEPTHS, as one collapsed block (Aug 2026, Sophie: "ideally would
+// be a short summary like three lines at most, and then a longer summary
+// behind an arrow"). One line on the row, three sentences in here, the full
+// account behind MORE — and she stops at whichever answers her. A chat too
+// small to have a longer version simply shows no MORE.
+//
+// ONE renderer, shared by the archive row's expander and the thread's own line
+// under her note, so the depths behave the same wherever she opens them.
+function wrapBody(r){
+  var full=String(r.wrapUp||'').trim(), open=String(r.wrapOpen||'').trim();
+  var body=document.createElement('div');
+  body.className='wrapfull'; body.hidden=true;
+  fillWrap(body, full, open);
+  var long=String(r.wrapLong||'').trim();
+  if(long && long!==full){
+    var more=document.createElement('button');
+    more.className='wrapmore2'; more.textContent='more';
+    var shown=false;
+    more.onclick=function(e){
+      e.stopPropagation();
+      shown=!shown;
+      fillWrap(body, shown?long:full, open);
+      more.textContent = shown ? 'less' : 'more';
+      body.appendChild(more);
+    };
+    body.appendChild(more);
+  }
+  return body;
+}
+function wrapToggle(body){
+  var tog=document.createElement('button');
+  tog.className='wrapmore'; tog.textContent='⌄';
+  tog.setAttribute('aria-label','What this chat was about');
+  tog.onclick=function(e){
+    e.stopPropagation();
+    body.hidden=!body.hidden;
+    tog.textContent=body.hidden?'⌄':'⌃';
+  };
+  return tog;
+}
 function paintWrapUps(el){
   [].forEach.call(el.querySelectorAll('.crow[data-chat]'), function(row){
     var r=chats[row.dataset.chat]||{};
-    var full=String(r.wrapUp||'').trim();
-    // What was still open when it stopped (Aug 2026, her ask) — its own
-    // paragraph under the summary, because that is the half she opens this
-    // looking for. A chat that ended settled has none and shows none.
-    var open=String(r.wrapOpen||'').trim();
-    // Nothing to expand when the row line already IS the whole thing.
-    if((!full || full===String(r.wrapLine||'').trim()) && !open) return;
-    var tog=document.createElement('button');
-    tog.className='wrapmore'; tog.textContent='⌄';
-    tog.setAttribute('aria-label','What this chat was about');
-    var body=document.createElement('div');
-    body.className='wrapfull'; body.hidden=true;
-    fillWrap(body, full, open);
-    // THE LONGER VERSION, one more tap in (Aug 2026, Sophie: "ideally would be
-    // a short summary like three lines at most, and then a longer summary
-    // behind an arrow"). Three depths, and she stops at whichever answers her:
-    // one line on the row, three sentences here, the full account behind MORE.
-    // A chat too small to have a longer version simply shows no MORE.
-    var long=String(r.wrapLong||'').trim();
-    if(long && long!==full){
-      var more=document.createElement('button');
-      more.className='wrapmore2'; more.textContent='more';
-      var shown=false;
-      more.onclick=function(e){
-        e.stopPropagation();
-        shown=!shown;
-        fillWrap(body, shown?long:full, open);
-        more.textContent = shown ? 'less' : 'more';
-        body.appendChild(more);
-      };
-      body.appendChild(more);
-    }
-    tog.onclick=function(e){
-      e.stopPropagation();
-      body.hidden=!body.hidden;
-      tog.textContent=body.hidden?'⌄':'⌃';
-    };
+    if(!wrapHasMore(r)) return;
+    var body=wrapBody(r);
     row.insertAdjacentElement('afterend', body);
-    row.insertAdjacentElement('afterend', tog);
+    row.insertAdjacentElement('afterend', wrapToggle(body));
   });
 }
 // The archive row used to carry a ↓ that moved a chat between the BUILT and
@@ -5289,6 +5451,40 @@ function openChat(name, keepScroll, focusId, noFetch){
   // opened, and her answer only appears after a reload.
   threadNote=paintNote;
   chatPanel.appendChild(nrow);
+  // ---- THE WRAP-UP, UNDER HER NOTE (Aug 2026, Sophie: "i want the archive
+  // summary to show below my note, as u said, including the down arrow to make
+  // it longer") ------------------------------------------------------------
+  // It lived on the ARCHIVE row and only there, which had two consequences she
+  // was reading as the summary not existing. On a home row `note || wrap`
+  // means a note SHE wrote takes the line outright — measured 2026-08-19, 71
+  // of the 312 chats carrying a summary also carry a note, so theirs was
+  // invisible. And the ⌄ is painted only in the archive's List view, so the
+  // 162 chats not yet archived had nowhere to open one at all.
+  //
+  // Here there is room for both: her note keeps its line and this sits under
+  // it. Same three depths, same renderer, same ⌄.
+  var wrow=document.createElement('div'); wrow.className='threadwrap';
+  function paintThreadWrap(){
+    var r=chats[name]||{};
+    // The row line if there is one, else the fuller summary — a wrap-up
+    // written before wrapLine existed has only the latter.
+    var line=String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim();
+    wrow.innerHTML='';
+    wrow.hidden=!line;
+    if(!line) return;
+    var p=document.createElement('div'); p.className='twline'; p.textContent=line;
+    wrow.appendChild(p);
+    if(!wrapHasMore(r)) return;
+    var body=wrapBody(r);
+    wrow.appendChild(wrapToggle(body));
+    wrow.appendChild(body);
+  }
+  paintThreadWrap();
+  // The Summarize button on the archive sheet writes these fields, and that
+  // sheet is opened from this very header — so the line has to be repaintable
+  // from outside openChat, exactly like her note above it.
+  threadWrap=paintThreadWrap;
+  chatPanel.appendChild(wrow);
   chatPanel.appendChild(srow); chatPanel.appendChild(scount);
   // The messages live in their OWN box so the Questions list can take their
   // place without disturbing anything above it — the header, the tabs and her
@@ -6114,14 +6310,14 @@ function askPiles(after){
   var row=document.createElement('div'); row.className='arctags'; box.appendChild(row);
   function paint(){
     row.innerHTML='';
-    fileVocab().forEach(function(c){
+    paintVocabChips(row, function(c){
       var on=isPile(c);
       var b=document.createElement('button'); b.type='button';
       b.className='catchip'+(on?' on':'');
       b.textContent=catLabel(c);
       b.setAttribute('aria-pressed', on?'true':'false');
       b.onclick=function(e){ e.stopPropagation(); flip(c, !on); };
-      row.appendChild(b);
+      return b;
     });
   }
   function flip(c, on){
@@ -6169,7 +6365,7 @@ function askOrganize(name){
   function paintLabels(){
     trow.innerHTML='';
     var mine=chatLabels(name);
-    fileVocab().forEach(function(c){
+    paintVocabChips(trow, function(c){
       var on=mine.indexOf(c)>-1;
       var b=document.createElement('button'); b.type='button';
       b.className='catchip'+(on?' on':'');
@@ -6178,7 +6374,7 @@ function askOrganize(name){
       // Tapping a word it already carries takes it off — one control, both
       // directions, the way every other toggle on this screen works.
       b.onclick=function(e){ e.stopPropagation(); setLabel(c, !on); };
-      trow.appendChild(b);
+      return b;
     });
     var none=document.createElement('button'); none.type='button';
     none.className='catchip'+(mine.length?'':' on'); none.textContent='None';
@@ -6377,7 +6573,9 @@ function askArchive(name, cb){
   // afterwards, and a chat she had already filed arrives with that word lit.
   // Chips only, no New… box: this sheet is a decision about ONE chat on the way
   // past, and inventing vocabulary belongs where she is organizing.
-  fileVocab().forEach(function(t){
+  // Progress words first, then a line, then the categories — see
+  // paintVocabChips. The star/bookmark marks keep the head of the row.
+  paintVocabChips(tagrow, function(t){
     var b=document.createElement('button'); b.type='button';
     b.textContent=catLabel(t); b.className='catchip';
     function paint(){
@@ -6392,7 +6590,7 @@ function askArchive(name, cb){
       saveLabels([name], on?{remove:[t],repaint:paint}:{add:[t],repaint:paint});
       paint();
     };
-    tagrow.appendChild(b);
+    return b;
   });
 
   // ---- her own line -------------------------------------------------------
@@ -6450,6 +6648,9 @@ function askArchive(name, cb){
         chats[name]=chats[name]||{};
         chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
         chats[name].wrapOpen=d.wrapOpen||''; chats[name].wrapLong=d.wrapLong||'';
+        // The thread is still on screen behind this sheet — put the new
+        // summary under her note now, rather than on the next reload.
+        if(threadWrap) threadWrap();
         // Open questions read as their own paragraph, not a clause buried in
         // the summary — they are the half she goes looking for. The sheet shows
         // the SHORT summary, same as the archive row's first tap; the longer
@@ -6542,6 +6743,7 @@ document.getElementById('back').onclick=function(){ goHome(); };
 // chat. Empty/short query falls back to the normal grid.
 (function(){
   var qi=document.getElementById('qsearch'), qc=document.getElementById('qclear'),
+      qw=document.getElementById('qwipe'),
       sr=document.getElementById('searchresults'), grid=document.getElementById('grid'), t=null;
   // The account tabs govern the GRID, and a search deliberately looks across
   // both accounts — so they come off with it and back with it.
@@ -6608,6 +6810,10 @@ document.getElementById('back').onclick=function(){ goHome(); };
     return true;
   };
   function run(q){
+    // The button follows the BOX, and the box can be filled in ways this
+    // module never sees an event for (dictation, Return's own sync, the
+    // one-minute restore) — so every executed search repaints it too.
+    wipePaint();
     q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
     remember(q);
@@ -6640,19 +6846,32 @@ document.getElementById('back').onclick=function(){ goHome(); };
       })
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
-  var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; wipePaint(); t=setTimeout(function(){ run(v); }, 220); });
   // Return runs it immediately rather than waiting out the 220ms debounce,
   // then the keyboard goes — see enterSubmits.
   // …and `live.sync()` after it: the blur Return performs would otherwise be
   // liveInput's first sight of dictated text (the 150ms poll may not have
   // ticked yet), and it would schedule a second, identical run 220ms later.
-  enterSubmits(qi, function(){ clearTimeout(t); run(qi.value); live.sync(); });
+  enterSubmits(qi, function(){ clearTimeout(t); run(qi.value); live.sync(); wipePaint(); });
   var _reset=window._resetSearch;
-  window._resetSearch=function(){ _reset(); live.sync(); };
+  window._resetSearch=function(){ _reset(); live.sync(); wipePaint(); };
   // THE ✕ IS THE WAY OUT, and only that (see paintSearch for her ask). It used
   // to clear first and close on the second tap; leaving a search she could
   // still see therefore cost two taps and the first read as "it ate my words".
   qc.onclick=function(){ setSearchOpen(false); };
+  // …and THE ROUND ✕ INSIDE THE FIELD wipes the words and stays. It does
+  // exactly what the glass does — forget, reset, keep the focus — so there is
+  // one behaviour behind two controls rather than two behaviours to learn.
+  // Shown only when there is something to wipe: an always-there clear button
+  // on an empty box is a control that does nothing.
+  function wipePaint(){ if(qw) qw.classList.toggle('on', !!(qi && qi.value)); }
+  window.__paintWipe=wipePaint;
+  if(qw) qw.onclick=function(){
+    if(window._forgetSearch) window._forgetSearch();
+    window._resetSearch();
+    qi.focus();
+  };
+  wipePaint();
 })();
 
 // Floating audio bar: while a message's audio is in play, a tappable bar pins

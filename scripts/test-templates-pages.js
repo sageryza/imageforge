@@ -56,6 +56,8 @@ const files = {
   '/judge.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'judge.js'), 'utf8')],
   '/grid.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'grid.js'), 'utf8')],
   '/asset-lightbox.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8')],
+  '/asset-view.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-view.js'), 'utf8')],
+  '/page-views.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'page-views.js'), 'utf8')],
 };
 const pill = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 
@@ -400,6 +402,7 @@ setTimeout(function(){
 function run(name, html, search) {
   return new Promise((resolve, reject) => {
     let finish = null;
+    const verdictDoc = { items: {}, texts: {} };
     const server = http.createServer((req, res) => {
       const [route, qs] = req.url.split('?');
       if (/^\/api\/chatfeed\/page\/[^/]+\/review$/.test(route)) {
@@ -412,9 +415,29 @@ function run(name, html, search) {
         // any literal % in a message (e.g. a calc(100% …) in a diagnostic)
         return finish && finish(new URLSearchParams(qs).get('r') || '');
       }
+      // A REAL ROUND TRIP, not a stub that forgets. The two-view page proves
+      // itself by a mark made in one view showing in the other, and both read
+      // it back off this doc — against a stub that always answered {} the
+      // cross-view check can only ever fail.
       if (route === '/api/chatfeed/verdict') {
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', (c) => { body += c; });
+          return req.on('end', () => {
+            try {
+              const b = JSON.parse(body || '{}');
+              if (b.item !== undefined) {
+                if (b.ok === null || b.ok === undefined) delete verdictDoc.items[b.item];
+                else verdictDoc.items[b.item] = b.ok;
+                if (b.text !== undefined) verdictDoc.texts[b.item] = b.text;
+              }
+            } catch (e) { /* the page still holds its own state */ }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end('{"ok":true}');
+          });
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end('{"ok":true,"items":{},"texts":{}}');
+        return res.end(JSON.stringify({ ok: true, items: verdictDoc.items, texts: verdictDoc.texts }));
       }
       if (route === '/api/gallery/assets/vote' || route === '/api/gallery/assets/note') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -559,9 +582,13 @@ setTimeout(function(){
   // ONE SCREEN: her design does not scroll, and no autoscroll pill rides it
   ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
      'the page does not scroll — it is one screen');
-  ok(!document.querySelector('.float')
-     && !!document.querySelector('meta[name="forge-pill"][content="off"]'),
-     'no autoscroll pill on a deck — there is nothing to scroll');
+  // NO PILL OVER A DECK — but the page holds the COMPARE view too now, and
+  // that half scrolls and needs one. So the pill is injected and hidden by
+  // the view (page-views.js), which is the honest form of the rule: what she
+  // asked for is not seeing one while swiping.
+  var pill=document.querySelector('.float');
+  ok(!pill || getComputedStyle(pill).display==='none',
+     'no autoscroll pill over a deck — there is nothing to scroll');
   ok(!document.querySelector('h1'),
      'no page title of its own — the app header already names it');
   // her chrome: progress line + Piles + ? up top, her footer below the card
@@ -814,6 +841,105 @@ setTimeout(function(){
   }) + pill + TEST;
 }
 
+// ONE PAGE, TWO VIEWS (Aug 2026, Sophie: "the compare page, and tinder swipe
+// shud be TWO views of the the same page, since they have the same content.
+// that way I can swipe back and forth, and see them at full size, rather than
+// opening and closing"). The switch, the marks crossing between the views, the
+// pill appearing only for the half that scrolls, and the Assets lightbox on a
+// swipe card's picture.
+function twoViewPage() {
+  const v = validateTemplate('grid', { groups: [
+    { label: 'Listened at the door', items: [
+      { id: 'a1', label: 'ink & wash', img: IMG, full: BIG, url: `${SG}/x/a1.png`,
+        model: 'gpt-image-2', quality: 'medium',
+        promptStyle: 'ink & wash', promptContent: 'listened at the door' },
+      { id: 'a2', label: 'silkscreen', img: IMG, url: `${SG}/x/a2.png` },
+    ] },
+    { label: 'Snuck out', items: [
+      { id: 'b1', label: 'ink & wash', img: IMG },
+      { id: 'b2', label: 'silkscreen', img: IMG },
+    ] },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  function posts(u){ return window.__posts.filter(function(p){ return p.u.indexOf(u)>=0; }); }
+  var tabs=document.querySelectorAll('.pv button');
+  ok(tabs.length===2 && tabs[0].textContent==='Swipe' && tabs[1].textContent==='Compare',
+     'the page carries both views behind one switch');
+  ok(!document.getElementById('grid').hidden && document.getElementById('judge').hidden,
+     'a grid page opens on COMPARE');
+  var pill=document.querySelector('.float');
+  ok(!pill || getComputedStyle(pill).display!=='none',
+     'the compare half keeps the pill — it scrolls');
+  ok(document.querySelectorAll('#grid .gd-it').length===4,
+     'all four pictures are on the compare view');
+
+  // …the same four are the swipe deck, flattened in order
+  tabs[0].click();
+  setTimeout(function(){
+    ok(document.body.classList.contains('jg-mombg'),
+       'switching to swipe puts her one-screen chrome on the page');
+    ok(document.querySelector('.float')==null
+       || getComputedStyle(document.querySelector('.float')).display==='none',
+       'and takes the pill away — a deck never scrolls');
+    ok(!!document.querySelector('#judge .jg.mom'), 'the deck drew, in her look');
+    // A SPREAD IS ONE CARD (Aug 2026: "a note per card, or per spread") — the
+    // two pictures of a comparison travel together, which is also the two-up
+    // picker she asked about
+    var who=document.querySelector('#judge .jg.mom>.who');
+    ok(who && who.textContent==='Listened at the door',
+       'the card is the SPREAD, named by it — got '+(who&&who.textContent));
+    ok(document.querySelectorAll('#judge .jg-spread figure').length===2,
+       'both of its pictures are on the one card');
+    var caps=[].map.call(document.querySelectorAll('#judge .jg-spread figcaption'),
+      function(c){ return c.textContent; });
+    ok(caps.join('|')==='ink & wash|silkscreen', 'each keeps its own name — got '+caps.join('|'));
+
+    // the card's ♥ marks the SPREAD, under a key of its own
+    document.querySelector('#judge [data-act="yes"]').click();
+    setTimeout(function(){
+      var pv=posts('/api/chatfeed/verdict').pop();
+      ok(pv && pv.b.item==='s:listened-at-the-door' && pv.b.ok===true,
+         'the heart marked the spread, not a picture — got '+(pv&&pv.b.item));
+
+      // …and tapping ONE picture is that picture's own lightbox
+      document.querySelector('#judge .jg-spread img').click();
+      setTimeout(function(){
+        var lb=document.getElementById('clightbox');
+        ok(lb && lb.style.display!=='none', 'a picture on the spread opens its lightbox');
+        ok(lb.querySelectorAll('.vote').length===2 && !!lb.querySelector('.promptbtn')
+           && !!lb.querySelector('.lbnote input'),
+           'with the Assets formula — heart, prompt, note');
+        lb.click();   // anywhere that isn't a control closes it
+
+        tabs[1].click();
+        setTimeout(function(){
+          ok(!document.body.classList.contains('jg-mombg'),
+             'switching back lets the compare view scroll again');
+          var sp=document.querySelector('#grid [data-item="s:listened-at-the-door"]');
+          ok(!!sp, 'the spread is a marked-up group over here');
+          var h=sp.querySelector('.gd-gacts .gd-vote.yes');
+          ok(h && h.classList.contains('on'),
+             'and the spread heart she gave while swiping is lit on its row');
+          ok(!!sp.querySelector('.cmp-note-open'),
+             'a spread carries the note + of its own');
+          var solo=document.querySelector('#grid .gd-group:not([data-item])');
+          ok(!solo || !solo.querySelector('.gd-gacts'),
+             'a one-card spread gets NO second heart — its card is the mark');
+          fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+        }, 600);
+      }, 700);
+    }, 300);
+  }, 500);
+}, 900);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'grid', title: 'Two views v1', chat: 't', sheet: 'page-tv', data: v.data,
+  }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
@@ -822,6 +948,7 @@ setTimeout(function(){
     const d = await run('moment', momentPage());
     const e = await run('queue', queuePage(), '?clean=1');
     const f = await run('short', shortMomentPage());
-    console.log(`all ${a + b + c + d + e + f} checks passed`);
+    const g = await run('twoview', twoViewPage());
+    console.log(`all ${a + b + c + d + e + f + g} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();
