@@ -1796,14 +1796,34 @@
       its count; an empty section shows NO header. Cards stay newest-first
       within a section, and the cards themselves are unchanged — ✓ picking,
       the boxes, the ⌄ all still work.
-    - **`newsKind(it)` decides, exclusive, in priority order:** (1) a fresh
-      deliverable — a Compare page newer than the floor, or a picture newer
-      than it → DELIVERABLES; (2) else an open `need` on the status card →
-      QUICK DECISIONS; (3) else → TO READ. **A deliverable outranks an open
+    - **`newsKind(it)` decides, exclusive, in priority order (v2, Aug 2026 —
+      widened the day after it shipped, from her screenshot):** (1) a fresh
+      deliverable — a Compare page newer than the floor, a picture newer than
+      it, **or the chat's pinned FILM/AUDIO re-posted since it** (`newsPin`) →
+      DELIVERABLES; (2) else **a `need` that tells her to go look at a thing**
+      (`NEED_LOOK` — watch/listen/look/peek/open/install/play/tap/test/try/
+      check/review, word-anchored) → DELIVERABLES; (3) else an open `need` →
+      QUICK DECISIONS; (4) else → TO READ. **A deliverable outranks an open
       `need` on purpose**: when a chat hands her a thing AND asks about it,
       the thing is what she opens, and the ask still reads on the card's own
       status line — need-first would have filed 24 of 33 cards as asks and
       the deliverables would never have surfaced.
+    - **v1'S RULE MADE A REAL CARD WRONG, AND THE PIN IS THE FIX (2026-08-19,
+      Sophie: "why is this in the quick decision tab? It's obviously a
+      deliverable. Tell me the rule that made it wrong").** v1's whole idea of
+      a deliverable was Compare pages + gallery images. dream-app-commercial
+      delivered a FILM: images 8:41 am → her ✓ 9:21 → "Dream commercial — v2"
+      pinned 9:28 with need "watch v2, 45 sec" — invisible to v1, so the need
+      filed it under Quick decisions. A film/audio pin re-posted since the
+      floor is now an ARRIVAL in `newsItems` too (a chat can deliver a cut
+      without saying anything — same rule pictures and pages already had). A
+      `link` pin counts for nothing here: it is a bookmark, and Compare pages
+      are already counted.
+    - **Yes, `NEED_LOOK` reads words, which the v3 title parser died for —
+      the stakes are different.** That parser decided what was HIDDEN; a miss
+      here files a card one visible section over on the same screen. Her real
+      needs the day this shipped: "watch v2, 45 sec", "listen through the
+      37", "install build 165" — review tasks wearing a need's clothes.
     - **DERIVED, never filed** — no model call (the screen opens constantly
       and must spend nothing) and nothing new for chats to POST (only ~7%
       ever write a card, the same measurement that made the Questions list
@@ -1815,7 +1835,8 @@
       she already sorted.
     - Tests: `node scripts/test-chats-news-sections.js` (the real page,
       headless — the order, the counts, the need-vs-deliverable priority, the
-      stale-pictures case, the vanishing empty header, the flat box).
+      stale-pictures case, the vanishing empty header, the flat box; v2: the
+      pin-raised card, the go-look need, the stale pin, the link pin).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
