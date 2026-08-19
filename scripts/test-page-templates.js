@@ -243,6 +243,59 @@ ok('a contentSet needs a filed style and two DISTINCT contents', () => {
   ]).contentSets.length, 0);
 });
 
+// ── the same prompt drawn twice (her grainy-vs-clean pairs) ────────────────
+ok('the SAME prompt at the same settings, drawn twice, is its own group', () => {
+  const S = 'the house dream style';
+  const out = groupAssetVariants([
+    { url: 'clean', prompt: 'gpt-image-2 · medium', promptStyle: S, promptContent: CONTENT,
+      description: 'Mountain Summit — drawn again with no webp compression — dream mystery', ms: 2 },
+    { url: 'grainy', prompt: 'gpt-image-2 · medium', promptStyle: S, promptContent: CONTENT,
+      description: 'Mountain Summit — salient clause prompt, drawn square at medium — dream mystery', ms: 1 },
+  ]);
+  // nothing filed differs, so it is NOT a ladder — that rule stands
+  assert.strictEqual(out.ladders.length, 0);
+  assert.strictEqual(out.reruns.length, 1);
+  // in the order they were drawn, labelled by the half the chat wrote to tell
+  // them apart (the name is identical on both by construction)
+  assert.deepStrictEqual(out.reruns[0].items.map((i) => i.label), [
+    'salient clause prompt, drawn square at medium',
+    'drawn again with no webp compression',
+  ]);
+});
+
+ok('a rerun group with nothing written to tell the takes apart numbers them', () => {
+  const out = groupAssetVariants([
+    { url: 'a', prompt: 'x · low', promptStyle: 'S', promptContent: CONTENT, description: 'Penny', ms: 1 },
+    { url: 'b', prompt: 'x · low', promptStyle: 'S', promptContent: CONTENT, description: 'Penny', ms: 2 },
+  ]);
+  assert.deepStrictEqual(out.reruns[0].items.map((i) => i.label), ['Draw 1', 'Draw 2']);
+});
+
+ok('one take of a prompt is never a rerun group', () => {
+  assert.strictEqual(groupAssetVariants([
+    { url: 'a', prompt: 'x · low', promptStyle: 'S', promptContent: CONTENT },
+    { url: 'b', prompt: 'x · high', promptStyle: 'S', promptContent: CONTENT },
+  ]).reruns.length, 0);
+});
+
+ok('a five-way ladder gives every tile a label of its OWN', () => {
+  // the live bug (2026-08-19): "differs from SOMEONE" is too weak a test in a
+  // group of many — three variants sharing a first paragraph all got handed it
+  const mk = (u, style, desc) => ({ url: u, prompt: 'gpt-image-2 · medium',
+    promptContent: CONTENT, promptStyle: style, description: desc });
+  const SHARED = 'ref paragraph, shared by most.';
+  const { ladders } = groupAssetVariants([
+    mk('a', `${SHARED}\nDraw it as one image.`, 'Party — her line — dream mystery'),
+    mk('b', 'a DIFFERENT ref paragraph.\nDraw it as one image.', 'Party — her line — sage sandy mirror'),
+    mk('c', `${SHARED}\nChoose one salient image.`, 'Party — salient — dream mystery'),
+    mk('d', `${SHARED}\nAmorphous panels, v2.`, 'Party — amorphous v2 — dream mystery'),
+    mk('e', `${SHARED}\nAmorphous panels.`, 'Party — amorphous — dream mystery'),
+  ]);
+  const labels = ladders[0].items.map((i) => i.label);
+  assert.strictEqual(new Set(labels).size, 5, `all five distinct — got ${JSON.stringify(labels)}`);
+  assert.ok(!labels.includes('medium'), 'and never a bare quality word among style lines');
+});
+
 // ── planAutoPages — what the server files by itself ─────────────────────────
 ok('planAutoPages: a ladder and a subject set become the two auto pages', () => {
   const { planAutoPages } = require('../page-templates');
@@ -331,6 +384,24 @@ ok('planAutoPages: ONE group needs no tag at all', () => {
   assert.strictEqual(subj.data.groups.length, 1);
   assert.strictEqual(subj.data.groups[0].label, undefined);
   assert.ok(subj.data.help.includes('<b>Style</b> — the one style'));
+});
+
+ok('planAutoPages: the reruns page is its own, and says only what it knows', () => {
+  const { planAutoPages, validateTemplate } = require('../page-templates');
+  const S = 'the house dream style';
+  const plans = planAutoPages([
+    { url: 'clean', prompt: 'gpt-image-2 · medium', promptStyle: S, promptContent: CONTENT,
+      description: 'Mountain — drawn again with no webp compression — dream mystery', ms: 2 },
+    { url: 'grainy', prompt: 'gpt-image-2 · medium', promptStyle: S, promptContent: CONTENT,
+      description: 'Mountain — the first take — dream mystery', ms: 1 },
+  ]);
+  const rr = plans.find((p) => p.kind === 'reruns');
+  assert.strictEqual(rr.title, 'Auto-compare — same prompt, drawn again');
+  assert.strictEqual(rr.heading, 'Same prompt, drawn again');
+  // it must not claim to know WHY two takes differ — nothing on record says
+  assert.ok(!/compress/i.test(rr.data.help));
+  assert.ok(/one prompt drawn more than once/i.test(rr.data.help));
+  assert.strictEqual(validateTemplate('grid', rr.data).ok, true);
 });
 
 ok('planAutoPages: nothing groupable, no plans — and ms never survives validation', () => {

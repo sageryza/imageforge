@@ -720,6 +720,28 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     - **"Auto-compare — same style, different subjects"** — exact-same
       style prompt across different contents (her dream case: one style
       walked across many dreams), shortest content first.
+    - **"Auto-compare — same prompt, drawn again"** (Aug 2026, Sophie: "the
+      dream feed chat now has grainy and non-grainy images, can we make this
+      auto trigger compare page") — one prompt drawn more than once at the
+      same model and quality, in the order they were drawn. Her grainy/clean
+      pairs are identical on every FILED field, because what differed was
+      `output_compression`, a generation setting nothing ever recorded — so
+      the ladder rule ("identical everything is a re-roll, not a comparison")
+      correctly could not see them. That rule is right about what it can see
+      and was wrong that she never wants them side by side; this page claims
+      only *this prompt was drawn twice*, never why they differ. **The line
+      under each tile is the half the filing chat wrote after the picture's
+      name** — the names are identical by construction — falling back to
+      "Draw 1 / Draw 2" when nothing distinguishes them.
+    - **A TILE'S LABEL IS THE LINE THAT IS THAT VARIANT'S OWN** (fixed
+      2026-08-19 on her live ladders page, where five tiles all read
+      "Last-Minute Halloween Party"). "Differs from SOME sibling" is too weak
+      a test in a group of many — three variants sharing a first paragraph
+      all got handed it — so the label takes the style line unique to that
+      item, then the chat's own tail, then the style reference's name, then
+      the short name, then the draw number, each tried only while the labels
+      still collide. (`diffStyleLine` keeps the weaker test, which is the
+      right one for grid.js's rose marking between two variants.)
     A row wears a SHORT tag ("Style 1") with the prompt behind the "?" —
     a group's real header here IS a prompt, and in gold caps between her
     title and the pictures that is exactly the shape the *nothing to read

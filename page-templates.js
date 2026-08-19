@@ -47,11 +47,15 @@
 //   contentSets — exact-same prompt STYLE, differing content (her dream case:
 //                 "a compare page for only images that have the same style
 //                 prompt but different dreams"). Also objective; auto-filed.
+//   reruns      — the SAME prompt at the same model/quality, drawn more than
+//                 once (her grainy-vs-clean pairs, Aug 2026: what differed was
+//                 a generation setting nothing ever filed). Objective too —
+//                 it claims only "this was drawn twice", never why.
 //   variants    — NEAR-identical prompts (a line added or changed). Only ever
 //                 FLAGGED, because where a variation set starts and stops is
 //                 the chat's judgement call, not string math (her instinct,
 //                 Aug 2026, made the rule).
-// planAutoPages() turns the objective groups into the two per-chat AUTO pages
+// planAutoPages() turns the objective groups into the per-chat AUTO pages
 // the server maintains by itself — see runAutoCompare in chatfeed.js.
 //
 // Pure on purpose: no Firestore, no fetch — scripts/test-page-templates.js
@@ -336,6 +340,15 @@ function shortLabel(s) {
   return String(s || '').split(' — ')[0].replace(/\s*\([^)]*\)\s*$/, '').trim().slice(0, 80);
 }
 
+// The half of a filed description that comes AFTER the picture's name — what
+// the chat wrote to tell this one from its siblings ("drawn again with no webp
+// compression"). The trailing style tag ("— dream mystery") is dropped: it is
+// the same on every image in a set, so it can never be the differing half.
+function labelTail(s) {
+  const parts = String(s || '').split(' — ').map((x) => x.trim()).filter(Boolean);
+  return parts.length > 1 ? parts[1].slice(0, 80) : '';
+}
+
 // The first style segment this variant does NOT share with the row's others —
 // the honest "what changed" for a style-differing ladder. Segments split on
 // newlines, else on sentence marks (the same rule grid.js highlights by).
@@ -344,6 +357,22 @@ function styleSegs(s) {
   const parts = /\n/.test(s) ? s.split(/\n+/) : (s.match(/[^.;]+[.;]*\s*/g) || [s]);
   return parts.map((x) => x.trim()).filter(Boolean);
 }
+// For a LABEL in a group of many, "differs from someone" is too weak a test —
+// in a five-way set nearly every line differs from someone, so three variants
+// all get handed the same shared first paragraph (found 2026-08-19: five tiles
+// reading the same words). The label wants the line that is this variant's
+// ALONE.
+function uniqueStyleLine(own, others) {
+  const otherSets = others.map((o) => new Set(styleSegs(o).map(normContent)));
+  for (const seg of styleSegs(own)) {
+    const n = normContent(seg);
+    if (n && !otherSets.some((set) => set.has(n))) {
+      return seg.replace(/[.;\s]+$/, '').slice(0, 80);
+    }
+  }
+  return '';
+}
+
 function diffStyleLine(own, others) {
   const otherSets = others.map((o) => new Set(styleSegs(o).map(normContent)));
   for (const seg of styleSegs(own)) {
@@ -419,20 +448,51 @@ function groupAssetVariants(assets) {
       const capsVary = new Set(items.map((x) => `${x.model}|${x.quality}`)).size > 1;
       const allStyles = items.map((i) => i.promptStyle);
       items.forEach((it, idx) => {
-        const d = diffStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
-        if (d) it.label = capsVary && (it.quality || it.model)
-          ? `${it.quality || it.model} · ${d}` : d;
+        const d = uniqueStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
+        if (d) {
+          it.label = capsVary && (it.quality || it.model)
+            ? `${it.quality || it.model} · ${d}` : d;
+          return;
+        }
+        // no line of its own (every line shared with SOME sibling): the chat's
+        // own words beat a bare "medium" sitting among four style lines
+        const a = Array.from(distinct.values()).find((x) => x.url === it.url);
+        const tail = a && labelTail(a.description);
+        if (tail) it.label = tail;
       });
     }
-    // still-duplicate labels (two variants whose difference the line split
-    // can't see) fall back to the image's own name, shortened
-    if (new Set(items.map((i) => i.label)).size < items.length) {
-      const src = Array.from(distinct.values());
+    // STILL-DUPLICATE LABELS (found 2026-08-19 on her live ladders page: five
+    // tiles all reading "Last-Minute Halloween Party", which says nothing
+    // about what changed). Fall through the sources in order of how well each
+    // distinguishes: the chat's own tail first — that is the half it wrote to
+    // tell the siblings apart — then the picture's short name, and only then
+    // the draw order. Each step is tried only while the labels still collide.
+    const src = Array.from(distinct.values());
+    const rowOf = (it) => src.find((a) => a.url === it.url);
+    const collide = () => new Set(items.map((i) => i.label)).size < items.length;
+    if (collide()) {
       items.forEach((it) => {
-        const a = src.find((s) => s.url === it.url);
+        const a = rowOf(it);
+        const tail = a && labelTail(a.description);
+        if (tail) it.label = tail;
+      });
+    }
+    if (collide()) {
+      // two takes of one prompt through DIFFERENT style references read alike
+      // until you reach the ref's name, which her labels carry last
+      items.forEach((it) => {
+        const a = rowOf(it);
+        const parts = String((a && a.description) || '').split(' — ').map((x) => x.trim());
+        if (parts.length > 2) it.label = `${it.label.slice(0, 58)} · ${parts[parts.length - 1]}`;
+      });
+    }
+    if (collide()) {
+      items.forEach((it) => {
+        const a = rowOf(it);
         if (a && a.description) it.label = shortLabel(a.description) || it.label;
       });
     }
+    if (collide()) items.forEach((it, i) => { it.label = `Draw ${i + 1}`; });
     ladders.push({ label: key.slice(0, 90), items });
   }
 
@@ -468,6 +528,45 @@ function groupAssetVariants(assets) {
     contentSets.push({ label: firstLine.slice(0, 90) || sk.slice(0, 90), items });
   }
 
+  // SAME PROMPT, DRAWN AGAIN (Aug 2026, Sophie: "the dream feed chat now has
+  // grainy and non-grainy images, can we make this auto trigger compare
+  // page"). Those pairs are identical on every FILED field — same content,
+  // same style, same MODEL · QUALITY — because what differed was
+  // `output_compression`, a generation setting nothing ever recorded. The
+  // ladder rule above deliberately drops them ("identical everything is a
+  // re-roll, not a comparison"), and that rule is right about what it can
+  // SEE; it was wrong that she never wants to see them side by side. So the
+  // repeats get their own page rather than a guess about why they differ:
+  // no inference, just "this prompt was drawn more than once, here they are".
+  // Order is the order they were drawn, so the set reads as its own history.
+  const reruns = [];
+  for (const [key, group] of byContent) {
+    if (group.length < 2) continue;
+    const sameEverything = new Map();
+    for (const a of group) {
+      const k = `${(parseCaption(a.prompt) || {}).model || ''}|`
+        + `${(parseCaption(a.prompt) || {}).quality || ''}|${normContent(a.promptStyle)}`;
+      if (!sameEverything.has(k)) sameEverything.set(k, []);
+      sameEverything.get(k).push(a);
+    }
+    for (const takes of sameEverything.values()) {
+      if (takes.length < 2) continue;
+      const items = takes.slice().sort((x, y) => (Number(x.ms) || 0) - (Number(y.ms) || 0))
+        .map((a, i) => {
+          const it = itemOf(a);
+          // the NAMES are identical here by construction, so the half that
+          // tells them apart is whatever the filing chat wrote after it
+          it.label = labelTail(a.description) || `Draw ${i + 1}`;
+          return it;
+        });
+      // a tail that says nothing different is no label at all — number them
+      if (new Set(items.map((i) => i.label)).size < items.length) {
+        items.forEach((it, i) => { it.label = `Draw ${i + 1}`; });
+      }
+      reruns.push({ label: key.slice(0, 90), items });
+    }
+  }
+
   // near-duplicates across DIFFERENT content keys → flagged candidates
   const keys = Array.from(byContent.keys());
   const toks = keys.map((k) => tokens(k));
@@ -496,7 +595,7 @@ function groupAssetVariants(assets) {
       }))),
     });
   }
-  return { ladders, contentSets, variants };
+  return { ladders, contentSets, reruns, variants };
 }
 
 // ─── The AUTO pages the server keeps by itself ──────────────────────────────
@@ -557,7 +656,7 @@ function tagGroups(capped, word) {
 // content (her threshold-ladder tests read in order); the cap keeps the
 // NEWEST first.
 function planAutoPages(assets) {
-  const { ladders, contentSets } = groupAssetVariants(assets);
+  const { ladders, contentSets, reruns } = groupAssetVariants(assets);
   const plans = [];
   const capNote = (n) => (n > AUTO_GROUPS_MAX
     ? ` Showing the first ${AUTO_GROUPS_MAX} of ${n} groups.` : '');
@@ -596,6 +695,23 @@ function planAutoPages(assets) {
           + 'prompt with different subjects, shortest content first. New images '
           + 'join by themselves; PROMPT on any picture shows its exact text.'
           + capNote(contentSets.length)
+          + (lines.length ? `<br><br>${lines.join('<br><br>')}` : ''),
+        groups,
+      },
+    });
+  }
+  if (reruns.length) {
+    const { groups, lines } = tagGroups(capGroups(reruns, AUTO_LADDER_ITEMS), 'Prompt');
+    plans.push({
+      kind: 'reruns',
+      title: 'Auto-compare — same prompt, drawn again',
+      heading: 'Same prompt, drawn again',
+      data: {
+        help: 'Filed automatically: one prompt drawn more than once at the same '
+          + 'model and quality, in the order they were drawn. Nothing on record '
+          + 'says why two takes differ — only that they are the same prompt — so '
+          + 'the line under each is whatever the chat wrote to tell them apart.'
+          + capNote(reruns.length)
           + (lines.length ? `<br><br>${lines.join('<br><br>')}` : ''),
         groups,
       },
