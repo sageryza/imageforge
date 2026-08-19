@@ -18,7 +18,8 @@
 //                         audio:[{url, duration}] (her spoken takes — see
 //                         LISTEN below), wordsPublic, panels:[{i, url,
 //                         captions, promptUsed, public}], drawJob, drawnOn,
-//                         drawnAt, feltCount }
+//                         drawnAt, feltCount,
+//                         tags:[{uid, name}] — the friends who were in it }
 //   forge-dreamapp-felt   one doc per dream+uid (the heart)
 //   forge-dreamapp-comments  one doc per comment { dreamId, uid, name, text, at }
 //   forge-dreamapp-teams  one doc per dream team { id, name, code, createdBy,
@@ -153,6 +154,28 @@ function friendUidsOf(pairs, uid) {
 async function friendPairsOf(uid) {
   const snap = await db().collection(FRIENDS).where('uids', 'array-contains', uid).get();
   return snap.docs.map((d) => d.data());
+}
+
+// ── TAGGING — you were in my dreams (Sophie, 2026-08-19) ────────────────────
+// "The ability to tag someone in your dream … that should be on the dream
+// sharing page." The app's namesake. Only FRIENDS are taggable (you tag by
+// name, and names exist only inside friendships), the client names them by
+// PAIR id (a uid never travels), and a tag is visible to exactly ONE person:
+// the tagged friend sees "you were in this dream" on the card — nobody else
+// sees anything, the sheet stays nameless. Whoever was tagged can tap
+// through to the profile, where the existing friendship rule shows them
+// whose dream it was. Pure, for its test: resolve the asked-for pair ids
+// against the owner's pairs — only an ACCEPTED pair the owner is in tags.
+function tagsFromPairs(pairs, wantIds, ownerUid) {
+  const want = new Set(Array.isArray(wantIds) ? wantIds.map(String) : []);
+  const out = [];
+  for (const p of pairs || []) {
+    if (!want.has(p.id) || !p.acceptedAt) continue;
+    const other = (p.uids || []).find((u) => u !== ownerUid);
+    if (!other || !(p.uids || []).includes(ownerUid)) continue;
+    out.push({ uid: other, name: (p.names || {})[other] || 'a dreamer' });
+  }
+  return out;
 }
 
 async function teamsOf(uid) {
@@ -336,6 +359,7 @@ function mine(doc) {
     elems: doc.elems || [],
     // Only the owner's view carries the recordings — the feed never does.
     audio: doc.audio || [],
+    tags: (doc.tags || []).map((t) => ({ pair: friendPairId(doc.uid, t.uid), name: t.name })),
   };
 }
 
@@ -366,6 +390,9 @@ function feedCard(d, uid, felt) {
     feltCount: d.feltCount || 0,
     felt: felt.has(d.id),
     commentCount: d.commentCount || 0,
+    // Visible to exactly one reader — everyone else gets nothing, not even
+    // that tags exist on this dream.
+    taggedYou: (d.tags || []).some((t) => t.uid === uid),
   };
 }
 
@@ -475,6 +502,7 @@ router.post('/dreams', async (req, res) => {
       night: feedDay(),
       publicOn: null, audience: 'private',
       wordsPublic: true, panels: [], drawJob: null, drawnOn: null, drawnAt: null, feltCount: 0,
+      tags: [],
     };
     await ref.set(doc);
     writeTitle(ref.id, text); // background — the client polls the dream
@@ -554,6 +582,21 @@ router.post('/dreams/:id/audience', async (req, res) => {
       panels: (doc.panels || []).map((p) => ({ ...p, public: true })),
     }, { merge: true });
     res.json({ ok: true, audience: aud, publicOn: on });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Who was in it — the whole selection each time (the chips UI posts its
+// full state, so un-tagging is the same POST). Owner only; only accepted
+// friendships resolve; everything else in `pairs` is silently dropped
+// rather than erroring, because a friendship can end between paint and tap.
+router.post('/dreams/:id/tags', async (req, res) => {
+  try {
+    const snap = await db().collection(DREAMS).doc(req.params.id).get();
+    if (!snap.exists || snap.data().uid !== req.user.uid) return res.status(404).json({ error: 'not found' });
+    const wantIds = Array.isArray(req.body?.pairs) ? req.body.pairs.slice(0, 30) : [];
+    const tags = tagsFromPairs(await friendPairsOf(req.user.uid), wantIds, req.user.uid);
+    await db().collection(DREAMS).doc(req.params.id).set({ tags }, { merge: true });
+    res.json({ ok: true, tags: tags.map((t) => ({ pair: friendPairId(req.user.uid, t.uid), name: t.name })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -879,4 +922,4 @@ router.post('/dreams/:id/comments', async (req, res) => {
 // friendsReaches/canRead are the whole friends-audience rule, exported the
 // same way (scripts/test-dreamapp-teams.js).
 module.exports = { router, init, streakOf, drawsToday, sharesToday,
-                   friendsReaches, canRead, friendPairId, friendUidsOf };
+                   friendsReaches, canRead, friendPairId, friendUidsOf, tagsFromPairs };
