@@ -118,6 +118,27 @@ Sophie found the song and sent it in, in her own words:
   track coming in on the title card is the turn. That is the answer to the
   "sound is an open question" line above, for this cut at least.
 
+### The song spot — a SECOND commercial, hers (2026-08-19)
+
+Not the boys. A short one built on the record, three beats, in her words:
+
+1. **"now it doesn't have to be a secret"**
+2. **"you were in my dreams"** — the hook lands, and it is the domain
+3. **a person tapping share your dream**
+
+Two notes for whoever shoots it.
+
+- **The button really does say "share your dream"** (`public/dreamapp.html`,
+  the composer's last control) — use the app's own words, and the app's own
+  screen. Right above it sits **seen by: everyone / friends / just me**, and a
+  dream in the feed reads **private** or **shared**. So the secret in her first
+  line is a real state in the product, not a metaphor: the shot is a thumb
+  moving off *just me*, and then *share your dream*.
+- **The line before the hook is the whole ad.** A dream is the most private
+  thing a person has, and the app's proposition is that it stops having to be —
+  so the copy does the argument and the song says the name. No voiceover, no
+  explanation of what the app does.
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is
