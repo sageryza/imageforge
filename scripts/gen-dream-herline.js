@@ -24,6 +24,10 @@
  *
  * SOURCES. Neither dream is committed — this repo is public.
  *   --dream <forge-dreamapp doc id>   the dream feed's own text, read live
+ *   --memo <memo id>                  a Voice Memo's transcript, read from the
+ *                                     membry manifest (the id column of
+ *                                     memo-audio/manifest.json; needs
+ *                                     STORY_FIREBASE_SERVICE_ACCOUNT)
  *   (default)                         the long Halloween dream, read back from
  *                                     the content half already filed on the
  *                                     original RAW TEXT tile
@@ -129,6 +133,17 @@ async function halloweenText() {
   return { text: hit.promptContent, title: 'Last-Minute Halloween Party' };
 }
 
+async function memoText(id) {
+  const sa = JSON.parse(process.env.STORY_FIREBASE_SERVICE_ACCOUNT || '');
+  const app = admin.initializeApp({ credential: admin.credential.cert(sa) }, 'membry');
+  const [buf] = await app.storage().bucket(`${sa.project_id}.firebasestorage.app`)
+    .file('memo-audio/manifest.json').download();
+  const hit = (JSON.parse(buf.toString()).memos || []).find((m) => m.id === id);
+  if (!hit) throw new Error(`no memo ${id}`);
+  if (!hit.transcript) throw new Error(`memo ${id} has no transcript`);
+  return { text: hit.transcript.trim(), title: hit.title || id };
+}
+
 async function dreamAppText(id) {
   const snap = await admin.firestore().collection('forge-dreamapp').doc(id).get();
   if (!snap.exists) throw new Error(`no dream ${id}`);
@@ -182,7 +197,9 @@ async function main() {
   const refs = which === 'both' ? [REFS.dream, REFS.sage] : [REFS[which]];
   if (refs.some((r) => !r)) throw new Error(`unknown ref ${which}`);
   const dreamId = arg('--dream', '');
-  const { text, title } = dreamId ? await dreamAppText(dreamId) : await halloweenText();
+  const memoId = arg('--memo', '');
+  const { text, title } = memoId ? await memoText(memoId)
+    : dreamId ? await dreamAppText(dreamId) : await halloweenText();
   const threshold = parseInt(arg('--threshold', String(SALIENT_THRESHOLD)), 10);
   if (variant === 'auto') {
     variant = text.length > threshold ? 'salient' : 'one';
@@ -190,7 +207,7 @@ async function main() {
   }
   const para = VARIANTS[variant];
   if (!para) throw new Error(`unknown variant ${variant} — one of ${Object.keys(VARIANTS).join(', ')}`);
-  const slug = arg('--slug', dreamId ? `${dreamId.slice(0, 8)}-${variant}` : `halloween-${variant}`);
+  const slug = arg('--slug', (memoId || dreamId) ? `${(memoId || dreamId).slice(0, 10)}-${variant}` : `halloween-${variant}`);
   console.log(`"${title}" · ${text.length} chars verbatim · variant ${variant} · ${refs.length} run(s)`);
 
   const out = [];
