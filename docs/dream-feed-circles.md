@@ -20,6 +20,12 @@ then we'll also have something called circles except I won't call it circles
   pattern, any member can pass the link on. Dropped (for now): the guess
   game, the claim/reveal, per-post circle choice. The rest of this file is
   the original circles design, kept as the study those calls came from.
+- **And friends are REAL, mutual people since the same day** (Sophie: "like
+  following on Instagram except you have to let them accept you — a two-way
+  Facebook model"): ask by personal link (`/f/<code>`), accept on the friends
+  screen, the holding-hands moment on the yes. `forge-dreamapp-friends` /
+  `forge-dreamapp-profile`; a ☾ friends night reaches accepted friends OR
+  routed teams.
 
 The seen-by dial in the live app had two stops (✳ everyone · ◦ just me); this
 was the design for the third, the one the Sharing Flow artboard sketched

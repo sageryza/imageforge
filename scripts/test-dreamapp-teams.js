@@ -5,7 +5,8 @@
 //
 //   node scripts/test-dreamapp-teams.js
 const path = require('path');
-const { friendsReaches, canRead } = require(path.join(__dirname, '..', 'dreamapp'));
+const { friendsReaches, canRead, friendPairId, friendUidsOf } =
+  require(path.join(__dirname, '..', 'dreamapp'));
 
 const fails = [];
 const check = (name, ok) => {
@@ -45,6 +46,24 @@ check('a friends dream is readable through a routed shared team',
   canRead({ uid: 'penny', audience: 'friends' }, 'sophie', [nightShift]) === true);
 check('and unreadable without one',
   canRead({ uid: 'penny', audience: 'friends' }, 'sophie', [bookClub]) === false);
+
+// The mutual friends list (ask-and-accept). One pair doc whatever the order;
+// only an ACCEPTED pair reaches; a friends dream is readable through a
+// friendship with no team anywhere in sight.
+check('both orders land on one pair doc',
+  friendPairId('sophie', 'penny') === friendPairId('penny', 'sophie'));
+const pairs = [
+  { id: 'a', uids: ['penny', 'sophie'], acceptedAt: 'x' },
+  { id: 'b', uids: ['sophie', 'theo'], acceptedAt: null, requestedBy: 'theo' },
+];
+check('accepted pairs list the other half, pending ones do not',
+  JSON.stringify(friendUidsOf(pairs, 'sophie')) === '["penny"]');
+check('a friends dream is readable through an accepted friendship, no teams',
+  canRead({ uid: 'penny', audience: 'friends' }, 'sophie', [], ['penny']) === true);
+check('a pending ask reaches nothing',
+  canRead({ uid: 'theo', audience: 'friends' }, 'sophie', [], friendUidsOf(pairs, 'sophie')) === false);
+check('friends and teams are OR, not AND',
+  canRead({ uid: 'theo', audience: 'friends' }, 'sophie', [team('t', [m('theo', true), m('sophie', true)])], ['penny']) === true);
 
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nall good');
 process.exit(fails.length ? 1 : 0);
