@@ -2297,6 +2297,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
       sizes off 100% of its mount, so `#pageviews` is a full-height flex
       column and `#judge` takes what the switch does not. Without that the
       card floats at the top of a half-height box.
+  - **A PAGE IS SPREADS HOLDING CARDS, AND A MARK LANDS ON EITHER (Aug 2026
+    v4, Sophie: "so I can leave a note per card, or per spread. same w
+    heart").** A spread of 2+ carries a key of its own — derived in
+    `page-views.js` from its label, **`s:` prefixed so it can never collide
+    with a card's** (item ids are cut to `[a-z0-9_-]`, so a colon cannot
+    appear in one) — and rides the same verdict doc, so nothing new is
+    stored and every page already posted gets it. **A one-card spread gets NO
+    key**: its card's mark IS the mark, and a second heart for the same
+    picture would be two answers to one question.
+    - In the COMPARE view the spread's ♥/✕ sit at the end of its name row
+      (with the pill's 64px column reserved, because the page scrolls and a
+      row passes through that band on its way up), and its note is the shared
+      `__compareNotes` + in the corner — a card's note lives on its picture,
+      in the lightbox, and a spread has no picture.
+    - In the SWIPE view a spread is ONE card: its pictures side by side, each
+      named, the card's ✕/♥ and note box marking the SPREAD, and tapping
+      either picture opening that picture's own lightbox. **That is also
+      exactly the two-up picker** she asked for earlier ("comparing two
+      different images to each other, and picking between them") — it falls
+      out of the shape instead of being a third thing to build.
+    - `paintActs` asks for the spread's own row FIRST: a group contains tiles
+      and a tile has `.gd-acts`, so the plain descendant selector matched a
+      CARD's buttons inside the spread and painted the wrong thing.
   - **TAPPING THE PICTURE OPENS THE ASSETS LIGHTBOX, on a swipe card too (Aug
     2026 v4, Sophie: "I think I want the same exact asset tab formula w heart
     ex prompt note chat etc in lightbox view, and u can have tinder one choice

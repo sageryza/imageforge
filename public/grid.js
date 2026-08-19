@@ -49,8 +49,20 @@
     '.gd-group + .gd-group{border-top:1px solid var(--line);padding-top:16px;}' +
     // the row header (what the row SHARES) clamps too — a style prompt's
     // first line can run long and this is a heading, not a reading
-    '.gd-glabel{font:700 11px/1.4 -apple-system,sans-serif;letter-spacing:.08em;' +
-    ' text-transform:uppercase;color:var(--gold);padding:0 0 6px;' +
+    // the spread's own ♥/✕ sit at the right end of its name row
+    '.gd-gacts{display:flex;gap:6px;margin-left:auto;flex:none;}' +
+    '.gd-gacts .gd-vote{width:26px;height:26px;}' +
+    '.gd-gacts .gd-vote svg{width:13px;height:13px;}' +
+    // the ROW is the flex line; the NAME keeps the two-line clamp it always
+    // had (they cannot be the same element — -webkit-box would win over flex)
+    // 64px on the right is the pill's column (x 326-374 on a 390pt phone).
+    // The page SCROLLS, so a label row passes through that band on its way up
+    // — reserving the column keeps a spread's marks tappable the whole way,
+    // where padding on the first row alone would only work at rest.
+    '.gd-glabel{display:flex;align-items:flex-end;gap:8px;padding:0 64px 6px 0;}' +
+    '.gd-glabel .t{min-width:0;' +
+    ' font:700 11px/1.4 -apple-system,sans-serif;letter-spacing:.08em;' +
+    ' text-transform:uppercase;color:var(--gold);' +
     ' display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;' +
     ' overflow:hidden;overflow-wrap:anywhere;}' +
     '.gd-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;}' +
@@ -234,7 +246,13 @@
     }
 
     function paintActs(id) {
-      var host = mount.querySelector('[data-item="' + id + '"] .gd-acts');
+      // THE SPREAD'S OWN ROW IS ASKED FOR FIRST. A group contains tiles, and a
+      // tile has `.gd-acts` — so `[data-item=<spread>] .gd-acts` matches a
+      // CARD's buttons inside the spread and would paint the wrong thing. The
+      // child-scoped spread selector cannot match an item, so this order is
+      // right for both.
+      var host = mount.querySelector('[data-item="' + id + '"] > .gd-glabel .gd-gacts')
+        || mount.querySelector('[data-item="' + id + '"] .gd-acts');
       if (!host) return;
       var v = verdicts[id];
       host.querySelectorAll('[data-v]').forEach(function (b) {
@@ -249,11 +267,34 @@
     // of six ~50px tiles (Sophie, 2026-08-19, on a phone: "six things all in
     // the same row"). Comparing more than 3 across is unreadable at phone
     // width whatever the design intent says.
+    // A SPREAD IS MARKABLE TOO (Aug 2026) — it joins byId as a thing with a
+    // key and a name and no picture, so setVerdict, paintActs and the verdict
+    // round trip all work on it unchanged. mirrorVote is a no-op for it: with
+    // no `url` there is no asset to agree with, which is right — a spread is
+    // this page's own question, not a picture in the Assets tab.
+    groups.forEach(function (g) {
+      if (g.id) byId[g.id] = { id: g.id, label: g.label || '' };
+    });
+
     var html = groups.map(function (g) {
       var per = Math.min(Math.max(g.items.length, 2), 3);
       var basis = 'calc((100% - ' + ((per - 1) * 8) + 'px)/' + per + ')';
-      return '<div class="gd-group">'
-        + (g.label ? '<div class="gd-glabel">' + esc(g.label) + '</div>' : '')
+      // THE SPREAD'S OWN MARK (Aug 2026, Sophie: "so I can leave a note per
+      // card, or per spread. same w heart"). A spread of 2+ carries an id of
+      // its own (page-views.js, `s:` prefixed so it can never collide with a
+      // card's), so its ♥/✕ ride the same verdict doc as every tile's — and
+      // `data-item` on the group is what the shared note kit needs to put a
+      // note + in its corner, the same one every reviewable thing gets.
+      return '<div class="gd-group"' + (g.id ? ' data-item="' + esc(g.id) + '"' : '') + '>'
+        + (g.label || g.id
+          ? '<div class="gd-glabel"><span class="t">' + esc(g.label || '') + '</span>'
+            + (g.id ? '<span class="gd-gacts">'
+              + '<button type="button" class="gd-vote no" data-v="false" data-id="' + esc(g.id)
+              + '" aria-label="Pass the whole spread">' + I.x + '</button>'
+              + '<button type="button" class="gd-vote yes" data-v="true" data-id="' + esc(g.id)
+              + '" aria-label="Love the whole spread">' + I.heart + '</button></span>' : '')
+            + '</div>'
+          : '')
         + '<div class="gd-row">'
         + g.items.map(function (it) {
           // an asset-backed picture opens the ASSETS lightbox (heart, note
@@ -497,6 +538,16 @@
       });
     }
     loadVerdicts();
+
+    // A NOTE ON THE SPREAD (Aug 2026, Sophie: "so I can leave a note per card,
+    // or per spread"). A card's note lives in its lightbox, on the picture; a
+    // spread has no picture, so it gets the SHARED note affordance — the small
+    // + in its corner, saved to the same verdict doc under the spread's key.
+    // The kit keys off `data-item`, which the group already carries, so this
+    // is a wiring line rather than a note box of its own.
+    if (window.__compareNotes && groups.some(function (g) { return g.id; })) {
+      window.__compareNotes({ chat: chat, sheet: sheet, selector: '.gd-group[data-item]' });
+    }
 
     // the handle the two-view page holds: a mark she made while swiping shows
     // on these tiles when she switches back (both views write the same doc)

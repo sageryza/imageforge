@@ -885,24 +885,52 @@ setTimeout(function(){
        || getComputedStyle(document.querySelector('.float')).display==='none',
        'and takes the pill away — a deck never scrolls');
     ok(!!document.querySelector('#judge .jg.mom'), 'the deck drew, in her look');
+    // A SPREAD IS ONE CARD (Aug 2026: "a note per card, or per spread") — the
+    // two pictures of a comparison travel together, which is also the two-up
+    // picker she asked about
     var who=document.querySelector('#judge .jg.mom>.who');
-    ok(who && who.textContent==='ink & wash',
-       'it opens on the first picture of the first group — got '+(who&&who.textContent));
+    ok(who && who.textContent==='Listened at the door',
+       'the card is the SPREAD, named by it — got '+(who&&who.textContent));
+    ok(document.querySelectorAll('#judge .jg-spread figure').length===2,
+       'both of its pictures are on the one card');
+    var caps=[].map.call(document.querySelectorAll('#judge .jg-spread figcaption'),
+      function(c){ return c.textContent; });
+    ok(caps.join('|')==='ink & wash|silkscreen', 'each keeps its own name — got '+caps.join('|'));
 
-    // a mark made HERE must show on the tile over there
+    // the card's ♥ marks the SPREAD, under a key of its own
     document.querySelector('#judge [data-act="yes"]').click();
     setTimeout(function(){
       var pv=posts('/api/chatfeed/verdict').pop();
-      ok(pv && pv.b.item==='a1' && pv.b.ok===true, 'the heart saved against the same item id');
-      tabs[1].click();
+      ok(pv && pv.b.item==='s:listened-at-the-door' && pv.b.ok===true,
+         'the heart marked the spread, not a picture — got '+(pv&&pv.b.item));
+
+      // …and tapping ONE picture is that picture's own lightbox
+      document.querySelector('#judge .jg-spread img').click();
       setTimeout(function(){
-        ok(!document.body.classList.contains('jg-mombg'),
-           'switching back lets the compare view scroll again');
-        var tile=document.querySelector('#grid [data-item="a1"] .gd-vote.yes');
-        ok(tile && tile.classList.contains('on'),
-           'the mark she made while swiping is lit on the tile');
-        fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
-      }, 500);
+        var lb=document.getElementById('clightbox');
+        ok(lb && lb.style.display!=='none', 'a picture on the spread opens its lightbox');
+        ok(lb.querySelectorAll('.vote').length===2 && !!lb.querySelector('.promptbtn')
+           && !!lb.querySelector('.lbnote input'),
+           'with the Assets formula — heart, prompt, note');
+        lb.click();   // anywhere that isn't a control closes it
+
+        tabs[1].click();
+        setTimeout(function(){
+          ok(!document.body.classList.contains('jg-mombg'),
+             'switching back lets the compare view scroll again');
+          var sp=document.querySelector('#grid [data-item="s:listened-at-the-door"]');
+          ok(!!sp, 'the spread is a marked-up group over here');
+          var h=sp.querySelector('.gd-gacts .gd-vote.yes');
+          ok(h && h.classList.contains('on'),
+             'and the spread heart she gave while swiping is lit on its row');
+          ok(!!sp.querySelector('.cmp-note-open'),
+             'a spread carries the note + of its own');
+          var solo=document.querySelector('#grid .gd-group:not([data-item])');
+          ok(!solo || !solo.querySelector('.gd-gacts'),
+             'a one-card spread gets NO second heart — its card is the mark');
+          fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+        }, 600);
+      }, 700);
     }, 300);
   }, 500);
 }, 900);

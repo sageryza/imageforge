@@ -190,6 +190,17 @@
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    // A SPREAD ON ONE CARD: the pictures share the width so they are compared
+    // rather than scrolled between, each under its own name. They shrink as a
+    // spread grows — two get half each, three a third — which is the whole
+    // point of putting them on one card.
+    '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;}' +
+    '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
+    + 'display:flex;flex-direction:column;gap:5px;}' +
+    '.jg-spread figure img{width:100%;height:auto;max-height:44vh;object-fit:contain;'
+    + 'border-radius:10px;border:1px solid rgba(0,0,0,0.06);display:block;}' +
+    '.jg-spread figcaption{font:700 10px/1.3 -apple-system,sans-serif;letter-spacing:.12em;'
+    + 'text-transform:uppercase;color:#8A7F6E;text-align:center;}' +
     // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
     // note box is just too small — it should be bigger so I can see more of my
     // words in it, and the heart and the ex can go a little above it and maybe
@@ -737,7 +748,7 @@
       // or words (Aug 2026 v3: "make the single image review surface the same
       // general template as the text one"). The older tests stand: a page that
       // asked for style:'moment', or a card carrying any of her parts.
-      if (herLook && (it.text || it.img)) return true;
+      if (herLook && (it.text || it.img || (it.cards && it.cards.length))) return true;
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
@@ -773,6 +784,23 @@
           + (sec.label ? '<span class="seclabel">' + esc(sec.label) + '</span>' : '')
           + '<p class="sectext">' + esc(sec.text) + '</p></div>';
       });
+      // A SPREAD: several pictures on ONE card, side by side, each named and
+      // each opening its own lightbox (Aug 2026, Sophie: "so I can leave a
+      // note per card, or per spread. same w heart"). The card's ✕/♥ and the
+      // note box below it are the SPREAD's; a picture's own heart, prompt and
+      // note thread live behind the picture. This is also, exactly, the
+      // two-up picker — it falls out of the shape rather than being a third
+      // thing to build.
+      if (it.cards && it.cards.length) {
+        out += '<div class="jg-spread">' + it.cards.map(function (c) {
+          return '<figure class="hug">'
+            + '<img' + (views ? ' data-zoom="' + esc(c.id) + '"' : ' class="zoom"')
+            + ' src="' + esc(c.img) + '" alt="' + esc(c.label || '') + '"'
+            + (c.full ? ' data-full="' + esc(c.full) + '"' : '') + '>'
+            + (c.label ? '<figcaption>' + esc(c.label) + '</figcaption>' : '')
+            + '</figure>';
+        }).join('') + '</div>';
+      }
       if (it.img) {
         // no card-face shape asked for → the panel HUGS the picture and caps
         // its height, so a picture card is one screen like everything else
@@ -1125,8 +1153,13 @@
       if (z && views) {
         e.preventDefault();
         var zid = z.getAttribute('data-zoom');
+        // a picture is either a card, or one of the cards ON a spread card —
+        // and either way the lightbox is that PICTURE's, not the spread's
         var zit = null;
-        items.forEach(function (x) { if (x.id === zid) zit = x; });
+        items.forEach(function (x) {
+          if (x.id === zid) zit = x;
+          (x.cards || []).forEach(function (c) { if (c.id === zid) zit = c; });
+        });
         if (zit) views.open(zit);
         return;
       }
