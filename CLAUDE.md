@@ -1886,6 +1886,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   can put in order. It started as one Compare page for one story (Aug 2026) and
   became a tool when she asked for it "for other stories". **It costs nothing —
   no model call, no background job**, so opening it and saving are both free.
+  **CHATS FILL THE SHELF — the page only lists and arranges (Aug 2026 v2,
+  Sophie: "it's for chats to fill themselves… I just wanna see a list of
+  stories and I can click on one and the chats will fill the stories").** The
+  page shipped first with a name box + paste box and she cut them: nothing on
+  `/timeline` creates a story. **When Sophie dictates a story's moments to
+  YOU, filing it is YOUR job**: `POST /api/timeline/stories { title, text }`
+  (text = her dictation, one moment per line — the parser strips her numbers,
+  takes wrapping quotes off, and turns her ALL-CAPS headers into sequences;
+  `POST /parse` dry-runs it), then hand her the link
+  `https://imageforge-q125.onrender.com/timeline?story=<id>`. Do NOT rebuild
+  the retired per-story Compare pages (`scripts/gen-story-timeline.js` and the
+  `docs/story-timeline/timeline-v*.html` files are that history; her original
+  story was migrated in by `scripts/seed-story-timeline.js`).
   **THE CARD IS THE ATOM, THE UNIT IS WHAT MOVES:** a unit is one moment or a
   run of them that travel together (her word: a SEQUENCE) and carries ONE
   number, because the number is its place in the order. `units` is an array of
