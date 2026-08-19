@@ -2686,6 +2686,15 @@ function freshPages(pages, floor){
     .sort(function(a,b){ return (a.created||'')<(b.created||'')?1:-1; })
     .slice(0,1);
 }
+// The chat's pinned DELIVERABLE, when it is a film or an audio cut — the
+// "actively handing her new versions" half of the pin contract. A `link` pin
+// (a page being worked on) is deliberately not returned: it is a bookmark,
+// not a hand-off, and Compare pages already ride freshPages.
+function newsPin(name){
+  var p=chats[name]&&chats[name].pinned;
+  if(!p || !p.url) return null;
+  return (p.kind==='video'||p.kind==='audio') ? p : null;
+}
 function newsItems(g){
   var ix=newsIndex(), out=[], done={};
   // sortedChatNames covers the registry AND anything in the feed, and this
@@ -2724,6 +2733,14 @@ function newsItems(g){
     if(lastFin) bump(lastFin.created||'');
     pics.forEach(function(p){ bump(p.created||''); });
     pages.forEach(function(p){ bump(p.created||''); });
+    // A RE-PINNED FILM OR AUDIO CUT IS AN ARRIVAL TOO (Aug 2026 v2 — the
+    // dream-commercial card): the pin contract re-posts on every new version,
+    // so pinned.at IS "the chat handed her a new cut", the same deliver-
+    // without-saying-anything rule the pictures and pages already have. Link
+    // pins stay out — a working page is a bookmark, and Compare pages are
+    // already counted above.
+    var pin=newsPin(name);
+    if(pin) bump(pin.at||'');
     // Nothing since the ✓ means nothing to show. Nothing else takes a card
     // off this screen any more — see newsFloor.
     if(!at || at<=floor) return;
@@ -2805,15 +2822,28 @@ function newsList(g){
 // the few things to look at are never buried under two dozen asks. Each card
 // is in exactly ONE section, decided from data already on the card:
 //
-//   1. a fresh deliverable — a Compare page newer than the floor (freshPages
-//      already filters) or a picture newer than it → DELIVERABLES. This
+//   1. a fresh deliverable → DELIVERABLES: a Compare page newer than the
+//      floor (freshPages already filters), a picture newer than it, or the
+//      pinned FILM/AUDIO re-posted since it (newsPin — v2, the card that
+//      taught this rule: "Dream commercial — v2" was pinned seven minutes
+//      after her ✓ and the classifier had no kind that could see a film, so
+//      its "watch v2, 45 sec" ask filed it as a quick decision). This
 //      outranks an open `need` on purpose: when a chat delivers a thing AND
 //      asks about it, the thing is what she opens, and the ask still reads on
 //      the card's own status line (need-first would file 24 of 33 cards as
 //      asks and the deliverables would never surface — the brief's finding).
-//   2. else an open `need` on the status card → QUICK DECISIONS: the chat is
+//   2. else a need that TELLS HER TO GO LOOK AT A THING → DELIVERABLES too
+//      (v2): "watch v2", "listen to two cuts", "install build 165" are review
+//      tasks wearing a need's clothes, not decisions. NEED_LOOK is a small
+//      word-boundary verb list over the need — yes, this reads words, which
+//      the v3 title parser died for; the difference is the stakes. That
+//      parser decided what was HIDDEN from her; a miss here files a card one
+//      visible section over on the same screen, and the verbs are the chats'
+//      own house vocabulary for asks ("listen to two cuts" is this file's
+//      canonical example of a need).
+//   3. else an open `need` on the status card → QUICK DECISIONS: the chat is
 //      waiting on her word.
-//   3. else → TO READ: the reply is the news.
+//   4. else → TO READ: the reply is the news.
 //
 // DERIVED, never filed — no model call (this screen opens constantly and must
 // spend nothing) and nothing new for a chat to POST (only ~7% ever write a
@@ -2825,12 +2855,17 @@ function newsList(g){
 // An empty section shows NO header — empty is silent. An open BOX stays one
 // flat list: filing a card into Come back to / In a minute was the triage.
 var NEWS_KINDS=[['look','Deliverables'],['read','To read'],['decide','Quick decisions']];
+var NEED_LOOK=/\b(watch|listen|look|peek|open|install|play|tap|test|try|check|review)\b/i;
 function newsKind(it){
   var floor=newsFloor(it.chat);
+  var pin=newsPin(it.chat);
   var fresh=it.pages.length>0 ||
-    it.pics.some(function(p){ return (p.created||'')>floor; });
+    it.pics.some(function(p){ return (p.created||'')>floor; }) ||
+    !!(pin && (pin.at||'')>floor);
   if(fresh) return 'look';
-  if(statusLines(it.chat).need) return 'decide';
+  var need=statusLines(it.chat).need;
+  if(need && NEED_LOOK.test(need)) return 'look';
+  if(need) return 'decide';
   return 'read';
 }
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.

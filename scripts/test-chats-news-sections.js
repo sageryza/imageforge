@@ -19,6 +19,18 @@
 //      card takes that header with it,
 //   5. an open BOX (Come back to) stays one flat list — no section headers.
 //
+// v2 (Aug 2026, the dream-commercial card — Sophie: "why is this in the quick
+// decision tab? It's obviously a deliverable"):
+//   6. a FILM/AUDIO pin re-posted since her ✓ is an ARRIVAL and a DELIVERABLE
+//      — chat-film's only news is its re-pinned film, and it gets a card,
+//      under Deliverables,
+//   7. a need that tells her to GO LOOK at a thing ("listen to the two cuts")
+//      is under Deliverables, not Quick decisions,
+//   8. a pin OLDER than her ✓ classifies nothing (chat-oldpics carries one
+//      and stays TO READ), and a fresh LINK pin counts for nothing either
+//      (chat-need carries one and stays QUICK DECISIONS, its card timed by
+//      its reply, not the pin).
+//
 //   npm install playwright-core --no-save && node scripts/test-chats-news-sections.js
 //
 // playwright is an optionalDependency, so this skips cleanly without it.
@@ -43,17 +55,25 @@ const PX = Buffer.from(
 
 // chat-page    — reply + a FRESH Compare page + an open need → DELIVERABLES
 //                (the priority fixture: the need must not win)
+// chat-film    — reply BEFORE her ✓, its film re-pinned AFTER it, no need →
+//                a card raised by the pin alone, under DELIVERABLES (v2 —
+//                the dream-commercial shape)
 // chat-pics    — read long ago, three fresh pictures since → DELIVERABLES
-// chat-oldpics — pictures OLDER than her ✓, a reply newer than it → TO READ,
-//                pictures still on the card
+// chat-ask     — unread reply + a need that says to LISTEN → DELIVERABLES
+//                (v2 — a go-look ask is not a decision)
+// chat-oldpics — pictures OLDER than her ✓ AND a film pin older than it, a
+//                reply newer than it → TO READ, pictures still on the card
 // chat-read    — a plain unread reply, no need → TO READ
-// chat-need    — unread reply + an open need → QUICK DECISIONS
+// chat-need    — unread reply + an open need + a fresh LINK pin → QUICK
+//                DECISIONS (a link pin is a bookmark, not a hand-off)
 const MSGS = [
   { id: 'm1', chat: 'chat-page', from: 'claude', text: 'v2 is up', tldr: 'page v2', created: iso(T0 - 2 * H), postedAt: iso(T0 - 2 * H) },
   { id: 'm2', chat: 'chat-pics', from: 'claude', text: 'drawing', tldr: 'drawing the set', created: iso(T0 - 6 * H), postedAt: iso(T0 - 6 * H) },
   { id: 'm3', chat: 'chat-oldpics', from: 'claude', text: 'notes answered', tldr: 'answered her notes', created: iso(T0 - 30 * 60000), postedAt: iso(T0 - 30 * 60000) },
   { id: 'm4', chat: 'chat-read', from: 'claude', text: 'wrote it up', tldr: 'the write-up', created: iso(T0 - 1 * H), postedAt: iso(T0 - 1 * H) },
   { id: 'm5', chat: 'chat-need', from: 'claude', text: 'two options ready', tldr: 'two options', created: iso(T0 - 40 * 60000), postedAt: iso(T0 - 40 * 60000) },
+  { id: 'm6', chat: 'chat-film', from: 'claude', text: 'v2 rendered', tldr: 'film v2', created: iso(T0 - 2 * H), postedAt: iso(T0 - 2 * H) },
+  { id: 'm7', chat: 'chat-ask', from: 'claude', text: 'two cuts ready', tldr: 'two cuts', created: iso(T0 - 50 * 60000), postedAt: iso(T0 - 50 * 60000) },
 ];
 const seenPosts = [];
 
@@ -68,10 +88,20 @@ const server = http.createServer((req, res) => {
         // an open need AND a fresh page — Deliverables must win
         'chat-page': { account: '1', statusNeed: 'peek v2, tell me which column' },
         'chat-pics': { account: '1' },
-        // her ✓ an hour ago; the pictures predate it, the reply doesn't
-        'chat-oldpics': { account: '1', notifSeenAt: iso(T0 - 1 * H) },
+        // her ✓ an hour ago; the pictures AND the pin predate it, the reply
+        // doesn't — a stale pin must not classify (or re-raise) anything
+        'chat-oldpics': { account: '1', notifSeenAt: iso(T0 - 1 * H),
+          pinned: { url: 'https://x.test/old-cut.mp4', title: 'Old cut', kind: 'video', at: iso(T0 - 2 * H), turns: 3 } },
         'chat-read': { account: '2' },
-        'chat-need': { account: '1', statusNeed: 'pick a palette, 10 seconds' },
+        // the fresh pin here is a LINK — a bookmark, never a deliverable
+        'chat-need': { account: '1', statusNeed: 'pick a palette, 10 seconds',
+          pinned: { url: 'https://x.test/science', title: 'The science page', kind: 'link', at: iso(T0 - 10 * 60000), turns: 0 } },
+        // her ✓ an hour ago; the reply predates it; the FILM was re-pinned
+        // 12 minutes ago — the pin alone raises the card and files it
+        'chat-film': { account: '1', notifSeenAt: iso(T0 - 1 * H),
+          pinned: { url: 'https://x.test/dream-v2.mp4', title: 'Dream commercial — v2 (0:45)', kind: 'video', at: iso(T0 - 12 * 60000), turns: 0 } },
+        // nothing fresh — the need's own words say go LISTEN
+        'chat-ask': { account: '1', statusNeed: 'listen to the two cuts, 2 min' },
       },
       settings: {}, truncated: [], messages: since ? [] : MSGS, delta: !!since,
     }));
@@ -162,12 +192,16 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   let secs = await sections();
   const heads = secs.map(s => s.head);
   if (heads.length !== 3) fail('expected three section headers, got: ' + heads.join(' | '));
-  if (!/^Deliverables\s*2$/.test(heads[0] || '')) fail('Deliverables (2) is not the first section: ' + heads.join(' | '));
+  if (!/^Deliverables\s*4$/.test(heads[0] || '')) fail('Deliverables (4) is not the first section: ' + heads.join(' | '));
   if (!/^To read\s*2$/.test(heads[1] || '')) fail('To read (2) is not the second section: ' + heads.join(' | '));
   if (!/^Quick decisions\s*1$/.test(heads[2] || '')) fail('Quick decisions (1) is not the last section: ' + heads.join(' | '));
 
-  // …and every card under the right one, newest arrival first within each
-  if (JSON.stringify(secs[0] && secs[0].cards) !== JSON.stringify(['chat-pics', 'chat-page'])) {
+  // …and every card under the right one, newest arrival first within each.
+  // chat-film is timed by its PIN (12m — its reply predates her ✓), which is
+  // both v2 rules in one line: the pin raised the card and filed it.
+  // chat-ask sits here on its need's own words; chat-need's fresh LINK pin
+  // moved it nowhere and its card is timed by its reply (40m), not the pin.
+  if (JSON.stringify(secs[0] && secs[0].cards) !== JSON.stringify(['chat-film', 'chat-pics', 'chat-ask', 'chat-page'])) {
     fail('wrong Deliverables cards: ' + JSON.stringify(secs[0] && secs[0].cards));
   }
   if (JSON.stringify(secs[1] && secs[1].cards) !== JSON.stringify(['chat-oldpics', 'chat-read'])) {
