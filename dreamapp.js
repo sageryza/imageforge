@@ -13,10 +13,14 @@
 // Data (deckfactory Firestore):
 //   forge-dreamapp        one doc per dream { id, uid, name, text, title,
 //                         createdAt, publicOn (YYYY-MM-DD PT | null),
+//                         audience ('everyone' | 'friends'; absent = everyone),
 //                         wordsPublic, panels:[{i, url, captions, promptUsed,
 //                         public}], drawJob, drawnAt, feltCount }
 //   forge-dreamapp-felt   one doc per dream+uid (the heart)
 //   forge-dreamapp-comments  one doc per comment { dreamId, uid, name, text, at }
+//   forge-dreamapp-teams  one doc per dream team { id, name, code, createdBy,
+//                         createdAt, memberUids:[uid], members:[{uid, name,
+//                         joinedAt, friendsToo}] } — see THE DIAL below
 //
 // The AI names each dream (2-5 words, shown in fuchsia in the app) as a
 // background job right after capture; drawing is ONE SQUARE PICTURE at medium
@@ -50,6 +54,7 @@ const FEED_DAYS = 14;
 const DREAMS = 'forge-dreamapp';
 const FELT = 'forge-dreamapp-felt';
 const COMMENTS = 'forge-dreamapp-comments';
+const TEAMS = 'forge-dreamapp-teams';
 const QUALITIES = new Set(['low', 'medium']);
 const TEXT_MIN = 10;
 const TEXT_MAX = 8000;
@@ -60,6 +65,53 @@ const COMMENT_MAX = 800;
 // unattributed (Sophie), so the uid itself must not travel. `by` is a stable
 // one-way tag: enough to group, useless for identifying anyone.
 const byTag = (uid) => crypto.createHash('sha1').update(String(uid)).digest('hex').slice(0, 12);
+
+// ── THE DIAL: everyone ✳ · friends ☾ · just me ◦ (Sophie, Aug 2026) ─────────
+// The middle audience and DREAM TEAMS, her design after the circles study
+// (docs/dream-feed-circles.md): "let's just do everyone and then friends and
+// then just me … and then we'll also have something called circles except I
+// won't call it circles … when you post to everyone, it automatically shows
+// up in your circle because it's public, and then when you join a group …
+// you can configure it so that when you post to friends it also posts to
+// that circle, or that it doesn't."
+//
+// So a TEAM is a DISTRIBUTION LIST, not a second feed: joined by invite link
+// (the unguessable code IS the key — the fruit-poll pattern; nothing is
+// discoverable without it), and every member carries their own `friendsToo`
+// routing flag — "do MY friends-posts land here?" A post to everyone reaches
+// teammates because it is public; a post to friends reaches exactly the
+// people who share a team the AUTHOR routed friends-posts into. Dreams stay
+// unattributed in the feed either way — the audience changes who can read a
+// night, never whose name is on it.
+//
+// This rule is the whole feature, kept pure for its test: does the author's
+// friends-audience post reach a viewer holding these teams? (The viewer's own
+// membership is a given — `teams` is the list the viewer belongs to.)
+function friendsReaches(authorUid, viewerTeams) {
+  return (viewerTeams || []).some((t) => (t.members || [])
+    .some((m) => m.uid === authorUid && m.friendsToo !== false));
+}
+// One dream doc, one viewer: readable in the feed? (Own dreams always are;
+// legacy docs with no audience are everyone's.)
+function canRead(doc, uid, viewerTeams) {
+  if (doc.audience !== 'friends') return true;
+  return doc.uid === uid || friendsReaches(doc.uid, viewerTeams);
+}
+const audienceOf = (body) => (body?.audience === 'friends' ? 'friends' : 'everyone');
+
+async function teamsOf(uid) {
+  const snap = await db().collection(TEAMS).where('memberUids', 'array-contains', uid).get();
+  return snap.docs.map((d) => d.data());
+}
+function teamView(t, uid) {
+  const me = (t.members || []).find((m) => m.uid === uid);
+  return {
+    id: t.id, name: t.name, code: t.code,
+    members: (t.members || []).map((m) => m.name),
+    friendsToo: me ? me.friendsToo !== false : true,
+    mine: t.createdBy === uid,
+  };
+}
 
 // ── A NIGHT IS THE ENTRY, not a dream (Sophie, Aug 2026) ────────────────────
 // "Generally people only have one dream per night, or the ones they had are
@@ -250,6 +302,7 @@ function mine(doc) {
     // you post once a day (Sophie).
     night: nightOf(doc),
     createdAt: doc.createdAt, publicOn: doc.publicOn || null,
+    audience: doc.audience === 'friends' ? 'friends' : 'everyone',
     wordsPublic: doc.wordsPublic !== false,
     panels: (doc.panels || []).map((p) => ({ i: p.i, url: p.url, captions: p.captions, public: !!p.public })),
     drawJob: doc.drawJob || null, drawnAt: doc.drawnAt || null,
@@ -414,6 +467,7 @@ router.get('/nights/:id', async (req, res) => {
       night: nightOf(spine),
       title: spine.title || null,
       shared: !!spine.publicOn,
+      audience: spine.audience === 'friends' ? 'friends' : 'everyone',
       createdAt: spine.createdAt,
       wordsPublic: spine.wordsPublic !== false,
       dreams: group.map((d) => ({
@@ -438,12 +492,14 @@ router.post('/nights/:id/share', async (req, res) => {
     const anyPanel = group.some((d) => (d.panels || []).some((p) => want.has(`${d.id}|${p.i}`)));
     if (!words && !anyPanel) return res.status(400).json({ error: 'switch at least one thing public first' });
     const on = feedDay();
+    const audience = audienceOf(req.body);
     const batch = db().batch();
     for (const d of group) {
       batch.update(db().collection(DREAMS).doc(d.id), {
         wordsPublic: words,
         panels: (d.panels || []).map((p) => ({ ...p, public: want.has(`${d.id}|${p.i}`) })),
         publicOn: on,
+        audience,
         name: req.user.name,
       });
     }
@@ -465,6 +521,7 @@ router.post('/dreams/:id/share', async (req, res) => {
       return res.status(400).json({ error: 'switch at least one thing public first' });
     }
     doc.publicOn = feedDay();
+    doc.audience = audienceOf(req.body);
     doc.name = req.user.name;
     await db().collection(DREAMS).doc(doc.id).set(doc);
     res.json(mine(doc));
@@ -484,12 +541,19 @@ router.get('/feed', async (req, res) => {
     if (GATE_ON && !(await sharedToday(req.user.uid))) {
       return res.json({ sealed: true, count: snap.size, today });
     }
+    // Friends-audience dreams reach only the people the author routed them to
+    // (see THE DIAL above). Filtered server-side like everything else here —
+    // the count on the sealed card above deliberately still counts them: a
+    // dream you can't read yet is still a dream from last night.
+    const myTeams = await teamsOf(req.user.uid);
+    const readable = snap.docs.map((d) => d.data())
+      .filter((d) => canRead(d, req.user.uid, myTeams));
     const feltSnap = await db().collection(FELT).where('uid', '==', req.user.uid).get();
     const felt = new Set(feltSnap.docs.map((d) => d.data().dreamId));
     // One entry per person per night. The counts SUM across the night's dreams
     // rather than reading the spine's alone, so hearts and comments left before
     // this change still show — they just belong to the night now.
-    const nights = nightsFrom(snap.docs.map((d) => d.data())).map((group) => {
+    const nights = nightsFrom(readable).map((group) => {
       const spine = spineOf(group);
       const panels = nightPanels(group);
       return {
@@ -502,6 +566,7 @@ router.get('/feed', async (req, res) => {
         mine: spine.uid === req.user.uid,
         createdAt: group[group.length - 1].createdAt,
         publicOn: spine.publicOn,
+        audience: spine.audience === 'friends' ? 'friends' : 'everyone',
         dreams: group.map((doc) => ({
           id: doc.id,
           title: doc.title || 'A Dream',
@@ -588,6 +653,95 @@ router.post('/nights/:id/cover', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── dream teams (see THE DIAL above) ────────────────────────────────────────
+// A team is joined by its link (`/t/<code>` serves the app; the client joins
+// after sign-in). Every write to the roster is a transaction — two friends
+// tapping the same invite at once must both land.
+router.get('/teams', async (req, res) => {
+  try {
+    const teams = await teamsOf(req.user.uid);
+    teams.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    res.json({ teams: teams.map((t) => teamView(t, req.user.uid)) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/teams', async (req, res) => {
+  try {
+    if (limited(`teams:${req.user.uid}`, 10, 24 * 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'that is a lot of teams for one day' });
+    }
+    const name = String(req.body?.name || '').trim().slice(0, 40);
+    if (!name) return res.status(400).json({ error: 'name it first' });
+    const ref = db().collection(TEAMS).doc();
+    const team = {
+      id: ref.id, name, code: crypto.randomBytes(9).toString('base64url'),
+      createdBy: req.user.uid, createdAt: new Date().toISOString(),
+      memberUids: [req.user.uid],
+      members: [{ uid: req.user.uid, name: req.user.name, joinedAt: new Date().toISOString(), friendsToo: true }],
+    };
+    await ref.set(team);
+    res.json(teamView(team, req.user.uid));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/teams/join', async (req, res) => {
+  try {
+    if (limited(`teamjoin:${req.user.uid}`, 20, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'slow down a moment' });
+    }
+    const code = String(req.body?.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'no invite code' });
+    const snap = await db().collection(TEAMS).where('code', '==', code).limit(1).get();
+    if (snap.empty) return res.status(404).json({ error: 'that invite doesn’t open anything' });
+    const ref = snap.docs[0].ref;
+    const team = await db().runTransaction(async (tx) => {
+      const cur = (await tx.get(ref)).data();
+      if (!(cur.memberUids || []).includes(req.user.uid)) {
+        cur.memberUids = [...(cur.memberUids || []), req.user.uid];
+        cur.members = [...(cur.members || []),
+          { uid: req.user.uid, name: req.user.name, joinedAt: new Date().toISOString(), friendsToo: true }];
+        tx.update(ref, { memberUids: cur.memberUids, members: cur.members });
+      }
+      return cur;
+    });
+    res.json(teamView(team, req.user.uid));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// My routing flag on one team: do my friends-posts land here?
+router.post('/teams/:id/route', async (req, res) => {
+  try {
+    const ref = db().collection(TEAMS).doc(req.params.id);
+    const team = await db().runTransaction(async (tx) => {
+      const got = await tx.get(ref);
+      if (!got.exists) throw new Error('not found');
+      const cur = got.data();
+      const me = (cur.members || []).find((m) => m.uid === req.user.uid);
+      if (!me) throw new Error('not found');
+      me.friendsToo = req.body?.friendsToo !== false;
+      tx.update(ref, { members: cur.members });
+      return cur;
+    });
+    res.json(teamView(team, req.user.uid));
+  } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
+});
+
+router.post('/teams/:id/leave', async (req, res) => {
+  try {
+    const ref = db().collection(TEAMS).doc(req.params.id);
+    await db().runTransaction(async (tx) => {
+      const got = await tx.get(ref);
+      if (!got.exists) throw new Error('not found');
+      const cur = got.data();
+      tx.update(ref, {
+        memberUids: (cur.memberUids || []).filter((u) => u !== req.user.uid),
+        members: (cur.members || []).filter((m) => m.uid !== req.user.uid),
+      });
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
+});
+
 // ── comments ────────────────────────────────────────────────────────────────
 // A comment is only readable where the dream itself is: it must be in the feed
 // (publicOn set) or be your own. Comments DO carry a name — an unsigned reply
@@ -597,6 +751,8 @@ async function readableDream(id, uid) {
   if (!snap.exists) return null;
   const doc = snap.data();
   if (!doc.publicOn && doc.uid !== uid) return null;
+  // A friends-audience dream is only readable where its feed card is.
+  if (doc.publicOn && !canRead(doc, uid, await teamsOf(uid))) return null;
   return doc;
 }
 
@@ -650,5 +806,7 @@ router.post('/dreams/:id/comments', async (req, res) => {
 });
 
 // The night rules are exported for their test — they are pure, and they are
-// the load-bearing half of "one night is one entry".
-module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf, streakOf };
+// the load-bearing half of "one night is one entry". friendsReaches/canRead
+// are the whole friends-audience rule, exported the same way.
+module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf, streakOf,
+                   friendsReaches, canRead };

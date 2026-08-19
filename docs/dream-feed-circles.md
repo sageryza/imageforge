@@ -1,12 +1,30 @@
 # The InBetween — a circle ☾ (dream feed sharing, design)
 
-**Status: DESIGN, Aug 2026 — posted for Sophie's review as the Compare page
-"The InBetween — a circle ☾ (design v1)" in the dream-feed-sharing-options
-chat. Nothing here is built yet.** The seen-by dial in the live app has two
-stops (✳ everyone · ◦ just me); this is the design for the third, the one the
-Sharing Flow artboard sketched (`docs/dream-feed-designs/Sharing Flow.dc.html`)
-and `dreamapp.html`'s own comment promised ("Circles (☾) arrive with the
-sharing-flow phase").
+**Status: SUPERSEDED the same day it was posted (Aug 2026) — Sophie
+simplified it, and the simpler model is BUILT.** Her call: "it's getting too
+complicated … let's just do everyone and then friends and then just me — and
+then we'll also have something called circles except I won't call it circles
+… maybe we'll call them like dream teams." What shipped (THE DIAL in
+`dreamapp.js`, `scripts/test-dreamapp-teams.js`):
+
+- The dial is **✳ everyone · ☾ friends · ◦ just me** — friends is a fixed
+  middle stop, not a per-post circle picker.
+- **Dream teams** (`forge-dreamapp-teams`) are groups joined by invite link
+  (`/t/<code>`), managed from the archive's "dream teams" screen. A team is a
+  **distribution list, not a second feed**: a post to everyone reaches
+  teammates because it is public, and a post to ☾ friends reaches exactly the
+  people who share a team the author routed friends-posts into (the
+  per-member `friendsToo` toggle — "when you post to friends it also posts to
+  that circle, or that it doesn't").
+- Kept from this design: no-names inside a group, the invite-link-is-the-key
+  pattern, any member can pass the link on. Dropped (for now): the guess
+  game, the claim/reveal, per-post circle choice. The rest of this file is
+  the original circles design, kept as the study those calls came from.
+
+The seen-by dial in the live app had two stops (✳ everyone · ◦ just me); this
+was the design for the third, the one the Sharing Flow artboard sketched
+(`docs/dream-feed-designs/Sharing Flow.dc.html`) and `dreamapp.html`'s own
+comment promised ("Circles (☾) arrive with the sharing-flow phase").
 
 ## Where the design comes from — Sophie's group dream journals
 

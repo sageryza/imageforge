@@ -135,8 +135,10 @@ const FIREBASE_STUB = `
   await page.waitForSelector('#sheet[hidden]', { state: 'attached' });
   ok(state.shares.length === 1 && state.shares[0].words === true && state.shares[0].panels.length === 0,
     'sharing mid-ink sends the words now');
-  ok(await page.evaluate(() => localStorage.getItem('dreamapp-share-when-drawn')) === 'd1',
-    'and stores the share-when-drawn intent');
+  // The intent is `id|audience` since the dial grew its friends stop; a bare
+  // id from before that still reads as everyone (finishPendingShare).
+  ok(await page.evaluate(() => localStorage.getItem('dreamapp-share-when-drawn')) === 'd1|everyone',
+    'and stores the share-when-drawn intent with its audience');
   state.drawn = true;
   await page.waitForFunction(() => !localStorage.getItem('dreamapp-share-when-drawn'), { timeout: 15000 });
   ok(state.shares.length === 2 && state.shares[1].panels.length === 2,
@@ -158,6 +160,23 @@ const FIREBASE_STUB = `
   await page.waitForSelector('#sheet[hidden]', { state: 'attached' });
   ok(state.shares.length === 1 && state.shares[0].panels.length === 2,
     'share your dream publishes words + both pictures');
+  ok(state.shares[0].audience === 'everyone', 'and says who it is for');
+
+  // 8a: the middle stop — ☾ friends rides the share body
+  state.posts.length = state.draws.length = state.shares.length = 0;
+  await page.click('#confessBtn', { force: true });
+  await page.waitForSelector('#sheet:not([hidden])');
+  await put('#draft', 'The stairwell went down further than the building did.');
+  await tap('#illusBtn');
+  await page.waitForSelector('#st2:not([hidden])');
+  // drawn first, so no share-when-drawn intent is left behind to fire into
+  // the just-me flow below
+  await page.waitForSelector('#illusBox img', { timeout: 10000 });
+  await tap('.dial button[data-s="friends"]');
+  await tap('#shareBtn2');
+  await page.waitForSelector('#sheet[hidden]', { state: 'attached' });
+  ok(state.shares.length === 1 && state.shares[0].audience === 'friends',
+    '☾ friends shares with audience friends');
 
   // 8: just me
   state.posts.length = state.draws.length = state.shares.length = 0;

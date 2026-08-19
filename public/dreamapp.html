@@ -370,6 +370,7 @@
     <section id="scr-feed"></section>
     <section id="scr-mine" hidden></section>
     <section id="scr-dream" hidden></section>
+    <section id="scr-teams" hidden></section>
   </main>
   <div class="confess" id="confess"><button id="confessBtn">it&rsquo;s coming back to me&hellip;</button></div>
   <div class="confess" id="closewrap" hidden><button id="closeDream">close the dream</button></div>
@@ -424,6 +425,7 @@
         <span>seen by</span>
         <div class="dial">
           <button data-s="everyone" class="on">✳ everyone</button>
+          <button data-s="friends">☾ friends</button>
           <button data-s="private">◦ just me</button>
         </div>
       </div>
@@ -661,11 +663,16 @@ function meltCard(n, dark, rev, dur){
       '<span class="likebtn' + (n.felt ? ' on' : '') + '">' + (n.felt ? '\u2665' : '\u2661') + ' ' + n.feltCount + '</span>' +
       '<span class="cmtbtn">\u270e ' + (n.commentCount || 0) + '</span>' +
     '</div>';
-  return '<article class="dcard' + (dark ? ' dark' : '') + '" data-id="' + n.id + '"' +
+  // The byline slot carries only the audience: \u2733 for everyone, \u263e friends for
+  // a friends-post (which also always wears the dark card \u2014 the sharing-flow
+  // artboard's rule). Still no names on anything.
+  var frd = n.audience === 'friends';
+  return '<article class="dcard' + (dark || frd ? ' dark' : '') + '" data-id="' + n.id + '"' +
     (n.mine ? ' data-mine="1"' : '') + ' style="--dur:' + dur + 's">' +
     '<div class="drow' + (rev ? ' rev' : '') + '">' + blob +
       '<div class="dtxt">' +
-        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span><span class="dby">\u2733</span></div>' +
+        '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span><span class="dby">' +
+          (frd ? '\u263e friends' : '\u2733') + '</span></div>' +
         (words ? '<div class="dbody clamped">' +
                    '<button class="dmore" hidden><span>see more</span></button>' + esc(words) +
                  '</div>' : '') +
@@ -829,7 +836,7 @@ function drawComments(comments, thread){
 }
 
 /* ── views ── */
-var scr = { feed: null, mine: null, dream: null };
+var scr = { feed: null, mine: null, dream: null, teams: null };
 function go(which){
   for (var k in scr) scr[k].hidden = (k !== which);
   // Leaving the feed takes an opened dream with it — the floating close would
@@ -932,11 +939,12 @@ async function renderFeed(){
    recurring and the three things — captured now, no later moment knows them)
    and starts the drawing as a background job (~2¢/page, gpt-image-2 low, the
    dream-zine engine). Stage 2 polls the job; "share your dream" publishes the
-   night to everyone, "just me" keeps it private. If she shares while the ink
-   is still working, the words go out now and the pictures follow by
-   themselves the moment the job lands (localStorage carries the intent across
-   a closed sheet, and across a relaunch). Circles (☾) arrive with the
-   sharing-flow phase. */
+   night to everyone or to friends (☾ — reaches the dream teams you routed
+   friends-posts into; see the teams screen), "just me" keeps it private. If
+   she shares while the ink is still working, the words go out now and the
+   pictures follow by themselves the moment the job lands (localStorage
+   carries the intent — id|audience — across a closed sheet, and across a
+   relaunch). */
 var sheetState = null;
 var composeInfo = null;   // /me: streak + last night, fetched once per open
 
@@ -1089,14 +1097,17 @@ function armPendingWatcher(){
   }, 8000);
 }
 async function finishPendingShare(){
-  var id = localStorage.getItem(pendingKey());
-  if (!id) return;
+  // Stored as `id|audience`; a value from before the dial had three stops is
+  // a bare id, which reads as everyone.
+  var v = localStorage.getItem(pendingKey());
+  if (!v) return;
+  var id = v.split('|')[0], aud = v.split('|')[1] || 'everyone';
   try {
     var d = await api('/dreams/' + id);
     if (d.drawJob && d.drawJob.status === 'failed') { localStorage.removeItem(pendingKey()); return; }
     if (!d.panels || !d.panels.length) return;   // still drawing — a later pass finishes it
     await api('/nights/' + id + '/share',
-      { body: { words: true, panels: d.panels.map(function(p){ return { dreamId: id, i: p.i }; }) } });
+      { body: { words: true, audience: aud, panels: d.panels.map(function(p){ return { dreamId: id, i: p.i }; }) } });
     localStorage.removeItem(pendingKey());
     renderFeed();
   } catch (e) {}
@@ -1110,16 +1121,17 @@ async function shareDream(){
       closeCompose(); renderMine(); toast('kept in your dreams — only you');
       return;
     }
+    var aud = sheetState.share === 'friends' ? 'friends' : 'everyone';
     var d = await api('/dreams/' + sheetState.dreamId);
     var panels = (d.panels || []).map(function(p){ return { dreamId: d.id, i: p.i }; });
-    await api('/nights/' + sheetState.dreamId + '/share', { body: { words: true, panels: panels } });
+    await api('/nights/' + sheetState.dreamId + '/share', { body: { words: true, audience: aud, panels: panels } });
     if (!panels.length && !(d.drawJob && d.drawJob.status === 'failed')) {
-      localStorage.setItem(pendingKey(), sheetState.dreamId);
+      localStorage.setItem(pendingKey(), sheetState.dreamId + '|' + aud);
       armPendingWatcher();
     }
     closeCompose();
     await renderFeed(); go('feed');
-    toast('you\u2019re in tonight\u2019s feed');
+    toast(aud === 'friends' ? 'shared with your friends \u263e' : 'you\u2019re in tonight\u2019s feed');
   } catch (e) { toast(e.message); btn.disabled = false; }
 }
 
@@ -1177,7 +1189,8 @@ async function renderDream(){
     '<div class="post">' +
     (night.title ? '<div class="ttl">' + esc(night.title) + '</div>' : '<div class="naming">finding its name…</div>') +
     '<div class="meta">' + ago(night.createdAt) + ' ago · ' +
-    (shared ? '<span class="badge pub">in today’s feed</span>' : '<span class="badge priv">private</span>') + '</div>' +
+    (shared ? '<span class="badge pub">' + (night.audience === 'friends' ? '☾ with your friends' : 'in today’s feed') + '</span>'
+            : '<span class="badge priv">private</span>') + '</div>' +
     // The whole night's words, in order. Where a long recording was split for
     // the drawing, the pieces read on as one — that split is machinery.
     '<div class="words">' + (night.dreams || []).map(function(x){
@@ -1186,8 +1199,14 @@ async function renderDream(){
     drawBlock + '</div>' +
     (shareRows
       ? '<div class="h2">Share</div>' + shareRows +
-        (shared ? '<div class="quiet">In today’s feed until midnight.</div>'
-                : '<button class="btn" id="shareBtn">share to today’s feed</button>')
+        (shared ? '<div class="quiet">' + (night.audience === 'friends'
+                    ? 'With your friends until midnight.' : 'In today’s feed until midnight.') + '</div>'
+                : '<div class="seenby" style="margin:14px 0 2px"><span>seen by</span>' +
+                  '<div class="dial" id="dtlDial">' +
+                    '<button data-a="everyone" class="on">✳ everyone</button>' +
+                    '<button data-a="friends">☾ friends</button>' +
+                  '</div></div>' +
+                  '<button class="btn" id="shareBtn">share to today’s feed</button>')
       : '');
   wirePanels(el);
   document.getElementById('backBtn').addEventListener('click', function(){
@@ -1207,6 +1226,14 @@ async function renderDream(){
       b.textContent = b.classList.contains('pub') ? 'public' : 'private';
     });
   });
+  var dtlAud = 'everyone';
+  el.querySelectorAll('#dtlDial button').forEach(function(b){
+    b.addEventListener('click', function(){
+      el.querySelectorAll('#dtlDial button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      dtlAud = b.dataset.a;
+    });
+  });
   var shareBtn = document.getElementById('shareBtn');
   if (shareBtn) shareBtn.addEventListener('click', async function(){
     var words = el.querySelector('[data-t="words"]').classList.contains('pub');
@@ -1218,8 +1245,8 @@ async function renderDream(){
     });
     this.disabled = true;
     try {
-      await api('/nights/' + openDreamId + '/share', { body: { words: words, panels: panels } });
-      toast('you’re in today’s feed');
+      await api('/nights/' + openDreamId + '/share', { body: { words: words, audience: dtlAud, panels: panels } });
+      toast(dtlAud === 'friends' ? 'shared with your friends ☾' : 'you’re in today’s feed');
       await renderFeed();
       go('feed');
     } catch (e) { toast(e.message); this.disabled = false; }
@@ -1274,12 +1301,118 @@ async function renderMine(){
   }
 }
 function mineFoot(){
-  return '<div class="minefoot"><button data-how>how this works</button><button data-out>sign out</button></div>';
+  return '<div class="minefoot"><button data-how>how this works</button>' +
+    '<button data-teams>dream teams</button><button data-out>sign out</button></div>';
 }
 function wireMineFoot(el){
   var how = el.querySelector('[data-how]'), out = el.querySelector('[data-out]');
+  var teams = el.querySelector('[data-teams]');
   if (how) how.addEventListener('click', openHow);
+  if (teams) teams.addEventListener('click', function(){ renderTeams(); go('teams'); });
   if (out) out.addEventListener('click', function(){ fbAuth.signOut(); });
+}
+
+/* ── dream teams — where friends-posts route (see THE DIAL in dreamapp.js) ──
+   A team is joined by its link and nothing else; the roster shows first
+   names, the dreams never do. The one setting is YOUR routing flag per team:
+   do my ☾ friends dreams land here? Posts to everyone reach a team without
+   asking — they are public. */
+async function renderTeams(){
+  var el = scr.teams;
+  el.innerHTML = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>' +
+    '<div class="quiet">loading…</div>';
+  var wireBack = function(){
+    document.getElementById('teamsBack').addEventListener('click', function(){ renderMine(); go('mine'); });
+  };
+  try {
+    var r = await api('/teams');
+    var html = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>';
+    if (!r.teams.length) {
+      html += '<div class="quiet">a dream team is a group of any size — a club, a house, a ' +
+        'constellation. dreams stay nameless inside it, and its invite link is the only way in.</div>';
+    }
+    r.teams.forEach(function(t){
+      var link = location.origin + '/t/' + t.code;
+      html += '<div class="post" data-team="' + t.id + '">' +
+        '<div class="ttl">☾ ' + esc(t.name) + '</div>' +
+        '<div class="meta">' + t.members.map(esc).join(' · ') + '</div>' +
+        '<div class="share-item" style="margin-top:8px"><span class="lab">my ☾ friends dreams land here</span>' +
+          '<button class="st' + (t.friendsToo ? ' pub' : '') + '" data-route>' + (t.friendsToo ? 'yes' : 'no') + '</button></div>' +
+        '<div class="minefoot" style="padding:12px 0 0"><button data-copy="' + esc(link) + '">copy the invite link</button>' +
+        '<button data-leave>leave</button></div>' +
+        '</div>';
+    });
+    html += '<div class="h2">start a dream team</div>' +
+      '<input class="whisper" id="teamName" placeholder="name it…" maxlength="40">' +
+      '<button class="btn" id="teamMake">start it</button>';
+    el.innerHTML = html;
+    wireBack();
+    el.querySelectorAll('[data-copy]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var link = b.dataset.copy;
+        var done = function(){ toast('link copied — send it to anyone you want in'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(done).catch(function(){ legacyCopy(link); done(); });
+        } else { legacyCopy(link); done(); }
+      });
+    });
+    el.querySelectorAll('[data-route]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var id = b.closest('[data-team]').dataset.team;
+        var want = !b.classList.contains('pub');
+        b.disabled = true;
+        try {
+          var t = await api('/teams/' + id + '/route', { body: { friendsToo: want } });
+          b.classList.toggle('pub', t.friendsToo);
+          b.textContent = t.friendsToo ? 'yes' : 'no';
+        } catch (e) { toast(e.message); }
+        b.disabled = false;
+      });
+    });
+    el.querySelectorAll('[data-leave]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        // two taps on purpose — leaving is the one destructive thing here
+        if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'leave — sure?'; return; }
+        var id = b.closest('[data-team]').dataset.team;
+        try { await api('/teams/' + id + '/leave', { method: 'POST' }); renderTeams(); }
+        catch (e) { toast(e.message); }
+      });
+    });
+    document.getElementById('teamMake').addEventListener('click', async function(){
+      var name = document.getElementById('teamName').value.trim();
+      if (!name) { document.getElementById('teamName').focus(); return; }
+      this.disabled = true;
+      try { await api('/teams', { body: { name: name } }); renderTeams(); }
+      catch (e) { toast(e.message); this.disabled = false; }
+    });
+  } catch (e) {
+    el.innerHTML = '<div class="backrow"><button id="teamsBack">' + BACK + 'back</button></div>' +
+      '<div class="err">' + esc(e.message) + '</div>';
+    wireBack();
+  }
+}
+function legacyCopy(text){
+  var t = document.createElement('textarea');
+  t.value = text; document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  t.remove();
+}
+
+/* Arrived through an invite link (/t/<code>): join once signed in, then fold
+   the address back to the app's own home so a reload doesn't re-join. */
+var joinedFromPath = false;
+function joinFromPath(){
+  var m = location.pathname.match(/^\/t\/([A-Za-z0-9_-]{6,})$/);
+  if (!m || joinedFromPath) return;
+  joinedFromPath = true;
+  var home = /youwereinmydreams/.test(location.hostname) ? '/' : '/dreamfeed';
+  api('/teams/join', { body: { code: m[1] } }).then(function(t){
+    history.replaceState({}, '', home);
+    toast('you’re in “' + t.name + '” ☾');
+  }).catch(function(e){
+    history.replaceState({}, '', home);
+    toast(e.message);
+  });
 }
 
 /* ── auth ── */
@@ -1290,6 +1423,7 @@ async function boot(){
   scr.feed = document.getElementById('scr-feed');
   scr.mine = document.getElementById('scr-mine');
   scr.dream = document.getElementById('scr-dream');
+  scr.teams = document.getElementById('scr-teams');
 
   var cfg = await (await fetch('/api/witch/firebase-config')).json();
   var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
@@ -1316,6 +1450,7 @@ async function boot(){
       renderFeed(); renderMine(); go('feed');
       finishPendingShare();
       armPendingWatcher();   // still drawing at relaunch? watch for the ink
+      joinFromPath();        // came in through a dream-team invite link
     }
   });
 
