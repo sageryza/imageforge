@@ -74,6 +74,7 @@ const SEEN = {
   'chat-quiet': MSGS[2].created,
 };
 const notifPosts = [];
+const replyPosts = [];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -139,6 +140,17 @@ const server = http.createServer((req, res) => {
       notifPosts.push(JSON.parse(body || '{}'));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, notifSeenAt: iso(Date.now()) }));
+    });
+    return;
+  }
+  if (url.pathname === '/api/chatfeed/reply' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => body += c);
+    req.on('end', () => {
+      replyPosts.push(JSON.parse(body || '{}'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      // the stamp the page mirrors — same shape the real route answers
+      res.end(JSON.stringify({ ok: true, id: 'r' + replyPosts.length, unarchived: false, notifSeenAt: iso(Date.now()) }));
     });
     return;
   }
@@ -352,6 +364,35 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (stillThere.indexOf('chat-oven') < 0) {
     fail('the card cleared itself when she opened the chat: ' + stillThere.join(','));
   }
+
+  // 5b3. REPLYING clears the card THE MOMENT SHE'S BACK (Sophie, Aug 2026:
+  //      "if I actually replied to the message that does get rid of the
+  //      notification" — re-reported 2026-08-19 as never fixed, because the
+  //      server stamped notifSeenAt but the page's registry copy only
+  //      refreshes on a poll, up to 20s away, and she taps back in two. The
+  //      composer now mirrors the stamp off /reply's response.)
+  await page.click('.nwcard[data-chat="chat-oven"] .crow');
+  await page.waitForFunction(() => document.getElementById('thread').style.display !== 'none',
+    null, { timeout: 4000 }).catch(() => fail('the card row never opened the chat for the reply test'));
+  await page.fill('.composer textarea', 'looks good — ship it');
+  await page.click('.composer .comp-send');
+  await page.waitForFunction(() => /^Sent/.test(document.querySelector('.composer .comp-status').textContent),
+    null, { timeout: 4000 }).catch(() => fail('Send never confirmed'));
+  if (!replyPosts.some(p => p.chat === 'chat-oven')) fail('Send did not POST /reply for the open chat');
+  await page.click('#back');
+  await page.waitForFunction(() => document.getElementById('thread').style.display === 'none',
+    null, { timeout: 4000 }).catch(() => {});
+  if ((await page.textContent('#htxt')) !== 'Update') {
+    await page.click('#accrow .acctab[data-acct="new"]');
+  }
+  await page.waitForSelector('.nwcard', { timeout: 4000 });
+  const afterReply = await page.$$eval('.nwcard', ns => ns.map(n => n.dataset.chat));
+  if (afterReply.indexOf('chat-oven') >= 0) {
+    fail('the card she just answered is still on the Update tab: ' + afterReply.join(','));
+  }
+  await page.waitForFunction(
+    () => { const b = document.querySelector('#accrow .acctab[data-acct="new"] .cc-new'); return b && b.textContent === '2'; },
+    null, { timeout: 4000 }).catch(() => fail('the Update badge did not follow her reply'));
 
   // 5c. a thumb opens its chat (its Assets tab).
   //     The tab TOGGLES, so only tap it if we are not already on Update —

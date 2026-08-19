@@ -122,6 +122,10 @@ const shows = (reg, arrivalISO) => !(reg && reg.notifSeenAt && reg.notifSeenAt >
     const reg = db.store[REG].oven;
     ok('the reply is accepted', out.status === 200 && out.json && out.json.ok, JSON.stringify(out));
     ok('her reply stamps notifSeenAt', !!(reg && reg.notifSeenAt), JSON.stringify(reg));
+    // the page mirrors the stamp locally off the response, so the card is
+    // gone the moment she taps back — not on the next registry poll
+    ok('…and the response carries the stamp for the page to mirror',
+      out.json && out.json.notifSeenAt === (reg && reg.notifSeenAt), JSON.stringify(out.json));
     ok('…and the card for what she answered is gone', !shows(reg, iso(T0)),
       'floor ' + (reg && reg.notifSeenAt) + ' vs arrival ' + iso(T0));
     // the stamp is the write time, not her (possibly older) send time
