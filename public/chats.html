@@ -3242,7 +3242,11 @@ function catsShown(){ return catsOpen || !!cat; }
 // reads it; a word not on it simply shows in the categories group, which is
 // the safe default for anything she invents. Purely client-side, so moving a
 // word between groups is editing this one array.
-var TASK_LABELS=['look at','come back to','in progress','waiting for something',
+// The three Update boxes sit together, in NEWS_QS's order — they are one
+// family (how soon she means to get to it) and reading them apart would be
+// three unrelated words scattered through the row.
+var TASK_LABELS=['look at','come back to','in a minute','maybe never',
+  'in progress','waiting for something',
   'to be reviewed','to read','built','failed'];
 function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
 // Session-only like catsOpen, and it RESETS when TAGS closes, so every open
@@ -3353,22 +3357,48 @@ function chatFiled(name){ return chatLabels(name).some(isPile); }
 // shows on the main list. Deferring one update is not filing the whole chat
 // away, and making it vanish from the list would be a filing she never asked
 // for.
-var CB_CAT='come back to';
-var CB_QUEUE='later';
-// The chats whose update card is in the box RIGHT NOW, rebuilt each render.
-// Read through newsItems/newsBoxed rather than re-deriving the test, or the
-// chip and the box could disagree about where something is — the one thing
-// the Update screen's own two lists are careful never to do.
+// ---- …AND THEN ALL THREE BOXES GOT ONE (Aug 2026, Sophie: "'maybe never'
+// isn't on the tag list in the account area" → "give them both a chip") ------
+// Only `later` was ever joined to a word on this row, because only `later`
+// already HAD a word — she had been filing chats into a "come back to" folder
+// by hand. The other two boxes were invented on the Update screen and never
+// got a chip, so a card she put in one could be reached from exactly one
+// screen. That is the inconsistency she spotted: three boxes, one door.
+//
+// So the join is a TABLE now rather than a pair, and the rest of this file
+// needs no idea it grew. `in a minute` and `maybe never` are not in her folder
+// vocabulary and are not seeded into it — they appear on the row only while
+// something is actually sitting in their box (catList), and they disappear
+// again when she empties it. Nothing about filing changes: a word she has
+// never used stays off her row, and a chat deferred on the Update screen still
+// shows on the main list (see above).
+//
+// The order matches NEWS_QS, so the chips and the boxes read the same way.
+var QUEUE_CATS=[['later','come back to'],['soon','in a minute'],['never','maybe never']];
+function queueCat(q){
+  for(var i=0;i<QUEUE_CATS.length;i++) if(QUEUE_CATS[i][0]===q) return QUEUE_CATS[i][1];
+  return '';
+}
+// word → { chat:1 } for every chat whose update card is in that box RIGHT NOW,
+// rebuilt each render. Read through newsItems/newsBoxed rather than
+// re-deriving the test, or the chip and the box could disagree about where
+// something is — the one thing the Update screen's own lists are careful never
+// to do.
 var cbBox={};
 function rebuildComeBack(g){
   cbBox={};
   newsItems(g).forEach(function(it){
-    if(newsBoxed(it) && newsQueueOf(it.chat)===CB_QUEUE) cbBox[it.chat]=1;
+    if(!newsBoxed(it)) return;
+    var c=queueCat(newsQueueOf(it.chat));
+    if(!c) return;
+    (cbBox[c]=cbBox[c]||{})[it.chat]=1;
   });
 }
 // The one test for "is this chat in that folder", used by the chip's count,
 // the list and the archive alike.
-function chatInCat(name,c){ return chatLabels(name).indexOf(c)>-1 || (c===CB_CAT && !!cbBox[name]); }
+function chatInCat(name,c){
+  return chatLabels(name).indexOf(c)>-1 || !!(cbBox[c] && cbBox[c][name]);
+}
 // ---- THE ARCHIVE IS TWO PILES (Aug 2026, Sophie) ---------------------------
 // "One of things where we built something and something was accomplished and
 // everything worked out, and then another one that's pretty much trash but I'm
@@ -3524,10 +3554,14 @@ function chatNotify(name){ return !!(chats[name]&&chats[name].notify); }
 // — the chip has to outlive the filing that created it.
 function catList(){
   var out=CAT_SEEDS.slice();
-  // Never leave the Come back to box without a chip to reach it by: the folder
-  // is in her vocabulary already, but a chat sitting in that box with no chip
-  // on the row would be a pile with no door.
-  if(Object.keys(cbBox).length && out.indexOf(CB_CAT)<0) out.push(CB_CAT);
+  // Never leave an Update box without a chip to reach it by: a chat sitting in
+  // one with no chip on the row would be a pile with no door. `come back to`
+  // is in her vocabulary already; the other two words appear ONLY while their
+  // box has something in it, and leave the row again when she empties it.
+  QUEUE_CATS.forEach(function(pair){
+    var box=cbBox[pair[1]];
+    if(box && Object.keys(box).length && out.indexOf(pair[1])<0) out.push(pair[1]);
+  });
   ((settings&&settings.categories)||[]).forEach(function(c){
     c=String(c||'').trim(); if(c && out.indexOf(c)<0) out.push(c);
   });
