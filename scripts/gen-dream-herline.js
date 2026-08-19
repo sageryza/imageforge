@@ -56,10 +56,24 @@ const BASE = (process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com').
 const SOURCE_CHAT = 'dream-feed-art';
 const SOURCE_URL = `https://storage.googleapis.com/${BUCKET}/dream-feed/raw-text/halloween-raw-dream.webp`;
 
-// The second paragraph — the only thing that varies between variants.
+// The second paragraph — the only thing that varies between variants. Every
+// one of them is Sophie's own wording out of her notes on the images.
 const VARIANTS = {
+  // 2026-08-17, her note on the RAW TEXT tile.
   one: 'Draw: [content] — render as a single image, not a grid, not split panels.',
+  // 2026-08-19: "wonder if we could do panels but not have them squares and
+  // just have like amorphous shapes for panels?"
   amorphous: 'Draw: [content] — lay it out as panels, but not squares: amorphous, irregular shapes, no grid, no straight borders.',
+  // v2 pushes on the ROWS, not the corners — v1 came back as tidy rows of
+  // rounded rectangles, which is the part that still read as a grid.
+  amorphous2: 'Draw: [content] — lay it out as panels, but not squares and not rows: amorphous, irregular shapes of different sizes, flowing and overlapping across the page, no grid, no rows, no straight borders.',
+  // 2026-08-19, three notes on the monkey tile at once: "choose a single
+  // salient image from the dream and illustrate that and ignore the rest",
+  // "say something like minimal text only", and "you probably don't need the
+  // part that says not a grid since split panels encompasses that". This is
+  // the one that asks whether the IMAGE model can pick the moment itself,
+  // given nothing but the raw dream.
+  salient: 'Choose a single salient image from this dream and illustrate that, ignoring the rest of the dream: [content] — render it as one image, not split panels. Minimal text only.',
 };
 
 const REFS = {
