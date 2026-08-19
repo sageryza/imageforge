@@ -1374,6 +1374,11 @@ async function renderMine(){
         '<span class="when">' + ago(d.createdAt) + '</span></div>' +
         '<div class="snip">' + esc(d.text) + '</div></button>';
     }).join('');
+    // A quiet count under the rows — diagnostic made permanent: Sophie's
+    // phone showed 2 rows while the API provably returned 6, and this line
+    // says which side of that gap her device is on.
+    el.innerHTML += '<div class="quiet" style="text-align:center;margin-top:14px">' +
+      r.dreams.length + (r.dreams.length === 1 ? ' dream' : ' dreams') + ' in your archive</div>';
     el.innerHTML += mineFoot();
     el.querySelectorAll('.jitem').forEach(function(b){
       b.addEventListener('click', function(){ openDream(b.dataset.id, 'mine'); });
