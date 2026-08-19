@@ -635,6 +635,7 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       Decision Deck sizes exactly.
   - **`grid`** = the classic one-variable comparison: each group is one row
     wrapping at THREE across (2026-08-19 — six ~50px tiles in one phone row
+<<<<<<< HEAD
     was unreadable, whatever the original 2–6 spec said), **ruled off from
     the next group with a hairline** (same day, Sophie: "a line between
     different sets of things being compared, so that if things … wrapped to
@@ -671,6 +672,23 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     tap-to-TOGGLE whose skip list is `[data-nostop],img,figure,.cmp-lb`, and
     without the mark the tap that CLOSED the lightbox started the autoscroll
     behind it.
+=======
+    was unreadable, whatever the original 2–6 spec said), and the tile is
+    **minimal like an Assets tile** (same day, Sophie: "the things I need to
+    compare are staggered and the titles are way too long… just the picture
+    and then two lines underneath it saying what changed"): the PICTURE
+    first, so a row lines up, then the label clamped to two lines — the
+    what-changed line — then ♥/✕ + note + PROMPT (the Assets overlay:
+    content/style split, opens on CONTENT, MODEL · QUALITY at the top; when
+    a row's variants differ in their STYLE half, each variant's style tab
+    marks the lines it does not share in rose). **Tapping an asset-backed
+    picture opens THE Assets-tab lightbox** — `/asset-lightbox.js`, the
+    exact code lifted out of chats.html (her ask: "identical to what happens
+    when I open the image in assets"), so the big image, ♥/✕ on its corners,
+    the note THREAD under it and the Prompt button are one implementation on
+    both surfaces; the lightbox ♥ saves the page verdict and the asset vote
+    together, and the tile repaints under it.
+>>>>>>> origin/main
   - **THE MIRROR: an item with `url` (its Assets-tab identity — a storage
     `img` is its own by default) keeps the page and the Assets tab AGREEING**
     (Sophie's call): ♥/✕ writes through to the asset vote, a committed note
