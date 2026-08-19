@@ -139,6 +139,31 @@ Then she says one thing to the terminal chat and the whole queue runs.
 - **If the curl 404s** (deploy not live yet): pull main and run
   `bash ~/imageforge/scripts/install-memo-autopush.sh` instead — same script.
 
+### Grab "Venus" (Afro Comb feat. DOMAINIQ) for the dream-app song spot
+- **Why:** the song spot is cut to this record and rendered SILENT — a cloud
+  session can't download it (YouTube bot-blocks datacenter IPs). With the audio
+  file on the Mac, one command lays the song under the film and the hook lands
+  on the end card by itself.
+- **Where:** ~/imageforge
+- **Run:**
+  ```bash
+  cd ~/imageforge && git checkout main && git pull origin main
+  npm install
+  yt-dlp -f bestaudio -x --audio-format m4a -o /tmp/venus.m4a "https://youtu.be/2uwwVV-bGXU"
+  node scripts/dream-commercial/spot.js spot.json /tmp/spot-v2.mp4 --audio /tmp/venus.m4a
+  open /tmp/spot-v2.mp4
+  ```
+- **What to check by ear:** the sung "you were in my dreams last night" should
+  hit as the end card appears. If it is early or late, her 1:04 was a little
+  off — change `song.hook` in `scripts/dream-commercial/spot.json` to the real
+  timestamp and run the last command again. Nothing else moves.
+- **Then:** the file is on the Mac, so hand `/tmp/venus.m4a` to a cloud chat
+  (drop it in a message) and it will render and upload the scored cut where the
+  phone can play it.
+- **Needs from her:** nothing beyond running it (`yt-dlp` may need
+  `brew install yt-dlp` the first time).
+- **Queued:** 2026-08-19 by song-commercial-selection
+
 ---
 
 ## DONE

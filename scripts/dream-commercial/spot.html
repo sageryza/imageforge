@@ -1,0 +1,260 @@
+<!doctype html>
+<!-- The SONG SPOT renderer (docs/dream-commercial.md, "The song spot").
+     Stepped by spot.js one beat at a time, exactly like render.html:
+       window.__load(script) builds the beats; window.__setStep(i, p) shows
+       beat i at animation progress p (0..1), everything before it settled.
+     Progress is a NUMBER, never wall clock — that is what makes the frames
+     deterministic. The dream app's own keyframes (wobble/blob/breathe) are
+     therefore paused: a screenshot loop samples real time unevenly, so a
+     living wobble would play back at the wrong speed.
+     Unlike render.html — a filmed prop of Apple's Messages — this is a prop
+     of OUR app, so its palette, fonts, dial and button are copied from
+     public/dreamapp.html verbatim. If that screen changes, change this. -->
+<html><head><meta charset="utf-8">
+<style>
+  /* the dream app's palette, from public/dreamapp.html */
+  :root { --cream:#ece7dc; --card:#f4f0e5; --ink:#14131a; --brown:#7a4a3a; --mauve:#c493a4; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:390px; height:844px; overflow:hidden; background:var(--cream);
+    font:15px/1.6 'EB Garamond', Georgia, serif; color:var(--ink); -webkit-font-smoothing:antialiased; }
+  /* every organic shape holds its 0% keyframe — see the note above */
+  *, *::before, *::after { animation-play-state:paused !important; }
+  #phone { position:absolute; inset:0; background:var(--cream); overflow:hidden; }
+
+  /* status bar — ink on cream, this is a phone holding a website */
+  #status { position:absolute; top:0; left:0; right:0; height:47px; z-index:30;
+    display:flex; justify-content:space-between; align-items:flex-end; padding:0 28px 8px;
+    font:600 15px 'Liberation Sans',Arial,sans-serif; color:var(--ink); }
+  #status .icons { display:flex; gap:6px; align-items:center; }
+
+  /* ── the feed underneath ── */
+  #feed { position:absolute; inset:47px 0 0; padding:14px 18px 0; display:flex;
+    flex-direction:column; gap:22px; }
+  #feed .fhead { display:flex; justify-content:space-between; align-items:baseline; }
+  .mark { font:28px 'Baveuse','Liberation Sans',sans-serif; color:var(--ink); }
+  .fnow { font:11px 'Courier Prime',monospace; color:var(--brown); }
+  .dcard { border:2px solid var(--ink); padding:16px; background:var(--card); color:var(--ink);
+    border-radius:14px 60px 18px 46px/40px 16px 52px 18px; }
+  .dcard.dark { background:var(--ink); color:var(--cream); }
+  .drow { display:flex; gap:12px; align-items:stretch; }
+  .drow.rev { flex-direction:row-reverse; }
+  .blob { flex:1; aspect-ratio:1/1; align-self:flex-start; border:1.5px solid currentColor;
+    border-radius:60% 40% 55% 45%/45% 55% 40% 60%; overflow:hidden; position:relative;
+    background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 6px,#e9e4d6 6px,#e9e4d6 12px); }
+  .dark .blob { background:repeating-linear-gradient(45deg,#221f2b,#221f2b 6px,#2a2735 6px,#2a2735 12px); }
+  .blob img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .dtxt { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
+  .dttl { font:600 19px/1.25 'EB Garamond',serif; }
+  .dbody { font:400 14.5px/1.5 'EB Garamond',serif; }
+  .dmeta { display:flex; gap:18px; align-items:center; margin-top:auto; padding-top:6px;
+    font:12px 'Courier Prime',monospace; color:rgba(20,19,26,.6); }
+  .dark .dmeta { color:rgba(236,231,220,.65); }
+  .dmeta .heart { color:var(--mauve); }
+
+  /* ── the composer sheet (dreamapp.html #sheet / #st2) ── */
+  /* the real sheet is bottom-anchored (it scrolls, and stage 2 carries more
+     than this shot needs) — for four seconds on screen the block is centred
+     instead, so there is no dead band between the words and the dial */
+  #sheet { position:absolute; inset:0; z-index:8; background:var(--cream);
+    display:flex; flex-direction:column; justify-content:center; gap:12px;
+    padding:56px 22px 30px; }
+  #sheet .shead { position:absolute; top:56px; left:22px; right:22px; }
+  .shead { display:flex; justify-content:space-between; align-items:baseline; }
+  .sx { font:16px 'Courier Prime',monospace; color:var(--brown); }
+  .illus { aspect-ratio:1/1; width:74%; align-self:center; flex:none; position:relative;
+    border:1.5px solid var(--ink); border-radius:60% 40% 55% 45%/45% 55% 40% 60%; overflow:hidden;
+    background:repeating-linear-gradient(45deg,#e3ddcf,#e3ddcf 6px,#e9e4d6 6px,#e9e4d6 12px);
+    display:flex; align-items:center; justify-content:center; }
+  .illus img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .preview { font:400 15px/1.5 'EB Garamond',serif; color:var(--ink); }
+  .seenby { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:14px; }
+  .seenby > span { font:400 14px 'EB Garamond',serif; }
+  .dial { display:flex; background:#f4f0e5; border:1.5px solid var(--ink);
+    border-radius:18px 26px 16px 24px/22px 16px 24px 18px; padding:3px; }
+  .dial button { font:11.5px 'Courier Prime',monospace; padding:8px 12px; border:none;
+    background:transparent; color:rgba(20,19,26,.65); }
+  .dial button:first-child { border-radius:14px 20px 12px 18px/16px 12px 18px 14px; }
+  .dial button:nth-child(2) { border-radius:18px 12px 20px 14px/12px 20px 14px 18px; }
+  .dial button:last-child { border-radius:20px 12px 18px 14px/14px 18px 12px 20px; }
+  .dial button.on { background:var(--brown); color:var(--cream); }
+  .blobbtn { align-self:center; font:15px 'Courier Prime',monospace; background:var(--brown);
+    color:var(--cream); border:none; padding:13px 30px; margin-top:14px;
+    border-radius:60% 40% 55% 45%/45% 55% 40% 60%; }
+
+  /* the tap — a flat ink dot, the only thing on screen that is not the app */
+  #tap { position:absolute; z-index:40; width:52px; height:52px; border-radius:50%;
+    background:rgba(217,179,192,.72); margin:-26px 0 0 -26px; left:0; top:0; }
+
+  /* ── cards: the same two the boys commercial ends on ── */
+  .card { position:absolute; inset:0; z-index:50; display:none; align-items:center;
+    justify-content:center; text-align:center; padding:0 34px; }
+  .card .line { font-family:'Newsreader','Liberation Serif',Georgia,serif; font-style:italic; font-size:36px; line-height:1.25; }
+  #endcard { display:none; position:absolute; inset:0; z-index:50; background:#14131a; text-align:center; }
+  #endcard .moon { width:104px; height:104px; border-radius:50%; background:#e9e4d6; margin:220px auto 0; }
+  #endcard .star { position:absolute; border-radius:50%; }
+  #endcard .name { font-family:'Newsreader','Liberation Serif',Georgia,serif; font-style:italic;
+    color:#f4f0e5; font-size:32px; margin-top:56px; }
+  #endcard .url { color:#d9b3c0; font-size:13px; letter-spacing:2.5px; margin-top:16px; }
+</style></head>
+<body>
+<div id="phone">
+  <div id="status">
+    <div>4:07</div>
+    <div class="icons">
+      <svg width="17" height="11" viewBox="0 0 17 11"><g fill="#14131a"><rect x="0" y="7" width="3" height="4" rx="0.8"/><rect x="4.5" y="5" width="3" height="6" rx="0.8"/><rect x="9" y="2.5" width="3" height="8.5" rx="0.8"/><rect x="13.5" y="0" width="3" height="11" rx="0.8"/></g></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11"><path fill="#14131a" d="M8 9.5 L5.8 7.2 C6.4 6.6 7.2 6.3 8 6.3 C8.8 6.3 9.6 6.6 10.2 7.2 Z M3.9 5.2 C5 4.1 6.5 3.4 8 3.4 C9.5 3.4 11 4.1 12.1 5.2 L13.9 3.4 C12.3 1.8 10.2 0.9 8 0.9 C5.8 0.9 3.7 1.8 2.1 3.4 Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#14131a" stroke-opacity="0.35"/><rect x="2" y="2" width="18" height="8" rx="1.6" fill="#14131a"/><path fill="#14131a" fill-opacity="0.35" d="M23 4 C24 4.3 24.5 5 24.5 6 C24.5 7 24 7.7 23 8 Z"/></svg>
+    </div>
+  </div>
+
+  <div id="feed">
+    <div class="fhead"><span class="mark">dreams</span><span class="fnow" id="fnow">last night</span></div>
+    <article class="dcard" id="hers">
+      <div class="drow">
+        <div class="blob"><img id="feedimg" alt=""></div>
+        <div class="dtxt">
+          <div class="dttl" id="feedttl"></div>
+          <div class="dbody" id="feedbody"></div>
+          <div class="dmeta"><span class="heart">&#9825; 0</span><span>0</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="dcard dark">
+      <div class="drow rev">
+        <div class="dtxt">
+          <div class="dttl">the stairs that kept going</div>
+          <div class="dbody">i counted eleven floors and the building only has four.</div>
+          <div class="dmeta"><span class="heart">&#9825; 6</span><span>2</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="dcard">
+      <div class="drow">
+        <div class="dtxt">
+          <div class="dttl">the wrong bus, again</div>
+          <div class="dbody">it went the right way for a while.</div>
+          <div class="dmeta"><span class="heart">&#9825; 3</span><span>1</span></div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div id="sheet">
+    <div class="shead"><span class="mark">dreams</span><span class="sx">&times;</span></div>
+    <div class="illus"><img id="illusimg" alt=""></div>
+    <div class="preview" id="preview"></div>
+    <div class="seenby">
+      <span>seen by</span>
+      <div class="dial">
+        <button data-s="everyone">everyone</button>
+        <button data-s="friends">friends</button>
+        <button data-s="private">just me</button>
+      </div>
+    </div>
+    <button class="blobbtn" id="sharebtn">share your dream</button>
+  </div>
+
+  <div id="tap" hidden></div>
+  <div class="card" id="titlecard"><div class="line"></div></div>
+  <div id="endcard">
+    <div class="moon"></div>
+    <div class="name"></div>
+    <div class="url"></div>
+  </div>
+</div>
+<script>
+  let SCRIPT = null;
+  const $ = id => document.getElementById(id);
+  const OFF = { x: 195, y: 980 };            // the thumb, off the bottom of the screen
+
+  function ease(t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  window.__load = function (script) {
+    SCRIPT = script;
+    $('preview').textContent = script.dream.text;
+    $('feedbody').textContent = script.dream.text;
+    $('feedttl').textContent = script.dream.title;
+    if (script.dream.img) { $('illusimg').src = script.dream.img; $('feedimg').src = script.dream.img; }
+    const end = script.beats.find(b => b.type === 'end');
+    if (end) {
+      document.querySelector('#endcard .name').textContent = end.name;
+      document.querySelector('#endcard .url').textContent = end.url;
+      const stars = [[55, 170, 3, '#d9b3c0'], [330, 130, 2, '#e9e4d6'], [280, 260, 2.5, '#d9b3c0'],
+        [90, 290, 2, '#e9e4d6'], [350, 340, 3, '#e9e4d6'], [45, 420, 2, '#d9b3c0']];
+      for (const [x, y, r, c] of stars) {
+        const d = document.createElement('div');
+        d.className = 'star';
+        d.style.cssText = `left:${x}px;top:${y}px;width:${r * 2}px;height:${r * 2}px;background:${c}`;
+        $('endcard').appendChild(d);
+      }
+    }
+    return SCRIPT.beats.length;
+  };
+
+  // Where the thumb sits for a given app state — read off the real elements,
+  // so a chip that re-wraps is still hit dead centre.
+  function target(state) {
+    let el = null;
+    if (state === 'everyone') el = document.querySelector('.dial button[data-s="everyone"]');
+    if (state === 'share') el = $('sharebtn');
+    if (!el) return OFF;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function dial(on) {
+    document.querySelectorAll('.dial button').forEach(b => b.classList.toggle('on', b.dataset.s === on));
+  }
+
+  window.__setStep = function (i, p) {
+    const beats = SCRIPT.beats, beat = beats[i];
+    $('titlecard').style.display = 'none';
+    $('endcard').style.display = 'none';
+    $('tap').hidden = true;
+    $('sheet').style.display = 'flex';
+    $('sheet').style.transform = 'none';
+    $('sharebtn').style.transform = 'none';
+
+    // the audience the dial shows: 'just me' until the tap on everyone lands
+    const prior = beats.slice(0, i + 1).filter(b => b.type === 'app');
+    const flipped = prior.some((b, k) => b.state === 'everyone'
+      && (k < prior.length - 1 || p >= SCRIPT.press));
+    dial(flipped ? 'everyone' : 'private');
+
+    if (beat.type === 'card') {
+      $('titlecard').style.display = 'flex';
+      $('titlecard').style.background = beat.bg;
+      $('titlecard').style.opacity = p;
+      const line = $('titlecard').querySelector('.line');
+      line.textContent = beat.text;
+      line.style.color = beat.fg;
+      return;
+    }
+    if (beat.type === 'end') {
+      $('endcard').style.display = 'block';
+      $('endcard').style.opacity = p;
+      return;
+    }
+
+    // app beat: the thumb travels from the previous state's mark to this one
+    const prev = beats.slice(0, i).reverse().find(b => b.type === 'app');
+    const from = target(prev ? prev.state : 'idle'), to = target(beat.state);
+    const e = ease(Math.min(1, p));
+    const x = from.x + (to.x - from.x) * e, y = from.y + (to.y - from.y) * e;
+    const pressing = beat.state !== 'idle' && beat.state !== 'shared' && p >= SCRIPT.press;
+    if (beat.state !== 'idle') {
+      $('tap').hidden = false;
+      $('tap').style.left = x + 'px';
+      $('tap').style.top = y + 'px';
+      $('tap').style.transform = pressing ? 'scale(.72)' : 'scale(1)';
+      $('tap').style.background = pressing ? 'rgba(217,179,192,.9)' : 'rgba(217,179,192,.72)';
+    }
+    if (beat.state === 'share' && pressing) $('sharebtn').style.transform = 'scale(.95)';
+    if (beat.state === 'shared') {
+      $('tap').hidden = true;
+      $('sheet').style.transform = `translateY(${(1 - e) * 0 + e * 100}%)`;
+      if (e >= 1) $('sheet').style.display = 'none';
+    }
+  };
+</script>
+</body></html>
