@@ -4,10 +4,19 @@
      I'd like one screen that shows all the things waiting to be reviewed").
 
      The front for /api/review: every deck/grid template page across every
-     chat, with how far through each she is. Tapping a row opens the page
-     itself; the ✕ on a row is "not a review" (a browse deck, a demo), which
-     stamps it hidden — the hidden pile lives under the DONE tab and un-hides
-     with one tap. Nothing else here writes anything.
+     chat, with how far through each she is. PAGES ARE SQUARE TILES, THREE TO
+     A ROW (Aug 2026 v2, Sophie: "icons three to a row … square and they
+     should just be the first picture of whatever the review content is"),
+     the tile face the first picture — or, on a text deck (date moments,
+     video ideas), the first card's own words in the serif. Tapping a tile
+     opens the page CLEAN (?clean=1: no h1, straight onto the cards — her
+     ask: "not a compare page because that has a header at the top, but
+     instead just a clean Tinder style page … with all the content
+     preloaded"). The ✕ on a tile is "not a review" (a browse deck, a demo),
+     which stamps it hidden — the hidden pile lives under the DONE tab and
+     un-hides with one tap. Chats she tagged `to be reviewed` stay ROWS below
+     the tiles: they have no cards and open the chat. Nothing else here
+     writes anything.
 
      House kit it follows:
        tool.css           the look; title once (the native bar carries it)
@@ -47,16 +56,45 @@
     color:var(--dim); padding:0 64px 10px 2px; }
   .strip b{ color:var(--rose); font-weight:600; }
 
-  /* A row: thumb · words · ✕. The row is one tap (open the page); the ✕ is
-     its own small target outside the link. */
+  /* THE TILES — pages, three to a row, square (Aug 2026 v2, Sophie: "icons
+     three to a row … square and they should just be the first picture of
+     whatever the review content is"). The whole tile is one tap (open the
+     page clean); the ✕ is its own small target over the face's top-LEFT —
+     left on purpose: the injected pill owns the top-right corner (x 326-374,
+     y 14-192), which is exactly the first row's third face. */
+  .qgrid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px 8px; margin-bottom:14px; }
+  .qtile{ position:relative; min-width:0; }
+  .qtile .qgo{ display:block; min-width:0; text-decoration:none; color:inherit; }
+  .qface{ display:block; aspect-ratio:1/1; border-radius:8px; overflow:hidden;
+    border:1px solid var(--border); background:var(--surface); }
+  .qface img{ width:100%; height:100%; object-fit:cover; display:block; }
+  /* A text deck's face is its first card's own words — the serif, centred,
+     clamped. No picture exists to show (measured: 12 of 15 queued pages). */
+  .qface.qwords{ display:flex; align-items:center; justify-content:center;
+    box-sizing:border-box; padding:9px; color:var(--ink); }
+  .qface.qwords i{ font:400 11px/1.5 Georgia, 'Times New Roman', serif;
+    font-style:normal; text-align:center; display:-webkit-box;
+    -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden;
+    overflow-wrap:break-word; }
+  .qface.qwords svg{ width:24px; height:24px; stroke:currentColor; fill:none;
+    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; color:var(--dim); }
+  .qtt{ display:block; margin-top:5px; font-size:11px; font-weight:600;
+    color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qtc{ display:block; margin-top:2px; font-size:10px; color:var(--dim);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qtile.due .qtc{ color:var(--rose); }
+  .qtile .qx{ position:absolute; top:5px; left:5px; z-index:2; }
+
+  /* A CHAT row: bubble · words · ✕ — a tagged chat has no cards to tile, so
+     it stays a row, below the tiles, and opens the chat. */
   .qrow{ display:flex; align-items:center; gap:11px; background:var(--surface);
     border:1px solid var(--border); border-radius:12px; margin-bottom:8px;
     padding:9px 10px; }
-  .qgo{ display:flex; align-items:center; gap:11px; flex:1; min-width:0;
+  .qrow .qgo{ display:flex; align-items:center; gap:11px; flex:1; min-width:0;
     text-decoration:none; color:inherit; }
   .qth{ width:52px; height:52px; flex:0 0 auto; border-radius:8px;
-    border:1px solid var(--border); background:var(--surface2); object-fit:cover;
-    display:block; }
+    border:1px solid var(--border); background:var(--surface2); }
   .qth.ph{ display:flex; align-items:center; justify-content:center; color:var(--dim); }
   .qth.ph svg{ width:22px; height:22px; stroke:currentColor; fill:none;
     stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
@@ -65,22 +103,18 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .qm{ display:block; font-size:11px; color:var(--dim); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  /* Progress: a thin flat bar (solid fill — no gradients, ever) + the count. */
   .qp{ display:flex; align-items:center; gap:7px; margin-top:5px; }
-  .qbar{ flex:1; height:3px; border-radius:2px; background:var(--border); overflow:hidden; }
-  .qbar i{ display:block; height:100%; background:var(--accent); }
   .qn{ font-size:11px; color:var(--dim); flex:0 0 auto; }
   .qrow.due .qn{ color:var(--rose); }
-  /* The pill is fixed over roughly x 326-374 / y 14-192 — which is the first
-     rows' own right edge, so their ✕ was untappable (proved in headless: the
-     pill's button intercepted the click). The first TWO rows step their ✕
-     left of the corner — two, not one, because ?embed=1 drops the header and
-     shifts the second row up into the band. From the third row down the
-     corner is clear and rows use the full width. */
-  #pane-wait .qrow:nth-child(-n+2), #pane-done .qrow:nth-child(-n+2){ padding-right:60px; }
+  /* The pill is fixed over roughly x 326-374 / y 14-192. Tiles keep their ✕
+     on the LEFT so no tile ever collides; chat rows only lead the pane when
+     there are no tiles, and then the first two step their ✕ left of the
+     corner (two, not one: ?embed=1 drops the header and lifts the second row
+     into the band). */
+  #pane-wait .qrow:nth-child(-n+2){ padding-right:60px; }
   /* ✕ / ↩ — a small circular icon button (the allowed circle). */
   .qx{ width:26px; height:26px; flex:0 0 auto; border-radius:50%; padding:0;
-    border:1px solid var(--border); background:transparent; color:var(--dim);
+    border:1px solid var(--border); background:var(--surface); color:var(--dim);
     font:inherit; font-size:13px; line-height:1; cursor:pointer; }
 
   .pilehead{ font-size:11px; letter-spacing:2px; text-transform:uppercase;
@@ -95,14 +129,15 @@
 </header>
 <div class="helpcard" id="helpcard" hidden>
   <b>Everything still waiting on your review</b> — every swipe deck and
-  comparison grid any chat has posted, with how far through it you are. Tap a
-  row to review; your swipes save as you go, so a row leaves this list by
-  itself when you finish it.
+  comparison grid any chat has posted, with how far through it you are. Each
+  tile is the first card of the content; tap it and you're straight on the
+  cards. Your swipes save as you go, so a tile leaves this list by itself when
+  you finish it.
   <br><br><b>Chats show up here too</b> — tag a chat <i>to be reviewed</i> in the
   Chats app and it lands in this pile, with whatever it says it needs from you.
   The ✕ on a chat row takes that tag back off.
   <br><br><b>✕ means "not a review"</b> — a browse deck or a demo you'll never
-  swipe. It moves the row to a hidden pile behind DONE, where ↩ brings it back.
+  swipe. It moves the tile to a hidden pile behind DONE, where ↩ brings it back.
   <br><br>Later stays counted as waiting — it's the pile you asked to come
   back to.
 </div>
@@ -153,41 +188,46 @@ function ago(iso) {
   return d < 7 ? d + 'd' : Math.round(d / 7) + 'w';
 }
 
-function row(r, kind) {
-  var pct = r.total ? Math.round((r.decided / r.total) * 100) : 0;
+/* A PAGE is a square TILE: the face is the first picture of the content — or,
+   on a text deck, the first card's own words — and the whole tile opens the
+   page clean (?clean=1 rides in r.url), straight onto the cards. */
+function tile(r, kind) {
   var count = kind === 'wait'
     ? (r.decided ? r.decided + ' of ' + r.total : r.total + ' to go')
       + (r.later ? ' · ' + r.later + ' later' : '')
     : r.total + ' done';
-  var thumb = r.thumb
-    ? '<img class="qth" loading="lazy" src="' + esc(r.thumb) + '" alt="">'
-    : '<span class="qth ph">' + (r.kind === 'chat' ? BUBBLE : CARDS) + '</span>';
-  /* A CHAT ROW has nothing to count through — it is here because she put
-     `to be reviewed` on it, and it leaves when that word comes off. So it
-     carries no bar and no "3 of 12": the second line is the chat's own name and
-     the first is what it says it needs from her, which the status card already
-     wrote. The ✕ takes the label off (POST /reviewed), the same write her chips
-     in the Chats app make. */
-  var chat = r.kind === 'chat';
-  return '<article class="qrow' + (kind === 'wait' && !r.decided ? ' due' : '') + '">'
+  var face = r.thumb
+    ? '<img loading="lazy" src="' + esc(r.thumb) + '" alt="" data-peek="' + esc(r.peek || '') + '">'
+    : (r.peek ? '<i>' + esc(r.peek) + '</i>' : CARDS);
+  return '<article class="qtile' + (kind === 'wait' && !r.decided ? ' due' : '') + '">'
     + '<a class="qgo" href="' + esc(r.url) + '">'
-    + thumb
-    + '<span class="qtx">'
-    + '<span class="qt">' + esc(chat ? r.name : r.title) + '</span>'
-    + '<span class="qm">' + esc(chat ? 'chat' : r.name + ' · ' + r.template)
-      + ' · ' + esc(ago(r.created)) + '</span>'
-    + (chat
-      ? (r.title ? '<span class="qp"><span class="qn">' + esc(r.title) + '</span></span>' : '')
-      : '<span class="qp"><span class="qbar"><i style="width:' + pct + '%"></i></span>'
-        + '<span class="qn">' + esc(count) + '</span></span>')
-    + '</span></a>'
+    + '<span class="qface' + (r.thumb ? '' : ' qwords') + '">' + face + '</span>'
+    + '<span class="qtt">' + esc(r.title) + '</span>'
+    + '<span class="qtc">' + esc(count) + '</span>'
+    + '</a>'
     + (kind === 'hidden'
       ? '<button class="qx" data-unhide="' + esc(r.id) + '" aria-label="put it back">↩</button>'
       : kind === 'wait'
-        ? (chat
-          ? '<button class="qx" data-reviewed="' + esc(r.chat) + '" aria-label="done reviewing">✕</button>'
-          : '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>')
+        ? '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>'
         : '')
+    + '</article>';
+}
+
+/* A CHAT ROW has nothing to count through — it is here because she put
+   `to be reviewed` on it, and it leaves when that word comes off. So it stays
+   a row: the top line is her name for the chat, the second what it says it
+   needs from her, which the status card already wrote. The ✕ takes the label
+   off (POST /reviewed), the same write her chips in the Chats app make. */
+function chatRow(r) {
+  return '<article class="qrow due">'
+    + '<a class="qgo" href="' + esc(r.url) + '">'
+    + '<span class="qth ph">' + BUBBLE + '</span>'
+    + '<span class="qtx">'
+    + '<span class="qt">' + esc(r.name) + '</span>'
+    + '<span class="qm">chat · ' + esc(ago(r.created)) + '</span>'
+    + (r.title ? '<span class="qp"><span class="qn">' + esc(r.title) + '</span></span>' : '')
+    + '</span></a>'
+    + '<button class="qx" data-reviewed="' + esc(r.chat) + '" aria-label="done reviewing">✕</button>'
     + '</article>';
 }
 
@@ -204,24 +244,38 @@ function render() {
   $('strip').innerHTML = c.pages
     ? '<b>' + c.pages + ' waiting</b>' + (bits.length ? ' · ' + bits.join(' · ') : '')
     : 'Nothing waiting';
-  $('pane-wait').innerHTML = (Q.waiting || []).length
-    ? Q.waiting.map(function (r) { return row(r, 'wait'); }).join('')
+  /* Pages tile three to a row; tagged chats stay rows below the tiles. */
+  var pages = (Q.waiting || []).filter(function (r) { return r.kind !== 'chat'; });
+  var chats = (Q.waiting || []).filter(function (r) { return r.kind === 'chat'; });
+  $('pane-wait').innerHTML = (pages.length || chats.length)
+    ? (pages.length
+      ? '<div class="qgrid">' + pages.map(function (r) { return tile(r, 'wait'); }).join('') + '</div>'
+      : '')
+      + (pages.length && chats.length ? '<div class="pilehead">Chats</div>' : '')
+      + chats.map(chatRow).join('')
     : '<div class="empty">Nothing waiting — the pile is clear.</div>';
   $('pane-done').innerHTML = ((Q.done || []).length
-    ? Q.done.map(function (r) { return row(r, 'done'); }).join('')
+    ? '<div class="qgrid">' + Q.done.map(function (r) { return tile(r, 'done'); }).join('') + '</div>'
     : '<div class="empty">Nothing finished yet.</div>')
     + ((Q.hidden || []).length
-      ? '<div class="pilehead">Hidden</div>'
-        + Q.hidden.map(function (r) { return row(r, 'hidden'); }).join('')
+      ? '<div class="pilehead">Hidden</div><div class="qgrid">'
+        + Q.hidden.map(function (r) { return tile(r, 'hidden'); }).join('') + '</div>'
       : '');
-  /* A thumb whose Storage object is gone falls back to the card glyph —
-     never a broken-image icon in the row. */
-  document.querySelectorAll('img.qth').forEach(function (img) {
+  /* A thumb whose Storage object is gone falls back to the card's words (or
+     the card glyph) — never a broken-image icon on a tile. */
+  document.querySelectorAll('.qface img').forEach(function (img) {
     img.addEventListener('error', function () {
-      var ph = document.createElement('span');
-      ph.className = 'qth ph';
-      ph.innerHTML = CARDS;
-      img.replaceWith(ph);
+      var face = img.parentElement;
+      var peek = img.getAttribute('data-peek');
+      face.classList.add('qwords');
+      if (peek) {
+        var i = document.createElement('i');
+        i.textContent = peek;
+        face.textContent = '';
+        face.appendChild(i);
+      } else {
+        face.innerHTML = CARDS;
+      }
     });
   });
   /* The ✕ on a CHAT row: takes `to be reviewed` off it, which is the same write

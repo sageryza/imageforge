@@ -105,8 +105,16 @@ function chatLabels(reg) {
 // whole decision table with fixtures and no network.
 // ---------------------------------------------------------------------------
 
-/** The item ids, custom-states flag and thumbnail out of one page's frozen
- *  data JSON (the shape validateTemplate stored). */
+/** One item's words, for a tile with no picture — a text deck's first card is
+ *  its own face (the moment card may carry no single `text` at all). */
+function itemWords(it) {
+  if (!it) return '';
+  return it.text || it.who || it.eyebrow || it.label
+    || (Array.isArray(it.sections) && it.sections[0] && it.sections[0].text) || '';
+}
+
+/** The item ids, custom-states flag, thumbnail and text peek out of one page's
+ *  frozen data JSON (the shape validateTemplate stored). */
 function pageItems(data) {
   const items = data && data.items
     ? data.items
@@ -115,6 +123,10 @@ function pageItems(data) {
     ids: items.map((it) => String(it && it.id || '')).filter(Boolean),
     custom: Boolean(data && data.states && data.states.length),
     thumb: (items.find((it) => it && it.img) || {}).img || '',
+    // the first card's words — what a TEXT deck's tile shows in the picture's
+    // place (measured 2026-08-19: 12 of the 15 queued pages had no picture at
+    // all — video ideas, date moments, card titles — so this is the common face)
+    peek: String(items.map(itemWords).find(Boolean) || ''),
   };
 }
 
@@ -149,7 +161,7 @@ function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
     if (!p || !p.id || !p.chat || p.superseded) return;
     const data = (items || {})[p.id];
     if (!data) return;                       // unreadable data: no wrong numbers
-    const { ids, custom, thumb } = pageItems(data);
+    const { ids, custom, thumb, peek } = pageItems(data);
     if (!ids.length) return;
     const vdoc = (verdicts || {})[`${p.chat}__page-${p.id}`] || {};
     const { decided, later } = pageProgress(ids, custom, vdoc.items);
@@ -161,11 +173,15 @@ function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
       title: clean(p.title, 140) || 'Untitled',
       template: p.template === 'grid' ? 'grid' : 'deck',
       created: clean(p.created, 40),
-      url: `/api/chatfeed/page/${p.id}`,
+      // ?clean=1 — straight onto the cards, no h1 (Aug 2026, Sophie: "not a
+      // compare page because that has a header at the top, but instead just a
+      // clean Tinder style page … with all the content preloaded")
+      url: `/api/chatfeed/page/${p.id}?clean=1`,
       total: ids.length,
       decided,
       later,
       thumb: clean(thumb, 500),
+      peek: clean(peek, 160),
       // the newest touch — her last verdict when there is one, else the post
       at: clean(vdoc.updatedAt, 40) || clean(p.created, 40),
     };
