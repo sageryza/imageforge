@@ -69,6 +69,9 @@
            animation:rise both, breathe var(--dur,9s) ease-in-out infinite, wobble 7s ease-in-out infinite;
            animation-timeline:view(), auto, auto; animation-range:entry 0% entry 45%, normal, normal; }
   .dcard.dark { background:var(--ink); color:var(--cream); }
+  /* the profile stacks the same cards without the feed's flex gap — give
+     them the feed's 22px themselves (they sat touching, Sophie 2026-08-19) */
+  #scr-dreamer .dcard { margin-top:22px; }
   .drow { display:flex; gap:12px; align-items:stretch; }
   .drow.rev { flex-direction:row-reverse; }
   .blob { flex:1; aspect-ratio:1/1; align-self:flex-start; border:1.5px solid currentColor;
@@ -921,10 +924,15 @@ async function renderFeed(){
       byDay[k].push(n);
     });
     days.sort().reverse();
-    var html = '', card = 0, img = 0;
+    // The alternation reads the card actually painted before this one — a ☾
+    // friends card is ALWAYS dark, and a blind counter put two darks in a row
+    // beside one (Sophie's screenshot, 2026-08-19).
+    var html = '', dark = true, card = 0, img = 0;
     var drawCard = function(n){
       var hasImg = !!n.cover;
-      var s = meltCard(n, card % 2 === 1, hasImg && img % 2 === 1, 8 + (card % 4));
+      var dk = n.audience === 'friends' ? true : !dark;
+      dark = dk;
+      var s = meltCard(n, dk, hasImg && img % 2 === 1, 8 + (card % 4));
       card++;
       if (hasImg) img++;
       return s;
@@ -1619,11 +1627,13 @@ async function renderDreamer(){
     var html = backHtml +
       '<div class="h2">' + (r.name ? esc(r.name) + '’s dreams' : 'their dreams') + '</div>' +
       friendRow;
-    var card = 0, img = 0;
+    var dark = true, card = 0, img = 0;
     (r.dreams || []).forEach(function(n){
       feedEntry[n.id] = n;
       var hasImg = !!n.cover;
-      html += meltCard(n, card % 2 === 1, hasImg && img % 2 === 1, 8 + (card % 4));
+      var dk = n.audience === 'friends' ? true : !dark;
+      dark = dk;
+      html += meltCard(n, dk, hasImg && img % 2 === 1, 8 + (card % 4));
       card++;
       if (hasImg) img++;
     });

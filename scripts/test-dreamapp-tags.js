@@ -36,7 +36,7 @@ const PAGE = fs.readFileSync(path.join(__dirname, '..', 'public', 'dreamapp.html
 const today = '2026-08-18';
 const feed = [
   { id: 'd1', title: 'The Xylophone Teeth', mine: false, publicOn: today, createdAt: today + 'T08:00:00Z',
-    audience: 'everyone', words: 'My teeth were a xylophone.', panels: [], cover: null,
+    audience: 'friends', words: 'My teeth were a xylophone.', panels: [], cover: null,
     feltCount: 0, felt: false, commentCount: 0, taggedYou: true },
   { id: 'd2', title: 'The Whale Again', mine: false, publicOn: today, createdAt: today + 'T07:00:00Z',
     audience: 'everyone', words: 'The whale is back.', panels: [], cover: null,
@@ -97,6 +97,11 @@ const FIREBASE_STUB = `
      && (await page.locator('[data-id="d1"] .youin').textContent()) === 'you were in this dream',
     'a taggedYou card whispers "you were in this dream"');
   ok(await page.locator('[data-id="d2"] .youin').count() === 0, 'and no other card does');
+
+  // alternation reads the card actually painted before it — a forced-dark ☾
+  // friends card must not leave two darks in a row (Sophie's screenshot)
+  ok(await page.locator('[data-id="d1"].dark').count() === 1, 'a ☾ friends card is dark');
+  ok(await page.locator('[data-id="d2"]:not(.dark)').count() === 1, 'and the card after it comes back light');
 
   // 3 · the sharing page grows the chips
   await page.$eval('#navMine', (el) => el.click());

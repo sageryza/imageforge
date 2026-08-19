@@ -105,6 +105,8 @@ const FIREBASE_STUB = `
   ok(await page.locator('#scr-dreamer [data-ask]').count() === 1, 'and carries the one friend button');
   ok(await page.locator('#scr-dreamer .dcard').count() === 1, 'their visible dreams are the body');
   ok(await page.locator('#scr-dreamer .whobtn:visible').count() === 0, 'no way-in loop on its own cards');
+  ok(await page.$eval('#scr-dreamer .dcard', (el) => getComputedStyle(el).marginTop) === '22px',
+    'profile cards carry the feed’s 22px breathing room');
 
   // 3 · asking
   await page.click('#scr-dreamer [data-ask]', { force: true });
