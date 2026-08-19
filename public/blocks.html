@@ -304,6 +304,8 @@
 
   <!-- STEP 2: the lines -->
   <section id="work" hidden>
+    <!-- the walk: where this recording came from and went on to (derived, free) -->
+    <div class="muted" id="lineage" style="font-size:12px;margin:2px 0 8px"></div>
     <div id="secs"></div>
     <div id="renders"></div>
   </section>
@@ -356,7 +358,7 @@
   function qNext(st){ return QORDER[(QORDER.indexOf(st==='cut'?'':st)+1)%QORDER.length]; }
 
   /* ── the project ────────────────────────────────────────────────────── */
-  var PID=null, SRC='', MODEL=[], SECS=[], TOTAL=0, BY={}, SECOF={}, BLOCK_INDEX={};
+  var PID=null, SRC='', PROJ='', MODEL=[], SECS=[], TOTAL=0, BY={}, SECOF={}, BLOCK_INDEX={};
   /* Her marking state. Every one of these is a whitelisted field on the doc —
      the page owns what a split or a meld MEANS, the server owns that it
      survives. */
@@ -1068,6 +1070,36 @@
     var t=document.querySelector('header h1');
     return ((t && t.textContent) || 'Cutting Blocks')+' — cut';
   }
+  // the project rides every hand-off, so the name and who-speaks travel too
+  function projParam(){ return PROJ ? '&project='+encodeURIComponent(PROJ) : ''; }
+
+  /* ── the walk: came from · went on to ─────────────────────────────────
+     One muted line from GET /api/audioproject/walk (derived off the urls the
+     rooms already store — reading it costs nothing). Rooms with a ?url=
+     entry are links; the rest are named. A miss stays blank: the strip is
+     decoration, never load-bearing. This page's own esc() STRIPS & and <,
+     which would eat the hrefs — attrEsc entity-escapes instead. */
+  var ROOMLBL={ blocks:'Cutting Blocks', cutroom:'the Cutting Room', cutmarks:'Cut Marks', editor:'the Episode Editor', voice:'the Voice Studio' };
+  var ROOMHREF={ blocks:'/blocks', cutroom:'/cuttingroom', cutmarks:'/cutmarks' };
+  function attrEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function lineageLink(en){
+    var lbl=(ROOMLBL[en.room]||en.room)+(en.title?' — '+en.title:'');
+    var base=ROOMHREF[en.room];
+    if(!base || !en.url || en.room==='blocks') return attrEsc(lbl);
+    return '<a href="'+attrEsc(base+'?url='+encodeURIComponent(en.url)
+      +(en.title?'&name='+encodeURIComponent(en.title):''))+'">'+attrEsc(lbl)+'</a>';
+  }
+  function paintLineage(){
+    var el=document.getElementById('lineage'); if(!el || !SRC) return;
+    el.innerHTML='';
+    fetch('/api/audioproject/walk?url='+encodeURIComponent(SRC)
+      +(TOKEN?'&token='+encodeURIComponent(TOKEN):'')).then(function(r){ return r.json(); }).then(function(w){
+      var up=(w.up||[]).slice(0,2), down=(w.down||[]).slice(0,3), bits=[];
+      if(up.length) bits.push('came from '+up.map(lineageLink).join(' ← '));
+      if(down.length) bits.push('went on to '+down.map(lineageLink).join(' · '));
+      el.innerHTML=bits.join(' &nbsp;·&nbsp; ');
+    }).catch(function(){ /* stays blank */ });
+  }
   function paintRenders(list){
     var host=document.getElementById('renders'); host.innerHTML='';
     (list||[]).forEach(function(r){
@@ -1083,9 +1115,9 @@
   }
   document.getElementById('renders').addEventListener('click', function(e){
     var cm=e.target.closest('button[data-cm]');
-    if(cm){ location.href='/cutmarks?url='+encodeURIComponent(cm.dataset.cm)+'&name='+encodeURIComponent(cutName()); return; }
+    if(cm){ location.href='/cutmarks?url='+encodeURIComponent(cm.dataset.cm)+'&name='+encodeURIComponent(cutName())+projParam(); return; }
     var cr=e.target.closest('button[data-cr]');
-    if(cr){ location.href='/cuttingroom?url='+encodeURIComponent(cr.dataset.cr)+'&name='+encodeURIComponent(cutName()); return; }
+    if(cr){ location.href='/cuttingroom?url='+encodeURIComponent(cr.dataset.cr)+'&name='+encodeURIComponent(cutName())+projParam(); return; }
     var b=e.target.closest('button[data-u]'); if(!b) return;
     stopAll(); cutAu.src=b.dataset.u; cutAu.play().catch(function(){});
   });
@@ -1183,7 +1215,9 @@
         return;
       }
       SRC=p.source && p.source.url || '';
+      PROJ=p.project||'';
       TOTAL=p.seconds||0;
+      paintLineage();
       state=p.marks||{}; whoOver=p.whoOver||{}; added=p.added||{};
       ttsUrls=p.ttsUrls||{}; secMeld=p.secMeld||{}; order=p.order||[];
       custom={};
@@ -1239,7 +1273,19 @@
   });
   document.addEventListener('click', function(){ if(!help.hidden) help.hidden=true; });
 
-  showHome();
+  /* ── hand-off in: /blocks?url=…&name=…&project=… ──────────────────────
+     Another room (or the walk strip) sending a recording here. /open is
+     content-addressed, so a url already opened before RESUMES that project.
+     The params are stripped once used (keeping the token) — a reload should
+     land wherever she actually is. */
+  var hq=new URLSearchParams(location.search);
+  var handoff=hq.get('url');
+  if(handoff && /^https:\/\//.test(handoff)){
+    try{ history.replaceState(null,'',location.pathname+(TOKEN?'?token='+encodeURIComponent(TOKEN):'')); }catch(_){}
+    post('/open',{ url:handoff, name:hq.get('name')||'', project:hq.get('project')||'' }).then(function(res){
+      if(res && res.id) openProject(res.id); else showHome();
+    }).catch(showHome);
+  } else showHome();
 })();
 </script>
 </body>

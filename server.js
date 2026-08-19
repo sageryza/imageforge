@@ -410,6 +410,11 @@ loadConfig().then(() => {
   // imported from cuttingroom.js, never re-implemented; the edit itself is
   // pause-plan.js, shared with the page. docs/audio-pipeline.md, hole 2.
   app.use('/api/pausing', pausing.router);
+  // The audio PROJECT: the light id the rooms thread through their hand-offs
+  // (title + who-speaks travel; marks stay room-local — Sophie's pick,
+  // 2026-08-19) plus the derive-only /walk lineage resolver. Nothing here
+  // spends; see docs/audio-pipeline.md.
+  app.use('/api/audioproject', require('./audioproject').router);
   // Chunking: the clip library — every short self-contained piece the app has
   // made (movie scene clips, quick-animates, the chats' own shorts swept out of
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for

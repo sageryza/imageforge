@@ -239,6 +239,8 @@
   </div>
 
   <div id="markui" hidden>
+    <!-- the walk: where this recording came from and went on to (derived, free) -->
+    <div class="tiny" id="lineage" style="margin-bottom:8px"></div>
     <div class="row" id="tools">
       <button class="btn" id="tighten" title="Cut every pause">
         <svg viewBox="0 0 24 24"><path d="m20 17-5-5 5-5"/><path d="m4 7 5 5-5 5"/></svg>
@@ -478,10 +480,10 @@ async function showHome() {
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
 // ── opening a recording ─────────────────────────────────────────────
-async function openRecording(url, name, itemId, batch) {
+async function openRecording(url, name, itemId, batch, project) {
   try {
     toast('Opening…', 1200);
-    const { id } = await post('/open', { url, name, itemId, batch });
+    const { id } = await post('/open', { url, name, itemId, batch, project: project || '' });
     localStorage.setItem('cutroom_open', id);
     enterRoom(id);
   } catch (err) { toast(err.message); }
@@ -537,6 +539,35 @@ $('retry').onclick = async () => {
 };
 
 // ── the marking room ────────────────────────────────────────────────
+// ── the walk: came from · went on to ────────────────────────────────
+// One muted line from GET /api/audioproject/walk (derived off the urls the
+// rooms already store — reading it costs nothing). Rooms with a ?url= entry
+// are links; the rest are named. A miss stays blank: the strip is
+// decoration, never load-bearing.
+const ROOMLBL = { blocks: 'Cutting Blocks', cutroom: 'the Cutting Room', cutmarks: 'Cut Marks', editor: 'the Episode Editor', voice: 'the Voice Studio' };
+const ROOMHREF = { blocks: '/blocks', cutroom: '/cuttingroom', cutmarks: '/cutmarks' };
+function lineageLink(en) {
+  const lbl = (ROOMLBL[en.room] || en.room) + (en.title ? ' — ' + en.title : '');
+  const base = ROOMHREF[en.room];
+  if (!base || !en.url || en.room === 'cutroom') return esc(lbl);
+  return '<a href="' + esc(base + '?url=' + encodeURIComponent(en.url)
+    + (en.title ? '&name=' + encodeURIComponent(en.title) : '')) + '">' + esc(lbl) + '</a>';
+}
+async function paintLineage() {
+  const el = $('lineage');
+  if (!el || !doc) return;
+  el.innerHTML = '';
+  try {
+    const w = await (await fetch('/api/audioproject/walk?url=' + encodeURIComponent(doc.source.url), { headers: H })).json();
+    const up = (w.up || []).slice(0, 2);
+    const down = (w.down || []).slice(0, 3);
+    const bits = [];
+    if (up.length) bits.push('came from ' + up.map(lineageLink).join(' ← '));
+    if (down.length) bits.push('went on to ' + down.map(lineageLink).join(' · '));
+    el.innerHTML = bits.join(' &nbsp;·&nbsp; ');
+  } catch (_) { /* stays blank */ }
+}
+
 async function buildRoom() {
   $('htitle').textContent = doc.title || 'Recording';
   $('hmeta').textContent = fmt(doc.seconds) + ' · ' + (doc.wordCount || 0) + ' words';
@@ -550,6 +581,7 @@ async function buildRoom() {
   updateTools();
   renderOuts();
   setupAudio();
+  paintLineage();
   buildRail();
   setTab(1);
   if (doc.job && doc.job.status === 'running') watchJob();
@@ -1137,9 +1169,10 @@ window.__navBack = () => {
 // is, not yank her back into the handed-off recording.
 const handoff = new URLSearchParams(location.search).get('url');
 if (handoff && /^https:\/\//.test(handoff)) {
-  const handoffName = new URLSearchParams(location.search).get('name') || 'Recording';
+  const hq = new URLSearchParams(location.search);
+  const handoffName = hq.get('name') || 'Recording';
   history.replaceState(null, '', location.pathname);
-  openRecording(handoff, handoffName);
+  openRecording(handoff, handoffName, null, null, hq.get('project') || '');
 } else {
   const openId = localStorage.getItem('cutroom_open');
   if (openId) enterRoom(openId); else showHome();

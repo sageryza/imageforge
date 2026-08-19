@@ -228,6 +228,8 @@
 
     <div id="strip"><div id="ph"></div></div>
     <div class="striphint">Tap the strip to jump. Marks split it into pieces below.</div>
+    <!-- the walk: where this file came from and went on to (derived, free) -->
+    <div class="tiny" id="lineage" style="margin-top:8px"></div>
 
     <div id="piecesWrap" hidden>
       <h2 class="sec">Pieces</h2>
@@ -413,10 +415,10 @@ async function showHome() {
   }
 }
 
-async function openMedia(url, name, kind, itemId, poster) {
+async function openMedia(url, name, kind, itemId, poster, project) {
   try {
     toast('Opening…', 1200);
-    const { id } = await post('/open', { url, name, kind, itemId, poster });
+    const { id } = await post('/open', { url, name, kind, itemId, poster, project: project || '' });
     localStorage.setItem('cutmarks_open', id);
     enterRoom(id);
   } catch (err) { toast(err.message); }
@@ -485,6 +487,36 @@ function buildRoom() {
   if (isVid) $('vid').onclick = () => togglePlay();
   rebuild();
   paintNow();
+  paintLineage();
+}
+
+// ── the walk: came from · went on to ───────────────────────────────
+// One muted line from GET /api/audioproject/walk (derived off the urls the
+// rooms already store — reading it costs nothing). Rooms with a ?url= entry
+// are links; the rest are named. A miss stays blank: the strip is
+// decoration, never load-bearing.
+const ROOMLBL = { blocks: 'Cutting Blocks', cutroom: 'the Cutting Room', cutmarks: 'Cut Marks', editor: 'the Episode Editor', voice: 'the Voice Studio' };
+const ROOMHREF = { blocks: '/blocks', cutroom: '/cuttingroom', cutmarks: '/cutmarks' };
+function lineageLink(en) {
+  const lbl = (ROOMLBL[en.room] || en.room) + (en.title ? ' — ' + en.title : '');
+  const base = ROOMHREF[en.room];
+  if (!base || !en.url || en.room === 'cutmarks') return esc(lbl);
+  return '<a href="' + esc(base + '?url=' + encodeURIComponent(en.url)
+    + (en.title ? '&name=' + encodeURIComponent(en.title) : '')) + '">' + esc(lbl) + '</a>';
+}
+async function paintLineage() {
+  const el = $('lineage');
+  if (!el || !doc) return;
+  el.innerHTML = '';
+  try {
+    const w = await (await fetch('/api/audioproject/walk?url=' + encodeURIComponent(doc.source.url), { headers: H })).json();
+    const up = (w.up || []).slice(0, 2);
+    const down = (w.down || []).slice(0, 3);
+    const bits = [];
+    if (up.length) bits.push('came from ' + up.map(lineageLink).join(' ← '));
+    if (down.length) bits.push('went on to ' + down.map(lineageLink).join(' · '));
+    el.innerHTML = bits.join(' &nbsp;·&nbsp; ');
+  } catch (_) { /* stays blank */ }
 }
 
 // ── time / transport ────────────────────────────────────────────────
@@ -754,9 +786,11 @@ $('renders').onclick = (e) => {
   const pol = e.target.closest('.pol');
   if (pol) {
     // hand the cut on to the Cutting Room — its /open is content-addressed,
-    // so tapping this twice resumes the same marking there
+    // so tapping this twice resumes the same marking there. The audio
+    // project rides along, so the name and who-speaks travel too.
     location.href = '/cuttingroom?url=' + encodeURIComponent(pol.dataset.u)
-      + '&name=' + encodeURIComponent((doc.title || 'Recording') + ' — cut');
+      + '&name=' + encodeURIComponent((doc.title || 'Recording') + ' — cut')
+      + (doc.project ? '&project=' + encodeURIComponent(doc.project) : '');
     return;
   }
   const row = e.target.closest('.rrow'); if (!row) return;
@@ -857,7 +891,7 @@ if (handoff && /^https:\/\//.test(handoff)) {
   const handoffName = q.get('name') || 'Recording';
   const handoffKind = q.get('kind') === 'video' ? 'video' : 'audio';
   history.replaceState(null, '', location.pathname);
-  openMedia(handoff, handoffName, handoffKind, null, null);
+  openMedia(handoff, handoffName, handoffKind, null, null, q.get('project') || '');
 } else {
   const openId = localStorage.getItem('cutmarks_open');
   if (openId) enterRoom(openId); else showHome();
