@@ -29,7 +29,8 @@
  *                                     original RAW TEXT tile
  *
  * VARIANTS (--variant):
- *   one       her line, as above (default)
+ *   auto      (default) salient over the character threshold, one under it
+ *   one       her line, as above
  *   amorphous her follow-up note, 2026-08-19: "wonder if we could do panels but
  *             not have them squares and just have like amorphous shapes for
  *             panels?"
@@ -95,6 +96,20 @@ const REFS = {
   },
 };
 
+// SHORT DREAMS DO NOT NEED THE SALIENT CLAUSE (Sophie, 2026-08-19: "we could
+// have it only say choose a single salient image if the dream is over a
+// certain number of characters since this one, obviously doesn't need it").
+// A short dream IS one image already — telling the model to pick a moment out
+// of one moment only adds a chance to drop half of it.
+//
+// The threshold is a JUDGEMENT BETWEEN TWO MEASURED POINTS, not a measured
+// value: 343 chars (the monkeys) came back as one picture with no salient
+// clause at all, and 5,372 chars (the Halloween party) came back multi-scene
+// under every wording until the clause was added. Nothing between them has
+// been tested, so 1,000 is a round number in the gap — move it when there is
+// evidence, and say which it is.
+const SALIENT_THRESHOLD = 1000;
+
 function arg(flag, fallback) {
   const i = process.argv.indexOf(flag);
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
@@ -129,7 +144,13 @@ async function draw(r, para, content, slug) {
   form.append('size', '1024x1024');
   form.append('quality', 'medium');
   form.append('output_format', 'webp');
-  form.append('output_compression', '80');
+  // NO output_compression. The live dream feed (movies.js drawEdit) sends none,
+  // so OpenAI returns webp at full quality. This script copied the '80' out of
+  // server.js's openaiImageEditRefs and it visibly cost: a run came back at
+  // 281KB where the live feed's own square is 1,593KB — 5.7x — and Sophie
+  // spotted it as graininess on the hatching (2026-08-19: "the images are
+  // getting grainy for some reason"). Fine ink linework is the worst case for
+  // lossy webp; do not put a compression back.
   form.append('image[]', fs.readFileSync(path.join(ROOT, r.file)), {
     filename: path.basename(r.file),
     contentType: r.file.endsWith('.jpg') ? 'image/jpeg' : 'image/png',
@@ -156,14 +177,19 @@ async function main() {
     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
     storageBucket: BUCKET,
   });
-  const variant = arg('--variant', 'one');
-  const para = VARIANTS[variant];
-  if (!para) throw new Error(`unknown variant ${variant} — one of ${Object.keys(VARIANTS).join(', ')}`);
+  let variant = arg('--variant', 'auto');
   const which = arg('--ref', 'both');
   const refs = which === 'both' ? [REFS.dream, REFS.sage] : [REFS[which]];
   if (refs.some((r) => !r)) throw new Error(`unknown ref ${which}`);
   const dreamId = arg('--dream', '');
   const { text, title } = dreamId ? await dreamAppText(dreamId) : await halloweenText();
+  const threshold = parseInt(arg('--threshold', String(SALIENT_THRESHOLD)), 10);
+  if (variant === 'auto') {
+    variant = text.length > threshold ? 'salient' : 'one';
+    console.log(`auto: ${text.length} chars ${text.length > threshold ? '>' : '<='} ${threshold} → ${variant}`);
+  }
+  const para = VARIANTS[variant];
+  if (!para) throw new Error(`unknown variant ${variant} — one of ${Object.keys(VARIANTS).join(', ')}`);
   const slug = arg('--slug', dreamId ? `${dreamId.slice(0, 8)}-${variant}` : `halloween-${variant}`);
   console.log(`"${title}" · ${text.length} chars verbatim · variant ${variant} · ${refs.length} run(s)`);
 
