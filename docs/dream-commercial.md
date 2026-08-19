@@ -103,10 +103,20 @@ Sophie found the song and sent it in, in her own words:
 - **The track:** "Venus" — Afro Comb feat. DOMAINIQ, released on Kitsuné
   Musique, June 2021. Afro Comb are a North London duo; this one is their
   deep-house record. https://youtu.be/2uwwVV-bGXU
-- **The part she means starts at 1:04**, as she heard it: *"you were in my
-  dreams last night, pulling my hair, holding me tight … touching me good,
-  touching me …"* (her transcription by ear — nobody has checked it against a
-  printed lyric, and the muffled words are hers to fill in.)
+- **The part she means starts at 1:04, and she was right to the second** —
+  measured off the record at **1:04.52**. The words, from the lyrics Spotify
+  shows (she found them; a chat here had wrongly reported them unpublished):
+
+  > You was in my dream last night
+  > Pulling my hair, holding me tight
+  > Kissing me good, touching me right
+  > I'm yours if you're mine
+  > Let's light and get high
+  > … Sprinkle the dust, let's fly / I'll meet you in Venus
+
+  **It is "dream", singular, and "You was"** — so the hook is not quite the
+  domain, which is worth knowing before anyone builds copy on a verbatim
+  match.
 - **Why it fits, and it is not subtle:** the hook says the domain out loud.
   The site is **youwereinmydreams.com** and the line is *you were in my
   dreams last night* — so the song names the product without a single word
@@ -183,24 +193,30 @@ read as a person's dream rather than a lyric card, and quoting the words on
 screen would drag the licence question onto the picture as well as the audio.
 v1's kitchen is kept in the Assets tab, labeled superseded.
 
-**THE LYRICS ARE NOT PUBLISHED ANYWHERE (searched 2026-08-19).** No Genius
-page, no lyrics site, nothing in the label's copy — this is a 2021 Kitsune
-single by a small London duo, and its words simply have not been transcribed by
-anyone. So the record is the only source, and
-`node scripts/dream-commercial/song-words.js <audio>` is how to get them: the
-repo's own Whisper pass with word timestamps, which prints the line around
-"dream" and the second it starts — the number `song.hook` wants. Whisper is
-trained on speech, not singing over a mix, so what it returns is a first pass
-to check by ear, never a lyric to file. It needs the audio, so it is queued
-with the grab.
+**THE LYRICS ARE ON SPOTIFY — a chat here said they were unpublished and that
+was wrong (2026-08-19).** Web search turned up no Genius or lyrics-site page
+and the wrong conclusion drawn from that was "nobody has transcribed them";
+Sophie opened Spotify, where they sit in the now-playing pane, and sent a
+screenshot. **A lyric lives inside the streaming apps as often as on a lyrics
+site** — check there (or ask her to look, it is one tap) before reporting that
+words do not exist.
+
+`node scripts/dream-commercial/song-words.js <audio>` is still the tool for the
+other half of the question — WHEN each line is sung. It runs the repo's own
+Whisper pass with word timestamps and names the second the hook starts, which
+is the one number `song.hook` wants. Whisper heard "touching me bright" where
+the printed lyric reads "touching me right", so read its WORDS as a first pass
+and its TIMES as the answer.
 
 **v1/v2 are SILENT** (0:14.8, 2026-08-19) — a cloud session cannot fetch the track
 (YouTube bot-blocks datacenter IPs), so the audio is queued in
 `docs/desktop-tasks.md`. Everything else is final; adding the song is one
 command with `--audio`.
+v3 (the song on it — the current cut):
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v3.mp4
 v1 (the kitchen dream):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v1.mp4
-v2 (the lyric's dream — the current cut):
+v2 (the lyric's dream, silent):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v2.mp4
 
 ### Before it can go in a public commercial

@@ -6,9 +6,10 @@
   },
   "song": {
     "track": "Venus — Afro Comb feat. DOMAINIQ",
-    "hook": 64.0,
+    "hook": 64.52,
     "landsOn": "end",
-    "note": "1:04 is where she heard 'you were in my dreams last night'"
+    "source": "https://soundcloud.com/kitsunemusique/afro-comb-venusfeat-domainiq",
+    "note": "1:04.52 measured off the label's own stream — Sophie's 1:04 by ear was right. The line is \"You was in my dream last night\" (singular, and \"was\"), so it is not quite the domain."
   },
   "press": 0.72,
   "beats": [
