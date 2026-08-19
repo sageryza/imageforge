@@ -574,11 +574,16 @@ them off the reference sheet, not off the old filenames.
   the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
 - `refs/sophie-book.png` — **sophie book**, the character card behind the
   Sophie toggle. Was `sophie-character.png`.
-- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page. Movies'
-  "Dreamy pencil", the dream illustrator, the zine, Character Creator. Was
-  `movie-style.jpg`, and it ALSO existed as a second slightly-different crop
-  at `refs/style.jpg` (the zine's own copy) — Sophie spotted the duplicate and
-  asked for one file, so `style.jpg` is deleted and the zine reads this.
+- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page ("1000
+  Dreams Per Night"). Movies' "Dreamy pencil", the dream illustrator, the
+  zine, Character Creator. Was `movie-style.jpg`, and it ALSO existed as a
+  second slightly-different crop at `refs/style.jpg` (the zine's own copy) —
+  Sophie spotted the duplicate and asked for one file, so `style.jpg` is
+  deleted and the zine reads this. **Since Aug 2026 the file is the
+  full-quality photo (3370x4096) she downloaded herself** — the old copy was
+  a 1170x1364 SCREENSHOT with an Instagram speaker icon baked into its
+  corner and the frames cropped. Same filename on purpose: every reader
+  loads `refs/dream-mystery.jpg` from disk, so nothing else changed.
 - `storage:witch-school/refs/sophie-snake.png` + `sophie-animals.png` —
   **sophie snake** / **sophie animals**, the Pastel pair. The Playground's
   Pastel, the Witch School lesson cards, the self-care stickers and stamps.
@@ -1214,7 +1219,24 @@ them off the reference sheet, not off the old filenames.
   MINUTE** (her ask, same day): reopening the bar inside that minute puts the
   words AND the results back — the same hunt continuing — while the glass
   (a NEW search) forgets them outright and anything older opens empty, which is
-  still the default. **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
+  still the default. **HER ORDER RANKS FIRST — bare words still AND anywhere,
+  but the RESULTS are ordered (Aug 2026, Sophie: "typing `maybe never` finds …
+  the chats where those words appear in the same order as typed should appear
+  at the top and the ones where they appear anywhere should appear
+  underneath").** The grammar is unchanged and nothing is filtered out; the
+  feed's `/search` just sorts into three tiers before recency — **the phrase**
+  (adjacent, in her order — exactly what quoting would have found, which is why
+  she no longer has to quote), then **in her order** with words in between,
+  then **anywhere**. The old sort was recency alone, so `maybe never` answered
+  with "saving maybe $3-5 a month" above the message that literally says
+  "maybe never". Two things not to undo: the phrase is its own regex pass, not
+  a by-product of the left-to-right walk (the walk takes the EARLIEST match of
+  each word and would miss an adjacent pair further along), and the scores go
+  in a parallel array rather than onto the `searchIndex` rows — those objects
+  are the long-lived shared index and a leftover score would sort the next
+  query. A one-word query has nothing to rank and is untouched. Test:
+  `node scripts/test-search-order-rank.js` (pure).
+  **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
   THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
   `return` catalyze a search, in addition to the checkmark — what happened").**
   `enterSubmits` shipped into `public/chats.html` and stopped there; `/search`,
@@ -1344,6 +1366,22 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   rule anywhere else: numbers/lists are free, a model call is a deliberate tap.
 
 ## Design rules (forever)
+- **NOTHING STANDS BETWEEN THE SOURCE AND THE OUTPUT (Aug 2026, Sophie).** The
+  one principle behind several rules that already exist separately, now named
+  so new work inherits it whole. Her words reach the model VERBATIM (anything
+  added is disclosed word for word — the prompt rule below). The model's
+  output comes back at FULL QUALITY (no lossy encode at birth —
+  `node scripts/test-no-generation-compression.js` pins it). A style
+  reference is always the ORIGINAL — her scan, her photo at its source
+  resolution — never a screenshot of it, and never a GENERATED image standing
+  in for it: a generated reference makes the next picture a photocopy of a
+  photocopy, repainting the last picture's flaws as if they were style (the
+  dream feed's continuity refs did exactly this while they were also
+  compressed — the two bugs fed each other). When a page needs a smaller
+  file, the copy is DERIVED from the original and the original stays. The
+  test for any new step in any pipeline: if it silently transforms what she
+  gave or what the model made, the step is wrong — make it lossless, or make
+  it loud.
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.
@@ -2229,6 +2267,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
     little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
     band. **A SHORT card is deliberately untouched** — there the big centred
     name is the design.
+  - **EVERY DECK IS HER DECK NOW (Aug 2026 v3, Sophie: "I think we should
+    just make the single image review surface the same general template as
+    the text one").** Her Decision Deck chrome — the cream, one screen, the
+    progress line with **Piles** and the "?", the ✕/♥ floating on the content
+    with the note box under it — was the date cards' alone, and a deck of
+    PICTURES wore the house look instead: a count, three unlabelled gold
+    circles, four verdict buttons. That is what hid Skip/Done from her: the
+    piles view existed, but the way in was an unlabelled grid icon. So
+    `renderTemplatePage` tells judge.js `look:'mom'` for every `deck`, and
+    every card — picture, words, or both — is one of hers. The item's `label`
+    becomes the name over the picture; a picture with no `aspect` sits in a
+    panel that HUGS it, capped at 56vh, so a picture card is one screen like
+    everything else. **A hand-built judge page (judge-shell.html) never comes
+    through the renderer, so nothing already posted restyles itself** — and a
+    test pins that.
+    - **The mic survived the move**, deliberately: her date decks never had
+      one, but all five live picture decks are posted with `voice:true`
+      (measured), so folding them into her look would have taken the
+      hands-free notes away. It rides in the note box's own corner.
+    - **Four verdicts became two**, matching her date cards. Measured across
+      her live decks the day this shipped: 16 verdicts, **one** `maybe`, no
+      `later`. A **Maybe/Later pile is still listed when something is
+      actually in it**, so the one legacy mark cannot vanish off the screen.
+    - A deck with its own `states` keeps its chips — her words still win.
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
     appears when the text is very long and is smaller than the normal one and

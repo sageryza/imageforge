@@ -93,3 +93,51 @@ v15 of record: audio
 (after closest-match fix the key changed — see `audio-v15-url.txt` in the work
 dir for the live one), film `story/films/evan-v15.mp4` (4:20.5, 52 shots,
 vo-verify PASS, keeps at 2.5-4.0, 89.4-90.8, 255.3-256.8).
+
+## v17 (2026-08-19) — her first tap-to-note batch, and what it taught
+
+Ten timestamped notes arrived through the new player. Every fix was measured
+first; the lessons below are the ones the NEXT chat needs.
+
+**What was fixed** (`build-v17.js`): the b08 tail grunt (my cut ran 0.6s past
+"like it." — real end 43.32); ~0.2s tightened out of each gift-line gap; the
+b16 "scientist" and b22 "45 percent" REPLACED with fresh cuts from the
+original sources (see below); the stray "ercent" fragment and the TTS tail
+that two over-widened heads had pulled in (part 6 → 106.10, part 8 → 113.95);
+the b28 pause after "only" compressed 1.04s → ~0.4s (energy-measured:
+"It's only" ends 118.80, speech resumes 119.88); all three room-tone slivers
+re-sourced. Her 0:05 "h" is a 0.24s breath, deliberately left. New art: the
+hands-over-the-eye-in-her-mind image (her prompt warning honored — the eye
+floats INSIDE a closed-eyed profile, shown between the fingers).
+
+**The earned rules:**
+
+- **The master truncates words its own sources say whole.** "scientist" and
+  both "percent"s are clipped INSIDE evan-v7-lite — no boundary tuning can
+  fix them. Re-source from the originals: her 339 memo serves at
+  `GET /api/search/audio/2026-07-09_0456_2026-07-09T11_56_09Z`; Sheldrake's
+  talk is indexed (`b6LNceIaz1Q`, clip-span works). A replacement clip rides
+  page-cut as a `tts:` part (any storage url plays whole). Note she never
+  says "He's a scientist." as a sentence — v17 uses her real phrase
+  "He's a scientist in England".
+- **Whisper word times STRETCH across pauses and slow speech — energy is the
+  boundary authority.** Whisper put "20" across b28's 1s pause and started
+  the memo's "he's" 1s early (inside her silence); both mis-cuts shipped to
+  the verify gate before RMS profiles gave the real edges. Use word times to
+  LOCATE, a 20ms RMS profile to TRIM.
+- **"Room tone" must be measured, never assumed.** The first sliver source
+  (2.95–3.20, inside "the ring pause") peaked −60.7dB — it IS the ring, and
+  she heard it. The master's quietest 0.3s is 102.26–102.56 at −77dB
+  (`master.wav` RMS scan in build-v17's history).
+- **A deliberately repeated line can transcribe as ONE line.** The n2+n1
+  double ("all these people watching a rat slowly dying" ×2, her keep) shows
+  up in some whole-film transcriptions as a single sentence → a false
+  "missing run". Read back the exact window before believing a missing-run
+  report at a repeat; the repeat itself is in her marks.
+- **Her tap timestamps land ~1–2s AFTER what she means.** Map a note to the
+  audio just BEFORE its stamp.
+
+v17 of record: `story/films/evan-v17.mp4` (4:24.2, 53 shots, vo-verify PASS,
+keeps 2.5-4.0 + 258.9-260.4). Replacement clips:
+`evan-v17/msci-scientist-in-england-v2.mp3`,
+`evan-v17/s45-actual-hit-rate.mp3` (deckfactory).

@@ -299,6 +299,24 @@ were answered Aug 11. Verbatim, the substantive ones:
 
 ## Open — asked and never answered
 
+**Update 2026-08-19 (same chat, handing off):** the film is now **v17**
+(`story/films/evan-v17.mp4`, 4:24, pinned in `evan-film-collected`), rendered
+from her live marks with every seam re-listened, two truncated words
+re-sourced from the original recordings, and her first ten tap-to-note
+timestamps fixed. **Read `scripts/evan-v14-rebuild/README.md` before touching
+the film** — it is the whole pipeline as a re-run plus every earned rule
+(whisper stretches word times across pauses, energy trims boundaries; the
+master truncates words its sources say whole; room tone is measured, never
+assumed; her tap timestamps land 1-2s late). The **tap-to-note player** now
+exists on any pinned film (docs/chats-app.md, THE PINNED LINK section) — her
+notes arrive on the film url's asset-note thread of the chat that pinned it,
+timestamped. Still open for the next chat: the narrator card (she will supply
+pictures; prompts for the missing beats are banked in
+`docs/evan-film-missing-prompts.md`), the final medium-vs-high pass, her
+[0:05] breath left in by choice, and the clone-leftovers delete
+(`scripts/delete-evan-charlie-clone-leftovers.js`, needs a session with
+delete permission).
+
 **Update 2026-08-18 (chat `evan-film-collected`):** Sophie answered in chat.
 (1) delegated — decision is DELETE; the ten objects are listed and the delete
 is scripted (`scripts/delete-evan-charlie-clone-leftovers.js`) but this

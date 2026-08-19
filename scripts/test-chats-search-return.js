@@ -61,6 +61,19 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
   }
+  // The page loads real assets from public/ (`/asset-lightbox.js` since Aug
+  // 2026), and express.static serves them live. Answering those with the JSON
+  // fallthrough below hands the browser `{"ok":true,…}` as a SCRIPT, which
+  // throws "Unexpected token ':'" and kills the page before any of this file's
+  // assertions can run — so serve the real file whenever one exists.
+  const asset = path.join(PUB, url.pathname.replace(/^\/+/, ''));
+  if (/\.(js|css|svg|png|webp)$/.test(url.pathname) && asset.startsWith(PUB) && fs.existsSync(asset)) {
+    const type = url.pathname.endsWith('.js') ? 'text/javascript'
+      : url.pathname.endsWith('.css') ? 'text/css'
+      : url.pathname.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': type });
+    return res.end(fs.readFileSync(asset));
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ ok: true, messages: [], todos: [], bookmarks: [] }));
 });
