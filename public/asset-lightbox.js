@@ -111,7 +111,14 @@
     + '.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;\n'
     + '  padding:14px; box-sizing:border-box; z-index:1;}\n'
     + '.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}\n'
+    /* STYLE / CONTENT SIT CENTRED IN THEIR OWN HALVES (Aug 2026, Sophie:
+       "style content not centered"). `flex:1` gives each button a width it did
+       not ask for, and the house `button` rule sets display:inline-flex +
+       align-items:center with NO justify-content — so the words held the left
+       edge. The same trap the judge page's 62px squares hit: ANY button with a
+       width it did not get from its own text has to say this itself. */
     + '.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;\n'
+    + '  display:flex; align-items:center; justify-content:center; text-align:center;\n'
     + '  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; padding:8px 4px; cursor:pointer;}\n'
     + '.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}\n'
     + '.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;\n'
@@ -164,7 +171,6 @@
     if (asset && (asset.promptStyle || asset.promptContent)) {
       var wrap = lb.querySelector('.clwrap');
       var ov = document.createElement('div'); ov.className = 'lbp'; ov.style.display = 'none';
-      ov.onclick = function (e) { e.stopPropagation(); };   // reading it must not close the lightbox
       var tog = document.createElement('div'); tog.className = 'lbptog';
       var sb = document.createElement('button'); sb.textContent = 'Style';
       var cb = document.createElement('button'); cb.textContent = 'Content';
@@ -198,14 +204,12 @@
     // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
     if (asset && asset._cast) {
       var row = document.createElement('div'); row.className = 'lbtop';
-      row.onclick = function (e) { e.stopPropagation(); };
       var hb = document.createElement('button'); hb.className = 'vote heart'; hb.innerHTML = window.__HEART || HEART;
       var xb = document.createElement('button'); xb.className = 'vote nope'; xb.innerHTML = window.__XMARK || XMARK;
       // The thread: her notes and the chat's replies back, oldest at the top.
       // Snail mail — the chat that made the image answers next time she messages
       // it, so a reply landing here later is normal and expected.
       var talk = document.createElement('div'); talk.className = 'lbtalk';
-      talk.onclick = function (e) { e.stopPropagation(); };
       var th = document.createElement('div'); th.className = 'lbthread';
       var more = null;
       function paintThread() {
@@ -309,7 +313,6 @@
     if (promptBtn && !promptBtn.parentNode) {   // image opened without the curate row
       var prow = document.createElement('div'); prow.className = 'lbtop';
       prow.style.justifyContent = 'center';
-      prow.onclick = function (e) { e.stopPropagation(); };
       prow.appendChild(promptBtn); lb.appendChild(prow);
     }
     // Two lines, not one: the curated model/quality tag (never the hook's
@@ -327,7 +330,18 @@
       try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncTalk); }
       catch (_) { /* the first measurement stands */ }
     }
-    lb.onclick = function () {
+    // ANYWHERE THAT ISN'T A CONTROL, THE PICTURE OR THE CHAT CLOSES IT (Aug
+    // 2026, Sophie: "it's hard to [get] out of lightbox. it shud just be
+    // anywhere not a button or image or chat but if I tap for example, between
+    // the image and the prompt, it doesn't let me out"). Each row used to
+    // swallow the tap for its WHOLE width — the ♥/✕ strip, the prompt row —
+    // so the empty space beside a button was dead, and that space is most of
+    // the row. One rule in one place now, asked of the tap's target rather
+    // than of whichever box it landed in.
+    lb.onclick = function (e) {
+      var t = e && e.target;
+      if (t && t.closest
+          && t.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) return;
       if (asset) asset._lbPaint = null;
       // Blur FIRST: a still-focused note box makes iOS scroll again as the
       // keyboard leaves, which would land after our restore and undo it.
