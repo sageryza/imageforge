@@ -40,6 +40,7 @@ const deck = (ids, extra) => ({
   is('deck ids', d.ids, ['a', 'b']);
   is('deck thumb is the first picture', d.thumb, 'https://storage.googleapis.com/b/a.webp');
   is('stock states', d.custom, false);
+  is('a picture deck needs no peek', d.peek, '');
 
   const g = pageItems({ groups: [{ items: [{ id: 'g1' }] }, { items: [{ id: 'g2' }, { id: 'g3' }] }] });
   is('grid ids flatten across groups', g.ids, ['g1', 'g2', 'g3']);
@@ -47,6 +48,14 @@ const deck = (ids, extra) => ({
   const txt = pageItems({ items: [{ id: 'm1', text: 'a moment' }], states: [{ key: 'done', label: 'Done' }] });
   is('a text deck has no thumb', txt.thumb, '');
   is('its own states mark it custom', txt.custom, true);
+  is('its tile face is the first card\'s words', txt.peek, 'a moment');
+
+  // a moment card may carry no single `text` at all — the peek still finds it
+  const mom = pageItems({ items: [
+    { id: 'm1' },   // an empty first card yields nothing — the peek moves on
+    { id: 'm2', who: 'Blake', sections: [{ label: 'The moment', text: 'he brought a kite' }] },
+  ] });
+  is('a moment deck peeks the card parts', mom.peek, 'Blake');
 }
 
 // ── pageProgress: the 'later' rule ─────────────────────────────────────────
@@ -100,7 +109,8 @@ const deck = (ids, extra) => ({
   is('progress rides the row', [q.waiting[1].decided, q.waiting[1].total], [1, 2]);
   is('her rename names the row', q.waiting[0].name, 'XI Cards');
   is('a chat she has not renamed shows its slug', q.done[0].name, 'ig');
-  is('the row links to the page itself', q.waiting[0].url, '/api/chatfeed/page/p2');
+  is('the tile opens the page CLEAN — straight onto the cards, no h1',
+    q.waiting[0].url, '/api/chatfeed/page/p2?clean=1');
   is('counts: pages waiting', q.counts.pages, 2);
   is('counts: cards to go', q.counts.items, 3);
   is('a finished row stamps her last touch', q.done[0].at, t(31));

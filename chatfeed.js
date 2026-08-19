@@ -3056,6 +3056,8 @@ router.get('/page/:id', async (req, res) => {
       let thtml = pageTemplates.renderTemplatePage({
         template: snap.data().template, title: snap.data().title || '',
         chat: snap.data().chat || '', sheet: `page-${snap.id}`, data,
+        // ?clean=1 — no h1, straight onto the cards (the Review Queue's door)
+        clean: req.query.clean === '1',
       });
       if (req.query.embed !== '1') thtml += pillInject();
       res.set('Cache-Control', 'no-store');   // the renderer may improve under it

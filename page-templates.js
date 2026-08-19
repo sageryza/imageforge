@@ -236,7 +236,7 @@ function isMomentDeck(template, data) {
     && (it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)));
 }
 
-function renderTemplatePage({ template, title, chat, sheet, data }) {
+function renderTemplatePage({ template, title, chat, sheet, data, clean }) {
   // tour:'auto' — a SERVED template page plays its coach-mark tour once per
   // device (compare.js __compareTour); hand-built pages opt in themselves
   const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...data }).replace(/</g, '\\u003c');
@@ -257,7 +257,11 @@ function renderTemplatePage({ template, title, chat, sheet, data }) {
   // the app's own header above the page already shows the page's name, so an
   // <h1> here is the name twice, the second time in 26px serif eating the
   // top third of the screen. The <title> tag still names it everywhere else.
-  const h1 = isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
+  // `clean` drops the h1 on ANY template page — the Review Queue's door (Aug
+  // 2026, Sophie: "not a compare page because that has a header at the top,
+  // but instead just a clean Tinder style page … with all the content
+  // preloaded"): a queue tile opens ?clean=1, straight onto the cards.
+  const h1 = clean || isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
     // maximum-scale=1 — NOT a passing detail (Aug 2026, Sophie's call): iOS
     // auto-zooms the page whenever it focuses a field under 16px, and on a

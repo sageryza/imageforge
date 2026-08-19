@@ -2074,8 +2074,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
   to be reviewed and I'd like one screen that shows all the things waiting to
   be reviewed". One screen, every deck/grid TEMPLATE page across every chat,
-  with how far through each she is; tapping a row opens the page itself.
-  Measured the day it was built: 9 template pages, 285 items, 9 decided.
+  with how far through each she is. Measured the day it was built: 9 template
+  pages, 285 items, 9 decided.
+  - **PAGES ARE SQUARE TILES, THREE TO A ROW (Aug 2026 v2, Sophie: "icons
+    three to a row … square and they should just be the first picture of
+    whatever the review content is")** — the tile face is the content's first
+    picture, or on a text deck (date moments, video ideas — 12 of the 15
+    queued pages the day this shipped) the first card's own words in the
+    serif (`peek` on the row). Tapping a tile opens the page **CLEAN**:
+    `/api/chatfeed/page/<id>?clean=1` renders the template with NO h1,
+    straight onto the cards (her ask: "not a compare page because that has a
+    header at the top, but instead just a clean Tinder style page … with all
+    the content preloaded"). `clean` lives in `renderTemplatePage`
+    (page-templates.js) and works on both templates; a deck already has no
+    pill, a clean grid keeps its pill because it scrolls. Chats she tagged
+    stay ROWS below the tiles — they have no cards to tile and open the chat.
   - **Everything is DERIVED, nothing is filed**: the item lists are the pages'
     own frozen Storage JSON (cached forever per id — a new version is a new
     page), her progress is the verdict doc (`<chat>__page-<id>`), names come
@@ -2099,9 +2112,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
     on a row is hers — "not a review" — and stamps `reviewHidden` on the page
     doc (the ONLY write here). Hidden rows keep a pile behind the DONE tab
     and un-hide with ↩; nothing is deleted. A superseded page is on no list.
-  - The first TWO rows step their ✕ left of the injected pill's corner —
-    proved untappable in headless before the reserve; two rows not one,
-    because ?embed=1 drops the header and lifts the second row into the band.
+  - A tile's ✕ sits over the face's top-LEFT — the injected pill owns the
+    top-right corner (x 326–374, y 14–192), which is exactly the first row's
+    third face. Chat rows only lead the pane when there are no tiles; then
+    the first two step their ✕ left of that corner (proved untappable in
+    headless before the reserve; two rows not one, because ?embed=1 drops
+    the header and lifts the second row into the band).
   - Tests: `node scripts/test-review.js` (the decision table, pure) and
     `node scripts/test-review-page.js` (the real page + the real injected
     pill, headless — tabs, the ✕/↩ POSTs, the pill palette).

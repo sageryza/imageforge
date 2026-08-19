@@ -537,6 +537,11 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the page already shows the page's name, so the `<h1>` was the name
       twice, the second time in 26px serif eating the top third of the
       screen. The `<title>` tag still names it in a browser tab.
+      **`?clean=1` drops the `<h1>` on ANY template page** (Aug 2026 v2 — the
+      Review Queue's door: its tiles open `/api/chatfeed/page/<id>?clean=1`,
+      straight onto the cards; her ask was "not a compare page because that
+      has a header at the top"). `renderTemplatePage({ …, clean })`; a clean
+      grid keeps its pill because it scrolls.
     - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
       "hearting, heart or exing should not move the moment, only tapping on
       the sides should go to the next moment"). In BROWSE mode — which every
