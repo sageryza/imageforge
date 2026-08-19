@@ -106,12 +106,20 @@ const REFS = {
 // A short dream IS one image already — telling the model to pick a moment out
 // of one moment only adds a chance to drop half of it.
 //
-// The threshold is a JUDGEMENT BETWEEN TWO MEASURED POINTS, not a measured
-// value: 343 chars (the monkeys) came back as one picture with no salient
-// clause at all, and 5,372 chars (the Halloween party) came back multi-scene
-// under every wording until the clause was added. Nothing between them has
-// been tested, so 1,000 is a round number in the gap — move it when there is
-// evidence, and say which it is.
+// MEASURED 2026-08-19, one run per length, the plain line and no salient
+// clause, dream-mystery ref, medium (the ladder Compare page in the
+// dream-feed-prompt-updates chat):
+//     343  one image        (monkeys)
+//   1,110  FAILED — collage of five moments   (corporate procedure)
+//   1,739  one image        (party with Sandy)
+//   2,673  FAILED — whole transcript lettered (museum with Mom)
+//   3,962  FAILED — collage of moments        (three-legged race)
+//   5,372  FAILED — five vignettes            (Halloween party)
+// So it is NOISY, not a clean cliff: 1,739 passed while 1,110 failed. The
+// first observed failure is 1,110, nothing under 1,000 has ever failed, and
+// above 2,000 every run failed — so 1,000 stands, now as the last point
+// under every observed failure rather than a guess. One run per length;
+// re-rolls could move any single verdict.
 const SALIENT_THRESHOLD = 1000;
 
 function arg(flag, fallback) {
