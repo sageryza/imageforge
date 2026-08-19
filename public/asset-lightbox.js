@@ -5,12 +5,17 @@
 
    This IS that exact code — the lightbox lifted verbatim out of chats.html's
    Assets tab (big picture; ♥/✕ on the image's top corners; PROMPT covering
-   the picture with the Style|Content toggle, content first; the note THREAD
-   under the image with the letter-box; MODEL · QUALITY tag over the label;
-   freeze-the-page with exact scrollY restore) so the Assets tab and the
-   template grid pages open the same thing. One copy on purpose: two hand
-   copies had already drifted (assets.html grew action icons while only
-   chats.html got the iOS scroll-restore fix).
+   the picture with the Style|Content toggle, content first; the note letter-box
+   under the image; MODEL · QUALITY tag over the label; freeze-the-page with
+   exact scrollY restore) so the Assets tab and the template grid pages open
+   the same thing. One copy on purpose: two hand copies had already drifted
+   (assets.html grew action icons while only chats.html got the iOS
+   scroll-restore fix).
+
+   THE THREAD SITS UNDER THE BOX, PEEKING (Aug 2026, Sophie's rework after
+   living with it): writing a note is the common act and re-reading the
+   exchange the occasional one, so the box comes first, the letters peek under
+   it, and a Notes (n) button throws the whole conversation over the picture.
 
      window.__assetLightbox(url, asset)
 
@@ -39,18 +44,40 @@
     + '#clightbox .vote svg{width:18px; height:18px; display:block;}\n'
     + '#clightbox .vote.heart.on{background:#c96a5e; color:#fff;}\n'
     + '#clightbox .vote.nope.on{background:#3a3530; color:#fff;}\n'
-    + '.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}\n'
+    + '.lbnote{display:flex; gap:6px; width:100%;}\n'
     + '.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;\n'
     + "  font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}\n"
     + '.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;\n'
     + '  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}\n'
     + '.lbnote .notesend svg{width:18px; height:18px; display:block;}\n'
     + '.lbnote .notesend.saved{background:#5d7a5a; color:#fff;}\n'
-    /* The note thread under the image: her letters and the chat's replies back.
-       Its own scroll area so a long exchange can never push the picture off. */
+    /* THE BOX COMES FIRST, THE CONVERSATION SITS UNDER IT (Aug 2026, Sophie:
+       "I wanted it to be below the text box so most of it will be out of view
+       and there can just be a button which makes the note texting take up more
+       of a screen, like overlay on top of the actual image"). Writing is the
+       common act; re-reading the exchange is the occasional one, so the thread
+       peeks under the box and the ⌃ button throws it over the picture. */
     + '.lbtalk{width:min(92vw,360px); margin-top:12px;}\n'
-    + '.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;\n'
-    + '  display:flex; flex-direction:column; gap:5px;}\n'
+    + '.lbthread{max-height:13vh; overflow-y:auto; -webkit-overflow-scrolling:touch;\n'
+    + '  display:flex; flex-direction:column; gap:5px; margin-top:8px;}\n'
+    /* the peek fades out at its bottom edge, so a half-cut letter reads as
+       "there is more" rather than as a rendering fault */
+    + '.lbtalk:not(.big) .lbthread{-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent);\n'
+    + '  mask-image:linear-gradient(to bottom,#000 55%,transparent);}\n'
+    /* expanded: the same thread element, moved over the picture */
+    /* CENTRED on the viewport, not top-anchored: the picture is what it has to
+       cover ("like overlay on top of the actual image"), and a short thread
+       pinned to the top could sit in the band ABOVE the picture instead. */
+    + '.lbtalk.big .lbthread{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);\n'
+    + '  width:min(92vw,420px); max-height:56vh;\n'
+    + '  background:rgba(15,13,10,.95); border-radius:6px; padding:12px; box-sizing:border-box;\n'
+    + '  z-index:3; margin-top:0; gap:6px;}\n'
+    + '.lbtalk.big .lbmsg.them{background:rgba(250,247,240,.18);}\n'
+    /* the button that opens it — hugs its words, never a slab */
+    + '.lbmore{margin-top:6px; border:none; border-radius:6px; background:rgba(250,247,240,.14);\n'
+    + '  color:#ece6da; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em;\n'
+    + '  text-transform:uppercase; padding:6px 10px; cursor:pointer; align-self:flex-start;}\n'
+    + '.lbtalk.big .lbmore{background:rgba(250,247,240,.92); color:#26221c;}\n'
     + ".lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:'EBGaramond',Georgia,serif;\n"
     + '  font-size:14px; line-height:1.4; word-break:break-word; white-space:pre-wrap;}\n'
     + '.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}\n'
@@ -59,9 +86,10 @@
     + '.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}\n'
     + '#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}\n'
     + '#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}\n'
-    /* With a note thread under it the picture can't have the whole screen, or the
-       thread and the box you type in fall off the bottom. */
-    + '#clightbox.hastalk img{max-height:46vh;}\n'
+    /* With the note box under it the picture can't have the whole screen, or
+       the box you type in falls off the bottom. It gets more room than it used
+       to: the thread below the box only peeks now (Aug 2026). */
+    + '#clightbox.hastalk img{max-height:52vh;}\n'
     + '#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}\n'
     /* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
        what she reviews by, the tag is how it was made. */
@@ -116,6 +144,13 @@
       lb.id = 'clightbox';
       document.body.appendChild(lb);
     }
+    // A TAP IN HERE IS NEVER A REQUEST TO AUTOSCROLL (Aug 2026, Sophie: "the
+    // auto scroll triggers when I tap out of the lightbox"). The app drives an
+    // embedded page's scroll with a tap-to-TOGGLE bound in the parent, whose
+    // skip list is `[data-nostop],img,figure,.cmp-lb` — this overlay was on
+    // none of them, so the tap that closed it started the scroll behind it.
+    // Marking the element is the fix that reaches every host, not just chats.
+    lb.setAttribute('data-nostop', '');
     lb.innerHTML = '<div class="clwrap"><img alt="" src="' + url.replace(/"/g, '&quot;') + '"></div>';
     lb.classList.remove('hastalk');   // last image's thread must not shrink this one
     // The generating prompt, over the image: Style left, Content right, tap the
@@ -169,6 +204,7 @@
       var talk = document.createElement('div'); talk.className = 'lbtalk';
       talk.onclick = function (e) { e.stopPropagation(); };
       var th = document.createElement('div'); th.className = 'lbthread';
+      var more = null;
       function paintThread() {
         th.innerHTML = '';
         var msgs = asset.thread || [];
@@ -180,7 +216,24 @@
         });
         th.style.display = msgs.length ? '' : 'none';
         th.scrollTop = th.scrollHeight;   // newest letter in view
+        if (more) paintMore();
       }
+      // the ⌃ button: how many letters are in the thread, and a tap puts them
+      // over the picture (its own row so the note box keeps the full width)
+      more = document.createElement('button'); more.className = 'lbmore';
+      more.type = 'button';
+      function paintMore() {
+        var n = (asset.thread || []).length;
+        more.style.display = n ? '' : 'none';
+        more.textContent = (talk.classList.contains('big') ? 'Hide' : 'Notes')
+          + ' (' + n + ')';
+      }
+      more.onclick = function (e) {
+        e.stopPropagation();
+        talk.classList.toggle('big');
+        paintMore();
+        th.scrollTop = th.scrollHeight;
+      };
       var nw = document.createElement('div'); nw.className = 'lbnote';
       var ni = document.createElement('input'); ni.placeholder = 'Write a note…';
       var ns = document.createElement('button'); ns.className = 'notesend';
@@ -213,7 +266,7 @@
       ns.onclick = function (e) { e.stopPropagation(); sendNote(); };
       ni.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); sendNote(); } };
       nw.appendChild(ni); nw.appendChild(ns);
-      talk.appendChild(th); talk.appendChild(nw);
+      talk.appendChild(nw); talk.appendChild(more); talk.appendChild(th);
       paintThread();
       if (asset._markSeen) asset._markSeen();   // opening it counts as reading it
       asset._lbPaint = function () {
@@ -251,7 +304,7 @@
       // Blur FIRST: a still-focused note box makes iOS scroll again as the
       // keyboard leaves, which would land after our restore and undo it.
       var f = document.activeElement; if (f && f.blur) f.blur();
-      lb.style.display = 'none'; lb.innerHTML = '';
+      lb.style.display = 'none'; lb.innerHTML = '';   // .big dies with it
       lb.classList.remove('hastalk'); document.body.style.overflow = ''; document.body.classList.remove('ontop');
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.

@@ -11,16 +11,21 @@
      window.__grid({ chat, sheet, groups: [{ label?, items: […] }],
                      states?, help? })
 
-   Each GROUP is one comparison: its items share a row (wrapping at three
-   across), labels ON TOP (the .duo rule), the differing variable as the
-   label. Per item: ♥/✕ (or the page's own states — 'done'/'in progress'
-   for a to-do), the shared note +, and PROMPT — the Assets tab's overlay
+   Each GROUP is one comparison, ruled off from the next: its items share a
+   row (wrapping at three across), the PICTURE first and one what-changed
+   line under it. Per item: ✕ · PROMPT · ♥ (or the page's own states —
+   'done'/'in progress' for a to-do). PROMPT is the Assets tab's overlay
    exactly: MODEL · QUALITY at the top, content/style split, opens on
    CONTENT (Sophie: "the style is the default and I want it to be the
    content"). When a row's variants differ in their STYLE half, the style
    tab marks the lines this one does not share with the others in rose
    (Sophie, Aug 2026: "showing the lines that are different in the style
    tab").
+
+   Tapping an asset-backed picture opens THE Assets-tab lightbox
+   (/asset-lightbox.js) — the big image, ♥/✕, the note box and the prompt,
+   the same surface as the Assets tab. There is deliberately NO note + on a
+   tile: the note lives in the lightbox (her call, Aug 2026).
 
    THE MIRROR (Aug 2026, Sophie: the page and the Assets tab "should
    agree"): an item carrying `url` (its Assets-tab identity) writes ♥/✕
@@ -35,6 +40,13 @@
   var css = document.createElement('style');
   css.textContent =
     '.gd-group{margin:0 0 18px;}' +
+    // A HAIRLINE BETWEEN THE SETS (Sophie, 2026-08-19: "a line between
+    // different sets of things being compared, so that if things … wrapped to
+    // the [next] line, I can still tell the difference between that and the
+    // next set"). Rows wrap at three, so a 6-item set is two rows of tiles and
+    // white space alone could not say where one comparison stopped. On the
+    // TOP of each group but the first, so no rule dangles under the last one.
+    '.gd-group + .gd-group{border-top:1px solid var(--line);padding-top:16px;}' +
     // the row header (what the row SHARES) clamps too — a style prompt's
     // first line can run long and this is a heading, not a reading
     '.gd-glabel{font:700 11px/1.4 -apple-system,sans-serif;letter-spacing:.08em;' +
@@ -256,15 +268,20 @@
           return '<button type="button" class="gd-state" data-v="' + esc(JSON.stringify(s.key))
             + '" data-id="' + esc(it.id) + '">' + esc(s.label) + '</button>';
         }).join('');
-      } else {
-        h += '<button type="button" class="gd-vote no" data-v="false" data-id="' + esc(it.id)
-          + '" aria-label="Pass">' + I.x + '</button>'
-          + '<button type="button" class="gd-vote yes" data-v="true" data-id="' + esc(it.id)
-          + '" aria-label="Love">' + I.heart + '</button>';
+        if (it.promptContent || it.promptStyle) {
+          h += '<button type="button" class="gd-prompt" data-prompt="' + esc(it.id) + '">PROMPT</button>';
+        }
+        return h;
       }
+      // ✕ · PROMPT · ♥ — the prompt button in the MIDDLE (Sophie, Aug 2026),
+      // the same order the lightbox row has always had.
+      h += '<button type="button" class="gd-vote no" data-v="false" data-id="' + esc(it.id)
+        + '" aria-label="Pass">' + I.x + '</button>';
       if (it.promptContent || it.promptStyle) {
         h += '<button type="button" class="gd-prompt" data-prompt="' + esc(it.id) + '">PROMPT</button>';
       }
+      h += '<button type="button" class="gd-vote yes" data-v="true" data-id="' + esc(it.id)
+        + '" aria-label="Love">' + I.heart + '</button>';
       return h;
     }
 
@@ -410,21 +427,12 @@
       setVerdict(it, val);
     });
 
-    // notes: the shared kit builds the + per [data-item]; a committed message
-    // on an asset-backed item is mirrored onto the asset's note thread
-    if (window.__compareNotes) {
-      window.__compareNotes({
-        chat: chat, sheet: sheet,
-        onMessage: function (id, draft) {
-          var it = byId[id];
-          if (!it || !it.url || !draft) return;
-          fetch('/api/gallery/assets/note', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat: chat, url: it.url, text: draft, from: 'sophie' }),
-          }).catch(function () { /* the page's own thread still has it */ });
-        },
-      });
-    }
+    // NO NOTE + ON THE TILE (Aug 2026, Sophie: "for the note + thing it's
+    // making an extra line, so could you make it only appear in lightbox view
+    // for now — I might rescind that later"). The shared kit's + sat on its
+    // own line under every tile and cost a row of height on a grid whose whole
+    // point is seeing the set at once; the note box inside the lightbox is the
+    // same conversation (it posts to the same asset thread), one tap away.
     // THE TOUR (Aug 2026, Sophie): each control spotlighted, the rest
     // tinted, a line of explanation. Plays once on a template grid's first
     // open; replayable from the "?" forever.
@@ -439,8 +447,6 @@
           + 'tab, the same heart shows up there too — the two always agree.' });
       steps.push({ sel: '.gd-prompt', text: 'PROMPT shows the exact text that made this '
         + 'image — what it depicts first, the style behind the second tab.' });
-      steps.push({ sel: '.cmp-note-open', text: 'The + writes a note on this one — '
-        + 'answers come back in the same thread.' });
       steps.push({ sel: '.gd-it img', text: 'Tap any picture to open it big — the '
         + 'heart, a note box and the prompt, same as the Assets tab.' });
       return steps;

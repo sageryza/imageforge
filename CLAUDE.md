@@ -1247,9 +1247,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   don't build HTML at all: `POST /api/chatfeed/page { chat, title,
   template:'deck'|'grid', data }` — the deck is the Tinder pager (browse
   taps/swipe, optional ♥/✕ or her own states, tap-to-record voice notes), the
-  grid is rows wrapping at three across with the Assets-style PROMPT overlay;
-  items with an asset `url` mirror ♥/✕/notes to the Assets tab so the two
-  agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
+  grid is rows wrapping at three across, ruled off from each other, each tile
+  a picture with one what-changed line under it and ✕ · PROMPT · ♥; tapping a
+  picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
+  with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
   (chatfeed.js), which keeps two standing auto grid pages per chat — same
   content with a differing quality/model/style, and same style across

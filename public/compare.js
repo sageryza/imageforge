@@ -685,6 +685,39 @@
       });
   };
 
+  /* 5 — THE TITLE FITS ON ONE LINE (Aug 2026, Sophie: "can you make the actual
+     title scale down so it fits on one line"). A three-line <h1> at 26px ate
+     the top third of her phone before the first picture. Only ever SHRINKS,
+     never grows, and stops at 60% of the page's own size, so a title too long
+     to fit even then wraps as before rather than dwindling to nothing. The
+     right-hand 56px is the pill's corner, already reserved in compare.css. */
+  function fitTitle() {
+    var h = document.querySelector('.wrap > h1');
+    if (!h || !h.textContent.trim()) return;
+    h.style.fontSize = '';
+    var base = parseFloat(getComputedStyle(h).fontSize) || 26;
+    var size = base;
+    var floor = Math.max(13, base * 0.6);
+    // one line = the box is no taller than a line-height (measured each pass,
+    // since compare.css sets line-height relative to the font size)
+    function overflows() {
+      var lh = parseFloat(getComputedStyle(h).lineHeight) || (size * 1.2);
+      return h.scrollHeight > lh * 1.3;
+    }
+    while (overflows() && size > floor) {
+      size -= 1;
+      h.style.fontSize = size + 'px';
+    }
+  }
+  function fitSoon() { setTimeout(fitTitle, 0); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fitSoon);
+  } else { fitSoon(); }
+  // the serif lands late on a cold load, and a rotation changes the width
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle); } catch (_) {}
+  window.addEventListener('resize', fitTitle);
+  window.addEventListener('orientationchange', fitSoon);
+
   // a half-typed note must survive leaving the page
   window.addEventListener('pagehide', function () {
     if (!noteCfg) return;

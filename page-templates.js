@@ -172,7 +172,7 @@ function validateTemplate(template, data) {
   if (!data || typeof data !== 'object') return { ok: false, error: 'data required' };
   const out = {};
   const taken = new Set();
-  const help = STR(data.help, 600);
+  const help = STR(data.help, 4000);   // the auto pages list their prompts here
   if (help) out.help = help;
   const states = cleanStates(data.states);
   if (states) out.states = states;
@@ -245,7 +245,7 @@ function isMomentDeck(template, data) {
     && (it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)));
 }
 
-function renderTemplatePage({ template, title, chat, sheet, data, clean }) {
+function renderTemplatePage({ template, title, heading, chat, sheet, data, clean }) {
   // tour:'auto' — a SERVED template page plays its coach-mark tour once per
   // device (compare.js __compareTour); hand-built pages opt in themselves
   const payload = JSON.stringify({ chat, sheet, tour: 'auto', ...data }).replace(/</g, '\\u003c');
@@ -270,7 +270,15 @@ function renderTemplatePage({ template, title, chat, sheet, data, clean }) {
   // 2026, Sophie: "not a compare page because that has a header at the top,
   // but instead just a clean Tinder style page … with all the content
   // preloaded"): a queue tile opens ?clean=1, straight onto the cards.
-  const h1 = clean || isMomentDeck(template, data) ? '' : `<h1>${esc(title)}</h1>\n`;
+  // THE PAGE'S OWN HEADING, WHICH THE LISTING'S TITLE IS ALLOWED TO EXCEED
+  // (Aug 2026, Sophie, on the auto pages: "the 'auto compare' only needs to
+  // appear in the compare tab, not the actual page"). The prefix tells her a
+  // page filed itself rather than being made for her — that is a fact about
+  // the ROW in the tab, and on the page itself it is a word she is reading
+  // for the hundredth time in the biggest type on screen. `<title>` keeps the
+  // full name, so the browser tab and any share sheet still carry it.
+  const head = String(heading || title || '');
+  const h1 = clean || isMomentDeck(template, data) ? '' : `<h1>${esc(head)}</h1>\n`;
   return '<!doctype html>\n<meta charset="utf-8">\n'
     // maximum-scale=1 — NOT a passing detail (Aug 2026, Sophie's call): iOS
     // auto-zooms the page whenever it focuses a field under 16px, and on a
@@ -497,62 +505,99 @@ function groupAssetVariants(assets) {
 // Item ids derive from storage filenames, so a new image joining a group can
 // never re-point her saved answers — that is what makes updating in place
 // safe here where "a new version is a new page" protects every other page.
-// Caps are NAMED, never silent: a trimmed group says so in its label, and the
+// Caps are NAMED, never silent: a trimmed group says so on its row, and the
 // group count cap rides in the page's "?" help.
+//
+// NOTHING LONG ABOVE THE FIRST PICTURE (Aug 2026, Sophie, on the live page:
+// "the title is way too long… the text that is currently [bold] should be
+// hidden behind the (?)"). A group's real header here IS a prompt — a style
+// block or a whole dictated dream — and it sat between her title and the
+// pictures in gold caps, which is exactly the shape the house rule forbids.
+// So a row wears a SHORT tag ("Style 1"), the prompts are listed behind the
+// "?" against those tags, and a page with a single group wears no tag at all.
 const AUTO_GROUPS_MAX = 12;
 const AUTO_LADDER_ITEMS = 12;
 const AUTO_SET_ITEMS = 24;
+const AUTO_HELP_PROMPT = 150;   // per prompt line in the "?" card
 
+// The newest `itemCap` of an over-long group, with what was dropped kept as a
+// `note` rather than glued onto the label — the tag is composed below.
 function capGroups(groups, itemCap) {
-  const kept = groups.slice(0, AUTO_GROUPS_MAX).map((g) => {
-    if (g.items.length <= itemCap) return g;
+  return groups.slice(0, AUTO_GROUPS_MAX).map((g) => {
+    if (g.items.length <= itemCap) return { text: g.label, items: g.items };
     const items = g.items.slice().sort((x, y) => (y.ms || 0) - (x.ms || 0)).slice(0, itemCap);
-    return { label: `${g.label} · newest ${itemCap} of ${g.items.length}`, items };
+    return { text: g.label, items, note: `newest ${itemCap} of ${g.items.length}` };
   });
-  return kept;
 }
 
-// planAutoPages(assets) → [{ kind, title, data }] — pure; empty when nothing
-// groups. Display order inside a content set is short → long content (her
-// threshold-ladder tests read in order); the cap keeps the NEWEST first.
+// Short tags on the rows, the real text behind the "?". `word` is what one
+// group IS on this page ("Style" / "Prompt").
+function tagGroups(capped, word) {
+  const single = capped.length === 1;
+  const groups = capped.map((g, i) => {
+    const tag = single ? '' : `${word} ${i + 1}`;
+    const label = [tag, g.note].filter(Boolean).join(' · ');
+    return label ? { label, items: g.items } : { items: g.items };
+  });
+  const lines = capped.map((g, i) => {
+    const text = String(g.text || '').replace(/\s+/g, ' ').trim().slice(0, AUTO_HELP_PROMPT);
+    if (!text) return '';
+    // escaped: `help` is rendered as HTML by the "?" card, and this text is a
+    // model prompt nobody vetted for angle brackets
+    return `<b>${esc(single ? word : `${word} ${i + 1}`)}</b> — ${esc(text)}`;
+  }).filter(Boolean);
+  return { groups, lines };
+}
+
+// planAutoPages(assets) → [{ kind, title, heading, data }] — pure; empty when
+// nothing groups. `title` is the name the Compare TAB lists (it carries the
+// "Auto-compare" prefix, which is how she tells a page that filed itself from
+// one a chat made for her); `heading` is the page's own <h1>, which does not
+// (her call, Aug 2026). Display order inside a content set is short → long
+// content (her threshold-ladder tests read in order); the cap keeps the
+// NEWEST first.
 function planAutoPages(assets) {
   const { ladders, contentSets } = groupAssetVariants(assets);
   const plans = [];
+  const capNote = (n) => (n > AUTO_GROUPS_MAX
+    ? ` Showing the first ${AUTO_GROUPS_MAX} of ${n} groups.` : '');
   if (ladders.length) {
+    const { groups, lines } = tagGroups(capGroups(ladders, AUTO_LADDER_ITEMS), 'Prompt');
     plans.push({
       kind: 'ladders',
       title: 'Auto-compare — same prompt, settings changed',
+      heading: 'Same prompt, settings changed',
       data: {
         help: 'Filed automatically: images whose content prompt matches exactly '
           + 'while a setting differs — quality, model, or the style half. New '
-          + 'variants join by themselves'
-          + (ladders.length > AUTO_GROUPS_MAX
-            ? ` (showing the first ${AUTO_GROUPS_MAX} of ${ladders.length} groups)` : '')
-          + '. Hearts, passes and notes land on the Assets tab too.',
-        groups: capGroups(ladders, AUTO_LADDER_ITEMS),
+          + 'variants join by themselves, and hearts, passes and notes land on '
+          + 'the Assets tab too.' + capNote(ladders.length)
+          + (lines.length ? `<br><br>${lines.join('<br><br>')}` : ''),
+        groups,
       },
     });
   }
   if (contentSets.length) {
-    const sets = capGroups(contentSets, AUTO_SET_ITEMS).map((g) => ({
-      label: g.label,
+    const capped = capGroups(contentSets, AUTO_SET_ITEMS).map((g) => ({
+      text: g.text, note: g.note,
       items: g.items.slice().sort((x, y) => {
         const lx = String(x.promptContent || '').length;
         const ly = String(y.promptContent || '').length;
         return lx !== ly ? lx - ly : String(x.label).localeCompare(String(y.label));
       }),
     }));
+    const { groups, lines } = tagGroups(capped, 'Style');
     plans.push({
       kind: 'subjects',
       title: 'Auto-compare — same style, different subjects',
+      heading: 'Same style, different subjects',
       data: {
         help: 'Filed automatically: images that share the exact same style '
           + 'prompt with different subjects, shortest content first. New images '
-          + 'join by themselves'
-          + (contentSets.length > AUTO_GROUPS_MAX
-            ? ` (showing the first ${AUTO_GROUPS_MAX} of ${contentSets.length} groups)` : '')
-          + '. PROMPT shows each one\'s exact text.',
-        groups: sets,
+          + 'join by themselves; PROMPT on any picture shows its exact text.'
+          + capNote(contentSets.length)
+          + (lines.length ? `<br><br>${lines.join('<br><br>')}` : ''),
+        groups,
       },
     });
   }
