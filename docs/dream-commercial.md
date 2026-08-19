@@ -84,6 +84,14 @@ design so far — sound (iMessage pops, VO) is an open question for Sophie.
 v1 (0:42, 2026-08-19):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/commercial-v1.mp4
 
+v2 (0:45, 2026-08-19 — her four notes on v1, all shipped): the fries dream
+image IS in the chat now (Jake's line → the picture → Tyler's "there were so
+many fries 😔"); the canvas is a real iPhone 13 (390x844 points at 3x =
+1170x2532 — v1's 540x960 was the wrong aspect ratio and made every message
+read small); and the chat is light mode ("make the background white"). The
+title/end cards are unchanged — they're the app's brand, not the phone UI.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/commercial-v2.mp4
+
 ## Scenario bank — before → after, for future videos
 
 Each is one video, same structure: 2-3 before beats, the title cards, 2-3

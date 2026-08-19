@@ -4,85 +4,90 @@
      opened as file:// by the driver only, so none of the compare-page/house
      chrome contracts apply; it deliberately mimics Apple's Messages, because
      it is a filmed prop of that UI, not a surface of ours.
+     Canvas is a REAL iPhone 13 — 390x844 points at 3x (1170x2532) — after v1
+     shipped at 540x960 and Sophie called it: "the text messaging is really
+     small… it's not the right aspect ratio. It doesn't really look like an
+     iPhone." Light mode at her ask the same day ("make the background white").
      API: window.__load(script) builds the steps; window.__setStep(i, p) shows
      steps 0..i-1 settled and step i at animation progress p (0..1). -->
 <html><head><meta charset="utf-8">
 <style>
-  html, body { margin:0; padding:0; width:540px; height:960px; overflow:hidden;
-    background:#000; font-family:'Liberation Sans','Helvetica Neue',Arial,'Noto Color Emoji',sans-serif;
+  html, body { margin:0; padding:0; width:390px; height:844px; overflow:hidden;
+    background:#fff; font-family:'Liberation Sans','Helvetica Neue',Arial,'Noto Color Emoji',sans-serif;
     -webkit-font-smoothing:antialiased; }
-  #phone { position:absolute; inset:0; background:#000; color:#fff; }
+  #phone { position:absolute; inset:0; background:#fff; color:#000; }
 
-  /* status bar */
-  #status { position:absolute; top:0; left:0; right:0; height:30px; z-index:30;
-    display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0; box-sizing:border-box;
-    font-size:14px; font-weight:bold; }
+  /* status bar (iPhone 13 notch row) */
+  #status { position:absolute; top:0; left:0; right:0; height:47px; z-index:30;
+    display:flex; justify-content:space-between; align-items:flex-end; padding:0 28px 8px; box-sizing:border-box;
+    font-size:15px; font-weight:bold; color:#000; }
   #status .icons { display:flex; gap:6px; align-items:center; }
 
   /* header */
-  #hdr { position:absolute; top:30px; left:0; right:0; height:84px; z-index:20;
-    background:#111114; border-bottom:0.5px solid #2c2c2e;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
-  #hdr .back { position:absolute; left:14px; top:20px; }
-  #hdr .avirc { width:38px; height:38px; border-radius:50%; background:#5e5ce6; color:#fff;
-    display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:bold; }
-  #hdr .gname { font-size:12.5px; color:#e5e5ea; }
-  #hdr .gname .chev { color:#8e8e93; font-size:13px; }
+  #hdr { position:absolute; top:47px; left:0; right:0; height:74px; z-index:20;
+    background:#f5f5f7; border-bottom:0.5px solid #c6c6c8;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  #hdr .back { position:absolute; left:12px; top:16px; }
+  #hdr .avirc { width:42px; height:42px; border-radius:50%; background:#5e5ce6; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:bold; }
+  #hdr .gname { font-size:12px; color:#000; }
+  #hdr .gname .chev { color:#8e8e93; font-size:12px; }
 
   /* chat scroll area */
-  #chat { position:absolute; top:114px; bottom:62px; left:0; right:0; overflow-y:auto; padding:10px 12px 6px; box-sizing:border-box; }
+  #chat { position:absolute; top:121px; bottom:56px; left:0; right:0; overflow-y:auto; padding:8px 10px 6px; box-sizing:border-box; }
   #chat::-webkit-scrollbar { display:none; }
 
   .stamp { text-align:center; color:#8e8e93; font-size:11px; margin:10px 0 6px; }
   .stamp b { font-weight:bold; }
 
   .row { display:flex; align-items:flex-end; margin-top:2px; }
-  .row.gap { margin-top:10px; }
-  .row .av { width:26px; height:26px; border-radius:50%; flex:0 0 26px; margin-right:7px;
-    color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;
+  .row.gap { margin-top:12px; }
+  .row .av { width:28px; height:28px; border-radius:50%; flex:0 0 28px; margin-right:7px;
+    color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold;
     visibility:hidden; }
-  .row .stack { max-width:76%; display:flex; flex-direction:column; align-items:flex-start; }
-  .row .who { color:#8e8e93; font-size:10.5px; margin:0 0 2px 12px; display:none; }
-  .bub { background:#26252a; color:#fff; font-size:16px; line-height:1.28;
-    padding:8px 13px; border-radius:18px; word-wrap:break-word; }
+  .row .stack { max-width:74%; display:flex; flex-direction:column; align-items:flex-start; }
+  .row .who { color:#8e8e93; font-size:11px; margin:0 0 2px 12px; display:none; }
+  .bub { background:#e9e9eb; color:#000; font-size:17px; line-height:1.3;
+    padding:8px 12px; border-radius:18px; word-wrap:break-word; }
   .row.you { justify-content:flex-end; }
   .row.you .av { display:none; }
   .row.you .stack { align-items:flex-end; }
-  .row.you .bub { background:#0a84ff; }
+  .row.you .bub { background:#007aff; color:#fff; }
   .bub.img { padding:0; background:none; border-radius:14px; overflow:hidden; line-height:0; }
-  .bub.img img { width:335px; display:block; }
+  .bub.img img { width:248px; display:block; }
 
   /* input bar */
-  #inbar { position:absolute; left:0; right:0; bottom:0; height:62px; background:#111114;
-    display:flex; align-items:center; gap:10px; padding:0 12px 12px; box-sizing:border-box; }
-  #inbar .plus { width:32px; height:32px; border-radius:50%; background:#26252a; color:#8e8e93;
+  #inbar { position:absolute; left:0; right:0; bottom:0; height:56px; background:#fff;
+    border-top:0.5px solid #c6c6c8;
+    display:flex; align-items:center; gap:10px; padding:0 12px 10px; box-sizing:border-box; }
+  #inbar .plus { width:32px; height:32px; border-radius:50%; background:#e9e9eb; color:#8e8e93;
     display:flex; align-items:center; justify-content:center; font-size:20px; }
-  #inbar .field { flex:1; height:34px; border:1px solid #3a3a3c; border-radius:17px;
-    color:#8e8e93; font-size:15px; display:flex; align-items:center; padding:0 14px; }
+  #inbar .field { flex:1; height:34px; border:1px solid #c6c6c8; border-radius:17px;
+    color:#8e8e93; font-size:16px; display:flex; align-items:center; padding:0 14px; }
 
   /* full-screen cards */
   .card { position:absolute; inset:0; z-index:50; display:none; align-items:center; justify-content:center;
     text-align:center; }
-  .card .line { font-family:'Newsreader','Liberation Serif',Georgia,serif; font-style:italic; font-size:42px; }
+  .card .line { font-family:'Newsreader','Liberation Serif',Georgia,serif; font-style:italic; font-size:36px; }
   #endcard { display:none; position:absolute; inset:0; z-index:50; background:#14131a; text-align:center; }
-  #endcard .moon { width:120px; height:120px; border-radius:50%; background:#e9e4d6; margin:250px auto 0; }
+  #endcard .moon { width:104px; height:104px; border-radius:50%; background:#e9e4d6; margin:220px auto 0; }
   #endcard .star { position:absolute; border-radius:50%; }
   #endcard .name { font-family:'Newsreader','Liberation Serif',Georgia,serif; font-style:italic;
-    color:#f4f0e5; font-size:40px; margin-top:64px; }
-  #endcard .url { color:#d9b3c0; font-size:15px; letter-spacing:3px; margin-top:18px; }
+    color:#f4f0e5; font-size:32px; margin-top:56px; }
+  #endcard .url { color:#d9b3c0; font-size:13px; letter-spacing:2.5px; margin-top:16px; }
 </style></head>
 <body>
 <div id="phone">
   <div id="status">
     <div>9:41</div>
     <div class="icons">
-      <svg width="17" height="11" viewBox="0 0 17 11"><g fill="#fff"><rect x="0" y="7" width="3" height="4" rx="0.8"/><rect x="4.5" y="5" width="3" height="6" rx="0.8"/><rect x="9" y="2.5" width="3" height="8.5" rx="0.8"/><rect x="13.5" y="0" width="3" height="11" rx="0.8"/></g></svg>
-      <svg width="16" height="11" viewBox="0 0 16 11"><path fill="#fff" d="M8 9.5 L5.8 7.2 C6.4 6.6 7.2 6.3 8 6.3 C8.8 6.3 9.6 6.6 10.2 7.2 Z M3.9 5.2 C5 4.1 6.5 3.4 8 3.4 C9.5 3.4 11 4.1 12.1 5.2 L13.9 3.4 C12.3 1.8 10.2 0.9 8 0.9 C5.8 0.9 3.7 1.8 2.1 3.4 Z"/></svg>
-      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#fff" stroke-opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.6" fill="#fff"/><path fill="#fff" fill-opacity="0.4" d="M23 4 C24 4.3 24.5 5 24.5 6 C24.5 7 24 7.7 23 8 Z"/></svg>
+      <svg width="17" height="11" viewBox="0 0 17 11"><g fill="#000"><rect x="0" y="7" width="3" height="4" rx="0.8"/><rect x="4.5" y="5" width="3" height="6" rx="0.8"/><rect x="9" y="2.5" width="3" height="8.5" rx="0.8"/><rect x="13.5" y="0" width="3" height="11" rx="0.8"/></g></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11"><path fill="#000" d="M8 9.5 L5.8 7.2 C6.4 6.6 7.2 6.3 8 6.3 C8.8 6.3 9.6 6.6 10.2 7.2 Z M3.9 5.2 C5 4.1 6.5 3.4 8 3.4 C9.5 3.4 11 4.1 12.1 5.2 L13.9 3.4 C12.3 1.8 10.2 0.9 8 0.9 C5.8 0.9 3.7 1.8 2.1 3.4 Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity="0.35"/><rect x="2" y="2" width="18" height="8" rx="1.6" fill="#000"/><path fill="#000" fill-opacity="0.35" d="M23 4 C24 4.3 24.5 5 24.5 6 C24.5 7 24 7.7 23 8 Z"/></svg>
     </div>
   </div>
   <div id="hdr">
-    <div class="back"><svg width="12" height="21" viewBox="0 0 12 21"><path d="M10.5 1.5 L2 10.5 L10.5 19.5" stroke="#0a84ff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="back"><svg width="12" height="21" viewBox="0 0 12 21"><path d="M10.5 1.5 L2 10.5 L10.5 19.5" stroke="#007aff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="avirc" id="gavatar"></div>
     <!-- a plain ›, not U+25B6 — that glyph renders as the orange emoji play
          button under Noto Color Emoji -->
@@ -118,8 +123,8 @@
       document.querySelector('#endcard .name').textContent = end.name;
       document.querySelector('#endcard .url').textContent = end.url;
       // a few flat stars around the moon, deterministic
-      const stars = [[70, 190, 3, '#d9b3c0'], [430, 150, 2, '#e9e4d6'], [360, 300, 2.5, '#d9b3c0'],
-        [120, 330, 2, '#e9e4d6'], [470, 390, 3, '#e9e4d6'], [60, 480, 2, '#d9b3c0']];
+      const stars = [[55, 170, 3, '#d9b3c0'], [330, 130, 2, '#e9e4d6'], [280, 260, 2.5, '#d9b3c0'],
+        [90, 290, 2, '#e9e4d6'], [350, 340, 3, '#e9e4d6'], [45, 420, 2, '#d9b3c0']];
       for (const [x, y, r, c] of stars) {
         const d = document.createElement('div');
         d.className = 'star';
@@ -145,7 +150,7 @@
         chat.appendChild(st);
       }
       const prev = msgs[idx - 1], next = msgs[idx + 1];
-      const firstOfRun = !prev || prev.from !== m.from || (next && next.stamp !== m.stamp && false) || (prev.stamp !== m.stamp);
+      const firstOfRun = !prev || prev.from !== m.from || (prev.stamp !== m.stamp);
       const lastOfRun = !next || next.from !== m.from || next.stamp !== m.stamp;
       const row = document.createElement('div');
       row.className = 'row' + (m.side === 'you' ? ' you' : '') + (firstOfRun ? ' gap' : '');

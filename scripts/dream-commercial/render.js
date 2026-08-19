@@ -75,7 +75,9 @@ function fetchFont(cssUrl, dir, name) {
     work, 'newsreader');
 
   const browser = await chromium.launch({ executablePath: CHROME });
-  const page = await browser.newPage({ viewport: { width: 540, height: 960 }, deviceScaleFactor: 2 });
+  // A real iPhone 13: 390x844 points at 3x = 1170x2532, the phone's native
+  // screenshot size — v1's 540x960 read as "not an iPhone" to Sophie.
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   await page.goto('file://' + path.join(__dirname, 'render.html'));
   if (serif) {
     await page.addStyleTag({
