@@ -45,6 +45,7 @@ const admin = require('firebase-admin');
 
 const editor = require('./editor');
 const audioDrop = require('./audio');   // COL/BATCHES — source list + render filing
+const audioProject = require('./audioproject'); // the cross-room project id (best-effort)
 const dropbox = require('./dropbox');   // COL — the Dump's videos
 
 const COL = process.env.CUTMARKS_COLLECTION || 'forge-cutmarks';
@@ -406,8 +407,21 @@ router.post('/open', async (req, res) => {
     if (!/^https:\/\//.test(url)) return res.status(400).json({ error: 'a media url is required' });
     const id = projectId(url);
     const kind = req.body.kind === 'video' ? 'video' : 'audio';
-    const cleanName = displayName(req.body.name, kind, Date.now());
+    // The audio project rides along, best-effort (a hand-off carries it in
+    // `project`; a raw open mints one) — the light cross-room id, Sophie's
+    // pick 2026-08-19. Never blocks the open: null is a fine project.
+    let project = String(req.body.project || '').trim() || null;
+    let cleanName = displayName(req.body.name, kind, Date.now());
+    if (!req.body.name && project) {
+      const p = await audioProject.readProject(project).catch(() => null);
+      if (p && p.title) cleanName = p.title;
+    }
     const existing = await loadDoc(id);
+    if (existing) {
+      const effective = existing.project || project;
+      if (!existing.project && project) await patchDoc(id, { project }).catch(() => {});
+      if (effective) audioProject.stamp(effective, { room: 'cutmarks', docId: id, url, name: existing.title });
+    }
     if (existing && existing.status === 'ready') {
       // repair a title saved before the UUID-prefix cleaning existed
       if (UUID_PREFIX.test(existing.title || '')) {
@@ -418,14 +432,16 @@ router.post('/open', async (req, res) => {
     if (existing && existing.status === 'processing' && existing.job && existing.job.status === 'running') {
       return res.json({ id, status: 'processing' });
     }
+    if (!existing && !project) project = await audioProject.ensureProject({ title: cleanName }).catch(() => null);
     const doc = existing || {
-      id, title: cleanName.slice(0, 120), kind,
+      id, title: cleanName.slice(0, 120), kind, project: project || null,
       source: { url, itemId: req.body.itemId || null },
       posterUrl: req.body.poster || null,
       seconds: null, hasAudio: true, status: 'processing', error: null,
       marks: [], dropped: [], renders: [], job: null,
       createdAt: Date.now(), updatedAt: Date.now(),
     };
+    if (!existing && project) audioProject.stamp(project, { room: 'cutmarks', docId: id, url, name: doc.title });
     doc.status = 'processing';
     doc.error = null;
     await db().collection(COL).doc(id).set(JSON.parse(JSON.stringify(doc)), { merge: true });

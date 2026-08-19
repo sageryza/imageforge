@@ -182,8 +182,9 @@ These are the ones worth building, and none of them is a missing button:
   episode id. The Episode Editor → Cutting Room hand-off passes a url and a
   name and nothing else, so marks, labels, speaker and order do not travel.
   Walking the whole S therefore means re-deciding the same things in four
-  places. **A shape is proposed — see *The PROJECT across the rooms* below
-  (2026-08-17); it is waiting on Sophie's pick and must not be built first.**
+  places. **BUILT in the light shape 2026-08-19 (Sophie's pick) — see *The
+  PROJECT across the rooms* below: name + who-speaks travel via
+  `audioproject.js`; geometry stays room-local on purpose.**
 
 ## "Make everything point at each other" — what already does
 
@@ -238,10 +239,37 @@ Sophie — do not build it before she has said which version she wants.**
 **Order matters: build the BLOCKS tool before wiring (a).** Wiring hand-offs
 into a Compare page means wiring the thing that is about to be replaced.
 
-## The PROJECT across the rooms — proposed shape (2026-08-17, AWAITING SOPHIE)
+## The PROJECT across the rooms — BUILT in the light shape (2026-08-19)
 
-Nothing here is built. This is the proposal for hole (b), written down so the
-chat that builds it starts from a decision instead of a blank page.
+**Sophie picked version 2** ("OK, go ahead with your recommendation",
+2026-08-19) and it is built: `audioproject.js` (`/api/audioproject`,
+`forge-audio-projects`). What travels is the NAME and WHO-SPEAKS; geometry
+stays room-local, exactly as proposed below. How it works in practice:
+
+- **The walk is derived, never stored** — `GET /api/audioproject/walk?url=`
+  scans the room collections (~60s cache, capped, no composite indexes) and
+  joins render urls to source urls both ways. Each room page (Blocks, Cut
+  Marks, the Cutting Room) shows it as one muted "came from · went on to"
+  line, linked where the target room has a `?url=` entry — Blocks got one of
+  its own for this.
+- **The project doc is minted at the first wired room's `/open`** (raw open
+  mints, hand-off adopts via `&project=` on the url and `project` in the
+  body), stamped on the room's own doc, and its trail appends room docs
+  deduped by room+docId. **Best-effort by contract everywhere**: a room must
+  open fine with no project at all, and every project write is
+  fire-and-forget.
+- **The title is decided once** — a hand-off that arrives with no name reads
+  the project's title instead of re-asking. **Who-speaks travels** — Blocks'
+  `/:id/state` seeds `project.speakers` with whoOver's NAMES (never the
+  per-block map) after the response.
+- **The Episode Editor deliberately does not mint** — episodes aren't
+  content-addressed by a source url and are made many ways; its lineage
+  still resolves via the walk, and a chain that starts there picks up its
+  project at the first wired room it hands into.
+- Tests: `node scripts/test-audio-wiring.js` (the walk over a fixture chain,
+  the threading markup, the id mint).
+
+The original proposal, kept for the reasoning:
 
 **The observation that shrinks the problem: lineage is already derivable.**
 Every hand-off passes a render url, and each room content-addresses its doc by
@@ -274,12 +302,13 @@ makes this true for every hand-off that goes through a button.
    two-tier timing rule exists precisely because bulk timings don't survive
    a room change.
 
-**The recommendation is 2** — it is 1 plus one small doc, it kills the
+**The recommendation was 2** — it is 1 plus one small doc, it kills the
 re-deciding (the same title typed four times, the speaker decided twice), and
-it leaves each room's marking machinery exactly as it is. But it is Sophie's
-call, and the question for her is one line: *should a project carry just the
-name and who-speaks across the rooms (cheap, recommended), or do you want
-your marks to follow you too (expensive, and each room re-listens anyway)?*
+it leaves each room's marking machinery exactly as it is. The question put to
+Sophie was: *names and who-speaks only (cheap, recommended), or marks too
+(expensive, and each room re-listens anyway)?* **She picked the
+recommendation, 2026-08-19, and version 2 is what is built above.** Version 3
+stays deliberately unbuilt.
 
 ## The Search index runs behind the memo archive (measured 2026-08-15)
 

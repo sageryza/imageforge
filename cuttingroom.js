@@ -71,6 +71,7 @@ const admin = require('firebase-admin');
 const editor = require('./editor');
 const scratchpad = require('./scratchpad');
 const audioDrop = require('./audio'); // COL, BATCHES, slug — the clip filing target
+const audioProject = require('./audioproject'); // the cross-room project id (best-effort)
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const COL = process.env.CUTROOM_COLLECTION || 'forge-cutroom';
@@ -555,18 +556,33 @@ router.post('/open', async (req, res) => {
     const url = String(req.body.url || '').trim();
     if (!/^https:\/\//.test(url)) return res.status(400).json({ error: 'a recording url is required' });
     const id = projectId(url);
+    // The audio project rides along, best-effort (a hand-off carries it in
+    // `project`; a raw open mints one) — the light cross-room id, Sophie's
+    // pick 2026-08-19. Never blocks the open: null is a fine project.
+    let project = String(req.body.project || '').trim() || null;
     const existing = await loadDoc(id);
-    if (existing && existing.status === 'ready') return res.json({ id, status: 'ready' });
-    if (existing && existing.status === 'processing' && existing.job && existing.job.status === 'running') {
-      return res.json({ id, status: 'processing' });
+    if (existing) {
+      const effective = existing.project || project;
+      if (!existing.project && project) await patchDoc(id, { project }).catch(() => {});
+      if (effective) audioProject.stamp(effective, { room: 'cutroom', docId: id, url, name: existing.title });
+      if (existing.status === 'ready') return res.json({ id, status: 'ready' });
+      if (existing.status === 'processing' && existing.job && existing.job.status === 'running') {
+        return res.json({ id, status: 'processing' });
+      }
     }
     // Strip the iOS share extension's `UUID() + filename` staging prefix if a
     // caller passes it through — the id is not part of the recording's name.
-    const cleanName = String(req.body.name || 'Recording')
+    let cleanName = String(req.body.name || '')
       .replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]*/i, '')
-      .trim() || 'Recording';
+      .trim();
+    if (!cleanName && project) {
+      const p = await audioProject.readProject(project).catch(() => null);
+      if (p && p.title) cleanName = p.title;
+    }
+    cleanName = cleanName || 'Recording';
+    if (!existing && !project) project = await audioProject.ensureProject({ title: cleanName }).catch(() => null);
     const doc = existing || {
-      id, title: cleanName.slice(0, 120),
+      id, title: cleanName.slice(0, 120), project: project || null,
       source: { url, itemId: req.body.itemId || null, batch: req.body.batch || null },
       seconds: null, status: 'processing', pauses: [], cuts: [], pins: [],
       clips: [], renders: [], job: null, createdAt: Date.now(), updatedAt: Date.now(),
@@ -574,6 +590,7 @@ router.post('/open', async (req, res) => {
     doc.status = 'processing';
     doc.error = null;
     await db().collection(COL).doc(id).set(JSON.parse(JSON.stringify(doc)), { merge: true });
+    if (!existing && project) audioProject.stamp(project, { room: 'cutroom', docId: id, url, name: doc.title });
     await startJob(id, 'listen', (progress) => runListen(id, progress));
     res.json({ id, status: 'processing' });
   } catch (err) { fail(res, err); }

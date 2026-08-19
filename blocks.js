@@ -74,6 +74,7 @@ const admin = require('firebase-admin');
 const editor = require('./editor');
 const cutroom = require('./cuttingroom');
 const audioDrop = require('./audio');
+const audioProject = require('./audioproject');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const COL = process.env.BLOCKS_COLLECTION || 'forge-blocks';
@@ -486,30 +487,50 @@ router.get('/', async (req, res) => {
 
 // Open (or resume) a recording. Content-addressed by the source url, so the
 // same recording is always the same project.
+//
+// THE AUDIO PROJECT rides along (best-effort by contract — a room must open
+// fine with no project at all): a hand-off arrives with `project` in the
+// body and the doc adopts it; a raw open MINTS one, so the id always exists
+// by the time a hand-off needs to carry it. A name that came in empty reads
+// the project's title instead of re-asking — that is the whole point of the
+// light shape (Sophie's pick, 2026-08-19).
 router.post('/open', async (req, res) => {
   try {
     const url = String((req.body && req.body.url) || '').trim();
     if (!/^https?:\/\//.test(url)) throw new Error('a recording url is required');
     const id = projectId(url);
+    let project = String((req.body && req.body.project) || '').trim() || null;
     const existing = await loadDoc(id);
     if (!existing) {
+      let title = String((req.body && req.body.name) || '').slice(0, 120).trim();
+      if (!title && project) {
+        const p = await audioProject.readProject(project).catch(() => null);
+        if (p && p.title) title = p.title;
+      }
+      title = title || 'untitled';
+      if (!project) project = await audioProject.ensureProject({ title }).catch(() => null);
       await patchDoc(id, {
-        id,
-        title: String((req.body && req.body.name) || '').slice(0, 120).trim() || 'untitled',
+        id, title, project: project || null,
         source: { url, name: String((req.body && req.body.name) || '').slice(0, 120), itemId: (req.body && req.body.itemId) || null },
         status: 'new', error: null,
         marks: {}, custom: {}, whoOver: {}, added: {}, ttsUrls: {}, order: [], secMeld: {}, place: {},
         renders: [], job: null, createdAt: nowIso(),
       });
+      if (project) audioProject.stamp(project, { room: 'blocks', docId: id, url, name: title });
       await startJob(id, 'listen', (progress) => runListen(id, progress));
-      return res.json({ id, started: true });
+      return res.json({ id, started: true, project: project || null });
     }
+    // a resumed doc adopts a handed-in project it didn't have; the stamp is
+    // deduped, so re-opening costs nothing new
+    const effective = existing.project || project;
+    if (!existing.project && project) await patchDoc(id, { project });
+    if (effective) audioProject.stamp(effective, { room: 'blocks', docId: id, url, name: existing.title });
     // re-POSTing while a job runs returns the existing doc, never a second job
     if (existing.status === 'failed' && !(existing.job && existing.job.status === 'running')) {
       await startJob(id, 'listen', (progress) => runListen(id, progress));
-      return res.json({ id, started: true });
+      return res.json({ id, started: true, project: effective || null });
     }
-    res.json({ id, started: false });
+    res.json({ id, started: false, project: effective || null });
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
@@ -537,6 +558,16 @@ router.post('/:id/state', async (req, res) => {
     if (JSON.stringify(clean).length > MAX_STATE) throw new Error('that is too much state for one save');
     await patchDoc(req.params.id, clean);
     res.json({ ok: true, saved: Object.keys(clean) });
+    // Who-speaks travels: seed the audio project's speakers from whoOver's
+    // NAMES (never the per-block map — geometry stays room-local). After the
+    // response and best-effort, like every project write.
+    if (clean.whoOver && typeof clean.whoOver === 'object') {
+      loadDoc(req.params.id).then((doc) => {
+        if (!doc || !doc.project) return null;
+        const names = [...new Set(Object.values(clean.whoOver).map((v) => String(v || '')))];
+        return audioProject.addSpeakers(doc.project, names);
+      }).catch(() => {});
+    }
   } catch (err) { fail(res, err); }
 });
 

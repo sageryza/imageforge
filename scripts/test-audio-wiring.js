@@ -24,6 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const blocks = require('../blocks');
+const audioProject = require('../audioproject');
 
 let pass = 0;
 let fail = 0;
@@ -47,6 +48,44 @@ console.log('nextLineId');
   eq('block ids are not line ids', blocks.nextLineId({}, {}, ['b00', 'b12']), 'n0');
 }
 
+console.log('the walk (buildIndex + walkFrom)');
+{
+  // The chain a real piece of work walks: a recording opened in Blocks, its
+  // cut nudged in Cut Marks, that cut polished in the Cutting Room — plus a
+  // Voice Studio render as an unrelated origin. Every join is a render url
+  // becoming the next room's source url; that is the whole mechanism.
+  const SRC = 'https://s/rec.m4a';
+  const R1 = 'https://s/blocks-cut.mp3';
+  const R2 = 'https://s/marks-cut.mp3';
+  const R3 = 'https://s/polished.mp3';
+  const V = 'https://s/voice-line.mp3';
+  const idx = audioProject.buildIndex([
+    { room: 'blocks', docId: 'b1', title: 'the talk', ins: [SRC], outs: [R1] },
+    { room: 'cutmarks', docId: 'm1', title: 'the talk — cut', ins: [R1], outs: [R2] },
+    { room: 'cutroom', docId: 'c1', title: 'the talk — cut', ins: [R2], outs: [R3] },
+    { room: 'voice', docId: 'v1', title: 'a line', ins: [], outs: [V] },
+  ]);
+
+  const atSrc = audioProject.walkFrom(idx, SRC);
+  eq('at the source: here is the blocks doc', atSrc.here.map((e) => e.docId), ['b1']);
+  eq('at the source: nothing upstream', atSrc.up, []);
+  eq('at the source: downstream walks the whole chain', atSrc.down.map((e) => e.docId), ['m1', 'c1']);
+
+  const atR1 = audioProject.walkFrom(idx, R1);
+  eq('mid-chain: here is the consumer', atR1.here.map((e) => e.docId), ['m1']);
+  eq('mid-chain: up is the maker', atR1.up.map((e) => e.docId), ['b1']);
+  eq('mid-chain: down continues through the consumer', atR1.down.map((e) => e.docId), ['c1']);
+
+  const atEnd = audioProject.walkFrom(idx, R3);
+  eq('at the finished cut: the whole chain is upstream, nearest first',
+    atEnd.up.map((e) => e.docId), ['c1', 'm1', 'b1']);
+  eq('at the finished cut: nothing downstream', atEnd.down, []);
+
+  const atVoice = audioProject.walkFrom(idx, V);
+  eq('a voice render knows its maker', atVoice.up.map((e) => e.room), ['voice']);
+  eq('and is otherwise unconnected', [atVoice.here.length, atVoice.down.length], [0, 0]);
+}
+
 console.log('the hand-off markup');
 {
   const cutmarks = page('cutmarks.html');
@@ -66,6 +105,26 @@ console.log('the hand-off markup');
   const voice = page('voice.html');
   ok('voice: a finished render carries the Blocks button', /class="toblocks"/.test(voice));
   ok('voice: the button lands the line via /api/blocks/:id/line', /\/api\/blocks\/'\s*\+\s*pid\s*\+\s*'\/line/.test(voice.replace(/\n/g, ' ')) || voice.includes("'/api/blocks/'+pid+'/line'"));
+}
+
+console.log('the project threading');
+{
+  const cutmarks = page('cutmarks.html');
+  ok('cut marks: hand-off entry passes the project in', /q\.get\('project'\)/.test(cutmarks));
+  ok('cut marks: the Cutting Room hand-off carries it out', /doc\.project \? '&project='/.test(cutmarks));
+  ok('cut marks: the walk strip exists', /id="lineage"/.test(cutmarks) && /audioproject\/walk/.test(cutmarks));
+
+  const cutroom = page('cuttingroom.html');
+  ok('cutting room: hand-off entry passes the project in', /hq\.get\('project'\)/.test(cutroom));
+  ok('cutting room: the walk strip exists', /id="lineage"/.test(cutroom) && /audioproject\/walk/.test(cutroom));
+
+  const blocksPage = page('blocks.html');
+  ok('blocks: has its own ?url= hand-off entry', /hand-off in: \/blocks\?url=/.test(blocksPage));
+  ok('blocks: render hand-offs carry the project', /projParam\(\)/.test(blocksPage));
+  ok('blocks: the walk strip exists', /id="lineage"/.test(blocksPage) && /audioproject\/walk/.test(blocksPage));
+
+  const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  ok('server: /api/audioproject is mounted', /app\.use\('\/api\/audioproject'/.test(server));
 }
 
 console.log('page scripts parse');

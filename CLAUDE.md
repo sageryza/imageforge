@@ -1751,6 +1751,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   never starts a harvest — it only shows a running one.
   Tests: `node scripts/test-clips.js` (pure, no network).
   **Full details: `docs/modules/audio-and-film.md`.**
+- **The audio PROJECT** (`audioproject.js`, `/api/audioproject`,
+  `forge-audio-projects` — no page of its own) — the light cross-room id
+  Sophie picked (2026-08-19): threaded through every audio hand-off as
+  `&project=`, it carries the NAME and WHO-SPEAKS so they are decided once;
+  marks/geometry stay room-local ON PURPOSE (each room re-listens anyway).
+  `GET /walk?url=` derives full lineage by joining render urls to source urls
+  across the room collections — zero stored state, ~60s cache — and feeds the
+  one-line "came from · went on to" strip on `/blocks`, `/cutmarks` and
+  `/cuttingroom`. Every project write is best-effort: a room must open fine
+  with no project at all. The Episode Editor deliberately doesn't mint one.
+  Tests: `node scripts/test-audio-wiring.js`.
+  **Full details: `docs/audio-pipeline.md` (The PROJECT across the rooms).**
 - **Songs** (`songs.js`, `/api/songs`, `/song`) — she sings into her phone, out
   comes a produced track with HER actual voice (resemble-enhance -> musicgen
   melody conditioning -> ffmpeg mix). ~$0.11 per 30s chunk. **It has no tile
