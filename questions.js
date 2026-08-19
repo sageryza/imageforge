@@ -12,10 +12,16 @@
 // remembered by anybody — this reads what is already there, works retroactively
 // over the whole history, and cannot go stale.
 //
-// The companion half is a WRITING rule in CLAUDE.md: a reply repeats her
-// question verbatim in bold with the answer plainly underneath. That is what
-// makes the pairing below exact rather than a guess — without it we fall back to
-// the TLDR, which by house rule already answers the question first.
+// THE ANSWER IS THE REPLY'S OPENING — its TLDR, else its first paragraph. The
+// house rules (TLDR first; answer her questions first, once; short by default)
+// are what make that the right text. There WAS a companion writing rule here
+// for one day — repeat her question verbatim in bold, answer underneath, so
+// this file could extract the exact block — and Sophie retired it 2026-08-15:
+// chats answered first AND echoed the bold block, so every reply said the same
+// thing twice, and the verbatim echo read as clutter. The bold-block path below
+// (`boldBlocks`/`matchBlock`) is KEPT: it still gives the day-old replies that
+// carry blocks their exact answers, and a reply that naturally structures
+// itself that way still benefits. It must never go back to being REQUIRED.
 //
 // Pure functions only (no Firestore, no network) so the whole thing is testable:
 // `node scripts/test-questions.js`.
