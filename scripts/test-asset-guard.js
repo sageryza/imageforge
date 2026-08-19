@@ -345,4 +345,39 @@ t('POST /api/gallery consults the guard before adding a wip asset', () => {
   assert.ok(branch.indexOf('const existing = await findChatAsset(') < call);
 });
 
+/* ─── a url that was never expanded ────────────────────────────────────────
+ * 2026-08-19: a chat looping over real images printed `.../${slug}-dream.webp`
+ * and `.../$u.webp` into its terminal output, and the background scan filed
+ * BOTH as tiles — nameless, promptless, and pointing at nothing. Storage
+ * object names cannot contain `$` or `{`, so the url's shape alone settles it.
+ * This is the one refusal that does not depend on what else is on file, and it
+ * applies to a LABELED filing too: a broken url is broken either way. */
+t('an unexpanded ${var} in the path is refused, catch or not', () => {
+  const shapes = [`${DECK}/dream-feed/raw-text/\${slug}-dream.webp`,
+                  `${DECK}/dream-feed/followups/$u.webp`,
+                  `${DECK}/a/{{id}}.png`];
+  for (const url of shapes) {
+    assert.ok(G.unresolvedUrl(url), `spotted as unresolved: ${url}`);
+    const v = G.guardFiling(caught(url));
+    assert.strictEqual(v.block, true, `refused: ${url}`);
+    assert.strictEqual(v.reason, 'unresolved-url');
+    // and a deliberate, labeled filing of the same broken url is refused too
+    const labeled = G.guardFiling({ chat: 'moon-milk', url, wip: true,
+      description: 'a real label', prompt: 'gpt-image-2 · medium' });
+    assert.strictEqual(labeled.block, true, `labeled is refused too: ${url}`);
+  }
+});
+
+t('a real storage url is never mistaken for one', () => {
+  for (const url of [`${DECK}/dream-feed/raw-text/monkey-minimal-dream.webp`,
+                     `${MEMBRY}/memo-audio/x.m4a`,
+                     'https://example.com/whatever.png', '', null]) {
+    assert.strictEqual(G.unresolvedUrl(url), false, String(url));
+  }
+  // and the ordinary verdict still comes back unchanged
+  assert.deepStrictEqual(
+    G.guardFiling(caught(`${DECK}/dream-feed/raw-text/monkey-minimal-dream.webp`)),
+    { block: false, reason: 'new' });
+});
+
 console.log(`\n${n} checks passed.\n`);
