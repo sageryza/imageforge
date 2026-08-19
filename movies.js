@@ -101,6 +101,8 @@ const VIDEO_MODELS = {
 // "sketch" = the 4-up contact-grid pass: one low render draws FOUR scene
 // panels in a 2x2 grid, sliced into quadrants server-side (~$0.005/panel).
 const PANEL_COST = { sketch: 0.005, low: 0.02, medium: 0.06, high: 0.25 };
+// The square canvas, which the dream app draws on (docs/modules/pictures.md).
+const SQUARE_COST = { low: 0.006, medium: 0.053, high: 0.211 };
 
 // ─── Style registry ─────────────────────────────────────────────────
 // Each movie renders in ONE of these styles (movie.style, default 'pencil').
@@ -645,7 +647,12 @@ function isSafetyRefusal(err) {
 // Panel render — gpt-image-2 portrait, timeout scaled by quality (high takes
 // minutes at OpenAI's end; see server.js's OPENAI_IMAGE_TIMEOUTS).
 const IMAGE_TIMEOUTS = { low: 90000, medium: 150000, high: 420000 };
-async function openaiPanel(prompt, quality = 'medium', retries = 2) {
+// A comic page is portrait; the dream app's one strong image is square
+// (Sophie, Aug 2026). Both are gpt-image-2 canvases — the square is the DEARER
+// one at the same quality (5.3c vs 4.1c at medium), see docs/modules/pictures.md.
+const PORTRAIT = '1024x1536';
+const SQUARE = '1024x1024';
+async function openaiPanel(prompt, quality = 'medium', retries = 2, size = PORTRAIT) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -655,7 +662,7 @@ async function openaiPanel(prompt, quality = 'medium', retries = 2) {
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json', 'Connection': 'close' },
         body: JSON.stringify({
           model: 'gpt-image-2', prompt, n: 1,
-          size: '1024x1536', quality, output_format: 'webp',
+          size, quality, output_format: 'webp',
         }),
         timeout: IMAGE_TIMEOUTS[quality] || 150000,
       });
@@ -678,7 +685,7 @@ async function openaiPanel(prompt, quality = 'medium', retries = 2) {
 // once one is locked). gpt-image-2 processes reference inputs at high
 // fidelity automatically. Mirrors openaiPanel's retry/timeout behavior;
 // edits are slower than generations so the cap only ever goes up.
-async function openaiPanelEdit(prompt, refBuffers, quality = 'medium', retries = 2) {
+async function openaiPanelEdit(prompt, refBuffers, quality = 'medium', retries = 2, size = PORTRAIT) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
   const refs = Array.isArray(refBuffers) ? refBuffers : [refBuffers];
   const timeout = Math.max(150000, IMAGE_TIMEOUTS[quality] || 0);
@@ -691,7 +698,7 @@ async function openaiPanelEdit(prompt, refBuffers, quality = 'medium', retries =
       refs.forEach((buf, i) => {
         form.append('image[]', buf, { filename: `ref${i}.jpg`, contentType: 'image/jpeg' });
       });
-      form.append('size', '1024x1536');
+      form.append('size', size);
       form.append('quality', quality);
       form.append('output_format', 'webp');
       const res = await fetch('https://api.openai.com/v1/images/edits', {
@@ -1659,12 +1666,12 @@ async function softenOnRefusal(bundle, draw, soften, passes = 2) {
 // `used` comes back as the bundle the finished picture was actually drawn from —
 // the softened one when softening fired — so the caller can record what the page
 // really says alongside the dreamer's original words.
-async function drawWithSoftening(bundle, build, refs, quality) {
+async function drawWithSoftening(bundle, build, refs, quality, size = PORTRAIT) {
   return softenOnRefusal(bundle, async b => {
     const prompt = build(b);
     const buf = refs.length
-      ? await openaiPanelEdit(prompt, refs, quality)
-      : await openaiPanel(prompt, quality);
+      ? await openaiPanelEdit(prompt, refs, quality, 2, size)
+      : await openaiPanel(prompt, quality, 2, size);
     return { buf, prompt, used: b };
   }, softenRefusedNarrative);
 }
@@ -1962,6 +1969,74 @@ async function makeDreamPagesV2(dream, quality, progress) {
     }
     return rec;
   }, progress, persist);
+}
+
+/* ── ONE STRONG IMAGE — the dream app's drawing (Sophie, Aug 2026) ────────
+   "the images shud default to square and medium quality and just one image.
+   prompt shud say 'pick one strong image,' and embellish it w the other
+   details of the dream, rather than comic book style."
+
+   So this is NOT dreamPaginate with the page count pinned to one: that planner
+   cuts a dream into scenes and writes hand-lettered captions, and a
+   one-scene slice of a wandering dream is a thinner picture, not a stronger
+   one. Here the model picks the moment with the most to look at and then
+   FOLDS THE REST OF THE DREAM INTO IT — the places, objects and weather that
+   happened elsewhere in the night — so one square carries as much of the
+   dream as it can hold.
+
+   dreamPaginate is left exactly as it is: the witch app's dream illustrator
+   and the zine still draw comics through it, and its page-count wording is a
+   measured finding (2026-08-08) that must not be re-tuned from here. */
+const DREAM_IMAGE_SYSTEM = `You are choosing ONE picture to illustrate someone's real dream.
+
+PICK ONE STRONG IMAGE — the single moment of the dream with the most to look at — and then EMBELLISH IT WITH THE OTHER DETAILS OF THE DREAM: fold in the places, people, objects, animals, weather and small strangenesses from the rest of the night so the one picture carries as much of the dream as it can hold. Details from elsewhere in the dream belong IN this picture — behind the moment, around its edges, out a window, on the walls — not in a second image.
+
+This is NOT a comic: no panels, no grid, no caption boxes, no lettering, no speech bubbles, no page layout.
+
+Return STRICT JSON and nothing else:
+{"image": "one paragraph describing exactly what to draw: the moment, who is in it and what they are doing, where it is, what surrounds them, the light, the weather, the mood, and the details folded in from the rest of the dream. Describe a PICTURE, not a story — no 'then', no 'later'. The dreamer is drawn from behind or in the scene like anyone else; do not invent a portrait of a real face. No text or lettering anywhere in it."}`;
+
+async function dreamImagePlan(dream) {
+  const user = `The dream:\n\n${dream.dreamText || dream.dream || ''}`;
+  const out = /claude/i.test(DREAM_BREAKDOWN_MODEL)
+    ? await anthropicChatJSON(DREAM_IMAGE_SYSTEM, user, { maxTokens: 1200 })
+    : await openaiChatJSON(
+        [{ role: 'system', content: DREAM_IMAGE_SYSTEM }, { role: 'user', content: user }],
+        { model: DREAM_BREAKDOWN_MODEL, reasoningEffort: 'low', retries: 2 });
+  const image = String(out && out.image ? out.image : '').trim();
+  if (!image) throw new Error('the dream could not be turned into a picture');
+  return image;
+}
+
+// One square picture, drawn through the same softening path as every other
+// dream render — a safety refusal on a real dream is normal and is answered by
+// redrawing it softened, never by retrying the same words.
+async function makeDreamImage(dream, quality = 'medium', progress = async () => {}) {
+  await progress(0, 1, 'reading the dream');
+  const image = await dreamImagePlan(dream);
+  dream.imagePlan = image;
+  await progress(0, 1, 'drawing it');
+  const refs = styleRef ? [styleRef] : [];
+  const bundle = { context: String(dream.dreamText || dream.dream || ''), image };
+  // The style reference is itself a diary COMIC page, so the no-panels guard
+  // has to be said out loud — without it the reference's own shape (grid,
+  // caption boxes) comes back in the drawing.
+  const build = b =>
+    (refs.length
+      ? 'The FIRST attached image is a STYLE reference — copy its styling exactly, but do NOT copy its content, its subjects or its layout. '
+      : `${DEFAULT_IMAGE_STYLE} `)
+    + 'ONE single full-frame illustration of a real dream. Not a comic: no panels, no grid, no caption boxes, no lettering, no speech bubbles, no words anywhere in the picture. '
+    + `Draw this: "${b.image}". `
+    + `The rest of the dream, for context only — do not draw a second scene: "${b.context}".`;
+  const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality, SQUARE);
+  dream.spend = +((dream.spend || 0) + (SQUARE_COST[quality] || 0.053)).toFixed(3);
+  dream.pages = [{
+    url: await saveBufferToStorage(buf, 'image/webp', 'movies/zines'),
+    promptUsed: prompt, captions: [], softened: !!softened,
+    imagePlan: (used && used.image) || image,
+  }];
+  await progress(1, 1, 'done');
+  return dream.pages[0];
 }
 
 // Background jobs run in THIS process — if a stored doc says a job is running
@@ -3413,6 +3488,7 @@ module.exports = {
   dreamPaginate,
   makeDreamPages,
   makeDreamPagesV2,
+  makeDreamImage,
   normalizeDreamCast,
   dreamPageRefs,
   dreamZinePagePrompt,

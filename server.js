@@ -109,6 +109,12 @@ app.get('/import-apple-transcripts.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/import-apple-transcripts.mjs');
 });
 
+// One-time installer for the Mac's launchd agent that runs the push at login
+// and daily — so the pusher above needs no human after this. No credentials.
+app.get('/install-memo-autopush.sh', (req, res) => {
+  res.type('text/x-shellscript').sendFile(__dirname + '/scripts/install-memo-autopush.sh');
+});
+
 app.get('/push-journal.mjs', (req, res) => {
   res.type('text/javascript').sendFile(__dirname + '/scripts/push-journal.mjs');
 });
@@ -530,6 +536,11 @@ app.get('/selfcare', (req, res) => { res.sendFile(__dirname + '/public/selfcare.
 // The Medicine Cabinet — the fake-pill commercials, for Sophie's family.
 // Public/ungated on purpose: family opens it from a text with no studio token.
 app.get('/pills', (req, res) => { res.sendFile(__dirname + '/public/pills.html'); });
+
+// The Screening Room — every film from the commercials chat, lightbox player.
+// Public/ungated like /pills; the film list lives in Storage commercials/index.json
+// so adding a film is a JSON upload, no deploy.
+app.get('/screening', (req, res) => { res.sendFile(__dirname + '/public/screening.html'); });
 
 // The favorite-fruit poll. BOTH pages are PUBLIC and ungated on purpose: /fruit
 // is opened from an email by Sophie's family, who have no studio token and

@@ -505,11 +505,22 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     down). **A moment deck wears the
     whole mockup chrome** (her second choice, asked and answered Aug 2026):
     the thin progress line + "Piles" + "?" replace the count/undo top row,
-    and each date card's footer is her ✕ · "Note for Claude…" box · ♥
-    (the mockup's ✓ swapped for a ♥ at her ask) — so these decks have only
-    yes/no (piles named Yes/No/Unsure, the mockup's words), no maybe/later,
-    no mic and no corner note +. The note box saves through the same
-    verdict-doc thread and Assets-tab mirror as the + note everywhere else.
+    and each date card's footer is her ✕ and ♥ (the mockup's ✓ swapped for a
+    ♥ at her ask) in their own row with the "Note for Claude…" box FULL
+    WIDTH and about four lines tall under them (Aug 2026, her ask: "the note
+    box is just too small… the heart and the ex can go a little above it and
+    maybe be a tiny bit smaller to make room" — 52px squares now, down from
+    the mockup's 62) — so these decks have only yes/no (piles named
+    Yes/No/Unsure, the mockup's words), no maybe/later, no mic and no corner
+    note +. The note box saves through the same verdict-doc thread and
+    Assets-tab mirror as the + note everywhere else. **And the keyboard may
+    not cover it** (her report: "I'm usually using the microphone, but the
+    keyboard still comes up and blocks the note box" — iOS raises the
+    keyboard for dictation too): while the box is focused, judge.js sizes
+    the deck's column to the TOP window's visualViewport (the page sits in
+    a same-origin iframe in the app, and the keyboard signal only lands on
+    the top window), so the footer rides above the keyboard and the card
+    scrolls inside itself; cleared the moment the keyboard goes.
   - **A DECK IS ONE SCREEN, SO IT CARRIES NO AUTOSCROLL PILL AND — when it
     is a moment deck — NO TITLE OF ITS OWN (Aug 2026, her report on the live
     date deck: "the auto scroll pill is still there, but it doesn't need to
@@ -526,6 +537,31 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the page already shows the page's name, so the `<h1>` was the name
       twice, the second time in 26px serif eating the top third of the
       screen. The `<title>` tag still names it in a browser tab.
+      **`?clean=1` drops the `<h1>` on ANY template page** (Aug 2026 v2 — the
+      Review Queue's door: its tiles open `/api/chatfeed/page/<id>?clean=1`,
+      straight onto the cards; her ask was "not a compare page because that
+      has a header at the top"). `renderTemplatePage({ …, clean })`; a clean
+      grid keeps its pill because it scrolls.
+    - **THE ✕ AND ♥ FLOAT ON THE CONTENT, AND A LONG CARD'S TITLE GOES
+      TOP-LEFT (Aug 2026 v2, Sophie, on the live deck: "there's a lot of
+      space between the X and the heart that's empty… put the heart and the X
+      on top of the content so the content comes down a little farther and
+      there's just a tiny bit of space between the note and the content" ·
+      "if the text is really long have the title just go in the top left
+      corner instead of in the middle. I really don't like scrolling").** The
+      ✕ · note · ♥ row cost ~78px of mostly empty band; now the two buttons
+      are pinned over the content's bottom corners and the note box is the
+      footer row under it. Over ~240 characters (~150 with a picture) the
+      card also wears `.long`: the name drops to a small top-left line and
+      the stack starts at the top instead of centring, reserving the buttons'
+      height at the bottom of the scroller. **A short card is untouched** —
+      the big centred name is the design there.
+    - **A DECK OPENED FROM THE REVIEW QUEUE HAS A BACK MARK** — `?clean=1` is
+      both the door (no `<h1>`) and the signal; judge.js draws a chevron at
+      the left of the top row and `history.back()`s to the queue. A deck
+      opened from the Compare tab shows none. Its **piles view** also carries
+      *Open the chat* + **Skip** / **Done**, which stamp the page doc through
+      `POST /api/chatfeed/page/:id/review`.
     - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
       "hearting, heart or exing should not move the moment, only tapping on
       the sides should go to the next moment"). In BROWSE mode — which every
@@ -573,10 +609,19 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       scrolls) and every row — progress line, Piles, boxes, footer ✕/♥ —
       shares the same 22px gutter, where the old layout had three different
       left edges (compare.css's `.wrap` padding, a 56px pill reservation, a
-      centred footer). The stack centres itself in what's left with
-      `justify-content:safe center` and scrolls INSIDE its own box when a
-      card is too tall — with `scrollbar-width:none`, because a 15px desktop
-      scrollbar inside that box pulls the cards off everyone else's edge.
+      centred footer). The stack centres itself in what's left with AUTO
+      MARGINS — NOT `justify-content:safe center`, which iOS Safari doesn't
+      support: it fell back to plain `center` and clipped a tall card at
+      both ends with the top unreachable ("the text gets truncated if it's
+      too long and hidden", Aug 2026). Auto margins centre a short stack the
+      same and resolve to 0 on overflow, so a tall card scrolls INSIDE its
+      own box from the top — with `scrollbar-width:none`, because a 15px
+      desktop scrollbar inside that box pulls the cards off everyone else's
+      edge. **A card that overflows also steps its type down first**
+      (`.jg-mom.long`, measured per card at render): the 21px moment drops
+      to 16px toward the other blurbs' size — her own suggested fix — so
+      most long cards come back to one screen; short cards keep her
+      Decision Deck sizes exactly.
   - **`grid`** = the classic one-variable comparison: each group is one row,
     2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
     Assets tab's PROMPT overlay (content/style split, opens on CONTENT,

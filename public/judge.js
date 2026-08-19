@@ -114,21 +114,35 @@
     ' display:flex;align-items:center;justify-content:center;}' +
     // her boxes sit straight on the cream — the house card chrome disappears,
     // and the stack takes the middle of the screen, centred like her mockup.
-    // `safe center` so a stack taller than the screen scrolls INSIDE this box
-    // from its top rather than having its head clipped off (plain centring
-    // overflows both ways); the page itself still never scrolls.
+    // CENTRED BY AUTO MARGINS, NOT justify-content (Aug 2026, her report:
+    // "the text gets truncated if it's too long and hidden"). The first cut
+    // said `justify-content:safe center`, but iOS Safari has no `safe`, fell
+    // back to plain `center`, and a stack taller than the box was clipped at
+    // BOTH ends with the top unreachable by any scroll. The auto margins on
+    // .jg-mom centre a short stack identically and resolve to 0 when it
+    // overflows, so a tall card scrolls inside this box from its top — in
+    // every browser. The page itself still never scrolls.
     // …and the scroller takes NO WIDTH when it does scroll: a desktop
     // scrollbar is 15px of layout inside this box, which would pull the
     // boxes 15px off the edges every other row sits on (iOS overlay
     // scrollbars hide it, so it only shows up on a short window)
     '.jg-card.momcard{background:transparent;border:0;padding:0;flex:1;min-height:0;' +
-    ' display:flex;flex-direction:column;justify-content:center;' +
-    ' justify-content:safe center;overflow-y:auto;scrollbar-width:none;}' +
+    ' display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;}' +
     '.jg-card.momcard::-webkit-scrollbar,.jg.mom .jg-piles::-webkit-scrollbar' +
     ' {width:0;height:0;}' +
     '.jg.mom .jg-piles{scrollbar-width:none;}' +
     '.jg-mom{display:flex;flex-direction:column;gap:14px;text-align:left;width:100%;' +
-    ' padding:2px 0;}' +
+    ' margin:auto 0;padding:2px 0;}' +
+    // A LONG CARD FITS ITSELF (Aug 2026, her report + her own fix list: the
+    // top blurb "is bigger than the other blurbs"): when the stack overflows
+    // its box, render() adds `long` — the moment drops from 21px toward the
+    // other blurbs' size, the gaps tighten, and most long cards come back to
+    // one screen. A card still too tall after that scrolls (above). Short
+    // cards keep her Decision Deck sizes exactly.
+    '.jg-mom.long{gap:9px;}' +
+    '.jg-mom.long .moment{font-size:16px;line-height:1.42;}' +
+    '.jg-mom.long .cap{font-size:14px;}' +
+    '.jg-mom.long .jg-mombox{padding:12px 14px;gap:5px;}' +
     // THE NAME IS PART OF THE TOP, not of the centred stack (her ask was "a
     // little bit lower down and centered" — one row below where the mockup
     // had it, next to Piles; inside the stack it drifts to mid-screen on a
@@ -144,6 +158,15 @@
     '.jg.mom>.who,.jg-mom .who{text-align:center;padding:22px 0 4px;' +
     ' font:500 21px/1.25 -apple-system,\'Helvetica Neue\',sans-serif;color:#C25E4C;' +
     ' text-transform:uppercase;letter-spacing:.04em;}' +
+    // A LONG CARD PUTS ITS TITLE IN THE TOP-LEFT CORNER (Aug 2026, Sophie:
+    // "if the text is really long have the title just go in the top left
+    // corner instead of in the middle. I really don't like scrolling"). The
+    // centred 21px name costs ~50px of height it does not need when the words
+    // underneath are already too many for one screen — so on a long card it
+    // becomes a small left-aligned line and the card keeps the difference.
+    // A short card is unchanged: there the big centred name is the design.
+    '.jg.mom.long>.who{text-align:left;padding:10px 0 2px;' +
+    ' font-size:13px;letter-spacing:.1em;}' +
     '.jg-mombox{background:#FFFDF8;border:1px solid #E7DECF;border-radius:10px;' +
     ' padding:16px 18px;display:flex;flex-direction:column;gap:7px;}' +
     '.jg-mombox .eyebrow{font:700 10px/1.3 -apple-system,sans-serif;' +
@@ -161,24 +184,46 @@
     ' border:1px solid rgba(0,0,0,0.06);}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
-    // the footer's ✕ and ♥ sit on the SAME edges as the boxes above them
-    // (space-between), the note box centred between them — her mockup's
-    // proportions without the three mismatched left edges
-    '.jg-momrow{display:flex;align-items:center;justify-content:space-between;gap:14px;' +
-    ' padding:16px 0 6px;}' +
+    // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
+    // note box is just too small — it should be bigger so I can see more of my
+    // words in it, and the heart and the ex can go a little above it and maybe
+    // be a tiny bit smaller to make room", so the note is FULL WIDTH and about
+    // four lines tall and the buttons came down a size. Then, on the result:
+    // "there's a lot of space between the X and the heart that's empty. I
+    // think you could put the heart and the X on top of the content so the
+    // content comes down a little farther and there's just a tiny bit of space
+    // between the note and the content" — so the buttons no longer hold a row
+    // of their own at all. They FLOAT on the content's bottom corners (keeping
+    // the boxes' own left and right edges, so nothing gained a fourth
+    // alignment) and the footer is the note box, directly under the content.
+    '.jg-momfoot{position:relative;padding:6px 0 2px;}' +
+    // a LONG card starts its stack at the TOP and runs down under the floating
+    // buttons ("so the content comes down a little farther") — centring it
+    // would leave exactly the empty band she was pointing at. It reserves the
+    // buttons' height at the bottom of the scroller so the last line can never
+    // hide under them. A SHORT card is untouched: it centres, and never
+    // reaches down there, so it keeps every pixel of the middle.
+    '.jg.mom.long .jg-card.momcard{justify-content:flex-start;padding-bottom:58px;}' +
     // the piles view scrolls inside its own box on a moment deck, so the
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
     '.jg.mom .jg-piles h2:first-child{margin-top:14px;}' +
-    '.jg-mombtn{flex:none;width:62px;height:62px;border-radius:10px;' +
+    // pinned just above the note box, i.e. over the content's bottom corners.
+    // 52px — a tiny bit smaller than the mockup's 62, her ask, to make room
+    // for the bigger note box under them
+    '.jg-mombtn{position:absolute;bottom:calc(100% + 4px);z-index:3;' +
+    ' width:52px;height:52px;border-radius:10px;' +
     ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
-    ' font-size:21px;line-height:1;padding:0;' +
+    ' font-size:18px;line-height:1;padding:0;' +
     ' display:flex;align-items:center;justify-content:center;}' +
-    // the ♥ draws optically smaller than the ✕ at the same size — 24px reads
-    // as the mockup\'s 21px ✓ did
-    '.jg-mombtn.yes{font-size:24px;}' +
+    // they keep the boxes' own edges, the way the row used to
+    '.jg-mombtn.no{left:0;}.jg-mombtn.yes{right:0;}' +
+    // the ♥ draws optically smaller than the ✕ at the same size — 21px reads
+    // as the ✕\'s 18px does
+    '.jg-mombtn.yes{font-size:21px;}' +
     '.jg-mombtn.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
-    '.jg-momnote{flex:1;min-width:0;max-width:190px;margin:0 auto;height:62px;box-sizing:border-box;' +
+    // the note IS the footer row now — full width, four lines of her words
+    '.jg-momnote{display:block;width:100%;margin:0;height:96px;box-sizing:border-box;' +
     ' border-radius:9px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;' +
     // 13px, HER SIZE — and the iOS focus-zoom it would normally cause is
     // headed off by the viewport instead (maximum-scale=1, page-templates.js
@@ -231,7 +276,36 @@
     '.jg-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;' +
     ' background:var(--ink);color:var(--paper);border-radius:6px;padding:9px 13px;' +
     ' font:500 13px/1.3 -apple-system,sans-serif;max-width:86vw;}' +
+    // ── BACK TO THE QUEUE (Aug 2026, Sophie: "there should be a way to get
+    // back to the queue from an individual swipe deck"). Only on a deck the
+    // Review Queue opened (?clean=1 is its door) — a Compare-tab page has the
+    // app's own header above it and needs no second back.
+    '.jg-back{width:30px;height:30px;border-radius:50%;padding:0;flex:none;' +
+    ' border:1px solid var(--line);background:var(--surface);color:var(--ink2);' +
+    ' display:flex;align-items:center;justify-content:center;}' +
+    // her top row is right-aligned (Piles + ?), so the back mark holds the
+    // left end of it; the standard row already pushes its icons right itself
+    '.jg-momtop .jg-back{margin-right:auto;}' +
+    '.jg-back svg{width:16px;height:16px;}' +
+    '.jg.mom .jg-back{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
     '.jg-piles h2{margin-top:22px;}' +
+    // ── THE PILES FOOTER (Aug 2026, Sophie — two asks, one row). "Take away
+    // the chat list at the bottom and instead offer a link back to the chat in
+    // the piles area": the queue is decks now, and the chat that posted this
+    // one is a tap from inside it. "Get rid of the X on all of the icons and
+    // instead offer a skip or done button in the piles area": the queue tiles
+    // carry no ✕ any more — the two ways off her pile live here, where she
+    // already is when she has finished with a deck.
+    '.jg-pilefoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;' +
+    ' margin-top:20px;padding-top:14px;border-top:1px solid var(--line);}' +
+    '.jg.mom .jg-pilefoot{border-top-color:#E7DECF;}' +
+    '.jg-pilelink{margin-right:auto;font:600 13px/1 -apple-system,sans-serif;' +
+    ' color:var(--gold);text-decoration:none;}' +
+    '.jg.mom .jg-pilelink{color:#C25E4C;}' +
+    // rounded rectangles that hug their words — never pills, never full width
+    '.jg-pilebtn{border:1px solid var(--line);border-radius:6px;background:var(--surface);' +
+    ' color:var(--ink);font:600 13px/1 -apple-system,sans-serif;padding:9px 13px;}' +
+    '.jg.mom .jg-pilebtn{border-color:#DDD3C0;background:#FFFDF8;color:#262016;}' +
     '.jg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}' +
     '.jg-grid button{border:1px solid var(--line);border-radius:6px;background:var(--surface);' +
     ' padding:0;overflow:hidden;aspect-ratio:1;}' +
@@ -255,6 +329,7 @@
     + ' stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
   var I = {
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     heart: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
     maybe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg>',
@@ -297,6 +372,14 @@
     var verdicts = {}, notes = {}, undoStack = [], cur = 0, view = 'card';
     var noteTimer = null, momNote = null;
 
+    // ── THE REVIEW QUEUE'S DOOR (Aug 2026). `?clean=1` is how the queue opens
+    // a deck — no title, straight onto the cards — so it is also how this page
+    // knows there is a queue to go back to, and that its Skip/Done belong on
+    // screen. A deck opened from the Compare tab has neither.
+    var fromQueue = /[?&]clean=1/.test(location.search);
+    // the page doc's id, out of the sheet the template renderer set
+    var pageId = /^page-(.+)$/.test(sheet || '') ? String(sheet).slice(5) : '';
+
     // A MOMENT DECK — any deck carrying her date cards — wears her Decision
     // Deck chrome whole: her cream behind the page, the Newsreader serif
     // (fetched once from Google Fonts, Georgia the fallback while it loads),
@@ -318,6 +401,47 @@
           + '@0,6..72,400..700;1,6..72,400..600&display=swap';
         document.head.appendChild(pre); document.head.appendChild(fl);
       }
+      // THE KEYBOARD MUST NOT COVER THE NOTE BOX (Aug 2026, her report: "I'm
+      // usually using the microphone, but the keyboard still comes up and
+      // blocks the note box" — iOS raises the keyboard for dictation too).
+      // The deck is one fixed screen with nothing to scroll, so WebKit has no
+      // way to bring the box into view itself; instead the column follows the
+      // VISUAL viewport: while the note box is focused the deck's height
+      // becomes the visible height above the keyboard — the card shrinks
+      // (flex:1, and it scrolls inside itself) and the footer stays on
+      // screen. In the app the page lives in a SAME-ORIGIN iframe under the
+      // viewer's top bar, and the keyboard signal only lands on the TOP
+      // window's visualViewport — so we listen there and subtract the
+      // iframe's own top. Cleared the moment the keyboard goes.
+      (function () {
+        var topWin = window;
+        try { if (window.top && window.top.document) topWin = window.top; } catch (_) { /* cross-origin — stay local */ }
+        var vv = topWin.visualViewport || window.visualViewport;
+        if (!vv) return;
+        var kbFit = function () {
+          var col = mount.querySelector('.jg.mom');
+          if (!col) return;
+          var el = document.activeElement;
+          var typing = el && el.classList && el.classList.contains('jg-momnote');
+          // the layout viewport is the keyboard-free baseline (window.innerHeight
+          // tracks the visual viewport on iOS, so it can't be the reference)
+          var base = topWin.document.documentElement.clientHeight;
+          var frameTop = 0;
+          try {
+            if (window.frameElement) frameTop = window.frameElement.getBoundingClientRect().top;
+          } catch (_) { /* cross-origin — treat as top-level */ }
+          if (typing && vv.height < base - 60) {
+            col.style.height = Math.max(200, Math.round(vv.height - frameTop)) + 'px';
+            window.scrollTo(0, 0);   // WebKit nudges the page under the box — pin it back
+          } else {
+            col.style.height = '';
+          }
+        };
+        vv.addEventListener('resize', kbFit);
+        vv.addEventListener('scroll', kbFit);
+        document.addEventListener('focusin', kbFit);
+        document.addEventListener('focusout', function () { setTimeout(kbFit, 60); });
+      })();
     }
 
     // ♥/✕ on an asset-backed card lands in the Assets tab too (Sophie: the
@@ -524,6 +648,20 @@
       return !!(it.who || it.eyebrow || it.caption || (it.sections && it.sections.length)
         || (opts.style === 'moment' && it.text));
     }
+    // "IF THE TEXT IS REALLY LONG" (Aug 2026, Sophie) — the card's own words,
+    // counted across every part it carries. Measured against her live deck:
+    // the card she reported scrolling holds ~530 characters, and the cards
+    // that sit comfortably on one screen are under ~200, so the line is drawn
+    // between them. A card with a picture is long the moment it has much to
+    // say at all, because the picture is already taking the height.
+    function isLong(it) {
+      if (!it || !isMoment(it)) return false;
+      var n = String(it.text || '').length + String(it.caption || '').length;
+      (it.sections || []).forEach(function (s) {
+        n += String(s.text || '').length + String(s.label || '').length;
+      });
+      return n > (it.img ? 150 : 240);
+    }
     // `hoisted` — the name is being drawn in the page's top chrome instead
     // (a moment deck), so the stack starts at the first box
     function momentHtml(it, ar, hoisted) {
@@ -590,6 +728,13 @@
       }
       var judged = items.filter(function (it) { return verdicts[it.id] !== undefined; }).length;
       var momCls = momDeck ? ' mom' : '';
+      // a long card drops the big centred title for a small top-left one and
+      // reserves room under its words for the floating ✕/♥ (see the CSS)
+      if (momDeck && view === 'card' && items[cur] && isLong(items[cur])) momCls += ' long';
+      // the way back to the Review Queue, when that is where she came from
+      var back = fromQueue
+        ? '<button class="jg-back" data-act="back" aria-label="Back to the review queue">'
+          + I.back + '</button>' : '';
       var top;
       if (momDeck) {
         // her chrome: the thin progress line (position through the deck, like
@@ -597,12 +742,12 @@
         // lower now, centred on the card (her ask)
         var pct = Math.round(((view === 'piles' ? items.length : cur) / items.length) * 100);
         top = '<div class="jg-prog"><i style="width:' + pct + '%"></i></div>'
-          + '<div class="jg-momtop">'
+          + '<div class="jg-momtop">' + back
           + '<button class="jg-pilesbtn" data-act="piles">Piles</button>'
           + '<button class="jg-momq" data-act="help" aria-label="What the buttons mean">?</button>'
           + '</div>';
       } else {
-        top = '<div class="jg-top"><span class="jg-count">'
+        top = '<div class="jg-top">' + back + '<span class="jg-count">'
           + (view === 'piles' ? judged + ' of ' + items.length + ' sorted'
                               : (cur + 1) + ' of ' + items.length) + '</span>'
           + '<button class="jg-ic" data-act="undo" aria-label="Undo">' + I.undo + '</button>'
@@ -628,8 +773,24 @@
                 + '" alt="' + esc(it.label || '') + '"></button>';
             }).join('') + '</div>';
         }).join('');
+        // THE PILES FOOTER — the chat this deck came from, and the two ways
+        // off her review pile (Aug 2026, Sophie: "offer a link back to the
+        // chat in the piles area" · "instead offer a skip or done button in
+        // the piles area"). Skip = this was never a review (a demo, a browse
+        // deck); Done = I am finished with it, whatever the cards still say.
+        // Both stamp the page doc, the same field the queue reads.
+        var foot = '';
+        if (chat || (fromQueue && pageId)) {
+          foot = '<div class="jg-pilefoot">'
+            + (chat ? '<a class="jg-pilelink" href="/chats?chat=' + esc(encodeURIComponent(chat))
+              + '">Open the chat</a>' : '')
+            + (fromQueue && pageId
+              ? '<button class="jg-pilebtn" data-act="skip">Skip</button>'
+                + '<button class="jg-pilebtn" data-act="done">Done</button>' : '')
+            + '</div>';
+        }
         mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top + '<div class="jg-piles">'
-          + (sections || '<p class="mini">Nothing here yet.</p>') + '</div></div>';
+          + (sections || '<p class="mini">Nothing here yet.</p>') + foot + '</div></div>';
       } else {
         var it = items[cur];
         var v = verdicts[it.id];
@@ -644,14 +805,18 @@
               + '" data-state="' + i + '">' + esc(s.label) + '</button>';
           }).join('');
         } else if (momUI) {
-          // her footer, exactly: the big rounded-square ✕ and ♥ (the mockup's
-          // ✓, swapped for a heart at her ask) with the note box between
-          // them; a decided card paints its button dark, like the mockup
+          // her footer: the rounded-square ✕ and ♥ (the mockup's ✓, swapped
+          // for a heart at her ask) FLOAT on the content's bottom corners
+          // (Aug 2026 — "put the heart and the X on top of the content so the
+          // content comes down a little farther and there's just a tiny bit of
+          // space between the note and the content"), with her bigger note box
+          // as the row itself underneath. A decided card paints its button
+          // dark, like the mockup.
           row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
             + ' aria-label="No">✕</button>'
-            + '<textarea class="jg-momnote" rows="2" placeholder="Note for Claude…"></textarea>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
-            + ' aria-label="Yes">♥</button>';
+            + ' aria-label="Yes">♥</button>'
+            + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>';
         } else {
           var lit = function (k) { return browse && v === k ? ' on' : ''; };
           row = '<button class="jg-btn no' + lit(false) + '" data-act="no" aria-label="Pass">' + I.x + '</button>'
@@ -689,8 +854,16 @@
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
           + '</div>'
-          + '<div class="' + (momUI ? 'jg-momrow' : 'jg-row') + '">' + row + '</div></div>';
+          + '<div class="' + (momUI ? 'jg-momfoot' : 'jg-row') + '">' + row + '</div></div>';
         if (momUI) {
+          // a card that overflows its box steps its type down (the `long`
+          // rules above) — measured on the real layout, so only the cards
+          // that need it change and her sizes hold everywhere else
+          var mcard = mount.querySelector('.jg-card.momcard');
+          var mstack = mount.querySelector('.jg-mom');
+          if (mcard && mstack && mcard.scrollHeight > mcard.clientHeight + 1) {
+            mstack.classList.add('long');
+          }
           // her note box: always open, holds HER latest message and edits it
           // in place — the debounced save and the Assets-tab mirror are the
           // same machinery the + note uses, only the clothes changed
@@ -751,11 +924,11 @@
           + 'edge of the card (or swipe) to move through the deck — that is the only '
           + 'thing that moves you, so marking a card never carries you off it.' });
       }
-      steps.push({ sel: momDeck && !states ? '.jg-momrow' : '.jg-row', text: states
+      steps.push({ sel: momDeck && !states ? '.jg-momfoot' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
           ? '♥ yes, ✕ no — marking one never moves you on, so you can change '
-            + 'your mind. The box between them is a note for this card, saved '
+            + 'your mind. The box under them is a note for this card, saved '
             + 'as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
           + 'Each one saves the moment you tap it.' });
@@ -788,7 +961,7 @@
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
         : momDeck
-          ? '♥ yes · ✕ no — neither one moves you on · the box between them is '
+          ? '♥ yes · ✕ no — neither one moves you on · the box under them is '
             + 'a note that saves as you type.'
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
@@ -836,8 +1009,31 @@
       else if (act === 'mic') toggleRec();
       else if (act === 'undo') undo();
       else if (act === 'help') showHelp();
+      else if (act === 'back') backToQueue();
+      else if (act === 'skip') stampReview({ hidden: true }, 'Skipped — it’s off the queue.');
+      else if (act === 'done') stampReview({ done: true }, 'Marked done.');
       else if (act === 'piles') { view = view === 'piles' ? 'card' : 'piles'; render(); }
     });
+
+    // history.back() returns to the queue exactly as she left it — same scroll,
+    // same tab — and the direct link is the fallback for a deck opened cold.
+    function backToQueue() {
+      if (history.length > 1) history.back(); else location.href = '/review';
+    }
+    // Skip / Done stamp the PAGE doc (chatfeed owns it; the queue only reads),
+    // then hand her back to the pile she was working through — the tap only
+    // makes sense as "I'm finished with this one".
+    function stampReview(patch, said) {
+      if (!pageId) return;
+      fetch('/api/chatfeed/page/' + encodeURIComponent(pageId) + '/review', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || !d.ok) { toast('Couldn’t save that.'); return; }
+        toast(said);
+        setTimeout(backToQueue, 550);
+      }).catch(function () { toast('Couldn’t save that.'); });
+    }
 
     // a real SWIPE pages the deck too — it is the Tinder page, after all.
     // Horizontal, decisive (40px+, more sideways than down), card view only.

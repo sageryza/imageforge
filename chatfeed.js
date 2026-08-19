@@ -2956,6 +2956,34 @@ router.post('/page/:id/bookmark', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// THE REVIEW STAMPS — "not a review" and "I'm finished with this one" (Aug
+// 2026, Sophie: "get rid of the X on all of the icons and instead offer a skip
+// or done button in the piles area"). Both live on the PAGE doc, which this
+// module owns and review.js only reads, and both are set from INSIDE the deck
+// — that is why the route is here rather than on /api/review: the deck already
+// posts its verdicts to this router, so it is reachable under exactly the same
+// gate as the answers it is saving.
+//   hidden — skip: never a review (a demo, a browse deck). Reversible from the
+//            queue's hidden pile; nothing is ever deleted.
+//   done   — finished, whatever the cards still say. The queue derives DONE
+//            from the counts as well, so this only ever adds a way to say it.
+router.post('/page/:id/review', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').slice(0, 60);
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { hidden, done } = req.body || {};
+    const patch = {};
+    if (hidden !== undefined) patch.reviewHidden = !!hidden;
+    if (done !== undefined) patch.reviewDone = !!done;
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to change' });
+    const ref = db().collection(PAGES).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'no such page' });
+    await ref.set(patch, { merge: true });
+    res.json({ ok: true, id, ...patch });
+  } catch (err) { fail(res, err); }
+});
+
 // Put a page ON the reference shelf, or take it off (see the REFERENCE SHELF
 // note above POST /page). Same field-for-field contract as the bookmark route
 // beside it: `topic` sent alone edits ONLY the topic, so renaming what a page
@@ -3056,6 +3084,8 @@ router.get('/page/:id', async (req, res) => {
       let thtml = pageTemplates.renderTemplatePage({
         template: snap.data().template, title: snap.data().title || '',
         chat: snap.data().chat || '', sheet: `page-${snap.id}`, data,
+        // ?clean=1 — no h1, straight onto the cards (the Review Queue's door)
+        clean: req.query.clean === '1',
       });
       if (req.query.embed !== '1') thtml += pillInject();
       res.set('Cache-Control', 'no-store');   // the renderer may improve under it

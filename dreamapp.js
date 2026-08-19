@@ -19,14 +19,21 @@
 //   forge-dreamapp-comments  one doc per comment { dreamId, uid, name, text, at }
 //
 // The AI names each dream (2-5 words, shown in fuchsia in the app) as a
-// background job right after capture; drawing reuses the dream-zine engine
-// (movies.js makeDreamPagesV2 — style ref, no character cards) as a
-// background job on the doc, ~2¢/page at the default low quality.
+// background job right after capture; drawing is ONE SQUARE PICTURE at medium
+// quality (movies.js makeDreamImage — style ref, no character cards) as a
+// background job on the doc, 5.3¢ a dream.
+//
+// It used to draw a comic of up to six portrait pages at low quality
+// (makeDreamPagesV2). Sophie, Aug 2026: "the images shud default to square and
+// medium quality and just one image … pick one strong image, and embellish it
+// w the other details of the dream, rather than comic book style." The panels
+// array stays an ARRAY — sharing, the cover and the lightbox are all per-panel
+// and every dream drawn before this still has its pages.
 
 const express = require('express');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
-const { makeDreamPagesV2, transcribeAudio } = require('./movies');
+const { makeDreamImage, transcribeAudio } = require('./movies');
 
 const router = express.Router();
 
@@ -207,7 +214,7 @@ async function draw(doc, quality) {
     if (Date.now() - lastSave > 1500) { lastSave = Date.now(); await ref.set(doc).catch(() => {}); }
   };
   try {
-    await makeDreamPagesV2(dream, quality, progress);
+    await makeDreamImage(dream, quality, progress);
     doc.panels = (dream.pages || []).map((p, i) => ({
       i, url: p.url, captions: p.captions || [], promptUsed: p.promptUsed || '', public: false,
     }));
@@ -368,7 +375,7 @@ router.post('/dreams/:id/draw', async (req, res) => {
     if (limited(`draw:${req.user.uid}`, 6, 60 * 60 * 1000)) {
       return res.status(429).json({ error: 'too many drawings for now — try again later' });
     }
-    const quality = QUALITIES.has(req.body?.quality) ? req.body.quality : 'low';
+    const quality = QUALITIES.has(req.body?.quality) ? req.body.quality : 'medium';
     doc.drawJob = { status: 'drawing', done: 0, total: 0, label: 'starting', startedAt: new Date().toISOString() };
     await db().collection(DREAMS).doc(doc.id).set(doc);
     LIVE.add(doc.id);

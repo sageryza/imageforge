@@ -214,11 +214,15 @@ setTimeout(function(){
   }).replace('</div>\n', '</div>\n<div id="judge2"></div>\n') + pill + TEST;
 }
 
-function run(name, html) {
+function run(name, html, search) {
   return new Promise((resolve, reject) => {
     let finish = null;
     const server = http.createServer((req, res) => {
       const [route, qs] = req.url.split('?');
+      if (/^\/api\/chatfeed\/page\/[^/]+\/review$/.test(route)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end('{"ok":true}');
+      }
       if (route === '/result') {
         res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('ok');
         // URLSearchParams already percent-decodes — a second decode dies on
@@ -243,7 +247,7 @@ function run(name, html) {
       res.end(html);
     });
     server.listen(0, '127.0.0.1', () => {
-      const url = `http://127.0.0.1:${server.address().port}/`;
+      const url = `http://127.0.0.1:${server.address().port}/${search || ''}`;
       const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tpl-'));
       const kid = spawn(chrome, ['--headless', '--no-sandbox', '--disable-gpu',
         '--user-data-dir=' + profile, url], { stdio: 'ignore' });
@@ -305,6 +309,11 @@ function momentPage() {
       caption: 'Both are you. Neither feels like it.' },
     { id: 'm2', who: 'Theo', text: 'Just one line, nothing else.' },
     { id: 'm3', who: 'Sam', text: 'Words and a picture together.', img: IMG },
+    // long enough to overflow the card box even after the `long` step-down —
+    // the truncation report: the top must stay reachable and the box scroll
+    { id: 'm4', who: 'Ruth', eyebrow: 'Moment · Ch. 4',
+      text: new Array(30).fill('A very long moment that keeps going well past one screen.').join(' '),
+      sections: [{ label: 'Illustration', text: 'A hallway of doors, all ajar.' }] },
   ] });
   if (!v.ok) throw new Error(v.error);
   const TEST = `<script>
@@ -358,7 +367,7 @@ setTimeout(function(){
   ok(!!m.querySelector('.jg-prog i') && !!m.querySelector('.jg-pilesbtn')
      && !m.querySelector('.jg-count') && !m.querySelector('[data-act="undo"]'),
      'her top chrome: progress line and Piles, no count and no undo');
-  var row=m.querySelector('.jg-momrow');
+  var row=m.querySelector('.jg-momfoot');
   var btns=row?row.querySelectorAll('.jg-mombtn'):[];
   // EVERY ROW ON THE SAME EDGES — the misalignment she reported
   var L0=Math.round(boxes[0].getBoundingClientRect().left);
@@ -397,7 +406,28 @@ setTimeout(function(){
      + (nz && getComputedStyle(nz).webkitTapHighlightColor));
   ok(!!row.querySelector('.jg-momnote') && !m.querySelector('.cmp-note-open')
      && !m.querySelector('.jg-mic'),
-     'the Note for Claude box sits between them — no corner + and no mic');
+     'the Note for Claude box IS the footer row — no corner + and no mic');
+  // the footer, both asks (Aug 2026): her bigger full-width note box, the
+  // ✕/♥ a size smaller and ABOVE it — and now floating ON the content rather
+  // than holding a row of their own ("there's a lot of space between the X and
+  // the heart that's empty… put the heart and the X on top of the content so
+  // the content comes down a little farther and there's just a tiny bit of
+  // space between the note and the content")
+  var nbb=row.querySelector('.jg-momnote').getBoundingClientRect();
+  ok(btns[0].getBoundingClientRect().bottom<=nbb.top+1
+     && btns[1].getBoundingClientRect().bottom<=nbb.top+1,
+     'the ✕ and ♥ sit ABOVE the note box');
+  ok(Math.abs(Math.round(nbb.left)-L0)<=1 && Math.abs(Math.round(nbb.right)-R0)<=1,
+     'the note box spans the boxes\\' full width');
+  ok(nbb.height>=90, 'the note box is the bigger one — got '+Math.round(nbb.height));
+  ok(btns[0].getBoundingClientRect().width<=54,
+     'the ✕ and ♥ came down a size to make room');
+  var card=m.querySelector('.jg-card.momcard').getBoundingClientRect();
+  var bb=btns[0].getBoundingClientRect();
+  ok(bb.top<card.bottom && bb.bottom>card.bottom-90,
+     'the ✕ floats ON the content, not in a row of its own');
+  ok(nbb.top-card.bottom<12,
+     'the note sits just under the content — got '+Math.round(nbb.top-card.bottom)+'px');
   ok(m.querySelector('.jg-card').classList.contains('momcard')
      && !m.querySelector('.jg-card').classList.contains('ctl'),
      'the house card chrome disappears behind her boxes');
@@ -427,7 +457,25 @@ setTimeout(function(){
       var pn=posts('/api/chatfeed/verdict').filter(function(p){ return p.b.text; }).pop();
       ok(pn && pn.b.item==='m2' && pn.b.text.indexOf('too sweet')>=0,
          'the note box saves onto its card');
-      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+      // 4 — the LONG card: type steps down, the top stays reachable, and
+      // what still does not fit scrolls inside the box (never truncated)
+      document.querySelector('.jg-navzone.next').click();
+      setTimeout(function(){
+        var m4=document.querySelector('.jg-mom');
+        var card4=document.querySelector('.jg-card.momcard');
+        ok(m4 && m4.classList.contains('long'),
+           'a card that overflows steps its type down');
+        ok(parseFloat(getComputedStyle(m4.querySelector('.moment')).fontSize)===16,
+           'the top blurb comes down toward the other blurbs\\' size');
+        ok(m4.getBoundingClientRect().top>=card4.getBoundingClientRect().top-1
+           && card4.scrollTop===0,
+           'the stack starts at the TOP of its box — nothing clipped above');
+        ok(card4.scrollHeight>card4.clientHeight+1,
+           'and the rest scrolls inside the box, never hidden');
+        ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
+           'the page itself still never scrolls');
+        fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+      }, 260);
     }, 900);
   }, 260);
 }, 700);
@@ -437,12 +485,104 @@ setTimeout(function(){
   }) + pill + TEST;
 }
 
+// A DECK OPENED FROM THE REVIEW QUEUE (?clean=1) — Aug 2026 v2, three of her
+// asks in one page: a long card puts its title in the top-left corner, there
+// is a way back to the queue, and the piles area carries the link to the chat
+// plus Skip and Done (the ✕ having come off the queue's tiles).
+function queuePage() {
+  const LONG = 'A crown and a running score. The winner says WINNER at the top with a '
+    + 'little crown. And when the two tiles are the same picture made by ChatGPT and by '
+    + 'Claude, keep score at the top of who is winning — Claude always on the left, '
+    + 'ChatGPT always on the right.';
+  const v = validateTemplate('deck', { items: [
+    { id: 'q1', who: 'update-tab-messaging', eyebrow: 'PART ONE · 2:26 · 3 OF 9',
+      text: LONG, sections: [{ label: 'Your words', text: LONG }] },
+    { id: 'q2', who: 'Theo', text: 'Short one.' },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  function posts(u){ return window.__posts.filter(function(p){ return p.u.indexOf(u)>=0; }); }
+  var m=document.getElementById('judge');
+  // ── a LONG card: the title goes to the top-left corner ──────────────────
+  var jg=m.querySelector('.jg.mom');
+  ok(jg.classList.contains('long'), 'a long card is marked long');
+  var who=m.querySelector('.jg.mom>.who'), box=m.querySelector('.jg-mombox');
+  var wr=who.getBoundingClientRect(), br=box.getBoundingClientRect();
+  ok(Math.abs(wr.left-br.left)<2,
+     'the title starts on the boxes\\' left edge — got '+Math.round(wr.left)+' vs '+Math.round(br.left));
+  ok(parseFloat(getComputedStyle(who).fontSize)<16,
+     'and it is small — got '+getComputedStyle(who).fontSize);
+  ok(document.documentElement.scrollHeight<=document.documentElement.clientHeight+1,
+     'the page still does not scroll');
+  // ── back to the queue ───────────────────────────────────────────────────
+  ok(!!m.querySelector('[data-act="back"]'), 'a long deck opened from the queue has a way back');
+  // ── the piles area: the chat link and her two buttons ───────────────────
+  m.querySelector('[data-act="piles"]').click();
+  setTimeout(function(){
+    var foot=document.querySelector('.jg-pilefoot');
+    ok(!!foot, 'the piles area carries a footer');
+    var link=foot.querySelector('.jg-pilelink');
+    ok(link && link.getAttribute('href')==='/chats?chat=t',
+       'a link back to the chat — got '+(link&&link.getAttribute('href')));
+    var btns=foot.querySelectorAll('.jg-pilebtn');
+    ok(btns.length===2 && btns[0].textContent==='Skip' && btns[1].textContent==='Done',
+       'Skip and Done, in the piles area');
+    ok(Math.round(btns[0].getBoundingClientRect().width)<110,
+       'the buttons hug their words — got '+Math.round(btns[0].getBoundingClientRect().width));
+    ok(getComputedStyle(btns[0]).borderRadius==='6px', 'rounded rectangles, never pills');
+    btns[0].click();
+    setTimeout(function(){
+      var p=posts('/review').pop();
+      ok(p && p.b.hidden===true && p.u.indexOf('/api/chatfeed/page/q/review')>=0,
+         'Skip stamps the page hidden — got '+(p&&p.u));
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+    }, 300);
+  }, 260);
+}, 700);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'deck', title: 'Queue deck v1', chat: 't', sheet: 'page-q', data: v.data,
+    clean: true,
+  }) + pill + TEST;
+}
+
+// A SHORT card keeps her big centred title — the long rule must not swallow
+// the design it is an exception to.
+function shortMomentPage() {
+  const v = validateTemplate('deck', { items: [
+    { id: 's1', who: 'Theo', text: 'Just one line, nothing else.' },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  var m=document.getElementById('judge');
+  ok(!m.querySelector('.jg.mom').classList.contains('long'), 'a short card is not long');
+  var mom=m.querySelector('.jg-mom'), who=m.querySelector('.jg.mom>.who');
+  var wr=who.getBoundingClientRect(), mr=mom.getBoundingClientRect();
+  var cMid=mr.left+mom.clientLeft+mom.clientWidth/2;
+  ok(Math.abs((wr.left+wr.right)/2-cMid)<2, 'its title is still CENTRED and big');
+  ok(parseFloat(getComputedStyle(who).fontSize)>16, 'still 21px — got '+getComputedStyle(who).fontSize);
+  ok(!m.querySelector('[data-act="back"]'),
+     'a deck NOT opened from the queue has no back mark — the app header owns that');
+  fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+}, 700);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'deck', title: 'Short v1', chat: 't', sheet: 'page-s', data: v.data,
+  }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
     const b = await run('deck', deckPage());
     const c = await run('tour', tourPage());
     const d = await run('moment', momentPage());
-    console.log(`all ${a + b + c + d} checks passed`);
+    const e = await run('queue', queuePage(), '?clean=1');
+    const f = await run('short', shortMomentPage());
+    console.log(`all ${a + b + c + d + e + f} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();

@@ -1226,8 +1226,8 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   under the header), `eyebrow`, `text` (the moment), `sections:[{label,text}]`,
   `caption`, `img` — every part OPTIONAL, a card renders only what it carries
   — and the deck comes out in her design: white boxes on her cream, the
-  Newsreader serif, one screen with no scrolling, her ✕ · "Note for
-  Claude…" · ♥ footer. **A hand-built page CANNOT get this** — `card:'<html>'`
+  Newsreader serif, one screen with no scrolling, her footer — ✕ and ♥ above
+  a full-width "Note for Claude…" box. **A hand-built page CANNOT get this** — `card:'<html>'`
   items are excluded by design, and a page posted as `html` is frozen the day
   it is posted. So a text deck that hand-rolls its own card styling is not a
   style choice, it is opting out of hers.
@@ -2086,8 +2086,52 @@ before working on that module. Nothing was deleted — the moved text is verbati
   tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
   to be reviewed and I'd like one screen that shows all the things waiting to
   be reviewed". One screen, every deck/grid TEMPLATE page across every chat,
-  with how far through each she is; tapping a row opens the page itself.
-  Measured the day it was built: 9 template pages, 285 items, 9 decided.
+  with how far through each she is. Measured the day it was built: 9 template
+  pages, 285 items, 9 decided.
+  - **PAGES ARE SQUARE TILES, THREE TO A ROW (Aug 2026 v2, Sophie: "icons
+    three to a row … square and they should just be the first picture of
+    whatever the review content is")** — the tile face is the content's first
+    picture, or on a text deck (date moments, video ideas — 12 of the 15
+    queued pages the day this shipped) the first card's own words in the
+    serif (`peek` on the row). Tapping a tile opens the page **CLEAN**:
+    `/api/chatfeed/page/<id>?clean=1` renders the template with NO h1,
+    straight onto the cards (her ask: "not a compare page because that has a
+    header at the top, but instead just a clean Tinder style page … with all
+    the content preloaded"). `clean` lives in `renderTemplatePage`
+    (page-templates.js) and works on both templates; a deck already has no
+    pill, a clean grid keeps its pill because it scrolls.
+  - **EVERYTHING ELSE MOVED INSIDE THE DECK (Aug 2026 v2, same conversation:
+    "take away the chat list at the bottom and instead offer a link back to
+    the chat in the piles area" · "get rid of the X on all of the icons and
+    instead offer a skip or done button in the piles area").** The queue is
+    now decks and ONLY decks — a chat tagged `to be reviewed` is no longer a
+    row here (the word still files it in the Chats app, it just no longer
+    puts a second kind of row in front of the pile), and no tile carries an
+    ✕. A deck's **piles view** carries all three: *Open the chat*, **Skip**
+    (not a review — stamps `reviewHidden`, still reversible with ↩ from the
+    hidden pile) and **Done** (`reviewDone` — finished with it whatever the
+    cards say; the queue still derives DONE from the counts as well). Both
+    stamps go through `POST /api/chatfeed/page/:id/review`, which lives in
+    chatfeed because that is where the deck already posts its verdicts —
+    the same gate, nothing new to authorize. `/api/review/hide` stays as the
+    queue's own ↩, and is the page's only write.
+  - **A DECK OPENED FROM THE QUEUE HAS A WAY BACK** (her ask) — `?clean=1` is
+    both the door and the signal: judge.js reads it, shows a back chevron in
+    the top row, and `history.back()` returns her to the queue exactly as she
+    left it (`/review` is the cold-open fallback). A deck opened from the
+    Compare tab shows no chevron — the app's own header owns that.
+  - **A LONG CARD PUTS ITS TITLE IN THE TOP-LEFT CORNER (Aug 2026, Sophie:
+    "if the text is really long have the title just go in the top left corner
+    instead of in the middle. I really don't like scrolling").** Over ~240
+    characters (~150 with a picture) a moment card wears `.long`: the name
+    drops from 21px centred to a small left-aligned line, the stack starts at
+    the TOP instead of centring, and the ✕/♥ **float on the content's bottom
+    corners** with the note box directly under it — her second ask the same
+    day ("there's a lot of space between the X and the heart that's empty…
+    put the heart and the X on top of the content so the content comes down a
+    little farther"). The old ✕ · note · ♥ row cost ~78px of mostly empty
+    band. **A SHORT card is deliberately untouched** — there the big centred
+    name is the design.
   - **Everything is DERIVED, nothing is filed**: the item lists are the pages'
     own frozen Storage JSON (cached forever per id — a new version is a new
     page), her progress is the verdict doc (`<chat>__page-<id>`), names come
@@ -2095,25 +2139,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The 'later' rule**: on stock-states pages `'later'` counts as still
     waiting (it is literally "declined to sort now" — judge.js), shown apart
     ("4 of 28 · 2 later"). A page with its OWN states counts every one.
-  - **A CHAT SHE TAGGED `to be reviewed` IS A ROW TOO (Aug 2026, Sophie: "that
-    particular category should take it off the main feed and also put it into
-    the review area").** THE LABEL IS THE WHOLE MECHANISM — nothing filed,
-    nothing stamped, no second list to fall out of step with the chips in the
-    Chats app: the word goes on and the row appears, the word comes off (or she
-    taps ✕ here, which is the same write, `POST /reviewed`) and it goes. The
-    row leads with her name for the chat and carries what the chat says it
-    needs — its status card's `need`, already written. No bar and never DONE:
-    there is nothing to count through. Archived/deleted/moved chats are out.
-    The word is `REVIEW_LABEL` in `chatfeed.js`, one constant both modules read.
+  - **A CHAT TAGGED `to be reviewed` WAS BRIEFLY A ROW HERE, AND IS NOT ANY
+    MORE (Aug 2026 v2 — see the bullet above).** It was the one thing on the
+    screen with nothing to swipe and no cards to count; the chat is reached
+    from inside its own deck now. The label still takes a chat off her main
+    list in the Chats app — that half is unchanged, and `REVIEW_LABEL` still
+    lives in `chatfeed.js` for it.
   - **Hand-built HTML pages are OUT by design** — their items live in markup,
     and a guessed total is a wrong number in front of her.
-  - **Not every deck is a review** (the template demos, a browse deck): the ✕
-    on a row is hers — "not a review" — and stamps `reviewHidden` on the page
-    doc (the ONLY write here). Hidden rows keep a pile behind the DONE tab
-    and un-hide with ↩; nothing is deleted. A superseded page is on no list.
-  - The first TWO rows step their ✕ left of the injected pill's corner —
-    proved untappable in headless before the reserve; two rows not one,
-    because ?embed=1 drops the header and lifts the second row into the band.
+  - **Not every deck is a review** (the template demos, a browse deck): SKIP
+    in the deck's piles view is hers — "not a review" — and stamps
+    `reviewHidden` on the page doc. Hidden tiles keep a pile behind the DONE
+    tab and un-hide with ↩; nothing is deleted. A superseded page is on no
+    list.
+  - The injected pill owns the top-right corner (x 326–374, y 14–192), which
+    is exactly the first row's third tile — the reason the hidden pile's ↩
+    sits over the face's top-LEFT, and the reason nothing tappable may go on
+    the right of a row inside that band.
   - Tests: `node scripts/test-review.js` (the decision table, pure) and
     `node scripts/test-review-page.js` (the real page + the real injected
     pill, headless — tabs, the ✕/↩ POSTs, the pill palette).
