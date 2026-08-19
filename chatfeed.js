@@ -2798,6 +2798,93 @@ async function chatAssetRows(chat) {
     .sort((x, y) => y.ms - x.ms);
 }
 
+// ─── AUTO-COMPARE — the server files the pages ITSELF (Aug 2026 v2) ─────────
+// Sophie: "if an image is exactly the same except one or two variables have
+// been changed, for example the quality… then this should automatically file
+// into a compare page", and "a compare page for only images that have the
+// same style prompt but different dreams". The first cut left this to the
+// chats ({ from:{assets:true} } was a door a chat had to walk through), and
+// measured reality was that nobody walked through it — so filing the prompt
+// IS the trigger now: POST /api/gallery/assets/prompt and a curated caption
+// filing both poke this, debounced per chat, and the server upserts up to two
+// standing grid pages (planAutoPages in page-templates.js).
+//
+// UPDATED IN PLACE, deliberately — the one exception to "a new version is a
+// new page". That rule protects her saved answers from being re-pointed at
+// different content; here every item id derives from its storage FILENAME, so
+// a new image joining a group changes no existing id, the verdict sheet
+// (page-<id>) never moves, and her ♥/✕/notes survive every update. The doc id
+// is deterministic (auto-<kind>--<chat>) so concurrent pokes converge on one
+// page, `updated` bumps on every rewrite (the Review Queue keys its item
+// cache on it), and a push goes out only on CREATE — never on the updates.
+const autoTimers = new Map();
+const AUTO_DEBOUNCE_MS = 45_000;
+
+function autoComparePoke(chat) {
+  const slug = String(chat || '').trim().slice(0, 60);
+  if (!slug) return;
+  clearTimeout(autoTimers.get(slug));
+  const t = setTimeout(() => {
+    autoTimers.delete(slug);
+    runAutoCompare(slug).catch((e) => console.error('[auto-compare]', slug, e.message));
+  }, AUTO_DEBOUNCE_MS);
+  if (t.unref) t.unref();   // a pending poke must never hold a process open
+  autoTimers.set(slug, t);
+}
+
+async function runAutoCompare(chat) {
+  const slug = String(chat || '').trim().slice(0, 60);
+  if (!slug || !admin.apps.length) return { ok: false, error: 'unavailable' };
+  const rows = await chatAssetRows(slug);
+  const plans = pageTemplates.planAutoPages(rows);
+  const out = [];
+  for (const plan of plans) {
+    const v = pageTemplates.validateTemplate('grid', plan.data);
+    if (!v.ok) { out.push({ kind: plan.kind, ok: false, error: v.error }); continue; }
+    const json = JSON.stringify(v.data);
+    const hash = crypto.createHash('sha1').update(json).digest('hex');
+    const id = `auto-${plan.kind}--${slug.replace(/[^\w.-]+/g, '-')}`;
+    const ref = db().collection(PAGES).doc(id);
+    const snap = await ref.get();
+    if (snap.exists && snap.data().dataHash === hash) {
+      out.push({ kind: plan.kind, ok: true, id, unchanged: true });
+      continue;
+    }
+    const file = admin.storage().bucket().file(`chat-pages/${id}.json`);
+    await file.save(Buffer.from(json, 'utf8'), {
+      contentType: 'application/json', resumable: false,
+    });
+    const stamp = new Date().toISOString();
+    if (snap.exists) {
+      await ref.set({ title: plan.title, dataHash: hash, updated: stamp }, { merge: true });
+      out.push({ kind: plan.kind, ok: true, id, updated: true });
+    } else {
+      await ref.set({
+        chat: slug, title: plan.title, created: stamp, updated: stamp,
+        template: 'grid', auto: plan.kind, path: file.name, dataHash: hash,
+      });
+      try {
+        const { chats } = await registry();
+        const reg = chats[slug] || {};
+        if (chatNotifies(reg)) require('./push').notifyChat(slug, reg.displayName || slug, plan.title);
+      } catch (e) { /* push must never fail a filing */ }
+      out.push({ kind: plan.kind, ok: true, id, created: true });
+    }
+  }
+  return { ok: true, chat: slug, pages: out };
+}
+
+// A deliberate run — a chat backfilling a tab it filed prompts into before
+// this existed, or checking what would group. The automatic path never needs
+// this route; the debounced poke fires on every prompt/caption filing.
+router.post('/auto-compare', async (req, res) => {
+  try {
+    const chat = String((req.body || {}).chat || '').slice(0, 60);
+    if (!chat) return res.status(400).json({ error: 'chat required' });
+    res.json(await runAutoCompare(chat));
+  } catch (err) { fail(res, err); }
+});
+
 router.post('/page', async (req, res) => {
   try {
     const { chat, title, html, template, data, from, reference, topic } = req.body || {};
@@ -3546,6 +3633,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+  autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
   WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };

@@ -38,12 +38,21 @@
 // "forced into the structure" half of the ask, and it is also what makes a
 // template page safe to build from a list a chat computed rather than wrote.
 //
-// groupAssetVariants() is the auto-feed half: exact-same prompt content with
-// a differing MODEL · QUALITY caption groups itself (a ladder — objective,
-// safe to auto-file); NEAR-identical prompts (the dream-feed case: one or two
-// lines changed) are only FLAGGED as candidates, because where a variation
-// set starts and stops is the chat's judgement call, not string math
-// (Sophie's instinct, Aug 2026, made the rule).
+// groupAssetVariants() is the auto-feed half (Aug 2026 v2 — Sophie: "the
+// automatic thing doesn't work… if an image is exactly the same except one or
+// two variables have been changed, for example the quality, then this should
+// automatically file into a compare page"). Three outputs, three confidences:
+//   ladders     — exact-same prompt CONTENT, differing MODEL · QUALITY caption
+//                 or style half. Objective; the server auto-files these.
+//   contentSets — exact-same prompt STYLE, differing content (her dream case:
+//                 "a compare page for only images that have the same style
+//                 prompt but different dreams"). Also objective; auto-filed.
+//   variants    — NEAR-identical prompts (a line added or changed). Only ever
+//                 FLAGGED, because where a variation set starts and stops is
+//                 the chat's judgement call, not string math (her instinct,
+//                 Aug 2026, made the rule).
+// planAutoPages() turns the objective groups into the two per-chat AUTO pages
+// the server maintains by itself — see runAutoCompare in chatfeed.js.
 //
 // Pure on purpose: no Firestore, no fetch — scripts/test-page-templates.js
 // drives all of it with fixtures.
@@ -317,7 +326,20 @@ function jaccard(a, b) {
 const QUALITY_ORDER = { low: 0, medium: 1, high: 2 };
 
 // assets: the rows GET /api/gallery/assets returns (url, description, prompt
-// caption, promptStyle, promptContent). → { ladders, variants }
+// caption, promptStyle, promptContent). → { ladders, contentSets, variants }
+function itemOf(a) {
+  const cap = parseCaption(a.prompt) || {};
+  return {
+    img: a.url,
+    url: a.url,
+    label: cap.quality || cap.model || a.description || '',
+    model: cap.model || '', quality: cap.quality || '',
+    promptStyle: a.promptStyle || '', promptContent: a.promptContent || '',
+    ms: Number(a.ms) || 0,   // used by planAutoPages' newest-first cap;
+                             // validateTemplate's cleanItem drops it
+  };
+}
+
 function groupAssetVariants(assets) {
   const usable = (assets || []).filter((a) => a && a.url && a.kind !== 'audio'
     && normContent(a.promptContent));
@@ -342,21 +364,53 @@ function groupAssetVariants(assets) {
       if (!distinct.has(v)) distinct.set(v, a);   // first of each variant
     }
     if (distinct.size < 2) continue;
-    const items = Array.from(distinct.values()).map((a) => {
-      const cap = parseCaption(a.prompt) || {};
-      return {
-        img: a.url,
-        url: a.url,
-        label: cap.quality || cap.model || a.description || '',
-        model: cap.model || '', quality: cap.quality || '',
-        promptStyle: a.promptStyle || '', promptContent: a.promptContent || '',
-      };
-    }).sort((x, y) => {
+    const items = Array.from(distinct.values()).map(itemOf).sort((x, y) => {
       const qx = QUALITY_ORDER[x.quality]; const qy = QUALITY_ORDER[y.quality];
       if (qx !== undefined && qy !== undefined) return qx - qy;   // low → high
       return String(x.label).localeCompare(String(y.label));
     });
+    // when the differing variable is the STYLE, the caption words repeat
+    // ("medium" · "medium") and say nothing — the image's own label is the
+    // half that actually differs, so it wins the tag
+    if (new Set(items.map((i) => i.label)).size < items.length) {
+      const src = Array.from(distinct.values());
+      items.forEach((it) => {
+        const a = src.find((s) => s.url === it.url);
+        if (a && a.description) it.label = String(a.description).slice(0, 200);
+      });
+    }
     ladders.push({ label: key.slice(0, 90), items });
+  }
+
+  // SAME STYLE, DIFFERENT SUBJECTS (Aug 2026, Sophie's dream-illustration
+  // case): images whose STYLE half matches exactly while the content differs
+  // — one style walked across many dreams. One distinct content per item
+  // (a re-roll or a quality rung of the same content is already a ladder row,
+  // not a second subject), newest kept, displayed short → long content so a
+  // length-ladder test reads in order.
+  const byStyle = new Map();
+  for (const a of usable) {
+    const sk = normContent(a.promptStyle);
+    if (!sk) continue;   // "same style" is only provable when a style is filed
+    if (!byStyle.has(sk)) byStyle.set(sk, []);
+    byStyle.get(sk).push(a);
+  }
+  const contentSets = [];
+  for (const [sk, group] of byStyle) {
+    const distinct = new Map();
+    for (const a of group) {
+      const ck = normContent(a.promptContent);
+      if (!distinct.has(ck)) distinct.set(ck, a);   // rows arrive newest-first
+    }
+    if (distinct.size < 2) continue;
+    const items = Array.from(distinct.values()).map((a) => {
+      const it = itemOf(a);
+      it.label = String(a.description || '').slice(0, 200)
+        || String(a.promptContent || '').slice(0, 60);
+      return it;
+    });
+    const firstLine = String(group[0].promptStyle || '').split(/\n/)[0].trim();
+    contentSets.push({ label: firstLine.slice(0, 90) || sk.slice(0, 90), items });
   }
 
   // near-duplicates across DIFFERENT content keys → flagged candidates
@@ -387,7 +441,75 @@ function groupAssetVariants(assets) {
       }))),
     });
   }
-  return { ladders, variants };
+  return { ladders, contentSets, variants };
+}
+
+// ─── The AUTO pages the server keeps by itself ──────────────────────────────
+// Two standing grid pages per chat, one per objective grouping, updated in
+// place as prompts and captions get filed (runAutoCompare in chatfeed.js).
+// Item ids derive from storage filenames, so a new image joining a group can
+// never re-point her saved answers — that is what makes updating in place
+// safe here where "a new version is a new page" protects every other page.
+// Caps are NAMED, never silent: a trimmed group says so in its label, and the
+// group count cap rides in the page's "?" help.
+const AUTO_GROUPS_MAX = 12;
+const AUTO_LADDER_ITEMS = 12;
+const AUTO_SET_ITEMS = 24;
+
+function capGroups(groups, itemCap) {
+  const kept = groups.slice(0, AUTO_GROUPS_MAX).map((g) => {
+    if (g.items.length <= itemCap) return g;
+    const items = g.items.slice().sort((x, y) => (y.ms || 0) - (x.ms || 0)).slice(0, itemCap);
+    return { label: `${g.label} · newest ${itemCap} of ${g.items.length}`, items };
+  });
+  return kept;
+}
+
+// planAutoPages(assets) → [{ kind, title, data }] — pure; empty when nothing
+// groups. Display order inside a content set is short → long content (her
+// threshold-ladder tests read in order); the cap keeps the NEWEST first.
+function planAutoPages(assets) {
+  const { ladders, contentSets } = groupAssetVariants(assets);
+  const plans = [];
+  if (ladders.length) {
+    plans.push({
+      kind: 'ladders',
+      title: 'Auto-compare — same prompt, settings changed',
+      data: {
+        help: 'Filed automatically: images whose content prompt matches exactly '
+          + 'while a setting differs — quality, model, or the style half. New '
+          + 'variants join by themselves'
+          + (ladders.length > AUTO_GROUPS_MAX
+            ? ` (showing the first ${AUTO_GROUPS_MAX} of ${ladders.length} groups)` : '')
+          + '. Hearts, passes and notes land on the Assets tab too.',
+        groups: capGroups(ladders, AUTO_LADDER_ITEMS),
+      },
+    });
+  }
+  if (contentSets.length) {
+    const sets = capGroups(contentSets, AUTO_SET_ITEMS).map((g) => ({
+      label: g.label,
+      items: g.items.slice().sort((x, y) => {
+        const lx = String(x.promptContent || '').length;
+        const ly = String(y.promptContent || '').length;
+        return lx !== ly ? lx - ly : String(x.label).localeCompare(String(y.label));
+      }),
+    }));
+    plans.push({
+      kind: 'subjects',
+      title: 'Auto-compare — same style, different subjects',
+      data: {
+        help: 'Filed automatically: images that share the exact same style '
+          + 'prompt with different subjects, shortest content first. New images '
+          + 'join by themselves'
+          + (contentSets.length > AUTO_GROUPS_MAX
+            ? ` (showing the first ${AUTO_GROUPS_MAX} of ${contentSets.length} groups)` : '')
+          + '. PROMPT shows each one\'s exact text.',
+        groups: sets,
+      },
+    });
+  }
+  return plans;
 }
 
 // ─── Hands-free voice: who was she talking about? ───────────────────────────
@@ -421,5 +543,5 @@ function assignVoiceSegments(segments, timeline) {
 
 module.exports = {
   TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
-  parseCaption, normContent, assignVoiceSegments, isMomentDeck,
+  planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };

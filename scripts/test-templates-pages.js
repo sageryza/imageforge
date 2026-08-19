@@ -84,6 +84,15 @@ function gridPage() {
     // ~50px tiles (the threshold-ladder page bug).
     { label: 'six on a ladder', items: [1, 2, 3, 4, 5, 6].map((n) => (
       { id: 's' + n, label: 'v' + n, img: IMG })) },
+    // same dream, two styles — the style tab marks the line they DON'T share
+    { label: 'same dream, two styles', items: [
+      { id: 'st1', label: 'watercolor', img: IMG,
+        promptStyle: 'loose watercolor wash\nvisible paper grain',
+        promptContent: 'the party dream with sandy' },
+      { id: 'st2', label: 'linocut', img: IMG,
+        promptStyle: 'clean linocut relief print\nvisible paper grain',
+        promptContent: 'the party dream with sandy' },
+    ] },
   ] });
   if (!v.ok) throw new Error(v.error);
   const TEST = `<script>
@@ -93,7 +102,7 @@ setTimeout(function(){
   var m=document.getElementById('grid');
   var rows=m.querySelectorAll('.gd-row');
   var r1=rows[0].querySelectorAll('.gd-it'), r2=rows[1].querySelectorAll('.gd-it');
-  ok(rows.length===3 && r1.length===2 && r2.length===3, 'the groups render their items');
+  ok(rows.length===4 && r1.length===2 && r2.length===3, 'the groups render their items');
   var basis=function(el){ return (el.getAttribute('style')||'').replace(/\\s+/g,''); };
   ok(basis(r1[0]).indexOf('/2)')>0 && basis(r2[0]).indexOf('/3)')>0,
      'two share a row in halves, three in thirds — got ' + basis(r1[0]) + ' & ' + basis(r2[0]));
@@ -132,8 +141,22 @@ setTimeout(function(){
      && ov.querySelector('.gd-ovmq').textContent==='gpt-image-2 · medium',
      'PROMPT opens on CONTENT with the caption on top');
   ov.querySelector('[data-side="style"]').click();
-  ok(ov.querySelector('.gd-ovtext').textContent==='wtr watercolor drawing',
-     'STYLE is one tap away');
+  ok(ov.querySelector('.gd-ovtext').textContent==='wtr watercolor drawing'
+     && !ov.querySelector('.gd-ovtext .gd-diff'),
+     'STYLE is one tap away, and identical styles carry no diff marks');
+  ov.click();
+
+  // the style tab marks ONLY the line this variant does not share (Sophie:
+  // "showing the lines that are different in the style tab")
+  m.querySelector('[data-item="st1"] .gd-prompt').click();
+  ov=document.querySelector('.gd-ov');
+  ov.querySelector('[data-side="style"]').click();
+  var marks=ov.querySelectorAll('.gd-ovtext .gd-diff');
+  var ovt=ov.querySelector('.gd-ovtext').textContent;
+  ok(marks.length===1 && marks[0].textContent.indexOf('watercolor wash')>=0
+     && ovt.indexOf('paper grain')>=0,
+     'a differing style line marks in rose, the shared line stays plain — got '
+     + marks.length + ' marks');
   ov.click();
 
   setTimeout(function(){
@@ -141,7 +164,7 @@ setTimeout(function(){
     var medHeart=m.querySelector('[data-item="p-med"] .gd-vote.yes');
     ok(medHeart && medHeart.classList.contains('on'),
        'an Assets-tab heart fills in an unjudged item on load');
-    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===11,
+    ok(m.querySelectorAll('.gd-it .cmp-note-open').length===13,
        'every item carries the note +');
     fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
   }, 400);
