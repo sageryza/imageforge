@@ -574,11 +574,16 @@ them off the reference sheet, not off the old filenames.
   the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
 - `refs/sophie-book.png` — **sophie book**, the character card behind the
   Sophie toggle. Was `sophie-character.png`.
-- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page. Movies'
-  "Dreamy pencil", the dream illustrator, the zine, Character Creator. Was
-  `movie-style.jpg`, and it ALSO existed as a second slightly-different crop
-  at `refs/style.jpg` (the zine's own copy) — Sophie spotted the duplicate and
-  asked for one file, so `style.jpg` is deleted and the zine reads this.
+- `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page ("1000
+  Dreams Per Night"). Movies' "Dreamy pencil", the dream illustrator, the
+  zine, Character Creator. Was `movie-style.jpg`, and it ALSO existed as a
+  second slightly-different crop at `refs/style.jpg` (the zine's own copy) —
+  Sophie spotted the duplicate and asked for one file, so `style.jpg` is
+  deleted and the zine reads this. **Since Aug 2026 the file is the
+  full-quality photo (3370x4096) she downloaded herself** — the old copy was
+  a 1170x1364 SCREENSHOT with an Instagram speaker icon baked into its
+  corner and the frames cropped. Same filename on purpose: every reader
+  loads `refs/dream-mystery.jpg` from disk, so nothing else changed.
 - `storage:witch-school/refs/sophie-snake.png` + `sophie-animals.png` —
   **sophie snake** / **sophie animals**, the Pastel pair. The Playground's
   Pastel, the Witch School lesson cards, the self-care stickers and stamps.
@@ -1361,6 +1366,22 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   rule anywhere else: numbers/lists are free, a model call is a deliberate tap.
 
 ## Design rules (forever)
+- **NOTHING STANDS BETWEEN THE SOURCE AND THE OUTPUT (Aug 2026, Sophie).** The
+  one principle behind several rules that already exist separately, now named
+  so new work inherits it whole. Her words reach the model VERBATIM (anything
+  added is disclosed word for word — the prompt rule below). The model's
+  output comes back at FULL QUALITY (no lossy encode at birth —
+  `node scripts/test-no-generation-compression.js` pins it). A style
+  reference is always the ORIGINAL — her scan, her photo at its source
+  resolution — never a screenshot of it, and never a GENERATED image standing
+  in for it: a generated reference makes the next picture a photocopy of a
+  photocopy, repainting the last picture's flaws as if they were style (the
+  dream feed's continuity refs did exactly this while they were also
+  compressed — the two bugs fed each other). When a page needs a smaller
+  file, the copy is DERIVED from the original and the original stays. The
+  test for any new step in any pipeline: if it silently transforms what she
+  gave or what the model made, the step is wrong — make it lossless, or make
+  it loud.
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.
