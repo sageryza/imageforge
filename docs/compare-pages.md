@@ -537,6 +537,31 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the page already shows the page's name, so the `<h1>` was the name
       twice, the second time in 26px serif eating the top third of the
       screen. The `<title>` tag still names it in a browser tab.
+      **`?clean=1` drops the `<h1>` on ANY template page** (Aug 2026 v2 — the
+      Review Queue's door: its tiles open `/api/chatfeed/page/<id>?clean=1`,
+      straight onto the cards; her ask was "not a compare page because that
+      has a header at the top"). `renderTemplatePage({ …, clean })`; a clean
+      grid keeps its pill because it scrolls.
+    - **THE ✕ AND ♥ FLOAT ON THE CONTENT, AND A LONG CARD'S TITLE GOES
+      TOP-LEFT (Aug 2026 v2, Sophie, on the live deck: "there's a lot of
+      space between the X and the heart that's empty… put the heart and the X
+      on top of the content so the content comes down a little farther and
+      there's just a tiny bit of space between the note and the content" ·
+      "if the text is really long have the title just go in the top left
+      corner instead of in the middle. I really don't like scrolling").** The
+      ✕ · note · ♥ row cost ~78px of mostly empty band; now the two buttons
+      are pinned over the content's bottom corners and the note box is the
+      footer row under it. Over ~240 characters (~150 with a picture) the
+      card also wears `.long`: the name drops to a small top-left line and
+      the stack starts at the top instead of centring, reserving the buttons'
+      height at the bottom of the scroller. **A short card is untouched** —
+      the big centred name is the design there.
+    - **A DECK OPENED FROM THE REVIEW QUEUE HAS A BACK MARK** — `?clean=1` is
+      both the door (no `<h1>`) and the signal; judge.js draws a chevron at
+      the left of the top row and `history.back()`s to the queue. A deck
+      opened from the Compare tab shows none. Its **piles view** also carries
+      *Open the chat* + **Skip** / **Done**, which stamp the page doc through
+      `POST /api/chatfeed/page/:id/review`.
     - **A MARK NEVER MOVES THE DECK** (Aug 2026, Sophie, on her date deck:
       "hearting, heart or exing should not move the moment, only tapping on
       the sides should go to the next moment"). In BROWSE mode — which every

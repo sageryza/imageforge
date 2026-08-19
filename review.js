@@ -7,18 +7,19 @@
 // how far through it she is. Measured the day it was built (2026-08-18): 9
 // template pages holding 285 items, 9 of them decided — the pile was real.
 //
-// ---- AND THE CHATS SHE MARKED (Aug 2026, Sophie, the day after: "`to be
-// reviewed` should send it to the review pile … another chat just built a
-// review interface where everything I need to review gets piled up and I can
-// review them all at once").
-// A chat carrying the label `to be reviewed` (chatfeed.js's REVIEW_LABEL) is a
-// row here too. THE LABEL IS THE WHOLE MECHANISM — nothing is filed, nothing
-// is stamped, and there is no second list to fall out of step with the chips
-// in the Chats app: she puts the word on and the row appears, she takes it off
-// (or taps ✕ here, which is the same write) and it goes. A chat row is never
-// DONE — there is nothing to count through — and archived, deleted and
-// tombstoned chats are skipped because she has finished with those already.
-// It costs nothing extra: the registry read was already here for chat names.
+// ---- DECKS AND ONLY DECKS (Aug 2026 v2, Sophie: "take away the chat list at
+// the bottom and instead offer a link back to the chat in the piles area").
+// A chat tagged `to be reviewed` was briefly a row here as well, and it was
+// the one thing on the screen with nothing to swipe and no cards to count.
+// The chat is now reached from INSIDE the deck that belongs to it (judge.js's
+// piles footer), so every row on this screen is a thing she can review.
+//
+// ---- AND THE TWO WAYS OFF THE PILE ARE IN THE DECK TOO (same day: "get rid
+// of the X on all of the icons and instead offer a skip or done button in the
+// piles area"). The tiles carry no ✕: `reviewHidden` (skip — never a review)
+// and `reviewDone` (finished, whatever the cards say) are stamped from the
+// deck's piles view through chatfeed's POST /page/:id/review. This module
+// READS both; its only write is the queue's own ↩ out of the hidden pile.
 //
 // WHAT COUNTS AS WAITING, and why it can be derived instead of filed:
 //   • The queue is the TEMPLATE pages (deck/grid, page-templates.js). Their
@@ -35,10 +36,11 @@
 //     counts.
 //   • A superseded page is history, not homework — it is on neither list.
 //   • NOT EVERY DECK IS A REVIEW (the template demos, a browse-only card
-//     deck), so a row has a small ✕ — "not a review" — that stamps
-//     `reviewHidden` on the page doc. Hidden is the verb, nothing is deleted:
-//     hidden rows keep a pile of their own behind the DONE tab and un-hide
-//     with one tap.
+//     deck), so the deck's piles view carries SKIP — "not a review" — which
+//     stamps `reviewHidden`. Hidden is the verb, nothing is deleted: hidden
+//     tiles keep a pile of their own behind the DONE tab and un-hide with one
+//     tap. DONE beside it stamps `reviewDone` for a deck she is finished with
+//     whatever the cards say.
 //
 // IT COSTS NOTHING. No model call; the template pages' item lists are frozen
 // per page BY DESIGN (a new version is a new page), so each page's Storage
@@ -52,8 +54,9 @@
 // Routes:
 //   GET  /status          → { ok, firebase }
 //   GET  /?fresh=1        → { waiting:[row], done:[row], hidden:[row], counts }
-//   POST /hide { id, hidden } → stamps reviewHidden on the page doc
-//   POST /reviewed { chat }   → takes `to be reviewed` off a chat
+//   POST /hide { id, hidden } → stamps reviewHidden (the queue's own ↩; the
+//     deck's Skip/Done go to chatfeed's POST /page/:id/review, which is
+//     reachable under the same gate as the verdicts it is already saving)
 //
 // Tests: node scripts/test-review.js (the whole decision table, pure fixtures;
 // plus the real page headless when playwright is around).
@@ -86,27 +89,21 @@ function ms(iso) {
   return Number.isFinite(t) ? t : 0;
 }
 
-/** A registry doc's labels, old shape or new — the same union `chatfeed.js`
- *  reads, inlined here so the pure half stays driveable with fixtures. */
-function chatLabels(reg) {
-  const r = reg || {};
-  const raw = Array.isArray(r.labels) ? r.labels
-    : [].concat(r.category || [], Array.isArray(r.tags) ? r.tags : []);
-  const out = [];
-  raw.forEach((c) => {
-    const v = String(c || '').trim().toLowerCase();
-    if (v && out.indexOf(v) < 0) out.push(v);
-  });
-  return out;
-}
-
 // ---------------------------------------------------------------------------
 // THE PURE HALF — takes plain objects so scripts/test-review.js can drive the
 // whole decision table with fixtures and no network.
 // ---------------------------------------------------------------------------
 
-/** The item ids, custom-states flag and thumbnail out of one page's frozen
- *  data JSON (the shape validateTemplate stored). */
+/** One item's words, for a tile with no picture — a text deck's first card is
+ *  its own face (the moment card may carry no single `text` at all). */
+function itemWords(it) {
+  if (!it) return '';
+  return it.text || it.who || it.eyebrow || it.label
+    || (Array.isArray(it.sections) && it.sections[0] && it.sections[0].text) || '';
+}
+
+/** The item ids, custom-states flag, thumbnail and text peek out of one page's
+ *  frozen data JSON (the shape validateTemplate stored). */
 function pageItems(data) {
   const items = data && data.items
     ? data.items
@@ -115,6 +112,10 @@ function pageItems(data) {
     ids: items.map((it) => String(it && it.id || '')).filter(Boolean),
     custom: Boolean(data && data.states && data.states.length),
     thumb: (items.find((it) => it && it.img) || {}).img || '',
+    // the first card's words — what a TEXT deck's tile shows in the picture's
+    // place (measured 2026-08-19: 12 of the 15 queued pages had no picture at
+    // all — video ideas, date moments, card titles — so this is the common face)
+    peek: String(items.map(itemWords).find(Boolean) || ''),
   };
 }
 
@@ -143,13 +144,13 @@ function pageProgress(ids, custom, verdictItems) {
  * @param {object}   input.verdicts `<chat>__page-<id>` → verdict doc data
  * @param {object}   input.chats    registry map, slug → doc (displayName)
  */
-function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
+function buildQueue({ pages, items, verdicts, chats }) {
   const waiting = []; const done = []; const hidden = [];
   (pages || []).forEach((p) => {
     if (!p || !p.id || !p.chat || p.superseded) return;
     const data = (items || {})[p.id];
     if (!data) return;                       // unreadable data: no wrong numbers
-    const { ids, custom, thumb } = pageItems(data);
+    const { ids, custom, thumb, peek } = pageItems(data);
     if (!ids.length) return;
     const vdoc = (verdicts || {})[`${p.chat}__page-${p.id}`] || {};
     const { decided, later } = pageProgress(ids, custom, vdoc.items);
@@ -161,58 +162,35 @@ function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
       title: clean(p.title, 140) || 'Untitled',
       template: p.template === 'grid' ? 'grid' : 'deck',
       created: clean(p.created, 40),
-      url: `/api/chatfeed/page/${p.id}`,
+      // ?clean=1 — straight onto the cards, no h1 (Aug 2026, Sophie: "not a
+      // compare page because that has a header at the top, but instead just a
+      // clean Tinder style page … with all the content preloaded")
+      url: `/api/chatfeed/page/${p.id}?clean=1`,
       total: ids.length,
       decided,
       later,
       thumb: clean(thumb, 500),
+      peek: clean(peek, 160),
       // the newest touch — her last verdict when there is one, else the post
       at: clean(vdoc.updatedAt, 40) || clean(p.created, 40),
     };
     row.kind = 'page';
     if (p.reviewHidden) { hidden.push(row); return; }
-    (decided >= ids.length ? done : waiting).push(row);
+    // DONE is derived from the counts, and ALSO said outright: her Done button
+    // in the deck's piles area (Aug 2026) stamps `reviewDone`, because "I'm
+    // finished with this one" is a real answer even when cards are unmarked —
+    // a browse she read through, a set she decided about as a whole.
+    (p.reviewDone || decided >= ids.length ? done : waiting).push(row);
   });
-  // ---- CHATS SHE HAS MARKED FOR REVIEW (Aug 2026, Sophie: "`to be reviewed`
-  // should send it to the review pile … another chat just built a review
-  // interface where everything I need to review gets piled up") -------------
-  // The label is the whole mechanism — she puts `to be reviewed` on a chat in
-  // the Chats app and it turns up here, she takes it off (or taps ✕ here,
-  // which is the same write) and it goes. Nothing is filed, nothing is
-  // stamped, and there is no second list to fall out of step with the chips.
+  // ---- THE TAGGED-CHAT ROWS ARE GONE (Aug 2026 v2, Sophie: "take away the
+  // chat list at the bottom and instead offer a link back to the chat in the
+  // piles area"). A chat carrying `to be reviewed` used to be a row here, and
+  // it was the one thing on the screen with no cards to count and nothing to
+  // swipe. The way to the chat is now INSIDE the deck it belongs to — the
+  // piles view's "Open the chat" — so the queue is decks and only decks.
+  // The label still files a chat out of her main list in the Chats app; it
+  // simply no longer puts a second kind of row in front of the pile.
   //
-  // A chat row is NEVER 'done': there is nothing to count through, so the only
-  // way out is the label coming off. Archived and deleted chats are skipped —
-  // she has already finished with those.
-  const label = String(reviewLabel || '').trim().toLowerCase();
-  if (label) {
-    Object.keys(chats || {}).forEach((slug) => {
-      const reg = chats[slug] || {};
-      if (reg.archived || reg.deletedAt || reg.movedTo) return;
-      if (chatLabels(reg).indexOf(label) < 0) return;
-      const at = [reg.updAt, reg.statusAt, reg.lastHerAt, reg.filedAt]
-        .map((v) => clean(v, 40)).filter(Boolean).sort().pop() || '';
-      waiting.push({
-        kind: 'chat',
-        id: 'chat-' + slug,
-        chat: slug,
-        name: clean(reg.displayName, 80) || slug,
-        // What it is waiting on her FOR, in the words the chat already wrote —
-        // its status card's ask first, then her own note, then what it last
-        // said it did. Nothing new to post, and no model call.
-        title: clean(reg.statusNeed, 140) || clean(reg.sophieNote, 140)
-          || clean(reg.statusDoing, 140) || 'Waiting on you',
-        template: 'chat',
-        created: at,
-        at,
-        url: '/chats?chat=' + encodeURIComponent(slug),
-        total: 0,
-        decided: 0,
-        later: 0,
-        thumb: '',
-      });
-    });
-  }
   // Waiting: newest post first — the feed's own order, so the pile reads the
   // way everything else does. Done and hidden: most recently touched first.
   waiting.sort((a, b) => ms(b.created) - ms(a.created));
@@ -225,7 +203,6 @@ function buildQueue({ pages, items, verdicts, chats, reviewLabel }) {
     counts: {
       pages: waiting.length,
       items: waiting.reduce((n, r) => n + (r.total - r.decided), 0),
-      chats: waiting.filter((r) => r.kind === 'chat').length,
       done: done.length,
     },
   };
@@ -300,9 +277,7 @@ router.get('/', async (req, res) => {
     ]);
     const verdicts = {};
     vsnaps.forEach((d) => { if (d.exists) verdicts[d.id] = d.data(); });
-    const body = buildQueue({
-      pages, items, verdicts, chats: reg.chats || {}, reviewLabel: chatfeed.REVIEW_LABEL,
-    });
+    const body = buildQueue({ pages, items, verdicts, chats: reg.chats || {} });
     body.generatedAt = new Date().toISOString();
     cache = body;
     cacheAt = Date.now();
@@ -327,19 +302,4 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// "I'm done with this one" on a CHAT row — the ✕ takes the label off, which is
-// the same write her chips make in the Chats app. Deliberately not a stamp of
-// its own: two ways to say the same thing is how a row comes back tomorrow
-// wearing a label that says it is still waiting.
-router.post('/reviewed', async (req, res) => {
-  try {
-    const chat = clean(req.body && req.body.chat, 60);
-    if (!chat) return res.status(400).json({ error: 'chat required' });
-    const out = await chatfeed.applyLabels([chat], { remove: [chatfeed.REVIEW_LABEL] });
-    if (!out.chats.length) return res.status(404).json({ error: 'no such chat' });
-    cache = null;
-    res.json({ ok: true, chat, labels: out.labels[out.chats[0]] });
-  } catch (err) { fail(res, err); }
-});
-
-module.exports = { router, buildQueue, pageItems, pageProgress, chatLabels };
+module.exports = { router, buildQueue, pageItems, pageProgress, itemWords };

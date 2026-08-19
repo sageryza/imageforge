@@ -117,6 +117,19 @@ ok('the stock page carries the whole kit and inlines data safely', () => {
   assert.match(deck, /__judge\(window\.__pageData\)/);
 });
 
+ok('clean drops the h1 — the Review Queue opens straight onto the cards', () => {
+  const data = validateTemplate('deck', { items: [{ label: 'a', text: 'x' }] }).data;
+  const clean = renderTemplatePage({ template: 'deck', title: 'Batch 2', chat: 'c',
+    sheet: 's', data, clean: true });
+  assert.ok(!/<h1>/.test(clean), 'no h1 in a clean render');
+  assert.match(clean, /<title>Batch 2<\/title>/, 'the <title> still names it');
+  assert.match(clean, /__judge\(window\.__pageData\)/, 'the deck itself is intact');
+  // a clean GRID loses its h1 the same way (it keeps its pill — it scrolls)
+  const g = validateTemplate('grid', { groups: [{ items: [{ label: 'a', img: `${SG}/a/a.png` }] }] });
+  assert.ok(!/<h1>/.test(renderTemplatePage({ template: 'grid', title: 't', chat: 'c',
+    sheet: 's', data: g.data, clean: true })));
+});
+
 // ── grouping ────────────────────────────────────────────────────────────────
 ok('caption parses MODEL · QUALITY and nothing else', () => {
   assert.deepStrictEqual(parseCaption('gpt-image-2 · medium'),
