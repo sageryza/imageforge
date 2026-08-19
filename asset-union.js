@@ -160,6 +160,9 @@ function seedTile(r) {
     promptStyle: r.promptStyle || '',
     promptContent: r.promptContent || '',
     kind: r.kind || '',
+    // Damage is a property of the BYTES, so it belongs to the picture and not
+    // to whichever record happened to carry it — see foldTile.
+    compressedAtBirth: !!r.compressedAtBirth,
     alts: [],
   };
 }
@@ -168,6 +171,13 @@ function seedTile(r) {
 function foldTile(existing, r) {
   const { url, ms, prompt, description, promptStyle: style, promptContent: content, kind } = r;
   if (kind && !existing.kind) existing.kind = kind;
+  // COMPRESSED AT BIRTH IS AN OR ACROSS THE GROUP. The records in a group are
+  // the same bytes — that is what joined them — so if any copy is known
+  // damaged, the picture is damaged. Tagging reaches records by url and by
+  // md5, but a record carrying neither (an older doc with no md5 on file,
+  // joined in on its filename) would otherwise drag an untagged `false` onto
+  // the tile and hide the mark on a picture Sophie is looking at.
+  if (r.compressedAtBirth) existing.compressedAtBirth = true;
   // Same picture arriving by its other path: keep every field that has
   // something in it, whichever copy carried it.
   if (existing.url !== url && existing.alts.indexOf(url) < 0) existing.alts.push(url);
@@ -299,6 +309,10 @@ function assetRecord(a) {
     kind: d.kind,
     hash: d.hash,   // sha256 of the bytes, when POST /api/gallery had them
     md5: d.md5,     // the Storage object's own md5, from its metadata
+    // Written by scripts/tag-compressed-at-birth.js: this picture's ONLY copy
+    // was encoded lossily before the bytes ever reached us. The bracket text
+    // Sophie reads is drawn by the UI — the record just carries the fact.
+    compressedAtBirth: d.compressedAtBirth,
   };
 }
 
@@ -306,7 +320,7 @@ function assetRecord(a) {
 function creationRecord(c) {
   const d = c || {};
   const ms = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
-  return { url: d.url, ms, prompt: d.prompt };
+  return { url: d.url, ms, prompt: d.prompt, compressedAtBirth: d.compressedAtBirth };
 }
 
 module.exports = {

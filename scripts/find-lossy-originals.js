@@ -83,15 +83,29 @@ function init() {
   return admin.storage().bucket();
 }
 
-async function listWebp(bucket) {
+/**
+ * Every full-size webp in a bucket, with the fields the bpp screen needs.
+ *
+ * `md5` rides along because Storage hands it back in the SAME listing call that
+ * gives the size — free, no extra request, no bytes downloaded — and it is what
+ * lets a caller join an object to a renamed copy of itself (asset-hash.js /
+ * asset-union.js). scripts/tag-compressed-at-birth.js is the caller that needs
+ * it; nothing here uses it.
+ */
+async function listWebp(bucket, prefix) {
   const out = [];
   let token;
   do {
-    const [files, q] = await bucket.getFiles({ autoPaginate: false, maxResults: 5000, pageToken: token, prefix: only || undefined });
+    const [files, q] = await bucket.getFiles({ autoPaginate: false, maxResults: 5000, pageToken: token, prefix: prefix || undefined });
     files.forEach((f) => {
       if (!/\.webp$/i.test(f.name)) return;                 // png/jpg cannot carry this bug
       if (DERIVED.test(f.name)) return;
-      out.push({ name: f.name, size: Number(f.metadata.size || 0), created: f.metadata.timeCreated });
+      out.push({
+        name: f.name,
+        size: Number(f.metadata.size || 0),
+        created: f.metadata.timeCreated,
+        md5: f.metadata.md5Hash ? Buffer.from(String(f.metadata.md5Hash), 'base64').toString('hex') : '',
+      });
     });
     token = q && q.pageToken;
   } while (token);
@@ -133,10 +147,10 @@ async function pool(items, fn) {
   }));
 }
 
-(async () => {
+async function main() {
   const bucket = init();
   process.stderr.write('listing…\n');
-  const items = await listWebp(bucket);
+  const items = await listWebp(bucket, only);
   process.stderr.write(`${items.length} webp objects — measuring headers…\n`);
   await pool(items, (it) => measure(bucket, it));
 
@@ -167,4 +181,15 @@ async function pool(items, fn) {
     require('fs').writeFileSync(jsonOut, JSON.stringify({ lossy, derived }, null, 1));
     console.log(`wrote ${jsonOut}`);
   }
-})().catch((err) => { console.error('failed:', err.message); process.exit(1); });
+}
+
+// THE MEASUREMENT IS EXPORTED, NOT COPIED. scripts/tag-compressed-at-birth.js
+// tags the pictures this file finds, and a second copy of the bpp screen there
+// would drift from this one — the same reason the audio rooms import the
+// Cutting Room's pause detection instead of re-deriving it. Every constant
+// above is a measured finding; read the header before changing one.
+module.exports = { LOSSY_BPP, FULL_PX, DERIVED, webpSize, listWebp, measure, pool };
+
+if (require.main === module) {
+  main().catch((err) => { console.error('failed:', err.message); process.exit(1); });
+}

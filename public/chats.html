@@ -5514,6 +5514,8 @@ function openChat(name, keepScroll, focusId, noFetch){
         function haystack(it){
           if(it._hay==null){
             var t=[it.description, it.prompt, it.promptStyle, it.promptContent, it.note];
+            // recording the damage as a FIELD is what makes it findable
+            if(it.compressedAtBirth) t.push("[compressed] compressed at birth");
             (it.thread||[]).forEach(function(m){ t.push(m.text); });
             it._hay=t.filter(Boolean).join(' \n ').toLowerCase();
           }

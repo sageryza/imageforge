@@ -114,6 +114,9 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 #clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
 #clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
 #clightbox .cltag + .clcap{margin-top:4px;}
+/* compressed at birth — flat rose, its own element beside the words */
+#clightbox .compflag{color:#c98b7a; font-weight:600; letter-spacing:.04em;}
+#clightbox .lbptext .compflag{display:block; margin-bottom:6px; font-size:11px; text-transform:uppercase;}
 #clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px; text-align:center; letter-spacing:.12em; text-transform:uppercase;}
 #clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
 #clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
@@ -357,6 +360,12 @@ function lightbox(url, asset){
       sb.classList.toggle('on', side==='style');
       cb.classList.toggle('on', side==='content');
       txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
+      // …with "[compressed]" in front of BOTH halves, as its own node so the
+      // prompt underneath stays the exact text that was sent to the model.
+      if(asset.compressedAtBirth){
+        var cf=document.createElement('span'); cf.className='compflag'; cf.textContent='[compressed]';
+        txt.insertBefore(cf, txt.firstChild);
+      }
       txt.scrollTop=0;
     }
     sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
@@ -447,7 +456,17 @@ function lightbox(url, asset){
   if(/^from /.test(tag)) tag='';
   var cap=asset?(asset.description||''):'';
   if(!cap && tag){ cap=tag; tag=''; }
-  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
+  // "[compressed]" leads the MODEL · QUALITY line when this picture's only copy
+  // was encoded lossily before it reached us (compressedAtBirth, written by
+  // scripts/tag-compressed-at-birth.js). Its own node, never concatenated —
+  // and shown even when there is no caption to lead.
+  var comp=!!(asset && asset.compressedAtBirth);
+  if(comp || tag){
+    var tc=document.createElement('div'); tc.className='cltag';
+    if(comp){ var cf=document.createElement('span'); cf.className='compflag'; cf.textContent='[compressed]'; tc.appendChild(cf); if(tag) tc.appendChild(document.createTextNode(' ')); }
+    if(tag) tc.appendChild(document.createTextNode(tag));
+    lb.appendChild(tc);
+  }
   if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
   var who=asset?whoLabel(asset):'';
   if(who){ var wc=document.createElement('div'); wc.className='clwho'; wc.textContent=who; lb.appendChild(wc); }
@@ -476,6 +495,9 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     function haystack(it){
       if(it._hay==null){
         var t=[it.description, it.prompt, it.promptStyle, it.promptContent, it.note, it.chat, it.name];
+        // recording the damage as a FIELD is what makes it findable — typing
+        // "compressed" pulls up every picture whose only copy is lossy
+        if(it.compressedAtBirth) t.push('[compressed] compressed at birth');
         (it.thread||[]).forEach(function(m){ t.push(m.text); });
         it._hay=t.filter(Boolean).join(' \n ').toLowerCase();
       }

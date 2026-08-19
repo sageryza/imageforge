@@ -118,6 +118,10 @@ function cleanItem(raw, taken, fallback) {
   if (url) it.url = url;
   for (const k of ['model', 'quality']) { const v = STR(raw[k], 60); if (v) it[k] = v; }
   for (const k of ['promptStyle', 'promptContent']) { const v = STR(raw[k], 1500); if (v) it[k] = v; }
+  // This picture's only copy was encoded lossily before it reached us. Carried
+  // so a freshly built page marks it without waiting for grid.js's live fill;
+  // an already-posted page still learns it from the Assets tab at render time.
+  if (raw.compressedAtBirth === true) it.compressedAtBirth = true;
   if (ASPECTS[raw.aspect]) it.aspect = raw.aspect;   // one card may differ from its page
   // THE MOMENT CARD — the date card (Aug 2026, Sophie's own design, wired in
   // from her "Decision Deck v2" canvas). Every part is OPTIONAL and a card
@@ -418,6 +422,7 @@ function itemOf(a) {
     label: cap.quality || cap.model || a.description || '',
     model: cap.model || '', quality: cap.quality || '',
     promptStyle: a.promptStyle || '', promptContent: a.promptContent || '',
+    compressedAtBirth: a.compressedAtBirth === true,
     ms: Number(a.ms) || 0,   // used by planAutoPages' newest-first cap;
                              // validateTemplate's cleanItem drops it
   };
