@@ -2627,7 +2627,7 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { chat, url, t, audio } = req.body || {};
+    const { chat, url, t, audio, hold } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
@@ -2655,6 +2655,9 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
         if (tr && tr.text) transcript = String(tr.text).trim().slice(0, ASSET_NOTE_MAX - 200);
       } catch (err) { console.error('film note transcription failed:', err.message); }
     }
+    // hold:true — the player wants the words in the text box for editing
+    // first; the note itself is filed by the text route once she is done.
+    if (hold) return res.json({ ok: true, url: voiceUrl, transcript, held: true });
     const stamp = /^\d+:\d\d$/.test(String(t || '')) ? `[${t}] ` : '';
     const line = `${stamp}${transcript || '(voice note)'} (voice: ${voiceUrl})`;
     const ref = assetVoteRef(chat, url);

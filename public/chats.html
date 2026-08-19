@@ -178,13 +178,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
   width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
   color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
-/* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie: "I watch the video but I can
-   tap it and then the video pauses and a field comes up where I can write a
-   note and then once I tap done, the video keeps playing and the note
-   disappears and gets sent to you or whatever chat I'm using it for").
-   The tap layer stops above the native control bar so play/scrub still work;
-   the sheet is flat solid ink (no gradients, ever), buttons hug their words. */
-#pinfull .notetap{position:absolute; left:0; right:0; top:0; bottom:24%; z-index:1;}
+/* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie; REWORKED same day after her
+   first real use: "even pressing play on the video triggers the note thing").
+   No capture layer any more — a floating NOTE button pops up when she touches
+   the screen and fades away, the native controls' own rhythm. Tapping it
+   pauses and starts the MIC straight away (her default: talk, one Done to
+   stop + file + resume); tapping the text box instead stops the mic and puts
+   the transcript there for keyboard editing. Flat solid ink, no gradients. */
+#pinfull .notebtn{position:absolute; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 64px);
+  z-index:2; display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:6px;
+  border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.55); color:#fff;
+  font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:14px; cursor:pointer;
+  opacity:1; transition:opacity .25s; -webkit-tap-highlight-color:transparent;}
+#pinfull .notebtn.off{opacity:0; pointer-events:none;}
 #pinfull .nsheet{position:absolute; left:0; right:0; bottom:0; z-index:4; background:#17140f;
   color:#e8e2d6; padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; gap:9px; font-family:Georgia,serif;}
@@ -4840,79 +4846,121 @@ function openPinned(pin, chatName){
   document.addEventListener('keydown',esckey);
   w.appendChild(v); w.appendChild(x);
 
-  // TAP-TO-NOTE (Aug 2026, Sophie's design — tap pauses, a field comes up,
-  // Done resumes and the note goes to the chat). The note lands on the FILM's
-  // own url thread via the asset-note machinery, stamped with the video time,
-  // so the chat that pinned it sweeps film notes exactly like image notes
-  // (GET /api/gallery/assets/notes) and can answer on the note itself.
+  // TAP-TO-NOTE (Aug 2026, Sophie's design; reworked on her first real use —
+  // "even pressing play on the video triggers the note thing"). No layer over
+  // the video: a floating NOTE button appears when she touches the screen and
+  // fades away, like the native controls. Tapping it pauses and starts the
+  // MIC immediately — she talks, ONE Done stops it, files the note and
+  // resumes; tapping the TEXT BOX instead stops the mic and puts the
+  // transcript there to edit (that is when the keyboard rises). Notes land on
+  // the FILM's url thread via the asset-note machinery, stamped with the
+  // video time, so the chat that pinned it sweeps them like image notes.
   // Films only, and only when we know which chat the pin belongs to.
   if(pin.kind!=='audio' && chatName){
-    var tap=document.createElement('div'); tap.className='notetap';
-    tap.setAttribute('aria-label','Tap to pause and leave a note');
-    var sheet=null;
+    var sheet=null, fadeT=null;
     var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
     var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
-    tap.onclick=function(){
+    var nb=document.createElement('button'); nb.className='notebtn off';
+    nb.innerHTML=MIC+'<span>Note</span>';
+    nb.setAttribute('aria-label','Pause and leave a note');
+    // the button follows the native controls' rhythm: a touch on the video
+    // shows it, another touch (or 3.5s) fades it away
+    function showBtn(){ nb.classList.remove('off');
+      clearTimeout(fadeT); fadeT=setTimeout(function(){ nb.classList.add('off'); }, 3500); }
+    w.addEventListener('click', function(e){
+      if(e.target!==v || sheet) return;
+      if(nb.classList.contains('off')) showBtn();
+      else { clearTimeout(fadeT); nb.classList.add('off'); }
+    });
+    // files the note text (with the voice url when there is one) onto the
+    // film's thread; background=true means she is already watching again
+    function fileNote(t, text, voiceUrl, st){
+      var line='['+t+'] '+(text||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
+      return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text: line }) })
+        .then(function(r){ return r.json(); });
+    }
+    nb.onclick=function(){
       if(sheet) return;
+      clearTimeout(fadeT); nb.classList.add('off');
       try{ v.pause(); }catch(_){ }
       var t=fmtT(v.currentTime);
       sheet=document.createElement('div'); sheet.className='nsheet';
-      sheet.innerHTML='<div class="nt">Note at '+t+' — it goes to this chat</div>'
-        +'<textarea aria-label="Your note"></textarea>'
-        +'<div class="row"><button class="mic" aria-label="Record a voice note">'+MIC+'</button>'
-        +'<span class="st"></span><span style="flex:1"></span>'
+      sheet.innerHTML='<div class="nt">Note at '+t+'</div>'
+        +'<textarea aria-label="Your note — tap here to edit with the keyboard"></textarea>'
+        +'<div class="row"><span class="st"></span><span style="flex:1"></span>'
         +'<button class="cxl">Cancel</button><button class="send">Done</button></div>';
       var ta=sheet.querySelector('textarea'), st=sheet.querySelector('.st');
-      var micB=sheet.querySelector('.mic');
-      function resume(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; }
-        if(sheet){ sheet.remove(); sheet=null; } v.play().catch(function(){}); }
+      var chunks=[], voiceHeld=null, mode='text'; // 'rec' | 'held' | 'text'
+      function stopMic(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; } }
+      function closeSheet(){ stopMic(); if(sheet){ sheet.remove(); sheet=null; } }
+      function resume(){ closeSheet(); v.play().catch(function(){}); }
+      // upload + transcribe WITHOUT filing (hold:true) so her words can land
+      // in the box for editing; filing is always the text route above
+      function holdVoice(blob){
+        return new Promise(function(res){
+          var rd=new FileReader();
+          rd.onloadend=function(){
+            fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ chat: chatName, url: pin.url, t: t, hold: true, audio: rd.result }) })
+              .then(function(r){ return r.json(); }).then(res).catch(function(){ res(null); });
+          };
+          rd.readAsDataURL(blob);
+        });
+      }
+      // DEFAULT: the mic is already on — she talks, one Done does the rest
+      if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined'){
+        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+          if(!sheet){ stream.getTracks().forEach(function(tr){ tr.stop(); }); return; }
+          mrec=new MediaRecorder(stream);
+          mode='rec'; st.textContent='Recording — talk, then tap Done';
+          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+          mrec.onstop=function(){ stream.getTracks().forEach(function(tr){ tr.stop(); }); };
+          mrec.start();
+        }).catch(function(){ st.textContent='No mic here — type instead.'; ta.focus(); });
+      } else { st.textContent='No mic here — type instead.'; }
+      // tapping the box: stop the mic, put her words there, keyboard rises
+      ta.addEventListener('focus', function(){
+        if(mode!=='rec') return;
+        mode='held'; stopMic();
+        st.textContent='Getting your words…';
+        var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+        if(!blob.size){ mode='text'; st.textContent=''; return; }
+        holdVoice(blob).then(function(d){
+          if(!sheet) return;
+          if(d&&d.ok){ voiceHeld=d.url; if(!ta.value.trim()) ta.value=d.transcript||''; st.textContent=''; }
+          else st.textContent='Couldn’t hear that — type it instead.';
+        });
+      });
       sheet.querySelector('.cxl').onclick=resume;
       sheet.querySelector('.send').onclick=function(){
-        var text=ta.value.trim();
-        if(!text){ resume(); return; }
-        st.textContent='Sending…';
-        fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text:'['+t+'] '+text }) })
-          .then(function(r){ return r.json(); })
-          .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; } resume(); })
-          .catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
-      };
-      // the mic: one tap records, the second stops; the server transcribes it
-      // and files "[time] words (voice: url)" on the same thread
-      micB.onclick=function(){
-        if(mrec){ try{ mrec.stop(); }catch(_){ mrec=null; micB.classList.remove('on'); } return; }
-        if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
-          st.textContent='The mic isn’t available here — typed notes still work.'; return;
+        var typed=ta.value.trim();
+        if(mode==='rec'){
+          // her one button: stop, file, resume — she is watching again while
+          // the transcription finishes in the background
+          stopMic();
+          var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+          resume();
+          if(!blob.size && !typed) return;
+          if(!blob.size){ fileNote(t, typed, null); return; }
+          holdVoice(blob).then(function(d){
+            var voice=d&&d.ok?d.url:null;
+            var words=typed||(d&&d.ok?d.transcript:'')||'';
+            if(!voice&&!words) return;
+            fileNote(t, words, voice);
+          });
+          return;
         }
-        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-          var chunks=[];
-          mrec=new MediaRecorder(stream);
-          micB.classList.add('on'); st.textContent='Recording — tap the mic again to finish';
-          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-          mrec.onstop=function(){
-            stream.getTracks().forEach(function(tr){ tr.stop(); });
-            mrec=null; micB.classList.remove('on');
-            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-            if(!blob.size){ st.textContent=''; return; }
-            if(blob.size>8000000){ st.textContent='That one’s too long — keep it under a few minutes.'; return; }
-            st.textContent='Saving the voice note…';
-            var rd=new FileReader();
-            rd.onloadend=function(){
-              fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ chat: chatName, url: pin.url, t: t, audio: rd.result }) })
-                .then(function(r){ return r.json(); })
-                .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t save the voice note.'; return; } resume(); })
-                .catch(function(){ st.textContent='Couldn’t save the voice note.'; });
-            };
-            rd.readAsDataURL(blob);
-          };
-          mrec.start();
-        }).catch(function(){ st.textContent='The mic isn’t available here — typed notes still work.'; });
+        if(!typed && !voiceHeld){ resume(); return; }
+        st.textContent='Sending…';
+        fileNote(t, typed, voiceHeld).then(function(d){
+          if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; }
+          resume();
+        }).catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
       };
       w.appendChild(sheet);
-      ta.focus();
     };
-    w.appendChild(tap);
+    w.appendChild(nb);
   }
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
