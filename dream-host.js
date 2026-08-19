@@ -29,6 +29,7 @@ const ROBOTS = [
   'Disallow: /api/',
   'Disallow: /*.html$',
   'Disallow: /t/',
+  'Disallow: /f/',
   ...STUDIO.map((p) => `Disallow: ${p}`),
 ].join('\n') + '\n';
 
@@ -43,9 +44,10 @@ function decide(path) {
   // The canonical home on this host is `/`, so the studio's own URL for the
   // page folds into it rather than living at two addresses.
   if (p === '/dreamfeed') return { kind: 'redirect', to: '/' };
-  // A dream-team invite (/t/<code>) is the app too — the page reads the code
-  // from the path and joins after sign-in. Kept out of robots.txt above.
-  if (/^\/t\/[^/]+$/.test(p)) return { kind: 'app' };
+  // A dream-team invite (/t/<code>) or a personal friend link (/f/<code>) is
+  // the app too — the page reads the code from the path and joins/asks after
+  // sign-in. Both kept out of robots.txt above.
+  if (/^\/[tf]\/[^/]+$/.test(p)) return { kind: 'app' };
   if (p === '/robots.txt') return { kind: 'robots' };
   if (STUDIO.includes(p)) return { kind: 'redirect', to: '/' };
   return { kind: 'pass' };

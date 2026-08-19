@@ -21,6 +21,12 @@
 //   forge-dreamapp-teams  one doc per dream team { id, name, code, createdBy,
 //                         createdAt, memberUids:[uid], members:[{uid, name,
 //                         joinedAt, friendsToo}] } — see THE DIAL below
+//   forge-dreamapp-friends  one doc per PAIR, content-addressed
+//                         (friendPairId — both orders land on one doc):
+//                         { id, uids:[a,b], names:{uid:name}, requestedBy,
+//                         at, acceptedAt (null while pending) }
+//   forge-dreamapp-profile  one doc per uid { uid, name, code } — the
+//                         personal friend link's code, made lazily
 //
 // The AI names each dream (2-5 words, shown in fuchsia in the app) as a
 // background job right after capture; drawing is ONE SQUARE PICTURE at medium
@@ -55,6 +61,8 @@ const DREAMS = 'forge-dreamapp';
 const FELT = 'forge-dreamapp-felt';
 const COMMENTS = 'forge-dreamapp-comments';
 const TEAMS = 'forge-dreamapp-teams';
+const FRIENDS = 'forge-dreamapp-friends';
+const PROFILE = 'forge-dreamapp-profile';
 const QUALITIES = new Set(['low', 'medium']);
 const TEXT_MIN = 10;
 const TEXT_MAX = 8000;
@@ -84,6 +92,18 @@ const byTag = (uid) => crypto.createHash('sha1').update(String(uid)).digest('hex
 // unattributed in the feed either way — the audience changes who can read a
 // night, never whose name is on it.
 //
+// AND FRIENDS ARE REAL, MUTUAL PEOPLE (Sophie, same day): "like following on
+// Instagram except you can't follow someone, you have to let them accept you
+// — a two-way Facebook model." There is no directory (nothing in this app is
+// discoverable), so a friend arrives through your PERSONAL LINK (/f/<code>):
+// opening it only ASKS; nothing happens until the owner says yes. Accepted =
+// mutual: your ☾ friends dreams reach them and theirs reach you, past nights
+// included. On the yes, both sides get the holding-hands moment (her ask:
+// "some kind of graphic showing holding hands because you just became
+// friends"). A pair is ONE content-addressed doc, so asking twice, crossing
+// requests and both orders of uids all land in the same place — and two
+// crossed asks ARE mutual consent, accepted on the spot.
+//
 // This rule is the whole feature, kept pure for its test: does the author's
 // friends-audience post reach a viewer holding these teams? (The viewer's own
 // membership is a given — `teams` is the list the viewer belongs to.)
@@ -92,10 +112,25 @@ function friendsReaches(authorUid, viewerTeams) {
     .some((m) => m.uid === authorUid && m.friendsToo !== false));
 }
 // One dream doc, one viewer: readable in the feed? (Own dreams always are;
-// legacy docs with no audience are everyone's.)
-function canRead(doc, uid, viewerTeams) {
+// legacy docs with no audience are everyone's; a friends night reaches the
+// viewer's accepted friends and the author's routed teams.)
+function canRead(doc, uid, viewerTeams, friendUids) {
   if (doc.audience !== 'friends') return true;
-  return doc.uid === uid || friendsReaches(doc.uid, viewerTeams);
+  return doc.uid === uid || (friendUids || []).indexOf(doc.uid) !== -1
+    || friendsReaches(doc.uid, viewerTeams);
+}
+// Both orders land on the one pair doc — that is what makes a crossed
+// request findable instead of a duplicate.
+const friendPairId = (a, b) => [String(a), String(b)].sort().join('__');
+// The accepted other-halves of these pairs, from this uid's side.
+function friendUidsOf(pairs, uid) {
+  return (pairs || []).filter((p) => p.acceptedAt)
+    .map((p) => (p.uids || []).find((u) => u !== uid))
+    .filter(Boolean);
+}
+async function friendPairsOf(uid) {
+  const snap = await db().collection(FRIENDS).where('uids', 'array-contains', uid).get();
+  return snap.docs.map((d) => d.data());
 }
 const audienceOf = (body) => (body?.audience === 'friends' ? 'friends' : 'everyone');
 
@@ -541,13 +576,15 @@ router.get('/feed', async (req, res) => {
     if (GATE_ON && !(await sharedToday(req.user.uid))) {
       return res.json({ sealed: true, count: snap.size, today });
     }
-    // Friends-audience dreams reach only the people the author routed them to
-    // (see THE DIAL above). Filtered server-side like everything else here —
-    // the count on the sealed card above deliberately still counts them: a
-    // dream you can't read yet is still a dream from last night.
-    const myTeams = await teamsOf(req.user.uid);
+    // Friends-audience dreams reach only the author's accepted friends and
+    // the people they routed them to (see THE DIAL above). Filtered
+    // server-side like everything else here — the count on the sealed card
+    // above deliberately still counts them: a dream you can't read yet is
+    // still a dream from last night.
+    const [myTeams, myPairs] = await Promise.all([teamsOf(req.user.uid), friendPairsOf(req.user.uid)]);
+    const myFriends = friendUidsOf(myPairs, req.user.uid);
     const readable = snap.docs.map((d) => d.data())
-      .filter((d) => canRead(d, req.user.uid, myTeams));
+      .filter((d) => canRead(d, req.user.uid, myTeams, myFriends));
     const feltSnap = await db().collection(FELT).where('uid', '==', req.user.uid).get();
     const felt = new Set(feltSnap.docs.map((d) => d.data().dreamId));
     // One entry per person per night. The counts SUM across the night's dreams
@@ -742,6 +779,103 @@ router.post('/teams/:id/leave', async (req, res) => {
   } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
 });
 
+// ── friends (see THE DIAL above) ────────────────────────────────────────────
+// Your personal link asks; the owner's yes makes it mutual. One pair doc,
+// content-addressed, so every path — ask, crossed ask, re-ask, accept —
+// converges on the same record.
+router.get('/friends', async (req, res) => {
+  try {
+    // The personal link's code, made the first time this screen asks for it;
+    // the stored name keeps up with the token's (it is what the other side's
+    // overlay says).
+    const pref = db().collection(PROFILE).doc(req.user.uid);
+    let prof = (await pref.get()).data();
+    if (!prof || !prof.code) {
+      prof = { uid: req.user.uid, name: req.user.name, code: crypto.randomBytes(9).toString('base64url') };
+      await pref.set(prof, { merge: true });
+    } else if (prof.name !== req.user.name) {
+      await pref.set({ name: req.user.name }, { merge: true });
+    }
+    const pairs = await friendPairsOf(req.user.uid);
+    const other = (p) => (p.uids || []).find((u) => u !== req.user.uid);
+    const row = (p) => ({ id: p.id, name: (p.names || {})[other(p)] || 'a dreamer' });
+    res.json({
+      code: prof.code,
+      friends: pairs.filter((p) => p.acceptedAt).map(row),
+      asks: pairs.filter((p) => !p.acceptedAt && p.requestedBy !== req.user.uid).map(row),
+      waiting: pairs.filter((p) => !p.acceptedAt && p.requestedBy === req.user.uid).map(row),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/friends/request', async (req, res) => {
+  try {
+    if (limited(`friendreq:${req.user.uid}`, 30, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'slow down a moment' });
+    }
+    const code = String(req.body?.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'no friend code' });
+    const snap = await db().collection(PROFILE).where('code', '==', code).limit(1).get();
+    if (snap.empty) return res.status(404).json({ error: 'that link doesn’t open anything' });
+    const owner = snap.docs[0].data();
+    if (owner.uid === req.user.uid) return res.status(400).json({ error: 'that is your own link' });
+    const id = friendPairId(owner.uid, req.user.uid);
+    const ref = db().collection(FRIENDS).doc(id);
+    const out = await db().runTransaction(async (tx) => {
+      const cur = (await tx.get(ref)).data();
+      if (cur && cur.acceptedAt) return { state: 'friends' };
+      if (cur && cur.requestedBy === req.user.uid) return { state: 'waiting' };
+      if (cur) {
+        // they asked YOU first — opening their link is a yes from both sides
+        tx.update(ref, { acceptedAt: new Date().toISOString() });
+        return { state: 'friends' };
+      }
+      tx.set(ref, {
+        id, uids: [owner.uid, req.user.uid].sort(),
+        names: { [owner.uid]: owner.name || 'a dreamer', [req.user.uid]: req.user.name },
+        requestedBy: req.user.uid, at: new Date().toISOString(), acceptedAt: null,
+      });
+      return { state: 'asked' };
+    });
+    res.json({ ...out, id, name: owner.name || 'a dreamer' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/friends/accept', async (req, res) => {
+  try {
+    const ref = db().collection(FRIENDS).doc(String(req.body?.id || ''));
+    const name = await db().runTransaction(async (tx) => {
+      const got = await tx.get(ref);
+      if (!got.exists) throw new Error('not found');
+      const cur = got.data();
+      if (!(cur.uids || []).includes(req.user.uid)) throw new Error('not found');
+      // Your own ask cannot be your own yes — that is the whole model.
+      if (cur.requestedBy === req.user.uid && !cur.acceptedAt) {
+        throw new Error('they have to say yes on their side');
+      }
+      if (!cur.acceptedAt) tx.update(ref, { acceptedAt: new Date().toISOString() });
+      const other = (cur.uids || []).find((u) => u !== req.user.uid);
+      return (cur.names || {})[other] || 'a dreamer';
+    });
+    res.json({ ok: true, name });
+  } catch (e) { res.status(e.message === 'not found' ? 404 : 400).json({ error: e.message }); }
+});
+
+// One route for "not now" on an ask and for unfriending later — both just
+// take the pair doc away; a fresh ask can always start over.
+router.post('/friends/remove', async (req, res) => {
+  try {
+    const ref = db().collection(FRIENDS).doc(String(req.body?.id || ''));
+    await db().runTransaction(async (tx) => {
+      const got = await tx.get(ref);
+      if (!got.exists) return;
+      if (!((got.data().uids) || []).includes(req.user.uid)) throw new Error('not found');
+      tx.delete(ref);
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(e.message === 'not found' ? 404 : 500).json({ error: e.message }); }
+});
+
 // ── comments ────────────────────────────────────────────────────────────────
 // A comment is only readable where the dream itself is: it must be in the feed
 // (publicOn set) or be your own. Comments DO carry a name — an unsigned reply
@@ -752,7 +886,10 @@ async function readableDream(id, uid) {
   const doc = snap.data();
   if (!doc.publicOn && doc.uid !== uid) return null;
   // A friends-audience dream is only readable where its feed card is.
-  if (doc.publicOn && !canRead(doc, uid, await teamsOf(uid))) return null;
+  if (doc.publicOn && doc.audience === 'friends' && doc.uid !== uid) {
+    const [teams, pairs] = await Promise.all([teamsOf(uid), friendPairsOf(uid)]);
+    if (!canRead(doc, uid, teams, friendUidsOf(pairs, uid))) return null;
+  }
   return doc;
 }
 
@@ -809,4 +946,4 @@ router.post('/dreams/:id/comments', async (req, res) => {
 // the load-bearing half of "one night is one entry". friendsReaches/canRead
 // are the whole friends-audience rule, exported the same way.
 module.exports = { router, init, nightsFrom, nightPanels, coverOf, spineOf, streakOf,
-                   friendsReaches, canRead };
+                   friendsReaches, canRead, friendPairId, friendUidsOf };
