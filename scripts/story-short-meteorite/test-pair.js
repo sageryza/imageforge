@@ -37,7 +37,6 @@ async function edit(prompt, refs, retries = 2) {
       form.append('size', '1024x1536');
       form.append('quality', 'medium');
       form.append('output_format', 'webp');
-      form.append('output_compression', '90');
       refs.forEach((b, i) => form.append('image[]', new Blob([b], { type: 'image/png' }), `ref${i + 1}.png`));
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST', headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` }, body: form,

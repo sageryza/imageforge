@@ -537,7 +537,10 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
     form.append('size', ART.size);
     form.append('quality', quality);
     form.append('output_format', 'webp');
-    form.append('output_compression', '80');
+    // NO output_compression — it is lossy, OpenAI applies it before the bytes
+    // come back, and every beat's art here is a KEPT original (superseded art
+    // goes to beat.imageHistory rather than being deleted). See
+    // scripts/test-no-generation-compression.js.
     refs.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
     const r = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',

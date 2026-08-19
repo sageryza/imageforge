@@ -208,10 +208,23 @@ is the one number `song.hook` wants. Whisper heard "touching me bright" where
 the printed lyric reads "touching me right", so read its WORDS as a first pass
 and its TIMES as the answer.
 
-**v1/v2 are SILENT** (0:14.8, 2026-08-19) — a cloud session cannot fetch the track
-(YouTube bot-blocks datacenter IPs), so the audio is queued in
-`docs/desktop-tasks.md`. Everything else is final; adding the song is one
-command with `--audio`.
+**THE SONG IS ON IT (v3, 0:14.8, 2026-08-19), and it never needed her Mac.**
+The first cuts shipped silent on the standing rule that a cloud session cannot
+pull audio — true of YouTube, and re-measured that day (`yt-dlp` gets a 429 and
+"Sign in to confirm you're not a bot"). **But the rule is about YouTube, not
+about audio**: Kitsune Musique's own SoundCloud carries the full track and
+`yt-dlp` pulls it from this sandbox in seconds
+(`soundcloud.com/kitsunemusique/afro-comb-venusfeat-domainiq`, kept in
+`song.source`). Apple's iTunes Search API is the second door — `previewUrl` is
+a free 30-second m4a, and for this track the preview happens to contain the
+whole hook. **Before queueing an audio grab as a desktop task, try the label's
+SoundCloud and the iTunes preview.**
+
+Checked rather than assumed: the finished film's own audio transcribes with
+"You was in my dream last night" starting at 9.5s against an end card at 9.8s,
+so the word "dream" lands as the card comes up. The mp4 carries ~15 seconds of
+the record — fine for her own review, and exactly what the licence note below
+is about for anything public.
 v3 (the song on it — the current cut):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v3.mp4
 v1 (the kitchen dream):
