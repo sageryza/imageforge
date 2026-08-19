@@ -1,0 +1,42 @@
+[
+  {
+    "id": "somnivex-1",
+    "spot": "Somnivex",
+    "n": 1,
+    "label": "Somnivex 1 of 6 — she misses her grandmother (kitchen window, dusk)",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116770593-9fmz6u.webp",
+    "content": "a woman in her late 30s with wavy auburn hair wearing a cream linen blouse stands at a kitchen window at dusk, holding a framed photograph of her grandmother, wistful gentle expression, neighborhood porch lights soft in the background",
+    "style": "Still frame from a glossy American prescription-drug TV commercial, photorealistic cinematic 35mm film look, soft diffused light, shallow depth of field, gentle lens bloom, pristine art-directed set, pastel wardrobe, suburban optimism, twilight blue and lavender palette, faint dreamlike haze. [content] (gpt-image-2 · 1536x1024 · medium)",
+    "madeAt": 1787116729517
+  },
+  {
+    "id": "somnivex-2",
+    "spot": "Somnivex",
+    "n": 2,
+    "label": "Somnivex 2 of 6 — product shot on the nightstand",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116813396-l30i0y.webp",
+    "content": "product shot of an amber prescription pill bottle labeled \"SOMNIVEX\" standing on a wooden nightstand in moonlight beside a glass of water and folded reading glasses, moonbeam through gauzy curtains",
+    "style": "Still frame from a glossy American prescription-drug TV commercial, photorealistic cinematic 35mm film look, soft diffused light, shallow depth of field, gentle lens bloom, pristine art-directed set, pastel wardrobe, suburban optimism, twilight blue and lavender palette, faint dreamlike haze. [content] (gpt-image-2 · 1536x1024 · medium)",
+    "madeAt": 1787116774322
+  },
+  {
+    "id": "somnivex-3",
+    "spot": "Somnivex",
+    "n": 3,
+    "label": "Somnivex 3 of 6 — she falls asleep",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116853080-3boj8z.webp",
+    "content": "the same woman with wavy auburn hair asleep and serene under a white quilt in a moonlit bedroom, one hand relaxed on the pillow, curtains breathing in a night breeze",
+    "style": "Still frame from a glossy American prescription-drug TV commercial, photorealistic cinematic 35mm film look, soft diffused light, shallow depth of field, gentle lens bloom, pristine art-directed set, pastel wardrobe, suburban optimism, twilight blue and lavender palette, faint dreamlike haze. [content] (gpt-image-2 · 1536x1024 · medium)",
+    "madeAt": 1787116816577
+  },
+  {
+    "id": "somnivex-4",
+    "spot": "Somnivex",
+    "n": 4,
+    "label": "Somnivex 4 of 6 — the porch swing dream",
+    "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116898774-amd6bf.webp",
+    "content": "dream scene: the woman with wavy auburn hair sits beside a silver-haired grandmother in a lilac floral house dress on a white porch swing at night, both laughing, a mason jar of lemonade between them, hundreds of golden fireflies, the edges of the frame softly luminous",
+    "style": "Still frame from a glossy American prescription-drug TV commercial, photorealistic cinematic 35mm film look, soft diffused light, shallow depth of field, gentle lens bloom, pristine art-directed set, pastel wardrobe, suburban optimism, twilight blue and lavender palette, faint dreamlike haze. [content] (gpt-image-2 · 1536x1024 · medium)",
+    "madeAt": 1787116856142
+  }
+]
