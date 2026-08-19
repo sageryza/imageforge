@@ -139,6 +139,45 @@ Two notes for whoever shoots it.
   so the copy does the argument and the song says the name. No voiceover, no
   explanation of what the app does.
 
+#### Cutting it (2026-08-19)
+
+`node scripts/dream-commercial/spot.js spot.json out.mp4 [--audio venus.m4a]`
+— same camera as the boys film (`film-kit.js` is the shared half: the proxy
+fetch, the Google-font pull, the concat encode), a new page and a new script.
+No model calls in the render; it costs nothing and takes ~40s.
+
+- **`spot.html` is a prop of OUR app, where `render.html` is a prop of
+  Apple's.** So its palette, its EB Garamond / Courier Prime / Baveuse, the
+  dial and the blob button are copied from `public/dreamapp.html` verbatim —
+  when that screen changes, change this. One deliberate difference: the real
+  sheet is bottom-anchored because it scrolls, and for a four-second shot that
+  left a dead band, so the block is centred.
+- **The app's own wobble/blob keyframes are PAUSED.** A screenshot loop samples
+  real time unevenly, so a wall-clock animation plays back at the wrong speed —
+  every shape holds its 0% frame, which is already organic. The only motion is
+  the thumb, and the thumb is placed off the real elements'
+  `getBoundingClientRect`, so a chip that re-wraps is still hit dead centre.
+- **The tap dot is blush** (`#d9b3c0`, the end card's own colour) because it
+  has to read over cream AND over the brown chip it lands on; in ink it
+  disappeared into the button.
+- **The picture is the app's real output** — `spot-image.js` calls movies.js
+  `makeDreamImage` directly (gpt-image-2 edits, `refs/dream-mystery.jpg` as the
+  style reference, square, medium, 5.3¢). It deliberately does NOT go through
+  `/api/dreamapp/dreams/:id/draw`, which would write a real dream into a real
+  person's feed.
+
+**THE SOUND IS THE POINT, and the film is cut to it.** The script carries the
+hook's TIMESTAMP (1:04) rather than an offset, and the driver derives the rest:
+the song starts at `hook − (when the end card appears)` = 54.20s, so "you were
+in my dreams last night" lands exactly as the end card does, at 9.8s. Change a
+`hold` anywhere and the offset re-derives itself.
+
+**v1 is SILENT** (0:14.8, 2026-08-19) — a cloud session cannot fetch the track
+(YouTube bot-blocks datacenter IPs), so the audio is queued in
+`docs/desktop-tasks.md`. Everything else is final; adding the song is one
+command with `--audio`.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v1.mp4
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is

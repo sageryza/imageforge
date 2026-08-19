@@ -1,0 +1,22 @@
+{
+  "dream": {
+    "title": "the kitchen at four",
+    "text": "i dreamt you were in my kitchen at four in the morning, moving around like you lived there. you didn’t say anything. i wasn’t surprised to see you.",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-kitchen.webp"
+  },
+  "song": {
+    "track": "Venus — Afro Comb feat. DOMAINIQ",
+    "hook": 64.0,
+    "landsOn": "end",
+    "note": "1:04 is where she heard 'you were in my dreams last night'"
+  },
+  "press": 0.72,
+  "beats": [
+    { "id": "secret", "type": "card", "bg": "#f4f0e5", "fg": "#14131a", "text": "now it doesn’t have to be a secret", "hold": 3.6 },
+    { "id": "dream",  "type": "app", "state": "idle",     "move": 0.4,  "hold": 1.6 },
+    { "id": "open",   "type": "app", "state": "everyone", "move": 0.75, "hold": 1.6 },
+    { "id": "share",  "type": "app", "state": "share",    "move": 0.7,  "hold": 1.5 },
+    { "id": "posted", "type": "app", "state": "shared",   "move": 0.5,  "hold": 1.5 },
+    { "id": "end",    "type": "end", "name": "you were in my dreams", "url": "youwereinmydreams.com", "hold": 5.0 }
+  ]
+}
