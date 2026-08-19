@@ -51,7 +51,6 @@ async function whitenBackground(buf, tol = 46) {
   form.append('size', SIZE);
   form.append('quality', QUALITY);
   form.append('output_format', 'webp');
-  form.append('output_compression', '80');
   refs.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
   const started = Date.now();
   const res = await fetch('https://api.openai.com/v1/images/edits', {

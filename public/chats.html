@@ -178,13 +178,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #pinfull .x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:2;
   width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.45);
   color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1;}
-/* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie: "I watch the video but I can
-   tap it and then the video pauses and a field comes up where I can write a
-   note and then once I tap done, the video keeps playing and the note
-   disappears and gets sent to you or whatever chat I'm using it for").
-   The tap layer stops above the native control bar so play/scrub still work;
-   the sheet is flat solid ink (no gradients, ever), buttons hug their words. */
-#pinfull .notetap{position:absolute; left:0; right:0; top:0; bottom:24%; z-index:1;}
+/* TAP-TO-NOTE on a pinned film (Aug 2026, Sophie; REWORKED same day after her
+   first real use: "even pressing play on the video triggers the note thing").
+   No capture layer any more — a floating NOTE button pops up when she touches
+   the screen and fades away, the native controls' own rhythm. Tapping it
+   pauses and starts the MIC straight away (her default: talk, one Done to
+   stop + file + resume); tapping the text box instead stops the mic and puts
+   the transcript there for keyboard editing. Flat solid ink, no gradients. */
+#pinfull .notebtn{position:absolute; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 64px);
+  z-index:2; display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:6px;
+  border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.55); color:#fff;
+  font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:14px; cursor:pointer;
+  opacity:1; transition:opacity .25s; -webkit-tap-highlight-color:transparent;}
+#pinfull .notebtn.off{opacity:0; pointer-events:none;}
 #pinfull .nsheet{position:absolute; left:0; right:0; bottom:0; z-index:4; background:#17140f;
   color:#e8e2d6; padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; gap:9px; font-family:Georgia,serif;}
@@ -1041,7 +1047,7 @@ body.selecting .jumps{display:none;}
   align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; padding:0;}
 .totop.show{display:flex;}
 .arow{display:flex; align-items:center; gap:10px; margin:0 0 10px;}
-/* ---- The tool row: select + refresh + the category chips ------------------
+/* ---- The tool row: select + the tag chips ---------------------------------
    Where the LIST/TILES toggle used to be (Aug 2026, Sophie — she stopped
    using tiles, so the toggle was two taps of nothing). The two icon buttons
    sit at the LEFT, where she remembered them ("could you put them back where
@@ -1053,9 +1059,28 @@ body.selecting .jumps{display:none;}
    this could happen only when I select something"). Sticky rather than fixed,
    so the row keeps its place in the layout and nothing under it jumps as it
    pins; it needs the page's own background or the cards read through it. */
-.toolrow{display:flex; align-items:flex-start; gap:8px; margin:0 0 .7em; padding-right:64px;}
+.toolrow{display:block; margin:0 0 .7em;}
+.toolrow::after{content:""; display:block; clear:both;}
+/* The pill's corner, carved out of the flow: a right float whose height is
+   set at paint time to how much of the pill's fixed band (y 14-192) the row
+   still occupies — the lines beside it shorten, the lines below run full
+   width. It replaces the flex row's blanket padding-right:64px, which
+   reserved the corner on EVERY line, including the twenty below the pill. */
+#pillnotch{float:right; width:64px; height:0;}
 body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--paper);
   padding-top:8px; padding-bottom:8px; margin-bottom:calc(.7em - 8px);}
+/* Inside the tool row everything is inline flow (the wrap under the icon is
+   the point); the archive's own .catrow.arctagrow keeps the flex layout. */
+#toolrow .catrow{display:inline;}
+#toolrow .catchip{margin:0 6px 6px 0; vertical-align:top;}
+#toolrow .iconbtn{display:inline-flex; vertical-align:top; margin:0 8px 6px 0;}
+/* The line between the two groups when both are open: her "small red line or
+   a label" — a thin line in the accent, then the group's name under it. A
+   block in the inline flow, so it also breaks the chips onto a new line. */
+.catdiv{display:block; margin:2px 0 8px; font-family:-apple-system,sans-serif;
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--chg);}
+.catdiv::before{content:""; display:block; margin:2px 0 6px;
+  border-top:1px solid color-mix(in srgb, var(--chg) 40%, var(--paper));}
 .catrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:1; min-width:0;}
 .catchip{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   border:1.5px solid var(--line); border-radius:6px; background:transparent; color:var(--ink2);
@@ -1234,15 +1259,23 @@ body.selecting > .float{display:none !important;}
       </div>
       <div class="rule"></div>
     </header>
-    <!-- The two square icons sit at the LEFT of this row (Aug 2026, Sophie:
-         "I thought that the select box and the other little square icon were
-         on the left before, could you put them back where they were"). The
-         64px reserve at the right stays regardless — that is the floating
-         autoscroll pill's corner (x 324-374, y 14-192), and it is the chips
-         that now run into it. -->
+    <!-- THE CHIPS RUN FULL WIDTH AND FLOW AROUND THE PILL'S CORNER (Aug 2026,
+         Sophie, from the screenshot of the open row: "the tags are going
+         really far down because they are not allowed to go into the left most
+         part … make the tags take up the full width but skip where the auto
+         scroll pill is"). The row is a BLOCK now, not a flex line: the select
+         icon is just the first thing in the flow, the chips wrap under it to
+         the full width, and #pillnotch — a float sized at paint time to
+         however much of the pill's fixed band (y 14-192) this row still sits
+         in — is what carves the top-right corner out. The old flex layout
+         penned every chip into the column right of the icons, which is what
+         stacked twenty of them one or two to a line.
+         THE REFRESH ICON IS GONE (same message: "let's get rid of the refresh
+         button because I never use it anymore") — the page polls on its own
+         and her pull is the big title. -->
     <div id="toolrow" class="toolrow">
+      <div id="pillnotch"></div>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
-      <button id="refresh" class="iconbtn" aria-label="Refresh"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
       <div id="catrow" class="catrow"></div>
     </div>
     <!-- COLLAPSED to the glass until she taps it (Sophie, Aug 2026). The glass
@@ -1375,6 +1408,24 @@ function liveInput(el, fn){
   // Clearing the box in code (the ✕, leaving a chat) must not then fire as if
   // she had typed it.
   return { sync:function(){ last=el.value; } };
+}
+
+// ── RETURN SENDS THE SEARCH ──────────────────────────────────────────────
+// (Aug 2026, Sophie: "only the check mark sends the search on its way. I'd
+// like the return button to do the same. Also send it on its way. period.")
+// The ✓ that ends dictation was the only key that finished a query: a lone
+// <input type=search> outside a <form> has nothing to submit to, so Return
+// did nothing at all. Now it ends the search the way the ✓ does — runs it
+// NOW, with no debounce left to wait out — and drops the keyboard, because
+// what she wants to be looking at after Return is the answer, not her own
+// words behind a keyboard covering half of them.
+function enterSubmits(el, fn){
+  el.addEventListener('keydown', function(e){
+    if(e.key!=='Enter' && e.keyCode!==13) return;
+    e.preventDefault();
+    if(fn) fn();
+    el.blur();
+  });
 }
 
 // ── The hairline tab rows' sliding line ──────────────────────────────────
@@ -1958,8 +2009,9 @@ function paintHomeChrome(){
   a.classList.toggle('on', homeView==='archive');
   document.getElementById('bmklink').classList.toggle('on', homeView==='bookmarks');
   // Categories + select file CHATS; bookmarks are messages and status is its
-  // own layout, so both would be controls that do nothing there. Refresh is
-  // useful everywhere, so it stays and the row keeps its place.
+  // own layout, so both would be controls that do nothing there. (The refresh
+  // icon that used to hold this row's place is gone — Aug 2026, Sophie: "I
+  // never use it anymore"; the page polls on its own.)
   // UPDATE is in this set too: its cards are one per chat but they are
   // notifications, not the filing surface — a category chip or a select
   // checkbox there would be a control that does nothing to what is on screen.
@@ -2021,17 +2073,16 @@ function otherView(){
 }
 function paintSearch(){
   var row=document.getElementById('searchrow'), btn=document.getElementById('searchbtn'),
-      tools=document.getElementById('toolrow'), ref=document.getElementById('refresh');
+      tools=document.getElementById('toolrow'), ref=document.getElementById('catrow');
   if(!row||!btn) return;
   var todoing=(homeView==='todo');
   var open=searchOpen && !todoing;
   row.classList.toggle('on', open);
   // WITH THE CHIPS GONE THE GLASS JOINS THE TOOL ROW (Sophie caught it on the
-  // UPDATE tab): there, the tool row is one lonely refresh icon and the folded
-  // glass is a second lonely icon on its own row underneath — two rows of
-  // screen spending almost nothing. The glass only needs a row of its own on
-  // the chat list, where the chips are using that width (measured: a third
-  // icon up there wraps them at 375/390).
+  // UPDATE tab): there, the tool row is nearly empty and the folded glass is
+  // a lonely icon on its own row underneath — two rows of screen spending
+  // almost nothing. The glass only needs a row of its own on the chat list,
+  // where the chips are using that width.
   var park = !open && otherView() && !todoing;
   if(park){ if(btn.parentNode!==tools) tools.insertBefore(btn, ref); }
   else if(btn.parentNode!==row) row.insertBefore(btn, row.firstChild);
@@ -2052,11 +2103,17 @@ function paintSearch(){
 }
 function setSearchOpen(on){
   searchOpen=!!on;
-  // Closing throws the query away — a folded-away bar still holding words
-  // would leave the results list up with nothing on screen explaining why.
+  // Closing clears the box — a folded-away bar still holding words would
+  // leave the results list up with nothing on screen explaining why. The
+  // words are only REMEMBERED for a minute (see _restoreRecentSearch), which
+  // is a different thing: nothing is on screen until she opens the bar again.
   if(!searchOpen && window._resetSearch) window._resetSearch();
   paintSearch();
-  if(searchOpen){ var i=document.getElementById('qsearch'); if(i) i.focus(); }
+  if(searchOpen){
+    var i=document.getElementById('qsearch'); if(i) i.focus();
+    // …and if she was searching a moment ago, the words are still there.
+    if(window._restoreRecentSearch) window._restoreRecentSearch();
+  }
   if(window.__jumpsRecheck) window.__jumpsRecheck();
 }
 // Leaving UPDATE drops whatever was picked there — a selection is a gesture
@@ -3167,6 +3224,33 @@ var catsOpen=false;
 // whenever `cat` is set, which also means the way OUT of a folder (tap the lit
 // chip) is never hidden.
 function catsShown(){ return catsOpen || !!cat; }
+// ---- TWO KINDS OF TAG, AND ONLY ONE SHOWS BY DEFAULT (Aug 2026, Sophie:
+// "there are two different types of tags — category tags like witch and dream
+// app and xi, and task tags like in progress and come back to … the default
+// view should only show the progress tags, but there can be a see more button
+// that shows the category tags also, and if they're both shown there should
+// be some sort of distinction between them like a small red line or a
+// label") --------------------------------------------------------------------
+// The vocabulary had grown to ~18 words and opening TAGS dumped all of them at
+// once. A TASK word says where the work STANDS (come back to, to be reviewed);
+// a CATEGORY word says what the chat IS (witch, stories, dream app). She
+// reaches for the task ones constantly and the topic ones occasionally, so
+// TAGS opens on the task group and SEE MORE unfolds the categories under a
+// thin red line carrying the word CATEGORIES.
+//
+// The list is PRESENTATION ONLY — nothing about filing, piles or chat-sort
+// reads it; a word not on it simply shows in the categories group, which is
+// the safe default for anything she invents. Purely client-side, so moving a
+// word between groups is editing this one array.
+var TASK_LABELS=['look at','come back to','in progress','waiting for something',
+  'to be reviewed','to read','built','failed'];
+function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
+// Session-only like catsOpen, and it RESETS when TAGS closes, so every open
+// starts on the task group — the default view she asked for.
+var catsMore=false;
+// …forced open while a CATEGORY filter is lit, same silent-filter rule as
+// catsShown: the lit chip must be on screen, and the way out with it.
+function catsMoreShown(){ return catsMore || (!!cat && !isTask(cat)); }
 // The ★ chip is a filter like a category, with one deliberate difference: it
 // IGNORES `archived`. Starred chats are the ones she has finished with and put
 // away, so a star pile that stopped at the archive would miss most of them.
@@ -3510,7 +3594,7 @@ function paintCatRow(g){
   var row=document.getElementById('catrow'); row.innerHTML='';
   // The UPDATE screen borrows this row for its two boxes — same chips, same
   // place, a different thing being filed (see NEWS_QS).
-  if(homeView==='news'){ paintNewsQRow(row,g); return; }
+  if(homeView==='news'){ paintNewsQRow(row,g); sizePillNotch(); return; }
   var sb=document.createElement('button');
   sb.className='catchip starchip'+(starOnly?' on':'');
   sb.innerHTML=STAR; sb.setAttribute('aria-label','Starred chats');
@@ -3544,10 +3628,10 @@ function paintCatRow(g){
   // Closing CLEARS the filter. A lit folder forces the row open (catsShown),
   // so without this the button would look dead on the one tap she is most
   // likely to make — and folding a live filter away would hide it.
-  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen) cat=''; renderHome(); window.scrollTo(0,0); };
+  tb.onclick=function(){ catsOpen=!shown; if(!catsOpen){ cat=''; catsMore=false; } renderHome(); window.scrollTo(0,0); };
   row.appendChild(tb);
-  if(!shown) return;
-  cats.forEach(function(e){
+  if(!shown){ sizePillNotch(); return; }
+  var chip=function(e){
     var c=e.name, fresh=e.fresh;
     var b=document.createElement('button');
     b.className='catchip'+(cat===c?' on':'');
@@ -3559,7 +3643,45 @@ function paintCatRow(g){
     b.setAttribute('aria-label', catLabel(c)+(fresh? ' — '+fresh+' answered you' : ''));
     b.onclick=function(){ cat=(cat===c?'':c); starOnly=false; renderHome(); window.scrollTo(0,0); };
     row.appendChild(b);
-  });
+  };
+  // TASK words first, in workflow order (TASK_LABELS), then the categories —
+  // behind SEE MORE until she asks, under the red line once she has.
+  var tasks=TASK_LABELS
+    .map(function(t){ return cats.filter(function(e){ return e.name===t; })[0]; })
+    .filter(Boolean);
+  var topics=cats.filter(function(e){ return !isTask(e.name); });
+  tasks.forEach(chip);
+  if(topics.length){
+    if(!catsMoreShown()){
+      // The folded categories' unread replies ride on SEE MORE, exactly as
+      // the whole row's ride on TAGS while it is shut — a reply must never be
+      // hidden without a number saying it is there.
+      var tw=topics.reduce(function(n,c){ return n+c.fresh; }, 0);
+      var mb=document.createElement('button');
+      mb.className='catchip morechip';
+      mb.innerHTML='See more'+(tw?'<span class="cc-new">'+tw+'</span>':'');
+      mb.setAttribute('aria-label','Show the category tags'+(tw? ' — '+tw+' answered you':''));
+      mb.onclick=function(){ catsMore=true; renderHome(); };
+      row.appendChild(mb);
+    } else {
+      var d=document.createElement('div');
+      d.className='catdiv'; d.textContent='Categories';
+      row.appendChild(d);
+      topics.forEach(chip);
+    }
+  }
+  sizePillNotch();
+}
+// The notch that carves the autoscroll pill's corner out of the tool row: the
+// pill is FIXED over x 324-374, y 14-192, so the float's height is however
+// much of that band the row still sits in when it paints. Repainted with the
+// row, so opening TAGS (which grows the row into the band) sizes it and a
+// scrolled-down paint collapses it to nothing.
+function sizePillNotch(){
+  var n=document.getElementById('pillnotch'), t=document.getElementById('toolrow');
+  if(!n||!t) return;
+  var top=t.getBoundingClientRect().top;
+  n.style.height=Math.max(0, Math.min(200, 192-top))+'px';
 }
 
 // ---- Select mode -----------------------------------------------------------
@@ -4671,79 +4793,121 @@ function openPinned(pin, chatName){
   document.addEventListener('keydown',esckey);
   w.appendChild(v); w.appendChild(x);
 
-  // TAP-TO-NOTE (Aug 2026, Sophie's design — tap pauses, a field comes up,
-  // Done resumes and the note goes to the chat). The note lands on the FILM's
-  // own url thread via the asset-note machinery, stamped with the video time,
-  // so the chat that pinned it sweeps film notes exactly like image notes
-  // (GET /api/gallery/assets/notes) and can answer on the note itself.
+  // TAP-TO-NOTE (Aug 2026, Sophie's design; reworked on her first real use —
+  // "even pressing play on the video triggers the note thing"). No layer over
+  // the video: a floating NOTE button appears when she touches the screen and
+  // fades away, like the native controls. Tapping it pauses and starts the
+  // MIC immediately — she talks, ONE Done stops it, files the note and
+  // resumes; tapping the TEXT BOX instead stops the mic and puts the
+  // transcript there to edit (that is when the keyboard rises). Notes land on
+  // the FILM's url thread via the asset-note machinery, stamped with the
+  // video time, so the chat that pinned it sweeps them like image notes.
   // Films only, and only when we know which chat the pin belongs to.
   if(pin.kind!=='audio' && chatName){
-    var tap=document.createElement('div'); tap.className='notetap';
-    tap.setAttribute('aria-label','Tap to pause and leave a note');
-    var sheet=null;
+    var sheet=null, fadeT=null;
     var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
     var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
-    tap.onclick=function(){
+    var nb=document.createElement('button'); nb.className='notebtn off';
+    nb.innerHTML=MIC+'<span>Note</span>';
+    nb.setAttribute('aria-label','Pause and leave a note');
+    // the button follows the native controls' rhythm: a touch on the video
+    // shows it, another touch (or 3.5s) fades it away
+    function showBtn(){ nb.classList.remove('off');
+      clearTimeout(fadeT); fadeT=setTimeout(function(){ nb.classList.add('off'); }, 3500); }
+    w.addEventListener('click', function(e){
+      if(e.target!==v || sheet) return;
+      if(nb.classList.contains('off')) showBtn();
+      else { clearTimeout(fadeT); nb.classList.add('off'); }
+    });
+    // files the note text (with the voice url when there is one) onto the
+    // film's thread; background=true means she is already watching again
+    function fileNote(t, text, voiceUrl, st){
+      var line='['+t+'] '+(text||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
+      return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text: line }) })
+        .then(function(r){ return r.json(); });
+    }
+    nb.onclick=function(){
       if(sheet) return;
+      clearTimeout(fadeT); nb.classList.add('off');
       try{ v.pause(); }catch(_){ }
       var t=fmtT(v.currentTime);
       sheet=document.createElement('div'); sheet.className='nsheet';
-      sheet.innerHTML='<div class="nt">Note at '+t+' — it goes to this chat</div>'
-        +'<textarea aria-label="Your note"></textarea>'
-        +'<div class="row"><button class="mic" aria-label="Record a voice note">'+MIC+'</button>'
-        +'<span class="st"></span><span style="flex:1"></span>'
+      sheet.innerHTML='<div class="nt">Note at '+t+'</div>'
+        +'<textarea aria-label="Your note — tap here to edit with the keyboard"></textarea>'
+        +'<div class="row"><span class="st"></span><span style="flex:1"></span>'
         +'<button class="cxl">Cancel</button><button class="send">Done</button></div>';
       var ta=sheet.querySelector('textarea'), st=sheet.querySelector('.st');
-      var micB=sheet.querySelector('.mic');
-      function resume(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; }
-        if(sheet){ sheet.remove(); sheet=null; } v.play().catch(function(){}); }
+      var chunks=[], voiceHeld=null, mode='text'; // 'rec' | 'held' | 'text'
+      function stopMic(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; } }
+      function closeSheet(){ stopMic(); if(sheet){ sheet.remove(); sheet=null; } }
+      function resume(){ closeSheet(); v.play().catch(function(){}); }
+      // upload + transcribe WITHOUT filing (hold:true) so her words can land
+      // in the box for editing; filing is always the text route above
+      function holdVoice(blob){
+        return new Promise(function(res){
+          var rd=new FileReader();
+          rd.onloadend=function(){
+            fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ chat: chatName, url: pin.url, t: t, hold: true, audio: rd.result }) })
+              .then(function(r){ return r.json(); }).then(res).catch(function(){ res(null); });
+          };
+          rd.readAsDataURL(blob);
+        });
+      }
+      // DEFAULT: the mic is already on — she talks, one Done does the rest
+      if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined'){
+        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+          if(!sheet){ stream.getTracks().forEach(function(tr){ tr.stop(); }); return; }
+          mrec=new MediaRecorder(stream);
+          mode='rec'; st.textContent='Recording — talk, then tap Done';
+          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+          mrec.onstop=function(){ stream.getTracks().forEach(function(tr){ tr.stop(); }); };
+          mrec.start();
+        }).catch(function(){ st.textContent='No mic here — type instead.'; ta.focus(); });
+      } else { st.textContent='No mic here — type instead.'; }
+      // tapping the box: stop the mic, put her words there, keyboard rises
+      ta.addEventListener('focus', function(){
+        if(mode!=='rec') return;
+        mode='held'; stopMic();
+        st.textContent='Getting your words…';
+        var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+        if(!blob.size){ mode='text'; st.textContent=''; return; }
+        holdVoice(blob).then(function(d){
+          if(!sheet) return;
+          if(d&&d.ok){ voiceHeld=d.url; if(!ta.value.trim()) ta.value=d.transcript||''; st.textContent=''; }
+          else st.textContent='Couldn’t hear that — type it instead.';
+        });
+      });
       sheet.querySelector('.cxl').onclick=resume;
       sheet.querySelector('.send').onclick=function(){
-        var text=ta.value.trim();
-        if(!text){ resume(); return; }
-        st.textContent='Sending…';
-        fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text:'['+t+'] '+text }) })
-          .then(function(r){ return r.json(); })
-          .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; } resume(); })
-          .catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
-      };
-      // the mic: one tap records, the second stops; the server transcribes it
-      // and files "[time] words (voice: url)" on the same thread
-      micB.onclick=function(){
-        if(mrec){ try{ mrec.stop(); }catch(_){ mrec=null; micB.classList.remove('on'); } return; }
-        if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
-          st.textContent='The mic isn’t available here — typed notes still work.'; return;
+        var typed=ta.value.trim();
+        if(mode==='rec'){
+          // her one button: stop, file, resume — she is watching again while
+          // the transcription finishes in the background
+          stopMic();
+          var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+          resume();
+          if(!blob.size && !typed) return;
+          if(!blob.size){ fileNote(t, typed, null); return; }
+          holdVoice(blob).then(function(d){
+            var voice=d&&d.ok?d.url:null;
+            var words=typed||(d&&d.ok?d.transcript:'')||'';
+            if(!voice&&!words) return;
+            fileNote(t, words, voice);
+          });
+          return;
         }
-        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-          var chunks=[];
-          mrec=new MediaRecorder(stream);
-          micB.classList.add('on'); st.textContent='Recording — tap the mic again to finish';
-          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-          mrec.onstop=function(){
-            stream.getTracks().forEach(function(tr){ tr.stop(); });
-            mrec=null; micB.classList.remove('on');
-            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-            if(!blob.size){ st.textContent=''; return; }
-            if(blob.size>8000000){ st.textContent='That one’s too long — keep it under a few minutes.'; return; }
-            st.textContent='Saving the voice note…';
-            var rd=new FileReader();
-            rd.onloadend=function(){
-              fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ chat: chatName, url: pin.url, t: t, audio: rd.result }) })
-                .then(function(r){ return r.json(); })
-                .then(function(d){ if(!d||!d.ok){ st.textContent='Couldn’t save the voice note.'; return; } resume(); })
-                .catch(function(){ st.textContent='Couldn’t save the voice note.'; });
-            };
-            rd.readAsDataURL(blob);
-          };
-          mrec.start();
-        }).catch(function(){ st.textContent='The mic isn’t available here — typed notes still work.'; });
+        if(!typed && !voiceHeld){ resume(); return; }
+        st.textContent='Sending…';
+        fileNote(t, typed, voiceHeld).then(function(d){
+          if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; }
+          resume();
+        }).catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
       };
       w.appendChild(sheet);
-      ta.focus();
     };
-    w.appendChild(tap);
+    w.appendChild(nb);
   }
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
@@ -5168,7 +5332,17 @@ function openChat(name, keepScroll, focusId, noFetch){
         // her message shows in the thread right away — no refresh round-trip
         mlist.appendChild(renderMsg({from:'sophie', text:v, created:new Date().toISOString()}));
         compTa.value='';
-        if(chats[name]) chats[name].archived=false;   // /reply unarchives server-side
+        // Mirror the registry writes /reply just made, so the send is VISIBLE
+        // when she taps back: the server stamps notifSeenAt (her reply clears
+        // this chat's Update card — see newsFloor) and unarchives, but the
+        // page's registry copy only refreshes on a poll, up to 20s away. She
+        // taps back in two — the card still sitting there is exactly what
+        // read as "we never fixed this" (Sophie, 2026-08-19). The answer her
+        // message prompts is a NEWER arrival, so the card returning WITH the
+        // answer is still the design, not this bug.
+        chats[name]=chats[name]||{};
+        chats[name].archived=false;
+        chats[name].notifSeenAt=d.notifSeenAt||new Date().toISOString();
         if(!ring) return {status:'quiet'};
         return api('/api/chatfeed/wake',{method:'POST',body:JSON.stringify({chat:name})})
           .then(function(r){return r.json()})
@@ -5230,6 +5404,9 @@ function openChat(name, keepScroll, focusId, noFetch){
     scount.textContent=hits? (hits+' message'+(hits===1?'':'s')) : 'No messages match that';
   }
   var sinpLive=liveInput(sinp, applyMsgFilter);
+  // Return here just ends it and drops the keyboard (the filtering is already
+  // live) — sync'd for the same reason as the home bar.
+  enterSubmits(sinp, function(){ applyMsgFilter(); sinpLive.sync(); });
   sclr.onclick=function(){ sinp.value=''; sinpLive.sync(); applyMsgFilter(); sinp.focus(); };
   // ---- Questions, in the messages' place ----------------------------------
   // The button on the note row swaps the two boxes and swaps them back — no
@@ -5378,11 +5555,14 @@ function openChat(name, keepScroll, focusId, noFetch){
         si.autocapitalize='none'; si.autocorrect='off';
         var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
         sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
-        var siLive=liveInput(si, function(){
+        function readSearch(){
           q=(si.value||'').trim().toLowerCase();
           sx.style.display=q?'':'none';
           applyFilter();
-        });
+        }
+        var siLive=liveInput(si, readSearch);
+        // Same as everywhere else: Return ends it and the keyboard goes.
+        enterSubmits(si, function(){ readSearch(); siLive.sync(); });
         sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
         srow.appendChild(si); srow.appendChild(sx);
         assetsPanel.appendChild(srow);
@@ -6369,7 +6549,7 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // The ✕'s visibility is the ROW's business now (it is shown whenever the
   // bar is open, because it doubles as the way to fold the bar away), so
   // nothing here touches its display.
-  window._resetSearch=function(){ if(qi){ qi.value=''; } showGrid(); };
+  window._resetSearch=function(){ clearTimeout(t); if(qi){ qi.value=''; } showGrid(); };
   // Is there a search on screen right now? Words in the box AND a results list
   // standing in the grid's place — a query she typed but that matched nothing
   // still counts, since the answer "no matches" is one she is reading.
@@ -6393,9 +6573,42 @@ document.getElementById('back').onclick=function(){ goHome(); };
       return e.replace(rx,'<b>$1</b>');
     }catch(_){ return e; }
   }
+  // ---- THE LAST SEARCH IS STILL THERE FOR A MINUTE (Aug 2026, Sophie: "I'd
+  // also like it to show the last search that was made if it was made in the
+  // last, say, one minute"). Opening the bar seconds after closing it is
+  // almost always the SAME hunt continuing — the chat she opened wasn't the
+  // one, a mis-tap sent her home — and re-dictating the words was the cost of
+  // every one of those. After a minute it is a new hunt and the box opens
+  // empty, which is the old rule and still the right default for a bar that
+  // is meant to start blank. sessionStorage rather than a variable, so a
+  // reload inside that minute (the app repaints its webview freely) keeps it,
+  // and a cold launch never does.
+  var RECENT_MS=60000, RECENT_KEY='forgeLastSearch';
+  function remember(q){
+    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now()})); }catch(_){ }
+  }
+  function recent(){
+    try{
+      var r=JSON.parse(sessionStorage.getItem(RECENT_KEY)||'null');
+      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r.q : '';
+    }catch(_){ return ''; }
+  }
+  // Tapping the glass while a search is open means "a NEW one" — so it forgets
+  // the old words outright, or closing the bar right after would bring back
+  // exactly the query she just cleared.
+  window._forgetSearch=function(){ try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ } };
+  // Only ever fills a box she left EMPTY, and only on the way in — never over
+  // words already in front of her.
+  window._restoreRecentSearch=function(){
+    if(!qi || qi.value.trim()) return false;
+    var q=recent(); if(!q) return false;
+    qi.value=q; live.sync(); run(q);
+    return true;
+  };
   function run(q){
     q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
+    remember(q);
     api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
       .then(function(r){return r.json()})
       .then(function(d){
@@ -6426,6 +6639,12 @@ document.getElementById('back').onclick=function(){ goHome(); };
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
   var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; t=setTimeout(function(){ run(v); }, 220); });
+  // Return runs it immediately rather than waiting out the 220ms debounce,
+  // then the keyboard goes — see enterSubmits.
+  // …and `live.sync()` after it: the blur Return performs would otherwise be
+  // liveInput's first sight of dictated text (the 150ms poll may not have
+  // ticked yet), and it would schedule a second, identical run 220ms later.
+  enterSubmits(qi, function(){ clearTimeout(t); run(qi.value); live.sync(); });
   var _reset=window._resetSearch;
   window._resetSearch=function(){ _reset(); live.sync(); };
   // THE ✕ IS THE WAY OUT, and only that (see paintSearch for her ask). It used
@@ -6530,10 +6749,12 @@ document.getElementById('back').onclick=function(){ goHome(); };
 })();
 // The glass opens a search — and while one is open it starts the NEXT one:
 // the words go, the bar and the keyboard stay, so a second search is one tap
-// from the first. (Closing still throws the query away, so either route ends
-// at an empty box; this is the route that doesn't cost the keyboard.)
+// from the first. Both routes end at an empty box; this is the one that
+// doesn't cost the keyboard, and the only one that FORGETS the query outright
+// (closing keeps it for a minute — see _restoreRecentSearch).
 document.getElementById('searchbtn').onclick=function(){
   if(searchOpen){
+    if(window._forgetSearch) window._forgetSearch();
     if(window._resetSearch) window._resetSearch();
     var i=document.getElementById('qsearch'); if(i) i.focus();
     return;
@@ -6542,10 +6763,9 @@ document.getElementById('searchbtn').onclick=function(){
 };
 // the tests' way in and out, so the collapsed bar stays drivable headlessly
 window.__setSearchOpen=setSearchOpen;
-// Refresh drops the delivered cache too (Aug 2026) \u2014 with the UPDATE tab reading
-// it, "refresh" has to mean the pictures and pages as well as the messages, or
-// the one-minute TTL quietly outlives the tap.
-document.getElementById('refresh').onclick=function(){ toast('Refreshing\u2026'); stCache.at=0; load(); };
+// The refresh button is gone (Aug 2026, Sophie) but the tests still need a
+// way to force a reload with fresh caches \u2014 the exact thing its tap did.
+window.__reload=function(){ stCache.at=0; load(); };
 document.getElementById('selbtn').onclick=function(){ if(selMode){ exitSelect(); renderHome(); } else enterSelect(); };
 document.getElementById('archlink').onclick=function(){ setHomeView('archive'); };
 // The trash is a room off the ARCHIVE now, so its way out is back to the

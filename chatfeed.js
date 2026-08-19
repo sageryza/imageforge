@@ -3448,7 +3448,12 @@ router.post('/reply', async (req, res) => {
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
     await regRef(doc.chat).set(patch, { merge: true });
-    res.json({ ok: true, id: ref.id, unarchived: !!wasArch });
+    // The stamp rides the answer so the PAGE can mirror it: the app's reply
+    // box clears the chat's Update card the moment Send lands, instead of
+    // waiting out the next registry poll (up to 20s — long enough that the
+    // clear read as broken; Sophie, 2026-08-19: "if I actually send a message
+    // back to a chat then it disappears from the update tab").
+    res.json({ ok: true, id: ref.id, unarchived: !!wasArch, notifSeenAt: doc.postedAt });
   } catch (err) { fail(res, err); }
 });
 

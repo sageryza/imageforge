@@ -1,0 +1,61 @@
+{
+  "dream": {
+    "title": "you were here last night",
+    "text": "i dreamt you were here last night, holding me so tight i couldn’t move, your hand in my hair. i didn’t want to wake up.",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-hair.webp"
+  },
+  "song": {
+    "track": "Venus — Afro Comb feat. DOMAINIQ",
+    "hook": 64.52,
+    "landsOn": "open",
+    "source": "https://soundcloud.com/kitsunemusique/afro-comb-venusfeat-domainiq",
+    "note": "v4 starts the track ON the hook (1:04.52, measured off the label's stream — Sophie's 1:04 by ear was right) and stops it at 1:12.5, before the verse turns to getting high. The closing card plays in the quiet after it.",
+    "until": 72.5
+  },
+  "press": 0.72,
+  "beats": [
+    {
+      "id": "open",
+      "type": "app",
+      "state": "idle",
+      "move": 0.4,
+      "hold": 2.2
+    },
+    {
+      "id": "dial",
+      "type": "app",
+      "state": "everyone",
+      "move": 0.75,
+      "hold": 1.6
+    },
+    {
+      "id": "share",
+      "type": "app",
+      "state": "share",
+      "move": 0.7,
+      "hold": 1.5
+    },
+    {
+      "id": "posted",
+      "type": "app",
+      "state": "shared",
+      "move": 0.5,
+      "hold": 1.6
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "name": "you were in my dreams",
+      "url": "youwereinmydreams.com",
+      "hold": 3.4
+    },
+    {
+      "id": "secret",
+      "type": "card",
+      "bg": "#14131a",
+      "fg": "#f4f0e5",
+      "text": "now it doesn’t have to be a secret",
+      "hold": 3.0
+    }
+  ]
+}

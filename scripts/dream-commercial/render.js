@@ -16,35 +16,11 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { curl, fetchFont, encode, FPS, CHROME, ROOT } = require(path.join(__dirname, 'film-kit'));
 const { chromium } = require(path.join(ROOT, 'node_modules', 'playwright'));
-const FFMPEG = require(path.join(ROOT, 'node_modules', 'ffmpeg-static'));
 
-const FPS = 30;
 const POP_FRAMES = 8;   // ~0.27s of pop-in per message
-const CHROME = '/opt/pw-browsers/chromium';
-
-function curl(url, out, extra = []) {
-  execFileSync('curl', ['-fsSL', ...extra, '-o', out, url], { stdio: 'pipe' });
-}
-
-// Google Fonts: ask for the css with a modern UA, pull the first woff2 url.
-function fetchFont(cssUrl, dir, name) {
-  try {
-    const cssFile = path.join(dir, name + '.css');
-    curl(cssUrl, cssFile, ['-A', 'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 Chrome/120.0 Safari/605.1.15']);
-    const m = fs.readFileSync(cssFile, 'utf8').match(/url\((https:[^)]+\.woff2)\)/);
-    if (!m) return null;
-    const woff = path.join(dir, name + '.woff2');
-    curl(m[1], woff);
-    return woff;
-  } catch (e) {
-    console.warn(`font ${name} not fetched (${e.message}) — falling back to Liberation Serif`);
-    return null;
-  }
-}
 
 (async () => {
   const scriptPath = process.argv[2];
@@ -131,12 +107,7 @@ function fetchFont(cssUrl, dir, name) {
 
   await browser.close();
 
-  execFileSync(FFMPEG, [
-    '-y', '-f', 'concat', '-safe', '0', '-i', listFile,
-    '-vf', 'format=yuv420p', '-r', String(FPS),
-    '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-movflags', '+faststart',
-    outMp4,
-  ], { stdio: ['pipe', 'pipe', 'inherit'] });
+  encode(listFile, outMp4);
 
   const secs = script.steps.reduce((a, s) => a + (s.hold || 1.5), 0);
   console.log(`\nwrote ${outMp4} (~${Math.round(secs)}s, ${frame} stills)`);

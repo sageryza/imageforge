@@ -1203,8 +1203,20 @@ them off the reference sheet, not off the old filenames.
   terms at a word start against raw text, the clip library normalises). And
   every box runs through `liveInput` — **iOS dictation can fill a field without
   firing `input`**, so the boxes poll the value while focused rather than
-  waiting for the keyboard's ✓. Tests: `node scripts/test-search-grammar.js`,
-  `node scripts/test-chats-live-search.js`.
+  waiting for the keyboard's ✓. **RETURN ENDS A SEARCH TOO (Aug 2026, Sophie:
+  "only the check mark sends the search on its way… I'd like the return button
+  to do the same")** — `enterSubmits` runs the query at once (no debounce left
+  to wait out) and drops the keyboard, so what she is left looking at is the
+  answer; an `<input type=search>` outside a `<form>` has nothing to submit to,
+  which is why Return did nothing at all. Wire it beside `liveInput` on any new
+  box, and `sync()` the live handle inside the callback or the blur schedules a
+  second identical run. **AND THE HOME BAR REMEMBERS THE LAST SEARCH FOR ONE
+  MINUTE** (her ask, same day): reopening the bar inside that minute puts the
+  words AND the results back — the same hunt continuing — while the glass
+  (a NEW search) forgets them outright and anything older opens empty, which is
+  still the default. Tests: `node scripts/test-search-grammar.js`,
+  `node scripts/test-chats-live-search.js`,
+  `node scripts/test-chats-search-return.js`.
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does
@@ -1634,6 +1646,22 @@ out. The headlines, so you know when to go and look:
   and the same picture as webp is ~50KB, about 22x. Run
   `node scripts/webp-assets.js` then `webp-assets-verify.js` BEFORE deploying;
   there is deliberately no PNG fallback, so a missing copy is a broken picture.
+  **This rule is about the DERIVED DISPLAY COPY, never the original — do NOT
+  compress a generation call (Aug 2026, Sophie found it).** Shrinking the copy
+  a page loads is right; shrinking the picture at birth is not.
+  `output_compression` on an OpenAI images call is LOSSY and OpenAI applies it
+  BEFORE the bytes come back, so what it discards never existed on our side and
+  **no later pass can undo it** — only a re-draw, which is a different picture.
+  It had spread by copy-paste to SIX live surfaces (the Playground's four
+  gpt-image-2 styles, the Story Room pad's beat art, the Test Station house
+  styles + the committed `public/samples`, and the Talking zine) and every
+  original they ever made is 5-6x lighter than it should be: measured on one
+  prompt, 281KB compressed vs 1,667KB clean. It showed as graininess on fine
+  ink hatching, which the house style is full of. All of them are clean now and
+  `node scripts/test-no-generation-compression.js` greps the tree so a
+  copy-paste into a new module fails there instead of silently costing a batch
+  of originals. Need a smaller file for a page? Derive one — `webp-assets.js`,
+  or the `thumbs/` service in `server.js`.
 - **The hairline `.acctabs` rows measure their own underline** — no row anywhere
   declares a tab count. Add a tab and the line still lands under the word.
 - **Custom icons are framed at 1.11x the SF Symbol point size**, and every

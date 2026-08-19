@@ -190,7 +190,6 @@ async function generate(prompt, refs) {
   form.append('size', SIZE);
   form.append('quality', QUALITY);
   form.append('output_format', 'webp');
-  form.append('output_compression', '90');
   refs.forEach((r) => form.append('image[]', r.buf, { filename: r.name, contentType: r.type }));
   const res = await fetch('https://api.openai.com/v1/images/edits', {
     method: 'POST',

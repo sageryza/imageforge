@@ -2627,7 +2627,7 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { chat, url, t, audio } = req.body || {};
+    const { chat, url, t, audio, hold } = req.body || {};
     if (!chat || !url) return res.status(400).json({ error: 'chat and url required' });
     if (!admin.apps.length) return res.status(503).json({ error: 'firestore unavailable' });
     const m = /^data:(audio\/[\w.+-]+);base64,(.+)$/.exec(String(audio || ''));
@@ -2655,6 +2655,9 @@ app.post('/api/gallery/assets/note-voice', express.json({ limit: '8mb' }), async
         if (tr && tr.text) transcript = String(tr.text).trim().slice(0, ASSET_NOTE_MAX - 200);
       } catch (err) { console.error('film note transcription failed:', err.message); }
     }
+    // hold:true — the player wants the words in the text box for editing
+    // first; the note itself is filed by the text route once she is done.
+    if (hold) return res.json({ ok: true, url: voiceUrl, transcript, held: true });
     const stamp = /^\d+:\d\d$/.test(String(t || '')) ? `[${t}] ` : '';
     const line = `${stamp}${transcript || '(voice note)'} (voice: ${voiceUrl})`;
     const ref = assetVoteRef(chat, url);
@@ -4766,7 +4769,15 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       form.append('size', size);
       form.append('quality', quality);
       form.append('output_format', 'webp');
-      form.append('output_compression', '80');
+      // NO output_compression. This is a LOSSY setting applied by OpenAI
+      // BEFORE the bytes come back, so whatever it throws away is gone for
+      // good — it cannot be undone later, only re-drawn (and a re-draw is a
+      // different picture). It was here by a conflation with the house rule
+      // about never SERVING a raw PNG to a page: that rule is about derived
+      // display copies (scripts/webp-assets.js, the `thumbs/` service above),
+      // and the original it derives from has to stay full quality. Sophie
+      // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
+      // a compression back on a generation call.
       refBuffers.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
@@ -5557,7 +5568,15 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       form.append('size', '1024x1024');
       form.append('quality', 'low');
       form.append('output_format', 'webp');
-      form.append('output_compression', '80');
+      // NO output_compression. This is a LOSSY setting applied by OpenAI
+      // BEFORE the bytes come back, so whatever it throws away is gone for
+      // good — it cannot be undone later, only re-drawn (and a re-draw is a
+      // different picture). It was here by a conflation with the house rule
+      // about never SERVING a raw PNG to a page: that rule is about derived
+      // display copies (scripts/webp-assets.js, the `thumbs/` service above),
+      // and the original it derives from has to stay full quality. Sophie
+      // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
+      // a compression back on a generation call.
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },

@@ -964,6 +964,50 @@
     - Select mode's own filing chips are untouched — the whole vocabulary is
       always there to file into, whatever the row above is doing. Test:
       `node scripts/test-chats-tags-button.js`.
+  - **TWO KINDS OF TAG, AND ONLY THE TASK ONES SHOW BY DEFAULT (Aug 2026 v2,
+    Sophie, from a screenshot of the open row stacking ~18 chips one or two
+    to a line: "there are two different types of tags — category tags like
+    witch and dream app and xi, and task tags like in progress and come back
+    to … the default view should only show the progress tags, but there can
+    be a see more button that shows the category tags also, and if they're
+    both shown there should be some sort of distinction between them like a
+    small red line or a label").**
+    - **`TASK_LABELS`** (chats.html) is the split, and it is **presentation
+      only** — nothing about filing, piles or chat-sort reads it, and a word
+      not on it lands in the categories group, the safe default for anything
+      she invents. Task = where the work stands (`look at`, `come back to`,
+      `in progress`, `waiting for something`, `to be reviewed`, `to read`,
+      `built`, `failed`); category = what the chat is (witch, stories, dream
+      app, …). Moving a word between groups is editing that one array.
+    - TAGS opens on the task words (in `TASK_LABELS` order) plus **SEE MORE**
+      (`.morechip`), which carries the folded categories' summed red number —
+      the same never-silence-a-reply rule TAGS itself follows while shut.
+      Tapping it unfolds the categories under **`.catdiv`** — a thin red line
+      with CATEGORIES under it, her "small red line or a label" — and the
+      chip goes. `catsMore` resets when TAGS closes, so every open lands on
+      the default; a lit CATEGORY filter forces both open (`catsMoreShown`),
+      the same silent-filter rule as `catsShown`.
+  - **THE ROW RUNS FULL WIDTH AND FLOWS AROUND THE PILL (Aug 2026 v2, same
+    message: "the tags are going really far down because they are not allowed
+    to go into the left most part … get rid of the refresh button … make the
+    tags take up the full width but skip where the auto scroll pill is").**
+    - `.toolrow` is a **block with inline flow** now, not a flex line: the
+      select icon is simply first in the flow and chips wrap under it to the
+      full width. The old flex layout penned every chip into the column right
+      of the icons — that was the stack down the screen.
+    - **`#pillnotch`** is a right float sized at paint time
+      (`sizePillNotch()`) to however much of the pill's fixed band (y 14-192)
+      the row still occupies — lines beside it shorten, lines below run full
+      width. It replaces the blanket `padding-right:64px`, which reserved the
+      corner on EVERY line including the twenty below the pill.
+    - **The tool row's refresh icon is GONE** ("I never use it anymore") —
+      the page polls on its own; the thread header keeps its own refresh.
+      `window.__reload()` keeps the tap's exact behaviour for the tests.
+    - The archive's `.catrow.arctagrow` keeps the flex layout — the inline
+      flow is scoped `#toolrow .catrow`.
+    - Test: `node scripts/test-chats-tags-button.js` — the groups, the sums,
+      the reset, and the layout measured on real geometry (a line below the
+      pill band may only break when the next chip truly wouldn't fit).
   - **COME BACK TO IS ONE BUCKET (Aug 2026, Sophie: "can you combine the come
     back to and later categories" — confirmed as the chat-list FOLDER and the
     UPDATE screen's BOX).** She had two names for one intention and two places
@@ -2257,32 +2301,41 @@
     an uncounted one — verified failing without the feature).
   - **TAP-TO-NOTE on a pinned FILM (Aug 2026, Sophie: "I watch the video but I
     can tap it and then the video pauses and a field comes up where I can
-    write a note and then once I tap done, the video keeps playing and the
-    note disappears and gets sent to you or whatever chat I'm using it for
-    because this could be reusable not just for this").** Built INTO the
-    full-screen player (`openPinned`), so every chat that pins a film gets it
-    with zero setup — that is the reusable half of her ask.
-    - **The tap layer stops above the native control bar** (bottom 24% left
-      uncovered): play, scrub and the close ✕ stay reachable; a tap anywhere
-      on the picture pauses and raises the sheet.
-    - **Every note carries the video position** — the sheet shows "Note at
-      0:41" and the filed text leads with `[0:41]`, so "towards the beginning"
-      arrives as a timestamp the chat can act on without guessing.
+    write a note … because this could be reusable not just for this").** Built
+    INTO the full-screen player (`openPinned`), so every chat that pins a film
+    gets it with zero setup — that is the reusable half of her ask.
+    - **A floating NOTE button, never a capture layer (her rework, the same
+      day, after first real use: "even pressing play on the video triggers the
+      note thing").** v1 covered the picture with a tap layer and it swallowed
+      the native play button. Now nothing sits over the video: touching the
+      screen shows a floating Note button that fades after ~3.5s or on a
+      second touch — the native controls' own rhythm, her explicit design
+      ("just like the pause works"). She offered a review-mode alternative
+      (a toggle after which every tap pauses); the button was chosen because
+      it leaves the player stateless and play/scrub untouched.
+    - **The mic is the DEFAULT** ("rather than sliding up immediately to type
+      a note, I would prefer if the default was triggering the microphone …
+      so I can just talk"). Tapping Note pauses the film and starts recording
+      immediately; the sheet shows "Note at 0:41" and a Done button. ONE Done
+      stops the mic, resumes the video AT ONCE, and files the note in the
+      background — upload + transcribe first (`POST /api/gallery/assets/
+      note-voice` with `hold:true`, gpt-4o-mini-transcribe — mechanical
+      extraction), then the text route files `[0:41] words (voice: url)`.
+    - **Tapping the TEXT BOX is the edit path** — it stops the mic, puts the
+      transcript in the box, and only then does the keyboard rise ("I also
+      have the option of clicking into the text box … at this point, the
+      keyboard does slide up"). Done then files her edited words, still
+      carrying the voice url. No mic available → the box is the whole flow.
     - **Notes land on the FILM's own url thread** via the asset-note machinery
       (`POST /api/gallery/assets/note`, from `sophie`) — the same
       `forge-asset-votes` docs the picture notes use, so a chat's normal sweep
       (`GET /api/gallery/assets/notes?chat=`) finds film notes with no new
-      reader, and it answers ON the note exactly like an image note. Nothing
-      new is filed anywhere; the route takes any url.
-    - **The mic files a VOICE note**: recorded in the sheet (the judge deck's
-      MediaRecorder pattern), uploaded and transcribed server-side
-      (`POST /api/gallery/assets/note-voice` — gpt-4o-mini-transcribe, the
-      mechanical-extraction model), appended as `[0:41] words (voice: url)`
-      on the same thread. The recording is kept; the transcript is a
-      convenience, never a replacement.
-    - **Done with an empty box is a Cancel**, not an error — she tapped to
-      pause, changed her mind, the film just resumes. Films only: an audio
-      pin draws no tap layer.
-    - Test: `node scripts/test-chats-film-note.js` (the real page, headless —
-      the layer's geometry vs the control bar, pause + stamp, the POST body,
-      resume on Done and Cancel, films-only).
+      reader, and answers ON the note exactly like an image note. Every note
+      leads with the `[m:ss]` video position — "towards the beginning"
+      arrives as a timestamp.
+    - **Cancel (or Done with nothing said and nothing typed) just resumes** —
+      no note, no error. Films only: an audio pin draws no Note button.
+    - Test: `node scripts/test-chats-film-note.js` (the real page, headless,
+      mic faked — the button follows the controls' rhythm and never raises
+      the sheet from a video tap, mic-first Done resumes immediately and
+      files hold-then-text, the box edit path, Cancel, films-only).

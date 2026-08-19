@@ -177,7 +177,11 @@ const vis = (page, sel) => page.evaluate((s) => {
   if (!(await vis(page, '#searchbtn'))) fail('the glass did not come back');
   if (await page.$eval('#qsearch', (n) => n.value !== '')) fail('closing left the old query in the box');
 
-  // …and from an empty one, the same single tap
+  // …and from an empty one, the same single tap. A search a few seconds old
+  // is put back when the bar reopens (Aug 2026 — its own test is
+  // scripts/test-chats-search-return.js), so the steps below that need a
+  // genuinely blank bar forget it first rather than racing that minute.
+  await page.evaluate(() => window._forgetSearch && window._forgetSearch());
   await page.click('#searchbtn');
   await page.click('#qclear');
   if (await vis(page, '#qsearch')) fail('the ✕ on an empty field did not fold the bar away');
@@ -197,7 +201,7 @@ const vis = (page, sel) => page.evaluate((s) => {
       return !(hit && hit.closest('#searchbtn'));
     });
     if (buried) fail('the magnifying glass is untappable at ' + width + 'px');
-    await page.evaluate(() => window.__setSearchOpen(true));
+    await page.evaluate(() => { if (window._forgetSearch) window._forgetSearch(); window.__setSearchOpen(true); });
     buried = await page.evaluate(() => {
       const r = document.getElementById('qclear').getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -229,7 +233,7 @@ const vis = (page, sel) => page.evaluate((s) => {
   }
 
   // A7. leaving a chat lands on a folded bar
-  await page.evaluate(() => window.__setSearchOpen(true));
+  await page.evaluate(() => { if (window._forgetSearch) window._forgetSearch(); window.__setSearchOpen(true); });
   await page.click('#grid .crow[data-chat="live-one"]');
   await page.waitForFunction(() => document.getElementById('thread').style.display !== 'none');
   await page.click('#back');
