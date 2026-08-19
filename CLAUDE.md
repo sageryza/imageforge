@@ -316,6 +316,20 @@ around them change, so verify the labels and use these for the URL.
 - **Model time did NOT change** and it dominates most waits: gpt-image-2,
   Replicate, Whisper, ElevenLabs and the LLM calls all run on someone else's
   hardware. A ~30–90s medium image is still ~30–90s.
+- **BUILD PIPELINE MINUTES CAN RUN OUT AND SILENTLY STOP EVERY DEPLOY
+  (measured 2026-08-19).** ~10 straight deploys failed overnight; the real row
+  said "Build canceled: your workspace has run out of build pipeline minutes
+  for the current billing period." The service keeps serving its LAST
+  successful build while main keeps merging, so **a merged PR is NOT live
+  until you verify the change on the live page** — a watcher that greps the
+  served page for a new marker is the honest check. Every merge burns build
+  minutes, and many chats merging all day burns the month's budget. The fix
+  is Sophie's, one screen: Render dashboard → Workspace Settings → Build
+  Pipeline → **Set spend limit** (raise it; needs a payment method) —
+  pipeline tasks re-enable immediately and the next deploy ships everything
+  merged in the gap. Without that, every deploy waits for the billing-period
+  reset. Do NOT keep pushing retrigger commits at this error — the build is
+  canceled before it starts, whatever the code says.
 - **The keep-awake self-ping is now redundant but harmless.** `server.js`
   (bottom, the "Keep-awake" block) still fetches `/api/talking/ping` every
   10 min via `setInterval` — an **internal self-ping**, not an external uptime
