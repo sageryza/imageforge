@@ -4769,7 +4769,15 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       form.append('size', size);
       form.append('quality', quality);
       form.append('output_format', 'webp');
-      form.append('output_compression', '80');
+      // NO output_compression. This is a LOSSY setting applied by OpenAI
+      // BEFORE the bytes come back, so whatever it throws away is gone for
+      // good — it cannot be undone later, only re-drawn (and a re-draw is a
+      // different picture). It was here by a conflation with the house rule
+      // about never SERVING a raw PNG to a page: that rule is about derived
+      // display copies (scripts/webp-assets.js, the `thumbs/` service above),
+      // and the original it derives from has to stay full quality. Sophie
+      // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
+      // a compression back on a generation call.
       refBuffers.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
@@ -5560,7 +5568,15 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       form.append('size', '1024x1024');
       form.append('quality', 'low');
       form.append('output_format', 'webp');
-      form.append('output_compression', '80');
+      // NO output_compression. This is a LOSSY setting applied by OpenAI
+      // BEFORE the bytes come back, so whatever it throws away is gone for
+      // good — it cannot be undone later, only re-drawn (and a re-draw is a
+      // different picture). It was here by a conflation with the house rule
+      // about never SERVING a raw PNG to a page: that rule is about derived
+      // display copies (scripts/webp-assets.js, the `thumbs/` service above),
+      // and the original it derives from has to stay full quality. Sophie
+      // caught it as graininess on fine ink hatching, 2026-08-19. Do not put
+      // a compression back on a generation call.
       const res = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, ...form.getHeaders() },
