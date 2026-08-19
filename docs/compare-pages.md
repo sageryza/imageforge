@@ -633,10 +633,23 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       to 16px toward the other blurbs' size — her own suggested fix — so
       most long cards come back to one screen; short cards keep her
       Decision Deck sizes exactly.
-  - **`grid`** = the classic one-variable comparison: each group is one row,
-    2–6 side by side (7+ wraps), labels on top, ♥/✕ + note per item, and the
-    Assets tab's PROMPT overlay (content/style split, opens on CONTENT,
-    MODEL · QUALITY at the top) fed from the item's fields.
+  - **`grid`** = the classic one-variable comparison: each group is one row
+    wrapping at THREE across (2026-08-19 — six ~50px tiles in one phone row
+    was unreadable, whatever the original 2–6 spec said), and the tile is
+    **minimal like an Assets tile** (same day, Sophie: "the things I need to
+    compare are staggered and the titles are way too long… just the picture
+    and then two lines underneath it saying what changed"): the PICTURE
+    first, so a row lines up, then the label clamped to two lines — the
+    what-changed line — then ♥/✕ + note + PROMPT (the Assets overlay:
+    content/style split, opens on CONTENT, MODEL · QUALITY at the top; when
+    a row's variants differ in their STYLE half, each variant's style tab
+    marks the lines it does not share in rose). **Tapping an asset-backed
+    picture opens THE Assets-tab lightbox** — `/asset-lightbox.js`, the
+    exact code lifted out of chats.html (her ask: "identical to what happens
+    when I open the image in assets"), so the big image, ♥/✕ on its corners,
+    the note THREAD under it and the Prompt button are one implementation on
+    both surfaces; the lightbox ♥ saves the page verdict and the asset vote
+    together, and the tile repaints under it.
   - **THE MIRROR: an item with `url` (its Assets-tab identity — a storage
     `img` is its own by default) keeps the page and the Assets tab AGREEING**
     (Sophie's call): ♥/✕ writes through to the asset vote, a committed note

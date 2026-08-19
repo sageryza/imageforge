@@ -51,6 +51,7 @@ const files = {
   '/compare.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'compare.js'), 'utf8')],
   '/judge.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'judge.js'), 'utf8')],
   '/grid.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'grid.js'), 'utf8')],
+  '/asset-lightbox.js': ['application/javascript', fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8')],
 };
 const pill = fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8');
 
@@ -112,11 +113,11 @@ setTimeout(function(){
   var img1=r1[0].querySelector('img');
   ok(img1 && r1[0].getBoundingClientRect().width - img1.getBoundingClientRect().width < 3,
      'the picture fills its cell edge to edge, no side padding');
-  ok(r1[0].querySelector('.tag').textContent==='medium'
-     && r1[0].querySelector('.tag').nextElementSibling.tagName==='IMG',
-     'the label sits ON TOP of the picture');
-  ok(r1[0].querySelector('.gd-cap').textContent==='gpt-image-2 · medium',
-     'the MODEL · QUALITY caption shows');
+  ok(r1[0].firstElementChild.tagName==='IMG'
+     && r1[0].querySelector('.gd-sub').textContent==='medium',
+     'the picture comes FIRST, the what-changed line under it');
+  ok(!r1[0].querySelector('.tag') && !r1[0].querySelector('.gd-cap'),
+     'no title above the picture, no extra caption line — minimal, like Assets');
   ok(m.querySelectorAll('.gd-it .cmp-note-open').length===0 || true, 'notes wire async');
   var txt=r2[2].querySelector('.gd-txt');
   ok(txt && txt.textContent.indexOf('<b>')>=0 && !txt.querySelector('b'),
@@ -166,7 +167,34 @@ setTimeout(function(){
        'an Assets-tab heart fills in an unjudged item on load');
     ok(m.querySelectorAll('.gd-it .cmp-note-open').length===13,
        'every item carries the note +');
-    fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+
+    // tapping an asset-backed picture opens THE Assets-tab lightbox —
+    // heart, note thread, Prompt (Sophie: "identical to what happens when I
+    // open the image in assets")
+    m.querySelector('[data-item="p-med"] img').click();
+    setTimeout(function(){
+      var clb=document.getElementById('clightbox');
+      ok(clb && clb.style.display==='flex',
+         'tapping an asset picture opens the Assets lightbox');
+      ok(!!clb.querySelector('.lbnote input') && !!clb.querySelector('.promptbtn'),
+         'with the note box and the Prompt button');
+      ok(clb.querySelector('.vote.heart').classList.contains('on'),
+         'its heart already agrees with the tile');
+      var msgs=clb.querySelectorAll('.lbmsg');
+      ok(msgs.length===1 && msgs[0].textContent==='warmer next time',
+         'her existing note thread rides in');
+      // the lightbox ✕ lands on the page verdict AND the Assets mirror
+      clb.querySelector('.vote.nope').click();
+      var pv=posts('/api/chatfeed/verdict').pop(), pm=posts('/api/gallery/assets/vote').pop();
+      ok(pv && pv.b.ok===false && pv.b.item==='p-med' && pm && pm.b.vote==='dislike',
+         'the lightbox X saves the page verdict and mirrors the asset vote');
+      ok(!medHeart.classList.contains('on')
+         && m.querySelector('[data-item="p-med"] .gd-vote.no').classList.contains('on'),
+         'and the tile underneath repaints to match');
+      clb.click();
+      ok(clb.style.display==='none', 'the backdrop closes it');
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+    }, 500);
   }, 400);
 }, 600);
 </script>`;
@@ -269,6 +297,11 @@ function run(name, html, search) {
       if (route === '/api/gallery/assets/vote' || route === '/api/gallery/assets/note') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end('{"ok":true}');
+      }
+      if (route === '/api/gallery/assets/notes') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ notes: [{ url: `${SG}/a/p-med.png`,
+          thread: [{ from: 'sophie', text: 'warmer next time', at: '2026-08-19T00:00:00Z' }] }] }));
       }
       if (route === '/api/gallery/assets') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
