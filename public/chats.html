@@ -221,67 +221,13 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .assetgrid .vote.heart{left:5px;}
 .assetgrid .vote.nope{right:5px;}
 .assetgrid .acell.nay img{opacity:.35; filter:grayscale(60%);}
-/* lightbox: ♥ / ✕ overlaid on the image corners; note box sits under the image */
-.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
-.lbtop .vote{width:38px; height:38px;}
-.lbtop .vote svg{width:18px; height:18px;}
-.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
-.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
-  font-family:'EBGaramond',Georgia,serif; font-size:15px; padding:8px 10px; box-shadow:0 1px 4px rgba(0,0,0,.2);}
-.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
-  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:0;}
-.lbnote .notesend svg{width:18px; height:18px; display:block;}
-.lbnote .notesend.saved{background:#5d7a5a; color:#fff;}
-/* The note thread under the image: her letters and the chat's replies back.
-   Its own scroll area so a long exchange can never push the picture off. */
-.lbtalk{width:min(92vw,360px); margin-top:12px;}
-.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column; gap:5px;}
-.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:'EBGaramond',Georgia,serif;
-  font-size:14px; line-height:1.4; word-break:break-word; white-space:pre-wrap;}
-.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
-.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
-.lbmsg.pending{opacity:.55;}
-.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
+/* the lightbox's own CSS lives in /asset-lightbox.js now — shared with the
+   template grid pages so the two can never drift */
 /* an unread reply from the chat — top centre, between the ♥ and the ✕ */
 .assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
   min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
   font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center;
   padding:0 5px; box-sizing:border-box; box-shadow:0 1px 4px rgba(0,0,0,.25); pointer-events:none;}
-#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
-#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
-/* With a note thread under it the picture can't have the whole screen, or the
-   thread and the box you type in fall off the bottom. */
-#clightbox.hastalk img{max-height:46vh;}
-#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
-/* MODEL · QUALITY sits ABOVE the label, dimmer and smaller — the label is
-   what she reviews by, the tag is how it was made. Showing only one of the
-   two meant a labelled image never said its quality (Sophie asked why). */
-#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
-#clightbox .cltag + .clcap{margin-top:4px;}
-/* the prompt behind the image: covers it completely (that's the point — you
-   read the words instead of the picture), Style on the left of the toggle,
-   Content on the right. .clwrap only wraps the img so the overlay lands on
-   exactly the image; it is deliberately NOT .clframe, which would move the
-   ♥/✕ row off the screen corners it sits in today. */
-#clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
-/* The wrapper shrink-wraps the <img>, so on a slow connection (or a cold
-   Render) it can still be 0×0 when you tap PROMPT — an inset:0 overlay would
-   then render as an unreadable stamp. .pon (only while the prompt is showing,
-   so nothing moves otherwise) floors the box so the words always have room. */
-#clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
-.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;
-  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.2); flex:none;}
-.promptbtn.on{background:#3a3530; color:#faf7f0;}
-.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;
-  padding:14px; box-sizing:border-box; z-index:1;}
-.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}
-.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;
-  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; padding:8px 4px; cursor:pointer;}
-.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
-.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
-  font-family:'EBGaramond',Georgia,serif; font-size:15px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
 .aboutrow{margin:-2px 0 6px;}
 .aboutshow{font-style:italic; color:var(--ink2); font-size:1.02em; cursor:pointer;}
 .seticon{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
@@ -1358,6 +1304,7 @@ body.selecting > .float{display:none !important;}
 </div>
 <div id="toast"></div>
 <div id="clightbox"></div>
+<script src="/asset-lightbox.js"></script>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -6555,160 +6502,12 @@ function askArchive(name, cb){
   document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }
 
-// Image lightbox — freezes the page behind it (design rule)
-function lightbox(url, asset){
-  scrollStop();
-  // The house overlay rule: stop the autoscroll, lock the background, and
-  // restore the EXACT scroll position on close. The restore is load-bearing
-  // HERE because of the NOTE BOX: focusing an input inside a position:fixed
-  // overlay makes iOS scroll the DOCUMENT underneath to reveal the caret
-  // (overflow:hidden does not stop that), so leaving a comment on an image
-  // used to close onto a completely different part of the tab.
-  var lbY=window.scrollY;
-  var lb=document.getElementById('clightbox');
-  lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
-  lb.classList.remove('hastalk');   // last image's thread must not shrink this one
-  // The generating prompt, over the image: Style left, Content right, tap the
-  // PROMPT button to cover/uncover the picture. Only offered when a chat
-  // actually filed a split — nothing is shown (and nothing is said) when it
-  // didn't. Built before .lbtop so the button can join that row.
-  var promptBtn=null;
-  if(asset && (asset.promptStyle||asset.promptContent)){
-    var wrap=lb.querySelector('.clwrap');
-    var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
-    ov.onclick=function(e){ e.stopPropagation(); };   // reading it must not close the lightbox
-    var tog=document.createElement('div'); tog.className='lbptog';
-    var sb=document.createElement('button'); sb.textContent='Style';
-    var cb=document.createElement('button'); cb.textContent='Content';
-    var txt=document.createElement('div'); txt.className='lbptext';
-    // CONTENT IS THE DEFAULT SIDE (Aug 2026, Sophie: "right now the style is
-    // the default and I want it to be the content, so I don't have to click
-    // all the time"). What the picture is OF is what she opens the overlay
-    // for; the style half is the same house prefix on most of a batch, so it
-    // was a tap she paid on every image to reach the half that differs.
-    // Style still wins when content is the only half missing.
-    var side=asset.promptContent?'content':'style';
-    function paintSide(){
-      sb.classList.toggle('on', side==='style');
-      cb.classList.toggle('on', side==='content');
-      txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
-      txt.scrollTop=0;
-    }
-    sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
-    cb.onclick=function(e){ e.stopPropagation(); side='content'; paintSide(); };
-    tog.appendChild(sb); tog.appendChild(cb);
-    ov.appendChild(tog); ov.appendChild(txt);
-    paintSide();
-    wrap.appendChild(ov);
-    promptBtn=document.createElement('button');
-    promptBtn.className='promptbtn'; promptBtn.textContent='Prompt';
-    promptBtn.onclick=function(e){
-      e.stopPropagation();
-      var open=ov.style.display==='none';
-      ov.style.display=open?'flex':'none';
-      wrap.classList.toggle('pon', open);
-      promptBtn.classList.toggle('on', open);
-    };
-  }
-  // ♥/✕ overlaid on the image (left / right); the note box sits UNDER the image.
-  if(asset && asset._cast){
-    var row=document.createElement('div'); row.className='lbtop';
-    row.onclick=function(e){ e.stopPropagation(); };
-    var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=window.__HEART;
-    var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=window.__XMARK;
-    // The thread: her notes and the chat's replies back, oldest at the top.
-    // Snail mail — the chat that made the image answers next time she messages
-    // it, so a reply landing here later is normal and expected.
-    var talk=document.createElement('div'); talk.className='lbtalk';
-    talk.onclick=function(e){ e.stopPropagation(); };
-    var th=document.createElement('div'); th.className='lbthread';
-    function paintThread(){
-      th.innerHTML='';
-      var msgs=asset.thread||[];
-      msgs.forEach(function(m){
-        var b=document.createElement('div');
-        b.className='lbmsg '+(m.from==='chat'?'them':'me');
-        b.textContent=m.text;
-        th.appendChild(b);
-      });
-      th.style.display=msgs.length?'':'none';
-      th.scrollTop=th.scrollHeight;   // newest letter in view
-    }
-    var nw=document.createElement('div'); nw.className='lbnote';
-    var ni=document.createElement('input'); ni.placeholder='Write a note…';
-    var ns=document.createElement('button'); ns.className='notesend';
-    // Lucide "send" — the paper aeroplane (lucide-static 1.27.0)
-    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
-    function sendNote(){
-      var t=(ni.value||'').trim();
-      if(!t) return;
-      // It leaves the box the moment it's sent and joins the thread underneath,
-      // so the box is always empty and ready for the next one.
-      ni.value='';
-      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
-      paintThread();
-      var el=th.lastChild;
-      el.classList.add('pending');
-      function attempt(){
-        el.classList.remove('failed'); el.classList.add('pending');
-        asset._noteSend(t, function(ok){
-          el.classList.remove('pending');
-          if(ok) return;
-          // Nothing is lost on a failure — the letter stays on screen, outlined,
-          // and tapping it tries again.
-          el.classList.add('failed');
-          el.title='Not sent — tap to try again';
-          el.onclick=function(e){ e.stopPropagation(); attempt(); };
-        });
-      }
-      attempt();
-    }
-    ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
-    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
-    nw.appendChild(ni); nw.appendChild(ns);
-    talk.appendChild(th); talk.appendChild(nw);
-    paintThread();
-    if(asset._markSeen) asset._markSeen();   // opening it counts as reading it
-    asset._lbPaint=function(){
-      hb.classList.toggle('on', asset.vote==='like');
-      xb.classList.toggle('on', asset.vote==='dislike');
-    };
-    asset._lbPaint();
-    hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
-    xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
-    // ♥ left, Prompt in the middle, ✕ right (the row is space-between)
-    row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
-    var frame=lb.querySelector('.clframe');
-    (frame||lb).appendChild(row);
-    lb.appendChild(talk);   // thread + note box below the image, never over it
-    lb.classList.add('hastalk');   // shrinks the picture so the thread has room
-  }
-  if(promptBtn && !promptBtn.parentNode){   // image opened without the curate row
-    var prow=document.createElement('div'); prow.className='lbtop';
-    prow.style.justifyContent='center';
-    prow.onclick=function(e){ e.stopPropagation(); };
-    prow.appendChild(promptBtn); lb.appendChild(prow);
-  }
-  // Two lines, not one: the curated model/quality tag (never the hook's
-  // generic "from <chat>") above the label. `description||prompt` hid the tag
-  // on every labelled image.
-  var tag=asset?String(asset.prompt||''):'';
-  if(/^from /.test(tag)) tag='';
-  var cap=asset?(asset.description||''):'';
-  if(!cap && tag){ cap=tag; tag=''; }
-  if(tag){ var tc=document.createElement('div'); tc.className='cltag'; tc.textContent=tag; lb.appendChild(tc); }
-  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
-  lb.style.display='flex'; document.body.style.overflow='hidden'; document.body.classList.add('ontop');
-  lb.onclick=function(){ if(asset) asset._lbPaint=null;
-    // Blur FIRST: a still-focused note box makes iOS scroll again as the
-    // keyboard leaves, which would land after our restore and undo it.
-    var f=document.activeElement; if(f && f.blur) f.blur();
-    lb.style.display='none'; lb.innerHTML='';
-    lb.classList.remove('hastalk'); document.body.style.overflow=''; document.body.classList.remove('ontop');
-    window.scrollTo(0,lbY);
-    // …and again next frame, for the keyboard-dismissal scroll that lands late.
-    requestAnimationFrame(function(){ window.scrollTo(0,lbY); }); };
-}
+// Image lightbox — THE shared one (/asset-lightbox.js), lifted out of this
+// file verbatim (Aug 2026, Sophie: the template grid pages must open "identical
+// to what happens when I open the image in assets… just port that exact code").
+// One copy on purpose — a second hand copy had already drifted once.
+window.scrollStop = scrollStop;   // the shared lightbox pauses our autoscroll
+function lightbox(url, asset){ window.__assetLightbox(url, asset); }
 // THE SEARCH SURVIVES A BACK-OUT (Aug 2026, Sophie: "when I search something
 // and then I click on one of the options if it's not the one I want when I go
 // back I want that to still be active"). A search is a LIST SHE IS WORKING

@@ -35,8 +35,12 @@
   var css = document.createElement('style');
   css.textContent =
     '.gd-group{margin:0 0 18px;}' +
+    // the row header (what the row SHARES) clamps too — a style prompt's
+    // first line can run long and this is a heading, not a reading
     '.gd-glabel{font:700 11px/1.4 -apple-system,sans-serif;letter-spacing:.08em;' +
-    ' text-transform:uppercase;color:var(--gold);padding:0 0 6px;}' +
+    ' text-transform:uppercase;color:var(--gold);padding:0 0 6px;' +
+    ' display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;' +
+    ' overflow:hidden;overflow-wrap:anywhere;}' +
     '.gd-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;}' +
     // The picture fills its cell edge to edge — no inner padding around media
     // (Sophie, 2026-08-19: the tiles were "already small and then they're also
@@ -46,13 +50,15 @@
     '.gd-it{position:relative;background:var(--surface);border:1px solid var(--line);' +
     ' border-radius:6px;padding:0 0 30px;display:flex;flex-direction:column;gap:6px;' +
     ' min-width:0;box-sizing:border-box;overflow:hidden;}' +
-    // /1.35 + overflow-wrap — a long label used to clip mid-word at the cell
-    // edge ("DREAM ABOUT CORPOR…", Sophie's screenshot, 2026-08-19): line-height
-    // 1 cut wrapped lines into each other and an unbreakable word ran under
-    // the cell's overflow:hidden. Wrap it instead; never clip her words.
-    '.gd-it .tag{display:block;font:700 11px/1.35 -apple-system,sans-serif;' +
-    ' letter-spacing:.08em;text-transform:uppercase;color:var(--gold);' +
-    ' overflow-wrap:anywhere;padding:8px 8px 0;}' +
+    // THE PICTURE COMES FIRST, the words under it (Sophie, 2026-08-19, on the
+    // auto page: "the things I need to compare are staggered and the titles
+    // are way too long… just the picture and then two lines underneath it
+    // saying what changed"). Labels above the pictures made every tile start
+    // at a different height, so the row never lined up. The line below clamps
+    // at TWO lines — the full text still reads in the lightbox.
+    '.gd-sub{font:500 11px/1.35 -apple-system,sans-serif;color:var(--ink2);' +
+    ' padding:6px 8px 0;overflow-wrap:anywhere;display:-webkit-box;' +
+    ' -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}' +
     '.gd-it img{width:100%;height:auto;border-radius:0;display:block;}' +
     // the card-face menu (square / portrait / landscape) — ratio set inline
     // per tile so one page can mix shapes; the class carries the rest
@@ -61,7 +67,6 @@
     ' justify-content:center;text-align:center;padding:8%;box-sizing:border-box;}' +
     '.gd-txt{font-size:15px;line-height:1.45;color:var(--ink);word-break:break-word;' +
     ' padding:8px;}' +
-    '.gd-cap{font:500 11px/1.3 -apple-system,sans-serif;color:var(--ink2);padding:0 8px;}' +
     '.gd-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto;' +
     ' padding:0 8px;}' +
     '.gd-vote{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);' +
@@ -154,6 +159,94 @@
         mirrorVote(it, next);
       }
       paintActs(it.id);
+      // …and into an open lightbox, so its heart agrees with the tile's
+      var la = lbAssets[it.id];
+      if (la) {
+        la.vote = verdicts[it.id] === true ? 'like'
+          : verdicts[it.id] === false ? 'dislike' : null;
+        if (la._lbPaint) la._lbPaint();
+      }
+    }
+
+    // ── the ASSETS lightbox on every asset-backed picture (Aug 2026, Sophie:
+    // "when I open up the image, I'd like it to be identical to what happens
+    // when I open the image in assets — I can leave a note, that heart, etc.,
+    // and see the prompt… just port that exact code"). /asset-lightbox.js IS
+    // that code, lifted out of chats.html; this only feeds it the item.
+    var lbAssets = {};       // item id → the asset view the lightbox drives
+    var notesLoaded = null;  // one fetch per page open; threads keyed by url
+
+    function loadNotes() {
+      if (!notesLoaded) {
+        notesLoaded = fetch('/api/gallery/assets/notes?chat=' + encodeURIComponent(chat))
+          .then(function (r) { return r.ok ? r.json() : {}; })
+          .catch(function () { return {}; })
+          .then(function (d) {
+            var m = {};
+            ((d && d.notes) || []).forEach(function (n) {
+              if (n && n.url) m[n.url] = n.thread || [];
+            });
+            return m;
+          });
+      }
+      return notesLoaded;
+    }
+
+    function assetFor(it) {
+      var a = lbAssets[it.id];
+      if (a) return a;
+      a = lbAssets[it.id] = {
+        description: it.label || '',
+        prompt: [it.model, it.quality].filter(Boolean).join(' · '),
+        promptStyle: it.promptStyle || '',
+        promptContent: it.promptContent || '',
+        vote: verdicts[it.id] === true ? 'like'
+          : verdicts[it.id] === false ? 'dislike' : null,
+        thread: null,
+        // ♥/✕ in the lightbox: on a ♥/✕ page it IS the page's verdict (and
+        // mirrors to the Assets tab through setVerdict, as always); on an
+        // own-states page the page verdict stays the states', so the heart
+        // casts the ASSET vote alone — exactly what it does in the Assets tab.
+        _cast: states
+          ? function (v) {
+            a.vote = a.vote === v ? null : v;
+            mirrorVote(it, a.vote === 'like' ? true : a.vote === 'dislike' ? false : null);
+            if (a._lbPaint) a._lbPaint();
+          }
+          : function (v) { setVerdict(it, v === 'like'); },
+        _noteSend: function (text, cb) {
+          fetch('/api/gallery/assets/note', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat: chat, url: it.url, text: text, from: 'sophie' }),
+          }).then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d && d.thread) a.thread = d.thread;
+              cb(!!(d && d.ok));
+            })
+            .catch(function () { cb(false); });
+        },
+      };
+      return a;
+    }
+
+    // a hand-built page that calls __grid directly may not carry the script
+    // tag the template page renders — fetch it once, on the first tap
+    function ensureLightbox(fn) {
+      if (window.__assetLightbox) return fn();
+      var s = document.createElement('script');
+      s.src = '/asset-lightbox.js';
+      s.onload = fn;
+      document.head.appendChild(s);
+    }
+
+    function openAsset(it) {
+      var a = assetFor(it);
+      var open = function () { window.__assetLightbox(it.full || it.img, a); };
+      if (a.thread) return ensureLightbox(open);
+      loadNotes().then(function (map) {
+        a.thread = map[it.url] || [];
+        ensureLightbox(open);
+      });
     }
 
     function actsHtml(it) {
@@ -198,17 +291,25 @@
         + (g.label ? '<div class="gd-glabel">' + esc(g.label) + '</div>' : '')
         + '<div class="gd-row">'
         + g.items.map(function (it) {
+          // an asset-backed picture opens the ASSETS lightbox (heart, note
+          // thread, prompt — see openAsset below); only a plain picture keeps
+          // compare.js's simple zoom
           var media = it.img
-            ? '<img class="zoom" src="' + esc(it.img) + '" alt="' + esc(it.label || '') + '"'
+            ? '<img class="' + (it.url ? '' : 'zoom') + '" '
+              + (it.url ? 'data-lb="' + esc(it.id) + '" ' : '')
+              + 'src="' + esc(it.img) + '" alt="' + esc(it.label || '') + '"'
               + (it.full ? ' data-full="' + esc(it.full) + '"' : '') + '>'
             : '<div class="gd-txt">' + esc(it.text || '') + '</div>';
           var cap = [it.model, it.quality].filter(Boolean).join(' · ');
+          // the two lines under the picture = what changed on this one; the
+          // caption fills in only when no label was given (it still reads in
+          // the lightbox and atop the PROMPT overlay either way)
+          var sub = it.label || cap;
           return '<div class="gd-it' + (opts.aspect === 'square' ? ' gd-sq' : '')
             + '" data-item="' + esc(it.id) + '"'
             + ' style="flex:0 0 ' + basis + '">'
-            + (it.label ? '<span class="tag">' + esc(it.label) + '</span>' : '')
             + media
-            + (cap ? '<div class="gd-cap">' + esc(cap) + '</div>' : '')
+            + (sub ? '<div class="gd-sub">' + esc(sub) + '</div>' : '')
             + '<div class="gd-acts">' + actsHtml(it) + '</div>'
             + '</div>';
         }).join('')
@@ -296,8 +397,10 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePrompt(); });
 
     mount.addEventListener('click', function (e) {
-      var b = e.target && e.target.closest ? e.target.closest('[data-v],[data-prompt]') : null;
+      var b = e.target && e.target.closest ? e.target.closest('[data-v],[data-prompt],[data-lb]') : null;
       if (!b) return;
+      var lid = b.getAttribute('data-lb');
+      if (lid) { var lit = byId[lid]; if (lit) openAsset(lit); return; }
       var pid = b.getAttribute('data-prompt');
       if (pid) { var pit = byId[pid]; if (pit) showPrompt(pit); return; }
       var it = byId[b.getAttribute('data-id')];
@@ -327,7 +430,8 @@
     // open; replayable from the "?" forever.
     function tourSteps() {
       var steps = [{ sel: '.gd-row', text: 'Each row is one comparison — the things on '
-        + 'it differ by exactly one thing, named in the label above each.' }];
+        + 'it differ by exactly one thing; the line under each picture says '
+        + 'what changed on that one.' }];
       steps.push(states
         ? { sel: '.gd-state', text: 'Mark an item with one of these — tap the same one '
           + 'again to unmark it.' }
@@ -337,8 +441,8 @@
         + 'image — what it depicts first, the style behind the second tab.' });
       steps.push({ sel: '.cmp-note-open', text: 'The + writes a note on this one — '
         + 'answers come back in the same thread.' });
-      steps.push({ sel: '.gd-it img', text: 'Tap any picture to see it big; tap again '
-        + 'to come back exactly where you were.' });
+      steps.push({ sel: '.gd-it img', text: 'Tap any picture to open it big — the '
+        + 'heart, a note box and the prompt, same as the Assets tab.' });
       return steps;
     }
     function startTour(auto) {

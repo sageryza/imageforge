@@ -18,7 +18,8 @@ all (Aug 2026).** The STOCK TEMPLATES take data, not HTML — `POST
 server renders the page around your items (structure enforced, kit included,
 ♥/✕/notes mirrored to the Assets tab for asset-backed items). `deck` = the
 Tinder pager (browse, optional actions, her own states, voice notes); `grid`
-= rows of 2–6 variants with the Assets-style PROMPT overlay;
+= variant rows wrapping at three across — picture first, a two-line
+what-changed label under it, taps opening the real Assets lightbox;
 `from:{assets:true}` auto-files quality/model ladders. Full contract: "THE
 STOCK TEMPLATES" in `docs/compare-pages.md`. Build custom HTML only when
 neither template fits the shape of the thing.

@@ -86,6 +86,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
   }
+  if (url.pathname === '/asset-lightbox.js') {   // the shared lightbox the page delegates to
+    res.writeHead(200, { 'Content-Type': 'application/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, 'asset-lightbox.js'), 'utf8'));
+  }
   json({});
 });
 

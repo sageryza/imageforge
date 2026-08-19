@@ -286,6 +286,10 @@ function renderTemplatePage({ template, title, chat, sheet, data, clean }) {
     + '<link rel="stylesheet" href="/compare.css">\n'
     + `<div class="wrap">\n${h1}<div id="${mountId}"></div>\n</div>\n`
     + '<script src="/compare.js"></script>\n'
+    // a grid's pictures open THE Assets-tab lightbox (asset-lightbox.js —
+    // heart, note thread, prompt), so the shared file rides along; grid.js
+    // also lazy-loads it for hand-built pages that call __grid directly
+    + (template === 'grid' ? '<script src="/asset-lightbox.js"></script>\n' : '')
     + `<script src="${tplScript}"></script>\n`
     + `<script>var __pageData = ${payload}; ${call};</script>\n`;
 }
@@ -311,6 +315,36 @@ function normContent(s) {
 function parseCaption(prompt) {
   const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})$/i.exec(String(prompt || '').trim());
   return m ? { model: m[1].trim(), quality: m[2].trim().toLowerCase() } : null;
+}
+
+// The two lines under a tile say WHAT CHANGED — not everything the filing
+// chat packed into the description ("Monkeys, Money, and Bananas (343 chars
+// verbatim) — same prompt as the monkey run, only the dream changed — dream
+// mystery" is a real one; Sophie, 2026-08-19: "the titles are way too long").
+// Keep the name: the part before the first " — ", trailing parenthetical off.
+// The full description still reads in the lightbox, which shows the item as
+// the Assets tab filed it.
+function shortLabel(s) {
+  return String(s || '').split(' — ')[0].replace(/\s*\([^)]*\)\s*$/, '').trim().slice(0, 80);
+}
+
+// The first style segment this variant does NOT share with the row's others —
+// the honest "what changed" for a style-differing ladder. Segments split on
+// newlines, else on sentence marks (the same rule grid.js highlights by).
+function styleSegs(s) {
+  s = String(s || '');
+  const parts = /\n/.test(s) ? s.split(/\n+/) : (s.match(/[^.;]+[.;]*\s*/g) || [s]);
+  return parts.map((x) => x.trim()).filter(Boolean);
+}
+function diffStyleLine(own, others) {
+  const otherSets = others.map((o) => new Set(styleSegs(o).map(normContent)));
+  for (const seg of styleSegs(own)) {
+    const n = normContent(seg);
+    if (n && !otherSets.every((set) => set.has(n))) {
+      return seg.replace(/[.;\s]+$/, '').slice(0, 80);
+    }
+  }
+  return '';
 }
 
 function tokens(s) {
@@ -370,13 +404,25 @@ function groupAssetVariants(assets) {
       return String(x.label).localeCompare(String(y.label));
     });
     // when the differing variable is the STYLE, the caption words repeat
-    // ("medium" · "medium") and say nothing — the image's own label is the
-    // half that actually differs, so it wins the tag
+    // ("medium" · "medium") and say nothing — the line under the tile is the
+    // style segment this variant does not share, i.e. what actually changed
+    const styleSet = new Set(items.map((i) => normContent(i.promptStyle)));
+    if (styleSet.size > 1) {
+      const capsVary = new Set(items.map((x) => `${x.model}|${x.quality}`)).size > 1;
+      const allStyles = items.map((i) => i.promptStyle);
+      items.forEach((it, idx) => {
+        const d = diffStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
+        if (d) it.label = capsVary && (it.quality || it.model)
+          ? `${it.quality || it.model} · ${d}` : d;
+      });
+    }
+    // still-duplicate labels (two variants whose difference the line split
+    // can't see) fall back to the image's own name, shortened
     if (new Set(items.map((i) => i.label)).size < items.length) {
       const src = Array.from(distinct.values());
       items.forEach((it) => {
         const a = src.find((s) => s.url === it.url);
-        if (a && a.description) it.label = String(a.description).slice(0, 200);
+        if (a && a.description) it.label = shortLabel(a.description) || it.label;
       });
     }
     ladders.push({ label: key.slice(0, 90), items });
@@ -405,7 +451,8 @@ function groupAssetVariants(assets) {
     if (distinct.size < 2) continue;
     const items = Array.from(distinct.values()).map((a) => {
       const it = itemOf(a);
-      it.label = String(a.description || '').slice(0, 200)
+      // what changed inside a same-style row is the SUBJECT — its name, short
+      it.label = shortLabel(a.description)
         || String(a.promptContent || '').slice(0, 60);
       return it;
     });

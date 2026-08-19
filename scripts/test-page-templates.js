@@ -186,16 +186,30 @@ ok('audio and promptless assets never group', () => {
   assert.strictEqual(out.ladders.length, 0);
 });
 
-ok('a style-differing ladder labels by the image, not a repeated quality word', () => {
+ok('a style-differing ladder labels each tile with the line that CHANGED', () => {
   const { ladders } = groupAssetVariants([
     { url: 's1', prompt: 'gpt-image-2 · medium', promptContent: CONTENT,
-      promptStyle: 'loose watercolor wash', description: 'watercolor take' },
+      promptStyle: 'loose watercolor wash. visible paper grain.', description: 'watercolor take' },
     { url: 's2', prompt: 'gpt-image-2 · medium', promptContent: CONTENT,
-      promptStyle: 'clean linocut relief print', description: 'linocut take' },
+      promptStyle: 'clean linocut relief print. visible paper grain.', description: 'linocut take' },
   ]);
   assert.strictEqual(ladders.length, 1);
+  // never "medium · medium" — the differing style segment is what changed
   assert.deepStrictEqual(ladders[0].items.map((i) => i.label).sort(),
-    ['linocut take', 'watercolor take']);
+    ['clean linocut relief print', 'loose watercolor wash']);
+});
+
+ok('a verbose filed description shortens to its name on an auto tile', () => {
+  const out = groupAssetVariants([
+    { url: 'd1', prompt: 'gpt-image-2 · medium', promptStyle: 'the house dream style',
+      promptContent: 'the monkey dream',
+      description: 'Monkeys, Money, and Bananas (343 chars verbatim) — same prompt, only the dream changed — dream mystery' },
+    { url: 'd2', prompt: 'gpt-image-2 · medium', promptStyle: 'the house dream style',
+      promptContent: 'the museum dream',
+      description: 'Museum with mom' },
+  ]);
+  assert.deepStrictEqual(out.contentSets[0].items.map((i) => i.label).sort(),
+    ['Monkeys, Money, and Bananas', 'Museum with mom']);
 });
 
 // ── same style, different subjects (her dream-illustration case) ────────────
