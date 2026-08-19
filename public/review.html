@@ -12,11 +12,16 @@
      opens the page CLEAN (?clean=1: no h1, straight onto the cards — her
      ask: "not a compare page because that has a header at the top, but
      instead just a clean Tinder style page … with all the content
-     preloaded"). The ✕ on a tile is "not a review" (a browse deck, a demo),
-     which stamps it hidden — the hidden pile lives under the DONE tab and
-     un-hides with one tap. Chats she tagged `to be reviewed` stay ROWS below
-     the tiles: they have no cards and open the chat. Nothing else here
-     writes anything.
+     preloaded").
+
+     NO ✕ ON A TILE, AND NO CHAT ROWS (Aug 2026 v2, same conversation: "get
+     rid of the X on all of the icons and instead offer a skip or done button
+     in the piles area" · "take away the chat list at the bottom and instead
+     offer a link back to the chat in the piles area"). Everything on this
+     screen is now a deck she can open: Skip ("not a review" — a browse deck,
+     a demo), Done, and the way back to the chat all live in the deck's own
+     piles view (judge.js). The hidden pile still lives under the DONE tab and
+     un-hides with ↩, which is the only write this page makes.
 
      House kit it follows:
        tool.css           the look; title once (the native bar carries it)
@@ -86,33 +91,9 @@
   .qtile.due .qtc{ color:var(--rose); }
   .qtile .qx{ position:absolute; top:5px; left:5px; z-index:2; }
 
-  /* A CHAT row: bubble · words · ✕ — a tagged chat has no cards to tile, so
-     it stays a row, below the tiles, and opens the chat. */
-  .qrow{ display:flex; align-items:center; gap:11px; background:var(--surface);
-    border:1px solid var(--border); border-radius:12px; margin-bottom:8px;
-    padding:9px 10px; }
-  .qrow .qgo{ display:flex; align-items:center; gap:11px; flex:1; min-width:0;
-    text-decoration:none; color:inherit; }
-  .qth{ width:52px; height:52px; flex:0 0 auto; border-radius:8px;
-    border:1px solid var(--border); background:var(--surface2); }
-  .qth.ph{ display:flex; align-items:center; justify-content:center; color:var(--dim); }
-  .qth.ph svg{ width:22px; height:22px; stroke:currentColor; fill:none;
-    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .qtx{ flex:1; min-width:0; }
-  .qt{ display:block; font-size:14px; font-weight:600; color:var(--ink);
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .qm{ display:block; font-size:11px; color:var(--dim); margin-top:2px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .qp{ display:flex; align-items:center; gap:7px; margin-top:5px; }
-  .qn{ font-size:11px; color:var(--dim); flex:0 0 auto; }
-  .qrow.due .qn{ color:var(--rose); }
-  /* The pill is fixed over roughly x 326-374 / y 14-192. Tiles keep their ✕
-     on the LEFT so no tile ever collides; chat rows only lead the pane when
-     there are no tiles, and then the first two step their ✕ left of the
-     corner (two, not one: ?embed=1 drops the header and lifts the second row
-     into the band). */
-  #pane-wait .qrow:nth-child(-n+2){ padding-right:60px; }
-  /* ✕ / ↩ — a small circular icon button (the allowed circle). */
+  /* ↩ — a small circular icon button (the allowed circle), on hidden tiles
+     only. The tiles carry no ✕ any more: Skip and Done live in the deck's own
+     piles view (Aug 2026 v2). */
   .qx{ width:26px; height:26px; flex:0 0 auto; border-radius:50%; padding:0;
     border:1px solid var(--border); background:var(--surface); color:var(--dim);
     font:inherit; font-size:13px; line-height:1; cursor:pointer; }
@@ -133,11 +114,11 @@
   tile is the first card of the content; tap it and you're straight on the
   cards. Your swipes save as you go, so a tile leaves this list by itself when
   you finish it.
-  <br><br><b>Chats show up here too</b> — tag a chat <i>to be reviewed</i> in the
-  Chats app and it lands in this pile, with whatever it says it needs from you.
-  The ✕ on a chat row takes that tag back off.
-  <br><br><b>✕ means "not a review"</b> — a browse deck or a demo you'll never
-  swipe. It moves the tile to a hidden pile behind DONE, where ↩ brings it back.
+  <br><br><b>Skip and Done are inside the deck</b> — open one, tap Piles, and
+  they're at the bottom, next to a link back to the chat that posted it. Skip
+  means "not a review" (a browse deck, a demo) and moves it to a hidden pile
+  behind DONE, where ↩ brings it back. Done means you're finished with it
+  whatever the cards say.
   <br><br>Later stays counted as waiting — it's the pile you asked to come
   back to.
 </div>
@@ -163,12 +144,9 @@ var $ = function (id) { return document.getElementById(id); };
 var HEADERS = TOK ? { 'x-studio-token': TOK, 'content-type': 'application/json' }
   : { 'content-type': 'application/json' };
 
-/* A text-only deck (date cards) has no picture — a small card-stack glyph
-   (Lucide `layers`-style lines, inlined) holds the thumb's place. */
+/* A deck with no picture AND no words on file — a small card-stack glyph
+   (Lucide `layers`-style lines, inlined) holds the face. */
 var CARDS = '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="14" height="18" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/></svg>';
-/* Lucide `message-square` — a chat row is not a deck of cards, and the glyph is
-   the only thing on the row that says so before she reads it. */
-var BUBBLE = '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -176,21 +154,15 @@ function esc(s) {
   });
 }
 
-function ago(iso) {
-  var t = Date.parse(iso || '');
-  if (!t) return '';
-  var m = Math.round((Date.now() - t) / 60000);
-  if (m < 1) return 'now';
-  if (m < 60) return m + 'm';
-  var h = Math.round(m / 60);
-  if (h < 24) return h + 'h';
-  var d = Math.round(h / 24);
-  return d < 7 ? d + 'd' : Math.round(d / 7) + 'w';
-}
-
 /* A PAGE is a square TILE: the face is the first picture of the content — or,
    on a text deck, the first card's own words — and the whole tile opens the
-   page clean (?clean=1 rides in r.url), straight onto the cards. */
+   page clean (?clean=1 rides in r.url), straight onto the cards.
+
+   NO ✕ ON A TILE (Aug 2026 v2, Sophie: "get rid of the X on all of the icons
+   and instead offer a skip or done button in the piles area"). Skip and Done
+   live in the deck's own piles view now — she decides a deck is not a review
+   after looking at it, not from a grid of faces. The hidden pile keeps its ↩,
+   because that is the only way back and it is not an ✕. */
 function tile(r, kind) {
   var count = kind === 'wait'
     ? (r.decided ? r.decided + ' of ' + r.total : r.total + ' to go')
@@ -207,27 +179,7 @@ function tile(r, kind) {
     + '</a>'
     + (kind === 'hidden'
       ? '<button class="qx" data-unhide="' + esc(r.id) + '" aria-label="put it back">↩</button>'
-      : kind === 'wait'
-        ? '<button class="qx" data-hide="' + esc(r.id) + '" aria-label="not a review">✕</button>'
-        : '')
-    + '</article>';
-}
-
-/* A CHAT ROW has nothing to count through — it is here because she put
-   `to be reviewed` on it, and it leaves when that word comes off. So it stays
-   a row: the top line is her name for the chat, the second what it says it
-   needs from her, which the status card already wrote. The ✕ takes the label
-   off (POST /reviewed), the same write her chips in the Chats app make. */
-function chatRow(r) {
-  return '<article class="qrow due">'
-    + '<a class="qgo" href="' + esc(r.url) + '">'
-    + '<span class="qth ph">' + BUBBLE + '</span>'
-    + '<span class="qtx">'
-    + '<span class="qt">' + esc(r.name) + '</span>'
-    + '<span class="qm">chat · ' + esc(ago(r.created)) + '</span>'
-    + (r.title ? '<span class="qp"><span class="qn">' + esc(r.title) + '</span></span>' : '')
-    + '</span></a>'
-    + '<button class="qx" data-reviewed="' + esc(r.chat) + '" aria-label="done reviewing">✕</button>'
+      : '')
     + '</article>';
 }
 
@@ -236,23 +188,13 @@ var Q = null;
 function render() {
   if (!Q) return;
   var c = Q.counts || {};
-  /* Chats have no cards to count, so they are named apart rather than folded
-     into a card total that would then be a lie. */
-  var bits = [];
-  if (c.items) bits.push(c.items + ' card' + (c.items === 1 ? '' : 's') + ' to go');
-  if (c.chats) bits.push(c.chats + ' chat' + (c.chats === 1 ? '' : 's'));
   $('strip').innerHTML = c.pages
-    ? '<b>' + c.pages + ' waiting</b>' + (bits.length ? ' · ' + bits.join(' · ') : '')
+    ? '<b>' + c.pages + ' waiting</b>'
+      + (c.items ? ' · ' + c.items + ' card' + (c.items === 1 ? '' : 's') + ' to go' : '')
     : 'Nothing waiting';
-  /* Pages tile three to a row; tagged chats stay rows below the tiles. */
-  var pages = (Q.waiting || []).filter(function (r) { return r.kind !== 'chat'; });
-  var chats = (Q.waiting || []).filter(function (r) { return r.kind === 'chat'; });
-  $('pane-wait').innerHTML = (pages.length || chats.length)
-    ? (pages.length
-      ? '<div class="qgrid">' + pages.map(function (r) { return tile(r, 'wait'); }).join('') + '</div>'
-      : '')
-      + (pages.length && chats.length ? '<div class="pilehead">Chats</div>' : '')
-      + chats.map(chatRow).join('')
+  var pages = Q.waiting || [];
+  $('pane-wait').innerHTML = pages.length
+    ? '<div class="qgrid">' + pages.map(function (r) { return tile(r, 'wait'); }).join('') + '</div>'
     : '<div class="empty">Nothing waiting — the pile is clear.</div>';
   $('pane-done').innerHTML = ((Q.done || []).length
     ? '<div class="qgrid">' + Q.done.map(function (r) { return tile(r, 'done'); }).join('') + '</div>'
@@ -278,23 +220,11 @@ function render() {
       }
     });
   });
-  /* The ✕ on a CHAT row: takes `to be reviewed` off it, which is the same write
-     her chips make in the Chats app — never a second stamp that could disagree
-     with the label. */
-  document.querySelectorAll('[data-reviewed]').forEach(function (btn) {
+  /* The ↩ on a hidden tile — the only write this page still makes. */
+  document.querySelectorAll('[data-unhide]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      btn.disabled = true;
-      fetch('/api/review/reviewed', { method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ chat: btn.getAttribute('data-reviewed') }) })
-        .then(function (r) { return r.json(); })
-        .then(function () { load(true); })
-        .catch(function () { btn.disabled = false; });
-    });
-  });
-  document.querySelectorAll('[data-hide],[data-unhide]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var id = btn.getAttribute('data-hide') || btn.getAttribute('data-unhide');
-      var on = btn.hasAttribute('data-hide');
+      var id = btn.getAttribute('data-unhide');
+      var on = false;
       btn.disabled = true;
       fetch('/api/review/hide', { method: 'POST', headers: HEADERS,
         body: JSON.stringify({ id: id, hidden: on }) })
