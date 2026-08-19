@@ -172,11 +172,36 @@ the song starts at `hook − (when the end card appears)` = 54.20s, so "you were
 in my dreams last night" lands exactly as the end card does, at 9.8s. Change a
 `hold` anywhere and the offset re-derives itself.
 
-**v1 is SILENT** (0:14.8, 2026-08-19) — a cloud session cannot fetch the track
+**THE DREAM IN IT FOLLOWS THE LYRIC (v2, 2026-08-19 — Sophie: "if you're
+gonna make a new image, wouldn't you want to use the lyrics to the song").**
+v1 showed a dream about someone in her kitchen at 4am, which was a dream but
+not THIS song's dream. v2 draws what the hook describes — two people wrapped
+together before dawn, a hand caught in her hair — and the ad clicks: the words
+on screen are nearly the record's, and the dial under them says *just me*. The
+dream is written to MIRROR the lyric, never to quote it: her typed dream has to
+read as a person's dream rather than a lyric card, and quoting the words on
+screen would drag the licence question onto the picture as well as the audio.
+v1's kitchen is kept in the Assets tab, labeled superseded.
+
+**THE LYRICS ARE NOT PUBLISHED ANYWHERE (searched 2026-08-19).** No Genius
+page, no lyrics site, nothing in the label's copy — this is a 2021 Kitsune
+single by a small London duo, and its words simply have not been transcribed by
+anyone. So the record is the only source, and
+`node scripts/dream-commercial/song-words.js <audio>` is how to get them: the
+repo's own Whisper pass with word timestamps, which prints the line around
+"dream" and the second it starts — the number `song.hook` wants. Whisper is
+trained on speech, not singing over a mix, so what it returns is a first pass
+to check by ear, never a lyric to file. It needs the audio, so it is queued
+with the grab.
+
+**v1/v2 are SILENT** (0:14.8, 2026-08-19) — a cloud session cannot fetch the track
 (YouTube bot-blocks datacenter IPs), so the audio is queued in
 `docs/desktop-tasks.md`. Everything else is final; adding the song is one
 command with `--audio`.
+v1 (the kitchen dream):
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v1.mp4
+v2 (the lyric's dream — the current cut):
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v2.mp4
 
 ### Before it can go in a public commercial
 

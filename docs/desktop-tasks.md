@@ -150,9 +150,15 @@ Then she says one thing to the terminal chat and the whole queue runs.
   cd ~/imageforge && git checkout main && git pull origin main
   npm install
   yt-dlp -f bestaudio -x --audio-format m4a -o /tmp/venus.m4a "https://youtu.be/2uwwVV-bGXU"
+  node scripts/dream-commercial/song-words.js /tmp/venus.m4a
   node scripts/dream-commercial/spot.js spot.json /tmp/spot-v2.mp4 --audio /tmp/venus.m4a
   open /tmp/spot-v2.mp4
   ```
+  The middle command is the LYRICS: nobody has published them (no Genius page,
+  no lyrics site — searched 2026-08-19), so the record is the only source. It
+  prints the words with their real timestamps and names the second the hook
+  starts. Whisper is trained on speech rather than singing over a mix, so read
+  it as a first pass and check it by ear.
 - **What to check by ear:** the sung "you were in my dreams last night" should
   hit as the end card appears. If it is early or late, her 1:04 was a little
   off — change `song.hook` in `scripts/dream-commercial/spot.json` to the real
