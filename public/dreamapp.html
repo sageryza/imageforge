@@ -162,13 +162,15 @@
   .csub { font:italic 400 13px 'EB Garamond', serif; color:rgba(20,19,26,.55); }
 
   /* The way out of an opened dream, floating so it is in reach from anywhere
-     in a long one (Sophie: "there should also be an option to close that dream
-     at any point so a floating button"). Same seat and same look as the
-     confess button, which stands down while a dream is open — two blobs at the
-     bottom of the screen would be a choice she never asked to make. */
-  #closewrap button { pointer-events:auto; font:15px 'Courier Prime', monospace; background:var(--brown);
-                      color:var(--cream); border:none; padding:14px 28px; cursor:pointer;
-                      border-radius:60% 40% 55% 45%/45% 55% 40% 60%; animation:wobble 5s ease-in-out infinite; }
+     in a long one. A small icon-only circle since 2026-08-19 (Sophie: "less
+     obtrusive … it doesn't say 'close the dream', it's just like an icon") —
+     the wordy blob sat over the very dream it was closing. Same seat as the
+     confess button, which stands down while it is up. */
+  #closewrap button { pointer-events:auto; width:46px; height:46px; padding:0;
+                      display:flex; align-items:center; justify-content:center;
+                      background:var(--brown); color:var(--cream); border:none; border-radius:50%;
+                      cursor:pointer; animation:wobble 5s ease-in-out infinite; }
+  #closewrap button svg { width:19px; height:19px; }
 
   /* sealed (the share-to-see gate, currently off server-side) */
   .sealwrap { position:relative; overflow:hidden; }
@@ -414,7 +416,7 @@
     <button id="confessBtn">add last night&rsquo;s dream</button>
     <span class="csub">it&rsquo;s coming back to me&hellip;</span>
   </div></div>
-  <div class="confess" id="closewrap" hidden><button id="closeDream">close the dream</button></div>
+  <div class="confess" id="closewrap" hidden><button id="closeDream" aria-label="close the dream"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
   <div class="sheet" id="sheet" hidden>
     <div class="shead">
       <button class="smark" id="smarkBtn">dreams</button>
