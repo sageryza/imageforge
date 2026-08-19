@@ -14,8 +14,11 @@
 
    THE THREAD SITS UNDER THE BOX, PEEKING (Aug 2026, Sophie's rework after
    living with it): writing a note is the common act and re-reading the
-   exchange the occasional one, so the box comes first, the letters peek under
-   it, and a Notes (n) button throws the whole conversation over the picture.
+   exchange the occasional one, so the box comes first and the letters peek
+   under it. A CHAT button beside PROMPT throws the whole conversation over
+   the picture — and it appears only when the thread has more in it than the
+   peek can show, measured rather than counted ("only have it show up IF there
+   are extra notes that would need to scroll to see").
 
      window.__assetLightbox(url, asset)
 
@@ -56,7 +59,7 @@
        and there can just be a button which makes the note texting take up more
        of a screen, like overlay on top of the actual image"). Writing is the
        common act; re-reading the exchange is the occasional one, so the thread
-       peeks under the box and the ⌃ button throws it over the picture. */
+       peeks under the box and the CHAT button throws it over the picture. */
     + '.lbtalk{width:min(92vw,360px); margin-top:12px;}\n'
     + '.lbthread{max-height:13vh; overflow-y:auto; -webkit-overflow-scrolling:touch;\n'
     + '  display:flex; flex-direction:column; gap:5px; margin-top:8px;}\n'
@@ -73,11 +76,10 @@
     + '  background:rgba(15,13,10,.95); border-radius:6px; padding:12px; box-sizing:border-box;\n'
     + '  z-index:3; margin-top:0; gap:6px;}\n'
     + '.lbtalk.big .lbmsg.them{background:rgba(250,247,240,.18);}\n'
-    /* the button that opens it — hugs its words, never a slab */
-    + '.lbmore{margin-top:6px; border:none; border-radius:6px; background:rgba(250,247,240,.14);\n'
-    + '  color:#ece6da; font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.14em;\n'
-    + '  text-transform:uppercase; padding:6px 10px; cursor:pointer; align-self:flex-start;}\n'
-    + '.lbtalk.big .lbmore{background:rgba(250,247,240,.92); color:#26221c;}\n'
+    /* CHAT sits next to PROMPT in the top row (Aug 2026, Sophie) — they are the
+       same kind of thing: a second surface over the picture. The two ride a
+       middle group so the row's space-between keeps ♥ and ✕ on the corners. */
+    + '.lbmid{display:flex; gap:8px; align-items:center;}\n'
     + ".lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:'EBGaramond',Georgia,serif;\n"
     + '  font-size:14px; line-height:1.4; word-break:break-word; white-space:pre-wrap;}\n'
     + '.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}\n'
@@ -158,6 +160,7 @@
     // actually filed a split — nothing is shown (and nothing is said) when it
     // didn't. Built before .lbtop so the button can join that row.
     var promptBtn = null;
+    var syncTalk = null;   // re-measures whether the thread overflows its peek
     if (asset && (asset.promptStyle || asset.promptContent)) {
       var wrap = lb.querySelector('.clwrap');
       var ov = document.createElement('div'); ov.className = 'lbp'; ov.style.display = 'none';
@@ -216,23 +219,40 @@
         });
         th.style.display = msgs.length ? '' : 'none';
         th.scrollTop = th.scrollHeight;   // newest letter in view
-        if (more) paintMore();
+        if (more) syncMore();   // a new letter may push it past the peek
       }
-      // the ⌃ button: how many letters are in the thread, and a tap puts them
-      // over the picture (its own row so the note box keeps the full width)
-      more = document.createElement('button'); more.className = 'lbmore';
+      // CHAT — the conversation thrown over the picture. It appears ONLY when
+      // there is more of it than the peek can show (Aug 2026, Sophie: "only
+      // have it show up IF there are extra notes that would need to scroll to
+      // see"). So the button means "there is more up there", never just "notes
+      // exist" — a thread that already fits needs no way to open it bigger.
+      // MEASURED, not counted: how much fits depends on how long the letters
+      // are, so the test is the peek's own overflow.
+      more = document.createElement('button'); more.className = 'promptbtn';
       more.type = 'button';
+      more.style.display = 'none';   // until a measurement says otherwise
       function paintMore() {
-        var n = (asset.thread || []).length;
-        more.style.display = n ? '' : 'none';
-        more.textContent = (talk.classList.contains('big') ? 'Hide' : 'Notes')
-          + ' (' + n + ')';
+        var big = talk.classList.contains('big');
+        more.textContent = big ? 'Hide' : 'Chat';
+        more.classList.toggle('on', big);
+      }
+      // one frame later: heights are 0 until the overlay is on screen, and the
+      // serif can land after that again
+      syncTalk = syncMore;
+      function syncMore() {
+        requestAnimationFrame(function () {
+          var big = talk.classList.contains('big');
+          var over = th.scrollHeight > th.clientHeight + 2;
+          more.style.display = (big || over) ? '' : 'none';
+          paintMore();
+        });
       }
       more.onclick = function (e) {
         e.stopPropagation();
         talk.classList.toggle('big');
         paintMore();
         th.scrollTop = th.scrollHeight;
+        syncMore();
       };
       var nw = document.createElement('div'); nw.className = 'lbnote';
       var ni = document.createElement('input'); ni.placeholder = 'Write a note…';
@@ -266,7 +286,7 @@
       ns.onclick = function (e) { e.stopPropagation(); sendNote(); };
       ni.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); sendNote(); } };
       nw.appendChild(ni); nw.appendChild(ns);
-      talk.appendChild(nw); talk.appendChild(more); talk.appendChild(th);
+      talk.appendChild(nw); talk.appendChild(th);
       paintThread();
       if (asset._markSeen) asset._markSeen();   // opening it counts as reading it
       asset._lbPaint = function () {
@@ -276,8 +296,11 @@
       asset._lbPaint();
       hb.onclick = function (e) { e.stopPropagation(); asset._cast('like'); };
       xb.onclick = function (e) { e.stopPropagation(); asset._cast('dislike'); };
-      // ♥ left, Prompt in the middle, ✕ right (the row is space-between)
-      row.appendChild(hb); if (promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
+      // ♥ left, Prompt · Chat together in the middle, ✕ right (space-between)
+      var mid = document.createElement('div'); mid.className = 'lbmid';
+      if (promptBtn) mid.appendChild(promptBtn);
+      mid.appendChild(more);
+      row.appendChild(hb); row.appendChild(mid); row.appendChild(xb);
       var frame = lb.querySelector('.clframe');
       (frame || lb).appendChild(row);
       lb.appendChild(talk);   // thread + note box below the image, never over it
@@ -299,6 +322,11 @@
     if (tag) { var tc = document.createElement('div'); tc.className = 'cltag'; tc.textContent = tag; lb.appendChild(tc); }
     if (cap) { var cc = document.createElement('div'); cc.className = 'clcap'; cc.textContent = cap; lb.appendChild(cc); }
     lb.style.display = 'flex'; document.body.style.overflow = 'hidden'; document.body.classList.add('ontop');
+    if (syncTalk) {
+      syncTalk();                                        // now that it has a size
+      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncTalk); }
+      catch (_) { /* the first measurement stands */ }
+    }
     lb.onclick = function () {
       if (asset) asset._lbPaint = null;
       // Blur FIRST: a still-focused note box makes iOS scroll again as the
