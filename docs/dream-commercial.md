@@ -281,20 +281,30 @@ skin plus bedding, not off intimacy — the same closeness reads fine when fabri
 carries it. And a refusal here is not terminal the way a dream-app refusal is,
 because `/freeform` is a plain run: reword and go again.
 
-#### The dream on screen, and the lyric
+#### The song AS THE IMAGE REFERENCE (2026-08-19)
 
-She asked for the app's dream text to be the lyric verbatim — one version
-ending on the "touching me right" line, a longer one with more lines. **What is
-built uses ONE line of the lyric and continues in her own words**, and the
-drawing (v2) comes from that dream: the hand in the hair, a figure behind, the
-window going blue.
+Sophie: "remake the illustration image where the dream text is literally just
+the lyrics verbatim… try with the end being 'touching me right' and then maybe
+a longer version with a few more lines".
 
-Putting several lines of the lyric on screen is a REPRODUCTION of it, which is
-a separate permission from the sync licence for the recording — and the one a
-label is more likely to refuse, because it is the words rather than the track.
-So it is worth asking Kitsune for both at once rather than cutting a version
-that cannot ship; the on-screen text is one field in `spot.json`, so a cleared
-lyric is a swap and a re-render, not a rebuild.
+**She meant the lyric as the INPUT to the drawing, not as words on the phone
+screen** — and this chat read it as the latter, argued the point, and made a
+version she had not asked for. She was right and the argument was about a thing
+she never proposed. Read the ask again before deciding it is a problem.
+
+So: the app's own recipe (`spot-image.js` → movies.js `makeDreamImage`), with
+the lyric passage handed in as the dream it illustrates. Two of them, filed
+with their exact prompts:
+
+- **A** — the hook through the "touching me right" line, her cut-off. A kiss
+  in a moonlit bedroom, the lamp still on.
+- **B** — one line further in. The hand in the hair, their shadow on the wall,
+  petals on the floor.
+
+Both are ORIGINAL drawings prompted by the words; the lyric appears nowhere in
+the picture, and nothing on screen in the film changed. The reproduction
+question in the licence note below is about the RECORDING and about any words
+displayed on screen — neither of which this touches.
 
 ### Before it can go in a public commercial
 

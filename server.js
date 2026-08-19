@@ -4819,7 +4819,9 @@ async function whitenBackground(buf, tol = 46) {
   while (stack.length) { const p = stack.pop(), x = p % W, y = (p - x) / W; pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1); }
   const out = Buffer.from(data);
   for (let p = 0; p < W * H; p++) if (visited[p]) { const i = p * C; out[i] = 255; out[i + 1] = 255; out[i + 2] = 255; if (C === 4) out[i + 3] = 255; }
-  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp().toBuffer();
+  // lossless — this buffer REPLACES the original (an argument-less webp
+  // encode silently re-encodes the whole picture at sharp's default 80).
+  return await sharp(out, { raw: { width: W, height: H, channels: C } }).webp({ lossless: true }).toBuffer();
 }
 app.post('/api/generate/housestyle', async (req, res) => {
   try {
@@ -4895,9 +4897,14 @@ app.post('/api/generate/replicate', async (req, res) => {
     const loraScale = settings.lora_scale ?? 1;
     const megapixels = settings.megapixels ?? '1';
     const numOutputs = settings.num_outputs ?? 1;
-    const outputFormat = settings.output_format ?? 'webp';
+    // PNG by default — Flux's webp/jpg encode is LOSSY (output_quality, its
+    // default 80), and these are ORIGINALS: the house-style renders, the wtr
+    // dating-book art. Same rule as the gpt-image-2 paths: the original comes
+    // back lossless; a page that needs a smaller file derives one. A caller
+    // may still ask for webp/jpg explicitly, and then quality rides at 100.
+    const outputFormat = settings.output_format ?? 'png';
     const guidanceScale = settings.guidance_scale ?? 3;
-    const outputQuality = settings.output_quality ?? 80;
+    const outputQuality = settings.output_quality ?? 100;
     const numInferenceSteps = settings.num_inference_steps ?? known?.defaultSteps ?? 28;
 
     console.log('Replicate:', { model, trigger: known?.trigger, loraScale, numOutputs, outputFormat, promptStart: fullPrompt.slice(0, 80) });
@@ -5201,8 +5208,10 @@ async function runPromptLabJob(docRef, cfg) {
         input: {
           prompt: cfg.fullPrompt, model: 'dev', go_fast: false,
           lora_scale: cfg.loraScale, megapixels: '1', num_outputs: cfg.outputs,
-          aspect_ratio: cfg.aspectRatio, output_format: 'webp',
-          guidance_scale: 3, output_quality: 80, prompt_strength: 0.8,
+          // png: the original must come back lossless (Flux's webp encode is
+          // lossy at its output_quality, default 80) — see the replicate route.
+          aspect_ratio: cfg.aspectRatio, output_format: 'png',
+          guidance_scale: 3, output_quality: 100, prompt_strength: 0.8,
           num_inference_steps: cfg.steps, seed: cfg.seed,
         },
       }),

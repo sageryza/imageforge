@@ -75,7 +75,7 @@ async function run(imageUrl, prompt, strength) {
         prompt, image: imageUrl, model: 'dev', go_fast: false,
         lora_scale: 1, megapixels: '1', num_outputs: 1,
         aspect_ratio: '2:3', output_format: 'png',
-        guidance_scale: 3, output_quality: 90,
+        guidance_scale: 3, output_quality: 100,
         prompt_strength: strength, num_inference_steps: 28,
       },
     }),

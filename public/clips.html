@@ -307,6 +307,22 @@ function liveInput(el, fn) {
   el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
   return { sync: function () { last = el.value; } };
 }
+/* ── RETURN SENDS THE SEARCH ──
+   (Aug 2026, Sophie: "only the check mark sends the search on its way. I'd
+   like the return button to do the same.") A lone <input type=search> outside
+   a <form> has nothing to submit to, so Return did nothing at all here. It
+   ends the search the way the ✓ does now — runs it, then drops the keyboard,
+   so what she is left looking at is the shelf and not her own words behind
+   half a screen of keys. The house helper, wired beside liveInput on every
+   search box. */
+function enterSubmits(el, fn) {
+  el.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    if (fn) fn();
+    el.blur();
+  });
+}
 
 /* ── state ── */
 var all = [];            // the whole shelf, newest first
@@ -519,6 +535,10 @@ totop.onclick = function () {
 
 /* ── search wiring ── */
 var qLive = liveInput($('q'), render);
+/* `qLive.sync()` inside it: the blur Return performs would otherwise be
+   liveInput's first sight of dictated text and it would fire a second,
+   identical render on the way out. */
+enterSubmits($('q'), function () { render(); qLive.sync(); });
 $('clearq').onclick = function () { $('q').value = ''; qLive.sync(); render(); };
 
 /* ── the tour: dim the page, spotlight one control at a time ──

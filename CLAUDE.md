@@ -1214,9 +1214,25 @@ them off the reference sheet, not off the old filenames.
   MINUTE** (her ask, same day): reopening the bar inside that minute puts the
   words AND the results back — the same hunt continuing — while the glass
   (a NEW search) forgets them outright and anything older opens empty, which is
-  still the default. Tests: `node scripts/test-search-grammar.js`,
+  still the default. **RETURN WAS WIRED INTO THE CHATS APP ONLY, AND THAT WAS
+  THE WHOLE BUG (Aug 2026, Sophie asking a second time: "I asked a chat to make
+  `return` catalyze a search, in addition to the checkmark — what happened").**
+  `enterSubmits` shipped into `public/chats.html` and stopped there; `/search`,
+  `/chunking` and `/assets` were left on `liveInput` alone, so Return never
+  dropped the keyboard and she was left looking at her own words over the
+  answer. `/search` was the worst of the three — its box asks iOS for a SEARCH
+  key with `enterkeyhint="search"`, so the keyboard offered a key wired to
+  nothing, and it had no `liveInput` either, so it never searched as she
+  dictated. **Both helpers are on every live search box now, and each page
+  keeps its own copy** (there is no shared page script to hang them on) —
+  `chats.html` ×3, `search.html`, `clips.html`, `assets.html`;
+  `cuttingroom.html` has always had its own Enter handler, and
+  `storyroom.html` is the unpointed old board surface. Tests:
+  `node scripts/test-search-grammar.js`,
   `node scripts/test-chats-live-search.js`,
-  `node scripts/test-chats-search-return.js`.
+  `node scripts/test-chats-search-return.js`,
+  `node scripts/test-search-return-everywhere.js` (the other three pages,
+  headless — verified failing against the pre-fix pages).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does
@@ -2267,6 +2283,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **finished reply** (never a draft) and on a new Compare page. They are the
   Update tab's **doorbell, not its replacement**, so a dropped push is never
   lost news. A tap opens THE CHAT IT CAME FROM.
+  **THE BANNER SHOWS WITH THE APP OPEN TOO, SILENTLY (Aug 2026, Sophie:
+  "notifications that come down into the app and appear at the top of the
+  screen while I'm in the app").** `willPresent` returned `[]` until then — the
+  app suppressed every foregrounded notification on the reasoning that the
+  Update tab IS the notification. That is true only on the Chats screen: from
+  the Playground or the Story Room a chat answering her said nothing at all,
+  and the rose "New message" bar on `/chats` names neither the chat nor what it
+  said. It is `[.banner, .list]` and deliberately NOT `.sound` — the buzz is
+  what carries a lock-screen push across the room, and in her hand the banner
+  has already done that. Do not "fix" this back to `[]`.
   **THE BELL IS A WHITELIST — no bell, no buzz (`chatNotifies` in
   `push-gate.js`, Aug 2026, Sophie: "only the ones I clicked the bell on will
   notify me").** One field, `notify`, on the chat's registry doc beside

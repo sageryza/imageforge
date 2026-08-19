@@ -720,6 +720,7 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     - **"Auto-compare — same style, different subjects"** — exact-same
       style prompt across different contents (her dream case: one style
       walked across many dreams), shortest content first.
+<<<<<<< HEAD
     - **"Auto-compare — same prompt, drawn again"** (Aug 2026, Sophie: "the
       dream feed chat now has grainy and non-grainy images, can we make this
       auto trigger compare page") — one prompt drawn more than once at the
@@ -742,6 +743,8 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       the short name, then the draw number, each tried only while the labels
       still collide. (`diffStyleLine` keeps the weaker test, which is the
       right one for grid.js's rose marking between two variants.)
+=======
+>>>>>>> origin/main
     A row wears a SHORT tag ("Style 1") with the prompt behind the "?" —
     a group's real header here IS a prompt, and in gold caps between her
     title and the pictures that is exactly the shape the *nothing to read

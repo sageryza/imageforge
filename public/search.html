@@ -577,10 +577,46 @@ function paintPlay(working) {
 $('player').addEventListener('ended', () => { playing = null; paintPlay(); });
 
 // ── chrome ──────────────────────────────────────────────────────────
+// ── SEARCH AS SHE DICTATES, AND RETURN SENDS IT ─────────────────────
+// The house pair, the same two helpers every other search box on the app
+// runs through (chats.html, clips.html, assets.html — each page keeps its
+// own copy; there is no shared page script to hang them on).
+//
+// liveInput: iOS dictation can fill a field without ever firing `input`, so
+// the value is polled while the box has focus. An `input`-only box sat there
+// doing nothing through a whole dictated sentence.
+//
+// enterSubmits: a lone <input type=search> outside a <form> has nothing to
+// submit to, so Return did nothing here — even though the box asks iOS for a
+// SEARCH key with `enterkeyhint`. Now Return runs it NOW (no debounce left to
+// wait out) and drops the keyboard, because what she wants to be looking at
+// after Return is the answer, not her own words behind a keyboard covering
+// half of them (Sophie, Aug 2026: "only the check mark sends the search on
+// its way. I'd like the return button to do the same").
+function liveInput(el, fn) {
+  let last = el.value, timer = null;
+  function fire() { if (el.value === last) return; last = el.value; fn(); }
+  ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
+    .forEach((ev) => el.addEventListener(ev, () => setTimeout(fire, 0)));
+  el.addEventListener('focus', () => { clearInterval(timer); timer = setInterval(fire, 150); });
+  el.addEventListener('blur', () => { clearInterval(timer); timer = null; fire(); });
+  return { sync() { last = el.value; } };
+}
+function enterSubmits(el, fn) {
+  el.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    if (fn) fn();
+    el.blur();
+  });
+}
 let t = null;
-$('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 250); });
-$('q').addEventListener('search', run);
-$('clear').onclick = () => { $('q').value = ''; run(); $('q').focus(); };
+const qLive = liveInput($('q'), () => { clearTimeout(t); t = setTimeout(run, 250); });
+// …and `qLive.sync()` inside it: the blur Return performs would otherwise be
+// liveInput's first sight of dictated text (the 150ms poll may not have ticked
+// yet) and it would schedule a second, identical run 250ms later.
+enterSubmits($('q'), () => { clearTimeout(t); run(); qLive.sync(); });
+$('clear').onclick = () => { $('q').value = ''; qLive.sync(); run(); $('q').focus(); };
 // Scoped to the chip's OWN row: the kind row and the mode row are independent
 // choices, so lighting one must not clear the other.
 document.querySelectorAll('.chips').forEach((row) => {
@@ -595,7 +631,7 @@ document.querySelectorAll('.chips').forEach((row) => {
 $('intro').addEventListener('click', (e) => {
   const ex = e.target.closest('.ex');
   if (!ex) return;
-  $('q').value = ex.textContent.trim(); run();
+  $('q').value = ex.textContent.trim(); qLive.sync(); run();
 });
 
 $('help').onclick = (e) => { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
@@ -626,7 +662,7 @@ window.__navBack = () => false;
 
 // Deep link: /search?q=darius
 const preset = new URLSearchParams(location.search).get('q');
-if (preset) { $('q').value = preset; run(); }
+if (preset) { $('q').value = preset; qLive.sync(); run(); }
 api('/sources').then((d) => showIndex(d.counts, d.builtAt, d.syncedAt)).catch(() => {});
 </script>
 </body>
