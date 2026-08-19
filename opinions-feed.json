@@ -1,140 +1,629 @@
 {
-  "comment": "The preloaded Opinions feed — matchups for /opinions (opinions.js). Two sides per item; she picks one and the picked one is stamped GOOD IDEA. kind 'image' sides carry img (a COMMITTED webp under public/ — never a raw PNG, never a temporary url). mode 'easy' = the hook (obviously right answers; 'right' names the side); mode 'hard' = ethically ambiguous and completely insane (sides carry an `info` line shown as: more information). verb 'shoot' draws the gun — one bullet, tap the side to shoot. No mode = the normal feed. Add items here (commit) or POST /api/opinions/items (Firestore extras); ids are permanent — a pick is keyed to its item id, so renaming an id orphans her answer.",
-  "items": [
-    { "id": "easy-grainy-hd", "kind": "image", "category": "look", "mode": "easy", "right": "b", "q": "Which picture?",
-      "a": { "t": "Grainy", "img": "/samples/paint-grainy.webp" },
-      "b": { "t": "High definition", "img": "/samples/paint.webp" } },
-    { "id": "easy-shoot-dog-baby", "kind": "image", "category": "wild", "mode": "easy", "verb": "shoot", "right": "b", "q": "You have one bullet.",
-      "a": { "t": "A dog and a baby", "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787103917264-q8gczl.webp" },
-      "b": { "t": "A pile of bad guys", "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787104642180-rk6lhk.webp" } },
-    { "id": "easy-cookie", "kind": "text", "category": "wild", "mode": "easy", "right": "a", "q": "Which cookie?",
-      "a": { "t": "A fresh warm cookie" },
-      "b": { "t": "A cookie someone already licked" } },
-    { "id": "easy-refund-ticket", "kind": "text", "category": "wild", "mode": "easy", "right": "a", "q": "Which envelope?",
-      "a": { "t": "A refund" },
-      "b": { "t": "A parking ticket" } },
-    { "id": "easy-puppy-wasp", "kind": "text", "category": "wild", "mode": "easy", "right": "a", "q": "Which passenger?",
-      "a": { "t": "A puppy asleep on your lap" },
-      "b": { "t": "A wasp loose in your car" } },
-    { "id": "easy-sheets-socks", "kind": "text", "category": "wild", "mode": "easy", "right": "a", "q": "Pick a forever.",
-      "a": { "t": "Clean sheets every night" },
-      "b": { "t": "Damp socks every day" } },
-    { "id": "easy-shoot-cake-mosquito", "kind": "text", "category": "wild", "mode": "easy", "verb": "shoot", "right": "b", "q": "You have one bullet.",
-      "a": { "t": "Grandma's birthday cake" },
-      "b": { "t": "A mosquito the size of a crow" } },
-
-    { "id": "hard-shoot-puppy-baby", "kind": "text", "category": "wild", "mode": "hard", "verb": "shoot", "q": "You have one bullet.",
-      "a": { "t": "A cute puppy holding a baby, dangling it by its leg", "info": "the dog is mean" },
-      "b": { "t": "The pile of bad guys", "info": "they've all reformed and volunteer at the shelter" } },
-    { "id": "hard-bread", "kind": "text", "category": "wild", "mode": "hard", "q": "Which is right?",
-      "a": { "t": "Steal bread to feed your family", "info": "your family just ate" },
-      "b": { "t": "Pay for the bread", "info": "with money you stole from a different bakery" } },
-    { "id": "hard-genie", "kind": "text", "category": "wild", "mode": "hard", "q": "The genie is waiting.",
-      "a": { "t": "World peace", "info": "he rounds down" },
-      "b": { "t": "Infinite wishes", "info": "every wish ages the dog one year" } },
-    { "id": "hard-trolley", "kind": "text", "category": "wild", "mode": "hard", "q": "The trolley is coming.",
-      "a": { "t": "Pull the lever", "info": "the trolley speeds up" },
-      "b": { "t": "Don't pull the lever", "info": "the five people tied themselves to the track for content" } },
-    { "id": "hard-haircut", "kind": "text", "category": "wild", "mode": "hard", "q": "She asks how it looks.",
-      "a": { "t": "Tell your friend the truth about her haircut", "info": "she is still holding the scissors" },
-      "b": { "t": "Lie", "info": "she can always tell" } },
-    { "id": "hard-shoot-asteroid", "kind": "text", "category": "wild", "mode": "hard", "verb": "shoot", "q": "You have one bullet.",
-      "a": { "t": "The asteroid headed for Earth", "info": "it is full of gold" },
-      "b": { "t": "The billionaire's rocket that could stop it", "info": "he wants credit" } },
-
-    { "id": "look-gouache-painterly", "kind": "image", "category": "look", "q": "Which look wins?",
-      "a": { "t": "Gouache", "img": "/samples/gosh.webp" },
-      "b": { "t": "Painterly", "img": "/samples/paint.webp" } },
-    { "id": "look-sketchy-book", "kind": "image", "category": "look", "q": "Which look wins?",
-      "a": { "t": "Sketchy", "img": "/samples/special.webp" },
-      "b": { "t": "Book Illustrations", "img": "/samples/victorianstyle.webp" } },
-    { "id": "look-pwc-hoonie", "kind": "image", "category": "look", "q": "Which look wins?",
-      "a": { "t": "PWC Scans", "img": "/samples/pwcscans.webp" },
-      "b": { "t": "HOONIE linocut", "img": "/samples/hoonie.webp" } },
-    { "id": "look-pastel-witch", "kind": "image", "category": "look", "q": "Which house style?",
-      "a": { "t": "Pastel", "img": "/samples/house-pastel.webp" },
-      "b": { "t": "Witch", "img": "/samples/house-witch.webp" } },
-    { "id": "make-mug-tote", "kind": "image", "category": "make", "q": "Which should exist first?",
-      "a": { "t": "The mug", "img": "/mockups/mug.webp" },
-      "b": { "t": "The tote", "img": "/mockups/tote.webp" } },
-    { "id": "make-tee-sweatshirt", "kind": "image", "category": "make", "q": "Which should exist first?",
-      "a": { "t": "The tee", "img": "/mockups/tee.webp" },
-      "b": { "t": "The sweatshirt", "img": "/mockups/sweatshirt.webp" } },
-    { "id": "make-hat-card", "kind": "image", "category": "make", "q": "Which should exist first?",
-      "a": { "t": "The hat", "img": "/mockups/hat.webp" },
-      "b": { "t": "The card", "img": "/mockups/card.webp" } },
-
-    { "id": "biz-crystal-box-bag", "kind": "text", "category": "business", "q": "Which business?",
-      "a": { "t": "Crystal subscription box", "s": "one stone a month, its story, a small spell" },
-      "b": { "t": "Crystal mystery bags", "s": "one price, whatever the pile yields" } },
-    { "id": "biz-pet-couple-portraits", "kind": "text", "category": "business", "q": "Which commission line?",
-      "a": { "t": "Custom pet portraits", "s": "watercolor, from one photo" },
-      "b": { "t": "Custom couple portraits", "s": "watercolor, from one photo" } },
-    { "id": "biz-hoodie-candle", "kind": "text", "category": "business", "q": "Which zodiac product?",
-      "a": { "t": "Zodiac hoodies", "s": "print on demand, twelve designs" },
-      "b": { "t": "Zodiac candles", "s": "hand-poured, twelve scents" } },
-    { "id": "biz-tarot-email-paid", "kind": "text", "category": "business", "q": "The daily tarot email —",
-      "a": { "t": "Charge $3 a month for it", "s": "small, steady, honest" },
-      "b": { "t": "Keep it free, sell the deck", "s": "the email is the ad" } },
-    { "id": "biz-worksheets-workbook", "kind": "text", "category": "business", "q": "Witch School on paper?",
-      "a": { "t": "Printable worksheets", "s": "instant download, Etsy" },
-      "b": { "t": "A spiral-bound workbook", "s": "a real object, printed on demand" } },
-    { "id": "biz-market-stall-online-only", "kind": "text", "category": "business", "q": "Where does the shop live?",
-      "a": { "t": "A Saturday market stall", "s": "people touch the things" },
-      "b": { "t": "Online only, forever", "s": "never stand in the rain" } },
-
-    { "id": "make-moon-herb-stickers", "kind": "text", "category": "make", "q": "Which sticker sheet?",
-      "a": { "t": "Moon phases", "s": "eight moons, gold ink" },
-      "b": { "t": "Kitchen herbs", "s": "each with what it's for" } },
-    { "id": "make-dream-deck-sigil-book", "kind": "text", "category": "make", "q": "Which to make?",
-      "a": { "t": "An oracle deck of your own dreams", "s": "the comic pages as cards" },
-      "b": { "t": "A coloring book of protective sigils", "s": "color one when you need one" } },
-    { "id": "make-star-disco-pin", "kind": "text", "category": "make", "q": "Which enamel pin?",
-      "a": { "t": "The sparkles star", "s": "the little generate glyph, in gold" },
-      "b": { "t": "A tiny disco ball", "s": "it catches real light" } },
-    { "id": "make-veg-mood-chart", "kind": "text", "category": "make", "q": "The next fridge chart?",
-      "a": { "t": "Favorite vegetables", "s": "the fruit poll, part two" },
-      "b": { "t": "Family moods", "s": "a magnet per person, moved daily" } },
-    { "id": "make-tote-slogans", "kind": "text", "category": "make", "q": "Which tote slogan?",
-      "a": { "t": "“Probably at the fabric store”" },
-      "b": { "t": "“My other bag is also like this”" } },
-    { "id": "make-tarot-shower-curtain", "kind": "text", "category": "make", "q": "Big tarot, but on what?",
-      "a": { "t": "A tarot shower curtain", "s": "The Star, nine feet tall" },
-      "b": { "t": "A tarot picnic blanket", "s": "read cards on the cards" } },
-
-    { "id": "app-parking-grocery", "kind": "text", "category": "app", "q": "Which app?",
-      "a": { "t": "Rates your parallel parking", "s": "photo in, score out" },
-      "b": { "t": "Rates your grocery haul", "s": "photo in, score out" } },
-    { "id": "app-photo-moon-widget", "kind": "text", "category": "app", "q": "Which home-screen widget?",
-      "a": { "t": "One old photo a day", "s": "from your own camera roll" },
-      "b": { "t": "What the moon is doing", "s": "phase, sign, and a one-line mood" } },
-    { "id": "app-memo-titles-search", "kind": "text", "category": "app", "q": "Voice memos, fixed how?",
-      "a": { "t": "Titles them for you", "s": "no more “New Recording 47”" },
-      "b": { "t": "Finds the one you meant", "s": "search what you said, not what it's called" } },
-    { "id": "app-compliment-alarm", "kind": "text", "category": "app", "q": "Which alarm clock?",
-      "a": { "t": "Wakes you with a compliment", "s": "a new one every morning" },
-      "b": { "t": "Wakes you with a mission", "s": "one small task before your phone unlocks" } },
-
-    { "id": "wild-cereal-toast", "kind": "text", "category": "wild", "q": "Which restaurant?",
-      "a": { "t": "Cereal, open only at night", "s": "forty kinds, cold milk" },
-      "b": { "t": "Toast, open only at dawn", "s": "twelve butters" } },
-    { "id": "wild-plant-hotel-sitter", "kind": "text", "category": "wild", "q": "Plants, while you travel?",
-      "a": { "t": "A hotel for houseplants", "s": "drop them off, they summer there" },
-      "b": { "t": "A plant-sitter subscription", "s": "someone comes to them" } },
-    { "id": "wild-bookstore-cats-dogs", "kind": "text", "category": "wild", "q": "The bookstore employs —",
-      "a": { "t": "Cats", "s": "asleep on the good shelves" },
-      "b": { "t": "One very old dog", "s": "knows where everything is" } },
-    { "id": "wild-time-capsule-postcards", "kind": "text", "category": "wild", "q": "Mail to the future?",
-      "a": { "t": "A time-capsule service", "s": "we bury it properly" },
-      "b": { "t": "Postcards to yourself", "s": "arrive one year later, no warning" } },
-    { "id": "wild-museum-of-receipts", "kind": "text", "category": "wild", "q": "Which tiny museum?",
-      "a": { "t": "The Museum of Receipts", "s": "framed, annotated, anonymous" },
-      "b": { "t": "The Museum of Lost Gloves", "s": "found singles, reunited monthly" } },
-    { "id": "wild-karaoke-library", "kind": "text", "category": "wild", "q": "Which quiet rebellion?",
-      "a": { "t": "Karaoke in a library", "s": "one hour a year, everyone whispers" },
-      "b": { "t": "Silent disco in a garden center", "s": "dance among the ferns" } },
-    { "id": "wild-soup-swap-bread-club", "kind": "text", "category": "wild", "q": "Which neighborhood thing?",
-      "a": { "t": "A soup swap", "s": "bring a quart, leave with a different quart" },
-      "b": { "t": "A bread club", "s": "one baker a week, everyone eats" } }
-  ]
+ "comment": "The preloaded Opinions feed — matchups for /opinions (opinions.js). Two sides per item; she picks one and the picked one is stamped GOOD IDEA. kind 'image' sides carry img (a COMMITTED webp under public/ — never a raw PNG, never a temporary url). mode 'easy' = the hook (obviously right answers; 'right' names the side); mode 'hard' = ethically ambiguous and completely insane (sides carry an `info` line shown as: more information). verb 'shoot' draws the gun — one bullet, tap the side to shoot. No mode = the normal feed. Add items here (commit) or POST /api/opinions/items (Firestore extras); ids are permanent — a pick is keyed to its item id, so renaming an id orphans her answer.",
+ "items": [
+  {
+   "id": "easy-grainy-hd",
+   "kind": "image",
+   "category": "look",
+   "mode": "easy",
+   "right": "b",
+   "q": "Which picture?",
+   "a": {
+    "t": "Grainy",
+    "img": "/samples/paint-grainy.webp"
+   },
+   "b": {
+    "t": "High definition",
+    "img": "/samples/paint.webp"
+   }
+  },
+  {
+   "id": "easy-shoot-dog-baby",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "verb": "shoot",
+   "right": "b",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "A dog and a baby",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787103917264-q8gczl.webp"
+   },
+   "b": {
+    "t": "A pile of bad guys",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787104642180-rk6lhk.webp"
+   }
+  },
+  {
+   "id": "easy-cookie",
+   "kind": "text",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Which cookie?",
+   "a": {
+    "t": "A fresh warm cookie"
+   },
+   "b": {
+    "t": "A cookie someone already licked"
+   }
+  },
+  {
+   "id": "easy-refund-ticket",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Which envelope?",
+   "a": {
+    "t": "A refund",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/refund.webp"
+   },
+   "b": {
+    "t": "A parking ticket",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/ticket.webp"
+   }
+  },
+  {
+   "id": "easy-puppy-wasp",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Which passenger?",
+   "a": {
+    "t": "A puppy asleep on your lap",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/puppy-lap.webp"
+   },
+   "b": {
+    "t": "A wasp loose in your car",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/wasp-car.webp"
+   }
+  },
+  {
+   "id": "easy-sheets-socks",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "right": "a",
+   "q": "Pick a forever.",
+   "a": {
+    "t": "Clean sheets every night",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/sheets-clean.webp"
+   },
+   "b": {
+    "t": "Damp socks every day",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/socks-damp.webp"
+   }
+  },
+  {
+   "id": "easy-shoot-cake-mosquito",
+   "kind": "image",
+   "category": "wild",
+   "mode": "easy",
+   "verb": "shoot",
+   "right": "b",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "Grandma's birthday cake",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/grandma-cake.webp"
+   },
+   "b": {
+    "t": "A mosquito the size of a crow",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/giant-mosquito.webp"
+   }
+  },
+  {
+   "id": "hard-shoot-puppy-baby",
+   "kind": "text",
+   "category": "wild",
+   "mode": "hard",
+   "verb": "shoot",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "A cute puppy holding a baby, dangling it by its leg",
+    "info": "the dog is mean"
+   },
+   "b": {
+    "t": "The pile of bad guys",
+    "info": "they've all reformed and volunteer at the shelter"
+   }
+  },
+  {
+   "id": "hard-bread",
+   "kind": "text",
+   "category": "wild",
+   "mode": "hard",
+   "q": "Which is right?",
+   "a": {
+    "t": "Steal bread to feed your family",
+    "info": "your family just ate"
+   },
+   "b": {
+    "t": "Pay for the bread",
+    "info": "with money you stole from a different bakery"
+   }
+  },
+  {
+   "id": "hard-genie",
+   "kind": "image",
+   "category": "wild",
+   "mode": "hard",
+   "q": "The genie is waiting.",
+   "a": {
+    "t": "World peace",
+    "info": "he rounds down",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-peace.webp"
+   },
+   "b": {
+    "t": "Infinite wishes",
+    "info": "every wish ages the dog one year",
+    "img": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/opinions/scenarios/genie-wishes-dog.webp"
+   }
+  },
+  {
+   "id": "hard-trolley",
+   "kind": "text",
+   "category": "wild",
+   "mode": "hard",
+   "q": "The trolley is coming.",
+   "a": {
+    "t": "Pull the lever",
+    "info": "the trolley speeds up"
+   },
+   "b": {
+    "t": "Don't pull the lever",
+    "info": "the five people tied themselves to the track for content"
+   }
+  },
+  {
+   "id": "hard-haircut",
+   "kind": "text",
+   "category": "wild",
+   "mode": "hard",
+   "q": "She asks how it looks.",
+   "a": {
+    "t": "Tell your friend the truth about her haircut",
+    "info": "she is still holding the scissors"
+   },
+   "b": {
+    "t": "Lie",
+    "info": "she can always tell"
+   }
+  },
+  {
+   "id": "hard-shoot-asteroid",
+   "kind": "text",
+   "category": "wild",
+   "mode": "hard",
+   "verb": "shoot",
+   "q": "You have one bullet.",
+   "a": {
+    "t": "The asteroid headed for Earth",
+    "info": "it is full of gold"
+   },
+   "b": {
+    "t": "The billionaire's rocket that could stop it",
+    "info": "he wants credit"
+   }
+  },
+  {
+   "id": "look-gouache-painterly",
+   "kind": "image",
+   "category": "look",
+   "q": "Which look wins?",
+   "a": {
+    "t": "Gouache",
+    "img": "/samples/gosh.webp"
+   },
+   "b": {
+    "t": "Painterly",
+    "img": "/samples/paint.webp"
+   }
+  },
+  {
+   "id": "look-sketchy-book",
+   "kind": "image",
+   "category": "look",
+   "q": "Which look wins?",
+   "a": {
+    "t": "Sketchy",
+    "img": "/samples/special.webp"
+   },
+   "b": {
+    "t": "Book Illustrations",
+    "img": "/samples/victorianstyle.webp"
+   }
+  },
+  {
+   "id": "look-pwc-hoonie",
+   "kind": "image",
+   "category": "look",
+   "q": "Which look wins?",
+   "a": {
+    "t": "PWC Scans",
+    "img": "/samples/pwcscans.webp"
+   },
+   "b": {
+    "t": "HOONIE linocut",
+    "img": "/samples/hoonie.webp"
+   }
+  },
+  {
+   "id": "look-pastel-witch",
+   "kind": "image",
+   "category": "look",
+   "q": "Which house style?",
+   "a": {
+    "t": "Pastel",
+    "img": "/samples/house-pastel.webp"
+   },
+   "b": {
+    "t": "Witch",
+    "img": "/samples/house-witch.webp"
+   }
+  },
+  {
+   "id": "make-mug-tote",
+   "kind": "image",
+   "category": "make",
+   "q": "Which should exist first?",
+   "a": {
+    "t": "The mug",
+    "img": "/mockups/mug.webp"
+   },
+   "b": {
+    "t": "The tote",
+    "img": "/mockups/tote.webp"
+   }
+  },
+  {
+   "id": "make-tee-sweatshirt",
+   "kind": "image",
+   "category": "make",
+   "q": "Which should exist first?",
+   "a": {
+    "t": "The tee",
+    "img": "/mockups/tee.webp"
+   },
+   "b": {
+    "t": "The sweatshirt",
+    "img": "/mockups/sweatshirt.webp"
+   }
+  },
+  {
+   "id": "make-hat-card",
+   "kind": "image",
+   "category": "make",
+   "q": "Which should exist first?",
+   "a": {
+    "t": "The hat",
+    "img": "/mockups/hat.webp"
+   },
+   "b": {
+    "t": "The card",
+    "img": "/mockups/card.webp"
+   }
+  },
+  {
+   "id": "biz-crystal-box-bag",
+   "kind": "text",
+   "category": "business",
+   "q": "Which business?",
+   "a": {
+    "t": "Crystal subscription box",
+    "s": "one stone a month, its story, a small spell"
+   },
+   "b": {
+    "t": "Crystal mystery bags",
+    "s": "one price, whatever the pile yields"
+   }
+  },
+  {
+   "id": "biz-pet-couple-portraits",
+   "kind": "text",
+   "category": "business",
+   "q": "Which commission line?",
+   "a": {
+    "t": "Custom pet portraits",
+    "s": "watercolor, from one photo"
+   },
+   "b": {
+    "t": "Custom couple portraits",
+    "s": "watercolor, from one photo"
+   }
+  },
+  {
+   "id": "biz-hoodie-candle",
+   "kind": "text",
+   "category": "business",
+   "q": "Which zodiac product?",
+   "a": {
+    "t": "Zodiac hoodies",
+    "s": "print on demand, twelve designs"
+   },
+   "b": {
+    "t": "Zodiac candles",
+    "s": "hand-poured, twelve scents"
+   }
+  },
+  {
+   "id": "biz-tarot-email-paid",
+   "kind": "text",
+   "category": "business",
+   "q": "The daily tarot email —",
+   "a": {
+    "t": "Charge $3 a month for it",
+    "s": "small, steady, honest"
+   },
+   "b": {
+    "t": "Keep it free, sell the deck",
+    "s": "the email is the ad"
+   }
+  },
+  {
+   "id": "biz-worksheets-workbook",
+   "kind": "text",
+   "category": "business",
+   "q": "Witch School on paper?",
+   "a": {
+    "t": "Printable worksheets",
+    "s": "instant download, Etsy"
+   },
+   "b": {
+    "t": "A spiral-bound workbook",
+    "s": "a real object, printed on demand"
+   }
+  },
+  {
+   "id": "biz-market-stall-online-only",
+   "kind": "text",
+   "category": "business",
+   "q": "Where does the shop live?",
+   "a": {
+    "t": "A Saturday market stall",
+    "s": "people touch the things"
+   },
+   "b": {
+    "t": "Online only, forever",
+    "s": "never stand in the rain"
+   }
+  },
+  {
+   "id": "make-moon-herb-stickers",
+   "kind": "text",
+   "category": "make",
+   "q": "Which sticker sheet?",
+   "a": {
+    "t": "Moon phases",
+    "s": "eight moons, gold ink"
+   },
+   "b": {
+    "t": "Kitchen herbs",
+    "s": "each with what it's for"
+   }
+  },
+  {
+   "id": "make-dream-deck-sigil-book",
+   "kind": "text",
+   "category": "make",
+   "q": "Which to make?",
+   "a": {
+    "t": "An oracle deck of your own dreams",
+    "s": "the comic pages as cards"
+   },
+   "b": {
+    "t": "A coloring book of protective sigils",
+    "s": "color one when you need one"
+   }
+  },
+  {
+   "id": "make-star-disco-pin",
+   "kind": "text",
+   "category": "make",
+   "q": "Which enamel pin?",
+   "a": {
+    "t": "The sparkles star",
+    "s": "the little generate glyph, in gold"
+   },
+   "b": {
+    "t": "A tiny disco ball",
+    "s": "it catches real light"
+   }
+  },
+  {
+   "id": "make-veg-mood-chart",
+   "kind": "text",
+   "category": "make",
+   "q": "The next fridge chart?",
+   "a": {
+    "t": "Favorite vegetables",
+    "s": "the fruit poll, part two"
+   },
+   "b": {
+    "t": "Family moods",
+    "s": "a magnet per person, moved daily"
+   }
+  },
+  {
+   "id": "make-tote-slogans",
+   "kind": "text",
+   "category": "make",
+   "q": "Which tote slogan?",
+   "a": {
+    "t": "“Probably at the fabric store”"
+   },
+   "b": {
+    "t": "“My other bag is also like this”"
+   }
+  },
+  {
+   "id": "make-tarot-shower-curtain",
+   "kind": "text",
+   "category": "make",
+   "q": "Big tarot, but on what?",
+   "a": {
+    "t": "A tarot shower curtain",
+    "s": "The Star, nine feet tall"
+   },
+   "b": {
+    "t": "A tarot picnic blanket",
+    "s": "read cards on the cards"
+   }
+  },
+  {
+   "id": "app-parking-grocery",
+   "kind": "text",
+   "category": "app",
+   "q": "Which app?",
+   "a": {
+    "t": "Rates your parallel parking",
+    "s": "photo in, score out"
+   },
+   "b": {
+    "t": "Rates your grocery haul",
+    "s": "photo in, score out"
+   }
+  },
+  {
+   "id": "app-photo-moon-widget",
+   "kind": "text",
+   "category": "app",
+   "q": "Which home-screen widget?",
+   "a": {
+    "t": "One old photo a day",
+    "s": "from your own camera roll"
+   },
+   "b": {
+    "t": "What the moon is doing",
+    "s": "phase, sign, and a one-line mood"
+   }
+  },
+  {
+   "id": "app-memo-titles-search",
+   "kind": "text",
+   "category": "app",
+   "q": "Voice memos, fixed how?",
+   "a": {
+    "t": "Titles them for you",
+    "s": "no more “New Recording 47”"
+   },
+   "b": {
+    "t": "Finds the one you meant",
+    "s": "search what you said, not what it's called"
+   }
+  },
+  {
+   "id": "app-compliment-alarm",
+   "kind": "text",
+   "category": "app",
+   "q": "Which alarm clock?",
+   "a": {
+    "t": "Wakes you with a compliment",
+    "s": "a new one every morning"
+   },
+   "b": {
+    "t": "Wakes you with a mission",
+    "s": "one small task before your phone unlocks"
+   }
+  },
+  {
+   "id": "wild-cereal-toast",
+   "kind": "text",
+   "category": "wild",
+   "q": "Which restaurant?",
+   "a": {
+    "t": "Cereal, open only at night",
+    "s": "forty kinds, cold milk"
+   },
+   "b": {
+    "t": "Toast, open only at dawn",
+    "s": "twelve butters"
+   }
+  },
+  {
+   "id": "wild-plant-hotel-sitter",
+   "kind": "text",
+   "category": "wild",
+   "q": "Plants, while you travel?",
+   "a": {
+    "t": "A hotel for houseplants",
+    "s": "drop them off, they summer there"
+   },
+   "b": {
+    "t": "A plant-sitter subscription",
+    "s": "someone comes to them"
+   }
+  },
+  {
+   "id": "wild-bookstore-cats-dogs",
+   "kind": "text",
+   "category": "wild",
+   "q": "The bookstore employs —",
+   "a": {
+    "t": "Cats",
+    "s": "asleep on the good shelves"
+   },
+   "b": {
+    "t": "One very old dog",
+    "s": "knows where everything is"
+   }
+  },
+  {
+   "id": "wild-time-capsule-postcards",
+   "kind": "text",
+   "category": "wild",
+   "q": "Mail to the future?",
+   "a": {
+    "t": "A time-capsule service",
+    "s": "we bury it properly"
+   },
+   "b": {
+    "t": "Postcards to yourself",
+    "s": "arrive one year later, no warning"
+   }
+  },
+  {
+   "id": "wild-museum-of-receipts",
+   "kind": "text",
+   "category": "wild",
+   "q": "Which tiny museum?",
+   "a": {
+    "t": "The Museum of Receipts",
+    "s": "framed, annotated, anonymous"
+   },
+   "b": {
+    "t": "The Museum of Lost Gloves",
+    "s": "found singles, reunited monthly"
+   }
+  },
+  {
+   "id": "wild-karaoke-library",
+   "kind": "text",
+   "category": "wild",
+   "q": "Which quiet rebellion?",
+   "a": {
+    "t": "Karaoke in a library",
+    "s": "one hour a year, everyone whispers"
+   },
+   "b": {
+    "t": "Silent disco in a garden center",
+    "s": "dance among the ferns"
+   }
+  },
+  {
+   "id": "wild-soup-swap-bread-club",
+   "kind": "text",
+   "category": "wild",
+   "q": "Which neighborhood thing?",
+   "a": {
+    "t": "A soup swap",
+    "s": "bring a quart, leave with a different quart"
+   },
+   "b": {
+    "t": "A bread club",
+    "s": "one baker a week, everyone eats"
+   }
+  }
+ ]
 }
