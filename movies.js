@@ -2013,7 +2013,11 @@ async function dreamImagePlan(dream) {
 // redrawing it softened, never by retrying the same words.
 async function makeDreamImage(dream, quality = 'medium', progress = async () => {}) {
   await progress(0, 1, 'reading the dream');
-  const image = await dreamImagePlan(dream);
+  // A caller that already knows what the picture is skips the planning model
+  // entirely — `dream.imagePlan` is drawn as given. That is what makes "draw
+  // exactly these words" possible: the planner is a describer, and it will
+  // always add a scene (curtains, petals, moonlight) that nobody asked for.
+  const image = dream.imagePlan || await dreamImagePlan(dream);
   dream.imagePlan = image;
   await progress(0, 1, 'drawing it');
   const refs = styleRef ? [styleRef] : [];
@@ -2027,7 +2031,11 @@ async function makeDreamImage(dream, quality = 'medium', progress = async () => 
       : `${DEFAULT_IMAGE_STYLE} `)
     + 'ONE single full-frame illustration of a real dream. Not a comic: no panels, no grid, no caption boxes, no lettering, no speech bubbles, no words anywhere in the picture. '
     + `Draw this: "${b.image}". `
-    + `The rest of the dream, for context only — do not draw a second scene: "${b.context}".`;
+    // no second clause when the words ARE the picture — repeating them as
+    // "context" reads to the model as a second scene to reconcile
+    + (b.context && b.context !== b.image
+      ? `The rest of the dream, for context only — do not draw a second scene: "${b.context}".`
+      : '');
   const { buf, prompt, softened, used } = await drawWithSoftening(bundle, build, refs, quality, SQUARE);
   dream.spend = +((dream.spend || 0) + (SQUARE_COST[quality] || 0.053)).toFixed(3);
   dream.pages = [{
