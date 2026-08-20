@@ -721,9 +721,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    not an alarm, and it must not shout over her own notes */
 .cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
 /* The archive wrap-up's expander. Sits under its row as a sibling (a row is a
-   button, so it cannot nest) and costs one small glyph of height when shut. */
-.wrapmore{display:block; margin:-6px 0 0 auto; padding:2px 10px 6px; background:none;
-  border:0; color:var(--ink2); font-size:15px; line-height:1; cursor:pointer;}
+   button, so it cannot nest) and costs one small glyph of height when shut.
+   THE TAP TARGET IS THE PADDING, NOT THE GLYPH (Aug 2026, Sophie: "the arrow
+   for more information on the chats and the update tab is too small of a tap
+   target"). It was 32.6 x 23 — a third of the 44px a thumb actually needs, on
+   a control she taps to read the summary. The ⌄ itself is unchanged; the box
+   around it grew to ~45 x 43, and the negative margin absorbed the extra
+   height so the glyph lands on the same pixel it always did and the archive
+   list is only 8px longer per row.
+   The overhang goes UP, into the row this summary belongs to — deliberately.
+   A miss there opens the summary of the chat she was already aiming at; an
+   overhang DOWNWARD would land on the NEXT chat's row, which is a different
+   chat and a real wrong answer. It reaches only the far right of that row,
+   where the timestamp sits and nothing is tappable — the archive's rows carry
+   no button of their own (see renderChats). The two that CAN appear on a row
+   elsewhere are lifted over the overhang below, so this stays true if a
+   wrap-up is ever painted into a list that has them. */
+.crow .hidebtn,.crow .pinbtn,.crow .pickbtn{position:relative; z-index:1;}
+.wrapmore{display:block; margin:-18px 0 0 auto; padding:14px 16px; background:none;
+  border:0; color:var(--ink2); font-size:15px; line-height:1; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
@@ -742,7 +759,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .threadwrap{margin:-.4em 0 1em;}
 .threadwrap[hidden]{display:none !important;}
 .threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
-.threadwrap .wrapmore{margin:0 0 0 auto;}
+/* Same trick, smaller: what sits above it here is the summary LINE, plain
+   text with nothing to tap, so the box can hang over it and the ⌄ stays on
+   the pixel it has always been on. */
+.threadwrap .wrapmore{margin:-12px 0 0 auto;}
 .threadwrap .wrapfull{margin-bottom:0;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
@@ -843,11 +863,23 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 /* The ⌄ that opens the chat's update. Quieter than the ✓ on purpose — no
    circle, no shadow: the ✓ is the action on this card, this is just a way to
    look closer. It rotates when open, so the card says which state it is in. */
-.nwmore{border:none; background:none; cursor:pointer; padding:6px 1px; display:flex; align-items:center;
+.nwmore{border:none; background:none; cursor:pointer; padding:14px 1px; display:flex; align-items:center;
   justify-content:center; flex:none; color:var(--ink2); -webkit-tap-highlight-color:transparent;}
-/* every pixel here comes off the chat NAME, which already truncates on 83 of
-   her 144 names — so the glyph is small and the padding is vertical only (the
-   tap target stays 30px tall, which is what a thumb actually needs) */
+/* every pixel of WIDTH here comes off the chat NAME, which already truncates
+   on 83 of her 144 names — so the glyph stays small and the real padding is
+   vertical only. That left a 19 x 29 target (Aug 2026, Sophie: "the arrow for
+   more information on the chats and the update tab is too small of a tap
+   target"): 29 tall is not what a thumb needs, and 19 wide is less than half
+   of it.
+   The height grew for real — the row beside it is 53px tall, so 45 costs
+   nothing and the card does not move. The WIDTH is the ::after, which reaches
+   exactly across `.nwtop`'s own 9px gaps on either side and stops at the
+   crow's edge: 37px of target that takes not one pixel off the name, because
+   the space was already there and belonged to nothing. It cannot reach the
+   ✓ — the timestamp still sits between them, which is the whole reason the
+   time was moved there ("I'm worried I'll tap that by accident"). */
+.nwmore{position:relative;}
+.nwmore::after{content:''; position:absolute; top:0; bottom:0; left:-9px; right:-9px;}
 .nwmore svg{width:17px; height:17px; display:block; transition:transform .18s ease;}
 .nwmore.on{color:var(--ink);}
 .nwmore.on svg{transform:rotate(180deg);}
