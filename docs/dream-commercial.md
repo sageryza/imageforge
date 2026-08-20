@@ -344,6 +344,28 @@ each is a straight audio swap onto v5's picture, `-c:v copy`, seconds to make.
 Whichever she picks, `song.hook` / `song.until` in `spot.json` still drive the
 13-second spot on its own; these two are the assembled 23.5s cut.
 
+#### v8 — the palindrome opening, her idea (2026-08-19)
+
+Sophie: "take the first video I made using that image… run it backwards so that
+the first frame lines up with the last frame, and play it right before."
+
+**Two quick-animates made from the SAME still both begin on that still**, so
+running the earlier one in reverse ends on the picture the next one starts
+from, and the two clips join without a cut. It doubles the opening for free —
+no new render, no model call — and the seam is invisible. Checked rather than
+assumed: the two first frames measure SSIM 0.93 / PSNR 33dB against each other,
+which on a drawing is the same picture with encoder noise between them.
+
+Worth keeping in mind for any animate pair off one image: `reverse` in the
+filter chain is the whole trick, and it costs nothing.
+
+Running order: her animate reversed → the same animate forward → her Midjourney
+clip → the spot. 28.6s, song from 1:04.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v8.mp4
+
+**Still to do:** the padding around her two clips is ink for now; she asked for
+the app's beige with a hand-drawn line framing the picture instead.
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is
