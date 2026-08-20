@@ -5,7 +5,7 @@
 // I'll need like a select mode where I can move things into categories").
 // Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. the LIST/TILES toggle is gone and the home is the list,
-//   2. the seeded chips (Stories, Tech) are there before anything is filed,
+//   2. the seeded chips (Story, Tech) are there before anything is filed,
 //   3. select mode picks chats and one chip files the lot (POST /labels),
 //   4. FILING MOVES a chat: it leaves the unfiltered list, the chip counts it,
 //      and a lit chip is that folder (tapping it again clears back),
@@ -55,9 +55,9 @@ const server = http.createServer((req, res) => {
         'chat-a': { lastSeen: MSGS[0].created },
         'chat-b': { lastSeen: MSGS[1].created },
         'chat-c': { lastSeen: MSGS[2].created },
-        // hidden AND already filed under stories — the filter has to reach the
+        // hidden AND already filed under story — the filter has to reach the
         // pile as well as the list
-        'chat-hid': { lastSeen: MSGS[3].created, hiddenAt: iso(T0), category: 'stories' },
+        'chat-hid': { lastSeen: MSGS[3].created, hiddenAt: iso(T0), category: 'story' },
       },
       // a name she made earlier, with nothing filed under it — the chip has to
       // outlive the filing that created it
@@ -123,14 +123,14 @@ const openTags = async (page) => {
   // 2. both seeded chips exist before anything is filed — behind TAGS
   await openTags(page);
   let cs = await chips(page);
-  if (JSON.stringify(cs) !== JSON.stringify(['Stories', 'Tech', 'Crystals'])) fail('seeded chips wrong: ' + cs.join(','));
+  if (JSON.stringify(cs) !== JSON.stringify(['Story', 'Tech', 'Crystals'])) fail('seeded chips wrong: ' + cs.join(','));
   // ONE number on a chip, and it is the red unread one — the dim total came
   // off at Sophie's ask ("just the one in red")
   if (await page.$('#catrow .cc-n')) fail('the dim total is still on the chips');
   const badge = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)', (ns) =>
-    ns.filter((n) => n.firstChild.textContent.trim() === 'Stories')
+    ns.filter((n) => n.firstChild.textContent.trim() === 'Story')
       .map((n) => (n.querySelector('.cc-new') || {}).textContent || '')[0]);
-  if (badge !== '1') fail('Stories chip did not badge its unread hidden chat: ' + badge);
+  if (badge !== '1') fail('Story chip did not badge its unread hidden chat: ' + badge);
 
   // 3. select mode picks two chats and one chip files them
   await page.click('#selbtn');
@@ -158,12 +158,12 @@ const openTags = async (page) => {
   rows = await listed(page);
   if (JSON.stringify(rows) !== JSON.stringify(['chat-c'])) fail('tapping the lit chip did not clear the filter: ' + rows.join(','));
 
-  // 6. the filter reaches the hidden pile: under Stories the only live chat is
+  // 6. the filter reaches the hidden pile: under Story the only live chat is
   //    hidden, so the list is empty and the bar carries it
-  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Stories').click(); });
-  if (await page.$('#grid > .clist')) fail('Stories should have no visible chats');
+  await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Story').click(); });
+  if (await page.$('#grid > .clist')) fail('Story should have no visible chats');
   const barTxt = await page.$eval('.hidebar .hb-n', (n) => n.textContent.replace(/\s+/g, ' ').trim());
-  if (!/^Hidden 1\b/.test(barTxt)) fail('hidden pile not filtered to Stories: ' + barTxt);
+  if (!/^Hidden 1\b/.test(barTxt)) fail('hidden pile not filtered to Story: ' + barTxt);
   // and under Tech the pile is empty, so there is no bar at all
   await page.$$eval('#catrow .catchip', (ns) => { ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Tech').click(); });
   if (await page.$('.hidebar')) fail('a bar was drawn for a category with nothing hidden');

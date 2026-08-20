@@ -502,16 +502,64 @@
   `labels`, in Aug 2026** (see *ONE PILE OF LABELS* under the category chips
   below); the archive row now offers her folder names too, and the sheet writes
   `POST /api/chatfeed/labels` like every other chip surface.
-  - **The ten words are SEEDS, not the vocabulary** — `TAGS` in `chatfeed.js`
+  - **The words are SEEDS, not the vocabulary** — `TAGS` in `chatfeed.js`
     and `TAG_LIST` in `chats.html`, still pinned equal by
     `node scripts/test-chats-archive-tags.js` because the legacy `/tags` route
     checks a cached page's write against them. Her five are
     `bug fix · new feature · built · story · quick question`, then
-    `images · film · audio · writing · research`. **Free text was refused
+    `images · film · audio · writing · research` (added by the chat that built
+    the row; `failure` joined them Aug 2026). **Free text was refused
     deliberately and that was REVERSED at her ask** ("you can't add tags"):
     folders were always typed, so a fixed list here is what kept the two halves
     from ever being one. Lower-casing on the way in is what is left of the
     orphan-pile guard.
+  - **EACH SURFACE OFFERS ONE HALF OF THE VOCABULARY (Aug 2026, Sophie: "I
+    wanna make certain tags just available in the archived step, these tags are
+    failure, bug fix, and new feature for now" · "also put built as one of the
+    archive only tags" · "put bug fix and new feature into the progress tags for
+    just the archive" · "for the archive, get rid of the following tags: look at,
+    come back to, to read, to be reviewed, waiting for answer").** One list had
+    been doing two jobs. **HOW A CHAT ENDED** — `built · failure · bug fix ·
+    new feature`, `ARCHIVE_ONLY` in chats.html — is a judgement she only makes
+    while archiving, so those four are offered ONLY in the archive sheet, where
+    they LEAD the progress group; the home row (a filter over LIVE chats) and
+    the Organize sheet no longer carry them. **WHERE LIVE WORK STANDS** —
+    `look at · come back to · to read · to be reviewed · waiting for a response`,
+    `LIVE_ONLY` — is answered BY archiving, so the archive sheet drops all five.
+    `paintVocabChips(row, mk, {archive})` is the ONE place either list is
+    applied; both are PRESENTATION ONLY, so a word already on a chat still
+    renders, filters and saves everywhere it already is. `waiting for a response`
+    also joined `TASK_LABELS` the same day, at her ask. The archive's own filter
+    row is unaffected — it lists the tags actually in the archive, which is where
+    a chat wearing an outcome word is found. Test:
+    `node scripts/test-chats-tag-visibility.js`.
+  - **SEE MORE IS DRAWN AS A CONTROL, NOT A CHIP (Aug 2026, Sophie: "see more
+    shud look different so as not to be confused with being a category/tag").**
+    It shipped as a plain `.catchip`, so the folded row ended in a box the same
+    size, shape and colour as the folders beside it — the only thing saying it
+    was a door was the words in it. `.catchip.morechip` drops the border and the
+    background, wears the accent instead of the chips' quiet grey, and carries a
+    Lucide `chevron-down`. The red badge is unchanged: it is the same promise the
+    TAGS button makes while the row is shut.
+  - **FORGETTING A WORD — `POST /api/chatfeed/labels/forget {label, into?, dry?}`
+    (Aug 2026, Sophie: "there's a story and stories tags — get rid of stories,
+    but make sure to put everything that's in stories currently into story before
+    you get rid of it" · "get rid of the weird games tag, I don't know who made
+    that either").** Every other route ADDS to the vocabulary — `rememberLabels`
+    writes `__settings.categories` with an `arrayUnion` — so a word she had
+    finished with survived being stripped off every chat and came back as an
+    empty chip forever. This is the only call that clears all three places a word
+    lives: the chats wearing it, the remembered vocabulary, and the pile list.
+    `into` runs FIRST on every chat in the same write, so nothing is ever left
+    holding neither word; a chat already wearing both keeps one; `catBy` is
+    preserved rather than stamped `sophie` (renaming her vocabulary is not a
+    filing decision about the chats the auto-sorter had filed). **CHECK
+    PILE-NESS BEFORE RUNNING IT** — a merged word does NOT inherit it, and
+    `stories` filed a chat away while `story` did not, so the 36 chats would
+    have landed back on her main list; `PILE_SEEDS` was edited in the same
+    commit to give `story` the seat. `dry:true` names every chat and answers
+    `intoIsPile` / `droppedPile` without writing. Ran live 2026-08-20:
+    `stories` → `story` (36 chats), `weird games` (4), `failed` (0).
   - **HER OWN LINE IS IN THE SHEET TOO (Aug 2026, Sophie: "I'd like to also be
     able to leave my own note … it would show up in the archive as a little
     italic line underneath the bold title of the chat like the notes to myself

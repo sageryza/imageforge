@@ -1118,6 +1118,18 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
   padding:6px 10px; cursor:pointer; -webkit-tap-highlight-color:transparent; white-space:nowrap;}
 .catchip.on{border-color:var(--chg); color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .catchip .cc-n{opacity:.6; margin-left:1px;}
+/* SEE MORE IS A CONTROL, NOT A WORD SHE CAN FILE UNDER (Aug 2026, Sophie:
+   "see more shud look different so as not to be confused with being a
+   category/tag"). It shipped as a plain `.catchip`, so the row ended in an
+   eleventh box the same size, shape and colour as the ten folders beside it —
+   and the only thing saying it was a door rather than a pile was the words
+   inside it. Now it drops the box entirely: no border, no background, the
+   accent instead of the quiet grey, and a chevron that turns the reading from
+   "another tag" into "there is more under here". The red badge is unchanged —
+   it is the same promise the TAGS button makes while the row is shut. */
+.catchip.morechip{border:none; background:transparent; color:var(--chg);
+  padding:6px 2px; display:inline-flex; align-items:center; gap:4px;}
+.catchip.morechip .mc-v{width:11px; height:11px; display:block; flex:none;}
 /* DONE, on the Update screen's pinned row: an ACTION rather than a folder, so
    it wears the ink instead of the boxes' quiet grey — and it is only on the
    row while something is picked (paintNewsQRow). */
@@ -3276,7 +3288,12 @@ function chatStale(name,last){
 //
 // The filter is SESSION-ONLY, never persisted: a sticky filter would show her
 // three chats one morning and read as the rest having vanished.
-var CAT_SEEDS=['stories','tech'];
+// `stories` was merged INTO `story` (Aug 2026, Sophie: "there's a story and
+// stories tags — get rid of stories, but make sure to put everything that's in
+// stories currently into story before you get rid of it"). All 36 chats moved
+// first, then the word was forgotten; `story` inherits its place in PILE_SEEDS
+// so none of them fell back onto her main list.
+var CAT_SEEDS=['story','tech'];
 var cat='';
 // ---- …AND THEN THE CHIPS FOLDED AWAY BEHIND ONE WORD (Aug 2026, Sophie) ----
 // "Take the categories — like just for fun, stories, pretty much all of them —
@@ -3321,8 +3338,37 @@ function catsShown(){ return catsOpen || !!cat; }
 // family (how soon she means to get to it) and reading them apart would be
 // three unrelated words scattered through the row.
 var TASK_LABELS=['look at','come back to','in a minute','maybe never',
-  'in progress','waiting for something',
-  'to be reviewed','to read','built','failed'];
+  'in progress','waiting for something','waiting for a response',
+  'to be reviewed','to read'];
+// ---- TWO WORDS THAT ONLY EXIST ON THE WAY PAST, AND FIVE THAT NEVER DO
+// (Aug 2026, Sophie: "I wanna make certain tags just available in the archived
+// step, these tags are failure, bug fix, and new feature for now" · "also put
+// built as one of the archive only tags" · "for the archive, get rid of the
+// following tags: look at, come back to, to read, to be reviewed, waiting for
+// answer") ------------------------------------------------------------------
+// The vocabulary had grown into one list doing two jobs. HOW A CHAT ENDED
+// (built · failure · bug fix · new feature) is a judgement she only ever makes
+// while archiving — offered on the home row and in Organize it was four chips
+// she read past every day. WHERE LIVE WORK STANDS (look at · come back to · to
+// read · to be reviewed · waiting for a response) is the opposite: archiving IS
+// the answer to all five, so the archive sheet was asking her to say a chat she
+// is putting away still needs looking at.
+//
+// So the two lists are mirrors of each other and every filing surface takes
+// one of them out — `paintVocabChips` is the ONE place that does it, and the
+// home row's chips (a filter, never a filing) drop the archive words too.
+// PRESENTATION ONLY, like TASK_LABELS: nothing about piles, filing or
+// chat-sort reads either, and a word already on a chat keeps working
+// everywhere — this only decides which chips she is OFFERED.
+var ARCHIVE_ONLY=['built','failure','bug fix','new feature'];
+var LIVE_ONLY=['look at','come back to','to read','to be reviewed',
+  'waiting for a response'];
+function isArchiveWord(c){ return ARCHIVE_ONLY.indexOf(c)>-1; }
+function isLiveWord(c){ return LIVE_ONLY.indexOf(c)>-1; }
+// In the ARCHIVE sheet the four outcome words are progress words too, at her
+// ask ("put bug fix and new feature into the progress tags for just the
+// archive") — they lead the group, because they are the judgement she opened
+// the sheet to make.
 function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
 // Session-only like catsOpen, and it RESETS when TAGS closes, so every open
 // starts on the task group — the default view she asked for.
@@ -3376,8 +3422,11 @@ function chatCat(name){ return chatLabels(name)[0]||''; }
 // of the one in chatfeed.js, pinned equal by a test, for the same reason
 // TAG_LIST is: the page must not spend a request to learn thirteen words.
 // `settings.pileLabels` replaces it WHOLESALE once she touches the switch.
-var PILE_SEEDS=['look at','stories','come back to','witch','tech','xi',
-  'just for fun','weird games','meta','dream app','chunk making',
+// `stories` reads `story` since the two were merged, and `weird games` was
+// forgotten at her ask ("get rid of the weird games tag, I don't know who made
+// that either" — 4 chats, all `weird-games-book*`, 3 of them already archived).
+var PILE_SEEDS=['look at','story','come back to','witch','tech','xi',
+  'just for fun','meta','dream app','chunk making',
   'waiting for something','to be reviewed'];
 // The one word that ALSO routes: a chat carrying it becomes a row in the Review
 // Queue at /review, her pile of everything waiting on her.
@@ -3502,7 +3551,9 @@ function chatInCat(name,c){
 // always free text, so refusing her a word here only meant the two halves could
 // never become one. Lower-casing everything on the way in is what is left of
 // that guard.
-var TAG_LIST=['bug fix','new feature','built','story','quick question',
+// `failure` is the eleventh, added Aug 2026 with the archive-only group (the
+// old `failed` never reached a single chat and was forgotten with it).
+var TAG_LIST=['bug fix','new feature','built','failure','story','quick question',
   'images','film','audio','writing','research'];
 // A chat with no `tags` of its own inherits ONE from the piles it used to live
 // in: the old BUILT side (which was the absence of a mark) reads as `built`.
@@ -3680,11 +3731,23 @@ function fileVocab(){
 // Same split the row already uses (`TASK_LABELS` / `isTask`), so a word never
 // sits in the progress group on one screen and the topic group on another.
 // Every sheet that paints `fileVocab()` as chips comes through here.
-function paintVocabChips(row, mk){
-  var vocab=fileVocab();
-  var tasks=TASK_LABELS.filter(function(t){ return vocab.indexOf(t)>-1; });
+//
+// …AND IT IS ALSO WHERE THE TWO SHEETS STOP OFFERING EACH OTHER'S WORDS (Aug
+// 2026 — see ARCHIVE_ONLY / LIVE_ONLY). `opts.archive` is the archive sheet
+// saying so: it drops the five live-progress words and picks the four outcome
+// words up, at the HEAD of the progress group. Every other surface does the
+// mirror image, and neither list ever reaches `fileVocab()` itself — a word
+// already on a chat still renders, still filters and still saves wherever it
+// already is.
+function paintVocabChips(row, mk, opts){
+  var arch=!!(opts&&opts.archive);
+  var vocab=fileVocab().filter(function(c){
+    return arch ? !isLiveWord(c) : !isArchiveWord(c);
+  });
+  var tasks=(arch?ARCHIVE_ONLY.concat(TASK_LABELS):TASK_LABELS)
+    .filter(function(t){ return vocab.indexOf(t)>-1; });
   tasks.forEach(function(c){ row.appendChild(mk(c)); });
-  var topics=vocab.filter(function(c){ return !isTask(c); });
+  var topics=vocab.filter(function(c){ return tasks.indexOf(c)<0; });
   if(tasks.length && topics.length){
     var d=document.createElement('div');
     d.className='catdiv'; d.textContent='Categories';
@@ -3748,7 +3811,12 @@ function paintCatRow(g){
   row.appendChild(sb);
   // Counted BEFORE anything is painted, because the TAGS button needs the sum
   // of them while the chips themselves are away.
-  var cats=catList().map(function(c){
+  // The four outcome words are not on this row: they are a judgement she makes
+  // in the archive sheet, and this row counts only LIVE chats (`!archived`), so
+  // a `built` chip here would be four chips read past every day to reach the
+  // folders. The archive has its own filter row, built from the tags actually
+  // in there — which is where a chat wearing one of them is found.
+  var cats=catList().filter(function(c){ return !isArchiveWord(c); }).map(function(c){
     var mine=Object.keys(chats).filter(function(n){
       // acctMatch: the badge has to count the same chats the chip will SHOW,
       // or a folder promises replies that are on the other account's tab.
@@ -3805,7 +3873,12 @@ function paintCatRow(g){
       var tw=topics.reduce(function(n,c){ return n+c.fresh; }, 0);
       var mb=document.createElement('button');
       mb.className='catchip morechip';
-      mb.innerHTML='See more'+(tw?'<span class="cc-new">'+tw+'</span>':'');
+      // A chevron, not a chip: see `.morechip`. Lucide `chevron-down`, the
+      // house line icon, at the size of the words beside it.
+      mb.innerHTML='See more<svg class="mc-v" viewBox="0 0 24 24" fill="none" '
+        +'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" '
+        +'stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
+        +(tw?'<span class="cc-new">'+tw+'</span>':'');
       mb.setAttribute('aria-label','Show the category tags'+(tw? ' — '+tw+' answered you':''));
       mb.onclick=function(){ catsMore=true; renderHome(); };
       row.appendChild(mb);
@@ -6617,6 +6690,9 @@ function askArchive(name, cb){
   // past, and inventing vocabulary belongs where she is organizing.
   // Progress words first, then a line, then the categories — see
   // paintVocabChips. The star/bookmark marks keep the head of the row.
+  // `archive:true` is what swaps the two half-vocabularies over: the four
+  // outcome words lead the progress group here and nowhere else, and the five
+  // live-progress words are gone (archiving is the answer to all of them).
   paintVocabChips(tagrow, function(t){
     var b=document.createElement('button'); b.type='button';
     b.textContent=catLabel(t); b.className='catchip';
@@ -6633,7 +6709,7 @@ function askArchive(name, cb){
       paint();
     };
     return b;
-  });
+  }, {archive:true});
 
   // ---- her own line -------------------------------------------------------
   // Deliberately the SAME field as the note she writes from inside a thread

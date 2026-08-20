@@ -72,8 +72,8 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({
       build: 'test-build-1',
       chats: {
-        alpha: { category: 'stories', filedAt: FILED },
-        beta: { category: 'stories', filedAt: FILED },
+        alpha: { category: 'story', filedAt: FILED },
+        beta: { category: 'story', filedAt: FILED },
         gamma: { category: 'tech', filedAt: FILED },
         delta: { category: 'come back to', filedAt: FILED },
         unfiled: {},
@@ -131,7 +131,7 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   if (!/categories/i.test(div)) fail('no CATEGORIES line between the groups: "' + div + '"');
   open = await folders(page);
   if (open[0] !== 'Come back to') fail('the task group lost its lead spot: ' + open.join(','));
-  ['Stories', 'Tech', 'Witch', 'Dream app'].forEach((c) => {
+  ['Story', 'Tech', 'Witch', 'Dream app'].forEach((c) => {
     if (open.indexOf(c) < 0) fail('a category is missing after SEE MORE: ' + c);
   });
   if (await page.$('#catrow .morechip')) fail('SEE MORE stayed on the row after opening');
@@ -139,7 +139,7 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   const perChip = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)',
     (ns) => ns.filter((n) => n.querySelector('.cc-new'))
       .map((n) => n.firstChild.textContent.trim() + ':' + n.querySelector('.cc-new').textContent));
-  if (JSON.stringify(perChip.sort()) !== JSON.stringify(['Come back to:1', 'Stories:2', 'Tech:1']))
+  if (JSON.stringify(perChip.sort()) !== JSON.stringify(['Come back to:1', 'Story:2', 'Tech:1']))
     fail('the per-chip numbers are wrong: ' + perChip.join(','));
 
   // 7. LAYOUT, measured while everything is open: full width below the pill's
@@ -174,15 +174,15 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   inBand.forEach((g) => { if (g.r > 328) fail('a chip inside the pill band runs under the pill (right ' + g.r + ', top ' + g.t + ')'); });
 
   // 5. closing resets to the default; 6. and clears a lit category
-  await clickFolder(page, 'Stories');
+  await clickFolder(page, 'Story');
   let rows = await listed(page);
-  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['alpha', 'beta'])) fail('the Stories folder did not filter the list: ' + rows.join(','));
+  if (JSON.stringify(rows.slice().sort()) !== JSON.stringify(['alpha', 'beta'])) fail('the Story folder did not filter the list: ' + rows.join(','));
   await page.click('#catrow .tagsbtn');
   if ((await folders(page)).length) fail('closing on a lit folder left the row open');
   rows = await listed(page);
   if (rows.indexOf('unfiled') < 0 || rows.indexOf('alpha') >= 0) fail('closing TAGS left a silent filter behind: ' + rows.join(','));
   await page.click('#catrow .tagsbtn');
-  if ((await folders(page)).some((c) => c === 'Stories')) fail('SEE MORE state survived the close — reopening must land on the task-only default');
+  if ((await folders(page)).some((c) => c === 'Story')) fail('SEE MORE state survived the close — reopening must land on the task-only default');
   if (!(await page.$('#catrow .morechip'))) fail('SEE MORE missing after a reopen');
   await page.click('#catrow .tagsbtn');
 
@@ -195,7 +195,7 @@ const clickFolder = (page, label) => page.$$eval('#catrow .catchip',
   await page.click('#selbtn');
   await page.waitForSelector('#selbar', { timeout: 4000 }).catch(() => fail('select mode never opened its bar'));
   const selChips = await page.$$eval('#selbar .catchip', (ns) => ns.map((n) => n.textContent.trim()));
-  ['Stories', 'Tech', 'Come back to', 'Witch'].forEach((f) => {
+  ['Story', 'Tech', 'Come back to', 'Witch'].forEach((f) => {
     if (selChips.indexOf(f) < 0) fail('select mode lost the ' + f + ' chip: ' + selChips.join(','));
   });
 
