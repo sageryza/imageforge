@@ -51,6 +51,29 @@ them already house law somewhere:
   re-runs (fixed seed, deterministic) and never ChatGPT ones. So what the bank
   insures is the idea; a beloved rendering is one draw of it, kept as a cache.
 
+- **DESCRIBE THE ACTION, NEVER THE LOOK (Sophie, 2026-08-20, from the dream
+  feed: "a prompt that mostly describes the action and doesn't really describe
+  what it looks like, that way the app can make it up itself and doesn't
+  micromanage").** The content half says what HAPPENS; every adjective about
+  how a thing appears is a decision taken away from the model, and taken
+  badly, because a sentence is a worse specification of a picture than a
+  picture is. Her yardstick is the monkey dream, 343 characters of pure
+  predicament with not one word about colour, light or composition — and it
+  drew clean where a 5,372-character transcript of the same shape collapsed
+  into a collage.
+  - **This is not the same as being SHORT.** A long prompt that is all action
+    still works; a short one that specifies the palette still micromanages.
+    Length matters for a different, measured reason (below) — the two rules
+    just happen to point the same way.
+  - **The measured band:** raw transcript as `[content]` draws ONE image up to
+    ~1,000 chars and fails above it (six lengths, one run each, dream feed,
+    2026-08-19). So the working move on a long source is not a cleverer
+    instruction to the model — it is a WRITER picking the one situation and
+    handing over ~300 characters of it.
+  - Worked examples: `docs/dream-prompts/action-only-v1.json` — all 19 dreams
+    in the feed distilled to that shape, with the rules used and which two
+    needed nothing because the dreamer had already told them that way.
+
 And the consequence the map itself draws: **the road ends at the BANK, not at
 the picture.** GOLD is the second-to-last stop. The finished picture leaves
 for its project there — and the road keeps walking, because the prompt still
