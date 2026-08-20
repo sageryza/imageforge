@@ -55,6 +55,15 @@ const STYLES = [
     suffix: 'Do not include any text in the image.',
   },
   {
+  // NOTE — there is a NEWER tail for this reference, and it is a CHOICE (Aug
+  // 2026). What follows is the ORIGINAL wording. Sophie's current one lives in
+  // `PL_GPT_STYLES.dreamy` in server.js (the Playground's Dreamy tile) and is
+  // looser on purpose: it names no orientation (that canvas toggles), says
+  // "minimal text only" rather than banning text outright, and drops both "no
+  // borders" and "no caption boxes" — the reference is a diary comic and its
+  // frames are part of the look. Neither is the right one for every job; read
+  // both before writing a new surface against this reference, and say which
+  // you started from if you reword it.
     id: 'dream',
     label: 'Dream mystery — diary comic',
     refs: [{ file: 'dream-mystery.jpg', type: 'image/jpeg' }],
