@@ -750,6 +750,12 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
+/* THE SUMMARY IS THE THREE QUESTIONS (Aug 2026, her ask) and it is drawn with
+   the Update tab's own rows — `.nwrow`, one renderer — so the same three
+   answers read identically wherever she opens them. Only the size changes:
+   in here they are a caption under a line she has already read. */
+.wrapfull .nwrow, .arcout .nwrow{font-size:14px; margin-bottom:6px;}
+.wrapfull .nwrow:last-child, .arcout .nwrow:last-child{margin-bottom:0;}
 /* ONE POINT PER LINE (Aug 2026, Sophie: "the long summary is one block of text
    would be great to see them separated"). The marker is drawn by CSS so the
    text itself stays clean, and the padding is the hanging indent — a point that
@@ -3219,8 +3225,13 @@ function newsUpdate(it){
   // into a summary field, and the card must not become the thread
   return { asked:'', did:(t.length>400? t.slice(0,399)+'…' : t), next:'' };
 }
-function newsSumBox(u){
-  var box=document.createElement('div'); box.className='nwsum';
+// ONE renderer for the three questions, wherever they are read — the Update
+// tab's card AND the archive summary, which IS this shape now (Aug 2026,
+// Sophie: "what I really wanted was the what you asked, what I did, and next
+// steps. Since chat already answered those three questions could you just
+// switch the summary for that"). Two copies would drift the labels apart, and
+// the whole point is that she is reading the same three answers in both places.
+function sumRows(u, box){
   UPD_LABELS.forEach(function(pair){
     var v=u[pair[0]]; if(!v) return;
     var row=document.createElement('div'); row.className='nwrow';
@@ -3229,6 +3240,10 @@ function newsSumBox(u){
     box.appendChild(row);
   });
   return box;
+}
+function newsSumBox(u){
+  var box=document.createElement('div'); box.className='nwsum';
+  return sumRows(u, box);
 }
 // Tap to open, tap to close, and it opens IN PLACE rather than over the
 // screen: she is skimming a list, so an overlay would mean a second tap to get
@@ -5036,10 +5051,50 @@ function fillWrap(el, text, open){
     o.textContent='Still open: '+open; el.appendChild(o);
   }
 }
-// Is there anything BEHIND the one line — a fuller account or a still-open
-// half? When the line already is the whole thing there is nothing to expand
-// and no ⌄ is drawn.
+// THE SUMMARY IS THE THREE QUESTIONS (Aug 2026, Sophie: "I think what I really
+// wanted was the what you asked, what I did, and next steps. Since chat already
+// answered those three questions could you just switch the summary for that").
+// The prose summary was a fourth shape saying the same thing in a form she
+// never asked for, and each of its parts ran to two sentences — six in total
+// where she wanted three.
+//
+// So the summary reads the three fields, and where a chat never wrote a
+// wrap-up it falls back to the UPDATE CARD it already posts, which answers the
+// identical three questions. Order matters: a prose wrap-up written before this
+// shape is still a deliberate summary of the whole chat, so it beats the live
+// Update card, which is only ever about the last turn.
+function wrapParts(r){
+  var a=String(r.wrapAsked||'').trim(), d=String(r.wrapDid||'').trim(),
+      n=String(r.wrapNext||'').trim();
+  if(a||d||n) return { asked:a, did:d, next:n };
+  if(String(r.wrapUp||'').trim()) return null;          // an older prose one
+  var u={ asked:String(r.updAsked||'').trim(), did:String(r.updDid||'').trim(),
+          next:String(r.updNext||'').trim() };
+  return (u.asked||u.did||u.next) ? u : null;
+}
+// The one line for the row and the thread — the summary line a chat or the
+// Summarize button wrote, else the first thing the three answers say.
+function wrapLineOf(r){
+  var p=wrapParts(r);
+  return String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim()
+    || (p ? (p.did||p.asked||p.next) : '');
+}
+// Draw the three answers, each under its own bold question.
+function fillWrapParts(el, parts, open){
+  el.textContent='';
+  sumRows(parts, el);
+  // Only an older record still carries a separate open half — `next` answers
+  // that question now, and writing both would say the same thing twice.
+  if(open){
+    var o=document.createElement('div'); o.className='wrapopen';
+    o.textContent='Still open: '+open; el.appendChild(o);
+  }
+}
+// Is there anything BEHIND the one line — the three answers, a fuller account,
+// or a still-open half? When the line already is the whole thing there is
+// nothing to expand and no expander is drawn.
 function wrapHasMore(r){
+  if(wrapParts(r)) return true;
   var full=String(r.wrapUp||'').trim();
   // What was still open when it stopped (Aug 2026, her ask) — its own
   // paragraph under the summary, because that is the half she opens this
@@ -5057,10 +5112,18 @@ function wrapHasMore(r){
 // under her note, so the depths behave the same wherever she opens them.
 function wrapBody(r){
   var full=String(r.wrapUp||'').trim(), open=String(r.wrapOpen||'').trim();
+  var parts=wrapParts(r);
   var body=document.createElement('div');
   body.className='wrapfull'; body.hidden=true;
-  fillWrap(body, full, open);
   var long=String(r.wrapLong||'').trim();
+  // The three answers are the summary; `more` swaps in the longer account,
+  // which is bullets and has never been in that shape.
+  function paint(showLong){
+    if(showLong) fillWrap(body, long, open);
+    else if(parts) fillWrapParts(body, parts, open);
+    else fillWrap(body, full, open);
+  }
+  paint(false);
   if(long && long!==full){
     var more=document.createElement('button');
     more.className='wrapmore2'; more.textContent='more';
@@ -5068,7 +5131,7 @@ function wrapBody(r){
     more.onclick=function(e){
       e.stopPropagation();
       shown=!shown;
-      fillWrap(body, shown?long:full, open);
+      paint(shown);
       more.textContent = shown ? 'less' : 'more';
       body.appendChild(more);
     };
@@ -5900,9 +5963,10 @@ function openChat(name, keepScroll, focusId, noFetch){
   var wrow=document.createElement('div'); wrow.className='threadwrap';
   function paintThreadWrap(){
     var r=chats[name]||{};
-    // The row line if there is one, else the fuller summary — a wrap-up
-    // written before wrapLine existed has only the latter.
-    var line=String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim();
+    // The row line if there is one, else the fuller summary (a wrap-up written
+    // before wrapLine existed has only the latter), else what the three
+    // answers say it did.
+    var line=wrapLineOf(r);
     wrow.innerHTML='';
     wrow.hidden=!line;
     if(!line) return;
@@ -7109,9 +7173,10 @@ function askArchive(name, cb){
   sum.className='arcsum'; sum.type='button';
   sum.innerHTML=GEN_STAR+'<span>Summarize</span>';
   function say(t){ out.hidden=false; out.textContent=t; }
-  // The summary reads back here exactly as it will read in the archive — same
-  // bullets, same still-open paragraph — so what she approves is what she gets.
-  function sayWrap(t, open){ out.hidden=false; fillWrap(out, t, open); }
+  // The summary reads back here exactly as it will read in the archive — the
+  // same three questions, the same bullets behind `more` — so what she
+  // approves is what she gets.
+  function sayWrap(parts){ out.hidden=false; fillWrapParts(out, parts, ''); }
   sum.onclick=function(e){
     e.stopPropagation();
     sum.disabled=true; sum.querySelector('span').textContent='Writing…';
@@ -7121,20 +7186,20 @@ function askArchive(name, cb){
     api('/api/chatfeed/wrapup/write',{method:'POST',body:JSON.stringify({chat:name, force:true})})
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if(!d.ok||!(d.wrapLine||d.wrapUp)) throw new Error(d.error||'nothing came back');
+        if(!d.ok||!(d.wrapLine||d.wrapUp||d.wrapDid||d.wrapAsked)) throw new Error(d.error||'nothing came back');
         chats[name]=chats[name]||{};
         chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
+        chats[name].wrapAsked=d.wrapAsked||''; chats[name].wrapDid=d.wrapDid||'';
+        chats[name].wrapNext=d.wrapNext||'';
         chats[name].wrapOpen=d.wrapOpen||''; chats[name].wrapLong=d.wrapLong||'';
         // The thread is still on screen behind this sheet — put the new
         // summary under her note now, rather than on the next reload.
         if(threadWrap) threadWrap();
-        // Open questions read as their own paragraph, not a clause buried in
-        // the summary — they are the half she goes looking for. The sheet shows
-        // the SHORT summary, same as the archive row's first tap; the longer
-        // version is one more tap, and is skipped entirely when the chat was
-        // small enough that there isn't one.
-        var brief=d.wrapUp||d.wrapLine;
-        sayWrap(brief, d.wrapOpen||'');
+        // The sheet shows the three answers, same as the archive row's first
+        // tap; the longer version is one more tap, and is skipped entirely when
+        // the chat was small enough that there isn't one.
+        var parts=wrapParts(chats[name]);
+        if(parts) sayWrap(parts); else { out.hidden=false; fillWrap(out, d.wrapUp||d.wrapLine, ''); }
         if(d.wrapLong && d.wrapLong!==d.wrapUp){
           var more=document.createElement('button');
           more.className='wrapmore2'; more.textContent='more';
@@ -7142,7 +7207,9 @@ function askArchive(name, cb){
           more.onclick=function(ev){
             ev.stopPropagation();
             shown=!shown;
-            fillWrap(out, shown?d.wrapLong:brief, d.wrapOpen||'');
+            if(shown) fillWrap(out, d.wrapLong, '');
+            else if(parts) fillWrapParts(out, parts, '');
+            else fillWrap(out, d.wrapUp||d.wrapLine, '');
             more.textContent = shown ? 'less' : 'more';
             out.appendChild(more);
           };
