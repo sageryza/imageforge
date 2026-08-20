@@ -1,0 +1,233 @@
+<!doctype html>
+<!-- The morning brief's page. Filled in by scripts/morning-brief.js — edit
+     THIS file for the look, never the posted page (a posted page is frozen).
+     Starts from the Compare shell's contract: /compare.css for the one house
+     look AND the five tokens the injected pill styles itself from, /compare.js
+     for the lightbox, the tap-pauses-autoscroll rule and the note boxes. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><!--TITLE--></title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+  h1 { padding-right: 64px; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--line);
+          margin: 14px 0 6px; padding-right: 64px; }
+  .tabs button {
+    border: 0; background: none; color: var(--ink2); border-radius: 0;
+    padding: 8px 0; margin-right: 26px;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    font: 700 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+  }
+  .tabs button.on { color: var(--ink); border-bottom-color: var(--gold); }
+  .count { color: var(--ink2); font-weight: 400; letter-spacing: .04em; }
+
+  .row { display: flex; gap: 11px; align-items: flex-start;
+         background: var(--surface); border: 1px solid var(--line);
+         border-radius: 6px; padding: 11px 12px 9px; margin-bottom: 8px; }
+
+  /* THE BOX IS RED — her ask (Aug 2026, "for no reason but i like red").
+     The rose token is the page's own, so the box, the outline and the pill
+     all read from one value. */
+  .box { flex: none; justify-content: center; width: 22px; height: 22px;
+         padding: 0; margin-top: 1px; border-radius: 6px;
+         border: 1.5px solid var(--rose); background: var(--surface);
+         color: var(--rose); }
+  .box svg { width: 14px; height: 14px; opacity: 0; pointer-events: none; }
+  .box[aria-pressed="true"] { background: #fbeeea; }
+  .box[aria-pressed="true"] svg { opacity: 1; }
+
+  .rt { min-width: 0; flex: 1; padding-right: 12px; }
+  .rt .t { font-size: 16px; line-height: 1.35; }
+  .rt a { color: var(--ink); text-decoration-color: #d3c3a4; }
+  .rt .mini { font-size: 13.5px; line-height: 1.4; padding-top: 2px; }
+  .rt .mini a { color: #8a6238; }
+  .row.done .rt .t { color: var(--ink2); }
+  .chip { vertical-align: 2px; }
+
+  /* The three marks and the star sit BOTTOM-LEFT, and that is deliberate: the
+     injected pill is fixed at x 324-374 / y 14-194, so anything on a row's
+     right edge is unreachable exactly while that row is at the top of the
+     screen — which is when she would reach for it. */
+  .marks { display: flex; gap: 2px; margin: 5px 0 0 -6px; }
+  .pri { border: 0; background: none; padding: 5px 6px; border-radius: 6px;
+         color: #cabda4; }
+  .pri svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+  .pri[aria-pressed="true"] { color: var(--rose); background: #fbeeea; }
+  .pri.star { margin-left: 6px; }
+  .pri.star[aria-pressed="true"] { color: var(--gold); background: #f6efe1; }
+
+  /* Remember this: the whole task outlined in red. A box-shadow, not a wider
+     border — a border change would shift every row half a pixel. */
+  .row.remember { border-color: var(--rose); box-shadow: 0 0 0 1px var(--rose); }
+
+  h2 { margin: 22px 0 8px; }
+  section:first-of-type h2, #shipped h2:first-of-type { margin-top: 14px; }
+  #donebox h2 { color: var(--ink2); }
+</style>
+
+<div class="wrap">
+  <h1><!--TITLE--></h1>
+
+  <div class="tabs">
+    <button id="tTod" class="on">Today <span class="count" id="cTod"><!--NTODAY--></span></button>
+    <button id="tShip"><!--SHIPLABEL--> <span class="count"><!--NSHIP--></span></button>
+  </div>
+
+  <div id="today"><!--TODAY-->
+    <section id="donebox" hidden><h2>Done</h2></section>
+  </div>
+
+  <div id="shipped" hidden><!--SHIPPED-->
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+// IIFE — the injected pill runs in global scope declaring `var raf`, `var I`,
+// `var playing`; a page-level `let` of any of those kills it at parse time.
+(function () {
+  var CHAT  = <!--CHAT-->;
+  var SHEET = <!--SHEET-->;
+  var tod = document.getElementById('today');
+  var ship = document.getElementById('shipped');
+  var doneBox = document.getElementById('donebox');
+  var bT = document.getElementById('tTod'), bS = document.getElementById('tShip');
+  var cTod = document.getElementById('cTod');
+  var rows = [].slice.call(tod.querySelectorAll('.row[data-item]'));
+  var TOTAL = rows.length;
+
+  function show(today) {
+    tod.hidden = !today; ship.hidden = today;
+    bT.classList.toggle('on', today); bS.classList.toggle('on', !today);
+    if (window.__pillSync) window.__pillSync();
+  }
+  bT.addEventListener('click', function () { show(true); });
+  bS.addEventListener('click', function () { show(false); });
+
+  // OPEN THE CHAT IN DECK FACTORY. Inside the app this page is a same-origin
+  // iframe, so following the href would load the whole Chats app INSIDE the
+  // page viewer — hand the parent the intention instead (the same bridge
+  // judge.js uses to get back to the review queue). The href is the fallback
+  // for the same link opened in a browser, and for a chat the registry has
+  // never heard of (__openThread answers false).
+  tod.addEventListener('click', openThread, true);
+  ship.addEventListener('click', openThread, true);
+  function openThread(e) {
+    var a = e.target.closest ? e.target.closest('a.go') : null;
+    if (!a) return;
+    try {
+      if (window.parent && window.parent !== window
+          && typeof window.parent.__openThread === 'function'
+          && window.parent.__openThread(a.dataset.chat) === true) {
+        e.preventDefault();
+      }
+    } catch (_) { /* cross-origin — let the link do its job */ }
+  }
+
+  function save(item, ok) {
+    return fetch('/api/chatfeed/verdict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat: CHAT, sheet: SHEET, item: item, ok: ok })
+    }).catch(function () {});
+  }
+
+  // Where does this row belong right now? Done at the bottom if it is ticked,
+  // else the section for its timing — hers if she set one, the run's if not.
+  function sectionFor(row) {
+    if (row.classList.contains('done')) return doneBox;
+    var lit = row.querySelector('[data-pri][aria-pressed="true"]');
+    var k = lit ? lit.dataset.pri : row.dataset.def;
+    return tod.querySelector('section[data-sec="' + k + '"]') || doneBox;
+  }
+  // Back to its own place in the section, by original index — never appended,
+  // or unticking the first line would drop it to the bottom of its group.
+  function place(row) {
+    var sec = sectionFor(row);
+    if (sec === doneBox) { doneBox.appendChild(row); return; }
+    var ord = +row.dataset.ord, before = null;
+    [].slice.call(sec.querySelectorAll('.row')).forEach(function (r) {
+      if (!before && +r.dataset.ord > ord) before = r;
+    });
+    sec.insertBefore(row, before);
+  }
+  function repaint() {
+    tod.querySelectorAll('section[data-sec]').forEach(function (s) {
+      s.hidden = !s.querySelector('.row');
+    });
+    doneBox.hidden = !doneBox.querySelector('.row');
+    var left = TOTAL - doneBox.querySelectorAll('.row').length;
+    cTod.textContent = left === TOTAL ? String(TOTAL) : (left + ' of ' + TOTAL);
+    if (window.__pillSync) window.__pillSync();
+  }
+
+  rows.forEach(function (row) {
+    var id = row.dataset.item;
+
+    row.querySelector('[data-box]').addEventListener('click', function () {
+      var on = !row.classList.contains('done');
+      row.classList.toggle('done', on);
+      this.setAttribute('aria-pressed', on ? 'true' : 'false');
+      place(row); repaint();
+      save(id, on ? true : null);
+    });
+
+    row.querySelectorAll('[data-pri]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var on = b.getAttribute('aria-pressed') !== 'true';
+        row.querySelectorAll('[data-pri]').forEach(function (o) {
+          o.setAttribute('aria-pressed', 'false');
+        });
+        // Clearing her override falls back to the run's own call, so a row is
+        // never left with no timing and nowhere to live.
+        if (on) b.setAttribute('aria-pressed', 'true');
+        else row.querySelector('[data-pri="' + row.dataset.def + '"]').setAttribute('aria-pressed', 'true');
+        place(row); repaint();
+        save(id + ':pri', on ? b.dataset.pri : null);
+      });
+    });
+
+    row.querySelector('[data-star]').addEventListener('click', function () {
+      var on = !row.classList.contains('remember');
+      row.classList.toggle('remember', on);
+      this.setAttribute('aria-pressed', on ? 'true' : 'false');
+      save(id + ':star', on ? true : null);
+    });
+  });
+
+  fetch('/api/chatfeed/verdict?chat=' + encodeURIComponent(CHAT) + '&sheet=' + encodeURIComponent(SHEET))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var it = (d && d.items) || {};
+      rows.forEach(function (row) {
+        var id = row.dataset.item;
+        var p = it[id + ':pri'];
+        if (p && row.querySelector('[data-pri="' + p + '"]')) {
+          row.querySelectorAll('[data-pri]').forEach(function (o) { o.setAttribute('aria-pressed', 'false'); });
+          row.querySelector('[data-pri="' + p + '"]').setAttribute('aria-pressed', 'true');
+        }
+        if (it[id] === true) {
+          row.classList.add('done');
+          row.querySelector('[data-box]').setAttribute('aria-pressed', 'true');
+        }
+        if (it[id + ':star'] === true) {
+          row.classList.add('remember');
+          row.querySelector('[data-star]').setAttribute('aria-pressed', 'true');
+        }
+        place(row);
+      });
+      repaint();
+    })
+    .catch(function () {});
+
+  window.__compareNotes({ chat: CHAT, sheet: SHEET });
+
+  window.__compareHelp({ html: '<b>Everything saves.</b> The three marks under a line are '
+    + '<b>now</b> (bolt), <b>later</b> (clock) and <b>at some point</b> (cloud) — tapping one moves the line '
+    + 'into that group; tap the lit one to put it back where I had it. '
+    + 'Ticking a box drops it into Done at the bottom, and unticking returns it. '
+    + 'The star means remember this, and outlines the whole thing in red. '
+    + 'Tap a line to open its chat; the + in the corner leaves a note on it.' });
+})();
+</script>

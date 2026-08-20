@@ -2649,6 +2649,42 @@ before working on that module. Nothing was deleted — the moved text is verbati
     palette, the pill's corner over the top card, the lightbox contract, the
     ⌄) and `node scripts/test-chats-update-row.js` (the row on the real
     Update tab — first, her word, no icon, and still there when caught up).
+- **THE MORNING BRIEF — a Compare page, twice a day, on a Routine
+  (`scripts/morning-brief.js` + `.tpl.html`, Aug 2026).** Sophie asked for her
+  briefing as a page rather than a reply ("this would be more helpful as a
+  compare page with the things checked off from yesterday and empty, checked
+  boxes for today"), then for it on a schedule. **The FORMAT is code and the
+  JUDGEMENT stays with the chat**: a run reads the live sources, decides what
+  matters and how urgent each thing is, writes a small JSON, and the script
+  turns it into the page. It is NOT the `/brief` Update button — that one is
+  derived and free; this one is a chat sitting down and reading everything.
+  - **The sections ARE her three timings — Now · Later · At some point** (her
+    ask: "can u then group them by importance timing"). The run makes the
+    first call in `when`; her tap on one of the three marks under a line MOVES
+    it, and that override is what the page reloads to. So the flag and the
+    grouping are one control, not two.
+  - **ITEM IDS ARE HASHED FROM THE WORDS (`idFor`), never counted.** The
+    evening run re-posts onto the SAME per-day sheet (`brief-YYYY-MM-DD`), so
+    a positional id would hand her morning tick to whatever task landed in
+    that slot at 5pm. Hashing the chat slug + title means a task that survives
+    the day keeps its tick, its flag and its star.
+  - **A CHAT IS LINKED BY ITS DECK FACTORY SLUG, never a claude.ai session
+    url** (her ask: "the links shud go to the chat in deck factory, not the
+    Claude app"). Inside the app the page is a same-origin IFRAME of
+    chats.html, so a plain link would load the whole Chats app inside the page
+    viewer — the row hands the parent `window.__openThread(slug)` and only
+    falls back to `/chats?chat=` in a browser. Same bridge judge.js uses to get
+    back to the review queue.
+  - Ticking drops a line into **Done** at the bottom and unticking returns it
+    to its own place; the **star** is "remember this" and outlines the row red;
+    the boxes are red because she likes red. The three marks and the star sit
+    BOTTOM-LEFT on purpose — the injected pill is fixed over a row's top-right.
+  - **Editing the look? Edit `scripts/morning-brief.tpl.html`, never a posted
+    page** — a posted page is frozen, and a new version is a new page
+    (supersede the one it replaces; `--supersede <id>` does it).
+  - Tests: `node scripts/test-morning-brief.js` (the id rule pure, then the
+    real page driven in headless Chromium — including inside an iframe host,
+    which is the only place the link bridge can be checked).
 - **THE REVIEW QUEUE** (`review.js`, `/api/review`, page at `/review`, iOS
   tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
   to be reviewed and I'd like one screen that shows all the things waiting to
