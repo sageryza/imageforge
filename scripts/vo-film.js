@@ -274,9 +274,16 @@ function locateSpans(sources) {
   })();
 }
 
-async function renderTTSText(text, label) {
+// `chain` = { previous_request_ids?, next_request_ids?, previous_text?, next_text? },
+// ElevenLabs' request stitching. The RETURNED request id is written beside the
+// audio as `.id` — see anchorTTS for why losing it costs a re-render.
+async function renderTTSText(text, label, chain) {
   if (!process.env.ELEVENLABS_API_KEY) throw new Error(`${label} needs TTS but ELEVENLABS_API_KEY is not set`);
-  const key = sha1(`${VOICE}|eleven_multilingual_v2|${text}`);
+  // An UNCHAINED render keeps the original key shape on purpose: adding the
+  // chain to it unconditionally invalidated every take already on disk and
+  // silently re-rendered a film that was already approved.
+  const ch = chain && Object.keys(chain).length ? '|' + JSON.stringify(chain) : '';
+  const key = sha1(`${VOICE}|eleven_multilingual_v2|${text}${ch}`);
   const wav = path.join(DIR, `tts-${key.slice(0, 12)}.wav`);
   if (fs.existsSync(wav)) return wav;
   const r = await fetchRetry(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}`, {
@@ -286,13 +293,21 @@ async function renderTTSText(text, label) {
       text,
       model_id: 'eleven_multilingual_v2', // NEVER eleven_v3 — the voice rule
       voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
+      ...(chain || {}),
     }),
   }, 4, 'elevenlabs');
+  // The request id is the ONLY handle on a take that already exists — audio
+  // cannot seed a stitch. Write it down at birth or the take can never be
+  // chained to and has to be re-rendered (which is a different take).
+  const reqId = r.headers.get('request-id') || r.headers.get('x-request-id') || '';
+  if (reqId) fs.writeFileSync(wav + '.id', reqId);
   const mp3 = path.join(DIR, `tts-${key.slice(0, 12)}.mp3`);
   fs.writeFileSync(mp3, Buffer.from(await r.arrayBuffer()));
   run(FFMPEG, ['-v', 'error', '-y', '-i', mp3, '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', wav]);
   return wav;
 }
+
+const ttsRequestId = (wav) => { try { return fs.readFileSync(wav + '.id', 'utf8').trim(); } catch (_) { return ''; } };
 
 const renderTTS = (shot) => renderTTSText(shot.tts, `shot ${shot.id}`);
 
@@ -311,13 +326,58 @@ const renderTTS = (shot) => renderTTSText(shot.tts, `shot ${shot.id}`);
 // phone), and synthesized speech has no room tone for pass 2 to measure. The
 // per-shot word-timing clean still runs, which is the pass that belongs on
 // clean audio; it also compresses TTS's over-long comma breaths on the way.
+// **`"anchor": "<shot id>"` PINS THE REGISTER TO ONE LINE** (Aug 2026, Sophie,
+// after hearing the joint take: "I didn't love the take … I'll pick my
+// favorite and then you can chain them to my favorite, you can chain them
+// before and after"). One take for the whole film still leaves WHICH take to
+// chance. With an anchor the film is rendered in three: the anchor's line
+// alone, then everything BEFORE it chained with `next_request_ids`, then
+// everything AFTER it with `previous_request_ids` — so both halves are
+// conditioned on the take she chose. The three are concatenated as PCM and the
+// shots are located inside exactly as before.
+//
+// **A take can only be chained to by its REQUEST ID, and audio cannot seed
+// one.** The first six takes here were rendered without capturing theirs, so
+// the take she picked could not be reused and the anchor had to be re-rendered
+// — a different take of the same line. renderTTSText writes the id down now;
+// don't drop that.
+async function renderAnchored(tts, anchorIdx) {
+  const line = (s) => String(s.tts).trim();
+  const before = tts.slice(0, anchorIdx).map(line).join('\n\n');
+  const after = tts.slice(anchorIdx + 1).map(line).join('\n\n');
+  const anchorWav = await renderTTSText(line(tts[anchorIdx]), `anchor "${tts[anchorIdx].id}"`);
+  const id = ttsRequestId(anchorWav);
+  if (!id) console.warn('  anchor returned no request id — the halves fall back to TEXT conditioning');
+  const parts = [];
+  if (before) {
+    parts.push(await renderTTSText(before, 'the take before the anchor',
+      id ? { next_request_ids: [id] } : { next_text: line(tts[anchorIdx]) }));
+  }
+  parts.push(anchorWav);
+  if (after) {
+    parts.push(await renderTTSText(after, 'the take after the anchor',
+      id ? { previous_request_ids: [id] } : { previous_text: line(tts[anchorIdx]) }));
+  }
+  if (parts.length === 1) return parts[0];
+  const list = path.join(DIR, '_tts-chain.txt');
+  fs.writeFileSync(list, parts.map((f) => `file '${f}'`).join('\n'));
+  const out = path.join(DIR, `tts-chain-${sha1(parts.join('|')).slice(0, 12)}.wav`);
+  run(FFMPEG, ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', out]);
+  return out;
+}
+
 const TTS_SRC = '__tts';
 async function joinTTS() {
   const tts = SPEC.shots.filter((s) => s.tts);
   if (tts.length < 2) return; // a single line has no register to drift against
   const script = tts.map((s) => String(s.tts).trim()).join('\n\n');
-  console.log(`tts: one take for ${tts.length} shots (${script.length} chars)…`);
-  const wav = await renderTTSText(script, 'the joint TTS take');
+  const anchorIdx = SPEC.anchor ? tts.findIndex((s) => s.id === SPEC.anchor) : -1;
+  if (SPEC.anchor && anchorIdx < 0) throw new Error(`anchor "${SPEC.anchor}" is not a tts shot`);
+  const wav = anchorIdx >= 0
+    ? (console.log(`tts: anchored on "${SPEC.anchor}", chained before and after…`),
+       await renderAnchored(tts, anchorIdx))
+    : (console.log(`tts: one take for ${tts.length} shots (${script.length} chars)…`),
+       await renderTTSText(script, 'the joint TTS take'));
   SPEC.sources = { ...(SPEC.sources || {}), [TTS_SRC]: { file: wav, denoise: false } };
   for (const s of tts) {
     s.ttsText = s.tts;          // kept for the delivery report — the words are unchanged

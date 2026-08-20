@@ -23,6 +23,18 @@ these values; this file is the human record.
 > same `phraseSpan` path her real recordings use, so the film is one
 > continuous performance cut up. A single-line piece is unaffected (there is
 > nothing to drift against).
+>
+> **AND WHEN SHE PICKS A TAKE, ANCHOR TO IT** (Aug 2026, hearing the joint
+> take: "I didn't love the take … I'll pick my favorite and then you can chain
+> them to my favorite, you can chain them before and after"). One take removes
+> the drift but leaves WHICH take to chance. `"anchor": "<shot id>"` on a
+> vo-film spec renders that line alone, then the lines before it with
+> `next_request_ids` and the lines after it with `previous_request_ids`, both
+> conditioned on her chosen take. **Request stitching is seeded ONLY by a
+> request id — audio cannot seed one** — so every take's id is written beside
+> its audio (`<take>.wav.id`) at render time. A take whose id was not kept
+> cannot be chained to and has to be re-rendered, which is a different take;
+> that is exactly what happened to the first six takes of this film.
 
 ## The voice
 - **Sophie — morning**, ElevenLabs voice id `UTkHGl2ImiT6gwtAFCql`, a

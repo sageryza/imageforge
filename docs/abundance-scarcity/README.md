@@ -66,6 +66,16 @@ at every cut. `vo-film.js`'s `joinTTS` now renders every tts line as a single
 of her own recordings — so the film is one continuous performance cut up. It
 fixed the breathing as a side effect: worst in-shot gap went 1.3s → 0.64s.
 
+**The film is filed as a CHUNK** (`/chunking`, id `8e39179cf7595a3f`) with the
+whole narration as its `vo`, so a later video can reuse it whole.
+
+**OPEN: the voice take.** Sophie didn't love the joint take, so the six ORIGINAL
+per-line renders (each a different register — the v1 film's) were handed back for
+her to pick from. Her pick becomes `"anchor"` on `film.json` and the rest chains
+before and after it; the new voiceover then replaces the chunk's audio. **The
+anchor has to be RE-RENDERED** — those six takes were made before request ids
+were captured, and a stitch can only be seeded by an id.
+
     node scripts/abundance-scarcity/animate.js /home/user/out/abundance-film
     node scripts/vo-film.js scripts/abundance-scarcity/film.json \
       --dir /home/user/out/abundance-film/work --final
