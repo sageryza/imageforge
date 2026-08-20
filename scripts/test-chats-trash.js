@@ -105,20 +105,27 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.click('#archlink');
   await page.waitForTimeout(150);
 
-  // 2. Delete in the thread header POSTs and leaves the chat
+  // 2. Delete POSTs and leaves the chat. It shipped as a WORD beside Archive,
+  //    became a picture of a trash can, and moved into the ORGANIZE sheet with
+  //    the other four marks (Aug 2026, Sophie: "take them out of the main thing
+  //    and put them in little boxes like the … category tag things"). Archive
+  //    is the one that stayed a word on the header row.
   await page.click('#grid .crow[data-chat="chat-live"]');
   await page.waitForSelector('#thread', { state: 'visible' });
-  const hasDel = await page.$$eval('#thread header .no .archlink',
-    (ns) => ns.some(n => n.textContent.trim() === 'Delete'));
-  if (!hasDel) fail('no Delete button in the thread header');
   const hasArch = await page.$$eval('#thread header .no .archlink',
     (ns) => ns.some(n => n.textContent.trim() === 'Archive'));
-  if (!hasArch) fail('Delete replaced Archive instead of joining it');
+  if (!hasArch) fail('the thread header lost its Archive word');
+  await page.click('#thread header .no .orgbtn');
+  await page.waitForSelector('.askwrap .orgmarks .mk-del', { timeout: 3000 })
+    .catch(() => fail('no Delete mark in the Organize sheet'));
 
-  await page.$$eval('#thread header .no .archlink',
+  await page.click('.askwrap .orgmarks .mk-del');
+  // The confirm opens a SECOND sheet on top of Organize, so take the LAST one
+  // — the mark that opened it also reads "Delete".
+  await page.waitForFunction(() => document.querySelectorAll('.askwrap').length === 2,
+    null, { timeout: 3000 }).catch(() => fail('Delete did not confirm first'));
+  await page.$$eval('.askwrap:last-of-type .askbox .askrow button',
     (ns) => ns.find(n => n.textContent.trim() === 'Delete').click());
-  await page.waitForSelector('.askbox', { timeout: 3000 }).catch(() => fail('Delete did not confirm first'));
-  await page.$$eval('.askbox button', (ns) => ns.find(n => n.textContent.trim() === 'Delete').click());
   await page.waitForTimeout(300);
   if (!delPosts.some(p => p.chat === 'chat-live' && p.deleted !== false)) fail('Delete did not POST /delete');
   const backHome = await page.$eval('#thread', (n) => getComputedStyle(n).display === 'none' || !n.offsetParent);

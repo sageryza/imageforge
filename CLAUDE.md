@@ -1041,6 +1041,25 @@ them off the reference sheet, not off the old filenames.
   words — one row of chips, several lit at once — which shipped as her FOLDERS
   (one per chat) over a fixed TAG vocabulary (many); both already existed and
   neither was reachable from a thread.
+  **AND THE SIX LITTLE MARKS LIVE IN THAT SHEET NOW (Aug 2026, Sophie: "put
+  the little icons like the bell and the star and the pin and the trashcan and
+  the eye hide symbol … take them out of the main thing and put them in little
+  boxes like the … category tag things — don't forget to add the pin").** The
+  thread header carried seven controls in one row of unlabelled glyphs; five of
+  them (star · bell · keep · hide · delete) moved into Organize as boxed,
+  NAMED chips the same shape as the tag chips, with the PUSHPIN she asked for
+  added beside them — so the sheet is one screen of decisions about the chat:
+  the four states over the two exits, then her words. The header keeps only
+  ARCHIVE (a word, deliberately) and the tag icon that opens the sheet. Two
+  things not to undo: **the pushpin is ALSO still on the home row** (her
+  earlier ask, "right on the main page not inside of it") — this added a place,
+  it did not move it; and **the section labels are back** (`.orggrp`, whose own
+  CSS comment always said to bring them back "the moment a second kind of chip
+  lands in that sheet") because a mark and a tag are different taps in
+  identical boxes. `mkOrgMarks` in `chats.html` is all six; each keeps its old
+  class name, which is what carries its own colour (the bell stays GOLD, the
+  crossed eye and the lit pinhead stay red). Test:
+  `node scripts/test-chats-pin-top.js`.
   Everything saves on the tap. **Filing is still HERS, not yours** — the
   server files chats by itself (`chat-sort.js`); do not POST a category.
   **CATEGORIES AND TAGS ARE ONE FIELD SINCE AUG 2026** (Sophie: "you can only

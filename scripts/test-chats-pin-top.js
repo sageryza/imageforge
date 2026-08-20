@@ -165,8 +165,10 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   await page.waitForSelector('.askwrap .askbox .arctags', { timeout: 3000 })
     .catch(() => fail('the organize button opened nothing'));
   ok();
-  const groups = await page.$$eval('.askwrap .orggrp', (ns) => ns.length);
-  if (groups) fail('the sheet still splits into sections — there is one kind of chip now');
+  // The WORDS are one row; the two section labels in here separate them from
+  // the MARKS that moved in from the thread header (Aug 2026, her ask).
+  const rows = await page.$$eval('.askwrap .askbox .arctags', (ns) => ns.length);
+  if (rows !== 1) fail('the words still split into ' + rows + ' rows — there is one kind of chip now');
   else ok();
   const rows9 = await page.$$eval('.askwrap .arctags', (ns) => ns.length);
   if (rows9 !== 1) fail('the sheet should hold exactly one row of chips, saw ' + rows9);
@@ -223,10 +225,61 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   if (!out.includes('None*') || out.includes('Tech*') || out.includes('Film*')) {
     fail('tapping the lit words did not take the chat out of them — ' + JSON.stringify(out));
   } else ok();
+  // ── 11. THE MARKS, IN LITTLE BOXES (Aug 2026, Sophie: "could you put the
+  //     little icons like the bell and the star and the pin and the trashcan
+  //     and the eye hide symbol and take them out of the main thing and could
+  //     you put them in little boxes like the other icons, I mean, category tag
+  //     things — don't forget to add the pin").
+  const marks = await page.$$eval('.askwrap .orgmarks .markchip', (ns) => ns.map((n) => ({
+    cls: n.className,
+    word: (n.querySelector('span') || {}).textContent || '',
+    svg: !!n.querySelector('svg'),
+    box: getComputedStyle(n).borderTopWidth + '/' + getComputedStyle(n).borderTopLeftRadius,
+  })));
+  const want = ['mk-star', 'mk-bell', 'mk-bmk', 'mk-pin', 'mk-eye', 'mk-del'];
+  if (JSON.stringify(marks.map((m) => want.find((w) => m.cls.includes(w)))) !== JSON.stringify(want)) {
+    fail('the marks row is not star · bell · keep · pin · hide · delete — ' + JSON.stringify(marks.map((m) => m.cls)));
+  } else ok();
+  // A BOX with a WORD in it, like the tag chips under them — that is the whole
+  // ask. An icon on its own is what she was looking at in the header.
+  if (marks.some((m) => !m.svg || !m.word.trim())) {
+    fail('a mark is missing its glyph or its word — ' + JSON.stringify(marks));
+  } else ok();
+  const chipBox = await page.$eval('.askwrap .arctags .catchip',
+    (n) => getComputedStyle(n).borderTopWidth + '/' + getComputedStyle(n).borderTopLeftRadius);
+  if (marks.some((m) => m.box !== chipBox)) {
+    fail('a mark is not the same box as a tag chip (' + chipBox + ') — ' + JSON.stringify(marks.map((m) => m.box)));
+  } else ok();
+  // …and every one of them is really tappable where it is drawn.
+  for (const w of want) await hitTest('.askwrap .orgmarks .' + w, 'the ' + w + ' mark');
+  // THE PIN SHE ASKED FOR — it was on the home row only, and it writes the same
+  // route from in here.
+  const pins0 = posted.pin.length;
+  await page.click('.askwrap .orgmarks .mk-pin');
+  await page.waitForSelector('.askwrap .orgmarks .mk-pin.on', { timeout: 2000 })
+    .catch(() => fail('the pin in the sheet did not light'));
+  ok();
+  await page.waitForTimeout(200);
+  const pinPost = posted.pin[pins0];
+  if (!pinPost || pinPost.chat !== 'newest' || pinPost.pinTop !== true) {
+    fail('the sheet pin did not POST pinTop:true — ' + JSON.stringify(pinPost || null));
+  } else ok();
+  await page.click('.askwrap .orgmarks .mk-pin');
+  await page.waitForFunction(() => !document.querySelector('.askwrap .orgmarks .mk-pin.on'), null, { timeout: 2000 })
+    .catch(() => fail('tapping the lit pin did not unpin it'));
+  ok();
+
+  posted.pin.length = 0;            // the row's own checks below count from zero
+
   await page.click('.askwrap .askrow button.go');
   await page.waitForFunction(() => !document.querySelector('.askwrap'), null, { timeout: 2000 })
     .catch(() => fail('Done did not shut the organize sheet'));
   ok();
+  // …and the header they came OUT of keeps only Archive and the tag icon.
+  for (const gone of ['.pinbtn', '.starbtn', '.bellbtn', '.eyebtn', '.trashbtn', '.bmk.chatbmk']) {
+    if (await page.$('#thread header .no ' + gone)) fail('the thread header still carries ' + gone);
+    else ok();
+  }
 
   // ── 7/8. the glyph, and only the head red ─────────────────────────────────
   await home();
