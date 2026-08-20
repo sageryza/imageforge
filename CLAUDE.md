@@ -1624,43 +1624,71 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
   a loosening of the rule — don't round anything else off, and don't "fix"
   that one back.
-- **THE INJECTED PILL CARRIES A DARK-MODE BLOCK AND YOUR PAGE PROBABLY DOES
-  NOT (Aug 2026, Sophie: "this is the wrong pill" — measured).**
-  `pill-inject.html` bakes its palette ON `.float` and also declares
-  `@media (prefers-color-scheme: dark){.float{--paper:#191713 …}}`, while
-  `compare.css` has NO dark block at all — a Compare page is always her cream.
-  So a phone in dark mode drew a near-black pill on a cream page, and even in
-  light mode it wore `#f6f2e9` where the page is `#faf6ee`. Because the
-  element's own custom property beats one inherited from `:root`, defining the
-  five tokens up there can never reach it: a host must OUT-SPECIFY, e.g.
-  `body .float{…}` (0,1,1 beats 0,1,0, so it wins whatever order the injected
-  sheet lands in). **compare.css now does this for every Compare page**; a
-  tool page with its own palette still has to do it itself (the /chunking
-  finding). Pinned by a test that compares the pill's computed `--paper` with
-  the page's.
-  **AND THE COLOURS WERE ONLY HALF OF IT — `compare.css` ROUNDS THE PILL'S
-  SEGMENTS (Aug 2026, "it's still the wrong pill … it looks different",
-  measured).** `compare.css` declares `button, .btn{…border-radius:6px…}` —
-  a bare-element rule at specificity (0,0,1). `.vseg button` out-specifies it
-  for everything it DECLARES (border, background, color, size, padding), but
-  it never declares `border-radius`, so the 6px wins by default and each of
-  the three segments becomes its own rounded box: the hairline dividers
-  disappear and the capsule reads as three loose buttons instead of one
-  control. Proven by rendering `pill-inject.html` alone (`border-radius: 0px`,
-  capsule 50px) against the same markup with only `compare.css` added
-  (`6px`, 48px — `*{box-sizing:border-box}` pulls the 1.5px stroke inside).
-  **THE LESSON IS GENERAL: a host page's bare-element rules reach every
-  property the injected pill leaves unset** — check `border-radius`, `font`,
-  `gap`, `box-sizing`, not just the palette.
-  **TWO PAGES CARRY A STALE PILL AND ONE CARRIES A HAND COPY (measured
-  2026-08-20).** `pill.py` is the source and five gen scripts bake it, but
-  `public/wall.html` and `public/storyroom.html` are missing the
-  `forge-pill` / `data-nopill` opt-out block — their gen scripts were never
-  re-run after `pill.py` grew it, so a `data-nopill` on either would silently
-  do nothing (`python3 scripts/gen-wall.py` / `gen-storyroom.py` fixes it).
-  `public/gallery.html` has **no generator at all** — its pill is a hand copy
-  that nothing can keep in step. `chats.html`, `writing.html` and
-  `pill-inject.html` are current.
+- **THE PILL DEFENDS ITSELF NOW, AND READS ITS COLOURS FROM YOUR PAGE (Aug
+  2026 v3, Sophie: "this is the wrong pill" → "it's still the wrong pill … it
+  looks different"). Two rounds of the same bug; this is the settled
+  contract.** The pill on a Compare page is INJECTED — the server appends
+  `pill-inject.html` to a page it has never met — so **every property the pill
+  leaves unset is a hole the host falls through**, and CSS is global whichever
+  way the pill arrived.
+  - **What actually reached it, measured** by diffing every computed property
+    of the pill rendered alone against the same markup with only
+    `compare.css` added: **four** — `border-radius` (0 → 6px, from a bare
+    `button, .btn{…}` rule at specificity (0,0,1), which turned the capsule's
+    three segments into three loose rounded boxes and swallowed the hairline
+    dividers), `box-sizing` (the host's `*{border-box}` pulled the 1.5px
+    stroke inside, 50px → 48), `line-height` (`#spd` 12px → 17px, so the whole
+    pill grew 5px taller) and the buttons' `font`. `.vseg button` had always
+    out-specified the host for everything it DECLARED — border, background,
+    colour, size, padding — which is why nobody found this for months.
+  - **All four are declared in `scripts/pill.py` now** (`.float, .float *`
+    pins `box-sizing`/`line-height`/`letter-spacing`/`text-transform`;
+    `.vseg button` pins `border-radius:0`, `gap`, `margin`, `font`). **Add to
+    that line whenever a new host reaches something — don't re-derive it.**
+  - **THE FIVE TOKENS ARE READ FROM THE HOST, `var(--x, fallback)`, never
+    baked onto `.float`.** The old copy carried its own palette plus a
+    `prefers-color-scheme: dark` block, and an element's own custom property
+    beats one inherited from `:root` — so a host could not colour the pill by
+    defining the tokens, it had to OUT-SPECIFY with `body .float{…}`, which is
+    the ten hand-synced lines `compare.css` was carrying (its own comment
+    warned they had to be kept in step by hand). Now the host's `:root` wins by
+    itself, exactly as it always has for a baked-in pill; a page that defines
+    none of the five still gets the studio cream; and a cream page on a dark
+    phone stays cream, because the pill has no dark block of its own. **The
+    whole contract for a host page is: define the five tokens.**
+  - **IT ONLY APPEARS WHEN THERE IS SOMETHING TO SCROLL** (Sophie: "it should
+    be a conditional pill that only appears if there's actually content to
+    scroll"). **The check keeps watching — a ResizeObserver, not a check at
+    load** — because almost every page here fetches its content after it
+    loads, so a one-shot check would hide the pill on nearly all of them.
+    `window.__pillSync()` re-runs it by hand; the `forge-pill off` /
+    `data-nopill` opt-out still removes the pill outright.
+  - Tests: `node scripts/test-pill-host.js` (the whole contract against the
+    real `pill-inject.html` and the real `compare.css` — verified failing
+    against the pre-fix pill, 8 of 16), plus the per-page pill assertions in
+    `test-review-page.js` and `test-brief-page.js`.
+- **A GENERATED PAGE'S TEMPLATE IS PROBABLY STALE — CHECK BEFORE YOU RUN A
+  `gen-*.py` (measured 2026-08-20, caught one command short of shipping it).**
+  Running a generator overwrites its page from the template, so if the PAGE has
+  been hand-edited since — which it constantly is, several chats at once — the
+  edits are gone. Measured that day by running each generator against a clean
+  tree and diffing: **not one of the four was in sync.** `gen-chats.py` would
+  have dropped **~300KB** of shipped work (1,577KB → 1,275KB); `gen-writing.py`
+  deletes a date entry and its cover; `gen-wall.py` / `gen-storyroom.py` are the
+  safe direction (the generator is AHEAD — those two pages were missing the
+  pill's `forge-pill`/`data-nopill` opt-out block entirely).
+  - **The check is one command and costs nothing:** on a clean tree run the
+    generator and `git diff --stat` its page. Empty = in sync, safe. Anything
+    else = read the diff and find out which side is ahead BEFORE you commit.
+  - `scripts/resync-gen-chats.py` exists to pull the page's edits back into
+    `gen-chats.py`'s template and is the documented order (edit page → resync →
+    generate). **It currently cannot run** — it looks for the pill blocks
+    verbatim to turn them back into placeholders and finds zero, so
+    `chats.html`'s pill has drifted from `pill.py` by hand. Fixing that is its
+    own job; until then treat `chats.html` and `writing.html` as
+    HAND-MAINTAINED and patch them in place.
+  - `public/gallery.html` has **no generator at all** — its pill is a hand copy
+    nothing can keep in step.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
