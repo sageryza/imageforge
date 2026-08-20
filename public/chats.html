@@ -569,7 +569,19 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .catchip.starchip.on{border-color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 .cr-acct{flex:none; width:11px; font-family:-apple-system,sans-serif; font-size:11px;
   color:var(--ink2); text-align:center; font-variant-numeric:tabular-nums;}
-.crow .cr-ic{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
+/* THE CHAT'S PICTURE — SQUARE, AND NEARLY THE WHOLE ROW (Aug 2026, Sophie:
+   "get rid of the rounded corners and make them take up more of the height,
+   not the full height, but just leave a little border").
+   It was a 40px square with 6px corners sitting inside the row's 9px padding,
+   so it read as a small stamp with a wide band of paper above and below it.
+   It is 50px now and pulled 5px back into that padding either side, leaving
+   4px of paper top and bottom — the "little border" she asked for.
+   THE NEGATIVE MARGIN IS WHAT KEEPS THE ROW ITS OWN HEIGHT: measured, the
+   icon is the tallest thing on a row (61px row = 9 + 42 + 9 + the hairline),
+   so growing it without pulling it back would have made every row with a
+   picture 10px taller and the whole list longer to scroll. Its margin-box is
+   still 42px, so nothing moves. */
+.crow .cr-ic{width:50px; height:50px; margin:-5px 0; border-radius:0; border:1px solid var(--line); object-fit:cover; flex:none; background:var(--barbg);}
 .crow .cr-ic.t-blank{display:flex; align-items:center; justify-content:center; font-size:1.2em; font-style:italic; color:var(--ink2);}
 .cr-body{flex:1; min-width:0;}
 /* The name is the whole row now, so it can be bigger. display:block is what
