@@ -36,6 +36,16 @@ because from her side they are one thing — the audio on this story:
   stored url would bake in a token that can change under it; an interview's
   audio IS public and its url is stored as-is.
 
+**`GET /pads` DOES NOT CARRY `audios` OR `sources` — only the per-story
+`GET /?pad=<id>` does (measured 2026-08-20, after it cost a chat real
+mistakes).** The list endpoint returns id/title/cover, so an audit that walks
+it sees every story as audio-less and concludes **nothing was ever attached**
+— which is exactly wrong when a story already holds five recordings. That
+chat then reported the five set-theory memos as missing, and "restored" audio
+onto stories that already had it. **Check attachments per story, one GET
+each** (~60 calls for the whole shelf, all cached reads, no cost), or you are
+reading a field that isn't in the response. Same trap for `episodes`.
+
 Both arrive merged as `audios` on `GET /api/scratchpad/`, each row carrying
 its `kind`. Rows share the page's ONE player (play · name · date · length),
 so a tap replaces whatever is speaking and never stacks; **the sheet does not
