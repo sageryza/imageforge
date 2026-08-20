@@ -166,6 +166,7 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 </div>
 <div id="clightbox"></div>
 <div id="toast"></div>
+<script src="/playground-port.js"></script>
 <script>
 (function(){   // IIFE — the injected pill runs in global scope; never collide
 'use strict';
@@ -292,22 +293,26 @@ function saveImage(url){
 
 // ── Open in the Playground: land with this image's settings prefilled ─────
 // Only offered when the exact prompt is on file (promptContent) — the same
-// query promptlab.html already reads (?prompt=&style=&quality=). The style is
-// recognised from the filed style half / caption; unknown looks land on
-// ChatGPT, which is the Playground's own fallback.
+// query promptlab.html reads (?prompt=&style=&quality=), plus `sameref`.
+//
+// WHICH TILE, AND WHETHER WE ACTUALLY KNOW, both come from
+// /playground-port.js — see its header. `sameref=1` means the filed style
+// half names that tile's own reference or quotes its own baked prompt, so
+// re-running carries the same reference the picture was made with; `0` means
+// nothing identified it and the fallback tile's reference is NOT the one
+// behind this picture. The Playground says which, in her words, on arrival.
+// This used to be four loose regexes over the style half, which sent 224
+// pictures whose prompts merely said "watercolor wash" to the WTR LoRA — a
+// different engine — with nothing on screen admitting it was a guess.
 function playgroundQuery(it){
   if(!it || !it.promptContent) return null;
-  var made=((it.promptStyle||'')+' '+(it.prompt||'')).toLowerCase();
-  // The KEY, not the label — promptlab.html's STYLES is keyed `hoonies`, and a
-  // link saying `hoonie` is silently ignored there (it lands on whatever style
-  // was last used instead). 21 images on file match this branch.
-  var style=/hoonie/.test(made)?'hoonies'
-    :/(wtr|watercolor)/.test(made)?'watercolor'
-    :/scarry/.test(made)?'scarry'
-    :/pastel/.test(made)?'pastel':'chatgpt';
-  var q='prompt='+encodeURIComponent(it.promptContent)+'&style='+style;
-  var m=made.match(/\b(low|medium|high)\b/);
-  if(m) q+='&quality='+m[1];
+  var port=(window.ForgePlaygroundPort||null);
+  if(!port) return null;
+  var m=port.matchStyle(it.promptStyle, it.prompt);
+  var q='prompt='+encodeURIComponent(it.promptContent)+'&style='+m.style
+       +'&sameref='+(m.matched?'1':'0');
+  var qual=port.matchQuality(it.promptStyle, it.prompt);
+  if(qual) q+='&quality='+qual;
   return q;
 }
 

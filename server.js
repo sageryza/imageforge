@@ -5093,6 +5093,36 @@ const PL_GPT_STYLES = {
     whiten: true,
     noCharacter: true,
   },
+  // "Dreamy" (Aug 2026, Sophie: "add the other main style reference we use in
+  // the chat, which can be called dreamy") — refs/dream-mystery.jpg, her
+  // "1000 Dreams Per Night" diary-comic page. It was the most-used reference
+  // in the repo with NO Playground tile: 270 filed images name it (measured
+  // 2026-08-20), every one of which used to port onto the ChatGPT tile and
+  // silently pick up sage sandy mirror instead.
+  // The file on disk is her FULL-QUALITY photo (3370x4096, #1427), not the
+  // old 1170x1364 screenshot — same filename, so this reads the good one.
+  // The wording is NOT new: it is scripts/nde-panel.py's in-use recipe, the
+  // one scripts/style-triptych.js already put beside the house styles.
+  // THE ANTI-CONTENT RULE IS BOOKENDED — it opens the prefix and closes the
+  // suffix (Sophie's ask). The reference is ITSELF a multi-panel comic page
+  // full of drawn people, so it is the one house reference the model will
+  // cheerfully redraw the CONTENT of; the suffix rides at the very end of the
+  // sent prompt, after her words, which is the last thing the model reads.
+  // The anti-grid half of that suffix is load-bearing for the same reason.
+  // NO Sophie character card: hers is the watercolor look, and a second
+  // reference in a different style is exactly what this prefix forbids.
+  dreamy: {
+    label: 'Dreamy',
+    refFiles: ['dream-mystery.jpg'],
+    prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style, ' +
+      'linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy ' +
+      'its content, subjects, or composition.',
+    suffix: 'Render as ONE single full-bleed vertical illustration — a single image, ' +
+      'NOT a grid, NOT split panels, no borders, no caption boxes, no text or ' +
+      'lettering anywhere. Again: the attached image is a STYLE reference only — ' +
+      'do not draw its content, its subjects or its composition.',
+    noCharacter: true,
+  },
   // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
   // app's loading animation cycles (Dump album "hoonies", #228). Four of them
   // attach, picked for the thing she wants out of this style: two subjects
