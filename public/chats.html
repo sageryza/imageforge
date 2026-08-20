@@ -840,6 +840,23 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    ✓ on the right is the "I've checked this" — see POST /notif-seen. */
 .nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
   padding:4px 10px 10px; margin:0 0 10px;}
+/* ---- THE UPDATE ROW (Aug 2026, Sophie: "a couple days ago we added a what's
+   new button to the main screen, but I wanted it to go on the update screen —
+   could you rename it Update, no icon, and put it on the update screen") -----
+   The way into /brief, which is the SAME question this tab answers and a
+   different answer to it: this tab is one card per chat, that page is the five
+   things worth knowing across all of them. It sits above everything, so it is
+   the first thing on the screen she opened to find out what happened.
+
+   No icon (her ask) and the accent, not the rose — rose on this screen means
+   something is owed, and the brief is never owed. Same rounded rectangle as
+   the Review row so the two read as one pair of doors. */
+.nwupd{display:flex; margin:0 0 10px; border:1px solid var(--line);
+  border-radius:6px; overflow:hidden; background:var(--surface);}
+.nwupdgo{flex:1; background:none; border:0; padding:11px 12px; cursor:pointer;
+  text-align:left; color:var(--ink2); font-family:-apple-system,sans-serif;
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  -webkit-tap-highlight-color:transparent;}
 /* ---- THE REVIEW ROW (Aug 2026, Sophie — the `to be reviewed` rule) ---------
    One row above everything: the word leaves for /review, the ⌄ opens the cards
    so they can still be dismissed from here. A rounded rectangle, never a pill
@@ -3413,17 +3430,44 @@ function doneNews(){
       });
   });
 }
+// THE UPDATE ROW — the way into /brief (Aug 2026, Sophie: "rename it Update,
+// no icon, and put it on the update screen"). It moved here off the iOS home
+// grid, where it was "What's new" with a list icon.
+//
+// It is ALWAYS on this screen, including the caught-up one: the page behind it
+// is a different question from the cards (the five things worth knowing across
+// every chat, with the pictures and the pages), so "nothing new here" is no
+// reason to take the door away.
+//
+// It carries NO count, for the same reason the home button never did — a badge
+// means reading the brief every time this tab paints, and the number would be
+// the only stale thing on the screen. The page itself now opens on the last
+// list she saw and reads only on Refresh.
+function newsUpdRow(){
+  var row=document.createElement('div'); row.className='nwupd';
+  var b=document.createElement('button'); b.className='nwupdgo';
+  b.textContent='Update';
+  b.setAttribute('aria-label','Update — the five things worth knowing right now');
+  b.onclick=function(){ location.href='/brief'; };
+  row.appendChild(b);
+  return row;
+}
 function newsEmptyCheck(){
   var el=document.getElementById('grid');
   // The Review row counts as something on the screen even with its fold shut —
   // otherwise a tab holding nothing but review cards would say "you're all
-  // caught up" directly above a row saying three are waiting.
+  // caught up" directly above a row saying three are waiting. The Update row
+  // deliberately does NOT count: it is on every paint, so it can never be the
+  // reason she is left without the "you're all caught up" line.
   if(homeView!=='news' || el.querySelector('.nwcard,.nwrev')) return;
   // An empty screen must say WHICH of the two it is, or an open box reads as
-  // the updates having vanished.
-  el.innerHTML='<div class="state">'+(newsQ
-    ? 'Nothing in '+esc(newsQLabel(newsQ))+' — tap an update, then tap '+esc(newsQLabel(newsQ))+'.'
-    : 'Nothing new — you’re all caught up.')+'</div>';
+  // the updates having vanished. APPENDED, not written over the container —
+  // the Update row is already in it.
+  var s=document.createElement('div'); s.className='state';
+  s.textContent=newsQ
+    ? 'Nothing in '+newsQLabel(newsQ)+' — tap an update, then tap '+newsQLabel(newsQ)+'.'
+    : 'Nothing new — you’re all caught up.';
+  el.appendChild(s);
 }
 function renderNews(el){
   newsPickChrome();
@@ -3431,6 +3475,7 @@ function renderNews(el){
   function paint(){
     if(homeView!=='news') return;            // she left while it loaded
     el.innerHTML='';
+    el.appendChild(newsUpdRow());            // first thing on the screen, always
     var items=newsList(g);
     if(!items.length){ newsEmptyCheck(); return; }
     if(newsQ){
