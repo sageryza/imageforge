@@ -12,6 +12,7 @@ const CHAT = 'vibrilify-max-commercial';
 const movie = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const spec = JSON.parse(fs.readFileSync(path.join(__dirname, 'spec.json'), 'utf8'));
 
+const SUF = process.env.VIB_SUFFIX || '';
 const LABELS = [
   'Vibrilify — the kitchen is slightly too large',
   'Vibrilify — the dog has known for weeks',
@@ -45,8 +46,8 @@ async function post(p, body) {
     // The exact sent prompt with the content seam marked — never a paraphrase.
     let style = String(s.panel.promptUsed || '');
     style = style.includes(content) ? style.replace(content, '[content]') : style;
-    style += ' [refs attached: dream-mystery.jpg (style) + chained panel refs (first/previous); gpt-image-2 edit, 1024x1536, medium]';
-    await post('/api/gallery', { assetsOnly: true, chat: CHAT, url, description: LABELS[i], prompt: 'gpt-image-2 · medium' });
+    style += process.env.VIB_REFNOTE || ' [refs attached: dream-mystery.jpg (style) + chained panel refs (first/previous); gpt-image-2 edit, 1024x1536, medium]';
+    await post('/api/gallery', { assetsOnly: true, chat: CHAT, url, description: LABELS[i] + SUF, prompt: 'gpt-image-2 · medium' });
     items.push({ url, style: style.slice(0, 1500), content: content.slice(0, 1500) });
     console.log('filed', i, LABELS[i]);
   }
@@ -56,10 +57,10 @@ async function post(p, body) {
   if (process.argv.includes('--page')) {
     const groups = movie.scenes.map((s, i) => ({
       label: `${i + 1} · ${s.title}${typeof s.startAt === 'number' ? ` · ${s.startAt.toFixed(1)}s` : ' (inside the pill morph)'}`,
-      items: [{ id: 'shot-' + (i + 1), label: LABELS[i], img: s.panel.url, model: 'gpt-image-2', quality: 'medium' }],
+      items: [{ id: 'shot-' + (i + 1), label: LABELS[i] + SUF, img: s.panel.url, model: 'gpt-image-2', quality: 'medium' }],
     }));
     const page = await post('/api/chatfeed/page', {
-      chat: CHAT, title: 'Vibrilify MAX — storyboard v1 (12 shots)',
+      chat: CHAT, title: process.env.VIB_PAGE_TITLE || 'Vibrilify MAX — storyboard v1 (12 shots)',
       template: 'grid', data: { groups },
     });
     console.log('page:', JSON.stringify({ id: page.id, sheet: page.sheet, warnings: page.warnings || null }));

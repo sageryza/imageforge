@@ -1,0 +1,14 @@
+{
+ "0": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787254477143-8a7cc34c.webp",
+  "promptUsed": "Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Cold, desaturated blue-gray color grade, quiet suburban gloom. A woman in her mid-30s with shoulder-length wavy brown hair, in a lavender cardigan, stands alone in the middle of a suburban kitchen that is slightly too large for her — too much empty counter, too much floor. Gray morning light. On the wall hangs a round analog clock with fourteen hour markings on its face. She looks tired and uneasy; the vibes are bad.",
+  "quality": "medium",
+  "at": 1787254478441
+ },
+ "1": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787254517524-52ec3076.webp",
+  "promptUsed": "For continuity: the attached photos are earlier shots of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Cold, desaturated blue-gray color grade, quiet suburban gloom. A small scruffy dog sits on the kitchen floor in gray light, staring directly at the viewer with ancient, knowing eyes, unnervingly still. The same woman in the lavender cardigan stands soft-focus in the background. The dog knows something.",
+  "quality": "medium",
+  "at": 1787254518928
+ }
+}

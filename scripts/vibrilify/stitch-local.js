@@ -16,7 +16,7 @@ const admin = require('firebase-admin');
 
 const FFMPEG = require('ffmpeg-static');
 const FFPROBE = require('ffprobe-static').path;
-const state = JSON.parse(fs.readFileSync(path.join(__dirname, 'state.json'), 'utf8'));
+const state = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.VIB_STATE || 'state.json'), 'utf8'));
 const TARGET = { width: 1080, height: 1920 };
 
 const svc = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);

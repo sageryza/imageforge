@@ -10,8 +10,8 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE = process.env.FORGE_BASE || 'https://imageforge-q125.onrender.com';
-const spec = JSON.parse(fs.readFileSync(path.join(__dirname, 'spec.json'), 'utf8'));
-const stateFile = path.join(__dirname, 'state.json');
+const spec = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.VIB_SPEC || 'spec.json'), 'utf8'));
+const stateFile = path.join(__dirname, process.env.VIB_STATE || 'state.json');
 const state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : {};
 const save = () => fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + '\n');
 
