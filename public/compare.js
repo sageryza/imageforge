@@ -233,7 +233,25 @@
       + '.cmp-film .m{flex:0 0 auto; font-size:12.5px; color:var(--ink2,#7a736c);}';
     document.head.appendChild(css);
   }
-  function openVideo(src, poster) {
+  /* TAP-TO-NOTE, when the caller says which chat the film belongs to (Aug
+     2026, Sophie: the pause-and-note player "was only on the links at the top
+     of the page that are pinned, could you somehow bring that mechanism in
+     here"). It is /filmnote.js — the same module chats.html's pinned player
+     uses, never a second copy — and it is fetched LAZILY, the first time a
+     film that wants notes is opened: hundreds of already-posted Compare pages
+     link this file and none of them asks for notes, so they must not pay for
+     it. A page that does ask gets it on the first tap; the module is idempotent
+     and no-ops if the page loaded it itself. */
+  var fnote = null;
+  function loadFilmNote(cb) {
+    if (window.__filmNote) return cb();
+    var id = 'filmnote-src', had = document.getElementById(id);
+    var sc = had || document.createElement('script');
+    sc.addEventListener('load', cb, { once: true });
+    sc.addEventListener('error', function () { /* the film still plays */ }, { once: true });
+    if (!had) { sc.id = id; sc.src = '/filmnote.js'; document.head.appendChild(sc); }
+  }
+  function openVideo(src, poster, note) {
     var el = ensureVideoLB();
     vSavedY = window.scrollY;
     if (window.__scrollStop) window.__scrollStop();
@@ -244,11 +262,19 @@
     document.body.style.overflow = 'hidden';
     var p = v.play();                       // inside the tap, so iOS allows it
     if (p && p.catch) p.catch(function () { /* she can press play herself */ });
+    if (note && note.chat) {
+      loadFilmNote(function () {
+        // she may already have closed it while the module was fetching
+        if (!window.__filmNote || el.hasAttribute('hidden')) return;
+        fnote = window.__filmNote({ wrap: el, video: v, chat: note.chat, url: note.url || src });
+      });
+    }
   }
   function closeVideo() {
     if (!vlb || vlb.hasAttribute('hidden')) return;
     var v = vlb.querySelector('video');
     try { v.pause(); } catch (_) { /* already gone */ }
+    if (fnote) { fnote.destroy(); fnote = null; }   // stops a live mic too
     v.removeAttribute('src'); v.load();     // or it keeps playing behind the page
     vlb.setAttribute('hidden', '');
     document.body.style.overflow = '';
@@ -274,7 +300,12 @@
       + '<span class="t"></span><span class="m"></span>';
     b.querySelector('.t').textContent = opts.label || 'Play the film';
     b.querySelector('.m').textContent = opts.meta || '';
-    b.addEventListener('click', function () { openVideo(opts.url, opts.poster); });
+    // `chat` opts a row into tap-to-note; `noteUrl` overrides what the note
+    // is filed against, for a row whose playable url is not its identity
+    b.addEventListener('click', function () {
+      openVideo(opts.url, opts.poster,
+        opts.chat ? { chat: opts.chat, url: opts.noteUrl || opts.url } : null);
+    });
     mount.appendChild(b);
     return b;
   };

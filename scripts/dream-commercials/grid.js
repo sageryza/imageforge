@@ -25,20 +25,38 @@ const ex = require('./extra.json');
 // films is already in Storage. `film` plays in the video lightbox; a tile with
 // no film (Somnivex is storyboarded, never shot) opens its still in the image
 // one, so no tile is a dead control.
+// EVERY TILE NAMES ITS FILM'S PREFIX AND THE CHAT THAT MAKES IT (Aug 2026,
+// Sophie: "there's a new version of the song commercial … how can you
+// automatically update based on the latest version of the movies"). The `film`
+// url baked in here is only the fallback: on load the page asks
+// GET /api/chatfeed/newest which resolves each `prefix` to that film's current
+// cut — the making chat's pin when it is unmistakably this film, else the
+// newest video Storage holds. So a re-cut in another chat reaches this grid
+// without anyone re-posting it.
+//
+// `chat` is also where a note left ON the film lands, which is the chat that
+// can act on it — not this one.
 const TILES = [
   { id: 'boys', cover: C + 'groupchat-v2.webp', label: 'The boys — before / after', meta: '0:44',
-    film: R + 'dream-commercial/commercial-v2.mp4' },
+    film: R + 'dream-commercial/commercial-v2.mp4',
+    prefix: 'dream-commercial/commercial-', chat: 'dream-app-commercial' },
   { id: 'everynight', cover: C + 'everydream3.webp', label: 'Every night', meta: '0:59',
-    film: R + 'commercials/reels/everydream3/everydream3-reel-draft-v1.mp4' },
+    film: R + 'commercials/reels/everydream3/everydream3-reel-draft-v1.mp4',
+    prefix: 'commercials/reels/everydream', chat: 'fictional-pill-commercial' },
   { id: 'birdcostume', cover: C + 'birdcostume.webp', label: 'The bird costume', meta: '0:41',
-    film: R + 'commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4' },
+    film: R + 'commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4',
+    prefix: 'commercials/reels/birdcostume', chat: 'commercial-production-series' },
   { id: 'birdstory', cover: C + 'birdstory.webp', label: 'The bird, as a story', meta: '0:41',
-    film: R + 'commercials/reels/birdstory/birdstory-reel-draft-v2.mp4' },
+    film: R + 'commercials/reels/birdstory/birdstory-reel-draft-v2.mp4',
+    prefix: 'commercials/reels/birdstory', chat: 'fictional-pill-commercial' },
   { id: 'reverie', cover: C + 'reverie3.webp', label: 'Rêverie', meta: '0:27',
-    film: R + 'commercials/reels/reverie3/reverie3-reel-draft-v1.mp4' },
+    film: R + 'commercials/reels/reverie3/reverie3-reel-draft-v1.mp4',
+    prefix: 'commercials/reels/reverie', chat: 'fictional-pill-commercial' },
   { id: 'song', cover: C + 'song-v2.webp', label: 'The song spot', meta: '0:13',
-    film: R + 'dream-commercial/spot-v4.mp4' },
-  { id: 'somnivex', cover: (ex.somnivex[3] || ex.somnivex[0]).url, label: 'Somnivex®', meta: 'storyboard' },
+    film: R + 'dream-commercial/spot-v4.mp4',
+    prefix: 'dream-commercial/spot-', chat: 'song-commercial-selection' },
+  { id: 'somnivex', cover: (ex.somnivex[3] || ex.somnivex[0]).url, label: 'Somnivex®', meta: 'storyboard',
+    chat: 'fictional-pill-commercial-01h7qx' },
   { id: 'next1', empty: true, label: 'next' },
   { id: 'next2', empty: true, label: 'next' },
 ];
@@ -63,13 +81,15 @@ function build() {
   // film can never also start the page scrolling
   const tiles = TILES.map((t) => (t.empty
     ? `<div class="gtile empty"><span>${esc(t.label)}</span></div>`
-    : `<button type="button" class="gtile"`
+    : `<button type="button" class="gtile" data-id="${esc(t.id)}"`
       + (t.film ? ` data-film="${esc(t.film)}"` : ` data-still="${esc(t.cover)}"`)
+      + (t.prefix ? ` data-prefix="${esc(t.prefix)}"` : '')
+      + (t.chat ? ` data-chat="${esc(t.chat)}"` : '')
       + ` aria-label="${esc(t.film ? 'Play ' + t.label : t.label + ' — the storyboard')}">`
       + `<img src="${esc(t.cover)}" alt="${esc(t.label)}">${REEL}</button>`)).join('\n      ');
   const legend = TILES.map((t) => (t.empty
     ? '<i></i>'
-    : `<i>${esc(t.label)}<b>${esc(t.meta)}</b></i>`)).join('\n      ');
+    : `<i data-id="${esc(t.id)}">${esc(t.label)}<b>${esc(t.meta)}</b></i>`)).join('\n      ');
 
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -107,6 +127,7 @@ function build() {
     gap:2px 8px;}
   .glegend i{font:600 10px/1.35 -apple-system,sans-serif;font-style:normal;color:var(--ink);}
   .glegend b{display:block;font:400 10px/1.35 -apple-system,sans-serif;color:var(--ink2,#8A7F6E);}
+  .glegend i.moved b{color:#C25E4C;}
   .gtile.empty{display:flex;align-items:center;justify-content:center;border:1px dashed #DDD3C0;
     background:#F7F2E8;}
   .gtile.empty span{font:700 9px/1 -apple-system,sans-serif;letter-spacing:.14em;
@@ -148,11 +169,46 @@ function build() {
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest ? e.target.closest('.gtile') : null;
     if (!t || !window.__compareShell) return;
-    var film = t.getAttribute('data-film');
-    if (film) return window.__compareShell.openVideo(film);
+    var film = t.getAttribute('data-film'), chat = t.getAttribute('data-chat');
+    // the note lands in the chat that MAKES this film, on the film's own url —
+    // the same thread its pinned player writes to, so that chat sweeps it
+    if (film) return window.__compareShell.openVideo(film, null,
+      chat ? { chat: chat, url: film } : null);
     var still = t.getAttribute('data-still');
     if (still) window.__compareShell.openImage(still, t.getAttribute('aria-label') || '');
   });
+
+  /* THE CURRENT CUT, ASKED FOR ON EVERY OPEN. The page is frozen HTML, so the
+     urls above are the day it was built; this is what makes it keep up. One
+     request, no model call, nothing stored. A failure leaves every tile on the
+     url it was built with, which is the whole point of the fallback. */
+  (function () {
+    var tiles = [].slice.call(document.querySelectorAll('.gtile[data-prefix]'));
+    if (!tiles.length) return;
+    var q = tiles.map(function (t) {
+      return t.getAttribute('data-prefix') + '|' + (t.getAttribute('data-chat') || '');
+    }).join(',');
+    fetch('/api/chatfeed/newest?q=' + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var films = (d && d.films) || {};
+        tiles.forEach(function (t) {
+          var hit = films[t.getAttribute('data-prefix')];
+          if (!hit || !hit.url || hit.url === t.getAttribute('data-film')) return;
+          t.setAttribute('data-film', hit.url);
+          // the cover is still the older cut's frame, so the legend has to say
+          // the film moved — the chat's own pin title when there is one, else
+          // the file it resolved to. Never a guessed duration: the baked one
+          // belongs to the cut that is no longer playing.
+          var row = document.querySelector('.glegend i[data-id="' + t.getAttribute('data-id') + '"]');
+          if (!row) return;
+          var b = row.querySelector('b');
+          if (b) b.textContent = hit.title || hit.name || 'newer cut';
+          row.classList.add('moved');
+        });
+      })
+      .catch(function () { /* the built-in urls still play */ });
+  })();
 
   window.__compareNotes({ chat: 'dream-app-commercials', sheet: 'ig-grid-v1' });
   window.__compareHelp({ html: '<b>Preliminary.</b> Nothing has been picked yet — '
@@ -163,7 +219,14 @@ function build() {
     + 'crop you get. The films themselves are 2:3, and Instagram wants 9:16, so '
     + 'they will letterbox in the player until they are re-rendered taller.<br><br>'
     + '<b>Tap a tile to play it</b> — the same as the real grid. Somnivex has '
-    + 'no film yet, so its tile opens the storyboard frame instead.<br><br>'
+    + 'no film yet, so its tile opens the storyboard frame instead. While a film '
+    + 'is playing, touch the screen and a <b>Note</b> button appears: it pauses, '
+    + 'takes a note stamped with where you are, and files it to the chat that '
+    + 'makes that film.<br><br>'
+    + '<b>Each tile plays whatever the current cut is.</b> The page asks on every '
+    + 'open, so a re-cut in another chat shows up here without anything being '
+    + 'rebuilt. When a film has moved past the frame on its tile, its line under '
+    + 'the grid turns rust and names the newer cut.<br><br>'
     + 'The + in the corner leaves a note on the whole grid — per-reel notes '
     + 'live on the room page and the idea decks.' });
 })();

@@ -2726,6 +2726,108 @@ router.post('/chatnote', async (req, res) => {
 // web page rendered a play button that opened a black box — the deliverable a
 // chat most often wants at the top is a PAGE, and it could not say so. A link
 // pin wears a link glyph and opens the page instead of embedding it.
+// NEWEST CUT OF A FILM — derived, never filed (Aug 2026, Sophie, on the dream
+// commercials grid: "there's a new version of the song commercial … this is a
+// broader problem of how can you automatically update based on the latest
+// version of the movies to the Instagram thing").
+//
+// A posted page is frozen HTML, so a page that names a film's url shows the
+// cut that existed the day it was built — and the chats making those films
+// re-cut them daily. Asking each of them to update a manifest is the shape
+// that has already been measured to fail here (only 15 of 224 chats ever
+// posted an Update card), so this DERIVES the answer from what already exists,
+// the way questions.js and chat-sort.js do.
+//
+// Two sources, in this order, because a human-curated answer beats a timestamp:
+//   1. the making chat's PINNED link, when it points inside that film's own
+//      prefix. A chat pinning its newest render is an existing house rule, and
+//      the prefix guard is what makes it safe: a chat that makes several films
+//      can only pin one, and its pin must never be served as a different film.
+//   2. the newest VIDEO under the prefix by Storage's own `updated` time.
+//      Known limit, stated rather than hidden: re-uploading an old cut would
+//      make it look newest. Nothing else here reads filenames, on purpose —
+//      the version lives in the folder for some of these films and in the file
+//      for others, so any filename rule would be right about half of them.
+//
+// Query: ?q=<prefix>|<chat>,<prefix2>|<chat2>  — the chat half is optional.
+// Answers `{ films: { "<prefix>": { url, from:'pin'|'storage', title, name } } }`;
+// a prefix with nothing under it is simply absent, and the caller keeps
+// whatever it was built with.
+const NEWEST_TTL_MS = 60 * 1000;
+const newestCache = new Map();
+const VIDEO_RE = /\.(mp4|mov|webm)$/i;
+// a cut lives directly under its film's prefix; `clips/` and `stills/` are the
+// pieces it was built from and must never be served as the film
+const PART_RE = /\/(clips|stills|parts|frames)\//i;
+
+async function newestUnder(prefix) {
+  const hit = newestCache.get(prefix);
+  if (hit && Date.now() - hit.at < NEWEST_TTL_MS) return hit.val;
+  let val = null;
+  try {
+    const [files] = await admin.storage().bucket().getFiles({ prefix, maxResults: 400 });
+    const vids = files.filter((f) => VIDEO_RE.test(f.name) && !PART_RE.test(f.name));
+    for (const f of vids) {
+      const up = f.metadata && f.metadata.updated ? f.metadata.updated : '';
+      if (!val || up > val.updated) val = { name: f.name, updated: up };
+    }
+  } catch (e) { val = null; }              // no Storage, no answer — never a throw
+  newestCache.set(prefix, { at: Date.now(), val });
+  return val;
+}
+
+/** THE DECISION, with no IO in it — the pin when it is unmistakably this
+ *  film, else the newest video Storage has, else nothing (and the caller keeps
+ *  what it was built with). Exported so the whole table can be tested without
+ *  a bucket or a registry. */
+function pickFilm(prefix, pinned, newest, base) {
+  const pin = pinned && pinned.url ? pinned : null;
+  // "inside this film's prefix" is matched on a PATH BOUNDARY: without the
+  // leading slash, prefix `dream-commercial/spot-` would also accept a url
+  // from `other-dream-commercial/spot-…`, and the whole point of the guard is
+  // that a chat's pin can never be served as a different film.
+  if (pin && VIDEO_RE.test(pin.url) && pin.url.indexOf('/' + prefix) > -1) {
+    return { url: pin.url, from: 'pin', title: pin.title || '', name: pin.url.split('/').pop() };
+  }
+  if (newest && newest.name) {
+    return { url: (base || '') + newest.name, from: 'storage', title: '',
+      name: newest.name.split('/').pop(), updated: newest.updated || '' };
+  }
+  return null;
+}
+
+router.get('/newest', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const raw = String(req.query.q || '').slice(0, 2000);
+    const entries = raw.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 12)
+      .map((x) => {
+        const [prefix, chat] = x.split('|');
+        return { prefix: String(prefix || '').trim(), chat: String(chat || '').trim().slice(0, 60) };
+      })
+      // a prefix is a Storage path and nothing else — no traversal, no scheme
+      .filter((e) => /^[A-Za-z0-9._\-]+(\/[A-Za-z0-9._\-]+)*\/?[A-Za-z0-9._\-]*$/.test(e.prefix)
+        && !e.prefix.includes('..'));
+    if (!entries.length) return res.json({ films: {} });
+    const bucketName = admin.apps.length ? admin.storage().bucket().name : '';
+    const base = `https://storage.googleapis.com/${bucketName}/`;
+    const reg = await registry();
+    const films = {};
+    await Promise.all(entries.map(async (e) => {
+      const d = (e.chat && reg.chats && reg.chats[e.chat]) || {};
+      const hit = pickFilm(e.prefix, d.pinned, await newestUnder(e.prefix), base);
+      if (hit) films[e.prefix] = hit;
+    }));
+    res.json({ films });
+  } catch (err) { fail(res, err); }
+});
+
+// NOTE: scripts/test-pin-current.js evaluates a SLICE of this file — from the
+// PIN_KINDS declaration below down to the pin POST route — so that span must
+// hold only the pin helpers; a route dropped inside it breaks that test with
+// "router is not defined". The slice is found by indexOf on those two literal
+// strings, so do not write either of them in a comment above them either: the
+// search takes the FIRST match, and a comment mentioning them wins.
 const PIN_KINDS = new Set(['audio', 'video', 'link']);
 // A MISSING `kind` IS READ OFF THE URL (Aug 2026). The pin used to fall back to
 // `video` for anything it didn't recognise, which was right while only films
@@ -4170,7 +4272,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
