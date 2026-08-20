@@ -381,8 +381,27 @@
       // Blur FIRST: a still-focused note box makes iOS scroll again as the
       // keyboard leaves, which would land after our restore and undo it.
       var f = document.activeElement; if (f && f.blur) f.blur();
-      lb.style.display = 'none'; lb.innerHTML = '';   // .big dies with it
-      lb.classList.remove('hastalk'); document.body.style.overflow = ''; document.body.classList.remove('ontop');
+      lb.style.display = 'none';
+      document.body.style.overflow = ''; document.body.classList.remove('ontop');
+      // THE CONTENT IS DETACHED A FRAME LATER, NOT NOW (Aug 2026, Sophie: "why
+      // does auto scroll get triggered when I tap out of the light box in the
+      // auto compare page" — and she was right that this had been fixed once:
+      // it was, for compare.js's OWN lightbox, which only sets [hidden] and so
+      // stays reachable). A host decides whether a tap was the page's own by
+      // asking `t.closest('[data-nostop],img,figure,.cmp-lb')` on a BUBBLING
+      // click — chats.html does this for an embedded Compare page. Wiping
+      // innerHTML inside our onclick runs FIRST, so by the time that handler
+      // asks, the tapped caption/row has no parent left and closest() walks a
+      // detached subtree: the [data-nostop] on this element is unreachable,
+      // the tap falls through to the toggle, and the autoscroll STARTS behind
+      // the closing overlay. Measured: tapping .clcap logged the toggle;
+      // tapping the backdrop (lb itself, never detached) did not — which is
+      // why it looked intermittent. One frame is all the bubbling phase needs.
+      requestAnimationFrame(function () {
+        if (lb.style.display !== 'none') return;         // reopened in between
+        lb.innerHTML = '';                               // .big dies with it
+        lb.classList.remove('hastalk');
+      });
       window.scrollTo(0, lbY);
       // …and again next frame, for the keyboard-dismissal scroll that lands late.
       requestAnimationFrame(function () { window.scrollTo(0, lbY); });

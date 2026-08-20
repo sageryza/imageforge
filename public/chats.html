@@ -6812,8 +6812,22 @@ function openPage(p){
       // a clock window either misses slow fingers or eats the next tap.
       var pausedThisTap=false;
       if(w) w.__scrollStop=function(){ if(pill._playing && pill._playing()) pausedThisTap=true; pill._stop(); };
+      // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
+      // DOM (Aug 2026). A click handler bubbles, so it runs AFTER the page's own
+      // handler for the same tap — and an overlay that closes by removing its
+      // content (the Assets lightbox did exactly this) leaves the tapped node
+      // detached, with no ancestors left for closest() to find the marker on.
+      // The tap then read as "not the page's own" and started the scroll behind
+      // the closing overlay. Same per-GESTURE shape as pausedThisTap above.
+      var OWN='[data-nostop],img,figure,.cmp-lb';
+      var ownThisTap=false;
+      if(doc) doc.addEventListener('pointerdown', function(e){
+        var t=e.target;
+        try{ ownThisTap=!!(t && t.closest && t.closest(OWN)); }catch(_){ ownThisTap=false; }
+      }, true);
       if(doc) doc.addEventListener('click', function(e){
         var paused=pausedThisTap; pausedThisTap=false;
+        var own=ownThisTap; ownThisTap=false;
         var t=e.target;
         if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
         // `[data-nostop]` is compare.js's documented opt-out, and the EMBEDDED
@@ -6826,7 +6840,7 @@ function openPage(p){
         // and the toggle ALSO started the scroll behind it; tapping the dark
         // backdrop to close toggled it again. A tap on an image is the page's
         // own, everywhere.
-        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb')){ if(pill._stop) pill._stop(); return; }
+        if(own || (t && t.closest && t.closest(OWN))){ if(pill._stop) pill._stop(); return; }
         // this tap's own pointerdown just paused a running scroll — the tap
         // meant PAUSE, not toggle-back-on
         if(paused) return;
