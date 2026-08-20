@@ -81,7 +81,7 @@
     {
       "title": "Winking at the moon",
       "shoot": true, "grade": "night",
-      "timing": { "phrase": "winking at the moon", "edge": "start", "offset": -0.3 },
+      "timing": { "phrase": "aggressive serenity", "edge": "start", "offset": -0.2 },
       "imagePrompt": "Night in a suburban backyard. The woman in the lavender cardigan over pajamas stands on the lawn looking up at a huge full moon, mid-wink — one eye closed, a small conspiratorial smile, utterly serene. Cool moonlight.",
       "motionPrompt": "She winks slowly up at the moon and holds the small smile; moonlight glimmers; leaves stir gently."
     },
