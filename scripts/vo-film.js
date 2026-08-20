@@ -27,9 +27,16 @@
  *         "phrases": ["so I was thinking about Mason", "…"],
  *         "extra": [{ "source": "m1405", "phrase": "…" }] },
  *       { "id": "bridge", "image": "panel-x.webp",
- *         "tts": "Then I found all the others." }   // her cloned voice
+ *         "tts": "Then I found all the others." },  // her cloned voice
+ *       { "id": "2a", "video": "clip-2a.mp4",       // an ANIMATED shot: the
+ *         "tts": "It was everywhere." }             // clip instead of a still
  *     ]
  *   }
+ *
+ * A shot's picture is `image` (a still, held for the shot's length) or
+ * `video` (a clip, RETIMED to the shot's length — never frozen on its last
+ * frame and never looped, both of which read as a fault mid-sentence). The
+ * clip's own audio is dropped: the narration is the only sound.
  *
  * Stages, each cached by content hash (state in <dir>/state.json):
  *   1 prep    per source: vo-remove-pauses on the ORIGINAL (two-pass
@@ -107,6 +114,8 @@ const md5 = (buf) => crypto.createHash('md5').update(buf).digest('hex');
 const md5f = (f) => md5(fs.readFileSync(f));
 const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
 const B = 0.02; // 20ms RMS bins throughout
+// ffmpeg's pad filter wants 0xRRGGBB — '#f7f3ea' in a filtergraph is a parse error.
+const padColor = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? '0x' + c.slice(1) : c);
 
 // ---- state ----------------------------------------------------------------
 const STATE_PATH = path.join(DIR, 'state.json');
@@ -441,8 +450,14 @@ async function stitch(shots) {
   if (!sharp) throw new Error('sharp not installed — npm install in the repo first');
   const FR = path.join(DIR, 'frames'); fs.mkdirSync(FR, { recursive: true });
   const lens = shots.map((s) => dur(s.file));
+  // A shot's picture is a STILL by default and an animated CLIP when it names
+  // one (`"video"`). Only one of the two is materialized per shot — a still
+  // frame for a video shot would be a second full-size decode for nothing.
+  const vids = [];
   for (let i = 0; i < shots.length; i++) {
-    const img = await materialize(SPEC.shots[i].image, `img-${SPEC.shots[i].id}`);
+    const spec = SPEC.shots[i];
+    if (spec.video) { vids[i] = await materialize(spec.video, `vid-${spec.id}`); continue; }
+    const img = await materialize(spec.image, `img-${spec.id}`);
     await sharp(img).resize(W, H, { fit: 'contain', background: BG }).png().toFile(path.join(FR, `${i}.png`));
   }
   const alist = path.join(DIR, '_a.txt');
@@ -459,12 +474,25 @@ async function stitch(shots) {
     cum += lens[i];
     const frame = Math.round(cum * FPS);
     const segDur = (frame - prevFrame) / FPS; prevFrame = frame;
-    const segKey = sha1(`${md5f(path.join(FR, `${i}.png`))}|${segDur.toFixed(3)}|${FPS}`).slice(0, 16);
+    const src = vids[i] || path.join(FR, `${i}.png`);
+    const segKey = sha1(`${md5f(src)}|${segDur.toFixed(3)}|${FPS}|${W}x${H}|${BG}`).slice(0, 16);
     const seg = path.join(DIR, `seg-${segKey}.mp4`);
     if (!fs.existsSync(seg)) {
-      run(FFMPEG, ['-v', 'error', '-y', '-loop', '1', '-framerate', String(FPS), '-t', segDur.toFixed(3),
-        '-i', path.join(FR, `${i}.png`), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-        '-pix_fmt', 'yuv420p', '-r', String(FPS), seg]);
+      if (vids[i]) {
+        // The clip is fitted to the shot's own audio by RETIMING, never by
+        // freezing or looping: a held last frame reads as the film hanging,
+        // and a loop jumps back to frame 1 in the middle of a sentence. The
+        // narration is the clock — the picture stretches to it.
+        const f = segDur / dur(vids[i]);
+        run(FFMPEG, ['-v', 'error', '-y', '-i', vids[i], '-an',
+          '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:${padColor(BG)},setpts=PTS*${f.toFixed(6)},fps=${FPS}`,
+          '-t', segDur.toFixed(3), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+          '-pix_fmt', 'yuv420p', '-r', String(FPS), seg]);
+      } else {
+        run(FFMPEG, ['-v', 'error', '-y', '-loop', '1', '-framerate', String(FPS), '-t', segDur.toFixed(3),
+          '-i', path.join(FR, `${i}.png`), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+          '-pix_fmt', 'yuv420p', '-r', String(FPS), seg]);
+      }
     }
     segs.push(seg);
   }
@@ -538,7 +566,7 @@ function deadAir(file) { // vo-verify's film check, local and free
   // stitch — skipped wholesale when nothing feeding it changed
   const stitchKey = `stitch|${TOOLV}|${sha1(JSON.stringify({
     shots: shots.map((s) => md5f(s.file)),
-    images: SPEC.shots.map((s) => s.image), W, H, FPS, BG, out: SPEC.out || 'film',
+    images: SPEC.shots.map((s) => s.video || s.image), W, H, FPS, BG, out: SPEC.out || 'film',
   }))}`;
   const outPath = path.join(DIR, (SPEC.out || 'film') + '.mp4');
   let out, lens;
