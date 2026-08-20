@@ -117,6 +117,54 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 - **Needs from her:** which of (a) or (b).
 - **Queued:** 2026-08-19 by terminal chat (desktop queue run)
 
+### Upload the group dream journal's VERSION HISTORY screenshots
+
+- **Why:** the `dream-journal-version-history` cloud chat is working from the
+  version history of Sophie's real group dream journal and can see nothing —
+  the screenshots live only on the Mac (her logged-in browser / her Desktop),
+  and its Assets tab is empty. Uploading them is the whole unblock.
+- **Where:** ~/imageforge
+- **Run:**
+  ```bash
+  # 1. Find them. Adjust FOLDER if she saved them somewhere else.
+  cd ~/imageforge && ls -lt ~/Desktop ~/Downloads 2>/dev/null | grep -iE '\.(png|jpg|jpeg)$' | head -40
+  ```
+  ```bash
+  # 2. Upload every screenshot and file it into the chat's Assets tab.
+  #    Set FOLDER and GLOB to whatever step 1 showed.
+  cd ~/imageforge && FOLDER=~/Desktop GLOB='*.png' CHAT=dream-journal-version-history \
+  B=https://imageforge-q125.onrender.com bash -c '
+    i=0
+    for f in "$FOLDER"/$GLOB; do
+      [ -f "$f" ] || continue
+      i=$((i+1))
+      n=$(basename "$f")
+      url=$(curl -s -X POST --data-binary @"$f" -H "Content-Type: image/png" \
+        "$B/api/drop/upload-file?bundle=Dream%20journal%20version%20history&filename=$n" \
+        | node -e "let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{console.log(JSON.parse(s).item.url)}catch(e){console.log(\"\")}})")
+      [ -z "$url" ] && { echo "FAILED upload: $n"; continue; }
+      curl -s -X POST -H "Content-Type: application/json" \
+        -d "{\"assetsOnly\":true,\"chat\":\"$CHAT\",\"url\":\"$url\",\"description\":\"Group dream journal version history — screenshot $i ($n)\"}" \
+        "$B/api/gallery" >/dev/null
+      echo "filed $i: $n"
+    done'
+  ```
+  ```bash
+  # 3. Check it landed (should print a count and the labels).
+  curl -s "https://imageforge-q125.onrender.com/api/gallery/assets?chat=dream-journal-version-history&limit=100" \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.total+" filed");(j.assets||[]).forEach(a=>console.log("-",a.description||"(no label)"))})'
+  ```
+  Label them better than "screenshot 1" if the order or the date range is
+  visible in the shot — the label is what Sophie reviews by, and it is what the
+  cloud chat reads to know which page of the history it is looking at. Re-POST
+  the same `assetsOnly` call with a new `description` to fix one in place.
+- **Needs from her:** where the screenshots are, if they are not on the Desktop
+  or in Downloads. **If she has not taken them yet**, they come out of the
+  journal document's own version history in her logged-in browser (File →
+  Version history → See version history, if it is a Google Doc) — a cloud
+  session can never reach that, which is why this is here.
+- **Queued:** 2026-08-20 by dream-journal-version-history
+
 ---
 
 ## DONE
