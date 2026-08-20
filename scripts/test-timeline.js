@@ -220,6 +220,8 @@ const DRIVE = `<script>
     setTimeout(function () {
       ok(!document.getElementById('lvStory').hidden, 'tapping a story opens it', '');
       ok(document.getElementById('title').value === 'A story', 'its name is in the box', '');
+      ok(!!(history.state && history.state.story === 'story1'),
+         'opening a story pushes history, so back reaches the shelf', JSON.stringify(history.state));
       var C0 = count();
       ok(nums() === run(), 'every unit is numbered 1..N', nums());
 
@@ -307,6 +309,21 @@ const DRIVE = `<script>
           ok(!card(b) && count() === delC - 1, 'delete removes the moment', '');
 
           ok(nums() === run(), 'the numbers are still 1..N after all of it', nums());
+
+          // embedded under the native bar, the header band goes compact
+          // (Sophie: "a lot of space at the top") — static, unbordered, and
+          // no taller than the ? needs. NOT floated: a floated ? landed on
+          // the right end of full-width rows.
+          var headBefore = document.querySelector('.head').offsetHeight;
+          document.body.classList.add('embed');
+          var head = document.querySelector('.head');
+          ok(head.offsetHeight <= 34 && head.offsetHeight < headBefore,
+             'embedded, the header band goes compact',
+             head.offsetHeight + 'px vs ' + headBefore + 'px standalone');
+          ok(getComputedStyle(head).position === 'static'
+             && getComputedStyle(head).borderBottomWidth === '0px',
+             'and loses the sticky border band', '');
+          document.body.classList.remove('embed');
 
           setTimeout(function () {
             var last = PUTS[PUTS.length - 1];
