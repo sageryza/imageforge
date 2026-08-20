@@ -28,8 +28,10 @@ The numbers are measured, not guessed.
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
-   text}`. `line` = the one line her archive row shows (≤200); `text` = the
-   full what-this-was (≤2000). This is what she reads months later to remember
+   asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
+   2026: "what I really wanted was the what you asked, what I did, and next
+   steps"; three sentences in total, not six) — `line` = the one line her
+   archive row shows (≤200). This is what she reads months later to remember
    what a chat was, so it earns more care than the status card. *Measured
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
@@ -750,9 +752,10 @@ them off the reference sheet, not off the old filenames.
   - **A chat is ASLEEP by the time she archives it**, so it cannot summarise
     itself then — the whole design follows from that. Written ahead, frozen on
     the way past. Best source first: the chat's own `POST /wrapup`; failing
-    that, archiving freezes its **Update card** into one (free, instant —
-    `updAsked`/`updDid` already answer the same question); failing both it
-    stays blank rather than inventing something.
+    that, archiving freezes its **Update card** into one (free, instant, and a
+    straight copy now — `updAsked`/`updDid`/`updNext` ARE the three questions
+    the summary is made of); failing both it stays blank rather than
+    inventing something.
   - **THE SUMMARIZE BUTTON on the archive pop-up (Aug 2026, Sophie: "I want a
     button on there that automatically asks the chat to give me like a quick
     summary of what we accomplished in that chat, and if there were still any
@@ -765,16 +768,33 @@ them off the reference sheet, not off the old filenames.
     Cancel keeps the summary and archiving mid-write loses nothing — which is
     why it is not a background job. The summary reads back in the sheet before
     she commits. ~1-2¢ a tap.
-  - **THREE fields, and NONE is `sophieNote`** (`wrapLine` + `wrapUp` +
-    `wrapOpen` on the registry). Her own note still wins the row — a chat must
-    never overwrite a line she wrote, which is why this did not reuse her note
-    field even though she described it as "the note at the top". Row:
-    `note || wrapLine || need || doing`. **`wrapOpen` is what was still
-    unfinished or unanswered** — its own paragraph behind the expander, never
-    the row line. The unanswered questions fed to the model are DERIVED
-    (`buildQuestions` over the whole thread, `!q.answer`), not read out of the
-    digest, so the line names loose ends that provably exist; a chat writing
-    its own wrap-up can pass `open` too.
+  - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
+    "I think what I really wanted was the what you asked, what I did, and next
+    steps. Since chat already answered those three questions could you just
+    switch the summary for that … each of the three sections is about two
+    sentences that's six sentences in total. I'd prefer to be about three
+    sentences").** So the summary behind the expander is `wrapAsked` /
+    `wrapDid` / `wrapNext` — **one sentence each, three in total** — drawn as
+    the Update tab's own rows (`sumRows` in `chats.html`, ONE renderer, the
+    question bold and the answer not). A prose summary was a fourth shape
+    saying the same thing in a form she never asked for.
+    - **A chat with no wrap-up falls back to its own UPDATE CARD**, which
+      answers the identical three questions — that is exactly what she was
+      pointing at. Order: the wrap-up's three → an older prose `wrapUp` → the
+      live Update card.
+    - **`wrapNext` absorbed `wrapOpen`** — what is next and what was left
+      unanswered are one question, and two fields would show her the same
+      loose end twice. The unanswered questions fed to the model are still
+      DERIVED (`buildQuestions` over the whole thread, `!q.answer`), not read
+      out of the digest, so `next` names loose ends that provably exist.
+      Old records still render their `wrapOpen` paragraph.
+    - **`wrapUp` is still written**, as the three joined into plain prose:
+      her phone keeps a cached page for days and 312 chats already carry one
+      in that shape, so it stays the fallback every older reader can draw.
+    - **NONE of it is `sophieNote`.** Her own note still wins the row — a chat
+      must never overwrite a line she wrote, which is why this did not reuse
+      her note field even though she described it as "the note at the top".
+      Row: `note || wrapLine || need || doing`.
   - **IT ALSO SHOWS IN THE THREAD, UNDER HER NOTE (Aug 2026, Sophie: "i want
     the archive summary to show below my note, as u said, including the down
     arrow to make it longer").** It used to live on the ARCHIVE row and only
@@ -808,18 +828,20 @@ them off the reference sheet, not off the old filenames.
     FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
     `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
     archive's filter row. Full rules in `docs/chats-app.md`.
-  - **THREE LENGTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
+  - **THREE DEPTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
     short summary like three lines at most, and then a longer summary behind an
-    arrow").** `wrapLine` is the one line on the archive row, `wrapUp` is THREE
-    SENTENCES behind the ⌄, and `wrapLong` is the full account behind a `more`
+    arrow").** `wrapLine` is the one line on the archive row, the three answers
+    are behind the expander, and `wrapLong` is the full account behind a `more`
     inside that. Each is written to stand alone — not an intro, a middle and an
     end — because she stops at whichever depth answers her. A chat too small to
     justify a long version leaves `wrapLong` empty and shows no `more`. The
     fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
     LAST field, so the summary she actually reads is the one least at risk.
-    The SHORT one is capped in CHARACTERS (under 180 = three lines on her
-    phone), not in sentences — the first cut asked for three sentences and came
-    back at 374 characters, seven lines in the expander.
+    **Each answer is capped in CHARACTERS as well as at one sentence** (140) —
+    the lesson the old short summary taught: asked for three sentences and
+    nothing else, the model came back at 374 characters, seven lines in the
+    expander. A rescued half-sentence is dropped whole rather than shown
+    ending mid-word, because a one-sentence answer has nothing to trim back to.
   - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
     especially for the long summary — don't add bullet points where it doesn't
     actually help, but the long summary is one block of text would be great to
@@ -843,7 +865,8 @@ them off the reference sheet, not off the old filenames.
     stopped mid-word while keeping the ones that finished. It is deliberately NOT in `anthropic.js`: half an object
     is exactly what other callers must never be handed silently.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
-    the open half, the truncation rescue), `node
+    the three questions and their fallback to the Update card, the truncation
+    rescue), `node
     scripts/test-chats-archive-summary.js` (the button) and `node
     scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
     filter row) — the last two headless against the real page.
