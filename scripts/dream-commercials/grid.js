@@ -15,16 +15,29 @@
  *   node scripts/dream-commercials/grid.js [--dry]
  */
 const C = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/';
-const S = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/';
+const R = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/';
 const ex = require('./extra.json');
 
+// A TILE PLAYS, THE WAY THE REAL GRID DOES (Aug 2026, Sophie: "what if the
+// instagram play buttons actually worked and opened lightbox"). A mockup of a
+// grid whose tiles do nothing is a picture of an index; one whose tiles open
+// their film IS the index — and it costs nothing, because every one of these
+// films is already in Storage. `film` plays in the video lightbox; a tile with
+// no film (Somnivex is storyboarded, never shot) opens its still in the image
+// one, so no tile is a dead control.
 const TILES = [
-  { id: 'boys', cover: C + 'groupchat-v2.webp', label: 'The boys — before / after', meta: '0:44' },
-  { id: 'everynight', cover: C + 'everydream3.webp', label: 'Every night', meta: '0:59' },
-  { id: 'birdcostume', cover: C + 'birdcostume.webp', label: 'The bird costume', meta: '0:41' },
-  { id: 'birdstory', cover: C + 'birdstory.webp', label: 'The bird, as a story', meta: '0:41' },
-  { id: 'reverie', cover: C + 'reverie3.webp', label: 'Rêverie', meta: '0:27' },
-  { id: 'song', cover: C + 'song-v2.webp', label: 'The song spot', meta: '0:13' },
+  { id: 'boys', cover: C + 'groupchat-v2.webp', label: 'The boys — before / after', meta: '0:44',
+    film: R + 'dream-commercial/commercial-v2.mp4' },
+  { id: 'everynight', cover: C + 'everydream3.webp', label: 'Every night', meta: '0:59',
+    film: R + 'commercials/reels/everydream3/everydream3-reel-draft-v1.mp4' },
+  { id: 'birdcostume', cover: C + 'birdcostume.webp', label: 'The bird costume', meta: '0:41',
+    film: R + 'commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4' },
+  { id: 'birdstory', cover: C + 'birdstory.webp', label: 'The bird, as a story', meta: '0:41',
+    film: R + 'commercials/reels/birdstory/birdstory-reel-draft-v2.mp4' },
+  { id: 'reverie', cover: C + 'reverie3.webp', label: 'Rêverie', meta: '0:27',
+    film: R + 'commercials/reels/reverie3/reverie3-reel-draft-v1.mp4' },
+  { id: 'song', cover: C + 'song-v2.webp', label: 'The song spot', meta: '0:13',
+    film: R + 'dream-commercial/spot-v4.mp4' },
   { id: 'somnivex', cover: (ex.somnivex[3] || ex.somnivex[0]).url, label: 'Somnivex®', meta: 'storyboard' },
   { id: 'next1', empty: true, label: 'next' },
   { id: 'next2', empty: true, label: 'next' },
@@ -45,10 +58,15 @@ function build() {
   // 3-across tile. The names live in the legend under the phone instead, in
   // the same 3 columns, so a tile is still identifiable without anything
   // being drawn on top of it.
+  // a real tile is a BUTTON, which also buys the autoscroll exemption for
+  // free — `button` is in the pill's shared skip list, so a tap that opens a
+  // film can never also start the page scrolling
   const tiles = TILES.map((t) => (t.empty
     ? `<div class="gtile empty"><span>${esc(t.label)}</span></div>`
-    : `<figure class="gtile">`
-      + `<img src="${esc(t.cover)}" alt="${esc(t.label)}">${REEL}</figure>`)).join('\n      ');
+    : `<button type="button" class="gtile"`
+      + (t.film ? ` data-film="${esc(t.film)}"` : ` data-still="${esc(t.cover)}"`)
+      + ` aria-label="${esc(t.film ? 'Play ' + t.label : t.label + ' — the storyboard')}">`
+      + `<img src="${esc(t.cover)}" alt="${esc(t.label)}">${REEL}</button>`)).join('\n      ');
   const legend = TILES.map((t) => (t.empty
     ? '<i></i>'
     : `<i>${esc(t.label)}<b>${esc(t.meta)}</b></i>`)).join('\n      ');
@@ -76,7 +94,12 @@ function build() {
   .ptabs i:first-child{box-shadow:inset 0 -2px 0 #262016;}
   .ptabs svg{width:19px;height:19px;color:#262016;}
   .ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#fff;}
-  .gtile{position:relative;margin:0;aspect-ratio:3/4;background:#EFE9DC;overflow:hidden;}
+  /* compare.css styles every <button> as a rounded rect with a border and
+     inline-flex; a grid tile is none of those, so it says so itself */
+  .gtile{position:relative;margin:0;padding:0;border:0;border-radius:0;display:block;
+    width:100%;aspect-ratio:3/4;background:#EFE9DC;overflow:hidden;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;}
+  .gtile:active img{opacity:.82;}
   .gtile img{width:100%;height:100%;object-fit:cover;display:block;}
   .gtile .reelg{position:absolute;top:6px;right:6px;width:15px;height:15px;color:#fff;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.55));}
@@ -119,6 +142,18 @@ function build() {
 <script src="/compare.js"></script>
 <script>
 (function () {
+  // ONE delegated handler for the whole grid. Both lightboxes come from
+  // compare.js, so the overlay contract (autoscroll stopped, page locked,
+  // scroll position restored on close, video torn down) is already right.
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('.gtile') : null;
+    if (!t || !window.__compareShell) return;
+    var film = t.getAttribute('data-film');
+    if (film) return window.__compareShell.openVideo(film);
+    var still = t.getAttribute('data-still');
+    if (still) window.__compareShell.openImage(still, t.getAttribute('aria-label') || '');
+  });
+
   window.__compareNotes({ chat: 'dream-app-commercials', sheet: 'ig-grid-v1' });
   window.__compareHelp({ html: '<b>Preliminary.</b> Nothing has been picked yet — '
     + 'these are the six commercials that are actually shot, the one that is only '
@@ -127,6 +162,8 @@ function build() {
     + 'Instagram\\'s profile grid does to a reel cover — so the crop here is the '
     + 'crop you get. The films themselves are 2:3, and Instagram wants 9:16, so '
     + 'they will letterbox in the player until they are re-rendered taller.<br><br>'
+    + '<b>Tap a tile to play it</b> — the same as the real grid. Somnivex has '
+    + 'no film yet, so its tile opens the storyboard frame instead.<br><br>'
     + 'The + in the corner leaves a note on the whole grid — per-reel notes '
     + 'live on the room page and the idea decks.' });
 })();
@@ -141,6 +178,6 @@ if (require.main === module) {
   if (process.argv.includes('--dry')) { process.stdout.write(html); process.exit(0); }
   fetch('https://imageforge-q125.onrender.com/api/chatfeed/page', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: 'dream-app-commercials', title: 'How the grid will look — preliminary', html }),
+    body: JSON.stringify({ chat: 'dream-app-commercials', title: 'How the grid will look — v2, the tiles play', html }),
   }).then((r) => r.json()).then((j) => console.log(JSON.stringify(j)));
 }

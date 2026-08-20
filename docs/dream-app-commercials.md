@@ -21,7 +21,16 @@ Four surfaces, all in the `dream-app-commercials` chat's **Compare tab**:
   thread. She has said nothing about these yet, so their `?` is plain;
   ChatGPT's own note on a pitch rides the caption line, labelled as ChatGPT's.
 - **The dream commercials room** — every film and every still.
-- **How the grid will look — preliminary** — the Instagram profile grid.
+- **How the grid will look — v2, the tiles play** — the Instagram profile
+  grid, and every tile opens its film full-screen the way a real grid does
+  (Sophie: *"what if the instagram play buttons actually worked and opened
+  lightbox"*). Somnivex has no film, so its tile opens the storyboard frame —
+  no tile on the grid is a dead control. Both lightboxes come from
+  `compare.js`, so the overlay contract (autoscroll stopped, page locked,
+  scroll position restored, video torn down on close) is right by
+  construction, and a tile is a `<button>`, which the pill's own skip list
+  already exempts — a tap that plays a film can never also start the page
+  scrolling. Test: `node scripts/test-dream-grid.js`.
 
 Scripts that built them: `scripts/dream-commercials/`. `decks.js` holds the
 deck data (the quotes live there), `room.js` and `grid.js` build and post
