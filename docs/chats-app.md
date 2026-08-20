@@ -1000,6 +1000,23 @@
       the row still occupies — lines beside it shorten, lines below run full
       width. It replaces the blanket `padding-right:64px`, which reserved the
       corner on EVERY line including the twenty below the pill.
+    - **…AND IT MUST NOT RESERVE MORE THAN THE ROW USES (Aug 2026, Sophie:
+      "the space between the chats and the top is ever increasing?" → "the gap
+      is empty").** A float taller than the content beside it becomes the
+      ROW'S OWN HEIGHT, and the surplus is blank page above everything
+      underneath. Measured on her real 365 chats at 390x844: the UPDATE screen
+      carries two boxes on one line (34px) against a 90px float, so **70px of
+      the screen above her cards was nothing at all**; the chat list paid 56px
+      with TAGS shut. `sizePillNotch()` now paints at the full band, measures
+      what the row really used, then shrinks to that — **two passes, and the
+      second cannot push the chips back up**: a line already sitting above the
+      shortened float still dodges it, and when the content runs past the band
+      the band is kept and nothing changes. It measures the CHIPS, not
+      `#catrow` — that is `display:inline`, so its own rect is a line box and
+      stops short of them. Recovered 50px on UPDATE and 49px on the chat list.
+      Test: `node scripts/test-chats-pill-notch.js` (verified failing before —
+      and it also pins that the chips still dodge the pill, which is the whole
+      reason the float exists).
     - **The tool row's refresh icon is GONE** ("I never use it anymore") —
       the page polls on its own; the thread header keeps its own refresh.
       `window.__reload()` keeps the tap's exact behaviour for the tests.
