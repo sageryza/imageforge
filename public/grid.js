@@ -91,6 +91,12 @@
     ' justify-content:center;text-align:center;padding:8%;box-sizing:border-box;}' +
     '.gd-txt{font-size:15px;line-height:1.45;color:var(--ink);word-break:break-word;' +
     ' padding:8px;}' +
+    // an item's way out — `margin-top:auto` on .gd-acts still pins the action
+    // row to the bottom, so the link sits directly above it
+    '.gd-link{padding:6px 8px 0;}' +
+    '.gd-link a{text-decoration:none;color:var(--chg,#C25E4C);' +
+    ' font:700 10px/1.2 -apple-system,sans-serif;letter-spacing:.12em;' +
+    ' text-transform:uppercase;}' +
     '.gd-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto;' +
     ' padding:0 8px;}' +
     '.gd-vote{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);' +
@@ -323,6 +329,14 @@
             + ' style="flex:0 0 ' + basis + '">'
             + media
             + (sub ? '<div class="gd-sub">' + esc(sub) + '</div>' : '')
+            // the item's way OUT (page-templates.js `link`) — the same field
+            // the swipe view renders, so a page carries its links through the
+            // view switch instead of losing them on one side
+            + (it.link && it.link.url
+              ? '<div class="gd-link"><a href="' + esc(it.link.url) + '"'
+                + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
+                + ' ›</a></div>'
+              : '')
             + '<div class="gd-acts">' + actsHtml(it) + '</div>'
             + '</div>';
         }).join('')
