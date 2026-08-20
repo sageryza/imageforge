@@ -52,5 +52,23 @@
   "promptUsed": "For continuity: the attached photos are earlier shots of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Golden-hour warm color grade, gently overexposed, dreamlike serenity. Inside a vast warehouse store with towering pallet aisles under fluorescent light, the woman in the lavender cardigan tearfully embraces her elderly father beside a shopping cart stacked with bulk paper towels. Both are crying with relief and forgiveness.",
   "quality": "medium",
   "at": 1787254823252
+ },
+ "9": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787254870267-457c70de.webp",
+  "promptUsed": "For continuity: the attached photos are earlier shots of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Golden-hour warm color grade, gently overexposed, dreamlike serenity. Night. The woman stands in her backyard in pajamas, serenely winking up at a huge full moon. Many wind chimes hang from the trees around her, and the ends of her long hair and her sleeves have begun turning into slender silver wind chimes.",
+  "quality": "medium",
+  "at": 1787254871599
+ },
+ "10": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787254913060-b29181a8.webp",
+  "promptUsed": "For continuity: the attached photos are earlier shots of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Golden-hour warm color grade, gently overexposed, dreamlike serenity. In the warm bright kitchen, a single glass of grapefruit juice sits alone at the far end of the long table, respectfully untouched, a folded napkin beside it. From the other end of the table the woman in the lavender cardigan bows her head slightly toward the glass with solemn gratitude, a small lavender pill bottle standing beside her own empty plate.",
+  "quality": "medium",
+  "at": 1787254914236
+ },
+ "11": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787254945714-ae431298.webp",
+  "promptUsed": "A clean pharmaceutical-commercial end card: a studio product photograph of a real small silver wind chime hanging from the top of the frame against a flat solid lavender backdrop, above the brand name VIBRILIFY MAX printed large and centered in elegant serif capitals. At the very bottom, one small clean line of fine print reads exactly: AstraZeneca is not responsible for the horse.",
+  "quality": "medium",
+  "at": 1787254947028
  }
 }
