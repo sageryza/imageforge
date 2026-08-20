@@ -15,14 +15,40 @@
 # __PILL_CSS__ / __PILL_HTML__ / __PILL_JS__ placeholder + .replace() pattern.
 
 PILL_CSS = """
+/* EVERY PROPERTY THE PILL LEAVES UNSET IS A HOLE THE HOST FALLS THROUGH (Aug
+   2026, Sophie: "it's still the wrong pill … it looks different").
+   compare.css declares `button, .btn{…border-radius:6px…}` — a bare-element
+   rule at (0,0,1). `.vseg button` out-specifies it for everything it DECLARES
+   (border, background, colour, size, padding), so nobody noticed for months;
+   but it never declared a radius, so the 6px stood and each of the three
+   segments became its own rounded box — the hairline dividers vanished and
+   the capsule read as three loose buttons instead of one control.
+   Measured by diffing every computed property of the pill rendered alone
+   against the same markup with only compare.css added. FOUR reachable
+   properties actually moved it: border-radius, box-sizing (the host's
+   `*{box-sizing:border-box}` pulled the 1.5px stroke inside, 50px → 48),
+   line-height (#spd grew 12px → 17px, so the whole pill grew 5px taller) and
+   the buttons' font. They are all declared now — pin them, don't re-derive
+   them, and add to this line whenever a new host reaches something. */
+.float, .float *{box-sizing:content-box; line-height:normal; letter-spacing:normal; text-transform:none;}
 .float{position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px,4vw); z-index:9; display:flex; flex-direction:column; gap:8px; align-items:center; transform:translateZ(0); will-change:transform;}
-.vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink); border-radius:999px; overflow:hidden; background:var(--paper); box-shadow:0 2px 10px rgba(0,0,0,.09);}
-.vseg button{border:none; background:transparent; color:var(--ink); width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
-.vseg button + button{border-top:1.5px solid var(--ink);}
-.vseg button.on{background:color-mix(in srgb, var(--chg) 18%, var(--paper)); color:var(--chg);}
+/* THE FIVE TOKENS ARE READ FROM THE HOST, WITH A FALLBACK — never baked ON
+   `.float` (Aug 2026). The injected copy used to carry its own palette plus a
+   `prefers-color-scheme: dark` block, and an element's own custom property
+   beats one inherited from `:root`, so a host could not simply define the
+   tokens: compare.css had to out-specify with `body .float{…}`, ten lines
+   whose own comment warned they had to be kept in sync by hand. Read them
+   with `var(--x, …)` instead and the host's `:root` wins by itself — the same
+   free inheritance a baked-in pill has always had — while a page that defines
+   none of them still gets the studio cream. A host with a dark mode already
+   swaps its own tokens, so the pill follows it with no dark block of its own. */
+.vseg{display:flex; flex-direction:column; width:48px; border:1.5px solid var(--ink, #26221c); border-radius:999px; overflow:hidden; background:var(--paper, #f6f2e9); box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.vseg button{border:none; border-radius:0; margin:0; gap:0; background:transparent; color:var(--ink, #26221c); font:400 13px/1 -apple-system,sans-serif; width:48px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+.vseg button + button{border-top:1.5px solid var(--ink, #26221c);}
+.vseg button.on{background:color-mix(in srgb, var(--chg, #b3443f) 18%, var(--paper, #f6f2e9)); color:var(--chg, #b3443f);}
 .vseg button.dim{opacity:.3;}
 .vseg button:focus-visible{outline:2px solid var(--rose, #c66); outline-offset:-2px;}
-#spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2); letter-spacing:.02em;}
+#spd{font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2, #8a8377); letter-spacing:.02em;}
 /* The pill's glyphs must survive any HOST page's global svg rules — a page
    that declares `svg{fill:none}` (editor.html, cuttingroom.html) was
    hollowing the play triangle (Sophie: "the play arrow is normally filled
@@ -60,6 +86,7 @@ if (document.querySelector('meta[name="forge-pill"][content="off"]') ||
   var _f=document.querySelector('.float'); if(_f) _f.remove();
   window.__scrollStop=function(){}; window.__scrollTap=function(){};
   window.__pillInteractive=function(){ return false; };
+  window.__pillSync=function(){};
 } else {
 var SPEEDS=[['Slow',0.5],['Medium',1.0],['Fast',1.9],['Faster',3.2],['Fastest',5.2]];
 var playing=false, raf=null, last=null, si=2, dir=1, acc=0;
@@ -128,6 +155,41 @@ vmid.onclick=function(){ playing? scrollStop() : scrollStart(dir||1); };
 // autoscroll — it must never keep scrolling while nobody's looking.
 document.addEventListener('visibilitychange',function(){ if(document.hidden) scrollStop(); });
 window.addEventListener('pagehide',scrollStop);
+// IT ONLY APPEARS WHEN THERE IS SOMETHING TO SCROLL (Aug 2026, Sophie: "it
+// should be a conditional pill that only appears if there's actually content
+// to scroll"). A control that cannot do anything is chrome sitting on the
+// top-right corner of a page that had no use for it — and that corner is
+// where a picture or a row of buttons usually wants to be.
+//
+// THE CHECK HAS TO KEEP WATCHING, not run once. Almost every page here fetches
+// its own content after it loads (the feed, the queue, a Compare page's
+// pictures), so a page is short at load and tall a second later — a check at
+// DOMContentLoaded would hide the pill on nearly every page in the app. So:
+// a ResizeObserver on the document and the body, plus resize and the font
+// load, and it goes back and forth as freely as the content does.
+var _pill=document.querySelector('.float');
+function pageScrolls(){
+  var d=document.documentElement, b=document.body;
+  var h=Math.max(d?d.scrollHeight:0, b?b.scrollHeight:0);
+  return h > window.innerHeight + 4;
+}
+function syncPill(){
+  if(!_pill) return;
+  var can=pageScrolls();
+  // never yank it out from under a running scroll — stop first, then hide
+  if(!can && playing) scrollStop();
+  _pill.style.display = can ? '' : 'none';
+}
+window.__pillSync=syncPill;
+window.addEventListener('resize',syncPill,{passive:true});
+window.addEventListener('load',syncPill);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(syncPill);
+if(window.ResizeObserver){
+  var _ro=new ResizeObserver(syncPill);
+  if(document.documentElement) _ro.observe(document.documentElement);
+  if(document.body) _ro.observe(document.body);
+}
+syncPill();
 paintPill();
 }
 """

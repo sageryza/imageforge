@@ -22,13 +22,13 @@
 // makes while archiving; WHERE LIVE WORK STANDS (look at · come back to · to
 // read · to be reviewed · waiting for a response) is answered BY archiving.
 // Each surface takes one list out, and `paintVocabChips` is the single place
-// that decides. Note that ARCHIVE_ONLY does BOTH jobs for a word: offered in
+// that decides. Note that ARCHIVE_PROGRESS does BOTH jobs for a word: offered in
 // the archive alone, AND read as a progress word there — which is why
 // `research` and `quick question` are not also in TASK_LABELS.
 //
 // Layer 1 (pure, no network) pins the constants that cannot drift:
 //   the page's TAG_LIST against chatfeed.js's TAGS, the two PILE_SEEDS copies,
-//   ARCHIVE_ONLY and LIVE_ONLY not overlapping, `story` inheriting the pile
+//   ARCHIVE_PROGRESS and LIVE_ONLY not overlapping, `story` inheriting the pile
 //   seat `stories` gave up, and every forgotten word gone from every list.
 // Layer 2 drives the REAL page headless: the home row and the Organize sheet
 // hide the archive-only words, the archive sheet and the archive's own FILTER
@@ -67,11 +67,12 @@ console.log('the vocabulary');
 const TAG_LIST = arrOf('TAG_LIST');
 const PILE_PAGE = arrOf('PILE_SEEDS');
 const TASK_LABELS = arrOf('TASK_LABELS');
-const ARCHIVE_ONLY = arrOf('ARCHIVE_ONLY');
-const LIVE_ONLY = arrOf('LIVE_ONLY');
+const ARCHIVE_PROGRESS = arrOf('ARCHIVE_PROGRESS');
 const server = require(path.join(ROOT, 'chatfeed.js'));
 // The archive-only words as the page CAPITALISES them, for the page layer.
-const ARCH_WORDS = ARCHIVE_ONLY.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+const ARCH_WORDS = ARCHIVE_PROGRESS.map(cap);
+const CHAT_WORDS = TASK_LABELS.map(cap);
 
 ok('the page and the server agree on the tag seeds',
   JSON.stringify(TAG_LIST) === JSON.stringify(server.TAGS),
@@ -80,9 +81,9 @@ ok('…and on the pile seeds',
   JSON.stringify(PILE_PAGE) === JSON.stringify(server.PILE_SEEDS),
   JSON.stringify(PILE_PAGE) + ' vs ' + JSON.stringify(server.PILE_SEEDS));
 ok('the six archive-only words',
-  JSON.stringify(ARCHIVE_ONLY) === JSON.stringify(
+  JSON.stringify(ARCHIVE_PROGRESS) === JSON.stringify(
     ['built', 'failure', 'bug fix', 'new feature', 'research', 'quick question']),
-  JSON.stringify(ARCHIVE_ONLY));
+  JSON.stringify(ARCHIVE_PROGRESS));
 // The three she had never made and could see nothing in (Aug 2026: "get rid of
 // images audio and writing"). Measured the day they went: images 0 chats,
 // writing 0, audio 3 — all archived.
@@ -91,28 +92,36 @@ ok('the six archive-only words',
     TAG_LIST.indexOf(w) < 0 && PILE_PAGE.indexOf(w) < 0 && TASK_LABELS.indexOf(w) < 0,
     JSON.stringify(TAG_LIST));
 });
-// Being ARCHIVE_ONLY is what makes a word a PROGRESS word in the archive —
-// putting these two in TASK_LABELS as well would drop them back on the home row
-// and into Organize, which is the opposite of what she asked for.
-ok('`research` and `quick question` are NOT in TASK_LABELS',
+// The archive progress list is what makes a word a progress word IN THE
+// ARCHIVE — putting these two in TASK_LABELS as well would drop them back on
+// the home row and into Organize, the opposite of what she asked for.
+ok('`research` and `quick question` are NOT in the chat progress list',
   ['research', 'quick question'].every((w) => TASK_LABELS.indexOf(w) < 0),
   JSON.stringify(TASK_LABELS));
-ok('the five live-progress words are the archive-hidden list',
-  JSON.stringify(LIVE_ONLY) === JSON.stringify(
-    ['look at', 'come back to', 'to read', 'to be reviewed', 'waiting for a response']),
-  JSON.stringify(LIVE_ONLY));
-// A word on BOTH lists would be offered nowhere at all — a chip that exists in
-// the vocabulary and appears on no surface is a word she can never take off.
-ok('no word is on both lists',
-  ARCHIVE_ONLY.every((w) => LIVE_ONLY.indexOf(w) < 0));
+// THE MODEL, in her words (Aug 2026): "two separate progress lists. One is an
+// archived progress list and one is a chat progress list." They must share no
+// word — a word says where LIVE work stands, or how it ENDED, never both.
+ok('the two progress lists are disjoint',
+  ARCHIVE_PROGRESS.every((w) => TASK_LABELS.indexOf(w) < 0)
+  && TASK_LABELS.every((w) => ARCHIVE_PROGRESS.indexOf(w) < 0),
+  'chat: ' + TASK_LABELS.join(' · ') + ' | archive: ' + ARCHIVE_PROGRESS.join(' · '));
+// The archive-hidden set is DERIVED from TASK_LABELS, never a second hand-kept
+// list. The old `LIVE_ONLY` named only the five words she happened to say out
+// loud, so `waiting for something`, `in progress`, `in a minute` and `maybe
+// never` went on being offered in the archive because nobody had named them.
+ok('there is no second hand-kept list to fall out of step',
+  !/var LIVE_ONLY=/.test(HTML));
+['waiting for something', 'in progress', 'in a minute', 'maybe never'].forEach((w) => {
+  ok('\u201c' + w + '\u201d is a chat word, so the archive hides it too',
+    TASK_LABELS.indexOf(w) > -1 && ARCHIVE_PROGRESS.indexOf(w) < 0);
+});
 // Every archive word must still be IN the vocabulary, or the archive sheet
 // would filter it out of `fileVocab()` before the group ever sees it.
 ok('every archive-only word is a seed the vocabulary carries',
-  ARCHIVE_ONLY.every((w) => TAG_LIST.indexOf(w) > -1), JSON.stringify(TAG_LIST));
+  ARCHIVE_PROGRESS.every((w) => TAG_LIST.indexOf(w) > -1), JSON.stringify(TAG_LIST));
 ok('`waiting for a response` is a progress word now',
   TASK_LABELS.indexOf('waiting for a response') > -1, JSON.stringify(TASK_LABELS));
-ok('…and the outcome words have left the progress list',
-  ARCHIVE_ONLY.every((w) => TASK_LABELS.indexOf(w) < 0), JSON.stringify(TASK_LABELS));
+
 // THE ONE THING THAT WOULD HAVE COST HER REAL WORK: `stories` filed a chat
 // away and `story` did not, so merging 36 chats into a word that is not a pile
 // would have dumped all 36 back onto her main list.
@@ -291,7 +300,8 @@ const CHATS = {
   // live-progress words. It kept the word (nothing is stripped) but the
   // archive's filter row must not offer it. Measured on her real data the day
   // she asked again: to read 3 · to be reviewed 2 · come back to 1 · look at 1.
-  'arch-two': { account: '1', archived: true, labels: ['to read', 'come back to'] },
+  'arch-two': { account: '1', archived: true,
+    labels: ['to read', 'come back to', 'waiting for something'] },
   // …and one wearing a live-progress word, so the folded row really has a plain
   // chip on it to measure SEE MORE against. `to read` is not a pile.
   reading: { account: '1', labels: ['to read'] },
@@ -415,9 +425,11 @@ async function pageTests() {
       ARCH_WORDS.every((w) => arc.beforeRule.indexOf(w) > -1),
       'before the rule: ' + arc.beforeRule.join(' · '));
     ok('…and the rule still says Categories', arc.rule === 'Categories', String(arc.rule));
-    ok('…and the five live-progress words are gone from it',
-      ['Look at', 'Come back to', 'To read', 'To be reviewed', 'Waiting for a response']
-        .every((w) => arc.words.indexOf(w) < 0), arc.words.join(' · '));
+    // EVERY chat-progress word, not the five she happened to name out loud —
+    // `Waiting for something` is the one that survived the hand-kept list.
+    ok('…and NO chat-progress word is in it',
+      CHAT_WORDS.every((w) => arc.words.indexOf(w) < 0),
+      'offered: ' + arc.words.join(' · '));
     await page.click('.askwrap .askrow button:not(.go)').catch(() => {});
     await page.waitForTimeout(200);
 
@@ -444,9 +456,8 @@ async function pageTests() {
     ok('the archive row still leads with All', arow.words[0] === 'All', arow.words.join(' · '));
     ok('…and offers a word that IS in the archive', arow.words.indexOf('Bug fix') > -1,
       arow.words.join(' · '));
-    ok('…and NOT the live-progress words, even though a chat in there wears them',
-      ['Look at', 'Come back to', 'To read', 'To be reviewed'].every((w) => arow.words.indexOf(w) < 0),
-      arow.words.join(' · '));
+    ok('…and NO chat-progress word, even though a chat in there wears one',
+      CHAT_WORDS.every((w) => arow.words.indexOf(w) < 0), arow.words.join(' · '));
     ok('…with the outcome words above the categories rule',
       arow.beforeRule.indexOf('Bug fix') > -1 && arow.rule === 'Categories',
       'before: ' + arow.beforeRule.join(' · ') + ' | rule: ' + arow.rule);

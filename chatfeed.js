@@ -1026,24 +1026,82 @@ router.get('/go', (req, res) => {
 // row shows (the archive stays scannable) and `wrapUp` is the full thing behind
 // a tap. Her own `sophieNote` still wins the row — a chat must never overwrite
 // a line she wrote, which is why this is not stored in `sophieNote` at all.
+//
+// THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026, Sophie: "I think
+// what I really wanted was the what you asked, what I did, and next steps.
+// Since chat already answered those three questions could you just switch the
+// summary for that"). The prose summary was a fourth shape saying the same
+// thing in a form she had not asked for, so it is the three labelled lines now
+// — `wrapAsked` / `wrapDid` / `wrapNext`, exactly the Update card's fields, one
+// renderer for both. **ONE SENTENCE EACH** (same message: "each of the three
+// sections is about two sentences that's six sentences in total. I'd prefer to
+// be about three sentences") — so `WRAP_PART_MAX` is a hard character cap, not
+// a target, the same lesson the old short summary learned the hard way.
+//
+// `wrapUp` is still written, as the three joined into plain prose: her phone
+// keeps a cached page for days and 312 chats already carry a wrap-up written in
+// that shape, so the old field stays the fallback every reader can already draw.
 const wrapLineOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 200);
 const wrapTextOf = (s) => String(s || '').replace(/[ \t]+/g, ' ').trim().slice(0, 2000);
+const WRAP_PART_MAX = 200;
+const wrapPartOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, WRAP_PART_MAX);
+// The prose mirror for an older reader — unlabelled, because the labels are the
+// renderer's ("What you asked" / "What I did" / "What's next") and a reader
+// that cannot draw the three lines is better served by three plain sentences.
+const wrapProse = (asked, did, next) =>
+  wrapTextOf([asked, did, next].map((s) => String(s || '').trim()).filter(Boolean).join(' '));
+
+// THE SHORT SUMMARY IS THREE LINES ON HER PHONE, AND THE MODEL CANNOT BE ASKED
+// TO COUNT (Sophie: "a short summary like three lines at most"). Measured over
+// her real summaries, twice: asking for "UNDER 180 CHARACTERS" came back at a
+// median of 223, and re-asking with the instruction tightened to two sentences
+// still left 169 of 317 over the cap — the worst at 526 characters, eight lines
+// in the expander. A length is not a thing to hope for, so it is enforced here
+// on the way in.
+//
+// WHOLE SENTENCES ONLY: it keeps sentences until the next one would break the
+// cap, and a first sentence already over the cap stands ALONE rather than being
+// cut mid-thought (6 of 317, and a sentence that stops mid-word reads worse
+// than a long one). The detail it drops is not lost — the long version behind
+// `more` is where detail belongs, which is what makes trimming safe here.
+const SHORT_CAP = 180;
+function capShort(s, cap = SHORT_CAP) {
+  const t = String(s || '').trim();
+  if (t.length <= cap) return t;
+  const parts = t.split(/(?<=[.!?])\s+/);
+  let out = '';
+  for (const p of parts) {
+    if (!out) { out = p; continue; }
+    if (out.length + 1 + p.length > cap) break;
+    out += ' ' + p;
+  }
+  return out;
+}
 
 // Freeze whatever the chat already said about itself into a wrap-up. Returns
 // the patch to merge, or null when there is nothing to freeze — never invents.
+// The Update card IS the summary's shape now, so this is a straight copy rather
+// than a translation into prose.
 function frozenWrapUp(r) {
   if (!r || r.wrapUp || r.wrapLine) return null;          // already has one
-  const asked = String(r.updAsked || '').trim();
-  const did = String(r.updDid || '').trim();
-  const doing = String(r.statusDoing || '').trim();
-  if (!asked && !did && !doing) return null;
+  const asked = wrapPartOf(r.updAsked);
+  const did = wrapPartOf(r.updDid);
+  const next = wrapPartOf(r.updNext);
+  const doing = wrapPartOf(r.statusDoing);
+  if (!asked && !did && !doing && !next) return null;
   const line = wrapLineOf(did || doing || asked);
-  const full = wrapTextOf([
-    asked && 'What you asked: ' + asked,
-    did && 'What it did: ' + did,
-    (!asked && !did && doing) && 'Was working on: ' + doing,
-  ].filter(Boolean).join('\n\n'));
-  return { wrapLine: line, wrapUp: full, wrapUpAt: new Date().toISOString(), wrapFrom: 'update-card' };
+  // No Update card at all, only a live status line: it says what the chat was
+  // in the middle of, which is the "what I did" half and nothing else.
+  const didPart = did || (!asked && !next ? doing : '');
+  return {
+    wrapLine: line,
+    wrapAsked: asked || admin.firestore.FieldValue.delete(),
+    wrapDid: didPart || admin.firestore.FieldValue.delete(),
+    wrapNext: next || admin.firestore.FieldValue.delete(),
+    wrapUp: wrapProse(asked, didPart, next),
+    wrapUpAt: new Date().toISOString(),
+    wrapFrom: 'update-card',
+  };
 }
 
 // The archive itself, so the button in her thread and a card's verdict on an
@@ -1083,7 +1141,21 @@ router.post('/wrapup', async (req, res) => {
     const { chat, session, line, text, long, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
-    const full = wrapTextOf(text);
+    // THE THREE QUESTIONS — what she asked, what it did, what is next; one
+    // sentence each. `next` doubles as the loose-ends half, so a chat that used
+    // to send `open` has its answer land where she now reads for it.
+    const asked = wrapPartOf(req.body && req.body.asked);
+    const did = wrapPartOf(req.body && req.body.did);
+    const next = wrapPartOf((req.body && req.body.next) || open);
+    const three = asked || did || next;
+    // The prose half stays writable for anything already sending it, and is
+    // DERIVED from the three when they are what came in.
+    //
+    // `capShort` guards the FREE-TEXT path ONLY. The derived prose must keep
+    // all three answers — cutting it to three lines would silently drop
+    // "what's next", which is the half she reads for loose ends — while a chat
+    // sending one long paragraph is exactly the case the cap was built for.
+    const full = three ? wrapProse(asked, did, next) : capShort(wrapTextOf(text));
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
     const fuller = wrapTextOf(long);
     const still = wrapLineOf(open);
@@ -1091,19 +1163,25 @@ router.post('/wrapup', async (req, res) => {
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
+      wrapAsked: asked || del,
+      wrapDid: did || del,
+      wrapNext: next || del,
       wrapUp: full || del,
       // The fuller account, behind a second tap. Same three-depth shape the
       // Summarize button writes: `text` is the three-line answer, this is the
       // rest for when she wants it.
       wrapLong: (fuller && fuller !== full) ? fuller : del,
-      // What was still open when it stopped — the same field the Summarize
-      // button fills. A chat that knows it left something hanging says so here.
-      wrapOpen: still || del,
+      // What was still open when it stopped. The three-question shape carries
+      // that in `next`, so this is only written when nothing else does — two
+      // fields answering the same question would show her the same loose end
+      // twice under different words.
+      wrapOpen: (!three && still) ? still : del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
     res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
-      wrapLong: fuller, wrapOpen: still });
+      wrapAsked: asked, wrapDid: did, wrapNext: next,
+      wrapLong: fuller, wrapOpen: three ? '' : still });
   } catch (err) { fail(res, err); }
 });
 
@@ -1116,16 +1194,17 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "...", "long": "...", "open": "..."}
+Return JSON: {"line": "...", "asked": "...", "did": "...", "next": "...", "long": "..."}
 
-The three summary fields are the SAME story told at three lengths, each complete on its own — not an intro, a middle and an end. She reads whichever depth she wants and stops there.
+THE SUMMARY IS THREE ANSWERS TO THREE QUESTIONS — what she asked for, what you did about it, and what is next. ONE SENTENCE EACH, three sentences in total for the whole summary. That is a hard limit, not a target: two sentences in a field is already twice what she asked for.
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": THREE LINES ON A PHONE — that is UNDER 180 CHARACTERS, TWO short sentences at most, and it is a hard limit rather than a target. Count them: 180 characters is about 30 words, so a third sentence will not fit. What she wanted, what came of it, and how it ended. This is the one she actually reads, so it has to stand alone — write the sentences that matter, not the first few of a longer piece. If it does not fit, cut detail rather than running over: the long version is where detail belongs.
-"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when the short one leaves her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the short one be the whole answer.
-"open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
+"asked": ONE SENTENCE, under 140 characters. What Sophie wanted, in her terms — the thing she came here for, not a list of every request in the thread.
+"did": ONE SENTENCE, under 140 characters. What actually happened about it: what was built, decided, changed or found. Say plainly if it was abandoned, went nowhere or was superseded — an honest dead end is more useful to her than a flattering summary.
+"next": ONE SENTENCE, under 140 characters. What is next, or what was still unfinished or unanswered when it stopped — a question of hers nobody answered, a decision nobody made, work left half-done. EMPTY STRING when the chat genuinely ended settled and nothing is waiting; a made-up loose end sends her back into a chat that had nothing left in it.
+"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when those three sentences leave her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the three sentences be the whole answer.
 
-Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
+Plain past tense, no preamble, no markdown, no headings. Do not repeat the question inside its own answer ("You asked for…" / "What I did was…") — the three questions are already the labels she reads them under. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
 
 // Rescue a JSON object that got CUT OFF mid-answer. Deliberately local rather
 // than folded into anthropic.parseJSON: half an object is exactly what other
@@ -1169,6 +1248,50 @@ function salvageJson(raw) {
   }
   return null;
 }
+
+// TRIM THE SUMMARIES ALREADY ON FILE — free, and deliberately not a model call
+// (Aug 2026). `capShort` above governs new writes; 169 summaries were already
+// stored over the cap, written before it existed. Re-asking Claude for those
+// would spend real money to fix a length problem that is pure text surgery, and
+// would also rewrite summaries she may have already read. This only shortens
+// what is there — it never asks for new words, never touches `wrapLong`,
+// `wrapOpen` or `wrapLine`, and never lengthens anything.
+//
+// DRY BY DEFAULT, like every other bulk operation in this repo: it answers with
+// what it WOULD change until called with `{dry:false}`.
+router.post('/wrapup/trim', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const cap = Math.max(60, Number((req.body || {}).cap) || SHORT_CAP);
+    const snap = await db().collection(REG).get();
+    const hits = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      const r = d.data() || {};
+      // NEVER touch a chat already on the THREE-ANSWER shape (Aug 2026): its
+      // `wrapUp` is the three sentences joined for older readers, and cutting
+      // that to three lines would drop "what's next" — the half she reads for
+      // loose ends. This only shortens the one-paragraph summaries written
+      // before that shape existed.
+      if (r.wrapAsked || r.wrapDid || r.wrapNext) return;
+      const cur = String(r.wrapUp || '');
+      if (cur.length <= cap) return;
+      const next = capShort(cur, cap);
+      if (!next || next === cur) return;
+      hits.push({ chat: d.id, was: cur.length, now: next.length, text: next });
+    });
+    if (!dry) {
+      for (const h of hits) {
+        await regRef(h.chat).set({ wrapUp: h.text }, { merge: true });
+      }
+    }
+    res.json({ ok: true, dry, cap, checked: snap.size, trimmed: hits.length,
+      // The ones a trim cannot fix: a single sentence longer than the cap is
+      // kept whole, so it is still over. Named rather than silently counted.
+      stillOver: hits.filter((h) => h.now > cap).map((h) => h.chat),
+      sample: hits.slice(0, 5).map((h) => ({ chat: h.chat, was: h.was, now: h.now })) });
+  } catch (err) { fail(res, err); }
+});
 
 router.post('/wrapup/write', async (req, res) => {
   try {
@@ -1240,21 +1363,30 @@ router.post('/wrapup/write', async (req, res) => {
       // shows, almost always survived whole.
       // The fields are written in order, so a truncation loses the LAST ones —
       // trim whichever one it stopped inside, and the shorter fields before it
-      // survive whole. That ordering is why `text` is asked for before `long`:
-      // the summary she actually reads is the one least likely to be cut.
+      // survive whole. That ordering is why the three one-sentence answers are
+      // asked for before `long`: the summary she actually reads is the one
+      // least likely to be cut.
       const backToSentence = (v) => {
         const t = String(v || '');
         const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
         return stop > 40 ? t.slice(0, stop + 1) : '';
       };
       out.text = backToSentence(out.text);
+      // Each answer is one sentence, so a half-written one has nothing to trim
+      // back TO — an answer that never reached a full stop is dropped whole
+      // rather than shown to her ending mid-word.
+      ['asked', 'did', 'next'].forEach((k) => {
+        if (out[k] !== undefined && !/[.!?]["')\]]?\s*$/.test(String(out[k] || '').trim())) {
+          out[k] = '';
+        }
+      });
       // A rescued array has a half-written last point — drop it rather than
       // showing her a bullet that stops mid-word. The earlier points are whole.
       out.long = Array.isArray(out.long)
         ? out.long.filter((x) => /[.!?]\s*$/.test(String(x || '').trim()))
         : backToSentence(out.long);
     }
-    const full = wrapTextOf(out && out.text);
+    const full = capShort(wrapTextOf(out && out.text));
     // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
     // three lines at most, and then a longer summary behind an arrow"). Same
     // story at a second depth, not a continuation — she stops at whichever
@@ -1272,22 +1404,38 @@ router.post('/wrapup/write', async (req, res) => {
       ? out.long.map((x) => String(x || '').replace(/\s+/g, ' ').trim())
         .filter(Boolean).slice(0, 8).join('\n')
       : (out && out.long));
-    const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
-    const open = wrapLineOf(out && out.open);
-    if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
+    // THE THREE ANSWERS (Aug 2026, Sophie: "what I really wanted was the what
+    // you asked, what I did, and next steps … could you just switch the summary
+    // for that"). `next` carries the loose ends the old `open` field held, so a
+    // rewrite CLEARS that field rather than leaving her the same unfinished
+    // business twice under two different headings.
+    const asked = wrapPartOf(out && out.asked);
+    const did = wrapPartOf(out && out.did);
+    const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
+    const three = asked || did || next;
+    // `wrapUp` is still written — an older cached page on her phone reads it,
+    // and it is the fallback for every chat summarised before this shape.
+    const prose = three ? wrapProse(asked, did, next) : full;
+    const one = wrapLineOf(out && out.line) || wrapLineOf(prose.split(/(?<=[.!?])\s/)[0]);
+    if (!one && !three && !prose) return res.status(502).json({ error: 'no summary came back' });
+    const del = admin.firestore.FieldValue.delete();
     await regRef(target).set({
       wrapLine: one,
-      wrapUp: full,
+      wrapAsked: asked || del,
+      wrapDid: did || del,
+      wrapNext: next || del,
+      wrapUp: prose,
       // Cleared rather than left behind: a rewrite that finds nothing open (or
       // nothing more to say) must not leave the last run's leftovers under the
       // new summary.
-      wrapLong: (long && long !== full) ? long : admin.firestore.FieldValue.delete(),
-      wrapOpen: open || admin.firestore.FieldValue.delete(),
+      wrapLong: (long && long !== prose) ? long : del,
+      wrapOpen: del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapLong: long,
-      wrapOpen: open, messages: msgs.length, unanswered: unanswered.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: prose,
+      wrapAsked: asked, wrapDid: did, wrapNext: next, wrapLong: long,
+      wrapOpen: '', messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -1990,9 +2138,59 @@ router.get('/pile', async (_req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- THE REASONS SHE HAS GIVEN BEFORE (Aug 2026, Sophie: "could you gather
+// the list of reasons for waiting for something that I enter manually and put
+// it behind a button") -------------------------------------------------------
+// There was nothing to gather until this existed, and that is the finding
+// worth writing down: `waitingFor` is DELETED with its tag (labelPatch), on
+// purpose — a stale "waiting for the API key" on a chat that stopped waiting
+// weeks ago is worse than no line at all. So every answer she had ever typed
+// was already gone. **Measured live 2026-08-20: 378 chats, TWO carrying a
+// waiting reason** — the whole history, because the field is a live state and
+// never a record.
+//
+// So the memory is a SECOND place, on `__settings` beside her label
+// vocabulary: the field stays live-and-deletable, and the list of things she
+// has waited for accumulates next to it. Newest first, so a re-pick moves to
+// the top and the button opens on what she is most likely to want.
+//
+// It rides the feed's `settings` object like `pileLabels` and `categories`,
+// so the page pays no request for it — and `regRef` invalidates the registry
+// cache on write, so a reason she just typed is there on the next read.
+//
+// Two deliberate smallnesses: it is BEST-EFFORT (a remembered reason must
+// never fail the save she actually made), and it reads the settings doc
+// DIRECTLY rather than through `registry()` — one extra read on an action she
+// takes a few times a month, in exchange for never folding a stale cached list
+// back over a newer one. Two chats saving in the same second could still lose
+// one reason off the list; that is a list, not her data, and the alternative
+// (arrayUnion) would throw the order away, which is the only thing making the
+// list useful.
+const WAIT_MEMORY_MAX = 40;
+
+function waitReasons(settings) {
+  const raw = (settings || {}).waitingReasons;
+  return (Array.isArray(raw) ? raw : [])
+    .map((r) => String(r == null ? '' : r).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX))
+    .filter((r, i, a) => r && a.findIndex((x) => x.toLowerCase() === r.toLowerCase()) === i)
+    .slice(0, WAIT_MEMORY_MAX);
+}
+
+async function rememberWaiting(text) {
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+  if (!t) return;                       // clearing the box forgets nothing
+  const snap = await db().collection(REG).doc(SETTINGS_DOC).get();
+  const cur = waitReasons(snap.data());
+  const next = waitReasons({ waitingReasons: [t].concat(cur) });
+  // Re-picking the one already at the top writes nothing.
+  if (next.length === cur.length && next.every((r, i) => r === cur[i])) return;
+  await regRef(SETTINGS_DOC).set({ waitingReasons: next }, { merge: true });
+}
+
 // WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
 // tag opens. Its own field so it can never overwrite a note she wrote, and it
-// is cleared by `labelPatch` the moment the tag comes off.
+// is cleared by `labelPatch` the moment the tag comes off — which is why the
+// answers are also remembered on __settings (above).
 router.post('/waiting', async (req, res) => {
   try {
     const body = req.body || {};
@@ -2004,6 +2202,9 @@ router.post('/waiting', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
     await regRef(slug).set(
       { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    // Best-effort, and after the real save: the list behind the button is a
+    // convenience, and losing it must never cost her the answer she just gave.
+    await rememberWaiting(text).catch(() => {});
     res.json({ ok: true, chat: slug, waitingFor: text });
   } catch (err) { fail(res, err); }
 });
@@ -3879,11 +4080,29 @@ async function pageArchiveMap(sheet) {
  * takes it back out — so the chip is a true toggle and a mis-tap costs one
  * more tap, which is the whole reason this is safe to fire from a card.
  */
+/**
+ * Should this verdict move a chat, and which way? null = leave it alone.
+ *
+ * CLEARING A MARK IS NOT AN ANSWER (Aug 2026). In browse mode judge.js turns a
+ * second tap on the LIT chip into `ok:null` — "no verdict" — and reading that
+ * as "not archive" made a card's own undo tap quietly pull a chat back out of
+ * the archive. Undecided and Keep are different things: only an explicit
+ * verdict moves a chat, in either direction, and Keep is on the card saying
+ * exactly what it does.
+ *
+ * Pure, and exported for the test — this is the whole decision.
+ */
+function archiveActionFor(ok) {
+  if (ok === null || ok === undefined) return null;
+  return ok === 'archive';
+}
+
 async function applyPageVerdict(sheet, item, ok) {
+  const on = archiveActionFor(ok);
+  if (on === null) return null;
   const map = await pageArchiveMap(sheet);
   const chat = map && map[item];
   if (!chat) return null;
-  const on = ok === 'archive';
   await setArchived(chat, on);
   return { chat, archived: on };
 }
@@ -3951,9 +4170,9 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
   rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
-  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons };

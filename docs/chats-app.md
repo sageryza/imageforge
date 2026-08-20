@@ -513,6 +513,30 @@
     folders were always typed, so a fixed list here is what kept the two halves
     from ever being one. Lower-casing on the way in is what is left of the
     orphan-pile guard.
+  - **THERE ARE TWO PROGRESS LISTS AND THEY SHARE NO WORDS (Aug 2026, Sophie,
+    after a week of chats reading "progress" as one thing: "when I said progress
+    list I was talking about two separate progress lists. One is an archived
+    progress list and one is a chat progress list. I didn't know what else to
+    call it").** THIS IS THE MODEL — read it before touching any of the rules
+    below, which arrived one at a time and each read like a special case until
+    she named the shape.
+    - the **CHAT progress list** (`TASK_LABELS` in chats.html) — where LIVE work
+      stands. Offered on the home row and in Organize, nowhere else.
+    - the **ARCHIVE progress list** (`ARCHIVE_PROGRESS`) — how a chat ENDED.
+      Offered in the archive sheet and the archive's filter row, nowhere else.
+    They are **disjoint**: a word says where live work stands, or how it
+    finished, never both. Archiving is the answer to every chat-progress word,
+    so asking her to mark a chat she is putting away as `to read` was the bug —
+    and `built` on the home row, which counts only live chats, was the same bug
+    facing the other way. `paintVocabChips(row, mk, {archive})` picks which list
+    a surface speaks.
+    **THE ARCHIVE-HIDDEN SET IS DERIVED, NEVER A SECOND HAND-KEPT LIST**, and
+    that is the lesson: it shipped as `LIVE_ONLY`, holding exactly the five
+    words she had said out loud, so `waiting for something`, `in progress`,
+    `in a minute` and `maybe never` went on being offered in the archive because
+    nobody had named them. It is `!isChatWord(c)` now — every chat-progress word,
+    automatically, including any added later. A test asserts the two lists are
+    disjoint and that no second list has reappeared.
   - **EACH SURFACE OFFERS ONE HALF OF THE VOCABULARY (Aug 2026, Sophie: "I
     wanna make certain tags just available in the archived step, these tags are
     failure, bug fix, and new feature for now" · "also put built as one of the
@@ -986,6 +1010,42 @@
       the case and let her say yes.
     - The box uses `liveInput`, like every other field here — iOS dictation can
       fill an input without ever firing `input`.
+    - **THE REASONS SHE HAS GIVEN BEFORE, BEHIND A ⟲ (Aug 2026, Sophie: "could
+      you gather the list of reasons for waiting for something that I enter
+      manually and put it behind a button … should be small and unobtrusive
+      since I won't use it that often").** A 17px `history` glyph on the
+      QUESTION's own line — so it costs no height — opening her past answers
+      under the field, newest first, one tap to put one in the box.
+      - **There was nothing to gather until this shipped, and that is the
+        finding.** `waitingFor` is a live state that `labelPatch` deletes with
+        its tag, so every answer she had ever typed was already gone —
+        **measured live 2026-08-20: 378 chats, TWO carrying a reason.** A
+        button over that would have opened on almost nothing.
+      - So the memory is a **SECOND place**: `__settings.waitingReasons`,
+        written by `rememberWaiting` in chatfeed.js beside her label
+        vocabulary. The field stays live-and-deletable — the whole point of it
+        — while the answers accumulate next to it. It rides the feed's
+        `settings` object like `pileLabels`, so the button costs no request,
+        and `regRef` invalidates the registry cache on write.
+      - **Newest first**, and re-picking one moves it back to the top, so the
+        list opens on what she is most likely to want. The page mirrors the
+        same bookkeeping locally, so a reason she just gave is there the next
+        time she opens the list rather than after a poll.
+      - **NOTHING GIVEN BEFORE → NO BUTTON.** An empty list paints no control
+        at all, the way an empty section on the Update tab paints no header.
+      - **It is not a back door for pre-written text.** The box still opens
+        empty on a chat with no answer; the list is a thing she OPENS, and
+        tapping a row fills the field and leaves the sheet open — a past
+        answer is often only nearly right, and she has to be able to edit it.
+      - Best-effort on the server and written AFTER the real save: a
+        remembered reason must never cost her the answer she just gave. Two
+        chats saving in the same second could lose one off the list; that is a
+        list, not her data, and `arrayUnion` would have thrown the ORDER away,
+        which is the only thing making it useful.
+      - **There is deliberately no way to forget one yet** — she asked for the
+        list, not for its housekeeping. Worth revisiting once it is long
+        enough to be in the way.
+      - Test: `node scripts/test-waiting-past.js`.
     - **NO PLACEHOLDER (Aug 2026, Sophie: "it has pre-written text. Can you get
       rid of that and also make it a rule to never add prewritten text unless I
       ask for it").** It shipped with an example answer in the field ("the API
@@ -1846,6 +1906,27 @@
   sliding line's slot 0, which is the row's default); the two account words go
   quiet under it. **The `::after` translate steps follow the MARKUP order** —
   move a tab and move its step with it.
+  - **THE UPDATE ROW LEADS IT (Aug 2026, Sophie: "a couple days ago we added
+    a what's new button to the main screen, but I wanted it to go on the
+    update screen — could you rename it Update, no icon, and put it on the
+    update screen").** `newsUpdRow` in chats.html: one row above everything,
+    the word **Update** and no icon, opening `/brief` — the five things worth
+    knowing across every chat at once, which is the same question this tab
+    asks and a different answer to it. It shipped on the iOS home grid as
+    "What's new" with a list icon (`updateButton` in RootView.swift, gone
+    now; `BriefView.swift` is kept unmounted). Two things about it:
+    - **It is painted on EVERY pass, the caught-up screen included** — so
+      `newsEmptyCheck` APPENDS its line instead of writing over the
+      container, and the row is deliberately not in that function's
+      "something is already on screen" test (it always is).
+    - **No count on it.** A badge would mean reading the brief every time
+      this tab paints, and the number would be the only stale thing on the
+      screen — the same reasoning that kept it off the home button.
+    - The page keeps the last answer on the phone and re-reads only on its
+      own **Refresh** ("rather than immediately doing another API read, I'd
+      like to be able to go back and forth"), so walking in and out of it
+      while triaging this tab costs nothing. Full rules in `CLAUDE.md` (THE
+      UPDATE BUTTON). Test: `node scripts/test-chats-update-row.js`.
   - **A card carries the THING, not a line about it** — that is the whole
     point of the tab. Her two examples ARE the two blocks: "for the [oven]
     chat, they keep delivering different versions of this artifact, so it

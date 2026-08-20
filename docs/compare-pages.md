@@ -489,7 +489,24 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     "run this on tap" hook: archiving is reversible in a tap and visible on
     her own list, which is what makes it safe to fire from a card. An item's
     `chat` alone never acts — the page must opt in. **The lesson generalises:
-    do not label a verdict with a verb the page cannot perform.** `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
+    do not label a verdict with a verb the page cannot perform.**
+    **CLEARING a mark is not a verdict and never acts** (Aug 2026): in browse
+    mode a second tap on the LIT chip sends `ok:null`, and reading that as
+    "not archive" meant a stray tap silently pulled a chat back OUT of the
+    archive — 74 chances to undo the work unnoticed on a 74-card sweep. Keep
+    is the undo, and it says so on the card. Pinned by
+    `node scripts/test-archive-verdict.js`.
+  - **A CHAT NEVER WRITES VERDICTS INTO HER DECK** (Aug 2026, earned: after
+    archiving 74 chats through `POST /verdict` so the deck would double as an
+    undo list, she opened it and found every card already black — "kinda looks
+    like they're all archived by default. I only archive the first three but
+    they all have black archive buttons before I even get to them"). The
+    verdict doc is HER answers. Filling it with the chat's own state makes a
+    review surface that looks pre-answered, and it overwrites the marks she
+    really did make so the two can never be told apart again. **Do the action
+    through its own route** (`POST /archive` here) and leave the deck alone —
+    and when the work is already done, RETIRE the deck (`POST
+    /page/:id/supersede`) instead of leaving a to-do standing in front of her. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
     `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):

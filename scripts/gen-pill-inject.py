@@ -2,19 +2,22 @@
 # Builds public/pill-inject.html — the shared autoscroll pill as one
 # self-contained snippet the SERVER appends to every served Compare page
 # (chatfeed.js GET /api/chatfeed/page/:id). Compare pages are arbitrary
-# chat-authored HTML that won't define the forge CSS variables, so the
-# snippet scopes its own fallback palette onto .float (light + dark).
+# chat-authored HTML that may not define the forge CSS variables.
+#
+# IT NO LONGER BAKES A PALETTE ONTO `.float` (Aug 2026, Sophie: "it's still
+# the wrong pill"). It used to, plus a `prefers-color-scheme: dark` block —
+# and because an element's own custom property beats one inherited from
+# `:root`, a host could not colour the pill by defining the tokens; it had to
+# out-specify with `body .float{…}`, which is exactly the ten hand-synced
+# lines compare.css was carrying. PILL_CSS reads `var(--x, fallback)` now, so
+# the host's `:root` wins by itself and a page with no tokens still gets the
+# studio cream. Nothing to bake here any more.
 # Re-run after changing scripts/pill.py.
 import os
 from pill import PILL_CSS, PILL_HTML, PILL_JS
 
-VARS = """
-.float{--paper:#f6f2e9; --ink:#26221c; --ink2:#8a8377; --chg:#b3443f; --rose:#a5586a;}
-@media (prefers-color-scheme: dark){.float{--paper:#191713; --ink:#e8e2d6; --ink2:#97907f; --chg:#e08b84; --rose:#c98a99;}}
-"""
-
 snippet = ("\n<!-- injected by the server: shared autoscroll pill (scripts/gen-pill-inject.py) -->\n"
-           + "<style>" + VARS + PILL_CSS + "</style>\n"
+           + "<style>" + PILL_CSS + "</style>\n"
            + PILL_HTML + "\n"
            + "<script>\n" + PILL_JS + "\n</script>\n")
 

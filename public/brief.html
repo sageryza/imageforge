@@ -1,8 +1,22 @@
 <!doctype html>
-<!-- What's New — the update button's page (Aug 2026, Sophie: "an update button
-     on the home screen … the top five things I might want to be updated on, and
-     then maybe some lower priority things, and ideally images that chats made
-     or links to compare pages").
+<!-- Update — the update button's page (Aug 2026, Sophie: "an update button …
+     the top five things I might want to be updated on, and then maybe some
+     lower priority things, and ideally images that chats made or links to
+     compare pages").
+
+     IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
+     Sophie: "rather than immediately doing another API read, I'd like to be
+     able to go back and forth, so the update should be behind one more tap.
+     When I click on update it goes into the last updated list that I had, and
+     there's a button at the top that says refresh which causes another API
+     read, and it also says last updated and then the time"). The page is
+     reached from the Chats app's UPDATE tab now, so she walks in and out of it
+     while triaging — and every walk-in used to spend a fresh set of Firestore
+     reads and repaint the list under her. The last answer is kept in
+     localStorage and drawn instantly; the stamp says how old it is; Refresh is
+     the only thing that reads. Nothing here decays on a timer, and coming back
+     to the tab does NOT re-read (that auto-reload was the same bug in a
+     different costume).
 
      The front for /api/brief. It writes NOTHING: reading the brief is not
      checking a chat off, so nothing here clears her Update tab.
@@ -15,7 +29,7 @@
      Rules for pages: .claude/skills/new-page. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>What's New</title>
+<title>Update</title>
 <link rel="stylesheet" href="/tool.css">
 <style>
   /* THE INJECTED PILL IGNORES :root — public/pill-inject.html declares its own
@@ -29,6 +43,22 @@
   /* 64, not tool.css's 56: the pill's left edge lands at x=326 on a 390pt
      phone, so a 56px reserve leaves the last 8px of the "?" dead. */
   .tool .head{ padding-right:64px; }
+
+  /* The way back to the UPDATE tab this page is opened from. Hidden when the
+     page is embedded in a native tool screen — there the bar's own chevron
+     owns that job and two would be one too many. */
+  .backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
+    border:0; background:transparent; color:var(--dim); font:inherit;
+    font-size:24px; line-height:1; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; }
+  .backch[hidden]{ display:none !important; }
+
+  /* REFRESH, AND HOW OLD THIS IS (Aug 2026, Sophie — see the file header).
+     Right-padded like .strip because the injected pill is fixed over the
+     top-right corner and this row passes straight under it. */
+  .upd{ display:flex; align-items:center; gap:10px; padding:10px 64px 0 2px; }
+  .lastup{ font-size:12px; color:var(--dim); min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   /* The one status line — a count, not an instruction. */
   .strip{ font-size:12px; letter-spacing:1px; text-transform:uppercase;
@@ -114,7 +144,8 @@
 
 <body class="tool">
 <header class="head">
-  <div class="eyebrow tool-eyebrow">WHAT'S NEW</div>
+  <button class="backch" id="back" aria-label="back" hidden>&lsaquo;</button>
+  <div class="eyebrow tool-eyebrow">UPDATE</div>
   <button id="help" aria-label="what this is">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden>
@@ -122,17 +153,22 @@
   them. A chat is here because it needs something from you, because it replied
   since you last ticked it off, or because it posted a page or made pictures.
   <br><br><b>Rose means it's waiting on you.</b>
+  <br><br>This opens on the list you saw last — <b>Refresh</b> is what reads it
+  again, and the line beside it says how old this one is.
   <br><br>Nothing here ticks anything off — that's still the ✓ in Chats, so a
   card stays until you check it there. Tap a chat's name to open it, a picture
   to see it big, a page to read it.
 </div>
 
 <main>
+  <div class="upd">
+    <button class="btn ghost" id="refresh">Refresh</button>
+    <span class="lastup" id="lastup"></span>
+  </div>
   <div class="strip" id="strip"></div>
   <div id="cards"></div>
   <div class="alsohead" id="alsohead" hidden>Also</div>
   <div id="also"></div>
-  <div class="row"><button class="btn ghost" id="refresh">Refresh</button></div>
 </main>
 
 <div class="lb" id="lb" hidden></div>
@@ -159,9 +195,10 @@ function esc(s) {
   });
 }
 
-/* Times in her units — a card is read at a glance, so "4h" beats a timestamp. */
+/* Times in her units — a card is read at a glance, so "4h" beats a timestamp.
+   Takes an ISO string (a card's time) or epoch ms (the cache's stamp). */
 function ago(iso) {
-  var t = Date.parse(iso || '');
+  var t = typeof iso === 'number' ? iso : Date.parse(iso || '');
   if (!t) return '';
   var m = Math.round((Date.now() - t) / 60000);
   if (m < 1) return 'now';
@@ -285,16 +322,56 @@ function render(b) {
   });
 }
 
+/* ── the last list she saw ────────────────────────────────────────────────
+   Kept on the phone so walking in from the UPDATE tab costs NOTHING and shows
+   her exactly what she left (Sophie, Aug 2026 — see the file header). The
+   whole answer is stored, not a summary: what she reads on the way back in has
+   to be the same screen, pictures and pages included.
+
+   The STAMP is when the read happened, not the brief's own generatedAt — the
+   server holds its answer for 60s, so those two are different questions and
+   "last updated" is hers: when did this page last go and ask. */
+var CACHE_KEY = 'forge.brief.last';
+var shownAt = 0;
+
+function readCache() {
+  try {
+    var o = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    return (o && o.b && typeof o.at === 'number') ? o : null;
+  } catch (e) { return null; }
+}
+function writeCache(b) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), b: b })); }
+  catch (e) { /* full or private — the page still works, it just re-reads */ }
+}
+function paintStamp() {
+  if (!shownAt) { $('lastup').textContent = ''; return; }
+  var a = ago(shownAt);
+  $('lastup').textContent = a === 'now' ? 'Last updated just now' : 'Last updated ' + a + ' ago';
+}
+
+/* The ONLY thing that spends a read. A failed one keeps the list she was
+   looking at on screen — blanking it would cost her the very thing this page
+   now exists to hold. */
 function load(fresh) {
-  $('strip').textContent = 'Reading…';
+  var btn = $('refresh');
+  btn.disabled = true;
+  $('lastup').textContent = 'Reading…';
   var opts = TOK ? { headers: { 'x-studio-token': TOK } } : {};
   fetch('/api/brief?top=5&more=12' + (fresh ? '&fresh=1' : ''), opts)
     .then(function (r) { return r.json(); })
     .then(function (b) {
-      if (b && b.error) { $('strip').textContent = b.error; return; }
+      btn.disabled = false;
+      if (b && b.error) { $('lastup').textContent = b.error; return; }
       render(b);
+      writeCache(b);
+      shownAt = Date.now();
+      paintStamp();
     })
-    .catch(function (e) { $('strip').textContent = String(e.message || e); });
+    .catch(function (e) {
+      btn.disabled = false;
+      $('lastup').textContent = String(e.message || e);
+    });
 }
 
 $('refresh').addEventListener('click', function () { load(true); });
@@ -303,11 +380,27 @@ $('help').addEventListener('click', function () {
 });
 $('helpcard').addEventListener('click', function () { $('helpcard').hidden = true; });
 
-load(false);
-/* The web view stays alive behind the app; coming back to it must not show
-   yesterday's brief. */
+/* The chevron: this page is opened from the Chats app's UPDATE tab, inside
+   that same web view, so the way back is the page's job. Embedded in a native
+   tool screen the bar's own chevron owns it, and this stays hidden. */
+if (!/[?&]embed=1/.test(location.search)) {
+  var back = $('back');
+  back.hidden = false;
+  back.addEventListener('click', function () {
+    if (history.length > 1) history.back(); else location.href = '/chats?view=news';
+  });
+}
+
+/* Open on what she saw last; only a cold first visit reads. */
+var cached = readCache();
+if (cached) { render(cached.b); shownAt = cached.at; paintStamp(); }
+else load(false);
+
+/* Coming back to the page repaints the STAMP and nothing else — she asked to
+   be able to go back and forth without another read, and "5m ago" going stale
+   while the tab sat in the background is the one thing that would lie to her. */
 document.addEventListener('visibilitychange', function () {
-  if (!document.hidden) load(false);
+  if (!document.hidden) paintStamp();
 });
 })();
 </script>

@@ -68,6 +68,37 @@ function bank(n, rec) {
   fs.writeFileSync(SHEETS, JSON.stringify(all, null, 2) + '\n');
 }
 
+// How many columns and rows the vector route lays a count out in. Same table as
+// LAYOUT in vector.js — the sheet is cut on the grid it was drawn on, so the two
+// have to agree; only the counts this script uses are listed.
+const LAYOUT = { 1: [1, 1], 2: [2, 1], 3: [3, 1], 4: [2, 2], 25: [5, 5] };
+
+/** Every cell of the sheet, each lifted off its paper, as small PNGs.
+ *
+ *  `slice` and `cutout` are the REPO'S OWN, imported from vectorize.js rather
+ *  than re-written here — the same two the vector route calls, so a chat icon
+ *  is cut exactly like a vector card. Both carry findings a fresh
+ *  implementation would have to re-earn: `slice` cuts on the widest white
+ *  GUTTER near each grid line rather than on the arithmetic line, and `cutout`
+ *  floods in from the corners (the drawings have white INSIDE them — an eye, a
+ *  page — so a global white threshold would punch holes through all of it) and
+ *  then drops a small fragment that touches the border, which is what a
+ *  neighbour bleeding across the cut looks like. A hand-rolled version of this
+ *  was written first and shipped both bugs. */
+async function cutCells(sheetBuf, cols, rows) {
+  const sharp = require('sharp');
+  const { slice, cutout } = require(path.join(__dirname, '..', 'vectorize'));
+  const cells = await slice(sheetBuf, cols, rows);
+  return Promise.all(cells.map(async (cell) => {
+    let lifted = cell;
+    try { lifted = await cutout(cell); } catch (e) { /* keep the raw cell */ }
+    return sharp(lifted)
+      .resize({ width: 256, height: 256, fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer();
+  }));
+}
+
 /** One sheet: draw (or re-cut), then hand each cell to its chat. */
 async function runSheet(n, cells, recut) {
   const name = `chat-icons-s${n}`;
@@ -99,23 +130,31 @@ async function runSheet(n, cells, recut) {
   const job = await post('/api/vector/sheet', body);
   console.log(`sheet ${n}: ${job.id} (${job.cost === 0 ? 'free re-cut' : '$' + job.cost})`);
 
-  let doc = null;
-  for (let i = 0; i < 400; i++) {
+  // WAIT FOR THE SHEET, NOT FOR THE JOB. The route draws, uploads, then traces
+  // every cell to SVG — and the TRACE is what hangs: sheet 2 stuck on a shelf
+  // of cassette tapes and sheet 12 on a phone-and-fries, each with the other 24
+  // cells already done, each for half an hour, and pinning `ink` did not stop
+  // the second one. An icon never needed the SVG; it needs the CUT. So this
+  // takes the sheet the moment it is uploaded and cuts it HERE, and the tracer
+  // is off the critical path for good. (The job keeps tracing behind us and is
+  // welcome to; nothing waits on it.)
+  let sheetUrl = '';
+  for (let i = 0; i < 200; i++) {
     await sleep(3000);
     const r = await fetch(`${BASE}/api/vector/job/${job.id}`, { headers: headers() });
-    doc = await r.json();
-    if (doc.status === 'done') break;
+    const doc = await r.json();
+    if (doc.sheet) { sheetUrl = doc.sheet; break; }
     if (doc.status === 'failed') throw new Error(`sheet ${n} failed: ${doc.error}`);
     if (i % 5 === 0) process.stdout.write(`  ${doc.step || doc.status}\n`);
   }
-  if (!doc || doc.status !== 'done') throw new Error(`sheet ${n} never finished`);
-  bank(n, { sheet: doc.sheet, job: doc.id, at: new Date().toISOString(), chats: cells.map((c) => c.chat) });
+  if (!sheetUrl) throw new Error(`sheet ${n}: no sheet came back`);
+  bank(n, { sheet: sheetUrl, job: job.id, at: new Date().toISOString(), chats: cells.map((c) => c.chat) });
 
-  const items = doc.items || [];
+  const [cols, rows] = LAYOUT[cells.length] || [5, 5];
+  const sheetBuf = Buffer.from(await (await fetch(sheetUrl)).arrayBuffer());
+  const cuts = await cutCells(sheetBuf, cols, rows);
   for (let i = 0; i < cells.length; i++) {
-    const it = items[i];
-    if (!it || !it.cut) { console.log(`  ! ${cells[i].chat}: no cut came back`); continue; }
-    const buf = Buffer.from(await (await fetch(it.cut)).arrayBuffer());
+    const buf = cuts[i];
     const out = await post('/api/chatfeed/icon', {
       chat: cells[i].chat,
       image: `data:image/png;base64,${buf.toString('base64')}`,

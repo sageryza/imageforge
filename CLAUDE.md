@@ -28,8 +28,10 @@ The numbers are measured, not guessed.
 
 **When the work WRAPS UP (not every turn)**
 3b. **Leave a WRAP-UP** — `POST /api/chatfeed/wrapup {chat, session, line,
-   text}`. `line` = the one line her archive row shows (≤200); `text` = the
-   full what-this-was (≤2000). This is what she reads months later to remember
+   asked, did, next}`. It is **her three questions, ONE SENTENCE EACH** (Aug
+   2026: "what I really wanted was the what you asked, what I did, and next
+   steps"; three sentences in total, not six) — `line` = the one line her
+   archive row shows (≤200). This is what she reads months later to remember
    what a chat was, so it earns more care than the status card. *Measured
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
@@ -750,9 +752,10 @@ them off the reference sheet, not off the old filenames.
   - **A chat is ASLEEP by the time she archives it**, so it cannot summarise
     itself then — the whole design follows from that. Written ahead, frozen on
     the way past. Best source first: the chat's own `POST /wrapup`; failing
-    that, archiving freezes its **Update card** into one (free, instant —
-    `updAsked`/`updDid` already answer the same question); failing both it
-    stays blank rather than inventing something.
+    that, archiving freezes its **Update card** into one (free, instant, and a
+    straight copy now — `updAsked`/`updDid`/`updNext` ARE the three questions
+    the summary is made of); failing both it stays blank rather than
+    inventing something.
   - **THE SUMMARIZE BUTTON on the archive pop-up (Aug 2026, Sophie: "I want a
     button on there that automatically asks the chat to give me like a quick
     summary of what we accomplished in that chat, and if there were still any
@@ -765,16 +768,33 @@ them off the reference sheet, not off the old filenames.
     Cancel keeps the summary and archiving mid-write loses nothing — which is
     why it is not a background job. The summary reads back in the sheet before
     she commits. ~1-2¢ a tap.
-  - **THREE fields, and NONE is `sophieNote`** (`wrapLine` + `wrapUp` +
-    `wrapOpen` on the registry). Her own note still wins the row — a chat must
-    never overwrite a line she wrote, which is why this did not reuse her note
-    field even though she described it as "the note at the top". Row:
-    `note || wrapLine || need || doing`. **`wrapOpen` is what was still
-    unfinished or unanswered** — its own paragraph behind the expander, never
-    the row line. The unanswered questions fed to the model are DERIVED
-    (`buildQuestions` over the whole thread, `!q.answer`), not read out of the
-    digest, so the line names loose ends that provably exist; a chat writing
-    its own wrap-up can pass `open` too.
+  - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
+    "I think what I really wanted was the what you asked, what I did, and next
+    steps. Since chat already answered those three questions could you just
+    switch the summary for that … each of the three sections is about two
+    sentences that's six sentences in total. I'd prefer to be about three
+    sentences").** So the summary behind the expander is `wrapAsked` /
+    `wrapDid` / `wrapNext` — **one sentence each, three in total** — drawn as
+    the Update tab's own rows (`sumRows` in `chats.html`, ONE renderer, the
+    question bold and the answer not). A prose summary was a fourth shape
+    saying the same thing in a form she never asked for.
+    - **A chat with no wrap-up falls back to its own UPDATE CARD**, which
+      answers the identical three questions — that is exactly what she was
+      pointing at. Order: the wrap-up's three → an older prose `wrapUp` → the
+      live Update card.
+    - **`wrapNext` absorbed `wrapOpen`** — what is next and what was left
+      unanswered are one question, and two fields would show her the same
+      loose end twice. The unanswered questions fed to the model are still
+      DERIVED (`buildQuestions` over the whole thread, `!q.answer`), not read
+      out of the digest, so `next` names loose ends that provably exist.
+      Old records still render their `wrapOpen` paragraph.
+    - **`wrapUp` is still written**, as the three joined into plain prose:
+      her phone keeps a cached page for days and 312 chats already carry one
+      in that shape, so it stays the fallback every older reader can draw.
+    - **NONE of it is `sophieNote`.** Her own note still wins the row — a chat
+      must never overwrite a line she wrote, which is why this did not reuse
+      her note field even though she described it as "the note at the top".
+      Row: `note || wrapLine || need || doing`.
   - **IT ALSO SHOWS IN THE THREAD, UNDER HER NOTE (Aug 2026, Sophie: "i want
     the archive summary to show below my note, as u said, including the down
     arrow to make it longer").** It used to live on the ARCHIVE row and only
@@ -808,18 +828,43 @@ them off the reference sheet, not off the old filenames.
     FIXED vocabulary kept in two places — `TAGS` in `chatfeed.js` and
     `TAG_LIST` in `chats.html`, pinned equal by a test — and they become the
     archive's filter row. Full rules in `docs/chats-app.md`.
-  - **THREE LENGTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
+  - **THREE DEPTHS OF THE SAME STORY (Aug 2026 v2, Sophie: "ideally would be a
     short summary like three lines at most, and then a longer summary behind an
-    arrow").** `wrapLine` is the one line on the archive row, `wrapUp` is THREE
-    SENTENCES behind the ⌄, and `wrapLong` is the full account behind a `more`
+    arrow").** `wrapLine` is the one line on the archive row, the three answers
+    are behind the expander, and `wrapLong` is the full account behind a `more`
     inside that. Each is written to stand alone — not an intro, a middle and an
     end — because she stops at whichever depth answers her. A chat too small to
     justify a long version leaves `wrapLong` empty and shows no `more`. The
     fields are asked for shortest-first ON PURPOSE: a truncated answer loses the
     LAST field, so the summary she actually reads is the one least at risk.
+    **Each answer is capped in CHARACTERS as well as at one sentence** (140) —
+    the lesson the old short summary taught: asked for three sentences and
+    nothing else, the model came back at 374 characters, seven lines in the
+    expander. A rescued half-sentence is dropped whole rather than shown
+    ending mid-word, because a one-sentence answer has nothing to trim back to.
     The SHORT one is capped in CHARACTERS (under 180 = three lines on her
     phone), not in sentences — the first cut asked for three sentences and came
     back at 374 characters, seven lines in the expander.
+  - **THE CAP IS ENFORCED IN CODE, BECAUSE THE MODEL CANNOT COUNT (Aug 2026,
+    measured TWICE over her real summaries).** Asking for "UNDER 180
+    CHARACTERS" produced a median of 223 across 318 chats; tightening the
+    instruction to two sentences and re-running still left 169 over the cap,
+    the worst at 526 characters — eight lines in the expander. `capShort()` in
+    `chatfeed.js` cuts it on the way in: whole sentences up to 180, and a first
+    sentence already over the cap kept WHOLE rather than cut mid-thought. It
+    guards the FREE-TEXT paths only — the THREE-ANSWER prose above is derived
+    from three separately-capped sentences, and trimming it would silently drop
+    "what's next". Nothing is lost — the detail lives in the bulleted long
+    version, which is what makes trimming safe. **A prompt instruction about
+    length is a hope; a length that matters gets cut in code.**
+  - **`POST /wrapup/trim` shortens the ones ALREADY on file, free** — pure text
+    surgery, no model call, dry by default (`{dry:false}` to write). It skips
+    any chat already carrying the three-answer fields, so it only ever reaches
+    the one-paragraph summaries written before that shape. It only
+    ever shortens `wrapUp`; `wrapLine`, `wrapLong` and `wrapOpen` are never
+    touched, so it cannot spend money or reword a summary she has read.
+    Re-asking Claude for 169 summaries to fix a LENGTH would have cost about
+    $1.70 and rewritten their words as a side effect.
   - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
     especially for the long summary — don't add bullet points where it doesn't
     actually help, but the long summary is one block of text would be great to
@@ -843,7 +888,8 @@ them off the reference sheet, not off the old filenames.
     stopped mid-word while keeping the ones that finished. It is deliberately NOT in `anthropic.js`: half an object
     is exactly what other callers must never be handed silently.
   - Tests: `node scripts/test-chats-wrapup.js` (the freeze rule, the row line,
-    the open half, the truncation rescue), `node
+    the three questions and their fallback to the Update card, the truncation
+    rescue), `node
     scripts/test-chats-archive-summary.js` (the button) and `node
     scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
     filter row) — the last two headless against the real page.
@@ -958,7 +1004,11 @@ them off the reference sheet, not off the old filenames.
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
   bold **Waiting for:** line on the chat's row and above her note in the
   thread, and is DELETED the moment the tag comes off — a second asking word is
-  not yours to declare. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
+  not yours to declare. **The reasons she has given before sit behind a small
+  ⟲ on that box** (Aug 2026, her ask) — the field is a live state and is
+  deleted with the tag, so the answers are remembered separately on
+  `__settings.waitingReasons` and the list rides the feed; nothing given
+  before shows no button at all. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
   TAB (Aug 2026, Sophie: "i think i'll have to do manual rules per tag … more
   coming")** — `waiting for a response` PINS the chat's card above every
   section until she answers or dismisses it (the tag itself is the news, so
@@ -1655,43 +1705,71 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
   a loosening of the rule — don't round anything else off, and don't "fix"
   that one back.
-- **THE INJECTED PILL CARRIES A DARK-MODE BLOCK AND YOUR PAGE PROBABLY DOES
-  NOT (Aug 2026, Sophie: "this is the wrong pill" — measured).**
-  `pill-inject.html` bakes its palette ON `.float` and also declares
-  `@media (prefers-color-scheme: dark){.float{--paper:#191713 …}}`, while
-  `compare.css` has NO dark block at all — a Compare page is always her cream.
-  So a phone in dark mode drew a near-black pill on a cream page, and even in
-  light mode it wore `#f6f2e9` where the page is `#faf6ee`. Because the
-  element's own custom property beats one inherited from `:root`, defining the
-  five tokens up there can never reach it: a host must OUT-SPECIFY, e.g.
-  `body .float{…}` (0,1,1 beats 0,1,0, so it wins whatever order the injected
-  sheet lands in). **compare.css now does this for every Compare page**; a
-  tool page with its own palette still has to do it itself (the /chunking
-  finding). Pinned by a test that compares the pill's computed `--paper` with
-  the page's.
-  **AND THE COLOURS WERE ONLY HALF OF IT — `compare.css` ROUNDS THE PILL'S
-  SEGMENTS (Aug 2026, "it's still the wrong pill … it looks different",
-  measured).** `compare.css` declares `button, .btn{…border-radius:6px…}` —
-  a bare-element rule at specificity (0,0,1). `.vseg button` out-specifies it
-  for everything it DECLARES (border, background, color, size, padding), but
-  it never declares `border-radius`, so the 6px wins by default and each of
-  the three segments becomes its own rounded box: the hairline dividers
-  disappear and the capsule reads as three loose buttons instead of one
-  control. Proven by rendering `pill-inject.html` alone (`border-radius: 0px`,
-  capsule 50px) against the same markup with only `compare.css` added
-  (`6px`, 48px — `*{box-sizing:border-box}` pulls the 1.5px stroke inside).
-  **THE LESSON IS GENERAL: a host page's bare-element rules reach every
-  property the injected pill leaves unset** — check `border-radius`, `font`,
-  `gap`, `box-sizing`, not just the palette.
-  **TWO PAGES CARRY A STALE PILL AND ONE CARRIES A HAND COPY (measured
-  2026-08-20).** `pill.py` is the source and five gen scripts bake it, but
-  `public/wall.html` and `public/storyroom.html` are missing the
-  `forge-pill` / `data-nopill` opt-out block — their gen scripts were never
-  re-run after `pill.py` grew it, so a `data-nopill` on either would silently
-  do nothing (`python3 scripts/gen-wall.py` / `gen-storyroom.py` fixes it).
-  `public/gallery.html` has **no generator at all** — its pill is a hand copy
-  that nothing can keep in step. `chats.html`, `writing.html` and
-  `pill-inject.html` are current.
+- **THE PILL DEFENDS ITSELF NOW, AND READS ITS COLOURS FROM YOUR PAGE (Aug
+  2026 v3, Sophie: "this is the wrong pill" → "it's still the wrong pill … it
+  looks different"). Two rounds of the same bug; this is the settled
+  contract.** The pill on a Compare page is INJECTED — the server appends
+  `pill-inject.html` to a page it has never met — so **every property the pill
+  leaves unset is a hole the host falls through**, and CSS is global whichever
+  way the pill arrived.
+  - **What actually reached it, measured** by diffing every computed property
+    of the pill rendered alone against the same markup with only
+    `compare.css` added: **four** — `border-radius` (0 → 6px, from a bare
+    `button, .btn{…}` rule at specificity (0,0,1), which turned the capsule's
+    three segments into three loose rounded boxes and swallowed the hairline
+    dividers), `box-sizing` (the host's `*{border-box}` pulled the 1.5px
+    stroke inside, 50px → 48), `line-height` (`#spd` 12px → 17px, so the whole
+    pill grew 5px taller) and the buttons' `font`. `.vseg button` had always
+    out-specified the host for everything it DECLARED — border, background,
+    colour, size, padding — which is why nobody found this for months.
+  - **All four are declared in `scripts/pill.py` now** (`.float, .float *`
+    pins `box-sizing`/`line-height`/`letter-spacing`/`text-transform`;
+    `.vseg button` pins `border-radius:0`, `gap`, `margin`, `font`). **Add to
+    that line whenever a new host reaches something — don't re-derive it.**
+  - **THE FIVE TOKENS ARE READ FROM THE HOST, `var(--x, fallback)`, never
+    baked onto `.float`.** The old copy carried its own palette plus a
+    `prefers-color-scheme: dark` block, and an element's own custom property
+    beats one inherited from `:root` — so a host could not colour the pill by
+    defining the tokens, it had to OUT-SPECIFY with `body .float{…}`, which is
+    the ten hand-synced lines `compare.css` was carrying (its own comment
+    warned they had to be kept in step by hand). Now the host's `:root` wins by
+    itself, exactly as it always has for a baked-in pill; a page that defines
+    none of the five still gets the studio cream; and a cream page on a dark
+    phone stays cream, because the pill has no dark block of its own. **The
+    whole contract for a host page is: define the five tokens.**
+  - **IT ONLY APPEARS WHEN THERE IS SOMETHING TO SCROLL** (Sophie: "it should
+    be a conditional pill that only appears if there's actually content to
+    scroll"). **The check keeps watching — a ResizeObserver, not a check at
+    load** — because almost every page here fetches its content after it
+    loads, so a one-shot check would hide the pill on nearly all of them.
+    `window.__pillSync()` re-runs it by hand; the `forge-pill off` /
+    `data-nopill` opt-out still removes the pill outright.
+  - Tests: `node scripts/test-pill-host.js` (the whole contract against the
+    real `pill-inject.html` and the real `compare.css` — verified failing
+    against the pre-fix pill, 8 of 16), plus the per-page pill assertions in
+    `test-review-page.js` and `test-brief-page.js`.
+- **A GENERATED PAGE'S TEMPLATE IS PROBABLY STALE — CHECK BEFORE YOU RUN A
+  `gen-*.py` (measured 2026-08-20, caught one command short of shipping it).**
+  Running a generator overwrites its page from the template, so if the PAGE has
+  been hand-edited since — which it constantly is, several chats at once — the
+  edits are gone. Measured that day by running each generator against a clean
+  tree and diffing: **not one of the four was in sync.** `gen-chats.py` would
+  have dropped **~300KB** of shipped work (1,577KB → 1,275KB); `gen-writing.py`
+  deletes a date entry and its cover; `gen-wall.py` / `gen-storyroom.py` are the
+  safe direction (the generator is AHEAD — those two pages were missing the
+  pill's `forge-pill`/`data-nopill` opt-out block entirely).
+  - **The check is one command and costs nothing:** on a clean tree run the
+    generator and `git diff --stat` its page. Empty = in sync, safe. Anything
+    else = read the diff and find out which side is ahead BEFORE you commit.
+  - `scripts/resync-gen-chats.py` exists to pull the page's edits back into
+    `gen-chats.py`'s template and is the documented order (edit page → resync →
+    generate). **It currently cannot run** — it looks for the pill blocks
+    verbatim to turn them back into placeholders and finds zero, so
+    `chats.html`'s pill has drifted from `pill.py` by hand. Fixing that is its
+    own job; until then treat `chats.html` and `writing.html` as
+    HAND-MAINTAINED and patch them in place.
+  - `public/gallery.html` has **no generator at all** — its pill is a hand copy
+    nothing can keep in step.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
@@ -2299,13 +2377,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   transaction, never from counting — that is the bug that scrambled album order.
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
-  **"What's new"** button on the iOS home screen → `BriefView`) — Aug 2026,
-  Sophie: "an update button on the home screen that I can just click and then
+  **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
+  Sophie: "an update button that I can just click and then
   it does an API call that gives me the top five things I might want to be
   updated on, and then maybe some lower priority things, and ideally images
   that chats made or links to compare pages". One tap → five cards, the
   quieter ones under them, each carrying the pictures that chat made and the
   Compare pages it posted.
+  - **IT LIVES ON THE UPDATE SCREEN, NOT THE HOME GRID (Aug 2026 v2, Sophie:
+    "a couple days ago we added a what's new button to the main screen, but I
+    wanted it to go on the update screen — could you rename it Update, no
+    icon, and put it on the update screen").** It shipped as "What's new" with
+    a list icon on the iOS home screen; it is `newsUpdRow` in `chats.html`
+    now — first thing on the tab, above the Review row, the word and nothing
+    else. It is on EVERY paint of that tab, the caught-up one included: the
+    page behind it answers a different question from the cards, so an empty
+    list is no reason to take the door away. It carries no count, for the same
+    reason it never did on the home screen. `BriefView.swift` is kept but
+    unmounted, and /brief opens inside the Chats web view with its own chevron
+    back.
+  - **IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
+    Sophie: "rather than immediately doing another API read, I'd like to be
+    able to go back and forth, so the update should be behind one more tap …
+    there's a button at the top that says refresh which causes another API
+    read, and it also says last updated and then the time").** The whole
+    answer is kept in `localStorage` (`forge.brief.last`, with the moment it
+    was read) and drawn instantly; **Refresh** at the top of the page is the
+    only thing that reads, and it sends `?fresh=1` past the server's 60s hold.
+    Two things not to undo: the old **auto-reload on `visibilitychange` is
+    gone** (it re-read every time she came back — the exact thing she asked to
+    stop), and a FAILED refresh keeps the list she was looking at on screen
+    with the error in the stamp line. Coming back repaints the stamp only, so
+    "5m ago" can never go stale while the tab sits in the background.
   - **IT SPENDS NOTHING AND WRITES NOTHING.** No model call: the lines it
     shows were already written by the chats themselves (their status card's
     `need`, their Update card's `did`, their TLDR), so a summary here would be
@@ -2333,17 +2436,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The picture strip merges by md5 and keeps the LABELED record**, not the
     newest one — the unlabeled twin is always the hook's `claude-deliveries`
     copy, so "first one wins" would strip the label off half the strip.
-  - **It is a full-screen COVER from the home grid, not a `Tool`.** Opening a
-    Tool promotes it into `Recents`, so this button would evict one of her
-    three bottom-bar slots on every tap — and it is the button meant to be
-    tapped most. The cover also rebuilds fresh each time, which is what makes
-    it always current with nothing to refresh. It carries no count badge on
-    purpose: a badge means fetching on every home draw, and the number would
-    be the only stale thing on that screen.
-  - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures) and
+  - **It was a full-screen COVER from the home grid, never a `Tool`** —
+    opening a Tool promotes it into `Recents`, so the button would have
+    evicted one of her three bottom-bar slots on every tap. That reasoning is
+    banked in `BriefView.swift` in case the page ever wants a native screen
+    again.
+  - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures),
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
-    headless — pill palette, the pill's corner over the top card, the lightbox
-    contract, the ⌄).
+    headless — the cache-first open counted in API calls, Refresh, the pill
+    palette, the pill's corner over the top card, the lightbox contract, the
+    ⌄) and `node scripts/test-chats-update-row.js` (the row on the real
+    Update tab — first, her word, no icon, and still there when caught up).
 - **THE REVIEW QUEUE** (`review.js`, `/api/review`, page at `/review`, iOS
   tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
   to be reviewed and I'd like one screen that shows all the things waiting to
