@@ -1,0 +1,236 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Desktop queue</title>
+<!--
+  desktop.html — what is waiting for Sophie's Mac, and what has been checked off.
+
+  She is almost never at her desktop, so chats queue Mac-only work into
+  `docs/desktop-tasks.md` instead of asking her to go to the computer. That file
+  is the queue and the terminal chat runs straight from it; this page is the
+  only way to SEE it from a phone. Read-only by design — nothing here adds,
+  edits or ticks anything off, because the file is the single copy and it is
+  edited where it is run.
+
+  DELIBERATELY UNLINKED (her ask: "we'll put it somewhere out-of-the-way").
+  No home tile, no iOS wrapper. It lives at /desktop for whoever wants it.
+
+  PROGRESSIVE EXPANSION: a row shows the shape of the task — its name, when it
+  was queued, whether it is stuck — and opens to the whole entry only when she
+  taps it. The commands are for the machine, not for reading on a phone.
+
+  The row is a <button> and its detail is its SIBLING, never a child: a button
+  inside a button is invalid markup and the inner tap bubbles into the outer.
+-->
+<link rel="stylesheet" href="/tool.css">
+<style>
+  .wrap{ max-width:640px; margin:0 auto; }
+  /* Two kinds of thing she flips between — what's waiting vs what's done —
+     so the hairline row, not a longer page. The line MEASURES the lit tab
+     (tabLine below); no tab count lives in this CSS. */
+  .acctabs{ position:relative; display:flex; border-bottom:1px solid var(--border);
+    margin:0 0 6px; padding-right:56px; }
+  .acctab{ flex:1 1 0; min-width:0; padding:9px 4px 10px; border:none; background:none;
+    cursor:pointer; font:inherit; font-size:10px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--dim); -webkit-tap-highlight-color:transparent; }
+  .acctab.on{ color:var(--ink); }
+  .acctab .n{ color:var(--dim); margin-left:5px; }
+  .acctabs::after{ content:''; position:absolute; left:0; bottom:-1px; height:2px;
+    width:var(--tw,0); background:var(--ink); transform:translateX(var(--tx,0)); }
+  .acctabs.tl::after{ transition:transform .2s ease, width .2s ease; }
+
+  .tk{ display:block; width:100%; text-align:left; font:inherit; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+    padding:11px 13px; margin:0 0 7px; -webkit-tap-highlight-color:transparent; }
+  .tk .tt{ display:block; font-size:15px; font-weight:600; line-height:1.3; }
+  .tk .tm{ display:block; font-size:11px; letter-spacing:.04em; color:var(--dim);
+    margin-top:5px; text-transform:uppercase; }
+  .tk .flag{ color:var(--danger); }
+  .tk .ask{ display:block; font-size:13px; color:var(--accent); margin-top:6px; line-height:1.4; }
+  .tk[aria-expanded=true]{ border-color:var(--accent); margin-bottom:0;
+    border-bottom-left-radius:0; border-bottom-right-radius:0; }
+  .td{ background:var(--surface); border:1px solid var(--accent); border-top:0;
+    border-radius:0 0 var(--r) var(--r); padding:2px 13px 12px; margin:0 0 7px;
+    font-size:14px; line-height:1.5; }
+  .td ul{ margin:8px 0; padding-left:17px; }
+  .td li{ margin:4px 0; }
+  .td p{ margin:8px 0; }
+  .td b{ color:var(--ink); }
+  .td code{ font-size:12.5px; background:var(--surface2); padding:1px 4px; border-radius:3px; }
+  /* Commands scroll INSIDE their own box — the page never scrolls sideways. */
+  .td pre{ background:var(--surface2); border:1px solid var(--border); border-radius:var(--r);
+    padding:9px 11px; overflow-x:auto; font-size:12px; line-height:1.45; margin:8px 0; }
+  .td pre code{ background:none; padding:0; }
+  .empty{ color:var(--dim); font-size:14px; padding:14px 2px; }
+</style>
+<body class="tool">
+<div class="head">
+  <span class="eyebrow tool-eyebrow">DESKTOP QUEUE</span>
+  <button id="help" type="button" aria-label="What this is">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Mac-only work, batched.</b> When a chat hits something only your computer can
+  do, it writes the task here instead of asking you to go and do it. At the
+  computer, say <b>“open <code>docs/desktop-tasks.md</code> and run the queue”</b> and
+  the terminal chat works it top to bottom, moving each finished one to Done.<br><br>
+  This page only shows the list — it's the same file the terminal runs from, so
+  nothing is ticked off here.
+  <a id="filelink" href="https://github.com/sageryza/imageforge/blob/main/docs/desktop-tasks.md">The file</a>
+</div>
+
+<main class="wrap">
+  <div class="acctabs" id="tabs">
+    <button class="acctab on" id="tab-open" type="button">Waiting <span class="n" id="n-open"></span></button>
+    <button class="acctab" id="tab-done" type="button">Done <span class="n" id="n-done"></span></button>
+  </div>
+  <div id="list"><div class="empty">Reading the queue&hellip;</div></div>
+</main>
+
+<script>
+/* IIFE: the injected autoscroll pill runs in global scope and declares its own
+   `var raf`/`var I`, so a page-level `let` of the same name kills its script at
+   parse time. Nothing of this page's leaks out. */
+(function(){
+  'use strict';
+  var listEl = document.getElementById('list');
+  var tabs = document.getElementById('tabs');
+  var data = { open: [], done: [] };
+  var view = 'open';
+
+  /* ---- the sliding line, measured off the lit tab (never a tab count) ---- */
+  function tabLine(){
+    var on = tabs.querySelector('.acctab.on'); if (!on) return;
+    var r = tabs.getBoundingClientRect(), t = on.getBoundingClientRect();
+    if (!t.width) return;
+    tabs.style.setProperty('--tw', t.width + 'px');
+    tabs.style.setProperty('--tx', (t.left - r.left - tabs.clientLeft) + 'px');
+    if (!tabs.__tl) { tabs.__tl = 1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
+  }
+  /* A resize SNAPS, only a tap slides — and it measures a FRAME LATER, because
+     `resize` fires before the new layout is committed. */
+  window.addEventListener('resize', function(){
+    tabs.classList.remove('tl'); tabs.__tl = 0; requestAnimationFrame(tabLine);
+  }, { passive:true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
+
+  /* ---- the smallest markdown that renders a task entry faithfully ----
+     Bullets, bold, inline code and fenced command blocks — that is everything
+     the entry template uses. Escaped first, so nothing in the file can inject. */
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inline(s){
+    return esc(s)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  }
+  function md(src){
+    var out = '', parts = src.split(/```/), fenced = false;
+    parts.forEach(function(part){
+      if (fenced) {
+        out += '<pre><code>' + esc(part.replace(/^[a-z]*\n/, '').replace(/\n+$/, '')) + '</code></pre>';
+      } else {
+        var lines = part.split('\n'), inList = false, para = [];
+        function flush(){
+          if (para.length) out += '<p>' + inline(para.join(' ')) + '</p>';
+          para = [];
+        }
+        lines.forEach(function(ln){
+          var bullet = ln.match(/^\s*[-*]\s+(.*)$/);
+          if (bullet) {
+            flush();
+            if (!inList) { out += '<ul>'; inList = true; }
+            out += '<li>' + inline(bullet[1]);
+          } else if (!ln.trim()) {
+            if (inList) { out += '</li></ul>'; inList = false; }
+            flush();
+          } else if (inList) {
+            out += ' ' + inline(ln.trim());          /* a wrapped bullet */
+          } else {
+            para.push(ln.trim());
+          }
+        });
+        if (inList) out += '</li></ul>';
+        flush();
+      }
+      fenced = !fenced;
+    });
+    return out;
+  }
+
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function day(iso){
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? MON[+m[2] - 1] + ' ' + (+m[3]) : '';
+  }
+
+  function render(){
+    var items = data[view] || [];
+    if (!items.length) {
+      listEl.innerHTML = '<div class="empty">' +
+        (view === 'open' ? 'Nothing waiting on your computer.'
+                         : 'Nothing checked off yet.') + '</div>';
+      return;
+    }
+    listEl.innerHTML = items.map(function(t, i){
+      var meta = [];
+      if (view === 'done' && t.ranAt) meta.push('Ran ' + day(t.ranAt));
+      else if (t.queued) meta.push('Queued ' + day(t.queued));
+      if (t.by) meta.push(t.by);
+      var metaHtml = esc(meta.join(' · '));
+      if (t.flag) metaHtml += (metaHtml ? ' · ' : '') + '<span class="flag">' + esc(t.flag) + '</span>';
+      /* Only an ask that is actually an ask reaches the closed row — "nothing,
+         it just runs" is the common answer and putting it on every row would
+         make the one task that DOES need her invisible. But "nothing BEYOND
+         the Full Disk Access click" is a real ask wearing the same first word,
+         so the let-off needs the second half too. */
+      var v = (t.needs || '').trim();
+      var ask = (/^(nothing|none)\b/i.test(v) &&
+                 !/\b(beyond|except|but|apart from|other than|first)\b/i.test(v)) ? '' : v;
+      return '<button class="tk" type="button" aria-expanded="false" data-i="' + i + '">' +
+               '<span class="tt">' + esc(t.title) + '</span>' +
+               (metaHtml ? '<span class="tm">' + metaHtml + '</span>' : '') +
+               (ask ? '<span class="ask">Needs you: ' + esc(ask) + '</span>' : '') +
+             '</button>' +
+             '<div class="td" hidden>' + md(t.body) + '</div>';
+    }).join('');
+  }
+
+  listEl.addEventListener('click', function(e){
+    var row = e.target.closest && e.target.closest('.tk');
+    if (!row) return;
+    var open = row.getAttribute('aria-expanded') === 'true';
+    row.setAttribute('aria-expanded', open ? 'false' : 'true');
+    row.nextElementSibling.hidden = open;
+  });
+
+  function showTab(which){
+    view = which;
+    document.getElementById('tab-open').classList.toggle('on', which === 'open');
+    document.getElementById('tab-done').classList.toggle('on', which === 'done');
+    render();
+    tabLine();
+  }
+  document.getElementById('tab-open').onclick = function(){ showTab('open'); };
+  document.getElementById('tab-done').onclick = function(){ showTab('done'); };
+
+  var help = document.getElementById('help'), card = document.getElementById('helpcard');
+  help.onclick = function(){ card.hidden = !card.hidden; };
+  card.onclick = function(e){ if (e.target.tagName !== 'A') card.hidden = true; };
+
+  fetch('/api/desktop/tasks').then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.ok) throw new Error((j && j.error) || 'no answer');
+    data = { open: j.open || [], done: j.done || [] };
+    document.getElementById('n-open').textContent = data.open.length || '';
+    document.getElementById('n-done').textContent = data.done.length || '';
+    if (j.file) document.getElementById('filelink').href = j.file;
+    render();
+    tabLine();
+  }).catch(function(err){
+    listEl.innerHTML = '<div class="empty">Couldn’t read the queue — ' + esc(String(err.message || err)) + '</div>';
+  });
+
+  tabLine();
+})();
+</script>
+</body>
