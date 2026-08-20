@@ -170,6 +170,14 @@
       // the body class is the DECK's — the grid could not scroll with it on,
       // and the deck would scroll without it
       document.body.classList.toggle('jg-mombg', swiping);
+      // …and the pill is taken off the DECK by hand as well as by the CSS
+      // rule above (Aug 2026, Sophie: "why is the pill there tho it doesn't
+      // work" — with a screenshot of it over the swipe view, which the rule
+      // says cannot happen and which no local run reproduced). An inline
+      // display beats every stylesheet, so whatever out-specified or never
+      // reached that rule on her phone cannot keep the pill on screen.
+      var pill = document.querySelector('.float');
+      if (pill) pill.style.display = swiping ? 'none' : '';
       line();
       window.scrollTo(0, 0);
     }
