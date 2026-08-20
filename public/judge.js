@@ -41,6 +41,24 @@
 (function () {
   if (window.__judge) return;
 
+
+  // The worn spots in the ink — radial holes punched out of the mark by a
+  // mask, so the red is never a solid printed rectangle. Two patterns: the
+  // second is used by the B side of a spread so a pair never stamps twice
+  // the same. (Her artboard's own circles and radii.)
+  var HOLES_A = "radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),"
+    + "radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),"
+    + "radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),"
+    + "radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),"
+    + "radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),"
+    + "radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),"
+    + "radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px)";
+  var HOLES_B = "radial-gradient(circle at 22% 18%,transparent 0 5px,#000 7px),"
+    + "radial-gradient(circle at 66% 12%,transparent 0 4px,#000 6px),"
+    + "radial-gradient(circle at 81% 74%,transparent 0 6px,#000 8px),"
+    + "radial-gradient(circle at 31% 86%,transparent 0 4px,#000 6px),"
+    + "radial-gradient(circle at 92% 34%,transparent 0 3px,#000 5px),"
+    + "radial-gradient(circle at 9% 66%,transparent 0 4px,#000 6px)";
   var css = document.createElement('style');
   css.textContent =
     '.jg{max-width:680px;margin:0 auto;}' +
@@ -217,8 +235,10 @@
     // and below still page, and the swipe always did.
     '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;'
     + 'position:relative;z-index:3;}' +
+    // position:relative so a spread's own GOOD / BAD stamp lands on the
+    // picture it judges rather than on the pair
     '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
-    + 'display:flex;flex-direction:column;gap:5px;}' +
+    + 'display:flex;flex-direction:column;gap:5px;position:relative;}' +
     '.jg-spread figure img{width:100%;height:auto;max-height:44vh;object-fit:contain;'
     + 'display:block;}' +
     '.jg-spread figcaption{font:700 10px/1.3 -apple-system,sans-serif;letter-spacing:.12em;'
@@ -434,8 +454,78 @@
     ' letter-spacing:.12em;text-transform:uppercase;color:var(--gold);' +
     ' font-style:normal;margin-bottom:2px;}' +
     '.jg-help b{color:var(--gold);font-family:-apple-system,sans-serif;font-size:13px;}' +
-    '.jg-flash{animation:jgf .18s;}@keyframes jgf{from{opacity:.35}to{opacity:1}}';
+    '.jg-flash{animation:jgf .18s;}@keyframes jgf{from{opacity:.35}to{opacity:1}}' +
+
+    // ── THE GOOD / BAD STAMP (Aug 2026, Sophie's own "Decision Deck v3"
+    // canvas: "a little good/bad stamp that stamps the ones that you pick or
+    // don't pick"). A decided card wears a red rubber stamp; the one just
+    // decided SLAMS on. Ported from her artboard, values hers:
+    //   · it comes in at 2.5x and blurred, invisible until 38% — so what she
+    //     sees is the moment of contact, not the approach — then overshoots
+    //     and settles at 1x, tilted, in ~560ms.
+    //   · the ink is ROUGH, not clean: an feTurbulence displacement chews the
+    //     edges, and a mask of radial holes lifts the worn spots out of the
+    //     middle. Two filters and two hole patterns so the two sides of a
+    //     spread never stamp identically.
+    //   · pointer-events:none, always — the stamp sits over her ♥/✕ and must
+    //     never eat a tap meant for them.
+    '.jg-stamp{position:absolute;inset:0;display:flex;align-items:center;' +
+    ' justify-content:center;pointer-events:none;z-index:9;}' +
+    '.jg-stampmark{border:8px solid #C0271F;border-radius:9px;padding:12px 30px;' +
+    ' color:#C0271F;font:700 52px/1 Newsreader,Georgia,serif;letter-spacing:.09em;' +
+    ' box-shadow:inset 0 0 0 2.5px rgba(192,39,31,.5);opacity:.9;' +
+    ' transform:rotate(-8.5deg);filter:url(#jgInk1);' +
+    ' -webkit-mask-image:' + HOLES_A + ';mask-image:' + HOLES_A + ';' +
+    ' -webkit-mask-composite:source-in;mask-composite:intersect;}' +
+    // the B side of a spread: the other tilt, the other filter, other holes
+    '.jg-stamp.b .jg-stampmark{transform:rotate(6.5deg);filter:url(#jgInk2);' +
+    ' -webkit-mask-image:' + HOLES_B + ';mask-image:' + HOLES_B + ';}' +
+    // on a spread each half is small, so the mark is
+    '.jg-spread .jg-stampmark{border-width:6px;border-radius:7px;padding:7px 16px;' +
+    ' font-size:30px;box-shadow:inset 0 0 0 2px rgba(192,39,31,.5);}' +
+    '.jg-stamp.live .jg-stampmark{animation:jgstampA 560ms cubic-bezier(.2,.8,.3,1) both;}' +
+    '.jg-stamp.live.b .jg-stampmark{animation:jgstampB 560ms cubic-bezier(.2,.8,.3,1) 200ms both;}' +
+    '@keyframes jgstampA{0%{transform:scale(2.5) rotate(-15deg);opacity:0;filter:url(#jgInk1) blur(1.5px)}' +
+    ' 38%{opacity:0}52%{transform:scale(.9) rotate(-8.5deg);opacity:.9;filter:url(#jgInk1)}' +
+    ' 64%{transform:scale(1.07) rotate(-8.5deg)}78%{transform:scale(.985) rotate(-8.5deg)}' +
+    ' 100%{transform:scale(1) rotate(-8.5deg);opacity:.9}}' +
+    '@keyframes jgstampB{0%{transform:scale(2.5) rotate(12deg);opacity:0;filter:url(#jgInk2) blur(1.5px)}' +
+    ' 38%{opacity:0}52%{transform:scale(.9) rotate(6.5deg);opacity:.9;filter:url(#jgInk2)}' +
+    ' 64%{transform:scale(1.07) rotate(6.5deg)}78%{transform:scale(.985) rotate(6.5deg)}' +
+    ' 100%{transform:scale(1) rotate(6.5deg);opacity:.9}}' +
+    // the card takes the hit — a small jolt under the stamp landing
+    '.jg-jolt{animation:jgjolt 560ms cubic-bezier(.2,.8,.3,1) both;}' +
+    '@keyframes jgjolt{0%,100%{transform:translateY(0)}30%{transform:translateY(3px)}' +
+    ' 55%{transform:translateY(-1.5px)}}' +
+    // she asked for no motion? then it is simply a stamp already on the paper
+    '@media (prefers-reduced-motion:reduce){.jg-stamp.live .jg-stampmark,' +
+    '.jg-stamp.live.b .jg-stampmark,.jg-jolt{animation:none;}}';
   document.head.appendChild(css);
+
+  // The ink filters the stamp is drawn through — an feTurbulence displacement
+  // that chews the mark's edges so nothing about it is a clean printed shape.
+  // Two of them (different frequency and seed) so the two halves of a spread
+  // never wear identically. A `filter:url(#…)` needs the filter to be IN the
+  // document, so this rides along with the stylesheet rather than living in
+  // any one page's markup.
+  var inkDefs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  inkDefs.setAttribute('width', '0');
+  inkDefs.setAttribute('height', '0');
+  inkDefs.setAttribute('aria-hidden', 'true');
+  inkDefs.setAttribute('style', 'position:absolute;pointer-events:none');
+  inkDefs.innerHTML =
+    '<filter id="jgInk1" x="-25%" y="-25%" width="150%" height="150%">'
+    + '<feTurbulence type="fractalNoise" baseFrequency="0.085" numOctaves="3" seed="11" result="n"/>'
+    + '<feDisplacementMap in="SourceGraphic" in2="n" scale="6.5" xChannelSelector="R" yChannelSelector="G"/>'
+    + '</filter>'
+    + '<filter id="jgInk2" x="-25%" y="-25%" width="150%" height="150%">'
+    + '<feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="3" seed="4" result="n2"/>'
+    + '<feDisplacementMap in="SourceGraphic" in2="n2" scale="5.5" xChannelSelector="R" yChannelSelector="G"/>'
+    + '</filter>';
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!inkDefs.parentNode) document.body.appendChild(inkDefs);
+  });
+  if (document.body) document.body.appendChild(inkDefs);
 
   // the note + — same glyph compare.js draws, so the mark reads the same
   // wherever she meets it
@@ -506,6 +596,17 @@
       ? opts.states.filter(function (s) { return s && s.label !== undefined; }) : null;
     var browse = !!opts.browse;
     var voice = !!opts.voice;
+    // ── THE GOOD / BAD STAMP (see the CSS). ON by default — it is what a
+    // decided card looks like now; `stamp:false` turns it off for a deck
+    // where a red verdict would be wrong. Her words are overridable because
+    // her own artboard made them a field.
+    var stampOn = opts.stamp !== false;
+    var GOOD_WORD = opts.goodWord || 'GOOD';
+    var BAD_WORD = opts.badWord || 'BAD';
+    // the item whose stamp should ANIMATE on the next paint — set by judge(),
+    // consumed by the paint. A card revisited later still WEARS its stamp; it
+    // just does not slam on a second time.
+    var stampNow = null;
     var piles = (states
       ? states.map(function (s) { return { key: s.key, name: s.label }; })
       : DEFAULT_PILES).concat([{ key: undefined, name: 'Unsorted' }]);
@@ -783,6 +884,9 @@
       if (val === true || val === false || prev === true || prev === false) mirrorVote(it, val);
       // …and into an open lightbox, so its ♥ agrees with the card's
       if (views) views.sync(it, val === true ? 'like' : val === false ? 'dislike' : null);
+      // a yes / no / pick is the one thing the stamp has anything to say
+      // about — so that is what makes it slam on rather than simply sit there
+      stampNow = (val === true || val === false || isPick(it, val)) ? it.id : null;
       if (browse) {
         // A MARK NEVER MOVES THE DECK (Aug 2026, Sophie, on her date deck:
         // "hearting, heart or exing should not move the moment, only tapping
@@ -792,6 +896,21 @@
         // and the swipe navigate. (A deck with no browse mode has no edges to
         // tap, so there the verdict still advances — that is the classic
         // Tinder page and its only way forward.)
+      } else if (stampNow && stampOn) {
+        // A DECK WITH NO BROWSE MODE ADVANCES ON THE MARK — so without this
+        // the stamp would be painted onto a card that is replaced in the same
+        // frame and she would never see it land. The move waits out the
+        // animation instead (the stamp's own 560ms), and the card she is
+        // leaving is the one that wears it.
+        render(true);
+        var leaving = cur;
+        setTimeout(function () {
+          if (cur !== leaving || view !== 'card') return;
+          var n = firstUnjudged();
+          if (n === -1) { view = 'piles'; } else { cur = n; }
+          render(true);
+        }, 620);
+        return;
       } else {
         var next = firstUnjudged();
         if (next === -1) { view = 'piles'; } else { cur = next; }
@@ -965,6 +1084,60 @@
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
+    }
+
+    /** ── PAINTING THE STAMP ──
+     *  A card that carries a yes/no verdict wears the mark; the one just
+     *  decided gets `live` and slams on. It is added to the DOM after the
+     *  card is written rather than built into the card's HTML string, because
+     *  the two render paths (her moment card returns early) would otherwise
+     *  each need their own copy of it.
+     *
+     *  Which mark:
+     *   · a SPREAD she picked a winner on → the winner takes GOOD, the other
+     *     takes BAD, each on its own picture. That is the whole point of the
+     *     pair — "the ones that you pick or don't pick".
+     *   · anything else with ♥ / ✕ → one big stamp across the card.
+     *   · maybe / later / a deck's own words → nothing. There is no good and
+     *     no bad in "sort this one later", and a red stamp would invent a
+     *     verdict she did not give.
+     */
+    function stampHtml(word, side, live) {
+      return '<div class="jg-stamp' + (side === 'b' ? ' b' : '')
+        + (live ? ' live' : '') + '" aria-hidden="true">'
+        + '<span class="jg-stampmark">' + esc(word) + '</span></div>';
+    }
+    function paintStamp(it) {
+      if (!stampOn || !it) return;
+      var v = verdicts[it.id];
+      var live = stampNow === it.id;
+      stampNow = null;
+      var spread = mount.querySelector('.jg-spread');
+      if (spread && isPick(it, v)) {
+        [].slice.call(spread.querySelectorAll('figure')).forEach(function (fig) {
+          var btn = fig.querySelector('[data-pick]');
+          if (!btn) return;
+          var won = btn.getAttribute('data-pick') === v;
+          fig.insertAdjacentHTML('beforeend',
+            stampHtml(won ? GOOD_WORD : BAD_WORD, won ? 'a' : 'b', live));
+        });
+        if (live) joltCard();
+        return;
+      }
+      if (v !== true && v !== false) return;
+      var wrap = mount.querySelector('.jg-cardwrap');
+      if (!wrap) return;
+      wrap.insertAdjacentHTML('beforeend',
+        stampHtml(v === true ? GOOD_WORD : BAD_WORD, 'a', live));
+      if (live) joltCard();
+    }
+    // the paper takes the hit — one small jolt, removed when it finishes so a
+    // later re-render never inherits a spent animation
+    function joltCard() {
+      var card = mount.querySelector('.jg-card');
+      if (!card) return;
+      card.classList.add('jg-jolt');
+      setTimeout(function () { card.classList.remove('jg-jolt'); }, 600);
     }
 
     function render(flash) {
@@ -1150,6 +1323,8 @@
           + '</div></div>'   // the card, then its non-scrolling wrapper
           + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '') : 'jg-row')
           + '">' + row + '</div></div>';
+        // the red mark, over the card she has already decided (see paintStamp)
+        paintStamp(it);
         if (momUI) {
           // a card that overflows its box steps its type down (the `long`
           // rules above) — measured on the real layout, so only the cards
