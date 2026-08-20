@@ -146,6 +146,17 @@ Full findings in `docs/nde-precise-cutting.md`. In short:
   with `phraseSpan`, exactly as if she had read it — `vo-film.js` does this by
   itself (`joinTTS`), so a spec still just gives each shot its `tts` line.
   Don't hand-roll a per-line loop.
+  - **When she picks a take she likes, ANCHOR to it** — `"anchor": "<shot
+    id>"` on the spec renders that line alone, then everything before it with
+    `next_request_ids` and everything after with `previous_request_ids`, so
+    both halves are conditioned on her take. One take fixes the drift; an
+    anchor fixes WHICH take.
+  - **WRITE DOWN EVERY TAKE'S REQUEST ID AT BIRTH.** Request stitching can
+    only be seeded by a request id — audio cannot seed one — so a take whose
+    id you did not keep can never be chained to and must be re-rendered, which
+    is a different take. This cost a real round: six takes were played to her,
+    she picked one, and it could not be reused. `renderTTSText` writes
+    `<take>.wav.id` now.
 - **TTS: `eleven_multilingual_v2`, NEVER `eleven_v3`** ("no one uses v3 ever
   again" — a stale doc note shipped a 15-minute film in the wrong voice).
   Professional clone "Sophie — morning" `UTkHGl2ImiT6gwtAFCql`, settings of
