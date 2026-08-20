@@ -12,6 +12,18 @@ these values; this file is the human record.
 > it is not a recipe to follow. `editor.js`'s live defaults are
 > `eleven_multilingual_v2`, no whisper prefix, tempo 1, constant gain.
 
+> **THE ONE-TAKE RULE (Aug 2026, Sophie: "you're supposed to pick one clip
+> and then chain them all together so that they don't change the register so
+> much").** A narration spread over several shots is rendered as **ONE**
+> ElevenLabs call and then SPLIT, never one call per line. Each request is
+> synthesized independently — pitch, pace and warmth land somewhere slightly
+> different every time — so a per-line film changes register at every cut, and
+> it gets worse the more shots it has. `vo-film.js`'s `joinTTS` does it: the
+> lines are joined into one take, then each shot is located inside it with the
+> same `phraseSpan` path her real recordings use, so the film is one
+> continuous performance cut up. A single-line piece is unaffected (there is
+> nothing to drift against).
+
 ## The voice
 - **Sophie — morning**, ElevenLabs voice id `UTkHGl2ImiT6gwtAFCql`, a
   **professional** (fine-tuned) clone, 7 source samples, ~227MB of morning

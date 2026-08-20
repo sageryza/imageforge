@@ -1,7 +1,7 @@
 [
   {
-    "id": "abundance-2-inventing-uses",
-    "prompt": "Her hand works the scissors, cutting slowly into the cardboard. Everything else in the room holds still. The subject, style and composition of the image are preserved exactly.",
+    "id": "abundance-1-the-flood",
+    "prompt": "A very slow push in toward the woman standing among the boxes. The stacks hold still; a few loose strands of her hair drift. The subject, style and composition of the image are preserved exactly.",
     "model": "wan-2.2-i2v-fast",
     "resolution": "720p",
     "frames": 121,
@@ -16,16 +16,16 @@
     "cost": 0.24
   },
   {
-    "id": "abundance-1-the-flood",
-    "prompt": "A very slow push in toward the woman standing among the boxes. The stacks hold still; a few loose strands of her hair drift. The subject, style and composition of the image are preserved exactly.",
+    "id": "abundance-2-inventing-uses",
+    "prompt": "Her hand works the scissors, cutting slowly into the cardboard. Everything else in the room holds still. The subject, style and composition of the image are preserved exactly.",
     "model": "wan-2.2-i2v-fast",
     "resolution": "720p",
     "frames": 121,
     "cost": 0.24
   },
   {
-    "id": "scarcity-1-velvet-throne",
-    "prompt": "The small glowing bulb on the throne pulses slowly, brighter and then dimmer. The kneeling woman stays still, watching it. The subject, style and composition of the image are preserved exactly.",
+    "id": "scarcity-1-velvet-throne-v2",
+    "prompt": "The small glowing bulb on the velvet throne pulses slowly, brighter and then dimmer. The kneeling woman stays still, watching it. The subject, style and composition of the image are preserved exactly.",
     "model": "wan-2.2-i2v-fast",
     "resolution": "720p",
     "frames": 121,

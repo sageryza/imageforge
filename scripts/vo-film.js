@@ -39,13 +39,17 @@
  * clip's own audio is dropped: the narration is the only sound.
  *
  * Stages, each cached by content hash (state in <dir>/state.json):
+ *   0 tts     the film's tts lines are rendered as ONE TAKE and each shot is
+ *             then located inside it, exactly like a real recording — a call
+ *             per shot changes register at every cut (see joinTTS).
  *   1 prep    per source: vo-remove-pauses on the ORIGINAL (two-pass
  *             detector), then chunked 75s whisper word timestamps of the
- *             cleaned master.
+ *             cleaned master. `"denoise": false` on a source skips the
+ *             detector (a synthesized take has no room tone to measure).
  *   2 cut     per shot: editor.js's phraseSpan + clampBounds + snapToSilence
  *             locate every span in the cleaned master; spans from one source
  *             are clamped non-overlapping in TIME; then the shot is cleaned
- *             on WORD TIMING (see below). TTS shots render on
+ *             on WORD TIMING (see below). TTS renders on
  *             eleven_multilingual_v2 (NEVER v3), cached by text.
  *   3 verify  per shot: transcribe THIS SHOT once (cached by its md5), LCS
  *             word-diff against its own phrases, wordless-gap measurement.
@@ -212,12 +216,18 @@ async function prepSources() {
       out[key] = { clean, words: hit.words };
       continue;
     }
-    console.log(`prep ${key}: cleaning (two-pass detector)…`);
-    await new Promise((res, rej) => {
-      execFile('node', [path.join(REPO, 'scripts', 'vo-remove-pauses.js'), raw, clean],
-        { cwd: REPO, timeout: 1200000, maxBuffer: 32e6 },
-        (err, so, se) => err ? rej(new Error(`vo-remove-pauses ${key}: ${(se || err.message).slice(-300)}`)) : res());
-    });
+    if (SPEC.sources[key].denoise === false) {
+      // already clean (a synthesized take) — the two-pass detector measures a
+      // real room's floor and has nothing to measure here
+      run(FFMPEG, ['-v', 'error', '-y', '-i', raw, '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', clean]);
+    } else {
+      console.log(`prep ${key}: cleaning (two-pass detector)…`);
+      await new Promise((res, rej) => {
+        execFile('node', [path.join(REPO, 'scripts', 'vo-remove-pauses.js'), raw, clean],
+          { cwd: REPO, timeout: 1200000, maxBuffer: 32e6 },
+          (err, so, se) => err ? rej(new Error(`vo-remove-pauses ${key}: ${(se || err.message).slice(-300)}`)) : res());
+      });
+    }
     console.log(`prep ${key}: word timestamps…`);
     const words = await wordsChunked(clean);
     out[key] = { clean, words };
@@ -264,16 +274,16 @@ function locateSpans(sources) {
   })();
 }
 
-async function renderTTS(shot) {
-  if (!process.env.ELEVENLABS_API_KEY) throw new Error(`shot ${shot.id} needs TTS but ELEVENLABS_API_KEY is not set`);
-  const key = sha1(`${VOICE}|eleven_multilingual_v2|${shot.tts}`);
+async function renderTTSText(text, label) {
+  if (!process.env.ELEVENLABS_API_KEY) throw new Error(`${label} needs TTS but ELEVENLABS_API_KEY is not set`);
+  const key = sha1(`${VOICE}|eleven_multilingual_v2|${text}`);
   const wav = path.join(DIR, `tts-${key.slice(0, 12)}.wav`);
   if (fs.existsSync(wav)) return wav;
   const r = await fetchRetry(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}`, {
     method: 'POST',
     headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      text: shot.tts,
+      text,
       model_id: 'eleven_multilingual_v2', // NEVER eleven_v3 — the voice rule
       voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
     }),
@@ -282,6 +292,39 @@ async function renderTTS(shot) {
   fs.writeFileSync(mp3, Buffer.from(await r.arrayBuffer()));
   run(FFMPEG, ['-v', 'error', '-y', '-i', mp3, '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', wav]);
   return wav;
+}
+
+const renderTTS = (shot) => renderTTSText(shot.tts, `shot ${shot.id}`);
+
+// ONE TTS RENDER FOR THE WHOLE FILM, THEN SPLIT IT (Aug 2026, Sophie: "you're
+// supposed to pick one clip and then chain them all together so that they
+// don't change the register so much"). Every ElevenLabs request is synthesized
+// independently, so a film built from one call per shot changes register at
+// every cut — audibly, and worse the more shots there are. So the tts lines are
+// rendered as a SINGLE take and each shot is then located inside it with the
+// same phraseSpan/clamp/snap path her real recordings already use: the film
+// hears one continuous performance, cut up, which is exactly what it would be
+// if she had read it herself.
+//
+// The joint take is registered as an ordinary source with `denoise:false` —
+// vo-remove-pauses is the two-pass detector built for HER rooms (fan, blanket,
+// phone), and synthesized speech has no room tone for pass 2 to measure. The
+// per-shot word-timing clean still runs, which is the pass that belongs on
+// clean audio; it also compresses TTS's over-long comma breaths on the way.
+const TTS_SRC = '__tts';
+async function joinTTS() {
+  const tts = SPEC.shots.filter((s) => s.tts);
+  if (tts.length < 2) return; // a single line has no register to drift against
+  const script = tts.map((s) => String(s.tts).trim()).join('\n\n');
+  console.log(`tts: one take for ${tts.length} shots (${script.length} chars)…`);
+  const wav = await renderTTSText(script, 'the joint TTS take');
+  SPEC.sources = { ...(SPEC.sources || {}), [TTS_SRC]: { file: wav, denoise: false } };
+  for (const s of tts) {
+    s.ttsText = s.tts;          // kept for the delivery report — the words are unchanged
+    s.source = TTS_SRC;
+    s.phrases = [s.tts];
+    delete s.tts;               // it is a phrases shot from here on
+  }
 }
 
 async function cutShot(shot, si, spans, sources, filmSpeech85) {
@@ -522,6 +565,7 @@ function deadAir(file) { // vo-verify's film check, local and free
 // ---- main -------------------------------------------------------------------
 (async () => {
   if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+  await joinTTS();
   const sources = await prepSources();
   const spans = await locateSpans(sources);
 
@@ -538,7 +582,7 @@ function deadAir(file) { // vo-verify's film check, local and free
     const mine = spans.filter((s) => s.shotIdx === si);
     const ck = `cut|${TOOLV}|${shot.id}|${sha1(JSON.stringify({
       spans: mine.map((s) => [s.source, +s.t0.toFixed(3), +s.t1.toFixed(3), s.text]),
-      tts: shot.tts || null, speech: +filmSpeech85.toFixed(1),
+      tts: shot.ttsText || shot.tts || null, speech: +filmSpeech85.toFixed(1),
     }))}`;
     const OUTD = path.join(DIR, 'shots');
     const finalPath = path.join(OUTD, `shot-${String(si).padStart(2, '0')}-${shot.id}.wav`);
@@ -550,7 +594,7 @@ function deadAir(file) { // vo-verify's film check, local and free
     } else {
       info = await cutShot(shot, si, spans, sources, filmSpeech85);
       put(ck, { md5: md5f(info.file), text: info.text });
-      console.log(`cut ${shot.id}: ${dur(info.file).toFixed(2)}s${shot.tts ? ' (TTS)' : ''}`);
+      console.log(`cut ${shot.id}: ${dur(info.file).toFixed(2)}s${(shot.ttsText || shot.tts) ? ' (TTS)' : ''}`);
     }
     const v = await verifyShot(shot, info);
     if (!v.ok) {
@@ -587,8 +631,8 @@ function deadAir(file) { // vo-verify's film check, local and free
   fs.writeFileSync(script, shots.map((s) => s.text).join('\n'));
   const total = lens.reduce((a, b) => a + b, 0);
   console.log(`film: ${out} — ${Math.floor(total / 60)}:${String(Math.round(total % 60)).padStart(2, '0')}, ${SPEC.shots.length} shots, 0 dead-air runs`);
-  const ttsShots = SPEC.shots.filter((s) => s.tts);
-  if (ttsShots.length) console.log(`TTS lines (say these to Sophie word for word): ${ttsShots.map((s) => JSON.stringify(s.tts)).join(' · ')}`);
+  const ttsShots = SPEC.shots.filter((s) => s.ttsText || s.tts);
+  if (ttsShots.length) console.log(`TTS lines (say these to Sophie word for word): ${ttsShots.map((s) => JSON.stringify(s.ttsText || s.tts)).join(' · ')}`);
 
   if (flag('final')) {
     console.log('final gate: vo-verify full transcription…');
