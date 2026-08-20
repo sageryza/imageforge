@@ -1643,7 +1643,7 @@ router.post('/archive-kind', async (req, res) => {
 // question and lives there (`ARCHIVE_ONLY` / `LIVE_ONLY` in chats.html) — this
 // list is the vocabulary, not the row.
 const TAGS = ['bug fix', 'new feature', 'built', 'failure', 'story', 'quick question',
-  'images', 'film', 'audio', 'writing', 'research'];
+  'film', 'research'];
 
 // ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
 // "tagging shouldn't hide everything, or maybe just for certain categories —

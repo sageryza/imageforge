@@ -529,7 +529,23 @@
     `paintVocabChips(row, mk, {archive})` is the ONE place either list is
     applied; both are PRESENTATION ONLY, so a word already on a chat still
     renders, filters and saves everywhere it already is. `waiting for a response`
-    also joined `TASK_LABELS` the same day, at her ask. The archive's own filter
+    also joined `TASK_LABELS` the same day, at her ask.
+    **`research` and `quick question` joined ARCHIVE_ONLY two days later**
+    (Sophie: "research goes in progress not categories" → "so does quick
+    question" → "quick question and research should only be in the archive tag
+    tab"). Being on that list answers BOTH halves at once — an ARCHIVE_ONLY word
+    is offered in the archive and nowhere else, AND is read as a progress word
+    there, since `paintVocabChips` puts `ARCHIVE_ONLY.concat(TASK_LABELS)` at the
+    head of the group. **So do not also add one to `TASK_LABELS`**: that would
+    put it straight back on the home row and into Organize, which is the
+    opposite of the ask.
+  - **THREE WORDS SHE HAD NEVER MADE WERE FORGOTTEN (Aug 2026, Sophie: "get rid
+    of images audio and writing", after asking who had made them — the answer
+    being the chat that built the row, not her).** Measured the day they went:
+    `images` 0 chats, `writing` 0, `audio` 3 (all archived, which lost the word).
+    They came out of `TAGS`/`TAG_LIST` and off every chat via
+    `POST /labels/forget`. `film` is the survivor of that group of five, and is
+    what tests should reach for when they need a plain tag word. The archive's own filter
     row obeys the SAME split (below). Test:
     `node scripts/test-chats-tag-visibility.js`.
   - **THE ARCHIVE IS TWO SURFACES, AND THE FIRST PASS ONLY FIXED ONE (Aug 2026,
