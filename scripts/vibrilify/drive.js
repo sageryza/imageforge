@@ -109,6 +109,35 @@ const cmds = {
     console.log(JSON.stringify({ ok: r.ok, scene: sid }));
   },
 
+  // One clip job at a time, resumable — the measured rule (CLAUDE.md,
+  // Opinions 2026-08-19): parallel bulk batches die to a server restart on
+  // the 512MB box; strictly serial runs complete clean. Skips done clips and
+  // the merged half of a pair, so a killed run just re-runs from where it was.
+  async 'clips-serial'() {
+    for (let i = 0; ; i++) {
+      const movie = await api('GET', `/${state.movieId}`);
+      const next = movie.scenes.findIndex((s, idx) =>
+        s.panel?.url && s.clip?.status !== 'done'
+        && !(idx > 0 && movie.scenes[idx - 1].pairWithNext));
+      if (next < 0) { console.log(JSON.stringify({ done: true, spend: movie.spend })); return; }
+      const scene = movie.scenes[next];
+      process.stderr.write(`clip ${next} "${scene.title}"…\n`);
+      const frames = spec.scenes[next]?.clipFrames;
+      await api('POST', `/${state.movieId}/scenes/${scene.id}/clip`, { tier: 'draft', ...(frames ? { frames } : {}) });
+      for (;;) {
+        await new Promise(r => setTimeout(r, 15000));
+        const m2 = await api('GET', `/${state.movieId}`);
+        const j = m2.job || {};
+        if (j.status !== 'running') {
+          const s2 = m2.scenes[next];
+          process.stderr.write(`  → ${s2.clip?.status} ${s2.clip?.error || ''}\n`);
+          if (s2.clip?.status !== 'done') throw new Error(`clip ${next} failed: ${s2.clip?.error || j.error || 'unknown'}`);
+          break;
+        }
+      }
+    }
+  },
+
   async panels() { console.log(JSON.stringify((await api('POST', `/${state.movieId}/panels`, { quality: spec.panelQuality })).job || { ok: true })); },
   async clips() {
     const frames = {};
