@@ -42,6 +42,33 @@ Assets PROMPT overlay reads, and a paraphrase there is not allowed.
   lap, stroking the glowing thing with one finger, a saucer beside her.
 - `both-1-diptych` — the two concepts split down the middle of one picture.
 
+## The film (v1, 0:35)
+
+Draft tier throughout: `wan-2.2-i2v-fast` (movies.js `VIDEO_MODELS.draft`,
+same pinned version), **720p, 121 frames** (~7.5s), $0.24 a clip — $1.44 for
+six. Narration is her cloned voice, `eleven_multilingual_v2`, settings of
+record. Assembled by `scripts/vo-film.js`, which grew a **video shot** for
+this (`"video"` instead of `"image"`); it passes the `--final` vo-verify gate
+— 0 dead-air runs, 97.7% script match.
+
+    node scripts/abundance-scarcity/animate.js /home/user/out/abundance-film
+    node scripts/vo-film.js scripts/abundance-scarcity/film.json \
+      --dir /home/user/out/abundance-film/work --final
+
+**A clip is RETIMED to its narration line, never frozen or looped.** The lines
+run 1.8–9.3s against a fixed 7.57s clip, so each clip is stretched or
+compressed to its own line with `setpts`. A held last frame reads as the film
+hanging; a loop jumps back to frame one mid-sentence.
+
+Video lives in Storage, not the repo (no `.mp4` has ever been committed here):
+
+- Film — `abundance-scarcity/abundance-scarcity-v1.mp4`
+- Clips — `abundance-scarcity/clips/clip-<id>.mp4`
+- both under `https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/`
+
+`clips.json` records the exact motion prompt sent for each clip; `film.json`
+holds the exact narration lines.
+
 ## What was invented, and by whom
 
 Sophie described the concepts, not the pictures. Everything below is a choice
@@ -59,3 +86,17 @@ it for her direction:
 - **The diptych composition** itself, and the hand reaching in from off-frame
   on its left half.
 - **"No text or lettering anywhere."** — the house line, on every scene.
+
+And in the film:
+
+- **Every motion prompt** — she asked for animation, not for these movements.
+  They are in `clips.json`, one per clip, exactly as sent.
+- **The narration is her own words from the message that started this**, with
+  four changes: "I went to spot these cardboard boxes" → "I got these
+  cardboard boxes" (a dictation garble); the thesis line ("certain things are
+  taken for granted … we have tons of them") moved from the opening to the
+  closing shot; "And then" added at the head of the scarcity half; a few
+  "like"s dropped. **Written with no internal commas on purpose** — a first
+  pass with them made v2 breathe at every one, leaving three ~1s holes the
+  dead-air check caught. Her dictation had no commas either, so the
+  comma-free lines are the closer copy.
