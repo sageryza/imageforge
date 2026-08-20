@@ -92,18 +92,19 @@ struct BriefView: View {
 final class BriefWebRef: ObservableObject { weak var web: WKWebView? }
 
 private struct BriefWebView: UIViewRepresentable {
-    /// Leave the tool — what `window.__forgeLeave()` reaches now that
-    /// the page draws the back chevron instead of Apple's bar.
-    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: BriefWebRef
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        // The nav bar carries the title, so the page hides its own (body.native).
+        // The page draws its own header now (ForgePageHeader): this installs
+        // the bridge its back chevron calls to leave the tool.
         context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator

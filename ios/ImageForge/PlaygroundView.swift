@@ -54,7 +54,7 @@ struct PlaygroundView: View {
             }
         }
         .background(Self.paper.ignoresSafeArea())
-        // Standard tool header: the nav-bar chevron is THE back arrow — the
+        // Standard tool header: the PAGE draws the back chevron — the
         // page consumes it while its lightbox is open, then it leaves the tool.
         .forgeWebToolBar("Playground", tint: Self.ink, paper: Self.paper, failed: loadFailed, back: navBack)
     }
@@ -71,8 +71,8 @@ struct PlaygroundView: View {
     }
 }
 
-/// Hands the loaded WKWebView up to the SwiftUI layer so the nav-bar chevron
-/// can talk to the page.
+/// Hands the loaded WKWebView up to the SwiftUI layer so the page's own back
+/// chevron can be answered (and the failure screen's bar still works).
 final class PlaygroundWebRef: ObservableObject { weak var web: WKWebView? }
 
 /// A one-shot query string another tool wants the Playground opened with —
@@ -93,17 +93,17 @@ enum PlaygroundPrefill {
 /// WKWebView host: answers the studio gate's HTTP Basic challenge with the
 /// stored token, same pattern as the Episode Editor.
 private struct PlaygroundWebView: UIViewRepresentable {
-    /// Leave the tool — what `window.__forgeLeave()` reaches now that
-    /// the page draws the back chevron instead of Apple's bar.
-    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: PlaygroundWebRef
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        // Tells the page this build's nav bar carries the back chevron, so it
-        // hides any in-page back affordance — never both.
+        // The page draws its own header now (ForgePageHeader): this installs
+        // the bridge its back chevron calls to leave the tool.
         context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // Save to Photos has to happen natively. The page's share-sheet path
         // works in a browser but not reliably inside a WKWebView, so the page
