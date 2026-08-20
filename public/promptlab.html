@@ -1157,23 +1157,22 @@
     var url = document.getElementById('lbimg').src;
     var native = nativeSaver();
     if (native) { native.postMessage(url); toast('Saving…'); return; }
+    if (!(lbBlob && lbBlob.url === url)) { toast('Still loading that image — try again'); return; }
+    // Named after the BYTES, not after what the Playground usually makes: a
+    // .webp name on png bytes is what the share sheet saves it as, and Photos
+    // rejects webp outright.
+    var ext = ((lbBlob.blob.type || '').split('/')[1] || 'png').replace('jpeg', 'jpg');
     var file = null;
-    if (lbBlob && lbBlob.url === url) {
-      try { file = new File([lbBlob.blob], 'playground.webp', { type: lbBlob.blob.type || 'image/webp' }); } catch (e) {}
-    }
+    try { file = new File([lbBlob.blob], 'playground.' + ext, { type: lbBlob.blob.type || 'image/png' }); } catch (e) {}
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file] })
         .catch(function (err) { if (err && err.name !== 'AbortError') toast('Couldn’t open the share sheet'); });
       return;
     }
-    if (lbBlob && lbBlob.url === url) {
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(lbBlob.blob);
-      a.download = 'playground.webp';
-      document.body.appendChild(a); a.click(); a.remove();
-      return;
-    }
-    toast('Still loading that image — try again');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(lbBlob.blob);
+    a.download = 'playground.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
   });
 
   var toastTimer = null;

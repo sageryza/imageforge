@@ -1,6 +1,6 @@
 import SwiftUI
 import WebKit
-import UIKit   // UIImageWriteToSavedPhotosAlbum — the forgeSave bridge
+import UIKit
 
 /// Meta Assets — every chat's Assets tab in one automatic, filing-ordered
 /// place (Aug 2026, Sophie: "it will just replace my creations"). Wraps the
@@ -15,7 +15,8 @@ import UIKit   // UIImageWriteToSavedPhotosAlbum — the forgeSave bridge
 /// server folds the app-made creations into the same feed.
 ///
 /// The page's Save icon posts the image url through the `forgeSave` bridge
-/// (the Playground's pattern) so saving lands in the real Photos library.
+/// (ForgeSaveBridge — the same saver the native gallery uses) so saving lands
+/// in the real Photos library, and says so only when it really did.
 struct MetaAssetsView: View {
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
@@ -96,8 +97,9 @@ private struct MetaAssetsWebView: UIViewRepresentable {
         context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // Save to Photos has to happen natively: the page's share-sheet path
         // works in a browser but not reliably inside a WKWebView, so the page
-        // hands the image url over here (the Playground's pattern).
-        config.userContentController.add(context.coordinator, name: "forgeSave")
+        // hands the image url over here — through the ONE saver the native
+        // gallery uses (ForgeSaveBridge), never a per-tool copy.
+        context.coordinator.saveHandler = ForgeSaveBridge.install(into: config)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
@@ -116,34 +118,12 @@ private struct MetaAssetsWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        /// `addScriptMessageHandler` does not retain — this does.
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        /// `addScriptMessageHandler` does not retain — these do.
         var leaveHandler: ForgeLeaveHandler?
+        var saveHandler: ForgeSaveHandler?
         let parent: MetaAssetsWebView
         init(_ parent: MetaAssetsWebView) { self.parent = parent }
-
-        /// The page's Save icon: `forgeSave.postMessage(<image url>)`. Fetch
-        /// it, write it to Photos, and tell the page how it went so its toast
-        /// is the truth rather than a guess.
-        func userContentController(_ controller: WKUserContentController,
-                                   didReceive message: WKScriptMessage) {
-            guard message.name == "forgeSave",
-                  let raw = message.body as? String,
-                  let url = URL(string: raw) else { return }
-            let web = message.webView
-            Task {
-                var ok = false
-                if let (data, _) = try? await URLSession.shared.data(from: url),
-                   let image = UIImage(data: data) {
-                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-                    ok = true
-                }
-                let msg = ok ? "Saved to Photos" : "Couldn’t save that image"
-                await MainActor.run {
-                    web?.evaluateJavaScript("window.__saveResult && window.__saveResult(\(ok), '\(msg)')")
-                }
-            }
-        }
 
         // The /assets page sits behind HTTP Basic (any user, password = token).
         func webView(_ webView: WKWebView,
