@@ -1946,10 +1946,31 @@
     - **An open BOX stays one flat list** — filing a card into Come back to /
       In a minute was the triage; sectioning inside would sort seven cards
       she already sorted.
+    - **EACH SECTION FOLDS (Aug 2026, Sophie: "can y make the categories in
+      the update [tab] collapsible").** The header IS the button — the whole
+      line, ~36px of thumb, absorbed by negative margins so the words sit
+      where they always did — with a ⌄ that turns to a › when it is shut. The
+      one that needs it is QUICK DECISIONS: 24 of the 33 cards were asks the
+      day the sections shipped, so folding it puts the two piles she opens
+      this screen to LOOK at back on one screen without filing anything.
+      - **The header and its count STAY**, so a folded section is visibly
+        folded rather than missing. Nothing is marked seen and nothing is
+        filed — this is a fold, not a triage.
+      - **SESSION-ONLY, and every load starts OPEN** — the hidden pile's rule
+        and the MORE fold's, for the same reason: a fold that remembered
+        itself would hide a section one morning with no memory of having
+        asked for it.
+      - **Folding DROPS the picks inside it**, the way leaving the tab does. A
+        picked card she can no longer see is one the next tap on a box would
+        file without her, so the DONE chip goes with them.
+      - An open BOX has no headers, so there is nothing to fold there.
     - Tests: `node scripts/test-chats-news-sections.js` (the real page,
       headless — the order, the counts, the need-vs-deliverable priority, the
       stale-pictures case, the vanishing empty header, the flat box; v2: the
-      pin-raised card, the go-look need, the stale pin, the link pin).
+      pin-raised card, the go-look need, the stale pin, the link pin) and
+      `node scripts/test-chats-news-collapse.js` (the fold: the header as the
+      tap target, one section folding without moving another, the picks
+      dropped with it, session-only across a reload).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must

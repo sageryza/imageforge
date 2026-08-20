@@ -710,6 +710,20 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .sthead{font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2); margin:1.9em 0 .35em; display:flex; align-items:baseline; gap:8px;}
 .sthead .stn{color:var(--rose); font-weight:600;}
 #grid .sthead:first-child{margin-top:.3em;}
+/* The Update tab's section headers FOLD (Aug 2026, Sophie: "can y make the
+   categories in the update [tab] collapsible"). The whole header line is the
+   button — a chevron alone is the tap target this app has already had to grow
+   twice (test-chats-tap-targets.js) — so the padding buys ~36px of thumb and
+   the negative margins give it straight back, leaving the words on the pixel
+   they always sat on. */
+button.sthead{-webkit-appearance:none; appearance:none; background:none; border:0;
+  width:100%; text-align:left; padding:11px 2px; cursor:pointer;
+  margin:calc(1.9em - 11px) 0 calc(.35em - 11px); -webkit-tap-highlight-color:transparent;}
+#grid button.sthead:first-child{margin-top:calc(.3em - 11px);}
+.sthead .nwfoldic{margin-left:auto; width:15px; height:15px; align-self:center; color:var(--ink2);
+  transition:transform .15s;}
+.sthead .nwfoldic svg{width:100%; height:100%; display:block;}
+.sthead.folded .nwfoldic{transform:rotate(-90deg);}
 .cr-snip{display:block; font-size:14.5px; line-height:1.35; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
 /* ---- The note line under a chat's name (Aug 2026, Sophie) ----------------
    ONE line, ONE look — italic, quiet, never bold, never rose. Hers and a
@@ -2956,6 +2970,45 @@ function newsKind(it){
   if(need) return 'decide';
   return 'read';
 }
+// ---- FOLDING A SECTION (Aug 2026, Sophie: "can y make the categories in the
+// update [tab] collapsible") ----------------------------------------------
+// The three sections above are the categories she means, and the one that
+// needs folding is the big one: measured the day the sections shipped, 24 of
+// 33 cards were QUICK DECISIONS, so the two piles she opens this screen to
+// LOOK at were under two dozen asks. Folding that one puts them back on one
+// screen without filing anything.
+//
+// SESSION-ONLY, AND EVERY LOAD STARTS OPEN — the hidden pile's rule and the
+// MORE fold's, for the same reason: a fold that remembered itself would hide
+// a section one morning with no memory of having asked for it. The header and
+// its count stay on screen either way, so a folded section is visibly folded,
+// never missing.
+//
+// FOLDING A SECTION DROPS THE PICKS INSIDE IT, the same way leaving the tab
+// does: a picked card she can no longer see is a card the next tap on a box
+// would file without her.
+var newsFold={};      // kind → 1 while that section is folded shut
+function newsFoldHead(pair, n){
+  var shut=!!newsFold[pair[0]];
+  var h=document.createElement('button');
+  h.className='sthead nwfold'+(shut?' folded':'');
+  h.dataset.kind=pair[0];
+  h.setAttribute('aria-expanded', shut?'false':'true');
+  h.innerHTML=esc(pair[1])+(n?' <span class="stn">'+n+'</span>':'')
+    +'<span class="nwfoldic">'+NWDN+'</span>';
+  h.onclick=function(){ toggleNewsFold(pair[0]); };
+  return h;
+}
+function toggleNewsFold(kind){
+  if(newsFold[kind]) delete newsFold[kind];
+  else {
+    newsFold[kind]=1;
+    newsList(groups()).forEach(function(it){
+      if(newsKind(it)===kind) delete newsPick[it.chat];
+    });
+  }
+  renderHome();                 // no scrollTo — she stays where she tapped
+}
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
 // Tapping one with nothing picked OPENS that box (tap it again to come back —
 // the category chips' convention, and why there is no "All" chip to reach
@@ -3262,7 +3315,8 @@ function renderNews(el){
       NEWS_KINDS.forEach(function(pair){
         var sub=items.filter(function(it){ return newsKind(it)===pair[0]; });
         if(!sub.length) return;              // an empty section is silent
-        el.appendChild(stHead(pair[1], sub.length));
+        el.appendChild(newsFoldHead(pair, sub.length));
+        if(newsFold[pair[0]]) return;        // folded — the header keeps its count
         sub.forEach(function(it){ el.appendChild(newsCard(it)); });
       });
     }
