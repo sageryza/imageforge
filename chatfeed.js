@@ -1637,7 +1637,12 @@ router.post('/archive-kind', async (req, res) => {
 // folders were always free text and she names things herself, so refusing her
 // a word here only meant the two halves could never merge. The ten legacy tag
 // words survive as SEEDS in the page, so nothing already tagged loses its chip.
-const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
+// `failure` joined them Aug 2026 with the page's ARCHIVE_ONLY group; the old
+// `failed` had reached no chat at all and was forgotten with `POST
+// /labels/forget`. Which of these the page OFFERS where is a presentation
+// question and lives there (`ARCHIVE_ONLY` / `LIVE_ONLY` in chats.html) — this
+// list is the vocabulary, not the row.
+const TAGS = ['bug fix', 'new feature', 'built', 'failure', 'story', 'quick question',
   'images', 'film', 'audio', 'writing', 'research'];
 
 // ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
@@ -1660,8 +1665,12 @@ const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
 // self-defeating: every new word joins that list, so every new word would file.
 // `__settings.pileLabels` overrides the seed WHOLESALE once she touches the
 // switch — it is the answer, not a diff.
-const PILE_SEEDS = ['look at', 'stories', 'come back to', 'witch', 'tech', 'xi',
-  'just for fun', 'weird games', 'meta', 'dream app', 'chunk making',
+// Two words left the seed in Aug 2026, both by her hand and both through
+// `POST /labels/forget`: `stories` was merged INTO `story` (which takes its
+// place here, so none of the 36 chats fell back onto her main list) and
+// `weird games` was dropped outright.
+const PILE_SEEDS = ['look at', 'story', 'come back to', 'witch', 'tech', 'xi',
+  'just for fun', 'meta', 'dream app', 'chunk making',
   'waiting for something', 'to be reviewed'];
 
 // The one word that ALSO routes: a chat carrying it becomes a row in the Review
@@ -1817,6 +1826,91 @@ router.post('/labels', async (req, res) => {
     if (!names.length) return res.json({ ok: true, chats: [], labels: {} });
     const r = await applyLabels(names, { set, add, remove });
     res.json({ ok: true, ...r });
+  } catch (err) { fail(res, err); }
+});
+
+// ---- FORGETTING A WORD, AND MOVING WHAT IS IN IT (Aug 2026, Sophie:
+// "there's a story and stories tags — get rid of stories, but make sure to put
+// everything that's in stories currently into story before you get rid of it" ·
+// "get rid of the weird games tag, I don't know who made that either") --------
+// Every other route here ADDS to the vocabulary and none could take a word out
+// of it, because `rememberLabels` writes `__settings.categories` with an
+// `arrayUnion` — so a word she had finished with survived being stripped off
+// every chat and came back as an empty chip forever. Three places hold a word
+// and this is the only call that clears all three: the chats wearing it, the
+// remembered vocabulary, and the pile list.
+//
+// `into` is what makes it a MERGE rather than a delete, and it runs FIRST on
+// every chat, in the same write: nothing is ever left holding neither word. A
+// chat already wearing both keeps one (cleanLabels de-dupes), and one wearing
+// only the old word comes out the other side filed exactly as it was.
+//
+// **A MERGED WORD DOES NOT INHERIT PILE-NESS** — that is deliberate and it is
+// the one thing to check before running this. `stories` filed a chat away and
+// `story` did not, so merging 36 chats into it would have dumped all 36 onto
+// her main list; `PILE_SEEDS` was edited in the same commit so the survivor
+// takes the forgotten word's place. Check `GET /pile` first and say so.
+//
+// `catBy` is PRESERVED per chat rather than stamped `sophie`: renaming her own
+// vocabulary is not a filing decision about the 2 chats the auto-sorter had
+// filed, and stamping them would lock the sorter out of them forever.
+router.post('/labels/forget', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const label = String(body.label || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    const into = String(body.into || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    if (!label) return res.status(400).json({ error: 'label required' });
+    if (into === label) return res.status(400).json({ error: 'into must differ from label' });
+    const dry = body.dry === true;
+
+    const reg = await registry();
+    const moved = Object.keys(reg.chats).filter(
+      (n) => labelsOf(reg.chats[n]).indexOf(label) > -1);
+    const labels = {};
+    moved.forEach((n) => {
+      const next = labelsOf(reg.chats[n]).filter((t) => t !== label);
+      if (into && next.indexOf(into) < 0) next.push(into);
+      labels[n] = cleanLabels(next);
+    });
+
+    const piles = pileList(reg.settings);
+    const nextPiles = piles.filter((c) => c !== label);
+    const droppedPile = nextPiles.length !== piles.length;
+    if (dry) {
+      return res.json({ ok: true, dry: true, label, into: into || null,
+        chats: moved, labels, droppedPile, intoIsPile: !!into && piles.indexOf(into) > -1 });
+    }
+
+    // The chats first: a failure partway leaves a word that still has chips and
+    // still finds things, which is recoverable by running it again. Clearing the
+    // vocabulary first would leave the survivors unreachable instead.
+    for (let i = 0; i < moved.length; i += 400) {
+      const slice = moved.slice(i, i + 400);
+      const batch = db().batch();
+      slice.forEach((n) => {
+        const by = reg.chats[n] && reg.chats[n].catBy;
+        batch.set(regRef(n), labelPatch(labels[n], by ? { by } : {}), { merge: true });
+      });
+      await batch.commit();
+    }
+
+    // The vocabulary. `arrayRemove` and `arrayUnion` cannot be in one patch for
+    // the same field, so the survivor is added in a second write — and it is
+    // added at all because a merge must not depend on the word already being
+    // remembered.
+    await regRef(SETTINGS_DOC).set(
+      { categories: admin.firestore.FieldValue.arrayRemove(label) }, { merge: true });
+    if (into) {
+      await regRef(SETTINGS_DOC).set(
+        { categories: admin.firestore.FieldValue.arrayUnion(into) }, { merge: true });
+    }
+    // `pileLabels` is only written when it is ALREADY hers — the seed lives in
+    // code, and materialising it here would freeze today's default into her
+    // settings, which is exactly what `POST /pile` avoids doing.
+    if (Array.isArray(reg.settings && reg.settings.pileLabels) && droppedPile) {
+      await regRef(SETTINGS_DOC).set({ pileLabels: nextPiles }, { merge: true });
+    }
+    res.json({ ok: true, label, into: into || null, chats: moved, labels, droppedPile });
   } catch (err) { fail(res, err); }
 });
 

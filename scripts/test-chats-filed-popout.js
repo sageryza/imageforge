@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // A filed chat COMES BACK when it answers (Aug 2026, Sophie: "it's been a
-// problem when chats are in stories and they don't pop out back into the main
+// problem when chats are in story and they don't pop out back into the main
 // list when they're done, so I think let's have them pop back out"). Filing
 // means "not in my way", not "gone" — the same shape as the hidden pile.
 //
@@ -64,10 +64,10 @@ const server = http.createServer((req, res) => {
     return json({
       build: 'test-build-1',
       chats: {
-        'chat-filed': { lastSeen: MSGS[0].created, category: 'stories', filedAt: refiledAt || iso(T0 - 3600000) },
-        'chat-legacy': { lastSeen: MSGS[1].created, category: 'stories' },
+        'chat-filed': { lastSeen: MSGS[0].created, category: 'story', filedAt: refiledAt || iso(T0 - 3600000) },
+        'chat-legacy': { lastSeen: MSGS[1].created, category: 'story' },
         'chat-open': { lastSeen: MSGS[2].created },
-        'chat-gone': { lastSeen: MSGS[3].created, category: 'stories', filedAt: iso(T0 - 3600000), archived: true },
+        'chat-gone': { lastSeen: MSGS[3].created, category: 'story', filedAt: iso(T0 - 3600000), archived: true },
       },
       settings: {}, truncated: [],
       messages: (() => {
@@ -93,7 +93,7 @@ const openFolder = async (page, on) => {
   // Category words live behind SEE MORE now (Aug 2026) — unfold them too.
   if (await page.$('#catrow .morechip')) await page.click('#catrow .morechip');
   await page.$$eval('#catrow .catchip', (ns) => {
-    const c = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Stories');
+    const c = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Story');
     if (c) c.click();
   });
   await page.waitForTimeout(80);
@@ -136,7 +136,7 @@ const openFolder = async (page, on) => {
   await openFolder(page);   // back to the unfiled list
 
   // 3. READING IT DOES NOT SETTLE IT (Sophie, v2: "reading it shouldn't send
-  //    it back to stories — it should stay in both places until I file it
+  //    it back to story — it should stay in both places until I file it
   //    away again or respond"). Mark it seen the way opening it does; it must
   //    still be in both places after a full reload.
   await page.evaluate(() => {
