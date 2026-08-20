@@ -2448,14 +2448,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     "a couple days ago we added a what's new button to the main screen, but I
     wanted it to go on the update screen — could you rename it Update, no
     icon, and put it on the update screen").** It shipped as "What's new" with
-    a list icon on the iOS home screen; it is `newsUpdRow` in `chats.html`
-    now — first thing on the tab, above the Review row, the word and nothing
-    else. It is on EVERY paint of that tab, the caught-up one included: the
-    page behind it answers a different question from the cards, so an empty
-    list is no reason to take the door away. It carries no count, for the same
-    reason it never did on the home screen. `BriefView.swift` is kept but
-    unmounted, and /brief opens inside the Chats web view with its own chevron
-    back.
+    a list icon on the iOS home screen. It is on EVERY paint of that tab, the
+    caught-up one included: the page behind it answers a different question
+    from the cards, so an empty list is no reason to take the door away. It
+    carries no count, for the same reason it never did on the home screen.
+    `BriefView.swift` is kept but unmounted, and /brief opens inside the Chats
+    web view with its own chevron back.
+  - **IT IS A CHIP, AND IT SITS ABOVE THE ACCOUNT TABS (Aug 2026 v3, Sophie:
+    "the update and also the review button that you probably copied are both
+    supposed to be smaller and they're supposed to go above the chats").**
+    Both doors shipped as full-width slabs at the top of the LIST — 92px of
+    screen before the first card, on the screen she opens to find out what
+    happened. They are `.catchip`-sized buttons on their own line in
+    `#nwdoors` now, between the search row and the account tabs, so they are
+    CHROME and not list: `paintNewsDoors` fills that row, `paintHomeChrome`
+    empties it on every other view, and only the review CARDS behind the ⌄
+    still live in the grid. Measured on a 390pt phone: 26px instead of 92, and
+    the first card moved up 66px. Review keeps the rose (it is the one door
+    that says something is owed) and its ⌄; Update is never owed, so it
+    doesn't.
   - **IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
     Sophie: "rather than immediately doing another API read, I'd like to be
     able to go back and forth, so the update should be behind one more tap …
