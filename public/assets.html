@@ -298,7 +298,10 @@ function saveImage(url){
 function playgroundQuery(it){
   if(!it || !it.promptContent) return null;
   var made=((it.promptStyle||'')+' '+(it.prompt||'')).toLowerCase();
-  var style=/hoonie/.test(made)?'hoonie'
+  // The KEY, not the label — promptlab.html's STYLES is keyed `hoonies`, and a
+  // link saying `hoonie` is silently ignored there (it lands on whatever style
+  // was last used instead). 21 images on file match this branch.
+  var style=/hoonie/.test(made)?'hoonies'
     :/(wtr|watercolor)/.test(made)?'watercolor'
     :/scarry/.test(made)?'scarry'
     :/pastel/.test(made)?'pastel':'chatgpt';
