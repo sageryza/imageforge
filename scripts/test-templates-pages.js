@@ -873,6 +873,13 @@ setTimeout(function(){
   var pill=document.querySelector('.float');
   ok(!pill || getComputedStyle(pill).display!=='none',
      'the compare half keeps the pill — it scrolls');
+  // THE PILL FOLLOWS THE PAGE (Aug 2026, Sophie: "this is the wrong pill").
+  // pill-inject bakes its palette ON .float, so the page's :root can never
+  // reach it — it wore #f6f2e9 on a #faf6ee page in light mode and went
+  // near-black in dark. compare.css out-specifies it on the body.
+  var pp=getComputedStyle(pill).getPropertyValue('--paper').trim();
+  var rp=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim();
+  ok(pp===rp, 'the pill wears this page paper — got '+pp+' vs '+rp);
   ok(document.querySelectorAll('#grid .gd-it').length===4,
      'all four pictures are on the compare view');
 
@@ -906,6 +913,30 @@ setTimeout(function(){
        && getComputedStyle(fim).borderTopWidth==='0px'
        && parseFloat(getComputedStyle(fim).borderTopLeftRadius)===0,
        'a picture on a spread wears no outline and no rounded corner');
+
+    // THE PICTURES AND THEIR BUTTONS ARE TAPPABLE (Aug 2026 — the browse
+    // zones are 26% strips and the CENTRE of each picture on a two-up lands
+    // inside one, so a tap paged the deck instead of opening the picture).
+    // elementFromPoint is the only honest way to ask this: the element is
+    // "visible" either way; the question is what the tap actually reaches.
+    var reach=[].map.call(document.querySelectorAll('#judge .jg-spread img'),function(im){
+      var r=im.getBoundingClientRect();
+      var el=document.elementFromPoint((r.left+r.right)/2,(r.top+r.bottom)/2);
+      return el===im ? 'img' : (el&&el.className||'').toString().split(' ')[0];
+    });
+    ok(reach.join('|')==='img|img',
+       'a tap on either picture reaches the PICTURE — got '+reach.join('|'));
+    // scrolled into view FIRST — elementFromPoint asks about the viewport, and
+    // in this fixture the buttons sit below the card scroller's clip
+    var breach=[].map.call(document.querySelectorAll('#judge .jg-pick'),function(bt){
+      bt.scrollIntoView({block:'center'});
+      var r=bt.getBoundingClientRect();
+      var el=document.elementFromPoint((r.left+r.right)/2,(r.top+r.bottom)/2);
+      return el===bt||bt.contains(el) ? 'pick'
+        : ((el&&el.className||'').toString().split(' ')[0] || (el&&el.tagName) || 'nothing');
+    });
+    ok(breach.join('|')==='pick|pick',
+       'and both this-one buttons are reachable — got '+breach.join('|'));
 
     // PICKING ONE OF THEM (Aug 2026: "a 'this one' small button underneath
     // each one") — the spread's verdict becomes the winning card's id

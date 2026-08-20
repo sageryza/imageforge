@@ -1600,6 +1600,20 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
   a loosening of the rule — don't round anything else off, and don't "fix"
   that one back.
+- **THE INJECTED PILL CARRIES A DARK-MODE BLOCK AND YOUR PAGE PROBABLY DOES
+  NOT (Aug 2026, Sophie: "this is the wrong pill" — measured).**
+  `pill-inject.html` bakes its palette ON `.float` and also declares
+  `@media (prefers-color-scheme: dark){.float{--paper:#191713 …}}`, while
+  `compare.css` has NO dark block at all — a Compare page is always her cream.
+  So a phone in dark mode drew a near-black pill on a cream page, and even in
+  light mode it wore `#f6f2e9` where the page is `#faf6ee`. Because the
+  element's own custom property beats one inherited from `:root`, defining the
+  five tokens up there can never reach it: a host must OUT-SPECIFY, e.g.
+  `body .float{…}` (0,1,1 beats 0,1,0, so it wins whatever order the injected
+  sheet lands in). **compare.css now does this for every Compare page**; a
+  tool page with its own palette still has to do it itself (the /chunking
+  finding). Pinned by a test that compares the pill's computed `--paper` with
+  the page's.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on
@@ -2345,6 +2359,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
       — and a picked spread gets its own **Picked** pile, since a card-id
       verdict matches none of Yes/No/Unsure and would otherwise drop off that
       screen. The ✕/♥ still answer the spread as a whole (neither, or both).
+    - **THE SPREAD SITS ABOVE THE BROWSE ZONES (Aug 2026, found by measuring
+      rather than looking).** The edge zones are 26%-wide strips at z-index 2,
+      and on a two-up card the CENTRE of each picture lands inside one — so a
+      tap on either picture PAGED THE DECK instead of opening it, and the
+      "this one" buttons under them were unreachable for the same reason, on
+      the one card whose whole job is choosing between two pictures. The
+      spread is lifted above the zones; the card's margins above and below
+      still page, and the swipe always did. `elementFromPoint` at a control's
+      centre is the only honest way to test this — the element is "visible"
+      either way, and the question is what the tap actually reaches.
     - **NO OUTLINE AND NO ROUNDED CORNER ON A PICTURE** (same day: "gray
       outlines, rounded corners" · "are the corners rounded on the actual
       image in the light box? Should not be"). Her rounded white boxes are for
