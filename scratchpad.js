@@ -223,6 +223,8 @@ function sourceAudios(sources, req) {
     title: s.title || s.src,
     date: s.date || null,
     seconds: s.seconds || null,
+    // Unconfirmed guesses draw under their own header in the sheet.
+    candidate: !!s.candidate,
     url: s.url
       || `${base}/api/search/audio/${encodeURIComponent(s.src)}${token ? `?token=${encodeURIComponent(token)}` : ''}`,
   }));
@@ -313,6 +315,14 @@ router.post('/audio', async (req, res) => {
         url: found.k === 'memo' ? null : (found.audioUrl || null),
         at: Date.now(),
       };
+      // A CANDIDATE is a recording a chat THINKS belongs to this story but
+      // Sophie hasn't confirmed (Aug 2026, her call: "attach them behind the
+      // wave form, but under a header tag called candidates"). It rides the
+      // same list and the same player — the sheet just draws it under its own
+      // header, so a guess can be listened to in the story's own context
+      // instead of judged from a title on a review card. Confirming one is
+      // the same POST without the flag.
+      if (req.body.candidate) entry.candidate = true;
     }
     const sources = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));

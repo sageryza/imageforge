@@ -458,6 +458,13 @@ async function pageTests() {
     const wtop = '.askwrap:last-of-type';
     ok('the box asks her question, in her words',
       (await page.$eval(wtop + ' .archq', (n) => n.textContent)) === 'What is it waiting for?');
+    // NO PRE-WRITTEN TEXT (Aug 2026, Sophie: "it has pre-written text. Can you
+    // get rid of that"). It shipped with an example answer in the field; the
+    // question above it is the only prompting the box gets. Empty field, empty
+    // placeholder — on a chat with nothing filed yet, both.
+    ok('the field ships empty — no example answer waiting in it',
+      (await page.$eval(wtop + ' .arcnote', (n) => n.value)) === ''
+      && (await page.$eval(wtop + ' .arcnote', (n) => n.placeholder)) === '');
     await page.fill(wtop + ' .arcnote', 'the API key');
     await page.click(wtop + ' .askrow .go');
     await page.waitForTimeout(250);

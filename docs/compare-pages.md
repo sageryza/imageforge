@@ -628,6 +628,27 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
       flash of a zoomable page) and `compare.js` at runtime, which is what
       reaches the hand-built pages posted months ago — their HTML is frozen,
       but they all still link that file.
+    - **THE EDGES ARE ANCHORED TO THE CARD'S VISIBLE BOX, AND THEY REACH THE
+      SCREEN (Aug 2026, Sophie: "tapping on the left or right side of the
+      screen doesn't take me to the next option" — found by measuring, not by
+      looking).** Two separate holes, both on the cards that need paging most.
+      The zones lived INSIDE `.jg-card`, which on a moment deck IS the
+      scroller: an absolutely positioned child of a scroll container rides up
+      with the content, so scrolling a long card 232px pulled the zones'
+      bottom from y730 to y498 and the lower half of both sides went dead —
+      and a card so long she has scrolled it is exactly the one she is trying
+      to leave. They now hang off `.jg-cardwrap`, a non-scrolling frame that
+      holds the card's flex slot. Second: the deck's own 22px gutter left the
+      outermost strip of each side as page background, dead to a tap and the
+      first place a thumb lands — the zones take it back with `left:-22px` /
+      `right:-22px` (possible only because the wrapper does not clip, where
+      the scroller did). Still above them, by z-index and on purpose: the
+      ✕/♥ in the card's bottom corners, the mini autoscroll on the right
+      edge, a spread's pictures. `elementFromPoint` at a point is the only
+      honest way to test any of this — the zone is "visible" either way, and
+      the question is what a tap actually reaches. Pinned by the `long` run
+      in `node scripts/test-templates-pages.js` (verified failing against the
+      pre-fix page: the zone's bottom went 274 → -188 on one scroll).
     - **AN EDGE TAP FLASHES NOTHING** — `-webkit-tap-highlight-color:
       transparent` on `.jg-navzone`, because iOS paints a grey slab over the
       whole 26%-wide zone otherwise ("gray bars that show up when I tap the

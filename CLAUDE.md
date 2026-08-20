@@ -1417,6 +1417,30 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   test for any new step in any pipeline: if it silently transforms what she
   gave or what the model made, the step is wrong — make it lossless, or make
   it loud.
+- **NEVER PUT PRE-WRITTEN TEXT IN ANYTHING SHE WRITES IN — unless she asked
+  for it (Aug 2026, Sophie, pointing at the "What is it waiting for?" box:
+  "it has pre-written text. Can you get rid of that and also make it a rule to
+  never add prewritten text unless I ask for it").** A box that holds her words
+  ships EMPTY: no example answer, no starter sentence, no suggested phrasing,
+  no sample she has to clear before she can dictate. The label or the question
+  above the field already says what it is for; an example on top of that is
+  words she did not ask for sitting where hers go, and it teaches her a shape
+  she never chose. Applies everywhere she types or dictates — every web page,
+  every iOS screen, every Compare/deck note box, every sheet.
+  - **A placeholder may NAME the field, never fill it.** `Search all chats…`,
+    `Note for this chat…`, `New…` are names and they stay. `the API key, her
+    go-ahead, Tuesday…` is an example answer and it goes. The test: could
+    what's in the field be a real answer? Then it is pre-written text.
+  - **Prefilling with HER OWN saved value is not this** — reopening the waiting
+    box on a chat that already says what it is waiting for shows her sentence
+    back, and that is her text, not yours. Same for the note she wrote.
+  - **It goes beyond boxes**: don't seed a text deck, a doc, or a form with
+    sample content "to show the shape". If she wants an example she asks for
+    one — and then it is a deliverable, not furniture.
+  - Where this already bit: `/vector` shipped with example text in its boxes
+    (the `new-tool` skill), Compare pages have carried "Text boxes ship empty"
+    since the same lesson, and the waiting-for box carried an example answer
+    for a week. Pinned by `node scripts/test-chats-labels.js`.
 - **Every image deliverable goes into the in-app gallery.** See "Deliverables →
   the in-app gallery (ALWAYS)" near the top — post it with
   `scripts/post-to-gallery.js`, stamped with its true make-time.

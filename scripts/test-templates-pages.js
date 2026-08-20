@@ -999,6 +999,82 @@ setTimeout(function(){
   }) + pill + TEST;
 }
 
+
+/* Run 8 — THE EDGES OF A LONG CARD (Aug 2026, Sophie: "tapping on the left or
+ * right side of the screen doesn't take me to the next option").
+ *
+ * The browse zones used to live INSIDE .jg-card, which on a moment deck IS
+ * the scroller — so an absolutely positioned zone rode up with the content
+ * and the bottom of both sides went dead exactly on the cards long enough to
+ * need paging. Measured on her live deck before the fix: scrolling 232px
+ * pulled the zones' bottom from y730 to y498.
+ *
+ * elementFromPoint is the only honest way to ask this — the zone is "visible"
+ * either way, and the question is what a tap actually reaches.
+ */
+function longMomentPage() {
+  const para = (n) => `paragraph ${n} — ` + 'a long sentence that fills the card and makes it scroll. '.repeat(6);
+  const v = validateTemplate('deck', { items: [
+    { id: 'L1', who: 'Inside & Outside Thoughts', eyebrow: '4 candidates', text: para(1),
+      sections: [{ label: 'ONE', text: para(2) }, { label: 'TWO', text: para(3) },
+        { label: 'THREE', text: para(4) }] },
+    { id: 'L2', who: 'Moon Milk', text: 'the next card' },
+  ] });
+  if (!v.ok) throw new Error(v.error);
+  const TEST = `<script>
+setTimeout(function(){
+  var L=[]; function ok(c,m){ L.push((c?'PASS':'FAIL')+': '+m); }
+  var m=document.getElementById('judge');
+  var card=m.querySelector('.jg-card.momcard');
+  var hit=function(x,y){ var e=document.elementFromPoint(x,y);
+    return e && e.closest ? (e.closest('.jg-navzone') ? 'zone' :
+      e.closest('.jg-mombtn') ? 'btn' : e.tagName.toLowerCase()) : 'none'; };
+  ok(card.scrollHeight > card.clientHeight + 1, 'the test card really scrolls — '
+     + card.scrollHeight + ' in a ' + card.clientHeight + ' box');
+  var z=m.querySelector('.jg-navzone.next').getBoundingClientRect();
+  var zp=m.querySelector('.jg-navzone.prev').getBoundingClientRect();
+  // THE SIDE OF THE SCREEN, not the side of the card: her deck holds a 22px
+  // gutter, and the outermost strip of it was page background — dead to a
+  // tap. The deck's own box IS the screen on a phone (it only stops at its
+  // 680px max on a wide window), so the edge is measured against that.
+  var deck=m.querySelector('.jg.mom').getBoundingClientRect();
+  ok(zp.left <= deck.left + 0.5 && z.right >= deck.right - 0.5,
+     'the zones reach both edges of the deck — got ' + Math.round(zp.left - deck.left)
+     + ' and ' + Math.round(deck.right - z.right) + 'px short');
+  ok(hit(deck.left + 3, z.top + 30)==='zone' && hit(deck.right - 3, z.top + 30)==='zone',
+     'a tap on the very edge lands on a zone');
+  var mid=(z.top + z.bottom)/2, low=z.bottom - 30;
+  ok(hit(z.left+20, low)==='zone' && hit(z.right-20, low)==='zone',
+     'and so does one near the bottom of the card');
+  // NOW SCROLL THE CARD — the zones must not travel with the words
+  var before=m.querySelector('.jg-navzone.next').getBoundingClientRect().bottom;
+  card.scrollTop=card.scrollHeight;
+  setTimeout(function(){
+    var after=m.querySelector('.jg-navzone.next').getBoundingClientRect().bottom;
+    ok(card.scrollTop>20, 'the card scrolled — ' + Math.round(card.scrollTop) + 'px');
+    ok(Math.abs(after-before)<1, 'the edge zone stayed put — bottom '
+       + Math.round(before) + ' then ' + Math.round(after));
+    ok(hit(z.left+20, mid)==='zone' && hit(z.right-20, low)==='zone',
+       'a tap still reaches the edge on a scrolled card');
+    var who=function(){ return (document.querySelector('.jg.mom>.who')||{}).textContent||''; };
+    var first=who();
+    m.querySelector('.jg-navzone.next').click();
+    setTimeout(function(){
+      ok(who()!==first, 'and the edge pages the deck — ' + first + ' -> ' + who());
+      // her ✕ and ♥ still own their corners: they sit ON the zone (z 3 over 2)
+      var yes=m.querySelector('.jg-mombtn.yes').getBoundingClientRect();
+      ok(hit((yes.left+yes.right)/2,(yes.top+yes.bottom)/2)==='btn',
+         'the heart still wins its own tap, on top of the zone');
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')), {});
+    }, 300);
+  }, 200);
+}, 800);
+</script>`;
+  return SPY + renderTemplatePage({
+    template: 'deck', title: 'Long cards v1', chat: 't', sheet: 'page-long', data: v.data,
+  }) + pill + TEST;
+}
+
 (async () => {
   try {
     const a = await run('grid', gridPage());
@@ -1008,6 +1084,7 @@ setTimeout(function(){
     const e = await run('queue', queuePage(), '?clean=1');
     const f = await run('short', shortMomentPage());
     const g = await run('twoview', twoViewPage());
-    console.log(`all ${a + b + c + d + e + f + g} checks passed`);
+    const h = await run('long', longMomentPage());
+    console.log(`all ${a + b + c + d + e + f + g + h} checks passed`);
   } catch (err) { console.error(err.message); process.exit(1); }
 })();
