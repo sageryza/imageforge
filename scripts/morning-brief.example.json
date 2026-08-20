@@ -1,0 +1,250 @@
+{
+  "_": "The first brief (2026-08-20), kept as the worked example of the shape. A run writes one of these from the live sources and feeds it to morning-brief.js. `when` is now|later|some; `chat` is a Deck Factory slug, never a claude.ai url; `mini` may carry html links.",
+  "chat": "morning-briefing-01kzhe",
+  "session": "01KzhESPdpz38ewvg4jgLmcf",
+  "sheet": "brief-2026-08-20",
+  "title": "Morning brief — Thursday, August 20 (v3)",
+  "shippedLabel": "Yesterday",
+  "today": [
+    {
+      "when": "now",
+      "chip": "your Mac",
+      "title": "Give node Full Disk Access — one click",
+      "chat": null,
+      "mini": "138 voice recordings are queued and the push comes back empty every run · <a href=\"https://imageforge-q125.onrender.com/desktop\" target=\"_blank\" rel=\"noopener\">the queue</a>"
+    },
+    {
+      "when": "now",
+      "chip": "your Mac",
+      "title": "Upload the dream journal's version-history screenshots",
+      "chat": "dream-journal-version-history",
+      "mini": "that chat can see nothing without them · commands are written out in the queue"
+    },
+    {
+      "when": "now",
+      "title": "Run the ImageForge TestFlight — 4 taps",
+      "chat": "review-queue-ui-changes",
+      "mini": "Apple's nav bar is gone from all 20 web tools, dormant until a build"
+    },
+    {
+      "when": "now",
+      "title": "Okay the six-stop movie tab order",
+      "chat": "movie-tools-organization",
+      "mini": "story · voice · cut · polish · pictures · shelf — then it ships a build"
+    },
+    {
+      "when": "now",
+      "title": "Send your mom the connect link — 1 tap for her",
+      "chat": "etsy-jewelry-listing-automation",
+      "mini": "then which Lightroom preset, and prices"
+    },
+    {
+      "when": "now",
+      "title": "Try logging into an old Etsy shop — 2 min",
+      "chat": "etsy-hat-shop-decision",
+      "mini": "the whole new-shop-vs-old decision hangs on this"
+    },
+    {
+      "when": "now",
+      "title": "What did tapping Save to Photos actually look like?",
+      "chat": "playground-safe-button-bug",
+      "mini": "no message, wrong message, or nothing until later — its diagnosis is wrong without it"
+    },
+    {
+      "when": "later",
+      "title": "Dream app commercials — pick 3 or 4",
+      "chat": "dream-app-commercials",
+      "mini": "unblocks the most downstream work · <a href=\"https://imageforge-q125.onrender.com/api/chatfeed/page/6RxyB3fwlXY71wsvvz0m?clean=1\" target=\"_blank\" rel=\"noopener\">our 17</a> · <a href=\"https://imageforge-q125.onrender.com/api/chatfeed/page/YpJliWontvx7a2EdGfeF?clean=1\" target=\"_blank\" rel=\"noopener\">ChatGPT's 11</a>"
+    },
+    {
+      "when": "later",
+      "title": "Pick a voice take, 1–6",
+      "chat": "abundance-scarcity-watercolor",
+      "mini": "abundance vs scarcity — your pick anchors the rest of the narration"
+    },
+    {
+      "when": "later",
+      "title": "Two calls: protein vs fries, and the song — 30 sec",
+      "chat": "dream-app-commercial",
+      "mini": "then it builds the commercial v3 in one pass"
+    },
+    {
+      "when": "later",
+      "title": "Look at the dream feed desk again",
+      "chat": "dream-feed-desktop-masonry",
+      "mini": "real masonry now — are the column count and card sizes right?"
+    },
+    {
+      "when": "later",
+      "title": "Refresh the dream archive and read the count line",
+      "chat": "dream-feed-sharing-options",
+      "mini": "your reading decides where the duplicate bug lives"
+    },
+    {
+      "when": "later",
+      "chip": "your Mac",
+      "title": "Four junk transcripts — leave them, or build a clear route",
+      "chat": null,
+      "mini": "a decision, not a command · <a href=\"https://imageforge-q125.onrender.com/desktop\" target=\"_blank\" rel=\"noopener\">the queue</a>"
+    },
+    {
+      "when": "later",
+      "chip": "$2.90",
+      "title": "Convert ~290 old summaries to asked / did / next",
+      "chat": "archive-summary-confirmation",
+      "mini": "the rest are still the one-paragraph shape"
+    },
+    {
+      "when": "some",
+      "title": "Archive sweep — 74 quiet chats",
+      "chat": "chat-cleanup-archival",
+      "mini": "put back and wiped blank for you; the tap really archives now · <a href=\"https://imageforge-q125.onrender.com/api/chatfeed/page/LMYLEsbW8QdRdU9s58CA?clean=1\" target=\"_blank\" rel=\"noopener\">open the deck</a>"
+    },
+    {
+      "when": "some",
+      "title": "Slipped through — 51 open items from 3 months of memos",
+      "chat": "morning-ideas-voice-memos",
+      "mini": "your hearts become the assignment list · <a href=\"https://imageforge-q125.onrender.com/api/chatfeed/page/ZMI8Fq3qF8JhVEySkoOR?clean=1\" target=\"_blank\" rel=\"noopener\">ideas, 29</a> · <a href=\"https://imageforge-q125.onrender.com/api/chatfeed/page/0wZLL0earZIXECl8kXxw?clean=1\" target=\"_blank\" rel=\"noopener\">to-dos, 22</a>"
+    },
+    {
+      "when": "some",
+      "title": "Read the \"Nobody Told You\" rules, say what's wrong",
+      "chat": "game-rules-concept",
+      "mini": "never been played · 29-card rule deck, four variants"
+    },
+    {
+      "when": "some",
+      "title": "Is the history glyph in the right place?",
+      "chat": "manual-tag-update-rules",
+      "mini": "it sits on the waiting-for box; say if it belongs elsewhere"
+    },
+    {
+      "when": "some",
+      "title": "Try a square Dreamy draw",
+      "chat": "image-ref-style-prompt",
+      "mini": "square is the default now and the toggle is reachable · <a href=\"https://imageforge-q125.onrender.com/playground\" target=\"_blank\" rel=\"noopener\">Playground</a>"
+    }
+  ],
+  "shipped": [
+    {
+      "h": "The Chats app",
+      "items": [
+        {
+          "title": "The archive summary became your three questions",
+          "chat": "archive-summary-confirmation",
+          "mini": "asked · did · next, one sentence each"
+        },
+        {
+          "title": "251 summaries rewritten, then cut to length in code",
+          "mini": "median 235 → 150 characters; the model could not count"
+        },
+        {
+          "title": "Update and Review became chips above the account tabs",
+          "mini": "92px of screen before the first card, down to 26"
+        },
+        {
+          "title": "Manual rules per tag",
+          "chat": "manual-tag-update-rules",
+          "mini": "waiting for a response pins; to be reviewed folds behind Review"
+        },
+        {
+          "title": "The waiting-for box remembers the reasons you have given",
+          "mini": "only 2 of 378 chats had one on record — the field was being deleted with its tag"
+        },
+        {
+          "title": "An archive verdict actually archives",
+          "mini": "the chip had been filing an opinion while wearing the name of an action"
+        },
+        {
+          "title": "93 more chat icons drawn"
+        }
+      ]
+    },
+    {
+      "h": "Decks and pages",
+      "items": [
+        {
+          "title": "Cards wear a GOOD / BAD rubber stamp when you decide them"
+        },
+        {
+          "title": "A deck card can carry your own words, behind the ?"
+        },
+        {
+          "title": "The scroll pill defends itself and hides when there is nothing to scroll",
+          "mini": "four host properties were leaking into it"
+        },
+        {
+          "title": "Tapping out of the Assets lightbox no longer starts the autoscroll"
+        }
+      ]
+    },
+    {
+      "h": "Pictures and film",
+      "items": [
+        {
+          "title": "Found: pictures were being compressed at birth",
+          "chat": "dream-feed-image-compression",
+          "mini": "six live surfaces, 5–6× lighter than they should be; fixed and grep-guarded"
+        },
+        {
+          "title": "Dreamy is a Playground tile, and the prompt is editable",
+          "chat": "image-ref-style-prompt",
+          "mini": "270 filed images used that reference and it had no tile"
+        },
+        {
+          "title": "Porting a picture to the Playground says whether it carries the real reference",
+          "mini": "2,690 identified, 1,101 honestly unknown — the old router guessed"
+        },
+        {
+          "title": "The dream feed's desk is real masonry",
+          "chat": "dream-feed-desktop-masonry",
+          "mini": "a phone rule had been flattening every column level"
+        },
+        {
+          "title": "The dream commercials survey",
+          "chat": "dream-app-commercials",
+          "mini": "9,342 messages read; 28 ideas, 13 cuts, 64 stills, and the Instagram grid"
+        },
+        {
+          "title": "Abundance vs scarcity cut and filed as a reusable chunk",
+          "chat": "abundance-scarcity-watercolor"
+        }
+      ]
+    },
+    {
+      "h": "Tools and the Mac",
+      "items": [
+        {
+          "title": "Apple's nav bar came off all 20 web tools",
+          "mini": "headers ship with a deploy now instead of a build"
+        },
+        {
+          "title": "The movie tab became a six-stop pipeline",
+          "chat": "movie-tools-organization"
+        },
+        {
+          "title": "The desktop queue is readable on your phone",
+          "mini": "<a href=\"https://imageforge-q125.onrender.com/desktop\" target=\"_blank\" rel=\"noopener\">/desktop</a> — waiting and done"
+        },
+        {
+          "title": "Your Mac transcribes the voice memos itself now",
+          "mini": "whisper.cpp, no API cost — about $17.55 saved on the backlog, and no chunking"
+        },
+        {
+          "title": "Caught: your mom's jewelry would have listed into your shop",
+          "chat": "etsy-jewelry-listing-automation",
+          "mini": "two code paths ignored which Etsy account a draft belonged to"
+        },
+        {
+          "title": "\"Nobody Told You\" written up",
+          "chat": "game-rules-concept",
+          "mini": "the secret-rules telephone Pictionary game"
+        },
+        {
+          "title": "The XI Today screen ported to iOS",
+          "mini": "in the games repo"
+        }
+      ]
+    }
+  ]
+}
