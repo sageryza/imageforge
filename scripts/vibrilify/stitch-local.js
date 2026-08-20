@@ -50,7 +50,10 @@ async function fetchToFile(url, file) {
 
 const enc = ['-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p'];
 
-// Mirror of movies.js buildTimelineSegment (edits are all defaults here).
+// Mirror of movies.js buildTimelineSegment (edits are all defaults here),
+// plus two v3 behaviours: `scene.fitSpeed` retimes a morph clip to fill its
+// window exactly (a morph trimmed mid-transformation never completes), and
+// `windowSec` may include a dissolve tail added by the caller.
 async function buildSegment(scene, windowSec, tmpDir, i) {
   const out = path.join(tmpDir, `seg-${i}.mp4`);
   const useClip = scene.clip?.url && !scene.clip.url.startsWith('data:') && !scene.still;
@@ -65,7 +68,10 @@ async function buildSegment(scene, windowSec, tmpDir, i) {
     ];
     await run(FFMPEG, ['-y', '-i', inFile, '-vf', filters.join(','), '-an', ...enc, mid]);
     const { duration } = await probe(mid);
-    if (duration >= windowSec - 0.05) {
+    const factor = windowSec / duration; // setpts multiplier: <1 speeds up
+    if (scene.fitSpeed && factor >= 0.25 && factor <= 4) {
+      await run(FFMPEG, ['-y', '-i', mid, '-vf', `setpts=PTS*${factor.toFixed(4)},fps=30,setsar=1`, ...enc, '-an', out]);
+    } else if (duration >= windowSec - 0.05) {
       await run(FFMPEG, ['-y', '-i', mid, '-t', String(windowSec), '-vf', 'fps=30,setsar=1', ...enc, '-an', out]);
     } else {
       const pad = Math.max(0, windowSec - duration);
@@ -89,23 +95,45 @@ async function buildSegment(scene, windowSec, tmpDir, i) {
     .sort((a, b) => a.startAt - b.startAt);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibrilify-'));
 
+  // Soft pharma dissolves (VIB_XFADE seconds, 0 = the old hard-cut concat).
+  // Each segment is built with a dissolve tail; xfade offsets are chosen so
+  // every dissolve is CENTERED on its beat boundary and the total still
+  // lands exactly on the VO clock (the last tail is X/2 for that reason).
+  const X = Math.max(0, Number(process.env.VIB_XFADE) || 0);
   const segments = [];
   const used = [];
+  const windows = [];
   for (let i = 0; i < seq.length; i++) {
     const start = Math.max(0, seq[i].startAt);
     const end = i + 1 < seq.length ? Math.max(start, seq[i + 1].startAt) : voDur;
     const win = end - start;
     if (win < 0.15) continue;
+    windows.push(win);
+    const extra = X > 0 ? (i + 1 < seq.length ? X : X / 2) : 0;
     process.stderr.write(`beat ${i + 1}/${seq.length} "${seq[i].title}" ${win.toFixed(2)}s\n`);
-    segments.push(await buildSegment(seq[i], win, tmpDir, i));
+    segments.push(await buildSegment(seq[i], win + extra, tmpDir, i));
     used.push(seq[i]);
   }
 
   process.stderr.write('joining…\n');
   const silent = path.join(tmpDir, 'silent.mp4');
-  const listFile = silent + '.txt';
-  fs.writeFileSync(listFile, segments.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
-  await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+faststart', silent]);
+  if (X > 0 && segments.length > 1) {
+    const inputs = segments.flatMap(f => ['-i', f]);
+    let cum = 0;
+    const parts = [];
+    for (let k = 1; k < segments.length; k++) {
+      cum += windows[k - 1];
+      const src = k === 1 ? '[0:v]' : `[x${k - 1}]`;
+      const label = k === segments.length - 1 ? '[vout]' : `[x${k}]`;
+      parts.push(`${src}[${k}:v]xfade=transition=fade:duration=${X}:offset=${(cum - X / 2).toFixed(3)}${label}`);
+    }
+    await run(FFMPEG, ['-y', ...inputs, '-filter_complex', parts.join(';'),
+      '-map', '[vout]', ...enc, '-an', '-movflags', '+faststart', silent], 1800000);
+  } else {
+    const listFile = silent + '.txt';
+    fs.writeFileSync(listFile, segments.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
+    await run(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+faststart', silent]);
+  }
 
   process.stderr.write('voiceover…\n');
   const voFile = await fetchToFile(movie.voiceover.url, path.join(tmpDir, 'vo.wav'));
