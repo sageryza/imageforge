@@ -329,6 +329,21 @@ sit ahead of the whole spot, in that order.
 23.5s.
 https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v5.mp4
 
+#### v6 — the music runs the whole way (2026-08-19)
+
+Sophie, on v5: "can you make the song start from the beginning?" That reads two
+ways and they are different films, so both were cut rather than guessed at —
+each is a straight audio swap onto v5's picture, `-c:v copy`, seconds to make.
+
+- **from the hook** — the track from 1:04.5, so the hook plays over her two
+  clips instead of arriving on the end card. It reaches the getting-high lines
+  by the finish, which is the trade.
+- **from the top** — the track from 0:00, its own opening under her clips. The
+  intro is quieter, so the film starts soft and the hook never lands in frame.
+
+Whichever she picks, `song.hook` / `song.until` in `spot.json` still drive the
+13-second spot on its own; these two are the assembled 23.5s cut.
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is
