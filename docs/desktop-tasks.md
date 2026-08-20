@@ -8,6 +8,10 @@ Then she says one thing to the terminal chat and the whole queue runs.
 **This file is the ONE list**, for every chat in every repo. Her Mac checkout is
 `~/imageforge`, so the list is already on the machine that has to run it.
 
+**On a phone it reads at https://imageforge-q125.onrender.com/desktop** — the
+same file, rendered: what is waiting, what has been checked off, and what any of
+them needs from her. Read-only; the queue is edited here, where it is run.
+
 ---
 
 ## HER ONE COMMAND (what she says at the computer)
