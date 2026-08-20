@@ -3823,11 +3823,46 @@ function paintCatRow(g){
 // much of that band the row still sits in when it paints. Repainted with the
 // row, so opening TAGS (which grows the row into the band) sizes it and a
 // scrolled-down paint collapses it to nothing.
+// ---- …AND IT MUST NOT RESERVE MORE THAN THE ROW USES (Aug 2026, Sophie:
+// "the space between the chats and the top is ever increasing?" → "the gap is
+// empty") --------------------------------------------------------------------
+// The notch is a FLOAT, so whenever it is taller than the chips beside it, it
+// becomes the ROW'S OWN HEIGHT — and the surplus is blank page between the
+// chips and everything under them. Measured on her real 365 chats at 390x844:
+// the UPDATE screen carries two boxes on one line (34px of content) and the
+// float was 90px, so 70px of the screen above her cards was nothing at all.
+// The chat list paid the same 56px with TAGS shut.
+//
+// It was never meant to reserve height — it exists to push chips OUT of the
+// pill's corner, which only matters for the lines that are actually in the
+// pill's band. So: paint at the full band, measure what the row really used,
+// then shrink to that.
+//
+// Shrinking cannot push the chips back up, which is why the two passes are
+// safe: a line already sitting above the shortened float is still beside it
+// and still dodges: a shorter float only frees the width to the RIGHT of
+// lines BELOW it, and when the content runs past the band we keep the band
+// and change nothing at all.
 function sizePillNotch(){
   var n=document.getElementById('pillnotch'), t=document.getElementById('toolrow');
   if(!n||!t) return;
   var top=t.getBoundingClientRect().top;
-  n.style.height=Math.max(0, Math.min(200, 192-top))+'px';
+  var band=Math.max(0, Math.min(200, 192-top));
+  n.style.height=band+'px';
+  if(!band) return;
+  // The row's own content: its direct children (the select and glass icons)
+  // plus the chips, which are grandchildren — `#catrow` is `display:inline`,
+  // so its own rect is a line box and stops short of the chips' full extent.
+  var els=[].slice.call(t.children).filter(function(k){ return k!==n; });
+  var cr=t.querySelector('#catrow');
+  if(cr) els=els.concat([].slice.call(cr.children));
+  var bottom=top;
+  els.forEach(function(k){
+    if(!k.getClientRects().length) return;          // display:none contributes nothing
+    bottom=Math.max(bottom, k.getBoundingClientRect().bottom);
+  });
+  var used=Math.round(bottom-top);
+  if(used>0 && used<band) n.style.height=used+'px';
 }
 
 // ---- Select mode -----------------------------------------------------------
