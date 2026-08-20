@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E3D5}
+a{color:#C25E4C}a:hover{color:#A34535}
+textarea{outline:none}
+</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430,900">
+<div style="position:relative;display:flex;flex-direction:column;height:100%;background:#F7F2E8;color:#262016;font-family:system-ui,-apple-system,sans-serif;overflow:hidden" data-screen-label="Decision deck">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:64px 20px 6px;flex:none">
+    <div style="display:flex;flex-direction:column;gap:1px">
+      <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7F6E;font-weight:600">Dating Book</span>
+      <span style="font-size:13px;font-weight:600">Illustration decisions</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <sc-if value="{{ showProgress }}" hint-placeholder-val="{{ true }}">
+        <span style="font-size:12px;color:#8A7F6E;font-variant-numeric:tabular-nums">{{ posLabel }}</span>
+      </sc-if>
+      <button onClick="{{ openReview }}" style="border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer" style-hover="background:#F0EADC">Piles</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ deckActive }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0;opacity:{{ fade }};transition:opacity 0.15s ease">
+
+      <sc-if value="{{ isMoment }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:8px 28px 0" data-screen-label="Moment card">
+          <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#C25E4C;font-weight:700">{{ card.eyebrow }}</span>
+          <p style="margin:0;font-family:'Newsreader',serif;font-size:25px;line-height:1.32;font-weight:500;text-wrap:pretty">{{ card.moment }}</p>
+          <div style="height:1px;background:#E4DAC6"></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7F6E;font-weight:600">The illustration</span>
+            <p style="margin:0;font-size:14.5px;line-height:1.5;color:#4C4335;text-wrap:pretty">{{ card.illo }}</p>
+          </div>
+          <sc-if value="{{ showCaptions }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7F6E;font-weight:600">Suggested caption</span>
+              <p style="margin:0;font-family:'Newsreader',serif;font-style:italic;font-size:17px;line-height:1.4;color:#262016">&ldquo;{{ card.caption }}&rdquo;</p>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAB }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:8px 20px 0" data-screen-label="A/B card">
+          <div style="display:flex;flex-direction:column;gap:6px;padding:0 8px">
+            <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#C25E4C;font-weight:700">{{ card.eyebrow }}</span>
+            <p style="margin:0;font-family:'Newsreader',serif;font-size:21px;line-height:1.3;font-weight:500">{{ card.prompt }}</p>
+          </div>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div onClick="{{ openLA }}" style="height:220px;border-radius:14px;background:{{ card.A.tone }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:zoom-in;border:1px solid rgba(0,0,0,0.06)" style-hover="filter:brightness(0.97)">
+                <span style="font-family:'Newsreader',serif;font-size:52px;color:{{ card.A.ink }};opacity:0.55">{{ card.A.initial }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ card.A.ink }}">{{ card.A.name }}</span>
+                <span style="font-size:10.5px;color:{{ card.A.ink }};opacity:0.7;text-align:center;padding:0 12px">{{ card.A.desc }}</span>
+              </div>
+              <button onClick="{{ chooseA }}" style="border:1.5px solid #C25E4C;background:transparent;color:#C25E4C;font-size:13px;font-weight:600;padding:8px 0;border-radius:999px;cursor:pointer" style-hover="background:#C25E4C;color:#FFFDF8">&#9825; This one</button>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div onClick="{{ openLB }}" style="height:220px;border-radius:14px;background:{{ card.B.tone }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:zoom-in;border:1px solid rgba(0,0,0,0.06)" style-hover="filter:brightness(0.97)">
+                <span style="font-family:'Newsreader',serif;font-size:52px;color:{{ card.B.ink }};opacity:0.55">{{ card.B.initial }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ card.B.ink }}">{{ card.B.name }}</span>
+                <span style="font-size:10.5px;color:{{ card.B.ink }};opacity:0.7;text-align:center;padding:0 12px">{{ card.B.desc }}</span>
+              </div>
+              <button onClick="{{ chooseB }}" style="border:1.5px solid #C25E4C;background:transparent;color:#C25E4C;font-size:13px;font-weight:600;padding:8px 0;border-radius:999px;cursor:pointer" style-hover="background:#C25E4C;color:#FFFDF8">&#9825; This one</button>
+            </div>
+          </div>
+          <p style="margin:0;text-align:center;font-size:11.5px;color:#8A7F6E">Tap a style to see it bigger</p>
+        </div>
+      </sc-if>
+
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 24px 18px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:18px">
+          <button onClick="{{ onUndo }}" disabled="{{ noUndo }}" style="width:42px;height:42px;border-radius:50%;border:none;background:transparent;color:#8A7F6E;font-size:18px;cursor:pointer;opacity:{{ undoOpacity }}" style-hover="background:#EFE8D8">&#8617;</button>
+          <button onClick="{{ onNo }}" style="width:58px;height:58px;border-radius:50%;border:1.5px solid #D9CEB9;background:#FFFDF8;color:#4C4335;font-size:20px;cursor:pointer" style-hover="border-color:#262016;background:#F0EADC">&#10005;</button>
+          <button onClick="{{ onMaybe }}" style="width:58px;height:58px;border-radius:50%;border:1.5px solid #D9CEB9;background:#FFFDF8;color:#A9762F;font-size:22px;font-family:'Newsreader',serif;cursor:pointer" style-hover="border-color:#A9762F;background:#F5EDDA">?</button>
+          <sc-if value="{{ isMoment }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ onYes }}" style="width:66px;height:66px;border-radius:50%;border:none;background:#C25E4C;color:#FFFDF8;font-size:26px;cursor:pointer;box-shadow:0 3px 10px rgba(194,94,76,0.3)" style-hover="background:#A34535">&#9829;</button>
+          </sc-if>
+          <button onClick="{{ openNote }}" style="position:relative;width:42px;height:42px;border-radius:50%;border:none;background:transparent;color:#8A7F6E;font-size:17px;cursor:pointer" style-hover="background:#EFE8D8">&#9998;<sc-if value="{{ hasNote }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#C25E4C"></span></sc-if></button>
+        </div>
+        <sc-if value="{{ buttonLabels }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;justify-content:center;gap:18px;font-size:10px;color:#8A7F6E;font-weight:600;letter-spacing:0.04em;text-transform:uppercase">
+            <span style="width:42px;text-align:center">Undo</span><span style="width:58px;text-align:center">{{ noLabel }}</span><span style="width:58px;text-align:center">Not sure</span><sc-if value="{{ isMoment }}" hint-placeholder-val="{{ true }}"><span style="width:66px;text-align:center">Yes</span></sc-if><span style="width:42px;text-align:center">Note</span>
+          </div>
+        </sc-if>
+        <button onClick="{{ onSkip }}" style="align-self:center;border:none;background:transparent;color:#8A7F6E;font-size:12.5px;cursor:pointer;padding:4px 10px;border-radius:999px" style-hover="color:#262016">Skip for now &rarr;</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 32px" data-screen-label="All done">
+      <span style="font-family:'Newsreader',serif;font-size:32px;font-weight:500">That&rsquo;s everything.</span>
+      <div style="display:flex;gap:10px">
+        <span style="font-size:13px;background:#F3E0DB;color:#A34535;padding:6px 12px;border-radius:999px;font-weight:600">&#9829; {{ nYes }}</span>
+        <span style="font-size:13px;background:#F5EDDA;color:#A9762F;padding:6px 12px;border-radius:999px;font-weight:600">? {{ nMaybe }}</span>
+        <span style="font-size:13px;background:#EAE4D8;color:#4C4335;padding:6px 12px;border-radius:999px;font-weight:600">&#10005; {{ nNo }}</span>
+        <span style="font-size:13px;background:#E9E6DE;color:#8A7F6E;padding:6px 12px;border-radius:999px;font-weight:600">&rarr; {{ nSkip }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:240px;margin-top:8px">
+        <button onClick="{{ openReview }}" style="border:none;background:#C25E4C;color:#FFFDF8;font-size:14px;font-weight:600;padding:12px 0;border-radius:999px;cursor:pointer" style-hover="background:#A34535">Review decisions</button>
+        <button onClick="{{ restart }}" style="border:1.5px solid #D9CEB9;background:transparent;color:#4C4335;font-size:14px;font-weight:600;padding:11px 0;border-radius:999px;cursor:pointer" style-hover="background:#F0EADC">Start over</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ lbOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#F7F2E8;display:flex;flex-direction:column;padding:64px 20px 24px;gap:14px;z-index:20" data-screen-label="Style zoom">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#8A7F6E;font-weight:700">{{ lbSideLabel }}</span>
+        <button onClick="{{ closeLb }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:15px;cursor:pointer" style-hover="background:#F0EADC">&#10005;</button>
+      </div>
+      <div style="flex:1;border-radius:18px;background:{{ lbTone }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid rgba(0,0,0,0.06)">
+        <span style="font-family:'Newsreader',serif;font-size:110px;color:{{ lbInk }};opacity:0.5">{{ lbInitial }}</span>
+        <span style="font-size:16px;font-weight:600;color:{{ lbInk }}">{{ lbName }}</span>
+        <span style="font-size:13px;color:{{ lbInk }};opacity:0.75;text-align:center;padding:0 32px;line-height:1.5">{{ lbDesc }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <button onClick="{{ chooseLb }}" style="border:none;background:#C25E4C;color:#FFFDF8;font-size:14.5px;font-weight:600;padding:13px 0;border-radius:999px;cursor:pointer" style-hover="background:#A34535">&#9829; Choose this style</button>
+        <button onClick="{{ swapLb }}" style="border:1.5px solid #D9CEB9;background:transparent;color:#4C4335;font-size:14px;font-weight:600;padding:12px 0;border-radius:999px;cursor:pointer" style-hover="background:#F0EADC">View {{ lbOtherName }} &harr;</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ reviewOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#F7F2E8;display:flex;flex-direction:column;padding:64px 20px 20px;gap:12px;z-index:30" data-screen-label="Piles">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:600">Your piles</span>
+        <button onClick="{{ closeReview }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:15px;cursor:pointer" style-hover="background:#F0EADC">&#10005;</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span style="font-size:12px;background:#F3E0DB;color:#A34535;padding:5px 10px;border-radius:999px;font-weight:600">&#9829; {{ nYes }}</span>
+        <span style="font-size:12px;background:#F5EDDA;color:#A9762F;padding:5px 10px;border-radius:999px;font-weight:600">? {{ nMaybe }}</span>
+        <span style="font-size:12px;background:#EAE4D8;color:#4C4335;padding:5px 10px;border-radius:999px;font-weight:600">&#10005; {{ nNo }}</span>
+        <span style="font-size:12px;background:#E9E6DE;color:#8A7F6E;padding:5px 10px;border-radius:999px;font-weight:600">&rarr; {{ nSkip }}</span>
+      </div>
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px">
+        <sc-for list="{{ reviewItems }}" as="it" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:5px;background:#FFFDF8;border:1px solid #E7DECF;border-radius:12px;padding:12px 14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font-size:13.5px;font-weight:600;line-height:1.3">{{ it.title }}</span>
+              <span style="flex:none;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ it.vBg }};color:{{ it.vInk }}">{{ it.verdictLabel }}</span>
+            </div>
+            <sc-if value="{{ it.note }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;font-size:12px;color:#8A7F6E;line-height:1.45">&#9998; {{ it.note }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ noteOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeNote }}" style="position:absolute;inset:0;background:rgba(38,32,22,0.25);z-index:40"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#FFFDF8;border-radius:20px 20px 0 0;padding:20px 22px 26px;display:flex;flex-direction:column;gap:12px;z-index:41;box-shadow:0 -6px 24px rgba(38,32,22,0.12)" data-screen-label="Note sheet">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:15px;font-weight:600">Note for Claude</span>
+        <button onClick="{{ closeNote }}" style="border:none;background:transparent;color:#8A7F6E;font-size:15px;cursor:pointer;padding:4px" style-hover="color:#262016">&#10005;</button>
+      </div>
+      <textarea value="{{ noteDraft }}" onChange="{{ onNoteChange }}" rows="4" placeholder="e.g. Love the moment, but make the caption less snarky&hellip;" style="border:1.5px solid #E7DECF;border-radius:12px;padding:12px 14px;font-size:14px;font-family:system-ui,sans-serif;color:#262016;background:#F7F2E8;resize:none;line-height:1.5"></textarea>
+      <button onClick="{{ saveNote }}" style="border:none;background:#C25E4C;color:#FFFDF8;font-size:14px;font-weight:600;padding:12px 0;border-radius:999px;cursor:pointer" style-hover="background:#A34535">Save note</button>
+      <p style="margin:0;font-size:11.5px;color:#8A7F6E;text-align:center">Travels with this card&rsquo;s decision.</p>
+    </div>
+  </sc-if>
+
+</div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:920},&quot;showProgress&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chrome&quot;},&quot;buttonLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chrome&quot;},&quot;showCaptions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+class Component extends DCLogic {
+  state = { i: 0, hist: [], dec: {}, notes: {}, noteDraft: '', noteOpen: false, lb: null, review: false, fade: 1 };
+  cards = [
+    { id: 'm1', type: 'moment', title: 'Ch. 1 — The Profile', eyebrow: 'Illustration moment · Ch. 1', moment: 'Forty minutes choosing between two photos that look, to everyone else, completely identical.', illo: 'A grid of nearly identical selfies on a phone screen, one circled in red pen; a cold cup of coffee beside it.', caption: 'Both are you. Neither feels like it.' },
+    { id: 'a1', type: 'ab', title: 'Chapter-opener art style', eyebrow: 'Art style · Pick one', prompt: 'Which style for the chapter openers?', A: { name: 'Ink & wash', desc: 'Loose brush lines, soft gray washes', tone: '#DFE5D8', ink: '#4A5A44', initial: 'A' }, B: { name: 'Flat vector', desc: 'Bold shapes, limited warm palette', tone: '#EBD9C8', ink: '#7A5636', initial: 'B' } },
+    { id: 'm2', type: 'moment', title: 'Ch. 2 — The Read Receipt', eyebrow: 'Illustration moment · Ch. 2', moment: 'She has typed and deleted the same reply four times; the dots appear and vanish on his screen like weather.', illo: 'Two phones face each other on a café table, typing bubbles rising between them like smoke signals.', caption: 'Three dots: modern romance\u2019s longest pause.' },
+    { id: 'm3', type: 'moment', title: 'Ch. 5 — Meeting the Friends', eyebrow: 'Illustration moment · Ch. 5', moment: 'He laughs a beat too early at a joke that isn\u2019t finished, and her best friend clocks it instantly.', illo: 'A round restaurant table from above: five plates, one nervous fork, one raised eyebrow rendered in a single line.', caption: 'The audition nobody admits is happening.' },
+    { id: 'a2', type: 'ab', title: 'Cover concept', eyebrow: 'Cover concept · Pick one', prompt: 'Which cover direction feels right?', A: { name: 'Two coffee cups', desc: 'Almost touching, steam intertwining', tone: '#D9DEE8', ink: '#46536B', initial: 'A' }, B: { name: 'Tangled earbuds', desc: 'Knotted into an accidental heart', tone: '#EADAD6', ink: '#7A4A44', initial: 'B' } },
+    { id: 'm4', type: 'moment', title: 'Ch. 8 — The Quiet Sunday', eyebrow: 'Illustration moment · Ch. 8', moment: 'The first morning neither of them performs: burnt toast, mismatched socks, and nobody apologizes for either.', illo: 'A sunlit kitchen doorway; two silhouettes moving around each other with easy, unchoreographed grace.', caption: 'Love is when the audition ends.' },
+  ];
+  decide(verdict, pick) {
+    if (this.state.fade === 0) return;
+    const c = this.cards[this.state.i]; if (!c) return;
+    this.setState({ fade: 0, lb: null, noteOpen: false });
+    setTimeout(() => this.setState(s => ({ dec: { ...s.dec, [c.id]: { verdict, pick: pick || null } }, hist: [...s.hist, s.i], i: s.i + 1, fade: 1 })), 160);
+  }
+  renderVals() {
+    const s = this.state, cards = this.cards, total = cards.length;
+    const done = s.i >= total;
+    const c = cards[Math.min(s.i, total - 1)];
+    const counts = { yes: 0, no: 0, maybe: 0, skip: 0 };
+    Object.values(s.dec).forEach(d => counts[d.verdict]++);
+    const vMeta = { yes: ['\u2665 Yes', '#F3E0DB', '#A34535'], no: ['\u2715 No', '#EAE4D8', '#4C4335'], maybe: ['? Maybe', '#F5EDDA', '#A9762F'], skip: ['\u2192 Skipped', '#E9E6DE', '#8A7F6E'] };
+    const side = s.lb, other = side === 'A' ? 'B' : 'A';
+    const lbOn = !!side && !done && c.type === 'ab';
+    const lbS = lbOn ? c[side] : {};
+    return {
+      showProgress: this.props.showProgress ?? true,
+      buttonLabels: this.props.buttonLabels ?? true,
+      showCaptions: this.props.showCaptions ?? true,
+      deckActive: !done, done, card: c, isMoment: !done && c.type === 'moment', isAB: !done && c.type === 'ab',
+      posLabel: (Math.min(s.i + 1, total)) + ' of ' + total,
+      fade: s.fade,
+      nYes: counts.yes, nNo: counts.no, nMaybe: counts.maybe, nSkip: counts.skip,
+      noLabel: c.type === 'ab' ? 'Neither' : 'No',
+      noUndo: s.hist.length === 0, undoOpacity: s.hist.length ? 1 : 0.35,
+      hasNote: !!s.notes[c.id],
+      reviewOn: s.review, noteOpen: s.noteOpen, noteDraft: s.noteDraft,
+      lbOn, lbTone: lbS.tone, lbInk: lbS.ink, lbInitial: lbS.initial, lbName: lbS.name, lbDesc: lbS.desc,
+      lbSideLabel: lbOn ? ('Style ' + side + ' of 2') : '', lbOtherName: lbOn ? c[other].name : '',
+      reviewItems: cards.map(k => { const d = s.dec[k.id]; const m = d ? vMeta[d.verdict] : ['\u00b7 Undecided', '#EFEBE1', '#8A7F6E']; return { title: k.title, verdictLabel: m[0] + (d && d.pick ? ' \u00b7 ' + k[d.pick].name : ''), vBg: m[1], vInk: m[2], note: s.notes[k.id] || '' }; }),
+      onYes: () => this.decide('yes'), onNo: () => this.decide('no'), onMaybe: () => this.decide('maybe'), onSkip: () => this.decide('skip'),
+      chooseA: () => this.decide('yes', 'A'), chooseB: () => this.decide('yes', 'B'),
+      onUndo: () => this.setState(st => { if (!st.hist.length) return null; const prev = st.hist[st.hist.length - 1]; const dec = { ...st.dec }; delete dec[cards[prev].id]; return { i: prev, hist: st.hist.slice(0, -1), dec, fade: 1, lb: null }; }),
+      openLA: () => this.setState({ lb: 'A' }), openLB: () => this.setState({ lb: 'B' }),
+      closeLb: () => this.setState({ lb: null }), swapLb: () => this.setState({ lb: other }),
+      chooseLb: () => this.decide('yes', side),
+      openReview: () => this.setState({ review: true }), closeReview: () => this.setState({ review: false }),
+      openNote: () => this.setState({ noteOpen: true, noteDraft: s.notes[c.id] || '' }),
+      closeNote: () => this.setState({ noteOpen: false }),
+      onNoteChange: (e) => this.setState({ noteDraft: e.target.value }),
+      saveNote: () => this.setState(st => ({ notes: { ...st.notes, [c.id]: st.noteDraft.trim() }, noteOpen: false })),
+      restart: () => this.setState({ i: 0, hist: [], dec: {}, notes: {}, review: false, lb: null, noteOpen: false, fade: 1 }),
+    };
+  }
+}
+</script>
+</body>
+</html>

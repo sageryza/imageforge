@@ -73,48 +73,69 @@ window.addEventListener('error', function(e){
     var m=document.getElementById('judge');
     function count(){ var e=m.querySelector('.jg-count'); return e?e.textContent:''; }
     function tap(sel){ var b=m.querySelector(sel); if(b) b.click(); return !!b; }
+    // A DECK WITH NO BROWSE MODE NOW WAITS OUT THE GOOD/BAD STAMP before it
+    // moves on (judge.js), so every check that reads the card AFTER a verdict
+    // has to wait too — 700ms clears the stamp's own 620.
+    function step(fn){ return new Promise(function(r){ setTimeout(function(){ fn(); r(); }, 700); }); }
 
     // 1 — one card, a progress count, a note box
     ok(count()==='1 of 4' && m.querySelectorAll('.jg-card').length===1, 'one card at a time with a count');
     ok(!!m.querySelector('.cmp-note-box'), 'every card carries a note box');
 
-    // 2 — heart posts true and advances to the PAIR card
+    // 2 — heart posts true, stamps GOOD on the card it is leaving, and only
+    //     then advances to the PAIR card
     tap('[data-act="yes"]');
     ok(lastPost().ok===true && lastPost().item==='a', 'a heart saves verdict true, live');
-    var tags=m.querySelectorAll('.jg-media figure .tag');
-    ok(m.querySelectorAll('.jg-media figure').length===2
-       && tags.length===2 && tags[0].textContent==='medium' && tags[1].textContent==='high',
-       'a pair renders as a labeled side-by-side judged as one thing');
+    var stamp=m.querySelector('.jg-stamp .jg-stampmark');
+    ok(!!stamp && stamp.textContent==='GOOD' && count()==='1 of 4',
+       'a heart stamps GOOD on the card before the deck moves on');
 
-    // maybe → its own pile value
-    tap('[data-act="maybe"]');
-    ok(lastPost().ok==='maybe' && lastPost().item==='b', "maybe saves the string 'maybe'");
+    Promise.resolve()
+    .then(function(){ return step(function(){
+      var tags=m.querySelectorAll('.jg-media figure .tag');
+      ok(m.querySelectorAll('.jg-media figure').length===2
+         && tags.length===2 && tags[0].textContent==='medium' && tags[1].textContent==='high',
+         'a pair renders as a labeled side-by-side judged as one thing');
 
-    // a TEXT card renders its page-authored HTML in the picture's place
-    tap('[data-act="no"]');
-    var ct=m.querySelector('.jg-cardtext');
-    ok(count()==='4 of 4' && ct && ct.querySelector('b') && ct.querySelector('a'),
-       'a text card renders its HTML in place of a picture');
+      // maybe → its own pile value, and NO stamp: there is no good or bad in it
+      tap('[data-act="maybe"]');
+      ok(lastPost().ok==='maybe' && lastPost().item==='b', "maybe saves the string 'maybe'");
+      ok(!m.querySelector('.jg-stamp'), 'maybe leaves no stamp');
+    }); })
+    .then(function(){ return step(function(){
+      ok(count()==='3 of 4', 'maybe still advances the deck');
+      tap('[data-act="no"]');
+      var st=m.querySelector('.jg-stamp .jg-stampmark');
+      ok(!!st && st.textContent==='BAD', 'a pass stamps BAD');
+    }); })
+    .then(function(){ return step(function(){
+      var ct=m.querySelector('.jg-cardtext');
+      ok(count()==='4 of 4' && ct && ct.querySelector('b') && ct.querySelector('a'),
+         'a text card renders its HTML in place of a picture');
 
-    // 3 — last verdict lands on the piles view, grouped with counts
-    tap('[data-act="yes"]');
-    var heads=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
-    ok(count()==='4 of 4 sorted'
-       && heads.join('|')==='Loved · 2|Maybe · 1|Passed · 1',
-       'all judged opens the piles view, grouped with counts');
-    var ttile=m.querySelector('.jg-grid button.txt');
-    ok(ttile && ttile.textContent==='a text card' && ttile.getAttribute('data-open')==='d',
-       'a card item shows as a text tile named by its label');
+      // 3 — last verdict lands on the piles view, grouped with counts
+      tap('[data-act="yes"]');
+    }); })
+    .then(function(){ return step(function(){
+      var heads=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
+      ok(count()==='4 of 4 sorted'
+         && heads.join('|')==='Loved · 2|Maybe · 1|Passed · 1',
+         'all judged opens the piles view, grouped with counts');
+      var ttile=m.querySelector('.jg-grid button.txt');
+      ok(ttile && ttile.textContent==='a text card' && ttile.getAttribute('data-open')==='d',
+         'a card item shows as a text tile named by its label');
 
-    // 4 — a pile tile re-opens that item; re-judging moves it
-    tap('[data-open="b"]');
-    ok(count()==='2 of 4' && m.querySelector('.jg-media figure .tag'), 'a pile tile re-opens its card');
-    tap('[data-act="later"]');
-    ok(lastPost().ok==='later' && lastPost().item==='b', "re-judging posts the new pile ('later')");
-    var heads2=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
-    ok(heads2.indexOf('Later · 1')>=0, 'the item moved piles');
-
-    fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+      // 4 — a pile tile re-opens that item; re-judging moves it
+      tap('[data-open="b"]');
+      ok(count()==='2 of 4' && m.querySelector('.jg-media figure .tag'), 'a pile tile re-opens its card');
+      tap('[data-act="later"]');
+      ok(lastPost().ok==='later' && lastPost().item==='b', "re-judging posts the new pile ('later')");
+      var heads2=[].map.call(m.querySelectorAll('.jg-piles h2'), function(h){ return h.textContent; });
+      ok(heads2.indexOf('Later · 1')>=0, 'the item moved piles');
+    }); })
+    .then(function(){
+      fetch('/result?r=' + encodeURIComponent(L.join(' | ')));
+    });
   }, 500);
 })();
 </script>`;

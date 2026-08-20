@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9E3D5}
+a{color:#C25E4C}a:hover{color:#A34535}
+input::placeholder,textarea::placeholder{color:#A99E8B}
+@keyframes stampA{
+  0%{transform:scale(2.5) rotate(-15deg);opacity:0;filter:blur(1.5px)}
+  38%{opacity:0}
+  52%{transform:scale(.9) rotate(-8.5deg);opacity:1;filter:blur(0)}
+  64%{transform:scale(1.07) rotate(-8.5deg)}
+  78%{transform:scale(.985) rotate(-8.5deg)}
+  100%{transform:scale(1) rotate(-8.5deg);opacity:1}
+}
+@keyframes stampB{
+  0%{transform:scale(2.5) rotate(12deg);opacity:0;filter:blur(1.5px)}
+  38%{opacity:0}
+  52%{transform:scale(.9) rotate(6.5deg);opacity:1;filter:blur(0)}
+  64%{transform:scale(1.07) rotate(6.5deg)}
+  78%{transform:scale(.985) rotate(6.5deg)}
+  100%{transform:scale(1) rotate(6.5deg);opacity:1}
+}
+@keyframes inkSoak{0%{opacity:.62}100%{opacity:.9}}
+@keyframes jolt{0%,100%{transform:translateY(0)}30%{transform:translateY(3px)}55%{transform:translateY(-1.5px)}}
+</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430,900">
+<div style="position:relative;display:flex;flex-direction:column;height:100%;background:#F7F2E8;color:#262016;font-family:system-ui,-apple-system,sans-serif;overflow:hidden" data-screen-label="Decision deck">
+
+  <svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true"><filter id="inkRough" x="-25%" y="-25%" width="150%" height="150%"><feTurbulence type="fractalNoise" baseFrequency="0.085" numOctaves="3" seed="11" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="6.5" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter><filter id="inkRough2" x="-25%" y="-25%" width="150%" height="150%"><feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="3" seed="4" result="n2"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n2" scale="5.5" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></svg>
+
+  <sc-if value="{{ showProgress }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:none;margin:58px 20px 0;height:3px;border-radius:999px;background:#E7DECF;overflow:hidden">
+      <div style="height:100%;width:{{ pct }}%;border-radius:999px;background:#C25E4C;transition:width 0.25s ease"></div>
+    </div>
+  </sc-if>
+
+  <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0">
+    <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:600;opacity:{{ fade }};transition:opacity 0.15s ease">{{ person }}</span>
+    <button onClick="{{ openReview }}" style="border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:12px;font-weight:600;padding:7px 14px;border-radius:10px;cursor:pointer" style-hover="background:#F0EADC">Piles</button>
+  </div>
+
+  <button onClick="{{ navBack }}" aria-label="Back" style="position:absolute;left:0;top:120px;bottom:130px;width:34px;border:none;background:transparent;cursor:pointer;z-index:5;padding:0"></button>
+  <button onClick="{{ navFwd }}" aria-label="Forward" style="position:absolute;right:0;top:120px;bottom:130px;width:34px;border:none;background:transparent;cursor:pointer;z-index:5;padding:0"></button>
+
+  <sc-if value="{{ deckActive }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0;opacity:{{ fade }};transition:opacity 0.15s ease">
+
+      <sc-if value="{{ isMoment }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 30px;animation:{{ joltAnim }}" data-screen-label="Moment card">
+          <div style="background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+            <span style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#C25E4C;font-weight:700">{{ card.eyebrow }}</span>
+            <p style="margin:0;font-family:'Newsreader',serif;font-size:21px;line-height:1.34;font-weight:500;text-wrap:pretty">{{ card.moment }}</p>
+          </div>
+          <div style="background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+            <span style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8A7F6E;font-weight:700">Illustration</span>
+            <p style="margin:0;font-size:14px;line-height:1.5;color:#4C4335;text-wrap:pretty">{{ card.illo }}</p>
+          </div>
+          <sc-if value="{{ showCaptions }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#FFFDF8;border:1px solid #E7DECF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+              <span style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8A7F6E;font-weight:700">Caption</span>
+              <p style="margin:0;font-family:'Newsreader',serif;font-style:italic;font-size:16px;line-height:1.4">&ldquo;{{ card.caption }}&rdquo;</p>
+            </div>
+          </sc-if>
+          <sc-if value="{{ soloStamp }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+              <div style="animation:{{ soloAnim }}">
+                <div style="border:8px solid #C0271F;border-radius:9px;padding:12px 30px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:52px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2.5px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ soloWord }}</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAB }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 30px;animation:{{ joltAnim }}" data-screen-label="A/B card">
+          <p style="margin:0;font-family:'Newsreader',serif;font-size:19px;line-height:1.3;font-weight:500;text-align:center">{{ card.prompt }}</p>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;align-items:center">
+              <div onClick="{{ openLA }}" style="position:relative;width:100%;height:{{ card.A.h }}px;border-radius:14px;background:{{ card.A.tone }};border:{{ aBorder }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:zoom-in" style-hover="filter:brightness(0.97)">
+                <span style="font-family:'Newsreader',serif;font-size:44px;color:{{ card.A.ink }};opacity:0.55">{{ card.A.initial }}</span>
+                <span style="font-size:11.5px;font-weight:600;color:{{ card.A.ink }}">{{ card.A.name }}</span>
+                <span style="font-size:10px;color:{{ card.A.ink }};opacity:0.7;text-align:center;padding:0 10px">{{ card.A.desc }}</span>
+                <sc-if value="{{ aStamp }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+                    <div style="animation:{{ aAnim }}">
+                      <div style="border:6px solid #C0271F;border-radius:7px;padding:7px 16px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 6px,#000 8px),radial-gradient(circle at 58% 9%,transparent 0 4px,#000 6px),radial-gradient(circle at 87% 68%,transparent 0 5px,#000 7px),radial-gradient(circle at 37% 91%,transparent 0 4px,#000 6px),radial-gradient(circle at 95% 22%,transparent 0 3px,#000 5px),radial-gradient(circle at 6% 78%,transparent 0 4px,#000 6px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 6px,#000 8px),radial-gradient(circle at 58% 9%,transparent 0 4px,#000 6px),radial-gradient(circle at 87% 68%,transparent 0 5px,#000 7px),radial-gradient(circle at 37% 91%,transparent 0 4px,#000 6px),radial-gradient(circle at 95% 22%,transparent 0 3px,#000 5px),radial-gradient(circle at 6% 78%,transparent 0 4px,#000 6px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ aWord }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+              <button onClick="{{ chooseA }}" style="width:48px;height:48px;border-radius:13px;border:1.5px solid #C9BFAA;background:{{ aBg }};color:{{ aInk }};font-size:18px;cursor:pointer" style-hover="border-color:#262016">{{ yesGlyph }}</button>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;align-items:center">
+              <div onClick="{{ openLB }}" style="position:relative;width:100%;height:{{ card.B.h }}px;border-radius:14px;background:{{ card.B.tone }};border:{{ bBorder }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:zoom-in" style-hover="filter:brightness(0.97)">
+                <span style="font-family:'Newsreader',serif;font-size:44px;color:{{ card.B.ink }};opacity:0.55">{{ card.B.initial }}</span>
+                <span style="font-size:11.5px;font-weight:600;color:{{ card.B.ink }}">{{ card.B.name }}</span>
+                <span style="font-size:10px;color:{{ card.B.ink }};opacity:0.7;text-align:center;padding:0 10px">{{ card.B.desc }}</span>
+                <sc-if value="{{ bStamp }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+                    <div style="animation:{{ bAnim }}">
+                      <div style="border:6px solid #C0271F;border-radius:7px;padding:7px 16px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2px rgba(192,39,31,0.5);filter:url(#inkRough2);-webkit-mask-image:radial-gradient(circle at 22% 18%,transparent 0 5px,#000 7px),radial-gradient(circle at 66% 12%,transparent 0 4px,#000 6px),radial-gradient(circle at 81% 74%,transparent 0 6px,#000 8px),radial-gradient(circle at 31% 86%,transparent 0 4px,#000 6px),radial-gradient(circle at 92% 34%,transparent 0 3px,#000 5px),radial-gradient(circle at 9% 66%,transparent 0 4px,#000 6px);mask-image:radial-gradient(circle at 22% 18%,transparent 0 5px,#000 7px),radial-gradient(circle at 66% 12%,transparent 0 4px,#000 6px),radial-gradient(circle at 81% 74%,transparent 0 6px,#000 8px),radial-gradient(circle at 31% 86%,transparent 0 4px,#000 6px),radial-gradient(circle at 92% 34%,transparent 0 3px,#000 5px),radial-gradient(circle at 9% 66%,transparent 0 4px,#000 6px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ bWord }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+              <button onClick="{{ chooseB }}" style="width:48px;height:48px;border-radius:13px;border:1.5px solid #C9BFAA;background:{{ bBg }};color:{{ bInk }};font-size:18px;cursor:pointer" style-hover="border-color:#262016">{{ yesGlyph }}</button>
+            </div>
+          </div>
+          <sc-if value="{{ soloStamp }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+              <div style="animation:{{ soloAnim }}">
+                <div style="border:8px solid #C0271F;border-radius:9px;padding:12px 30px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:52px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2.5px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ soloWord }}</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTextAB }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 30px;animation:{{ joltAnim }}" data-screen-label="Caption pick">
+          <p style="margin:0;font-family:'Newsreader',serif;font-size:19px;line-height:1.3;font-weight:500;text-align:center">{{ card.prompt }}</p>
+          <div style="position:relative;display:flex;align-items:center;gap:14px;background:#FFFDF8;border:{{ aBorder }};border-radius:16px;padding:18px">
+            <p style="margin:0;flex:1;font-family:'Newsreader',serif;font-style:italic;font-size:17px;line-height:1.45">&ldquo;{{ card.A.quote }}&rdquo;</p>
+            <button onClick="{{ chooseA }}" style="flex:none;width:48px;height:48px;border-radius:13px;border:1.5px solid #C9BFAA;background:{{ aBg }};color:{{ aInk }};font-size:18px;cursor:pointer" style-hover="border-color:#262016">{{ yesGlyph }}</button>
+            <sc-if value="{{ aStamp }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+                <div style="animation:{{ aAnim }}">
+                  <div style="border:7px solid #C0271F;border-radius:8px;padding:8px 20px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:38px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 7px,#000 9px),radial-gradient(circle at 58% 9%,transparent 0 5px,#000 7px),radial-gradient(circle at 87% 68%,transparent 0 6px,#000 8px),radial-gradient(circle at 37% 91%,transparent 0 5px,#000 7px),radial-gradient(circle at 95% 22%,transparent 0 3px,#000 5px),radial-gradient(circle at 6% 78%,transparent 0 4px,#000 6px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 7px,#000 9px),radial-gradient(circle at 58% 9%,transparent 0 5px,#000 7px),radial-gradient(circle at 87% 68%,transparent 0 6px,#000 8px),radial-gradient(circle at 37% 91%,transparent 0 5px,#000 7px),radial-gradient(circle at 95% 22%,transparent 0 3px,#000 5px),radial-gradient(circle at 6% 78%,transparent 0 4px,#000 6px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ aWord }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="position:relative;display:flex;align-items:center;gap:14px;background:#FFFDF8;border:{{ bBorder }};border-radius:16px;padding:18px">
+            <p style="margin:0;flex:1;font-family:'Newsreader',serif;font-style:italic;font-size:17px;line-height:1.45">&ldquo;{{ card.B.quote }}&rdquo;</p>
+            <button onClick="{{ chooseB }}" style="flex:none;width:48px;height:48px;border-radius:13px;border:1.5px solid #C9BFAA;background:{{ bBg }};color:{{ bInk }};font-size:18px;cursor:pointer" style-hover="border-color:#262016">{{ yesGlyph }}</button>
+            <sc-if value="{{ bStamp }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+                <div style="animation:{{ bAnim }}">
+                  <div style="border:7px solid #C0271F;border-radius:8px;padding:8px 20px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:38px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2px rgba(192,39,31,0.5);filter:url(#inkRough2);-webkit-mask-image:radial-gradient(circle at 22% 18%,transparent 0 6px,#000 8px),radial-gradient(circle at 66% 12%,transparent 0 4px,#000 6px),radial-gradient(circle at 81% 74%,transparent 0 6px,#000 8px),radial-gradient(circle at 31% 86%,transparent 0 5px,#000 7px),radial-gradient(circle at 92% 34%,transparent 0 3px,#000 5px),radial-gradient(circle at 9% 66%,transparent 0 4px,#000 6px);mask-image:radial-gradient(circle at 22% 18%,transparent 0 6px,#000 8px),radial-gradient(circle at 66% 12%,transparent 0 4px,#000 6px),radial-gradient(circle at 81% 74%,transparent 0 6px,#000 8px),radial-gradient(circle at 31% 86%,transparent 0 5px,#000 7px),radial-gradient(circle at 92% 34%,transparent 0 3px,#000 5px),radial-gradient(circle at 9% 66%,transparent 0 4px,#000 6px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ bWord }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ soloStamp }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+              <div style="animation:{{ soloAnim }}">
+                <div style="border:8px solid #C0271F;border-radius:9px;padding:12px 30px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:52px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2.5px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ soloWord }}</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSingle }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 30px" data-screen-label="Single image">
+          <p style="margin:0;font-family:'Newsreader',serif;font-size:19px;line-height:1.3;font-weight:500;text-align:center">{{ card.prompt }}</p>
+          <div style="position:relative;width:100%;height:330px;border-radius:16px;background:{{ card.A.tone }};border:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;animation:{{ joltAnim }}">
+            <span style="font-family:'Newsreader',serif;font-size:72px;color:{{ card.A.ink }};opacity:0.5">{{ card.A.initial }}</span>
+            <span style="font-size:13px;font-weight:600;color:{{ card.A.ink }}">{{ card.A.name }}</span>
+            <span style="font-size:11.5px;color:{{ card.A.ink }};opacity:0.7;text-align:center;padding:0 24px">{{ card.A.desc }}</span>
+            <sc-if value="{{ soloStamp }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9">
+                <div style="animation:{{ soloAnim }}">
+                  <div style="border:8px solid #C0271F;border-radius:9px;padding:12px 30px;color:#C0271F;font-family:'Newsreader',serif;font-weight:700;font-size:52px;line-height:1;letter-spacing:0.09em;box-shadow:inset 0 0 0 2.5px rgba(192,39,31,0.5);filter:url(#inkRough);-webkit-mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);mask-image:radial-gradient(circle at 16% 26%,transparent 0 8px,#000 10px),radial-gradient(circle at 58% 9%,transparent 0 6px,#000 8px),radial-gradient(circle at 87% 68%,transparent 0 7px,#000 9px),radial-gradient(circle at 37% 91%,transparent 0 6px,#000 8px),radial-gradient(circle at 95% 22%,transparent 0 4px,#000 6px),radial-gradient(circle at 6% 78%,transparent 0 5px,#000 7px),radial-gradient(circle at 71% 47%,transparent 0 3px,#000 5px);-webkit-mask-composite:source-in;mask-composite:intersect;opacity:0.9">{{ soloWord }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="flex:none;display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 34px 26px">
+        <button onClick="{{ onNo }}" style="flex:none;width:62px;height:62px;border-radius:17px;border:1.5px solid #C9BFAA;background:{{ noBg }};color:{{ noInk }};font-size:21px;cursor:pointer" style-hover="border-color:#262016">{{ noGlyph }}</button>
+        <textarea value="{{ noteVal }}" onChange="{{ onNoteChange }}" rows="2" placeholder="Note for Claude&hellip;" style="flex:1;min-width:0;max-width:190px;height:62px;box-sizing:border-box;border-radius:14px;border:1.5px solid #E7DECF;background:#FFFDF8;padding:10px 14px;font-size:13px;line-height:1.45;color:#262016;font-family:system-ui,sans-serif;outline:none;resize:none"></textarea>
+        <sc-if value="{{ hasYesBtn }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ onYes }}" style="flex:none;width:62px;height:62px;border-radius:17px;border:1.5px solid #C9BFAA;background:{{ yesBg }};color:{{ yesInk }};font-size:21px;cursor:pointer" style-hover="border-color:#262016">{{ yesGlyph }}</button>
+        </sc-if>
+        <sc-if value="{{ spacerBtn }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:none;width:62px;height:62px"></div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 44px" data-screen-label="All done">
+      <span style="font-family:'Newsreader',serif;font-size:30px;font-weight:500">That&rsquo;s everything.</span>
+      <div style="display:flex;gap:10px">
+        <span style="font-size:13px;background:#F3E0DB;color:#A34535;padding:6px 13px;border-radius:999px;font-weight:600">{{ yesGlyph }} {{ nYes }}</span>
+        <span style="font-size:13px;background:#F5EDDA;color:#A9762F;padding:6px 13px;border-radius:999px;font-weight:600">? {{ nUnsure }}</span>
+        <span style="font-size:13px;background:#EAE4D8;color:#4C4335;padding:6px 13px;border-radius:999px;font-weight:600">{{ noGlyph }} {{ nNo }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:230px;margin-top:6px">
+        <button onClick="{{ openReview }}" style="border:none;background:#C25E4C;color:#FFFDF8;font-size:14px;font-weight:600;padding:12px 0;border-radius:999px;cursor:pointer" style-hover="background:#A34535">Review decisions</button>
+        <button onClick="{{ restart }}" style="border:1.5px solid #D9CEB9;background:transparent;color:#4C4335;font-size:14px;font-weight:600;padding:11px 0;border-radius:999px;cursor:pointer" style-hover="background:#F0EADC">Start over</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ lbOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#F7F2E8;display:flex;flex-direction:column;padding:64px 20px 24px;gap:14px;z-index:20" data-screen-label="Style zoom">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#8A7F6E;font-weight:700">{{ lbName }}</span>
+        <button onClick="{{ closeLb }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:15px;cursor:pointer" style-hover="background:#F0EADC">&#10005;</button>
+      </div>
+      <div style="flex:1;border-radius:18px;background:{{ lbTone }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid rgba(0,0,0,0.06)">
+        <span style="font-family:'Newsreader',serif;font-size:110px;color:{{ lbInk }};opacity:0.5">{{ lbInitial }}</span>
+        <span style="font-size:16px;font-weight:600;color:{{ lbInk }}">{{ lbName }}</span>
+        <span style="font-size:13px;color:{{ lbInk }};opacity:0.75;text-align:center;padding:0 32px;line-height:1.5">{{ lbDesc }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <button onClick="{{ chooseLb }}" style="border:none;background:#C25E4C;color:#FFFDF8;font-size:14.5px;font-weight:600;padding:13px 0;border-radius:999px;cursor:pointer" style-hover="background:#A34535">{{ yesGlyph }} Choose this</button>
+        <button onClick="{{ swapLb }}" style="border:1.5px solid #D9CEB9;background:transparent;color:#4C4335;font-size:14px;font-weight:600;padding:12px 0;border-radius:999px;cursor:pointer" style-hover="background:#F0EADC">View {{ lbOtherName }} &harr;</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ reviewOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#F7F2E8;display:flex;flex-direction:column;padding:64px 20px 20px;gap:12px;z-index:30" data-screen-label="Piles">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:600">Piles</span>
+        <button onClick="{{ closeReview }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #DDD3C0;background:#FFFDF8;color:#262016;font-size:15px;cursor:pointer" style-hover="background:#F0EADC">&#10005;</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span style="font-size:12px;background:#F3E0DB;color:#A34535;padding:5px 11px;border-radius:999px;font-weight:600">{{ yesGlyph }} {{ nYes }}</span>
+        <span style="font-size:12px;background:#F5EDDA;color:#A9762F;padding:5px 11px;border-radius:999px;font-weight:600">? {{ nUnsure }}</span>
+        <span style="font-size:12px;background:#EAE4D8;color:#4C4335;padding:5px 11px;border-radius:999px;font-weight:600">{{ noGlyph }} {{ nNo }}</span>
+      </div>
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px">
+        <sc-for list="{{ reviewItems }}" as="it" hint-placeholder-count="4">
+          <div onClick="{{ it.jump }}" style="display:flex;flex-direction:column;gap:5px;background:#FFFDF8;border:1px solid #E7DECF;border-radius:12px;padding:12px 14px;cursor:pointer" style-hover="background:#FDF8EE">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font-size:13.5px;font-weight:600;line-height:1.3">{{ it.title }}</span>
+              <span style="flex:none;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ it.vBg }};color:{{ it.vInk }}">{{ it.verdictLabel }}</span>
+            </div>
+            <sc-if value="{{ it.note }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;font-size:12px;color:#8A7F6E;line-height:1.45">&#9998; {{ it.note }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 430, &quot;height&quot;: 920}, &quot;showProgress&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Chrome&quot;}, &quot;showCaptions&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Content&quot;}, &quot;buttonStyle&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;check / cross&quot;, &quot;options&quot;: [&quot;check / cross&quot;, &quot;plus / minus&quot;, &quot;up / down&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Buttons&quot;}, &quot;goodWord&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;GOOD&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Stamp&quot;}, &quot;badWord&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;BAD&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Stamp&quot;}}">
+class Component extends DCLogic {
+  state = { i: 0, dec: {}, notes: {}, lb: null, review: false, fade: 1, stamping: null };
+  cards = [
+    { id: 'm1', type: 'moment', person: 'Maya', title: 'Ch. 1 — The Profile', eyebrow: 'Moment · Ch. 1', moment: 'Forty minutes choosing between two photos that look, to everyone else, completely identical.', illo: 'A grid of nearly identical selfies on a phone screen, one circled in red pen; a cold cup of coffee beside it.', caption: 'Both are you. Neither feels like it.' },
+    { id: 'a1', type: 'ab', person: 'Art style', title: 'Chapter-opener art style', prompt: 'Which style for the chapter openers?', A: { name: 'Ink & wash', desc: 'Loose brush lines, soft gray washes', tone: '#DFE5D8', ink: '#4A5A44', initial: 'A', h: 216 }, B: { name: 'Flat vector', desc: 'Bold shapes, limited warm palette', tone: '#EBD9C8', ink: '#7A5636', initial: 'B', h: 216 } },
+    { id: 'm2', type: 'moment', person: 'Maya', title: 'Ch. 2 — The Read Receipt', eyebrow: 'Moment · Ch. 2', moment: 'She has typed and deleted the same reply four times; the dots appear and vanish on his screen like weather.', illo: 'Two phones face each other on a café table, typing bubbles rising between them like smoke signals.', caption: 'Three dots: modern romance\u2019s longest pause.' },
+    { id: 'm3', type: 'moment', person: 'Theo', title: 'Ch. 5 — Meeting the Friends', eyebrow: 'Moment · Ch. 5', moment: 'He laughs a beat too early at a joke that isn\u2019t finished, and her best friend clocks it instantly.', illo: 'A round restaurant table from above: five plates, one nervous fork, one raised eyebrow rendered in a single line.', caption: 'The audition nobody admits is happening.' },
+    { id: 'a2', type: 'ab', person: 'Cover', title: 'Cover concept', prompt: 'Which cover direction feels right?', A: { name: 'Two coffee cups', desc: 'Almost touching, steam intertwining', tone: '#D9DEE8', ink: '#46536B', initial: 'A', h: 216 }, B: { name: 'Tangled earbuds', desc: 'Knotted into an accidental heart', tone: '#EADAD6', ink: '#7A4A44', initial: 'B', h: 216 } },
+    { id: 't1', type: 'tab', person: 'Caption', title: 'Read-receipt caption', prompt: 'Which caption under the read-receipt scene?', A: { name: 'Caption A', quote: 'Three dots: modern romance\u2019s longest pause.' }, B: { name: 'Caption B', quote: 'He watched her think better of him.' } },
+    { id: 'a3', type: 'ab', person: 'Format', title: 'Scene crop', prompt: 'Same scene \u2014 which crop?', A: { name: 'Square 1:1', desc: 'Tight on the two phones', tone: '#DCE0D4', ink: '#4A5A44', initial: '\u25A1', h: 158 }, B: { name: 'Portrait 3:4', desc: 'Room for the caf\u00e9 around them', tone: '#DCE0D4', ink: '#4A5A44', initial: '\u25AF', h: 224 } },
+    { id: 'a4', type: 'ab', person: 'Finish', title: 'Finish level', prompt: 'How finished should the art feel?', A: { name: 'Pencil rough', desc: 'Loose, sketchy, unpolished', tone: '#F2EDE2', ink: '#8A7F6E', initial: '~', dashed: true, h: 216 }, B: { name: 'Full render', desc: 'Inked, shaded, complete', tone: '#D8CFC0', ink: '#4C4335', initial: '\u25CF', h: 216 } },
+    { id: 's1', type: 'single', person: 'Sam', title: 'Ch. 6 \u2014 The Check Dance', prompt: 'Keep this spot illustration?', A: { name: 'The check dance', desc: 'Two hands, one bill, four polite lies', tone: '#E4D9E2', ink: '#6B4A66', initial: 'S' } },
+    { id: 'm4', type: 'moment', person: 'Theo', title: 'Ch. 8 — The Quiet Sunday', eyebrow: 'Moment · Ch. 8', moment: 'The first morning neither of them performs: burnt toast, mismatched socks, and nobody apologizes for either.', illo: 'A sunlit kitchen doorway; two silhouettes moving around each other with easy, unchoreographed grace.', caption: 'Love is when the audition ends.' },
+  ];
+  go(target) {
+    if (this.state.fade === 0 || this.state.stamping) return;
+    const t = Math.max(0, Math.min(this.cards.length, target));
+    if (t === this.state.i) return;
+    this.setState({ fade: 0, lb: null });
+    setTimeout(() => this.setState({ i: t, fade: 1 }), 150);
+  }
+  decide(verdict, pick) {
+    if (this.state.fade === 0 || this.state.stamping) return;
+    const c = this.cards[this.state.i]; if (!c) return;
+    const next = this.state.i + 1;
+    this.setState(s => ({ dec: { ...s.dec, [c.id]: { verdict, pick: pick || null } } , stamping: c.id, lb: null }));
+    setTimeout(() => {
+      this.setState({ stamping: null, fade: 0 });
+      setTimeout(() => this.setState({ i: Math.min(next, this.cards.length), fade: 1 }), 150);
+    }, 1080);
+  }
+  renderVals() {
+    const s = this.state, cards = this.cards, total = cards.length;
+    const done = s.i >= total;
+    const c = cards[Math.min(s.i, total - 1)];
+    const d = s.dec[c.id];
+    let nYes = 0, nNo = 0;
+    Object.values(s.dec).forEach(x => x.verdict === 'yes' ? nYes++ : nNo++);
+    const glyphSets = { 'check / cross': ['\u2713', '\u2715'], 'plus / minus': ['\uFF0B', '\u2212'], 'up / down': ['\u2191', '\u2193'] };
+    const [yesGlyph, noGlyph] = glyphSets[this.props.buttonStyle] || glyphSets['check / cross'];
+    const SEL = '#262016', SELINK = '#F7F2E8', OFF = '#FFFDF8', OFFINK = '#262016';
+    const yesSel = !done && d && d.verdict === 'yes' && !d.pick, noSel = !done && d && d.verdict === 'no';
+    const aSel = !done && d && d.pick === 'A', bSel = !done && d && d.pick === 'B';
+    const side = s.lb, other = side === 'A' ? 'B' : 'A';
+    const lbOn = !!side && !done && c.type === 'ab';
+    const lbS = lbOn ? c[side] : {};
+    const vMeta = { yes: [yesGlyph + ' Good', '#F3E0DB', '#A34535'], no: [noGlyph + ' Bad', '#EAE4D8', '#4C4335'] };
+    const goodWord = this.props.goodWord || 'GOOD', badWord = this.props.badWord || 'BAD';
+    const live = s.stamping === c.id;
+    const EASE = 'cubic-bezier(.16,1.5,.34,1)';
+    const animA = live ? 'stampA 560ms ' + EASE + ' both' : 'none';
+    const animB = live ? 'stampB 560ms ' + EASE + ' 200ms both' : 'none';
+    const hasPick = !done && !!d && !!d.pick;
+    const solo = !done && !!d && !d.pick;
+    return {
+      showProgress: this.props.showProgress ?? true,
+      showCaptions: this.props.showCaptions ?? true,
+      yesGlyph, noGlyph,
+      deckActive: !done, done, card: c, isMoment: !done && c.type === 'moment', isAB: !done && c.type === 'ab',
+      isTextAB: !done && c.type === 'tab', isSingle: !done && c.type === 'single',
+      hasYesBtn: !done && (c.type === 'moment' || c.type === 'single'),
+      spacerBtn: !done && (c.type === 'ab' || c.type === 'tab'),
+      person: done ? 'Done' : c.person,
+      pct: Math.round((s.i / total) * 100),
+      fade: s.fade,
+      soloStamp: solo, soloWord: solo ? (d.verdict === 'yes' ? goodWord : badWord) : '',
+      soloAnim: animA,
+      joltAnim: live && solo ? 'jolt 260ms ease-out 220ms both' : 'none',
+      aStamp: hasPick, bStamp: hasPick,
+      aWord: hasPick ? (d.pick === 'A' ? goodWord : badWord) : '',
+      bWord: hasPick ? (d.pick === 'B' ? goodWord : badWord) : '',
+      aAnim: hasPick && d.pick === 'A' ? animA : (live ? 'stampA 560ms ' + EASE + ' 200ms both' : 'none'),
+      bAnim: hasPick && d.pick === 'B' ? (live ? 'stampB 560ms ' + EASE + ' both' : 'none') : animB,
+      nYes, nNo, nUnsure: total - nYes - nNo,
+      backOpacity: s.i > 0 ? 0.45 : 0.12, fwdOpacity: done ? 0.12 : 0.45,
+      navBack: () => this.go(s.i - 1), navFwd: () => this.go(s.i + 1),
+      yesBg: yesSel ? SEL : OFF, yesInk: yesSel ? SELINK : OFFINK,
+      noBg: noSel ? SEL : OFF, noInk: noSel ? SELINK : OFFINK,
+      aBg: aSel ? SEL : OFF, aInk: aSel ? SELINK : OFFINK,
+      bBg: bSel ? SEL : OFF, bInk: bSel ? SELINK : OFFINK,
+      aBorder: aSel ? '2px solid #262016' : (c.type === 'tab' ? '1px solid #E7DECF' : (c.A && c.A.dashed ? '1.5px dashed rgba(0,0,0,0.28)' : '1px solid rgba(0,0,0,0.06)')),
+      bBorder: bSel ? '2px solid #262016' : (c.type === 'tab' ? '1px solid #E7DECF' : (c.B && c.B.dashed ? '1.5px dashed rgba(0,0,0,0.28)' : '1px solid rgba(0,0,0,0.06)')),
+      onYes: () => this.decide('yes'), onNo: () => this.decide('no'),
+      chooseA: () => this.decide('yes', 'A'), chooseB: () => this.decide('yes', 'B'),
+      noteVal: s.notes[c.id] || '',
+      onNoteChange: (e) => { const v = e.target.value; this.setState(st => ({ notes: { ...st.notes, [c.id]: v } })); },
+      openLA: () => this.setState({ lb: 'A' }), openLB: () => this.setState({ lb: 'B' }),
+      closeLb: () => this.setState({ lb: null }), swapLb: () => this.setState({ lb: other }),
+      chooseLb: () => this.decide('yes', side),
+      lbOn, lbTone: lbS.tone, lbInk: lbS.ink, lbInitial: lbS.initial, lbName: lbS.name, lbDesc: lbS.desc,
+      lbOtherName: lbOn ? c[other].name : '',
+      reviewOn: s.review, openReview: () => this.setState({ review: true }), closeReview: () => this.setState({ review: false }),
+      reviewItems: cards.map((k, idx) => { const kd = s.dec[k.id]; const m = kd ? vMeta[kd.verdict] : ['? Unsure', '#F5EDDA', '#A9762F']; return { title: k.title, verdictLabel: m[0] + (kd && kd.pick ? ' \u00b7 ' + k[kd.pick].name : ''), vBg: m[1], vInk: m[2], note: s.notes[k.id] || '', jump: () => this.setState({ i: idx, review: false, fade: 1, stamping: null }) }; }),
+      restart: () => this.setState({ i: 0, dec: {}, notes: {}, review: false, lb: null, fade: 1, stamping: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

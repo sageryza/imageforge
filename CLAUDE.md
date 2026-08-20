@@ -296,8 +296,36 @@ around them change, so verify the labels and use these for the URL.
     `server.js`: on that host `/` IS the dream app (`public/dreamapp.html`),
     `/dreamfeed` 301s to `/`, `robots.txt` keeps the API and the studio out,
     and a studio page typed on that host 301s to the feed. Every other host
-    is untouched — `/dreamfeed` still serves the page on onrender. **The
-    domain needs three flips, all doable from her phone:** Render → the
+    is untouched — `/dreamfeed` still serves the page on onrender.
+    **ON A WIDE SCREEN THE FEED IS A MASONRY DESK, and the phone is untouched
+    (Aug 2026, her own `Dream Feed Web` canvas: "a fun masonry layout, and I
+    want it to look good on a desktop. But not on the mobile site").**
+    **THE FIRST PORT WAS A GRID AND SHE SAW IT IN ONE LOOK ("you didn't even
+    do the masonry layout") — the cause is worth knowing, because it is a
+    phone rule leaking into a desk.** `fitCard` cuts a dream's words to its
+    PICTURE's height (her rule: side by side, matched so neither leaves a
+    hole) — true and right in ONE column, and in columns it is the thing that
+    kills masonry, because it makes every card with a picture exactly one
+    picture tall, so the columns end level. **On the desk the words are not
+    cut to the picture at all**: a flat 12-line fold, so a short dream makes a
+    short card and a long one makes a tall card, which IS the layout. The same
+    mistake had a second half: the day divider was drawn as a full-width band
+    with fresh columns either side, which forces every column to end level a
+    second time — it rides INSIDE a column now, as it does on her artboard.
+    Two more things not to undo. **The columns are real elements filled
+    shortest-first, built in JS — never `column-count`**: multicol re-balances the whole feed
+    when one card changes height, and opening a dream changes it by a whole
+    picture, so every card after it would jump columns while she reads the one
+    she just tapped. And **the desk's whole look rides on `data-shape` /
+    `data-ar` / `--r`, written on every card and read ONLY inside `@media
+    (min-width:900px)`** — that is what keeps the phone byte-for-byte what it
+    was. The desk's header button is deliberately NOT hidden while a dream is
+    open (unlike the phone's bottom bar, which yields its seat to the floating
+    close): it sits in the flow, so hiding it shrank the header and slid the
+    feed up under her mid-tap. Test:
+    `node scripts/test-dream-desktop.js` (both widths). The artboard and what
+    the port changed: `docs/dream-feed-designs/`.
+    **The domain needs three flips, all doable from her phone:** Render → the
     service's Settings → Custom Domains → add the apex and www; Hover → DNS →
     `A @ 216.24.57.1` and `CNAME www imageforge-q125.onrender.com` (Hover has
     no ALIAS, so the apex is an A record; leave the MX records alone or her
@@ -2719,6 +2747,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
     second after she started it), and the position is accumulated in JS —
     `scrollTop += 0.37` snaps to the same integer every frame and moved the
     card exactly 0px.
+  - **A DECIDED CARD WEARS A GOOD / BAD STAMP (Aug 2026, her own "Decision
+    Deck v3" canvas: "a little good/bad stamp that stamps the ones that you
+    pick or don't pick").** Red rubber, tilted, the one just decided slamming
+    on — in at 2.5x and blurred, invisible until it is nearly down, an
+    overshoot, then settled in 560ms. The ink is rough rather than printed: an
+    feTurbulence displacement chews the edges and a mask of radial holes lifts
+    the worn spots out of the middle; two filters and two hole patterns so the
+    halves of a spread never stamp identically. Values are the artboard's
+    (`docs/decision-deck/`).
+    - **The SPREAD is the case it is named for** — picking one of two pictures
+      stamps GOOD on the winner and BAD on the other. A ♥ or ✕ anywhere else
+      stamps the whole card.
+    - **maybe / later / a deck's own words stamp NOTHING.** There is no good
+      and no bad in "sort this one later", and a red mark there would invent a
+      verdict she never gave.
+    - **A deck with no browse mode waits out the animation before it
+      advances**, so the card she is leaving is the one that wears the mark —
+      otherwise the stamp is painted onto a card replaced in the same frame.
+      Her decks are all `browse`, where a mark never moves the deck anyway.
+    - It is `pointer-events:none` everywhere, so it can never take a tap off
+      the ♥ underneath it — measured with `elementFromPoint`, the only honest
+      way to ask. `stamp:false` turns it off; `goodWord` / `badWord` are hers
+      to change, because her artboard made them fields.
+    - Test: `node scripts/test-judge-stamp.js`.
   - **THE ✕ AND ♥ ARE DRAWN BY HAND (Aug 2026, Sophie, pointing at the ✕
     inside one of her own cards: "can you make this X that I gave as a
     screenshot, and make the heart actually kind of a handwriting look?").**
