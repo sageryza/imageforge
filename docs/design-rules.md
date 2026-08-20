@@ -247,9 +247,9 @@ The house rules that only bite when you are actually building a page, an iOS scr
   (`HomeFilter`): **photo** = the picture-makers
   (Playground, Test Station, Freeform — the only place the Test Station has a
   card at all), **briefcase** = business, **quilt** = old fashioned, **film**
-  = everything that makes or cuts moving pictures AND sound (Movies, Films,
-  Cutting Room, Cut Marks, Episode Editor, Voice Studio, Search,
-  Characters). The lit chip clears back to everything when
+  = everything that makes or cuts moving pictures AND sound, drawn as an
+  ordered pipeline rather than a grid (see THE FILM CHIP IS A PIPELINE
+  below). The lit chip clears back to everything when
   tapped again (the Dump sort page's convention). `BusinessGrid`/`CraftsGrid`
   and `Screen.business`/`.crafts` are GONE; `deckfactory://business` and
   `://crafts` (alias `://quilt`) land on the home with that filter already
@@ -264,8 +264,6 @@ The house rules that only bite when you are actually building a page, an iOS scr
   the old `pinnedBottom` trio is gone with it — Voice Studio, Characters and
   Films were all film tools sitting at the bottom of the home list. Three
   deliberate exceptions to know before "fixing" any of them:
-  - **Story Room is default-home only** — pinned FIRST, and taken out of the
-    film set ("story room is no longer movies").
   - **The PICTURES filter is still a pure NARROWING**, not a hiding one:
     Playground and **Freeform** are cards on the default home AND under the
     photo chip (her ask, "put Freeform in the default"). Only the Test
@@ -275,8 +273,42 @@ The house rules that only bite when you are actually building a page, an iOS scr
     station altogether"). The `.song` case, its view and `deckfactory://song`
     are kept and `/song` still serves; it just joins the
     deliberately-unlinked pages.
-  The default home is therefore SHORT on purpose — Story Room, Dreams,
-  Lessons, Dump, Playground, Freeform — and everything else is one chip away.
+  The default home is therefore SHORT on purpose — Lessons, Dump, Playground,
+  Freeform, Review Queue — and everything else is one chip away.
+
+  **THE FILM CHIP IS A PIPELINE, NOT A PILE (Aug 2026, Sophie: "right now
+  there's so many movie tools it's confusing… my possible fix is changing the
+  movies tab to a sort of pipeline that shows the order they're meant to be
+  used in").** It is the one filter that does not draw a flat grid: it draws
+  SIX NUMBERED STOPS, each with its name in the sans-caps label voice, one
+  line of what happens there, a hairline, and that stop's tools as the same
+  `HubCard`s every other slice uses — so a tool never looks like a different
+  tool depending on which chip is lit. **`HomeGrid.pipeline` is the only place
+  the order is written down and `movieTools` is DERIVED from it**, so adding a
+  tool to a stage puts it in the tab, takes it off the default home and gives
+  it a place in the road in one edit. The road, and the reasoning:
+  1. **The story** — Story Room, Story Timeline.
+  2. **The voice** — Search, Voice Studio.
+  3. **The cut** — Cutting Blocks, Episode Editor, Cut Marks.
+  4. **The polish** — Cutting Room, Pausing.
+  5. **The pictures** — Characters, Movies, Dreams.
+  6. **The shelf** — Chunking, Films.
+  Stops 2–4 are `docs/audio-pipeline.md`'s road verbatim (blocks → word cut →
+  exact cut → polish); the story stops sit in front of it and the picture
+  stops behind, and **movies and sound interleave on ONE road** rather than
+  sitting in two piles (her ask the same day: "group movies and audio
+  together"). Four of these placements are genuinely arguable and were flagged
+  to her rather than settled quietly — **Search and Voice Studio are
+  TRIBUTARIES, not stages** (the audio doc draws them flowing *into* blocks,
+  and both are also used at the very end), **Chunking is a shelf that is both
+  an input and an output**, **Movies is a whole road of its own** rather than
+  a stop on this one, and **Dreams** is arguably a picture tool that only
+  lives here because `movies.js` owns it.
+  - **Story Room CAME BACK into the film set** with that move ("move
+    everything onto the movies page like the story boards…"), reversing the
+    earlier "story room is no longer movies" — it is stop 1 and has no card on
+    the default home any more. If she reverses again, it needs taking out of
+    `pipeline` AND re-pinning at the head of `tools`.
   **Four corner icons** beside the
   masthead, Sophie's arrangement: test tube + briefcase LEFT, quilt + Chats
   RIGHT with Chats on the very end (its original spot). The briefcase and
