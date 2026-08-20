@@ -847,6 +847,25 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    ✓ on the right is the "I've checked this" — see POST /notif-seen. */
 .nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
   padding:4px 10px 10px; margin:0 0 10px;}
+/* ---- THE REVIEW ROW (Aug 2026, Sophie — the `to be reviewed` rule) ---------
+   One row above everything: the word leaves for /review, the ⌄ opens the cards
+   so they can still be dismissed from here. A rounded rectangle, never a pill
+   (the house rule), and it wears the ROSE the asks on this screen already
+   wear — this is the one row that says something is owed. */
+.nwrev{display:flex; align-items:stretch; gap:0; margin:0 0 12px;
+  border:1px solid var(--rose); border-radius:6px; overflow:hidden; background:var(--surface);}
+.nwrevgo{flex:1; display:flex; align-items:center; gap:8px; background:none; border:0;
+  padding:11px 12px; cursor:pointer; text-align:left; color:var(--rose);
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; -webkit-tap-highlight-color:transparent;}
+.nwrevgo .stn{font-weight:600;}
+/* Its own hairline, so the two halves of the row are visibly two taps — the
+   word goes somewhere, the arrow does not. */
+.nwrevfold{flex:none; width:44px; background:none; border:0; border-left:1px solid var(--line);
+  cursor:pointer; color:var(--ink2); display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent;}
+.nwrevfold svg{width:17px; height:17px; display:block; transition:transform .18s ease;}
+.nwrevfold.folded svg{transform:rotate(-90deg);}
 /* PICKED — "I tap the item and it selects it with a thicker outline, and then
    I tap the category and that's how it gets filed in" (Sophie, Aug 2026). The
    outline IS the whole feedback, so it has to read on a card that already has
@@ -2845,8 +2864,20 @@ function newsItems(g){
     if(pin) bump(pin.at||'');
     // Nothing since the ✓ means nothing to show. Nothing else takes a card
     // off this screen any more — see newsFloor.
-    if(!at || at<=floor) return;
-    out.push({ chat:name, list:list, last:last, lastFin:lastFin, pics:pics, pages:pages, at:at });
+    // …EXCEPT A LIVE PIN, which is the one card the arrival test cannot see
+    // (Aug 2026 — the `waiting for a response` rule; see TAG_RULES). She tags
+    // a chat because she owes it an answer, and a chat she owes an answer is
+    // usually one that said its piece days ago and went quiet: waiting for the
+    // arrival test to pass would mean the pin only ever showed on chats that
+    // did not need it. So the TAG is the arrival, and its time is the moment
+    // she tagged it.
+    var rule=tagRuleOf(name), pin=pinLive(name);
+    if(!at || at<=floor){
+      if(!pin) return;
+      at=chatFiledAt(name)||at;
+    }
+    out.push({ chat:name, list:list, last:last, lastFin:lastFin, pics:pics, pages:pages, at:at,
+      rule:(rule&&rule.rule)||'', pin:pin });
   });
   out.sort(function(a,b){ return a.at<b.at?1:-1; });   // newest first
   return out;
@@ -2987,6 +3018,13 @@ function newsKind(it){
 // FOLDING A SECTION DROPS THE PICKS INSIDE IT, the same way leaving the tab
 // does: a picked card she can no longer see is a card the next tap on a box
 // would file without her.
+// WHICH SECTION A CARD IS IN — one answer, read by the render and by the fold
+// (which has to drop the picks inside a section it is shutting). The two rule
+// words are sections of their own and never reach the classifier.
+function newsSection(it){
+  if(it.rule==='review'||it.rule==='pin') return it.rule;
+  return newsKind(it);
+}
 var newsFold={};      // kind → 1 while that section is folded shut
 function newsFoldHead(pair, n){
   var shut=!!newsFold[pair[0]];
@@ -3004,10 +3042,55 @@ function toggleNewsFold(kind){
   else {
     newsFold[kind]=1;
     newsList(groups()).forEach(function(it){
-      if(newsKind(it)===kind) delete newsPick[it.chat];
+      if(newsSection(it)===kind) delete newsPick[it.chat];
     });
   }
   renderHome();                 // no scrollTo — she stays where she tapped
+}
+// ---- THE REVIEW BUTTON (Aug 2026, Sophie: "the `to be reviewed` review queue
+// — like movies that are done, images waiting on my decision — go into a
+// `review` button (which links to the review queue) at the top of the updates
+// tab") ---------------------------------------------------------------------
+// One row at the very top, above everything, carrying how many chats are
+// behind it. The WORD is the link: it leaves for /review, which is where the
+// work actually gets done — a deck is swiped there, never here.
+//
+// The ⌄ beside it is not decoration and not an extra feature: her rule ends
+// "IF i dismiss manually from update tab", so the cards have to be REACHABLE
+// from this tab or there is nothing to dismiss. It opens the same cards, with
+// the same ✓ and the same DONE chip as every other section — folded by
+// default, because the point of the row is that these are out of the way.
+//
+// Session-only and always starting shut, like every other fold on this screen.
+function newsReviewRow(revs){
+  var frag=document.createDocumentFragment();
+  var shut=!newsFold.reviewOpen;
+  var row=document.createElement('div'); row.className='nwrev';
+  var b=document.createElement('button'); b.className='nwrevgo';
+  b.innerHTML='<span>Review</span><span class="stn">'+revs.length+'</span>';
+  b.setAttribute('aria-label','Review queue — '+revs.length+' waiting');
+  b.onclick=function(){ location.href='/review'; };
+  row.appendChild(b);
+  var f=document.createElement('button');
+  f.className='nwrevfold'+(shut?' folded':'');
+  f.setAttribute('aria-expanded', shut?'false':'true');
+  f.setAttribute('aria-label', shut?'Show these chats':'Hide these chats');
+  f.innerHTML=NWDN;
+  f.onclick=function(){
+    if(newsFold.reviewOpen){
+      delete newsFold.reviewOpen;
+      // shutting drops the picks inside, the same rule the sections follow —
+      // a picked card she can no longer see is one the next tap would file
+      newsList(groups()).forEach(function(it){
+        if(it.rule==='review') delete newsPick[it.chat];
+      });
+    } else newsFold.reviewOpen=1;
+    renderHome();
+  };
+  row.appendChild(f);
+  frag.appendChild(row);
+  if(!shut) revs.forEach(function(it){ frag.appendChild(newsCard(it)); });
+  return frag;
 }
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
 // Tapping one with nothing picked OPENS that box (tap it again to come back —
@@ -3275,8 +3358,15 @@ function doneNews(){
   if(!names.length) return;
   var prev={}, now=new Date().toISOString();
   names.forEach(function(n){
-    prev[n]=(chats[n]&&chats[n].notifSeenAt)||null;
+    var r=tagRuleOf(n);
+    prev[n]={seen:(chats[n]&&chats[n].notifSeenAt)||null,
+             hold:(chats[n]&&chats[n].reviewHoldAt)||null};
     chats[n]=chats[n]||{}; chats[n].notifSeenAt=now;
+    // THE HOLD IS THE SERVER'S CALL — mirrored here only so the chat leaves her
+    // account list on the same tap rather than on the next registry poll. The
+    // POST below writes the real one (it re-reads the chat's labels, so a page
+    // days old cannot half-apply the rule), and the rollback takes it back off.
+    if(r && r.rule==='review') chats[n].reviewHoldAt=now;
   });
   newsPick={};
   renderHome();
@@ -3284,16 +3374,27 @@ function doneNews(){
   names.forEach(function(n){
     api('/api/chatfeed/notif-seen',{method:'POST',body:JSON.stringify({chat:n,seen:true})})
       .then(function(r){return r.json()})
-      .then(function(d){ if(!d.ok) throw 0; if(d.notifSeenAt) chats[n].notifSeenAt=d.notifSeenAt; })
+      .then(function(d){
+        if(!d.ok) throw 0;
+        if(d.notifSeenAt) chats[n].notifSeenAt=d.notifSeenAt;
+        // The server decides whether this one is held — trust its answer over
+        // the optimistic mirror above, both ways.
+        if(d.reviewHoldAt) chats[n].reviewHoldAt=d.reviewHoldAt;
+        else delete chats[n].reviewHoldAt;
+      })
       .catch(function(){
-        if(prev[n]) chats[n].notifSeenAt=prev[n]; else delete chats[n].notifSeenAt;
+        if(prev[n].seen) chats[n].notifSeenAt=prev[n].seen; else delete chats[n].notifSeenAt;
+        if(prev[n].hold) chats[n].reviewHoldAt=prev[n].hold; else delete chats[n].reviewHoldAt;
         toast('Couldn’t save'); if(homeView==='news') renderHome();
       });
   });
 }
 function newsEmptyCheck(){
   var el=document.getElementById('grid');
-  if(homeView!=='news' || el.querySelector('.nwcard')) return;
+  // The Review row counts as something on the screen even with its fold shut —
+  // otherwise a tab holding nothing but review cards would say "you're all
+  // caught up" directly above a row saying three are waiting.
+  if(homeView!=='news' || el.querySelector('.nwcard,.nwrev')) return;
   // An empty screen must say WHICH of the two it is, or an open box reads as
   // the updates having vanished.
   el.innerHTML='<div class="state">'+(newsQ
@@ -3312,8 +3413,21 @@ function renderNews(el){
       // an open box is already triaged — one flat list, as it always was
       items.forEach(function(it){ el.appendChild(newsCard(it)); });
     } else {
+      // THE TWO RULE WORDS COME OFF THE LIST FIRST (Aug 2026 — see TAG_RULES).
+      // Both are answered somewhere other than the three sections: a pin is
+      // answered in the chat, a review in the queue. Taking them out here
+      // rather than inside newsKind keeps the classifier about what a card
+      // CARRIES, which is all it has ever known.
+      var revs=items.filter(function(it){ return it.rule==='review'; });
+      var pins=items.filter(function(it){ return it.rule==='pin'; });
+      var rest=items.filter(function(it){ return it.rule!=='review' && it.rule!=='pin'; });
+      if(revs.length) el.appendChild(newsReviewRow(revs));
+      if(pins.length){
+        el.appendChild(newsFoldHead(['pin', TAG_RULES[0].head], pins.length));
+        if(!newsFold.pin) pins.forEach(function(it){ el.appendChild(newsCard(it)); });
+      }
       NEWS_KINDS.forEach(function(pair){
-        var sub=items.filter(function(it){ return newsKind(it)===pair[0]; });
+        var sub=rest.filter(function(it){ return newsKind(it)===pair[0]; });
         if(!sub.length) return;              // an empty section is silent
         el.appendChild(newsFoldHead(pair, sub.length));
         if(newsFold[pair[0]]) return;        // folded — the header keeps its count
@@ -3529,6 +3643,78 @@ var PILE_SEEDS=['look at','story','come back to','witch','tech','xi',
 // The one word that ALSO routes: a chat carrying it becomes a row in the Review
 // Queue at /review, her pile of everything waiting on her.
 var REVIEW_LABEL='to be reviewed';
+// ---- MANUAL RULES PER TAG (Aug 2026, Sophie: "i think i'll have to do manual
+// rules per tag … more coming") ---------------------------------------------
+// Until now a word did one of two things and the app decided which: a PILE
+// word took a chat off the main list, everything else was decoration. She
+// wants a word to be able to say what should HAPPEN to a chat wearing it, one
+// rule at a time, in her own terms — so this is a TABLE rather than two
+// if-statements scattered through the render, and the next rule she names is a
+// row in it.
+//
+// A rule is HERS TO SET, never the sorter's: both words say something only she
+// knows (that she owes this chat a reply; that a deliverable is waiting on her
+// eye), so `chat-sort.js` is forbidden from filing into them — they joined its
+// TRIAGE list the day this shipped, beside `look at` and `come back to`. A
+// rule word she has not applied does nothing.
+//
+//   waiting for a response  → PIN (Sophie: "means i need a response and want
+//     it, so these get pinned at the top of the updates tab until i respond to
+//     the chat, or dismiss manually"). The TAG is the news: the card sits above
+//     every section on the Update tab whether or not anything new has landed,
+//     because what it is showing is the debt, not an arrival.
+//
+//   to be reviewed  → REVIEW (Sophie: "movies that are done, images waiting on
+//     my decision, go into a `review` button (which links to the review queue)
+//     at the top of the updates tab, and get hidden from the account 1 or 2
+//     area until i review or respond IF i dismiss manually from update tab").
+//     So these cards come OUT of the three sections and fold behind one row —
+//     the work itself is reviewed in the queue, not here — and dismissing one
+//     from that fold HOLDS the chat off her account lists (see reviewHeld).
+//
+// EVERY RULE ENDS THE SAME WAY, and that is the part worth keeping: the exits
+// she named are the two stamps this screen already has. `notifSeenAt` is
+// written by the ✓/Done AND by her reply (POST /reply), so "until i respond to
+// the chat, or dismiss manually" needed no new field and no new gesture —
+// only a different thing to compare it against.
+//
+// FIRST MATCH WINS when a chat wears both, in this order: an answer she owes
+// outranks a queue she can visit whenever.
+var TAG_RULES=[
+  { label:'waiting for a response', rule:'pin',    head:'Waiting for a response' },
+  { label:REVIEW_LABEL,             rule:'review', head:'Review' },
+];
+function tagRuleOf(name){
+  var have=chatLabels(name);
+  for(var i=0;i<TAG_RULES.length;i++){
+    if(have.indexOf(TAG_RULES[i].label)>-1) return TAG_RULES[i];
+  }
+  return null;
+}
+// When the tag was last written. `filedAt` is renewed by EVERY label edit
+// (labelPatch), which is what makes re-tagging a chat bring its pin back — and
+// it means touching a chat's tags at all re-arms a rule word already on it.
+// That is the honest reading of the gesture: she just looked at this chat's
+// tags and left the word on.
+function chatFiledAt(name){ return (chats[name]&&chats[name].filedAt)||''; }
+// IS THE PIN LIVE? — the tag is on, and nothing has settled it since it went
+// on. Both exits she named write `notifSeenAt`, so this one comparison covers
+// "until i respond to the chat, or dismiss manually" and nothing else can
+// silence it: a chat delivering more work does not clear a debt she owes it.
+function pinLive(name){
+  var r=tagRuleOf(name);
+  if(!r || r.rule!=='pin') return false;
+  var on=chatFiledAt(name);
+  return !!on && !(newsFloor(name) >= on);
+}
+// HELD OFF THE ACCOUNT LISTS — the second half of the `to be reviewed` rule.
+// The stamp is written by the server when she dismisses one of these from the
+// Update tab (POST /notif-seen), and cleared there too: by her reply, by the
+// tag coming off, and by her marking the page done or skipped in the Review
+// Queue — "until i review or respond", the three ways that sentence can end.
+// Read here only to suppress the pop-out (chatBack); it takes nothing off this
+// screen, because dismissing already did that.
+function reviewHeld(name){ return !!(chats[name]&&chats[name].reviewHoldAt); }
 // ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
 // condition for the `waiting for something` tag — it should also trigger a text
 // box that asks me what is it waiting for, and then that gets added to the note
@@ -3894,6 +4080,14 @@ function chatAnswered(name,last){
 // ones, invisible BOTH on the main list and in the hidden bar, reachable only
 // by lighting the right chip.
 function chatBack(name,last){
+  // …UNLESS SHE HAS DISMISSED IT FROM THE UPDATE TAB (Aug 2026 — the `to be
+  // reviewed` rule; see TAG_RULES). A filed chat pops back out here the moment
+  // it delivers, which is right for a folder and wrong for the review pile:
+  // the whole point of dismissing a review card is that the thing is waiting
+  // in the queue, not on her chat list, and a chat that delivers a second cut
+  // would otherwise walk straight back onto it. The hold ends when she reviews
+  // or responds — never on its own, and never because the chat did something.
+  if(reviewHeld(name)) return false;
   var f=(chats[name]&&chats[name].filedAt)||'';
   return !!f && !!last && last.from!=='sophie' && unparked(f,last);
 }

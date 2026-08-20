@@ -958,7 +958,17 @@ them off the reference sheet, not off the old filenames.
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
   bold **Waiting for:** line on the chat's row and above her note in the
   thread, and is DELETED the moment the tag comes off — a second asking word is
-  not yours to declare. **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
+  not yours to declare. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
+  TAB (Aug 2026, Sophie: "i think i'll have to do manual rules per tag … more
+  coming")** — `waiting for a response` PINS the chat's card above every
+  section until she answers or dismisses it (the tag itself is the news, so
+  the card shows with nothing new), and `to be reviewed` folds its cards
+  behind a **Review** row that opens `/review`, where dismissing one HOLDS the
+  chat off her account lists until she reviews or responds. Both are HERS to
+  apply — the auto-sorter is forbidden from filing into either — and the rules
+  live in ONE table (`TAG_RULES` in `chats.html`) so her next one is a row in
+  it. Full rules in `docs/chats-app.md`; test `node scripts/test-tag-rules.js`.
+  **ALL THREE UPDATE BOXES WEAR A CHIP ON THIS ROW (Aug 2026, Sophie: "'maybe
   never' isn't on the tag list in the account area" → "give them both a
   chip").** `come back to` had one because it was already a folder of hers;
   `in a minute` and `maybe never` were invented as boxes and had no door

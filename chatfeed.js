@@ -1414,17 +1414,37 @@ router.post('/hide', async (req, res) => {
 // stamps it inline — see the note there): answering a chat is dealing with its
 // news, and she asked for that after living with ✓-only. Opening is still not
 // clearing. Nothing else may write it.
+// ---- …AND IT IS WHERE THE REVIEW HOLD IS WRITTEN (Aug 2026, Sophie: the `to
+// be reviewed` cards "get hidden from the account 1 or 2 area until i review or
+// respond IF i dismiss manually from update tab") ----------------------------
+// The condition is the whole rule: dismissing here is not the same as ignoring
+// a card, it is her saying the thing is waiting in the QUEUE now. So the same
+// tap writes a second stamp, `reviewHoldAt`, and `chatBack` in chats.html stops
+// popping the chat back onto her list when it delivers again.
+//
+// THE SERVER DECIDES WHETHER A CHAT IS HELD, by re-reading its labels — never
+// the page. Her phone can be running a build days old, and a hold applied by a
+// page that no longer agrees with the tag on the chat would be a chat missing
+// from her list for a reason nothing on screen could explain.
+//
+// It ends three ways, all of them hers, and none of them is a timer: POST
+// /reply clears it (she responded), `labelPatch` clears it with the tag (she
+// took the word off), and POST /page/:id/review clears it (she marked the deck
+// done or skipped in the queue — she reviewed it).
 router.post('/notif-seen', async (req, res) => {
   try {
     const { chat, seen } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const on = seen !== false;
     const stamp = new Date().toISOString();
-    await regRef(chat).set(
-      { notifSeenAt: on ? stamp : admin.firestore.FieldValue.delete() },
+    const del = admin.firestore.FieldValue.delete();
+    const ref = regRef(chat);
+    const held = on && labelsOf((await ref.get()).data()).indexOf(REVIEW_LABEL) > -1;
+    await ref.set(
+      { notifSeenAt: on ? stamp : del, reviewHoldAt: held ? stamp : del },
       { merge: true },
     );
-    res.json({ ok: true, notifSeenAt: on ? stamp : null });
+    res.json({ ok: true, notifSeenAt: on ? stamp : null, reviewHoldAt: held ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -1678,6 +1698,28 @@ const PILE_SEEDS = ['look at', 'story', 'come back to', 'witch', 'tech', 'xi',
 // here so the two modules can never disagree about the spelling.
 const REVIEW_LABEL = 'to be reviewed';
 
+// ---- THE MANUAL TAG RULES (Aug 2026, Sophie: "i think i'll have to do manual
+// rules per tag … more coming") ----------------------------------------------
+// The rules themselves are the Update tab's, so they live in `chats.html`
+// (TAG_RULES) where the screen they change is drawn. What is here is the half
+// the SERVER has to know: the two words, so nothing can disagree about their
+// spelling, and the stamps behind them.
+//
+//   `waiting for a response` → the card is pinned to the top of the Update tab
+//     until she answers or dismisses. Costs the server nothing: it is
+//     `filedAt` (the label write) against `notifSeenAt` (the ✓, or her reply),
+//     both of which already exist.
+//   `to be reviewed` → the cards fold behind a Review button, and dismissing
+//     one there writes `reviewHoldAt`, which keeps the chat off her account
+//     lists until she reviews or responds. See POST /notif-seen for the three
+//     ways it ends.
+//
+// BOTH ARE HERS TO APPLY. `chat-sort.js` is forbidden from filing into either
+// (they are on its TRIAGE list) — a word that says she owes a chat an answer,
+// or that a deliverable is waiting on her eye, is not something a model can
+// know, and guessing one would pin a card she never asked for.
+const PIN_LABEL = 'waiting for a response';
+
 // ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
 // condition for the `waiting for something` tag — it should also trigger a text
 // box that asks me what is it waiting for, and then that gets added to the note
@@ -1746,8 +1788,15 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
   // key" sits on a chat that stopped waiting weeks ago — and a stale line she
   // wrote herself is worse than no line at all.
   const waiting = clean.indexOf(WAIT_LABEL) > -1 ? {} : { waitingFor: del };
+  // …and the review HOLD belongs to its tag the same way (Aug 2026 — the
+  // manual tag rules; see TAG_RULES in chats.html). The hold keeps a chat off
+  // her account lists after she dismisses its card, "until i review or
+  // respond" — and taking the word off IS reviewing it, so the hold cannot
+  // outlive the tag. Without this a chat she un-tagged would be held off her
+  // list by a rule it no longer wears, with nothing on screen to say why.
+  const held = clean.indexOf(REVIEW_LABEL) > -1 ? {} : { reviewHoldAt: del };
   if (!clean.length) {
-    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting };
+    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting, ...held };
   }
   return {
     labels: clean,
@@ -1756,6 +1805,7 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
     filedAt: new Date().toISOString(),
     catBy: by,
     ...waiting,
+    ...held,
   };
 }
 
@@ -3237,6 +3287,23 @@ router.post('/page/:id/review', async (req, res) => {
     const doc = await ref.get();
     if (!doc.exists) return res.status(404).json({ error: 'no such page' });
     await ref.set(patch, { merge: true });
+    // …AND THIS IS THE "UNTIL I REVIEW" HALF (Aug 2026 — the `to be reviewed`
+    // rule; see POST /notif-seen). She dismissed the chat's card from the
+    // Update tab on the promise that the work was waiting in the queue; done
+    // or skipped, she has now been through it, so the chat may sit on her
+    // account list again. Best-effort and never fatal — the stamp it clears
+    // only hides a chat from a list, and failing the review write over it
+    // would lose the answer she actually came here to give.
+    // The existence check is not paranoia: `set(…, merge)` on a MISSING doc
+    // creates it, every pile derives from the registry's keys, and a page whose
+    // chat has been merged away would put a phantom row in her list that only
+    // the Admin SDK can remove. That has happened here before.
+    const chat = doc.get('chat');
+    if (chat) {
+      await regRef(chat).get().then((reg) => (reg.exists
+        ? regRef(chat).set({ reviewHoldAt: admin.firestore.FieldValue.delete() }, { merge: true })
+        : null)).catch(() => {});
+    }
     res.json({ ok: true, id, ...patch });
   } catch (err) { fail(res, err); }
 });
@@ -3614,9 +3681,14 @@ router.post('/reply', async (req, res) => {
     // (`doc.created`), never `postedAt` — an old hook lifts her message
     // minutes late, and stamping the lift time would make the reply she is
     // waiting for look like it predates her.
+    // …AND IT ENDS A REVIEW HOLD (Aug 2026 — the `to be reviewed` rule; see
+    // POST /notif-seen). "Until i review or respond": this is respond, in her
+    // own words, in the chat. The chat goes back to behaving like any other
+    // filed chat, so the next thing it delivers pops it onto her list again.
     const patch = {
       workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt,
       lastHerAt: doc.created,
+      reviewHoldAt: admin.firestore.FieldValue.delete(),
     };
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
@@ -3814,5 +3886,5 @@ module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, q
   rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
-  PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
+  PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
   WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };
