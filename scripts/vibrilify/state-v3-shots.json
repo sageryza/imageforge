@@ -22,5 +22,17 @@
   "promptUsed": "For continuity: the FIRST attached photo is an earlier shot of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Golden-hour warm color grade, gently overexposed, dreamlike serenity. A golden-hour picnic on a gentle hillside: around forty guests on blankets with string lights and wine glasses, all beaming. The woman in the lavender cardigan sits at the exact center, glowing with serene joy; she has never met any of these people. An acoustic guitar leans upright against a wicker picnic basket beside her, playing itself — its strings visibly strumming with no player.",
   "quality": "medium",
   "at": 1787257107692
+ },
+ "10": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787257157127-864bb795.webp",
+  "promptUsed": "For continuity: the FIRST attached photo is an earlier shot of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Cool blue moonlit night grade, serene and slightly uncanny. Night in a suburban backyard. The woman in the lavender cardigan over pajamas stands on the lawn looking up at a huge full moon, mid-wink — one eye closed, a small conspiratorial smile, utterly serene. Cool moonlight.",
+  "quality": "medium",
+  "at": 1787257158147
+ },
+ "12": {
+  "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/panels/1787257199625-d733a27c.webp",
+  "promptUsed": "For continuity: the FIRST attached photo is an earlier shot of this same commercial — the SAME actress (a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee) and the same suburban world; keep her face, hair and wardrobe IDENTICAL and the world consistent; do not recast her. The SECOND attached photo is the SAME SHOT of this commercial a few moments LATER — compose this frame to match its framing, location and lighting exactly, showing the moment BEFORE it: her hair and sleeves still fully normal, not yet turning into wind chimes. Cinematic still from a glossy American TV pharmaceutical commercial, photorealistic, shot on a digital cinema camera, shallow depth of field, soft diffused light, real people with natural skin texture. Cool blue moonlit night grade, serene and slightly uncanny. Night in the same backyard: the woman in the lavender cardigan stands still among many silver wind chimes hanging from the tree branches around her, eyes closed, listening with deep serenity as the chimes catch the moonlight. There is no wind.",
+  "quality": "medium",
+  "at": 1787257200786
  }
 }
