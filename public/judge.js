@@ -180,8 +180,11 @@
     '.jg-mombox .cap{margin:0;font:italic 500 16px/1.4 Newsreader,Georgia,' +
     ' \'Times New Roman\',serif;color:#262016;}' +
     // a picture rides in the stack as its own rounded panel, the boxes\' radius
-    '.jg-mom figure{margin:0;overflow:hidden;border-radius:10px;' +
-    ' border:1px solid rgba(0,0,0,0.06);}' +
+    // NO OUTLINE, NO ROUNDED CORNER ON A PICTURE (Aug 2026, Sophie, on the
+    // two-up card: "gray outlines, rounded corners"). Her rounded white boxes
+    // are for WORDS; a picture is shown as it is. The panel used to draw one
+    // border and the image another, so a spread wore two.
+    '.jg-mom figure{margin:0;}' +
     '.jg-mom figure img{width:100%;display:block;}' +
     '.jg-mom figure img.fill{height:100%;object-fit:cover;}' +
     // a picture with no card-face shape: the panel shrinks to it and the
@@ -198,9 +201,13 @@
     '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
     + 'display:flex;flex-direction:column;gap:5px;}' +
     '.jg-spread figure img{width:100%;height:auto;max-height:44vh;object-fit:contain;'
-    + 'border-radius:10px;border:1px solid rgba(0,0,0,0.06);display:block;}' +
+    + 'display:block;}' +
     '.jg-spread figcaption{font:700 10px/1.3 -apple-system,sans-serif;letter-spacing:.12em;'
     + 'text-transform:uppercase;color:#8A7F6E;text-align:center;}' +
+    '.jg-pick{align-self:center;border:1px solid #DDD3C0;border-radius:6px;'
+    + 'background:#FFFDF8;color:#262016;font:600 12px/1 -apple-system,sans-serif;'
+    + 'padding:8px 12px;-webkit-tap-highlight-color:transparent;}' +
+    '.jg-pick.on{background:#262016;border-color:#262016;color:#F7F2E8;}' +
     // THE FOOTER — TWO ASKS, ONE STACK (Aug 2026, back to back). First: "the
     // note box is just too small — it should be bigger so I can see more of my
     // words in it, and the heart and the ex can go a little above it and maybe
@@ -755,6 +762,11 @@
     // her NAME line: the card's own `who`, else the label it was filed under —
     // which is what a picture card carries ("XI — the hermit v1")
     function momName(it) { return it.who || it.label || ''; }
+    /** her verdict on a spread is the WINNING CARD'S ID — a string that is
+     *  none of the stock words. That is what "picked" means here. */
+    function isPick(it, v) {
+      return !!(it && it.cards && typeof v === 'string' && v !== 'maybe' && v !== 'later');
+    }
     // "IF THE TEXT IS REALLY LONG" (Aug 2026, Sophie) — the card's own words,
     // counted across every part it carries. Measured against her live deck:
     // the card she reported scrolling holds ~530 characters, and the cards
@@ -798,6 +810,16 @@
             + ' src="' + esc(c.img) + '" alt="' + esc(c.label || '') + '"'
             + (c.full ? ' data-full="' + esc(c.full) + '"' : '') + '>'
             + (c.label ? '<figcaption>' + esc(c.label) + '</figcaption>' : '')
+            // PICKING ONE OF THEM (Aug 2026, Sophie: "is there a way to pick
+            // one or the other if I'm choosing between them? Maybe best is to
+            // just have a 'this one' small button underneath each one"). The
+            // spread's verdict becomes the WINNING CARD'S ID — so what is
+            // recorded is "silkscreen won this spread", not "she liked a
+            // card". ♥/✕ below still answer the spread as a whole (both, or
+            // neither), and tapping the lit pick clears it.
+            + '<button type="button" class="jg-pick'
+            + (verdicts[it.id] === c.id ? ' on' : '') + '" data-pick="' + esc(c.id)
+            + '">this one</button>'
             + '</figure>';
         }).join('') + '</div>';
       }
@@ -907,6 +929,13 @@
         var shown = piles;
         if (momDeck && !states) {
           var legacy = [];
+          // a SPREAD she picked a winner on holds that card's id as its
+          // verdict, which matches no pile of its own — and a pile list that
+          // cannot name it would drop the spread off this screen entirely
+          if (items.some(function (it) { return isPick(it, verdicts[it.id]); })) {
+            legacy.push({ key: '__picked', name: 'Picked',
+              match: function (v, it) { return isPick(it, v); } });
+          }
           [['maybe', 'Maybe'], ['later', 'Later']].forEach(function (p) {
             if (items.some(function (it) { return verdicts[it.id] === p[0]; })) {
               legacy.push({ key: p[0], name: p[1] });
@@ -915,7 +944,9 @@
           if (legacy.length) shown = piles.slice(0, -1).concat(legacy, piles.slice(-1));
         }
         var sections = shown.map(function (p) {
-          var members = items.filter(function (it) { return verdicts[it.id] === p.key; });
+          var members = items.filter(function (it) {
+            return p.match ? p.match(verdicts[it.id], it) : verdicts[it.id] === p.key;
+          });
           if (!members.length) return '';
           return '<h2>' + p.name + ' · ' + members.length + '</h2><div class="jg-grid">'
             + members.map(function (it) {
@@ -1163,6 +1194,8 @@
         if (zit) views.open(zit);
         return;
       }
+      var pk = e.target && e.target.closest ? e.target.closest('[data-pick]') : null;
+      if (pk) { judge(pk.getAttribute('data-pick')); return; }
       var b = e.target && e.target.closest ? e.target.closest('[data-act],[data-open],[data-state]') : null;
       if (!b) return;
       var open = b.getAttribute('data-open');

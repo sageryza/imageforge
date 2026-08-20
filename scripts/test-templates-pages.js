@@ -897,6 +897,34 @@ setTimeout(function(){
       function(c){ return c.textContent; });
     ok(caps.join('|')==='ink & wash|silkscreen', 'each keeps its own name — got '+caps.join('|'));
 
+    // NO OUTLINE, NO ROUNDED CORNER ON A PICTURE (Aug 2026: "gray outlines,
+    // rounded corners") — the panel drew one and the image another
+    var fig=document.querySelector('#judge .jg-spread figure');
+    var fim=fig.querySelector('img');
+    ok(getComputedStyle(fig).borderTopWidth==='0px'
+       && parseFloat(getComputedStyle(fig).borderTopLeftRadius)===0
+       && getComputedStyle(fim).borderTopWidth==='0px'
+       && parseFloat(getComputedStyle(fim).borderTopLeftRadius)===0,
+       'a picture on a spread wears no outline and no rounded corner');
+
+    // PICKING ONE OF THEM (Aug 2026: "a 'this one' small button underneath
+    // each one") — the spread's verdict becomes the winning card's id
+    var picks=document.querySelectorAll('#judge .jg-pick');
+    ok(picks.length===2 && picks[0].textContent==='this one',
+       'each picture carries its own this-one button');
+    picks[1].click();
+    var pp=posts('/api/chatfeed/verdict').pop();
+    ok(pp && pp.b.item==='s:listened-at-the-door' && pp.b.ok==='a2',
+       'picking records WHICH one won the spread — got '+(pp&&pp.b.ok));
+    ok(document.querySelectorAll('#judge .jg-pick')[1].classList.contains('on'),
+       'and the one she picked is lit');
+    // it lands in a pile of its own rather than falling off the piles screen
+    document.querySelector('#judge [data-act="piles"]').click();
+    var heads=[].map.call(document.querySelectorAll('#judge .jg-piles h2'),
+      function(h){ return h.textContent; }).join('|');
+    ok(heads.indexOf('Picked')>=0, 'a picked spread has a pile — got '+heads);
+    document.querySelector('#judge [data-act="piles"]').click();
+
     // the card's ♥ marks the SPREAD, under a key of its own
     document.querySelector('#judge [data-act="yes"]').click();
     setTimeout(function(){

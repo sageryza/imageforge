@@ -150,6 +150,11 @@
       if (swiping && !started.swipe) {
         started.swipe = window.__judge(Object.assign({}, data, {
           mount: '#judge', items: itemsOf(data), look: 'mom',
+          // BROWSE IS THE DECK'S DEFAULT, and only the deck template's own
+          // validator was setting it — so a GRID-posted page's swipe view
+          // came up without it, and marking a card jumped her to the piles
+          // instead of leaving her on it ("a mark never moves the deck").
+          browse: data.browse === false ? false : true,
         })) || {};
       } else if (!swiping && !started.compare) {
         started.compare = window.__grid(Object.assign({}, data, {

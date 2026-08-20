@@ -87,7 +87,11 @@
     + '.lbmsg.pending{opacity:.55;}\n'
     + '.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}\n'
     + '#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}\n'
-    + '#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}\n'
+    /* THE PICTURE ITSELF IS NEVER ROUNDED (Aug 2026, Sophie: "are the corners
+       rounded on the actual image in the light box? Should not be"). Opened
+       big is exactly where a corner radius stops reading as chrome and starts
+       reading as a crop of her art. */
+    + '#clightbox img{max-width:100%; max-height:88vh;}\n'
     /* With the note box under it the picture can't have the whole screen, or
        the box you type in falls off the bottom. It gets more room than it used
        to: the thread below the box only peeks now (Aug 2026). */
