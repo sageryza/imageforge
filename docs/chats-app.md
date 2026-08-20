@@ -513,6 +513,30 @@
     folders were always typed, so a fixed list here is what kept the two halves
     from ever being one. Lower-casing on the way in is what is left of the
     orphan-pile guard.
+  - **THERE ARE TWO PROGRESS LISTS AND THEY SHARE NO WORDS (Aug 2026, Sophie,
+    after a week of chats reading "progress" as one thing: "when I said progress
+    list I was talking about two separate progress lists. One is an archived
+    progress list and one is a chat progress list. I didn't know what else to
+    call it").** THIS IS THE MODEL — read it before touching any of the rules
+    below, which arrived one at a time and each read like a special case until
+    she named the shape.
+    - the **CHAT progress list** (`TASK_LABELS` in chats.html) — where LIVE work
+      stands. Offered on the home row and in Organize, nowhere else.
+    - the **ARCHIVE progress list** (`ARCHIVE_PROGRESS`) — how a chat ENDED.
+      Offered in the archive sheet and the archive's filter row, nowhere else.
+    They are **disjoint**: a word says where live work stands, or how it
+    finished, never both. Archiving is the answer to every chat-progress word,
+    so asking her to mark a chat she is putting away as `to read` was the bug —
+    and `built` on the home row, which counts only live chats, was the same bug
+    facing the other way. `paintVocabChips(row, mk, {archive})` picks which list
+    a surface speaks.
+    **THE ARCHIVE-HIDDEN SET IS DERIVED, NEVER A SECOND HAND-KEPT LIST**, and
+    that is the lesson: it shipped as `LIVE_ONLY`, holding exactly the five
+    words she had said out loud, so `waiting for something`, `in progress`,
+    `in a minute` and `maybe never` went on being offered in the archive because
+    nobody had named them. It is `!isChatWord(c)` now — every chat-progress word,
+    automatically, including any added later. A test asserts the two lists are
+    disjoint and that no second list has reappeared.
   - **EACH SURFACE OFFERS ONE HALF OF THE VOCABULARY (Aug 2026, Sophie: "I
     wanna make certain tags just available in the archived step, these tags are
     failure, bug fix, and new feature for now" · "also put built as one of the
