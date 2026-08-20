@@ -155,14 +155,60 @@ const deck = (ids, extra) => ({
     reviewLabel: 'to be reviewed' });
   is('a tagged chat is no longer a row here — the deck holds the link now',
     [q.waiting.length, q.done.length, q.hidden.length], [0, 0, 0]);
-  is('and nothing counts chats any more', q.counts, { pages: 0, items: 0, done: 0 });
+  is('and nothing counts chats any more', q.counts, { pages: 0, items: 0, auto: 0, autoItems: 0, done: 0 });
+}
+
+// ── THE AUTO TAB (Aug 2026, Sophie: "as for the automate compare pages, I
+//    would hide them behind a separate tab in the review queue to separate
+//    them from chat made ones") ────────────────────────────────────────────
+// Nobody asked her for the server's standing grids, so they get their own
+// column. The telling-apart is the id runAutoCompare gives them — a chat's
+// page always carries a random Firestore id, so neither can cross over.
+{
+  const q = buildQueue({
+    pages: [
+      { id: 'auto-subjects--xi', chat: 'xi', title: 'Auto-compare — same style',
+        created: t(3), template: 'grid' },
+      { id: 'auto-ladders--xi', chat: 'xi', title: 'Auto-compare — settings',
+        created: t(4), template: 'grid', reviewHidden: true },
+      { id: 'TbYkwaqRTKBV', chat: 'xi', title: 'XI cards — batch 2',
+        created: t(2), template: 'deck' },
+      { id: 'auto-reruns--xi', chat: 'xi', title: 'Auto-compare — drawn again',
+        created: t(5), template: 'grid' },
+      // a finished auto page is DONE, not still standing in its own tab
+      { id: 'auto-subjects--ig', chat: 'ig', title: 'Auto-compare — done one',
+        created: t(6), template: 'grid' },
+    ],
+    items: {
+      'auto-subjects--xi': deck(['a', 'b']),
+      'auto-ladders--xi': deck(['c']),
+      TbYkwaqRTKBV: deck(['d', 'e']),
+      'auto-reruns--xi': deck(['f']),
+      'auto-subjects--ig': deck(['g']),
+    },
+    verdicts: { 'ig__page-auto-subjects--ig': { items: { g: 'yes' }, updatedAt: t(9) } },
+    chats: {},
+  });
+  is('the chat-made page keeps the Waiting pile to itself',
+    q.waiting.map((r) => r.id), ['TbYkwaqRTKBV']);
+  is('the server\'s own grids stand in AUTO, newest first',
+    q.auto.map((r) => r.id), ['auto-reruns--xi', 'auto-subjects--xi']);
+  is('a skipped auto page is still hidden, not auto',
+    q.hidden.map((r) => r.id), ['auto-ladders--xi']);
+  is('a finished auto page is done, not auto',
+    q.done.map((r) => r.id), ['auto-subjects--ig']);
+  is('the headline counts what a chat asked her for',
+    [q.counts.pages, q.counts.items], [1, 2]);
+  is('and AUTO carries its own number',
+    [q.counts.auto, q.counts.autoItems], [2, 3]);
+  ok('every row says which it is', q.waiting[0].auto === false && q.auto[0].auto === true);
 }
 
 // ── an empty world stays calm ──────────────────────────────────────────────
 {
   const q = buildQueue({ pages: [], items: {}, verdicts: {}, chats: {} });
   is('empty queue', [q.waiting.length, q.done.length, q.hidden.length], [0, 0, 0]);
-  is('empty counts', q.counts, { pages: 0, items: 0, done: 0 });
+  is('empty counts', q.counts, { pages: 0, items: 0, auto: 0, autoItems: 0, done: 0 });
 }
 
 if (fails.length) {

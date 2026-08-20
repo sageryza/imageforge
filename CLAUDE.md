@@ -1614,6 +1614,29 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   tool page with its own palette still has to do it itself (the /chunking
   finding). Pinned by a test that compares the pill's computed `--paper` with
   the page's.
+  **AND THE COLOURS WERE ONLY HALF OF IT — `compare.css` ROUNDS THE PILL'S
+  SEGMENTS (Aug 2026, "it's still the wrong pill … it looks different",
+  measured).** `compare.css` declares `button, .btn{…border-radius:6px…}` —
+  a bare-element rule at specificity (0,0,1). `.vseg button` out-specifies it
+  for everything it DECLARES (border, background, color, size, padding), but
+  it never declares `border-radius`, so the 6px wins by default and each of
+  the three segments becomes its own rounded box: the hairline dividers
+  disappear and the capsule reads as three loose buttons instead of one
+  control. Proven by rendering `pill-inject.html` alone (`border-radius: 0px`,
+  capsule 50px) against the same markup with only `compare.css` added
+  (`6px`, 48px — `*{box-sizing:border-box}` pulls the 1.5px stroke inside).
+  **THE LESSON IS GENERAL: a host page's bare-element rules reach every
+  property the injected pill leaves unset** — check `border-radius`, `font`,
+  `gap`, `box-sizing`, not just the palette.
+  **TWO PAGES CARRY A STALE PILL AND ONE CARRIES A HAND COPY (measured
+  2026-08-20).** `pill.py` is the source and five gen scripts bake it, but
+  `public/wall.html` and `public/storyroom.html` are missing the
+  `forge-pill` / `data-nopill` opt-out block — their gen scripts were never
+  re-run after `pill.py` grew it, so a `data-nopill` on either would silently
+  do nothing (`python3 scripts/gen-wall.py` / `gen-storyroom.py` fixes it).
+  `public/gallery.html` has **no generator at all** — its pill is a hand copy
+  that nothing can keep in step. `chats.html`, `writing.html` and
+  `pill-inject.html` are current.
 - **Opening an image freezes the page behind it.** Tapping/clicking a picture
   (lightbox, enlarged view, any overlay) must **pause any autoscroll** and lock
   background scroll (`document.body.style.overflow='hidden'`), restoring on

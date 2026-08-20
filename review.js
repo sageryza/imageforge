@@ -35,6 +35,18 @@
 //     that brought its own states chose its own words, so every one of them
 //     counts.
 //   • A superseded page is history, not homework — it is on neither list.
+//   • THE SERVER'S OWN AUTO-COMPARE PAGES SIT BEHIND THEIR OWN TAB (Aug 2026,
+//     Sophie: "as for the automate compare pages, I would hide them behind a
+//     separate tab in the review queue to separate them from chat made
+//     ones"). Nobody asked her for those — `runAutoCompare` keeps two
+//     standing grids per chat off the filed prompts and captions, so they
+//     appear and refresh on their own, and mixed into the pile they read
+//     like homework a chat handed her. Measured the day this shipped: 5 of
+//     the 30 waiting rows. The marker is STRUCTURAL, not a new field — the
+//     server names them `auto-<kind>--<chat>` (chatfeed.js) while every
+//     chat-posted page gets a random Firestore id, so a chat cannot land in
+//     this tab and an auto page cannot escape it. They still count as
+//     waiting work; they just count in their own column.
 //   • NOT EVERY DECK IS A REVIEW (the template demos, a browse-only card
 //     deck), so the deck's piles view carries SKIP — "not a review" — which
 //     stamps `reviewHidden`. Hidden is the verb, nothing is deleted: hidden
@@ -53,7 +65,7 @@
 //
 // Routes:
 //   GET  /status          → { ok, firebase }
-//   GET  /?fresh=1        → { waiting:[row], done:[row], hidden:[row], counts }
+//   GET  /?fresh=1        → { waiting, auto, done, hidden, counts } (rows)
 //   POST /hide { id, hidden } → stamps reviewHidden (the queue's own ↩; the
 //     deck's Skip/Done go to chatfeed's POST /page/:id/review, which is
 //     reachable under the same gate as the verdicts it is already saving)
@@ -68,6 +80,11 @@ const chatfeed = require('./chatfeed');
 const PAGES = 'forge-chat-pages';
 const VERDICTS = 'forge-chat-verdicts';
 const SCAN_PAGES = 200;   // newest template pages considered; far above today's 9
+// The server's own standing comparisons: runAutoCompare (chatfeed.js) writes
+// them at a deterministic `auto-<kind>--<chat>`, and a chat-posted page always
+// gets a random Firestore id — so this one regex is the whole telling-apart,
+// with no field for anyone to remember to send.
+const AUTO_ID = /^auto-/;
 
 function db() {
   if (!admin.apps.length) throw new Error('firebase not configured');
@@ -145,7 +162,7 @@ function pageProgress(ids, custom, verdictItems) {
  * @param {object}   input.chats    registry map, slug → doc (displayName)
  */
 function buildQueue({ pages, items, verdicts, chats }) {
-  const waiting = []; const done = []; const hidden = [];
+  const waiting = []; const auto = []; const done = []; const hidden = [];
   (pages || []).forEach((p) => {
     if (!p || !p.id || !p.chat || p.superseded) return;
     const data = (items || {})[p.id];
@@ -175,12 +192,15 @@ function buildQueue({ pages, items, verdicts, chats }) {
       at: clean(vdoc.updatedAt, 40) || clean(p.created, 40),
     };
     row.kind = 'page';
+    // the server's own standing grids, told apart by the id it gives them
+    row.auto = AUTO_ID.test(p.id);
     if (p.reviewHidden) { hidden.push(row); return; }
     // DONE is derived from the counts, and ALSO said outright: her Done button
     // in the deck's piles area (Aug 2026) stamps `reviewDone`, because "I'm
     // finished with this one" is a real answer even when cards are unmarked —
     // a browse she read through, a set she decided about as a whole.
-    (p.reviewDone || decided >= ids.length ? done : waiting).push(row);
+    if (p.reviewDone || decided >= ids.length) done.push(row);
+    else (row.auto ? auto : waiting).push(row);
   });
   // ---- THE TAGGED-CHAT ROWS ARE GONE (Aug 2026 v2, Sophie: "take away the
   // chat list at the bottom and instead offer a link back to the chat in the
@@ -194,15 +214,21 @@ function buildQueue({ pages, items, verdicts, chats }) {
   // Waiting: newest post first — the feed's own order, so the pile reads the
   // way everything else does. Done and hidden: most recently touched first.
   waiting.sort((a, b) => ms(b.created) - ms(a.created));
+  auto.sort((a, b) => ms(b.created) - ms(a.created));
   done.sort((a, b) => ms(b.at) - ms(a.at));
   hidden.sort((a, b) => ms(b.at) - ms(a.at));
   return {
     waiting,
+    auto,
     done,
     hidden,
     counts: {
+      // the headline counts what a chat asked her for; the auto pages carry
+      // their own number so neither pile is hidden inside the other
       pages: waiting.length,
       items: waiting.reduce((n, r) => n + (r.total - r.decided), 0),
+      auto: auto.length,
+      autoItems: auto.reduce((n, r) => n + (r.total - r.decided), 0),
       done: done.length,
     },
   };
