@@ -1795,6 +1795,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   restarts the autoscroll under the overlay moves the page; this bit Sophie
   repeatedly on Compare pages). Restoring the saved position guarantees she
   closes the image exactly where she opened it, whatever happened behind it.
+  - **AN OVERLAY MUST NOT DETACH THE TAPPED NODE WHILE THE TAP IS STILL
+    BUBBLING (Aug 2026, Sophie: "why does auto scroll get triggered when I tap
+    out of the light box in the auto compare page" — and she was right that
+    this had been fixed once; it had, for a DIFFERENT overlay).** A host asks
+    *was this tap the page's own?* with
+    `t.closest('[data-nostop],img,figure,.cmp-lb')` on a bubbling click, which
+    runs AFTER the overlay's own onclick. `asset-lightbox.js` closed with
+    `lb.innerHTML = ''`, so the tapped caption/row had no parents left and
+    `closest()` walked a detached subtree — the `[data-nostop]` marker on the
+    overlay was unreachable, the tap fell through to the tap-to-TOGGLE, and the
+    autoscroll STARTED behind the closing overlay. Tapping the backdrop (the
+    overlay element itself, never detached) was always fine, which is why it
+    read as intermittent. Two fixes, both kept: the wipe is deferred one frame,
+    and chats.html's embedded handler asks the skip list at **pointerdown**,
+    while the target is still in the DOM. `compare.js`'s own lightbox only sets
+    `[hidden]` and was never affected — that is the difference between the two.
+    Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
+    pre-fix file).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
