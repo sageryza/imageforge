@@ -197,8 +197,8 @@
   <section class="ctl" id="ctl-make">
     <p class="lead">Describe the two objects at the base. They generate, and the third is designed to complete them. Regenerate any until it's right.</p>
     <div class="fields">
-      <div class="field"><label>the first object</label><input id="desc1" placeholder="e.g. a spoonful of peas set in resin" /></div>
-      <div class="field"><label>the second object</label><input id="desc2" placeholder="e.g. a brass doorknob on a scrap of door" /></div>
+      <div class="field"><label>the first object</label><input id="desc1" /></div>
+      <div class="field"><label>the second object</label><input id="desc2" /></div>
     </div>
     <div class="actions">
       <button class="primary" id="genset">Generate the set</button>
@@ -410,7 +410,7 @@ function checkJudge(){ if(mode==='draw' && stage.every(Boolean) && !loading.some
 function openJudge(){ $('#axes').innerHTML=''; addAxis(); $('#judge').hidden=false; }
 function addAxis(){
   const row=document.createElement('div'); row.className='axis';
-  row.innerHTML=`<input placeholder="an axis they share or don't — material, scale, denied inference…" />
+  row.innerHTML=`<input placeholder="an axis" />
     <div class="seg"><span data-v="same">same</span><span data-v="diff">different</span></div>
     <span class="rm" title="remove">×</span>`;
   const seg=row.querySelector('.seg');
