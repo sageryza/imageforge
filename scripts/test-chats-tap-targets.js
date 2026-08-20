@@ -11,21 +11,24 @@
 // Update tab and half on the other two — on the one control whose whole job is
 // "show me more".
 //
-// This asserts the three of them, and the four things that had to stay true
-// while they grew:
-//   1. THE GLYPH DOES NOT MOVE. Only the box around it grew; the negative
-//      margins absorb the extra height, so every ⌄ lands on the pixel it
+// This asserts both of them, and the things that had to stay true while they
+// grew:
+//   1. THE UPDATE TAB'S ⌄ DOES NOT MOVE. Only the box around it grew; the
+//      negative margins absorb the extra height, so it lands on the pixel it
 //      always did.
-//   2. THE NEXT CHAT'S ROW IS ITS OWN from its very first pixel. The wrap-up's
-//      overhang goes UP, into the row the summary belongs to — a miss there
-//      opens the summary of the chat she was aiming at, which is a benign
-//      wrong answer; downward would land on a DIFFERENT chat.
-//   3. THE ✓ IS STILL OUT OF REACH. The timestamp was moved between them for
+//   2. THE ✓ IS STILL OUT OF REACH. The timestamp was moved between them for
 //      exactly this reason ("I'm worried I'll tap that by accident"), and the
 //      Update tab's ⌄ widens into `.nwtop`'s own gaps, not past them.
-//   4. THE CHAT NAME LOSES NO WIDTH. 83 of her 144 names already truncate, so
+//   3. THE CHAT NAME LOSES NO WIDTH. 83 of her 144 names already truncate, so
 //      the Update tab's extra width is an ::after over space that belonged to
 //      nothing — `.crow` must measure the same as before.
+//
+// THE WRAP-UP'S ⌄ ITSELF IS GONE (Aug 2026 v2, Sophie: "get rid of the
+// chevron, put a 'see more...' link under it instead") — `.wrapmore` is now a
+// plain text link, in a thread and on an archive row. Its words are their own
+// tap target, so it needs no glyph-growing overhang trick; it still has to
+// clear a real thumb size, and — since it no longer overlaps the row above —
+// the two archived rows must never overlap each other.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-tap-targets.js
 //
@@ -152,48 +155,50 @@ const fail = (m) => { console.error('FAIL: ' + m); failed++; process.exitCode = 
   if (!ck.self) fail('the ✓ is no longer the thing you hit at its own centre');
   if (/nwmore/.test(ck.edge)) fail('the ⌄ now reaches the ✓ — that is the tap she asked to be kept apart');
 
-  // ---- 2. the wrap-up's ⌄ in a thread ----------------------------------
+  // ---- 2. the wrap-up's "see more" link in a thread ----------------------
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="noted"]');
   await page.click('#grid [data-chat="noted"]');
   await page.waitForSelector('#thread .threadwrap .wrapmore');
   const tw = await reach('#thread .threadwrap .wrapmore');
-  if (!tw) fail('no ⌄ under her note');
+  if (!tw) fail('no "see more" link under her note');
   else {
-    if (tw.h < MIN) fail('the thread\'s ⌄ is ' + tw.h + 'px tall (was 23)');
-    if (tw.w < MIN) fail('the thread\'s ⌄ is ' + tw.w + 'px wide (was 32.6)');
+    if (tw.h < MIN) fail('the thread\'s "see more" link is ' + tw.h + 'px tall (was 23)');
+    if (tw.w < MIN) fail('the thread\'s "see more" link is ' + tw.w + 'px wide (was 32.6)');
   }
   // it still does its one job
   await page.click('#thread .threadwrap .wrapmore');
   if (await page.$eval('#thread .threadwrap .wrapfull', (b) => b.hidden)) {
-    fail('the bigger ⌄ stopped opening the summary');
+    fail('the bigger "see more" link stopped opening the summary');
   }
 
-  // ---- 3. the wrap-up's ⌄ on an archive row ----------------------------
+  // ---- 3. the wrap-up's "see more" link on an archive row ---------------
   await page.goto(base + '/chats');
   await page.waitForSelector('#archlink');
   await page.evaluate(() => document.getElementById('archlink').click());
   await page.waitForSelector('#grid .wrapmore', { timeout: 5000 })
-    .catch(() => fail('the archive drew no ⌄'));
+    .catch(() => fail('the archive drew no "see more" link'));
   const aw = await reach('#grid .wrapmore');
   if (aw) {
-    if (aw.h < MIN) fail('the archive\'s ⌄ is ' + aw.h + 'px tall (was 23)');
-    if (aw.w < MIN) fail('the archive\'s ⌄ is ' + aw.w + 'px wide (was 32.6)');
+    if (aw.h < MIN) fail('the archive\'s "see more" link is ' + aw.h + 'px tall (was 23)');
+    if (aw.w < MIN) fail('the archive\'s "see more" link is only ' + aw.w + 'px wide (was 32.6)');
   }
-  // THE ROW BELOW IS ITS OWN CHAT, from its first pixel — the overhang goes up
-  const bleed = await page.evaluate(() => {
-    const rows = document.querySelectorAll('#grid .crow');
-    if (rows.length < 2) return { few: rows.length };
-    const r = rows[1].getBoundingClientRect();
-    const who = (x, y) => { const e = document.elementFromPoint(x, y); const b = e && e.closest('.crow,.wrapmore');
-      return b ? (b.dataset && b.dataset.chat) || 'wrapmore' : 'none'; };
-    return { name: rows[1].dataset.chat, topRight: who(r.right - 20, r.top + 2), topLeft: who(r.left + 40, r.top + 2) };
-  });
-  if (bleed.few !== undefined) fail('only ' + bleed.few + ' archived rows — the bleed test needs two');
-  else {
-    if (bleed.topRight !== bleed.name) fail('the ⌄ above bleeds onto the next chat: ' + bleed.topRight + ' at ' + bleed.name + "'s top-right");
-    if (bleed.topLeft !== bleed.name) fail('the next chat\'s row is not its own at its top-left: ' + bleed.topLeft);
+  // A plain link sits in its own slot rather than overhanging the row above,
+  // so the two archived rows must never overlap.
+  const rows = await page.$$eval('#grid .crow', (els) => els.map((e) => {
+    const r = e.getBoundingClientRect();
+    return { name: e.dataset.chat, top: r.top, bottom: r.bottom };
+  }));
+  if (rows.length < 2) fail('only ' + rows.length + ' archived rows — this check needs two');
+  else if (rows[1].top < rows[0].bottom) {
+    fail('the archive rows overlap: ' + rows[1].name + ' starts at ' + rows[1].top +
+      ' before ' + rows[0].name + ' ends at ' + rows[0].bottom);
   }
+  // and it still opens only ITS OWN row's summary, never the next one's
+  await page.click('#grid .wrapmore');
+  const opened = await page.$$eval('#grid .wrapfull', (bs) => bs.map((b) => !b.hidden));
+  if (!opened[0]) fail('the "see more" link did not open its own row\'s summary');
+  if (opened[1]) fail('it opened the OTHER row\'s summary instead');
 
   await browser.close();
   server.close();
