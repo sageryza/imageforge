@@ -139,6 +139,33 @@
     background: #fdfcf9; color: #6f675e; }
   #reftag.on { display: block; }
   #reftag.same { border-color: #2b2622; color: #2b2622; }
+  /* The PROMPT panel — what is wrapped around her words, and editable (Aug
+     2026, Sophie). Opens under the style row, above her box, because that is
+     where the wrapping happens. Flat, 6px, no gradient like everything else. */
+  #promptpanel { display: none; margin: 0 0 8px; border: 1px solid #d8d0c4; border-radius: 6px;
+    background: #fdfcf9; padding: 10px; }
+  #promptpanel.on { display: block; }
+  #promptpanel .plab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #9a9186; margin: 0 0 4px; }
+  #promptpanel .plab + .plab { margin-top: 10px; }
+  /* 16px minimum on anything she types into — under that iOS auto-zooms on
+     focus and user-scalable=no then blocks pinching back out. */
+  #promptpanel textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px;
+    line-height: 1.4; color: #2b2622; background: #fff; border: 1px solid #d8d0c4;
+    border-radius: 6px; padding: 8px; resize: vertical; min-height: 66px; }
+  #promptpanel .yours { font-size: 12px; color: #6f675e; font-style: italic;
+    border-left: 2px solid #d8d0c4; padding: 2px 0 2px 8px; margin: 4px 0 0; }
+  #promptpanel .prow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  #promptpanel .prow button { border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9;
+    color: #6f675e; font: inherit; font-size: 12.5px; padding: 6px 10px; cursor: pointer; }
+  #promptpanel .pnote { font-size: 11.5px; color: #9a9186; margin-left: auto; text-align: right; }
+  .promptbtn.edited { border-color: #2b2622; color: #2b2622; }
+  /* The canvas toggle — portrait or square. Two segments, no pill. */
+  .canvastog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; }
+  .canvastog button { border: none; background: #fdfcf9; color: #6f675e; font: inherit;
+    font-size: 12.5px; padding: 6px 9px; margin: 0; cursor: pointer; }
+  .canvastog button + button { border-left: 1px solid #d8d0c4; }
+  .canvastog button.on { background: #2b2622; color: #faf7f2; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
 <h1>Playground</h1>
@@ -146,6 +173,7 @@
 <div class="panel">
   <div class="styles" id="styles"></div>
   <div id="reftag"></div>
+  <div id="promptpanel"></div>
   <textarea id="prompt"></textarea>
   <div class="controls">
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
@@ -153,6 +181,10 @@
     <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
     <span class="seedtag" id="seedtag"></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
+    <button class="stylebtn promptbtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
+    <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
+      <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
+    </div>
     <select id="qpick" aria-label="Quality"></select>
     <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
     <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
@@ -426,6 +458,123 @@
     }
   }
 
+  // ── THE PROMPT BUTTON — see what is wrapped around her words, and change it
+  //    (Aug 2026, Sophie: "add a prompt button so you can see what's being
+  //    added and what's and allow yourself to edit it as well").
+  //
+  // The baked text is READ FROM THE SERVER (`GET /api/promptlab/styles`), not
+  // copied into this file. server.js owns what is actually sent, and a copy
+  // here would drift the first time a style is reworded — which is exactly
+  // what she caught the day this shipped ("I think we recently changed the
+  // prompt anyway"). The panel therefore shows nothing until that read lands.
+  //
+  // NOT pre-written text in a box she writes in (the house rule): these two
+  // fields hold the LIVE VALUE that will be sent, the way reopening her
+  // waiting-for box shows the sentence she already wrote. Her own words go in
+  // the main box, which still ships empty.
+  //
+  // Edits are per STYLE and kept in localStorage, so a look she has tuned
+  // stays tuned across visits; RESET puts the house text back. An edited
+  // style marks its button, so she can never be running her own wording
+  // without the page saying so.
+  var BAKED = null;                  // {gptStyleId: {label, prefix, suffix, refs}}
+  var promptOpen = false;
+  var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
+
+  function bakedFor(k) {
+    var S = STYLES[k];
+    return (BAKED && S && S.gptStyle) ? BAKED[S.gptStyle] : null;
+  }
+  function overrideFor(k) {
+    var S = STYLES[k];
+    if (!S || !S.gptStyle) return null;
+    try { return JSON.parse(localStorage.getItem(OVERKEY + S.gptStyle) || 'null'); }
+    catch (e) { return null; }
+  }
+  function saveOverride(k, v) {
+    var S = STYLES[k];
+    if (!S || !S.gptStyle) return;
+    if (v) localStorage.setItem(OVERKEY + S.gptStyle, JSON.stringify(v));
+    else localStorage.removeItem(OVERKEY + S.gptStyle);
+    syncControls();
+  }
+  // What WILL be sent for this style — her edit if she has one, else the house
+  // text. `null` while the server read is still in flight.
+  function sentParts(k) {
+    var b = bakedFor(k); if (!b) return null;
+    var o = overrideFor(k);
+    return {
+      prefix: o && typeof o.prefix === 'string' ? o.prefix : b.prefix,
+      suffix: o && typeof o.suffix === 'string' ? o.suffix : b.suffix,
+      baked: b, edited: !!o,
+    };
+  }
+
+  function paintPromptPanel() {
+    var el = document.getElementById('promptpanel');
+    if (!promptOpen || !isGpt(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    var p = sentParts(styleKey);
+    el.className = 'on';
+    if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
+    el.innerHTML = '';
+    function field(label, val, name) {
+      var l = document.createElement('div'); l.className = 'plab'; l.textContent = label;
+      var t = document.createElement('textarea'); t.value = val; t.setAttribute('data-part', name);
+      t.addEventListener('input', stash);
+      el.appendChild(l); el.appendChild(t);
+    }
+    field('Before your words', p.prefix, 'prefix');
+    var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
+    var yv = document.createElement('div'); yv.className = 'yours';
+    yv.textContent = document.getElementById('prompt').value.trim() || '(the box below)';
+    el.appendChild(y); el.appendChild(yv);
+    field('After your words', p.suffix, 'suffix');
+    var row = document.createElement('div'); row.className = 'prow';
+    var rst = document.createElement('button'); rst.type = 'button'; rst.textContent = 'Reset';
+    rst.onclick = function () { saveOverride(styleKey, null); paintPromptPanel(); };
+    row.appendChild(rst);
+    var note = document.createElement('div'); note.className = 'pnote';
+    note.textContent = p.edited ? 'Your wording' : 'House wording';
+    row.appendChild(note);
+    el.appendChild(row);
+    function stash() {
+      var parts = {};
+      Array.prototype.forEach.call(el.querySelectorAll('textarea'), function (t) {
+        parts[t.getAttribute('data-part')] = t.value;
+      });
+      var b = p.baked;
+      // Back to the house text on both halves = not an edit at all, so the
+      // override is dropped rather than stored as an identical twin.
+      if (parts.prefix === b.prefix && parts.suffix === b.suffix) saveOverride(styleKey, null);
+      else saveOverride(styleKey, parts);
+      note.textContent = overrideFor(styleKey) ? 'Your wording' : 'House wording';
+    }
+  }
+  document.getElementById('promptbtn').addEventListener('click', function () {
+    promptOpen = !promptOpen; paintPromptPanel();
+  });
+  fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
+    .then(function (d) { BAKED = d.styles || {}; paintPromptPanel(); syncControls(); })
+    .catch(function () {});
+
+  // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
+  // Portrait is the default and stays the default: every run to date used it,
+  // and it is the CHEAPER of the two. gpt-image-2 charges MORE for the square
+  // (0.6c/5.3c/21.1c against 0.5c/4.1c/16.5c), which is the opposite of the
+  // obvious guess, so the button says so rather than leaving her to assume.
+  // Like quality, it is NOT persisted — a fresh load is back to portrait, so
+  // an expensive shape can never carry over into next time unmeant.
+  var canvas = 'portrait';
+  function paintCanvas() {
+    document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
+    document.getElementById('c-square').classList.toggle('on', canvas === 'square');
+    document.getElementById('c-portrait').title = 'Portrait 1024x1536 — low 0.5\u00A2 \u00B7 medium 4.1\u00A2 \u00B7 high 16.5\u00A2';
+    document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
+  }
+  document.getElementById('c-portrait').addEventListener('click', function () { canvas = 'portrait'; paintCanvas(); });
+  document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); });
+  paintCanvas();
+
   function renderStyles() {
     document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
       return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
@@ -435,13 +584,20 @@
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
-    renderStyles(); updateShape(); syncControls(); paintRefTag();
+    renderStyles(); updateShape(); syncControls(); paintRefTag(); paintPromptPanel();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
   // equivalent, so they come off the panel for that style rather than sitting
   // there doing nothing.
   function syncControls() {
     var gpt = isGpt(styleKey);
+    // The prompt button and the canvas toggle are gpt-image-2's: the LoRA has
+    // no baked prefix to show, and its shape rides a different parameter.
+    var pb = document.getElementById('promptbtn');
+    var ct = document.getElementById('canvastog');
+    if (pb) { pb.hidden = !gpt; pb.classList.toggle('edited', gpt && !!overrideFor(styleKey)); }
+    if (ct) ct.style.display = gpt ? 'flex' : 'none';
+    if (!gpt && promptOpen) { promptOpen = false; paintPromptPanel(); }
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });
@@ -520,9 +676,14 @@
     var seed = curSeed();
     var qual = q || quality;
     var key = plannedKey(S, prompt, scale, seed);
+    var over = gpt ? overrideFor(styleKey) : null;
     var body = gpt
       ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual,
-          character: charOn && !S.noCharacter }
+          character: charOn && !S.noCharacter, canvas: canvas,
+          // Only sent when she has actually edited it — an absent field means
+          // "use the house text", so a normal run is byte-for-byte what it
+          // always was.
+          prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

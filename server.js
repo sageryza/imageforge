@@ -5029,6 +5029,18 @@ const PL_GPT = {
   id: 'gpt-image-2', label: 'ChatGPT',
   quality: 'medium', qualities: ['low', 'medium', 'high'],
   size: '1024x1536', aspectRatio: '2:3', outputs: 1, maxOutputs: 4,
+  // The canvas toggle (Aug 2026, Sophie: "make it so that you can toggle
+  // between portrait and square"). Portrait stays the default — it is what
+  // every run to date used, and it is the CHEAPER of the two.
+  // **THE SQUARE COSTS MORE**, which is the opposite of everyone's guess:
+  // gpt-image-2 charges 0.6c/5.3c/21.1c for 1024x1024 against 0.5c/4.1c/16.5c
+  // for 1024x1536 (the one price table, docs/modules/pictures.md). The page
+  // prints that on the toggle so she is never guessing.
+  sizes: { portrait: { size: '1024x1536', aspectRatio: '2:3' },
+           square:   { size: '1024x1024', aspectRatio: '1:1' } },
+  // Generous — a full style prompt with her own additions. Over-length is cut
+  // rather than refused here because this is a live editor, not a filing.
+  promptMax: 4000,
   refFile: 'sage-sandy-mirror.png',
   // The Sophie character toggle (Aug 2026): when a run sends character:true,
   // this image rides along as the SECOND attachment and characterLine is
@@ -5117,10 +5129,24 @@ const PL_GPT_STYLES = {
     prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style, ' +
       'linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy ' +
       'its content, subjects, or composition.',
-    suffix: 'Render as ONE single full-bleed vertical illustration — a single image, ' +
-      'NOT a grid, NOT split panels, no borders, no caption boxes, no text or ' +
-      'lettering anywhere. Again: the attached image is a STYLE reference only — ' +
-      'do not draw its content, its subjects or its composition.',
+    // THE TAIL IS THE DREAM FEED'S CURRENT WORDING, not nde-panel.py's (Sophie,
+    // 2026-08-20: "I think we recently changed the prompt anyway"). Measured
+    // that day against the live filed prompts: the newest runs naming this
+    // reference say "render as a single image, not a grid, not split panels.
+    // Minimal text only." The prefix is identical across every version — it is
+    // the tail that moved, and it moved in two ways that matter here:
+    //   • "no borders" is GONE. Sophie: "it should have a border" — this
+    //     reference is a diary comic and its drawn frame is part of the look,
+    //     so the old clause was fighting the style it was copying.
+    //   • "no text or lettering anywhere" became "minimal text only", because
+    //     her handwriting is part of that page too.
+    // "vertical" is dropped as well: the canvas toggles portrait/square now,
+    // so a prompt naming one shape would fight the other.
+    suffix: 'Render as ONE single illustration — a single image, NOT a grid, NOT ' +
+      'split panels, no caption boxes. Draw it inside a hand-drawn border, like ' +
+      'the frames in the style reference. Minimal text only. Again: the attached ' +
+      'image is a STYLE reference only — do not draw its content, its subjects ' +
+      'or its composition.',
     noCharacter: true,
   },
   // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
@@ -5240,7 +5266,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     await Promise.all(Array.from({ length: want }, async () => {
       try {
         const data = await openaiImageEditRefs(cfg.fullPrompt, refs, {
-          quality: cfg.quality, size: PL_GPT.size, timeout: 300000,
+          quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
         });
         if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
         const b64 = data.data?.[0]?.b64_json;
@@ -5342,18 +5368,33 @@ app.post('/api/promptlab', async (req, res) => {
       // A noCharacter style never attaches the Sophie card, whatever the page
       // sends — her card is the watercolor look, the wrong reference there.
       const character = Boolean(req.body.character) && !st.noCharacter;
-      const fullPrompt = `${st.prefix}${character ? st.characterLine : ''}\n\n${typed}${st.suffix ? `\n\n${st.suffix}` : ''}`;
+      // HER OWN prefix/suffix win when she has edited them (Aug 2026, Sophie:
+      // "add a prompt button so you can see what's being added and … allow
+      // yourself to edit it as well"). Only a STRING counts as an edit, so an
+      // absent field keeps the baked text and an empty string genuinely
+      // removes that half — she can delete the whole tail if she wants to.
+      // `edited` is stored so a run's record says whose words these were;
+      // `fullPrompt` has always stored the exact text sent, so nothing about
+      // the prompt is hidden either way.
+      const over = (v, baked) => (typeof v === 'string' ? v.trim().slice(0, PL_GPT.promptMax) : baked);
+      const prefix = over(req.body.prefix, st.prefix);
+      const suffix = over(req.body.suffix, st.suffix);
+      const edited = prefix !== st.prefix || suffix !== st.suffix;
+      const fullPrompt = `${prefix}${character ? st.characterLine : ''}${prefix ? '\n\n' : ''}${typed}${suffix ? `\n\n${suffix}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
+      // Portrait unless she asked for the square; an unknown value is portrait,
+      // never an invented canvas.
+      const canvas = PL_GPT.sizes[String(req.body.canvas || '')] || PL_GPT.sizes.portrait;
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
-        model: PL_GPT.id, gptStyle: styleId, quality, size: PL_GPT.size,
-        aspectRatio: PL_GPT.aspectRatio,
+        model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
+        aspectRatio: canvas.aspectRatio, promptEdited: edited,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId, size: canvas.size });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -5384,6 +5425,30 @@ app.post('/api/promptlab', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// The baked style prompt, so the page's PROMPT button can SHOW it (Aug 2026,
+// Sophie: "add a prompt button so you can see what's being added and … allow
+// yourself to edit it as well").
+// SERVED, NOT COPIED. server.js owns the text that is actually sent, and the
+// page had no copy of it at all — the old "Sent as" preview was removed for
+// exactly the reason a copy is dangerous. So the button reads the real thing
+// here rather than a fourth transcription of it drifting out of step.
+// MUST stay above `/api/promptlab/:id` — Express matches in order, and `:id`
+// would otherwise swallow `styles` and answer "run not found".
+app.get('/api/promptlab/styles', (req, res) => {
+  const out = {};
+  Object.keys(PL_GPT_STYLES).forEach((k) => {
+    const st = PL_GPT_STYLES[k];
+    out[k] = {
+      label: st.label,
+      prefix: st.prefix || '',
+      suffix: st.suffix || '',
+      characterLine: st.noCharacter ? '' : (st.characterLine || ''),
+      refs: (st.refFiles || []).concat(st.storageRefs || []),
+    };
+  });
+  res.json({ styles: out, sizes: PL_GPT.sizes, max: PL_GPT.promptMax });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
