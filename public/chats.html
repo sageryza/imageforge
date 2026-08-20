@@ -734,27 +734,19 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 /* the stale-hook mark — the hide bar's red, dimmed: it is a maintenance flag,
    not an alarm, and it must not shout over her own notes */
 .cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
-/* The archive wrap-up's expander. Sits under its row as a sibling (a row is a
-   button, so it cannot nest) and costs one small glyph of height when shut.
-   THE TAP TARGET IS THE PADDING, NOT THE GLYPH (Aug 2026, Sophie: "the arrow
-   for more information on the chats and the update tab is too small of a tap
-   target"). It was 32.6 x 23 — a third of the 44px a thumb actually needs, on
-   a control she taps to read the summary. The ⌄ itself is unchanged; the box
-   around it grew to ~45 x 43, and the negative margin absorbed the extra
-   height so the glyph lands on the same pixel it always did and the archive
-   list is only 8px longer per row.
-   The overhang goes UP, into the row this summary belongs to — deliberately.
-   A miss there opens the summary of the chat she was already aiming at; an
-   overhang DOWNWARD would land on the NEXT chat's row, which is a different
-   chat and a real wrong answer. It reaches only the far right of that row,
-   where the timestamp sits and nothing is tappable — the archive's rows carry
-   no button of their own (see renderChats). The two that CAN appear on a row
-   elsewhere are lifted over the overhang below, so this stays true if a
-   wrap-up is ever painted into a list that has them. */
+/* The wrap-up's expander. A text link, not a chevron and not its own control
+   (Aug 2026 v2, Sophie: "part of the summary at the top just happens to also
+   be a link and have a line under it" — she'd rejected an earlier version
+   that gave it button-sized padding, which read as extra space at the top of
+   the thread). Same font and size as the summary it belongs to, underlined
+   as its only tell; in a thread it is literally appended INSIDE the summary
+   paragraph (see paintThreadWrap) and takes zero extra height of its own —
+   this rule only has to cover the archive row, where a row is a `<button>`
+   and cannot nest another one, so the link stays a sibling underneath it. */
 .crow .hidebtn,.crow .pinbtn,.crow .pickbtn{position:relative; z-index:1;}
-.wrapmore{display:block; margin:-18px 0 0 auto; padding:14px 16px; background:none;
-  border:0; color:var(--ink2); font-size:15px; line-height:1; cursor:pointer;
-  -webkit-tap-highlight-color:transparent;}
+.wrapmore{display:inline; background:none; border:0; margin:0; padding:0;
+  font-family:inherit; font-size:13.5px; color:var(--ink2); cursor:pointer;
+  text-decoration:underline; -webkit-tap-highlight-color:transparent;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
@@ -767,21 +759,16 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .wrapbul::before{content:'•'; position:absolute; left:1px; top:0;}
 .wrapopen{margin-top:9px;}
 /* THE WRAP-UP IN A THREAD, under her note (Aug 2026, her ask). Same three
-   depths as the archive row, laid out as a normal block instead of a sibling
-   of a button — so `.wrapmore` gets its margin back and the line reads as a
-   quiet caption under the note rather than a second note. */
+   depths as the archive row, laid out as a normal block so the line reads as
+   a quiet caption under the note rather than a second note. */
 .threadwrap{margin:-.4em 0 1em;}
 .threadwrap[hidden]{display:none !important;}
 .threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
-/* Same trick, smaller: what sits above it here is the summary LINE, plain
-   text with nothing to tap, so the box can hang over it and the ⌄ stays on
-   the pixel it has always been on. */
-.threadwrap .wrapmore{margin:-12px 0 0 auto;}
 .threadwrap .wrapfull{margin-bottom:0;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
-   ⌄ that opened this. */
+   "See more…" link that opened this. */
 .wrapmore2{display:block; margin:6px 0 0; padding:0; background:none; border:0;
   color:var(--chg); font-family:-apple-system,sans-serif; font-size:11px;
   letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
@@ -1813,7 +1800,7 @@ function markSeen(name){
 function editAbout(chat, row, current){
   // inline editor (WKWebView blocks window.prompt), saves to /about
   var inp=document.createElement('input'); inp.type='text'; inp.className='abouted';
-  inp.value=current||''; inp.placeholder='What is this project? (one line)'; inp.maxLength=140;
+  inp.value=current||''; inp.placeholder='What is this project?'; inp.maxLength=140;
   row.innerHTML=''; row.appendChild(inp); inp.focus();
   var done=false;
   function save(){
@@ -5091,12 +5078,12 @@ function wrapBody(r){
 }
 function wrapToggle(body){
   var tog=document.createElement('button');
-  tog.className='wrapmore'; tog.textContent='⌄';
+  tog.className='wrapmore'; tog.textContent='See more…';
   tog.setAttribute('aria-label','What this chat was about');
   tog.onclick=function(e){
     e.stopPropagation();
     body.hidden=!body.hidden;
-    tog.textContent=body.hidden?'⌄':'⌃';
+    tog.textContent=body.hidden?'See more…':'See less';
   };
   return tog;
 }
@@ -5876,7 +5863,6 @@ function openChat(name, keepScroll, focusId, noFetch){
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
-    ta.placeholder='A note to yourself about this chat';
     nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
     var done=false;
     function save(){
@@ -5920,11 +5906,18 @@ function openChat(name, keepScroll, focusId, noFetch){
     wrow.innerHTML='';
     wrow.hidden=!line;
     if(!line) return;
-    var p=document.createElement('div'); p.className='twline'; p.textContent=line;
+    var p=document.createElement('div'); p.className='twline';
+    p.appendChild(document.createTextNode(line));
     wrow.appendChild(p);
     if(!wrapHasMore(r)) return;
+    // "See more…" reads as part of THIS sentence (Aug 2026, Sophie: "part of
+    // the summary at the top just happens to also be a link and have a line
+    // under it") — appended inline, inside the same paragraph, not a control
+    // of its own underneath it. Costs no extra height at the top of the
+    // thread; it just wraps onto the line if the summary runs long.
     var body=wrapBody(r);
-    wrow.appendChild(wrapToggle(body));
+    p.appendChild(document.createTextNode(' '));
+    p.appendChild(wrapToggle(body));
     wrow.appendChild(body);
   }
   paintThreadWrap();
@@ -7087,7 +7080,7 @@ function askArchive(name, cb){
   var noteWas=String((chats[name]&&chats[name].sophieNote)||'');
   var note=document.createElement('input');
   note.type='text'; note.className='arcnote'; note.maxLength=200; note.value=noteWas;
-  note.placeholder='A note to yourself about this chat';
+  note.placeholder='Note…';
   note.setAttribute('aria-label','Your note about this chat');
   var noteSaved=noteWas;
   function saveNote(){

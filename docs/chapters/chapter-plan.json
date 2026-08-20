@@ -1,0 +1,406 @@
+{
+ "anthony-chene-nde-pipeline": {
+  "first": "2026-07-21T18:43:43.669Z",
+  "last": "2026-08-07T17:48:23.022Z",
+  "total": 591,
+  "chapters": [
+   {
+    "title": "Building the moments pipeline",
+    "at": "2026-07-21T18:43:00.000Z",
+    "n": 60
+   },
+   {
+    "title": "Getting the interviews down on your Mac",
+    "at": "2026-07-22T21:29:00.000Z",
+    "n": 83
+   },
+   {
+    "title": "Cutting the clips, and the words landing wrong",
+    "at": "2026-07-23T04:00:00.000Z",
+    "n": 117
+   },
+   {
+    "title": "Who goes in, and in what order",
+    "at": "2026-07-24T02:36:00.000Z",
+    "n": 84
+   },
+   {
+    "title": "Finding the narration voice",
+    "at": "2026-07-25T19:25:00.000Z",
+    "n": 91
+   },
+   {
+    "title": "Real faces — the character cards",
+    "at": "2026-07-25T23:05:00.000Z",
+    "n": 56
+   },
+   {
+    "title": "Making it a module in Deck Factory",
+    "at": "2026-07-31T03:39:00.000Z",
+    "n": 53
+   },
+   {
+    "title": "Recutting the montages, comparing the clones",
+    "at": "2026-08-01T19:39:00.000Z",
+    "n": 47
+   }
+  ]
+ },
+ "deck-factory-story-room": {
+  "first": "2026-07-28T18:25:13.274Z",
+  "last": "2026-08-12T17:11:03.682Z",
+  "total": 501,
+  "chapters": [
+   {
+    "title": "Looking at the Story Room",
+    "at": "2026-07-28T18:25:00.000Z",
+    "n": 59
+   },
+   {
+    "title": "Turning the essays into lessons",
+    "at": "2026-07-28T22:25:00.000Z",
+    "n": 114
+   },
+   {
+    "title": "Mason, the comic, and the pictures",
+    "at": "2026-07-29T19:08:00.000Z",
+    "n": 115
+   },
+   {
+    "title": "The auto-poster and my messages in the app",
+    "at": "2026-07-30T23:12:00.000Z",
+    "n": 70
+   },
+   {
+    "title": "Lesson art, tiles, and web vs Swift",
+    "at": "2026-07-31T20:14:00.000Z",
+    "n": 56
+   },
+   {
+    "title": "Giving everything a home — the shelf",
+    "at": "2026-08-10T01:28:00.000Z",
+    "n": 27
+   },
+   {
+    "title": "Icons, levels, and the chapters artifact",
+    "at": "2026-08-12T01:33:00.000Z",
+    "n": 60
+   }
+  ]
+ },
+ "jonas": {
+  "first": "2026-07-03T22:43:33.394Z",
+  "last": "2026-07-12T21:44:05.126Z",
+  "total": 269,
+  "chapters": [
+   {
+    "title": "Interrupting a session, and the first Jonas film",
+    "at": "2026-07-03T00:00:00.000Z",
+    "n": 20
+   },
+   {
+    "title": "The narration voice",
+    "at": "2026-07-04T04:57:00.000Z",
+    "n": 18
+   },
+   {
+    "title": "More motion, and the quality question",
+    "at": "2026-07-05T03:57:00.000Z",
+    "n": 38
+   },
+   {
+    "title": "Making the cookies less scary",
+    "at": "2026-07-05T20:23:00.000Z",
+    "n": 32
+   },
+   {
+    "title": "Kling, morphs, and the endings",
+    "at": "2026-07-05T21:49:00.000Z",
+    "n": 21
+   },
+   {
+    "title": "Why the rerolls keep coming out wrong",
+    "at": "2026-07-07T01:35:00.000Z",
+    "n": 61
+   },
+   {
+    "title": "The whole film at 480p, and Storyboards",
+    "at": "2026-07-11T01:33:00.000Z",
+    "n": 79
+   }
+  ]
+ },
+ "dream-memory-transcript": {
+  "first": "2026-07-16T03:32:52.683Z",
+  "last": "2026-07-25T05:00:22.382Z",
+  "total": 305,
+  "chapters": [
+   {
+    "title": "Dreams on Sol, and the dad scenes",
+    "at": "2026-07-16T00:00:00.000Z",
+    "n": 72
+   },
+   {
+    "title": "The twelve-scene morph film",
+    "at": "2026-07-17T00:50:00.000Z",
+    "n": 30
+   },
+   {
+    "title": "Character Creator",
+    "at": "2026-07-17T05:45:00.000Z",
+    "n": 30
+   },
+   {
+    "title": "Story Room, storyboards, the climax panel",
+    "at": "2026-07-17T21:22:00.000Z",
+    "n": 48
+   },
+   {
+    "title": "Style tests and the new dreams page",
+    "at": "2026-07-20T02:09:00.000Z",
+    "n": 72
+   },
+   {
+    "title": "The whole dream pipeline, read back",
+    "at": "2026-07-22T22:54:00.000Z",
+    "n": 53
+   }
+  ]
+ },
+ "severely-witch-app": {
+  "first": "2026-07-19T03:34:51.235Z",
+  "last": "2026-07-25T23:06:45.597Z",
+  "total": 305,
+  "chapters": [
+   {
+    "title": "The dream illustrator and the birth-chart poster",
+    "at": "2026-07-19T00:00:00.000Z",
+    "n": 42
+   },
+   {
+    "title": "Astrology readings — Sol vs Claude",
+    "at": "2026-07-19T19:20:00.000Z",
+    "n": 24
+   },
+   {
+    "title": "Tropical, sidereal, and the thirteenth sign",
+    "at": "2026-07-19T21:18:00.000Z",
+    "n": 90
+   },
+   {
+    "title": "The art batches — crystals, altar, the icon",
+    "at": "2026-07-20T05:52:00.000Z",
+    "n": 78
+   },
+   {
+    "title": "The birth-chart wheel, v4",
+    "at": "2026-07-22T06:42:00.000Z",
+    "n": 36
+   },
+   {
+    "title": "Temperature 1.3, and the rebuilt lesson",
+    "at": "2026-07-24T17:32:00.000Z",
+    "n": 35
+   }
+  ]
+ },
+ "icon-swaps-playground": {
+  "first": "2026-08-05T20:10:27.247Z",
+  "last": "2026-08-09T16:46:21.585Z",
+  "total": 165,
+  "chapters": [
+   {
+    "title": "The icon swaps",
+    "at": "2026-08-05T20:10:00.000Z",
+    "n": 30
+   },
+   {
+    "title": "The quilt icon, and what the wall is",
+    "at": "2026-08-06T00:37:00.000Z",
+    "n": 13
+   },
+   {
+    "title": "The Dump's sort and label page",
+    "at": "2026-08-06T05:22:00.000Z",
+    "n": 70
+   },
+   {
+    "title": "Which model writes what — mini vs Claude",
+    "at": "2026-08-07T17:32:00.000Z",
+    "n": 32
+   },
+   {
+    "title": "The teapot style test",
+    "at": "2026-08-08T23:51:00.000Z",
+    "n": 20
+   }
+  ]
+ },
+ "evan-story-visual-summary": {
+  "first": "2026-08-09T20:50:44.001Z",
+  "last": "2026-08-12T00:55:06.571Z",
+  "total": 148,
+  "chapters": [
+   {
+    "title": "The visual summary idea",
+    "at": "2026-08-09T20:50:00.000Z",
+    "n": 38
+   },
+   {
+    "title": "Cutting the passage",
+    "at": "2026-08-10T06:03:00.000Z",
+    "n": 41
+   },
+   {
+    "title": "The timeline, and the play button",
+    "at": "2026-08-10T17:59:00.000Z",
+    "n": 41
+   },
+   {
+    "title": "Icons, and the artifact getting better",
+    "at": "2026-08-11T00:23:00.000Z",
+    "n": 28
+   }
+  ]
+ },
+ "secretly-witch-ios-app": {
+  "first": "2026-07-20T21:46:50.139Z",
+  "last": "2026-07-26T05:41:22.394Z",
+  "total": 179,
+  "chapters": [
+   {
+    "title": "First build to TestFlight",
+    "at": "2026-07-20T21:46:00.000Z",
+    "n": 23
+   },
+   {
+    "title": "Screenshots and the shop",
+    "at": "2026-07-21T21:01:00.000Z",
+    "n": 49
+   },
+   {
+    "title": "The illustration prompts, and what they cost",
+    "at": "2026-07-22T07:15:00.000Z",
+    "n": 38
+   },
+   {
+    "title": "Sign-in, the domain, and account sync",
+    "at": "2026-07-24T02:11:00.000Z",
+    "n": 30
+   },
+   {
+    "title": "The App Store listing, field by field",
+    "at": "2026-07-25T23:50:00.000Z",
+    "n": 39
+   }
+  ]
+ },
+ "hospital-story-images": {
+  "first": "2026-08-05T21:05:13.679Z",
+  "last": "2026-08-14T06:50:47.785Z",
+  "total": 101,
+  "chapters": [
+   {
+    "title": "Finding the story, and the first panels",
+    "at": "2026-08-05T21:05:00.000Z",
+    "n": 27
+   },
+   {
+    "title": "Medium singles, and animating them",
+    "at": "2026-08-06T02:01:00.000Z",
+    "n": 32
+   },
+   {
+    "title": "The clips barely move",
+    "at": "2026-08-07T03:42:00.000Z",
+    "n": 24
+   },
+   {
+    "title": "Notes on images, and the childhood photos",
+    "at": "2026-08-07T20:52:00.000Z",
+    "n": 18
+   }
+  ]
+ },
+ "secretly-witch-ui-tweaks": {
+  "first": "2026-07-20T03:43:32.423Z",
+  "last": "2026-07-25T22:36:01.972Z",
+  "total": 124,
+  "chapters": [
+   {
+    "title": "The header, the stars, the quiz buttons",
+    "at": "2026-07-20T03:43:00.000Z",
+    "n": 40
+   },
+   {
+    "title": "Birthday-first, and the dream buttons",
+    "at": "2026-07-22T05:21:00.000Z",
+    "n": 50
+   },
+   {
+    "title": "The Book of Shadows",
+    "at": "2026-07-24T04:19:00.000Z",
+    "n": 20
+   },
+   {
+    "title": "The cauldron and the kinder ending",
+    "at": "2026-07-25T20:11:00.000Z",
+    "n": 14
+   }
+  ]
+ },
+ "deckfactory-autoscroll-fixes": {
+  "first": "2026-07-17T21:26:37.121Z",
+  "last": "2026-07-24T19:17:20.522Z",
+  "total": 129,
+  "chapters": [
+   {
+    "title": "Mapping autoscroll across the app",
+    "at": "2026-07-17T21:26:00.000Z",
+    "n": 50
+   },
+   {
+    "title": "The pill scrolling off the top",
+    "at": "2026-07-19T18:09:00.000Z",
+    "n": 20
+   },
+   {
+    "title": "Assets — verdicts, notes, the flag button",
+    "at": "2026-07-20T04:24:00.000Z",
+    "n": 20
+   },
+   {
+    "title": "Dead tiles and the answered flag",
+    "at": "2026-07-22T21:30:00.000Z",
+    "n": 39
+   }
+  ]
+ },
+ "group-dream-journal-review": {
+  "first": "2026-08-05T20:55:11.711Z",
+  "last": "2026-08-15T15:52:12.255Z",
+  "total": 97,
+  "chapters": [
+   {
+    "title": "Looking at the group dream journal",
+    "at": "2026-08-05T20:55:00.000Z",
+    "n": 7
+   },
+   {
+    "title": "Style, grouping, and the hearts",
+    "at": "2026-08-06T02:52:00.000Z",
+    "n": 57
+   },
+   {
+    "title": "Microphones, and picking the name",
+    "at": "2026-08-14T06:45:00.000Z",
+    "n": 20
+   },
+   {
+    "title": "One dream a night, and who can see it",
+    "at": "2026-08-15T05:03:00.000Z",
+    "n": 13
+   }
+  ]
+ }
+}

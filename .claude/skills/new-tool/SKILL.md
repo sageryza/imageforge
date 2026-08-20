@@ -56,11 +56,18 @@ that spends money; `[hidden]{display:none !important}`.
 
 ## The iOS side
 
-- **A new web tool ships with the native bar + chevron** (the Episode Editor
-  wrapper is the reference) — `GatedWebTool(path:…) .forgeToolBar("Name")`
-  for a plain step-flow page, or a copy of `EpisodeEditorView.swift` when the
-  page needs `window.__navBack` (inner levels) or media pausing. Only a page
-  that replaces the WHOLE chrome (Chats, Story Room) gets a bare host.
+- **A new web tool ships with the native bar + chevron** —
+  `GatedWebTool(path:…, navTitle: "Name")`, which wires the chevron to ask
+  the page's `window.__navBack` FIRST (a multi-level page steps back a level;
+  a page without one falls through to leaving the tool). Do NOT use the plain
+  `.forgeToolBar("Name")` on a GatedWebTool — that chevron leaves the tool
+  from anywhere, which dumped Sophie on the home screen from inside a story
+  (Aug 2026: "this is a pattern that needs to be fixed all over the app").
+  Copy `EpisodeEditorView.swift` only when the page also needs media pausing.
+  Only a page that replaces the WHOLE chrome (Chats, Story Room) gets a bare
+  host. **A multi-level page should ALSO push a history state per level** —
+  then the swipe-back gesture and the browser's back button step levels too
+  (timeline.html's `storyUrl`/`popstate` block is the pattern).
 - Register the `Tool` case: title, blurb, glyph, deep link, and which home
   FILTER it answers to (pictures / business / quilt / film). A custom glyph
   must fill 0.90 of its viewBox — run `python3 scripts/normalize-glyphs.py`.

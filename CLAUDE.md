@@ -1437,10 +1437,31 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   words she did not ask for sitting where hers go, and it teaches her a shape
   she never chose. Applies everywhere she types or dictates — every web page,
   every iOS screen, every Compare/deck note box, every sheet.
-  - **A placeholder may NAME the field, never fill it.** `Search all chats…`,
-    `Note for this chat…`, `New…` are names and they stay. `the API key, her
-    go-ahead, Tuesday…` is an example answer and it goes. The test: could
-    what's in the field be a real answer? Then it is pre-written text.
+  - **A placeholder may NAME the field, never fill it and never instruct.**
+    `Search all chats…`, `Note…`, `New…`, `Back text` are names and they stay;
+    a short question that names the box (`What happened?`) is a name too. Out:
+    an example answer (`the API key, her go-ahead, Tuesday…`, `you@email.com`),
+    a **sentence** (`Say anything. It is sent word for word.`), and a
+    **description of what to write** — `A note to yourself about this chat`,
+    `Describe what you want to generate…`, `Tell us what happened`. A name with
+    an instruction stapled on keeps only the name: `Name (blank = skip)` →
+    `Name`.
+    - **THE FIRST VERSION OF THIS TEST WAS TOO WEAK AND SHE CAUGHT IT (Aug
+      2026, pointing at the archive sheet's note box: "there's still
+      pre-written text … makes me wonder if you really audited very well").**
+      It read *could what's in the field be a real answer?* — which passes
+      every placeholder that merely DESCRIBES what to write, so
+      `A note to yourself about this chat` was filed as a field name and
+      survived the sweep. Ask instead: **is this a NAME, or is it words?**
+  - **AUDIT THE BOX, NOT THE `placeholder=` ATTRIBUTE.** The same sweep
+    grepped only for `placeholder=` and therefore never saw the worst case in
+    the repo: `/talking`'s entry box shipped with a whole invented paragraph
+    **inside** it ("I told my dad that when you dream of flying…"), live, as
+    real content. Three greps, not one — `placeholder=`, a `<textarea>` with
+    anything between its tags, and `value=` on a text input. And when you
+    remove prefilled content, check what READS it: that paragraph was the
+    source of `TEST_DREAM`, so the "↺ reset to test dream" link would have
+    quietly blanked her entry instead of restoring anything.
   - **Prefilling with HER OWN saved value is not this** — reopening the waiting
     box on a chat that already says what it is waiting for shows her sentence
     back, and that is her text, not yours. Same for the note she wrote.
