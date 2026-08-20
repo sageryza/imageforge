@@ -474,7 +474,22 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
     a centred control's ends reach into those 26% strips, so without it the
     tap pages the deck instead. Pinned by
     `node scripts/test-template-link.js` (real Chromium,
-    `elementFromPoint` at the anchor's own centre in both views). `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
+    `elementFromPoint` at the anchor's own centre in both views).
+    **`chat` + the page-level `applyArchive` make a verdict DO the thing**
+    (Aug 2026, and it was earned: an archive-review deck labelled its two
+    verdict chips *Archive* and *Keep*, Sophie marked eleven cards and told
+    the chat "I archived all of them", and **not one chat was archived** — the
+    chip filed an opinion while wearing the name of an action, and she went
+    hunting for a real archive button that the card had no way to reach).
+    A page that sets `applyArchive: true` gets an item→chat map stored on its
+    page DOC at post time, and then an `archive` verdict on a card archives
+    the chat that card names, while **any other verdict (Keep, or clearing the
+    mark) takes it back out**. The deck toasts *Archived* / *Back on your
+    list* so the tap confirms itself. Deliberately ONE action, not a general
+    "run this on tap" hook: archiving is reversible in a tap and visible on
+    her own list, which is what makes it safe to fire from a card. An item's
+    `chat` alone never acts — the page must opt in. **The lesson generalises:
+    do not label a verdict with a verb the page cannot perform.** `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
     `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):

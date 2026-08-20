@@ -1046,22 +1046,30 @@ function frozenWrapUp(r) {
   return { wrapLine: line, wrapUp: full, wrapUpAt: new Date().toISOString(), wrapFrom: 'update-card' };
 }
 
+// The archive itself, so the button in her thread and a card's verdict on an
+// archive-review deck take the SAME path — including the wrap-up freeze. Two
+// copies would mean a chat archived from a deck quietly losing its summary.
+async function setArchived(chat, on) {
+  const ref = regRef(chat);
+  const patch = { archived: on };
+  // Only on the way IN. Taking a chat back out must not re-freeze anything,
+  // and un-archiving is a gesture that should cost nothing.
+  let froze = false;
+  if (on) {
+    const snap = await ref.get();
+    const add = frozenWrapUp(snap.exists ? snap.data() : null);
+    if (add) { Object.assign(patch, add); froze = true; }
+  }
+  await ref.set(patch, { merge: true });
+  return froze;
+}
+
 router.post('/archive', async (req, res) => {
   try {
     const { chat, archived } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const on = archived !== false;
-    const ref = regRef(chat);
-    const patch = { archived: on };
-    // Only on the way IN. Taking a chat back out must not re-freeze anything,
-    // and un-archiving is a gesture that should cost nothing.
-    let froze = false;
-    if (on) {
-      const snap = await ref.get();
-      const add = frozenWrapUp(snap.exists ? snap.data() : null);
-      if (add) { Object.assign(patch, add); froze = true; }
-    }
-    await ref.set(patch, { merge: true });
+    const froze = await setArchived(chat, on);
     res.json({ ok: true, archived: on, wrapUp: froze });
   } catch (err) { fail(res, err); }
 });
@@ -3086,6 +3094,13 @@ router.post('/page', async (req, res) => {
         const t = refTopic(topic);
         if (t) tdoc.refTopic = t;
       }
+      // AN ARCHIVE-REVIEW DECK CARRIES ITS OWN item→chat MAP (Aug 2026).
+      // On the page DOC, not in the Storage payload: a verdict tap then costs
+      // one small cached Firestore read instead of a bucket download.
+      if (v.data.applyArchive) {
+        const map = pageTemplates.archiveMapOf(v.data);
+        if (Object.keys(map).length) { tdoc.applyArchive = true; tdoc.archiveMap = map; }
+      }
       const tref = db().collection(PAGES).doc();
       const tfile = admin.storage().bucket().file(`chat-pages/${tref.id}.json`);
       await tfile.save(Buffer.from(JSON.stringify(v.data), 'utf8'), {
@@ -3762,6 +3777,40 @@ router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, 
 // can read back what she decided instead of asking her to recite it.
 //   POST /api/chatfeed/verdict { chat, sheet, item, ok }
 //   GET  /api/chatfeed/verdict?chat=&sheet=
+// The page-doc lookup behind the rule above. Cached for a minute: a swipe
+// through thirty cards is thirty taps on ONE page, and its map never changes
+// (a new version is a new page, always).
+const pageMapCache = new Map();
+async function pageArchiveMap(sheet) {
+  const m = /^page-(.+)$/.exec(sheet || '');
+  if (!m) return null;
+  const pid = m[1];
+  const hit = pageMapCache.get(pid);
+  if (hit && Date.now() - hit.at < 60000) return hit.map;
+  const snap = await db().collection(PAGES).doc(pid).get();
+  const d = snap.exists ? snap.data() : {};
+  const map = d.applyArchive && d.archiveMap ? d.archiveMap : null;
+  pageMapCache.set(pid, { map, at: Date.now() });
+  return map;
+}
+
+/**
+ * Her mark on one card of an archive-review deck → the chat archived or taken
+ * back out. Returns `{chat, archived}` when it acted, else null.
+ *
+ * 'archive' puts it away; ANY other verdict (her Keep, or clearing the mark)
+ * takes it back out — so the chip is a true toggle and a mis-tap costs one
+ * more tap, which is the whole reason this is safe to fire from a card.
+ */
+async function applyPageVerdict(sheet, item, ok) {
+  const map = await pageArchiveMap(sheet);
+  const chat = map && map[item];
+  if (!chat) return null;
+  const on = ok === 'archive';
+  await setArchived(chat, on);
+  return { chat, archived: on };
+}
+
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const { chat, sheet, item, ok, text } = req.body || {};
@@ -3781,7 +3830,22 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
-    res.json({ ok: true });
+    // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie: she marked
+    // eleven cards "Archive", told the chat "I archived all of them", and not
+    // one was archived — the chip filed an opinion while wearing the name of
+    // an action. Now the word means what it says.)
+    //
+    // Only ever on a page that OPTED IN at post time (`applyArchive`), only
+    // for the chat that page's own map names for this card, and only from her
+    // tap. It stays inside the verdict route rather than becoming a general
+    // "run this on tap" hook: archiving is one reversible, visible act, and
+    // that is what makes it safe to fire from a card.
+    let archived = null;
+    if (ok !== undefined) {
+      try { archived = await applyPageVerdict(String(sheet), String(item), ok); }
+      catch (e) { /* her mark is saved either way — never fail the tap */ }
+    }
+    res.json({ ok: true, archived });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

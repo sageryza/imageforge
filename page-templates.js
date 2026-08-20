@@ -176,6 +176,12 @@ function cleanItem(raw, taken, fallback) {
   // a template page needs a non-http link, so the narrow rule is the safe one.
   const link = cleanLink(raw.link);
   if (link) it.link = link;
+  // WHICH CHAT THIS CARD IS ABOUT (Aug 2026) — set only on a page that also
+  // declares `applyArchive`, where her verdict on the card archives the chat
+  // itself. See applyArchive in validateTemplate below for why this is a slug
+  // rather than a free-form action.
+  const chatSlug = STR(raw.chat, 60).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+  if (chatSlug) it.chat = chatSlug;
   it.id = STR(raw.id, 60) || null;
   if (it.id) { if (taken.has(it.id)) return { dup: it.id }; taken.add(it.id); }
   else it.id = deriveId(it, taken, fallback);
@@ -219,6 +225,15 @@ function validateTemplate(template, data) {
   // carrying who/eyebrow/sections/caption gets it automatically, so most
   // decks never need this flag.
   if (data.style === 'moment') out.style = 'moment';
+  // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie — she marked
+  // eleven cards "Archive", said "I archived all of them", and NOTHING was
+  // archived: the chip recorded an opinion while wearing the name of an
+  // action). A page may opt in, and then a card's `archive` verdict archives
+  // the chat named by that card's `chat` field, and any other verdict takes
+  // it back out. Deliberately ONE action rather than a general "run this on
+  // tap" hook: archiving is reversible in a tap and visible on her own list,
+  // which is what makes it safe to fire from a card.
+  if (data.applyArchive) out.applyArchive = true;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -800,7 +815,24 @@ function assignVoiceSegments(segments, timeline) {
   return out;
 }
 
+/**
+ * The page's item→chat map, for the server to apply verdicts against.
+ * Kept on the PAGE DOC rather than read out of the Storage payload on every
+ * tap: the payload is a download, the doc is a small cached read, and a tap
+ * must not cost her a round trip to a bucket.
+ * Empty unless the page opted in — an item's `chat` alone never acts.
+ */
+function archiveMapOf(data) {
+  const out = {};
+  if (!data || !data.applyArchive) return out;
+  const all = (data.items || []).concat(
+    ...(data.groups || []).map((g) => g.items || []),
+  );
+  all.forEach((it) => { if (it && it.chat) out[it.id] = it.chat; });
+  return out;
+}
+
 module.exports = {
-  TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
+  TEMPLATES, ASPECTS, validateTemplate, archiveMapOf, renderTemplatePage, groupAssetVariants,
   planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };
