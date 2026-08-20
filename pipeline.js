@@ -221,8 +221,16 @@ async function publishDraft(opts = {}) {
     title, tags, description, materials,
     // ...or ask the pipeline to write them:
     generateContent = false, theme, productType, audience,
+    // WHICH Etsy account writes this draft. Defaults to the original shop, so
+    // every caller that predates multi-account is untouched; a second seller's
+    // shop passes its own account name and the write goes out on THAT token.
+    // Without this the draft was always created with the default account's
+    // token, which either 403s on someone else's shop or — worse, if the shop
+    // ids ever crossed — files their listing into the wrong storefront.
+    account = 'default',
   } = opts;
   if (!shop_id) throw new Error('shop_id required');
+  const acct = etsy.normAccount(account);
 
   // Category: prefer a leaf mapped from the product type; only fall back to a
   // caller-supplied taxonomy_id (e.g. one derived from an existing listing) when
@@ -245,7 +253,7 @@ async function publishDraft(opts = {}) {
   const draftRes = await etsy.createDraftListing(shop_id, {
     ...content, price, quantity, taxonomy_id: resolvedTaxonomy, who_made, when_made, type, legacy,
     extra: Object.keys(extra).length ? extra : undefined,
-  });
+  }, acct);
   if (!draftRes.ok) {
     return { ok: false, stage: 'create_draft', status: draftRes.status, body: draftRes.body };
   }
@@ -258,7 +266,7 @@ async function publishDraft(opts = {}) {
     const url = typeof img === 'string' ? img : img.url;
     const rank = typeof img === 'object' && img.rank != null ? img.rank : i + 1;
     try {
-      const up = await etsy.uploadListingImage(shop_id, listingId, url, { rank, filename: `design-${i + 1}.png` });
+      const up = await etsy.uploadListingImage(shop_id, listingId, url, { rank, filename: `design-${i + 1}.png`, account: acct });
       imageResults.push({ ok: up.ok, status: up.status, listing_image_id: up.body && up.body.listing_image_id });
     } catch (err) {
       imageResults.push({ ok: false, error: err.message });

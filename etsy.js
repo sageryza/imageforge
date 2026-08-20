@@ -660,15 +660,28 @@ function reqAccount(req, res) {
   }
 }
 
-// The shop a request means: explicit shop_id wins; the default account keeps
-// its ETSY_SHOP_ID env fallback; any account falls back to the shop_id stored
-// on its token doc at connect time.
+// The shop an ACCOUNT writes to: explicit shop_id wins; the default account
+// keeps its ETSY_SHOP_ID env fallback; any account falls back to the shop_id
+// stored on its token doc at connect time, else null.
+//
+// THE RULE THAT MATTERS: only "default" may fall back to ETSY_SHOP_ID. That env
+// var names ONE shop (the original), so letting a named account borrow it would
+// file another seller's listings into someone else's storefront — a mistake
+// nobody would notice until the drafts showed up under the wrong shop name.
+// A named account with no shop_id yet resolves to null and its caller must
+// refuse. (Aug 2026, wiring up a second seller's shop.)
+async function shopIdForAccount(account = 'default', explicit = null) {
+  if (explicit) return explicit;
+  const a = normAccount(account);
+  if (a === 'default' && process.env.ETSY_SHOP_ID) return process.env.ETSY_SHOP_ID;
+  const t = await loadTokens(a);
+  return (t && t.shop_id) || null;
+}
+
+// The shop a REQUEST means — the same rule, reading shop_id off query or body.
 async function resolveShopId(req, account) {
   const explicit = (req.query && req.query.shop_id) || (req.body && req.body.shop_id);
-  if (explicit) return explicit;
-  if (account === 'default' && process.env.ETSY_SHOP_ID) return process.env.ETSY_SHOP_ID;
-  const t = await loadTokens(account);
-  return (t && t.shop_id) || null;
+  return shopIdForAccount(account, explicit);
 }
 
 // Read-only health check — proves the app key authenticates. No user needed.
@@ -1075,6 +1088,7 @@ module.exports = {
   configured,
   // multi-account
   normAccount,
+  shopIdForAccount,
   loadTokens,
   saveTokens,
   listAccounts,

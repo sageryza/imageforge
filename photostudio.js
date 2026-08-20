@@ -313,8 +313,25 @@ router.post('/draft', express.json({ limit: '25mb' }), async (req, res) => {
   if (!pipeline || !pipeline.publishDraft) return res.status(400).json({ error: 'pipeline module unavailable' });
   if (!etsy || !etsy.getListingDefaults) return res.status(400).json({ error: 'etsy module unavailable' });
   const body = req.body || {};
-  const shopId = body.shop_id || process.env.ETSY_SHOP_ID;
-  if (!shopId) return res.status(400).json({ error: 'shop_id required (or set ETSY_SHOP_ID)' });
+  // WHICH seller's shop this draft belongs to. Resolved through
+  // etsy.shopIdForAccount so a named account can NEVER inherit the default
+  // account's ETSY_SHOP_ID — this route used to read that env var directly,
+  // which meant a second seller's photos would quietly become drafts in the
+  // original shop. See the rule on shopIdForAccount in etsy.js.
+  let account, shopId;
+  try {
+    account = etsy.normAccount(body.account);
+    shopId = await etsy.shopIdForAccount(account, body.shop_id);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (!shopId) {
+    return res.status(400).json({
+      error: account === 'default'
+        ? 'shop_id required (or set ETSY_SHOP_ID)'
+        : `shop_id required — account "${account}" has no shop on file yet; connect it at /api/etsy/connect?account=${account}`,
+    });
+  }
   const images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
   if (!images.length) return res.status(400).json({ error: 'at least one image URL required' });
   try {
@@ -322,6 +339,7 @@ router.post('/draft', express.json({ limit: '25mb' }), async (req, res) => {
     if (!def.ok) return res.status(502).json({ error: 'could not derive Etsy listing defaults (no active listing?)', detail: def.body });
     const d = def.defaults;
     const result = await pipeline.publishDraft({
+      account,
       shop_id: Number(shopId),
       images,
       title: body.title,
