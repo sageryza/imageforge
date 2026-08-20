@@ -24,11 +24,16 @@
 //      nothing — `.crow` must measure the same as before.
 //
 // THE WRAP-UP'S ⌄ ITSELF IS GONE (Aug 2026 v2, Sophie: "get rid of the
-// chevron, put a 'see more...' link under it instead") — `.wrapmore` is now a
-// plain text link, in a thread and on an archive row. Its words are their own
-// tap target, so it needs no glyph-growing overhang trick; it still has to
-// clear a real thumb size, and — since it no longer overlaps the row above —
-// the two archived rows must never overlap each other.
+// chevron, put a 'see more...' link under it instead"; v3, same day, after a
+// first swap gave it button padding: "part of the summary at the top just
+// happens to also be a link and have a line under it" — she does NOT want a
+// 44px control here, she wants it to cost no extra space at all). In a
+// thread it is now literally appended INSIDE the summary paragraph, so it
+// has no box of its own to measure. On an archive row it still has to be a
+// sibling (a row is a `<button>` and cannot nest another one), but it is
+// plain inline text at the summary's own size — no minimum height is
+// enforced here on purpose, this time. What's still asserted: the two
+// archived rows never overlap, and the link opens only its own row.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-tap-targets.js
 //
@@ -160,16 +165,27 @@ const fail = (m) => { console.error('FAIL: ' + m); failed++; process.exitCode = 
   await page.waitForSelector('#grid [data-chat="noted"]');
   await page.click('#grid [data-chat="noted"]');
   await page.waitForSelector('#thread .threadwrap .wrapmore');
-  const tw = await reach('#thread .threadwrap .wrapmore');
-  if (!tw) fail('no "see more" link under her note');
+  // IT IS PART OF THE SUMMARY, NOT A CONTROL UNDER IT (Aug 2026 v3, Sophie:
+  // "part of the summary at the top just happens to also be a link"). So no
+  // minimum box size here — the two things that matter are that it is really
+  // nested inside the summary paragraph, and that it reads at the same size
+  // and font as the rest of the sentence.
+  const twFonts = await page.$eval('#thread .threadwrap .twline', (p) => {
+    const link = p.querySelector('.wrapmore');
+    if (!link) return null;
+    const ps = getComputedStyle(p), ls = getComputedStyle(link);
+    return { nested: p.contains(link), pFont: ps.fontFamily, lFont: ls.fontFamily, pSize: ps.fontSize, lSize: ls.fontSize };
+  });
+  if (!twFonts) fail('no "see more" link under her note');
   else {
-    if (tw.h < MIN) fail('the thread\'s "see more" link is ' + tw.h + 'px tall (was 23)');
-    if (tw.w < MIN) fail('the thread\'s "see more" link is ' + tw.w + 'px wide (was 32.6)');
+    if (!twFonts.nested) fail('the "see more" link is not inside the summary paragraph');
+    if (twFonts.lFont !== twFonts.pFont) fail('the link\'s font is ' + twFonts.lFont + ', the summary\'s is ' + twFonts.pFont);
+    if (twFonts.lSize !== twFonts.pSize) fail('the link\'s size is ' + twFonts.lSize + ', the summary\'s is ' + twFonts.pSize);
   }
   // it still does its one job
   await page.click('#thread .threadwrap .wrapmore');
   if (await page.$eval('#thread .threadwrap .wrapfull', (b) => b.hidden)) {
-    fail('the bigger "see more" link stopped opening the summary');
+    fail('the "see more" link stopped opening the summary');
   }
 
   // ---- 3. the wrap-up's "see more" link on an archive row ---------------
@@ -178,10 +194,17 @@ const fail = (m) => { console.error('FAIL: ' + m); failed++; process.exitCode = 
   await page.evaluate(() => document.getElementById('archlink').click());
   await page.waitForSelector('#grid .wrapmore', { timeout: 5000 })
     .catch(() => fail('the archive drew no "see more" link'));
-  const aw = await reach('#grid .wrapmore');
-  if (aw) {
-    if (aw.h < MIN) fail('the archive\'s "see more" link is ' + aw.h + 'px tall (was 23)');
-    if (aw.w < MIN) fail('the archive\'s "see more" link is only ' + aw.w + 'px wide (was 32.6)');
+  // Same size and font as the row's own summary line, here too.
+  const awFonts = await page.$eval('#grid .crow[data-chat] + .wrapmore', (link) => {
+    const note = link.previousElementSibling.querySelector('.cr-note');
+    if (!note) return null;
+    const ns = getComputedStyle(note), ls = getComputedStyle(link);
+    return { nFont: ns.fontFamily, lFont: ls.fontFamily, nSize: ns.fontSize, lSize: ls.fontSize };
+  });
+  if (!awFonts) fail('the archived row has no .cr-note to compare the link against');
+  else {
+    if (awFonts.lFont !== awFonts.nFont) fail('the archive link\'s font is ' + awFonts.lFont + ', the row\'s is ' + awFonts.nFont);
+    if (awFonts.lSize !== awFonts.nSize) fail('the archive link\'s size is ' + awFonts.lSize + ', the row\'s is ' + awFonts.nSize);
   }
   // A plain link sits in its own slot rather than overhanging the row above,
   // so the two archived rows must never overlap.

@@ -734,16 +734,19 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 /* the stale-hook mark — the hide bar's red, dimmed: it is a maintenance flag,
    not an alarm, and it must not shout over her own notes */
 .cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
-/* The archive wrap-up's expander. Sits under its row as a sibling (a row is a
-   button, so it cannot nest). A text link, not a chevron (Aug 2026, Sophie:
-   "get rid of the chevron, put a 'see more...' link under it instead") — the
-   words are wide enough to be most of their own tap target, so the old
-   glyph-sized overhang hack (growing a lone ⌄ upward into the row above) is
-   gone; the vertical padding alone still clears a real thumb height. */
+/* The wrap-up's expander. A text link, not a chevron and not its own control
+   (Aug 2026 v2, Sophie: "part of the summary at the top just happens to also
+   be a link and have a line under it" — she'd rejected an earlier version
+   that gave it button-sized padding, which read as extra space at the top of
+   the thread). Same font and size as the summary it belongs to, underlined
+   as its only tell; in a thread it is literally appended INSIDE the summary
+   paragraph (see paintThreadWrap) and takes zero extra height of its own —
+   this rule only has to cover the archive row, where a row is a `<button>`
+   and cannot nest another one, so the link stays a sibling underneath it. */
 .crow .hidebtn,.crow .pinbtn,.crow .pickbtn{position:relative; z-index:1;}
-.wrapmore{display:block; margin:2px 0 0; padding:11px 4px; background:none;
-  border:0; color:var(--chg); font-size:13.5px; line-height:1.2; cursor:pointer;
-  text-decoration:underline; text-align:left; -webkit-tap-highlight-color:transparent;}
+.wrapmore{display:inline; background:none; border:0; margin:0; padding:0;
+  font-family:inherit; font-size:13.5px; color:var(--ink2); cursor:pointer;
+  text-decoration:underline; -webkit-tap-highlight-color:transparent;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
@@ -5903,11 +5906,18 @@ function openChat(name, keepScroll, focusId, noFetch){
     wrow.innerHTML='';
     wrow.hidden=!line;
     if(!line) return;
-    var p=document.createElement('div'); p.className='twline'; p.textContent=line;
+    var p=document.createElement('div'); p.className='twline';
+    p.appendChild(document.createTextNode(line));
     wrow.appendChild(p);
     if(!wrapHasMore(r)) return;
+    // "See more…" reads as part of THIS sentence (Aug 2026, Sophie: "part of
+    // the summary at the top just happens to also be a link and have a line
+    // under it") — appended inline, inside the same paragraph, not a control
+    // of its own underneath it. Costs no extra height at the top of the
+    // thread; it just wraps onto the line if the summary runs long.
     var body=wrapBody(r);
-    wrow.appendChild(wrapToggle(body));
+    p.appendChild(document.createTextNode(' '));
+    p.appendChild(wrapToggle(body));
     wrow.appendChild(body);
   }
   paintThreadWrap();
