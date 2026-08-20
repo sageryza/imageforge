@@ -13,22 +13,29 @@
 //   • "there's a story and stories tags — get rid of stories, but make sure to
 //     put everything that's in stories currently into story before you get rid
 //     of it" · "get rid of the weird games tag"
+//   • "get rid of images audio and writing" · "research goes in progress not
+//     categories" → "so does quick question" → "quick question and research
+//     should only be in the archive tag tab"
 //
 // One vocabulary had been doing two jobs. HOW A CHAT ENDED (built · failure ·
-// bug fix · new feature) is a judgement she only makes while archiving; WHERE
-// LIVE WORK STANDS (look at · come back to · to read · to be reviewed ·
-// waiting for a response) is answered BY archiving. Each surface now takes one
-// list out, and `paintVocabChips` is the single place that decides.
+// bug fix · new feature · research · quick question) is a judgement she only
+// makes while archiving; WHERE LIVE WORK STANDS (look at · come back to · to
+// read · to be reviewed · waiting for a response) is answered BY archiving.
+// Each surface takes one list out, and `paintVocabChips` is the single place
+// that decides. Note that ARCHIVE_ONLY does BOTH jobs for a word: offered in
+// the archive alone, AND read as a progress word there — which is why
+// `research` and `quick question` are not also in TASK_LABELS.
 //
 // Layer 1 (pure, no network) pins the constants that cannot drift:
 //   the page's TAG_LIST against chatfeed.js's TAGS, the two PILE_SEEDS copies,
 //   ARCHIVE_ONLY and LIVE_ONLY not overlapping, `story` inheriting the pile
-//   seat `stories` gave up, and both forgotten words gone from every list.
+//   seat `stories` gave up, and every forgotten word gone from every list.
 // Layer 2 drives the REAL page headless: the home row and the Organize sheet
-// hide the four outcome words, the archive sheet hides the five live ones and
-// carries the outcome words in its PROGRESS group (above the CATEGORIES rule,
-// not under it), and SEE MORE is drawn as a control — no border, no box, the
-// accent colour, a chevron — rather than as an eleventh chip.
+// hide the archive-only words, the archive sheet and the archive's own FILTER
+// ROW hide the five live ones and carry the archive words in their PROGRESS
+// group (above the CATEGORIES rule, not under it), and SEE MORE is drawn as a
+// control — no border, no box, the accent colour, a chevron — rather than as
+// another chip.
 // Layer 3 runs POST /labels/forget against a stubbed Firestore: the merge lands
 // on every chat before the word is dropped, `catBy` survives it, and the word
 // leaves the remembered vocabulary as well as the chats.
@@ -63,6 +70,8 @@ const TASK_LABELS = arrOf('TASK_LABELS');
 const ARCHIVE_ONLY = arrOf('ARCHIVE_ONLY');
 const LIVE_ONLY = arrOf('LIVE_ONLY');
 const server = require(path.join(ROOT, 'chatfeed.js'));
+// The archive-only words as the page CAPITALISES them, for the page layer.
+const ARCH_WORDS = ARCHIVE_ONLY.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
 
 ok('the page and the server agree on the tag seeds',
   JSON.stringify(TAG_LIST) === JSON.stringify(server.TAGS),
@@ -70,9 +79,24 @@ ok('the page and the server agree on the tag seeds',
 ok('…and on the pile seeds',
   JSON.stringify(PILE_PAGE) === JSON.stringify(server.PILE_SEEDS),
   JSON.stringify(PILE_PAGE) + ' vs ' + JSON.stringify(server.PILE_SEEDS));
-ok('the four outcome words are the archive-only list',
-  JSON.stringify(ARCHIVE_ONLY) === JSON.stringify(['built', 'failure', 'bug fix', 'new feature']),
+ok('the six archive-only words',
+  JSON.stringify(ARCHIVE_ONLY) === JSON.stringify(
+    ['built', 'failure', 'bug fix', 'new feature', 'research', 'quick question']),
   JSON.stringify(ARCHIVE_ONLY));
+// The three she had never made and could see nothing in (Aug 2026: "get rid of
+// images audio and writing"). Measured the day they went: images 0 chats,
+// writing 0, audio 3 — all archived.
+['images', 'audio', 'writing'].forEach((w) => {
+  ok('\u201c' + w + '\u201d is out of the vocabulary',
+    TAG_LIST.indexOf(w) < 0 && PILE_PAGE.indexOf(w) < 0 && TASK_LABELS.indexOf(w) < 0,
+    JSON.stringify(TAG_LIST));
+});
+// Being ARCHIVE_ONLY is what makes a word a PROGRESS word in the archive —
+// putting these two in TASK_LABELS as well would drop them back on the home row
+// and into Organize, which is the opposite of what she asked for.
+ok('`research` and `quick question` are NOT in TASK_LABELS',
+  ['research', 'quick question'].every((w) => TASK_LABELS.indexOf(w) < 0),
+  JSON.stringify(TASK_LABELS));
 ok('the five live-progress words are the archive-hidden list',
   JSON.stringify(LIVE_ONLY) === JSON.stringify(
     ['look at', 'come back to', 'to read', 'to be reviewed', 'waiting for a response']),
@@ -343,8 +367,8 @@ async function pageTests() {
     const rowWords = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn):not(.morechip)',
       (ns) => ns.map((n) => (n.firstChild && n.firstChild.textContent || '').trim()));
     ok('the home row shows her categories', rowWords.indexOf('Witch') > -1, rowWords.join(' · '));
-    ok('…and none of the four outcome words',
-      ['Built', 'Failure', 'Bug fix', 'New feature'].every((w) => rowWords.indexOf(w) < 0),
+    ok('…and none of the archive-only words',
+      ARCH_WORDS.every((w) => rowWords.indexOf(w) < 0),
       rowWords.join(' · '));
 
     // ---- THE ORGANIZE SHEET IS THE SAME -----------------------------------
@@ -359,8 +383,8 @@ async function pageTests() {
       org.indexOf('To read') > -1, org.join(' · '));
     ok('…and `stories` is not a word any more, only `story`',
       org.indexOf('Story') > -1 && org.indexOf('Stories') < 0, org.join(' · '));
-    ok('…and not the outcome words',
-      ['Built', 'Failure', 'Bug fix', 'New feature'].every((w) => org.indexOf(w) < 0),
+    ok('…and not the archive-only words',
+      ARCH_WORDS.every((w) => org.indexOf(w) < 0),
       org.join(' · '));
     await page.click('.askwrap .askrow .go');
     await page.waitForTimeout(150);
@@ -382,13 +406,13 @@ async function pageTests() {
       });
       return out;
     });
-    ok('the archive sheet offers all four outcome words',
-      ['Built', 'Failure', 'Bug fix', 'New feature'].every((w) => arc.words.indexOf(w) > -1),
+    ok('the archive sheet offers all six archive-only words',
+      ARCH_WORDS.every((w) => arc.words.indexOf(w) > -1),
       arc.words.join(' · '));
     // Her ask, exactly: "put bug fix and new feature into the progress tags for
     // just the archive" — above the CATEGORIES rule, not under it.
     ok('…in the PROGRESS group, above the categories rule',
-      ['Built', 'Failure', 'Bug fix', 'New feature'].every((w) => arc.beforeRule.indexOf(w) > -1),
+      ARCH_WORDS.every((w) => arc.beforeRule.indexOf(w) > -1),
       'before the rule: ' + arc.beforeRule.join(' · '));
     ok('…and the rule still says Categories', arc.rule === 'Categories', String(arc.rule));
     ok('…and the five live-progress words are gone from it',

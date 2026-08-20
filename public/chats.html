@@ -3450,7 +3450,15 @@ var TASK_LABELS=['look at','come back to','in a minute','maybe never',
 // PRESENTATION ONLY, like TASK_LABELS: nothing about piles, filing or
 // chat-sort reads either, and a word already on a chat keeps working
 // everywhere — this only decides which chips she is OFFERED.
-var ARCHIVE_ONLY=['built','failure','bug fix','new feature'];
+// `research` and `quick question` joined the four at her ask (Aug 2026:
+// "research goes in progress not categories" → "so does quick question" →
+// "quick question and research should only be in the archive tag tab"). Being
+// on this list answers both halves at once: an ARCHIVE_ONLY word is offered in
+// the archive and nowhere else, and it is read as a PROGRESS word there — they
+// lead that group — so neither needed adding to TASK_LABELS, which would have
+// put them straight back on the home row and in Organize.
+var ARCHIVE_ONLY=['built','failure','bug fix','new feature','research',
+  'quick question'];
 var LIVE_ONLY=['look at','come back to','to read','to be reviewed',
   'waiting for a response'];
 function isArchiveWord(c){ return ARCHIVE_ONLY.indexOf(c)>-1; }
@@ -3641,10 +3649,14 @@ function chatInCat(name,c){
 // always free text, so refusing her a word here only meant the two halves could
 // never become one. Lower-casing everything on the way in is what is left of
 // that guard.
-// `failure` is the eleventh, added Aug 2026 with the archive-only group (the
-// old `failed` never reached a single chat and was forgotten with it).
+// `failure` was added Aug 2026 with the archive-only group (the old `failed`
+// was forgotten into it). THREE MORE LEFT THE SAME WEEK, at her ask — "get rid
+// of images audio and writing" — after she asked who had made them and the
+// answer was: not her. Measured the day they went: `images` 0 chats,
+// `writing` 0, `audio` 3 (all archived). `quick question` stayed, and moved
+// into the archive-only group with `research` the same day.
 var TAG_LIST=['bug fix','new feature','built','failure','story','quick question',
-  'images','film','audio','writing','research'];
+  'film','research'];
 // A chat with no `tags` of its own inherits ONE from the piles it used to live
 // in: the old BUILT side (which was the absence of a mark) reads as `built`.
 // That is what puts the 97 chats already in the archive under a tag on the day
