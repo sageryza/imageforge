@@ -986,6 +986,42 @@
       the case and let her say yes.
     - The box uses `liveInput`, like every other field here — iOS dictation can
       fill an input without ever firing `input`.
+    - **THE REASONS SHE HAS GIVEN BEFORE, BEHIND A ⟲ (Aug 2026, Sophie: "could
+      you gather the list of reasons for waiting for something that I enter
+      manually and put it behind a button … should be small and unobtrusive
+      since I won't use it that often").** A 17px `history` glyph on the
+      QUESTION's own line — so it costs no height — opening her past answers
+      under the field, newest first, one tap to put one in the box.
+      - **There was nothing to gather until this shipped, and that is the
+        finding.** `waitingFor` is a live state that `labelPatch` deletes with
+        its tag, so every answer she had ever typed was already gone —
+        **measured live 2026-08-20: 378 chats, TWO carrying a reason.** A
+        button over that would have opened on almost nothing.
+      - So the memory is a **SECOND place**: `__settings.waitingReasons`,
+        written by `rememberWaiting` in chatfeed.js beside her label
+        vocabulary. The field stays live-and-deletable — the whole point of it
+        — while the answers accumulate next to it. It rides the feed's
+        `settings` object like `pileLabels`, so the button costs no request,
+        and `regRef` invalidates the registry cache on write.
+      - **Newest first**, and re-picking one moves it back to the top, so the
+        list opens on what she is most likely to want. The page mirrors the
+        same bookkeeping locally, so a reason she just gave is there the next
+        time she opens the list rather than after a poll.
+      - **NOTHING GIVEN BEFORE → NO BUTTON.** An empty list paints no control
+        at all, the way an empty section on the Update tab paints no header.
+      - **It is not a back door for pre-written text.** The box still opens
+        empty on a chat with no answer; the list is a thing she OPENS, and
+        tapping a row fills the field and leaves the sheet open — a past
+        answer is often only nearly right, and she has to be able to edit it.
+      - Best-effort on the server and written AFTER the real save: a
+        remembered reason must never cost her the answer she just gave. Two
+        chats saving in the same second could lose one off the list; that is a
+        list, not her data, and `arrayUnion` would have thrown the ORDER away,
+        which is the only thing making it useful.
+      - **There is deliberately no way to forget one yet** — she asked for the
+        list, not for its housekeeping. Worth revisiting once it is long
+        enough to be in the way.
+      - Test: `node scripts/test-waiting-past.js`.
     - **NO PLACEHOLDER (Aug 2026, Sophie: "it has pre-written text. Can you get
       rid of that and also make it a rule to never add prewritten text unless I
       ask for it").** It shipped with an example answer in the field ("the API

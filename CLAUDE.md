@@ -981,7 +981,11 @@ them off the reference sheet, not off the old filenames.
   answer lives in its own field (`waitingFor`, never `sophieNote`), shows as a
   bold **Waiting for:** line on the chat's row and above her note in the
   thread, and is DELETED the moment the tag comes off — a second asking word is
-  not yours to declare. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
+  not yours to declare. **The reasons she has given before sit behind a small
+  ⟲ on that box** (Aug 2026, her ask) — the field is a live state and is
+  deleted with the tag, so the answers are remembered separately on
+  `__settings.waitingReasons` and the list rides the feed; nothing given
+  before shows no button at all. **AND TWO WORDS NOW CARRY A MANUAL RULE ON THE UPDATE
   TAB (Aug 2026, Sophie: "i think i'll have to do manual rules per tag … more
   coming")** — `waiting for a response` PINS the chat's card above every
   section until she answers or dismisses it (the tag itself is the news, so
