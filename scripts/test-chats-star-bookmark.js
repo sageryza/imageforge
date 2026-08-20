@@ -130,18 +130,30 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.click('#catrow .starchip');   // back to everything
   await page.waitForSelector('#grid > .clist .crow[data-chat="chat-plain"]');
 
-  // 3. the header star sets it
+  // 3. the star sets it — from the ORGANIZE sheet, where the marks moved (Aug
+  //    2026, Sophie: "take them out of the main thing and put them in little
+  //    boxes like the … category tag things").
+  const openOrg = async () => {
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .orgmarks .starbtn', { timeout: 4000 });
+  };
+  const closeOrg = async () => {
+    await page.click('.askwrap .askrow .go');
+    await page.waitForFunction(() => !document.querySelector('.askwrap'), null, { timeout: 4000 });
+  };
   await page.click('#grid > .clist .crow[data-chat="chat-plain"]');
-  await page.waitForSelector('#thread .starbtn');
-  await page.click('#thread .starbtn');
-  await page.waitForFunction(() => document.querySelector('#thread .starbtn').classList.contains('on'),
-    null, { timeout: 4000 }).catch(() => fail('the header star did not light'));
+  await openOrg();
+  await page.click('.askwrap .orgmarks .starbtn');
+  await page.waitForFunction(() => document.querySelector('.askwrap .orgmarks .starbtn').classList.contains('on'),
+    null, { timeout: 4000 }).catch(() => fail('the star in the Organize sheet did not light'));
   if (!starPosts.some((p) => p.chat === 'chat-plain' && p.starred === true)) fail('POST /star never fired');
 
   // 3b. KEEPING A CHAT IS A DIFFERENT MARK FROM STARRING IT (Aug 2026, Sophie:
   //     "bookmarking a chat is when I want to keep it in my history and go back
   //     to it… bookmarks stay forever", against a star for "a chat I'm
   //     currently working on"). The two used to be one flag.
+  await closeOrg();
   await page.click('#back');
   await page.waitForSelector('#grid > .clist .crow[data-chat="chat-keep"]');
   const marks = await page.$$eval('#grid > .clist .crow[data-chat]', (ns) => ns.map((n) => ({
@@ -155,22 +167,24 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (keep && keep.star) fail('a kept chat also drew a star — the marks are not separate');
   if (starOnly && starOnly.kept) fail('a starred chat drew the keep mark — the marks are not separate');
 
-  //     …and the header carries BOTH controls, side by side
+  //     …and the Organize sheet carries BOTH controls, side by side
   await page.click('#grid > .clist .crow[data-chat="chat-keep"]');
-  await page.waitForSelector('#thread .bmk.chatbmk');
-  if (!(await page.$('#thread .starbtn'))) fail('the thread header lost its star');
-  if (!(await page.$eval('#thread .bmk.chatbmk', (n) => n.classList.contains('on'))))
+  await openOrg();
+  if (!(await page.$('.askwrap .orgmarks .bmk.chatbmk'))) fail('the Organize sheet has no keep mark');
+  if (!(await page.$('.askwrap .orgmarks .starbtn'))) fail('the Organize sheet lost its star');
+  if (!(await page.$eval('.askwrap .orgmarks .bmk.chatbmk', (n) => n.classList.contains('on'))))
     fail('the keep button is not lit on a kept chat');
-  await page.click('#thread .bmk.chatbmk');
-  await page.waitForFunction(() => !document.querySelector('#thread .bmk.chatbmk').classList.contains('on'),
+  await page.click('.askwrap .orgmarks .bmk.chatbmk');
+  await page.waitForFunction(() => !document.querySelector('.askwrap .orgmarks .bmk.chatbmk').classList.contains('on'),
     null, { timeout: 4000 }).catch(() => fail('the keep button did not unlight'));
   if (!keptPosts.some((p) => p.chat === 'chat-keep' && p.bookmarked === false))
     fail('POST /chat-bookmark never fired: ' + JSON.stringify(keptPosts));
   //     starring it must NOT touch the keep flag
   const keptBefore = keptPosts.length;
-  await page.click('#thread .starbtn');
+  await page.click('.askwrap .orgmarks .starbtn');
   await page.waitForTimeout(200);
   if (keptPosts.length !== keptBefore) fail('the star button also wrote the keep flag');
+  await closeOrg();
   await page.click('#back');
   await page.waitForSelector('#grid > .clist .crow[data-chat="chat-plain"]');
   await page.click('#grid > .clist .crow[data-chat="chat-plain"]');

@@ -19,8 +19,9 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
    "each chat says chats at the top right above the title, that seems
    redundant") — the back chevron on its left already says where you are, and
    the row's own buttons say what you can do. `justify-content:flex-end` is
-   what the crumb's `flex:1` used to do: hold Archive / Hide / ★ against the
-   right, clear of the pill's 56px reserve. */
+   what the crumb's `flex:1` used to do: hold Archive and the tag icon against
+   the right, clear of the pill's 56px reserve. (The five marks that used to
+   crowd in beside them live in the Organize sheet now — Aug 2026, her ask.) */
 #thread header .no{display:flex; align-items:center; justify-content:flex-end; gap:10px;
   min-height:34px; padding-left:48px; padding-right:56px;}
 h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
@@ -1081,7 +1082,53 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    label in this app. */
 .orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
+/* `.askbox p` (0,1,1) out-specifies `.orggrp` (0,1,0), so inside a sheet the
+   label has to say `p.orggrp` or it comes out as 17px serif body text — which
+   is exactly what it did the first time these labels came back. */
+.askbox p.orggrp{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); margin:0 0 6px;}
 .askbox .arctags + .orggrp{margin-top:2px;}
+.askbox .orgmarks + p.orggrp{margin-top:2px;}
+/* THE MARKS, AS BOXES (Aug 2026, Sophie: "put the little icons like the bell
+   and the star and the pin and the trashcan and the eye hide symbol … in
+   little boxes like the … category tag things"). Same box as `.catchip` — 1.5px
+   hairline, 6px corners, caps sans — with the glyph in front of the word, so a
+   mark and a tag read as the same kind of thing in the same sheet.
+   These buttons keep their old class names (`.starbtn`, `.bellbtn`, `.pinbtn`,
+   `.eyebtn`, `.trashbtn`, `.bmk.chatbmk`) because that is what carries each
+   glyph's own colour rules — so this block has to out-specify the borderless
+   header styling they were written for, which `.orgmarks .markchip` does. */
+.orgmarks{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 14px;}
+.orgmarks .markchip{display:inline-flex; align-items:center; gap:5px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; white-space:nowrap;
+  border:1.5px solid var(--line); border-radius:6px; background:transparent;
+  color:var(--ink2); padding:6px 9px; margin:0; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
+.orgmarks .markchip svg{width:13px; height:13px; display:block; flex:none;}
+.orgmarks .markchip.on{border-color:var(--chg); color:var(--chg);
+  background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+/* THE GLYPH ITSELF HAS TO FILL for the two marks drawn as outlines — the same
+   lesson as the archive sheet's ("the bookmark doesn't fill in when I click
+   it, that's frustrating"). Scoped to those two ON PURPOSE: the bell, the eye
+   and the can are stroke drawings and filling one turns it into a blob. */
+.orgmarks .markchip.mk-bmk.on svg,.orgmarks .markchip.mk-star.on svg{fill:currentColor;}
+/* ONLY THE HEAD GOES RED on the pushpin, as it does on the home row — the
+   spike stays the button's own colour. */
+.orgmarks .markchip.mk-pin.on .pinhead{fill:var(--chg); stroke:var(--chg);}
+/* THE BELL KEEPS ITS GOLD — it is the one mark on this row that is not the
+   app's rose, and the colour is what says "allowed to interrupt me" rather
+   than "filed under". Without this the generic lit-chip rule would out-specify
+   `.bellbtn.on` and repaint it. */
+.orgmarks .markchip.mk-bell.on{color:var(--bell); border-color:var(--bell);
+  background:color-mix(in srgb, var(--bell) 12%, var(--paper));}
+/* HIDDEN is a state, so the crossed eye arrives with the red rather than the
+   quiet grey — the same pairing the header button had. */
+.orgmarks .markchip.mk-eye.hid{border-color:var(--chg); color:var(--chg);}
+/* DELETE STAYS QUIET AT REST, like every other mark in here — the red on this
+   screen means a STATE ("this chat is parked", "this chat may buzz me"), and a
+   button that is red before it has done anything spends that meaning on a
+   warning. The confirm it opens is where the weight belongs. */
 /* THE WAITING-FOR LINE (Aug 2026) — her answer to the box the `waiting for
    something` tag opens. Bold prefix, her words plain, in the same italic note
    voice as everything else on that row; tappable in both places it appears. */
@@ -5867,151 +5914,15 @@ function openChat(name, keepScroll, focusId, noFetch){
     ab.className='archlink arch-g';   // reads as text, still a button
     head.querySelector('.no').appendChild(ab);
   })();
-  // HIDE, beside Archive — the two are the same family of decision ("not now"
-  // vs "away for good"), so they belong in the same row. This is the way to
-  // park a chat she has just read without going back to the list for its ⊖.
-  //
-  // A PICTURE OF AN EYE, CROSSED OUT WHEN IT IS HIDDEN (Aug 2026, Sophie's
-  // exact ask). The glyph carries the state the word "In hidden" used to
-  // carry, so nothing else has to say it: open eye = this chat is on the list,
-  // crossed eye = it is parked in the hidden pile.
-  (function(){
-    var list0=(groups()[name])||[];
-    var last0=list0.length? list0[list0.length-1] : null;
-    var hid=chatHidden(name,last0);
-    var hb=document.createElement('button');
-    // `.hid` is what turns it red — the cross and the colour arrive together,
-    // so the red only ever means "this one really is parked".
-    hb.className='eyebtn'+(hid?' hid':'');
-    hb.innerHTML=hid? EYE_OFF_SVG : EYE_SVG;
-    hb.setAttribute('aria-label', hid? 'In the hidden pile — unhide this chat' : 'Hide this chat');
-    hb.onclick=function(){
-      toggleHide(name,last0);          // optimistic + POSTs + repaints the home
-      goHome(true);
-    };
-    head.querySelector('.no').appendChild(hb);
-  })();
-  // DELETE, the second option beside Archive (Aug 2026, Sophie: "a delete
-  // button as a second option to archive so I can delete this chat so it
-  // doesn't keep confusing things"). Archive is "away for good but still
-  // mine"; this is "stop existing" — the chat leaves every list, including the
-  // archive and the ★ pile, and waits in the trash.
-  //
-  // Nothing is destroyed here, so one plain confirm is enough; the
-  // irreversible tap lives in the trash and says so in much stronger words.
-  //
-  // A PICTURE OF A TRASH CAN (Aug 2026, Sophie) — the same glyph the masthead
-  // already uses for the trash pile this chat lands in, so the button and the
-  // place it sends things to look like the same idea. `.trashbtn` and NOT
-  // `.bmk`: the generic `.bmk.on svg{fill:currentColor}` rule would flood a
-  // stroke-drawn can into a solid blob.
-  (function(){
-    var db=document.createElement('button');
-    db.className='trashbtn delbtn';
-    db.innerHTML=TRASH_SVG;
-    db.setAttribute('aria-label','Delete this chat');
-    db.onclick=function(){
-      askFirst('Delete '+dispName(name)+'? It goes to the trash — you can restore it until you empty it.',
-        'Delete', function(ok){
-        if(!ok) return;
-        api('/api/chatfeed/delete',{method:'POST',body:JSON.stringify({chat:name})})
-          .then(function(r){return r.json()})
-          .then(function(d){ if(!d.ok) throw 0;
-            chats[name]=chats[name]||{}; chats[name].deletedAt=new Date().toISOString();
-            toast('Moved to the trash');
-            // Deleting ends with leaving, the way archiving does — the chat is
-            // no longer on the list she lands on, so any result row for it goes
-            // too.
-            goHome(true);
-          })
-          .catch(function(){ toast('Couldn’t delete that'); });
-      });
-    };
-    head.querySelector('.no').appendChild(db);
-  })();
-  // BOOKMARK — keep this chat forever (Aug 2026, Sophie: "bookmarking a chat
-  // is when I want to keep it in my history and go back to it, like if it has
-  // useful information — there's only a handful of chats like that"). It sits
-  // beside the star deliberately: the two marks are next to each other so the
-  // difference between "I'm on this now" and "this is a keeper" is one she
-  // makes in one place. This is the only place it is a control; on a row it is
-  // just the mark. It fills the Bookmarks pile's CHATS tab.
-  (function(){
-    var bb=document.createElement('button');
-    bb.className='bmk chatbmk'+(chatKept(name)?' on':'');
-    bb.innerHTML=BMK_SVG;
-    function paintB(){
-      bb.classList.toggle('on', chatKept(name));
-      bb.setAttribute('aria-label', chatKept(name)?'Stop keeping this chat':'Keep this chat');
-    }
-    paintB();
-    bb.onclick=function(){
-      var was=chatKept(name);
-      chats[name]=chats[name]||{}; chats[name].bookmarked=!was;
-      paintB(); toast(was?'No longer kept':'Kept');
-      api('/api/chatfeed/chat-bookmark',{method:'POST',body:JSON.stringify({chat:name, bookmarked:!was})})
-        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-        .catch(function(){ chats[name].bookmarked=was; paintB(); toast('Couldn’t save that'); });
-    };
-    head.querySelector('.no').appendChild(bb);
-  })();
-  // STAR — what she is working on right now, and it comes off when she's done
-  // (Aug 2026: "starring chats is more of a temporary thing"). It is the only
-  // place the star is a control; everywhere else it is just the red mark on
-  // the row, and the ★ chip on the home list is its filter.
-  (function(){
-    var sb=document.createElement('button');
-    sb.className='starbtn'+(chatStar(name)?' on':'');
-    sb.innerHTML=STAR;
-    function paintS(){
-      sb.classList.toggle('on', chatStar(name));
-      sb.setAttribute('aria-label', chatStar(name)?'Unstar this chat':'Star this chat');
-    }
-    paintS();
-    sb.onclick=function(){
-      var was=chatStar(name);
-      chats[name]=chats[name]||{}; chats[name].starred=!was;
-      paintS(); toast(was?'Unstarred':'Starred');
-      api('/api/chatfeed/star',{method:'POST',body:JSON.stringify({chat:name, starred:!was})})
-        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-        .catch(function(){ chats[name].starred=was; paintS(); toast('Couldn’t save that'); });
-    };
-    head.querySelector('.no').appendChild(sb);
-  })();
-  // THE BELL — let this chat buzz my phone (Aug 2026, Sophie: "add a little
-  // bell next to the star that I can click in. This will enable notifications
-  // for this chat and un-click and it will turn them off — only the ones I
-  // clicked the bell on will notify me").
-  //
-  // It is a WHITELIST, which is the half worth remembering: absent means
-  // silent, so a chat she has never belled never reaches her lock screen.
-  // `push-gate.js` asks it before the timing gate, on BOTH doors (a finished
-  // reply and a new Compare page) — see `chatNotifies` there.
-  //
-  // Beside the star on purpose: the three per-chat marks are one decision made
-  // in one place — star = on it now, bookmark = keep it forever, bell = allowed
-  // to interrupt me.
-  (function(){
-    var nb=document.createElement('button');
-    nb.className='bellbtn'+(chatNotify(name)?' on':'');
-    nb.innerHTML=BELL_SVG;
-    function paintN(){
-      nb.classList.toggle('on', chatNotify(name));
-      nb.setAttribute('aria-label', chatNotify(name)
-        ? 'Notifications on — turn them off for this chat'
-        : 'Turn on notifications for this chat');
-    }
-    paintN();
-    nb.onclick=function(){
-      var was=chatNotify(name);
-      chats[name]=chats[name]||{}; chats[name].notify=!was;
-      paintN(); toast(was?'Notifications off':'Notifications on');
-      api('/api/chatfeed/notify',{method:'POST',body:JSON.stringify({chat:name, notify:!was})})
-        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
-        .catch(function(){ chats[name].notify=was; paintN(); toast('Couldn’t save that'); });
-    };
-    head.querySelector('.no').appendChild(nb);
-  })();
+  // The five little marks that used to live on this row — HIDE, DELETE,
+  // BOOKMARK, STAR, BELL — moved into the Organize sheet (Aug 2026, Sophie:
+  // "put the little icons like the bell and the star and the pin and the
+  // trashcan and the eye hide symbol … take them out of the main thing and put
+  // them in little boxes like the … category tag things"). Seven controls on a
+  // 390pt row was a wall of unlabelled glyphs; they are boxed, named chips in
+  // `mkOrgMarks` now, with the PUSHPIN she asked for beside them. This row
+  // keeps the two things that are not marks: Archive (a thing you do once) and
+  // the tag icon that opens the sheet the rest went into.
   // ORGANIZE — file this chat and tag it, from inside it (Aug 2026, Sophie: "I
   // want to be able to tag it as come back to or tech or something like that,
   // so maybe just an icon that says organize and then it pulls up the ability
@@ -6024,8 +5935,9 @@ function openChat(name, keepScroll, focusId, noFetch){
   // only ever appeared on the way past, inside the archive sheet, so a chat
   // she was NOT archiving could not be tagged at all.
   //
-  // The pin used to sit in this slot and moved to the home row, which is why
-  // this row is still six controls wide.
+  // The pin used to sit in this slot and moved to the home row. The other five
+  // marks moved INTO the sheet this button opens (Aug 2026, her ask), so the
+  // row is two controls wide now: Archive, and this.
   (function(){
     var ob=document.createElement('button');
     ob.className='orgbtn';
@@ -7103,12 +7015,162 @@ function askPiles(after){
   document.body.appendChild(wrap);
 }
 
+// THE MARKS, IN LITTLE BOXES (Aug 2026, Sophie: "could you put the little
+// icons like the bell and the star and the pin and the trashcan and the eye
+// hide symbol and take them out of the main thing and could you put them in
+// little boxes like the other icons, I mean, category tag things — don't
+// forget to add the pin").
+//
+// All six lived in the thread header as bare glyphs in one long row — seven
+// controls wide on a 390pt phone, none of them saying what it was. Here they
+// are chips the same shape as the tag chips under them, each with its word, so
+// the sheet reads as one screen of decisions about this chat: the four STATES
+// (star, keep, notify, pin — lit when they are set) and the two EXITS (hide,
+// delete), which leave the chat and therefore close the sheet behind them.
+//
+// THE PUSHPIN IS ALSO STILL ON THE HOME ROW, and that is deliberate — she
+// asked for it there ("I was assuming it would go right on the main page not
+// inside of it") and this does not take it away; it adds the one place the
+// other five marks now live.
+//
+// Every write is the same optimistic POST + roll-back the header buttons used,
+// moved verbatim: tap, paint, save, put it back if the server says no.
+function mkOrgMarks(name, close){
+  var row=document.createElement('div'); row.className='orgmarks';
+  // A toggle: the field on the registry doc, the glyph, and the two words the
+  // toast says. `paint` is shared so the lit state and the label can never
+  // disagree.
+  function toggle(o){
+    var b=document.createElement('button'); b.type='button';
+    b.className='markchip '+o.cls;
+    function paint(){
+      var on=o.get();
+      b.classList.toggle('on', on);
+      b.innerHTML=o.svg(on)+'<span>'+o.word+'</span>';
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.setAttribute('aria-label', on?o.off:o.on);
+    }
+    paint();
+    b.onclick=function(e){
+      e.stopPropagation();
+      var was=o.get(), body={chat:name};
+      chats[name]=chats[name]||{}; chats[name][o.field]=!was;
+      body[o.key||o.field]=!was;
+      paint(); toast(was?o.toastOff:o.toastOn);
+      if(o.after) o.after();
+      api(o.url,{method:'POST',body:JSON.stringify(body)})
+        .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+        .catch(function(){
+          chats[name][o.field]=was; paint();
+          if(o.after) o.after();
+          toast('Couldn’t save that');
+        });
+    };
+    return b;
+  }
+  // STAR — what she is working on right now, and it comes off when she's done
+  // (Aug 2026: "starring chats is more of a temporary thing").
+  row.appendChild(toggle({cls:'starbtn mk-star', field:'starred', url:'/api/chatfeed/star',
+    word:'Star', get:function(){ return chatStar(name); },
+    svg:function(){ return STAR; },
+    on:'Star this chat', off:'Unstar this chat',
+    toastOn:'Starred', toastOff:'Unstarred'}));
+  // THE BELL — a WHITELIST, which is the half worth remembering: absent means
+  // silent, so a chat she has never belled never reaches her lock screen
+  // (`chatNotifies` in push-gate.js asks it before the timing gate).
+  row.appendChild(toggle({cls:'bellbtn mk-bell', field:'notify', url:'/api/chatfeed/notify',
+    word:'Notify', get:function(){ return chatNotify(name); },
+    svg:function(){ return BELL_SVG; },
+    on:'Turn on notifications for this chat',
+    off:'Notifications on — turn them off for this chat',
+    toastOn:'Notifications on', toastOff:'Notifications off'}));
+  // BOOKMARK — keep this chat forever ("there's only a handful of chats like
+  // that"). The three of them run together on purpose: star = on it now, keep
+  // = mine forever, bell = allowed to interrupt me — one decision made in one
+  // place, with the bell beside the star where she asked for it.
+  row.appendChild(toggle({cls:'bmk chatbmk mk-bmk', field:'bookmarked', url:'/api/chatfeed/chat-bookmark',
+    word:'Keep', get:function(){ return chatKept(name); },
+    svg:function(){ return BMK_SVG; },
+    on:'Keep this chat', off:'Stop keeping this chat',
+    toastOn:'Kept', toastOff:'No longer kept'}));
+  // THE PUSHPIN — her override on the recency sort: a pinned chat leads every
+  // pile. `renderHome` on every flip because pinning MOVES the row.
+  row.appendChild(toggle({cls:'pinbtn mk-pin', field:'pinTop', url:'/api/chatfeed/pin-top',
+    word:'Pin', get:function(){ return chatPinTop(name); },
+    svg:function(){ return PIN_SVG; },
+    on:'Pin this chat to the top', off:'Pinned to the top — unpin this chat',
+    toastOn:'Pinned to the top', toastOff:'Unpinned',
+    after:function(){ renderHome(); }}));
+  // HIDE — "not now", the sibling of Archive's "away for good". An open eye
+  // while the chat is on the list, crossed out while it is parked, so the
+  // glyph carries the state and nothing has to say it in words.
+  (function(){
+    var list0=(groups()[name])||[];
+    var last0=list0.length? list0[list0.length-1] : null;
+    var b=document.createElement('button'); b.type='button';
+    var hid=chatHidden(name,last0);
+    b.className='markchip eyebtn mk-eye'+(hid?' hid':'');
+    b.innerHTML=(hid? EYE_OFF_SVG : EYE_SVG)+'<span>'+(hid?'Unhide':'Hide')+'</span>';
+    b.setAttribute('aria-label', hid? 'In the hidden pile — unhide this chat' : 'Hide this chat');
+    b.onclick=function(e){
+      e.stopPropagation();
+      toggleHide(name,last0);          // optimistic + POSTs + repaints the home
+      close(); goHome(true);
+    };
+    row.appendChild(b);
+  })();
+  // DELETE — "stop existing": the chat leaves every list, including the
+  // archive and the ★ pile, and waits in the trash. Nothing is destroyed here,
+  // so one plain confirm is enough; the irreversible tap lives in the trash.
+  (function(){
+    var b=document.createElement('button'); b.type='button';
+    b.className='markchip trashbtn delbtn mk-del';
+    b.innerHTML=TRASH_SVG+'<span>Delete</span>';
+    b.setAttribute('aria-label','Delete this chat');
+    b.onclick=function(e){
+      e.stopPropagation();
+      askFirst('Delete '+dispName(name)+'? It goes to the trash — you can restore it until you empty it.',
+        'Delete', function(ok){
+        if(!ok) return;
+        api('/api/chatfeed/delete',{method:'POST',body:JSON.stringify({chat:name})})
+          .then(function(r){return r.json()})
+          .then(function(d){ if(!d.ok) throw 0;
+            chats[name]=chats[name]||{}; chats[name].deletedAt=new Date().toISOString();
+            toast('Moved to the trash');
+            close(); goHome(true);
+          })
+          .catch(function(){ toast('Couldn’t delete that'); });
+      });
+    };
+    row.appendChild(b);
+  })();
+  return row;
+}
+
 function askOrganize(name){
   scrollStop();
   var wrap=document.createElement('div'); wrap.className='askwrap';
   var box=document.createElement('div'); box.className='askbox';
   var q=document.createElement('p'); q.className='archq'; q.textContent='Organize this chat';
   box.appendChild(q);
+
+  // ---- THE MARKS (Aug 2026) -----------------------------------------------
+  // Star, Keep, Notify, Pin, Hide, Delete — everything about this chat that is
+  // a MARK rather than a word, moved off the thread header at her ask and
+  // boxed like the tags under them (see mkOrgMarks). The two EXITS leave the
+  // chat, so they shut the sheet on their way out.
+  //
+  // THE SECTION LABELS ARE BACK, exactly as their own CSS rule said to do
+  // ("bring this back the moment a second kind of chip lands in that sheet").
+  // A mark and a tag are two different taps and the boxes are identical, so
+  // without the labels the sheet is one wall of chips again — which is the
+  // thing the labels came off to avoid in the first place.
+  var closeSheet=function(){};
+  var mg=document.createElement('p'); mg.className='orggrp'; mg.textContent='This chat';
+  box.appendChild(mg);
+  box.appendChild(mkOrgMarks(name, function(){ closeSheet(); }));
+  var tg=document.createElement('p'); tg.className='orggrp'; tg.textContent='Tags';
+  box.appendChild(tg);
 
   // ---- ONE SET OF CHIPS (Aug 2026) ----------------------------------------
   // It shipped as two labelled sections — FOLDER (one, her own names) above
@@ -7223,6 +7285,7 @@ function askOrganize(name){
     renderHome(); saveCache();
   }
   done.onclick=function(e){ e.stopPropagation(); close(); };
+  closeSheet=close;                 // Hide and Delete leave — they shut this first
   row.appendChild(done); box.appendChild(row);
   wrap.onclick=function(e){ if(e.target===wrap) close(); };   // tap outside = shut
   box.onclick=function(e){ e.stopPropagation(); };

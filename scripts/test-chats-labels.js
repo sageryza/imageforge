@@ -403,9 +403,15 @@ async function pageTests() {
     await page.click('#thread .orgbtn');
     await page.waitForSelector('.askwrap .arctags');
 
-    // ONE section, not two — the split came off with the merge
-    ok('the sheet has one row of chips, not a Folder half and a Tags half',
-      (await page.$$('.askwrap .orggrp')).length === 0);
+    // ONE row of WORDS, not a Folder half and a Tags half — the split came off
+    // with the merge. The two labels that ARE in here now separate the MARKS
+    // from the tags (Aug 2026, Sophie: "put the little icons … in little boxes
+    // like the … category tag things"), which is a different kind of chip.
+    ok('the words are one row, not a Folder half and a Tags half',
+      (await page.$$('.askwrap .arctags')).length === 1);
+    ok('…and the marks are labelled apart from them',
+      JSON.stringify(await page.$$eval('.askwrap .orggrp', (ns) => ns.map((n) => n.textContent.trim())))
+        === JSON.stringify(['This chat', 'Tags']));
     const chips = await page.$$eval('.askwrap .arctags .catchip', (ns) => ns.map((n) => n.textContent.trim()));
     ok('her own words are offered', chips.indexOf('Witch') > -1 && chips.indexOf('To be reviewed') > -1,
       chips.join(' · '));
