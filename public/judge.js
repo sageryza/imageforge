@@ -197,7 +197,16 @@
     // rather than scrolled between, each under its own name. They shrink as a
     // spread grows — two get half each, three a third — which is the whole
     // point of putting them on one card.
-    '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;}' +
+    // THE SPREAD SITS ABOVE THE EDGE ZONES (Aug 2026 — found by measuring, not
+    // by looking: the browse zones are 26%-wide strips at z-index 2, and on a
+    // two-up card the CENTRE of each picture lands inside one. So a tap on
+    // either picture paged the deck instead of opening it, and the "this one"
+    // buttons under them were unreachable for the same reason — on the one
+    // card whose whole job is choosing between two pictures. Lifting the
+    // spread above the zones makes a tap on it hers; the card's margins above
+    // and below still page, and the swipe always did.
+    '.jg-spread{display:flex;gap:8px;align-items:flex-start;justify-content:center;'
+    + 'position:relative;z-index:3;}' +
     '.jg-spread figure{flex:1 1 0;min-width:0;align-self:stretch;'
     + 'display:flex;flex-direction:column;gap:5px;}' +
     '.jg-spread figure img{width:100%;height:auto;max-height:44vh;object-fit:contain;'

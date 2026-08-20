@@ -50,6 +50,25 @@
   --green: #3f6633;   /* done / good */
 }
 
+/* THE INJECTED PILL FOLLOWS THIS PAGE, IN EITHER SCHEME (Aug 2026, Sophie:
+   "this is the wrong pill"). pill-inject.html bakes its palette ON `.float`
+   AND carries a `prefers-color-scheme: dark` block — while this stylesheet
+   has none, because a Compare page is always her cream. Measured: on a phone
+   in dark mode the pill drew near-black (#191713) on that cream, and even in
+   light mode it wore #f6f2e9 where the page is #faf6ee. An element's own
+   custom property beats one inherited from :root, so defining the tokens up
+   there could never reach it; `body .float` (0,1,1) out-specifies `.float`
+   (0,1,0) and wins whatever order the injected sheet lands in.
+   The values repeat the tokens above because a custom property cannot refer
+   to itself — if you change one there, change it here. */
+body .float {
+  --paper: #faf6ee;
+  --ink: #2a2620;
+  --ink2: #6b6255;
+  --chg: #a8845c;
+  --rose: #c0614a;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
 
