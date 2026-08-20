@@ -700,6 +700,15 @@
       return fetch('/api/chatfeed/verdict', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        // A VERDICT THAT DID SOMETHING SAYS SO (Aug 2026). On an archive-review
+        // deck the server acts on her mark, and she has already been burned
+        // once by a chip that looked like a button and only filed an opinion —
+        // so the confirmation is the point, not decoration.
+        if (d && d.archived && d.archived.chat) {
+          toast(d.archived.archived ? 'Archived' : 'Back on your list');
+        }
+        return d;
       }).catch(function () { /* offline — local state still holds */ });
     }
     function saveNote(id, text) {
