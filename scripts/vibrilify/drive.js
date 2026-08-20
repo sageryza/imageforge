@@ -101,6 +101,14 @@ const cmds = {
     console.log(JSON.stringify({ updated: r.updated, beats }));
   },
 
+  async 'clip-one'(idx, frames) {
+    const sid = state.sceneIds[Number(idx)];
+    const body = { tier: 'draft' };
+    if (frames) body.frames = Number(frames);
+    const r = await api('POST', `/${state.movieId}/scenes/${sid}/clip`, body);
+    console.log(JSON.stringify({ ok: r.ok, scene: sid }));
+  },
+
   async panels() { console.log(JSON.stringify((await api('POST', `/${state.movieId}/panels`, { quality: spec.panelQuality })).job || { ok: true })); },
   async clips() {
     const frames = {};
