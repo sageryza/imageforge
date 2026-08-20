@@ -306,6 +306,29 @@ the picture, and nothing on screen in the film changed. The reproduction
 question in the licence note below is about the RECORDING and about any words
 displayed on screen — neither of which this touches.
 
+#### v5 — her own two clips on the front (2026-08-19)
+
+Sophie made the opening herself and handed it over: a Midjourney clip (5.1s,
+512x768) and, right before it, the **quick-animate** she ran in the Movies app
+on the app's own drawing — she typed the song's line in as the prompt. Both
+sit ahead of the whole spot, in that order.
+
+- **Her clips came out of the app, not off her phone** — she asked how to
+  download them and does not need to. A quick-animate is a doc in
+  `forge-quick` with a public `clipUrl`; the newest few are one Firestore read
+  (`orderBy('createdAt','desc')`). Any chat can pull one and cut with it.
+- **They are 2:3 and the spot is 9:19.5**, so each is scaled to the full 1170
+  width and padded top and bottom in INK (`#14131a`, the end card's own black)
+  rather than cropped — cropping a 2:3 picture into that frame throws away
+  most of the sides. One `concat` filter, re-encoded to 30fps.
+- **The song still starts where it did**, when the phone appears: her two clips
+  run silent in front, so the film is a cold open and then the music. Running
+  the track under them as well means starting it ten seconds earlier, which
+  walks the verse past the hook — a real choice, and hers.
+
+23.5s.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v5.mp4
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is
