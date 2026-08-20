@@ -1026,24 +1026,100 @@ router.get('/go', (req, res) => {
 // row shows (the archive stays scannable) and `wrapUp` is the full thing behind
 // a tap. Her own `sophieNote` still wins the row — a chat must never overwrite
 // a line she wrote, which is why this is not stored in `sophieNote` at all.
+//
+// THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026, Sophie: "I think
+// what I really wanted was the what you asked, what I did, and next steps.
+// Since chat already answered those three questions could you just switch the
+// summary for that"). The prose summary was a fourth shape saying the same
+// thing in a form she had not asked for, so it is the three labelled lines now
+// — `wrapAsked` / `wrapDid` / `wrapNext`, exactly the Update card's fields, one
+// renderer for both. **ONE SENTENCE EACH** (same message: "each of the three
+// sections is about two sentences that's six sentences in total. I'd prefer to
+// be about three sentences") — so `WRAP_PART_MAX` is a hard character cap, not
+// a target, the same lesson the old short summary learned the hard way.
+//
+// `wrapUp` is still written, as the three joined into plain prose: her phone
+// keeps a cached page for days and 312 chats already carry a wrap-up written in
+// that shape, so the old field stays the fallback every reader can already draw.
 const wrapLineOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 200);
 const wrapTextOf = (s) => String(s || '').replace(/[ \t]+/g, ' ').trim().slice(0, 2000);
+const WRAP_PART_MAX = 200;
+const wrapPartOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, WRAP_PART_MAX);
+// The prose mirror for an older reader — unlabelled, because the labels are the
+// renderer's ("What you asked" / "What I did" / "What's next") and a reader
+// that cannot draw the three lines is better served by three plain sentences.
+const wrapProse = (asked, did, next) =>
+  wrapTextOf([asked, did, next].map((s) => String(s || '').trim()).filter(Boolean).join(' '));
+
+// THE SHORT SUMMARY IS THREE LINES ON HER PHONE, AND THE MODEL CANNOT BE ASKED
+// TO COUNT (Sophie: "a short summary like three lines at most"). Measured over
+// her real summaries, twice: asking for "UNDER 180 CHARACTERS" came back at a
+// median of 223, and re-asking with the instruction tightened to two sentences
+// still left 169 of 317 over the cap — the worst at 526 characters, eight lines
+// in the expander. A length is not a thing to hope for, so it is enforced here
+// on the way in.
+//
+// WHOLE SENTENCES ONLY: it keeps sentences until the next one would break the
+// cap, and a first sentence already over the cap stands ALONE rather than being
+// cut mid-thought (6 of 317, and a sentence that stops mid-word reads worse
+// than a long one). The detail it drops is not lost — the long version behind
+// `more` is where detail belongs, which is what makes trimming safe here.
+const SHORT_CAP = 180;
+function capShort(s, cap = SHORT_CAP) {
+  const t = String(s || '').trim();
+  if (t.length <= cap) return t;
+  const parts = t.split(/(?<=[.!?])\s+/);
+  let out = '';
+  for (const p of parts) {
+    if (!out) { out = p; continue; }
+    if (out.length + 1 + p.length > cap) break;
+    out += ' ' + p;
+  }
+  return out;
+}
 
 // Freeze whatever the chat already said about itself into a wrap-up. Returns
 // the patch to merge, or null when there is nothing to freeze — never invents.
+// The Update card IS the summary's shape now, so this is a straight copy rather
+// than a translation into prose.
 function frozenWrapUp(r) {
   if (!r || r.wrapUp || r.wrapLine) return null;          // already has one
-  const asked = String(r.updAsked || '').trim();
-  const did = String(r.updDid || '').trim();
-  const doing = String(r.statusDoing || '').trim();
-  if (!asked && !did && !doing) return null;
+  const asked = wrapPartOf(r.updAsked);
+  const did = wrapPartOf(r.updDid);
+  const next = wrapPartOf(r.updNext);
+  const doing = wrapPartOf(r.statusDoing);
+  if (!asked && !did && !doing && !next) return null;
   const line = wrapLineOf(did || doing || asked);
-  const full = wrapTextOf([
-    asked && 'What you asked: ' + asked,
-    did && 'What it did: ' + did,
-    (!asked && !did && doing) && 'Was working on: ' + doing,
-  ].filter(Boolean).join('\n\n'));
-  return { wrapLine: line, wrapUp: full, wrapUpAt: new Date().toISOString(), wrapFrom: 'update-card' };
+  // No Update card at all, only a live status line: it says what the chat was
+  // in the middle of, which is the "what I did" half and nothing else.
+  const didPart = did || (!asked && !next ? doing : '');
+  return {
+    wrapLine: line,
+    wrapAsked: asked || admin.firestore.FieldValue.delete(),
+    wrapDid: didPart || admin.firestore.FieldValue.delete(),
+    wrapNext: next || admin.firestore.FieldValue.delete(),
+    wrapUp: wrapProse(asked, didPart, next),
+    wrapUpAt: new Date().toISOString(),
+    wrapFrom: 'update-card',
+  };
+}
+
+// The archive itself, so the button in her thread and a card's verdict on an
+// archive-review deck take the SAME path — including the wrap-up freeze. Two
+// copies would mean a chat archived from a deck quietly losing its summary.
+async function setArchived(chat, on) {
+  const ref = regRef(chat);
+  const patch = { archived: on };
+  // Only on the way IN. Taking a chat back out must not re-freeze anything,
+  // and un-archiving is a gesture that should cost nothing.
+  let froze = false;
+  if (on) {
+    const snap = await ref.get();
+    const add = frozenWrapUp(snap.exists ? snap.data() : null);
+    if (add) { Object.assign(patch, add); froze = true; }
+  }
+  await ref.set(patch, { merge: true });
+  return froze;
 }
 
 router.post('/archive', async (req, res) => {
@@ -1051,17 +1127,7 @@ router.post('/archive', async (req, res) => {
     const { chat, archived } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const on = archived !== false;
-    const ref = regRef(chat);
-    const patch = { archived: on };
-    // Only on the way IN. Taking a chat back out must not re-freeze anything,
-    // and un-archiving is a gesture that should cost nothing.
-    let froze = false;
-    if (on) {
-      const snap = await ref.get();
-      const add = frozenWrapUp(snap.exists ? snap.data() : null);
-      if (add) { Object.assign(patch, add); froze = true; }
-    }
-    await ref.set(patch, { merge: true });
+    const froze = await setArchived(chat, on);
     res.json({ ok: true, archived: on, wrapUp: froze });
   } catch (err) { fail(res, err); }
 });
@@ -1075,7 +1141,21 @@ router.post('/wrapup', async (req, res) => {
     const { chat, session, line, text, long, open } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const resolved = await resolveChat(chat, String(session || '').slice(0, 120));
-    const full = wrapTextOf(text);
+    // THE THREE QUESTIONS — what she asked, what it did, what is next; one
+    // sentence each. `next` doubles as the loose-ends half, so a chat that used
+    // to send `open` has its answer land where she now reads for it.
+    const asked = wrapPartOf(req.body && req.body.asked);
+    const did = wrapPartOf(req.body && req.body.did);
+    const next = wrapPartOf((req.body && req.body.next) || open);
+    const three = asked || did || next;
+    // The prose half stays writable for anything already sending it, and is
+    // DERIVED from the three when they are what came in.
+    //
+    // `capShort` guards the FREE-TEXT path ONLY. The derived prose must keep
+    // all three answers — cutting it to three lines would silently drop
+    // "what's next", which is the half she reads for loose ends — while a chat
+    // sending one long paragraph is exactly the case the cap was built for.
+    const full = three ? wrapProse(asked, did, next) : capShort(wrapTextOf(text));
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
     const fuller = wrapTextOf(long);
     const still = wrapLineOf(open);
@@ -1083,19 +1163,25 @@ router.post('/wrapup', async (req, res) => {
     const del = admin.firestore.FieldValue.delete();
     await regRef(resolved).set({
       wrapLine: one || del,
+      wrapAsked: asked || del,
+      wrapDid: did || del,
+      wrapNext: next || del,
       wrapUp: full || del,
       // The fuller account, behind a second tap. Same three-depth shape the
       // Summarize button writes: `text` is the three-line answer, this is the
       // rest for when she wants it.
       wrapLong: (fuller && fuller !== full) ? fuller : del,
-      // What was still open when it stopped — the same field the Summarize
-      // button fills. A chat that knows it left something hanging says so here.
-      wrapOpen: still || del,
+      // What was still open when it stopped. The three-question shape carries
+      // that in `next`, so this is only written when nothing else does — two
+      // fields answering the same question would show her the same loose end
+      // twice under different words.
+      wrapOpen: (!three && still) ? still : del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'chat',
     }, { merge: true });
     res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
-      wrapLong: fuller, wrapOpen: still });
+      wrapAsked: asked, wrapDid: did, wrapNext: next,
+      wrapLong: fuller, wrapOpen: three ? '' : still });
   } catch (err) { fail(res, err); }
 });
 
@@ -1108,16 +1194,17 @@ router.post('/wrapup', async (req, res) => {
 // words — she is the reader — so it runs on CLAUDE, never gpt-4o-mini.
 const WRAP_SYS = `You are writing the note a chat leaves behind when it is archived, for Sophie to read months later to remember what it was.
 
-Return JSON: {"line": "...", "text": "...", "long": "...", "open": "..."}
+Return JSON: {"line": "...", "asked": "...", "did": "...", "next": "...", "long": "..."}
 
-The three summary fields are the SAME story told at three lengths, each complete on its own — not an intro, a middle and an end. She reads whichever depth she wants and stops there.
+THE SUMMARY IS THREE ANSWERS TO THREE QUESTIONS — what she asked for, what you did about it, and what is next. ONE SENTENCE EACH, three sentences in total for the whole summary. That is a hard limit, not a target: two sentences in a field is already twice what she asked for.
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
-"text": THREE LINES ON A PHONE — that is UNDER 180 CHARACTERS, TWO short sentences at most, and it is a hard limit rather than a target. Count them: 180 characters is about 30 words, so a third sentence will not fit. What she wanted, what came of it, and how it ended. This is the one she actually reads, so it has to stand alone — write the sentences that matter, not the first few of a longer piece. If it does not fit, cut detail rather than running over: the long version is where detail belongs.
-"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when the short one leaves her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. Say plainly if it was abandoned, went nowhere, or was superseded — an honest dead end is more useful to her than a flattering summary. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the short one be the whole answer.
-"open": what was still unfinished or unanswered when it stopped, in one line — a question of hers nobody answered, a decision nobody made, work left half-done. Empty string when the chat genuinely ended settled. Never pad this to look thorough: a made-up loose end sends her back into a chat that had nothing left in it.
+"asked": ONE SENTENCE, under 140 characters. What Sophie wanted, in her terms — the thing she came here for, not a list of every request in the thread.
+"did": ONE SENTENCE, under 140 characters. What actually happened about it: what was built, decided, changed or found. Say plainly if it was abandoned, went nowhere or was superseded — an honest dead end is more useful to her than a flattering summary.
+"next": ONE SENTENCE, under 140 characters. What is next, or what was still unfinished or unanswered when it stopped — a question of hers nobody answered, a decision nobody made, work left half-done. EMPTY STRING when the chat genuinely ended settled and nothing is waiting; a made-up loose end sends her back into a chat that had nothing left in it.
+"long": AN ARRAY OF SHORT POINTS — ["...", "..."] — for when those three sentences leave her wanting the rest. Usually 3 to 6 of them, one sentence or two each, under 800 characters all together. One point per distinct thing that happened: what was tried, what was decided and why, what it cost, what broke. SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT: a chat that did one continuous thing gets one or two points, not a single thought chopped into fragments to fill a list. Never pad to reach a length; when a chat was genuinely small, return an empty array and let the three sentences be the whole answer.
 
-Plain past tense, no preamble, no markdown, no headings. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
+Plain past tense, no preamble, no markdown, no headings. Do not repeat the question inside its own answer ("You asked for…" / "What I did was…") — the three questions are already the labels she reads them under. Never invent a detail that is not in the transcript; if the material is thin, write less. Do not use the phrases "this chat", "we discussed", or "explored".`;
 
 // Rescue a JSON object that got CUT OFF mid-answer. Deliberately local rather
 // than folded into anthropic.parseJSON: half an object is exactly what other
@@ -1161,6 +1248,50 @@ function salvageJson(raw) {
   }
   return null;
 }
+
+// TRIM THE SUMMARIES ALREADY ON FILE — free, and deliberately not a model call
+// (Aug 2026). `capShort` above governs new writes; 169 summaries were already
+// stored over the cap, written before it existed. Re-asking Claude for those
+// would spend real money to fix a length problem that is pure text surgery, and
+// would also rewrite summaries she may have already read. This only shortens
+// what is there — it never asks for new words, never touches `wrapLong`,
+// `wrapOpen` or `wrapLine`, and never lengthens anything.
+//
+// DRY BY DEFAULT, like every other bulk operation in this repo: it answers with
+// what it WOULD change until called with `{dry:false}`.
+router.post('/wrapup/trim', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const cap = Math.max(60, Number((req.body || {}).cap) || SHORT_CAP);
+    const snap = await db().collection(REG).get();
+    const hits = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      const r = d.data() || {};
+      // NEVER touch a chat already on the THREE-ANSWER shape (Aug 2026): its
+      // `wrapUp` is the three sentences joined for older readers, and cutting
+      // that to three lines would drop "what's next" — the half she reads for
+      // loose ends. This only shortens the one-paragraph summaries written
+      // before that shape existed.
+      if (r.wrapAsked || r.wrapDid || r.wrapNext) return;
+      const cur = String(r.wrapUp || '');
+      if (cur.length <= cap) return;
+      const next = capShort(cur, cap);
+      if (!next || next === cur) return;
+      hits.push({ chat: d.id, was: cur.length, now: next.length, text: next });
+    });
+    if (!dry) {
+      for (const h of hits) {
+        await regRef(h.chat).set({ wrapUp: h.text }, { merge: true });
+      }
+    }
+    res.json({ ok: true, dry, cap, checked: snap.size, trimmed: hits.length,
+      // The ones a trim cannot fix: a single sentence longer than the cap is
+      // kept whole, so it is still over. Named rather than silently counted.
+      stillOver: hits.filter((h) => h.now > cap).map((h) => h.chat),
+      sample: hits.slice(0, 5).map((h) => ({ chat: h.chat, was: h.was, now: h.now })) });
+  } catch (err) { fail(res, err); }
+});
 
 router.post('/wrapup/write', async (req, res) => {
   try {
@@ -1232,21 +1363,30 @@ router.post('/wrapup/write', async (req, res) => {
       // shows, almost always survived whole.
       // The fields are written in order, so a truncation loses the LAST ones —
       // trim whichever one it stopped inside, and the shorter fields before it
-      // survive whole. That ordering is why `text` is asked for before `long`:
-      // the summary she actually reads is the one least likely to be cut.
+      // survive whole. That ordering is why the three one-sentence answers are
+      // asked for before `long`: the summary she actually reads is the one
+      // least likely to be cut.
       const backToSentence = (v) => {
         const t = String(v || '');
         const stop = Math.max(t.lastIndexOf('.'), t.lastIndexOf('!'), t.lastIndexOf('?'));
         return stop > 40 ? t.slice(0, stop + 1) : '';
       };
       out.text = backToSentence(out.text);
+      // Each answer is one sentence, so a half-written one has nothing to trim
+      // back TO — an answer that never reached a full stop is dropped whole
+      // rather than shown to her ending mid-word.
+      ['asked', 'did', 'next'].forEach((k) => {
+        if (out[k] !== undefined && !/[.!?]["')\]]?\s*$/.test(String(out[k] || '').trim())) {
+          out[k] = '';
+        }
+      });
       // A rescued array has a half-written last point — drop it rather than
       // showing her a bullet that stops mid-word. The earlier points are whole.
       out.long = Array.isArray(out.long)
         ? out.long.filter((x) => /[.!?]\s*$/.test(String(x || '').trim()))
         : backToSentence(out.long);
     }
-    const full = wrapTextOf(out && out.text);
+    const full = capShort(wrapTextOf(out && out.text));
     // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
     // three lines at most, and then a longer summary behind an arrow"). Same
     // story at a second depth, not a continuation — she stops at whichever
@@ -1264,22 +1404,38 @@ router.post('/wrapup/write', async (req, res) => {
       ? out.long.map((x) => String(x || '').replace(/\s+/g, ' ').trim())
         .filter(Boolean).slice(0, 8).join('\n')
       : (out && out.long));
-    const one = wrapLineOf(out && out.line) || wrapLineOf(full.split(/(?<=[.!?])\s/)[0]);
-    const open = wrapLineOf(out && out.open);
-    if (!one && !full) return res.status(502).json({ error: 'no summary came back' });
+    // THE THREE ANSWERS (Aug 2026, Sophie: "what I really wanted was the what
+    // you asked, what I did, and next steps … could you just switch the summary
+    // for that"). `next` carries the loose ends the old `open` field held, so a
+    // rewrite CLEARS that field rather than leaving her the same unfinished
+    // business twice under two different headings.
+    const asked = wrapPartOf(out && out.asked);
+    const did = wrapPartOf(out && out.did);
+    const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
+    const three = asked || did || next;
+    // `wrapUp` is still written — an older cached page on her phone reads it,
+    // and it is the fallback for every chat summarised before this shape.
+    const prose = three ? wrapProse(asked, did, next) : full;
+    const one = wrapLineOf(out && out.line) || wrapLineOf(prose.split(/(?<=[.!?])\s/)[0]);
+    if (!one && !three && !prose) return res.status(502).json({ error: 'no summary came back' });
+    const del = admin.firestore.FieldValue.delete();
     await regRef(target).set({
       wrapLine: one,
-      wrapUp: full,
+      wrapAsked: asked || del,
+      wrapDid: did || del,
+      wrapNext: next || del,
+      wrapUp: prose,
       // Cleared rather than left behind: a rewrite that finds nothing open (or
       // nothing more to say) must not leave the last run's leftovers under the
       // new summary.
-      wrapLong: (long && long !== full) ? long : admin.firestore.FieldValue.delete(),
-      wrapOpen: open || admin.firestore.FieldValue.delete(),
+      wrapLong: (long && long !== prose) ? long : del,
+      wrapOpen: del,
       wrapUpAt: new Date().toISOString(),
       wrapFrom: 'claude',
     }, { merge: true });
-    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: full, wrapLong: long,
-      wrapOpen: open, messages: msgs.length, unanswered: unanswered.length });
+    res.json({ ok: true, chat: target, wrapLine: one, wrapUp: prose,
+      wrapAsked: asked, wrapDid: did, wrapNext: next, wrapLong: long,
+      wrapOpen: '', messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -1414,17 +1570,37 @@ router.post('/hide', async (req, res) => {
 // stamps it inline — see the note there): answering a chat is dealing with its
 // news, and she asked for that after living with ✓-only. Opening is still not
 // clearing. Nothing else may write it.
+// ---- …AND IT IS WHERE THE REVIEW HOLD IS WRITTEN (Aug 2026, Sophie: the `to
+// be reviewed` cards "get hidden from the account 1 or 2 area until i review or
+// respond IF i dismiss manually from update tab") ----------------------------
+// The condition is the whole rule: dismissing here is not the same as ignoring
+// a card, it is her saying the thing is waiting in the QUEUE now. So the same
+// tap writes a second stamp, `reviewHoldAt`, and `chatBack` in chats.html stops
+// popping the chat back onto her list when it delivers again.
+//
+// THE SERVER DECIDES WHETHER A CHAT IS HELD, by re-reading its labels — never
+// the page. Her phone can be running a build days old, and a hold applied by a
+// page that no longer agrees with the tag on the chat would be a chat missing
+// from her list for a reason nothing on screen could explain.
+//
+// It ends three ways, all of them hers, and none of them is a timer: POST
+// /reply clears it (she responded), `labelPatch` clears it with the tag (she
+// took the word off), and POST /page/:id/review clears it (she marked the deck
+// done or skipped in the queue — she reviewed it).
 router.post('/notif-seen', async (req, res) => {
   try {
     const { chat, seen } = req.body || {};
     if (!chat) return res.status(400).json({ error: 'chat required' });
     const on = seen !== false;
     const stamp = new Date().toISOString();
-    await regRef(chat).set(
-      { notifSeenAt: on ? stamp : admin.firestore.FieldValue.delete() },
+    const del = admin.firestore.FieldValue.delete();
+    const ref = regRef(chat);
+    const held = on && labelsOf((await ref.get()).data()).indexOf(REVIEW_LABEL) > -1;
+    await ref.set(
+      { notifSeenAt: on ? stamp : del, reviewHoldAt: held ? stamp : del },
       { merge: true },
     );
-    res.json({ ok: true, notifSeenAt: on ? stamp : null });
+    res.json({ ok: true, notifSeenAt: on ? stamp : null, reviewHoldAt: held ? stamp : null });
   } catch (err) { fail(res, err); }
 });
 
@@ -1637,8 +1813,13 @@ router.post('/archive-kind', async (req, res) => {
 // folders were always free text and she names things herself, so refusing her
 // a word here only meant the two halves could never merge. The ten legacy tag
 // words survive as SEEDS in the page, so nothing already tagged loses its chip.
-const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
-  'images', 'film', 'audio', 'writing', 'research'];
+// `failure` joined them Aug 2026 with the page's ARCHIVE_ONLY group; the old
+// `failed` had reached no chat at all and was forgotten with `POST
+// /labels/forget`. Which of these the page OFFERS where is a presentation
+// question and lives there (`ARCHIVE_ONLY` / `LIVE_ONLY` in chats.html) — this
+// list is the vocabulary, not the row.
+const TAGS = ['bug fix', 'new feature', 'built', 'failure', 'story', 'quick question',
+  'film', 'research'];
 
 // ---- A PILE, OR JUST A WORD (Aug 2026, Sophie, the day after the merge:
 // "tagging shouldn't hide everything, or maybe just for certain categories —
@@ -1660,14 +1841,40 @@ const TAGS = ['bug fix', 'new feature', 'built', 'story', 'quick question',
 // self-defeating: every new word joins that list, so every new word would file.
 // `__settings.pileLabels` overrides the seed WHOLESALE once she touches the
 // switch — it is the answer, not a diff.
-const PILE_SEEDS = ['look at', 'stories', 'come back to', 'witch', 'tech', 'xi',
-  'just for fun', 'weird games', 'meta', 'dream app', 'chunk making',
+// Two words left the seed in Aug 2026, both by her hand and both through
+// `POST /labels/forget`: `stories` was merged INTO `story` (which takes its
+// place here, so none of the 36 chats fell back onto her main list) and
+// `weird games` was dropped outright.
+const PILE_SEEDS = ['look at', 'story', 'come back to', 'witch', 'tech', 'xi',
+  'just for fun', 'meta', 'dream app', 'chunk making',
   'waiting for something', 'to be reviewed'];
 
 // The one word that ALSO routes: a chat carrying it becomes a row in the Review
 // Queue (`review.js`), her pile of everything waiting on her. Hers, and named
 // here so the two modules can never disagree about the spelling.
 const REVIEW_LABEL = 'to be reviewed';
+
+// ---- THE MANUAL TAG RULES (Aug 2026, Sophie: "i think i'll have to do manual
+// rules per tag … more coming") ----------------------------------------------
+// The rules themselves are the Update tab's, so they live in `chats.html`
+// (TAG_RULES) where the screen they change is drawn. What is here is the half
+// the SERVER has to know: the two words, so nothing can disagree about their
+// spelling, and the stamps behind them.
+//
+//   `waiting for a response` → the card is pinned to the top of the Update tab
+//     until she answers or dismisses. Costs the server nothing: it is
+//     `filedAt` (the label write) against `notifSeenAt` (the ✓, or her reply),
+//     both of which already exist.
+//   `to be reviewed` → the cards fold behind a Review button, and dismissing
+//     one there writes `reviewHoldAt`, which keeps the chat off her account
+//     lists until she reviews or responds. See POST /notif-seen for the three
+//     ways it ends.
+//
+// BOTH ARE HERS TO APPLY. `chat-sort.js` is forbidden from filing into either
+// (they are on its TRIAGE list) — a word that says she owes a chat an answer,
+// or that a deliverable is waiting on her eye, is not something a model can
+// know, and guessing one would pin a card she never asked for.
+const PIN_LABEL = 'waiting for a response';
 
 // ---- A WORD THAT ASKS A QUESTION (Aug 2026, Sophie: "I wanna set another
 // condition for the `waiting for something` tag — it should also trigger a text
@@ -1737,8 +1944,15 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
   // key" sits on a chat that stopped waiting weeks ago — and a stale line she
   // wrote herself is worse than no line at all.
   const waiting = clean.indexOf(WAIT_LABEL) > -1 ? {} : { waitingFor: del };
+  // …and the review HOLD belongs to its tag the same way (Aug 2026 — the
+  // manual tag rules; see TAG_RULES in chats.html). The hold keeps a chat off
+  // her account lists after she dismisses its card, "until i review or
+  // respond" — and taking the word off IS reviewing it, so the hold cannot
+  // outlive the tag. Without this a chat she un-tagged would be held off her
+  // list by a rule it no longer wears, with nothing on screen to say why.
+  const held = clean.indexOf(REVIEW_LABEL) > -1 ? {} : { reviewHoldAt: del };
   if (!clean.length) {
-    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting };
+    return { labels: del, category: del, tags: del, filedAt: del, catBy: del, ...waiting, ...held };
   }
   return {
     labels: clean,
@@ -1747,6 +1961,7 @@ function labelPatch(labels, { by = 'sophie' } = {}) {
     filedAt: new Date().toISOString(),
     catBy: by,
     ...waiting,
+    ...held,
   };
 }
 
@@ -1820,6 +2035,91 @@ router.post('/labels', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- FORGETTING A WORD, AND MOVING WHAT IS IN IT (Aug 2026, Sophie:
+// "there's a story and stories tags — get rid of stories, but make sure to put
+// everything that's in stories currently into story before you get rid of it" ·
+// "get rid of the weird games tag, I don't know who made that either") --------
+// Every other route here ADDS to the vocabulary and none could take a word out
+// of it, because `rememberLabels` writes `__settings.categories` with an
+// `arrayUnion` — so a word she had finished with survived being stripped off
+// every chat and came back as an empty chip forever. Three places hold a word
+// and this is the only call that clears all three: the chats wearing it, the
+// remembered vocabulary, and the pile list.
+//
+// `into` is what makes it a MERGE rather than a delete, and it runs FIRST on
+// every chat, in the same write: nothing is ever left holding neither word. A
+// chat already wearing both keeps one (cleanLabels de-dupes), and one wearing
+// only the old word comes out the other side filed exactly as it was.
+//
+// **A MERGED WORD DOES NOT INHERIT PILE-NESS** — that is deliberate and it is
+// the one thing to check before running this. `stories` filed a chat away and
+// `story` did not, so merging 36 chats into it would have dumped all 36 onto
+// her main list; `PILE_SEEDS` was edited in the same commit so the survivor
+// takes the forgotten word's place. Check `GET /pile` first and say so.
+//
+// `catBy` is PRESERVED per chat rather than stamped `sophie`: renaming her own
+// vocabulary is not a filing decision about the 2 chats the auto-sorter had
+// filed, and stamping them would lock the sorter out of them forever.
+router.post('/labels/forget', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const label = String(body.label || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    const into = String(body.into || '').trim().toLowerCase().slice(0, LABEL_MAX);
+    if (!label) return res.status(400).json({ error: 'label required' });
+    if (into === label) return res.status(400).json({ error: 'into must differ from label' });
+    const dry = body.dry === true;
+
+    const reg = await registry();
+    const moved = Object.keys(reg.chats).filter(
+      (n) => labelsOf(reg.chats[n]).indexOf(label) > -1);
+    const labels = {};
+    moved.forEach((n) => {
+      const next = labelsOf(reg.chats[n]).filter((t) => t !== label);
+      if (into && next.indexOf(into) < 0) next.push(into);
+      labels[n] = cleanLabels(next);
+    });
+
+    const piles = pileList(reg.settings);
+    const nextPiles = piles.filter((c) => c !== label);
+    const droppedPile = nextPiles.length !== piles.length;
+    if (dry) {
+      return res.json({ ok: true, dry: true, label, into: into || null,
+        chats: moved, labels, droppedPile, intoIsPile: !!into && piles.indexOf(into) > -1 });
+    }
+
+    // The chats first: a failure partway leaves a word that still has chips and
+    // still finds things, which is recoverable by running it again. Clearing the
+    // vocabulary first would leave the survivors unreachable instead.
+    for (let i = 0; i < moved.length; i += 400) {
+      const slice = moved.slice(i, i + 400);
+      const batch = db().batch();
+      slice.forEach((n) => {
+        const by = reg.chats[n] && reg.chats[n].catBy;
+        batch.set(regRef(n), labelPatch(labels[n], by ? { by } : {}), { merge: true });
+      });
+      await batch.commit();
+    }
+
+    // The vocabulary. `arrayRemove` and `arrayUnion` cannot be in one patch for
+    // the same field, so the survivor is added in a second write — and it is
+    // added at all because a merge must not depend on the word already being
+    // remembered.
+    await regRef(SETTINGS_DOC).set(
+      { categories: admin.firestore.FieldValue.arrayRemove(label) }, { merge: true });
+    if (into) {
+      await regRef(SETTINGS_DOC).set(
+        { categories: admin.firestore.FieldValue.arrayUnion(into) }, { merge: true });
+    }
+    // `pileLabels` is only written when it is ALREADY hers — the seed lives in
+    // code, and materialising it here would freeze today's default into her
+    // settings, which is exactly what `POST /pile` avoids doing.
+    if (Array.isArray(reg.settings && reg.settings.pileLabels) && droppedPile) {
+      await regRef(SETTINGS_DOC).set({ pileLabels: nextPiles }, { merge: true });
+    }
+    res.json({ ok: true, label, into: into || null, chats: moved, labels, droppedPile });
+  } catch (err) { fail(res, err); }
+});
+
 // The vocabulary the page seeds its chips from. Named `tags` in the answer
 // because that is what the route has always returned and a cached page reads
 // it; `labels` is the same list under the name the field now uses.
@@ -1838,9 +2138,59 @@ router.get('/pile', async (_req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- THE REASONS SHE HAS GIVEN BEFORE (Aug 2026, Sophie: "could you gather
+// the list of reasons for waiting for something that I enter manually and put
+// it behind a button") -------------------------------------------------------
+// There was nothing to gather until this existed, and that is the finding
+// worth writing down: `waitingFor` is DELETED with its tag (labelPatch), on
+// purpose — a stale "waiting for the API key" on a chat that stopped waiting
+// weeks ago is worse than no line at all. So every answer she had ever typed
+// was already gone. **Measured live 2026-08-20: 378 chats, TWO carrying a
+// waiting reason** — the whole history, because the field is a live state and
+// never a record.
+//
+// So the memory is a SECOND place, on `__settings` beside her label
+// vocabulary: the field stays live-and-deletable, and the list of things she
+// has waited for accumulates next to it. Newest first, so a re-pick moves to
+// the top and the button opens on what she is most likely to want.
+//
+// It rides the feed's `settings` object like `pileLabels` and `categories`,
+// so the page pays no request for it — and `regRef` invalidates the registry
+// cache on write, so a reason she just typed is there on the next read.
+//
+// Two deliberate smallnesses: it is BEST-EFFORT (a remembered reason must
+// never fail the save she actually made), and it reads the settings doc
+// DIRECTLY rather than through `registry()` — one extra read on an action she
+// takes a few times a month, in exchange for never folding a stale cached list
+// back over a newer one. Two chats saving in the same second could still lose
+// one reason off the list; that is a list, not her data, and the alternative
+// (arrayUnion) would throw the order away, which is the only thing making the
+// list useful.
+const WAIT_MEMORY_MAX = 40;
+
+function waitReasons(settings) {
+  const raw = (settings || {}).waitingReasons;
+  return (Array.isArray(raw) ? raw : [])
+    .map((r) => String(r == null ? '' : r).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX))
+    .filter((r, i, a) => r && a.findIndex((x) => x.toLowerCase() === r.toLowerCase()) === i)
+    .slice(0, WAIT_MEMORY_MAX);
+}
+
+async function rememberWaiting(text) {
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+  if (!t) return;                       // clearing the box forgets nothing
+  const snap = await db().collection(REG).doc(SETTINGS_DOC).get();
+  const cur = waitReasons(snap.data());
+  const next = waitReasons({ waitingReasons: [t].concat(cur) });
+  // Re-picking the one already at the top writes nothing.
+  if (next.length === cur.length && next.every((r, i) => r === cur[i])) return;
+  await regRef(SETTINGS_DOC).set({ waitingReasons: next }, { merge: true });
+}
+
 // WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
 // tag opens. Its own field so it can never overwrite a note she wrote, and it
-// is cleared by `labelPatch` the moment the tag comes off.
+// is cleared by `labelPatch` the moment the tag comes off — which is why the
+// answers are also remembered on __settings (above).
 router.post('/waiting', async (req, res) => {
   try {
     const body = req.body || {};
@@ -1852,6 +2202,9 @@ router.post('/waiting', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
     await regRef(slug).set(
       { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    // Best-effort, and after the real save: the list behind the button is a
+    // convenience, and losing it must never cost her the answer she just gave.
+    await rememberWaiting(text).catch(() => {});
     res.json({ ok: true, chat: slug, waitingFor: text });
   } catch (err) { fail(res, err); }
 });
@@ -2992,6 +3345,13 @@ router.post('/page', async (req, res) => {
         const t = refTopic(topic);
         if (t) tdoc.refTopic = t;
       }
+      // AN ARCHIVE-REVIEW DECK CARRIES ITS OWN item→chat MAP (Aug 2026).
+      // On the page DOC, not in the Storage payload: a verdict tap then costs
+      // one small cached Firestore read instead of a bucket download.
+      if (v.data.applyArchive) {
+        const map = pageTemplates.archiveMapOf(v.data);
+        if (Object.keys(map).length) { tdoc.applyArchive = true; tdoc.archiveMap = map; }
+      }
       const tref = db().collection(PAGES).doc();
       const tfile = admin.storage().bucket().file(`chat-pages/${tref.id}.json`);
       await tfile.save(Buffer.from(JSON.stringify(v.data), 'utf8'), {
@@ -3060,6 +3420,11 @@ router.get('/pages', async (req, res) => {
     const pages = snap.docs
       .map((d) => ({
         id: d.id, title: d.data().title, created: d.data().created,
+        // the Compare tab needs to know a page is ONE SCREEN before it opens
+        // it: a deck gets no viewer bar (see openPage in chats.html), because
+        // that bar's height is what pushed the deck's own controls off an
+        // iPhone. Empty for a hand-built html page.
+        template: d.data().template || '',
         superseded: !!d.data().superseded,
         bookmarked: !!d.data().bookmarked,
         bookmarkNote: d.data().bookmarkNote || '',
@@ -3143,6 +3508,23 @@ router.post('/page/:id/review', async (req, res) => {
     const doc = await ref.get();
     if (!doc.exists) return res.status(404).json({ error: 'no such page' });
     await ref.set(patch, { merge: true });
+    // …AND THIS IS THE "UNTIL I REVIEW" HALF (Aug 2026 — the `to be reviewed`
+    // rule; see POST /notif-seen). She dismissed the chat's card from the
+    // Update tab on the promise that the work was waiting in the queue; done
+    // or skipped, she has now been through it, so the chat may sit on her
+    // account list again. Best-effort and never fatal — the stamp it clears
+    // only hides a chat from a list, and failing the review write over it
+    // would lose the answer she actually came here to give.
+    // The existence check is not paranoia: `set(…, merge)` on a MISSING doc
+    // creates it, every pile derives from the registry's keys, and a page whose
+    // chat has been merged away would put a phantom row in her list that only
+    // the Admin SDK can remove. That has happened here before.
+    const chat = doc.get('chat');
+    if (chat) {
+      await regRef(chat).get().then((reg) => (reg.exists
+        ? regRef(chat).set({ reviewHoldAt: admin.firestore.FieldValue.delete() }, { merge: true })
+        : null)).catch(() => {});
+    }
     res.json({ ok: true, id, ...patch });
   } catch (err) { fail(res, err); }
 });
@@ -3520,9 +3902,14 @@ router.post('/reply', async (req, res) => {
     // (`doc.created`), never `postedAt` — an old hook lifts her message
     // minutes late, and stamping the lift time would make the reply she is
     // waiting for look like it predates her.
+    // …AND IT ENDS A REVIEW HOLD (Aug 2026 — the `to be reviewed` rule; see
+    // POST /notif-seen). "Until i review or respond": this is respond, in her
+    // own words, in the chat. The chat goes back to behaving like any other
+    // filed chat, so the next thing it delivers pops it onto her list again.
     const patch = {
       workingAt: doc.postedAt, hiddenAt: doc.postedAt, notifSeenAt: doc.postedAt,
       lastHerAt: doc.created,
+      reviewHoldAt: admin.firestore.FieldValue.delete(),
     };
     const wasArch = (await regRef(doc.chat).get()).get('archived');
     if (wasArch) patch.archived = false;
@@ -3668,6 +4055,40 @@ router.post('/page-voice-session', express.json({ limit: '40mb' }), async (req, 
 // can read back what she decided instead of asking her to recite it.
 //   POST /api/chatfeed/verdict { chat, sheet, item, ok }
 //   GET  /api/chatfeed/verdict?chat=&sheet=
+// The page-doc lookup behind the rule above. Cached for a minute: a swipe
+// through thirty cards is thirty taps on ONE page, and its map never changes
+// (a new version is a new page, always).
+const pageMapCache = new Map();
+async function pageArchiveMap(sheet) {
+  const m = /^page-(.+)$/.exec(sheet || '');
+  if (!m) return null;
+  const pid = m[1];
+  const hit = pageMapCache.get(pid);
+  if (hit && Date.now() - hit.at < 60000) return hit.map;
+  const snap = await db().collection(PAGES).doc(pid).get();
+  const d = snap.exists ? snap.data() : {};
+  const map = d.applyArchive && d.archiveMap ? d.archiveMap : null;
+  pageMapCache.set(pid, { map, at: Date.now() });
+  return map;
+}
+
+/**
+ * Her mark on one card of an archive-review deck → the chat archived or taken
+ * back out. Returns `{chat, archived}` when it acted, else null.
+ *
+ * 'archive' puts it away; ANY other verdict (her Keep, or clearing the mark)
+ * takes it back out — so the chip is a true toggle and a mis-tap costs one
+ * more tap, which is the whole reason this is safe to fire from a card.
+ */
+async function applyPageVerdict(sheet, item, ok) {
+  const map = await pageArchiveMap(sheet);
+  const chat = map && map[item];
+  if (!chat) return null;
+  const on = ok === 'archive';
+  await setArchived(chat, on);
+  return { chat, archived: on };
+}
+
 router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const { chat, sheet, item, ok, text } = req.body || {};
@@ -3687,7 +4108,22 @@ router.post('/verdict', express.json({ limit: '64kb' }), async (req, res) => {
     }
     if (text !== undefined) patch.texts = { [String(item)]: String(text || '').slice(0, 2000) };
     await db.collection('forge-chat-verdicts').doc(id).set(patch, { merge: true });
-    res.json({ ok: true });
+    // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie: she marked
+    // eleven cards "Archive", told the chat "I archived all of them", and not
+    // one was archived — the chip filed an opinion while wearing the name of
+    // an action. Now the word means what it says.)
+    //
+    // Only ever on a page that OPTED IN at post time (`applyArchive`), only
+    // for the chat that page's own map names for this card, and only from her
+    // tap. It stays inside the verdict route rather than becoming a general
+    // "run this on tap" hook: archiving is one reversible, visible act, and
+    // that is what makes it safe to fire from a card.
+    let archived = null;
+    if (ok !== undefined) {
+      try { archived = await applyPageVerdict(String(sheet), String(item), ok); }
+      catch (e) { /* her mark is saved either way — never fail the tap */ }
+    }
+    res.json({ ok: true, archived });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -3720,5 +4156,5 @@ module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, q
   rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
-  PILE_SEEDS, REVIEW_LABEL, pileList, isPile,
-  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };
+  PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons };

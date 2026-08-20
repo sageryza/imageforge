@@ -456,9 +456,40 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   - **`POST /api/chatfeed/page { chat, title, template:'deck'|'grid', data }`**
     (no `html`). The answer carries `sheet` (`page-<id>`) for reading verdicts
     back. `page-templates.js` is the whole contract: an item is
-    `{ id?, label, img?|text?, full?, url?, model?, quality?, promptStyle?,
-    promptContent? }` — NO HTML anywhere in `data`, everything renders
-    escaped. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
+    `{ id?, label, img?|text?, full?, url?, link?, model?, quality?,
+    promptStyle?, promptContent? }` — NO HTML anywhere in `data`, everything
+    renders escaped.
+    **`link` is the card's way OUT** (Aug 2026, Sophie, asking for archive
+    candidates "in the compare tab with a link back to the chat"):
+    `{ url, label }`, or a bare url string with the label defaulting to
+    "Open". It renders as a real anchor in BOTH views — the swipe card and
+    the compare tile — because a url written into `text` reaches her as a
+    string she cannot tap, which on a phone is the same as not being there.
+    It is a FIELD rather than markup so the renderer still decides what it
+    becomes, which is what keeps the no-HTML rule intact.
+    **http(s) only, and a bad scheme is DROPPED rather than escaped**:
+    escaping renders `javascript:…` harmlessly as text but still leaves it
+    as the href of a real, tappable element. On a deck the link sits above
+    the browse zones for the same measured reason the two-up spread does —
+    a centred control's ends reach into those 26% strips, so without it the
+    tap pages the deck instead. Pinned by
+    `node scripts/test-template-link.js` (real Chromium,
+    `elementFromPoint` at the anchor's own centre in both views).
+    **`chat` + the page-level `applyArchive` make a verdict DO the thing**
+    (Aug 2026, and it was earned: an archive-review deck labelled its two
+    verdict chips *Archive* and *Keep*, Sophie marked eleven cards and told
+    the chat "I archived all of them", and **not one chat was archived** — the
+    chip filed an opinion while wearing the name of an action, and she went
+    hunting for a real archive button that the card had no way to reach).
+    A page that sets `applyArchive: true` gets an item→chat map stored on its
+    page DOC at post time, and then an `archive` verdict on a card archives
+    the chat that card names, while **any other verdict (Keep, or clearing the
+    mark) takes it back out**. The deck toasts *Archived* / *Back on your
+    list* so the tap confirms itself. Deliberately ONE action, not a general
+    "run this on tap" hook: archiving is reversible in a tap and visible on
+    her own list, which is what makes it safe to fire from a card. An item's
+    `chat` alone never acts — the page must opt in. **The lesson generalises:
+    do not label a verdict with a verb the page cannot perform.** `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
     `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):

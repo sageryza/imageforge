@@ -1,0 +1,185 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapters — the blocks and the jump link</title>
+<link rel="stylesheet" href="/compare.css">
+<style>
+/* A 1fr track floors at its content width, so one nowrap label inside a mock
+   slid the whole page sideways (measured: 394px at a 375px viewport). */
+.duo{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+.mk{min-width:0;overflow:hidden;}
+/* Mock chrome only — everything here draws a fake thread so the design can be
+   looked at. Tokens come from compare.css; nothing is hand-rolled. */
+.mk{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:10px 11px;font:400 12.5px/1.45 -apple-system,'Helvetica Neue',sans-serif;}
+.mk .name{font:700 17px/1.15 Georgia,serif;margin-bottom:9px;}
+.mk .hr{height:1px;background:var(--line);margin:9px 0;}
+/* THE ROW — "long chat:" and the chapters under it */
+.lc{font:400 9.5px/1 -apple-system,sans-serif;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink2);margin-bottom:7px;display:block;}
+.cl{display:flex;flex-direction:column;gap:1px;}
+.cl a{display:flex;align-items:center;gap:7px;padding:4px 0;color:var(--ink);
+      text-decoration:none;-webkit-tap-highlight-color:transparent;}
+.cl .b{flex:none;width:11px;height:11px;border-radius:2px;}
+.cl .t{flex:1;min-width:0;font-size:11.5px;line-height:1.3;}
+.cl .d{flex:none;font-size:9.5px;color:var(--ink2);}
+/* folded variant */
+.fold1{display:flex;align-items:center;gap:6px;}
+.fold1 .strip{display:flex;gap:2px;}
+.fold1 .strip i{width:9px;height:9px;border-radius:2px;display:block;}
+.fold1 .cnt{font:400 9.5px/1 -apple-system,sans-serif;letter-spacing:.11em;
+            text-transform:uppercase;color:var(--ink2);}
+.fold1 .car{margin-left:auto;color:var(--ink2);font-size:11px;}
+/* fake messages */
+.m{padding:7px 0;border-bottom:1px solid var(--line);}
+.m .who{font:400 9px/1 -apple-system,sans-serif;letter-spacing:.11em;
+        text-transform:uppercase;color:var(--ink2);}
+.m .who.me{color:var(--rose);}
+.m p{margin:3px 0 0;font-size:11.5px;line-height:1.4;color:var(--ink);}
+/* the in-thread marker, option A: the block alone */
+.mkA{display:flex;align-items:center;gap:9px;margin:14px 0 10px;}
+.mkA .b{flex:none;width:13px;height:13px;border-radius:2px;}
+.mkA .ln{flex:1;min-width:0;height:1px;background:var(--line);}
+/* option B: the block keeps the title */
+.mkB{display:flex;align-items:center;gap:9px;margin:14px 0 10px;}
+.mkB .b{flex:none;width:13px;height:13px;border-radius:2px;}
+.mkB span{min-width:0;font:400 9.5px/1 -apple-system,sans-serif;letter-spacing:.11em;
+          text-transform:uppercase;color:var(--ink2);white-space:nowrap;
+          overflow:hidden;text-overflow:ellipsis;}
+.mkB .ln{flex:1;min-width:0;height:1px;background:var(--line);}
+/* the seven-pastel ladder, lifted from chapters.js */
+.p0{background:#ddd3ea}.p1{background:#f0d4dd}.p2{background:#cfe6d8}
+.p3{background:#f0e4bf}.p4{background:#cfdcea}.p5{background:#f2ddcb}
+.p6{background:#dbe3cf}
+/* the four kinds, lifted from chapters.js */
+.kL{background:#e39ab4}.kE{background:#e3c25c}.kB{background:#8fc7ae}.kR{background:#94b4d6}
+.leg{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:8px;}
+.leg span{display:flex;align-items:center;gap:5px;font:400 10px/1 -apple-system,sans-serif;
+          letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);}
+.leg i{width:10px;height:10px;border-radius:2px;display:block;}
+</style>
+
+<div class="wrap">
+  <h1>Chapters — the blocks and the jump link</h1>
+
+  <div class="card" data-item="the-row">
+    <h2>At the top of the thread</h2>
+    <div class="duo">
+      <figure>
+        <span class="tag">open — what I'd build</span>
+        <div class="mk">
+          <div class="name">Moon milk experiments</div>
+          <span class="lc">Long chat:</span>
+          <div class="cl">
+            <a href="#"><i class="b p0"></i><span class="t">Building Moon Milk</span><span class="d">Jul 2</span></a>
+            <a href="#"><i class="b p1"></i><span class="t">Higher quality, and the surreal cut</span><span class="d">Jul 2</span></a>
+            <a href="#"><i class="b p2"></i><span class="t">Sophie and the Moths</span><span class="d">Jul 2</span></a>
+            <a href="#"><i class="b p3"></i><span class="t">The 720p cut, and files too big to open</span><span class="d">Jul 3</span></a>
+            <a href="#"><i class="b p4"></i><span class="t">Milking the moon</span><span class="d">Jul 3</span></a>
+            <a href="#"><i class="b p5"></i><span class="t">Storyboards and where films live</span><span class="d">Jul 12</span></a>
+          </div>
+          <div class="hr"></div>
+          <div class="m"><span class="who me">me</span><p>Oh, I see. So the films are not a separate tab…</p></div>
+          <div class="m"><span class="who">claude</span><p>Right — the Films tab lives at the bottom of…</p></div>
+        </div>
+      </figure>
+      <figure>
+        <span class="tag">folded — one line</span>
+        <div class="mk">
+          <div class="name">Moon milk experiments</div>
+          <div class="fold1">
+            <span class="cnt">Long chat · 6</span>
+            <span class="strip"><i class="p0"></i><i class="p1"></i><i class="p2"></i><i class="p3"></i><i class="p4"></i><i class="p5"></i></span>
+            <span class="car">⌄</span>
+          </div>
+          <div class="hr"></div>
+          <div class="m"><span class="who me">me</span><p>Oh, I see. So the films are not a separate tab…</p></div>
+          <div class="m"><span class="who">claude</span><p>Right — the Films tab lives at the bottom of…</p></div>
+          <div class="m"><span class="who me">me</span><p>Do you have the URL to that films tab?</p></div>
+          <div class="m"><span class="who">claude</span><p>It's in the app, not a web page — here's where…</p></div>
+        </div>
+      </figure>
+    </div>
+  </div>
+
+  <div class="card" data-item="the-marker">
+    <h2>Where a chapter begins, down the thread</h2>
+    <div class="duo">
+      <figure>
+        <span class="tag">the block alone</span>
+        <div class="mk">
+          <div class="m"><span class="who">claude</span><p>Both cuts are stitched — the surreal one runs…</p></div>
+          <div class="m"><span class="who me">me</span><p>can u pick a couple clips to try higher quality?</p></div>
+          <div class="mkA"><i class="b p1"></i><span class="ln"></span></div>
+          <div class="m"><span class="who">claude</span><p>Ten scenes, back to back, each held for its own…</p></div>
+          <div class="m"><span class="who me">me</span><p>that was so fun. question — do all the videos…</p></div>
+        </div>
+      </figure>
+      <figure>
+        <span class="tag">block + the title</span>
+        <div class="mk">
+          <div class="m"><span class="who">claude</span><p>Both cuts are stitched — the surreal one runs…</p></div>
+          <div class="m"><span class="who me">me</span><p>can u pick a couple clips to try higher quality?</p></div>
+          <div class="mkB"><i class="b p1"></i><span>The surreal cut</span><span class="ln"></span></div>
+          <div class="m"><span class="who">claude</span><p>Ten scenes, back to back, each held for its own…</p></div>
+          <div class="m"><span class="who me">me</span><p>that was so fun. question — do all the videos…</p></div>
+        </div>
+      </figure>
+    </div>
+  </div>
+
+  <div class="card" data-item="the-colours">
+    <h2>What a colour means</h2>
+    <div class="duo">
+      <figure>
+        <span class="tag">by position — no legend needed</span>
+        <div class="mk">
+          <div class="cl">
+            <a href="#"><i class="b p0"></i><span class="t">Building Moon Milk</span></a>
+            <a href="#"><i class="b p1"></i><span class="t">Higher quality, and the surreal cut</span></a>
+            <a href="#"><i class="b p2"></i><span class="t">Sophie and the Moths</span></a>
+            <a href="#"><i class="b p3"></i><span class="t">The 720p cut</span></a>
+          </div>
+          <div class="leg">
+            <span><i class="p0"></i>1st</span><span><i class="p1"></i>2nd</span>
+            <span><i class="p2"></i>3rd</span><span><i class="p3"></i>4th</span>
+          </div>
+        </div>
+      </figure>
+      <figure>
+        <span class="tag">by kind — needs the legend page</span>
+        <div class="mk">
+          <div class="cl">
+            <a href="#"><i class="b kB"></i><span class="t">Building Moon Milk</span></a>
+            <a href="#"><i class="b kE"></i><span class="t">Higher quality, and the surreal cut</span></a>
+            <a href="#"><i class="b kL"></i><span class="t">Sophie and the Moths</span></a>
+            <a href="#"><i class="b kR"></i><span class="t">The 720p cut</span></a>
+          </div>
+          <div class="leg">
+            <span><i class="kB"></i>build</span><span><i class="kE"></i>experiment</span>
+            <span><i class="kL"></i>story</span><span><i class="kR"></i>research</span>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </div>
+</div>
+
+<script src="/compare.js"></script>
+<script>
+(function () {
+  window.__compareNotes({ chat: 'chat-chapters-feature', sheet: 'chapter-blocks-v1' });
+  window.__compareHelp({ html:
+      '<b>Three choices, one per row.</b> Note or ♥ the side you want.<br><br>'
+    + '<b>Row 1</b> — the row at the top of a long chat. Open shows every '
+    + 'chapter and costs six lines above the newest message; folded costs one '
+    + 'line and opens on a tap.<br><br>'
+    + '<b>Row 2</b> — the mark down the thread where a chapter starts. The '
+    + 'block alone is quietest but you need the legend to know which chapter '
+    + 'it is; the block with its title needs no legend at all.<br><br>'
+    + '<b>Row 3</b> — what the colour says. By position it just matches the '
+    + 'row at the top, so nothing has to be learned. By kind it means '
+    + 'something, and that is the page you said we might need later.<br><br>'
+    + 'The colours are the seven pastels and the four kind-colours already in '
+    + 'the chapters artifacts — nothing new was invented here.' });
+})();
+</script>

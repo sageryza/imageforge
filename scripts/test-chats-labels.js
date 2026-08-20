@@ -236,18 +236,18 @@ async function routeTests() {
   ok('POST /pile exists', !!pile);
   const seeded = await call(pileGet, {});
   ok('with nothing stored, the seed is the answer',
-    (seeded.body.piles || []).indexOf('stories') > -1
+    (seeded.body.piles || []).indexOf('story') > -1
     && (seeded.body.piles || []).indexOf('to be reviewed') > -1,
     JSON.stringify(seeded.body.piles));
   ok('…and a tag word is NOT in it', (seeded.body.piles || []).indexOf('bug fix') < 0);
   ok('…and the review word is named back', seeded.body.review === 'to be reviewed');
 
-  r = await call(pile, { label: 'images', pile: true });
+  r = await call(pile, { label: 'film', pile: true });
   ok('flipping a word on answers the WHOLE list, not a diff',
-    (r.body.piles || []).indexOf('images') > -1 && (r.body.piles || []).length > 5,
+    (r.body.piles || []).indexOf('film') > -1 && (r.body.piles || []).length > 5,
     JSON.stringify(r.body.piles));
   ok('…and stores it that way',
-    (reg().__settings.pileLabels || []).indexOf('images') > -1);
+    (reg().__settings.pileLabels || []).indexOf('film') > -1);
   await call(pile, { label: 'stories', pile: false });
   ok('flipping a seeded word OFF takes it out for good',
     (reg().__settings.pileLabels || []).indexOf('stories') < 0,
@@ -338,7 +338,10 @@ const MSGS = [
 ];
 const CHATS = {
   // the OLD pair of fields, never rewritten — it has to arrive showing BOTH
-  'both-ways': { account: '1', lastSeen: MSGS[0].created, category: 'witch', tags: ['built'], filedAt: iso(T0 - 500) },
+  // `film` and not `built`: the old two-field shape is what this chat is for,
+  // and `built` became archive-only in Aug 2026 (as did `research`, which this
+  // used next), so neither is a chip on the home row to filter by.
+  'both-ways': { account: '1', lastSeen: MSGS[0].created, category: 'witch', tags: ['film'], filedAt: iso(T0 - 500) },
   'nothing-yet': { account: '1', lastSeen: MSGS[1].created },
 };
 
@@ -406,8 +409,15 @@ async function pageTests() {
     const chips = await page.$$eval('.askwrap .arctags .catchip', (ns) => ns.map((n) => n.textContent.trim()));
     ok('her own words are offered', chips.indexOf('Witch') > -1 && chips.indexOf('To be reviewed') > -1,
       chips.join(' · '));
-    ok('…and the ten old tag words alongside them',
-      chips.indexOf('Bug fix') > -1 && chips.indexOf('Research') > -1, chips.join(' · '));
+    ok('…and the old tag words alongside them',
+      chips.indexOf('Film') > -1 && chips.indexOf('Story') > -1, chips.join(' · '));
+    // …but NOT the four the archive sheet keeps to itself (Aug 2026,
+    // ARCHIVE_ONLY): how a chat ENDED is a judgement she makes on the way past,
+    // and four chips she reads over the rest of the time is what she asked to
+    // be rid of.
+    ok('…and NOT the archive-only outcome words',
+      ['Built', 'Failure', 'Bug fix', 'New feature']
+        .every((w) => chips.indexOf(w) < 0), chips.join(' · '));
     ok('nothing is lit on a chat with no words yet',
       (await lit()).join(',') === 'None', (await lit()).join(','));
 
@@ -534,7 +544,11 @@ async function pageTests() {
     await page.waitForSelector('#thread .orgbtn');
     await page.click('#thread .orgbtn');
     await page.waitForSelector('.askwrap .arctags');
-    await chip('Bug fix');
+    // `Film` and not `Bug fix`: the archive-only words are offered in the
+    // ARCHIVE sheet only since Aug 2026 (ARCHIVE_ONLY in chats.html), so the
+    // Organize sheet has no such chip to tap. Any plain tag word proves the
+    // same thing — that a word which is not a pile leaves the chat where it is.
+    await chip('Film');
     await page.waitForTimeout(200);
     await page.click('.askwrap .askrow .go');
     await page.waitForTimeout(200);
@@ -557,14 +571,16 @@ async function pageTests() {
     ok('the switch opens on the question',
       (await page.$eval(top + ' .archq', (n) => n.textContent)) === 'Which words file a chat away?');
     const pileLit = await page.$$eval(top + ' .arctags .catchip.on', (ns) => ns.map((n) => n.textContent.trim()));
-    ok('her folders arrive lit', pileLit.indexOf('Witch') > -1 && pileLit.indexOf('Stories') > -1,
+    // `Story`, not `Stories`: the two words were merged at her ask in Aug 2026
+    // and `story` inherited the pile seed (see PILE_SEEDS).
+    ok('her folders arrive lit', pileLit.indexOf('Witch') > -1 && pileLit.indexOf('Story') > -1,
       pileLit.join(','));
-    ok('…and the tag words do not', pileLit.indexOf('Bug fix') < 0, pileLit.join(','));
-    await (await page.$(top + ' .arctags button:text-is("Bug fix")')).click();
+    ok('…and the tag words do not', pileLit.indexOf('Film') < 0, pileLit.join(','));
+    await (await page.$(top + ' .arctags button:text-is("Film")')).click();
     await page.waitForTimeout(250);
     const pileSaved = posts[posts.length - 1];
     ok('flipping a word posts the flip, not the chat',
-      pileSaved && pileSaved.label === 'bug fix' && pileSaved.pile === true,
+      pileSaved && pileSaved.label === 'film' && pileSaved.pile === true,
       JSON.stringify(pileSaved));
     await page.click(top + ' .askrow .go');
     await page.waitForTimeout(150);
@@ -584,12 +600,23 @@ async function pageTests() {
     await page.waitForSelector('#catrow .tagsbtn');
     if (!(await page.$('#catrow .tagsbtn.on'))) await page.click('#catrow .tagsbtn');
     await page.waitForSelector('#catrow .catchip:not(.starchip):not(.tagsbtn)');
-    const folders = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn)',
+    // `film` is a CATEGORY word, so it lives behind SEE MORE — the row opens
+    // on the progress group (Aug 2026). `built` used to be a progress word and
+    // did not need this; it is archive-only now.
+    if (await page.$('#catrow .morechip')) await page.click('#catrow .morechip');
+    await page.waitForTimeout(150);
+    const folders = await page.$$eval('#catrow .catchip:not(.starchip):not(.tagsbtn):not(.morechip)',
       (ns) => ns.map((n) => n.firstChild.textContent.trim()));
     ok('a legacy tag word shows as a chip on the home row now it is in use',
-      folders.indexOf('Built') > -1, folders.join(' · '));
+      folders.indexOf('Film') > -1, folders.join(' · '));
+    // The four outcome words never reach this row — it counts LIVE chats and
+    // they are an archiving judgement (ARCHIVE_ONLY in chats.html). The archive
+    // has its own filter row for them.
+    ok('…and the archive-only words are not on it',
+      ['Built', 'Failure', 'Bug fix', 'New feature']
+        .every((w) => folders.indexOf(w) < 0), folders.join(' · '));
     await page.$$eval('#catrow .catchip', (ns) => {
-      const b = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Built'); if (b) b.click();
+      const b = ns.find((n) => n.firstChild && n.firstChild.textContent.trim() === 'Film'); if (b) b.click();
     });
     await page.waitForTimeout(200);
     ok('…and filtering by it finds the chat filed under the OTHER field',

@@ -674,7 +674,7 @@ $('#addClip').onclick = () => {
 
 $('#addNar').onclick = () => {
   const { el, close } = sheet(`<h2 class="sec" style="margin-top:0">Narration</h2>
-    <textarea id="narText" placeholder="What the narrator says here"></textarea>
+    <textarea id="narText"></textarea>
     <div class="row" style="margin-top:8px"><button class="gold" data-ok>Add</button><button data-cancel>Cancel</button></div>`);
   el.querySelector('#narText').focus();
   el.addEventListener('click', e => {

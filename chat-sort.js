@@ -53,7 +53,16 @@
 const { sentences } = require('./questions');
 
 // Her WHEN folders — see above. Matched case-insensitively.
-const TRIAGE = ['look at', 'come back to'];
+// The two RULE words joined them in Aug 2026 (Sophie: "i think i'll have to do
+// manual rules per tag"), for exactly the same reason and with more at stake.
+// `waiting for a response` pins a card to the top of her Update tab until she
+// answers it; `to be reviewed` folds a chat behind the Review button and holds
+// it off her account lists once she dismisses it. Both say something only she
+// knows — that she owes this chat a reply, that a deliverable is waiting on her
+// eye — so a guess here does not merely file a chat in the wrong folder, it
+// pins a card she never asked for or hides a chat she was watching. She still
+// tags either one herself; nothing about the rules changes.
+const TRIAGE = ['look at', 'come back to', 'waiting for a response', 'to be reviewed'];
 
 // A chat needs enough thread to be about something. Under this the honest
 // answer is almost always none, so the call is not worth making.

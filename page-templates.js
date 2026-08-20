@@ -25,10 +25,13 @@
 // The same items list fits either template — "the feed style and the card
 // style can basically take the same input" (Sophie). An item:
 //
-//   { id?, label, img?, full?, text?, url?, model?, quality?,
+//   { id?, label, img?, full?, text?, url?, link?, model?, quality?,
 //     promptStyle?, promptContent? }
 //
 //   img  = the picture (text-only items — a to-do line — use `text` instead)
+//   chat = the chat this card is about, on an `applyArchive` page (below)
+//   link = a way OUT of the card: { url, label } (or a bare url string),
+//          rendered as a real anchor in both views. See cleanLink below.
 //   url  = the item's ASSETS-TAB identity. When set (it defaults to `img`
 //          when img lives in Firebase/GCS Storage), the page MIRRORS ♥/✕ and
 //          notes to the asset votes, so the Assets tab and the page agree —
@@ -98,6 +101,19 @@ function deriveId(item, taken, fallback) {
   return id;
 }
 
+// `link` accepts a bare url string or { url, label }. The label defaults to
+// "Open" rather than showing the url itself — a claude.ai session link is 70
+// characters of hex and reads as noise on a card.
+const LINK_URL = /^https?:\/\//i;
+function cleanLink(raw) {
+  if (!raw) return null;
+  const bare = typeof raw === 'string';
+  if (!bare && typeof raw !== 'object') return null;
+  const url = STR(bare ? raw : raw.url, 500);
+  if (!LINK_URL.test(url)) return null;
+  return { url, label: STR(bare ? '' : raw.label, 60) || 'Open' };
+}
+
 function cleanItem(raw, taken, fallback) {
   if (!raw || typeof raw !== 'object') return null;
   const it = {};
@@ -148,6 +164,25 @@ function cleanItem(raw, taken, fallback) {
     }
     if (secs.length) it.sections = secs;
   }
+  // A WAY OUT OF THE CARD — one link per item (Aug 2026, Sophie: "put them in
+  // the compare tab with a link back to the chat"). Template data carries NO
+  // HTML by design, so a url written into `text` reaches her as a string she
+  // cannot tap — on a phone that is the same as not being there. So the link
+  // is a FIELD and the renderer decides what it becomes, which keeps the "no
+  // HTML anywhere in data" rule intact.
+  //
+  // http(s) ONLY, and a bad scheme is DROPPED rather than escaped into an
+  // anchor: escaping makes `javascript:…` render harmlessly as text but still
+  // leaves it as the href of a real, tappable element. There is no case where
+  // a template page needs a non-http link, so the narrow rule is the safe one.
+  const link = cleanLink(raw.link);
+  if (link) it.link = link;
+  // WHICH CHAT THIS CARD IS ABOUT (Aug 2026) — set only on a page that also
+  // declares `applyArchive`, where her verdict on the card archives the chat
+  // itself. See applyArchive in validateTemplate below for why this is a slug
+  // rather than a free-form action.
+  const chatSlug = STR(raw.chat, 60).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+  if (chatSlug) it.chat = chatSlug;
   it.id = STR(raw.id, 60) || null;
   if (it.id) { if (taken.has(it.id)) return { dup: it.id }; taken.add(it.id); }
   else it.id = deriveId(it, taken, fallback);
@@ -191,6 +226,15 @@ function validateTemplate(template, data) {
   // carrying who/eyebrow/sections/caption gets it automatically, so most
   // decks never need this flag.
   if (data.style === 'moment') out.style = 'moment';
+  // A VERDICT THAT ACTUALLY DOES THE THING (Aug 2026, Sophie — she marked
+  // eleven cards "Archive", said "I archived all of them", and NOTHING was
+  // archived: the chip recorded an opinion while wearing the name of an
+  // action). A page may opt in, and then a card's `archive` verdict archives
+  // the chat named by that card's `chat` field, and any other verdict takes
+  // it back out. Deliberately ONE action rather than a general "run this on
+  // tap" hook: archiving is reversible in a tap and visible on her own list,
+  // which is what makes it safe to fire from a card.
+  if (data.applyArchive) out.applyArchive = true;
 
   if (template === 'deck') {
     if (!Array.isArray(data.items) || !data.items.length) {
@@ -772,7 +816,24 @@ function assignVoiceSegments(segments, timeline) {
   return out;
 }
 
+/**
+ * The page's item→chat map, for the server to apply verdicts against.
+ * Kept on the PAGE DOC rather than read out of the Storage payload on every
+ * tap: the payload is a download, the doc is a small cached read, and a tap
+ * must not cost her a round trip to a bucket.
+ * Empty unless the page opted in — an item's `chat` alone never acts.
+ */
+function archiveMapOf(data) {
+  const out = {};
+  if (!data || !data.applyArchive) return out;
+  const all = (data.items || []).concat(
+    ...(data.groups || []).map((g) => g.items || []),
+  );
+  all.forEach((it) => { if (it && it.chat) out[it.id] = it.chat; });
+  return out;
+}
+
 module.exports = {
-  TEMPLATES, ASPECTS, validateTemplate, renderTemplatePage, groupAssetVariants,
+  TEMPLATES, ASPECTS, validateTemplate, archiveMapOf, renderTemplatePage, groupAssetVariants,
   planAutoPages, parseCaption, normContent, assignVoiceSegments, isMomentDeck,
 };

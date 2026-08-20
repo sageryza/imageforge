@@ -193,6 +193,15 @@
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    // THE CARD'S WAY OUT — an item's `link`, rendered as her rust text on a
+    // white box like the others, and lifted above the browse zones (see
+    // linkHtml). `align-self:center` keeps the hit area to the words: a
+    // full-width anchor inside the card would swallow the taps that page it.
+    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;}' +
+    '.jg-momlink a{display:inline-block;background:#FFFDF8;border:1px solid #E7DECF;' +
+    ' border-radius:6px;padding:9px 14px;text-decoration:none;color:#C25E4C;' +
+    ' font:700 11px/1.2 -apple-system,sans-serif;letter-spacing:.12em;' +
+    ' text-transform:uppercase;}' +
     // A SPREAD ON ONE CARD: the pictures share the width so they are compared
     // rather than scrolled between, each under its own name. They shrink as a
     // spread grows — two get half each, three a third — which is the whole
@@ -320,7 +329,24 @@
     // reads. It keeps the card's flex slot so the one-screen chain is intact.
     '.jg-cardwrap{position:relative;}' +
     '.jg.mom .jg-cardwrap{flex:1;min-height:0;display:flex;flex-direction:column;}' +
-    '.jg.mom .jg-cardwrap>.jg-card.momcard{flex:1;min-height:0;}' +
+    // THE ONE-SCREEN CHAIN MUST REACH EVERY CARD, NOT JUST `.momcard` (Aug
+    // 2026, Sophie: "I just couldn't reach the button… the very top part of
+    // the compare tab with the back arrow which has the name" — found by
+    // measuring the deck at the height the APP actually gives it).
+    // A deck that brings its OWN words (`states`) has momUI false, so its
+    // card never got the `momcard` class — and this rule named that class, so
+    // the card took NO flex slot and NO scroller. It sized to its CONTENT and
+    // simply overflowed the wrapper, painting straight over the verdict row
+    // underneath: the chips were on screen and covered, which is the worst
+    // shape a control can have — it looks tappable and is not.
+    // It only bites when the box is short, which is why the web page looked
+    // fine and her phone did not: measured on the real deck, the chips are
+    // reachable at 640px of height and BLOCKED at 600px, and chats.html's
+    // `.pv-bar` (back chevron + title + the safe-area inset) is what pushes
+    // an iPhone 13 across that line.
+    '.jg.mom .jg-cardwrap>.jg-card{flex:1;min-height:0;overflow-y:auto;' +
+    ' scrollbar-width:none;}' +
+    '.jg.mom .jg-cardwrap>.jg-card::-webkit-scrollbar{width:0;height:0;}' +
     // …AND THEY REACH THE SCREEN'S EDGE. Her deck holds a 22px gutter, so the
     // outermost 22px of each side was page background — dead to a tap, and
     // the first place a thumb lands when she means "the side of the screen".
@@ -484,6 +510,13 @@
     // knows there is a queue to go back to, and that its Skip/Done belong on
     // screen. A deck opened from the Compare tab has neither.
     var fromQueue = /[?&]clean=1/.test(location.search);
+    // `?back=1` — THE CHATS APP OPENED THIS AND DREW NO BAR OF ITS OWN (Aug
+    // 2026, Sophie: "give me the option of going back to the compare tab
+    // cause that takes a room in the top"). Deliberately NOT `clean=1`: that
+    // one means "the Review Queue sent me", and it also turns on Skip/Done in
+    // the piles view, which are the queue's verbs and not the Compare tab's.
+    // Both show the chevron; only clean=1 claims the queue.
+    var wantBack = fromQueue || /[?&]back=1/.test(location.search);
     // the page doc's id, out of the sheet the template renderer set
     var pageId = /^page-(.+)$/.test(sheet || '') ? String(sheet).slice(5) : '';
 
@@ -691,6 +724,15 @@
       return fetch('/api/chatfeed/verdict', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        // A VERDICT THAT DID SOMETHING SAYS SO (Aug 2026). On an archive-review
+        // deck the server acts on her mark, and she has already been burned
+        // once by a chip that looked like a button and only filed an opinion —
+        // so the confirmation is the point, not decoration.
+        if (d && d.archived && d.archived.chat) {
+          toast(d.archived.archived ? 'Archived' : 'Back on your list');
+        }
+        return d;
       }).catch(function () { /* offline — local state still holds */ });
     }
     function saveNote(id, text) {
@@ -874,7 +916,21 @@
       }
       return '<div class="jg-mom">' + out + '</div>';
     }
+    // THE CARD'S WAY OUT — an item's `link` (page-templates.js), as a real
+    // anchor. It sits ABOVE the browse zones for the same measured reason the
+    // spread does: the zones are 26%-wide strips at z-index 2 and a centred
+    // link lands between them, but its ENDS reach into them, so a thumb
+    // slightly off centre would page the deck instead of opening the link.
+    function linkHtml(it) {
+      if (!it || !it.link || !it.link.url) return '';
+      return '<div class="jg-momlink"><a href="' + esc(it.link.url) + '"'
+        + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
+        + ' ›</a></div>';
+    }
     function mediaHtml(it, hoisted) {
+      return mediaBody(it, hoisted) + linkHtml(it);
+    }
+    function mediaBody(it, hoisted) {
       var ar = arOf(it);
       var sq = ar ? ' sq' : '';
       var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';
@@ -921,8 +977,8 @@
       // reserves room under its words for the floating ✕/♥ (see the CSS)
       if (momDeck && view === 'card' && items[cur] && isLong(items[cur])) momCls += ' long';
       // the way back to the Review Queue, when that is where she came from
-      var back = fromQueue
-        ? '<button class="jg-back" data-act="back" aria-label="Back to the review queue">'
+      var back = wantBack
+        ? '<button class="jg-back" data-act="back" aria-label="Back">'
           + I.back + '</button>' : '';
       var top;
       if (momDeck) {
@@ -1267,7 +1323,7 @@
      *  rather than guessed from a character count (the .long class is a
      *  layout rule; this is about what genuinely does not fit). */
     function cardScroller() {
-      var els = mount.querySelectorAll('.jg-card.momcard, .jg-cardtext');
+      var els = mount.querySelectorAll('.jg-card.momcard, .jg.mom .jg-card, .jg-cardtext');
       for (var i = 0; i < els.length; i += 1) {
         if (els[i].scrollHeight > els[i].clientHeight + 4) return els[i];
       }
@@ -1335,6 +1391,17 @@
     // history.back() returns to the queue exactly as she left it — same scroll,
     // same tab — and the direct link is the fallback for a deck opened cold.
     function backToQueue() {
+      // Embedded in the Chats app's page viewer (same-origin iframe): ask IT
+      // to close, because `history.back()` here would only navigate the frame
+      // and leave her staring at whatever the deck replaced. The parent hook
+      // is the same shape as __openThread's — a page hands the app an
+      // intention rather than following a link that would trap the whole app
+      // inside this frame.
+      try {
+        if (window.parent && window.parent !== window
+            && typeof window.parent.__closePage === 'function'
+            && window.parent.__closePage() === true) return;
+      } catch (_) { /* cross-origin — fall through */ }
       if (history.length > 1) history.back(); else location.href = '/review';
     }
     // Skip / Done stamp the PAGE doc (chatfeed owns it; the queue only reads),

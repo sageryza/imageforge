@@ -211,20 +211,44 @@
     $('lvShelf').hidden = level !== 'shelf';
     $('lvStory').hidden = level !== 'story';
   }
+  // OPENING A STORY PUSHES A HISTORY STATE, so every kind of "back" reaches
+  // the shelf instead of leaving the tool: the browser's own back button, the
+  // web view's swipe-back gesture (GatedWebTool turns it on), and the native
+  // chevron via __navBack below. A story opened COLD from a ?story= link
+  // pushes nothing — back from there really does mean "leave".
+  function storyUrl(id) {
+    var u = new URL(location.href);
+    if (id) u.searchParams.set('story', id); else u.searchParams.delete('story');
+    return u.pathname + u.search;
+  }
   // the native chevron asks this first — inside a story it goes back to the
   // shelf rather than leaving the tool
   window.__navBack = function () {
     if ($('lvStory').hidden) return false;
-    toShelf();
+    leaveStory();
     return true;
   };
   function toShelf() { ID = null; show('shelf'); shelf(); }
-  $('back').onclick = toShelf;
+  function leaveStory() {
+    // unwind the pushed state so history stays clean; popstate does the rest
+    if (history.state && history.state.story) { history.back(); return; }
+    try { history.replaceState({}, '', storyUrl(null)); } catch (_) {}
+    toShelf();
+  }
+  $('back').onclick = leaveStory;
+  window.addEventListener('popstate', function () {
+    var sid = new URLSearchParams(location.search).get('story');
+    if (sid && sid !== ID) open(sid, true);
+    else if (!sid && ID) toShelf();
+  });
 
-  function open(id) {
+  function open(id, fromHistory) {
     api('/stories/' + encodeURIComponent(id)).then(function (s) {
       ID = s.id; MOM = s.moments || {}; UNITS = s.units || []; NODES = {}; opened = {};
       $('title').value = s.title;
+      if (!fromHistory) {
+        try { history.pushState({ story: s.id }, '', storyUrl(s.id)); } catch (_) {}
+      }
       show('story');
       paint();
       window.scrollTo(0, 0);
@@ -456,6 +480,6 @@
   document.addEventListener('click', function () { $('helpcard').hidden = true; });
 
   var want = qs.get('story');
-  if (want) open(want); else shelf();
+  if (want) open(want, true); else shelf();   // a cold open pushes nothing
 })();
 </script>

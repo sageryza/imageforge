@@ -177,8 +177,14 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   if (!words.includes('Tech') || !words.includes('Stories')) {
     fail('the sheet does not offer her folders — ' + JSON.stringify(words));
   } else ok();
-  if (!words.includes('Bug fix')) {
+  // `Story` and not `Bug fix`: the four outcome words (built · failure · bug
+  // fix · new feature) are offered in the ARCHIVE sheet only since Aug 2026 —
+  // ARCHIVE_ONLY in chats.html — so Organize must NOT show them.
+  if (!words.includes('Story')) {
     fail('the sheet does not offer the old tag words — ' + JSON.stringify(words));
+  } else ok();
+  if (words.includes('Bug fix') || words.includes('Built')) {
+    fail('the sheet still offers the archive-only words — ' + JSON.stringify(words));
   } else ok();
   if (!words.includes('None*')) fail('an unlabelled chat did not arrive with None lit — ' + JSON.stringify(words));
   else ok();
@@ -200,21 +206,21 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   } else ok();
   // MANY AT ONCE — the whole point of the merge. A second word joins the first
   // rather than replacing it.
-  await tap('Bug fix');
+  await tap('Film');
   const both = await chips();
-  if (!both.includes('Tech*') || !both.includes('Bug fix*')) {
+  if (!both.includes('Tech*') || !both.includes('Film*')) {
     fail('a second word did not join the first — ' + JSON.stringify(both));
   } else ok();
-  if (JSON.stringify((posted.labels[1] || {}).add) !== '["bug fix"]') {
+  if (JSON.stringify((posted.labels[1] || {}).add) !== '["film"]') {
     fail('the second tap was not its own add — ' + JSON.stringify(posted.labels));
   } else ok();
   // Tapping a lit word takes it back off — one control, both ways.
   // (Also what puts this chat back on the unfiled list for the rest of the
   // test: filing it really did take it off.)
   await tap('Tech');
-  await tap('Bug fix');
+  await tap('Film');
   const out = await chips();
-  if (!out.includes('None*') || out.includes('Tech*') || out.includes('Bug fix*')) {
+  if (!out.includes('None*') || out.includes('Tech*') || out.includes('Film*')) {
     fail('tapping the lit words did not take the chat out of them — ' + JSON.stringify(out));
   } else ok();
   await page.click('.askwrap .askrow button.go');

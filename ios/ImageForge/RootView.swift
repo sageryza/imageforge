@@ -174,9 +174,9 @@ enum Tool: String, CaseIterable, Identifiable {
         case .dreams:    DreamsView()
         case .instagram: InstagramView()
         case .ads:       AdsView()
-        case .blog:      GatedWebTool(path: "/blog?embed=1", name: "Blog Studio", icon: "newspaper").forgeToolBar("Blog Studio")
-        case .product:   GatedWebTool(path: "/studio?embed=1", name: "the Product Creator", icon: "shippingbox").forgeToolBar("Product Creator")
-        case .report:    GatedWebTool(path: "/report?embed=1", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis").forgeToolBar("Shop Report")
+        case .blog:      GatedWebTool(path: "/blog?embed=1", name: "Blog Studio", icon: "newspaper", navTitle: "Blog Studio")
+        case .product:   GatedWebTool(path: "/studio?embed=1", name: "the Product Creator", icon: "shippingbox", navTitle: "Product Creator")
+        case .report:    GatedWebTool(path: "/report?embed=1", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis", navTitle: "Shop Report")
         case .story:     StoryRoomView()
                              // Same dress as the movies-pushed Story Room: the
                              // heading in the native bar, matched to the page's paper.
@@ -197,26 +197,26 @@ enum Tool: String, CaseIterable, Identifiable {
         // mic: the Voice Studio's CHANGE tab records a take in the page
         // (Aug 2026). Without this the WKWebView denies getUserMedia and the
         // record button dead-ends — the file picker still works either way.
-        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform", mic: true).forgeToolBar("Voice Studio")
-        case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true).forgeToolBar("Song Station")
-        case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle").forgeToolBar("Characters")
-        case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack").forgeToolBar("Films")
+        case .voice:     GatedWebTool(path: "/voice", name: "the Voice Studio", icon: "waveform", mic: true, navTitle: "Voice Studio")
+        case .song:      GatedWebTool(path: "/song", name: "the Song Station", icon: "music.note", mic: true, navTitle: "Song Station")
+        case .character: GatedWebTool(path: "/character", name: "the Characters page", icon: "person.crop.rectangle", navTitle: "Characters")
+        case .films:     GatedWebTool(path: "/films", name: "the Films archive", icon: "film.stack", navTitle: "Films")
         // Page owns its whole header (Aug 2026 v2 design rule) — a bare
         // WKWebView host with NO forgeToolBar, the Chats/Scratch Pad pattern.
         case .freeform:  GatedWebTool(path: "/freeform", name: "Freeform", icon: "scribble.variable")
         // Native bar + chevron, like the other eyebrow-and-title tool pages —
         // only a page owning its WHOLE chrome (Chats, Story Room) gets a bare
         // host. See the headers design rule.
-        case .vector:    GatedWebTool(path: "/vector", name: "Vector", icon: "circle.hexagongrid")
-                            .forgeToolBar("Vector")
+        case .vector:    GatedWebTool(path: "/vector", name: "Vector", icon: "circle.hexagongrid",
+                                      navTitle: "Vector")
         // Chunking: the clip library. A shelf + a search box, so the native
         // bar carries the name and the page never repeats it (?embed=1).
-        case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack")
-                            .forgeToolBar("Chunking")
+        case .chunking:  GatedWebTool(path: "/chunking", name: "Chunking", icon: "play.square.stack",
+                                      navTitle: "Chunking")
         // Story Timeline: a shelf of stories, then one open. The page answers
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
-        case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent")
-                            .forgeToolBar("Story Timeline")
+        case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent",
+                                      navTitle: "Story Timeline")
         // Review Queue: rows link OUT to the decks and grids themselves, so it
         // gets its own wrapper (in-view navigation + history-stepping chevron)
         // rather than GatedWebTool, which bounces off-path links to Safari.

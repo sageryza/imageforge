@@ -14,7 +14,7 @@
  */
 const assert = require('assert');
 const {
-  validateTemplate, renderTemplatePage, groupAssetVariants, parseCaption,
+  validateTemplate, archiveMapOf, renderTemplatePage, groupAssetVariants, parseCaption,
   assignVoiceSegments,
 } = require('../page-templates');
 
@@ -495,6 +495,79 @@ ok('speech before the deck (negative clock skew) still lands on the first card',
 
 ok('an empty timeline attributes nothing rather than guessing', () => {
   assert.deepStrictEqual(assignVoiceSegments([{ start: 1, text: 'words' }], []), {});
+});
+
+// ── the item's way out: `link` ──────────────────────────────────────────────
+ok('link: an object or a bare url, with a default label', () => {
+  const v = validateTemplate('deck', { items: [
+    { text: 'a', link: { url: 'https://claude.ai/code/session_abc', label: 'Open the chat' } },
+    { text: 'b', link: 'https://imageforge-q125.onrender.com/chats' },
+  ] });
+  assert.strictEqual(v.ok, true);
+  assert.deepStrictEqual(v.data.items[0].link,
+    { url: 'https://claude.ai/code/session_abc', label: 'Open the chat' });
+  // a bare url gets a label rather than showing 70 characters of hex
+  assert.strictEqual(v.data.items[1].link.label, 'Open');
+});
+
+ok('link: only http(s) — a bad scheme is DROPPED, never escaped into an anchor', () => {
+  for (const bad of ['javascript:alert(1)', 'data:text/html,<b>', 'chats', '', null]) {
+    const v = validateTemplate('deck', { items: [{ text: 'a', link: bad }] });
+    assert.strictEqual(v.ok, true);
+    assert.strictEqual(v.data.items[0].link, undefined, `link survived: ${bad}`);
+  }
+});
+
+ok('link: rides through a grid group too, and never becomes markup', () => {
+  const v = validateTemplate('grid', { groups: [{ label: 'row', items: [
+    { text: 'a', link: { url: 'https://example.com/x', label: '<b>hi</b>' } },
+  ] }] });
+  assert.strictEqual(v.ok, true);
+  const link = v.data.groups[0].items[0].link;
+  assert.strictEqual(link.url, 'https://example.com/x');
+  assert.strictEqual(link.label, '<b>hi</b>');   // stored raw; both renderers escape it
+  // and the label is capped like every other short field
+  const long = validateTemplate('deck', { items: [{ text: 'a', link: { url: 'https://e.com', label: 'x'.repeat(200) } }] });
+  assert.strictEqual(long.data.items[0].link.label.length, 60);
+});
+
+// ── the archive-review deck: item.chat + applyArchive ───────────────────────
+ok('applyArchive: the map is built only when the page opted in', () => {
+  const items = [
+    { text: 'a', id: 'one', chat: 'dating-book' },
+    { text: 'b', id: 'two', chat: 'movie-maker' },
+    { text: 'c', id: 'three' },                       // no chat — never in the map
+  ];
+  const on = validateTemplate('deck', { items, applyArchive: true });
+  assert.strictEqual(on.data.applyArchive, true);
+  assert.deepStrictEqual(archiveMapOf(on.data), { one: 'dating-book', two: 'movie-maker' });
+
+  // the SAME items without the opt-in: the slugs still ride, but nothing acts
+  const off = validateTemplate('deck', { items });
+  assert.strictEqual(off.data.applyArchive, undefined);
+  assert.strictEqual(off.data.items[0].chat, 'dating-book');
+  assert.deepStrictEqual(archiveMapOf(off.data), {},
+    'an item\'s chat alone must never make a page act');
+});
+
+ok('applyArchive: a chat slug is normalised, never taken raw', () => {
+  const v = validateTemplate('deck', { items: [
+    { text: 'a', id: 'x', chat: '  Dating Book!! ' },
+  ], applyArchive: true });
+  assert.strictEqual(v.data.items[0].chat, 'dating-book-');
+  assert.strictEqual(archiveMapOf(v.data).x, 'dating-book-');
+});
+
+ok('applyArchive: a grid page can carry the map too', () => {
+  const v = validateTemplate('grid', { groups: [
+    { label: 'row', items: [{ text: 'a', id: 'one', chat: 'blog-studio' }] },
+  ], applyArchive: true });
+  assert.deepStrictEqual(archiveMapOf(v.data), { one: 'blog-studio' });
+});
+
+ok('archiveMapOf survives junk without throwing', () => {
+  assert.deepStrictEqual(archiveMapOf(null), {});
+  assert.deepStrictEqual(archiveMapOf({ applyArchive: true }), {});
 });
 
 console.log(`all ${n} checks passed`);

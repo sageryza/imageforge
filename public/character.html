@@ -98,7 +98,7 @@
       <button data-g="she">She</button>
       <button data-g="they" class="on">They</button>
     </div>
-    <input id="aliases" placeholder="Also called… (me, Daddy, J — comma separated)" autocomplete="off"
+    <input id="aliases" placeholder="Also called… (comma separated)" autocomplete="off"
       style="width:100%;margin-top:8px;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">
     <div class="status" id="status"></div>
     <div class="result hidden" id="result">
@@ -267,7 +267,7 @@
     queue.forEach(it => {
       const row = document.createElement('div'); row.className = 'qitem' + (it.skip?' skip':'');
       row.innerHTML = `<img src="${it.cropUrl}" alt="">
-        <input placeholder="Name (blank = skip)" value="${it.name}">
+        <input placeholder="Name" value="${it.name}">
         <div class="seg"><button data-t="side" class="${it.tier==='side'?'on':''}">Side</button><button data-t="main" class="${it.tier==='main'?'on':''}">Main</button></div>
         <button class="x" title="Skip">✕</button>`;
       const inp = row.querySelector('input');

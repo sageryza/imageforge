@@ -17,6 +17,10 @@
 //   node scripts/backfill-wrapups.js               # do it
 //   node scripts/backfill-wrapups.js --limit 20    # a first slice, to check the writing
 //   node scripts/backfill-wrapups.js --chat <slug> # just one (still skips if present)
+//   node scripts/backfill-wrapups.js --rewrite-over 180 --dry-run
+//                                                 # REWRITE the ones that came
+//                                                 # back too long, after the
+//                                                 # prompt was tightened
 //
 // FORGE_BASE overrides the server. ~1¢ a chat on Sonnet — say the estimate
 // before running it, and ask above $3 (the house spending rule).
@@ -30,6 +34,13 @@ const DRY = flag('--dry-run');
 const ONE = val('--chat', '');
 const LIMIT = Number(val('--limit', 0)) || 0;
 const CONC = Math.max(1, Number(val('--concurrency', 3)) || 3);
+// REWRITING, not filling in (Aug 2026: the short half came back at a median of
+// 218 characters against a 180 cap, so the prompt was tightened and the ones
+// already on file had to be re-asked). This is the ONLY thing that passes
+// `force`, and it is deliberately narrow: it re-asks the chats whose short
+// summary is longer than N characters and leaves every other one alone, so a
+// rerun cannot quietly re-bill the whole registry.
+const OVER = Number(val('--rewrite-over', 0)) || 0;
 const CENTS = 1;                       // measured: ~1¢ a summary on claude-sonnet-5
 
 const api = async (path, opts) => {
@@ -49,11 +60,15 @@ const api = async (path, opts) => {
   const todo = all.filter((n) => {
     const c = feed.chats[n] || {};
     if (ONE) return n === ONE;
+    if (OVER) return String(c.wrapUp || '').length > OVER;
     return !(c.wrapLine || c.wrapUp);
   });
   const list = LIMIT ? todo.slice(0, LIMIT) : todo;
-  console.log(all.length + ' chats, ' + (all.length - todo.length) + ' already summarised, '
-    + list.length + ' to write');
+  console.log(OVER
+    ? all.length + ' chats, ' + list.length + ' with a short summary over ' + OVER
+      + ' characters — rewriting those'
+    : all.length + ' chats, ' + (all.length - todo.length) + ' already summarised, '
+      + list.length + ' to write');
   console.log('estimated cost: about $' + (list.length * CENTS / 100).toFixed(2));
   if (DRY) { list.slice(0, 20).forEach((n) => console.log('  would write ' + n));
     if (list.length > 20) console.log('  … and ' + (list.length - 20) + ' more');
@@ -67,7 +82,12 @@ const api = async (path, opts) => {
       const chat = queue.shift();
       if (!chat) return;
       let d;
-      try { d = await api('/api/chatfeed/wrapup/write', { method: 'POST', body: JSON.stringify({ chat }) }); }
+      try {
+        d = await api('/api/chatfeed/wrapup/write', {
+          method: 'POST',
+          body: JSON.stringify(OVER ? { chat, force: true } : { chat }),
+        });
+      }
       catch (e) { d = { error: String((e && e.message) || e) }; }
       done++;
       if (d && d.ok && d.skipped) skipped++;
