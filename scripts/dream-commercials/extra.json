@@ -1,0 +1,72 @@
+{
+ "boys": [],
+ "song": [
+  {
+   "label": "The song spot opening 1/3 — the hair: a fist wound into it, shot so close it takes a second to read",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/38a1d664bc77.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/freeform/out/EoTQig9nPLRk3lVgcKpx-1.webp"
+  },
+  {
+   "label": "The song spot opening 2/3 — the hand on the knee, blanket creased under its weight (reworded past a safety refusal)",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/15aaed956e18.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/freeform/out/Th1X4pqgGqXwFFhMt0P7-1.webp"
+  },
+  {
+   "label": "Drawn straight from the line, no scene description in between — her asleep, the visitor above the bed",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/502266bcce5e.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-asis.webp"
+  },
+  {
+   "label": "Drawn FROM the song, longer — one line further into the hook: the hand in her hair, the shadow of them on the wall, petals on the floor",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/7d6633f46e34.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-lyric-b.webp"
+  },
+  {
+   "label": "Drawn FROM the song — the hook through \"touching me right\" used as the dream the app illustrates (a kiss, moonlight, the lamp on)",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/972291027143.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-lyric-a.webp"
+  },
+  {
+   "label": "The song spot opening 3/3 — the confusing one: a neck, hair fallen across it, someone else's arm entering frame",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/08ceece0889b.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/freeform/out/GuEo5yM2rWu9d55Uzss3-1.webp"
+  },
+  {
+   "label": "The app's dream drawing v2 — the hand in her hair, drawn from the dream that opens on the song's line",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/dbd2106dca90.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-dream-hair-v2.webp"
+  }
+ ],
+ "somnivex": [
+  {
+   "label": "Somnivex 1 of 6 — she misses her grandmother (kitchen window, dusk)",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/939c419acb13.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116770593-9fmz6u.webp"
+  },
+  {
+   "label": "Somnivex 2 of 6 — product shot on the nightstand",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/fa068e389ce8.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116813396-l30i0y.webp"
+  },
+  {
+   "label": "Somnivex 3 of 6 — she falls asleep",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/80fe8d702ac2.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116853080-3boj8z.webp"
+  },
+  {
+   "label": "Somnivex 4 of 6 — the porch swing dream",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/d1c9b2fe3285.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116898774-amd6bf.webp"
+  },
+  {
+   "label": "Somnivex 5 of 6 — dancing under the dream moon",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/fe67c3595193.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116945598-uuf8ye.webp"
+  },
+  {
+   "label": "Somnivex 6 of 6 — end card: Be there.",
+   "url": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/4d6e05e671d4.webp",
+   "src": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/openai/1787116981724-qlgkve.webp"
+  }
+ ]
+}
