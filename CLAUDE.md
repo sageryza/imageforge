@@ -2019,6 +2019,18 @@ out. The headlines, so you know when to go and look:
     it and pagehead.js is that chrome now. Dropping it would give each of them a
     second chevron, and `#back` means different things page to page (the Story
     Timeline's is a "Stories" button back to the shelf, not a way out).
+  - **`history.length` CANNOT DECIDE THE CHEVRON'S LAST STEP (2026-08-20,
+    Sophie: "the back button doesn't work … or doesn't go anywhere").** After
+    a round trip (Review Queue → deck → back) the page sits at history INDEX 0
+    with length 2, where `history.back()` is a silent no-op — so the chevron
+    read as dead. pagehead.js stamps each entry's depth onto `history.state`
+    (`__forgeDepth`) and leaves the tool at depth 0, with a 400ms bail to
+    `__forgeLeave` if a back it did attempt turns out to move nothing. It also
+    owns the header pattern now: title centred top-middle (`.fh`, direct
+    children only — nested `.htext` stacks are left alone), the chevron in a
+    small rounded box, and `.app-header` restored to FLEX (the old
+    `display:block !important` un-hide is what stacked Meta Assets' title into
+    the row below, under the pill). Tests: `node scripts/test-pagehead.js`.
   - A gated page inside a native tool must be asked for with `?embed=1`, and
     gated pages must not be cached. Test: `node scripts/test-pagehead.js` (both
     builds, headless).
@@ -2910,6 +2922,15 @@ before working on that module. Nothing was deleted — the moved text is verbati
     own frozen Storage JSON (cached forever per id — a new version is a new
     page), her progress is the verdict doc (`<chat>__page-<id>`), names come
     from the registry cache. No model call, no cost; the answer is held 60s.
+  - **A SPREAD VERDICT COUNTS AS PROGRESS (found live 2026-08-20).** Her ♥/✕
+    on a whole spread and her "this one" pick land under the `s:` key, and the
+    queue used to count only card ids — she reviewed the "Monkey + summit"
+    grid (verdict doc: `s:monkeys-… → the winning card`) and the tile went on
+    saying "10 to go", which she reported as "the heart button doesn't work".
+    `pageSpreads` in review.js re-derives the `s:` keys EXACTLY the way
+    page-views.js does (label slug, in order) — change one and the other or
+    spread marks silently stop counting again; `node scripts/test-review.js`
+    pins them against each other's shape.
   - **The 'later' rule**: on stock-states pages `'later'` counts as still
     waiting (it is literally "declined to sort now" — judge.js), shown apart
     ("4 of 28 · 2 later"). A page with its OWN states counts every one.

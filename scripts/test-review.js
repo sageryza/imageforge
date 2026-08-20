@@ -72,6 +72,40 @@ const deck = (ids, extra) => ({
     pageProgress(['a'], false, { a: true, ghost: true }), { decided: 1, later: 0 });
 }
 
+// ── pageProgress: A SPREAD VERDICT DECIDES ITS CARDS (Aug 2026, found live:
+// Sophie reviewed the "Monkey + summit" grid — a "this one" pick saved as
+// `s:monkeys-…` → the winning card's id — and the queue went on saying
+// "10 to go", which read to her as "the heart button doesn't work") ────────
+{
+  // the same page shape page-views.js derives spread keys from: the key is
+  // the group's label, slugged, `s:` prefixed
+  const data = { groups: [
+    { label: 'Monkeys, Money, and Bananas', items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
+    { label: 'Summit', items: [{ id: 'd' }, { id: 'e' }] },
+    { label: 'Solo', items: [{ id: 'f' }] },   // one card — no key of its own
+  ] };
+  const { ids, spreads } = pageItems(data);
+  is('spread keys derive from the labels, s: prefixed, one-card groups skipped',
+    Object.keys(spreads).sort(), ['s:monkeys-money-and-bananas', 's:summit']);
+  is('…each carrying its cards', spreads['s:monkeys-money-and-bananas'], ['a', 'b', 'c']);
+  is('a pick on a spread (the winning card\'s id) decides every card in it',
+    pageProgress(ids, false, { 's:monkeys-money-and-bananas': 'a' }, spreads),
+    { decided: 3, later: 0 });
+  is('a ♥ on a spread does too, and a card\'s own mark still wins',
+    pageProgress(ids, false, { 's:summit': true, d: 'later' }, spreads),
+    { decided: 1, later: 1 });
+  is('an unlabelled group falls back to its position',
+    Object.keys(pageItems({ groups: [{ items: [{ id: 'x' }, { id: 'y' }] }] }).spreads),
+    ['s:spread-1']);
+  is('two groups sharing a label stay two keys, in order',
+    Object.keys(pageItems({ groups: [
+      { label: 'Twin', items: [{ id: 'x' }, { id: 'y' }] },
+      { label: 'Twin', items: [{ id: 'p' }, { id: 'q' }] },
+    ] }).spreads), ['s:twin', 's:twin-2']);
+  is('without spreads nothing changes', pageProgress(ids, false, { a: true }, undefined),
+    { decided: 1, later: 0 });
+}
+
 // ── buildQueue: the piles ──────────────────────────────────────────────────
 {
   const q = buildQueue({

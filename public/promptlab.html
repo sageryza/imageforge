@@ -5,9 +5,16 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
   body { font-family: -apple-system, "Helvetica Neue", sans-serif; background: #faf7f2; color: #2b2622; padding: 14px 12px 60px; }
-  h1 { font-size: 20px; margin-bottom: 10px; }
-  /* In the app the native nav bar already says Playground — never two titles. */
-  body.native h1 { display: none; }
+  /* The page's OWN header band (Aug 2026, Sophie: "there shud be a header —
+     playground is missing it"). The house app-header shape — caps, letter-
+     spaced, one row pagehead.js puts its back chevron into and centres. */
+  .app-header { display: flex; align-items: center; min-height: 34px; padding-right: 64px; margin: 0 0 10px; }
+  .app-header h1 { font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 11px;
+    letter-spacing: .34em; color: #6f675e; text-transform: uppercase; font-weight: 400; margin: 0; }
+  /* On the OLD build Apple's nav bar still says Playground — never two titles.
+     pagehead.js un-hides the band (flex !important) only once the new build's
+     bridge is there and the bar is gone. */
+  body.native .app-header { display: none; }
   .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
   .styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
   .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
@@ -176,7 +183,7 @@
   .canvastog button.on { background: #2b2622; color: #faf7f2; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
-<h1>Playground</h1>
+<header class="app-header"><h1>Playground</h1></header>
 
 <div class="panel">
   <div class="styles" id="styles"></div>

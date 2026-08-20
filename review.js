@@ -119,6 +119,32 @@ function itemWords(it) {
     || (Array.isArray(it.sections) && it.sections[0] && it.sections[0].text) || '';
 }
 
+/** Spread key → the member cards' ids, for every group of 2+. THE SAME
+ *  DERIVATION AS page-views.js `spreadsOf` — the key is derived from the
+ *  group's label (`s:` prefixed, deduped in order), never stored, so it has
+ *  to be computed identically here or a spread verdict can never be matched
+ *  back to its cards. Found live 2026-08-20: Sophie reviewed the "Monkey +
+ *  summit" grid (a spread pick, `s:monkeys-…` → the winning card) and the
+ *  queue went on saying "10 to go" — her heart "didn't work" because this
+ *  file only ever counted card ids. */
+function pageSpreads(data) {
+  const groups = data && data.groups && data.groups.length
+    ? data.groups
+    : (data && data.items ? data.items.map((it) => ({ items: [it] })) : []);
+  const taken = {}; const map = {};
+  groups.forEach((g, i) => {
+    const items = (g && g.items) || [];
+    if (items.length < 2) return;      // a one-card spread has no key of its own
+    const base = String(g.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '').slice(0, 40) || (`spread-${i + 1}`);
+    let id = base; let n = 2;
+    while (taken[id]) { id = `${base}-${n}`; n += 1; }
+    taken[id] = 1;
+    map[`s:${id}`] = items.map((it) => String(it && it.id || '')).filter(Boolean);
+  });
+  return map;
+}
+
 /** The item ids, custom-states flag, thumbnail and text peek out of one page's
  *  frozen data JSON (the shape validateTemplate stored). */
 function pageItems(data) {
@@ -128,6 +154,7 @@ function pageItems(data) {
   return {
     ids: items.map((it) => String(it && it.id || '')).filter(Boolean),
     custom: Boolean(data && data.states && data.states.length),
+    spreads: pageSpreads(data),
     thumb: (items.find((it) => it && it.img) || {}).img || '',
     // the first card's words — what a TEXT deck's tile shows in the picture's
     // place (measured 2026-08-19: 12 of the 15 queued pages had no picture at
@@ -136,12 +163,25 @@ function pageItems(data) {
   };
 }
 
-/** Decided / later counts for one page's items against its verdict map. */
-function pageProgress(ids, custom, verdictItems) {
+/** Decided / later counts for one page's items against its verdict map.
+ *  A verdict on a SPREAD (`s:` key — a ♥/✕ on the whole row, or a "this one"
+ *  pick, whose value is the winning card's id) decides every card in that
+ *  spread: she judged them as a set, and that is a review of each of them.
+ *  A card's own mark still wins where both exist. */
+function pageProgress(ids, custom, verdictItems, spreads) {
   const v = verdictItems || {};
+  const viaSpread = {};
+  Object.keys(spreads || {}).forEach((key) => {
+    const val = v[key];
+    if (val === undefined || val === null) return;
+    (spreads[key] || []).forEach((id) => {
+      if (viaSpread[id] === undefined) viaSpread[id] = val;
+    });
+  });
   let decided = 0; let later = 0;
   ids.forEach((id) => {
-    const val = v[id];
+    let val = v[id];
+    if (val === undefined || val === null) val = viaSpread[id];
     if (val === undefined || val === null) return;
     // stock states: 'later' is "declined to sort now" — still waiting, but
     // counted apart so the row can say so. A page's OWN states all count.
@@ -167,10 +207,10 @@ function buildQueue({ pages, items, verdicts, chats }) {
     if (!p || !p.id || !p.chat || p.superseded) return;
     const data = (items || {})[p.id];
     if (!data) return;                       // unreadable data: no wrong numbers
-    const { ids, custom, thumb, peek } = pageItems(data);
+    const { ids, custom, spreads, thumb, peek } = pageItems(data);
     if (!ids.length) return;
     const vdoc = (verdicts || {})[`${p.chat}__page-${p.id}`] || {};
-    const { decided, later } = pageProgress(ids, custom, vdoc.items);
+    const { decided, later } = pageProgress(ids, custom, vdoc.items, spreads);
     const reg = (chats || {})[p.chat] || {};
     const row = {
       id: p.id,
@@ -332,4 +372,4 @@ router.post('/hide', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-module.exports = { router, buildQueue, pageItems, pageProgress, itemWords };
+module.exports = { router, buildQueue, pageItems, pageProgress, pageSpreads, itemWords };

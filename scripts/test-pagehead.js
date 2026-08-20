@@ -135,6 +135,38 @@ const server = http.createServer((req, res) => {
     await p.waitForTimeout(80);
     is('with nothing left in the page, it walks history, not out of the tool',
       await p.evaluate(() => window.__leftTheTool), false);
+
+    // ── AT THE BOTTOM OF HISTORY WITH ENTRIES AHEAD, IT STILL LEAVES ──────
+    // (Aug 2026, Sophie: "the back button doesn't work either, or doesn't go
+    // anywhere" — the Review Queue after a deck round-trip sits at history
+    // index 0 with length 2, where history.back() is a silent no-op. The
+    // depth stamp on history.state is what tells 'been somewhere and came
+    // back' apart from 'somewhere to go back to'.)
+    await p.waitForTimeout(120);   // let the popstate from the walk land
+    is('back at the first entry, the walk restored its depth stamp',
+      await p.evaluate(() => (window.history.state || {}).__forgeDepth), 0);
+    await p.locator('#forgeback').click();
+    await p.waitForTimeout(80);
+    is('…so the chevron leaves the tool instead of reading as dead',
+      await p.evaluate(() => window.__leftTheTool), true);
+
+    // ── THE HEADER PATTERN (Aug 2026, Sophie's screenshots) ───────────────
+    is('the chevron wears a small rounded box, not a bare glyph',
+      await p.evaluate(() => {
+        const s = getComputedStyle(document.getElementById('forgeback'));
+        return [s.borderRadius, s.borderTopWidth !== '0px'];
+      }), ['6px', true]);
+    ok('the title sits in the top middle of the screen',
+      await p.evaluate(() => {
+        const r = document.querySelector('.tool-eyebrow').getBoundingClientRect();
+        const mid = r.left + r.width / 2;
+        return Math.abs(mid - 195) < 8;   // centre of a 390pt viewport
+      }));
+    ok('…and the "?" stays on the right of the row',
+      await p.evaluate(() => {
+        const r = document.getElementById('help').getBoundingClientRect();
+        return r.left > 260;
+      }));
     await p.close();
   }
 
