@@ -241,6 +241,6 @@ if (require.main === module) {
   if (process.argv.includes('--dry')) { process.stdout.write(html); process.exit(0); }
   fetch('https://imageforge-q125.onrender.com/api/chatfeed/page', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat: 'dream-app-commercials', title: 'How the grid will look — v2, the tiles play', html }),
+    body: JSON.stringify({ chat: 'dream-app-commercials', title: 'How the grid will look — v3, always the current cut', html }),
   }).then((r) => r.json()).then((j) => console.log(JSON.stringify(j)));
 }

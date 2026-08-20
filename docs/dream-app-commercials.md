@@ -20,9 +20,10 @@ Four surfaces, all in the `dream-app-commercials` chat's **Compare tab**:
 - **Dream app commercials — the ChatGPT ideas** — the 11 from her pasted
   thread. She has said nothing about these yet, so their `?` is plain;
   ChatGPT's own note on a pitch rides the caption line, labelled as ChatGPT's.
-- **The dream commercials room** — every film and every still.
-- **How the grid will look — v2, the tiles play** — the Instagram profile
-  grid, and every tile opens its film full-screen the way a real grid does
+- **The dream commercials room — v2, the current cuts** — every film and every
+  still.
+- **How the grid will look — v3, always the current cut** — the Instagram
+  profile grid, and every tile opens its film full-screen the way a real grid does
   (Sophie: *"what if the instagram play buttons actually worked and opened
   lightbox"*). Somnivex has no film, so its tile opens the storyboard frame —
   no tile on the grid is a dead control. Both lightboxes come from
@@ -62,6 +63,29 @@ before anyone concludes a cut doesn't exist.
 DOOMSCROLLEX, REPLYVA, CANCELLIA, HOBBYSTATIN, TABZOLAM, THRESHOLDYN) and
 five reels (Xi, two Secretly a Witch, two Memory Library). All on the room
 page's bottom block.
+
+## Two things that keep these pages honest by themselves
+
+**A posted page is frozen HTML**, so it shows the cut that existed the day it
+was built — and these films are re-cut daily in other chats. Measured
+2026-08-20: the grid pointed at the song spot v4 (0:13) while that chat had
+pinned v8 (0:28). Both pages now ask `GET /api/chatfeed/newest` on every open,
+which DERIVES the current cut rather than asking chats to file one: the making
+chat's **pin** when it points inside that film's own prefix, else the newest
+video Storage holds under it. The prefix guard is the load-bearing half — a
+chat that makes several films can only pin one, and its pin must never be
+served as a different film. Each tile/row names its own `prefix` and `chat` in
+`scripts/dream-commercials/`; a failed resolve leaves the built-in url. The
+covers are still the older cut's frames, so a moved film says so in rust and
+names the new cut rather than showing a duration that belongs to a film no
+longer playing. Test: `node scripts/test-newest-film.js`.
+
+**Tap-to-note works on every film here**, not just a pinned one — the mechanism
+Sophie designed on the Evan film lived only inside `chats.html`'s pinned player
+until Aug 2026. It is `public/filmnote.js` now, shared with `compare.js`'s
+video lightbox, so any film row or playable tile on any Compare page has it.
+A note lands on the film's own url thread **in the chat that makes that film**,
+so it reaches the chat that can act on it.
 
 ## The reels are the WRONG SHAPE for Instagram
 
