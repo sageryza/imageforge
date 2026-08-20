@@ -1051,6 +1051,33 @@ const wrapPartOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, W
 const wrapProse = (asked, did, next) =>
   wrapTextOf([asked, did, next].map((s) => String(s || '').trim()).filter(Boolean).join(' '));
 
+// THE SHORT SUMMARY IS THREE LINES ON HER PHONE, AND THE MODEL CANNOT BE ASKED
+// TO COUNT (Sophie: "a short summary like three lines at most"). Measured over
+// her real summaries, twice: asking for "UNDER 180 CHARACTERS" came back at a
+// median of 223, and re-asking with the instruction tightened to two sentences
+// still left 169 of 317 over the cap — the worst at 526 characters, eight lines
+// in the expander. A length is not a thing to hope for, so it is enforced here
+// on the way in.
+//
+// WHOLE SENTENCES ONLY: it keeps sentences until the next one would break the
+// cap, and a first sentence already over the cap stands ALONE rather than being
+// cut mid-thought (6 of 317, and a sentence that stops mid-word reads worse
+// than a long one). The detail it drops is not lost — the long version behind
+// `more` is where detail belongs, which is what makes trimming safe here.
+const SHORT_CAP = 180;
+function capShort(s, cap = SHORT_CAP) {
+  const t = String(s || '').trim();
+  if (t.length <= cap) return t;
+  const parts = t.split(/(?<=[.!?])\s+/);
+  let out = '';
+  for (const p of parts) {
+    if (!out) { out = p; continue; }
+    if (out.length + 1 + p.length > cap) break;
+    out += ' ' + p;
+  }
+  return out;
+}
+
 // Freeze whatever the chat already said about itself into a wrap-up. Returns
 // the patch to merge, or null when there is nothing to freeze — never invents.
 // The Update card IS the summary's shape now, so this is a straight copy rather
@@ -1123,7 +1150,12 @@ router.post('/wrapup', async (req, res) => {
     const three = asked || did || next;
     // The prose half stays writable for anything already sending it, and is
     // DERIVED from the three when they are what came in.
-    const full = three ? wrapProse(asked, did, next) : wrapTextOf(text);
+    //
+    // `capShort` guards the FREE-TEXT path ONLY. The derived prose must keep
+    // all three answers — cutting it to three lines would silently drop
+    // "what's next", which is the half she reads for loose ends — while a chat
+    // sending one long paragraph is exactly the case the cap was built for.
+    const full = three ? wrapProse(asked, did, next) : capShort(wrapTextOf(text));
     const one = wrapLineOf(line || (full.split(/(?<=[.!?])\s/)[0] || full));
     const fuller = wrapTextOf(long);
     const still = wrapLineOf(open);
@@ -1216,6 +1248,50 @@ function salvageJson(raw) {
   }
   return null;
 }
+
+// TRIM THE SUMMARIES ALREADY ON FILE — free, and deliberately not a model call
+// (Aug 2026). `capShort` above governs new writes; 169 summaries were already
+// stored over the cap, written before it existed. Re-asking Claude for those
+// would spend real money to fix a length problem that is pure text surgery, and
+// would also rewrite summaries she may have already read. This only shortens
+// what is there — it never asks for new words, never touches `wrapLong`,
+// `wrapOpen` or `wrapLine`, and never lengthens anything.
+//
+// DRY BY DEFAULT, like every other bulk operation in this repo: it answers with
+// what it WOULD change until called with `{dry:false}`.
+router.post('/wrapup/trim', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const cap = Math.max(60, Number((req.body || {}).cap) || SHORT_CAP);
+    const snap = await db().collection(REG).get();
+    const hits = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      const r = d.data() || {};
+      // NEVER touch a chat already on the THREE-ANSWER shape (Aug 2026): its
+      // `wrapUp` is the three sentences joined for older readers, and cutting
+      // that to three lines would drop "what's next" — the half she reads for
+      // loose ends. This only shortens the one-paragraph summaries written
+      // before that shape existed.
+      if (r.wrapAsked || r.wrapDid || r.wrapNext) return;
+      const cur = String(r.wrapUp || '');
+      if (cur.length <= cap) return;
+      const next = capShort(cur, cap);
+      if (!next || next === cur) return;
+      hits.push({ chat: d.id, was: cur.length, now: next.length, text: next });
+    });
+    if (!dry) {
+      for (const h of hits) {
+        await regRef(h.chat).set({ wrapUp: h.text }, { merge: true });
+      }
+    }
+    res.json({ ok: true, dry, cap, checked: snap.size, trimmed: hits.length,
+      // The ones a trim cannot fix: a single sentence longer than the cap is
+      // kept whole, so it is still over. Named rather than silently counted.
+      stillOver: hits.filter((h) => h.now > cap).map((h) => h.chat),
+      sample: hits.slice(0, 5).map((h) => ({ chat: h.chat, was: h.was, now: h.now })) });
+  } catch (err) { fail(res, err); }
+});
 
 router.post('/wrapup/write', async (req, res) => {
   try {
@@ -1310,7 +1386,7 @@ router.post('/wrapup/write', async (req, res) => {
         ? out.long.filter((x) => /[.!?]\s*$/.test(String(x || '').trim()))
         : backToSentence(out.long);
     }
-    const full = wrapTextOf(out && out.text);
+    const full = capShort(wrapTextOf(out && out.text));
     // THE LONG ONE (Aug 2026, Sophie: "ideally would be a short summary like
     // three lines at most, and then a longer summary behind an arrow"). Same
     // story at a second depth, not a continuation — she stops at whichever

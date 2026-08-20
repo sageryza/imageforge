@@ -842,6 +842,29 @@ them off the reference sheet, not off the old filenames.
     nothing else, the model came back at 374 characters, seven lines in the
     expander. A rescued half-sentence is dropped whole rather than shown
     ending mid-word, because a one-sentence answer has nothing to trim back to.
+    The SHORT one is capped in CHARACTERS (under 180 = three lines on her
+    phone), not in sentences — the first cut asked for three sentences and came
+    back at 374 characters, seven lines in the expander.
+  - **THE CAP IS ENFORCED IN CODE, BECAUSE THE MODEL CANNOT COUNT (Aug 2026,
+    measured TWICE over her real summaries).** Asking for "UNDER 180
+    CHARACTERS" produced a median of 223 across 318 chats; tightening the
+    instruction to two sentences and re-running still left 169 over the cap,
+    the worst at 526 characters — eight lines in the expander. `capShort()` in
+    `chatfeed.js` cuts it on the way in: whole sentences up to 180, and a first
+    sentence already over the cap kept WHOLE rather than cut mid-thought. It
+    guards the FREE-TEXT paths only — the THREE-ANSWER prose above is derived
+    from three separately-capped sentences, and trimming it would silently drop
+    "what's next". Nothing is lost — the detail lives in the bulleted long
+    version, which is what makes trimming safe. **A prompt instruction about
+    length is a hope; a length that matters gets cut in code.**
+  - **`POST /wrapup/trim` shortens the ones ALREADY on file, free** — pure text
+    surgery, no model call, dry by default (`{dry:false}` to write). It skips
+    any chat already carrying the three-answer fields, so it only ever reaches
+    the one-paragraph summaries written before that shape. It only
+    ever shortens `wrapUp`; `wrapLine`, `wrapLong` and `wrapOpen` are never
+    touched, so it cannot spend money or reword a summary she has read.
+    Re-asking Claude for 169 summaries to fix a LENGTH would have cost about
+    $1.70 and rewritten their words as a side effect.
   - **THE LONG ONE IS BULLETS (Aug 2026, Sophie: "I would like bullet points
     especially for the long summary — don't add bullet points where it doesn't
     actually help, but the long summary is one block of text would be great to

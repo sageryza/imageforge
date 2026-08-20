@@ -284,6 +284,43 @@ console.log('a summary that got cut off');
   ok('and the cap has real headroom now', /maxTokens: 1500/.test(src));
 }
 
+// ── the cap is ENFORCED, not requested ─────────────────────────────────────
+// Measured twice over her real summaries: "UNDER 180 CHARACTERS" in the prompt
+// came back at a median of 223, and re-asking with it tightened to two
+// sentences still left 169 of 317 over — the worst at 526. So the length is cut
+// in code on the way in, and this pins the two things that make that safe:
+// whole sentences only, and a first sentence already over the cap kept WHOLE.
+console.log('the short summary is cut to three lines in code');
+{
+  const capShort = new Function('const SHORT_CAP=180;' + lift('capShort') + ' return capShort;')();
+  const A = 'Sophie wanted the summaries shortened. Built the cap and ran it over every chat. '
+    + 'It came in at a median of 183 characters afterwards, which is three lines on her phone.';
+  const cut = capShort(A);
+  ok('a summary over the cap loses its last sentence', cut.length <= 180 && cut.length > 60,
+    String(cut.length));
+  ok('…and keeps whole sentences, never a fragment', /[.!?]$/.test(cut), cut);
+  ok('one already short enough is untouched', capShort('Short and done.') === 'Short and done.');
+  const LONE = 'x'.repeat(300) + '.';
+  ok('a first sentence longer than the cap is kept WHOLE, not cut mid-thought',
+    capShort(LONE) === LONE);
+  ok('nothing is ever lengthened', capShort('').length === 0);
+  // It guards the FREE-TEXT paths only. The three-answer prose is derived from
+  // three separately-capped sentences, and cutting THAT to three lines would
+  // drop "what's next" — the half she reads for loose ends.
+  ok('the free-text paths are capped',
+    (src.match(/capShort\(wrapTextOf\(/g) || []).length === 2);
+  ok('…and the three-answer prose is left whole',
+    /three \? wrapProse\(asked, did, next\) : capShort\(wrapTextOf\(text\)\)/.test(src));
+  ok('…and the trim pass skips a chat already on that shape',
+    /if \(r\.wrapAsked \|\| r\.wrapDid \|\| r\.wrapNext\) return;/.test(src));
+  ok('the free trim pass exists for the ones already stored',
+    /router\.post\('\/wrapup\/trim'/.test(src));
+  ok('…and it is DRY by default, like every other bulk operation here',
+    /const dry = !\(req\.body && req\.body\.dry === false\)/.test(src));
+  ok('…and it only ever shortens `wrapUp` — never rewrites the other fields',
+    /set\(\{ wrapUp: h\.text \}, \{ merge: true \}\)/.test(src));
+}
+
 function WRAP_SYS_TEXT() {
   const i = src.indexOf('const WRAP_SYS =');
   return src.slice(i, src.indexOf('`;', i));
