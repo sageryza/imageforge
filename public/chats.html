@@ -6572,11 +6572,28 @@ function openPage(p){
   scrollStop();
   var pvY=window.scrollY;   // the house overlay rule — restored by __close below
   var v=document.createElement('div'); v.className='pageview';
-  var bar=document.createElement('div'); bar.className='pv-bar';
-  bar.innerHTML='<button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span>';
+  // A ONE-SCREEN PAGE GETS NO BAR (Aug 2026, Sophie: "the very top part of the
+  // compare tab with the back arrow which has the name… give me the option of
+  // going back to the compare tab cause that takes a room in the top").
+  // A deck IS one screen — it never scrolls — so every pixel this bar takes
+  // comes straight out of the card. Measured on her own sweep: the deck's
+  // verdict chips are reachable at 640px of height and covered at 600, and the
+  // bar (a 38px chevron, the title line, and the safe-area inset above them)
+  // is what carries an iPhone 13 across that line. So a deck is opened with
+  // `back=1` instead and draws its own chevron in the top row it ALREADY has —
+  // the same row as the progress line and Piles, so the way back costs no
+  // vertical space at all. A scrolling page (a grid, a hand-built one) keeps
+  // the bar: it has no such row to put a chevron in.
+  var oneScreen = p.template === 'deck';
+  var bar=null;
+  if(!oneScreen){
+    bar=document.createElement('div'); bar.className='pv-bar';
+    bar.innerHTML='<button class="pv-back" aria-label="Back">&#8249;</button><span class="pv-title">'+esc(p.title)+'</span>';
+  }
   var frame=document.createElement('iframe'); frame.className='pv-frame';
-  frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
-  v.appendChild(bar); v.appendChild(frame);
+  frame.src='/api/chatfeed/page/'+encodeURIComponent(p.id)+'?embed=1'
+    +(oneScreen?'&back=1':'')+(TOKEN?'&token='+encodeURIComponent(TOKEN):'');
+  if(bar) v.appendChild(bar); v.appendChild(frame);
   var pill=mkPagePill(function(){ try{ return frame.contentWindow; }catch(_){ return null; } });
   v.appendChild(pill);
   // Tap the page itself to start/stop autoscroll (same-origin iframe, so we can
@@ -6645,8 +6662,17 @@ function openPage(p){
   v.__close=function(){
     if(pill._stop) pill._stop(); v.remove();
     document.body.style.overflow=''; document.body.classList.remove('ontop');
+    window.__closePage=null;
     window.scrollTo(0,pvY); };
-  bar.querySelector('.pv-back').onclick=function(){
+  // the page's own chevron (judge.js backToQueue) asks the viewer to close —
+  // set while this viewer is open, cleared by __close so a stale hook can
+  // never answer for a viewer that is gone
+  window.__closePage=function(){
+    if(!document.body.contains(v)) return false;
+    if(v.__close) v.__close();
+    return true;
+  };
+  if(bar) bar.querySelector('.pv-back').onclick=function(){
     try{
       var w=frame.contentWindow;
       if(w && typeof w.__navBack==='function' && w.__navBack()===true) return;

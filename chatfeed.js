@@ -3219,6 +3219,11 @@ router.get('/pages', async (req, res) => {
     const pages = snap.docs
       .map((d) => ({
         id: d.id, title: d.data().title, created: d.data().created,
+        // the Compare tab needs to know a page is ONE SCREEN before it opens
+        // it: a deck gets no viewer bar (see openPage in chats.html), because
+        // that bar's height is what pushed the deck's own controls off an
+        // iPhone. Empty for a hand-built html page.
+        template: d.data().template || '',
         superseded: !!d.data().superseded,
         bookmarked: !!d.data().bookmarked,
         bookmarkNote: d.data().bookmarkNote || '',
