@@ -2138,9 +2138,59 @@ router.get('/pile', async (_req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// ---- THE REASONS SHE HAS GIVEN BEFORE (Aug 2026, Sophie: "could you gather
+// the list of reasons for waiting for something that I enter manually and put
+// it behind a button") -------------------------------------------------------
+// There was nothing to gather until this existed, and that is the finding
+// worth writing down: `waitingFor` is DELETED with its tag (labelPatch), on
+// purpose — a stale "waiting for the API key" on a chat that stopped waiting
+// weeks ago is worse than no line at all. So every answer she had ever typed
+// was already gone. **Measured live 2026-08-20: 378 chats, TWO carrying a
+// waiting reason** — the whole history, because the field is a live state and
+// never a record.
+//
+// So the memory is a SECOND place, on `__settings` beside her label
+// vocabulary: the field stays live-and-deletable, and the list of things she
+// has waited for accumulates next to it. Newest first, so a re-pick moves to
+// the top and the button opens on what she is most likely to want.
+//
+// It rides the feed's `settings` object like `pileLabels` and `categories`,
+// so the page pays no request for it — and `regRef` invalidates the registry
+// cache on write, so a reason she just typed is there on the next read.
+//
+// Two deliberate smallnesses: it is BEST-EFFORT (a remembered reason must
+// never fail the save she actually made), and it reads the settings doc
+// DIRECTLY rather than through `registry()` — one extra read on an action she
+// takes a few times a month, in exchange for never folding a stale cached list
+// back over a newer one. Two chats saving in the same second could still lose
+// one reason off the list; that is a list, not her data, and the alternative
+// (arrayUnion) would throw the order away, which is the only thing making the
+// list useful.
+const WAIT_MEMORY_MAX = 40;
+
+function waitReasons(settings) {
+  const raw = (settings || {}).waitingReasons;
+  return (Array.isArray(raw) ? raw : [])
+    .map((r) => String(r == null ? '' : r).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX))
+    .filter((r, i, a) => r && a.findIndex((x) => x.toLowerCase() === r.toLowerCase()) === i)
+    .slice(0, WAIT_MEMORY_MAX);
+}
+
+async function rememberWaiting(text) {
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, WAIT_MAX);
+  if (!t) return;                       // clearing the box forgets nothing
+  const snap = await db().collection(REG).doc(SETTINGS_DOC).get();
+  const cur = waitReasons(snap.data());
+  const next = waitReasons({ waitingReasons: [t].concat(cur) });
+  // Re-picking the one already at the top writes nothing.
+  if (next.length === cur.length && next.every((r, i) => r === cur[i])) return;
+  await regRef(SETTINGS_DOC).set({ waitingReasons: next }, { merge: true });
+}
+
 // WHAT IS IT WAITING FOR — the answer to the box the `waiting for something`
 // tag opens. Its own field so it can never overwrite a note she wrote, and it
-// is cleared by `labelPatch` the moment the tag comes off.
+// is cleared by `labelPatch` the moment the tag comes off — which is why the
+// answers are also remembered on __settings (above).
 router.post('/waiting', async (req, res) => {
   try {
     const body = req.body || {};
@@ -2152,6 +2202,9 @@ router.post('/waiting', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'no such chat' });
     await regRef(slug).set(
       { waitingFor: text || admin.firestore.FieldValue.delete() }, { merge: true });
+    // Best-effort, and after the real save: the list behind the button is a
+    // convenience, and losing it must never cost her the answer she just gave.
+    await rememberWaiting(text).catch(() => {});
     res.json({ ok: true, chat: slug, waitingFor: text });
   } catch (err) { fail(res, err); }
 });
@@ -4104,4 +4157,4 @@ module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, q
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
-  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX };
+  WAIT_LABEL, WAIT_ASK, WAIT_PREFIX, WAIT_MAX, WAIT_MEMORY_MAX, waitReasons };

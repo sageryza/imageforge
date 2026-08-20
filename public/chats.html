@@ -989,6 +989,28 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    should be at the top, that's the header"). Everything under it is what she
    does on the way past. */
 .askbox p.archq{margin:0 0 14px;}
+/* ---- THE ⟲ ON THE WAITING BOX (Aug 2026, Sophie: "put it behind a button …
+   should be small and unobtrusive since I won't use it that often") ---------
+   It rides the QUESTION's line, so it takes no height of its own, and it is
+   in the quiet ink — the field under it is the loud thing on this sheet. */
+.askqrow{display:flex; align-items:flex-start; gap:10px;}
+.askqrow .archq{flex:1; min-width:0;}
+.waitpast{flex:none; background:none; border:0; padding:2px 0 0; cursor:pointer;
+  color:var(--ink2); display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.waitpast svg{width:17px; height:17px; display:block;}
+.waitpast[hidden]{display:none !important;}
+/* The list: her own sentences, so the serif, and each row a real tap target.
+   Capped in height rather than in nothing — twelve rows would otherwise push
+   Done off a phone screen. */
+.waitpastlist{margin:0 0 12px; border:1px solid var(--line); border-radius:6px;
+  max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.waitpastlist[hidden]{display:none !important;}
+.waitpastrow{display:block; width:100%; box-sizing:border-box; text-align:left;
+  background:none; border:0; border-bottom:1px solid var(--line); cursor:pointer;
+  padding:10px 11px; font-family:'EBGaramond',Georgia,serif; font-size:15px;
+  line-height:1.3; color:var(--ink); -webkit-tap-highlight-color:transparent;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.waitpastrow:last-child{border-bottom:none;}
 /* THE MARKS AND THE TAGS (Aug 2026, Sophie: "rather than having the built/other
    tabs I think it would be better to have actual Tags … a bookmark and a star
    on the left that will be filled in if it's already bookmarked or star").
@@ -3732,6 +3754,45 @@ var WAIT_LABEL='waiting for something';
 var WAIT_ASK='What is it waiting for?';
 var WAIT_PREFIX='Waiting for:';
 function waitingOf(name){ return String((chats[name]&&chats[name].waitingFor)||'').trim(); }
+// ---- THE REASONS SHE HAS GIVEN BEFORE (Aug 2026, Sophie: "could you gather
+// the list of reasons for waiting for something that I enter manually and put
+// it behind a button … should be small and unobtrusive since I won't use it
+// that often") -------------------------------------------------------------
+// There was nothing to gather until the server started keeping them, and that
+// is the point worth knowing: `waitingFor` is DELETED with its tag, so every
+// answer she had ever typed was already gone (measured 2026-08-20: 378 chats,
+// TWO carrying a reason). The list lives on `__settings.waitingReasons` — see
+// `rememberWaiting` in chatfeed.js — and rides the feed's `settings` object,
+// so this button costs no request.
+//
+// SMALL AND UNOBTRUSIVE is the whole brief, so: a 17px glyph on the question's
+// own line, and NOTHING AT ALL until she has actually given a reason before.
+// An empty list shows no button, the way an empty section on the Update tab
+// shows no header.
+var WAIT_SHOW=12;         // how many the list draws — one screen, newest first
+function waitReasons(){
+  var raw=(settings&&settings.waitingReasons)||[], out=[];
+  if(!Array.isArray(raw)) return out;
+  raw.forEach(function(r){
+    r=String(r==null?'':r).replace(/\s+/g,' ').trim();
+    if(r && !out.some(function(x){ return x.toLowerCase()===r.toLowerCase(); })) out.push(r);
+  });
+  return out;
+}
+// Mirror the server's own bookkeeping so a reason she just gave is in the list
+// the next time she opens it, instead of waiting out a poll. Same rule as the
+// server's: newest first, no duplicates.
+function rememberWaiting(text){
+  var t=String(text||'').replace(/\s+/g,' ').trim();
+  if(!t) return;
+  settings=settings||{};
+  settings.waitingReasons=[t].concat(waitReasons().filter(function(r){
+    return r.toLowerCase()!==t.toLowerCase(); })).slice(0,40);
+}
+// Lucide `history` — a clock with the counter-clockwise arrow. The line icons
+// are the house's chrome voice, and this is chrome: it opens a list, it does
+// not make anything.
+var WAITPAST='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>';
 // The line itself, bold prefix + her words. One renderer, so the home row and
 // the thread can never word it differently.
 function waitingHtml(name){
@@ -6786,18 +6847,63 @@ function openPage(p){
 function askWaiting(name, after){
   var wrap=document.createElement('div'); wrap.className='askwrap';
   var box=document.createElement('div'); box.className='askbox';
+  // The question and the ⟲ share one line, so the button costs no vertical
+  // space at all — her "small and unobtrusive".
+  var qrow=document.createElement('div'); qrow.className='askqrow';
   var q=document.createElement('p'); q.className='archq'; q.textContent=WAIT_ASK;
-  box.appendChild(q);
+  qrow.appendChild(q);
+  var past=document.createElement('button'); past.className='waitpast';
+  past.innerHTML=WAITPAST;
+  past.setAttribute('aria-label','Reasons you have given before');
+  past.setAttribute('aria-expanded','false');
+  qrow.appendChild(past);
+  box.appendChild(qrow);
   var inp=document.createElement('input'); inp.type='text'; inp.className='arcnote';
   inp.maxLength=200; inp.value=waitingOf(name);
   inp.setAttribute('aria-label', WAIT_ASK);
   box.appendChild(inp);
+  // The list, under the field: her own past answers, newest first, one tap to
+  // put one in the box. Starts SHUT — the box's job is to hold what she says
+  // now, and this is the shortcut for when she has said it before.
+  //
+  // Tapping one FILLS the field, it does not close the sheet: the reason she
+  // is reaching for a past answer is often that it is nearly right, and the
+  // whole point of filling the box rather than saving-and-closing is that she
+  // can then edit it. This is also not pre-written text — nothing arrives in
+  // the field she did not put there, and the box still opens empty on a chat
+  // with no answer yet.
+  var list=document.createElement('div'); list.className='waitpastlist'; list.hidden=true;
+  box.appendChild(list);
+  function paintPast(){
+    var rs=waitReasons();
+    past.hidden=!rs.length;                 // nothing given before → no button
+    if(!rs.length){ list.hidden=true; list.innerHTML=''; return; }
+    list.innerHTML='';
+    rs.slice(0,WAIT_SHOW).forEach(function(r){
+      var b=document.createElement('button'); b.className='waitpastrow'; b.textContent=r;
+      b.onclick=function(e){
+        e.stopPropagation();
+        inp.value=r; save();
+        list.hidden=true; past.setAttribute('aria-expanded','false');
+        inp.focus();
+      };
+      list.appendChild(b);
+    });
+  }
+  past.onclick=function(e){
+    e.stopPropagation();
+    var shut=list.hidden;
+    if(shut) paintPast();
+    list.hidden=!shut;
+    past.setAttribute('aria-expanded', shut?'true':'false');
+  };
   var was=waitingOf(name), saved=was;
   function save(){
     var nv=inp.value.replace(/\s+/g,' ').trim();
     if(nv===saved) return;
     saved=nv;
     chats[name]=chats[name]||{}; chats[name].waitingFor=nv||null; saveCache();
+    rememberWaiting(nv);            // the list behind the ⟲, in step at once
     api('/api/chatfeed/waiting',{method:'POST',body:JSON.stringify({chat:name, text:nv})})
       .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
       .catch(function(){
@@ -6821,6 +6927,7 @@ function askWaiting(name, after){
   wrap.onclick=function(e){ if(e.target===wrap) close(); };
   box.onclick=function(e){ e.stopPropagation(); };
   wrap.appendChild(box);
+  paintPast();                      // decides whether the ⟲ exists at all
   document.body.appendChild(wrap);
   setTimeout(function(){ inp.focus(); }, 30);
 }
