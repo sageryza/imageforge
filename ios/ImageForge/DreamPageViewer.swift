@@ -114,16 +114,36 @@ struct DreamPagePopup: View {
     }
 
     /// Save the comic page to Photos (from cache when we already have it).
+    /// Through `PhotoSaver`, like everything else that saves: the old
+    /// `UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)` asked for no
+    /// permission and had no completion, so a refused photo library toasted
+    /// "Saved to Photos" and saved nothing, forever.
     private func save() {
         guard let url = ref.url else { return }
         Task {
+            // Only fetch on a cache miss, as before — the cache holds a
+            // decoded UIImage, so a hit has no original bytes to pass on and
+            // PhotoSaver re-encodes it instead.
+            var bytes: Data?
             var image = ImageCache.shared.object(forKey: url as NSURL)
             if image == nil, let (data, _) = try? await URLSession.shared.data(from: url) {
+                bytes = data
                 image = UIImage(data: data)
             }
-            guard let image else { showToast("Couldn’t load that image"); return }
-            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            showToast("Saved to Photos")
+            guard bytes != nil || image != nil else { showToast("Couldn’t load that image"); return }
+            PhotoSaver.shared.save(data: bytes, image: image) { outcome in
+                switch outcome {
+                case .saved:
+                    showToast("Saved to Photos")
+                // Only Settings can turn the permission back on, so a toast on
+                // its own would be a dead end.
+                case .denied:
+                    showToast("Photos access is off")
+                    ForgeSaveBridge.offerPhotosSettings()
+                case .failed(let why):
+                    showToast("Couldn’t save — \(why)")
+                }
+            }
         }
     }
 

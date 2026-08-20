@@ -107,9 +107,9 @@ private struct PlaygroundWebView: UIViewRepresentable {
         context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // Save to Photos has to happen natively. The page's share-sheet path
         // works in a browser but not reliably inside a WKWebView, so the page
-        // hands the image url over here instead and we write it to the photo
-        // library the same way the Dream page viewer does.
-        config.userContentController.add(context.coordinator, name: "forgeSave")
+        // hands the image url over here instead — through the ONE saver the
+        // native gallery uses (ForgeSaveBridge), never a per-tool copy.
+        context.coordinator.saveHandler = ForgeSaveBridge.install(into: config)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
@@ -129,9 +129,10 @@ private struct PlaygroundWebView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        /// `addScriptMessageHandler` does not retain — this does.
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        /// `addScriptMessageHandler` does not retain — these do.
         var leaveHandler: ForgeLeaveHandler?
+        var saveHandler: ForgeSaveHandler?
         let parent: PlaygroundWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: PlaygroundWebView) { self.parent = parent }
@@ -151,29 +152,6 @@ private struct PlaygroundWebView: UIViewRepresentable {
 
         deinit {
             if let o = screenChangeObserver { NotificationCenter.default.removeObserver(o) }
-        }
-
-        /// The page's Save button: `forgeSave.postMessage(<image url>)`. Fetch
-        /// it, write it to Photos, and tell the page how it went so its toast
-        /// is the truth rather than a guess.
-        func userContentController(_ controller: WKUserContentController,
-                                   didReceive message: WKScriptMessage) {
-            guard message.name == "forgeSave",
-                  let raw = message.body as? String,
-                  let url = URL(string: raw) else { return }
-            let web = message.webView
-            Task {
-                var ok = false
-                if let (data, _) = try? await URLSession.shared.data(from: url),
-                   let image = UIImage(data: data) {
-                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-                    ok = true
-                }
-                let msg = ok ? "Saved to Photos" : "Couldn’t save that image"
-                await MainActor.run {
-                    web?.evaluateJavaScript("window.__saveResult && window.__saveResult(\(ok), '\(msg)')")
-                }
-            }
         }
 
         // The /playground page sits behind HTTP Basic (any user, password = token).
