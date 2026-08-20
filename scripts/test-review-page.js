@@ -62,9 +62,16 @@ const QUEUE = {
     // no picture AND no words on file — the card glyph holds the face
     row({ id: 'w3', title: 'Morning ideas', total: 6 }),
   ],
+  // the server's own standing grids — their own tab, never the Waiting pile
+  auto: [
+    row({ id: 'auto-subjects--xi', title: 'Auto-compare — same style',
+      template: 'grid', total: 3, thumb: PX }),
+    row({ id: 'auto-ladders--dfp', title: 'Auto-compare — settings changed',
+      template: 'grid', total: 10, decided: 2, thumb: PX }),
+  ],
   done: [row({ id: 'd1', title: 'Style test v1', template: 'grid', total: 16, decided: 16, thumb: PX })],
   hidden: [row({ id: 'h1', title: 'Deck template demo', total: 4 })],
-  counts: { pages: 3, items: 161, done: 1 },
+  counts: { pages: 3, items: 161, auto: 2, autoItems: 11, done: 1 },
   generatedAt: new Date().toISOString(),
 };
 
@@ -149,6 +156,25 @@ const QUEUE = {
     await page.evaluate(() => document.documentElement.scrollWidth), 390);
 
   // ── the hairline tabs ────────────────────────────────────────────────────
+  // AUTO first (Aug 2026, her ask): the server's own comparisons must not be
+  // standing in the pile a chat handed her.
+  {
+    const hrefs = await page.evaluate(() => ({
+      wait: [].map.call(document.querySelectorAll('#pane-wait .qgo'), (a) => a.getAttribute('href')),
+      auto: [].map.call(document.querySelectorAll('#pane-auto .qgo'), (a) => a.getAttribute('href')),
+    }));
+    is('the Waiting pile is the three a chat posted', hrefs.wait.length, 3);
+    ok('and not one of them is a standing auto grid',
+      hrefs.wait.every((h) => !/page\/auto-/.test(h)));
+    ok('while both AUTO tiles point at one', hrefs.auto.length === 2
+      && hrefs.auto.every((h) => /page\/auto-/.test(h)));
+  }
+  await page.locator('#tab-auto').click();
+  await page.waitForTimeout(280);
+  is('AUTO shows its pane', await page.locator('#pane-auto').isHidden(), false);
+  is('…and WAITING hides behind it', await page.locator('#pane-wait').isHidden(), true);
+  is('both standing grids drew', await page.locator('#pane-auto .qtile').count(), 2);
+
   await page.locator('#tab-done').click();
   await page.waitForTimeout(280);   // the line's slide settles
   is('DONE shows its pane', await page.locator('#pane-done').isHidden(), false);

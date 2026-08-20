@@ -25,7 +25,7 @@
 
      House kit it follows:
        tool.css           the look; title once (the native bar carries it)
-       .acctabs           WAITING · DONE — the hairline row, line measured
+       .acctabs           WAITING · AUTO · DONE — hairline row, line measured
        #help / .helpcard  the explanation behind the "?" — never on the page
        no .btn.star       nothing here spends a model call
      Rules for pages: .claude/skills/new-page. -->
@@ -119,6 +119,11 @@
   means "not a review" (a browse deck, a demo) and moves it to a hidden pile
   behind DONE, where ↩ brings it back. Done means you're finished with it
   whatever the cards say.
+  <br><br><b>AUTO is the ones nobody asked you for</b> — the standing
+  comparisons the server keeps by itself off the filed prompts and captions
+  (same picture at two qualities, one style across different subjects). They
+  appear and refresh on their own, so they sit in their own tab instead of on
+  the pile a chat handed you.
   <br><br>Later stays counted as waiting — it's the pile you asked to come
   back to.
 </div>
@@ -126,10 +131,12 @@
 <main>
   <div class="acctabs" id="tabs">
     <button class="acctab on" id="tab-wait" type="button">Waiting</button>
+    <button class="acctab" id="tab-auto" type="button">Auto</button>
     <button class="acctab" id="tab-done" type="button">Done</button>
   </div>
   <div class="strip" id="strip"></div>
   <div id="pane-wait"></div>
+  <div id="pane-auto" hidden></div>
   <div id="pane-done" hidden></div>
   <div class="row"><button class="btn ghost" id="refresh">Refresh</button></div>
 </main>
@@ -196,6 +203,13 @@ function render() {
   $('pane-wait').innerHTML = pages.length
     ? '<div class="qgrid">' + pages.map(function (r) { return tile(r, 'wait'); }).join('') + '</div>'
     : '<div class="empty">Nothing waiting — the pile is clear.</div>';
+  /* AUTO — the server's own standing comparisons, kept off the Waiting pile
+     (Aug 2026, her ask). Nobody asked her for these: they appear and refresh
+     on their own off the filed prompts and captions, so they are a shelf to
+     browse rather than homework a chat handed her. */
+  $('pane-auto').innerHTML = ((Q.auto || []).length
+    ? '<div class="qgrid">' + Q.auto.map(function (r) { return tile(r, 'wait'); }).join('') + '</div>'
+    : '<div class="empty">No automatic comparisons right now.</div>');
   $('pane-done').innerHTML = ((Q.done || []).length
     ? '<div class="qgrid">' + Q.done.map(function (r) { return tile(r, 'done'); }).join('') + '</div>'
     : '<div class="empty">Nothing finished yet.</div>')
@@ -264,15 +278,17 @@ window.addEventListener('resize', function () {
 }, { passive: true });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
 
+var TABS = ['wait', 'auto', 'done'];
 function showTab(which) {
-  $('tab-wait').classList.toggle('on', which === 'wait');
-  $('tab-done').classList.toggle('on', which === 'done');
-  $('pane-wait').hidden = which !== 'wait';
-  $('pane-done').hidden = which !== 'done';
+  TABS.forEach(function (t) {
+    $('tab-' + t).classList.toggle('on', which === t);
+    $('pane-' + t).hidden = which !== t;
+  });
   tabLine();
 }
-$('tab-wait').addEventListener('click', function () { showTab('wait'); });
-$('tab-done').addEventListener('click', function () { showTab('done'); });
+TABS.forEach(function (t) {
+  $('tab-' + t).addEventListener('click', function () { showTab(t); });
+});
 
 /* The native chevron asks the page first: close the "?" card before leaving. */
 window.__navBack = function () {
