@@ -783,9 +783,11 @@ app.get('/vector', serveGated('vector.html', { pill: true }));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));
-// What's New: the update button's page. Five cards worth knowing about, the
-// quieter ones under them, each carrying the pictures that chat made and the
-// Compare pages it posted. Reads /api/brief; writes nothing.
+// Update: the update button's page, reached from the Chats app's UPDATE tab.
+// Five cards worth knowing about, the quieter ones under them, each carrying
+// the pictures that chat made and the Compare pages it posted. It opens on the
+// last list she saw (localStorage) and reads only on Refresh — so walking in
+// and out of it while triaging costs nothing. Reads /api/brief; writes nothing.
 app.get('/brief', serveGated('brief.html', { pill: true }));
 // Review Queue: every deck/grid template page still waiting on her, with how
 // far through each she is. Reads /api/review; the only write is her own ✕

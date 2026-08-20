@@ -1846,6 +1846,27 @@
   sliding line's slot 0, which is the row's default); the two account words go
   quiet under it. **The `::after` translate steps follow the MARKUP order** —
   move a tab and move its step with it.
+  - **THE UPDATE ROW LEADS IT (Aug 2026, Sophie: "a couple days ago we added
+    a what's new button to the main screen, but I wanted it to go on the
+    update screen — could you rename it Update, no icon, and put it on the
+    update screen").** `newsUpdRow` in chats.html: one row above everything,
+    the word **Update** and no icon, opening `/brief` — the five things worth
+    knowing across every chat at once, which is the same question this tab
+    asks and a different answer to it. It shipped on the iOS home grid as
+    "What's new" with a list icon (`updateButton` in RootView.swift, gone
+    now; `BriefView.swift` is kept unmounted). Two things about it:
+    - **It is painted on EVERY pass, the caught-up screen included** — so
+      `newsEmptyCheck` APPENDS its line instead of writing over the
+      container, and the row is deliberately not in that function's
+      "something is already on screen" test (it always is).
+    - **No count on it.** A badge would mean reading the brief every time
+      this tab paints, and the number would be the only stale thing on the
+      screen — the same reasoning that kept it off the home button.
+    - The page keeps the last answer on the phone and re-reads only on its
+      own **Refresh** ("rather than immediately doing another API read, I'd
+      like to be able to go back and forth"), so walking in and out of it
+      while triaging this tab costs nothing. Full rules in `CLAUDE.md` (THE
+      UPDATE BUTTON). Test: `node scripts/test-chats-update-row.js`.
   - **A card carries the THING, not a line about it** — that is the whole
     point of the tab. Her two examples ARE the two blocks: "for the [oven]
     chat, they keep delivering different versions of this artifact, so it
