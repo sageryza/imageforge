@@ -3568,43 +3568,51 @@ function catsShown(){ return catsOpen || !!cat; }
 var TASK_LABELS=['look at','come back to','in a minute','maybe never',
   'in progress','waiting for something','waiting for a response',
   'to be reviewed','to read'];
-// ---- TWO WORDS THAT ONLY EXIST ON THE WAY PAST, AND FIVE THAT NEVER DO
-// (Aug 2026, Sophie: "I wanna make certain tags just available in the archived
-// step, these tags are failure, bug fix, and new feature for now" · "also put
-// built as one of the archive only tags" · "for the archive, get rid of the
-// following tags: look at, come back to, to read, to be reviewed, waiting for
-// answer") ------------------------------------------------------------------
-// The vocabulary had grown into one list doing two jobs. HOW A CHAT ENDED
-// (built · failure · bug fix · new feature) is a judgement she only ever makes
-// while archiving — offered on the home row and in Organize it was four chips
-// she read past every day. WHERE LIVE WORK STANDS (look at · come back to · to
-// read · to be reviewed · waiting for a response) is the opposite: archiving IS
-// the answer to all five, so the archive sheet was asking her to say a chat she
-// is putting away still needs looking at.
+// ---- THERE ARE **TWO** PROGRESS LISTS, AND THEY SHARE NO WORDS (Aug 2026,
+// Sophie, after a week of me reading "progress" as one thing: "when I said
+// progress list I was talking about two separate progress lists. One is an
+// archived progress list and one is a chat progress list. I didn't know what
+// else to call it") ---------------------------------------------------------
+// THIS IS THE WHOLE MODEL, and it is worth reading before touching any of it.
+// A chat is in one of two states and each has its own progress vocabulary:
 //
-// So the two lists are mirrors of each other and every filing surface takes
-// one of them out — `paintVocabChips` is the ONE place that does it, and the
-// home row's chips (a filter, never a filing) drop the archive words too.
-// PRESENTATION ONLY, like TASK_LABELS: nothing about piles, filing or
-// chat-sort reads either, and a word already on a chat keeps working
-// everywhere — this only decides which chips she is OFFERED.
-// `research` and `quick question` joined the four at her ask (Aug 2026:
-// "research goes in progress not categories" → "so does quick question" →
-// "quick question and research should only be in the archive tag tab"). Being
-// on this list answers both halves at once: an ARCHIVE_ONLY word is offered in
-// the archive and nowhere else, and it is read as a PROGRESS word there — they
-// lead that group — so neither needed adding to TASK_LABELS, which would have
-// put them straight back on the home row and in Organize.
-var ARCHIVE_ONLY=['built','failure','bug fix','new feature','research',
+//   • the CHAT progress list (`TASK_LABELS`) — where LIVE work stands. Offered
+//     on the home row, in Organize, and nowhere else.
+//   • the ARCHIVE progress list (`ARCHIVE_PROGRESS`) — how a chat ENDED.
+//     Offered in the archive sheet and the archive's filter row, and nowhere
+//     else.
+//
+// They are DISJOINT, and that is the point: a word is a way of saying where
+// live work stands, or a way of saying how it finished, never both. Archiving
+// is the answer to every chat-progress word, so asking her to mark a chat she
+// is putting away as `to read` was the bug; and `built` on the home row, which
+// counts only live chats, was the same bug facing the other way.
+//
+// It arrived in pieces — "I wanna make certain tags just available in the
+// archived step, these tags are failure, bug fix, and new feature for now" →
+// "also put built as one of the archive only tags" → "put bug fix and new
+// feature into the progress tags for just the archive" → "for the archive, get
+// rid of the following tags: look at, come back to, to read, to be reviewed,
+// waiting for answer" → "research goes in progress not categories" → "so does
+// quick question" → "quick question and research should only be in the archive
+// tag tab" — and each piece was implemented as a rule of its own, which is how
+// a hand-kept `LIVE_ONLY` list of exactly the five words she happened to name
+// came to exist. IT IS GONE: the archive hides EVERY chat-progress word,
+// derived from `TASK_LABELS` rather than listed again. That also answers the
+// question the old list left dangling — `waiting for something`, `in progress`,
+// `in a minute` and `maybe never` were never named, so they were still being
+// offered in the archive.
+//
+// PRESENTATION ONLY, both lists: nothing about piles, filing, chat-sort or the
+// Review Queue reads either, and a word already on a chat keeps working
+// everywhere it already is. This decides which chips she is OFFERED, nothing
+// else.
+var ARCHIVE_PROGRESS=['built','failure','bug fix','new feature','research',
   'quick question'];
-var LIVE_ONLY=['look at','come back to','to read','to be reviewed',
-  'waiting for a response'];
-function isArchiveWord(c){ return ARCHIVE_ONLY.indexOf(c)>-1; }
-function isLiveWord(c){ return LIVE_ONLY.indexOf(c)>-1; }
-// In the ARCHIVE sheet the four outcome words are progress words too, at her
-// ask ("put bug fix and new feature into the progress tags for just the
-// archive") — they lead the group, because they are the judgement she opened
-// the sheet to make.
+function isArchiveWord(c){ return ARCHIVE_PROGRESS.indexOf(c)>-1; }
+// The mirror is DERIVED, never a second hand-kept list — that is what let four
+// words go on being offered in the archive because nobody had named them.
+function isChatWord(c){ return TASK_LABELS.indexOf(c)>-1; }
 function isTask(c){ return TASK_LABELS.indexOf(c)>-1; }
 // Session-only like catsOpen, and it RESETS when TAGS closes, so every open
 // starts on the task group — the default view she asked for.
@@ -4084,18 +4092,18 @@ function fileVocab(){
 // Every sheet that paints `fileVocab()` as chips comes through here.
 //
 // …AND IT IS ALSO WHERE THE TWO SHEETS STOP OFFERING EACH OTHER'S WORDS (Aug
-// 2026 — see ARCHIVE_ONLY / LIVE_ONLY). `opts.archive` is the archive sheet
-// saying so: it drops the five live-progress words and picks the four outcome
-// words up, at the HEAD of the progress group. Every other surface does the
-// mirror image, and neither list ever reaches `fileVocab()` itself — a word
-// already on a chat still renders, still filters and still saves wherever it
-// already is.
+// 2026 — see the TWO PROGRESS LISTS block). `opts.archive` picks which of the
+// two a surface speaks: the archive sheet takes the ARCHIVE progress list and
+// drops every CHAT progress word, and every other surface does exactly the
+// mirror image. Neither list ever reaches `fileVocab()` itself — a word already
+// on a chat still renders, still filters and still saves wherever it already
+// is.
 function paintVocabChips(row, mk, opts){
   var arch=!!(opts&&opts.archive);
   var vocab=fileVocab().filter(function(c){
-    return arch ? !isLiveWord(c) : !isArchiveWord(c);
+    return arch ? !isChatWord(c) : !isArchiveWord(c);
   });
-  var tasks=(arch?ARCHIVE_ONLY.concat(TASK_LABELS):TASK_LABELS)
+  var tasks=(arch?ARCHIVE_PROGRESS:TASK_LABELS)
     .filter(function(t){ return vocab.indexOf(t)>-1; });
   tasks.forEach(function(c){ row.appendChild(mk(c)); });
   var topics=vocab.filter(function(c){ return tasks.indexOf(c)<0; });
@@ -5022,10 +5030,10 @@ function renderTrash(el){
 // again: **`to read` 3 · `to be reviewed` 2 · `come back to` 1 · `look at` 1**,
 // i.e. four of the five were sitting in front of her in the archive.
 //
-// It is the SAME rule in both places now — one filter (`isLiveWord`), one
-// grouping (ARCHIVE_ONLY first, then the rest of the progress words, then a
-// `Categories` rule) — because a word that is not offered on the way INTO the
-// archive must not be a way of finding things once they are in it.
+// It is the SAME rule in both places now — one filter (`isChatWord`), one
+// grouping (the ARCHIVE progress list, then a `Categories` rule) — because a
+// word that is not offered on the way INTO the archive must not be a way of
+// finding things once they are in it.
 //
 // PRESENTATION ONLY, exactly like the sheets: an archived chat that already
 // wears one of those five KEEPS it — the word is still on the chat, still in
@@ -5037,7 +5045,7 @@ function renderArchive(el,g,arch){
   // whole vocabulary on a phone is a row she reads past to reach the two that
   // find anything.
   var live=fileVocab().filter(function(t){
-    if(isLiveWord(t)) return false;
+    if(isChatWord(t)) return false;
     return arch.some(function(n){ return chatTags(n).indexOf(t)>-1; });
   });
   // A filter she can no longer see must not survive as a silent one: if the lit
@@ -5064,8 +5072,7 @@ function renderArchive(el,g,arch){
     // under the rule. Her ask from the day the sheets got theirs — "can u also
     // put a dividing line between progress and categories in the archive" —
     // was answered in the SHEET and never here.
-    var tasks=ARCHIVE_ONLY.concat(TASK_LABELS)
-      .filter(function(t){ return live.indexOf(t)>-1; });
+    var tasks=ARCHIVE_PROGRESS.filter(function(t){ return live.indexOf(t)>-1; });
     tasks.forEach(chip);
     var topics=live.filter(function(t){ return tasks.indexOf(t)<0; });
     if(tasks.length && topics.length){
