@@ -299,9 +299,21 @@ around them change, so verify the labels and use these for the URL.
     is untouched — `/dreamfeed` still serves the page on onrender.
     **ON A WIDE SCREEN THE FEED IS A MASONRY DESK, and the phone is untouched
     (Aug 2026, her own `Dream Feed Web` canvas: "a fun masonry layout, and I
-    want it to look good on a desktop. But not on the mobile site").** Two
-    things not to undo. **The columns are real elements filled shortest-first,
-    built in JS — never `column-count`**: multicol re-balances the whole feed
+    want it to look good on a desktop. But not on the mobile site").**
+    **THE FIRST PORT WAS A GRID AND SHE SAW IT IN ONE LOOK ("you didn't even
+    do the masonry layout") — the cause is worth knowing, because it is a
+    phone rule leaking into a desk.** `fitCard` cuts a dream's words to its
+    PICTURE's height (her rule: side by side, matched so neither leaves a
+    hole) — true and right in ONE column, and in columns it is the thing that
+    kills masonry, because it makes every card with a picture exactly one
+    picture tall, so the columns end level. **On the desk the words are not
+    cut to the picture at all**: a flat 12-line fold, so a short dream makes a
+    short card and a long one makes a tall card, which IS the layout. The same
+    mistake had a second half: the day divider was drawn as a full-width band
+    with fresh columns either side, which forces every column to end level a
+    second time — it rides INSIDE a column now, as it does on her artboard.
+    Two more things not to undo. **The columns are real elements filled
+    shortest-first, built in JS — never `column-count`**: multicol re-balances the whole feed
     when one card changes height, and opening a dream changes it by a whole
     picture, so every card after it would jump columns while she reads the one
     she just tapped. And **the desk's whole look rides on `data-shape` /

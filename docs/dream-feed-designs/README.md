@@ -20,9 +20,22 @@ wired in yet, and the artboards are mockups, not app code.
   in `public/dreamapp.html` are its values, and `node
   scripts/test-dream-desktop.js` pins both halves (the desk's mats and the
   phone's untouched flat DOM). Two deliberate departures from the artboard,
-  both to protect what she is reading: the columns are real elements filled
-  shortest-first rather than `column-count`, and a day's divider ENDS a mat
-  and runs the full desk instead of sitting inside one column.
+  ONE deliberate departure, to protect what she is reading: the columns are
+  real elements filled shortest-first rather than `column-count`, which
+  re-balances the whole feed the moment a card grows.
+  **What the first port got wrong, and why (2026-08-20, Sophie: "you didn't
+  even do the masonry layout"):** it kept the phone's rule that cuts a dream's
+  words to its picture's height, so every card came out one picture tall and
+  the columns ended level — a grid wearing melt shapes. That cut is a
+  ONE-COLUMN rule (picture and words side by side, matched so neither leaves a
+  hole); in columns it is the thing that destroys masonry. It also broke the
+  flow into full-width mats at each day divider, which forced every column to
+  end level a second time. Both are fixed: the desk folds at a flat 12 lines
+  and the divider rides inside a column, as it does on this artboard.
+  **To re-render the artboard** (unpkg is blocked in the sandbox): curl
+  `react@18.3.1/umd/react.production.min.js`, `react-dom@18.3.1/umd/…` and
+  `@babel/standalone@7.29.0/babel.min.js` to disk, serve this folder over
+  http, and `page.route(/unpkg\.com/)` them in from the local copies.
 - `renders/` — flat PNGs of each round, for reading on a phone.
 
 The artboards render offline in headless Chromium if React/Babel (unpkg) and
