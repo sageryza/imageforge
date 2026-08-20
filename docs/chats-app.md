@@ -1987,6 +1987,61 @@
       `node scripts/test-chats-news-collapse.js` (the fold: the header as the
       tap target, one section folding without moving another, the picks
       dropped with it, session-only across a reload).
+  - **MANUAL RULES PER TAG (Aug 2026, Sophie: "i think i'll have to do manual
+    rules per tag … more coming").** Until now a word did one of two things and
+    the APP decided which — a PILE word took a chat off the main list,
+    everything else was decoration. Two of her words now say what should
+    HAPPEN to a chat wearing them, and the mechanism is a TABLE (`TAG_RULES`
+    in chats.html, `{label, rule, head}`) so the next rule she names is a row
+    in it rather than another `if` buried in the render.
+    - **`waiting for a response` → PINNED AT THE TOP** ("means i need a
+      response and want it, so these get pinned at the top of the updates tab
+      until i respond to the chat, or dismiss manually"). **The TAG IS THE
+      ARRIVAL** — the card is on the tab whether or not anything new has
+      landed, in its own section above all three of the kind sections. That is
+      not a shortcut: a chat she owes an answer is usually one that said its
+      piece days ago and went quiet, so waiting for the ordinary arrival test
+      would show the pin only where it is not needed. `pinLive` is
+      `filedAt > notifSeenAt` and nothing else — the tag written after the
+      last time she settled the chat.
+    - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images
+      waiting on my decision, go into a `review` button (which links to the
+      review queue) at the top of the updates tab, and get hidden from the
+      account 1 or 2 area until i review or respond IF i dismiss manually from
+      update tab"). Those cards come OUT of the sections and fold behind one
+      row at the very top: the WORD leaves for `/review`, where the work is
+      actually done, and a **⌄ opens the cards** — that half is required by
+      her own condition, since "if i dismiss manually from update tab" needs
+      them to be reachable from this tab at all. The fold starts shut, like
+      every other fold here, and shutting it drops the picks inside.
+    - **THE HOLD is the second half of the review rule.** Dismissing one of
+      those cards writes `reviewHoldAt` beside `notifSeenAt`, and `chatBack`
+      stops popping that chat onto her account lists when it delivers again —
+      the thing is waiting in the QUEUE now, not on her chat list. **The
+      SERVER decides who is held**, by re-reading the chat's labels inside
+      `POST /notif-seen`: her phone can be running a build days old, and a
+      chat missing from her list for a reason nothing on screen explains is
+      the worst failure this app has. The page mirrors the stamp optimistically
+      so the chat leaves on the same tap, and takes the server's answer over
+      its own.
+    - **It ends three ways, all of them hers, and none is a timer** — "until i
+      review or respond": `POST /reply` clears it (she responded), `labelPatch`
+      clears it with the tag (she took the word off — the same rule
+      `waitingFor` follows), and `POST /page/:id/review` clears it when she
+      marks a deck done or skipped in the queue (she reviewed it). That last
+      one is why the join is cheap: the deck already posts to chatfeed, which
+      already knows the page's chat.
+    - **BOTH WORDS ARE HERS TO APPLY, and the sorter is forbidden from filing
+      into either** — they joined `TRIAGE` in `chat-sort.js` beside `look at`
+      and `come back to`. A folder guess costs a wrong pile; a rule guess pins
+      a card she never asked for, or hides a chat she was watching.
+    - **A pin she files into a box leaves the top**, because filing IS manual
+      triage — it falls out of `newsList` already excluding boxed cards, and
+      no rule was needed for it.
+    - Test: `node scripts/test-tag-rules.js` (the real page, headless — the
+      tag-as-arrival, the position, both exits, the row and its count, the
+      fold, the hold with its control, and the two words pinned equal across
+      chats.html / chatfeed.js / chat-sort.js).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must
