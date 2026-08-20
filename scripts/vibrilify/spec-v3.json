@@ -1,0 +1,130 @@
+{
+  "title": "Vibrilify MAX — 60 second spot (live action v3)",
+  "chat": "vibrilify-max-commercial-xp575a",
+  "style": "pencil",
+  "aspect": "portrait",
+  "panelQuality": "medium",
+  "characters": "the woman: a woman in her mid-30s with shoulder-length wavy brown hair, wearing a lavender cardigan over a white tee",
+  "notes": "Sophie's v2 review, 2026-08-20: add the triple-action MoA blob sequence, the moon wink, a with-the-chimes shot before becoming them, and a telling-everyone shot; ground the floating guitar; a more enthusiastic horse high-five; move reading-the-room to the gathering; smooth the abrupt cuts (soft dissolves). New shots chain ONLY the first-generation kitchen photo as identity ref — her note: chained generated refs were compounding grain.",
+  "voiceoverUrl": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/movies/voiceover/1787255012141-1588c553.bin",
+  "scenes": [
+    {
+      "title": "The kitchen is slightly too large",
+      "keepPanel": 0, "keepClip": 0, "grade": "cold",
+      "timing": { "fixed": 0 },
+      "imagePrompt": "A woman in her mid-30s with shoulder-length wavy brown hair, in a lavender cardigan, stands alone in the middle of a suburban kitchen that is slightly too large for her — too much empty counter, too much floor. Gray morning light. On the wall hangs a round analog clock with fourteen hour markings on its face. She looks tired and uneasy; the vibes are bad.",
+      "motionPrompt": "She stands nearly still, breathing; the clock hand creeps; the gray light flickers faintly."
+    },
+    {
+      "title": "The dog has known for weeks",
+      "keepPanel": 1, "keepClip": 1, "grade": "cold",
+      "timing": { "phrase": "the dog knows", "edge": "start", "offset": 0 },
+      "imagePrompt": "A small scruffy dog sits on the kitchen floor in gray light, staring directly at the viewer with ancient, knowing eyes, unnervingly still. The same woman in the lavender cardigan stands soft-focus in the background. The dog knows something.",
+      "motionPrompt": "The dog stares without blinking and slowly tilts its head; nothing else moves."
+    },
+    {
+      "title": "The neighbor does not stop waving",
+      "keepPanel": 2, "keepClip": 2, "grade": "cold",
+      "timing": { "phrase": "for weeks", "edge": "end", "offset": 0.4 },
+      "imagePrompt": "Seen from inside the kitchen through the window: a cheerful middle-aged neighbor man in a cardigan stands on the front lawn, waving directly at the viewer with a fixed, pleasant smile. He has clearly been waving for a very long time. The woman in the lavender cardigan watches from inside, unsettled.",
+      "motionPrompt": "The neighbor waves and waves and does not stop waving, smile fixed; the woman stays frozen watching him."
+    },
+    {
+      "title": "The air was also bad",
+      "keepPanel": 3, "keepClip": 3, "grade": "cold",
+      "timing": { "phrase": "tried candles", "edge": "start", "offset": -0.9 },
+      "imagePrompt": "The same woman in the lavender cardigan stands in her kitchen surrounded by dozens of lit candles crowding every counter and windowsill, the window thrown wide open, curtains hanging limp. She inhales the fresh air deeply and visibly regrets it. The air is also bad.",
+      "motionPrompt": "Candle flames waver; the limp curtain barely stirs; she breathes in and her face slowly falls."
+    },
+    {
+      "title": "One lavender pill",
+      "keepPanel": 4, "keepClip": 4, "grade": "cold",
+      "pairWithNext": true, "fitSpeed": true,
+      "timing": { "phrase": "targets bad vibes", "edge": "start", "offset": -1.0 },
+      "imagePrompt": "Close shot in the gloomy gray kitchen: the woman in the lavender cardigan holds one small lavender pill up between finger and thumb at eye level, studying it with skeptical hope. Gray light, bad vibes, the fourteen-hour clock blurred behind her.",
+      "motionPrompt": "She swallows the pill; a small golden sun rises indoors above the kitchen counter, warm light flooding the room as every houseplant turns its leaves to face her."
+    },
+    {
+      "title": "The sun rises indoors (aggressive serenity)",
+      "keepPanel": 5, "grade": "warm", "still": true,
+      "timing": { "phrase": "not for everyone", "edge": "start", "offset": -1.4 },
+      "imagePrompt": "The identical kitchen composition transformed: a small golden sun is literally rising inside the kitchen above the counter, warm light flooding everything. The same woman in the lavender cardigan stands radiant with calm, eyes closed in bliss, and every houseplant in the room has turned its leaves and blooms to face her adoringly.",
+      "motionPrompt": "Warm light swells; the houseplants lean toward her; she glows with serene calm."
+    },
+    {
+      "title": "Triple action — the vibe is surrounded",
+      "shoot": true, "grade": "moa", "pairWithNext": true, "fitSpeed": true, "motionOverride": true,
+      "timing": { "phrase": "triple action formula", "edge": "start", "offset": -0.3 },
+      "imagePrompt": "Three large glossy translucent lavender spheres drift in from the edges of the frame toward a single dark jagged blob hovering at the center — the bad vibe — which quivers grumpily. Clean pale off-white background with soft depth haze.",
+      "motionPrompt": "The glossy lavender spheres glide inward and encircle the dark jagged blob, which shrinks, subdued, and is gently escorted upward out of frame. Smooth soft 3D animation motion."
+    },
+    {
+      "title": "Triple action — asked to leave, thanked",
+      "shoot": true, "grade": "moa",
+      "imagePrompt": "The identical composition a moment later: the dark jagged blob now fully encircled by a gentle ring of glossy translucent lavender spheres, the blob smaller and subdued, beginning to drift upward and away, politely escorted out of frame. Clean pale off-white background with soft depth haze.",
+      "motionPrompt": "The ring of lavender spheres tightens gently; the subdued blob drifts up and out of frame."
+    },
+    {
+      "title": "She high-fives a horse (enthusiastic)",
+      "shoot": true, "grade": "warm",
+      "timing": { "phrase": "thanks it for", "edge": "start", "offset": -0.4 },
+      "imagePrompt": "A farmers market in golden light, everyone beaming. The woman in the lavender cardigan leaps mid high-five with a tall brown horse standing at a vegetable stall — the horse's hoof raised high to meet her palm, her feet off the ground, both radiating joy, and the shoppers around them cheering with delight.",
+      "motionPrompt": "She leaps and slaps the raised hoof in an enthusiastic high-five; the horse tosses its mane; the crowd cheers."
+    },
+    {
+      "title": "Forty guests she has never met",
+      "shoot": true, "grade": "warm",
+      "timing": { "phrase": "not just reading", "edge": "start", "offset": -1.6 },
+      "imagePrompt": "A golden-hour picnic on a gentle hillside: around forty guests on blankets with string lights and wine glasses, all beaming. The woman in the lavender cardigan sits at the exact center, glowing with serene joy; she has never met any of these people. An acoustic guitar leans upright against a wicker picnic basket beside her, playing itself — its strings visibly strumming with no player.",
+      "motionPrompt": "The guitar's strings strum by themselves where it leans against the basket; guests laugh and clink glasses; golden light shimmers."
+    },
+    {
+      "title": "Winking at the moon",
+      "shoot": true, "grade": "night",
+      "timing": { "phrase": "winking at the moon", "edge": "start", "offset": -0.3 },
+      "imagePrompt": "Night in a suburban backyard. The woman in the lavender cardigan over pajamas stands on the lawn looking up at a huge full moon, mid-wink — one eye closed, a small conspiratorial smile, utterly serene. Cool moonlight.",
+      "motionPrompt": "She winks slowly up at the moon and holds the small smile; moonlight glimmers; leaves stir gently."
+    },
+    {
+      "title": "Forgiving her father in a Costco",
+      "keepPanel": 8, "keepClip": 8, "grade": "cold",
+      "timing": { "phrase": "forgiving your father", "edge": "start", "offset": 0 },
+      "imagePrompt": "Inside a vast warehouse store with towering pallet aisles under fluorescent light, the woman in the lavender cardigan tearfully embraces her elderly father beside a shopping cart stacked with bulk paper towels. Both are crying with relief and forgiveness.",
+      "motionPrompt": "They hold the hug, shaking gently with emotion; a shopper pushes a cart past; the fluorescent light hums."
+    },
+    {
+      "title": "Hearing wind chimes (there is no wind)",
+      "shoot": true, "grade": "night", "pairWithNext": true, "clipFrames": 121, "fitSpeed": true, "matchShot": 9,
+      "timing": { "phrase": "hearing wind chimes", "edge": "start", "offset": 0 },
+      "imagePrompt": "Night in the same backyard: the woman in the lavender cardigan stands still among many silver wind chimes hanging from the tree branches around her, eyes closed, listening with deep serenity as the chimes catch the moonlight. There is no wind.",
+      "motionPrompt": "Her long hair and her sleeves slowly begin turning into slender silver wind chimes as she stands serenely; the chimes around her sway and glint in the moonlight."
+    },
+    {
+      "title": "Becoming the wind chimes",
+      "keepPanel": 9, "grade": "night",
+      "imagePrompt": "Night. The woman stands in her backyard in pajamas, serenely winking up at a huge full moon. Many wind chimes hang from the trees around her, and the ends of her long hair and her sleeves have begun turning into slender silver wind chimes.",
+      "motionPrompt": "The wind chimes sway and glint; she winks at the moon; her chime-hair stirs and tinkles in the breeze."
+    },
+    {
+      "title": "Out of respect for the grapefruit",
+      "keepPanel": 10, "keepClip": 10, "grade": "warm",
+      "timing": { "phrase": "grapefruit juice", "edge": "start", "offset": -1.5 },
+      "imagePrompt": "In the warm bright kitchen, a single glass of grapefruit juice sits alone at the far end of the long table, respectfully untouched, a folded napkin beside it. From the other end of the table the woman in the lavender cardigan bows her head slightly toward the glass with solemn gratitude, a small lavender pill bottle standing beside her own empty plate.",
+      "motionPrompt": "She bows her head slowly toward the grapefruit juice; light glints on the untouched glass; nothing else moves."
+    },
+    {
+      "title": "Tell someone. Tell everyone.",
+      "shoot": true, "grade": "warm",
+      "timing": { "phrase": "tell someone", "edge": "start", "offset": -0.15 },
+      "imagePrompt": "Daytime on a suburban sidewalk: the woman in the lavender cardigan grips a startled mail carrier by both shoulders, telling him something with radiant, urgent joy, their faces close. Behind her, two neighbors are already listening from their lawn. She is telling someone. She is telling everyone.",
+      "motionPrompt": "She grips the mail carrier's shoulders and speaks with urgent joy; he leans back slightly; the neighbors drift closer to listen."
+    },
+    {
+      "title": "Logo — the chime is coming from inside her",
+      "keepPanel": 11, "keepClip": 11, "grade": "card", "hasText": true,
+      "timing": { "phrase": "no longer possible", "edge": "end", "offset": 0.5 },
+      "imagePrompt": "A studio product photograph for the end card of a pharmaceutical commercial: on a flat solid lavender seamless background, a single elegant silver wind chime hangs from above, studio-lit. Large clean white serif text centered in the lower third reads exactly: VIBRILIFY MAX. At the very bottom, one small clean line of white fine print reads exactly: AstraZeneca is not responsible for the horse.",
+      "motionPrompt": "The small wind chime sways gently once; the text stays perfectly still."
+    }
+  ]
+}

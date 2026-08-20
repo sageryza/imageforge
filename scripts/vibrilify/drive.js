@@ -48,6 +48,7 @@ const cmds = {
       hasText: !!s.hasText,
       pairWithNext: !!s.pairWithNext,
       key: !!s.key,
+      ...(s.still ? { still: true } : {}),
     }));
     const movie = await api('POST', '', {
       title: spec.title,
@@ -75,7 +76,28 @@ const cmds = {
     const movie = await api('GET', `/${state.movieId}`);
     const words = movie.voiceover?.words || [];
     if (!words.length) throw new Error('no voiceover words on the movie');
-    // Beat anchors, in scene order. null = no startAt (second half of a pair).
+    // Spec-driven timing (v3+): each scene carries its own anchor
+    // ({fixed} or {phrase, edge, offset}); a scene without `timing` gets no
+    // startAt (the second half of a morph pair).
+    if (spec.scenes.some(s => s.timing)) {
+      const beats = [];
+      spec.scenes.forEach((s, i) => {
+        const t = s.timing;
+        if (!t) return;
+        let at;
+        if (typeof t.fixed === 'number') at = t.fixed;
+        else {
+          const m = findPhrase(words, t.phrase);
+          if (!m) throw new Error(`anchor phrase not found: "${t.phrase}"`);
+          at = (t.edge === 'end' ? m.end : m.start) + (t.offset || 0);
+        }
+        beats.push({ id: state.sceneIds[i], startAt: Math.max(0, +at.toFixed(2)) });
+      });
+      const r = await api('POST', `/${state.movieId}/timeline`, { aspect: spec.aspect, beats });
+      console.log(JSON.stringify({ updated: r.updated, beats }));
+      return;
+    }
+    // Legacy v1/v2 anchors, in scene order. null = no startAt.
     const anchors = [
       () => 0,                                                        // s1 kitchen
       () => findPhrase(words, 'the dog knows')?.start,                // s2 dog
@@ -123,7 +145,8 @@ const cmds = {
       const scene = movie.scenes[next];
       process.stderr.write(`clip ${next} "${scene.title}"…\n`);
       const frames = spec.scenes[next]?.clipFrames;
-      await api('POST', `/${state.movieId}/scenes/${scene.id}/clip`, { tier: 'draft', ...(frames ? { frames } : {}) });
+      const override = spec.scenes[next]?.motionOverride ? { motionPrompt: spec.scenes[next].motionPrompt } : {};
+      await api('POST', `/${state.movieId}/scenes/${scene.id}/clip`, { tier: 'draft', ...(frames ? { frames } : {}), ...override });
       for (;;) {
         await new Promise(r => setTimeout(r, 15000));
         const m2 = await api('GET', `/${state.movieId}`);
