@@ -440,10 +440,16 @@
     #scr-feed { display:block; padding-top:0; }
     .mrow { display:flex; align-items:flex-start; gap:26px; }
     .mcol { flex:1 1 0; min-width:0; }
-    .mcol > .dcard { margin-bottom:26px; }
-    /* a day's divider runs the whole desk, between two mats of cards */
-    #scr-feed > .fdiv { padding:10px 4px 26px; }
-    #scr-feed > .fdiv span.l { border-top-style:dashed; }
+    .mcol > * { margin-bottom:26px; }
+    /* the divider is placed like a card, INSIDE whichever column is shortest
+       (her artboard) — a full-width band forces every column to end level
+       there, which is the difference between masonry and two grids */
+    .mcol > .fdiv { padding:4px 4px 20px; }
+    .mcol > .fdiv span.l { border-top-style:dashed; }
+    /* the picture takes the wider half of the row, the words the narrower —
+       the artboard's 1.1 : 1 */
+    #scr-feed .drow .blob { flex:1.1; }
+    #scr-feed .drow .dtxt { flex:1; }
 
     /* ── the five melt shapes ── */
     #scr-feed .dcard { border-width:2.5px; padding:20px 22px;
@@ -480,12 +486,23 @@
                                   aspect-ratio:auto; }
 
     /* a dream with no picture and few words is one of her QUIET cards:
-       centred, italic, and given some air so it holds its own in a column */
-    #scr-feed .dcard.quiet { min-height:190px; display:flex;
-                             flex-direction:column; justify-content:center; }
-    #scr-feed .dcard.quiet .dttl { text-align:center; font-size:18px; }
-    #scr-feed .dcard.quiet .dbody { text-align:center; font-style:italic; }
+       centred, italic, and given real air so it holds its own in a column.
+       Three sizes off the artboard, cycled, so a run of them never comes out
+       as a row of identical boxes — the thing masonry is for. */
+    #scr-feed .dcard.quiet { display:flex; flex-direction:column;
+                             justify-content:center; text-align:center;
+                             min-height:190px; padding:32px 30px; }
+    #scr-feed .dcard.quiet .dttl { font-size:19px; }
+    #scr-feed .dcard.quiet .dbody { font-style:italic; }
     #scr-feed .dcard.quiet .dmeta { justify-content:center; }
+    #scr-feed .dcard.quiet[data-shape="1"],
+    #scr-feed .dcard.quiet[data-shape="3"] { min-height:280px; padding:40px 34px; }
+    #scr-feed .dcard.quiet[data-shape="1"] .dttl,
+    #scr-feed .dcard.quiet[data-shape="3"] .dttl { font-size:25px; }
+    #scr-feed .dcard.quiet[data-shape="1"] .dbody,
+    #scr-feed .dcard.quiet[data-shape="3"] .dbody { font-size:17px; line-height:1.55; }
+    #scr-feed .dcard.quiet[data-shape="2"] { min-height:150px; padding:26px 28px; }
+    #scr-feed .dcard.quiet[data-shape="2"] .dttl { font-size:19px; }
 
     #scr-feed .dcard:hover { transform:scale(1.015); }
     #scr-feed .dcard { transition:transform .3s ease; }
@@ -863,7 +880,18 @@ function fitCard(card){
   var body = card.querySelector('.dbody'), more = card.querySelector('.dmore');
   if (!body || !more || card.classList.contains('open')) return;
   var txt = card.querySelector('.dtxt'), blob = card.querySelector('.blob');
-  if (blob) {
+  // ON THE DESK THE WORDS ARE NOT CUT TO THE PICTURE (Sophie's `Dream Feed
+  // Web` artboard, and her verdict on the first port: "you didn't even do the
+  // masonry layout"). Cutting every dream to its picture's height is a PHONE
+  // rule — one column, the picture and the words side by side, matched so
+  // neither leaves a hole. In columns it is the thing that KILLS masonry: it
+  // makes every card with a picture exactly one picture tall, so the cards
+  // come out level and the feed reads as a grid. Here a short dream makes a
+  // short card and a long one makes a tall card, which is the whole point,
+  // and a generous fold catches only the runaway ones.
+  if (deskFeed(card)) {
+    body.style.setProperty('--lines', 12);
+  } else if (blob) {
     var lh = parseFloat(getComputedStyle(body).lineHeight) || 21.75;
     var gap = parseFloat(getComputedStyle(txt).rowGap) || 0;
     var other = gap * (txt.children.length - 1);
@@ -872,6 +900,8 @@ function fitCard(card){
     }
     var lines = Math.floor((blob.offsetHeight - other) / lh);
     body.style.setProperty('--lines', Math.max(3, Math.min(12, lines)));
+  } else {
+    body.style.removeProperty('--lines');
   }
   var cut = body.scrollHeight - body.clientHeight > 4;
   body.classList.toggle('fold', cut);
@@ -1061,6 +1091,13 @@ function deskCols(){
   }
   return 1;
 }
+/** Is this card in the FEED on a desk? The melt shapes, the columns and the
+ *  un-cut words are all one rule and all of them stop at 900px — and none of
+ *  them belong to the archive or a dreamer's profile, which keep the phone's
+ *  column at any width. */
+function deskFeed(card){
+  return deskCols() > 1 && !!card.closest && !!card.closest('#scr-feed');
+}
 /** Remember the feed's cards in source order, so a re-layout can rebuild the
  *  columns without re-rendering (which would lose an opened card and any
  *  loaded comment thread — the NODES are moved, never recreated). */
@@ -1079,35 +1116,31 @@ function masonry(root){
     order.forEach(function(el){ root.appendChild(el); });
     return;
   }
-  var cols = null;
-  var openRun = function(){
-    var run = document.createElement('div');
-    run.className = 'mrow';
-    cols = [];
-    for (var i = 0; i < n; i++) {
-      var c = document.createElement('div');
-      c.className = 'mcol';
-      run.appendChild(c);
-      cols.push(c);
-    }
-    root.appendChild(run);
-  };
+  var run = document.createElement('div');
+  run.className = 'mrow';
+  var cols = [];
+  for (var i = 0; i < n; i++) {
+    var c = document.createElement('div');
+    c.className = 'mcol';
+    run.appendChild(c);
+    cols.push(c);
+  }
+  root.appendChild(run);
+  // ONE flow, shortest column first — and the day's divider is placed like
+  // anything else, INSIDE a column (her artboard: "last night" rides in
+  // column 3 with cards continuing above and below it in the others). It was
+  // built first as full-width bands with a fresh set of columns either side,
+  // and that is what made the desk read as two GRIDS rather than as one
+  // masonry: a band forces every column in the mat to end level.
   order.forEach(function(el){
-    if (!el.classList || !el.classList.contains('dcard')) {
-      cols = null;              // a divider (or the end note) breaks the mat
-      root.appendChild(el);
-      return;
-    }
-    if (!cols) openRun();
     var best = cols[0];
     for (var i = 1; i < cols.length; i++) {
       if (cols[i].offsetHeight < best.offsetHeight) best = cols[i];
     }
     best.appendChild(el);
-    // the words are cut to the PICTURE's height, and the picture's height is
-    // the column's width — so the fit has to be taken HERE, once the card is
-    // in the column it will live in, not before
-    fitCard(el);
+    // a card's height is settled by its own words at THIS column width, so
+    // the fit has to be taken here — once it is in the column it will live in
+    if (el.classList && el.classList.contains('dcard')) fitCard(el);
   });
 }
 // One handler for the whole desk: a width that crosses a column boundary

@@ -6,7 +6,11 @@
 //
 // Drives the REAL public/dreamapp.html against a stub API and asserts:
 //   1. wide: the cards are laid into real columns (.mrow / .mcol), balanced,
-//      and a day's divider runs the full desk BETWEEN two mats,
+//      the day's divider rides INSIDE a column like anything else, and the
+//      cards genuinely stagger — a grid is the failure this is guarding,
+//      and it is what the first port shipped (Sophie: "you didn't even do
+//      the masonry layout"): the phone's rule cuts each dream's words to its
+//      picture's height, which made every card one picture tall,
 //   2. wide: the cards are not all the same object — several melt shapes,
 //      several picture proportions, several tilts,
 //   3. wide: the header is her artboard's — a big wordmark, the "everyone's
@@ -118,27 +122,51 @@ const shape = (page) => page.$eval('#scr-feed', (el) => [].map.call(el.children,
 
   // ── 1. real columns, balanced, with the divider between two mats ──
   const rows = await page.$$('#scr-feed > .mrow');
-  check('the desk lays the feed out in mats of columns', rows.length === 2, rows.length + ' .mrow');
-  const cols = await page.$$eval('#scr-feed > .mrow:first-of-type .mcol',
-    (els) => els.map((e) => e.children.length));
+  check('the desk lays the feed out as ONE flow of columns', rows.length === 1, rows.length + ' .mrow');
+  const cols = await page.$$eval('#scr-feed .mcol',
+    (els) => els.map((e) => e.querySelectorAll('.dcard').length));
   check('four columns at 1500px', cols.length === 4, JSON.stringify(cols));
   check('every card landed in one of them',
-    cols.reduce((a, b) => a + b, 0) === 8, JSON.stringify(cols));
-  const heights = await page.$$eval('#scr-feed > .mrow:first-of-type .mcol',
+    cols.reduce((a, b) => a + b, 0) === 12, JSON.stringify(cols));
+  const heights = await page.$$eval('#scr-feed .mcol',
     (els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
   const spread = Math.max(...heights) - Math.min(...heights);
   check('and the columns come out roughly level (shortest-first placement)',
     spread < Math.max(...heights) * 0.6, `heights ${heights.join('/')}, spread ${spread}`);
 
-  const divs = await page.$$eval('#scr-feed > .fdiv', (els) => els.map((e) => ({
+  // the divider is placed like a card, in whichever column was shortest —
+  // a full-width band would force every column to end level there
+  const div = await page.$eval('#scr-feed .fdiv', (e) => ({
+    inCol: !!e.parentElement.classList.contains('mcol'),
     w: Math.round(e.getBoundingClientRect().width),
-    prev: e.previousElementSibling && e.previousElementSibling.className,
-    next: e.nextElementSibling && e.nextElementSibling.className,
-  })));
+  }));
   const feedW = await page.$eval('#scr-feed', (e) => Math.round(e.getBoundingClientRect().width));
-  check('the day divider runs the whole desk, between two mats',
-    divs.length === 1 && divs[0].w === feedW && divs[0].prev === 'mrow' && divs[0].next === 'mrow',
-    JSON.stringify(divs) + ' of ' + feedW);
+  check('the day divider rides inside a column, not across the desk',
+    div.inCol && div.w < feedW / 2, JSON.stringify(div) + ' of ' + feedW);
+
+  // ── THE MASONRY ITSELF: cards of real, differing heights, staggered ──
+  const geo = await page.$$eval('#scr-feed .dcard', (els) => els.map((e) => ({
+    top: Math.round(e.offsetTop), h: Math.round(e.offsetHeight),
+  })));
+  const hs = geo.map((g) => g.h);
+  check('the cards are genuinely different heights',
+    Math.max(...hs) > Math.min(...hs) * 1.8,
+    `${Math.min(...hs)}..${Math.max(...hs)}px`);
+  // A GRID of 12 in 4 columns lands on exactly 3 shared tops — one per row.
+  // Masonry can only share the FIRST row's top (every column starts level),
+  // so anything near the card count is staggered; the check is set well clear
+  // of the grid it is ruling out rather than demanding a perfect stagger, two
+  // cards happening to land level being ordinary.
+  const tops = new Set(geo.map((g) => g.top));
+  const gridTops = Math.ceil(geo.length / cols.length);
+  check('and they stagger rather than lining up in rows',
+    tops.size >= gridTops * 2, `${tops.size} distinct tops for ${geo.length} cards (a grid would be ${gridTops})`);
+  // the phone's picture-height cut is off here — that cut is what flattened
+  // every card into a row in the first port
+  const clamps = await page.$$eval('#scr-feed .dcard .dbody',
+    (els) => [...new Set(els.map((e) => e.style.getPropertyValue('--lines')))]);
+  check('no card has its words cut to its picture', clamps.every((c) => c === '12'),
+    JSON.stringify(clamps));
 
   // ── 2. no two cards in a column are the same object ──
   const looks = await page.$$eval('#scr-feed .dcard', (els) => {
@@ -175,11 +203,7 @@ const shape = (page) => page.$eval('#scr-feed', (el) => [].map.call(el.children,
   });
   const openId = await page.$eval('#scr-feed .mcol:nth-child(2) .dcard:first-child',
     (e) => e.dataset.id);
-  // its own column may grow, and so may everything BELOW the day divider —
-  // an opened picture makes this mat taller and the next one starts lower.
-  // The claim is about the cards beside it, in the same mat.
-  const sameMat = await page.$$eval(`#scr-feed .dcard[data-id="${openId}"]`,
-    (els) => [].map.call(els[0].closest('.mrow').querySelectorAll('.dcard'), (c) => c.dataset.id));
+  // its own column grows; nothing else may
   const ownCol = await page.$$eval(`#scr-feed .dcard[data-id="${openId}"]`,
     (els) => [].map.call(els[0].parentElement.children, (c) => c.dataset.id));
   const before = await where();
@@ -187,9 +211,9 @@ const shape = (page) => page.$eval('#scr-feed', (el) => [].map.call(el.children,
   await page.waitForTimeout(200);
   const after = await where();
   const moved = Object.keys(before).filter((k) => before[k] !== after[k]);
-  const strays = moved.filter((k) => ownCol.indexOf(k) < 0 && sameMat.indexOf(k) >= 0);
-  check('opening a dream leaves the other columns beside it exactly where they were',
-    strays.length === 0, strays.length ? 'moved: ' + strays.join(',') : moved.length + ' moved, none beside it');
+  const strays = moved.filter((k) => ownCol.indexOf(k) < 0);
+  check('opening a dream leaves every other column exactly where it was',
+    strays.length === 0, strays.length ? 'moved: ' + strays.join(',') : moved.length + ' moved, all in its own column');
   check('and the dream really did open',
     await page.$eval(`.dcard[data-id="${openId}"]`, (e) => e.classList.contains('open')));
   await page.click('#closeDream');
@@ -218,7 +242,7 @@ const shape = (page) => page.$eval('#scr-feed', (el) => [].map.call(el.children,
   // and back out to the desk
   await page.setViewportSize({ width: 1200, height: 950 });
   await page.waitForTimeout(400);
-  const three = await page.$$eval('#scr-feed > .mrow:first-of-type .mcol', (els) => els.length);
+  const three = await page.$$eval('#scr-feed .mcol', (els) => els.length);
   check('1200px gets three columns', three === 3, three + ' columns');
 
   check('no page errors', errors.length === 0, errors.join(' | '));
