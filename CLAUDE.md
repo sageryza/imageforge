@@ -2046,6 +2046,48 @@ before working on that module. Nothing was deleted — the moved text is verbati
   ref the model will happily redraw the CONTENT of; the suffix rides at the
   very end of the sent prompt, after her words. The anti-grid half of the
   suffix is load-bearing for the same reason. No Sophie character card.
+  **ITS TAIL IS THE DREAM FEED'S CURRENT WORDING, not nde-panel.py's** (Sophie,
+  2026-08-20: "I think we recently changed the prompt anyway" — and she was
+  right; measured against the live filed prompts that day, the newest runs
+  naming this reference say "render as a single image, not a grid, not split
+  panels. Minimal text only"). Two clauses came OUT of the imported version and
+  neither should go back: **"no borders"** (Sophie: "it should have a border" —
+  the reference IS a diary comic and its drawn frames are the look, so the ban
+  was fighting the style it was copying; the tail now asks for one) and
+  **"vertical"** (the canvas toggles, so a prompt naming one shape fights the
+  other). The prefix is identical across every version ever sent — it is only
+  ever the tail that moves.
+  **THE PROMPT BUTTON — see what is wrapped around her words, and change it
+  (Aug 2026, Sophie: "add a prompt button so you can see what's being added
+  and … allow yourself to edit it as well").** Two boxes under the style row —
+  what goes BEFORE her words and what goes AFTER — with her own text shown in
+  between where it lands, and a Reset.
+  - **THE TEXT IS SERVED, NEVER COPIED INTO THE PAGE** (`GET
+    /api/promptlab/styles`, which MUST stay registered above
+    `/api/promptlab/:id` or Express answers "run not found"). server.js owns
+    what is actually sent; `promptlab.html` deliberately holds no copy, which
+    is the whole reason the old "Sent as" preview was removed. A test pins
+    that the page has no prefix of its own.
+  - **Her edit is per STYLE and kept in `localStorage`**, and an edited style
+    MARKS ITS BUTTON — she can never be running her own wording without the
+    page saying so. Editing both halves back to the house text drops the
+    override rather than storing an identical twin. `promptEdited` is stored
+    on the run, and `fullPrompt` has always stored the exact text sent.
+  - **Only a STRING overrides a half.** An absent field keeps the baked text —
+    so an ordinary run is byte-for-byte what it always was — and an empty
+    string genuinely deletes that half, because she may want no tail at all.
+  - **This is NOT pre-written text in a box she writes in.** The fields hold
+    the LIVE VALUE that will be sent, the way reopening her waiting-for box
+    shows the sentence she already wrote. Her own words go in the main box,
+    which still ships empty.
+  **PORTRAIT OR SQUARE (Aug 2026, her ask).** `PL_GPT.sizes`; the run carries
+  `canvas`, and an absent or unknown value is portrait — never an invented
+  size. **PORTRAIT STAYS THE DEFAULT because it is the CHEAPER one**: the
+  square is 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
+  table warns about, so both buttons print what they cost rather than leaving
+  her to assume the big one is dearer. Not persisted, same reasoning as
+  quality. gpt-image-2 only — the LoRA has no baked prefix to show and rides
+  `aspect_ratio` instead, so both controls hide on WTR.
   **PORTING AN IMAGE IN FROM ASSETS SAYS WHETHER IT IS HONEST
   (`public/playground-port.js`, served to the page, Aug 2026).** The lightbox's
   Playground button carries the content half, a tile, the quality and

@@ -93,21 +93,36 @@ port.PORT_STYLES.forEach((s) => {
     s.key + ' has evidence that can identify it');
 });
 
-// The server's real dreamy recipe: the reference it attaches, and the
-// bookending Sophie asked for.
-const dreamyBlock = serverSrc.slice(serverSrc.indexOf('  dreamy: {'));
-const dreamy = dreamyBlock.slice(0, dreamyBlock.indexOf('\n  },') + 4);
-ok(/refFiles:\s*\['dream-mystery\.jpg'\]/.test(dreamy),
+// The server's real dreamy recipe. ASSERT ON THE VALUES, NOT THE SOURCE TEXT:
+// the first cut of these checks regexed the raw block and matched the COMMENT
+// above the suffix — which explains why "no borders" was removed and therefore
+// contains the words — so it reported a ban that the sent prompt does not have.
+// Evaluating the literal is the only honest read of what reaches the model.
+function styleObj(id) {
+  const i = serverSrc.indexOf('\n  ' + id + ': {');
+  const b = serverSrc.slice(i + ('\n  ' + id + ': ').length);
+  let lit = b.slice(0, b.indexOf('\n  },') + 4).trim().replace(/,$/, '');
+  lit = lit.replace(/^\s*\/\/.*$/gm, '');          // drop comment lines
+  return eval('(' + lit + ')');                     // eslint-disable-line no-eval
+}
+const dream = styleObj('dreamy');
+ok(dream.refFiles && dream.refFiles[0] === 'dream-mystery.jpg',
   'Dreamy attaches refs/dream-mystery.jpg');
 ok(fs.existsSync(path.join(ROOT, 'refs', 'dream-mystery.jpg')),
   'that reference file is actually on disk');
 // BOOKENDED (Sophie's ask): the anti-content rule opens the prefix AND closes
 // the suffix, because the suffix is the last thing the model reads.
-ok(/prefix:[\s\S]*do NOT copy[\s\S]*?its content/.test(dreamy),
-  'the anti-content rule OPENS the prefix');
-ok(/suffix:[\s\S]*STYLE reference only[\s\S]*do not draw its content/.test(dreamy),
+ok(/do NOT copy its content/.test(dream.prefix), 'the anti-content rule OPENS the prefix');
+ok(/STYLE reference only/.test(dream.suffix) && /do not draw its content/.test(dream.suffix),
   'and CLOSES the suffix — bookended');
-ok(/noCharacter:\s*true/.test(dreamy),
+// Sophie, 2026-08-20: "it should have a border" — the tail imported from
+// nde-panel.py banned one, on a reference whose own drawn frames are the look.
+ok(!/no borders/i.test(dream.suffix), 'the sent suffix does NOT ban borders');
+ok(/hand-drawn border/.test(dream.suffix), 'it asks for one');
+// The canvas toggles now, so the prompt must not name a shape.
+ok(!/vertical|portrait|square/i.test(dream.prefix + dream.suffix),
+  'and it names no orientation, because the canvas toggles');
+ok(dream.noCharacter === true,
   'no Sophie character card on Dreamy (hers is the watercolor look)');
 
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
@@ -146,6 +161,30 @@ port.PORT_STYLES.forEach((s) => {
   });
 });
 
+// ── 2b. the canvas, and the prompt the page is allowed to edit ───────────
+console.log('canvas + editable prompt');
+const plgpt = serverSrc.slice(serverSrc.indexOf('const PL_GPT = {'));
+const plgptOne = plgpt.slice(0, plgpt.indexOf('\n};') + 3);
+ok(/portrait:\s*\{\s*size:\s*'1024x1536'/.test(plgptOne), 'portrait is 1024x1536');
+ok(/square:\s*\{\s*size:\s*'1024x1024'/.test(plgptOne), 'square is 1024x1024');
+// The default must stay portrait: it is what every run to date used AND the
+// cheaper of the two (gpt-image-2 charges MORE for the square — the one price
+// table in docs/modules/pictures.md).
+ok(/PL_GPT\.sizes\[String\(req\.body\.canvas \|\| ''\)\] \|\| PL_GPT\.sizes\.portrait/.test(serverSrc),
+  'an absent or unknown canvas falls back to portrait, never an invented size');
+ok(/size:\s*cfg\.size \|\| PL_GPT\.size/.test(serverSrc),
+  'the render job uses the RUN\'s size, not the module default');
+// The page must not carry its own copy of the style prompt — that is the whole
+// reason the endpoint exists, and a copy is what went stale before.
+ok(!/prefix:\s*'/.test(pageSrc), 'promptlab.html holds NO copy of a style prefix');
+ok(/\/api\/promptlab\/styles/.test(pageSrc), 'the page reads the real text from the server');
+// Express matches in order — `:id` would swallow `styles` and answer 404.
+ok(serverSrc.indexOf("'/api/promptlab/styles'") < serverSrc.indexOf("'/api/promptlab/:id'"),
+  'the styles route is registered ABOVE /api/promptlab/:id');
+// An untouched run must be byte-for-byte what it always was.
+ok(/typeof v === 'string' \? v\.trim\(\)/.test(serverSrc),
+  'only a STRING overrides a half — an absent field keeps the baked text');
+
 // ── 3. the indicator on the real page ────────────────────────────────────
 let chromium;
 try { ({ chromium } = require('playwright')); }
@@ -161,6 +200,13 @@ catch {
     if (url.pathname === '/api/promptlab') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ runs: [], more: false }));
+    }
+    if (url.pathname === '/api/promptlab/styles') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ styles: {
+        dreamy: { label: 'Dreamy', prefix: 'HOUSE PREFIX', suffix: 'HOUSE SUFFIX', refs: ['dream-mystery.jpg'] },
+        evan: { label: 'ChatGPT', prefix: 'EVAN PREFIX', suffix: 'EVAN SUFFIX', refs: [] },
+      } }));
     }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
@@ -215,6 +261,55 @@ catch {
   t = await tag();
   ok(/style prompt/.test(t.text) && !/reference/.test(t.text),
     'WTR says "style prompt" only — it attaches no reference');
+
+  // ── the PROMPT button ───────────────────────────────────────────────
+  console.log('the prompt button');
+  await page.goto(base + '/playground?prompt=a%20cat&style=dreamy&sameref=1');
+  await page.waitForFunction(() => window.fetch && document.getElementById('promptbtn'));
+  ok(await page.isVisible('#promptbtn'), 'the button shows on a gpt style');
+  ok(!(await page.isVisible('#promptpanel')), 'and the panel starts closed');
+  await page.click('#promptbtn');
+  await page.waitForSelector('#promptpanel textarea');
+  const boxes = await page.$$eval('#promptpanel textarea',
+    (ts) => ts.map((t) => ({ part: t.getAttribute('data-part'), val: t.value })));
+  ok(boxes.length === 2, 'it opens two boxes');
+  ok(boxes.some((b) => b.part === 'prefix' && b.val === 'HOUSE PREFIX'),
+    'the BEFORE box holds the real baked prefix, read from the server');
+  ok(boxes.some((b) => b.part === 'suffix' && b.val === 'HOUSE SUFFIX'),
+    'the AFTER box holds the real baked suffix');
+  ok(/a cat/.test(await page.textContent('#promptpanel .yours')),
+    'and her own words are shown in between, where they land');
+
+  // Editing marks the style and rides the next run.
+  await page.fill('#promptpanel textarea[data-part="suffix"]', 'MY OWN TAIL');
+  ok(await page.evaluate(() => document.getElementById('promptbtn').classList.contains('edited')),
+    'an edit marks the button, so her wording is never silently in play');
+  ok(await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('promptlab_prompt_dreamy')).suffix === 'MY OWN TAIL'),
+    'and is kept per style');
+  await page.click('#promptpanel .prow button');   // Reset
+  ok(await page.evaluate(() => !localStorage.getItem('promptlab_prompt_dreamy')),
+    'Reset puts the house wording back');
+  ok(!(await page.evaluate(() => document.getElementById('promptbtn').classList.contains('edited'))),
+    'and clears the mark');
+
+  // ── the canvas toggle ───────────────────────────────────────────────
+  console.log('the canvas toggle');
+  ok(await page.isVisible('#canvastog'), 'the toggle shows on a gpt style');
+  ok(await page.evaluate(() => document.getElementById('c-portrait').classList.contains('on')),
+    'portrait is the default — the shape every run has used, and the cheaper one');
+  ok(/0\.5/.test(await page.getAttribute('#c-portrait', 'title'))
+    && /0\.6/.test(await page.getAttribute('#c-square', 'title')),
+    'both say what they cost, because the square is the DEARER one');
+  await page.click('#c-square');
+  ok(await page.evaluate(() => document.getElementById('c-square').classList.contains('on')),
+    'and it switches');
+
+  // The LoRA has no baked prefix and rides a different shape parameter.
+  await page.click('.stylebtn:has-text("WTR")');
+  ok(!(await page.isVisible('#promptbtn')), 'no prompt button on the LoRA');
+  ok(!(await page.isVisible('#canvastog')), 'no canvas toggle on the LoRA');
+  ok(!(await page.isVisible('#promptpanel')), 'and an open panel closes with it');
 
   await browser.close();
   server.close();
