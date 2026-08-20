@@ -174,7 +174,6 @@ const sections = (page) => page.evaluate(() => {
   const out = []; let cur = null;
   document.querySelectorAll('#grid > *').forEach((n) => {
     if (n.classList.contains('sthead')) { cur = { head: n.textContent.replace(/\s+/g, ' ').trim(), chats: [] }; out.push(cur); }
-    else if (n.classList.contains('nwrev')) { cur = { head: n.textContent.replace(/\s+/g, ' ').trim(), chats: [], rev: true }; out.push(cur); }
     else if (n.classList.contains('nwcard') && cur) cur.chats.push(n.dataset.chat);
   });
   return out;
@@ -191,7 +190,7 @@ const sections = (page) => page.evaluate(() => {
   page.on('pageerror', (e) => fail('the page threw: ' + e.message));
 
   await page.goto(base + '/chats?view=news');
-  await page.waitForSelector('#grid .nwcard, #grid .nwrev');
+  await page.waitForSelector('#grid .nwcard, #nwdoors .nwrevpair');
 
   // ---- 1 + 3. the pin is the tag, and her ✓ is the way out --------------
   let on = await cards(page);
@@ -214,21 +213,31 @@ const sections = (page) => page.evaluate(() => {
   // ---- 4. the review word folds behind one row -------------------------
   if (on.indexOf('revme') > -1) fail('a "' + REVIEW + '" chat still has a card on the list');
   else ok('a chat to be reviewed is not a card on the list');
-  const rev = secs[0];
+  // THE DOOR IS CHROME, NOT A SECTION (Aug 2026 v2, Sophie: "both supposed to
+  // be smaller and they're supposed to go above the chats") — a chip in
+  // #nwdoors, above the account tabs, so it is looked for there and not in the
+  // list's own section order.
   // TWO, not one: `held` wears the word as well (it is the fixture assertion 7
-  // uses) and it has news, so it belongs behind this row too. The count is the
-  // chats behind the row, which is the number she reads before tapping it.
-  if (!rev || !rev.rev) fail('the Review row is not the first thing on the tab: ' + JSON.stringify(secs.map((s) => s.head)));
-  else if (!/^review\s*2$/i.test(rev.head)) fail('the Review row is mis-counted (want 2): "' + rev.head + '"');
-  else ok('the Review row leads the tab, carrying how many are behind it');
+  // uses) and it has news, so it belongs behind this door too. The count is the
+  // chats behind it, which is the number she reads before tapping.
+  const revDoor = await page.$eval('#nwdoors .nwrevpair .nwdoor', (n) => n.textContent.replace(/\s+/g, ' ').trim())
+    .catch(() => '');
+  const above = await page.evaluate(() => {
+    const d = document.querySelector('#nwdoors'), t = document.querySelector('#accrow');
+    return !!(d && t) && d.getBoundingClientRect().bottom <= t.getBoundingClientRect().top;
+  });
+  if (!revDoor) fail('there is no Review door in #nwdoors');
+  else if (!/^review\s*2$/i.test(revDoor)) fail('the Review door is mis-counted (want 2): "' + revDoor + '"');
+  else if (!above) fail('the doors row is not above the account tabs');
+  else ok('the Review door sits above the chats, carrying how many are behind it');
   if (on.indexOf('held') > -1) fail('the second "' + REVIEW + '" chat still has a card on the list');
 
   // …and the word goes to the queue.
-  await Promise.all([page.waitForNavigation(), page.click('.nwrevgo')]);
+  await Promise.all([page.waitForNavigation(), page.click('#nwdoors .nwrevpair .nwdoor')]);
   if (!(await page.$('#reviewq'))) fail('the Review button did not open /review');
   else ok('…and it opens the review queue');
   await page.goto(base + '/chats?view=news');
-  await page.waitForSelector('#grid .nwrev');
+  await page.waitForSelector('#nwdoors .nwrevpair');
 
   // The control for the tap-speed check at the end of assertion 6: `revme` is
   // filed under the review word AND has delivered since, so it is on her
@@ -238,7 +247,7 @@ const sections = (page) => page.evaluate(() => {
   await page.waitForSelector('#grid .crow[data-chat="plain"]');
   if ((await listed(page)).indexOf('revme') < 0) fail('the control failed — revme was never on her account list to leave it');
   await page.click('.acctab[data-acct="new"]');
-  await page.waitForSelector('#grid .nwrev');
+  await page.waitForSelector('#nwdoors .nwrevpair');
 
   // ---- 5. the ⌄ opens them, or there is nothing to dismiss -------------
   await page.click('.nwrevfold');

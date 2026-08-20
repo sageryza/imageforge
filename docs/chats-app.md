@@ -1906,27 +1906,40 @@
   sliding line's slot 0, which is the row's default); the two account words go
   quiet under it. **The `::after` translate steps follow the MARKUP order** —
   move a tab and move its step with it.
-  - **THE UPDATE ROW LEADS IT (Aug 2026, Sophie: "a couple days ago we added
-    a what's new button to the main screen, but I wanted it to go on the
-    update screen — could you rename it Update, no icon, and put it on the
-    update screen").** `newsUpdRow` in chats.html: one row above everything,
-    the word **Update** and no icon, opening `/brief` — the five things worth
-    knowing across every chat at once, which is the same question this tab
-    asks and a different answer to it. It shipped on the iOS home grid as
-    "What's new" with a list icon (`updateButton` in RootView.swift, gone
-    now; `BriefView.swift` is kept unmounted). Two things about it:
-    - **It is painted on EVERY pass, the caught-up screen included** — so
-      `newsEmptyCheck` APPENDS its line instead of writing over the
-      container, and the row is deliberately not in that function's
-      "something is already on screen" test (it always is).
-    - **No count on it.** A badge would mean reading the brief every time
+  - **TWO DOORS ABOVE THE TABS — UPDATE and REVIEW (Aug 2026, Sophie: "a
+    couple days ago we added a what's new button to the main screen, but I
+    wanted it to go on the update screen — could you rename it Update, no
+    icon, and put it on the update screen", then "the update and also the
+    review button that you probably copied are both supposed to be smaller
+    and they're supposed to go above the chats").** `#nwdoors`, filled by
+    `paintNewsDoors`: two `.catchip`-sized buttons on one short line between
+    the search row and the account tabs. **Update** opens `/brief` — the five
+    things worth knowing across every chat at once, the same question this
+    tab asks and a different answer to it; **Review** opens `/review` and its
+    ⌄ drops that pile's cards into the top of the list.
+    - **They are CHROME, not list.** Both shipped as full-width slabs at the
+      top of `#grid` — 92px before the first card — and she asked for them
+      smaller and above the chats. Now `renderNews` paints the doors and
+      leaves only the review cards in the grid, and `paintHomeChrome` empties
+      `#nwdoors` on every other view (renderNews is the only thing that ever
+      fills it). Measured at 390pt: 26px, and the first card 66px higher.
+    - **Update is painted on EVERY pass, the caught-up screen included**, so
+      `newsEmptyCheck` takes the review count as an ARGUMENT rather than
+      looking for a `.nwrev` in the grid — the door it used to find is not in
+      there any more, and a tab holding nothing but review chats must not say
+      "you're all caught up" under a chip saying two are waiting.
+    - **No count on Update.** A badge would mean reading the brief every time
       this tab paints, and the number would be the only stale thing on the
-      screen — the same reasoning that kept it off the home button.
+      screen — the same reasoning that kept it off the home button. Review
+      carries one because its pile is already counted in hand.
+    - **Rose is Review's alone**: on this screen rose means something is owed,
+      and the brief never is.
     - The page keeps the last answer on the phone and re-reads only on its
       own **Refresh** ("rather than immediately doing another API read, I'd
       like to be able to go back and forth"), so walking in and out of it
       while triaging this tab costs nothing. Full rules in `CLAUDE.md` (THE
-      UPDATE BUTTON). Test: `node scripts/test-chats-update-row.js`.
+      UPDATE BUTTON). Tests: `node scripts/test-chats-update-row.js` and
+      `node scripts/test-tag-rules.js`.
   - **A card carries the THING, not a line about it** — that is the whole
     point of the tab. Her two examples ARE the two blocks: "for the [oven]
     chat, they keep delivering different versions of this artifact, so it

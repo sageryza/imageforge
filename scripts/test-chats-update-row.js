@@ -9,11 +9,12 @@
 // real against the REAL public/chats.html in headless Chromium, this pins the
 // four things that made it what she asked for:
 //
-//   1. it is the FIRST thing on the tab — above the Review row, above every
-//      section, so it is what she sees when she opens the screen;
-//   2. the word is "Update" and there is NO icon in it (her ask, and the one
-//      part of the move that is easy to lose to a copy-paste from the Review
-//      row, which has a fold arrow);
+//   1. it is ABOVE THE ACCOUNT TABS — in #nwdoors, the chrome, not in the
+//      list — and it comes before the Review door in that row (Aug 2026 v2:
+//      "both supposed to be smaller and they're supposed to go above the
+//      chats"). Measured, not eyeballed: its bottom is above the tab row's top;
+//   2. the word is "Update", there is NO icon in it, and it is SMALL — a chip,
+//      not the full-width slab it shipped as;
 //   3. it opens /brief;
 //   4. it is there on the CAUGHT-UP screen too — the page behind it answers a
 //      different question from the cards, so an empty list is no reason to take
@@ -61,7 +62,10 @@ const server = http.createServer((req, res) => {
     const since = url.searchParams.get('since');
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
-      build: 'test-build-' + set, chats: SETS[set], settings: {}, truncated: [],
+      // ONE build string across both fixtures on purpose: a changed build is a
+      // deploy signal and makes the page reload itself, which is a second
+      // source of timing in a test that is not about deploys.
+      build: 'test-build', chats: SETS[set], settings: {}, truncated: [],
       messages: since ? [] : MSGS, delta: !!since,
     }));
   }
@@ -93,35 +97,61 @@ const server = http.createServer((req, res) => {
   page.on('pageerror', (e) => fail('the page threw: ' + e.message));
 
   await page.goto(base + '/chats?view=news');
-  await page.waitForSelector('#grid .nwupd');
+  await page.waitForSelector('#nwdoors .nwdoor');
 
-  // ---- 1. first on the screen -------------------------------------------
-  const firstClass = await page.$eval('#grid > *', (n) => n.className);
-  if (!/\bnwupd\b/.test(firstClass)) fail('the Update row is not the first thing on the tab: "' + firstClass + '"');
-  else ok('the Update row leads the tab');
+  // ---- 1. above the chats, and above the tabs ---------------------------
+  const geo = await page.evaluate(() => {
+    const r = (s) => { const e = document.querySelector(s); if (!e) return null;
+      const b = e.getBoundingClientRect(); return { top: Math.round(b.y), bottom: Math.round(b.bottom), h: Math.round(b.height), w: Math.round(b.width) }; };
+    return { doors: r('#nwdoors'), tabs: r('#accrow'), grid: r('#grid'), door: r('#nwdoors .nwdoor') };
+  });
+  if (!geo.doors || !geo.tabs) fail('lost the doors row or the tab row');
+  else if (!(geo.doors.bottom <= geo.tabs.top)) {
+    fail('the doors are not above the account tabs: doors end ' + geo.doors.bottom + ', tabs start ' + geo.tabs.top);
+  } else ok('the doors sit above the account tabs, and so above the chats');
+  if (geo.door && geo.door.h > 34) fail('the Update door is ' + geo.door.h + 'px tall — she asked for smaller');
+  else ok('…and it is a chip, not a slab (' + (geo.door && geo.door.h) + 'px)');
+  // A chip hugs its words: the slab ran the full width of the list.
+  if (geo.door && geo.grid && geo.door.w > geo.grid.w / 2) {
+    fail('the Update door is ' + geo.door.w + 'px wide inside a ' + geo.grid.w + 'px list — it is still a slab');
+  } else ok('…hugging its words');
+  if (await page.$('#grid .nwdoor')) fail('a door is still being drawn inside the list');
 
   // ---- 2. her word, and no icon -----------------------------------------
-  const word = (await page.$eval('.nwupdgo', (n) => n.textContent)).trim();
-  if (word !== 'Update') fail('the row reads "' + word + '", not "Update"');
+  const word = (await page.$eval('#nwdoors .nwdoor', (n) => n.textContent)).trim();
+  if (word !== 'Update') fail('the door reads "' + word + '", not "Update"');
   else ok('…it reads Update');
-  const marks = await page.$$eval('.nwupd svg, .nwupd img', (ns) => ns.length);
-  if (marks) fail('the row carries ' + marks + ' icon(s) — she asked for none');
+  const marks = await page.$$eval('#nwdoors .nwdoor svg, #nwdoors .nwdoor img', (ns) => ns.length);
+  if (marks) fail('the door carries ' + marks + ' icon(s) — she asked for none');
   else ok('…with no icon');
 
   // ---- 3. it opens the brief --------------------------------------------
-  await Promise.all([page.waitForNavigation(), page.click('.nwupdgo')]);
+  await Promise.all([page.waitForNavigation(), page.click('#nwdoors .nwdoor')]);
   if (!(await page.$('#briefpage'))) fail('the Update row did not open /brief');
   else ok('…and it opens /brief');
 
   // ---- 4. it survives the caught-up screen ------------------------------
   set = 'caught';
   await page.goto(base + '/chats?view=news');
-  await page.waitForSelector('#grid .nwupd');
+  await page.waitForSelector('#nwdoors .nwdoor');
+  // The page paints from its localStorage cache first and repaints when the
+  // feed lands, so the caught-up screen is a state to WAIT for — asserting on
+  // the first paint is a race that only sometimes goes the right way.
+  await page.waitForFunction(
+    () => document.querySelectorAll('#grid .nwcard').length === 0 && !!document.querySelector('#grid .state'),
+    null, { timeout: 8000 }).catch(() => {});
   const cards = await page.$$eval('#grid .nwcard', (ns) => ns.length);
   if (cards) fail('the caught-up fixture still drew ' + cards + ' card(s)');
   const state = await page.$eval('#grid .state', (n) => n.textContent.trim()).catch(() => '');
   if (!/caught up/i.test(state)) fail('the caught-up line is missing: "' + state + '"');
-  else ok('caught up: the row stays and the line still shows under it');
+  else ok('caught up: the door stays and the line still shows under it');
+
+  // ---- 5. and it is gone on every other view ----------------------------
+  await page.goto(base + '/chats');
+  await page.waitForSelector('#grid .crow, #grid .state');
+  const shown = await page.$eval('#nwdoors', (n) => !n.hidden && n.children.length > 0);
+  if (shown) fail('the doors row is still painted on the chat list');
+  else ok('…and it is put away on every other view');
 
   await browser.close();
   server.close();
