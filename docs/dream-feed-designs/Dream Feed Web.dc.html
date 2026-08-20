@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link href="https://fonts.cdnfonts.com/css/baveuse" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#dcd6c8;font-family:'EB Garamond',serif}a{color:#7a4a3a}a:hover{color:#14131a}
+@keyframes wobble{0%,100%{transform:rotate(var(--r,-.6deg)) skewX(-.3deg)}50%{transform:rotate(calc(var(--r,-.6deg) * -1)) skewX(.4deg)}}
+@keyframes breathe{0%,100%{border-radius:14px 60px 18px 46px/40px 16px 52px 18px}50%{border-radius:52px 16px 44px 20px/18px 48px 16px 42px}}
+@keyframes blob{0%,100%{border-radius:60% 40% 55% 45%/45% 55% 40% 60%}50%{border-radius:45% 55% 40% 60%/60% 40% 55% 45%}}
+@keyframes melt1{0%,100%{border-radius:24px 70px 30px 90px/70px 26px 80px 30px}50%{border-radius:80px 28px 74px 24px/30px 76px 26px 68px}}
+@keyframes melt2{0%,100%{border-radius:8px 10px 64px 88px/6px 8px 40px 52px}50%{border-radius:14px 8px 86px 58px/8px 6px 50px 36px}}
+@keyframes melt3{0%,100%{border-radius:90px 20px 60px 34px/24px 84px 30px 66px}50%{border-radius:30px 78px 26px 88px/70px 26px 74px 22px}}
+@keyframes rise{from{opacity:0;transform:translateY(34px) rotate(1.4deg)}to{opacity:1;transform:none}}
+</style></helmet>
+<div style="min-height:100vh;box-sizing:border-box;padding:44px 56px 80px;max-width:1480px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding:0 8px 30px">
+    <div style="display:flex;align-items:baseline;gap:20px">
+      <div style="font:54px 'Baveuse',sans-serif;color:#14131a;letter-spacing:1px">dreams</div>
+      <div style="font:13px 'Courier Prime',monospace;color:rgba(20,19,26,.5)">everyone's still dreaming · {{ nightLabel }}</div>
+    </div>
+    <button onClick="{{ noop }}" style="font:16px 'Courier Prime',monospace;background:#7a4a3a;color:#ece7dc;border:none;padding:16px 32px;border-radius:60% 40% 55% 45%/45% 55% 40% 60%;animation:blob 9s ease-in-out infinite;cursor:pointer">it's coming back to me…</button>
+  </div>
+  <div style="column-count:{{ cols }};column-gap:26px">
+    <sc-for list="{{ dreams }}" as="d" hint-placeholder-count="6">
+      <sc-if value="{{ d.isDivider }}"><div style="break-inside:avoid;display:flex;align-items:center;gap:14px;padding:10px 4px 26px"><span style="flex:1;border-top:1px dashed rgba(20,19,26,.4)"></span><span style="font:12px 'Courier Prime',monospace;color:rgba(20,19,26,.55);white-space:nowrap">{{ d.label }}</span><span style="flex:1;border-top:1px dashed rgba(20,19,26,.4)"></span></div></sc-if>
+      <sc-if value="{{ d.isDream }}" hint-placeholder-val="{{ true }}">
+      <div style="break-inside:avoid;margin-bottom:26px;--r:{{ d.rot }};animation:rise both,wobble {{ d.wdur }} ease-in-out infinite;animation-timeline:view(),auto;animation-range:entry 0% entry 40%,normal">
+        <div style-hover="transform:scale(1.02)" style="border:2.5px solid {{ d.border }};background:{{ d.bg }};color:{{ d.fg }};padding:{{ d.pad }};box-sizing:border-box;overflow:hidden;position:relative;border-radius:{{ d.radius }};animation:{{ d.anim }};display:flex;flex-direction:column;gap:10px;min-height:{{ d.minH }};justify-content:{{ d.justify }};transition:transform .3s ease">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+            <div style="font:600 {{ d.hSize }}/1.2 'EB Garamond',serif;text-align:{{ d.align }};width:100%">{{ d.headline }}</div>
+            <div style="font:11px 'Courier Prime',monospace;opacity:.45;white-space:nowrap">{{ d.byline }}</div>
+          </div>
+          <sc-if value="{{ d.hasImg }}">
+            <div style="display:flex;gap:12px;align-items:flex-start;flex-direction:{{ d.rowDir }}">
+              <div style="flex:1.1;aspect-ratio:{{ d.imgRatio }};border:1.5px solid {{ d.fg }};border-radius:{{ d.imgRadius }};overflow:hidden;position:relative;min-width:0">{{ d.imgEl }}</div>
+              <div style="flex:1;font:{{ d.bStyle }} 'EB Garamond',serif;text-align:{{ d.align }};min-width:0">{{ d.body }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.noImg }}" hint-placeholder-val="{{ true }}"><div style="font:{{ d.bStyle }} 'EB Garamond',serif;text-align:{{ d.align }}">{{ d.body }}</div></sc-if>
+          <div style="display:flex;gap:16px;font:11px 'Courier Prime',monospace;opacity:.55;justify-content:{{ d.metaJustify }};margin-top:auto;padding-top:4px">
+            <span onClick="{{ d.toggleLike }}" style="cursor:pointer;white-space:nowrap">{{ d.heart }} {{ d.felt }}</span>
+            <span style="cursor:pointer;white-space:nowrap">✎ {{ d.replies }}</span>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;columns&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:2,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;wobble&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+class Component extends DCLogic {
+  state = { liked: {}, narrow: false };
+  componentDidMount() {
+    this._onResize = () => this.setState({ narrow: window.innerWidth < 1100 });
+    this._onResize();
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+  renderVals() {
+    const colsProp = this.props.columns ?? 4;
+    const cols = (this.state.narrow ?? false) ? Math.min(colsProp, 3) : colsProp;
+    const wob = this.props.wobble ?? true;
+    const U = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-feed/';
+    // shape kits: [radius, anim, imgRadius]
+    const shapes = {
+      meltRect: ['24px 70px 30px 90px/70px 26px 80px 30px', 'melt1 14s ease-in-out infinite', '10px 40px 14px 50px/40px 12px 44px 14px'],
+      sag:      ['8px 10px 64px 88px/6px 8px 40px 52px',     'melt2 16s ease-in-out infinite', '6px 8px 40px 52px/5px 6px 30px 36px'],
+      drippy:   ['90px 20px 60px 34px/24px 84px 30px 66px',  'melt3 13s ease-in-out infinite', '50px 12px 40px 18px/14px 48px 16px 40px'],
+      paper:    ['14px 60px 18px 46px/40px 16px 52px 18px',  'breathe 12s ease-in-out infinite', '8px 34px 10px 28px/26px 8px 30px 10px'],
+      lean:     ['70px 8px 74px 10px/10px 66px 8px 70px',    'melt1 17s 1s ease-in-out infinite reverse', '38px 6px 40px 7px/7px 36px 6px 38px']
+    };
+    const raw = [
+      {h:'The Xylophone Teeth', b:'My teeth were a xylophone. @theo played them beautifully. I was furious.', a:'mira ✳', url:U+'01-xylophone-teeth.webp', shape:'meltRect', side:'left', ratio:'4/3', rot:'-.8deg'},
+      {h:'The Same Word', b:'Every page said the same word. I woke up before I could say it out loud. It started with a q.', a:'priya ☾', dark:true, shape:'sag', minH:'280px', hSize:'25px', bStyle:'italic 400 17px/1.55', align:'center', pad:'40px 34px', justify:'center', rot:'.9deg'},
+      {h:'The Whale Again', b:'The whale is back. It has opinions about my parking now.', a:'jonah ☾', url:U+'02-whale-again.webp', shape:'drippy', side:'right', ratio:'1/1', rot:'.6deg'},
+      {h:'Seminar on Doors', b:'I taught a seminar on doors. Everyone left through the window. I gave them all full marks.', a:'sana ✳', url:U+'03-seminar-on-doors.webp', shape:'paper', side:'left', ratio:'3/4', rot:'-.5deg'},
+      {h:'Weather Chess', b:'My grandmother won the chess league using pieces made of weather. Her bishop was a light drizzle.', a:'leo ☾', dark:true, url:U+'06-weather-chess.webp', shape:'meltRect', side:'left', ratio:'4/5', rot:'.7deg'},
+      {h:'untitled, 3:41am', b:'Something about rain. It\u2019s already going.', a:'you ◦', shape:'lean', minH:'190px', hSize:'17px', bStyle:'italic 400 15px/1.5', align:'center', pad:'32px 30px', justify:'center', rot:'-1.1deg'},
+      {divider:'last night'},
+      {h:'The Peephole Moon', b:'The moon was a peephole. Someone knocked. @mira told me not to answer.', a:'theo ✳', url:U+'05-peephole-moon.webp', shape:'lean', side:'left', ratio:'1/1', rot:'.8deg'},
+      {h:'Floor 8 Is Ocean', b:'The elevator opened on floor 8 and it was just ocean. Everyone got out anyway. So did I.', a:'ana ✳', url:U+'07-floor-8-is-ocean.webp', shape:'drippy', side:'right', ratio:'4/3', dark:true, rot:'-.7deg'},
+      {h:'A Light Drizzle', b:'I only remember the sound of it. Like applause, but politer.', a:'noor ☾', shape:'paper', minH:'150px', hSize:'19px', bStyle:'italic 400 15px/1.5', align:'left', pad:'26px 28px', rot:'.5deg'}
+    ];
+    const dreams = raw.map((d, i) => {
+      if (d.divider) return { isDivider: true, label: d.divider };
+      const [radius, anim, imgRadius] = shapes[d.shape];
+      const dark = !!d.dark;
+      return {
+        isDream: true, headline: d.h, body: d.b,
+        byline: d.a,
+        radius, anim, imgRadius,
+        rot: wob ? d.rot : '0deg', wdur: (6 + (i % 5)) + 's',
+        pad: d.pad || '20px 22px', minH: d.minH || 'auto',
+        justify: d.justify || 'flex-start', align: d.align || 'left',
+        hSize: d.hSize || '21px', bStyle: d.bStyle || '400 15px/1.5',
+        metaJustify: d.align === 'center' ? 'center' : 'flex-start',
+        hasImg: !!d.url, noImg: !d.url, rowDir: d.side === 'right' ? 'row-reverse' : 'row', imgRatio: d.ratio || '1/1',
+        imgEl: d.url ? React.createElement('img', { src: d.url, alt: d.h, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null,
+        bg: dark ? '#14131a' : '#f4f0e5', fg: dark ? '#ece7dc' : '#14131a', border: '#14131a',
+        heart: this.state.liked[i] ? '♥' : '♡',
+        felt: [41, 9, 33, 28, 12, 3, 0, 17, 24, 7][i % 10] + (this.state.liked[i] ? 1 : 0),
+        replies: [6, 1, 8, 4, 3, 0, 0, 2, 4, 1][i % 10],
+        toggleLike: () => this.setState(s => ({ liked: { ...s.liked, [i]: !s.liked[i] } }))
+      };
+    });
+    return { dreams, cols, nightLabel: 'tonight, august 16', noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

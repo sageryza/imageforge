@@ -112,7 +112,10 @@ const FIREBASE_STUB = `
   // 1. header — and the wordmark is the way home
   const mark = await page.$eval('#app .mark', (el) => getComputedStyle(el).fontFamily);
   ok(/Baveuse/i.test(mark), 'wordmark asks for Baveuse');
-  ok((await page.$$('.fnow')).length === 0, 'no "tonight" in the header');
+  // gone from the PHONE's corner, which is what she asked for — the element
+  // is back for the desktop masonry header (Aug 2026) and display:none here
+  ok(await page.$eval('.fnow', (el) => getComputedStyle(el).display === 'none'),
+    'no "tonight" in the header');
   ok((await page.$eval('#navMine', (el) => el.textContent)) === 'archive', 'the other view is the archive');
   await page.click('#navMine');
   ok(await page.$eval('#scr-feed', (el) => el.hidden), 'the archive replaces the feed');

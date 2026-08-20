@@ -54,7 +54,11 @@
   .mark { font:28px 'Baveuse', sans-serif; color:var(--ink); letter-spacing:.5px; }
   /* the wordmark is the way home — tapping "dreams" returns to the feed (Sophie) */
   button.mark { background:none; border:none; padding:0; cursor:pointer; }
+  .hleft { display:flex; align-items:baseline; gap:20px; }
   .hright { display:flex; gap:14px; align-items:baseline; }
+  /* both are the DESK's — the phone's header has room for neither */
+  .fnow { display:none; }
+  .topconfess { display:none; }
   .fnow { font:11px 'Courier Prime', monospace; color:var(--brown); }
   /* the one control not on the artboard: the way into your private dreams —
      the vault screen replaces it in the sharing-flow phase */
@@ -387,6 +391,117 @@
            font:12px 'Courier Prime', monospace; opacity:0; transition:opacity .25s;
            pointer-events:none; white-space:nowrap; }
 
+  /* ══ THE DESK — the feed on a real screen (Sophie, Aug 2026: "the desktop
+     version of the dream feed. It's a fun masonry layout, and I want it to
+     look good on a desktop. But not on the mobile site. The mobile site will
+     basically look as it does.") ══
+
+     Ported from her canvas, `Dream Feed Web.dc.html` — the values below are
+     the artboard's. EVERYTHING here lives inside the media query, so the
+     phone is byte-for-byte what it was: the cards carry `data-shape` and
+     `data-ar` on every screen and only this block reads them.
+
+     Two halves:
+       · the LOOK — five melt shapes cycling card by card, each with its own
+         morph, its own rotation and its own picture shape, so no two cards in
+         a column are the same object. On a phone they would all be one column
+         wide and the variety would read as noise; on a desk it is the design.
+       · the LAYOUT — real columns, built in JS (see `masonry`), NOT
+         `column-count`. CSS columns re-balance every card when one of them
+         grows, and opening a dream grows it by a whole picture — which would
+         shuffle the cards she is not reading. Placing each card in the
+         shortest column instead means an opened dream only ever moves the
+         column it is in. */
+  @media (min-width: 900px) {
+    /* the desk shows through — the cream is the CARD's, not the page's */
+    .phone { max-width:1480px; background:transparent; }
+    main { padding:0 56px 60px; }
+    /* every other screen keeps the phone's column: a 1,368px-wide dream
+       screen or archive row is not a layout, it is a stretched one */
+    main > section:not(#scr-feed) { max-width:520px; margin:0 auto; }
+
+    header { padding:44px 56px 30px; align-items:baseline;
+             background:linear-gradient(var(--desk) 70%, rgba(220,214,200,0)); }
+    .hleft { display:flex; align-items:baseline; gap:20px; }
+    .mark { font-size:54px; }
+    .fnow { display:inline; }
+    .hright { gap:22px; align-items:center; }
+    .topconfess { display:inline-block; font:15px 'Courier Prime', monospace;
+                  background:var(--brown); color:var(--cream); border:none;
+                  padding:15px 30px; cursor:pointer;
+                  border-radius:60% 40% 55% 45%/45% 55% 40% 60%;
+                  animation:blob 9s ease-in-out infinite; }
+    /* the phone's fixed bottom bar has no job here — the header holds the
+       ask, and a full-width cream band across a desk reads as a mistake */
+    #confess { display:none; }
+    #closewrap { background:none; }
+
+    /* the columns themselves */
+    #scr-feed { display:block; padding-top:0; }
+    .mrow { display:flex; align-items:flex-start; gap:26px; }
+    .mcol { flex:1 1 0; min-width:0; }
+    .mcol > .dcard { margin-bottom:26px; }
+    /* a day's divider runs the whole desk, between two mats of cards */
+    #scr-feed > .fdiv { padding:10px 4px 26px; }
+    #scr-feed > .fdiv span.l { border-top-style:dashed; }
+
+    /* ── the five melt shapes ── */
+    #scr-feed .dcard { border-width:2.5px; padding:20px 22px;
+                       animation:rise both, breathe 12s ease-in-out infinite,
+                                 meltwob var(--wdur,7s) ease-in-out infinite;
+                       animation-timeline:view(), auto, auto;
+                       animation-range:entry 0% entry 40%, normal, normal; }
+    #scr-feed .dcard[data-shape="0"] { border-radius:24px 70px 30px 90px/70px 26px 80px 30px;
+      animation-name:rise, melt1, meltwob; animation-duration:1s, 14s, var(--wdur,7s); }
+    #scr-feed .dcard[data-shape="1"] { border-radius:8px 10px 64px 88px/6px 8px 40px 52px;
+      animation-name:rise, melt2, meltwob; animation-duration:1s, 16s, var(--wdur,7s); }
+    #scr-feed .dcard[data-shape="2"] { border-radius:90px 20px 60px 34px/24px 84px 30px 66px;
+      animation-name:rise, melt3, meltwob; animation-duration:1s, 13s, var(--wdur,7s); }
+    #scr-feed .dcard[data-shape="3"] { border-radius:14px 60px 18px 46px/40px 16px 52px 18px;
+      animation-name:rise, breathe, meltwob; animation-duration:1s, 12s, var(--wdur,7s); }
+    #scr-feed .dcard[data-shape="4"] { border-radius:70px 8px 74px 10px/10px 66px 8px 70px;
+      animation-name:rise, melt1, meltwob; animation-duration:1s, 17s, var(--wdur,7s);
+      animation-direction:normal, reverse, normal; }
+    /* the picture wears a quieter echo of its card's shape */
+    #scr-feed .dcard[data-shape="0"] .blob { border-radius:10px 40px 14px 50px/40px 12px 44px 14px; }
+    #scr-feed .dcard[data-shape="1"] .blob { border-radius:6px 8px 40px 52px/5px 6px 30px 36px; }
+    #scr-feed .dcard[data-shape="2"] .blob { border-radius:50px 12px 40px 18px/14px 48px 16px 40px; }
+    #scr-feed .dcard[data-shape="3"] .blob { border-radius:8px 34px 10px 28px/26px 8px 30px 10px; }
+    #scr-feed .dcard[data-shape="4"] .blob { border-radius:38px 6px 40px 7px/7px 36px 6px 38px; }
+    #scr-feed .dcard .blob { animation:none; }
+    /* …and its own proportion, so a column is not a stack of squares */
+    #scr-feed .dcard[data-ar="0"] .blob { aspect-ratio:4/3; }
+    #scr-feed .dcard[data-ar="1"] .blob { aspect-ratio:1/1; }
+    #scr-feed .dcard[data-ar="2"] .blob { aspect-ratio:3/4; }
+    #scr-feed .dcard[data-ar="3"] .blob { aspect-ratio:4/5; }
+    /* opened, the picture still comes up full width and the words run under
+       it — the morph goes back to pixels so a tall picture keeps its corners */
+    #scr-feed .dcard.open .blob { border-radius:42px 26px 38px 30px/30px 40px 26px 44px;
+                                  aspect-ratio:auto; }
+
+    /* a dream with no picture and few words is one of her QUIET cards:
+       centred, italic, and given some air so it holds its own in a column */
+    #scr-feed .dcard.quiet { min-height:190px; display:flex;
+                             flex-direction:column; justify-content:center; }
+    #scr-feed .dcard.quiet .dttl { text-align:center; font-size:18px; }
+    #scr-feed .dcard.quiet .dbody { text-align:center; font-style:italic; }
+    #scr-feed .dcard.quiet .dmeta { justify-content:center; }
+
+    #scr-feed .dcard:hover { transform:scale(1.015); }
+    #scr-feed .dcard { transition:transform .3s ease; }
+  }
+  /* the desk's wobble reads the card's OWN tilt — the phone's `wobble` is a
+     fixed pair of angles and is shared with the confess button and the dial,
+     so it could not simply be taught a variable */
+  @keyframes meltwob { 0%,100% { transform:rotate(var(--r,-.6deg)) skewX(-.3deg) }
+                       50% { transform:rotate(calc(var(--r,-.6deg) * -1)) skewX(.4deg) } }
+  @keyframes melt1 { 0%,100% { border-radius:24px 70px 30px 90px/70px 26px 80px 30px }
+                     50% { border-radius:80px 28px 74px 24px/30px 76px 26px 68px } }
+  @keyframes melt2 { 0%,100% { border-radius:8px 10px 64px 88px/6px 8px 40px 52px }
+                     50% { border-radius:14px 8px 86px 58px/8px 6px 50px 36px } }
+  @keyframes melt3 { 0%,100% { border-radius:90px 20px 60px 34px/24px 84px 30px 66px }
+                     50% { border-radius:30px 78px 26px 88px/70px 26px 74px 22px } }
+
   /* the holding-hands moment — you just became friends (Sophie, Aug 2026) */
   .hands { background:var(--ink); color:var(--cream); border:2px solid var(--ink);
            border-radius:14px 60px 18px 46px/40px 16px 52px 18px; padding:32px 26px;
@@ -415,9 +530,17 @@
 
 <div id="app" hidden>
   <header>
-    <button class="mark" id="markBtn">dreams</button>
+    <span class="hleft">
+      <button class="mark" id="markBtn">dreams</button>
+      <!-- the desk's own line, off her desktop artboard — the phone never
+           shows it, there is no room for it there -->
+      <span class="fnow" id="feedNow"></span>
+    </span>
     <span class="hright">
       <button class="hmine" id="navMine">archive</button>
+      <!-- on a desk the confess button sits UP HERE, where her artboard puts
+           it; the fixed bottom bar is the phone's shape and stands down -->
+      <button class="topconfess" id="confessTop">it&rsquo;s coming back to me&hellip;</button>
     </span>
   </header>
   <main>
@@ -681,7 +804,15 @@ function plainGrid(panels){
    next to all the dreams … I would get rid of it"). */
 var feedEntry = {};   // id -> feed entry, for the blob lightbox
 
-function meltCard(n, dark, rev, dur){
+/* The desk's variety, decided here and READ ONLY BY THE DESKTOP CSS: the
+   melt shape, the picture's proportion, the tilt and the wobble's speed all
+   ride on the card as data. On a phone they are inert attributes on a
+   one-column stack — which is exactly why they can be written unconditionally
+   and the mobile feed stays what it was. Deterministic from the card's index,
+   so a card does not change shape when the feed refreshes. */
+var MELT_ROT = ['-.8deg', '.9deg', '.6deg', '-.5deg', '.7deg', '-1.1deg'];
+
+function meltCard(n, dark, rev, dur, i, imgI){
   var blob = n.cover
     ? '<div class="blob"><img src="' + n.cover.url + '" alt="" loading="lazy"></div>'
     : '';
@@ -694,8 +825,15 @@ function meltCard(n, dark, rev, dur){
   // A ☾ friends card says so in the corner and always wears the dark card
   // (the sharing-flow artboard's rule) — the only marker any card carries.
   var frd = n.audience === 'friends';
-  return '<article class="dcard' + (dark || frd ? ' dark' : '') + '" data-id="' + n.id + '"' +
-    (n.mine ? ' data-mine="1"' : '') + ' style="--dur:' + dur + 's">' +
+  // a dream with no picture and only a line or two of words is one of her
+  // QUIET cards on the desk — centred and italic in its column
+  var quiet = !n.cover && (n.words || '').length < 140;
+  i = i || 0;
+  return '<article class="dcard' + (dark || frd ? ' dark' : '') + (quiet ? ' quiet' : '') +
+    '" data-id="' + n.id + '"' +
+    ' data-shape="' + (i % 5) + '" data-ar="' + ((imgI || 0) % 4) + '"' +
+    (n.mine ? ' data-mine="1"' : '') + ' style="--dur:' + dur + 's;--r:' +
+    MELT_ROT[i % MELT_ROT.length] + ';--wdur:' + (6 + (i % 5)) + 's">' +
     '<div class="drow' + (rev ? ' rev' : '') + '">' + blob +
       '<div class="dtxt">' +
         '<div class="dhead"><span class="dttl">' + esc(n.title) + '</span>' +
@@ -752,6 +890,22 @@ function fitCard(card){
    find the one she just tapped. Closing puts that card's top back on screen,
    which is the one place she is certainly looking. */
 var openCard = null;
+/* The ask lives in two places — the phone's fixed bottom bar and the desk's
+   header button (only one of them is ever on screen; the media query decides
+   which) — so the one thing that turns it off has to reach both.
+
+   THEY DO NOT ANSWER TO THE SAME THINGS. The bottom bar stands down while a
+   dream is open because the floating close takes its seat. The header button
+   has no such conflict, and hiding it would be worse than pointless: it is IN
+   the flow, so taking it away shrinks the header and slides the whole feed up
+   under her while she is opening a dream — which is the bug the lightbox
+   rules exist to prevent, arriving from the top of the page instead. */
+function showConfess(onFeed, cardOpen){
+  var bar = document.getElementById('confess');
+  var top = document.getElementById('confessTop');
+  if (bar) bar.hidden = !onFeed || !!cardOpen;
+  if (top) top.hidden = !onFeed;
+}
 function headroom(){
   var h = document.querySelector('header');
   return (h ? h.offsetHeight : 0) + 8;
@@ -775,8 +929,7 @@ function setOpen(card, open){
   openCard = open ? card : (openCard === card ? null : openCard);
   var wrap = document.getElementById('closewrap');
   if (wrap) wrap.hidden = !openCard;
-  var confess = document.getElementById('confess');
-  if (confess) confess.hidden = !!openCard || scr.feed.hidden;
+  showConfess(!scr.feed.hidden, !!openCard);
   window.scrollTo(0, Math.max(0, cardTop(card) - headroom()));
 }
 
@@ -879,13 +1032,98 @@ function go(which){
   // it is the way back that doesn't make her scroll to either end.
   openCard = null;
   document.getElementById('closewrap').hidden = (which !== 'dream');
-  document.getElementById('confess').hidden = (which !== 'feed');
+  showConfess(which === 'feed', false);
   var mineBtn = document.getElementById('navMine');
   // Two views and one word to swap between them (Sophie, Aug 2026): the feed,
   // and your own dreams — which she calls the ARCHIVE.
   mineBtn.textContent = (which === 'feed') ? 'archive' : 'feed';
   window.scrollTo(0, 0);
 }
+
+/* ══ THE DESK'S COLUMNS (Sophie's `Dream Feed Web` artboard, Aug 2026) ══
+   Real column elements, filled shortest-first — NOT CSS `column-count`.
+   Multicol re-balances the whole feed whenever one card changes height, and
+   opening a dream changes it by a whole picture: every card after it would
+   jump to a different column while she is reading the one she just tapped.
+   Placing each card in the shortest column means an opened dream only ever
+   grows the column it is already in, and nothing else moves.
+
+   A day's divider ENDS a run: the feed comes out as mats of cards with the
+   date ruled across the full desk between them, which is the shape the
+   artboard's dashed line wants on a wide screen.
+
+   Below 900px this puts every card straight back where it was — one column,
+   no wrappers — so the phone runs the code and gets exactly its old DOM. */
+var DESK_COLS = [[1400, 4], [1050, 3], [900, 2]];
+function deskCols(){
+  for (var i = 0; i < DESK_COLS.length; i++) {
+    if (window.innerWidth >= DESK_COLS[i][0]) return DESK_COLS[i][1];
+  }
+  return 1;
+}
+/** Remember the feed's cards in source order, so a re-layout can rebuild the
+ *  columns without re-rendering (which would lose an opened card and any
+ *  loaded comment thread — the NODES are moved, never recreated). */
+function keepOrder(root){
+  root.__order = [].slice.call(root.children);
+  root.__cols = null;
+}
+function masonry(root){
+  var order = root && root.__order;
+  if (!order) return;
+  var n = deskCols();
+  if (root.__cols === n) return;
+  root.__cols = n;
+  while (root.firstChild) root.removeChild(root.firstChild);
+  if (n <= 1) {
+    order.forEach(function(el){ root.appendChild(el); });
+    return;
+  }
+  var cols = null;
+  var openRun = function(){
+    var run = document.createElement('div');
+    run.className = 'mrow';
+    cols = [];
+    for (var i = 0; i < n; i++) {
+      var c = document.createElement('div');
+      c.className = 'mcol';
+      run.appendChild(c);
+      cols.push(c);
+    }
+    root.appendChild(run);
+  };
+  order.forEach(function(el){
+    if (!el.classList || !el.classList.contains('dcard')) {
+      cols = null;              // a divider (or the end note) breaks the mat
+      root.appendChild(el);
+      return;
+    }
+    if (!cols) openRun();
+    var best = cols[0];
+    for (var i = 1; i < cols.length; i++) {
+      if (cols[i].offsetHeight < best.offsetHeight) best = cols[i];
+    }
+    best.appendChild(el);
+    // the words are cut to the PICTURE's height, and the picture's height is
+    // the column's width — so the fit has to be taken HERE, once the card is
+    // in the column it will live in, not before
+    fitCard(el);
+  });
+}
+// One handler for the whole desk: a width that crosses a column boundary
+// re-lays the mats out, and any width change re-cuts the words (the columns
+// got narrower or wider under them). Debounced, and it holds her place —
+// `refit` keeps the first card the viewport touches exactly where it is.
+var deskTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(deskTimer);
+  deskTimer = setTimeout(function(){
+    var el = scr && scr.feed;
+    if (!el || el.hidden) return;
+    masonry(el);
+    refit(el);
+  }, 150);
+});
 
 /* ── feed ── */
 async function renderFeed(){
@@ -932,7 +1170,7 @@ async function renderFeed(){
       var hasImg = !!n.cover;
       var dk = n.audience === 'friends' ? true : !dark;
       dark = dk;
-      var s = meltCard(n, dk, hasImg && img % 2 === 1, 8 + (card % 4));
+      var s = meltCard(n, dk, hasImg && img % 2 === 1, 8 + (card % 4), card, img);
       card++;
       if (hasImg) img++;
       return s;
@@ -951,6 +1189,11 @@ async function renderFeed(){
     document.getElementById('closewrap').hidden = true;
     el.innerHTML = html;
     wireDreams(el);
+    // the desk's line, under the wordmark — hers, off the artboard
+    var now = document.getElementById('feedNow');
+    if (now) now.textContent = 'everyone’s still dreaming · tonight, ' + dayLabel(f.today).replace(/^[a-z]+, /, '');
+    keepOrder(el);
+    masonry(el);
     // The serif arrives from a font CDN, and a title that re-wraps changes how
     // many lines fit beside its picture — so the fit is taken again once it
     // lands. It has to hold her place while it does: a card ABOVE the viewport
@@ -1797,6 +2040,7 @@ async function boot(){
     closeCompose(); renderFeed(); go('feed');
   });
   document.getElementById('confessBtn').addEventListener('click', openCompose);
+  document.getElementById('confessTop').addEventListener('click', openCompose);
   // An iOS tab restored from a snapshot can hold a render from days ago —
   // that is exactly how her archive showed one dream on a six-dream account.
   // Coming back to the app re-reads whichever list screen is up (the feed
