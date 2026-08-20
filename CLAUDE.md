@@ -593,7 +593,8 @@ them off the reference sheet, not off the old filenames.
   Sophie toggle. Was `sophie-character.png`.
 - `refs/dream-mystery.jpg` — **dream mystery**, her diary-comic page ("1000
   Dreams Per Night"). Movies' "Dreamy pencil", the dream illustrator, the
-  zine, Character Creator. Was `movie-style.jpg`, and it ALSO existed as a
+  zine, Character Creator, and since Aug 2026 the Playground's **Dreamy**
+  tile. Was `movie-style.jpg`, and it ALSO existed as a
   second slightly-different crop at `refs/style.jpg` (the zine's own copy) —
   Sophie spotted the duplicate and asked for one file, so `style.jpg` is
   deleted and the zine reads this. **Since Aug 2026 the file is the
@@ -2001,9 +2002,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Pictures
 - **Playground** (`/playground`, `public/promptlab.html` + `/api/promptlab`, iOS
   tile) — the prompt tester. Fixed recipe per style so runs stay comparable: ONE
-  image a run, 2:3, Generate is the stars icon. Five styles: WTR (the only
-  Replicate LoRA), ChatGPT, Scarry, Pastel, Hoonies (all gpt-image-2 edits with
-  her own scans attached as style refs, kept in `PL_GPT_STYLES` in server.js).
+  image a run, 2:3, Generate is the stars icon. Six styles: WTR (the only
+  Replicate LoRA), ChatGPT, **Dreamy**, Scarry, Pastel, Hoonies (all gpt-image-2
+  edits with her own scans attached as style refs, kept in `PL_GPT_STYLES` in
+  server.js).
+  **DREAMY = `refs/dream-mystery.jpg`, added Aug 2026 at Sophie's ask** ("add
+  the other main style reference we use in the chat, which can be called
+  dreamy"). It was the most-used reference in the repo with no tile — 270 filed
+  images name it (measured 2026-08-20) — so every one of them used to port onto
+  ChatGPT and silently pick up sage sandy mirror instead. Its wording is NOT
+  new: `scripts/nde-panel.py`'s in-use recipe, the one `style-triptych.js`
+  already ran beside the house styles. **THE ANTI-CONTENT RULE IS BOOKENDED**
+  (her ask) — it opens the prefix and closes the suffix, because that reference
+  is itself a multi-panel comic page full of drawn people and is the one house
+  ref the model will happily redraw the CONTENT of; the suffix rides at the
+  very end of the sent prompt, after her words. The anti-grid half of the
+  suffix is load-bearing for the same reason. No Sophie character card.
+  **PORTING AN IMAGE IN FROM ASSETS SAYS WHETHER IT IS HONEST
+  (`public/playground-port.js`, served to the page, Aug 2026).** The lightbox's
+  Playground button carries the content half, a tile, the quality and
+  `sameref=1|0`; the Playground draws one line under the style row saying
+  whether this tile really carries the reference and style prompt that picture
+  was made with. **The tile is matched on EVIDENCE, never on vibes** — the
+  reference FILENAME as the style half names it (old names included:
+  `movie-style.jpg` still outnumbers `dream-mystery.jpg` 174:84) or a verbatim
+  fragment of that tile's own baked prefix (29 Pastel and 8 Hoonies runs quote
+  their prefix and name no file). The old router was four loose regexes and
+  sent 224 pictures whose prompts merely said "watercolor wash" to the WTR
+  LoRA, a different engine, with nothing on screen admitting it was a guess.
+  Live totals after the fix: 2,690 of 3,791 portable images identified, 1,101
+  honestly unknown. **A style table now exists in THREE places** —
+  `PL_GPT_STYLES` (server.js, owns the sent prompt), `STYLES`
+  (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
+  routing) — pinned equal by `node scripts/test-playground-port.js`, which also
+  checks every prefix fragment is verbatim in the real prefix.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3

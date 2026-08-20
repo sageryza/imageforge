@@ -128,12 +128,24 @@
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
     border-radius: 6px; padding: 7px 11px; }
   #backchip.on { display: flex; }
+  /* Arrived from an image's "open in the Playground": whether this tile really
+     carries the reference and style prompt that picture was made with. Flat,
+     no gradient, 6px like every other box on the page. It is NOT a text field
+     — a status line the page writes, so it says something rather than naming a
+     box. Repainted on every style tap: the claim is about the tile SHE is on
+     now, not the one she arrived on. */
+  #reftag { display: none; margin: 0 0 8px; font-size: 12px; line-height: 1.35;
+    border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 10px;
+    background: #fdfcf9; color: #6f675e; }
+  #reftag.on { display: block; }
+  #reftag.same { border-color: #2b2622; color: #2b2622; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
 <h1>Playground</h1>
 
 <div class="panel">
   <div class="styles" id="styles"></div>
+  <div id="reftag"></div>
   <textarea id="prompt"></textarea>
   <div class="controls">
     <label id="scalewrap">LoRA scale <input type="number" id="scale" value="1" step="0.1" min="0" max="2"></label>
@@ -292,8 +304,8 @@
   // WTR is the one Replicate LoRA left on the picker (the Hoonie linocut tile
   // came off Aug 2026 at Sophie's ask — the model itself is untouched and
   // still serves the Test Station and the house styles, so old Hoonie runs
-  // stay in the feed and keep their label via RETIRED below). The three
-  // gptimage styles are a different engine: gpt-image-2's edits endpoint with
+  // stay in the feed and keep their label via RETIRED below). The gptimage
+  // styles are a different engine: gpt-image-2's edits endpoint with
   // reference images attached (`gptStyle` picks the set server-side — see
   // PL_GPT_STYLES in server.js, which owns the whole sent prompt; the page no
   // longer previews it, the "Sent as" line was removed Aug 2026 at Sophie's
@@ -306,6 +318,11 @@
     watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
     chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
+    // Dreamy = refs/dream-mystery.jpg, her diary-comic page (Aug 2026). Sits
+    // next to ChatGPT because those two are the references the chats actually
+    // reach for; the server owns its bookended anti-content prompt.
+    dreamy:     { model: 'gpt-image-2', label: 'Dreamy', engine: 'gptimage', gptStyle: 'dreamy',
+                  noCharacter: true },
     scarry:     { model: 'gpt-image-2', label: 'Scarry', engine: 'gptimage', gptStyle: 'scarry',
                   noCharacter: true },
     pastel:     { model: 'gpt-image-2', label: 'Pastel', engine: 'gptimage', gptStyle: 'pastel',
@@ -353,11 +370,19 @@
     document.getElementById('backchip').classList.add('on');
   }
 
-  // Arrived with a generation's settings (the gallery's "open in Playground"):
-  // ?prompt=…&style=watercolor|chatgpt|scarry|pastel&quality=…&character=1&scale=…
-  // An unknown style (an old link saying `hoonie`) is simply ignored — the
-  // prompt still lands, on whatever style is current.
-  // Everything lands prefilled so she can re-run it as-is or nudge one thing.
+  // Arrived with a generation's settings (an image's "open in the Playground"):
+  // ?prompt=…&style=<a STYLES key>&quality=…&sameref=1|0&character=1&scale=…
+  // An unknown style is simply ignored — the prompt still lands, on whatever
+  // style is current. Everything lands prefilled so she can re-run it as-is or
+  // nudge one thing.
+  //
+  // `sameref` is the honesty flag (Sophie, Aug 2026: "some sort of indicator
+  // saying whether it's using the reference and prompt or not"). The sender
+  // (/playground-port.js) sets it to 1 only when the picture's filed style
+  // half NAMES this tile's own reference or quotes its own baked prompt. It is
+  // NOT re-derived here — the Playground never sees the filed prompt, only the
+  // content half — so the flag travels with the link.
+  var portedFrom = null;   // the tile the picture was actually made on, or null
   (function () {
     var q = new URLSearchParams(location.search);
     if (!q.get('prompt') && !q.get('style')) return;
@@ -369,8 +394,37 @@
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
+    if (q.get('sameref') !== null) portedFrom = (q.get('sameref') === '1' && st && STYLES[st]) ? st : '';
+    paintRefTag();
     updateShape();
   })();
+
+  // The indicator. Three things it can say, and it only ever speaks when she
+  // arrived from a picture:
+  //   • she is on the tile that made it   — same reference, same style prompt
+  //   • she moved off that tile           — name what she left, so switching
+  //                                         back is obvious
+  //   • nothing identified the picture    — say so plainly rather than letting
+  //                                         the fallback tile imply a match
+  // A LoRA has no reference to attach, so it says "style prompt" alone.
+  function paintRefTag() {
+    var el = document.getElementById('reftag');
+    if (portedFrom === null) { el.className = ''; el.textContent = ''; return; }
+    var here = STYLES[styleKey] ? STYLES[styleKey].label : styleKey;
+    var carries = isGpt(styleKey) ? 'reference and style prompt' : 'style prompt';
+    if (portedFrom === '') {
+      el.className = 'on';
+      el.textContent = 'Nothing on this picture’s record says how it was made, so '
+        + here + '’s ' + carries + ' is attached — not the one behind it.';
+    } else if (portedFrom === styleKey) {
+      el.className = 'on same';
+      el.textContent = 'Carrying ' + here + '’s ' + carries + ' — the ones this picture was made with.';
+    } else {
+      el.className = 'on';
+      el.textContent = 'On ' + here + '. This picture was made on '
+        + (STYLES[portedFrom] ? STYLES[portedFrom].label : portedFrom) + '.';
+    }
+  }
 
   function renderStyles() {
     document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
@@ -381,7 +435,7 @@
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
-    renderStyles(); updateShape(); syncControls();
+    renderStyles(); updateShape(); syncControls(); paintRefTag();
   }
   // LoRA scale, ×3 and the seed are Replicate-only knobs — gpt-image-2 has no
   // equivalent, so they come off the panel for that style rather than sitting
