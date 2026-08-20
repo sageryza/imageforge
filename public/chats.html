@@ -186,25 +186,6 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    pauses and starts the MIC straight away (her default: talk, one Done to
    stop + file + resume); tapping the text box instead stops the mic and puts
    the transcript there for keyboard editing. Flat solid ink, no gradients. */
-#pinfull .notebtn{position:absolute; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 64px);
-  z-index:2; display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:6px;
-  border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.55); color:#fff;
-  font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:14px; cursor:pointer;
-  opacity:1; transition:opacity .25s; -webkit-tap-highlight-color:transparent;}
-#pinfull .notebtn.off{opacity:0; pointer-events:none;}
-#pinfull .nsheet{position:absolute; left:0; right:0; bottom:0; z-index:4; background:#17140f;
-  color:#e8e2d6; padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);
-  display:flex; flex-direction:column; gap:9px; font-family:Georgia,serif;}
-#pinfull .nsheet .nt{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:12px; color:#97907f;}
-#pinfull .nsheet textarea{width:100%; min-height:62px; box-sizing:border-box; padding:8px;
-  border:1px solid #3a352c; border-radius:6px; background:#211d16; color:#e8e2d6; font:inherit; font-size:16px;}
-#pinfull .nsheet .row{display:flex; gap:10px; align-items:center;}
-#pinfull .nsheet .row button{border:1px solid #3a352c; border-radius:6px; background:#211d16;
-  color:#e8e2d6; font:inherit; font-size:14px; padding:7px 14px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-#pinfull .nsheet .send{background:#e8e2d6; color:#17140f; border-color:#e8e2d6;}
-#pinfull .nsheet .mic{display:flex; align-items:center; justify-content:center; width:38px; padding:7px 0;}
-#pinfull .nsheet .mic.on{background:#b3443f; border-color:#b3443f; color:#fff;}
-#pinfull .nsheet .st{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; color:#97907f; min-height:14px;}
 .renamebtn{flex:none; background:none; border:none; padding:4px; margin:0; color:var(--ink2); cursor:pointer; line-height:0; -webkit-tap-highlight-color:transparent;}
 .renamebtn:active{color:var(--ink);}
 .nameed{flex:1; min-width:0; font-family:inherit; font-size:1.5em; font-weight:700; color:var(--ink); background:var(--barbg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; box-sizing:border-box;}
@@ -1516,6 +1497,7 @@ body.selecting > .float{display:none !important;}
 <div id="toast"></div>
 <div id="clightbox"></div>
 <script src="/asset-lightbox.js"></script>
+<script src="/filmnote.js"></script>
 <script>
 (function(){
 var TOKEN='__STUDIO_TOKEN__';
@@ -5647,9 +5629,8 @@ function openPinned(pin, chatName){
   v.src=pin.url; v.controls=true; v.autoplay=true; v.setAttribute('playsinline','');
   var x=document.createElement('button'); x.className='x'; x.innerHTML='&times;';
   x.setAttribute('aria-label','Close');
-  var mrec=null;
   function close(){ try{ v.pause(); }catch(_){ }
-    if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; }
+    if(fnote) fnote.destroy();          // stops a live mic, drops the sheet
     w.remove();
     document.body.style.overflow=''; window.scrollTo(0,y);
     document.removeEventListener('keydown',esckey); }
@@ -5669,112 +5650,13 @@ function openPinned(pin, chatName){
   // the FILM's url thread via the asset-note machinery, stamped with the
   // video time, so the chat that pinned it sweeps them like image notes.
   // Films only, and only when we know which chat the pin belongs to.
-  if(pin.kind!=='audio' && chatName){
-    var sheet=null, fadeT=null;
-    var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
-    var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
-    var nb=document.createElement('button'); nb.className='notebtn off';
-    nb.innerHTML=MIC+'<span>Note</span>';
-    nb.setAttribute('aria-label','Pause and leave a note');
-    // the button follows the native controls' rhythm: a touch on the video
-    // shows it, another touch (or 3.5s) fades it away
-    function showBtn(){ nb.classList.remove('off');
-      clearTimeout(fadeT); fadeT=setTimeout(function(){ nb.classList.add('off'); }, 3500); }
-    w.addEventListener('click', function(e){
-      if(e.target!==v || sheet) return;
-      if(nb.classList.contains('off')) showBtn();
-      else { clearTimeout(fadeT); nb.classList.add('off'); }
-    });
-    // files the note text (with the voice url when there is one) onto the
-    // film's thread; background=true means she is already watching again
-    function fileNote(t, text, voiceUrl, st){
-      var line='['+t+'] '+(text||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
-      return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ chat: chatName, url: pin.url, from:'sophie', text: line }) })
-        .then(function(r){ return r.json(); });
-    }
-    nb.onclick=function(){
-      if(sheet) return;
-      clearTimeout(fadeT); nb.classList.add('off');
-      try{ v.pause(); }catch(_){ }
-      var t=fmtT(v.currentTime);
-      sheet=document.createElement('div'); sheet.className='nsheet';
-      sheet.innerHTML='<div class="nt">Note at '+t+'</div>'
-        +'<textarea aria-label="Your note — tap here to edit with the keyboard"></textarea>'
-        +'<div class="row"><span class="st"></span><span style="flex:1"></span>'
-        +'<button class="cxl">Cancel</button><button class="send">Done</button></div>';
-      var ta=sheet.querySelector('textarea'), st=sheet.querySelector('.st');
-      var chunks=[], voiceHeld=null, mode='text'; // 'rec' | 'held' | 'text'
-      function stopMic(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; } }
-      function closeSheet(){ stopMic(); if(sheet){ sheet.remove(); sheet=null; } }
-      function resume(){ closeSheet(); v.play().catch(function(){}); }
-      // upload + transcribe WITHOUT filing (hold:true) so her words can land
-      // in the box for editing; filing is always the text route above
-      function holdVoice(blob){
-        return new Promise(function(res){
-          var rd=new FileReader();
-          rd.onloadend=function(){
-            fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ chat: chatName, url: pin.url, t: t, hold: true, audio: rd.result }) })
-              .then(function(r){ return r.json(); }).then(res).catch(function(){ res(null); });
-          };
-          rd.readAsDataURL(blob);
-        });
-      }
-      // DEFAULT: the mic is already on — she talks, one Done does the rest
-      if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined'){
-        navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-          if(!sheet){ stream.getTracks().forEach(function(tr){ tr.stop(); }); return; }
-          mrec=new MediaRecorder(stream);
-          mode='rec'; st.textContent='Recording — talk, then tap Done';
-          mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-          mrec.onstop=function(){ stream.getTracks().forEach(function(tr){ tr.stop(); }); };
-          mrec.start();
-        }).catch(function(){ st.textContent='No mic here — type instead.'; ta.focus(); });
-      } else { st.textContent='No mic here — type instead.'; }
-      // tapping the box: stop the mic, put her words there, keyboard rises
-      ta.addEventListener('focus', function(){
-        if(mode!=='rec') return;
-        mode='held'; stopMic();
-        st.textContent='Getting your words…';
-        var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-        if(!blob.size){ mode='text'; st.textContent=''; return; }
-        holdVoice(blob).then(function(d){
-          if(!sheet) return;
-          if(d&&d.ok){ voiceHeld=d.url; if(!ta.value.trim()) ta.value=d.transcript||''; st.textContent=''; }
-          else st.textContent='Couldn’t hear that — type it instead.';
-        });
-      });
-      sheet.querySelector('.cxl').onclick=resume;
-      sheet.querySelector('.send').onclick=function(){
-        var typed=ta.value.trim();
-        if(mode==='rec'){
-          // her one button: stop, file, resume — she is watching again while
-          // the transcription finishes in the background
-          stopMic();
-          var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-          resume();
-          if(!blob.size && !typed) return;
-          if(!blob.size){ fileNote(t, typed, null); return; }
-          holdVoice(blob).then(function(d){
-            var voice=d&&d.ok?d.url:null;
-            var words=typed||(d&&d.ok?d.transcript:'')||'';
-            if(!voice&&!words) return;
-            fileNote(t, words, voice);
-          });
-          return;
-        }
-        if(!typed && !voiceHeld){ resume(); return; }
-        st.textContent='Sending…';
-        fileNote(t, typed, voiceHeld).then(function(d){
-          if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; }
-          resume();
-        }).catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
-      };
-      w.appendChild(sheet);
-    };
-    w.appendChild(nb);
-  }
+  // TAP-TO-NOTE — /filmnote.js, the ONE implementation, shared with
+  // compare.js's video lightbox (Aug 2026, her ask on the dream commercials
+  // grid: the mechanism was only ever on a pinned film). It owns the button,
+  // the sheet, the mic and its own CSS; this player just says where the note
+  // goes. Films only, and only when we know which chat the pin belongs to.
+  var fnote = (pin.kind!=='audio' && chatName && window.__filmNote)
+    ? window.__filmNote({ wrap:w, video:v, chat:chatName, url:pin.url }) : null;
   document.body.appendChild(w); document.body.style.overflow='hidden';
 }
 // QUESTIONS — every question she asked in this chat, each with the answer that

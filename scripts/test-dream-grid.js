@@ -60,7 +60,7 @@ const page = grid.build()
   // makes the chain THROW and the run dies as a timeout — which says nothing
   // about which contract broke. This deadline turns that into the failing
   // assertions the run had already collected.
-  setTimeout(function(){ say(false, 'the chain stopped early — see the last PASS above'); report(); }, 4000);
+  setTimeout(function(){ say(false, 'the chain stopped early — see the last PASS above'); report(); }, 9000);
   function q(s){ return document.querySelector(s); }
   function tiles(){ return [].slice.call(document.querySelectorAll('.gtile')); }
   window.addEventListener('error', function(e){ say(false, 'page error — ' + e.message); });
@@ -68,10 +68,17 @@ const page = grid.build()
     var all = tiles();
     var films = all.filter(function(t){ return t.getAttribute('data-film'); });
     say(all.length === 9, 'nine slots on the grid — got ' + all.length);
+    void FILMS;
     say(films.length === FILMS.length, FILMS.length + ' tiles carry a film — got ' + films.length);
     say(films.every(function(t){ return t.tagName === 'BUTTON'; }), 'each of them is a real button');
-    say(FILMS.every(function(u){ return films.some(function(t){ return t.getAttribute('data-film') === u; }); }),
-      'and each names its own film, not a shared one');
+    // each tile names ITS OWN film — asserted as "distinct, and under its own
+    // prefix" rather than against the built-in list, because by now the
+    // resolver has legitimately moved one of them to a newer cut
+    var urls = films.map(function(t){ return t.getAttribute('data-film'); });
+    say(new Set(urls).size === urls.length, 'no two tiles share a film');
+    say(films.every(function(t){
+      return t.getAttribute('data-film').indexOf('/' + t.getAttribute('data-prefix')) > -1;
+    }), "and each one's film sits under its own prefix");
 
     // 6 — the pill's OWN skip list must already exempt a tile
     say(typeof window.__pillInteractive === 'function'
@@ -113,7 +120,53 @@ const page = grid.build()
             setTimeout(function () {
               say(q('.cmp-vlb').hasAttribute('hidden') && (!q('.cmp-lb') || q('.cmp-lb').hasAttribute('hidden')),
                 'and tapping one opens nothing');
-              report();
+
+              // 7 — the re-cut one moved, and ONLY it
+              var song = all.filter(function(t){ return t.getAttribute('data-prefix') === 'dream-commercial/spot-'; })[0];
+              say(song && /spot-v8/.test(song.getAttribute('data-film')),
+                'the page asked which cut is current and the song tile moved to it');
+              var row = q('.glegend i[data-id="' + song.getAttribute('data-id') + '"]');
+              say(row && row.classList.contains('moved'), 'its line under the grid says so');
+              say(row && /v8/.test(row.querySelector('b').textContent),
+                "and names the new cut, not the old duration");
+              var boys = all.filter(function(t){ return t.getAttribute('data-prefix') === 'dream-commercial/commercial-'; })[0];
+              say(boys && /commercial-v2/.test(boys.getAttribute('data-film')),
+                'a film the resolver said nothing about kept the url it was built with');
+
+              // 8 — tap-to-note, on a Compare page
+              song.click();
+              setTimeout(function () {
+                var vlb = q('.cmp-vlb'), v = vlb.querySelector('video');
+                say(v.getAttribute('src') === song.getAttribute('data-film'),
+                  'and tapping it plays the NEW cut');
+                v.click();                       // the touch that reveals it
+                setTimeout(function () {
+                  var nb = vlb.querySelector('.notebtn');
+                  say(!!nb, 'touching the film raises the Note button — the pinned-player mechanism, here');
+                  say(nb && !nb.classList.contains('off'), 'and it is showing');
+                  nb.click();
+                  setTimeout(function () {
+                    var sheet = vlb.querySelector('.nsheet');
+                    say(!!sheet, 'tapping Note opens the sheet');
+                    say(v.paused, 'and pauses the film');
+                    say(sheet && /Note at \\d+:\\d\\d/.test(sheet.textContent), 'stamped with where she is');
+                    sheet.querySelector('textarea').value = 'the ending drags';
+                    sheet.querySelector('.send').click();
+                    setTimeout(function () {
+                      fetch('/notes').then(function(r){ return r.json(); }).then(function (d) {
+                        var n = (d.notes || [])[0];
+                        say(!!n, 'Done files the note');
+                        say(n && n.chat === 'song-commercial-selection',
+                          'to the chat that MAKES the film, not this one — got ' + (n && n.chat));
+                        say(n && /spot-v8/.test(n.url || ''), "on the film's own url");
+                        say(n && /the ending drags/.test(n.text || ''), 'with her words');
+                        say(n && /^\\[\\d+:\\d\\d\\]/.test(n.text || ''), 'stamped with the time');
+                        report();
+                      });
+                    }, 250);
+                  }, 200);
+                }, 150);
+              }, 250);
             }, 150);
           }, 200);
         }, 200);
@@ -124,16 +177,38 @@ const page = grid.build()
 </script>`;
 
 let finish = () => {};
+const notes = [];
 const server = http.createServer((req, res) => {
   const [route, qs] = req.url.split('?');
   if (route === '/result') {
     res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('ok');
     return finish(new URLSearchParams(qs).get('r') || '');
   }
+  if (route === '/notes') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ notes }));
+  }
   if (route === '/pix.gif') { res.writeHead(200, { 'Content-Type': 'image/gif' }); return res.end(PIX); }
-  if (route === '/compare.css' || route === '/compare.js') {
+  if (route === '/compare.css' || route === '/compare.js' || route === '/filmnote.js') {
     res.writeHead(200, { 'Content-Type': route.endsWith('.css') ? 'text/css' : 'application/javascript' });
     return res.end(fs.readFileSync(path.join(PUB, route.slice(1)), 'utf8'));
+  }
+  // the resolver: the song spot has been re-cut in its own chat since this
+  // page was built, and nothing else has moved
+  if (route === '/api/chatfeed/newest') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ films: { 'dream-commercial/spot-': {
+      url: 'https://storage.googleapis.com/b/dream-commercial/spot-v8.mp4',
+      from: 'pin', title: 'The song spot v8 (0:28)', name: 'spot-v8.mp4' } } }));
+  }
+  if (route === '/api/gallery/assets/note') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    return req.on('end', () => {
+      try { notes.push(JSON.parse(body || '{}')); } catch (_) { /* the page still resumes */ }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
   }
   if (route.startsWith('/api/')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });

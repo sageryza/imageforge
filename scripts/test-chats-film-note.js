@@ -64,6 +64,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': url.pathname.endsWith('mp4') ? 'video/mp4' : 'audio/mp4' });
     return res.end(Buffer.alloc(0));
   }
+  // the page's own scripts are REAL files now — tap-to-note lives in
+  // /filmnote.js, shared with compare.js's video lightbox, so serving a stub
+  // here would test a page with the feature missing
+  if (/^\/[a-z0-9-]+\.js$/.test(url.pathname)) {
+    const f = path.join(PUB, url.pathname.slice(1));
+    if (fs.existsSync(f)) {
+      res.writeHead(200, { 'Content-Type': 'application/javascript' });
+      return res.end(fs.readFileSync(f, 'utf8'));
+    }
+  }
   if (url.pathname === '/' || url.pathname === '/chats') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(fs.readFileSync(path.join(PUB, 'chats.html'), 'utf8'));
