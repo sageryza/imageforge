@@ -250,9 +250,21 @@ around them change, so verify the labels and use these for the URL.
   - Domains: https://admin.shopify.com/store/cod-god-inc/settings/domains
   - Apps: https://admin.shopify.com/store/cod-god-inc/settings/apps
   - Pattern: `admin.shopify.com/store/cod-god-inc/<path>`
-- **Hover** (DNS for BOTH her domains — NOT Shopify, NOT Render):
+- **Hover** (DNS for ALL THREE of her domains — NOT Shopify, NOT Render):
   - secretlyawitch.com: https://www.hover.com/domain/secretlyawitch.com
   - youwereinmydreams.com: https://www.hover.com/domain/youwereinmydreams.com
+  - shouldimakethis.com: https://www.hover.com/domain/shouldimakethis.com
+  - **shouldimakethis.com is NOT an ImageForge domain and must not become
+    one (measured 2026-08-20).** Its site is a separate Firebase-hosted app
+    living in `sageryza/memory-library-react` under `shouldimakethis/`, live at
+    https://shouldimakethis.web.app. The domain is currently pointed at THIS
+    Render service by mistake (apex `A 216.24.57.1`, `www` CNAME to
+    `imageforge-q125.onrender.com`), so it serves the ImageForge hub. **Do NOT
+    "fix" that by adding a host-aware branch in `server.js`** the way
+    `dream-host.js` does for youwereinmydreams.com — the fix is to repoint DNS
+    at Firebase Hosting and DROP the domain from this service's Custom Domains.
+    Full checklist: the ShouldiMakeThis section of memory-library-react's
+    CLAUDE.md.
 - **Cloud environment on ACCOUNT 1 — there is exactly ONE, so the Setup
   script has no wrong box to land in (measured 2026-08-14 via
   `list_environments` on an iOS-origin session).** `env_011CUK6hCggHt2xBmWdmSdND`,
