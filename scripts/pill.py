@@ -136,7 +136,15 @@ window.__scrollToggle=function(){ playing? scrollStop() : scrollStart(1); };
 // pill: a <summary>/<details> toggle, link, button, form field or media
 // control must do its own thing, so the tap gesture ignores the event
 // entirely (no toggle, no preventDefault, no stopPropagation).
-var PILL_SKIP='a,button,summary,details,input,textarea,select,label,video,audio,[onclick]';
+// Anything a tap could plausibly MEAN something on. A tap here never STARTS
+// the scroll — it still pauses one (see __scrollTap). Media and overlays are
+// on the list because tapping a picture, a player or a lightbox is the page's
+// own gesture everywhere (the rule chats.html already applied to img/figure).
+var PILL_SKIP='a,button,summary,details,input,textarea,select,label,option,'
+  +'video,audio,img,picture,figure,svg,canvas,iframe,embed,object,progress,meter,'
+  +'[onclick],[data-nostop],[contenteditable]:not([contenteditable="false"]),'
+  +'[role="button"],[role="link"],[role="checkbox"],[role="slider"],[role="tab"],'
+  +'.cmp-lb,.cmp-vlb';
 function pillInteractive(t){
   try{ return !!(t && t.closest && t.closest(PILL_SKIP)); }catch(_){ return false; }
 }
@@ -145,8 +153,13 @@ window.__pillInteractive=pillInteractive;
 // passing the event when it has one): a plain toggle — tap stops, tap starts
 // again (at the current speed; default Fast). Speed changes stay on the −/+.
 window.__scrollTap=function(e){
+  // ANY tap pauses a running scroll -- that is the house rule, and skipping
+  // the pause for interactive elements is what let a tap on a play button
+  // leave the page creeping under her while the film opened. Only a tap on
+  // inert background may START one.
+  if(playing){ scrollStop(); return; }
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(1);
+  scrollStart(1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
