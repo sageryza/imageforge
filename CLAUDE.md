@@ -2337,6 +2337,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
       row passes through that band on its way up), and its note is the shared
       `__compareNotes` + in the corner — a card's note lives on its picture,
       in the lightbox, and a spread has no picture.
+    - **A "this one" UNDER EACH PICTURE PICKS THE WINNER (Aug 2026, Sophie:
+      "is there a way to pick one or the other if I'm choosing between them?
+      Maybe best is to just have a 'this one' small button underneath each
+      one").** The spread's verdict becomes the WINNING CARD'S ID, so what is
+      recorded is *silkscreen won this spread* rather than *she liked a card*
+      — and a picked spread gets its own **Picked** pile, since a card-id
+      verdict matches none of Yes/No/Unsure and would otherwise drop off that
+      screen. The ✕/♥ still answer the spread as a whole (neither, or both).
+    - **NO OUTLINE AND NO ROUNDED CORNER ON A PICTURE** (same day: "gray
+      outlines, rounded corners" · "are the corners rounded on the actual
+      image in the light box? Should not be"). Her rounded white boxes are for
+      WORDS. The spread wore two borders — the panel drew one and the image
+      another — and the lightbox rounded the art itself, which at that size
+      reads as a crop rather than as chrome.
+    - **BROWSE IS THE DECK'S DEFAULT and only the deck template's validator
+      was setting it**, so a GRID-posted page's swipe view came up without it
+      and a mark jumped her to the piles instead of leaving her on the card.
+      page-views.js defaults it now.
     - In the SWIPE view a spread is ONE card: its pictures side by side, each
       named, the card's ✕/♥ and note box marking the SPREAD, and tapping
       either picture opening that picture's own lightbox. **That is also
