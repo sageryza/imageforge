@@ -22,18 +22,21 @@ struct GatedWebTool: View {
     /// Bump to fire `refreshOnAppear`. (A plain counter, not onAppear: a view
     /// held alive in a ZStack only ever appears once.)
     var refreshTick: Int = 0
-    /// Set this to give the tool the standard nav bar (title + chevron) with
-    /// the chevron ASKING THE PAGE FIRST — `window.__navBack` steps a
-    /// multi-level page back one level (a story to its shelf, a recording to
-    /// its list) and only when the page says no does the chevron fall back to
-    /// web history and then to leaving the tool. This used to exist only in
-    /// the hand-rolled wrappers (BlocksView, CutMarksView…), so every tool
-    /// that used the PLAIN `.forgeToolBar("Name")` had a chevron that dumped
-    /// Sophie on the home screen from anywhere inside the tool — the Story
-    /// Timeline is where she caught it ("this is a pattern that needs to be
-    /// fixed all over the app"). Prefer this over `.forgeToolBar` for every
-    /// GatedWebTool call site; a page with no `__navBack` behaves exactly as
-    /// before.
+    /// Set this on any tool whose PAGE draws its own header — which is all of
+    /// them (Aug 2026, Sophie: "get rid of the apple native bar"). It hides
+    /// Apple's bar and installs the leave bridge; `public/pagehead.js` then
+    /// puts a back chevron at the head of the page's own header row and walks
+    /// `window.__navBack` → web history → leave the tool.
+    ///
+    /// The name is still worth passing: it is the accessibility title, and it
+    /// is what the FAILURE screen's bar shows — the one screen with no page to
+    /// draw a header, where Apple's chevron is still the only door.
+    ///
+    /// It used to mean the opposite (give me the standard nav bar, with a
+    /// chevron that asks the page first). That ask-the-page-first order is not
+    /// gone, it moved into the page, where changing it costs a deploy instead
+    /// of a TestFlight build — which is why "the back button always goes back
+    /// too far" sat unfixed on her phone for weeks.
     var navTitle: String? = nil
 
     @AppStorage("forge.studioToken") private var studioToken = ""
@@ -43,7 +46,17 @@ struct GatedWebTool: View {
     @Environment(\.goBack) private var goBack
 
     var body: some View {
-        if let title = navTitle {
+        // THE PAGE OWNS THE HEADER (Aug 2026, Sophie: "get rid of the apple
+        // native bar") — see ForgePageHeader. `navTitle` is kept because it is
+        // still the accessibility name and it is what every call site already
+        // passes; it just no longer paints a second title strip above the page.
+        // THE FAILURE SCREEN KEEPS THE NATIVE BAR. With the page gone there is
+        // no page header to own anything, so hiding the bar would strand her on
+        // "Couldn't open …" with no way out — the one screen where Apple's
+        // chevron is still the only door.
+        if navTitle != nil && !loadFailed {
+            core.forgePageOwnsHeader()
+        } else if let title = navTitle {
             core.forgeToolBar(title, back: navBack)
         } else {
             core
@@ -88,7 +101,7 @@ struct GatedWebTool: View {
             } else {
                 GatedWebView(path: path, token: studioToken, mic: mic,
                              refreshJS: refreshOnAppear, refreshTick: refreshTick,
-                             failed: $loadFailed, webRef: webRef)
+                             failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -97,8 +110,8 @@ struct GatedWebTool: View {
     }
 }
 
-/// Hands the loaded WKWebView up to the SwiftUI layer so the nav-bar chevron
-/// can ask the page to step back a level (the BlocksWebRef pattern, shared).
+/// Hands the loaded WKWebView up to the SwiftUI layer so the failure screen's
+/// chevron can still ask the page to step back a level.
 final class GatedWebRef: ObservableObject { weak var web: WKWebView? }
 
 private struct GatedWebView: UIViewRepresentable {
@@ -109,6 +122,9 @@ private struct GatedWebView: UIViewRepresentable {
     let refreshTick: Int
     @Binding var failed: Bool
     var webRef: GatedWebRef? = nil
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that the page
+    /// draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     /// Every page hosted here is inside a native tool screen, so it is always
     /// asked for with `?embed=1` — the server then hides the page's own title
@@ -127,6 +143,9 @@ private struct GatedWebView: UIViewRepresentable {
         // Generated audio (voice renders, song mixes) plays inline on tap.
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        // The page draws its own header now (ForgePageHeader): this installs
+        // the bridge its back chevron calls to leave the tool.
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -153,6 +172,8 @@ private struct GatedWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: GatedWebView
         var lastTick = 0
+        /// `addScriptMessageHandler` does not retain — the coordinator does.
+        var leaveHandler: ForgeLeaveHandler?
         init(_ parent: GatedWebView) { self.parent = parent }
 
         // The pages sit behind HTTP Basic (any user, password = studio token).

@@ -56,14 +56,23 @@ that spends money; `[hidden]{display:none !important}`.
 
 ## The iOS side
 
-- **A new web tool ships with the native bar + chevron** —
-  `GatedWebTool(path:…, navTitle: "Name")`, which wires the chevron to ask
-  the page's `window.__navBack` FIRST (a multi-level page steps back a level;
-  a page without one falls through to leaving the tool). Do NOT use the plain
-  `.forgeToolBar("Name")` on a GatedWebTool — that chevron leaves the tool
-  from anywhere, which dumped Sophie on the home screen from inside a story
-  (Aug 2026: "this is a pattern that needs to be fixed all over the app").
-  Copy `EpisodeEditorView.swift` only when the page also needs media pausing.
+- **A new web tool ships with NO NATIVE BAR — the page draws its own header**
+  (Aug 2026, Sophie: "get rid of the apple native bar"). Use
+  `GatedWebTool(path:…, navTitle: "Name")`, which hides Apple's bar and injects
+  `window.__forgeLeave()`; `public/pagehead.js` then draws the back chevron at
+  the head of the page's own header row and walks **`__navBack` → web history →
+  leave the tool**. A hand-rolled wrapper (one that needs media pausing — copy
+  `EpisodeEditorView.swift`) uses `.forgeWebToolBar(title, failed: loadFailed,
+  back: navBack)` and `ForgePageHeader.install(into:onLeave:)`.
+  - **Do NOT use the plain `.forgeToolBar("Name")` on a web tool.** It paints
+    a second title strip above a page that already has one, and its chevron
+    lives in Swift — so every fix to how back behaves waits for a TestFlight
+    build, which is how "it always goes back too far" stayed broken for weeks.
+    `.forgeToolBar` is for NATIVE SwiftUI screens (Creations, Dump, Lessons),
+    which have no page to draw a header.
+  - **The failure screen keeps the bar** — with no page there is no header, so
+    hiding it strands her on "Couldn't open …". `forgeWebToolBar` takes
+    `failed:` as a required argument for exactly that reason.
   Only a page that replaces the WHOLE chrome (Chats, Story Room) gets a bare
   host. **A multi-level page should ALSO push a history state per level** —
   then the swipe-back gesture and the browser's back button step levels too

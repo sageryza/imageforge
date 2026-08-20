@@ -1915,10 +1915,35 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
 **`docs/design-rules.md` has the deep half** — read it before you lay anything
 out. The headlines, so you know when to go and look:
 
-- **A web-wrapped tool's PAGE owns its header**, not a native bar — but a NEW
-  tool still ships with the native bar + chevron (copy `EpisodeEditorView.swift`).
-  A gated page inside a native tool must be asked for with `?embed=1`, and gated
-  pages must not be cached.
+- **A web-wrapped tool's PAGE owns its header, and now it really does — APPLE'S
+  NAV BAR IS GONE FROM EVERY ONE OF THEM (Aug 2026, Sophie: "yes, definitely
+  pick B … get rid of the apple native bar").** This line used to end "but a NEW
+  tool still ships with the native bar + chevron", and that contradiction is
+  what she was looking at: two title strips stacked, Apple's on top with the
+  chevron and the tool name, the page's own band underneath holding nothing but
+  the "?" because it hid its title. **Use `.forgeWebToolBar(title, failed:
+  loadFailed, back: navBack)`** on a web-wrapped tool — no bar while the page is
+  up, and the bar back for the failure screen, which has no page to draw one and
+  would otherwise strand her on "Couldn't open …".
+  - **Swift's one remaining job is LEAVING**, because only Swift knows there is
+    a screen behind the web view. `ForgePageHeader.install(into:onLeave:)`
+    injects `window.__forgeLeave()`; `public/pagehead.js` draws the chevron and
+    walks **`__navBack` → web history → `__forgeLeave`**. That order is the fix
+    for "the back button always goes back too far", and it now ships with a
+    DEPLOY instead of a TestFlight build — which is the real reason to prefer
+    the page's header.
+  - **`__forgeLeave` IS THE FEATURE FLAG.** The web half ships on merge and the
+    Swift half waits for a build, so `pagehead.js` does nothing at all unless
+    the bridge is there. Either half can land first; on the older build the app
+    looks exactly as it did.
+  - **`__nativeNavBar` IS STILL SET and still means what it always meant** —
+    "chrome outside your content owns back, don't draw your own". Ten pages read
+    it and pagehead.js is that chrome now. Dropping it would give each of them a
+    second chevron, and `#back` means different things page to page (the Story
+    Timeline's is a "Stories" button back to the shelf, not a way out).
+  - A gated page inside a native tool must be asked for with `?embed=1`, and
+    gated pages must not be cached. Test: `node scripts/test-pagehead.js` (both
+    builds, headless).
 - **Never serve a raw generated PNG to a page** — gpt-image-2 writes ~1MB PNGs
   and the same picture as webp is ~50KB, about 22x. Run
   `node scripts/webp-assets.js` then `webp-assets-verify.js` BEFORE deploying;

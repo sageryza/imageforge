@@ -54,16 +54,16 @@ struct MetaAssetsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                MetaAssetsWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                MetaAssetsWebView(token: studioToken, failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
         }
         .background(Self.paper.ignoresSafeArea())
-        // The nav-bar chevron is THE back arrow: the page consumes it when its
+        // The page draws the back chevron: the page consumes it when its
         // lightbox is open (__navBack), else the web view's own history steps
         // back (she may have followed the chat icon into /chats), else leave.
-        .forgeToolBar("Meta Assets", tint: Self.ink, paper: Self.paper, back: navBack)
+        .forgeWebToolBar("Meta Assets", tint: Self.ink, paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
     private func navBack() {
@@ -75,8 +75,8 @@ struct MetaAssetsView: View {
     }
 }
 
-/// Hands the loaded WKWebView up to the SwiftUI layer so the nav-bar chevron
-/// can talk to the page.
+/// Hands the loaded WKWebView up to the SwiftUI layer so the page's own back
+/// chevron can be answered (and the failure screen's bar still works).
 final class MetaAssetsWebRef: ObservableObject { weak var web: WKWebView? }
 
 /// WKWebView host: answers the studio gate's HTTP Basic challenge with the
@@ -85,14 +85,15 @@ private struct MetaAssetsWebView: UIViewRepresentable {
     let token: String
     @Binding var failed: Bool
     let webRef: MetaAssetsWebRef
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        // Tells the page this build's nav bar carries the back chevron, so it
-        // hides any in-page back affordance — never both.
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // The page draws its own header now (ForgePageHeader): this installs
+        // the bridge its back chevron calls to leave the tool.
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // Save to Photos has to happen natively: the page's share-sheet path
         // works in a browser but not reliably inside a WKWebView, so the page
         // hands the image url over here (the Playground's pattern).
@@ -116,6 +117,8 @@ private struct MetaAssetsWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: MetaAssetsWebView
         init(_ parent: MetaAssetsWebView) { self.parent = parent }
 

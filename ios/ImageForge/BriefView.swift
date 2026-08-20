@@ -67,13 +67,17 @@ struct BriefView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Theme.bg)
                 } else {
-                    BriefWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                    // `dismiss`, not `goBack`: this one is a full-screen cover
+                    // from the home grid rather than a Tool on the nav stack
+                    // (see the note above — a Tool would evict a Recents slot).
+                    BriefWebView(token: studioToken, failed: $loadFailed, webRef: webRef,
+                                 onLeave: { dismiss() })
                         .id(reloadKey)
                         .ignoresSafeArea(edges: .bottom)
                 }
             }
             .background(Self.paper.ignoresSafeArea())
-            .forgeToolBar("Update", paper: Self.paper, back: navBack)
+            .forgeWebToolBar("Update", paper: Self.paper, failed: loadFailed, back: navBack)
         }
     }
 
@@ -93,15 +97,17 @@ private struct BriefWebView: UIViewRepresentable {
     let token: String
     @Binding var failed: Bool
     let webRef: BriefWebRef
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        // The nav bar carries the title, so the page hides its own (body.native).
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // The page draws its own header now (ForgePageHeader): this installs
+        // the bridge its back chevron calls to leave the tool.
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -124,6 +130,8 @@ private struct BriefWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: BriefWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: BriefWebView) { self.parent = parent }
