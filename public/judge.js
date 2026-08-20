@@ -112,6 +112,7 @@
     '.jg-momq{width:30px;height:30px;border-radius:50%;border:1px solid #DDD3C0;' +
     ' background:#FFFDF8;color:#262016;font:700 13px/1 -apple-system,sans-serif;padding:0;' +
     ' display:flex;align-items:center;justify-content:center;}' +
+    '.jg-momq.has{background:#C25E4C;border-color:#C25E4C;color:#F7F2E8;}' +
     // her boxes sit straight on the cream — the house card chrome disappears,
     // and the stack takes the middle of the screen, centred like her mockup.
     // CENTRED BY AUTO MARGINS, NOT justify-content (Aug 2026, her report:
@@ -424,7 +425,14 @@
     '.jg-help{position:fixed;inset:0;background:rgba(20,18,15,.35);z-index:50;' +
     ' display:flex;align-items:center;justify-content:center;padding:24px;}' +
     '.jg-help>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;' +
-    ' padding:16px 18px;max-width:340px;font-size:15px;}' +
+    ' padding:16px 18px;max-width:340px;font-size:15px;' +
+    // her own words can run to several paragraphs, so the card scrolls
+    // rather than growing past the screen and losing its own bottom
+    ' max-height:76vh;overflow-y:auto;}' +
+    '.jg-said{margin:0 0 4px;font:400 14px/1.5 -apple-system,sans-serif;color:var(--ink);}' +
+    '.jg-said i{display:block;font:700 10px/1.3 -apple-system,sans-serif;' +
+    ' letter-spacing:.12em;text-transform:uppercase;color:var(--gold);' +
+    ' font-style:normal;margin-bottom:2px;}' +
     '.jg-help b{color:var(--gold);font-family:-apple-system,sans-serif;font-size:13px;}' +
     '.jg-flash{animation:jgf .18s;}@keyframes jgf{from{opacity:.35}to{opacity:1}}';
   document.head.appendChild(css);
@@ -989,7 +997,13 @@
         top = '<div class="jg-prog"><i style="width:' + pct + '%"></i></div>'
           + '<div class="jg-momtop">' + back
           + '<button class="jg-pilesbtn" data-act="piles">Piles</button>'
-          + '<button class="jg-momq" data-act="help" aria-label="What the buttons mean">?</button>'
+          // FILLED WHEN THERE IS SOMETHING OF HERS BEHIND IT — otherwise the
+          // "?" looks the same on every card and she has no reason to tap the
+          // one that holds her own words about this concept.
+          + '<button class="jg-momq' + (items[cur] && items[cur].said ? ' has' : '')
+          + '" data-act="help" aria-label="'
+          + (items[cur] && items[cur].said ? 'What you said about this'
+                                           : 'What the buttons mean') + '">?</button>'
           + '</div>';
       } else {
         top = '<div class="jg-top">' + back + '<span class="jg-count">'
@@ -1245,7 +1259,19 @@
           ? '♥ yes · ✕ no — neither one moves you on · the box under them is '
             + 'a note that saves as you type.'
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
-      h.innerHTML = '<div>' + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
+      // WHAT SHE SAID ABOUT THIS CARD LEADS (Aug 2026, Sophie: "everything I
+      // personally said about them behind a question button"). It is about the
+      // card in front of her, so it goes above the page's own explanation and
+      // above the buttons key — and it is absent, silently, on a card that
+      // carries no `said`, exactly like every other optional part.
+      var mine = (items[cur] && items[cur].said) || [];
+      var said = mine.length
+        ? '<b>WHAT YOU SAID</b><br>' + mine.map(function (q) {
+            return '<p class="jg-said">' + (q.when ? '<i>' + esc(q.when) + '</i>' : '')
+              + esc(q.text) + '</p>';
+          }).join('') + '<br>'
+        : '';
+      h.innerHTML = '<div>' + said + (opts.help ? '<div>' + opts.help + '</div><br>' : '')
         + '<b>THE BUTTONS</b><br>' + keys + '<br>'
         + (browse ? 'Tap the card’s left/right edge (or swipe) to move through'
           + ' — nothing has to be marked. ' : '')

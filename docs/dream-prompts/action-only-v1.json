@@ -1,0 +1,189 @@
+{
+  "what": "Proposed image prompts for the dream feed, written to Sophie's rule (2026-08-20): 'a prompt that mostly describes the action and doesn't really describe what it looks like, that way the app can make it up itself and doesn't micromanage'. Length target is the monkey dream, 343 chars.",
+  "who_wrote_them": "Claude, in this chat. These are DISTILLATIONS of the dreamer's own transcript, not the dreamer's words. The two marked source:'dreamer' are untouched — their own text already IS the shape.",
+  "source": "forge-dreamapp, all 21 rows as of 2026-08-20, minus one test entry ('Test Test Test') and one exact duplicate (the Nonsense Roller Coaster dream is on file twice, identical text).",
+  "rules_used": [
+    "ONE situation per dream — the single most drawable action, never a tour of the whole transcript.",
+    "Action only. No adjective about how anything LOOKS: no colour, no lighting, no composition, no medium, no mood word.",
+    "First person, past tense, plain — the register the dream was told in.",
+    "250-350 characters, the band the monkey dream sits in.",
+    "Nothing invented. Every clause traces to something in the transcript."
+  ],
+  "why": "Measured 2026-08-19 (the ladder run in the dream-feed-prompt-updates chat): the raw transcript as [content] draws ONE image up to ~1,000 chars and collapses into a collage of moments above it. The salient clause asks the MODEL to pick the moment; this asks a writer to pick it instead, and hands the model a short prompt of the length that already works.",
+  "prompts": [
+    {
+      "id": "dlz5mY6E2gWZizC1R3WX",
+      "title": "Monkeys, Money, and Bananas",
+      "date": "2026-08-19",
+      "dreamer": "Sage",
+      "sourceChars": 343,
+      "source": "dreamer",
+      "note": "THE YARDSTICK — her own words, unchanged. Every other prompt here is written to match this.",
+      "prompt": "I was in a field and there were like all these monkeys and they were like seeing if I had any money and I was like no but I have some bananas and they were like no we actually want money and so then it turned out I had like all these coins in my pocket, so I was like offering it to them, but they were just biting me and clipping out my hair."
+    },
+    {
+      "id": "",
+      "title": "Ants, Deals, Guilt, Circles",
+      "date": "2026-08-19",
+      "dreamer": "Sage",
+      "sourceChars": 2880,
+      "source": "claude",
+      "prompt": "I made a deal with three ants on my table — a mom, a dad and a baby — and we agreed we would talk again in a week. They were supposed to put a little white thing into a black circle. A week went by and I completely forgot, and I think they had been crawling on me and I just brushed them off without looking."
+    },
+    {
+      "id": "",
+      "title": "Nonsense Roller Coaster Adventure",
+      "date": "2026-08-18",
+      "dreamer": "Sage",
+      "sourceChars": 5335,
+      "source": "claude",
+      "prompt": "I was driving around my neighborhood at night looking up the word nonsense on my phone, and it was in far more chats than I thought. Every time I opened one, the car drove itself somewhere new and parked me in the driveway across from that chat, with the word highlighted. I had made myself a roller coaster."
+    },
+    {
+      "id": "",
+      "title": "Last-Minute Halloween Party",
+      "date": "2026-08-14",
+      "dreamer": "Sage",
+      "sourceChars": 5372,
+      "source": "claude",
+      "prompt": "I was at a Halloween party at our house where everyone was thirteen or fifteen, and I opened the door and saw that outside everybody was already trick-or-treating. I was missing Halloween. So I went into the guest room and stood at the mirror pulling a costume together out of whatever I could find."
+    },
+    {
+      "id": "WZ8ET4zYxdVDajJovfki",
+      "title": "Bathroom at the Mountain Summit",
+      "date": "2026-08-14",
+      "dreamer": "Sage",
+      "sourceChars": 49,
+      "source": "dreamer",
+      "note": "NEEDS NOTHING — 49 characters, pure action, no look. Padding it to 343 would be adding words she never said.",
+      "prompt": "I went to the bathroom at the top of the mountain"
+    },
+    {
+      "id": "",
+      "title": "Bus Ride with Shayna",
+      "date": "2026-08-08",
+      "dreamer": "sage",
+      "sourceChars": 150,
+      "source": "dreamer",
+      "note": "NEEDS NOTHING — already one situation, already action only. Sent as told.",
+      "prompt": "I dreamt that I was on a bus and that I saw Shayna sitting in the back and so I went to sit with her and then we talked about flourless chocolate cake"
+    },
+    {
+      "id": "",
+      "title": "Ian's Barn Project",
+      "date": "2026-08-08",
+      "dreamer": "sage",
+      "sourceChars": 354,
+      "source": "claude",
+      "prompt": "Ian was recruiting me to help him build a barn. He was really enthusiastic about it, encouraging me the whole time, and we were going around to different places for it. I kept saying okay, sure, I'll do this."
+    },
+    {
+      "id": "",
+      "title": "The Time-Traveling Elevator",
+      "date": "2026-08-08",
+      "dreamer": "evan",
+      "sourceChars": 444,
+      "source": "claude",
+      "prompt": "Sage and I kept ending up in a time-traveling elevator, and it kept showing us scenes from their childhood. The one I remember is their mom talking to them when they were three years old, at some other child's birthday party. Then we would be back in the elevator and it would show us another one."
+    },
+    {
+      "id": "",
+      "title": "The Stadium in the Grass",
+      "date": "2026-08-08",
+      "dreamer": "maddie",
+      "sourceChars": 1145,
+      "source": "claude",
+      "prompt": "We found the stadium recessed into the ground, with the highest seats sitting just below the level of the grass. I stared at the slope and started sliding down it. I caught myself but then I was stuck — I couldn't climb back up, and I didn't want to reach for Sage and pull her down with me."
+    },
+    {
+      "id": "",
+      "title": "My Mom's Secret Career",
+      "date": "2026-08-07",
+      "dreamer": "evan",
+      "sourceChars": 349,
+      "source": "claude",
+      "prompt": "Sage and I didn't know each other as well as we do now, and they had heard my mom's name before because she had invented a math game that got popular. It turned out she had a whole secret career inventing educational board games that were semi-famous to teachers and math students."
+    },
+    {
+      "id": "",
+      "title": "The Man and the Gas Tank",
+      "date": "2026-08-07",
+      "dreamer": "evan",
+      "sourceChars": 651,
+      "source": "claude",
+      "prompt": "A long grey-haired man kept trying to get into my car while I wasn't driving it, pretending to lock the door so he could stay inside. We got so mad we fought, and he went away, and then I found he had peed into my gas tank and it melted. He kept following me, so I chased him into the house and we hid under the bed."
+    },
+    {
+      "id": "",
+      "title": "Choosing a Kitten",
+      "date": "2026-08-07",
+      "dreamer": "sage",
+      "sourceChars": 4000,
+      "source": "claude",
+      "prompt": "Isaac and I drove a long way to the kitten place, and then we walked down a narrow hallway with the different kittens we could pick on either side. He wanted a traditional one with a good body. They all looked strange to me, and I was excited and afraid at the same time about whether I could take care of one."
+    },
+    {
+      "id": "",
+      "title": "Prettier Girls, Better Artists",
+      "date": "2026-08-07",
+      "dreamer": "maddie",
+      "sourceChars": 577,
+      "source": "claude",
+      "prompt": "I was at Sage's apartment helping her draw for a painting, and I was frustrated because my drawing wasn't very good. Then other girls came over to model and to draw, and they were prettier than me and better artists and probably cooler. I kept working on mine anyway."
+    },
+    {
+      "id": "",
+      "title": "PCH Hotel and Cousins",
+      "date": "2026-08-06",
+      "dreamer": "sage",
+      "sourceChars": 3016,
+      "source": "claude",
+      "prompt": "I was driving on the PCH trying to decide where to get off, and I got off by accident at a hotel, and it was so nice that I just sat by the pool. My white car was right there, and I worked out that I could sleep next to it and it would be more comfortable than my own bed, because I was away from home."
+    },
+    {
+      "id": "",
+      "title": "Coins for Sandwiches",
+      "date": "2026-08-06",
+      "dreamer": "moth",
+      "sourceChars": 1568,
+      "source": "claude",
+      "prompt": "We went off to get sandwiches and I couldn't see the vegan one listed because I was too short, so I jumped. Then I tried to pay and the money was from a long time ago — pence instead of dollars, and each coin got smaller as the amount got smaller. I handed over a tiny sixty pence and we counted it all out."
+    },
+    {
+      "id": "",
+      "title": "Claude's Tiny Spaceship",
+      "date": "2026-08-05",
+      "dreamer": "sage",
+      "sourceChars": 4000,
+      "source": "claude",
+      "prompt": "Sandy put me in a tiny spaceship and I had to wear a white helmet over my eyes. All I could see through was a sliver the size and shape of a pill. He told me to keep still and I listened, because what choice did I have, and then I went barreling down the street past a car crash, rolling and rolling."
+    },
+    {
+      "id": "",
+      "title": "Restaurant Conversation",
+      "date": "2026-08-05",
+      "dreamer": "moth",
+      "sourceChars": 4000,
+      "source": "claude",
+      "prompt": "I left the table to get food and sat down at a picnic table with the menu to work out what I wanted. At the top were the salads, and one of the options was a sink full of washed greens for three ninety-five. Then I went up to the register and asked the woman there what she thought I should get."
+    },
+    {
+      "id": "",
+      "title": "Sweet Lady Jane",
+      "date": "2026-08-04",
+      "dreamer": "sage",
+      "sourceChars": 1118,
+      "source": "claude",
+      "prompt": "I was crossing the street by Sweet Lady Jane, not really paying attention to where I was going, and I ended up on the wrong street. Auntie Florence owned it there and had set outdoor tables out, except it was really an alley. I was about to walk down it before I realized this wasn't where I meant to go."
+    },
+    {
+      "id": "",
+      "title": "Killer Noodle Delivery",
+      "date": "2026-08-03",
+      "dreamer": "moth",
+      "sourceChars": 4000,
+      "source": "claude",
+      "prompt": "We were at a dinner between USC and UCLA and I was sitting next to Miriam, comparing my fingers to her hand. She kept saying she couldn't see any difference, that it wasn't like I had tiny perfect baby fingers. I was laughing so hard I tried to pull my hand away, and she held on and pretended she wasn't."
+    }
+  ]
+}

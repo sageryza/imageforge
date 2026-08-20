@@ -372,6 +372,48 @@ pure, no network.
     layouts, `sqlite3` shimmed onto PATH with `node:sqlite`, a stub archive).
     Its own earned bug: the harness first used `execFileSync`, which blocks the
     event loop the stub server runs on, so the child's fetch deadlocked.
+- **THAT IMPORT IS DEAD — THE MAC TRANSCRIBES THE AUDIO ITSELF (2026-08-19).**
+  Apple's transcripts are produced per-device, on demand, and are **not carried
+  across iCloud**, so the phone's transcripts stayed on the phone.
+  `CloudRecordings.db` on the Mac has no transcript column in any of its 30
+  tables, `EncryptedCloudRecordings.db` has none either, and the Recordings
+  container holds only `.m4a` and `.waveform` files. This is not the "layout
+  differs on this OS version" case `import-apple-transcripts.mjs` anticipated —
+  there is nothing to fit a reader to. **The audio is all here though**, so the
+  Mac transcribes it itself: `scripts/transcribe-local.mjs`, whisper.cpp with
+  `large-v3-turbo`, no API key and no per-minute cost.
+  - **Neither limit that emptied these records applies locally.** whisper.cpp
+    streams a file of any length in 30-second windows, so the 45-minute ceiling
+    and the 24MB cap are both gone and **nothing is chunked** — the 5.9-hour
+    recording goes through the same code path as a 6-minute one.
+  - **VAD IS NOT OPTIONAL — it is the whole reason the output is usable.**
+    These are quiet recordings (sleep-talk, a phone across the room), and
+    Whisper invents speech over silence. Same 31-minute recording, measured
+    2026-08-19: **with** `--vad` it returns 121 characters of real fragments
+    ("Startled by my own strength… Hesitant to try"); **without**, 975
+    characters of `. . . Thank you. Thank you. Thank Thank Thank`. VAD hands
+    the model only the stretches containing a voice, so there is no silence to
+    fill in. It is also enormously faster on quiet audio — 149× realtime
+    against 14× — because the silence is never decoded.
+  - **A WRONG FILL IS PERMANENT, SO THE BAR IS "SKIP IF UNSURE".**
+    `POST /api/memos/transcript` is fill-only; once a record has words it stops
+    appearing in `/untranscribed` and nobody ever retries it. So the script
+    filters before sending: sound tags (`*crickets*`, `[BLANK_AUDIO]`) stripped,
+    a blocklist of Whisper's silence fillers ("Thank you.", "Thanks for
+    watching"), one-phrase decoder loops, and anything under four words.
+    **Earned the hard way:** the first run had no filter and banked four junk
+    transcripts — two "Thank you.", one "*gunshot*", one "*crickets*" — which
+    cannot be cleared, because there is no route that unsets a transcript. The
+    server's own `length < 8` floor caught three more.
+  - **What it can and cannot reach** (measured 2026-08-19): of 101 wordless
+    records, **45 have real audio on this Mac** (48.7 hours, 22 over 45
+    minutes, longest 5.9 hours). The other 56 are out of reach here — 26 have
+    no recording in Voice Memos at all, 3 have a stamp+length that matches two
+    recordings and are left alone rather than guessed, and 27 are under 5
+    seconds.
+  - Matching is `stamp|duration`, the same key the push filters on — never the
+    stamp alone.
+
 - **Transcription is UNCONDITIONAL** (Sophie 2026-08-05) — no toggles;
   `transcribe=0` params are ignored everywhere. Bank first, enrich after: a
   Whisper failure files the audio with `enrichError` on the record instead

@@ -91,7 +91,12 @@ const REFS = {
     file: 'refs/dream-mystery.jpg',
     name: 'dream mystery',
     intro: 'The FIRST attached image is a STYLE reference — copy its drawing style, linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy its content, subjects, or composition.',
-    tail: '(attached style ref: refs/dream-mystery.jpg — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)',
+    // Since #1427 the file on disk is her own full-quality download (3370x4096),
+    // replacing a 1170x1364 SCREENSHOT with an Instagram speaker icon in the
+    // corner and the panel frames cropped. The filename never changed, so the
+    // note has to carry which copy was attached or two runs months apart read
+    // as the same experiment.
+    tail: '(attached style ref: refs/dream-mystery.jpg, the full-quality photo 3370x4096 — gpt-image-2 images/edits, 1024x1024, quality medium, output webp)',
   },
   sage: {
     key: 'sage',

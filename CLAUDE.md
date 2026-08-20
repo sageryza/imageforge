@@ -1795,6 +1795,24 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   restarts the autoscroll under the overlay moves the page; this bit Sophie
   repeatedly on Compare pages). Restoring the saved position guarantees she
   closes the image exactly where she opened it, whatever happened behind it.
+  - **AN OVERLAY MUST NOT DETACH THE TAPPED NODE WHILE THE TAP IS STILL
+    BUBBLING (Aug 2026, Sophie: "why does auto scroll get triggered when I tap
+    out of the light box in the auto compare page" — and she was right that
+    this had been fixed once; it had, for a DIFFERENT overlay).** A host asks
+    *was this tap the page's own?* with
+    `t.closest('[data-nostop],img,figure,.cmp-lb')` on a bubbling click, which
+    runs AFTER the overlay's own onclick. `asset-lightbox.js` closed with
+    `lb.innerHTML = ''`, so the tapped caption/row had no parents left and
+    `closest()` walked a detached subtree — the `[data-nostop]` marker on the
+    overlay was unreachable, the tap fell through to the tap-to-TOGGLE, and the
+    autoscroll STARTED behind the closing overlay. Tapping the backdrop (the
+    overlay element itself, never detached) was always fine, which is why it
+    read as intermittent. Two fixes, both kept: the wipe is deferred one frame,
+    and chats.html's embedded handler asks the skip list at **pointerdown**,
+    while the target is still in the DOM. `compare.js`'s own lightbox only sets
+    `[hidden]` and was never affected — that is the difference between the two.
+    Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
+    pre-fix file).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This
@@ -2430,14 +2448,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     "a couple days ago we added a what's new button to the main screen, but I
     wanted it to go on the update screen — could you rename it Update, no
     icon, and put it on the update screen").** It shipped as "What's new" with
-    a list icon on the iOS home screen; it is `newsUpdRow` in `chats.html`
-    now — first thing on the tab, above the Review row, the word and nothing
-    else. It is on EVERY paint of that tab, the caught-up one included: the
-    page behind it answers a different question from the cards, so an empty
-    list is no reason to take the door away. It carries no count, for the same
-    reason it never did on the home screen. `BriefView.swift` is kept but
-    unmounted, and /brief opens inside the Chats web view with its own chevron
-    back.
+    a list icon on the iOS home screen. It is on EVERY paint of that tab, the
+    caught-up one included: the page behind it answers a different question
+    from the cards, so an empty list is no reason to take the door away. It
+    carries no count, for the same reason it never did on the home screen.
+    `BriefView.swift` is kept but unmounted, and /brief opens inside the Chats
+    web view with its own chevron back.
+  - **IT IS A CHIP, AND IT SITS ABOVE THE ACCOUNT TABS (Aug 2026 v3, Sophie:
+    "the update and also the review button that you probably copied are both
+    supposed to be smaller and they're supposed to go above the chats").**
+    Both doors shipped as full-width slabs at the top of the LIST — 92px of
+    screen before the first card, on the screen she opens to find out what
+    happened. They are `.catchip`-sized buttons on their own line in
+    `#nwdoors` now, between the search row and the account tabs, so they are
+    CHROME and not list: `paintNewsDoors` fills that row, `paintHomeChrome`
+    empties it on every other view, and only the review CARDS behind the ⌄
+    still live in the grid. Measured on a 390pt phone: 26px instead of 92, and
+    the first card moved up 66px. Review keeps the rose (it is the one door
+    that says something is owed) and its ⌄; Update is never owed, so it
+    doesn't.
   - **IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
     Sophie: "rather than immediately doing another API read, I'd like to be
     able to go back and forth, so the update should be behind one more tap …

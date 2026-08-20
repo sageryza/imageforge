@@ -164,6 +164,25 @@ function cleanItem(raw, taken, fallback) {
     }
     if (secs.length) it.sections = secs;
   }
+  // HER OWN WORDS ABOUT THIS CARD, BEHIND THE "?" (Aug 2026, Sophie, on the
+  // commercial survey: "everything I personally said about them behind a
+  // question button"). What she dictated about a concept is the reason the
+  // concept is on the card at all — but printed on the face it buries the
+  // idea it is about, and a second button in the chrome next to the existing
+  // "?" is two question marks meaning different things. So it rides the ONE
+  // "?" the deck already has: judge.js leads the help card with it whenever
+  // the card in front of her carries one. Shape: [{when?, text}] or bare
+  // strings, words only — no HTML, escaped at render like everything else.
+  if (Array.isArray(raw.said)) {
+    const said = [];
+    for (const s of raw.said.slice(0, 12)) {
+      const body = STR(typeof s === 'string' ? s : (s && s.text), 1500);
+      if (!body) continue;
+      const when = STR(s && s.when, 40);
+      said.push(when ? { when, text: body } : { text: body });
+    }
+    if (said.length) it.said = said;
+  }
   // A WAY OUT OF THE CARD — one link per item (Aug 2026, Sophie: "put them in
   // the compare tab with a link back to the chat"). Template data carries NO
   // HTML by design, so a url written into `text` reaches her as a string she

@@ -852,41 +852,40 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    ✓ on the right is the "I've checked this" — see POST /notif-seen. */
 .nwcard{border:1px solid var(--line); border-radius:6px; background:var(--surface);
   padding:4px 10px 10px; margin:0 0 10px;}
-/* ---- THE UPDATE ROW (Aug 2026, Sophie: "a couple days ago we added a what's
-   new button to the main screen, but I wanted it to go on the update screen —
-   could you rename it Update, no icon, and put it on the update screen") -----
-   The way into /brief, which is the SAME question this tab answers and a
-   different answer to it: this tab is one card per chat, that page is the five
-   things worth knowing across all of them. It sits above everything, so it is
-   the first thing on the screen she opened to find out what happened.
+/* ---- THE TWO DOORS: UPDATE and REVIEW (Aug 2026, Sophie: "the update and
+   also the review button that you probably copied are both supposed to be
+   smaller and they're supposed to go above the chats") -----------------------
+   Both led the LIST as full-width slabs — 92px of screen before the first
+   card, on the one screen she opens to find out what happened. They are chips
+   now, the same small box the filing categories wear, on their own line above
+   the account tabs.
 
-   No icon (her ask) and the accent, not the rose — rose on this screen means
-   something is owed, and the brief is never owed. Same rounded rectangle as
-   the Review row so the two read as one pair of doors. */
-.nwupd{display:flex; margin:0 0 10px; border:1px solid var(--line);
-  border-radius:6px; overflow:hidden; background:var(--surface);}
-.nwupdgo{flex:1; background:none; border:0; padding:11px 12px; cursor:pointer;
-  text-align:left; color:var(--ink2); font-family:-apple-system,sans-serif;
-  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+   REVIEW keeps the rose: it is the one door that says something is owed.
+   UPDATE does not — it is never owed, it is just the wider answer to the
+   question this tab already asks. Both hug their words (the house button
+   rule), so the row is as wide as what is in it and no wider.
+
+   The ⌄ beside Review is not decoration: her rule ends "IF i dismiss manually
+   from update tab", so the cards behind the word have to be reachable from
+   here. Its own hairline says the two halves are two taps — the word goes
+   somewhere, the arrow opens the cards in place. */
+.nwdoors{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 9px;}
+.nwdoors[hidden]{display:none !important;}
+.nwdoor{display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
+  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; border:1.5px solid var(--line); border-radius:6px;
+  background:transparent; color:var(--ink2); cursor:pointer; white-space:nowrap;
   -webkit-tap-highlight-color:transparent;}
-/* ---- THE REVIEW ROW (Aug 2026, Sophie — the `to be reviewed` rule) ---------
-   One row above everything: the word leaves for /review, the ⌄ opens the cards
-   so they can still be dismissed from here. A rounded rectangle, never a pill
-   (the house rule), and it wears the ROSE the asks on this screen already
-   wear — this is the one row that says something is owed. */
-.nwrev{display:flex; align-items:stretch; gap:0; margin:0 0 12px;
-  border:1px solid var(--rose); border-radius:6px; overflow:hidden; background:var(--surface);}
-.nwrevgo{flex:1; display:flex; align-items:center; gap:8px; background:none; border:0;
-  padding:11px 12px; cursor:pointer; text-align:left; color:var(--rose);
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.14em;
-  text-transform:uppercase; -webkit-tap-highlight-color:transparent;}
-.nwrevgo .stn{font-weight:600;}
-/* Its own hairline, so the two halves of the row are visibly two taps — the
-   word goes somewhere, the arrow does not. */
-.nwrevfold{flex:none; width:44px; background:none; border:0; border-left:1px solid var(--line);
-  cursor:pointer; color:var(--ink2); display:flex; align-items:center; justify-content:center;
+.nwdoor .stn{font-weight:600;}
+/* The pair reads as ONE control: the word and its arrow share a box, split by
+   a hairline, the way the slab did. */
+.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--rose);
+  border-radius:6px; overflow:hidden;}
+.nwrevpair .nwdoor{border:0; border-radius:0; color:var(--rose);}
+.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--rose);
+  cursor:pointer; color:var(--rose); display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
-.nwrevfold svg{width:17px; height:17px; display:block; transition:transform .18s ease;}
+.nwrevfold svg{width:15px; height:15px; display:block; transition:transform .18s ease;}
 .nwrevfold.folded svg{transform:rotate(-90deg);}
 /* PICKED — "I tap the item and it selects it with a thicker outline, and then
    I tap the category and that's how it gets filed in" (Sophie, Aug 2026). The
@@ -1449,6 +1448,15 @@ body.selecting > .float{display:none !important;}
          hidden bar (Sophie, Aug 2026 — it shipped up under the masthead and
          she moved it down here), so it is the last thing before the list it
          governs. Labels + badges are painted by paintAcctTabs(). -->
+    <!-- THE TWO DOORS ON THE UPDATE SCREEN — Update and Review (Aug 2026,
+         Sophie: "the update and also the review button that you probably
+         copied are both supposed to be smaller and they're supposed to go
+         above the chats"). They shipped as full-width slabs at the top of the
+         LIST, 92px of screen before the first card; they are `.catchip`-sized
+         buttons on their own line ABOVE the account tabs now, which is above
+         everything the tabs govern. Painted by paintNewsDoors(); empty and
+         hidden on every other view. -->
+    <div id="nwdoors" class="nwdoors" hidden></div>
     <div id="accrow" class="acctabs" data-on="1">
       <button class="acctab" data-acct="new"></button>
       <button class="acctab" data-acct="1"></button>
@@ -2204,6 +2212,11 @@ function paintHomeChrome(){
   var acc=document.getElementById('accrow');
   var accOff = (other && homeView!=='news') || homeView==='archive';
   if(acc) acc.style.display = accOff ? 'none' : '';
+  // The Update/Review doors are the UPDATE screen's own chrome — they sit
+  // above the tabs, so every other view has to put them away itself
+  // (renderNews is the only thing that ever fills them).
+  var doors=document.getElementById('nwdoors');
+  if(doors && homeView!=='news'){ doors.hidden=true; doors.innerHTML=''; }
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -3091,30 +3104,33 @@ function toggleNewsFold(kind){
   }
   renderHome();                 // no scrollTo — she stays where she tapped
 }
-// ---- THE REVIEW BUTTON (Aug 2026, Sophie: "the `to be reviewed` review queue
+// ---- THE REVIEW DOOR (Aug 2026, Sophie: "the `to be reviewed` review queue
 // — like movies that are done, images waiting on my decision — go into a
 // `review` button (which links to the review queue) at the top of the updates
 // tab") ---------------------------------------------------------------------
-// One row at the very top, above everything, carrying how many chats are
+// A chip in the doors row above the account tabs, carrying how many chats are
 // behind it. The WORD is the link: it leaves for /review, which is where the
 // work actually gets done — a deck is swiped there, never here.
 //
 // The ⌄ beside it is not decoration and not an extra feature: her rule ends
 // "IF i dismiss manually from update tab", so the cards have to be REACHABLE
-// from this tab or there is nothing to dismiss. It opens the same cards, with
-// the same ✓ and the same DONE chip as every other section — folded by
-// default, because the point of the row is that these are out of the way.
+// from this tab or there is nothing to dismiss. It opens the same cards, at
+// the top of the list, with the same ✓ and the same DONE chip as every other
+// section — folded by default, because the point of the door is that these
+// are out of the way.
+//
+// IT WAS A FULL-WIDTH SLAB AT THE TOP OF THE LIST until she asked for it
+// smaller and above the chats; only its size and its place changed.
 //
 // Session-only and always starting shut, like every other fold on this screen.
-function newsReviewRow(revs){
-  var frag=document.createDocumentFragment();
+function newsReviewDoor(revs){
   var shut=!newsFold.reviewOpen;
-  var row=document.createElement('div'); row.className='nwrev';
-  var b=document.createElement('button'); b.className='nwrevgo';
+  var pair=document.createElement('div'); pair.className='nwrevpair';
+  var b=document.createElement('button'); b.className='nwdoor';
   b.innerHTML='<span>Review</span><span class="stn">'+revs.length+'</span>';
   b.setAttribute('aria-label','Review queue — '+revs.length+' waiting');
   b.onclick=function(){ location.href='/review'; };
-  row.appendChild(b);
+  pair.appendChild(b);
   var f=document.createElement('button');
   f.className='nwrevfold'+(shut?' folded':'');
   f.setAttribute('aria-expanded', shut?'false':'true');
@@ -3131,10 +3147,8 @@ function newsReviewRow(revs){
     } else newsFold.reviewOpen=1;
     renderHome();
   };
-  row.appendChild(f);
-  frag.appendChild(row);
-  if(!shut) revs.forEach(function(it){ frag.appendChild(newsCard(it)); });
-  return frag;
+  pair.appendChild(f);
+  return pair;
 }
 // The chips: LATER · IN A MINUTE, each carrying how many are waiting in it.
 // Tapping one with nothing picked OPENS that box (tap it again to come back —
@@ -3455,26 +3469,42 @@ function doneNews(){
 // means reading the brief every time this tab paints, and the number would be
 // the only stale thing on the screen. The page itself now opens on the last
 // list she saw and reads only on Refresh.
-function newsUpdRow(){
-  var row=document.createElement('div'); row.className='nwupd';
-  var b=document.createElement('button'); b.className='nwupdgo';
+function newsUpdDoor(){
+  var b=document.createElement('button'); b.className='nwdoor';
   b.textContent='Update';
   b.setAttribute('aria-label','Update — the five things worth knowing right now');
   b.onclick=function(){ location.href='/brief'; };
-  row.appendChild(b);
-  return row;
+  return b;
 }
-function newsEmptyCheck(){
+// THE DOORS ROW — both of them, above the account tabs (Aug 2026, Sophie:
+// "both supposed to be smaller and they're supposed to go above the chats").
+// It is chrome, not list: it lives in #nwdoors between the search row and the
+// tabs, so it does not scroll away with the cards and it costs one short line
+// instead of the 92px two slabs were spending at the top of the list.
+//
+// Update is always there. Review only when something is behind it — and only
+// on the main list: inside an open box (`newsQ`) the review cards are not
+// what she is looking at, so a fold arrow there would open cards from a
+// different pile.
+function paintNewsDoors(revs){
+  var row=document.getElementById('nwdoors'); if(!row) return;
+  row.innerHTML='';
+  if(homeView!=='news'){ row.hidden=true; return; }
+  row.hidden=false;
+  row.appendChild(newsUpdDoor());
+  if(!newsQ && revs && revs.length) row.appendChild(newsReviewDoor(revs));
+}
+function newsEmptyCheck(waiting){
   var el=document.getElementById('grid');
-  // The Review row counts as something on the screen even with its fold shut —
+  // The Review door counts as something on the screen even with its fold shut —
   // otherwise a tab holding nothing but review cards would say "you're all
-  // caught up" directly above a row saying three are waiting. The Update row
-  // deliberately does NOT count: it is on every paint, so it can never be the
-  // reason she is left without the "you're all caught up" line.
-  if(homeView!=='news' || el.querySelector('.nwcard,.nwrev')) return;
+  // caught up" directly under a chip saying three are waiting. It is passed in
+  // rather than looked for, because the door moved OUT of the grid and into the
+  // chrome above the tabs. The Update door deliberately does not count: it is
+  // on every paint, so it can never be the reason she loses that line.
+  if(homeView!=='news' || waiting || el.querySelector('.nwcard')) return;
   // An empty screen must say WHICH of the two it is, or an open box reads as
-  // the updates having vanished. APPENDED, not written over the container —
-  // the Update row is already in it.
+  // the updates having vanished.
   var s=document.createElement('div'); s.className='state';
   s.textContent=newsQ
     ? 'Nothing in '+newsQLabel(newsQ)+' — tap an update, then tap '+newsQLabel(newsQ)+'.'
@@ -3487,9 +3517,12 @@ function renderNews(el){
   function paint(){
     if(homeView!=='news') return;            // she left while it loaded
     el.innerHTML='';
-    el.appendChild(newsUpdRow());            // first thing on the screen, always
     var items=newsList(g);
-    if(!items.length){ newsEmptyCheck(); return; }
+    // The review pile is needed BEFORE the list is drawn — its chip is chrome
+    // above the tabs, and its count decides whether "all caught up" is true.
+    var revs=newsQ ? [] : items.filter(function(it){ return it.rule==='review'; });
+    paintNewsDoors(revs);
+    if(!items.length){ newsEmptyCheck(revs.length); return; }
     if(newsQ){
       // an open box is already triaged — one flat list, as it always was
       items.forEach(function(it){ el.appendChild(newsCard(it)); });
@@ -3499,10 +3532,11 @@ function renderNews(el){
       // answered in the chat, a review in the queue. Taking them out here
       // rather than inside newsKind keeps the classifier about what a card
       // CARRIES, which is all it has ever known.
-      var revs=items.filter(function(it){ return it.rule==='review'; });
       var pins=items.filter(function(it){ return it.rule==='pin'; });
       var rest=items.filter(function(it){ return it.rule!=='review' && it.rule!=='pin'; });
-      if(revs.length) el.appendChild(newsReviewRow(revs));
+      // The word and the count are up in the doors row; only the cards behind
+      // the ⌄ belong in the list.
+      if(newsFold.reviewOpen) revs.forEach(function(it){ el.appendChild(newsCard(it)); });
       if(pins.length){
         el.appendChild(newsFoldHead(['pin', TAG_RULES[0].head], pins.length));
         if(!newsFold.pin) pins.forEach(function(it){ el.appendChild(newsCard(it)); });
@@ -6812,8 +6846,22 @@ function openPage(p){
       // a clock window either misses slow fingers or eats the next tap.
       var pausedThisTap=false;
       if(w) w.__scrollStop=function(){ if(pill._playing && pill._playing()) pausedThisTap=true; pill._stop(); };
+      // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
+      // DOM (Aug 2026). A click handler bubbles, so it runs AFTER the page's own
+      // handler for the same tap — and an overlay that closes by removing its
+      // content (the Assets lightbox did exactly this) leaves the tapped node
+      // detached, with no ancestors left for closest() to find the marker on.
+      // The tap then read as "not the page's own" and started the scroll behind
+      // the closing overlay. Same per-GESTURE shape as pausedThisTap above.
+      var OWN='[data-nostop],img,figure,.cmp-lb';
+      var ownThisTap=false;
+      if(doc) doc.addEventListener('pointerdown', function(e){
+        var t=e.target;
+        try{ ownThisTap=!!(t && t.closest && t.closest(OWN)); }catch(_){ ownThisTap=false; }
+      }, true);
       if(doc) doc.addEventListener('click', function(e){
         var paused=pausedThisTap; pausedThisTap=false;
+        var own=ownThisTap; ownThisTap=false;
         var t=e.target;
         if(t && t.closest && t.closest('a,button,summary,details,input,textarea,select,label,video,audio,[onclick]')) return;
         // `[data-nostop]` is compare.js's documented opt-out, and the EMBEDDED
@@ -6826,7 +6874,7 @@ function openPage(p){
         // and the toggle ALSO started the scroll behind it; tapping the dark
         // backdrop to close toggled it again. A tap on an image is the page's
         // own, everywhere.
-        if(t && t.closest && t.closest('[data-nostop],img,figure,.cmp-lb')){ if(pill._stop) pill._stop(); return; }
+        if(own || (t && t.closest && t.closest(OWN))){ if(pill._stop) pill._stop(); return; }
         // this tap's own pointerdown just paused a running scroll — the tap
         // meant PAUSE, not toggle-back-on
         if(paused) return;
