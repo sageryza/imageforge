@@ -735,26 +735,15 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    not an alarm, and it must not shout over her own notes */
 .cr-note.cr-hook{color:color-mix(in srgb, var(--chg) 72%, var(--paper));}
 /* The archive wrap-up's expander. Sits under its row as a sibling (a row is a
-   button, so it cannot nest) and costs one small glyph of height when shut.
-   THE TAP TARGET IS THE PADDING, NOT THE GLYPH (Aug 2026, Sophie: "the arrow
-   for more information on the chats and the update tab is too small of a tap
-   target"). It was 32.6 x 23 — a third of the 44px a thumb actually needs, on
-   a control she taps to read the summary. The ⌄ itself is unchanged; the box
-   around it grew to ~45 x 43, and the negative margin absorbed the extra
-   height so the glyph lands on the same pixel it always did and the archive
-   list is only 8px longer per row.
-   The overhang goes UP, into the row this summary belongs to — deliberately.
-   A miss there opens the summary of the chat she was already aiming at; an
-   overhang DOWNWARD would land on the NEXT chat's row, which is a different
-   chat and a real wrong answer. It reaches only the far right of that row,
-   where the timestamp sits and nothing is tappable — the archive's rows carry
-   no button of their own (see renderChats). The two that CAN appear on a row
-   elsewhere are lifted over the overhang below, so this stays true if a
-   wrap-up is ever painted into a list that has them. */
+   button, so it cannot nest). A text link, not a chevron (Aug 2026, Sophie:
+   "get rid of the chevron, put a 'see more...' link under it instead") — the
+   words are wide enough to be most of their own tap target, so the old
+   glyph-sized overhang hack (growing a lone ⌄ upward into the row above) is
+   gone; the vertical padding alone still clears a real thumb height. */
 .crow .hidebtn,.crow .pinbtn,.crow .pickbtn{position:relative; z-index:1;}
-.wrapmore{display:block; margin:-18px 0 0 auto; padding:14px 16px; background:none;
-  border:0; color:var(--ink2); font-size:15px; line-height:1; cursor:pointer;
-  -webkit-tap-highlight-color:transparent;}
+.wrapmore{display:block; margin:2px 0 0; padding:11px 4px; background:none;
+  border:0; color:var(--chg); font-size:13.5px; line-height:1.2; cursor:pointer;
+  text-decoration:underline; text-align:left; -webkit-tap-highlight-color:transparent;}
 .wrapfull{margin:0 0 10px; padding:0 12px 0 14px; font-size:13.5px; line-height:1.45;
   color:var(--ink2); white-space:pre-wrap; border-left:2px solid var(--line);}
 .wrapfull[hidden]{display:none;}
@@ -767,21 +756,16 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .wrapbul::before{content:'•'; position:absolute; left:1px; top:0;}
 .wrapopen{margin-top:9px;}
 /* THE WRAP-UP IN A THREAD, under her note (Aug 2026, her ask). Same three
-   depths as the archive row, laid out as a normal block instead of a sibling
-   of a button — so `.wrapmore` gets its margin back and the line reads as a
-   quiet caption under the note rather than a second note. */
+   depths as the archive row, laid out as a normal block so the line reads as
+   a quiet caption under the note rather than a second note. */
 .threadwrap{margin:-.4em 0 1em;}
 .threadwrap[hidden]{display:none !important;}
 .threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
-/* Same trick, smaller: what sits above it here is the summary LINE, plain
-   text with nothing to tap, so the box can hang over it and the ⌄ stays on
-   the pixel it has always been on. */
-.threadwrap .wrapmore{margin:-12px 0 0 auto;}
 .threadwrap .wrapfull{margin-bottom:0;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
-   ⌄ that opened this. */
+   "See more…" link that opened this. */
 .wrapmore2{display:block; margin:6px 0 0; padding:0; background:none; border:0;
   color:var(--chg); font-family:-apple-system,sans-serif; font-size:11px;
   letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
@@ -5091,12 +5075,12 @@ function wrapBody(r){
 }
 function wrapToggle(body){
   var tog=document.createElement('button');
-  tog.className='wrapmore'; tog.textContent='⌄';
+  tog.className='wrapmore'; tog.textContent='See more…';
   tog.setAttribute('aria-label','What this chat was about');
   tog.onclick=function(e){
     e.stopPropagation();
     body.hidden=!body.hidden;
-    tog.textContent=body.hidden?'⌄':'⌃';
+    tog.textContent=body.hidden?'See more…':'See less';
   };
   return tog;
 }
