@@ -1797,7 +1797,7 @@ function markSeen(name){
 function editAbout(chat, row, current){
   // inline editor (WKWebView blocks window.prompt), saves to /about
   var inp=document.createElement('input'); inp.type='text'; inp.className='abouted';
-  inp.value=current||''; inp.placeholder='What is this project? (one line)'; inp.maxLength=140;
+  inp.value=current||''; inp.placeholder='What is this project?'; inp.maxLength=140;
   row.innerHTML=''; row.appendChild(inp); inp.focus();
   var done=false;
   function save(){
@@ -5860,7 +5860,6 @@ function openChat(name, keepScroll, focusId, noFetch){
   function editChatNote(){
     var v=(chats[name]&&chats[name].sophieNote)||'';
     var ta=document.createElement('textarea'); ta.value=v; ta.maxLength=200;
-    ta.placeholder='A note to yourself about this chat';
     nwrap.innerHTML=''; nwrap.appendChild(ta); ta.focus();
     var done=false;
     function save(){
@@ -7045,7 +7044,7 @@ function askArchive(name, cb){
   var noteWas=String((chats[name]&&chats[name].sophieNote)||'');
   var note=document.createElement('input');
   note.type='text'; note.className='arcnote'; note.maxLength=200; note.value=noteWas;
-  note.placeholder='A note to yourself about this chat';
+  note.placeholder='Note…';
   note.setAttribute('aria-label','Your note about this chat');
   var noteSaved=noteWas;
   function saveNote(){

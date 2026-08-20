@@ -267,7 +267,7 @@
     queue.forEach(it => {
       const row = document.createElement('div'); row.className = 'qitem' + (it.skip?' skip':'');
       row.innerHTML = `<img src="${it.cropUrl}" alt="">
-        <input placeholder="Name (blank = skip)" value="${it.name}">
+        <input placeholder="Name" value="${it.name}">
         <div class="seg"><button data-t="side" class="${it.tier==='side'?'on':''}">Side</button><button data-t="main" class="${it.tier==='main'?'on':''}">Main</button></div>
         <button class="x" title="Skip">✕</button>`;
       const inp = row.querySelector('input');
