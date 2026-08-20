@@ -254,15 +254,20 @@ catch { try { ({ chromium } = require('playwright-core')); } catch { chromium = 
 
 const T0 = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
-const MSGS = ['live-one', 'arch-one', 'reading'].map((c, i) => ({
+const MSGS = ['live-one', 'arch-one', 'reading', 'arch-two'].map((c, i) => ({
   id: 'm' + i, chat: c, from: 'claude', text: c, tldr: c,
-  created: iso(T0 - (2 - i) * 3600000), postedAt: iso(T0 - (2 - i) * 3600000),
+  created: iso(T0 - (4 - i) * 3600000), postedAt: iso(T0 - (4 - i) * 3600000),
 }));
 // `live-one` carries NO label: `witch` is a pile seed, so a chat wearing it is
 // filed off the main list and the row would never be reached.
 const CHATS = {
   'live-one': { account: '1' },
-  'arch-one': { account: '1', archived: true, labels: ['bug fix'] },
+  'arch-one': { account: '1', archived: true, labels: ['bug fix', 'witch'] },
+  // THE CASE THE FIRST PASS MISSED: an archived chat wearing one of the five
+  // live-progress words. It kept the word (nothing is stripped) but the
+  // archive's filter row must not offer it. Measured on her real data the day
+  // she asked again: to read 3 · to be reviewed 2 · come back to 1 · look at 1.
+  'arch-two': { account: '1', archived: true, labels: ['to read', 'come back to'] },
   // …and one wearing a live-progress word, so the folded row really has a plain
   // chip on it to measure SEE MORE against. `to read` is not a pile.
   reading: { account: '1', labels: ['to read'] },
@@ -389,6 +394,53 @@ async function pageTests() {
     ok('…and the five live-progress words are gone from it',
       ['Look at', 'Come back to', 'To read', 'To be reviewed', 'Waiting for a response']
         .every((w) => arc.words.indexOf(w) < 0), arc.words.join(' · '));
+    await page.click('.askwrap .askrow button:not(.go)').catch(() => {});
+    await page.waitForTimeout(200);
+
+    // ---- THE ARCHIVE'S OWN FILTER ROW OBEYS THE SAME RULE -----------------
+    // The archive is TWO surfaces and the first pass only fixed the sheet:
+    // this row builds its own list off `fileVocab()` and went on offering all
+    // five. Verified failing against that version.
+    await page.goto(base + '/chats');
+    await page.waitForSelector('#grid [data-chat="live-one"]');
+    await page.click('#archlink');
+    await page.waitForSelector('#grid .arctagrow .catchip');
+    const arow = await page.evaluate(() => {
+      const row = document.querySelector('#grid .arctagrow');
+      const out = { words: [], beforeRule: [], rule: null };
+      let seen = false;
+      [].slice.call(row.children).forEach((n) => {
+        if (n.classList.contains('catdiv')) { seen = true; out.rule = n.textContent.trim(); return; }
+        const w = n.textContent.trim();
+        out.words.push(w);
+        if (!seen) out.beforeRule.push(w);
+      });
+      return out;
+    });
+    ok('the archive row still leads with All', arow.words[0] === 'All', arow.words.join(' · '));
+    ok('…and offers a word that IS in the archive', arow.words.indexOf('Bug fix') > -1,
+      arow.words.join(' · '));
+    ok('…and NOT the live-progress words, even though a chat in there wears them',
+      ['Look at', 'Come back to', 'To read', 'To be reviewed'].every((w) => arow.words.indexOf(w) < 0),
+      arow.words.join(' · '));
+    ok('…with the outcome words above the categories rule',
+      arow.beforeRule.indexOf('Bug fix') > -1 && arow.rule === 'Categories',
+      'before: ' + arow.beforeRule.join(' · ') + ' | rule: ' + arow.rule);
+    ok('…and her topic word under it',
+      arow.words.indexOf('Witch') > arow.words.indexOf('Bug fix'), arow.words.join(' · '));
+    // Nothing is stripped — the chat is still in the archive, still carrying the
+    // word. It only stopped being a way of filtering here.
+    ok('the chat wearing it is still IN the archive',
+      !!(await page.$('#grid [data-chat="arch-two"]')));
+    // …and the sheet that CAN still show it is the Organize one, not this row.
+    await page.click('#grid [data-chat="arch-two"]');
+    await page.waitForSelector('#thread .orgbtn');
+    await page.click('#thread .orgbtn');
+    await page.waitForSelector('.askwrap .arctags');
+    const still = await page.$$eval('.askwrap .arctags .catchip.on',
+      (ns) => ns.map((n) => n.textContent.trim()));
+    ok('…and Organize still shows the word lit on it — nothing was stripped',
+      still.indexOf('To read') > -1, still.join(' · '));
   } finally {
     await browser.close();
     srv.close();

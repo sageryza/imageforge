@@ -530,9 +530,29 @@
     applied; both are PRESENTATION ONLY, so a word already on a chat still
     renders, filters and saves everywhere it already is. `waiting for a response`
     also joined `TASK_LABELS` the same day, at her ask. The archive's own filter
-    row is unaffected — it lists the tags actually in the archive, which is where
-    a chat wearing an outcome word is found. Test:
+    row obeys the SAME split (below). Test:
     `node scripts/test-chats-tag-visibility.js`.
+  - **THE ARCHIVE IS TWO SURFACES, AND THE FIRST PASS ONLY FIXED ONE (Aug 2026,
+    Sophie the next day: "I suspect you didn't change the categories or some of
+    the archive stuff" — she was right).** The archive SHEET took the
+    `archive:true` split; the archive's own FILTER ROW (`renderArchive`) builds
+    its list straight off `fileVocab()` and never came through
+    `paintVocabChips`, so it went on offering all five live-progress words.
+    Measured on her real data that day: **`to read` 3 · `to be reviewed` 2 ·
+    `come back to` 1 · `look at` 1** — four of the five sitting in front of her
+    inside the archive. The row applies `isLiveWord` and the same grouping now
+    (ALL, then the outcome words, then the rest of the progress words, then a
+    `Categories` rule, then her topics) — a word not offered on the way INTO the
+    archive must not be a way of finding things once they are in it. It also
+    answers her older ask, "can u also put a dividing line between progress and
+    categories in the archive", which had only ever landed in the sheet.
+    **Nothing is stripped**: an archived chat keeps every word it wears, still
+    lit on its Organize sheet and still found by search. Two details:
+    `.arctagrow .catdiv` needs `flex-basis:100%` (a block child in a flex row
+    would sit beside a chip), and a lit `archTag` that just left the row is
+    cleared BEFORE the row paints — otherwise the archive shows a slice with
+    nothing on screen saying why, the silent filter this app keeps warning
+    about.
   - **SEE MORE IS DRAWN AS A CONTROL, NOT A CHIP (Aug 2026, Sophie: "see more
     shud look different so as not to be confused with being a category/tag").**
     It shipped as a plain `.catchip`, so the folded row ended in a box the same

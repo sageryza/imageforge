@@ -992,6 +992,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    would just sit beside a chip — so inside a sheet it takes the whole line
    itself. */
 .arctags .catdiv{flex-basis:100%; width:100%; margin:8px 0 2px;}
+/* …and the archive's own filter row is a flex row too (`.catrow`), so its rule
+   needs the same treatment — a block child would otherwise sit beside a chip
+   instead of breaking the line. */
+.arctagrow .catdiv{flex-basis:100%; width:100%; margin:6px 0 2px;}
 /* ORGANIZE's section labels — kept, UNUSED, on purpose. The sheet held two
    different things (ONE folder over MANY tags) and an unlabelled wall of
    identical chips gave no clue which tap was which; the two became one field
@@ -4683,17 +4687,44 @@ function renderTrash(el){
 // No count badges here on purpose. The account tabs carry a red one because it
 // means "something answered you over there"; an archived chat answering is not
 // that, and she asked for the plain totals off the category chips already.
+// ---- …AND SO IS THIS ROW, WHICH WAS MISSED THE FIRST TIME (Aug 2026, Sophie:
+// "for the archive, get rid of the following tags: look at, come back to, to
+// read, to be reviewed, waiting for answer" → the next day, "I suspect you
+// didn't change the categories or some of the archive stuff") ----------------
+// THE ARCHIVE IS TWO SURFACES AND ONLY ONE OF THEM WAS FIXED. The archive
+// SHEET (askArchive) took the `archive:true` split; this row — the chips at the
+// top of the archive she filters by — builds its own list off `fileVocab()`
+// and never came through `paintVocabChips` at all, so it went on offering all
+// five live-progress words. Measured on her real data the day she asked
+// again: **`to read` 3 · `to be reviewed` 2 · `come back to` 1 · `look at` 1**,
+// i.e. four of the five were sitting in front of her in the archive.
+//
+// It is the SAME rule in both places now — one filter (`isLiveWord`), one
+// grouping (ARCHIVE_ONLY first, then the rest of the progress words, then a
+// `Categories` rule) — because a word that is not offered on the way INTO the
+// archive must not be a way of finding things once they are in it.
+//
+// PRESENTATION ONLY, exactly like the sheets: an archived chat that already
+// wears one of those five KEEPS it — the word is still on the chat, still in
+// search, still on its Organize sheet. Nothing is stripped; it just stops
+// being a filter here.
 function renderArchive(el,g,arch){
-  // Every word actually worn by something in here, in the vocabulary's order —
-  // the folders now too, since they and the tags became one field. The order
-  // matters: `fileVocab` puts her own names first and the ten legacy tag words
-  // last, so the row reads the way the sheets do.
+  // Every word actually worn by something in here, minus the live-progress
+  // words. "Only tags actually in there" is the older rule and it stays: the
+  // whole vocabulary on a phone is a row she reads past to reach the two that
+  // find anything.
   var live=fileVocab().filter(function(t){
+    if(isLiveWord(t)) return false;
     return arch.some(function(n){ return chatTags(n).indexOf(t)>-1; });
   });
+  // A filter she can no longer see must not survive as a silent one: if the lit
+  // word just left this row (she filtered by it, then it stopped being offered)
+  // the archive would show a slice with nothing on screen saying why. Cleared
+  // BEFORE the row paints, so `All` lights on the same pass.
+  if(archTag && live.indexOf(archTag)<0) archTag='';
   if(live.length){
     var row=document.createElement('div'); row.className='catrow arctagrow';
-    [''].concat(live).forEach(function(t){
+    var chip=function(t){
       var b=document.createElement('button');
       b.className='catchip'+(archTag===t?' on':'');
       // Capitalised like every other `.catchip` on the app — the row offers her
@@ -4702,7 +4733,24 @@ function renderArchive(el,g,arch){
       b.textContent=t?catLabel(t):'All';
       b.onclick=function(){ archTag=t; renderHome(); window.scrollTo(0,0); };
       row.appendChild(b);
-    });
+    };
+    // ALL still leads, and it is the landing state.
+    chip('');
+    // The same two groups the sheets draw, in the same order: how the chat
+    // ENDED first, then anything else about where it stood, then her topics
+    // under the rule. Her ask from the day the sheets got theirs — "can u also
+    // put a dividing line between progress and categories in the archive" —
+    // was answered in the SHEET and never here.
+    var tasks=ARCHIVE_ONLY.concat(TASK_LABELS)
+      .filter(function(t){ return live.indexOf(t)>-1; });
+    tasks.forEach(chip);
+    var topics=live.filter(function(t){ return tasks.indexOf(t)<0; });
+    if(tasks.length && topics.length){
+      var d=document.createElement('div');
+      d.className='catdiv'; d.textContent='Categories';
+      row.appendChild(d);
+    }
+    topics.forEach(chip);
     el.appendChild(row);
   }
   var pile=archTag ? arch.filter(function(n){ return chatTags(n).indexOf(archTag)>-1; }) : arch;
