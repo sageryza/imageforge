@@ -130,6 +130,21 @@ late or never.
 - **When she IS at the computer** she says "open `docs/desktop-tasks.md` and run
   the queue" and the terminal chat works it top to bottom, moving each finished
   block to DONE with the date.
+- **She can SEE the queue on her phone at
+  https://imageforge-q125.onrender.com/desktop** (her ask, Aug 2026: "a way to
+  see what things are on my queue and have been checked off… somewhere
+  out-of-the-way"). Two hairline tabs, WAITING and DONE; a row carries the
+  task's name, when it was queued, who queued it, whether a run FAILED, and
+  anything it needs from her, and opens to the whole entry on a tap.
+  **DELIBERATELY UNLINKED** — no tile, no iOS wrapper.
+  It is READ-ONLY and there is no second copy of the queue: `desktop.js` parses
+  the same `docs/desktop-tasks.md` the terminal chat runs from, asking GitHub's
+  raw copy first (60s cache) so a task queued two minutes ago is visible before
+  Render has redeployed, with the server's own checkout as the fallback. So the
+  page needs nothing from you beyond writing the entry properly — and the one
+  field it leans on is `**Queued:** <date> by <chat>`, which a test now pins.
+  Tests: `node scripts/test-desktop-queue.js` (the parser against a fixture AND
+  the real file, then the page in headless Chromium).
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
@@ -1825,8 +1840,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   audio into the memo library now; the `audio.js` API underneath is still
   live machinery), `/crystals` and `/import` (project-specific drop boxes,
   superseded for day-to-day use by the share sheet / Dump; kept because
-  their data and APIs are real), and `/wall` (the everything-feed; no tile
-  asked for). The pages still serve at their URLs for a chat or a browser.
+  their data and APIs are real), `/wall` (the everything-feed; no tile
+  asked for), and `/desktop` (the desktop queue — she asked for it
+  "somewhere out-of-the-way"). The pages still serve at their URLs for a chat
+  or a browser.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
