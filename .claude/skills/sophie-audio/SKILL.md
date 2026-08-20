@@ -137,6 +137,15 @@ Full findings in `docs/nde-precise-cutting.md`. In short:
 
 - **NEVER loudnorm her voice** — she rejected the dynamic squeezing. Cuts
   are plain cuts of the original bytes; clips get 12ms edge micro-fades only.
+- **A MULTI-SHOT TTS NARRATION IS ONE RENDER, SPLIT — never one call per
+  shot (Aug 2026, Sophie: "you're supposed to pick one clip and then chain
+  them all together so that they don't change the register so much").** Every
+  ElevenLabs request is synthesized independently, so a film built a line at a
+  time changes register at every cut, and the more shots the worse it reads.
+  Render the whole script as a SINGLE take, then locate each shot inside it
+  with `phraseSpan`, exactly as if she had read it — `vo-film.js` does this by
+  itself (`joinTTS`), so a spec still just gives each shot its `tts` line.
+  Don't hand-roll a per-line loop.
 - **TTS: `eleven_multilingual_v2`, NEVER `eleven_v3`** ("no one uses v3 ever
   again" — a stale doc note shipped a 15-minute film in the wrong voice).
   Professional clone "Sophie — morning" `UTkHGl2ImiT6gwtAFCql`, settings of
