@@ -902,6 +902,15 @@
       the case and let her say yes.
     - The box uses `liveInput`, like every other field here — iOS dictation can
       fill an input without ever firing `input`.
+    - **NO PLACEHOLDER (Aug 2026, Sophie: "it has pre-written text. Can you get
+      rid of that and also make it a rule to never add prewritten text unless I
+      ask for it").** It shipped with an example answer in the field ("the API
+      key, her go-ahead, Tuesday…"); the question above the box is the only
+      prompting it gets. Prefilling with HER OWN saved answer is a different
+      thing and stays. This became a house rule for every field she writes in —
+      **NEVER PUT PRE-WRITTEN TEXT IN ANYTHING SHE WRITES IN** in CLAUDE.md's
+      design rules — and the empty field is pinned by
+      `node scripts/test-chats-labels.js`.
     - **`threadNote`** is the open thread's note repainter, set in `openChat`:
       the sheets that change this line live outside it and `renderHome` only
       repaints the LIST, so without it her answer appeared only after a reload.

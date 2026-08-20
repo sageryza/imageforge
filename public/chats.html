@@ -6275,10 +6275,18 @@ function openPage(p){
 // waiting for, and then that gets added to the note for the chat at the top").
 //
 // Opens on the tap that puts the tag ON, and again from the line itself when
-// she wants to change it. Prefilled, because arriving empty on a chat that
-// already says what it is waiting for reads as an invitation to retype it.
-// Saving empty just leaves the tag with nothing written under it — the tag is
-// hers to remove, not this box's.
+// she wants to change it. Prefilled with HER OWN previous answer, because
+// arriving empty on a chat that already says what it is waiting for reads as
+// an invitation to retype it. Saving empty just leaves the tag with nothing
+// written under it — the tag is hers to remove, not this box's.
+//
+// NO PLACEHOLDER (Aug 2026, Sophie: "it has pre-written text. Can you get rid
+// of that"). It shipped with an example answer sitting in the field ("the API
+// key, her go-ahead, Tuesday…") and that is words nobody asked for, in a box
+// whose whole job is to hold HER words. The question above the field already
+// says what the box is for. A placeholder is only ever a NAME for the field
+// ("Search all chats…"), never an example of what to put in it — the house
+// rule is in CLAUDE.md.
 function askWaiting(name, after){
   var wrap=document.createElement('div'); wrap.className='askwrap';
   var box=document.createElement('div'); box.className='askbox';
@@ -6286,7 +6294,6 @@ function askWaiting(name, after){
   box.appendChild(q);
   var inp=document.createElement('input'); inp.type='text'; inp.className='arcnote';
   inp.maxLength=200; inp.value=waitingOf(name);
-  inp.placeholder='the API key, her go-ahead, Tuesday…';
   inp.setAttribute('aria-label', WAIT_ASK);
   box.appendChild(inp);
   var was=waitingOf(name), saved=was;
