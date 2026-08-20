@@ -35,20 +35,39 @@ function lift(name) {
   }
   throw new Error('unbalanced ' + name);
 }
+// `admin` is stubbed so a deleted field is a value the test can recognise —
+// the freeze CLEARS an answer it does not have rather than writing "".
+const DEL = '<<delete>>';
 const frozenWrapUp = new Function(
-  'const wrapLineOf=(s)=>String(s||"").replace(/\\s+/g," ").trim().slice(0,200);'
+  'const admin={firestore:{FieldValue:{delete:()=>' + JSON.stringify(DEL) + '}}};'
+  + 'const wrapLineOf=(s)=>String(s||"").replace(/\\s+/g," ").trim().slice(0,200);'
   + 'const wrapTextOf=(s)=>String(s||"").replace(/[ \\t]+/g," ").trim().slice(0,2000);'
+  + 'const wrapPartOf=(s)=>String(s||"").replace(/\\s+/g," ").trim().slice(0,200);'
+  + 'const wrapProse=(a,d,n)=>wrapTextOf([a,d,n].map((s)=>String(s||"").trim())'
+  + '.filter(Boolean).join(" "));'
   + lift('frozenWrapUp') + ' return frozenWrapUp;')();
 
 console.log('freezing the Update card on the way into the archive');
 {
-  const r = { updAsked: 'Fix the hook so turns post', updDid: 'Shipped v14 and cleaned the feed' };
+  const r = {
+    updAsked: 'Fix the hook so turns post',
+    updDid: 'Shipped v14 and cleaned the feed',
+    updNext: 'Watch whether the old chats heal',
+  };
   const w = frozenWrapUp(r);
   ok('a chat with an Update card gets a wrap-up', !!w);
   ok('the row line is what it DID, not what she asked',
     w.wrapLine === 'Shipped v14 and cleaned the feed', w && w.wrapLine);
-  ok('the full text carries both halves',
-    w.wrapUp.indexOf('Fix the hook') > -1 && w.wrapUp.indexOf('Shipped v14') > -1);
+  // THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026, Sophie: "what
+  // I really wanted was the what you asked, what I did, and next steps … chat
+  // already answered those three questions"). So the freeze is a copy, not a
+  // translation — nothing is rephrased on the way in.
+  ok('what she asked is copied across verbatim', w.wrapAsked === r.updAsked, w.wrapAsked);
+  ok('…and what it did', w.wrapDid === r.updDid, w.wrapDid);
+  ok('…and what is next', w.wrapNext === r.updNext, w.wrapNext);
+  ok('the prose mirror carries all three, for an older cached page',
+    w.wrapUp.indexOf('Fix the hook') > -1 && w.wrapUp.indexOf('Shipped v14') > -1
+    && w.wrapUp.indexOf('Watch whether') > -1, w.wrapUp);
   ok('it records where it came from', w.wrapFrom === 'update-card');
 }
 
@@ -70,14 +89,19 @@ console.log('falling back to the status card');
   const w = frozenWrapUp({ statusDoing: 'six lesson cards, drawing now' });
   ok('a chat with only a status line still gets a wrap-up', !!w);
   ok('the line is that status', w.wrapLine === 'six lesson cards, drawing now');
-  ok('the full text says it was mid-flight', w.wrapUp.indexOf('Was working on') === 0, w.wrapUp);
+  // A status line says what the chat was in the middle of — that is the
+  // what-it-did answer and nothing else, so the other two stay empty rather
+  // than being filled with the same sentence under a different question.
+  ok('it lands under what it did', w.wrapDid === 'six lesson cards, drawing now', w.wrapDid);
+  ok('nothing is invented for what she asked', w.wrapAsked === DEL, String(w.wrapAsked));
+  ok('…nor for what is next', w.wrapNext === DEL, String(w.wrapNext));
 }
 
 console.log('caps');
 {
   const w = frozenWrapUp({ updDid: 'x'.repeat(500) });
   ok('the row line is capped at 200', w.wrapLine.length === 200, String(w.wrapLine.length));
-  ok('the full text is kept whole up to its own cap', w.wrapUp.length > 200);
+  ok('each answer is capped too', w.wrapDid.length === 200, String(w.wrapDid.length));
 }
 
 // ── the page's row line, lifted out of chats.html and run ──────────────────
@@ -110,40 +134,84 @@ console.log('the row line');
   ok('nothing to say stays blank', pick('a') === '');
 }
 
-// ── what was still OPEN, the second half of her ask ────────────────────────
-// Sophie, 2026-08-15: "a quick summary of what we accomplished in that chat,
-// and if there were still any questions that were open". The open half is
-// DERIVED from the thread (questions.js pairs every question she asked with the
-// reply that followed) and handed to the model as fact, so the line names
-// questions that provably went unanswered instead of plausible-sounding ones.
-console.log('the open-questions half');
+// ── the page's own reading of the three answers ────────────────────────────
+// The summary she opens IS the three questions now, and where a chat never
+// wrote a wrap-up it falls back to the Update card it already posts — the same
+// three answers, which is exactly what she pointed at ("chat already answered
+// those three questions").
+const wrapParts = new Function(liftHtml('wrapParts') + ' return wrapParts;')();
+const wrapLine = new Function('wrapParts', liftHtml('wrapLineOf') + ' return wrapLineOf;')(wrapParts);
+
+console.log('what the summary reads');
+{
+  const p = wrapParts({ wrapAsked: 'a', wrapDid: 'b', wrapNext: 'c', updDid: 'the last turn' });
+  ok('the wrap-up answers win over the live Update card', p && p.did === 'b', p && p.did);
+
+  const old = wrapParts({ wrapUp: 'A prose summary from before this shape.', updDid: 'the last turn' });
+  ok('a prose wrap-up written before this shape still reads as itself', old === null);
+
+  const upd = wrapParts({ updAsked: 'fix the hook', updDid: 'shipped v14', updNext: 'watch it' });
+  ok('a chat with no wrap-up falls back to its Update card', !!upd && upd.asked === 'fix the hook');
+
+  ok('a chat with neither has no summary', wrapParts({ statusNeed: 'pick a palette' }) === null);
+  ok('an empty Update card is not a summary',
+    wrapParts({ updAsked: '  ', updDid: '' }) === null);
+
+  ok('the line is the summary line when there is one',
+    wrapLine({ wrapLine: 'built the cutter', wrapDid: 'shipped it' }) === 'built the cutter');
+  ok('…else what it DID, so an Update card alone still shows a line',
+    wrapLine({ updAsked: 'fix the hook', updDid: 'shipped v14' }) === 'shipped v14');
+  ok('…and nothing to say draws nothing', wrapLine({}) === '');
+}
+
+// ── THE THREE QUESTIONS, and the loose ends folded into the third ──────────
+// Sophie, 2026-08-20: "what I really wanted was the what you asked, what I did,
+// and next steps … could you just switch the summary for that" — and shorter,
+// "each of the three sections is about two sentences that's six sentences in
+// total. I'd prefer to be about three sentences."
+//
+// Her earlier ask is still answered, in the third one: "a quick summary of what
+// we accomplished in that chat, and if there were still any questions that were
+// open". Those open questions are DERIVED from the thread (questions.js pairs
+// every question she asked with the reply that followed) and handed to the
+// model as fact, so `next` names loose ends that provably exist.
+console.log('the three questions');
 {
   const route = src.slice(src.indexOf("router.post('/wrapup/write'"));
-  ok('the route asks for an `open` field', /"open":/.test(WRAP_SYS_TEXT()));
-  ok('…and a `long` one beside the short summary', /"long":/.test(WRAP_SYS_TEXT()));
-  // "three lines at most" is a LENGTH on her phone, not a sentence count — the
-  // first cut asked for three sentences and came back at 374 characters, which
-  // is seven lines in the expander. The cap is stated in characters now.
-  ok('the SHORT one is capped in CHARACTERS, at three phone lines',
-     /UNDER 180 CHARACTERS/.test(WRAP_SYS_TEXT()));
-  ok('…and told to cut detail rather than run over',
-     /cut detail rather than running over/.test(WRAP_SYS_TEXT()));
-  ok('each depth is told as a whole story, not a continuation',
-     /complete on its own/.test(WRAP_SYS_TEXT()));
+  ok('the summary is asked for as her three questions',
+     /"asked":/.test(WRAP_SYS_TEXT()) && /"did":/.test(WRAP_SYS_TEXT())
+     && /"next":/.test(WRAP_SYS_TEXT()));
+  ok('…and a `long` one behind them', /"long":/.test(WRAP_SYS_TEXT()));
+  // THREE SENTENCES IN TOTAL, one per answer — the prose summary before this
+  // ran two sentences a section, which is the six she asked to be rid of. Each
+  // is capped in CHARACTERS as well, the lesson the old short summary taught:
+  // a sentence count alone came back at 374 characters.
+  ok('the whole summary is three sentences, one per answer',
+     /ONE SENTENCE EACH, three sentences in total/.test(WRAP_SYS_TEXT()));
+  ok('…stated as a hard limit, not a target',
+     /hard limit, not a target/.test(WRAP_SYS_TEXT()));
+  ok('…and each answer is capped in characters too',
+     (WRAP_SYS_TEXT().match(/ONE SENTENCE, under 140 characters/g) || []).length === 3);
+  ok('the answers are asked for BEFORE the long one, so a cut loses the long one',
+     WRAP_SYS_TEXT().indexOf('"next":') < WRAP_SYS_TEXT().indexOf('"long":'));
   ok('a small chat may have no long version at all',
-     /let the short one be the whole answer/.test(WRAP_SYS_TEXT()));
-  ok('the short one is asked for BEFORE the long one, so a cut loses the long one',
-     WRAP_SYS_TEXT().indexOf('"text":') < WRAP_SYS_TEXT().indexOf('"long":'));
-  ok('and tells it to leave that empty rather than invent a loose end',
-     /Empty string when the chat genuinely ended settled/.test(WRAP_SYS_TEXT()));
+     /let the three sentences be the whole answer/.test(WRAP_SYS_TEXT()));
+  ok('the answer never repeats its own question back',
+     /Do not repeat the question inside its own answer/.test(WRAP_SYS_TEXT()));
+  ok('and tells it to leave `next` empty rather than invent a loose end',
+     /EMPTY STRING when the chat genuinely ended settled/.test(WRAP_SYS_TEXT()));
   ok('the unanswered questions are derived, not read out of the digest',
      /buildQuestions\(msgs\)\.filter\(\(q\) => !q\.answer\)/.test(route));
   ok('they are handed over as facts, labelled',
      /Questions Sophie asked that nobody ever answered/.test(route));
-  ok('a rewrite CLEARS a stale loose end instead of leaving it',
-     /wrapOpen: open \|\| admin\.firestore\.FieldValue\.delete\(\)/.test(route));
+  // `next` IS the loose-ends line now, so the old field is cleared outright —
+  // two fields answering one question would show her the same unfinished
+  // business twice under different headings.
+  ok('a rewrite CLEARS the old separate open field', /wrapOpen: del,/.test(route));
   ok('a long version identical to the short one is not stored twice',
-     /wrapLong: \(long && long !== full\)/.test(route));
+     /wrapLong: \(long && long !== prose\)/.test(route));
+  ok('the prose mirror is still written for an older cached page',
+     /wrapUp: prose,/.test(route));
 
   // BULLETS (Aug 2026, Sophie: "I would like bullet points especially for the
   // long summary … the long summary is one block of text would be great to see
@@ -159,14 +227,16 @@ console.log('the open-questions half');
      /SPLIT ONLY WHERE THE WORK ACTUALLY SPLIT/.test(WRAP_SYS_TEXT()));
   ok('a small chat returns an empty array rather than padding one',
      /return an empty array/.test(WRAP_SYS_TEXT()));
-  ok('the SHORT one is still a paragraph, not points',
-     /"text": THREE LINES ON A PHONE/.test(WRAP_SYS_TEXT()));
   ok('the array is stored newline-joined, so the field stays a plain string',
      /Array\.isArray\(out && out\.long\)/.test(route) && /\.join\('\\n'\)/.test(route));
-  ok('a truncated answer trims BOTH summary fields, not just the short one',
+  ok('a truncated answer trims the long half as well as the short one',
      /out\.text = backToSentence\(out\.text\)/.test(route)
      && /out\.long = Array\.isArray\(out\.long\)/.test(route)
      && /backToSentence\(out\.long\)/.test(route));
+  // Each answer is ONE sentence, so there is nothing to trim it back TO — a
+  // rescued half-sentence is dropped whole rather than shown ending mid-word.
+  ok('a half-written answer is dropped rather than trimmed',
+     /\['asked', 'did', 'next'\]\.forEach/.test(route));
 
   // The row line is untouched by it: `wrapOpen` lives behind the expander, so
   // her note and the summary line keep their old precedence exactly.
@@ -234,8 +304,15 @@ console.log('the short summary is cut to three lines in code');
   ok('a first sentence longer than the cap is kept WHOLE, not cut mid-thought',
     capShort(LONE) === LONE);
   ok('nothing is ever lengthened', capShort('').length === 0);
-  ok('the route enforces it on BOTH write paths — hers and Claude\'s',
-    (src.match(/const full = capShort\(/g) || []).length === 2);
+  // It guards the FREE-TEXT paths only. The three-answer prose is derived from
+  // three separately-capped sentences, and cutting THAT to three lines would
+  // drop "what's next" — the half she reads for loose ends.
+  ok('the free-text paths are capped',
+    (src.match(/capShort\(wrapTextOf\(/g) || []).length === 2);
+  ok('…and the three-answer prose is left whole',
+    /three \? wrapProse\(asked, did, next\) : capShort\(wrapTextOf\(text\)\)/.test(src));
+  ok('…and the trim pass skips a chat already on that shape',
+    /if \(r\.wrapAsked \|\| r\.wrapDid \|\| r\.wrapNext\) return;/.test(src));
   ok('the free trim pass exists for the ones already stored',
     /router\.post\('\/wrapup\/trim'/.test(src));
   ok('…and it is DRY by default, like every other bulk operation here',

@@ -3226,7 +3226,7 @@
       }
     } else {
       h += `<div class="ask-label">What do you want to ask the cards?</div>
-        <textarea class="ask-q" id="ask-q" rows="3" placeholder="Ask anything — or leave this empty for a general reading">${esc(askState.question)}</textarea>
+        <textarea class="ask-q" id="ask-q" rows="3">${esc(askState.question)}</textarea>
         <div class="ask-label">Choose your spread</div>
         <div class="ask-spreads">` + Object.keys(ASK_SPREADS).map(k =>
           `<button class="ask-spread${k === askState.spread ? ' on' : ''}" type="button" data-spread="${k}" aria-pressed="${k === askState.spread}">${SPREAD_ART[k]}<span class="ask-spread-name">${esc(ASK_SPREADS[k].name)}</span></button>`).join('')
@@ -6988,7 +6988,7 @@
           <div class="npaper">
             <div class="npaper-to">Dear Sophie,</div>
             <textarea id="nletter-text" class="npaper-ta" rows="4" placeholder="write your letter…"></textarea>
-            ${signedIn ? '' : '<input type="email" id="nletter-email" class="npaper-email" placeholder="your email (so she can write back)">'}
+            ${signedIn ? '' : '<input type="email" id="nletter-email" class="npaper-email" placeholder="Email">'}
           </div>
         </div>
         <div class="nletter-note">✉&nbsp; Snail-mailed to Sophie — she'll write back when she can.</div>
@@ -7127,7 +7127,7 @@
       <button class="gbtn" id="btn-google">${GOOGLE_G} Continue with Google</button>
       <button class="gbtn abtn" id="btn-apple">${APPLE_LOGO} Sign in with Apple</button>
       <div class="divider">or</div>
-      <input type="email" id="acct-email" placeholder="you@email.com" style="margin-bottom:12px;">
+      <input type="email" id="acct-email" placeholder="Email" style="margin-bottom:12px;">
       <button class="btn" id="btn-email">Email me a magic link</button>
       <button type="button" id="btn-pw-toggle" style="background:none; border:none; color:var(--gold); font-size:13px; text-decoration:underline; cursor:pointer; margin:14px auto 0; display:block;">Use a password instead</button>
       <div id="pw-block" style="display:none; margin-top:12px;">

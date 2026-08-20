@@ -81,6 +81,19 @@ body.embed .helpcard a{ pointer-events:none; color:inherit; text-decoration:none
    JS needed); body.native comes from the wrappers that inject __nativeNavBar.
    Either one means "there is a title above me already". */
 body.embed .tool-eyebrow, body.native .tool-eyebrow{ display:none; }
+/* And with the eyebrow gone, the header was a mostly-EMPTY band holding one
+   "?" — sticky, bordered, and padded by env(safe-area-inset-top), which under
+   the native bar read as dead space on EVERY embedded tool page (Sophie, on
+   the Story Timeline: "there's a lot of space at the top… this is a pattern
+   that needs to be fixed all over the app"). Embedded, the band goes COMPACT:
+   static, unbordered, no safe-area padding (the native bar already handled
+   the notch), just tall enough for the "?". Deliberately NOT a floated "?" —
+   that was tried first and it landed on top of full-width rows (the shelf
+   rows' right ends), because only header rows reserve the right margin.
+   Scoped by :has(.tool-eyebrow) so a page's OWN .head rows — the Dump's
+   album heads — are never touched. body.native gets the same. */
+body.embed .head:has(.tool-eyebrow), body.native .head:has(.tool-eyebrow){
+  position:static; padding:4px 56px 0 16px; border-bottom:0; }
 
 /* ── the step rail ── */
 /* THE PILL'S CORNER IS RESERVED HERE TOO, not only in the header. The injected

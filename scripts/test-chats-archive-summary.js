@@ -35,10 +35,14 @@ const T0 = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
 const LINE = 'Built the archive summary button — one tap in the pop-up, written server-side';
-const FULL = 'She asked for a button on the archive pop-up that summarises the chat. '
-  + 'The session is asleep by then, so the server reads the thread and writes it with Claude instead. '
-  + 'Shipped with the open-questions half on the same call.';
-const OPEN = 'whether the summary should overwrite her own note, or only take the line when she has none';
+// THE SUMMARY IS THE THREE QUESTIONS (Aug 2026, Sophie: "what I really wanted
+// was the what you asked, what I did, and next steps … could you just switch
+// the summary for that"), one sentence each — three in total, where the prose
+// version she was reading ran to six.
+const ASKED = 'A button on the archive pop-up that summarises what the chat was.';
+const DID = 'The server reads the thread it already stores and writes the summary with Claude.';
+const NEXT = 'Still open: whether the summary should ever overwrite her own note.';
+const FULL = [ASKED, DID, NEXT].join(' ');
 // The long version is stored NEWLINE-JOINED, one point per line (Aug 2026, her
 // ask for bullets). The page splits on those newlines — nothing re-splits prose
 // on punctuation, which is why the model is asked for an array in the first place.
@@ -49,10 +53,18 @@ const PTS = [
 ];
 const LONG = PTS.join('\n');
 
+const WRAP = { wrapLine: LINE, wrapAsked: ASKED, wrapDid: DID, wrapNext: NEXT,
+  wrapUp: FULL, wrapLong: LONG };
+// A chat that never wrote a wrap-up but HAS posted an Update card — the
+// fallback, and the reason she asked for this shape at all ("chat already
+// answered those three questions").
+const UPD = { updAsked: 'Fix the hook so every turn posts.',
+  updDid: 'Shipped v14 and swept the stuck drafts.',
+  updNext: 'Watch whether the old chats heal on their own.' };
 const CHATS = {
   'chat-a': { lastSeen: iso(T0 - 2e5) },
-  'chat-old': { lastSeen: iso(T0 - 9e6), archived: true,
-    wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN },
+  'chat-upd': Object.assign({ lastSeen: iso(T0 - 3e5) }, UPD),
+  'chat-old': Object.assign({ lastSeen: iso(T0 - 9e6), archived: true }, WRAP),
 };
 const MSGS = [];
 for (let i = 0; i < 6; i++) {
@@ -60,6 +72,9 @@ for (let i = 0; i < 6; i++) {
     created: iso(T0 - 9e5 + i * 1000), postedAt: iso(T0 - 9e5 + i * 1000),
     text: 'message ' + i, tldr: 'tldr ' + i });
 }
+MSGS.push({ id: 'mu', chat: 'chat-upd', from: 'claude',
+  created: iso(T0 - 4e5), postedAt: iso(T0 - 4e5),
+  text: 'shipped the hook', tldr: 'shipped the hook' });
 
 const wrote = [];        // every /wrapup/write body the page sent
 const archived = [];     // every /archive body
@@ -77,9 +92,9 @@ const server = http.createServer((req, res) => {
     if (failNext) { failNext = false; return json({ error: 'ANTHROPIC_API_KEY is not set on the server' }); }
     // The real route WRITES before it answers, which is the whole reason
     // cancelling the archive cannot lose the summary — so the stub does too.
-    CHATS[b.chat] = Object.assign(CHATS[b.chat] || {}, { wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN });
-    json({ ok: true, chat: b.chat, wrapLine: LINE, wrapUp: FULL, wrapLong: LONG, wrapOpen: OPEN,
-      messages: MSGS.length, unanswered: 1 });
+    CHATS[b.chat] = Object.assign(CHATS[b.chat] || {}, WRAP);
+    json(Object.assign({ ok: true, chat: b.chat, wrapOpen: '' }, WRAP,
+      { messages: MSGS.length, unanswered: 1 }));
   });
   if (p === '/api/chatfeed/archive') return read((b) => { archived.push(b); json({ ok: true, archived: !!b.archived }); });
   if (p === '/api/chatfeed/thread') return json({ messages: MSGS });
@@ -141,9 +156,19 @@ const server = http.createServer((req, res) => {
   }, null, { timeout: 8000 });
   ok(wrote.length === 1 && wrote[0].chat === 'chat-a', 'it asked the server for THIS chat: ' + JSON.stringify(wrote[0] || {}));
   ok(wrote[0] && wrote[0].force === true, 'with force — a deliberate tap re-writes an existing wrap-up');
-  const shown = await page.$eval('.askwrap .arcout', (n) => n.textContent);
-  ok(shown.indexOf(FULL) === 0, 'the summary reads back in the sheet');
-  ok(shown.indexOf('Still open: ' + OPEN) > 0, 'and what was left open, in its own paragraph');
+  // THE THREE QUESTIONS, each under its own bold label — the same rows the
+  // Update tab draws, one renderer, because she is reading the same three
+  // answers in both places.
+  const rows = await page.$$eval('.askwrap .arcout .nwrow',
+    (n) => n.map((x) => [x.querySelector('b').textContent.trim(), x.querySelector('span').textContent.trim()]));
+  ok(rows.length === 3, 'the summary reads back as three answers: ' + rows.length);
+  ok(rows.map((r) => r[0]).join('·') === 'What you asked·What I did·What\'s next',
+     'under her three questions, in her order: ' + rows.map((r) => r[0]).join('·'));
+  ok(rows[0][1] === ASKED && rows[1][1] === DID && rows[2][1] === NEXT,
+     'each answer under its own question');
+  ok(await page.$$eval('.askwrap .arcout .nwrow b',
+    (n) => n.every((x) => parseInt(getComputedStyle(x).fontWeight, 10) >= 600)),
+     'her spec: the question bold, the answer not');
   ok((await page.$eval('.askwrap .arcsum span', (n) => n.textContent.trim())) === 'Rewrite',
      'the button offers a rewrite once one exists');
   ok(await page.$eval('.askwrap .askrow button.go', (n) => !n.disabled),
@@ -153,10 +178,10 @@ const server = http.createServer((req, res) => {
   // Sophie, Aug 2026: "I would like bullet points especially for the long
   // summary — don't add bullet points where it doesn't actually help, but the
   // long summary is one block of text would be great to see them separated."
-  // So: the SHORT one is a paragraph and draws as one; the long one arrives as
-  // separate points and draws as separate bullets.
+  // So: the three answers are labelled rows and draw as rows; the long one
+  // arrives as separate points and draws as separate bullets.
   ok(await page.$$eval('.askwrap .arcout .wrapbul', (n) => n.length) === 0,
-     'the short summary is NOT bulleted — one sentence behind a • is decoration');
+     'the three answers are NOT bulleted — each already has its question over it');
   ok(await page.$$eval('.askwrap .arcout .wrapmore2', (n) => n.length) === 1,
      'the longer version is one tap in');
   await page.click('.askwrap .arcout .wrapmore2');
@@ -176,9 +201,9 @@ const server = http.createServer((req, res) => {
   await page.click('.askwrap .arcout .wrapmore2');
   await page.waitForTimeout(150);
   ok(await page.$$eval('.askwrap .arcout .wrapbul', (n) => n.length) === 0,
-     'less puts the short paragraph back');
-  ok((await page.$eval('.askwrap .arcout', (n) => n.textContent)).indexOf('Still open: ' + OPEN) > 0,
-     'and the open line survives the round trip');
+     'less puts the three answers back');
+  ok(await page.$$eval('.askwrap .arcout .nwrow', (n) => n.length) === 3,
+     'all three of them, unchanged by the round trip');
 
   // ---- 5: Cancel keeps the summary and archives nothing --------------------
   await page.click('.askwrap .askrow button:not(.go)');
@@ -236,18 +261,35 @@ const server = http.createServer((req, res) => {
      'the archived row has its expander');
   await page.click('.crow[data-chat="chat-old"] ~ .wrapmore');
   await page.waitForTimeout(200);
-  const body = await page.$eval('.wrapfull', (n) => ({ t: n.textContent, vis: n.offsetParent !== null }));
+  const body = await page.$eval('.wrapfull', (n) => ({
+    vis: n.offsetParent !== null,
+    rows: [].map.call(n.querySelectorAll('.nwrow'), (x) => x.querySelector('span').textContent.trim()) }));
   ok(body.vis, 'it opens');
-  ok(body.t.indexOf(FULL) === 0, 'showing the whole account');
-  ok(body.t.indexOf('Still open: ' + OPEN) > 0, 'with the open question under it');
+  ok(body.rows.join('|') === [ASKED, DID, NEXT].join('|'),
+     'showing the same three answers: ' + JSON.stringify(body.rows));
   // Same renderer as the sheet, so the archive reads exactly like the read-back
-  // she approved: short as a paragraph, long as bullets.
+  // she approved: three labelled answers, the long one as bullets.
   ok(await page.$$eval('.wrapfull .wrapbul', (n) => n.length) === 0,
-     'the archived row opens on the unbulleted short one');
+     'the archived row opens on the three answers, unbulleted');
   await page.click('.wrapfull .wrapmore2');
   await page.waitForTimeout(150);
   ok((await page.$$eval('.wrapfull .wrapbul', (n) => n.map((x) => x.textContent.trim()))).join('|')
      === PTS.join('|'), 'and its long version is bulleted too');
+
+  // ---- 8: a chat with no wrap-up falls back to its UPDATE CARD ------------
+  // Sophie, 2026-08-20: "Since chat already answered those three questions
+  // could you just switch the summary for that". So a chat that never wrote a
+  // wrap-up still has a summary in its thread — the card it already posts.
+  await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.crow[data-chat="chat-upd"]', { timeout: 8000 });
+  await page.click('.crow[data-chat="chat-upd"]');
+  await page.waitForSelector('#thread .threadwrap .wrapmore', { timeout: 4000 });
+  await page.click('#thread .threadwrap .wrapmore');
+  await page.waitForTimeout(200);
+  const updRows = await page.$$eval('#thread .threadwrap .nwrow',
+    (n) => n.map((x) => x.querySelector('span').textContent.trim()));
+  ok(updRows.join('|') === [UPD.updAsked, UPD.updDid, UPD.updNext].join('|'),
+     'the Update card IS the summary when no wrap-up was written: ' + JSON.stringify(updRows));
 
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs[0] : ''));
 
