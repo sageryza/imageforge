@@ -298,6 +298,13 @@ body.native header #storiesbtn{position:static;}
 .aurow .aunm{font-size:1.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .aurow .audate{font-size:.8em; color:var(--ink2); margin-top:2px;}
 .aurow .audur{flex:none; font-size:.8em; color:var(--ink2);}
+/* CANDIDATES — recordings a chat guessed belong to this story, waiting on
+   her (Aug 2026, Sophie: "attach them behind the wave form, but under a
+   header tag called candidates"). Same rows, same player; only the header
+   separates them, so a guess is heard in context instead of judged from a
+   title on a review card. */
+.auhead{margin:1.4em 0 .2em; font-size:.78em; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2);}
+.auhead + .aurow{border-top:1px solid var(--line);}
 /* The film's buttons ride the title row; this line only appears while it's
    making (or if it failed). */
 #filmrow{margin-top:.5em;}
@@ -651,7 +658,19 @@ function renderAudios(){
   box.innerHTML='';
   /* No recordings, no button — an empty sheet is a tap that says nothing. */
   document.getElementById('audiobtn').hidden=!audios.length;
-  audios.forEach(function(a){
+  /* Confirmed audio first, then the CANDIDATES under their own header — a
+     chat's guesses, playable here so she judges them by ear in the story's
+     own context. Ordering is the whole feature: a candidate must never sit
+     among the attached rows as if she had already said yes. */
+  var ordered=audios.filter(function(a){return !a.candidate;})
+    .concat(audios.filter(function(a){return a.candidate;}));
+  var headed=false;
+  ordered.forEach(function(a){
+    if(a.candidate&&!headed){
+      headed=true;
+      var h=document.createElement('div'); h.className='auhead';
+      h.textContent='Candidates'; box.appendChild(h);
+    }
     var row=document.createElement('div'); row.className='aurow'; row._url=a.url;
     var b=document.createElement('button'); b.className='iconbtn';
     b.setAttribute('aria-label','Listen — '+a.title);
