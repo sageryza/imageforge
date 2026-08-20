@@ -4080,11 +4080,29 @@ async function pageArchiveMap(sheet) {
  * takes it back out — so the chip is a true toggle and a mis-tap costs one
  * more tap, which is the whole reason this is safe to fire from a card.
  */
+/**
+ * Should this verdict move a chat, and which way? null = leave it alone.
+ *
+ * CLEARING A MARK IS NOT AN ANSWER (Aug 2026). In browse mode judge.js turns a
+ * second tap on the LIT chip into `ok:null` — "no verdict" — and reading that
+ * as "not archive" made a card's own undo tap quietly pull a chat back out of
+ * the archive. Undecided and Keep are different things: only an explicit
+ * verdict moves a chat, in either direction, and Keep is on the card saying
+ * exactly what it does.
+ *
+ * Pure, and exported for the test — this is the whole decision.
+ */
+function archiveActionFor(ok) {
+  if (ok === null || ok === undefined) return null;
+  return ok === 'archive';
+}
+
 async function applyPageVerdict(sheet, item, ok) {
+  const on = archiveActionFor(ok);
+  if (on === null) return null;
   const map = await pageArchiveMap(sheet);
   const chat = map && map[item];
   if (!chat) return null;
-  const on = ok === 'archive';
   await setArchived(chat, on);
   return { chat, archived: on };
 }
@@ -4152,7 +4170,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // `registry` is exported so brief.js can read the SAME 5-minute cache the feed
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
-module.exports = { router, pillInject, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
+module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry,
   rankGroups, phraseRegex, orderRank,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
