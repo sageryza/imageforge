@@ -2,27 +2,29 @@ import SwiftUI
 import UIKit
 import WebKit
 
-/// What's New — the home screen's update button (Aug 2026, Sophie: "an update
-/// button on the home screen that I can just click and then it does an API call
-/// that gives me the top five things that I might want to be updated on, and
-/// then maybe some lower priority things, and ideally images that chats made or
-/// links to compare pages").
+/// Update — the brief page's native wrapper (Aug 2026, Sophie: "an update
+/// button that I can just click and then it does an API call that gives me the
+/// top five things that I might want to be updated on, and then maybe some
+/// lower priority things, and ideally images that chats made or links to
+/// compare pages").
+///
+/// **CURRENTLY UNMOUNTED (Aug 2026 v2, Sophie: "I wanted it to go on the update
+/// screen — rename it Update, no icon, and put it on the update screen").** The
+/// way in is a row at the top of the Chats app's UPDATE tab, so /brief opens
+/// inside the Chats web view and the page carries its own chevron back. Nothing
+/// presents this view any more; it is kept, like CreationsView, in case the
+/// page ever wants a screen of its own again.
 ///
 /// Wraps the server's gated /brief page (public/brief.html, engine at
 /// /api/brief in brief.js) the way CutMarksView wraps /cutmarks: the studio
 /// gate answered with the token, `__nativeNavBar` injected so the page hides
 /// its own title, media paused on a screen change.
 ///
-/// TWO THINGS ARE DELIBERATELY DIFFERENT from every other web tool here:
-///
-/// 1. **It is presented as a full-screen COVER from the home grid, not as a
-///    `Tool`.** A Tool joins `Recents` the moment it is opened, so tapping this
-///    button would evict one of her three bottom-bar slots every single time —
-///    and this is the button she taps most often. A cover leaves the bar alone
-///    and returns her to the home grid exactly where she was.
-/// 2. **It is built fresh on every present**, which is what makes it always
-///    show today's brief with nothing to remember to refresh. The page is a
-///    read; rebuilding it costs four Firestore reads, three of them capped.
+/// It was presented as a full-screen COVER, not as a `Tool`: a Tool joins
+/// `Recents` the moment it is opened, so the button would have evicted one of
+/// her three bottom-bar slots every single time. (It also rebuilt on every
+/// present, which is no longer how the page works at all — /brief opens on the
+/// last list she saw and reads only when she taps Refresh.)
 ///
 /// The chevron asks the page first (`__navBack` closes an open picture), then
 /// steps the web view's own history (she may have opened a Compare page or a
@@ -46,7 +48,7 @@ struct BriefView: View {
                         Image(systemName: "list.bullet.rectangle")
                             .font(.system(size: 40))
                             .foregroundStyle(Theme.inkSoft)
-                        Text("Couldn't open What's New")
+                        Text("Couldn't open Update")
                             .font(.headline)
                             .foregroundStyle(Theme.ink)
                         Text(studioToken.isEmpty
@@ -75,7 +77,7 @@ struct BriefView: View {
                 }
             }
             .background(Self.paper.ignoresSafeArea())
-            .forgeWebToolBar("What's New", paper: Self.paper, failed: loadFailed, back: navBack)
+            .forgeWebToolBar("Update", paper: Self.paper, failed: loadFailed, back: navBack)
         }
     }
 

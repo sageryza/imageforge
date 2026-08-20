@@ -1,0 +1,41 @@
+{
+  "title": "Abundance and scarcity",
+  "out": "abundance-scarcity",
+  "width": 784,
+  "height": 1168,
+  "fps": 30,
+  "bg": "#f7f3ea",
+  "sources": {},
+  "shots": [
+    {
+      "id": "flood",
+      "video": "/home/user/out/abundance-film/clip-abundance-1-the-flood.mp4",
+      "tts": "I got these cardboard boxes from Uline and you have to buy them in quantities of like five hundred. So I had millions of them for days. They were everywhere."
+    },
+    {
+      "id": "mountain",
+      "video": "/home/user/out/abundance-film/clip-abundance-3-the-mountain.mp4",
+      "tts": "I felt like I could never run out."
+    },
+    {
+      "id": "uses",
+      "video": "/home/user/out/abundance-film/clip-abundance-2-inventing-uses.mp4",
+      "tts": "So I used them for everything and I kept coming up with uses because I needed to figure out how to use them all up."
+    },
+    {
+      "id": "throne",
+      "video": "/home/user/out/abundance-film/clip-scarcity-1-velvet-throne-v2.mp4",
+      "tts": "And then there's other things that are in short supply. Ideas. A lot of people have one good idea and that's it."
+    },
+    {
+      "id": "petting",
+      "video": "/home/user/out/abundance-film/clip-scarcity-2-petting-it.mp4",
+      "tts": "So they treat it very gently. Almost like they put it on a little velvet throne in a shoebox and they take care of it and pet it and are nice to it."
+    },
+    {
+      "id": "both",
+      "video": "/home/user/out/abundance-film/clip-both-1-diptych.mp4",
+      "tts": "Certain things are just taken for granted because you have tons of them."
+    }
+  ]
+}

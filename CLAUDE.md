@@ -130,6 +130,21 @@ late or never.
 - **When she IS at the computer** she says "open `docs/desktop-tasks.md` and run
   the queue" and the terminal chat works it top to bottom, moving each finished
   block to DONE with the date.
+- **She can SEE the queue on her phone at
+  https://imageforge-q125.onrender.com/desktop** (her ask, Aug 2026: "a way to
+  see what things are on my queue and have been checked off… somewhere
+  out-of-the-way"). Two hairline tabs, WAITING and DONE; a row carries the
+  task's name, when it was queued, who queued it, whether a run FAILED, and
+  anything it needs from her, and opens to the whole entry on a tap.
+  **DELIBERATELY UNLINKED** — no tile, no iOS wrapper.
+  It is READ-ONLY and there is no second copy of the queue: `desktop.js` parses
+  the same `docs/desktop-tasks.md` the terminal chat runs from, asking GitHub's
+  raw copy first (60s cache) so a task queued two minutes ago is visible before
+  Render has redeployed, with the server's own checkout as the fallback. So the
+  page needs nothing from you beyond writing the entry properly — and the one
+  field it leans on is `**Queued:** <date> by <chat>`, which a test now pins.
+  Tests: `node scripts/test-desktop-queue.js` (the parser against a fixture AND
+  the real file, then the page in headless Chromium).
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
@@ -1825,8 +1840,10 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   audio into the memo library now; the `audio.js` API underneath is still
   live machinery), `/crystals` and `/import` (project-specific drop boxes,
   superseded for day-to-day use by the share sheet / Dump; kept because
-  their data and APIs are real), and `/wall` (the everything-feed; no tile
-  asked for). The pages still serve at their URLs for a chat or a browser.
+  their data and APIs are real), `/wall` (the everything-feed; no tile
+  asked for), and `/desktop` (the desktop queue — she asked for it
+  "somewhere out-of-the-way"). The pages still serve at their URLs for a chat
+  or a browser.
 - **Icons: Lucide line icons, not emoji.** Functional UI chrome — bottom-nav
   tabs, buttons, link tiles — uses inline **Lucide** SVGs (stroke
   `currentColor`, `stroke-width` ~1.8, an SF-Symbols-like clean line look), not
@@ -2402,13 +2419,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   transaction, never from counting — that is the bug that scrambled album order.
   **Full details: `docs/modules/inbox-and-misc.md`.**
 - **THE UPDATE BUTTON** (`brief.js`, `/api/brief`, page at `/brief`, the
-  **"What's new"** button on the iOS home screen → `BriefView`) — Aug 2026,
-  Sophie: "an update button on the home screen that I can just click and then
+  **Update** row at the top of the Chats app's UPDATE tab) — Aug 2026,
+  Sophie: "an update button that I can just click and then
   it does an API call that gives me the top five things I might want to be
   updated on, and then maybe some lower priority things, and ideally images
   that chats made or links to compare pages". One tap → five cards, the
   quieter ones under them, each carrying the pictures that chat made and the
   Compare pages it posted.
+  - **IT LIVES ON THE UPDATE SCREEN, NOT THE HOME GRID (Aug 2026 v2, Sophie:
+    "a couple days ago we added a what's new button to the main screen, but I
+    wanted it to go on the update screen — could you rename it Update, no
+    icon, and put it on the update screen").** It shipped as "What's new" with
+    a list icon on the iOS home screen; it is `newsUpdRow` in `chats.html`
+    now — first thing on the tab, above the Review row, the word and nothing
+    else. It is on EVERY paint of that tab, the caught-up one included: the
+    page behind it answers a different question from the cards, so an empty
+    list is no reason to take the door away. It carries no count, for the same
+    reason it never did on the home screen. `BriefView.swift` is kept but
+    unmounted, and /brief opens inside the Chats web view with its own chevron
+    back.
+  - **IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
+    Sophie: "rather than immediately doing another API read, I'd like to be
+    able to go back and forth, so the update should be behind one more tap …
+    there's a button at the top that says refresh which causes another API
+    read, and it also says last updated and then the time").** The whole
+    answer is kept in `localStorage` (`forge.brief.last`, with the moment it
+    was read) and drawn instantly; **Refresh** at the top of the page is the
+    only thing that reads, and it sends `?fresh=1` past the server's 60s hold.
+    Two things not to undo: the old **auto-reload on `visibilitychange` is
+    gone** (it re-read every time she came back — the exact thing she asked to
+    stop), and a FAILED refresh keeps the list she was looking at on screen
+    with the error in the stamp line. Coming back repaints the stamp only, so
+    "5m ago" can never go stale while the tab sits in the background.
   - **IT SPENDS NOTHING AND WRITES NOTHING.** No model call: the lines it
     shows were already written by the chats themselves (their status card's
     `need`, their Update card's `did`, their TLDR), so a summary here would be
@@ -2436,17 +2478,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **The picture strip merges by md5 and keeps the LABELED record**, not the
     newest one — the unlabeled twin is always the hook's `claude-deliveries`
     copy, so "first one wins" would strip the label off half the strip.
-  - **It is a full-screen COVER from the home grid, not a `Tool`.** Opening a
-    Tool promotes it into `Recents`, so this button would evict one of her
-    three bottom-bar slots on every tap — and it is the button meant to be
-    tapped most. The cover also rebuilds fresh each time, which is what makes
-    it always current with nothing to refresh. It carries no count badge on
-    purpose: a badge means fetching on every home draw, and the number would
-    be the only stale thing on that screen.
-  - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures) and
+  - **It was a full-screen COVER from the home grid, never a `Tool`** —
+    opening a Tool promotes it into `Recents`, so the button would have
+    evicted one of her three bottom-bar slots on every tap. That reasoning is
+    banked in `BriefView.swift` in case the page ever wants a native screen
+    again.
+  - Tests: `node scripts/test-brief.js` (the whole ranking, pure, fixtures),
     `node scripts/test-brief-page.js` (the real page + the real injected pill,
-    headless — pill palette, the pill's corner over the top card, the lightbox
-    contract, the ⌄).
+    headless — the cache-first open counted in API calls, Refresh, the pill
+    palette, the pill's corner over the top card, the lightbox contract, the
+    ⌄) and `node scripts/test-chats-update-row.js` (the row on the real
+    Update tab — first, her word, no icon, and still there when caught up).
 - **THE REVIEW QUEUE** (`review.js`, `/api/review`, page at `/review`, iOS
   tile "Review Queue") — Aug 2026, Sophie: "I have a pile of things that need
   to be reviewed and I'd like one screen that shows all the things waiting to

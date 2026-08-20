@@ -1010,5 +1010,377 @@
   {
     "chat": "surgeon-tool-flatlay-image",
     "draw": "surgical instruments laid out in a neat row on a cloth"
+  },
+  {
+    "chat": "abundance-scarcity-watercolor",
+    "draw": "a tall stack of cardboard boxes beside one small box on a velvet cushion"
+  },
+  {
+    "chat": "animation-api-options",
+    "draw": "a film reel spinning with small planets orbiting around it"
+  },
+  {
+    "chat": "audio-image-pipeline-merge",
+    "draw": "two pipes joining into one, a sound wave in one and a picture in the other"
+  },
+  {
+    "chat": "audio-image-pipeline-merge-01wkqt",
+    "draw": "a small bridge joining a sound wave to a picture frame"
+  },
+  {
+    "chat": "auto-sort-chats-category",
+    "draw": "letters being sorted into two labelled pigeonholes"
+  },
+  {
+    "chat": "blue-message-inquiry",
+    "draw": "a speech bubble being handed from one hand to another"
+  },
+  {
+    "chat": "category-tags-ui",
+    "draw": "a row of small paper tags wrapping onto a second line"
+  },
+  {
+    "chat": "category-tags-visibility",
+    "draw": "a paper tag with an open eye beside it"
+  },
+  {
+    "chat": "chat-chapters-feature",
+    "draw": "a long scroll divided into coloured chapter blocks"
+  },
+  {
+    "chat": "chat-cleanup-archival",
+    "draw": "a broom sweeping loose papers into an archive box"
+  },
+  {
+    "chat": "chat-issues-comparison",
+    "draw": "a list of rows with a pointing finger tapping one of them"
+  },
+  {
+    "chat": "chat-notifications-icons",
+    "draw": "a filled gold bell beside a small closed eye"
+  },
+  {
+    "chat": "chat-pin-feature",
+    "draw": "a push pin and a crossed out eye side by side"
+  },
+  {
+    "chat": "chat-summary-format",
+    "draw": "a card with three short written lines on it"
+  },
+  {
+    "chat": "chat-summary-tag-issues",
+    "draw": "a page with a widening empty gap at the top of it"
+  },
+  {
+    "chat": "child-pov-play-place",
+    "draw": "a child sliding fast down a playground slide"
+  },
+  {
+    "chat": "collapsible-update-rag-categories",
+    "draw": "a stack of sections with the top one folding shut"
+  },
+  {
+    "chat": "commercial-production-series",
+    "draw": "a film clapperboard with a pointed witch hat on it"
+  },
+  {
+    "chat": "compare-page-template-issues",
+    "draw": "a page with one empty text box outline on it"
+  },
+  {
+    "chat": "compare-similar-artifacts",
+    "draw": "two small tools side by side merging into one"
+  },
+  {
+    "chat": "compare-tab-templates",
+    "draw": "a date card template pinned to a board"
+  },
+  {
+    "chat": "compressed-at-birth-field",
+    "draw": "a paper tag being pressed flat in a clamp"
+  },
+  {
+    "chat": "dates-tinder-text-template",
+    "draw": "a phone with a text field zoomed far too large"
+  },
+  {
+    "chat": "deck-factory-notifications-018ag6",
+    "draw": "a banner dropping down from the top of a phone"
+  },
+  {
+    "chat": "deck-factory-update-button",
+    "draw": "a round button with five small cards fanned out behind it"
+  },
+  {
+    "chat": "designs-file-format",
+    "draw": "a melting dream shape being uploaded from a phone"
+  },
+  {
+    "chat": "desktop-task-batching",
+    "draw": "a desktop computer with a stacked list of tasks beside it"
+  },
+  {
+    "chat": "domain-not-working",
+    "draw": "a globe with a broken chain link beside it"
+  },
+  {
+    "chat": "doug-factory-search-bar",
+    "draw": "a search box with a return key beside it"
+  },
+  {
+    "chat": "dream-app-commercial",
+    "draw": "a phone showing a plate of fries inside a dream cloud"
+  },
+  {
+    "chat": "dream-app-commercial-01deg3",
+    "draw": "a row of dream clouds with one being lifted out"
+  },
+  {
+    "chat": "dream-feed-art",
+    "draw": "a single framed dream panel with a zipped folder beside it"
+  },
+  {
+    "chat": "dream-feed-commercials",
+    "draw": "one face morphing into another inside a cloud"
+  },
+  {
+    "chat": "dream-feed-image-compression",
+    "draw": "a picture being squeezed narrow between two blocks"
+  },
+  {
+    "chat": "dream-feed-prompt-updates",
+    "draw": "a photograph swapping places with an old screenshot"
+  },
+  {
+    "chat": "dream-feed-sharing-options",
+    "draw": "a dream cloud with a share arrow leaving it"
+  },
+  {
+    "chat": "dreams-app-ui-feedback",
+    "draw": "a phone with a listen button under a picture"
+  },
+  {
+    "chat": "etsy-hat-business",
+    "draw": "a knitted hat with a small price tag on it"
+  },
+  {
+    "chat": "etsy-jewelry-listing-automation",
+    "draw": "a necklace and earrings laid on a photo tray"
+  },
+  {
+    "chat": "evan-film-collected",
+    "draw": "a film reel with sticky notes stuck around it"
+  },
+  {
+    "chat": "evan-film-local",
+    "draw": "a girl with braids drawn inside a film frame"
+  },
+  {
+    "chat": "fictional-pill-commercial",
+    "draw": "a pill bottle with a phone screen popping up beside it"
+  },
+  {
+    "chat": "fictional-pill-commercial-01h7qx",
+    "draw": "a storyboard of six small frames"
+  },
+  {
+    "chat": "fictional-pill-commercial-01ufbk",
+    "draw": "five pill capsules in a row, each a different colour"
+  },
+  {
+    "chat": "horns-goddess-magic-passages",
+    "draw": "a page of text with an up arrow and a down arrow beside it"
+  },
+  {
+    "chat": "imageforge-audio-tools-wiring",
+    "draw": "three small rooms joined by a wire with a microphone"
+  },
+  {
+    "chat": "imageforge-pausing-tool",
+    "draw": "a pause symbol drawn inside a sound wave"
+  },
+  {
+    "chat": "info-arrow-tap-target",
+    "draw": "a tiny arrow with a large fingertip above it"
+  },
+  {
+    "chat": "instagram-five-minute-lockout",
+    "draw": "a phone with a padlock over a video icon"
+  },
+  {
+    "chat": "instant-voice-clone",
+    "draw": "a microphone tipped into a waste bin"
+  },
+  {
+    "chat": "instant-voice-clone-sid",
+    "draw": "a sad faced microphone being dropped in a bin"
+  },
+  {
+    "chat": "journal-synchronicity-moments",
+    "draw": "a red tick box above a black cross box"
+  },
+  {
+    "chat": "manual-tag-update-rules",
+    "draw": "a paper tag with a small button beneath it"
+  },
+  {
+    "chat": "message-answer-auto-remove",
+    "draw": "a card being lifted off the top of a list"
+  },
+  {
+    "chat": "message-disappear-on-send",
+    "draw": "a speech bubble sent as a card slides away"
+  },
+  {
+    "chat": "meta-assets-page",
+    "draw": "a wall of small pictures with one far too large"
+  },
+  {
+    "chat": "morning-briefing",
+    "draw": "a coffee cup beside a folded morning newspaper"
+  },
+  {
+    "chat": "morning-ideas-voice-memos",
+    "draw": "a rising sun over a row of cassette tapes"
+  },
+  {
+    "chat": "morning-ideas-workflow",
+    "draw": "three cassette tapes splitting into nine small cards"
+  },
+  {
+    "chat": "movie-tools-organization",
+    "draw": "a shelf of film tools neatly arranged"
+  },
+  {
+    "chat": "movie-zoom-focus-voiceover",
+    "draw": "a comic page with a camera zooming into one panel"
+  },
+  {
+    "chat": "multiple-categories-tags",
+    "draw": "an hourglass beside a paper tag"
+  },
+  {
+    "chat": "new-session-e0f161",
+    "draw": "a strip of planets and stars laid out as a shot list"
+  },
+  {
+    "chat": "notion-tinder-memories-page",
+    "draw": "a page of memory cards with small checkboxes"
+  },
+  {
+    "chat": "opinions-app-commercial",
+    "draw": "a puppy standing beside a big lever"
+  },
+  {
+    "chat": "oven-film-evan-collection",
+    "draw": "a bundle of film reels tied together with string"
+  },
+  {
+    "chat": "portland-dates-moments",
+    "draw": "a stack of date cards with little hearts on them"
+  },
+  {
+    "chat": "reduce-response-length",
+    "draw": "a long paper scroll being cut short"
+  },
+  {
+    "chat": "remove-prewritten-waiting-text",
+    "draw": "an empty text box with faint erased writing in it"
+  },
+  {
+    "chat": "review-queue-screen",
+    "draw": "one screen listing things waiting in a row"
+  },
+  {
+    "chat": "review-queue-ui-changes",
+    "draw": "a queue of cards with one tab pulled aside"
+  },
+  {
+    "chat": "screen-tap-navigation",
+    "draw": "a finger tapping the edge of a card deck"
+  },
+  {
+    "chat": "search-index-rebuild",
+    "draw": "a card index box with its tabs being rebuilt"
+  },
+  {
+    "chat": "secretly-witch-instagram-content",
+    "draw": "a phone showing a bright witchy photo grid"
+  },
+  {
+    "chat": "share-design-work",
+    "draw": "a design board being passed through a doorway"
+  },
+  {
+    "chat": "song-commercial-selection",
+    "draw": "a sheet of song lyrics with a pencil drawing beside it"
+  },
+  {
+    "chat": "sophie-portland-dates-blake",
+    "draw": "a second stack of date cards being swiped sideways"
+  },
+  {
+    "chat": "story-timeline-sequences",
+    "draw": "a back pointing chevron at the top of a page"
+  },
+  {
+    "chat": "summary-chevron-see-more",
+    "draw": "a paragraph with a small chevron at the end of its text"
+  },
+  {
+    "chat": "template-page",
+    "draw": "a blank page template with a light grid on it"
+  },
+  {
+    "chat": "time-travel-class-illustrations",
+    "draw": "an hourglass beside a small classroom desk"
+  },
+  {
+    "chat": "tinder-picker-layout",
+    "draw": "a card deck with a heart and a cross beneath it"
+  },
+  {
+    "chat": "tms-feed-layout-fixes",
+    "draw": "a phone feed with one square picture per row"
+  },
+  {
+    "chat": "update-screen-quote-refresh",
+    "draw": "a quotation mark with a circular refresh arrow"
+  },
+  {
+    "chat": "update-tab-organization",
+    "draw": "a page listing short single lines of need"
+  },
+  {
+    "chat": "video-pin-chat-review",
+    "draw": "a push pin holding a film frame"
+  },
+  {
+    "chat": "voice-memos-set-theory-story",
+    "draw": "one waveform icon with several tapes stacked behind it"
+  },
+  {
+    "chat": "voice-memos-upload-script",
+    "draw": "a cassette tape with a clock and an upload arrow"
+  },
+  {
+    "chat": "voice-studio-ui-refinements",
+    "draw": "a small mixing desk with tidy knobs and tabs"
+  },
+  {
+    "chat": "witch-school-lesson-topics",
+    "draw": "nine small lesson cards laid out in a grid"
+  },
+  {
+    "chat": "xi-card-design",
+    "draw": "a vintage playing card with a simple emblem on it"
+  },
+  {
+    "chat": "xi-ios-memory-card",
+    "draw": "a phone showing a plain card with one gold bar"
+  },
+  {
+    "chat": "xi-memory-library-merge",
+    "draw": "two card decks being pushed together into one"
   }
 ]

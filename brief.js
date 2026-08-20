@@ -4,6 +4,14 @@
 // on, and then maybe some lower priority things, and ideally would also include
 // images that chats made or links to compare pages").
 //
+// THE BUTTON MOVED OFF THE HOME SCREEN (Aug 2026 v2, Sophie: "I wanted it to
+// go on the update screen — rename it Update, no icon, and put it on the update
+// screen"). It is a row at the top of the Chats app's UPDATE tab now, and the
+// page it opens keeps the last answer on the phone and re-reads only when she
+// taps Refresh ("rather than immediately doing another API read, I'd like to be
+// able to go back and forth"). Nothing changed on this side: the route is the
+// same read, and `?fresh=1` is what Refresh sends.
+//
 // One tap → one JSON: five cards at the top, the quieter ones under them, and
 // each card carries the pictures that chat made and the Compare pages it posted
 // since she last checked it off. It is the answer to "what happened while I was

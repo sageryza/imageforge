@@ -343,6 +343,9 @@ loadConfig().then(() => {
   // Push — device registration + the APNs sender behind the Chats app's
   // lock-screen notifications. Dormant until the APNS_* keys exist.
   app.use('/api/push', require('./push').router);
+  // Desktop queue — reads docs/desktop-tasks.md (GitHub raw, checkout as
+  // fallback) for the /desktop page. No keys, no store of its own.
+  app.use('/api/desktop', require('./desktop').router);
   app.use('/api/shopify', shopify.router);
   app.use('/api/blog', blog.router);
   // Memory Passport (the /selfcare stamps). PUBLIC like the page itself —
@@ -804,9 +807,11 @@ app.get('/vector', serveGated('vector.html', { pill: true }));
 // Story Timeline: dictated moments -> cards you can order, join into
 // sequences, edit, divide and delete. The front for /api/timeline.
 app.get('/timeline', serveGated('timeline.html', { pill: true }));
-// What's New: the update button's page. Five cards worth knowing about, the
-// quieter ones under them, each carrying the pictures that chat made and the
-// Compare pages it posted. Reads /api/brief; writes nothing.
+// Update: the update button's page, reached from the Chats app's UPDATE tab.
+// Five cards worth knowing about, the quieter ones under them, each carrying
+// the pictures that chat made and the Compare pages it posted. It opens on the
+// last list she saw (localStorage) and reads only on Refresh — so walking in
+// and out of it while triaging costs nothing. Reads /api/brief; writes nothing.
 app.get('/brief', serveGated('brief.html', { pill: true }));
 // Review Queue: every deck/grid template page still waiting on her, with how
 // far through each she is. Reads /api/review; the only write is her own ✕
@@ -821,6 +826,12 @@ app.get('/doors', serveGated('doors.html'));
 // from opinions-feed.json + /api/opinions extras. Served WITHOUT the pill:
 // one screen, the page never scrolls.
 app.get('/opinions', serveGated('opinions.html'));
+// Desktop queue: the Mac-only tasks chats have batched into
+// docs/desktop-tasks.md, and the ones already checked off. Read-only, and
+// deliberately UNLINKED — no tile, no wrapper ("somewhere out-of-the-way",
+// Sophie, Aug 2026). Served WITHOUT the pill: a list she taps open, not a
+// page she reads hands-free.
+app.get('/desktop', serveGated('desktop.html'));
 // The Sophie character card, for the pad's draw-here toggle (refs/ is not
 // web-served, so this one file is exposed deliberately — it's her own
 // hearted render, and the page behind the gate is the only thing asking).

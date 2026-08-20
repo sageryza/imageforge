@@ -15,6 +15,12 @@
 //   • the picture lightbox keeps the whole house contract: page locked, and the
 //     scroll position she opened from RESTORED on close.
 //   • nothing scrolls sideways on a 390pt phone.
+//   • IT OPENS ON THE LAST LIST SHE SAW AND DOES NOT READ (Aug 2026, Sophie:
+//     "rather than immediately doing another API read, I'd like to be able to
+//     go back and forth … there's a button at the top that says refresh which
+//     causes another API read, and it also says last updated and then the
+//     time"). Counted, not eyeballed: a second visit must make ZERO calls to
+//     /api/brief, and Refresh must make exactly one.
 //
 // Playwright is optional — this skips cleanly without it, like the other
 // headless tests here.
@@ -98,12 +104,14 @@ const BRIEF = {
 
   // Serve the page exactly as serveGated does — the real page plus the real
   // injected pill, which is the combination that has broken pages before.
+  let reads = 0, lastRead = '';        // every call to /api/brief, counted
   await page.route('**/*', async (route) => {
     const url = route.request().url();
     // The API first: "/api/brief?…" also ends in "/brief?", so a page-first
     // test answers the page's own fetch with the HTML and the page reports a
     // JSON error instead of drawing.
     if (/\/api\/brief/.test(url)) {
+      reads++; lastRead = url;
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(BRIEF) });
     }
     if (/\/brief(\?|$)/.test(url)) {
@@ -187,6 +195,33 @@ const BRIEF = {
     await page.evaluate(() => window.__navBack()), true);
   is('…and reports false once there is nothing to close',
     await page.evaluate(() => window.__navBack()), false);
+
+  // ── the read is behind Refresh ───────────────────────────────────────────
+  // The cold visit above is the only one allowed to read on its own: there was
+  // nothing on the phone to show her.
+  is('a first, cold visit reads once', reads, 1);
+  ok('and it says how old what she is looking at is',
+    /^Last updated /.test((await page.locator('#lastup').textContent()).trim()));
+
+  reads = 0;
+  await page.goto('https://forge.test/brief', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#cards .card', { timeout: 5000 }).catch(() => {});
+  is('coming back draws the last list she saw…', await page.locator('#cards .card').count(), 2);
+  is('…and reads NOTHING', reads, 0);
+  ok('the count strip came back with it',
+    (await page.locator('#strip').textContent()).indexOf('waiting on you') > -1);
+
+  await page.locator('#refresh').click();
+  await page.waitForFunction(() => !document.getElementById('refresh').disabled, null,
+    { timeout: 5000 }).catch(() => {});
+  is('Refresh is the one thing that reads', reads, 1);
+  // The server holds its answer for 60s; a deliberate tap must skip that hold
+  // or Refresh would look broken for a minute after any other read.
+  ok('and it asks for a fresh answer, not the held one', /fresh=1/.test(lastRead));
+
+  // ── the way back to the UPDATE tab ───────────────────────────────────────
+  ok('the page carries its own chevron (it opens inside the Chats web view)',
+    await page.locator('#back').isVisible());
 
   is('no page errors', errors, []);
   await browser.close();

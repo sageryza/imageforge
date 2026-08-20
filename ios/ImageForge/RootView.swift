@@ -610,6 +610,17 @@ private struct BottomBar: View {
     }
 }
 
+/// One stop on the movie & sound road — its number, its name, one line of what
+/// happens there, and the tools that live at it. `HomeGrid.pipeline` is the
+/// whole road and the ONLY place the order is written down.
+private struct MovieStage: Identifiable {
+    let n: Int
+    let name: String
+    let line: String
+    let tools: [Tool]
+    var id: Int { n }
+}
+
 /// The Home grid — every tool as a card. Tapping one opens it (and promotes it
 /// into the recent slots). Above the cards sits the shortcut row: five rounded
 /// squares, icons only, that either open a tool or filter the cards below.
@@ -617,31 +628,72 @@ private struct HomeGrid: View {
     var open: (Tool) -> Void
     @Binding var filter: HomeFilter
     @ObservedObject var recents: Recents
-    /// The update button's cover. A COVER and not a `Tool` on purpose: opening
-    /// a tool promotes it into `Recents`, so this button would evict one of her
-    /// three bottom-bar slots on every tap — and it's the button meant to be
-    /// tapped most. See BriefView for the rest of that reasoning.
-    @State private var showBrief = false
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+
+    /// THE MOVIE & SOUND TAB IS A PIPELINE, NOT A PILE (Aug 2026, Sophie:
+    /// "right now there's so many movie tools it's confusing… my possible fix
+    /// is changing the movies tab to a sort of pipeline that shows the order
+    /// they're meant to be used in").
+    ///
+    /// So this set is not a list any more — it is SIX ORDERED STOPS, and
+    /// `movieTools` below is derived from them. One source of truth: adding a
+    /// tool to a stage puts it in the tab, takes it off the default home, and
+    /// gives it a place in the order, all at once. Re-ordering the road is
+    /// re-ordering this array and nothing else.
+    ///
+    /// The order is the one the two pipeline docs already describe —
+    /// `docs/audio-pipeline.md` (capture → blocks → arrange → word cut →
+    /// exact cut → polish) with the story stops in front of it and the picture
+    /// stops behind, so a film walks the page top to bottom.
+    ///
+    /// **Movies and sound are ONE road, deliberately interleaved** (her ask
+    /// the same day: "for now group movies and audio together") — the audio
+    /// stops are 2–4 and the picture stops are 5, rather than two separate
+    /// piles that never mention each other.
+    ///
+    /// TWO tools that are NOT here, and why:
+    /// - **Song Station** is gone from every grid — "get rid of song station
+    ///   altogether". The tool, its page and `deckfactory://song` all still
+    ///   work; it simply has no card anywhere now.
+    /// - **Scratch Pad** is the Story Room (the `.story` tile serves the pad's
+    ///   page), so listing it would be the same tool twice.
+    ///
+    /// **Story Room came BACK into this tab** (Sophie, Aug 2026: "move
+    /// everything onto the movies page like the story boards…") — it had been
+    /// pulled out earlier ("story room is no longer movies") and pinned first
+    /// on the default home. Her newer word wins; it is stop 1 here and has no
+    /// card on the default home any more.
+    private static let pipeline: [MovieStage] = [
+        MovieStage(n: 1, name: "The story",
+                   line: "What it is about, and what order it happens in.",
+                   tools: [.story, .timeline]),
+        MovieStage(n: 2, name: "The voice",
+                   line: "Find the take you already have — or speak the line.",
+                   tools: [.search, .voice]),
+        MovieStage(n: 3, name: "The cut",
+                   line: "Break the recording up, then take the words you want.",
+                   tools: [.blocks, .editor, .cutmarks]),
+        MovieStage(n: 4, name: "The polish",
+                   line: "Pauses and filler out, then how long each beat sits.",
+                   tools: [.cutroom, .pausing]),
+        MovieStage(n: 5, name: "The pictures",
+                   line: "Faces first, so they stay the same — then the film.",
+                   tools: [.character, .movie, .dreams]),
+        MovieStage(n: 6, name: "The shelf",
+                   line: "What is already made — to cut from, or to watch.",
+                   tools: [.chunking, .films]),
+    ]
 
     /// The film filter's set — everything that makes or cuts moving pictures
     /// AND sound, so the voice/audio tools belong here too (Sophie, Aug 2026).
+    /// DERIVED from `pipeline` above, never hand-written beside it.
     ///
     /// **These tools are HIDDEN from the default home** — `tools` below
     /// subtracts this list, so the film chip works exactly like the quilt and
     /// the briefcase. That was Sophie's fix for the asymmetry she spotted
     /// ("the quilt hides the modules but the movies tab doesn't"): she wanted
     /// them off the home screen and in the movie tab, not in both places.
-    ///
-    /// TWO tools were deliberately taken OUT of this set:
-    /// - **Story Room** lives on the DEFAULT home (pinned first, below) and
-    ///   nowhere else — "story room is no longer movies, so just keep it on
-    ///   default and take it out of the movies tab".
-    /// - **Song Station** is gone from every grid — "get rid of song station
-    ///   altogether". The tool, its page and `deckfactory://song` all still
-    ///   work; it simply has no card anywhere now.
-    private static let movieTools: [Tool] = [.movie, .films, .blocks, .cutroom, .pausing, .cutmarks,
-                                             .editor, .voice, .search, .character, .chunking]
+    private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
 
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the
@@ -661,10 +713,10 @@ private struct HomeGrid: View {
         }
     }
 
-    // Sophie's home order: Story Room pinned first, everything after it rotates
-    // by most-recent use. Nothing is pinned to the BOTTOM anymore — the three
-    // that were (Voice Studio, Characters, Films) are film tools and now live
-    // under that filter.
+    // Sophie's home order: everything rotates by most-recent use. Nothing is
+    // pinned to the top or the bottom anymore — Story Room held the first slot
+    // until she moved it into the movie tab (Aug 2026), and the old bottom trio
+    // (Voice Studio, Characters, Films) are film tools that went the same way.
     private var tools: [Tool] {
         // THE FILM FILTER NOW HIDES ITS TOOLS FROM THE DEFAULT HOME, the same
         // way the quilt and briefcase always have (Aug 2026, Sophie, resolving
@@ -689,15 +741,15 @@ private struct HomeGrid: View {
         // icons beside the masthead. .scratchpad is hidden because the pad IS
         // the Story Room now (the .story tile's /storyroom page serves it), so
         // two tiles would be the same tool twice; its case and view stay for
-        // deep links and history. Story Room itself is pinned FIRST and is
-        // NOT a film tool (her call — it came out of the movie tab).
-        let middle = Tool.allCases.filter { $0 != .story && $0 != .chats && $0 != .test && $0 != .scratchpad
+        // deep links and history. Story Room itself is stop 1 of the movie
+        // pipeline now, so `movieTools` takes it off this list.
+        let middle = Tool.allCases.filter { $0 != .chats && $0 != .test && $0 != .scratchpad
                                             && $0 != .song && $0 != .vector
                                             && !$0.isBusiness && !$0.isCraft
                                             && !Self.movieTools.contains($0) }
         let ranked = recents.order.filter { middle.contains($0) }
         let rest = middle.filter { !ranked.contains($0) }
-        return [.story] + ranked + rest
+        return ranked + rest
     }
 
     var body: some View {
@@ -737,60 +789,88 @@ private struct HomeGrid: View {
             // Sophie: "a tad lower under Deck Factory so it doesn't feel so
             // crowded" — the row needs air between it and the masthead.
             shortcutRow.padding(.top, 14)
-            updateButton
             ScrollView {
-                LazyVGrid(columns: grid, spacing: 14) {
-                    ForEach(shown) { t in
-                        Button { open(t) } label: {
-                            HubCard(tool: t, title: t.title, desc: t.desc)
+                // The movie chip draws the ROAD (numbered stops, in order);
+                // every other slice is the plain grid it has always been.
+                if filter == .movie {
+                    pipelineCards
+                } else {
+                    LazyVGrid(columns: grid, spacing: 14) {
+                        ForEach(shown) { t in
+                            Button { open(t) } label: {
+                                HubCard(tool: t, title: t.title, desc: t.desc)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding()
                 }
-                .padding()
             }
         }
         .background(Theme.bg.ignoresSafeArea())
-        .fullScreenCover(isPresented: $showBrief) { BriefView() }
     }
 
-    /// THE UPDATE BUTTON (Aug 2026, Sophie: "an update button on the home
-    /// screen that I can just click and then it does an API call that gives me
-    /// the top five things I might want to be updated on").
+    /// The movie & sound tab, drawn as the ROAD rather than as a pile: each
+    /// stop numbered, named, and carrying the tools that live at it, in the
+    /// order a film actually walks (Sophie, Aug 2026 — see `pipeline` above).
     ///
-    /// It sits between the shortcut row and the cards — the first thing under
-    /// the chrome, where "what happened while I was away" belongs, and clear of
-    /// the masthead's four corner icons, which are already as many as fit.
-    ///
-    /// **Not a sixth square in the shortcut row**: six 60pt squares don't fit a
-    /// 375pt phone (6 × 60 = 360 inside 343 of usable row), and the squares only
-    /// just grew from 48 to 60 because there were five. Shrinking them back to
-    /// add this would undo a change she asked for.
-    ///
-    /// **It hugs its words** — the house button rule — so it reads as one thing
-    /// to tap rather than a slab lying across the screen.
-    ///
-    /// It carries NO count badge, deliberately: a badge means fetching the
-    /// brief every time the home grid draws, and the number would then be the
-    /// only part of this screen that can be stale or wrong. The tap is the ask.
-    private var updateButton: some View {
-        Button { showBrief = true } label: {
-            HStack(spacing: 7) {
-                Image(systemName: "list.bullet.rectangle").font(.system(size: 16))
-                Text("What's new").font(.system(size: 15, weight: .semibold))
+    /// The cards themselves are the SAME `HubCard` as every other slice — the
+    /// only thing this view adds is the ordering and the stop headers, so a
+    /// tool never looks like a different tool depending on which chip is lit.
+    private var pipelineCards: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            ForEach(Self.pipeline) { stage in
+                VStack(alignment: .leading, spacing: 10) {
+                    stageHeader(stage)
+                    LazyVGrid(columns: grid, spacing: 14) {
+                        ForEach(stage.tools) { t in
+                            Button { open(t) } label: {
+                                HubCard(tool: t, title: t.title, desc: t.desc)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
-            .foregroundColor(Theme.accent)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Theme.surface)
-            .cornerRadius(Theme.radius)
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
-                .stroke(Theme.accent, lineWidth: 1))
-            .contentShape(RoundedRectangle(cornerRadius: Theme.radius))
         }
-        .buttonStyle(.plain)
-        .padding(.top, 12)
+        .padding()
     }
+
+    /// One stop's header: its number, its name in the label voice, and one
+    /// line of what happens here, over a hairline that runs the width.
+    ///
+    /// The name is the SANS in CAPS at a normal weight with tracking (the
+    /// house label rule) — the number carries the emphasis instead, so nothing
+    /// here needs bold to read as a heading.
+    private func stageHeader(_ stage: MovieStage) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(stage.n)")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Theme.accent)
+                Text(stage.name.uppercased())
+                    .font(.system(size: 13))
+                    .tracking(1.1)
+                    .foregroundColor(Theme.text)
+            }
+            Text(stage.line)
+                .font(.caption)
+                .foregroundColor(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+            Rectangle()
+                .fill(Theme.border)
+                .frame(height: 1)
+        }
+    }
+
+    // THE UPDATE BUTTON LIVED HERE AND MOVED (Aug 2026, Sophie: "a couple days
+    // ago we added a what's new button to the main screen, but I wanted it to
+    // go on the update screen — could you rename it Update, no icon, and put it
+    // on the update screen"). It is a row at the top of the Chats app's UPDATE
+    // tab now (`newsUpdRow` in public/chats.html), which is the screen she
+    // opens to find out what happened — the page it leads to answers the same
+    // question across every chat at once. Nothing here presents BriefView any
+    // more; it stays in the repo, unmounted, the way CreationsView does.
 
     /// Side of a shortcut button, and the icon inside it.
     ///

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "abundance-1-the-flood",
+    "prompt": "A very slow push in toward the woman standing among the boxes. The stacks hold still; a few loose strands of her hair drift. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  },
+  {
+    "id": "abundance-3-the-mountain",
+    "prompt": "A slow tilt upward along the mountain of cardboard boxes. The small figure at its foot stays still. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  },
+  {
+    "id": "abundance-2-inventing-uses",
+    "prompt": "Her hand works the scissors, cutting slowly into the cardboard. Everything else in the room holds still. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  },
+  {
+    "id": "scarcity-1-velvet-throne-v2",
+    "prompt": "The small glowing bulb on the velvet throne pulses slowly, brighter and then dimmer. The kneeling woman stays still, watching it. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  },
+  {
+    "id": "scarcity-2-petting-it",
+    "prompt": "Her finger strokes the small glowing thing slowly back and forth, and the glow rises and falls under her touch. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  },
+  {
+    "id": "both-1-diptych",
+    "prompt": "A very slow push in on the whole picture, both halves at once. Nothing inside either half moves. The subject, style and composition of the image are preserved exactly.",
+    "model": "wan-2.2-i2v-fast",
+    "resolution": "720p",
+    "frames": 121,
+    "cost": 0.24
+  }
+]
