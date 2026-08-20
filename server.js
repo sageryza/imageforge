@@ -720,10 +720,31 @@ function serveGated(file, opts = {}) {
     // that only studio.html's hand-written JS ever set. Doing BOTH here (the
     // class and the styles) means a new tool page can't forget, and the
     // helpcard's embed offset comes along with the class.
+    // THE PAGE OWNS ITS HEADER WHEN THE APP LETS IT (Aug 2026, Sophie: "get rid
+    // of the apple native bar"). The newer app hides Apple's bar and injects a
+    // bridge, `window.__forgeLeave()`, so the page draws its own title, "?" and
+    // back chevron in ONE row instead of a second empty strip under Apple's.
+    //
+    // THE BRIDGE IS THE FEATURE FLAG. This half ships with a deploy; the app
+    // half waits for a TestFlight build — so the page asks whether the bridge
+    // is there before taking the header over. On the older build nothing is
+    // injected, `embed` is added exactly as before, and there is no double
+    // chevron and no missing way out. Both halves can land in either order.
+    //
+    // The hiding style is scoped to `body.embed` for the same reason: unscoped
+    // and `!important`, it would go on hiding the page's own title on the very
+    // build that is supposed to show it.
     if (req.query.embed === '1') {
-      out += '<style>.app-header,.tool-eyebrow{display:none !important}</style>'
-        + '<script>document.body.classList.add("embed")</script>';
+      out += '<style>body.embed .app-header,body.embed .tool-eyebrow'
+        + '{display:none !important}</style>'
+        + '<script>if(!window.__forgeLeave)document.body.classList.add("embed")</script>';
     }
+    // pagehead.js goes on EVERY gated page, not only the ?embed=1 ones: half
+    // these tools (Cutting Blocks, Cut Marks, the Cutting Room, Pausing,
+    // Playground, Search…) are loaded by their wrapper at a bare path. It
+    // self-gates on the bridge, so on the web and on the older build it does
+    // nothing at all.
+    out += '<script src="/pagehead.js" defer></script>';
     if (opts.pill) out += require('./chatfeed').pillInject();
     res.type('html').send(out);
   };

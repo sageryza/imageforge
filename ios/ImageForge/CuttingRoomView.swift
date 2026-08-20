@@ -50,7 +50,7 @@ struct CuttingRoomView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                CuttingRoomWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                CuttingRoomWebView(token: studioToken, failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -59,7 +59,7 @@ struct CuttingRoomView: View {
         // The standard tool header: the nav-bar chevron is THE back arrow —
         // inside a recording the page consumes it and returns to the
         // recordings list (__navBack); on the list it leaves the tool.
-        .forgeToolBar("Cutting Room", tint: Self.ink, paper: Self.paper, back: navBack)
+        .forgeWebToolBar("Cutting Room", tint: Self.ink, paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
     /// Ask the page to step back one level; when it's already on the
@@ -82,6 +82,9 @@ final class CutroomWebRef: ObservableObject { weak var web: WKWebView? }
 /// token and lets the page play audio inline (the recording, renders, clips)
 /// without a second tap for the media itself.
 private struct CuttingRoomWebView: UIViewRepresentable {
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: CutroomWebRef
@@ -92,9 +95,7 @@ private struct CuttingRoomWebView: UIViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         // Tells the page this build's nav bar carries the back chevron, so it
         // hides its own in-page back button (body.native) — never both.
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // The download buttons post here: a web view can't reach the Files
         // app, so the native side fetches the clip and hands it to the iOS
         // share sheet (Save to Files / AirDrop / anywhere).
@@ -118,6 +119,8 @@ private struct CuttingRoomWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: CuttingRoomWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: CuttingRoomWebView) { self.parent = parent }

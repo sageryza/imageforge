@@ -43,7 +43,17 @@ struct GatedWebTool: View {
     @Environment(\.goBack) private var goBack
 
     var body: some View {
-        if let title = navTitle {
+        // THE PAGE OWNS THE HEADER (Aug 2026, Sophie: "get rid of the apple
+        // native bar") — see ForgePageHeader. `navTitle` is kept because it is
+        // still the accessibility name and it is what every call site already
+        // passes; it just no longer paints a second title strip above the page.
+        // THE FAILURE SCREEN KEEPS THE NATIVE BAR. With the page gone there is
+        // no page header to own anything, so hiding the bar would strand her on
+        // "Couldn't open …" with no way out — the one screen where Apple's
+        // chevron is still the only door.
+        if navTitle != nil && !loadFailed {
+            core.forgePageOwnsHeader()
+        } else if let title = navTitle {
             core.forgeToolBar(title, back: navBack)
         } else {
             core
@@ -88,7 +98,7 @@ struct GatedWebTool: View {
             } else {
                 GatedWebView(path: path, token: studioToken, mic: mic,
                              refreshJS: refreshOnAppear, refreshTick: refreshTick,
-                             failed: $loadFailed, webRef: webRef)
+                             failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -109,6 +119,9 @@ private struct GatedWebView: UIViewRepresentable {
     let refreshTick: Int
     @Binding var failed: Bool
     var webRef: GatedWebRef? = nil
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that the page
+    /// draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     /// Every page hosted here is inside a native tool screen, so it is always
     /// asked for with `?embed=1` — the server then hides the page's own title
@@ -127,6 +140,10 @@ private struct GatedWebView: UIViewRepresentable {
         // Generated audio (voice renders, song mixes) plays inline on tap.
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        // Installed BEFORE the web view exists — a user script added after the
+        // load has started misses that load, and the page tests for the bridge
+        // as it boots to decide whether it draws its own header.
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -153,6 +170,8 @@ private struct GatedWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: GatedWebView
         var lastTick = 0
+        /// `addScriptMessageHandler` does not retain — the coordinator does.
+        var leaveHandler: ForgeLeaveHandler?
         init(_ parent: GatedWebView) { self.parent = parent }
 
         // The pages sit behind HTTP Basic (any user, password = studio token).

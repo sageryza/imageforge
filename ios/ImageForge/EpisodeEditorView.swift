@@ -47,7 +47,7 @@ struct EpisodeEditorView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                EpisodeEditorWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                EpisodeEditorWebView(token: studioToken, failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -56,7 +56,7 @@ struct EpisodeEditorView: View {
         // The standard tool header, Story Room pattern: the nav-bar chevron is
         // THE back arrow — inside an episode the page consumes it and returns
         // to the episode list (__navBack); on the list it leaves the tool.
-        .forgeToolBar("Episode Editor", tint: Self.ink, paper: Self.paper, back: navBack)
+        .forgeWebToolBar("Episode Editor", tint: Self.ink, paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
     /// Ask the page to step back one level; when it's already on the episode
@@ -79,6 +79,9 @@ final class EditorWebRef: ObservableObject { weak var web: WKWebView? }
 /// and lets the page play audio inline (snippet previews and the rendered
 /// episode) without a second tap for the media itself.
 private struct EpisodeEditorWebView: UIViewRepresentable {
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: EditorWebRef
@@ -89,9 +92,7 @@ private struct EpisodeEditorWebView: UIViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         // Tells the page this build's nav bar carries the back chevron, so it
         // hides its own in-page back button (body.native) — never both.
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -111,6 +112,8 @@ private struct EpisodeEditorWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: EpisodeEditorWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: EpisodeEditorWebView) { self.parent = parent }

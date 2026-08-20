@@ -52,13 +52,13 @@ struct ReviewQueueView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                ReviewWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                ReviewWebView(token: studioToken, failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
         }
         .background(Self.paper.ignoresSafeArea())
-        .forgeToolBar("Review Queue", paper: Self.paper, back: navBack)
+        .forgeWebToolBar("Review Queue", paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
     /// The chevron asks the page first, then steps the web view's history
@@ -76,6 +76,9 @@ struct ReviewQueueView: View {
 final class ReviewWebRef: ObservableObject { weak var web: WKWebView? }
 
 private struct ReviewWebView: UIViewRepresentable {
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: ReviewWebRef
@@ -86,9 +89,7 @@ private struct ReviewWebView: UIViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         // The nav bar carries the title, so the page hides its own (?embed=1
         // does the header; __nativeNavBar covers any page-level back button).
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -110,6 +111,8 @@ private struct ReviewWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: ReviewWebView
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: ReviewWebView) { self.parent = parent }

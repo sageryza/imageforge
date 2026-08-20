@@ -54,7 +54,7 @@ struct MetaAssetsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                MetaAssetsWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                MetaAssetsWebView(token: studioToken, failed: $loadFailed, webRef: webRef, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -63,7 +63,7 @@ struct MetaAssetsView: View {
         // The nav-bar chevron is THE back arrow: the page consumes it when its
         // lightbox is open (__navBack), else the web view's own history steps
         // back (she may have followed the chat icon into /chats), else leave.
-        .forgeToolBar("Meta Assets", tint: Self.ink, paper: Self.paper, back: navBack)
+        .forgeWebToolBar("Meta Assets", tint: Self.ink, paper: Self.paper, failed: loadFailed, back: navBack)
     }
 
     private func navBack() {
@@ -82,6 +82,9 @@ final class MetaAssetsWebRef: ObservableObject { weak var web: WKWebView? }
 /// WKWebView host: answers the studio gate's HTTP Basic challenge with the
 /// token and carries the forgeSave bridge for the page's Save-to-Photos icon.
 private struct MetaAssetsWebView: UIViewRepresentable {
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that
+    /// the page draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
     let token: String
     @Binding var failed: Bool
     let webRef: MetaAssetsWebRef
@@ -90,9 +93,7 @@ private struct MetaAssetsWebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         // Tells the page this build's nav bar carries the back chevron, so it
         // hides any in-page back affordance — never both.
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        context.coordinator.leaveHandler = ForgePageHeader.install(into: config, onLeave: onLeave)
         // Save to Photos has to happen natively: the page's share-sheet path
         // works in a browser but not reliably inside a WKWebView, so the page
         // hands the image url over here (the Playground's pattern).
@@ -116,6 +117,8 @@ private struct MetaAssetsWebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        /// `addScriptMessageHandler` does not retain — this does.
+        var leaveHandler: ForgeLeaveHandler?
         let parent: MetaAssetsWebView
         init(_ parent: MetaAssetsWebView) { self.parent = parent }
 
