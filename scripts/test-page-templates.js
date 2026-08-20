@@ -497,4 +497,38 @@ ok('an empty timeline attributes nothing rather than guessing', () => {
   assert.deepStrictEqual(assignVoiceSegments([{ start: 1, text: 'words' }], []), {});
 });
 
+// ── the item's way out: `link` ──────────────────────────────────────────────
+ok('link: an object or a bare url, with a default label', () => {
+  const v = validateTemplate('deck', { items: [
+    { text: 'a', link: { url: 'https://claude.ai/code/session_abc', label: 'Open the chat' } },
+    { text: 'b', link: 'https://imageforge-q125.onrender.com/chats' },
+  ] });
+  assert.strictEqual(v.ok, true);
+  assert.deepStrictEqual(v.data.items[0].link,
+    { url: 'https://claude.ai/code/session_abc', label: 'Open the chat' });
+  // a bare url gets a label rather than showing 70 characters of hex
+  assert.strictEqual(v.data.items[1].link.label, 'Open');
+});
+
+ok('link: only http(s) — a bad scheme is DROPPED, never escaped into an anchor', () => {
+  for (const bad of ['javascript:alert(1)', 'data:text/html,<b>', 'chats', '', null]) {
+    const v = validateTemplate('deck', { items: [{ text: 'a', link: bad }] });
+    assert.strictEqual(v.ok, true);
+    assert.strictEqual(v.data.items[0].link, undefined, `link survived: ${bad}`);
+  }
+});
+
+ok('link: rides through a grid group too, and never becomes markup', () => {
+  const v = validateTemplate('grid', { groups: [{ label: 'row', items: [
+    { text: 'a', link: { url: 'https://example.com/x', label: '<b>hi</b>' } },
+  ] }] });
+  assert.strictEqual(v.ok, true);
+  const link = v.data.groups[0].items[0].link;
+  assert.strictEqual(link.url, 'https://example.com/x');
+  assert.strictEqual(link.label, '<b>hi</b>');   // stored raw; both renderers escape it
+  // and the label is capped like every other short field
+  const long = validateTemplate('deck', { items: [{ text: 'a', link: { url: 'https://e.com', label: 'x'.repeat(200) } }] });
+  assert.strictEqual(long.data.items[0].link.label.length, 60);
+});
+
 console.log(`all ${n} checks passed`);

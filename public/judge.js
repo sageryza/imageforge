@@ -193,6 +193,15 @@
     // and put cream margins inside her border — hugging avoids that entirely.
     '.jg-mom figure.hug{align-self:center;max-width:100%;}' +
     '.jg-mom figure.hug img{width:auto;height:auto;max-width:100%;max-height:56vh;}' +
+    // THE CARD'S WAY OUT — an item's `link`, rendered as her rust text on a
+    // white box like the others, and lifted above the browse zones (see
+    // linkHtml). `align-self:center` keeps the hit area to the words: a
+    // full-width anchor inside the card would swallow the taps that page it.
+    '.jg-momlink{position:relative;z-index:3;display:flex;justify-content:center;}' +
+    '.jg-momlink a{display:inline-block;background:#FFFDF8;border:1px solid #E7DECF;' +
+    ' border-radius:6px;padding:9px 14px;text-decoration:none;color:#C25E4C;' +
+    ' font:700 11px/1.2 -apple-system,sans-serif;letter-spacing:.12em;' +
+    ' text-transform:uppercase;}' +
     // A SPREAD ON ONE CARD: the pictures share the width so they are compared
     // rather than scrolled between, each under its own name. They shrink as a
     // spread grows — two get half each, three a third — which is the whole
@@ -874,7 +883,21 @@
       }
       return '<div class="jg-mom">' + out + '</div>';
     }
+    // THE CARD'S WAY OUT — an item's `link` (page-templates.js), as a real
+    // anchor. It sits ABOVE the browse zones for the same measured reason the
+    // spread does: the zones are 26%-wide strips at z-index 2 and a centred
+    // link lands between them, but its ENDS reach into them, so a thumb
+    // slightly off centre would page the deck instead of opening the link.
+    function linkHtml(it) {
+      if (!it || !it.link || !it.link.url) return '';
+      return '<div class="jg-momlink"><a href="' + esc(it.link.url) + '"'
+        + ' target="_blank" rel="noopener">' + esc(it.link.label || 'Open')
+        + ' ›</a></div>';
+    }
     function mediaHtml(it, hoisted) {
+      return mediaBody(it, hoisted) + linkHtml(it);
+    }
+    function mediaBody(it, hoisted) {
       var ar = arOf(it);
       var sq = ar ? ' sq' : '';
       var ars = ar ? ' style="aspect-ratio:' + ar + '"' : '';

@@ -456,9 +456,25 @@ The shells and contracts for anything a chat publishes into the Chats app as a p
   - **`POST /api/chatfeed/page { chat, title, template:'deck'|'grid', data }`**
     (no `html`). The answer carries `sheet` (`page-<id>`) for reading verdicts
     back. `page-templates.js` is the whole contract: an item is
-    `{ id?, label, img?|text?, full?, url?, model?, quality?, promptStyle?,
-    promptContent? }` — NO HTML anywhere in `data`, everything renders
-    escaped. `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
+    `{ id?, label, img?|text?, full?, url?, link?, model?, quality?,
+    promptStyle?, promptContent? }` — NO HTML anywhere in `data`, everything
+    renders escaped.
+    **`link` is the card's way OUT** (Aug 2026, Sophie, asking for archive
+    candidates "in the compare tab with a link back to the chat"):
+    `{ url, label }`, or a bare url string with the label defaulting to
+    "Open". It renders as a real anchor in BOTH views — the swipe card and
+    the compare tile — because a url written into `text` reaches her as a
+    string she cannot tap, which on a phone is the same as not being there.
+    It is a FIELD rather than markup so the renderer still decides what it
+    becomes, which is what keeps the no-HTML rule intact.
+    **http(s) only, and a bad scheme is DROPPED rather than escaped**:
+    escaping renders `javascript:…` harmlessly as text but still leaves it
+    as the href of a real, tappable element. On a deck the link sits above
+    the browse zones for the same measured reason the two-up spread does —
+    a centred control's ends reach into those 26% strips, so without it the
+    tap pages the deck instead. Pinned by
+    `node scripts/test-template-link.js` (real Chromium,
+    `elementFromPoint` at the anchor's own centre in both views). `deck` data is `{ items:[…], states?, voice?, browse?, aspect? }`;
     `grid` data is `{ groups:[{ label?, items:[…] }], states?, aspect? }`.
     **`aspect` is a MENU, not a free ratio** (Sophie, Aug 2026: square cards
     AND story-fragment rectangles, "options they can pick between"):
