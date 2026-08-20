@@ -308,6 +308,25 @@
     ' border:0;border-radius:0;padding:0;z-index:2;' +
     ' -webkit-tap-highlight-color:transparent;}' +
     '.jg-navzone.prev{left:0;}.jg-navzone.next{right:0;}' +
+    // THE EDGES ARE ANCHORED TO THE CARD'S VISIBLE BOX, NOT TO ITS CONTENT
+    // (Aug 2026, Sophie: "tapping on the left or right side of the screen
+    // doesn't take me to the next option" — found by measuring, not by
+    // looking). The zones lived INSIDE .jg-card, which on a moment deck IS
+    // the scroller: an absolutely positioned child of a scroll container
+    // rides up with the content, so scrolling a long card 232px pulled the
+    // zones' bottom from y730 to y498 and the whole lower half of both sides
+    // went dead — on exactly the cards long enough to need paging. The
+    // wrapper does not scroll, so they hold the card's box however far she
+    // reads. It keeps the card's flex slot so the one-screen chain is intact.
+    '.jg-cardwrap{position:relative;}' +
+    '.jg.mom .jg-cardwrap{flex:1;min-height:0;display:flex;flex-direction:column;}' +
+    '.jg.mom .jg-cardwrap>.jg-card.momcard{flex:1;min-height:0;}' +
+    // …AND THEY REACH THE SCREEN'S EDGE. Her deck holds a 22px gutter, so the
+    // outermost 22px of each side was page background — dead to a tap, and
+    // the first place a thumb lands when she means "the side of the screen".
+    // The wrapper does not clip (the card did), so the zones can take it back.
+    '.jg.mom .jg-navzone.prev{left:-22px;width:calc(26% + 22px);}' +
+    '.jg.mom .jg-navzone.next{right:-22px;width:calc(26% + 22px);}' +
     // tap-to-record, bottom-left corner (the note + owns bottom-right)
     '.jg-mic{position:absolute;left:8px;bottom:8px;width:30px;height:30px;z-index:3;' +
     ' border-radius:50%;border:1.5px solid var(--line);background:var(--surface);' +
@@ -1034,12 +1053,15 @@
           || (it.text && !it.img && !it.pair && !it.card)) ? ' ctl' : '';
         mount.innerHTML = '<div class="jg' + momCls + '" data-nostop>' + top
           + (momUI && momName(it) ? '<div class="who">' + esc(momName(it)) + '</div>' : '')
-          + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
+          // the wrapper is the card's non-scrolling frame — it exists so the
+          // edge zones can hold the card's VISIBLE box (see .jg-cardwrap)
+          + '<div class="jg-cardwrap">'
           // browse mode: the card's left/right EDGES page through the deck
           // (Sophie: "tapping on the screen to the right or left goes
           // backwards or forwards") — the middle still opens the lightbox
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
+          + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it, momUI)
           // a date card carries no label line, no corner note and no mic —
           // her footer below IS the whole control surface (the exact-demo
@@ -1055,7 +1077,7 @@
           + '<textarea class="cmp-note-box" rows="2" placeholder="write back…"></textarea></div>')
           + (voice && !momUI ? '<button type="button" class="jg-mic' + (recActive() ? ' rec' : '')
             + '" data-act="mic" aria-label="voice note">' + I.mic + '</button>' : '')
-          + '</div>'
+          + '</div></div>'   // the card, then its non-scrolling wrapper
           + '<div class="' + (momUI ? 'jg-momfoot' + (voice ? ' mic' : '') : 'jg-row')
           + '">' + row + '</div></div>';
         if (momUI) {
