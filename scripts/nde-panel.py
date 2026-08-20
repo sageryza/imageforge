@@ -17,6 +17,28 @@ os.makedirs(OUTDIR, exist_ok=True)
 PREFIX = ("The FIRST attached image is a STYLE reference — copy its drawing style, "
           "linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy "
           "its content, subjects, or composition. ")
+# ── THERE IS A NEWER TAIL FOR THIS REFERENCE — PICK ON PURPOSE (Aug 2026) ──
+# The SUFFIX below is the ORIGINAL wording for refs/dream-mystery.jpg and it
+# still renders exactly what this script was built for: a full-bleed VERTICAL
+# panel with nothing else in the frame.
+#
+# Sophie's current wording, live in `PL_GPT_STYLES.dreamy` in server.js (the
+# Playground's Dreamy tile), is deliberately looser, and differs in four ways:
+#   • it names no orientation      — that tile's canvas toggles portrait/square
+#   • "minimal text only"          — not "no text or lettering anywhere"; her
+#                                    handwriting is part of that page
+#   • no "no borders"              — the reference IS a diary comic and its
+#                                    drawn frames are the look
+#   • no "no caption boxes"        — same reason
+# It also repeats the anti-content rule at the END, because the tail is the
+# last thing the model reads.
+#
+# NEITHER IS "the right one" — a full-bleed NDE panel genuinely wants the bans
+# this file has, and a dream-feed page genuinely does not. If you are writing
+# something new against this reference, read both and choose; if you are
+# rewording, say which one you started from. Do not quietly copy this SUFFIX
+# into a new surface on the assumption that it is current — that is exactly
+# how the Playground tile shipped a day-stale tail.
 SUFFIX = (" Render as ONE single full-bleed vertical illustration — a single image, "
           "NOT a grid, NOT split panels, no borders, no caption boxes, no text or lettering anywhere.")
 

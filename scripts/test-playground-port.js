@@ -117,8 +117,12 @@ ok(/STYLE reference only/.test(dream.suffix) && /do not draw its content/.test(d
   'and CLOSES the suffix — bookended');
 // Sophie, 2026-08-20: "it should have a border" — the tail imported from
 // nde-panel.py banned one, on a reference whose own drawn frames are the look.
-ok(!/no borders/i.test(dream.suffix), 'the sent suffix does NOT ban borders');
-ok(/hand-drawn border/.test(dream.suffix), 'it asks for one');
+// It does not ASK for one either: that shipped for an hour and she took it
+// back out ("take your borderline out"). Saying NOTHING about borders is the
+// settled state — the reference's own framing comes through unargued-with.
+ok(!/border/i.test(dream.suffix), 'the sent suffix neither bans nor asks for a border');
+ok(!/caption box/i.test(dream.suffix), 'and does not ban caption boxes (her ask — the reference has them)');
+ok(/minimal text only/i.test(dream.suffix), 'it says "minimal text only", the dream feed\'s current wording');
 // The canvas toggles now, so the prompt must not name a shape.
 ok(!/vertical|portrait|square/i.test(dream.prefix + dream.suffix),
   'and it names no orientation, because the canvas toggles');
@@ -161,6 +165,26 @@ port.PORT_STYLES.forEach((s) => {
   });
 });
 
+// The OLDER wording is still in the repo and still right for what it was built
+// for, so both copies carry a note saying a newer one exists and that picking
+// between them is deliberate (Sophie's ask, 2026-08-20: "a note that says
+// there's a new prompt in town … so other chats can decide if they want that
+// one or the new one"). A silent old copy is exactly how this tile shipped a
+// day-stale tail in the first place.
+console.log('the old wording is signposted, not orphaned');
+// The marker is the CODE line, not the word — the note itself talks about the
+// SUFFIX, so a bare 'SUFFIX' matched inside the note and read the wrong window.
+[['scripts/nde-panel.py', 'SUFFIX = ('], ['scripts/style-triptych.js', "id: 'dream'"]]
+  .forEach(([rel, marker]) => {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const at = src.indexOf(marker);
+    const before = src.slice(Math.max(0, at - 1600), at);
+    ok(/PL_GPT_STYLES\.dreamy/.test(before),
+      rel + ' points at the current wording by name');
+    ok(/newer|current one/i.test(before) && /choose|choice|pick/i.test(before),
+      rel + ' says it is a choice, not a replacement');
+  });
+
 // ── 2b. the canvas, and the prompt the page is allowed to edit ───────────
 console.log('canvas + editable prompt');
 const plgpt = serverSrc.slice(serverSrc.indexOf('const PL_GPT = {'));
@@ -171,7 +195,9 @@ ok(/square:\s*\{\s*size:\s*'1024x1024'/.test(plgptOne), 'square is 1024x1024');
 // cheaper of the two (gpt-image-2 charges MORE for the square — the one price
 // table in docs/modules/pictures.md).
 ok(/PL_GPT\.sizes\[String\(req\.body\.canvas \|\| ''\)\] \|\| PL_GPT\.sizes\.portrait/.test(serverSrc),
-  'an absent or unknown canvas falls back to portrait, never an invented size');
+  'an unknown canvas still falls back to a REAL size on the server, never an invented one');
+ok(/var canvas = 'square'/.test(pageSrc),
+  'the page opens on SQUARE (Sophie\'s call, made knowing it is the dearer one)');
 ok(/size:\s*cfg\.size \|\| PL_GPT\.size/.test(serverSrc),
   'the render job uses the RUN\'s size, not the module default');
 // The page must not carry its own copy of the style prompt — that is the whole
@@ -296,8 +322,24 @@ catch {
   // ── the canvas toggle ───────────────────────────────────────────────
   console.log('the canvas toggle');
   ok(await page.isVisible('#canvastog'), 'the toggle shows on a gpt style');
-  ok(await page.evaluate(() => document.getElementById('c-portrait').classList.contains('on')),
-    'portrait is the default — the shape every run has used, and the cheaper one');
+  ok(await page.evaluate(() => document.getElementById('c-square').classList.contains('on')),
+    'square is lit by default');
+  // She could not find this control at all on her phone: flex squeezed the
+  // group to 50px, "Portrait" bled out of its box and the Square half was
+  // clipped off the row. Measure the real boxes rather than trusting
+  // isVisible(), which was true the whole time it was unusable.
+  const seg = await page.evaluate(() => {
+    const g = document.getElementById('canvastog');
+    const b = g.getBoundingClientRect();
+    return Array.prototype.map.call(g.querySelectorAll('button'), (x) => {
+      const r = x.getBoundingClientRect();
+      return { w: r.width, sw: x.scrollWidth, inside: r.right <= b.right + 1 };
+    });
+  });
+  ok(seg.length === 2 && seg.every((x) => x.inside),
+    'both segments sit inside the group — neither is clipped off the row');
+  ok(seg.every((x) => x.w >= x.sw - 1),
+    'and neither label is squeezed narrower than its own words');
   ok(/0\.5/.test(await page.getAttribute('#c-portrait', 'title'))
     && /0\.6/.test(await page.getAttribute('#c-square', 'title')),
     'both say what they cost, because the square is the DEARER one');

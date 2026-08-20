@@ -5137,16 +5137,25 @@ const PL_GPT_STYLES = {
     // the tail that moved, and it moved in two ways that matter here:
     //   • "no borders" is GONE. Sophie: "it should have a border" — this
     //     reference is a diary comic and its drawn frame is part of the look,
-    //     so the old clause was fighting the style it was copying.
+    //     so the old clause was fighting the style it was copying. It does not
+    //     ASK for one either: the first cut added "draw it inside a hand-drawn
+    //     border" and she took that back out the same day ("take your
+    //     borderline out"). Saying nothing lets the reference's own framing
+    //     come through without a second instruction arguing about it.
+    //   • "no caption boxes" is gone too, at her ask, for the same reason —
+    //     the reference HAS them.
     //   • "no text or lettering anywhere" became "minimal text only", because
     //     her handwriting is part of that page too.
     // "vertical" is dropped as well: the canvas toggles portrait/square now,
     // so a prompt naming one shape would fight the other.
+    // THE ORIGINAL WORDING IS STILL IN THE REPO AND IS STILL VALID for what it
+    // was built for — `scripts/nde-panel.py` (a full-bleed NDE panel wants
+    // those bans) and `scripts/style-triptych.js`. Both carry a note pointing
+    // here. Writing a new surface against this reference? Read both and pick
+    // deliberately; this one is Sophie's current wording, not the only one.
     suffix: 'Render as ONE single illustration — a single image, NOT a grid, NOT ' +
-      'split panels, no caption boxes. Draw it inside a hand-drawn border, like ' +
-      'the frames in the style reference. Minimal text only. Again: the attached ' +
-      'image is a STYLE reference only — do not draw its content, its subjects ' +
-      'or its composition.',
+      'split panels. Minimal text only. Again: the attached image is a STYLE ' +
+      'reference only — do not draw its content, its subjects or its composition.',
     noCharacter: true,
   },
   // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the

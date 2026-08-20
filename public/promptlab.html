@@ -14,7 +14,14 @@
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
   textarea { width: 100%; min-height: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 9px; font: inherit; font-size: 16px; background: #fdfcf9; resize: vertical; }
-  .controls { display: flex; align-items: center; gap: 10px; }
+  /* WRAPS (Aug 2026): the row gained a Prompt button and a canvas toggle, and
+     on a 390pt phone flex squeezed the toggle to 50px — "Portrait" bled out of
+     its box and the Square half was clipped off the row entirely, which is why
+     Sophie couldn't find it ("I don't know how to change it from portrait to
+     square"). Wrapping to a second line is the fix; `flex: none` on the two
+     segmented groups is what stops flex shrinking them below their words in
+     the first place. */
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .controls label { font-size: 12.5px; color: #6f675e; }
   .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
   /* The low·low·medium button: a pyramid of three, two at the base and the
@@ -159,11 +166,12 @@
   #promptpanel .prow button { border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9;
     color: #6f675e; font: inherit; font-size: 12.5px; padding: 6px 10px; cursor: pointer; }
   #promptpanel .pnote { font-size: 11.5px; color: #9a9186; margin-left: auto; text-align: right; }
+  .promptbtn { flex: none; }
   .promptbtn.edited { border-color: #2b2622; color: #2b2622; }
   /* The canvas toggle — portrait or square. Two segments, no pill. */
-  .canvastog { display: flex; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; }
-  .canvastog button { border: none; background: #fdfcf9; color: #6f675e; font: inherit;
-    font-size: 12.5px; padding: 6px 9px; margin: 0; cursor: pointer; }
+  .canvastog { display: flex; flex: none; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; }
+  .canvastog button { flex: none; white-space: nowrap; border: none; background: #fdfcf9;
+    color: #6f675e; font: inherit; font-size: 12.5px; padding: 6px 9px; margin: 0; cursor: pointer; }
   .canvastog button + button { border-left: 1px solid #d8d0c4; }
   .canvastog button.on { background: #2b2622; color: #faf7f2; }
 </style></head><body>
@@ -564,7 +572,13 @@
   // obvious guess, so the button says so rather than leaving her to assume.
   // Like quality, it is NOT persisted — a fresh load is back to portrait, so
   // an expensive shape can never carry over into next time unmeant.
-  var canvas = 'portrait';
+  // SQUARE IS THE DEFAULT (Aug 2026, Sophie's call, made knowing the price).
+  // It is the DEARER of the two — gpt-image-2 charges 0.6c/5.3c/21.1c for
+  // 1024x1024 against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price
+  // table warns about — so the buttons still print what they cost. Like
+  // quality, it is not persisted: a fresh load is back to this default rather
+  // than carrying a shape she picked once into every later visit.
+  var canvas = 'square';
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');

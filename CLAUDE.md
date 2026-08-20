@@ -2051,11 +2051,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
   right; measured against the live filed prompts that day, the newest runs
   naming this reference say "render as a single image, not a grid, not split
   panels. Minimal text only"). Two clauses came OUT of the imported version and
-  neither should go back: **"no borders"** (Sophie: "it should have a border" —
-  the reference IS a diary comic and its drawn frames are the look, so the ban
-  was fighting the style it was copying; the tail now asks for one) and
-  **"vertical"** (the canvas toggles, so a prompt naming one shape fights the
-  other). The prefix is identical across every version ever sent — it is only
+  neither should go back: **"no borders"** / **"no caption boxes"** (Sophie: "it
+  should have a border" then "take your borderline out … and also take out
+  where it says no caption boxes" — the reference IS a diary comic and its
+  drawn frames and boxes are the look, so a ban fought the style it was
+  copying; it does not ASK for a border either, which shipped for an hour and
+  came straight back out) and **"vertical"** (the canvas toggles, so a prompt
+  naming one shape fights the other).
+  **THE OLDER WORDING IS SIGNPOSTED, NOT ORPHANED (her ask: "a note that says
+  there's a new prompt in town … so other chats can decide if they want that
+  one or the new one").** `scripts/nde-panel.py` and
+  `scripts/style-triptych.js` still carry the original, which is still right
+  for a full-bleed NDE panel, and each now names `PL_GPT_STYLES.dreamy` and
+  says the pick is deliberate. **Writing a new surface against this reference?
+  Read both and choose; if you reword one, say which you started from.** A
+  silent old copy is exactly how this tile shipped a day-stale tail. Pinned by
+  the test. The prefix is identical across every version ever sent — it is only
   ever the tail that moves.
   **THE PROMPT BUTTON — see what is wrapped around her words, and change it
   (Aug 2026, Sophie: "add a prompt button so you can see what's being added
@@ -2080,14 +2091,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the LIVE VALUE that will be sent, the way reopening her waiting-for box
     shows the sentence she already wrote. Her own words go in the main box,
     which still ships empty.
-  **PORTRAIT OR SQUARE (Aug 2026, her ask).** `PL_GPT.sizes`; the run carries
-  `canvas`, and an absent or unknown value is portrait — never an invented
-  size. **PORTRAIT STAYS THE DEFAULT because it is the CHEAPER one**: the
-  square is 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
-  table warns about, so both buttons print what they cost rather than leaving
-  her to assume the big one is dearer. Not persisted, same reasoning as
-  quality. gpt-image-2 only — the LoRA has no baked prefix to show and rides
+  **PORTRAIT OR SQUARE, opening on SQUARE (Aug 2026, her call).**
+  `PL_GPT.sizes`; the run carries `canvas`, and an unknown value still lands on
+  a real size server-side, never an invented one. **The square is the DEARER
+  one** — 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
+  table warns about — so both buttons print what they cost; she picked it as
+  the default knowing that. Not persisted, same reasoning as quality.
+  gpt-image-2 only — the LoRA has no baked prefix to show and rides
   `aspect_ratio` instead, so both controls hide on WTR.
+  **THE ROW WRAPS, and that is load-bearing:** with the Prompt button and the
+  toggle added, flex squeezed the toggle to 50px on a 390pt phone — "Portrait"
+  bled out of its box and **the Square half was clipped off the row**, which is
+  why she reported not knowing how to change it. `flex-wrap` plus `flex:none`
+  on the segmented groups; the test measures the real boxes, because
+  `isVisible()` was true the whole time it was unusable.
   **PORTING AN IMAGE IN FROM ASSETS SAYS WHETHER IT IS HONEST
   (`public/playground-port.js`, served to the page, Aug 2026).** The lightbox's
   Playground button carries the content half, a tile, the quality and
