@@ -286,7 +286,7 @@
       var few = s.photos.filter(function(p){ return p.media !== 'video'; }).length < 5;
       html += '<div class="stone"><div class="stonehead">' +
         '<span class="stonen">' + (i+1) + '</span>' +
-        '<input placeholder="name it (optional)" value="' + esc(cur.names[s.startId] || '') +
+        '<input placeholder="Name" value="' + esc(cur.names[s.startId] || '') +
           '" data-name="' + esc(s.startId) + '">' +
         '<span class="tmt">' +
           '<button data-t="own" data-for="' + esc(s.startId) + '"' + (t==='own'?' class="on"':'') + '>Own</button>' +
