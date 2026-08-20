@@ -169,7 +169,11 @@ const check = (name, ok, detail) => {
     `${await page.locator('.fend').count()} .fend`);
 
   // ── 6. the header: two views, no "tonight" ──
-  check('"tonight" is gone from the corner', (await page.locator('.fnow').count()) === 0);
+  // The corner line she had taken out is still out ON THE PHONE. The element
+  // exists again since Aug 2026 — her DESKTOP artboard puts "everyone's still
+  // dreaming · tonight, …" beside the wordmark — but it is display:none below
+  // 900px, so this asks what is on the screen rather than what is in the DOM.
+  check('"tonight" is gone from the corner', !(await page.locator('.fnow').isVisible()));
   check('the other view is called the archive',
     (await page.locator('#navMine').textContent()) === 'archive',
     await page.locator('#navMine').textContent());
