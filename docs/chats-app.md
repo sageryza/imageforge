@@ -529,7 +529,23 @@
     `paintVocabChips(row, mk, {archive})` is the ONE place either list is
     applied; both are PRESENTATION ONLY, so a word already on a chat still
     renders, filters and saves everywhere it already is. `waiting for a response`
-    also joined `TASK_LABELS` the same day, at her ask. The archive's own filter
+    also joined `TASK_LABELS` the same day, at her ask.
+    **`research` and `quick question` joined ARCHIVE_ONLY two days later**
+    (Sophie: "research goes in progress not categories" → "so does quick
+    question" → "quick question and research should only be in the archive tag
+    tab"). Being on that list answers BOTH halves at once — an ARCHIVE_ONLY word
+    is offered in the archive and nowhere else, AND is read as a progress word
+    there, since `paintVocabChips` puts `ARCHIVE_ONLY.concat(TASK_LABELS)` at the
+    head of the group. **So do not also add one to `TASK_LABELS`**: that would
+    put it straight back on the home row and into Organize, which is the
+    opposite of the ask.
+  - **THREE WORDS SHE HAD NEVER MADE WERE FORGOTTEN (Aug 2026, Sophie: "get rid
+    of images audio and writing", after asking who had made them — the answer
+    being the chat that built the row, not her).** Measured the day they went:
+    `images` 0 chats, `writing` 0, `audio` 3 (all archived, which lost the word).
+    They came out of `TAGS`/`TAG_LIST` and off every chat via
+    `POST /labels/forget`. `film` is the survivor of that group of five, and is
+    what tests should reach for when they need a plain tag word. The archive's own filter
     row obeys the SAME split (below). Test:
     `node scripts/test-chats-tag-visibility.js`.
   - **THE ARCHIVE IS TWO SURFACES, AND THE FIRST PASS ONLY FIXED ONE (Aug 2026,
@@ -1946,10 +1962,86 @@
     - **An open BOX stays one flat list** — filing a card into Come back to /
       In a minute was the triage; sectioning inside would sort seven cards
       she already sorted.
+    - **EACH SECTION FOLDS (Aug 2026, Sophie: "can y make the categories in
+      the update [tab] collapsible").** The header IS the button — the whole
+      line, ~36px of thumb, absorbed by negative margins so the words sit
+      where they always did — with a ⌄ that turns to a › when it is shut. The
+      one that needs it is QUICK DECISIONS: 24 of the 33 cards were asks the
+      day the sections shipped, so folding it puts the two piles she opens
+      this screen to LOOK at back on one screen without filing anything.
+      - **The header and its count STAY**, so a folded section is visibly
+        folded rather than missing. Nothing is marked seen and nothing is
+        filed — this is a fold, not a triage.
+      - **SESSION-ONLY, and every load starts OPEN** — the hidden pile's rule
+        and the MORE fold's, for the same reason: a fold that remembered
+        itself would hide a section one morning with no memory of having
+        asked for it.
+      - **Folding DROPS the picks inside it**, the way leaving the tab does. A
+        picked card she can no longer see is one the next tap on a box would
+        file without her, so the DONE chip goes with them.
+      - An open BOX has no headers, so there is nothing to fold there.
     - Tests: `node scripts/test-chats-news-sections.js` (the real page,
       headless — the order, the counts, the need-vs-deliverable priority, the
       stale-pictures case, the vanishing empty header, the flat box; v2: the
-      pin-raised card, the go-look need, the stale pin, the link pin).
+      pin-raised card, the go-look need, the stale pin, the link pin) and
+      `node scripts/test-chats-news-collapse.js` (the fold: the header as the
+      tap target, one section folding without moving another, the picks
+      dropped with it, session-only across a reload).
+  - **MANUAL RULES PER TAG (Aug 2026, Sophie: "i think i'll have to do manual
+    rules per tag … more coming").** Until now a word did one of two things and
+    the APP decided which — a PILE word took a chat off the main list,
+    everything else was decoration. Two of her words now say what should
+    HAPPEN to a chat wearing them, and the mechanism is a TABLE (`TAG_RULES`
+    in chats.html, `{label, rule, head}`) so the next rule she names is a row
+    in it rather than another `if` buried in the render.
+    - **`waiting for a response` → PINNED AT THE TOP** ("means i need a
+      response and want it, so these get pinned at the top of the updates tab
+      until i respond to the chat, or dismiss manually"). **The TAG IS THE
+      ARRIVAL** — the card is on the tab whether or not anything new has
+      landed, in its own section above all three of the kind sections. That is
+      not a shortcut: a chat she owes an answer is usually one that said its
+      piece days ago and went quiet, so waiting for the ordinary arrival test
+      would show the pin only where it is not needed. `pinLive` is
+      `filedAt > notifSeenAt` and nothing else — the tag written after the
+      last time she settled the chat.
+    - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images
+      waiting on my decision, go into a `review` button (which links to the
+      review queue) at the top of the updates tab, and get hidden from the
+      account 1 or 2 area until i review or respond IF i dismiss manually from
+      update tab"). Those cards come OUT of the sections and fold behind one
+      row at the very top: the WORD leaves for `/review`, where the work is
+      actually done, and a **⌄ opens the cards** — that half is required by
+      her own condition, since "if i dismiss manually from update tab" needs
+      them to be reachable from this tab at all. The fold starts shut, like
+      every other fold here, and shutting it drops the picks inside.
+    - **THE HOLD is the second half of the review rule.** Dismissing one of
+      those cards writes `reviewHoldAt` beside `notifSeenAt`, and `chatBack`
+      stops popping that chat onto her account lists when it delivers again —
+      the thing is waiting in the QUEUE now, not on her chat list. **The
+      SERVER decides who is held**, by re-reading the chat's labels inside
+      `POST /notif-seen`: her phone can be running a build days old, and a
+      chat missing from her list for a reason nothing on screen explains is
+      the worst failure this app has. The page mirrors the stamp optimistically
+      so the chat leaves on the same tap, and takes the server's answer over
+      its own.
+    - **It ends three ways, all of them hers, and none is a timer** — "until i
+      review or respond": `POST /reply` clears it (she responded), `labelPatch`
+      clears it with the tag (she took the word off — the same rule
+      `waitingFor` follows), and `POST /page/:id/review` clears it when she
+      marks a deck done or skipped in the queue (she reviewed it). That last
+      one is why the join is cheap: the deck already posts to chatfeed, which
+      already knows the page's chat.
+    - **BOTH WORDS ARE HERS TO APPLY, and the sorter is forbidden from filing
+      into either** — they joined `TRIAGE` in `chat-sort.js` beside `look at`
+      and `come back to`. A folder guess costs a wrong pile; a rule guess pins
+      a card she never asked for, or hides a chat she was watching.
+    - **A pin she files into a box leaves the top**, because filing IS manual
+      triage — it falls out of `newsList` already excluding boxed cards, and
+      no rule was needed for it.
+    - Test: `node scripts/test-tag-rules.js` (the real page, headless — the
+      tag-as-arrival, the position, both exits, the row and its count, the
+      fold, the hold with its control, and the two words pinned equal across
+      chats.html / chatfeed.js / chat-sort.js).
   - **The ✓ is a self-clearing STAMP (`notifSeenAt`, `POST
     /api/chatfeed/notif-seen {chat, seen}`), never a boolean** — same shape as
     `hiddenAt`/`answeredAt`, and her oven example is why: checking off v3 must

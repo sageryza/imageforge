@@ -29,6 +29,7 @@
 //     promptStyle?, promptContent? }
 //
 //   img  = the picture (text-only items — a to-do line — use `text` instead)
+//   chat = the chat this card is about, on an `applyArchive` page (below)
 //   link = a way OUT of the card: { url, label } (or a bare url string),
 //          rendered as a real anchor in both views. See cleanLink below.
 //   url  = the item's ASSETS-TAB identity. When set (it defaults to `img`

@@ -206,21 +206,21 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   } else ok();
   // MANY AT ONCE — the whole point of the merge. A second word joins the first
   // rather than replacing it.
-  await tap('Images');
+  await tap('Film');
   const both = await chips();
-  if (!both.includes('Tech*') || !both.includes('Images*')) {
+  if (!both.includes('Tech*') || !both.includes('Film*')) {
     fail('a second word did not join the first — ' + JSON.stringify(both));
   } else ok();
-  if (JSON.stringify((posted.labels[1] || {}).add) !== '["images"]') {
+  if (JSON.stringify((posted.labels[1] || {}).add) !== '["film"]') {
     fail('the second tap was not its own add — ' + JSON.stringify(posted.labels));
   } else ok();
   // Tapping a lit word takes it back off — one control, both ways.
   // (Also what puts this chat back on the unfiled list for the rest of the
   // test: filing it really did take it off.)
   await tap('Tech');
-  await tap('Images');
+  await tap('Film');
   const out = await chips();
-  if (!out.includes('None*') || out.includes('Tech*') || out.includes('Images*')) {
+  if (!out.includes('None*') || out.includes('Tech*') || out.includes('Film*')) {
     fail('tapping the lit words did not take the chat out of them — ' + JSON.stringify(out));
   } else ok();
   await page.click('.askwrap .askrow button.go');
