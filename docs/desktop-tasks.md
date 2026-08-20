@@ -68,84 +68,115 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 
 ## OPEN
 
-### Hand Apple's Voice Memos transcripts to the archive
-- **Why:** 94 of the 1,137 archived recordings have NO transcript — too long
-  for the server's 45-minute ceiling, over Whisper's 24MB cap, heard as empty,
-  or a failed enrich. Search searches words, so those recordings are invisible
-  in it, and a search that finds nothing reads as a recording that doesn't
-  exist. Voice Memos already transcribed them on the phone, for free, including
-  the long ones — but only this Mac can read Apple's database.
-- **Expect ~57, not 94** (measured live 2026-08-17): 11 of the 94 are
-  zero-length and 26 more are under 5 seconds, so there is nothing for Apple to
-  have transcribed either. The 57 that carry real audio are **66.5 hours**,
-  14 of them over an hour each — those are the ones the server's ceiling
-  refused, and the whole point of this.
-- **Where:** anywhere (it needs no checkout — the script is served by the app)
-- **Run:**
+### Give `node` Full Disk Access so the scheduled push can read Voice Memos
+- **Why:** the auto-push agent is installed and running on schedule, but every
+  run comes back empty-handed. macOS does not let a launchd job inherit
+  Terminal's Full Disk Access, so the job can *see* `CloudRecordings.db` and
+  copy it, but the copy it gets is **0 bytes** — which surfaces as the
+  confusing `no such table: ZCLOUDRECORDING` rather than the "No Voice Memos
+  database" line the installer watches for. Nothing is wrong with the push
+  itself: run by hand from Terminal it reads the database fine and finds 138
+  recordings waiting. This one click is the only thing between the archive and
+  a push that runs by itself.
+- **Where:** System Settings, then a terminal
+- **Run:** (the click first — there is no command for this part)
+  1. System Settings → Privacy & Security → **Full Disk Access**
+  2. Click **+**, press **Cmd-Shift-G**, paste this exact path and add it:
+     `/Users/sageryza/.nvm/versions/node/v24.7.0/bin/node`
+  3. Then re-run the installer so the agent picks it up:
   ```bash
-  curl -fsSL https://imageforge-q125.onrender.com/import-apple-transcripts.mjs -o /tmp/apple-tx.mjs && node /tmp/apple-tx.mjs --dry-run
+  curl -fsSL https://imageforge-q125.onrender.com/install-memo-autopush.sh -o /tmp/install-memo-autopush.sh && bash /tmp/install-memo-autopush.sh
   ```
-  It reads Apple's database, matches each recording to its archive record, and
-  prints what it found and what it would fill — sending nothing. Then, to
-  actually send them, the same line without `--dry-run`:
-  ```bash
-  node /tmp/apple-tx.mjs
-  ```
-- **If it says it found no transcript text:** the layout differs on this OS
-  version. Run `node /tmp/apple-tx.mjs --report` and paste the output back —
-  the reader fits itself to whatever it is told.
-- **Needs from her:** nothing, it just runs. Open the Voice Memos app once
-  first if it has never been opened on this Mac. Safe to re-run: it only ever
-  fills records that have no words, and the server refuses to overwrite one
-  that does.
-- **Queued:** 2026-08-17 by search-index-rebuild
+  It prints the log at the end — a good run says `Sending N recording(s)`
+  instead of an error.
+- **Heads up, this path has a version number in it.** It is nvm's node, so
+  upgrading node moves the binary and the agent quietly stops working *and*
+  loses its Full Disk Access grant. If the daily push ever goes silent, this is
+  the first thing to check: `command -v node`, and re-run the installer.
+- **Needs from her:** the one click above; everything else is a paste.
+- **Queued:** 2026-08-19 by terminal chat (desktop queue run)
 
-- **FAILED 2026-08-18** (terminal chat, macOS 26.1, build 25B78): there are no
-  Apple transcripts on this Mac to import — this is not the "layout differs on
-  this OS version" case the task anticipated. `--dry-run` and `--report` both
-  found 0 transcript columns across all 30 tables of `CloudRecordings.db`, and
-  a hand check agrees: `ZCLOUDRECORDING` (1,197 rows) has no transcript column
-  of any kind, the second database (`EncryptedCloudRecordings.db`) has none
-  either, and the Recordings container holds only `.m4a` and `.waveform` files
-  — the 610 `_FBF` external blobs are audio, not text. The words simply aren't
-  here: Voice Memos transcription is produced per-device, on demand, and is not
-  carried across iCloud, so the phone's transcripts stayed on the phone.
-  Fitting the reader to another schema cannot fix this.
-  **What could work instead** (needs her decision before anything is rewritten):
-  transcribe from the audio this Mac already holds — all 1,196 recordings are
-  on disk, so the 57 wordless ones (66.5 hours) could be chunked under the size
-  cap locally and sent — or export the transcripts off the phone.
-
-### Turn on the automatic daily Voice Memos push
-- **Why:** Sophie asked for the Mac push to run by itself — at login and once a
-  day — instead of being a command she has to remember. This installs a small
-  launchd agent that runs the existing `push-memos.mjs` (fetched fresh from the
-  server each run, so it never goes stale). One-time install; after this the
-  push needs nobody.
-- **Where:** anywhere (it needs no checkout — the installer is served by the app)
-- **Run:**
-  ```bash
-  curl -fsSL https://imageforge-q125.onrender.com/install-memo-autopush.sh -o /tmp/install-memo-autopush.sh
-  bash /tmp/install-memo-autopush.sh
-  ```
-  It writes the agent, starts the first push immediately, and shows the log.
-- **If the log says "No Voice Memos database":** that's macOS keeping a
-  background job away from the recordings even though Terminal can see them.
-  The installer prints the one-time fix (add the `node` binary it names to
-  System Settings → Privacy & Security → Full Disk Access) — do that, then run
-  the installer once more.
-- **Afterwards:** it runs at every login and daily at 12:00 PM (a run missed
-  while the Mac sleeps happens on the next wake). The log lives at
-  `~/Library/Logs/imageforge-push-memos.log`. Re-running the installer is
-  always safe; uninstall lines are in the script's header.
-- **Needs from her:** nothing beyond the possible Full Disk Access click above.
-- **Queued:** 2026-08-18 by voice-memos-upload-script
-- **If the curl 404s** (deploy not live yet): pull main and run
-  `bash ~/imageforge/scripts/install-memo-autopush.sh` instead — same script.
-
+### Decide what to do about four junk transcripts
+- **Why:** the first local-transcription run had no hallucination filter yet,
+  and Whisper's silence filler got banked on four near-silent recordings. They
+  are wrong, they are indexed by Search, and **nothing in the API can clear
+  them** — `POST /api/memos/transcript` is fill-only and there is no route that
+  unsets a transcript. The filter that would have caught all four is in place
+  now, so this is a one-time cleanup, not an ongoing leak.
+  - `2021-02-01_1626_2021-02-02T00_26_28Z` (9s) — `*gunshot*`
+  - `2021-11-09_0208_2021-11-09T10_08_45Z` (16s) — `Thank you.`
+  - `2024-02-15_0551_2024-02-15T13_51_43Z` (5s) — `Thank you.`
+  - `2025-10-20_1744_2025-10-21T00_44_23Z` (71s) — `*crickets* *crickets*`
+- **Where:** ~/imageforge (a server change, so it needs a deploy)
+- **Run:** nothing yet — this is a decision, not a command. The options are
+  (a) leave them: four wrong rows in 1,235, all on recordings that are close to
+  silent anyway; (b) add a narrow `POST /api/memos/transcript/clear {id}` that
+  unsets `transcript`/`transcriptFrom` and puts the record back in
+  `/untranscribed`, then re-run `scripts/transcribe-local.mjs`, which will now
+  skip all four correctly.
+- **Needs from her:** which of (a) or (b).
+- **Queued:** 2026-08-19 by terminal chat (desktop queue run)
 
 ---
 
 ## DONE
 
-*(nothing yet — finished tasks move here with the date they ran)*
+### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
+- **Ran:** 2026-08-19 (after the 2026-08-18 failure below)
+- **What happened:** the import can never work. Voice Memos transcribes
+  per-device, on demand, and does **not** carry the result across iCloud, so
+  the phone's transcripts stayed on the phone. Confirmed on this Mac: no
+  transcript column in any of the 30 tables of `CloudRecordings.db`, none in
+  `EncryptedCloudRecordings.db`, and the Recordings container holds only
+  `.m4a` and `.waveform` files. This was never the "layout differs on this OS
+  version" case the task anticipated — there is no layout to fit a reader to.
+- **What was done instead:** the audio is all here, so the Mac transcribes it
+  itself. New `scripts/transcribe-local.mjs` — whisper.cpp with
+  `large-v3-turbo`, **no API key and no per-minute cost** (the OpenAI route
+  would have been about $17.55 for this backlog). Neither limit that emptied
+  these records applies locally: whisper.cpp streams a file of any length, so
+  the 45-minute ceiling and the 24MB cap are both gone and **nothing needed
+  chunking** — including the 5.9-hour recording.
+- **Setup this left on the Mac:** `brew install whisper-cpp`, plus two models
+  in `~/Library/Application Support/ImageForge/whisper-models/`
+  (`ggml-large-v3-turbo.bin`, 1.5GB, and `ggml-silero-v5.1.2.bin`, the VAD).
+- **The result:**
+```
+101 wordless records at the start  →  59 now.
+42 filled. Roughly 48h40 of audio, about 1h45 of machine time (14–178× realtime).
+
+The 5.9-hour recording: 119 seconds, no chunking, 436 characters (it is nearly
+all silence — that is the honest answer for it).
+Biggest transcript: 81,346 characters from a 79-minute recording.
+Two sends died on a dropped socket mid-run; both went through on a retry, and
+the script now caches the words to disk before sending and retries 4×.
+
+The 59 that remain are not reachable from this Mac: 26 have no recording in
+Voice Memos, 27 are under 5 seconds, 3 have an ambiguous stamp+length, and 3
+contain no speech at all (checked every run, correctly skipped every time).
+```
+- **Reach:** of 101 wordless records, 45 had real audio on this Mac. The other
+  56 are out of reach from here — 26 have no recording in Voice Memos at all,
+  3 have a stamp+length matching two recordings (left alone rather than
+  guessed), and 27 are under 5 seconds.
+- **The one bruise:** the first run, before the filter existed, banked four
+  junk transcripts. They cannot be cleared without a new server route — see
+  the OPEN task above.
+- **Queued:** 2026-08-17 by search-index-rebuild
+
+- **FAILED 2026-08-18** (terminal chat, macOS 26.1, build 25B78): there are no
+  Apple transcripts on this Mac to import. `--dry-run` and `--report` both
+  found 0 transcript columns across all 30 tables of `CloudRecordings.db`, and
+  a hand check agreed. Superseded by the run above.
+
+### Turn on the automatic daily Voice Memos push
+- **Ran:** 2026-08-19 — installed, loaded, and scheduled.
+- **What landed:** `~/Library/LaunchAgents/com.imageforge.push-memos.plist`
+  (RunAtLoad + daily at 12:00) and the runner in
+  `~/Library/Application Support/ImageForge/`, logging to
+  `~/Library/Logs/imageforge-push-memos.log`.
+- **Not finished:** the scheduled run cannot read the Voice Memos database
+  until `node` has Full Disk Access — see the OPEN task above. The push logic
+  itself is fine; run by hand from Terminal it found 138 recordings to send.
+- **Queued:** 2026-08-18 by voice-memos-upload-script
+
