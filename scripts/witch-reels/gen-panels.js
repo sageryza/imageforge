@@ -68,12 +68,47 @@ const NOTEXT = 'No text, no lettering, no captions, no numbers anywhere in the i
 
 const POSITIONS = ['top left', 'top right', 'bottom left', 'bottom right'];
 
-/** Sheets of four, in the doc's own order. 47 stills → 11 full + one of 3. */
+/**
+ * Sheets of four.
+ *
+ * THE DEFAULT GROUPING IS THE DOC'S OWN ORDER — 47 stills, 11 full sheets and
+ * one of 3 — and it has ONE cost, found by looking at the first batch: the
+ * character line is SHEET-WIDE. A sheet holding one scene the witch is in and
+ * three she is not sends her description over all four, and the model duly
+ * draws her into the empty golden-hour desk, the attic inventory and the
+ * workbench — every one of them marked "no character line" in the script.
+ *
+ * `--only-clean` is the fix, and it is a REGROUPING rather than a reworded
+ * prompt: take only the stills the doc keeps her out of, group those together,
+ * and the character line is absent from the sheet entirely (promptFor already
+ * omits it when no cell asks for her). The 14 stills she belongs in keep their
+ * first draw — she is supposed to be in those. `--only-character` is the
+ * mirror, kept for symmetry.
+ */
 function buildSheets() {
+  const onlyClean = argv.includes('--only-clean');
+  const onlyChar = argv.includes('--only-character');
+  const pool = onlyClean ? STILLS.filter(s => !s.character)
+    : onlyChar ? STILLS.filter(s => s.character)
+    : STILLS;
+  const tag = onlyClean ? 'clean' : onlyChar ? 'witch' : 'sheet';
   const out = [];
-  for (let i = 0; i < STILLS.length; i += 4) {
-    const cells = STILLS.slice(i, i + 4);
-    out.push({ n: out.length + 1, id: `sheet-${String(out.length + 1).padStart(2, '0')}`, cells });
+  // A trailing sheet of ONE is a whole render for a quarter of a picture, so a
+  // remainder of 1 is borrowed back off the sheet before it: …4, 4, 3, 2.
+  const sizes = [];
+  let left = pool.length;
+  while (left > 0) { sizes.push(Math.min(4, left)); left -= 4; }
+  if (sizes[sizes.length - 1] === 1 && sizes.length > 1) {
+    sizes[sizes.length - 2] = 3; sizes[sizes.length - 1] = 2;
+  }
+  let i = 0;
+  for (const size of sizes) {
+    out.push({
+      n: out.length + 1,
+      id: `${tag}-${String(out.length + 1).padStart(2, '0')}`,
+      cells: pool.slice(i, i + size),
+    });
+    i += size;
   }
   return out;
 }
@@ -84,9 +119,10 @@ function promptFor(sheet) {
     .map((c, i) => `Panel ${i + 1} (${POSITIONS[i]}): ${c.content}`).join(' ');
   // A short sheet still asks for a 2x2 so the geometry — and therefore the
   // slice — stays identical; the spare quarter is asked for empty and dropped.
-  const spare = sheet.cells.length < 4
-    ? ` Panel 4 (${POSITIONS[3]}): empty — plain dark background, nothing drawn in this quarter.`
-    : '';
+  let spare = '';
+  for (let i = sheet.cells.length; i < 4; i++) {
+    spare += ` Panel ${i + 1} (${POSITIONS[i]}): empty — plain dark background, nothing drawn in this quarter.`;
+  }
   const character = sheet.cells.some(c => c.character) ? ' ' + CHARACTER : '';
   const prompt = `${PREFIX} ${GRID} ${body}${spare}${character} ${NOTEXT}`;
   const style = `${PREFIX} ${GRID} [content — this cell is the {position} quarter of a 2x2 sheet]` +
