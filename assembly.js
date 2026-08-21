@@ -29,6 +29,18 @@
 // A still's timeline thumb is a DERIVED display copy via the /api/story/thumb
 // service — the original is never touched (house rule).
 //
+// AND THE UPLOAD IS ONE BUTTON TOO (Sophie, Aug 2026 v3: "couldn't it just be
+// one. a button in assemblies where u can upload the footage and it appears
+// above the timeline, ready to drop in"). The page's Upload button opens the
+// phone's own picker; each file POSTs to the Dump's battle-tested
+// /api/drop/upload-file (HEIC→JPEG, md5 dedupe, video posters — bytes are
+// never stored twice) under an album named after the assembly, and the stored
+// item lands in the doc's TRAY — a strip riding just above the timeline.
+// Tapping a tray piece arms it exactly like a shelf clip: the place
+// indicators light and a tap drops it in. The tray is saved WHOLE alongside
+// the arrangement (`POST /:id/clips { clips, tray }`) so a half-placed batch
+// survives leaving the app; the render reads `clips` only.
+//
 // THE STITCH IS THE SCRATCH-PAD FILM'S RECIPE, not a fresh one:
 //   1. every clip is normalized onto one canvas (scale + pad, 30fps, setsar=1,
 //      yuv420p) and encoded as its own segment, so the concat demuxer joins
@@ -58,8 +70,10 @@
 //   GET    /sources     → { albums } — the Dump's albums, newest first
 //   POST   /            → { title? } → { id } — a new empty assembly
 //   GET    /:id         → the doc
-//   POST   /:id/clips   → { clips:[{id,url,title,poster,seconds,kind,hold}] }
-//                         — the whole arrangement (the page debounces)
+//   POST   /:id/clips   → { clips:[…], tray:[…] } — the whole arrangement
+//                         and/or the whole tray, each an array of
+//                         {id,url,title,poster,seconds,kind,hold} (the page
+//                         debounces; a field left out is left alone)
 //   POST   /:id/import  → { album } — append a whole Dump album (photos and
 //                         videos, in album order) to the timeline
 //   POST   /:id/title   → { title }
@@ -449,7 +463,7 @@ router.post('/', async (req, res) => {
       || 'Assembly · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const now = Date.now();
     await ref.set({
-      id: ref.id, title, clips: [], renders: [], job: null,
+      id: ref.id, title, clips: [], tray: [], renders: [], job: null,
       createdAt: now, updatedAt: now,
     });
     res.json({ id: ref.id, title });
@@ -506,15 +520,24 @@ router.get('/:id/job', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// The whole arrangement in one save — order and membership always change
-// together (an insert is both), so a partial write could never be right.
+// The whole arrangement (and/or the whole tray) in one save — order and
+// membership always change together (an insert is both; placing a tray piece
+// changes both arrays), so a partial write could never be right. A field the
+// page doesn't send is left alone.
 router.post('/:id/clips', async (req, res) => {
   try {
     const doc = await loadDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: 'no such assembly' });
-    const clean = cleanClips(req.body.clips);
-    await patchDoc(req.params.id, { clips: clean });
-    res.json({ ok: true, clips: clean.length });
+    const patch = {};
+    if ('clips' in (req.body || {})) patch.clips = cleanClips(req.body.clips);
+    if ('tray' in (req.body || {})) patch.tray = cleanClips(req.body.tray);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing to save' });
+    await patchDoc(req.params.id, patch);
+    res.json({
+      ok: true,
+      clips: (patch.clips || doc.clips || []).length,
+      tray: (patch.tray || doc.tray || []).length,
+    });
   } catch (err) { fail(res, err); }
 });
 

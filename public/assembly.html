@@ -54,8 +54,8 @@ body.tool .float{
 #ttl{ width:calc(100% - 96px); margin:8px 16px 0; border:0; background:transparent;
   font-family:Georgia,serif; font-size:19px; color:var(--ink); padding:2px 0; }
 #ttl:focus{ outline:none; border-bottom:1px solid var(--border); }
-/* the one button — a whole dumped album onto the timeline */
-.addrow{ margin:8px 16px 0; }
+/* the two doors — upload straight from the phone, or a whole dumped album */
+.addrow{ margin:8px 16px 0; display:flex; gap:8px; flex-wrap:wrap; }
 /* finished films — a line of text with a play button, never an embedded video */
 #films{ margin:4px 16px 0; }
 #films button{ display:flex; align-items:center; gap:8px; background:none; border:0;
@@ -130,6 +130,13 @@ body.tool .float{
   justify-content:center; font-style:normal; font-size:15px; line-height:1; }
 #empty{ font-size:12.5px; color:var(--dim); padding:2px 4px; }
 
+/* the tray — uploaded pieces waiting above the timeline, ready to drop in */
+#trayrow{ border-top:1px solid var(--border); }
+#upline{ font-size:12.5px; color:var(--dim); padding:6px 14px 0; }
+#tray{ display:flex; align-items:center; gap:7px; overflow-x:auto;
+  -webkit-overflow-scrolling:touch; padding:7px 12px; }
+#tray .tclip{ width:46px; height:46px; }
+
 /* the in-hand bar — what is armed / selected, riding on top of the timeline */
 #hand{ display:flex; align-items:center; gap:9px; padding:7px 14px;
   border-top:1px solid var(--border); background:var(--surface); }
@@ -188,10 +195,11 @@ body.tool .float{
   clip already ON the timeline to pick it up: the same indicators move it,
   and the bar above the timeline plays it or takes it off (the clip itself
   stays on the shelf).<br><br>
-  <b>Add from the Dump</b> is the one-button pour: dump an album from your
-  phone (photos and animations together), tap the button, pick the album,
-  and everything in it lands on the timeline in order — ready to arrange. A
-  still sits on screen for the length you give it (pick it up and tap 2s ·
+  <b>Upload</b> opens your phone's own picker — pick photos and videos
+  together and each lands in the tray just above the timeline as it
+  arrives, ready to drop in. <b>Add from the Dump</b> pours a whole
+  already-dumped album straight onto the timeline in order. A still sits on
+  screen for the length you give it (pick it up on the timeline and tap 2s ·
   4s · 6s · 8s).<br><br>
   The round ▶ plays the arrangement piece by piece — a rough preview.
   <b>Render</b> bakes the real film: every clip and still on one canvas,
@@ -214,7 +222,11 @@ body.tool .float{
 <!-- level 2: one assembly open -->
 <div id="lvOpen" hidden>
   <input id="ttl" aria-label="Assembly name">
-  <div class="addrow"><button class="btn ghost" id="dumpBtn">Add from the Dump</button></div>
+  <div class="addrow">
+    <button class="btn" id="upBtn">Upload</button>
+    <button class="btn ghost" id="dumpBtn">Add from the Dump</button>
+    <input id="upFile" type="file" multiple accept="image/*,video/*" hidden>
+  </div>
   <div id="films"></div>
   <div class="searchrow">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -231,6 +243,10 @@ body.tool .float{
   </main>
 
   <div id="tl">
+    <div id="trayrow" hidden>
+      <div id="upline" hidden></div>
+      <div id="tray"></div>
+    </div>
     <div id="hand" hidden>
       <span class="ph" id="handPh"></span>
       <span class="t" id="handT"></span>
@@ -370,6 +386,9 @@ var A = null;              // the open assembly doc
 var pile = 'all';          // all | chunks | clips
 var armed = null;          // a shelf clip in hand (to insert)
 var sel = -1;              // a timeline index in hand (to move/remove)
+var trayAt = -1;           // a tray index in hand (to place/remove)
+var upSession = '';        // the Dump session this batch of uploads shares
+var uploading = false;
 var playlist = null, playAt = 0;   // the ▶-all queue
 var jobT = null, saveT = null;
 
@@ -557,16 +576,21 @@ function paintShelf() {
 /* ── picking things up and putting them down ── */
 function arm(c) {
   if (armed && armed.id === c.id) { disarm(); return; }
-  sel = -1;
+  sel = -1; trayAt = -1;
   armed = c;
   paint();
 }
 function selectAt(i) {
-  armed = null;
+  armed = null; trayAt = -1;
   sel = sel === i ? -1 : i;
   paint();
 }
-function disarm() { armed = null; sel = -1; paint(); }
+function trayArm(i) {
+  armed = null; sel = -1;
+  trayAt = trayAt === i ? -1 : i;
+  paint();   // the shelf too — a shelf tile may be wearing the armed ring
+}
+function disarm() { armed = null; sel = -1; trayAt = -1; paint(); }
 
 function dropAt(gap) {
   if (armed) {
@@ -579,6 +603,13 @@ function dropAt(gap) {
       var k = kids[Math.min(gap, kids.length - 1)];
       if (k && k.scrollIntoView) k.scrollIntoView({ inline: 'center', block: 'nearest' });
     });
+  } else if (trayAt >= 0) {
+    var it = (A.tray || [])[trayAt];
+    if (!it) { disarm(); return; }
+    A.tray = (A.tray || []).slice(0, trayAt).concat((A.tray || []).slice(trayAt + 1));
+    A.clips = placeAt(A.clips || [], it, gap);
+    disarm();
+    save();
   } else if (sel >= 0) {
     A.clips = movePlace(A.clips || [], sel, gap);
     disarm();
@@ -586,8 +617,11 @@ function dropAt(gap) {
   }
 }
 function removeSel() {
-  if (sel < 0) return;
-  A.clips = (A.clips || []).slice(0, sel).concat((A.clips || []).slice(sel + 1));
+  if (sel >= 0) {
+    A.clips = (A.clips || []).slice(0, sel).concat((A.clips || []).slice(sel + 1));
+  } else if (trayAt >= 0) {
+    A.tray = (A.tray || []).slice(0, trayAt).concat((A.tray || []).slice(trayAt + 1));
+  } else return;
   disarm();
   save();
 }
@@ -595,7 +629,7 @@ function save() {
   clearTimeout(saveT);
   saveT = setTimeout(function () {
     if (!A) return;
-    api(B + '/' + A.id + '/clips', { method: 'POST', body: { clips: A.clips || [] } })
+    api(B + '/' + A.id + '/clips', { method: 'POST', body: { clips: A.clips || [], tray: A.tray || [] } })
       .catch(function (e) {
         $('stateline').hidden = false;
         $('stateline').textContent = 'Couldn’t save — ' + String(e.message || e);
@@ -607,8 +641,23 @@ function save() {
 function paintTl() {
   var tl = $('tl');
   var list = A ? (A.clips || []) : [];
-  var placing = Boolean(armed) || sel >= 0;
+  var placing = Boolean(armed) || sel >= 0 || trayAt >= 0;
   tl.classList.toggle('placing', placing);
+
+  // the tray — uploaded pieces waiting above the timeline
+  var tray = A ? (A.tray || []) : [];
+  $('trayrow').hidden = !tray.length && $('upline').hidden;
+  var tbox = $('tray'); tbox.innerHTML = '';
+  tray.forEach(function (c, i) {
+    var t = document.createElement('button');
+    t.className = 'tclip' + (trayAt === i ? ' sel' : '');
+    var badge = isStill(c) ? itemSeconds(c) + 's'
+      : (c.seconds != null ? fmtDur(c.seconds) : '');
+    t.innerHTML = (c.poster ? '<img src="' + esc(c.poster) + '" alt="">' : FILM_ICON)
+      + (badge ? '<span class="dur">' + badge + '</span>' : '');
+    t.onclick = function () { trayArm(i); };
+    tbox.appendChild(t);
+  });
 
   var strip = $('strip'); strip.innerHTML = '';
   function gapEl(g) {
@@ -647,7 +696,7 @@ function paintTl() {
 
   // the in-hand bar
   var hand = $('hand');
-  var held = armed || (sel >= 0 ? list[sel] : null);
+  var held = armed || (trayAt >= 0 ? tray[trayAt] : null) || (sel >= 0 ? list[sel] : null);
   hand.hidden = !held;
   if (held) {
     $('handPh').innerHTML = held.poster ? '<img src="' + esc(held.poster) + '" alt="">' : FILM_ICON;
@@ -655,7 +704,8 @@ function paintTl() {
       : (held.seconds != null ? fmtDur(held.seconds) : '');
     $('handT').innerHTML = esc(held.title || 'untitled')
       + (meta ? ' <span class="m">· ' + meta + '</span>' : '');
-    $('handRemove').hidden = !(sel >= 0);
+    $('handRemove').hidden = !(sel >= 0 || trayAt >= 0);
+    $('handRemove').textContent = trayAt >= 0 ? 'Remove' : 'Take off';
     // a still on the timeline gets its length here — how long it sits
     var hh = $('handHold');
     hh.hidden = !(sel >= 0 && isStill(held));
@@ -680,9 +730,78 @@ function paintTl() {
 $('handX').onclick = disarm;
 $('handRemove').onclick = removeSel;
 $('handPlay').onclick = function () {
-  var held = armed || (sel >= 0 ? (A.clips || [])[sel] : null);
+  var held = armed || (trayAt >= 0 ? (A.tray || [])[trayAt] : null)
+    || (sel >= 0 ? (A.clips || [])[sel] : null);
   if (held) playOne(held);
 };
+
+/* ── the Upload button: the phone's own picker → the Dump's upload machinery
+   → the tray. One file at a time (the 512MB box), each appearing above the
+   timeline the moment it lands. Bytes go through /api/drop/upload-file, so
+   dedupe, HEIC→JPEG and video posters all come for free — and re-uploading
+   the same file can never store it twice. ── */
+$('upBtn').onclick = function () { $('upFile').click(); };
+$('upFile').addEventListener('change', function () {
+  var files = [].slice.call($('upFile').files || []);
+  $('upFile').value = '';
+  if (!files.length || !A || uploading) return;
+  uploadBatch(files);
+});
+function trayItemFrom(f) {   // mirrors assembly.js itemsFromDrops, one file
+  var image = (f.media || 'image') !== 'video';
+  var it = {
+    id: String(f.id), url: f.url,
+    title: String(f.name || f.filename || (A && A.title ? A.title + ' upload' : 'upload')).slice(0, 200),
+    poster: image
+      ? '/api/story/thumb?url=' + encodeURIComponent(f.url) + '&w=240'
+      : (f.posterUrl || null),
+    seconds: null,
+    kind: image ? 'image' : 'video',
+  };
+  if (image) it.hold = HOLD_DEFAULT;
+  return it;
+}
+function uploadBatch(files) {
+  uploading = true;
+  var total = files.length, done = 0, failed = 0;
+  var line = $('upline');
+  function say() {
+    line.hidden = false;
+    $('trayrow').hidden = false;
+    line.textContent = done + failed < total
+      ? 'Uploading ' + (done + failed + 1) + ' of ' + total + '…'
+      : (failed ? failed + ' of ' + total + ' didn’t upload — try those again' : '');
+    if (done + failed >= total && !failed) line.hidden = true;
+  }
+  say();
+  function next() {
+    if (!files.length) {
+      uploading = false;
+      say(); paintTl(); save();
+      return;
+    }
+    var f = files.shift();
+    var q = '?bundle=' + encodeURIComponent((A.title || 'Assembly').slice(0, 80))
+      + '&filename=' + encodeURIComponent(f.name || 'upload')
+      + (upSession ? '&session=' + encodeURIComponent(upSession) : '');
+    var headers = { 'content-type': f.type || 'application/octet-stream' };
+    if (TOK) headers['x-studio-token'] = TOK;
+    fetch('/api/drop/upload-file' + q, { method: 'POST', headers: headers, body: f })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.item || !r.item.url) throw new Error((r && r.error) || 'upload failed');
+        upSession = r.session || upSession;
+        var it = trayItemFrom(r.item);
+        var have = (A.tray || []).concat(A.clips || []).some(function (x) { return x.id === it.id; });
+        if (!have) A.tray = (A.tray || []).concat([it]);
+        done++;
+        paintTl();
+      })
+      .catch(function () { failed++; })
+      .then(function () { say(); next(); });
+  }
+  next();
+}
 
 function paintFilms() {
   var box = $('films'); box.innerHTML = '';

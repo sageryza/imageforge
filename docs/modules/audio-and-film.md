@@ -308,6 +308,25 @@ existing clips." That sentence is the whole interaction, built literally:
   `anullsrc` silence — so mixed assemblies stay one concat-copy join. And
   `cleanClips` keeps an unknown length `null` rather than coercing it to a
   confident 0 (found by the round-trip test).
+- **Upload is one button in the page, and the TRAY is where it lands (Aug
+  2026 v3** — her third cut at the same flow: "a button in assemblies where u
+  can upload the footage and it appears above the timeline, ready to drop
+  in"**).** The Upload button clicks a hidden
+  `<input type=file multiple accept="image/*,video/*">`, so on the phone it
+  is the native Photos picker. Files upload ONE AT A TIME (the 512MB box)
+  through the Dump's own `/api/drop/upload-file` — never a re-implementation:
+  that path already does HEIC→JPEG, md5 dedupe (re-uploading a file can
+  never store it twice) and video poster extraction. The batch shares one
+  Dump session (the first response mints it) under an album named after the
+  assembly, so the bytes are also findable in the Dump later. Each stored
+  item maps through the page's `trayItemFrom` (the itemsFromDrops mirror)
+  into `doc.tray`, painted above the timeline as it arrives. A tray piece
+  arms exactly like a shelf clip — indicators, tap a gap, it moves
+  tray→clips in one save; the in-hand bar's remove reads **Remove** there
+  (vs **Take off** on the timeline) and discards it. `POST /:id/clips` now
+  takes `{clips?, tray?}` — each an ARRAY SAVED WHOLE, a missing field left
+  alone — and the render still reads `clips` only, so nothing in the tray
+  can ever leak into a film.
 - **The timeline is docked at the bottom** and everything is a tap (the
   wrist rule): tap a shelf clip to pick it up → a `+` place indicator
   appears in every gap (both ends included; an empty timeline shows one) →
