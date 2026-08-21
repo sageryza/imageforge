@@ -289,6 +289,25 @@ existing clips." That sentence is the whole interaction, built literally:
 - **The shelf above is the Chunking library, read-only** — same tiles, same
   house search grammar, chips for all/chunks/clips, hidden clips excluded.
   Nothing here ever writes a library doc.
+- **An item is a clip OR a still, and the Dump is the one-button door (Aug
+  2026 v2)** — her flow: Playground images, some animated with Midjourney,
+  dumped from her phone as one album. **Add from the Dump** (inside an open
+  assembly) lists the Dump's albums (`GET /sources` — registered ABOVE
+  `GET /:id`, the promptlab-styles Express lesson); tapping one POSTs
+  `/:id/import { album }` and every file in it — photos and videos alike —
+  lands on the timeline in album order (`photoIndex`), ready to arrange.
+  `itemsFromDrops` is the pure mapper: a photo becomes `kind:'image'` with
+  `hold` (seconds on screen, default 4, clamped 0.5–30) and a DERIVED
+  `/api/story/thumb` tile (never the full-res original); a video keeps its
+  baked `posterUrl`. Nothing is copied, nothing is filed onto the Chunking
+  shelf — the harvest still skips `drops/` on purpose (a raw dump is not a
+  made clip; here she picked the album herself). A still picked up on the
+  timeline shows 2s·4s·6s·8s chips in the in-hand bar; its badge and the
+  total count its hold (`itemSeconds`). In the render a still is the pad
+  film's beat-art encode — `-loop 1 -t hold` onto the same canvas over
+  `anullsrc` silence — so mixed assemblies stay one concat-copy join. And
+  `cleanClips` keeps an unknown length `null` rather than coercing it to a
+  confident 0 (found by the round-trip test).
 - **The timeline is docked at the bottom** and everything is a tap (the
   wrist rule): tap a shelf clip to pick it up → a `+` place indicator
   appears in every gap (both ends included; an empty timeline shows one) →

@@ -54,6 +54,8 @@ body.tool .float{
 #ttl{ width:calc(100% - 96px); margin:8px 16px 0; border:0; background:transparent;
   font-family:Georgia,serif; font-size:19px; color:var(--ink); padding:2px 0; }
 #ttl:focus{ outline:none; border-bottom:1px solid var(--border); }
+/* the one button — a whole dumped album onto the timeline */
+.addrow{ margin:8px 16px 0; }
 /* finished films — a line of text with a play button, never an embedded video */
 #films{ margin:4px 16px 0; }
 #films button{ display:flex; align-items:center; gap:8px; background:none; border:0;
@@ -137,6 +139,10 @@ body.tool .float{
 #hand .t{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
 #hand .t .m{ color:var(--dim); }
 #hand button{ flex:0 0 auto; }
+#handHold{ display:flex; gap:5px; flex:0 0 auto; }
+#handHold button{ font-size:12px; border:1px solid var(--border); border-radius:6px;
+  background:var(--bg); color:var(--ink); padding:5px 7px; cursor:pointer; }
+#handHold button.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
 #hand .icobtn{ width:30px; height:30px; border-radius:50%; border:1px solid var(--border);
   background:var(--bg); color:var(--ink); display:inline-flex; align-items:center;
   justify-content:center; padding:0; cursor:pointer; }
@@ -144,10 +150,21 @@ body.tool .float{
   stroke-linecap:round; stroke-linejoin:round; }
 #hand .icobtn.play svg{ fill:currentColor; stroke:none; margin-left:1px; }
 
+/* the album sheet — pick a dumped album, everything in it lands on the timeline */
+#dumpSheet{ position:fixed; inset:0; z-index:40; background:rgba(250,246,238,.985);
+  overflow-y:auto; }
+#dumpSheet .wrap{ max-width:640px; margin:0 auto; padding:14px 16px calc(40px + env(safe-area-inset-bottom)); }
+#dumpSheet .x{ position:sticky; top:10px; z-index:2; margin-left:auto; display:flex; width:36px;
+  height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+  color:var(--ink); align-items:center; justify-content:center; cursor:pointer; padding:0; }
+#dumpSheet .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#dumpSheet .arow .m{ text-transform:none; }
+
 /* the player overlay — freezes the page behind it */
 #lb{ position:fixed; inset:0; background:rgba(20,17,14,.96); display:none; z-index:50; }
 #lb.open{ display:flex; flex-direction:column; align-items:center; justify-content:center; }
-#lb video{ width:100%; max-height:78vh; background:#000; display:block; }
+#lb video, #lb img{ width:100%; max-height:78vh; background:#000; display:block; object-fit:contain; }
 #lb .cap{ color:#e8e2d6; font-size:13px; padding:10px 16px; text-align:center; }
 #lb .x{ position:absolute; top:calc(12px + env(safe-area-inset-top)); right:14px; width:36px;
   height:36px; border-radius:50%; background:rgba(250,246,238,.14); border:0; color:#f2ece0;
@@ -171,10 +188,16 @@ body.tool .float{
   clip already ON the timeline to pick it up: the same indicators move it,
   and the bar above the timeline plays it or takes it off (the clip itself
   stays on the shelf).<br><br>
-  The round ▶ plays the arrangement clip by clip — a rough preview.
-  <b>Render</b> bakes the real film: every clip on one canvas, sound intact,
-  one mp4. Renders are kept newest-first above the shelf and nothing is ever
-  overwritten. All of it is free — no model calls, just our own box.<br><br>
+  <b>Add from the Dump</b> is the one-button pour: dump an album from your
+  phone (photos and animations together), tap the button, pick the album,
+  and everything in it lands on the timeline in order — ready to arrange. A
+  still sits on screen for the length you give it (pick it up and tap 2s ·
+  4s · 6s · 8s).<br><br>
+  The round ▶ plays the arrangement piece by piece — a rough preview.
+  <b>Render</b> bakes the real film: every clip and still on one canvas,
+  sound intact, one mp4. Renders are kept newest-first above the shelf and
+  nothing is ever overwritten. All of it is free — no model calls, just our
+  own box.<br><br>
   The search speaks the house grammar: bare words need all of them, <b>OR</b>
   takes either, <b>-word</b> excludes, <b>"quoted words"</b> stay together,
   and <b>tag:</b> <b>title:</b> <b>from:</b> <b>vo:</b> <b>kind:</b> narrow
@@ -191,6 +214,7 @@ body.tool .float{
 <!-- level 2: one assembly open -->
 <div id="lvOpen" hidden>
   <input id="ttl" aria-label="Assembly name">
+  <div class="addrow"><button class="btn ghost" id="dumpBtn">Add from the Dump</button></div>
   <div id="films"></div>
   <div class="searchrow">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -210,6 +234,7 @@ body.tool .float{
     <div id="hand" hidden>
       <span class="ph" id="handPh"></span>
       <span class="t" id="handT"></span>
+      <span id="handHold" hidden></span>
       <button class="icobtn play" id="handPlay" aria-label="Play this clip">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
       <button class="btn ghost" id="handRemove" hidden>Take off</button>
@@ -227,9 +252,18 @@ body.tool .float{
   </div>
 </div>
 
+<div id="dumpSheet" hidden>
+  <div class="wrap">
+    <button class="x" id="dumpClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div id="dumpList"></div>
+    <div class="note stateline" id="dumpNote" hidden></div>
+  </div>
+</div>
+
 <div id="lb">
   <button class="x" id="lbClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-  <video id="lbVideo" controls playsinline preload="metadata"></video>
+  <video id="lbVideo" controls playsinline preload="metadata" hidden></video>
+  <img id="lbImg" alt="" hidden>
   <div class="cap" id="lbCap"></div>
 </div>
 
@@ -369,8 +403,14 @@ function movePlace(list, from, gap) {
 }
 function snapshot(c) {
   return { id: c.id, url: c.url, title: c.title || '', poster: c.poster || null,
-    seconds: c.seconds != null ? c.seconds : null };
+    seconds: c.seconds != null ? c.seconds : null, kind: 'video' };
 }
+/* mirrors assembly.js — a still sits for its hold, a clip for its length */
+var HOLD_DEFAULT = 4;
+function itemSeconds(c) {
+  return c && c.kind === 'image' ? (Number(c.hold) || HOLD_DEFAULT) : (Number(c && c.seconds) || 0);
+}
+var isStill = function (c) { return c && c.kind === 'image'; };
 
 /* ── two levels, one page (the timeline.html history pattern) ── */
 function aUrl(id) {
@@ -583,8 +623,10 @@ function paintTl() {
   list.forEach(function (c, i) {
     var t = document.createElement('button');
     t.className = 'tclip' + (sel === i ? ' sel' : '');
+    var badge = isStill(c) ? itemSeconds(c) + 's'
+      : (c.seconds != null ? fmtDur(c.seconds) : '');
     t.innerHTML = (c.poster ? '<img src="' + esc(c.poster) + '" alt="">' : FILM_ICON)
-      + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '');
+      + (badge ? '<span class="dur">' + badge + '</span>' : '');
     t.onclick = function () { selectAt(i); };
     strip.appendChild(t);
     strip.appendChild(gapEl(i + 1));
@@ -596,7 +638,7 @@ function paintTl() {
     strip.appendChild(e);
   }
 
-  var totalS = list.reduce(function (s, c) { return s + (Number(c.seconds) || 0); }, 0);
+  var totalS = list.reduce(function (s, c) { return s + itemSeconds(c); }, 0);
   $('sum').textContent = list.length
     ? list.length + (list.length === 1 ? ' clip' : ' clips') + ' · ' + fmtDur(totalS)
     : '0 clips';
@@ -609,9 +651,24 @@ function paintTl() {
   hand.hidden = !held;
   if (held) {
     $('handPh').innerHTML = held.poster ? '<img src="' + esc(held.poster) + '" alt="">' : FILM_ICON;
+    var meta = isStill(held) ? itemSeconds(held) + 's'
+      : (held.seconds != null ? fmtDur(held.seconds) : '');
     $('handT').innerHTML = esc(held.title || 'untitled')
-      + (held.seconds != null ? ' <span class="m">· ' + fmtDur(held.seconds) + '</span>' : '');
+      + (meta ? ' <span class="m">· ' + meta + '</span>' : '');
     $('handRemove').hidden = !(sel >= 0);
+    // a still on the timeline gets its length here — how long it sits
+    var hh = $('handHold');
+    hh.hidden = !(sel >= 0 && isStill(held));
+    hh.innerHTML = '';
+    if (!hh.hidden) {
+      [2, 4, 6, 8].forEach(function (s) {
+        var b = document.createElement('button');
+        b.textContent = s + 's';
+        if (itemSeconds(held) === s) b.className = 'on';
+        b.onclick = function () { held.hold = s; save(); paintTl(); };
+        hh.appendChild(b);
+      });
+    }
   }
 
   // the shelf never hides under the dock
@@ -692,9 +749,13 @@ function lbOpen(cap) {
   $('lb').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+var holdT = null;
 function lbClose() {
   var v = $('lbVideo');
   v.pause(); v.onended = null; v.removeAttribute('src'); v.load();
+  v.hidden = true;
+  $('lbImg').hidden = true; $('lbImg').removeAttribute('src');
+  clearTimeout(holdT);
   playlist = null;
   $('lb').classList.remove('open');
   document.body.style.overflow = '';
@@ -703,14 +764,27 @@ function lbClose() {
   });
 }
 $('lbClose').onclick = lbClose;
-function playUrl(url, cap) {
-  lbOpen(cap);
-  var v = $('lbVideo');
-  v.onended = null;
-  v.src = url;
-  v.play().catch(function () {});
+/* one slot, two faces: a clip plays in the video element, a still shows as an
+   image (held for its length when it is part of a play-through) */
+function showItem(c, onDone) {
+  var v = $('lbVideo'); var im = $('lbImg');
+  clearTimeout(holdT);
+  if (isStill(c)) {
+    v.pause(); v.onended = null; v.removeAttribute('src'); v.load(); v.hidden = true;
+    im.src = c.url; im.hidden = false;
+    if (onDone) holdT = setTimeout(onDone, itemSeconds(c) * 1000);
+  } else {
+    im.hidden = true; im.removeAttribute('src');
+    v.hidden = false;
+    v.onended = onDone || null;
+    v.src = c.url;
+    v.play().catch(function () {});
+  }
 }
-function playOne(c) { playUrl(c.url, c.title || ''); }
+function playOne(c) {
+  lbOpen(c.title || '');
+  showItem(c, null);
+}
 $('playAll').onclick = function () {
   var list = (A && A.clips) || [];
   if (!list.length) return;
@@ -724,11 +798,71 @@ function playNext(first) {
   if (playAt >= playlist.length) { lbClose(); return; }
   var c = playlist[playAt];
   $('lbCap').textContent = (playAt + 1) + ' of ' + playlist.length + ' · ' + (c.title || '');
-  var v = $('lbVideo');
-  v.onended = function () { playNext(); };
-  v.src = c.url;
-  v.play().catch(function () {});
+  showItem(c, function () { playNext(); });
 }
+function playUrl(url, cap) {
+  lbOpen(cap);
+  showItem({ url: url, kind: 'video' }, null);
+}
+
+/* ── the one button: a whole dumped album onto the timeline ── */
+function openDump() {
+  if (window.__scrollStop) window.__scrollStop();
+  $('dumpSheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+  var note = $('dumpNote');
+  note.hidden = false; note.textContent = 'Reading the Dump…';
+  $('dumpList').innerHTML = '';
+  api(B + '/sources').then(function (r) {
+    var albums = r.albums || [];
+    note.hidden = albums.length > 0;
+    note.textContent = 'Nothing in the Dump yet.';
+    albums.forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'arow';
+      var parts = [];
+      if (a.images) parts.push(a.images + (a.images === 1 ? ' photo' : ' photos'));
+      if (a.videos) parts.push(a.videos + (a.videos === 1 ? ' clip' : ' clips'));
+      b.innerHTML = '<span class="ph">' + (a.cover ? '<img loading="lazy" src="' + esc(a.cover) + '" alt="">' : FILM_ICON) + '</span>'
+        + '<span><span class="t">' + esc(a.name) + '</span>'
+        + '<span class="m">' + parts.join(' · ') + '</span></span>';
+      b.onclick = function () { importAlbum(a, b); };
+      $('dumpList').appendChild(b);
+    });
+  }).catch(function (e) {
+    note.hidden = false; note.textContent = String(e.message || e);
+  });
+}
+function closeDump() {
+  $('dumpSheet').hidden = true;
+  document.body.style.overflow = '';
+}
+function importAlbum(a, rowEl) {
+  rowEl.disabled = true;
+  var note = $('dumpNote');
+  note.hidden = false; note.textContent = 'Adding “' + a.name + '”…';
+  var aid = A.id;
+  api(B + '/' + aid + '/import', { method: 'POST', body: { album: a.album } })
+    .then(function (r) {
+      return api(B + '/' + aid).then(function (doc) {
+        A = doc; A.id = aid;
+        closeDump();
+        disarm();   // repaints everything
+        var line = $('stateline');
+        line.hidden = false;
+        line.textContent = 'Added ' + r.added + ' from “' + a.name + '”'
+          + (r.skipped ? ' — ' + r.skipped + ' didn’t fit (the timeline caps at 60)' : '')
+          + ' — they’re on the timeline, ready to arrange.';
+      });
+    })
+    .catch(function (e) {
+      rowEl.disabled = false;
+      note.hidden = false; note.textContent = String(e.message || e);
+    });
+}
+$('dumpBtn').onclick = openDump;
+$('dumpClose').onclick = closeDump;
+$('dumpSheet').addEventListener('click', function (e) { if (e.target === $('dumpSheet')) closeDump(); });
 
 /* ── the "?" card ── */
 $('help').onclick = function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
@@ -743,7 +877,7 @@ document.addEventListener('click', function (e) {
    taps. ── */
 document.addEventListener('click', function (e) {
   var t = e.target;
-  if (t && t.closest && (t.closest('#lb') || t.closest('#tl'))) return;
+  if (t && t.closest && (t.closest('#lb') || t.closest('#tl') || t.closest('#dumpSheet'))) return;
   if (window.__pillInteractive && window.__pillInteractive(t)) {
     if (window.__scrollStop) window.__scrollStop();
     return;
