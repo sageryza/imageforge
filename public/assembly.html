@@ -130,8 +130,12 @@ body.tool .float{
   justify-content:center; font-style:normal; font-size:15px; line-height:1; }
 #empty{ font-size:12.5px; color:var(--dim); padding:2px 4px; }
 
-/* the tray — uploaded pieces waiting above the timeline, ready to drop in */
-#trayrow{ border-top:1px solid var(--border); }
+/* the tray — arrived pieces waiting above the timeline, ready to drop in.
+   Its own paper + a state label, so it can never read as the timeline
+   itself (2026-08-21 — it did, and her uploads "went to the timeline"). */
+#trayrow{ border-top:1px solid var(--border); background:var(--surface); }
+#trayLabel{ font-family:-apple-system,system-ui,sans-serif; font-size:10px;
+  font-weight:600; letter-spacing:1.6px; color:var(--dim); padding:7px 14px 0; }
 #upline{ font-size:12.5px; color:var(--dim); padding:6px 14px 0; }
 #tray{ display:flex; align-items:center; gap:7px; overflow-x:auto;
   -webkit-overflow-scrolling:touch; padding:7px 12px; }
@@ -196,11 +200,12 @@ body.tool .float{
   and the bar above the timeline plays it or takes it off (the clip itself
   stays on the shelf).<br><br>
   <b>Upload</b> opens your phone's own picker — pick photos and videos
-  together and each lands in the tray just above the timeline as it
-  arrives, ready to drop in. <b>Add from the Dump</b> pours a whole
-  already-dumped album straight onto the timeline in order. A still sits on
-  screen for the length you give it (pick it up on the timeline and tap 2s ·
-  4s · 6s · 8s).<br><br>
+  together and each lands in the <b>READY TO DROP IN</b> row just above the
+  timeline as it arrives. <b>Add from the Dump</b> puts a whole
+  already-dumped album there too, in album order. Either way, nothing goes
+  on the timeline until you put it there: tap a waiting piece, tap the gap
+  where it goes. A still sits on screen for the length you give it (pick it
+  up on the timeline and tap 2s · 4s · 6s · 8s).<br><br>
   The round ▶ plays the arrangement piece by piece — a rough preview.
   <b>Render</b> bakes the real film: every clip and still on one canvas,
   sound intact, one mp4. Renders are kept newest-first above the shelf and
@@ -244,6 +249,7 @@ body.tool .float{
 
   <div id="tl">
     <div id="trayrow" hidden>
+      <div id="trayLabel">READY TO DROP IN</div>
       <div id="upline" hidden></div>
       <div id="tray"></div>
     </div>
@@ -970,8 +976,9 @@ function importAlbum(a, rowEl) {
         var line = $('stateline');
         line.hidden = false;
         line.textContent = 'Added ' + r.added + ' from “' + a.name + '”'
-          + (r.skipped ? ' — ' + r.skipped + ' didn’t fit (the timeline caps at 60)' : '')
-          + ' — they’re on the timeline, ready to arrange.';
+          + (r.already ? ' — ' + r.already + ' already here' : '')
+          + (r.skipped ? ' — ' + r.skipped + ' didn’t fit (the tray caps at 60)' : '')
+          + ' — waiting above the timeline, ready to drop in.';
       });
     })
     .catch(function (e) {

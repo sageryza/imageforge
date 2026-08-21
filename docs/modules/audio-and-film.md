@@ -295,7 +295,20 @@ existing clips." That sentence is the whole interaction, built literally:
   assembly) lists the Dump's albums (`GET /sources` — registered ABOVE
   `GET /:id`, the promptlab-styles Express lesson); tapping one POSTs
   `/:id/import { album }` and every file in it — photos and videos alike —
-  lands on the timeline in album order (`photoIndex`), ready to arrange.
+  lands **in the TRAY in album order** (`photoIndex`), ready to drop in.
+  **EVERYTHING ARRIVES IN THE TRAY, NEVER ON THE TIMELINE (2026-08-21, from
+  her first real use: "they're supposed to be above the timeline so i can
+  drop them in. i'm confused").** The first import went straight onto the
+  timeline and broke the one mental model; `mergeIntoTray` is the rule now —
+  deduped by id against the tray AND the placed clips, so re-importing an
+  album (or importing the album her own Upload button filled) can never
+  double a piece. Two more findings from that night, both fixed: the tray
+  strip read as the timeline (it now wears a **READY TO DROP IN** label and
+  its own surface paper), and every auto-named assembly said "Assembly ·
+  Aug 21" — she uploaded into one and reopened another. Names carry her
+  **Pacific** date and time now ("Assembly · Aug 21 · 9:50 pm"; the server
+  clock is UTC, which had also been flipping an evening assembly to
+  tomorrow's date).
   `itemsFromDrops` is the pure mapper: a photo becomes `kind:'image'` with
   `hold` (seconds on screen, default 4, clamped 0.5–30) and a DERIVED
   `/api/story/thumb` tile (never the full-res original); a video keeps its

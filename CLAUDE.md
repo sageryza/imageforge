@@ -2305,10 +2305,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   animated. one button and they all go into a project, ready to arrange").**
   She dumps the album from her phone (photos and videos together), taps **Add
   from the Dump** inside an assembly, picks the album, and everything in it
-  lands on the timeline in album order. A still carries `hold` (seconds on
-  screen, default 4 — pick it up on the timeline and the 2s·4s·6s·8s chips set
-  it) and renders like the pad film's beat art, held on the canvas over
-  silence. Imported items reference the Dump's own urls — nothing is copied
+  lands **in the TRAY, in album order — NEVER straight onto the timeline**
+  (2026-08-21, her live report the first version earned: "they're supposed to
+  be above the timeline so i can drop them in. i'm confused"; the import is
+  deduped by id, so re-importing — or importing the album her own uploads
+  made — doubles nothing). The tray wears a **READY TO DROP IN** label and
+  its own paper so it can never read as the timeline itself, and new
+  assemblies are named with her Pacific date AND time ("Assembly · Aug 21 ·
+  9:50 pm") — five identical "Assembly · Aug 21" rows is how her uploads
+  "disappeared" into the wrong project that night. A still carries `hold`
+  (seconds on screen, default 4 — pick it up on the timeline and the
+  2s·4s·6s·8s chips set it) and renders like the pad film's beat art, held on
+  the canvas over silence. Imported items reference the Dump's own urls — nothing is copied
   and nothing is filed onto the Chunking shelf (the harvest skips `drops/` on
   purpose; here she picked them herself). A still's timeline thumb is a
   DERIVED copy via `/api/story/thumb` — the original is never touched.
