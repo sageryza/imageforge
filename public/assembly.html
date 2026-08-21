@@ -130,16 +130,17 @@ body.tool .float{
   justify-content:center; font-style:normal; font-size:15px; line-height:1; }
 #empty{ font-size:12.5px; color:var(--dim); padding:2px 4px; }
 
-/* the tray — arrived pieces waiting above the timeline, ready to drop in.
-   Its own paper + a state label, so it can never read as the timeline
-   itself (2026-08-21 — it did, and her uploads "went to the timeline"). */
-#trayrow{ border-top:1px solid var(--border); background:var(--surface); }
-#trayLabel{ font-family:-apple-system,system-ui,sans-serif; font-size:10px;
-  font-weight:600; letter-spacing:1.6px; color:var(--dim); padding:7px 14px 0; }
-#upline{ font-size:12.5px; color:var(--dim); padding:6px 14px 0; }
-#tray{ display:flex; align-items:center; gap:7px; overflow-x:auto;
-  -webkit-overflow-scrolling:touch; padding:7px 12px; }
-#tray .tclip{ width:46px; height:46px; }
+/* THE POOL — the project's own pieces, THE surface of an open assembly (Aug
+   2026 v4, Sophie: "there's all these other chunks or clips that compete for
+   my attention … think carefully if moving them out of the way is the best
+   fit, versus detaching or creating a separate surface, with the clips to go
+   in"). What she brought in fills the screen; the library waits behind its
+   own door. A cramped strip in the dock was the first cut and she couldn't
+   find her own uploads in it. */
+#poolLabel{ font-family:-apple-system,system-ui,sans-serif; font-size:10px;
+  font-weight:600; letter-spacing:1.6px; color:var(--dim); padding:12px 16px 0; }
+#upline{ font-size:12.5px; color:var(--dim); padding:8px 16px 0; }
+#pool .clip.armed .ph{ outline:3px solid var(--rose); outline-offset:-3px; }
 
 /* the in-hand bar — what is armed / selected, riding on top of the timeline */
 #hand{ display:flex; align-items:center; gap:9px; padding:7px 14px;
@@ -161,16 +162,19 @@ body.tool .float{
   stroke-linecap:round; stroke-linejoin:round; }
 #hand .icobtn.play svg{ fill:currentColor; stroke:none; margin-left:1px; }
 
-/* the album sheet — pick a dumped album, everything in it lands on the timeline */
-#dumpSheet{ position:fixed; inset:0; z-index:40; background:rgba(250,246,238,.985);
+/* the picker sheets — the Dump's albums, and the Chunking shelf. Full-screen
+   covers, so neither competes with the project's own pieces on the way in. */
+.sheet{ position:fixed; inset:0; z-index:40; background:rgba(250,246,238,.985);
   overflow-y:auto; }
-#dumpSheet .wrap{ max-width:640px; margin:0 auto; padding:14px 16px calc(40px + env(safe-area-inset-bottom)); }
-#dumpSheet .x{ position:sticky; top:10px; z-index:2; margin-left:auto; display:flex; width:36px;
+.sheet .wrap{ max-width:640px; margin:0 auto; padding:14px 16px calc(40px + env(safe-area-inset-bottom)); }
+.sheet .x{ position:sticky; top:10px; z-index:2; margin-left:auto; display:flex; width:36px;
   height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
   color:var(--ink); align-items:center; justify-content:center; cursor:pointer; padding:0; }
-#dumpSheet .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
+.sheet .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
   stroke-linecap:round; stroke-linejoin:round; }
-#dumpSheet .arow .m{ text-transform:none; }
+.sheet .arow .m{ text-transform:none; }
+.sheet .searchrow{ padding-right:16px; }
+.sheet .kindrow{ padding-right:16px; }
 
 /* the player overlay — freezes the page behind it */
 #lb{ position:fixed; inset:0; background:rgba(20,17,14,.96); display:none; z-index:50; }
@@ -192,20 +196,20 @@ body.tool .float{
   <button id="help">?</button>
 </div>
 <div class="helpcard" id="helpcard" hidden>
-  <b>Put clips in order — get one film.</b> Open an assembly (or start a new
-  one) and the clips already placed ride the timeline along the bottom. Tap a
-  clip on the shelf and a little <b>place indicator</b> appears in every gap
-  on the timeline — tap the gap where it goes and it drops in between. Tap a
-  clip already ON the timeline to pick it up: the same indicators move it,
-  and the bar above the timeline plays it or takes it off (the clip itself
-  stays on the shelf).<br><br>
-  <b>Upload</b> opens your phone's own picker — pick photos and videos
-  together and each lands in the <b>READY TO DROP IN</b> row just above the
-  timeline as it arrives. <b>Add from the Dump</b> puts a whole
-  already-dumped album there too, in album order. Either way, nothing goes
-  on the timeline until you put it there: tap a waiting piece, tap the gap
-  where it goes. A still sits on screen for the length you give it (pick it
-  up on the timeline and tap 2s · 4s · 6s · 8s).<br><br>
+  <b>Put pieces in order — get one film.</b> An open assembly shows ITS OWN
+  pieces: everything you've brought in, <b>READY TO DROP IN</b>, with the
+  timeline along the bottom. Tap a piece and a little <b>place indicator</b>
+  appears in every gap on the timeline — tap the gap where it goes and it
+  drops in between. Tap a piece already ON the timeline to pick it up: the
+  same indicators move it, and the bar above the timeline plays it or takes
+  it off.<br><br>
+  Three ways in: <b>Upload</b> opens your phone's own picker (photos and
+  videos together, each arriving as it lands); <b>From the Dump</b> brings a
+  whole already-dumped album, in album order; <b>From the shelf</b> opens
+  the Chunking library — tap a clip there and it comes out in hand, ready
+  to place. Nothing goes on the timeline until you put it there. A still
+  sits on screen for the length you give it (pick it up on the timeline and
+  tap 2s · 4s · 6s · 8s).<br><br>
   The round ▶ plays the arrangement piece by piece — a rough preview.
   <b>Render</b> bakes the real film: every clip and still on one canvas,
   sound intact, one mp4. Renders are kept newest-first above the shelf and
@@ -229,30 +233,19 @@ body.tool .float{
   <input id="ttl" aria-label="Assembly name">
   <div class="addrow">
     <button class="btn" id="upBtn">Upload</button>
-    <button class="btn ghost" id="dumpBtn">Add from the Dump</button>
+    <button class="btn ghost" id="dumpBtn">From the Dump</button>
+    <button class="btn ghost" id="shelfBtn">From the shelf</button>
     <input id="upFile" type="file" multiple accept="image/*,video/*" hidden>
   </div>
   <div id="films"></div>
-  <div class="searchrow">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search clips">
-    <button class="x" id="clearq" hidden>✕</button>
-  </div>
-  <div class="kindrow">
-    <div class="chips" id="kinds"></div>
-    <span class="cnt" id="cnt"></span>
-  </div>
   <main>
-    <div class="shelf" id="shelf"></div>
+    <div id="poolLabel" hidden>READY TO DROP IN</div>
+    <div id="upline" hidden></div>
+    <div class="shelf" id="pool"></div>
     <div class="note stateline" id="stateline" hidden></div>
   </main>
 
   <div id="tl">
-    <div id="trayrow" hidden>
-      <div id="trayLabel">READY TO DROP IN</div>
-      <div id="upline" hidden></div>
-      <div id="tray"></div>
-    </div>
     <div id="hand" hidden>
       <span class="ph" id="handPh"></span>
       <span class="t" id="handT"></span>
@@ -274,11 +267,30 @@ body.tool .float{
   </div>
 </div>
 
-<div id="dumpSheet" hidden>
+<div id="dumpSheet" class="sheet" hidden>
   <div class="wrap">
     <button class="x" id="dumpClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     <div id="dumpList"></div>
     <div class="note stateline" id="dumpNote" hidden></div>
+  </div>
+</div>
+
+<!-- the Chunking library, behind its own door — tap a clip and it comes out
+     in hand, ready to place -->
+<div id="shelfSheet" class="sheet" hidden>
+  <div class="wrap">
+    <button class="x" id="shelfClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="searchrow">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search clips">
+      <button class="x" id="clearq" hidden>✕</button>
+    </div>
+    <div class="kindrow">
+      <div class="chips" id="kinds"></div>
+      <span class="cnt" id="cnt"></span>
+    </div>
+    <div class="shelf" id="shelf"></div>
+    <div class="note stateline" id="shelfState" hidden></div>
   </div>
 </div>
 
@@ -506,7 +518,6 @@ function open(id, fromHistory) {
     paint();
     window.scrollTo(0, 0);
     if (A.job && A.job.status === 'running') pollJob();
-    if (!LIB.length) loadLib();
   }).catch(function (e) {
     $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e);
   });
@@ -519,15 +530,37 @@ $('ttl').addEventListener('change', function () {
   api(B + '/' + A.id + '/title', { method: 'POST', body: { title: t } }).catch(function () {});
 });
 
+/* the library loads LAZILY, the first time the shelf door opens — an open
+   project is about ITS pieces, so the page never pays for the whole shelf
+   up front */
+var libLoaded = false;
 function loadLib() {
   api('/api/clips').then(function (r) {
     LIB = (r.clips || []).filter(function (c) { return !c.hidden && c.status !== 'error'; });
+    libLoaded = true;
     paintShelf();
   }).catch(function (e) {
-    $('stateline').hidden = false;
-    $('stateline').textContent = 'Couldn’t load the clip shelf — ' + String(e.message || e);
+    $('shelfState').hidden = false;
+    $('shelfState').textContent = 'Couldn’t load the shelf — ' + String(e.message || e);
   });
 }
+function openShelf() {
+  if (window.__scrollStop) window.__scrollStop();
+  $('shelfSheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+  if (!libLoaded) {
+    $('shelfState').hidden = false;
+    $('shelfState').textContent = 'Reading the shelf…';
+    loadLib();
+  } else paintShelf();
+}
+function closeShelf() {
+  $('shelfSheet').hidden = true;
+  document.body.style.overflow = '';
+}
+$('shelfBtn').onclick = openShelf;
+$('shelfClose').onclick = closeShelf;
+$('shelfSheet').addEventListener('click', function (e) { if (e.target === $('shelfSheet')) closeShelf(); });
 
 /* ── the clip shelf ── */
 function buildPiles() {
@@ -557,26 +590,48 @@ function paintShelf() {
   var shelf = $('shelf'); shelf.innerHTML = '';
   list.forEach(function (c) {
     var b = document.createElement('button');
-    b.className = 'clip' + (armed && armed.id === c.id ? ' armed' : '');
+    b.className = 'clip';
     b.innerHTML = '<span class="ph">'
       + (c.poster ? '<img loading="lazy" src="' + esc(c.poster) + '" alt="">'
                   : '<span class="noart">' + FILM_ICON + '</span>')
       + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
       + '</span><span class="nm">' + esc(c.title) + '</span>';
-    b.onclick = function () { arm(c); };
+    // picking a clip takes it OUT of the shelf, in hand — the sheet closes
+    // and the place indicators are waiting (her original interaction)
+    b.onclick = function () { arm(c); closeShelf(); };
     shelf.appendChild(b);
   });
   $('cnt').textContent = list.length ? String(list.length) : '';
-  var line = $('stateline');
+  var line = $('shelfState');
   line.hidden = true;
-  if (!LIB.length) {
-    line.textContent = 'The clip shelf is empty — Chunking has nothing yet.';
+  if (!LIB.length && libLoaded) {
+    line.textContent = 'The shelf is empty — Chunking has nothing yet.';
     line.hidden = false;
-  } else if (!list.length) {
+  } else if (libLoaded && !list.length) {
     line.textContent = 'Nothing matches.';
     line.hidden = false;
   }
   $('clearq').hidden = !$('q').value;
+}
+
+/* ── THE POOL — the project's own pieces, filling the main of the screen ── */
+function paintPool() {
+  var pool = A ? (A.tray || []) : [];
+  $('poolLabel').hidden = !pool.length;
+  var box = $('pool'); box.innerHTML = '';
+  pool.forEach(function (c, i) {
+    var b = document.createElement('button');
+    b.className = 'clip' + (trayAt === i ? ' armed' : '');
+    var badge = isStill(c) ? itemSeconds(c) + 's'
+      : (c.seconds != null ? fmtDur(c.seconds) : '');
+    b.innerHTML = '<span class="ph">'
+      + (c.poster ? '<img loading="lazy" src="' + esc(c.poster) + '" alt="">'
+                  : '<span class="noart">' + FILM_ICON + '</span>')
+      + (badge ? '<span class="dur">' + badge + '</span>' : '')
+      + '</span><span class="nm">' + esc(c.title) + '</span>';
+    b.onclick = function () { trayArm(i); };
+    box.appendChild(b);
+  });
 }
 
 /* ── picking things up and putting them down ── */
@@ -649,21 +704,7 @@ function paintTl() {
   var list = A ? (A.clips || []) : [];
   var placing = Boolean(armed) || sel >= 0 || trayAt >= 0;
   tl.classList.toggle('placing', placing);
-
-  // the tray — uploaded pieces waiting above the timeline
   var tray = A ? (A.tray || []) : [];
-  $('trayrow').hidden = !tray.length && $('upline').hidden;
-  var tbox = $('tray'); tbox.innerHTML = '';
-  tray.forEach(function (c, i) {
-    var t = document.createElement('button');
-    t.className = 'tclip' + (trayAt === i ? ' sel' : '');
-    var badge = isStill(c) ? itemSeconds(c) + 's'
-      : (c.seconds != null ? fmtDur(c.seconds) : '');
-    t.innerHTML = (c.poster ? '<img src="' + esc(c.poster) + '" alt="">' : FILM_ICON)
-      + (badge ? '<span class="dur">' + badge + '</span>' : '');
-    t.onclick = function () { trayArm(i); };
-    tbox.appendChild(t);
-  });
 
   var strip = $('strip'); strip.innerHTML = '';
   function gapEl(g) {
@@ -773,7 +814,6 @@ function uploadBatch(files) {
   var line = $('upline');
   function say() {
     line.hidden = false;
-    $('trayrow').hidden = false;
     line.textContent = done + failed < total
       ? 'Uploading ' + (done + failed + 1) + ' of ' + total + '…'
       : (failed ? failed + ' of ' + total + ' didn’t upload — try those again' : '');
@@ -783,7 +823,7 @@ function uploadBatch(files) {
   function next() {
     if (!files.length) {
       uploading = false;
-      say(); paintTl(); save();
+      say(); paintPool(); paintTl(); save();
       return;
     }
     var f = files.shift();
@@ -801,7 +841,7 @@ function uploadBatch(files) {
         var have = (A.tray || []).concat(A.clips || []).some(function (x) { return x.id === it.id; });
         if (!have) A.tray = (A.tray || []).concat([it]);
         done++;
-        paintTl();
+        paintPool();
       })
       .catch(function () { failed++; })
       .then(function () { say(); next(); });
@@ -821,7 +861,10 @@ function paintFilms() {
     box.appendChild(b);
   });
 }
-function paint() { paintShelf(); paintTl(); paintFilms(); }
+function paint() {
+  paintPool(); paintTl(); paintFilms();
+  if (!$('shelfSheet').hidden) paintShelf();
+}
 
 /* ── render + the job line ── */
 $('renderBtn').onclick = function () {
@@ -977,8 +1020,8 @@ function importAlbum(a, rowEl) {
         line.hidden = false;
         line.textContent = 'Added ' + r.added + ' from “' + a.name + '”'
           + (r.already ? ' — ' + r.already + ' already here' : '')
-          + (r.skipped ? ' — ' + r.skipped + ' didn’t fit (the tray caps at 60)' : '')
-          + ' — waiting above the timeline, ready to drop in.';
+          + (r.skipped ? ' — ' + r.skipped + ' didn’t fit (a project caps at 60 waiting)' : '')
+          + '.';
       });
     })
     .catch(function (e) {
@@ -1003,7 +1046,8 @@ document.addEventListener('click', function (e) {
    taps. ── */
 document.addEventListener('click', function (e) {
   var t = e.target;
-  if (t && t.closest && (t.closest('#lb') || t.closest('#tl') || t.closest('#dumpSheet'))) return;
+  if (t && t.closest && (t.closest('#lb') || t.closest('#tl')
+    || t.closest('#dumpSheet') || t.closest('#shelfSheet'))) return;
   if (window.__pillInteractive && window.__pillInteractive(t)) {
     if (window.__scrollStop) window.__scrollStop();
     return;
@@ -1021,7 +1065,6 @@ $('clearq').onclick = function () { $('q').value = ''; qLive.sync(); paintShelf(
 var startId = new URLSearchParams(location.search).get('a');
 if (startId) { show('open'); open(startId, true); }
 else { show('shelf'); shelfPaint(); }
-loadLib();
 })();
 </script>
 </body>

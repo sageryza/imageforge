@@ -323,13 +323,19 @@ async function pageTests() {
 
   assert.strictEqual(await page.locator('#strip .tclip').count(), 2);
   assert.strictEqual(await page.locator('#tl.placing').count(), 0);
-  n++; console.log('  ok — the timeline shows the arrangement, gaps quiet while nothing is in hand');
+  assert.strictEqual(await page.locator('#pool .clip').count(), 0, 'an empty pool shows nothing');
+  assert.strictEqual(await page.locator('#shelf .clip').count(), 0, 'the library is NOT on the surface');
+  n++; console.log('  ok — an open project shows its own pieces, not the library');
 
-  // arm a shelf clip → indicators appear in every gap (2 clips → 3 gaps)
+  // the shelf door: the library opens as a picker, a tap takes a clip in hand
+  await page.locator('#shelfBtn').click();
+  await page.waitForSelector('#shelf .clip');
+  assert.strictEqual(await page.locator('#shelf .clip').count(), 3);
   await page.locator('#shelf .clip', { hasText: 'the crumbs' }).click();
+  await page.waitForSelector('#shelfSheet[hidden]', { state: 'attached' });
   assert.strictEqual(await page.locator('#tl.placing').count(), 1);
   assert.strictEqual(await page.locator('#strip .gap i').count(), 3);
-  n++; console.log('  ok — arming a shelf clip lights a place indicator in every gap');
+  n++; console.log('  ok — From the shelf opens the library; picking a clip arms it');
 
   // tap the middle gap → it drops between the two existing clips and saves
   await page.locator('#strip .gap').nth(1).click();
@@ -354,31 +360,33 @@ async function pageTests() {
   await page.waitForTimeout(800);
   const removed = saves[saves.length - 1].clips.map((c) => c.id);
   assert.deepStrictEqual(removed, ['c1', 'c2']);
+  await page.locator('#shelfBtn').click();
   assert.strictEqual(await page.locator('#shelf .clip').count(), 3);
+  await page.locator('#shelfClose').click();
   n++; console.log('  ok — Take off removes from the timeline, never from the shelf');
 
-  // the one button: a whole dumped album lands in the TRAY, never the timeline
+  // the one button: a whole dumped album fills the POOL, never the timeline
   await page.locator('#dumpBtn').click();
   await page.waitForSelector('#dumpList .arow');
   await page.locator('#dumpList .arow').first().click();
   await page.waitForSelector('#dumpSheet[hidden]', { state: 'attached' });
   assert.ok(imported, 'the import POST fired');
-  assert.strictEqual(await page.locator('#tray .tclip').count(), 2);
+  assert.strictEqual(await page.locator('#pool .clip').count(), 2);
   assert.strictEqual(await page.locator('#strip .tclip').count(), 2, 'the timeline is untouched');
-  assert.ok(!(await page.locator('#trayLabel').first().isHidden()), 'the READY TO DROP IN label shows');
-  n++; console.log('  ok — Add from the Dump lands in the tray, the timeline untouched');
+  assert.ok(!(await page.locator('#poolLabel').first().isHidden()), 'the READY TO DROP IN label shows');
+  n++; console.log('  ok — From the Dump fills the pool, the timeline untouched');
 
-  // a tray piece arms like a shelf clip and drops in where tapped
-  await page.locator('#tray .tclip').nth(0).click();   // the album's still
-  assert.ok(await page.locator('#tl.placing').count(), 'tray arm lights the indicators');
+  // a pool piece arms like a shelf clip and drops in where tapped
+  await page.locator('#pool .clip').nth(0).click();   // the album's still
+  assert.ok(await page.locator('#tl.placing').count(), 'a pool arm lights the indicators');
   await page.locator('#strip .gap').nth(2).click();    // the end gap
   await page.waitForTimeout(800);
   assert.strictEqual(await page.locator('#strip .tclip').count(), 3);
-  assert.strictEqual(await page.locator('#tray .tclip').count(), 1);
+  assert.strictEqual(await page.locator('#pool .clip').count(), 1);
   let s = saves[saves.length - 1];
   assert.strictEqual(s.clips[2].id, ALBUM_ITEMS[0].id);
   assert.strictEqual(s.tray.length, 1);
-  n++; console.log('  ok — a tray piece drops into the timeline and leaves the tray');
+  n++; console.log('  ok — a pool piece drops into the timeline and leaves the pool');
 
   // the placed still wears its hold and offers the length chips when held
   assert.strictEqual(await page.locator('#strip .tclip').nth(2).locator('.dur').textContent(), '4s');
@@ -389,20 +397,20 @@ async function pageTests() {
   assert.strictEqual(saves[saves.length - 1].clips[2].hold, 6);
   n++; console.log('  ok — a still shows its hold and the chips change it');
 
-  // a video waiting in the tray: Remove (not Take off), and no hold chips
-  await page.locator('#tray .tclip').nth(0).click();
+  // a video waiting in the pool: Remove (not Take off), and no hold chips
+  await page.locator('#pool .clip').nth(0).click();
   assert.strictEqual(await page.locator('#handRemove').textContent(), 'Remove');
   assert.strictEqual(await page.locator('#handHold:not([hidden])').count(), 0);
   n++; console.log('  ok — a clip in hand shows Remove and no hold chips');
   await page.locator('#handX').click();   // put it down before the upload flow
 
-  // the Upload button: picked files join the tray as each lands
+  // the Upload button: picked files join the pool as each lands
   await page.locator('#upFile').setInputFiles([
     { name: 'sunrise.png', mimeType: 'image/png', buffer: Buffer.from('fakepng') },
     { name: 'flight.mp4', mimeType: 'video/mp4', buffer: Buffer.from('fakemp4') },
   ]);
   await page.waitForTimeout(900);
-  assert.strictEqual(await page.locator('#tray .tclip').count(), 3);
+  assert.strictEqual(await page.locator('#pool .clip').count(), 3);
   s = saves[saves.length - 1];
   const ids = s.tray.map((x) => x.id);
   assert.ok(ids.includes('up-sunrisepng') && ids.includes('up-flightmp4'));
@@ -410,16 +418,16 @@ async function pageTests() {
   assert.strictEqual(sun.kind, 'image');
   assert.strictEqual(sun.hold, 4);
   assert.strictEqual(s.tray.find((x) => x.id === 'up-flightmp4').kind, 'video');
-  n++; console.log('  ok — Upload stages picked files in the tray, saved with the doc');
+  n++; console.log('  ok — Upload stages picked files in the pool, saved with the doc');
 
-  // Remove discards a tray piece without touching the timeline
+  // Remove discards a pool piece without touching the timeline
   const stripBefore = await page.locator('#strip .tclip').count();
-  await page.locator('#tray .tclip').nth(1).click();   // sunrise
+  await page.locator('#pool .clip').nth(1).click();   // sunrise
   await page.locator('#handRemove').click();
   await page.waitForTimeout(800);
-  assert.strictEqual(await page.locator('#tray .tclip').count(), 2);
+  assert.strictEqual(await page.locator('#pool .clip').count(), 2);
   assert.strictEqual(await page.locator('#strip .tclip').count(), stripBefore);
-  n++; console.log('  ok — Remove discards from the tray, the timeline untouched');
+  n++; console.log('  ok — Remove discards from the pool, the timeline untouched');
 
   await browser.close();
 }

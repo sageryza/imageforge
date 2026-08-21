@@ -2289,16 +2289,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Tests: `node scripts/test-clips.js` (pure, no network).
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Assembly** (`assembly.js`, `/api/assembly`, page at `/assembly`, iOS tile
-  under the FILM filter) — put library clips IN ORDER on a timeline, then bake
-  one film. Sophie's ask (Aug 2026): like the Story Room's scratch pad but for
-  CLIPS — the arrangement rides a **timeline at the bottom**; tapping a shelf
-  clip lights a **place indicator in every gap**, and tapping a gap drops the
-  clip between the two already there. Tapping a timeline clip picks it UP (the
-  same indicators move it; Take off removes it — the clip itself stays on the
-  Chunking shelf). Everything is a tap, nothing drags. **It costs nothing** —
-  the shelf is `forge-clip-library` read-only, and Render is ffmpeg on our own
-  box. One doc per assembly (`forge-assemblies`); the arrangement saves WHOLE
-  (order and membership change together — an insert is both).
+  under the FILM filter) — put pieces IN ORDER on a timeline, then bake one
+  film. Sophie's ask (Aug 2026): like the Story Room's scratch pad but for
+  CLIPS — the arrangement rides a **timeline at the bottom**; tapping a piece
+  lights a **place indicator in every gap**, and tapping a gap drops it
+  between the two already there. Tapping a timeline piece picks it UP (the
+  same indicators move it; Take off removes it back out of the film).
+  Everything is a tap, nothing drags. **AN OPEN PROJECT'S SURFACE IS ITS OWN
+  PIECES, NOT THE LIBRARY (Aug 2026 v4, Sophie: "all these other chunks or
+  clips compete for my attention … think carefully if moving them out of the
+  way is the best fit, versus detaching or creating a separate surface, with
+  the clips to go in").** The main of the screen is the POOL — everything she
+  has brought in, READY TO DROP IN, big tiles; the Chunking library sits
+  behind its own door (**From the shelf**, a picker sheet with the house
+  search — tapping a clip there closes the sheet with the clip IN HAND, ready
+  to place; the library loads lazily, never up front). The first cut put the
+  whole library on the surface and her nine uploads were invisible in a
+  cramped dock strip. **It costs nothing** — the library is
+  `forge-clip-library` read-only, and Render is ffmpeg on our own box. One
+  doc per assembly (`forge-assemblies`); the arrangement saves WHOLE (order
+  and membership change together — an insert is both).
   **AN ITEM IS A CLIP OR A STILL, AND THE DUMP IS THE ONE-BUTTON DOOR (Aug
   2026 v2, Sophie: "i made images in the playground and animated them w
   midjourney and wanted to dump them in — some were just images, some
@@ -2309,11 +2319,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (2026-08-21, her live report the first version earned: "they're supposed to
   be above the timeline so i can drop them in. i'm confused"; the import is
   deduped by id, so re-importing — or importing the album her own uploads
-  made — doubles nothing). The tray wears a **READY TO DROP IN** label and
-  its own paper so it can never read as the timeline itself, and new
-  assemblies are named with her Pacific date AND time ("Assembly · Aug 21 ·
-  9:50 pm") — five identical "Assembly · Aug 21" rows is how her uploads
-  "disappeared" into the wrong project that night. A still carries `hold`
+  made — doubles nothing). The tray IS the pool — the labeled main surface
+  above the timeline (it began as a cramped strip in the dock and she
+  couldn't find her own uploads in it) — and new assemblies are named with
+  her Pacific date AND time ("Assembly · Aug 21 · 9:50 pm") — five identical
+  "Assembly · Aug 21" rows is how her uploads "disappeared" into the wrong
+  project that night. A still carries `hold`
   (seconds on screen, default 4 — pick it up on the timeline and the
   2s·4s·6s·8s chips set it) and renders like the pad film's beat art, held on
   the canvas over silence. Imported items reference the Dump's own urls — nothing is copied
