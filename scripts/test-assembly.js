@@ -12,7 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const {
   cleanClips, placeAt, movePlace, targetFrom, segmentFilters, trimmed,
-  MAX_CLIPS, FPS, MAX_EDGE,
+  itemSeconds, itemsFromDrops,
+  MAX_CLIPS, FPS, MAX_EDGE, HOLD_DEFAULT, HOLD_MIN, HOLD_MAX,
 } = require('../assembly');
 
 let n = 0;
@@ -72,7 +73,7 @@ console.log('\nthe arrangement whitelist:');
 
 t('cleanClips keeps the snapshot fields and drops everything else', () => {
   const [c] = cleanClips([{ ...clip(1), evil: 'x', renders: [1] }]);
-  assert.deepStrictEqual(Object.keys(c).sort(), ['id', 'poster', 'seconds', 'title', 'url']);
+  assert.deepStrictEqual(Object.keys(c).sort(), ['id', 'kind', 'poster', 'seconds', 'title', 'url']);
 });
 
 t('cleanClips refuses items missing an id or a real url', () => {
@@ -89,6 +90,75 @@ t(`cleanClips caps the timeline at ${MAX_CLIPS}`, () => {
 t('cleanClips rounds seconds and nulls the unknowable', () => {
   assert.strictEqual(cleanClips([clip(1, { seconds: 5.4321 })])[0].seconds, 5.4);
   assert.strictEqual(cleanClips([clip(1, { seconds: 'soon' })])[0].seconds, null);
+});
+
+console.log('\nstills on the timeline:');
+
+t('a clip defaults to kind video and carries no hold', () => {
+  const [c] = cleanClips([clip(1)]);
+  assert.strictEqual(c.kind, 'video');
+  assert.ok(!('hold' in c));
+});
+
+t(`an image gets hold — default ${HOLD_DEFAULT}s, clamped ${HOLD_MIN}–${HOLD_MAX}`, () => {
+  assert.strictEqual(cleanClips([clip(1, { kind: 'image' })])[0].hold, HOLD_DEFAULT);
+  assert.strictEqual(cleanClips([clip(1, { kind: 'image', hold: 6 })])[0].hold, 6);
+  assert.strictEqual(cleanClips([clip(1, { kind: 'image', hold: 999 })])[0].hold, HOLD_MAX);
+  assert.strictEqual(cleanClips([clip(1, { kind: 'image', hold: 0 })])[0].hold, HOLD_MIN);
+  assert.strictEqual(cleanClips([clip(1, { kind: 'image', hold: 'long' })])[0].hold, HOLD_DEFAULT);
+});
+
+t('itemSeconds: a still sits for its hold, a clip for its length', () => {
+  assert.strictEqual(itemSeconds({ kind: 'image', hold: 6 }), 6);
+  assert.strictEqual(itemSeconds({ kind: 'image' }), HOLD_DEFAULT);
+  assert.strictEqual(itemSeconds({ kind: 'video', seconds: 5 }), 5);
+  assert.strictEqual(itemSeconds({ kind: 'video' }), 0);
+});
+
+console.log('\nthe one-button Dump import:');
+
+const drop = (id, over = {}) => ({
+  id: `d${id}`, url: `https://storage.googleapis.com/b/drops/x/${id}.jpg`,
+  media: 'image', photoIndex: id, ...over,
+});
+
+t('itemsFromDrops keeps album order (photoIndex), whatever order the query returned', () => {
+  const out = itemsFromDrops([drop(2), drop(0), drop(1)], 'MJ batch');
+  assert.deepStrictEqual(out.map((x) => x.id), ['d0', 'd1', 'd2']);
+});
+
+t('a dumped photo becomes a still: hold default, DERIVED thumb, never the original as its tile', () => {
+  const [x] = itemsFromDrops([drop(0)], 'MJ batch');
+  assert.strictEqual(x.kind, 'image');
+  assert.strictEqual(x.hold, HOLD_DEFAULT);
+  assert.ok(x.poster.startsWith('/api/story/thumb?url='), 'thumb service, not the full-res url');
+  assert.ok(x.url.endsWith('0.jpg'), 'the item itself keeps the original');
+});
+
+t('a dumped video becomes a clip and keeps its baked poster', () => {
+  const [x] = itemsFromDrops([drop(0, {
+    media: 'video', url: 'https://storage.googleapis.com/b/drops/x/0.mov',
+    posterUrl: 'https://storage.googleapis.com/b/posters/0.webp',
+  })], 'MJ batch');
+  assert.strictEqual(x.kind, 'video');
+  assert.ok(!('hold' in x));
+  assert.strictEqual(x.poster, 'https://storage.googleapis.com/b/posters/0.webp');
+});
+
+t('itemsFromDrops names the nameless by album + place, keeps a given name', () => {
+  const out = itemsFromDrops([drop(0), drop(1, { name: 'the flying one' })], 'MJ batch');
+  assert.strictEqual(out[0].title, 'MJ batch · 1');
+  assert.strictEqual(out[1].title, 'the flying one');
+});
+
+t('itemsFromDrops refuses items with no id or a bad url — they survive as clean records nowhere', () => {
+  const out = itemsFromDrops([drop(0, { url: 'ftp://nope' }), { url: 'https://x/y.jpg' }, drop(1)], 'a');
+  assert.deepStrictEqual(out.map((x) => x.id), ['d1']);
+});
+
+t('itemsFromDrops output passes cleanClips untouched', () => {
+  const items = itemsFromDrops([drop(0), drop(1, { media: 'video', posterUrl: null })], 'a');
+  assert.deepStrictEqual(cleanClips(items), items.map((x) => ({ seconds: null, ...x })));
 });
 
 console.log('\nthe render canvas (the first clip decides the shape):');
@@ -135,6 +205,9 @@ t('trimmed totals the seconds and takes the first clip\'s poster', () => {
   });
   assert.strictEqual(row.clips, 2);
   assert.strictEqual(row.seconds, 10);
+  const withStill = trimmed({ id: 'b', title: 'S',
+    clips: [clip(1, { seconds: 5 }), clip(2, { kind: 'image', hold: 6, seconds: null })] });
+  assert.strictEqual(withStill.seconds, 11, 'a still counts its hold toward the total');
   assert.strictEqual(row.poster, 'https://p/1.webp');
   assert.strictEqual(row.renders, 1);
   assert.strictEqual(row.job, null);
@@ -169,18 +242,34 @@ async function pageTests() {
     { id: 'c3', url: 'https://storage.googleapis.com/b/clips/3.mp4', title: 'the jar', poster: null, seconds: 6, kind: 'scene', tags: [], from: 'f', hidden: false, status: 'ready' },
   ];
   const DOC = { id: 'a1', title: 'Test assembly', clips: [
-    { id: 'c1', url: LIB[0].url, title: 'the door', poster: null, seconds: 4 },
-    { id: 'c3', url: LIB[2].url, title: 'the jar', poster: null, seconds: 6 },
+    { id: 'c1', url: LIB[0].url, title: 'the door', poster: null, seconds: 4, kind: 'video' },
+    { id: 'c3', url: LIB[2].url, title: 'the jar', poster: null, seconds: 6, kind: 'video' },
   ], renders: [], job: null };
+  const ALBUM_ITEMS = itemsFromDrops([
+    { id: 'p1', url: 'https://storage.googleapis.com/b/drops/mj/1.jpg', media: 'image', photoIndex: 0 },
+    { id: 'p2', url: 'https://storage.googleapis.com/b/drops/mj/2.mov', media: 'video', photoIndex: 1,
+      posterUrl: 'https://storage.googleapis.com/b/posters/2.webp' },
+  ], 'MJ batch');
 
   const browser = await pw.chromium.launch(exe ? { executablePath: exe } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const saves = [];
+  let imported = false;
   await page.route('**/*', (route) => {
     const u = route.request().url();
     const m = route.request().method();
     if (u.includes('/api/clips')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ count: LIB.length, clips: LIB }) });
+    }
+    if (u.includes('/api/assembly/sources')) {
+      return route.fulfill({ contentType: 'application/json',
+        body: JSON.stringify({ albums: [{ album: 'mj-batch', name: 'MJ batch', images: 1, videos: 1, cover: null, newest: 1 }] }) });
+    }
+    if (u.includes('/api/assembly/a1/import') && m === 'POST') {
+      imported = true;
+      DOC.clips = DOC.clips.concat(ALBUM_ITEMS);
+      return route.fulfill({ contentType: 'application/json',
+        body: JSON.stringify({ ok: true, added: ALBUM_ITEMS.length, skipped: 0, clips: DOC.clips.length }) });
     }
     if (u.includes('/api/assembly/a1/clips') && m === 'POST') {
       saves.push(JSON.parse(route.request().postData() || '{}'));
@@ -237,6 +326,31 @@ async function pageTests() {
   assert.deepStrictEqual(removed, ['c1', 'c2']);
   assert.strictEqual(await page.locator('#shelf .clip').count(), 3);
   n++; console.log('  ok — Take off removes from the timeline, never from the shelf');
+
+  // the one button: a whole dumped album lands on the timeline, in order
+  await page.locator('#dumpBtn').click();
+  await page.waitForSelector('#dumpList .arow');
+  await page.locator('#dumpList .arow').first().click();
+  await page.waitForSelector('#dumpSheet[hidden]', { state: 'attached' });
+  assert.ok(imported, 'the import POST fired');
+  assert.strictEqual(await page.locator('#strip .tclip').count(), 4);
+  n++; console.log('  ok — Add from the Dump pours the whole album onto the timeline');
+
+  // the dumped still wears its hold and offers the length chips when held
+  const stillBadge = await page.locator('#strip .tclip').nth(2).locator('.dur').textContent();
+  assert.strictEqual(stillBadge, '4s');
+  await page.locator('#strip .tclip').nth(2).click();
+  assert.strictEqual(await page.locator('#handHold:not([hidden]) button').count(), 4);
+  await page.locator('#handHold button', { hasText: '6s' }).click();
+  await page.waitForTimeout(800);
+  const held = saves[saves.length - 1].clips[2];
+  assert.strictEqual(held.hold, 6);
+  n++; console.log('  ok — a still shows its hold and the chips change it');
+
+  // a video from the album carries no chips
+  await page.locator('#strip .tclip').nth(3).click();
+  assert.strictEqual(await page.locator('#handHold:not([hidden])').count(), 0);
+  n++; console.log('  ok — a clip in hand shows no hold chips');
 
   await browser.close();
 }

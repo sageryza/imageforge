@@ -10,10 +10,24 @@
 //
 // The shelf it draws from is the Chunking clip library (`forge-clip-library`,
 // clips.js) — this module GENERATES nothing and never touches a library doc.
-// An assembly is an ARRANGEMENT: an ordered list of clip snapshots on one doc
+// An assembly is an ARRANGEMENT: an ordered list of item snapshots on one doc
 // (`forge-assemblies`, deckfactory), saved whole as she works (the cutmarks
 // /state pattern — order and membership always change together). Render bakes
 // the arrangement into one mp4, free, on our own box.
+//
+// AN ITEM IS A CLIP OR A STILL (Sophie, Aug 2026: "i made images in the
+// playground and animated them w midjourney and wanted to dump them in — some
+// were just images, some animated. one button and they all go into a project,
+// ready to arrange"). `kind:'image'` items carry `hold` (seconds on screen,
+// default 4) and render exactly like the pad film's beat art — the still held
+// on the canvas for its length over silence. And the ONE BUTTON is the Dump:
+// `POST /:id/import { album }` pulls a whole dumped album — photos AND videos,
+// in album order — onto the project's timeline in one go (`GET /sources`
+// lists the albums). Imported items reference the Dump's urls directly; they
+// are never copied and never filed onto the Chunking shelf (the harvest skips
+// `drops/` on purpose — raw dumps are not made clips; here she picked them).
+// A still's timeline thumb is a DERIVED display copy via the /api/story/thumb
+// service — the original is never touched (house rule).
 //
 // THE STITCH IS THE SCRATCH-PAD FILM'S RECIPE, not a fresh one:
 //   1. every clip is normalized onto one canvas (scale + pad, 30fps, setsar=1,
@@ -41,10 +55,13 @@
 // Routes (mounted at /api/assembly by server.js, STUDIO_TOKEN gate, /status open):
 //   GET    /status      → { ok, firebase, ffmpeg, ffprobe, assemblies }
 //   GET    /            → { assemblies } — trimmed list, newest touched first
+//   GET    /sources     → { albums } — the Dump's albums, newest first
 //   POST   /            → { title? } → { id } — a new empty assembly
 //   GET    /:id         → the doc
-//   POST   /:id/clips   → { clips:[{id,url,title,poster,seconds}] } — the whole
-//                         arrangement (the page debounces)
+//   POST   /:id/clips   → { clips:[{id,url,title,poster,seconds,kind,hold}] }
+//                         — the whole arrangement (the page debounces)
+//   POST   /:id/import  → { album } — append a whole Dump album (photos and
+//                         videos, in album order) to the timeline
 //   POST   /:id/title   → { title }
 //   POST   /:id/render  → bake the arrangement (background job on the doc)
 //   GET    /:id/job     → { job }
@@ -62,6 +79,7 @@ const { execFile } = require('child_process');
 
 const editor = require('./editor');           // uploadPublic + audioDuration
 const clips = require('./clips');             // the library COL + bucketForUrl
+const dropbox = require('./dropbox');         // COL — the Dump's albums for /import
 const { storageRef } = require('./asset-hash');
 
 const COL = process.env.ASSEMBLY_COLLECTION || 'forge-assemblies';
@@ -101,18 +119,68 @@ const nowIso = () => new Date().toISOString();
 
 // ── Pure pieces (exported for the tests and mirrored on the page) ──────────
 
-// One arrangement item: a snapshot of a library clip. The id is the tie back
-// to `forge-clip-library`; everything else is display fallback. Anything the
-// client sends beyond these fields is dropped.
+// One arrangement item: a snapshot of a library clip OR a still. The id ties
+// a clip back to `forge-clip-library` (a Dump import's id is its drop doc id,
+// which simply misses that lookup — the snapshot url stands); everything else
+// is display fallback. Anything the client sends beyond these fields is
+// dropped. A still (`kind:'image'`) carries `hold` — its seconds on screen.
+const HOLD_DEFAULT = 4;
+const HOLD_MIN = 0.5;
+const HOLD_MAX = 30;
 function cleanClips(list) {
   if (!Array.isArray(list)) return [];
-  return list.slice(0, MAX_CLIPS).map((c) => ({
-    id: String((c && c.id) || '').slice(0, 40),
-    url: String((c && c.url) || '').slice(0, 500),
-    title: String((c && c.title) || '').slice(0, 200),
-    poster: c && c.poster ? String(c.poster).slice(0, 500) : null,
-    seconds: Number.isFinite(Number(c && c.seconds)) ? Math.round(Number(c.seconds) * 10) / 10 : null,
-  })).filter((c) => c.id && /^https:\/\//.test(c.url));
+  return list.slice(0, MAX_CLIPS).map((c) => {
+    const kind = (c && c.kind) === 'image' ? 'image' : 'video';
+    const out = {
+      id: String((c && c.id) || '').slice(0, 40),
+      url: String((c && c.url) || '').slice(0, 500),
+      title: String((c && c.title) || '').slice(0, 200),
+      poster: c && c.poster ? String(c.poster).slice(0, 500) : null,
+      // null stays null — an unknown length must never become a confident 0
+      seconds: (c && c.seconds != null && Number.isFinite(Number(c.seconds)))
+        ? Math.round(Number(c.seconds) * 10) / 10 : null,
+      kind,
+    };
+    if (kind === 'image') {
+      const h = Number(c && c.hold);
+      out.hold = Number.isFinite(h)
+        ? Math.round(Math.max(HOLD_MIN, Math.min(HOLD_MAX, h)) * 10) / 10
+        : HOLD_DEFAULT;
+    }
+    return out;
+  }).filter((c) => c.id && /^https:\/\//.test(c.url));
+}
+
+// How long an item sits on screen — a still is its hold, a clip its length.
+const itemSeconds = (c) => (c && c.kind === 'image'
+  ? (Number(c.hold) || HOLD_DEFAULT)
+  : (Number(c && c.seconds) || 0));
+
+// A dumped album's files → arrangement items, in album order. Pure — the
+// route feeds it the drop docs. Videos keep their baked poster; a still's
+// thumb is DERIVED via the thumb service (same-origin url), never a resize of
+// the original.
+function itemsFromDrops(files, bundleName) {
+  const name = String(bundleName || 'Dump').trim();
+  return (Array.isArray(files) ? files : [])
+    .filter((f) => f && f.id && /^https:\/\//.test(String(f.url || '')))
+    .slice()
+    .sort((a, b) => (Number(a.photoIndex) || 0) - (Number(b.photoIndex) || 0))
+    .map((f, i) => {
+      const image = (f.media || 'image') !== 'video';
+      const item = {
+        id: String(f.id).slice(0, 40),
+        url: String(f.url).slice(0, 500),
+        title: String(f.name || `${name} · ${i + 1}`).slice(0, 200),
+        poster: image
+          ? `/api/story/thumb?url=${encodeURIComponent(f.url)}&w=240`
+          : (f.posterUrl ? String(f.posterUrl).slice(0, 500) : null),
+        seconds: null,
+        kind: image ? 'image' : 'video',
+      };
+      if (image) item.hold = HOLD_DEFAULT;
+      return item;
+    });
 }
 
 // The place-indicator arithmetic — the page's whole interaction, kept here so
@@ -161,7 +229,7 @@ function segmentFilters(target) {
 const trimmed = (a) => ({
   id: a.id, title: a.title || '',
   clips: (a.clips || []).length,
-  seconds: Math.round((a.clips || []).reduce((s, c) => s + (Number(c.seconds) || 0), 0) * 10) / 10,
+  seconds: Math.round((a.clips || []).reduce((s, c) => s + itemSeconds(c), 0) * 10) / 10,
   renders: (a.renders || []).length,
   poster: ((a.clips || [])[0] || {}).poster || null,
   job: a.job && a.job.status === 'running' ? { kind: a.job.kind, label: a.job.label } : null,
@@ -286,9 +354,15 @@ async function runRender(id, progress) {
       if (!probe.hasVideo) throw new Error(`"${item.title || url}" has no video stream`);
       if (!target) target = targetFrom(probe.width, probe.height);
 
-      // Video segment: one canvas, one fps, its own encode — concat-copy safe.
+      // Its own normalized segment either way — one canvas, one fps, its own
+      // encode, concat-copy safe. A still loops for its hold (the pad film's
+      // beat-art encode); a clip passes through whole.
       const seg = path.join(dir, `seg-${i}.mp4`);
-      await run(FFMPEG, ['-y', '-i', src, '-vf', segmentFilters(target), '-an',
+      const still = item.kind === 'image';
+      const inArgs = still
+        ? ['-loop', '1', '-t', itemSeconds(item).toFixed(3), '-i', src]
+        : ['-i', src];
+      await run(FFMPEG, ['-y', ...inArgs, '-vf', segmentFilters(target), '-an',
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
         '-movflags', '+faststart', seg], 900000);
 
@@ -382,6 +456,38 @@ router.post('/', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// The Dump's albums, newest first — what the one-button import picks from.
+// MUST stay registered above GET /:id or Express reads "sources" as an id
+// (the /api/promptlab/styles lesson).
+router.get('/sources', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const snap = await db().collection(dropbox.COL).get();
+    const byBundle = new Map();
+    snap.forEach((s) => {
+      const v = s.data();
+      if (!v.bundle || !v.url) return;
+      const e = byBundle.get(v.bundle) || {
+        album: v.bundle, name: v.bundleName || v.bundle,
+        images: 0, videos: 0, cover: null, newest: 0,
+      };
+      if ((v.media || 'image') === 'video') e.videos++; else e.images++;
+      const at = Number(v.createdAt) || 0;
+      if (at >= e.newest) {
+        e.newest = at;
+        e.cover = v.posterUrl
+          || ((v.media || 'image') !== 'video'
+            ? `/api/story/thumb?url=${encodeURIComponent(v.url)}&w=240` : e.cover);
+      }
+      byBundle.set(v.bundle, e);
+    });
+    const albums = [...byBundle.values()]
+      .sort((a, b) => b.newest - a.newest)
+      .slice(0, 40);
+    res.json({ albums });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
@@ -409,6 +515,30 @@ router.post('/:id/clips', async (req, res) => {
     const clean = cleanClips(req.body.clips);
     await patchDoc(req.params.id, { clips: clean });
     res.json({ ok: true, clips: clean.length });
+  } catch (err) { fail(res, err); }
+});
+
+// THE ONE BUTTON — append a whole Dump album to the timeline, photos and
+// videos alike, in album order, ready to arrange. Nothing is copied and
+// nothing lands on the Chunking shelf; items reference the Dump's own urls.
+router.post('/:id/import', async (req, res) => {
+  try {
+    const doc = await loadDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'no such assembly' });
+    const album = String(req.body.album || '').trim();
+    if (!album) return res.status(400).json({ error: 'which album?' });
+    // Single equality filter, ordered in memory — the house query rule.
+    const snap = await db().collection(dropbox.COL).where('bundle', '==', album).get();
+    const files = [];
+    snap.forEach((s) => files.push({ id: s.id, ...s.data() }));
+    if (!files.length) return res.status(404).json({ error: 'that album is empty or unknown' });
+    const items = itemsFromDrops(files, files[0].bundleName || album);
+    const cur = cleanClips(doc.clips || []);
+    const room = MAX_CLIPS - cur.length;
+    const added = items.slice(0, Math.max(0, room));
+    const clean = cleanClips(cur.concat(added));
+    await patchDoc(req.params.id, { clips: clean });
+    res.json({ ok: true, added: added.length, skipped: items.length - added.length, clips: clean.length });
   } catch (err) { fail(res, err); }
 });
 
@@ -442,5 +572,6 @@ module.exports = {
   router, COL,
   // pure pieces, for the tests and the page's mirror
   cleanClips, placeAt, movePlace, targetFrom, segmentFilters, trimmed,
-  MAX_CLIPS, MAX_RENDERS, FPS, MAX_EDGE,
+  itemSeconds, itemsFromDrops,
+  MAX_CLIPS, MAX_RENDERS, FPS, MAX_EDGE, HOLD_DEFAULT, HOLD_MIN, HOLD_MAX,
 };

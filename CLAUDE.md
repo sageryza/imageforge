@@ -2298,7 +2298,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   Chunking shelf). Everything is a tap, nothing drags. **It costs nothing** —
   the shelf is `forge-clip-library` read-only, and Render is ffmpeg on our own
   box. One doc per assembly (`forge-assemblies`); the arrangement saves WHOLE
-  (order and membership change together — an insert is both). **The render is
+  (order and membership change together — an insert is both).
+  **AN ITEM IS A CLIP OR A STILL, AND THE DUMP IS THE ONE-BUTTON DOOR (Aug
+  2026 v2, Sophie: "i made images in the playground and animated them w
+  midjourney and wanted to dump them in — some were just images, some
+  animated. one button and they all go into a project, ready to arrange").**
+  She dumps the album from her phone (photos and videos together), taps **Add
+  from the Dump** inside an assembly, picks the album, and everything in it
+  lands on the timeline in album order. A still carries `hold` (seconds on
+  screen, default 4 — pick it up on the timeline and the 2s·4s·6s·8s chips set
+  it) and renders like the pad film's beat art, held on the canvas over
+  silence. Imported items reference the Dump's own urls — nothing is copied
+  and nothing is filed onto the Chunking shelf (the harvest skips `drops/` on
+  purpose; here she picked them herself). A still's timeline thumb is a
+  DERIVED copy via `/api/story/thumb` — the original is never touched.
+  **The render is
   the scratch-pad film's recipe, not a fresh one**: every clip normalized onto
   ONE canvas (the first clip's frame, evened, long edge capped 1280 — 30fps,
   setsar=1, yuv420p) as its own segment so the concat demuxer joins with
