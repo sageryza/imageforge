@@ -4,6 +4,12 @@ The surfaces that draw: the Playground, Freeform, the Vector pipeline, and the M
 
 *(Moved out of `CLAUDE.md` Aug 2026 — see the pointer there. Nothing was rewritten; this is the text as it stood.)*
 
+**Writing the words that go in the box? Keep it SHORT — a few clear sentences
+of what HAPPENS, not a paragraph of specification.** Length buys nothing from
+gpt-image-2 and costs you the ability to fix a bad draw one change at a time;
+the evidence, the unsourced blog number to ignore, and the measured ~1,000-char
+ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
+
 ## Playground (`/playground`, iOS tile "Playground") — prompt tester
 - `public/promptlab.html` + `/api/promptlab` (inline in server.js), Firestore
   `forge-promptlab`. Fixed recipe per style so runs stay comparable: **ONE
