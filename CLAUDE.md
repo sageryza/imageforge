@@ -3050,6 +3050,56 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - Tests: `node scripts/test-review.js` (the decision table, pure) and
     `node scripts/test-review-page.js` (the real page + the real injected
     pill, headless — tabs, the ✕/↩ POSTs, the pill palette).
+- **THE INSTAGRAM MOCKUPS** (page at `/instagram`, reached from the icon at the
+  RIGHT of the Chats app's UPDATE tag row — Aug 2026, Sophie: "an icon button
+  in the top right within the existing header space where the tags are, of my
+  update tab … that leads to two tabs — two mockups of instagram"). Her two
+  accounts drawn as their profile grids: **DREAM** (`you...my.dreams`) and
+  **WITCH** (`moonsickbaby`), behind two hairline tabs. **It costs nothing** —
+  no model call, no job; it reads a committed JSON and one free API.
+  - **THE DREAM GRID IS THE ONE THE dream-app-commercial CHAT ALREADY MADE, not
+    a copy of it** (her ask: "reuse it exactly, it plays the films"). The phone,
+    the 3:4 crop, the tiles that play and the current-cut refresh live in
+    `public/instagrid.js`, a faithful lift of `scripts/dream-commercials/grid.js`
+    — and **both readers now take their tiles from `public/instagram-grids.json`**.
+    That is the load-bearing half: a posted Compare page is FROZEN the day it is
+    posted while this page is not, so two hand-kept tile lists would drift into
+    two different mockups of one account. `grid.js`'s output was diffed
+    byte-for-byte across the change, and a test compares the two as objects.
+  - **A TILE PLAYS ITS CURRENT CUT.** The url in the data is only the fallback:
+    every tile names its film's Storage `prefix` and the `chat` that makes it,
+    and the page asks `GET /api/chatfeed/newest` on every open — so a re-cut in
+    another chat reaches both grids with nothing re-posted. A tile with no film
+    opens its still instead, so **no tile is a dead control**, and a note left
+    on a playing film lands in the chat that can act on it (`filmnote.js`).
+  - **THE WITCH GRID HOLDS ONE THING — moon milk — and that is measured, not a
+    placeholder.** Her only witch film: swept Storage and the whole feed (Aug
+    2026) and there is no moon milk VIDEO in the bucket at all — the story is
+    12 beats with no voice, and `moon-milk-meta`'s own note reads "to do:
+    download moon milk videos (or remake)", i.e. the real cuts are on her
+    phone. So the tile carries the one real still there is
+    (`survey/covers/moon-milk.webp`) and says **"no film here yet"** rather
+    than a duration that belongs to nothing. Its `prefix` is `moon-milk/`: drop
+    a film there and the tile starts playing it by itself.
+    **Three finished Secretly a Witch shorts DO exist** and are deliberately
+    NOT on the grid (`witch-shorts/believing-the-worst`, `…/rules-review-room`,
+    `…/combined/tolle-combined`, newest cuts v7/v7/v6) — she said only moon
+    milk, and they are lesson films rather than reels. Adding one is a row in
+    the JSON.
+  - **THE ICON COSTS THE UPDATE ROW A LINE, and that was the cheaper half.**
+    The true top-right corner (x 324-374, y 14-192) belongs to the injected
+    pill, so the button is a right FLOAT placed after `#pillnotch` — the
+    rightmost place the row actually has. Measured at 390pt: the row runs
+    glass(34+8) · "Come back to"(117+6) · "In a minute"(97+6) with 64 reserved,
+    leaving 25px, and shrinking the button to 26 and then 24 still wrapped the
+    second box (a chip's own 6px right margin counts against the line). Nothing
+    ≥20px fits, so the wrap was coming either way and it keeps a full-size tap
+    target. UPDATE row 40px → 72px, that screen only.
+  - Test: `node scripts/test-instagram-grids.js` (the one-data-source rule
+    pure, then both real pages headless — the tabs' measured underline, a tile
+    playing, the still fallback, the pill's palette and corner, and the icon
+    asked with `elementFromPoint` at its own centre, which is the only honest
+    way to ask whether the pill is sitting on it).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the

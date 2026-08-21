@@ -14,9 +14,17 @@
  *
  *   node scripts/dream-commercials/grid.js [--dry]
  */
-const C = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/';
-const R = 'https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/';
-const ex = require('./extra.json');
+const path = require('path');
+
+// THE TILES LIVE IN ONE FILE NOW — `public/instagram-grids.json` (Aug 2026).
+// This page is FROZEN the day it is posted, and the same grid is also drawn
+// live at /instagram (Sophie asked for both her accounts behind an icon on the
+// Chats app's UPDATE tab, "the dream one … reuse it exactly"). Two hand-kept
+// copies of the same tile list would drift into two different mockups of one
+// account, so the data moved out and both readers point at it. The markup and
+// the CSS below are unchanged, and public/instagrid.js is their faithful lift.
+const GRIDS = require(path.join(__dirname, '..', '..', 'public', 'instagram-grids.json'));
+const account = (id) => (GRIDS.accounts || []).find((a) => a.id === id) || { tiles: [] };
 
 // A TILE PLAYS, THE WAY THE REAL GRID DOES (Aug 2026, Sophie: "what if the
 // instagram play buttons actually worked and opened lightbox"). A mockup of a
@@ -36,30 +44,7 @@ const ex = require('./extra.json');
 //
 // `chat` is also where a note left ON the film lands, which is the chat that
 // can act on it — not this one.
-const TILES = [
-  { id: 'boys', cover: C + 'groupchat-v2.webp', label: 'The boys — before / after', meta: '0:44',
-    film: R + 'dream-commercial/commercial-v2.mp4',
-    prefix: 'dream-commercial/commercial-', chat: 'dream-app-commercial' },
-  { id: 'everynight', cover: C + 'everydream3.webp', label: 'Every night', meta: '0:59',
-    film: R + 'commercials/reels/everydream3/everydream3-reel-draft-v1.mp4',
-    prefix: 'commercials/reels/everydream', chat: 'fictional-pill-commercial' },
-  { id: 'birdcostume', cover: C + 'birdcostume.webp', label: 'The bird costume', meta: '0:41',
-    film: R + 'commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4',
-    prefix: 'commercials/reels/birdcostume', chat: 'commercial-production-series' },
-  { id: 'birdstory', cover: C + 'birdstory.webp', label: 'The bird, as a story', meta: '0:41',
-    film: R + 'commercials/reels/birdstory/birdstory-reel-draft-v2.mp4',
-    prefix: 'commercials/reels/birdstory', chat: 'fictional-pill-commercial' },
-  { id: 'reverie', cover: C + 'reverie3.webp', label: 'Rêverie', meta: '0:27',
-    film: R + 'commercials/reels/reverie3/reverie3-reel-draft-v1.mp4',
-    prefix: 'commercials/reels/reverie', chat: 'fictional-pill-commercial' },
-  { id: 'song', cover: C + 'song-v2.webp', label: 'The song spot', meta: '0:13',
-    film: R + 'dream-commercial/spot-v4.mp4',
-    prefix: 'dream-commercial/spot-', chat: 'song-commercial-selection' },
-  { id: 'somnivex', cover: (ex.somnivex[3] || ex.somnivex[0]).url, label: 'Somnivex®', meta: 'storyboard',
-    chat: 'fictional-pill-commercial-01h7qx' },
-  { id: 'next1', empty: true, label: 'next' },
-  { id: 'next2', empty: true, label: 'next' },
-];
+const TILES = account('dream').tiles;
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

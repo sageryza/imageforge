@@ -834,6 +834,13 @@ app.get('/brief', serveGated('brief.html', { pill: true }));
 // far through each she is. Reads /api/review; the only write is her own ✕
 // ("not a review", a reviewHidden stamp on the page doc).
 app.get('/review', serveGated('review.html', { pill: true }));
+// Instagram: her two accounts drawn as their profile grids — DREAM (the grid
+// the dream-app-commercial chat posted, reused exactly: every tile plays that
+// film's CURRENT cut) and WITCH — behind two hairline tabs. Reached from the
+// icon at the right of the Chats app's UPDATE tab. Reads
+// public/instagram-grids.json and /api/chatfeed/newest; writes nothing, spends
+// nothing. Served WITH the pill: three rows of tiles scroll on a phone.
+app.get('/instagram', serveGated('instagram.html', { pill: true }));
 // Doors: a corridor of possible futures, seven doors deep. Chosen blind by a
 // sensory fragment, one-way, finite — a premise prototype, no server half and
 // no tile yet. Served WITHOUT the pill: the page never scrolls.

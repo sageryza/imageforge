@@ -33,6 +33,17 @@ Four surfaces, all in the `dream-app-commercials` chat's **Compare tab**:
   already exempts — a tap that plays a film can never also start the page
   scrolling. Test: `node scripts/test-dream-grid.js`.
 
+**THE GRID'S TILES MOVED OUT OF `grid.js` (Aug 2026).** The same grid is now
+also drawn live at **`/instagram`**, behind an icon on the Chats app's UPDATE
+tab, alongside a second tab for the witch account — Sophie's ask, "the dream one
+is already made by the dream commercials chat so reuse it exactly, it plays the
+films". A posted Compare page is frozen the day it is posted and that page is
+not, so the tile list lives in **`public/instagram-grids.json`** and both read
+it; `public/instagrid.js` is the renderer, a faithful lift of the markup, CSS
+and behaviour below. `grid.js`'s output was diffed byte-for-byte across the
+change — re-running it posts exactly the page it always did. Test:
+`node scripts/test-instagram-grids.js`.
+
 Scripts that built them: `scripts/dream-commercials/`. `decks.js` holds the
 deck data (the quotes live there), `room.js` and `grid.js` build and post
 their pages, and `stills.json` / `extra.json` / `boys.json` / `covers.json`
