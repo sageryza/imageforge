@@ -122,7 +122,12 @@ async function tapTitle(page) {
   }
 
   // 5. every control under a long title is still what a tap at its centre hits
-  const CTLS = [['#bmklink', 'bookmark'], ['#todolink', 'To do'], ['#archlink', 'Archive'], ['#acctog', 'account switch']];
+  // (the account switch is three slots since Aug 2026 — check each of them,
+  // since the thing that can go wrong is one slot ending up under the title)
+  const CTLS = [['#bmklink', 'bookmark'], ['#todolink', 'To do'], ['#archlink', 'Archive'],
+    ['#acctog .sw3[data-a="1"]', 'account 1 slot'],
+    ['#acctog .sw3[data-a="2"]', 'account 2 slot'],
+    ['#acctog .sw3[data-a="3"]', 'account 3 slot']];
   for (const w of [375, 390, 430]) {
     await page.setViewportSize({ width: w, height: 844 });
     for (const view of ['live', 'archive', 'bookmarks', 'todo', 'status', 'news']) {
@@ -135,10 +140,13 @@ async function tapTitle(page) {
       const word = await title(page);
       for (const [sel, name] of CTLS) {
         const hit = await page.evaluate((s) => {
-          const b = document.querySelector(s).getBoundingClientRect();
+          const n = document.querySelector(s);
+          const b = n.getBoundingClientRect();
           if (!b.width) return 'hidden';
           const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
-          return el && el.closest('button') ? '#' + el.closest('button').id : 'none';
+          if (el && (el === n || n.contains(el))) return s;
+          const btn = el && el.closest('button');
+          return btn ? ('#' + btn.id) : 'none';
         }, sel);
         if (hit !== 'hidden' && hit !== sel) {
           fail('at ' + w + 'px under the title "' + word + '" a tap on the ' + name + ' lands on ' + hit);

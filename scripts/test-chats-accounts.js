@@ -1,9 +1,15 @@
 #!/usr/bin/env node
-// ACCOUNT 1 / ACCOUNT 2 tabs on the /chats home (Aug 2026, Sophie: "look at
+// ACCOUNT 1 / 2 / 3 tabs on the /chats home (Aug 2026, Sophie: "look at
 // the Secretly a Witch app and see the pattern for where it says reviews
 // versus description, then follow that same pattern for account 1 and
 // account 2 so that on the main page of the chats app I can only see one
 // account at a time").
+// A THIRD ACCOUNT ARRIVED (Aug 2026, Sophie: "can you make account three as
+// another toggle tab … and maybe just call them 1 2 3 with the numbers rather
+// than account so it fits" · "make it a three-way toggle now so there's a
+// left, right and middle option"). So this also asserts that nothing here
+// counts accounts by hand: the tabs, the header switch and the thread's
+// picker are all built from ACCOUNTS, and the tab labels are bare digits.
 // Drives the REAL public/chats.html headless against a stub API and asserts:
 //   1. the tabs exist as the witch sheet's shape — two half-width labels over
 //      a hairline — sitting directly ABOVE the hidden bar (Sophie moved them
@@ -53,6 +59,10 @@ const MSGS = [
   { id: 'm9', chat: 'two-arch', from: 'claude', text: 'i', tldr: 'i', created: iso(T0 - 9000), postedAt: iso(T0 - 9000) },
   { id: 'm10', chat: 'one-star', from: 'claude', text: 'j', tldr: 'j', created: iso(T0 - 10000), postedAt: iso(T0 - 10000) },
   { id: 'm11', chat: 'two-star', from: 'claude', text: 'k', tldr: 'k', created: iso(T0 - 11000), postedAt: iso(T0 - 11000) },
+  { id: 'm12', chat: 'three-a', from: 'claude', text: 'l', tldr: 'l', created: iso(T0 - 12000), postedAt: iso(T0 - 12000) },
+  { id: 'm13', chat: 'three-hid', from: 'claude', text: 'm', tldr: 'm', created: iso(T0 - 13000), postedAt: iso(T0 - 13000) },
+  { id: 'm14', chat: 'three-arch', from: 'claude', text: 'n', tldr: 'n', created: iso(T0 - 14000), postedAt: iso(T0 - 14000) },
+  { id: 'm15', chat: 'three-star', from: 'claude', text: 'o', tldr: 'o', created: iso(T0 - 15000), postedAt: iso(T0 - 15000) },
 ];
 const CHATS = {
   'one-a': { account: '1' },
@@ -66,6 +76,10 @@ const CHATS = {
   'two-arch': { account: '2', archived: true },
   'one-star': { account: '1', starred: true },
   'two-star': { account: '2', starred: true },
+  'three-a': { account: '3' },
+  'three-hid': { account: '3', hiddenAt: iso(T0) },
+  'three-arch': { account: '3', archived: true },
+  'three-star': { account: '3', starred: true },
 };
 Object.keys(CHATS).forEach((n) => {
   CHATS[n].lastSeen = (MSGS.find((m) => m.chat === n) || {}).created;
@@ -125,9 +139,19 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   // which LEADS the row at her ask; it is not an account, so everything below
   // still asks about the two that are)
   const tabs = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.textContent.trim()));
-  if (tabs.length !== 3) fail('expected Update + two account tabs, got ' + tabs.length);
+  if (tabs.length !== 4) fail('expected Update + three account tabs, got ' + tabs.length);
   if (!/^Update/.test(tabs[0] || '')) fail('Update does not lead the row: ' + tabs.join(' | '));
-  if (!/^Account 1/.test(tabs[1]) || !/^Account 2/.test(tabs[2])) fail('tab labels wrong: ' + tabs.join(' | '));
+  // BARE DIGITS, not "Account 1" (her ask, so four tabs fit a 390pt phone).
+  // The text starts with the digit; a red badge may follow it in the same node.
+  if (!/^1/.test(tabs[1]) || !/^2/.test(tabs[2]) || !/^3/.test(tabs[3])) {
+    fail('tab labels are not bare digits: ' + tabs.join(' | '));
+  }
+  if (tabs.slice(1).some((t) => /account/i.test(t))) fail('a tab still says the word Account: ' + tabs.join(' | '));
+  // …and the word is not lost — it is what the tab reads out as
+  const alabels = await page.$$eval('#accrow .acctab', (ns) => ns.map((n) => n.getAttribute('aria-label') || ''));
+  if (!/^Account 1/.test(alabels[1]) || !/^Account 3/.test(alabels[3])) {
+    fail('the account tabs lost their spoken label: ' + alabels.join(' | '));
+  }
   if (await page.$eval('#accrow', (n) => getComputedStyle(n).borderBottomStyle === 'none')) {
     fail('the tab row has no hairline of its own');
   }
@@ -174,12 +198,20 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   let on = await page.$eval('#accrow', (n) => n.dataset.on);
   if (on !== '1') fail('tab row did not mark account 1 (the app account) as the one showing');
 
+  await page.$$eval('#accrow .acctab', (ns) => ns.find((n) => n.dataset.acct === '3').click());
+  rows = await listed(page);
+  if (!same(rows, ['three-a', 'untagged', 'three-star'])) fail('account 3 list wrong: ' + rows.join(','));
+  on = await page.$eval('#accrow', (n) => n.dataset.on);
+  if (on !== '3') fail('the sliding line did not move to account 3');
+  let lit = await page.$$eval('#accrow .acctab.on', (ns) => ns.map((n) => n.dataset.acct));
+  if (lit.length !== 1 || lit[0] !== '3') fail('exactly one tab must read as lit, got: ' + lit.join(','));
+
   await page.$$eval('#accrow .acctab', (ns) => ns.find((n) => n.dataset.acct === '2').click());
   rows = await listed(page);
   if (!same(rows, ['two-a', 'two-b', 'untagged', 'two-star'])) fail('account 2 list wrong: ' + rows.join(','));
   on = await page.$eval('#accrow', (n) => n.dataset.on);
   if (on !== '2') fail('the sliding line did not move to account 2');
-  const lit = await page.$$eval('#accrow .acctab.on', (ns) => ns.map((n) => n.dataset.acct));
+  lit = await page.$$eval('#accrow .acctab.on', (ns) => ns.map((n) => n.dataset.acct));
   if (lit.length !== 1 || lit[0] !== '2') fail('exactly one tab must read as lit, got: ' + lit.join(','));
 
   // 4a. the HIDDEN pile is narrowed too — a bar counting the other account's
@@ -197,15 +229,19 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   //     silent one. Both accounts' archived chats show.
   await page.click('#archlink');
   rows = await listed(page);
-  if (!same(rows, ['one-arch', 'two-arch'])) fail('archive should show BOTH accounts: ' + rows.join(','));
+  if (!same(rows, ['one-arch', 'two-arch', 'three-arch'])) fail('archive should show EVERY account: ' + rows.join(','));
   const accVisible = await page.evaluate(() => {
     const n = document.getElementById('accrow');
     return !!(n && getComputedStyle(n).display !== 'none');
   });
   if (accVisible) fail('the account row is still showing in the archive');
+  // …and never TWO stacked hairline rows, which is the reason the account row
+  // is hidden here at all. (It used to be exactly one — the archive's own
+  // BUILT / OTHER tabs — but those were replaced by the tag chip row, so zero
+  // is the right answer now and the rule is the ceiling, not the count.)
   const tabRows = await page.$$eval('.acctabs', (ns) => ns.filter(
     (n) => getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0).length);
-  if (tabRows !== 1) fail('the archive should show exactly ONE tab row, saw ' + tabRows);
+  if (tabRows > 1) fail('the archive is showing stacked tab rows, saw ' + tabRows);
   await page.click('#archlink');
 
   // 4c. the ★ pile (which reaches into the archive, so it must still narrow)
@@ -214,29 +250,57 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   if (!same(rows, ['two-star'])) fail('star pile not narrowed to the account: ' + rows.join(','));
   await page.click('#catrow .starchip');
 
-  // 5. the tabs default to the app account, and the App/Web switch moves them
-  //    (that switch is what "which account am I signed into" means)
+  // 5. the tabs default to the app account, and the header switch moves them
+  //    (that switch is what "which account am I signed into" means). It is a
+  //    THREE-POSITION control now (Aug 2026) — one slot per account, the lit
+  //    one is the one she is signed in on, and every other account's chats
+  //    open on the web.
   await page.evaluate(() => window.__setAcct(''));
   rows = await listed(page);
   if (!same(rows, ['one-a', 'one-b', 'untagged', 'one-star'])) fail('the default tab is not the app account: ' + rows.join(','));
-  await page.click('#acctog');
-  await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '2', null, { timeout: 4000 })
-    .catch(() => fail('flipping the App/Web switch did not move the account tabs'));
+  const slots = await page.$$eval('#acctog .sw3', (ns) => ns.map((n) => n.dataset.a + ':' + n.textContent.trim()));
+  if (slots.join(',') !== '1:1,2:2,3:3') fail('the switch is not three digit slots left→right: ' + slots.join(','));
+  // left · middle · right really are 1 · 2 · 3 on screen, not just in the DOM
+  const xs = await page.$$eval('#acctog .sw3', (ns) => ns.map((n) => n.getBoundingClientRect().left));
+  if (!(xs[0] < xs[1] && xs[1] < xs[2])) fail('the switch slots are not in 1·2·3 order across: ' + xs.join(','));
+
+  await page.click('#acctog .sw3[data-a="3"]');
+  await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '3', null, { timeout: 4000 })
+    .catch(() => fail('the header switch did not move the account tabs to 3'));
   rows = await listed(page);
-  if (!same(rows, ['two-a', 'two-b', 'untagged', 'two-star'])) fail('switch flip did not re-list: ' + rows.join(','));
-  if (!acctPosts.length) fail('the App/Web switch stopped POSTing /app-account');
-  await page.click('#acctog');
+  if (!same(rows, ['three-a', 'untagged', 'three-star'])) fail('switch move did not re-list: ' + rows.join(','));
+  if (!acctPosts.length) fail('the header switch stopped POSTing /app-account');
+  if (acctPosts[acctPosts.length - 1].account !== '3') fail('the switch POSTed the wrong account: ' + JSON.stringify(acctPosts));
+  // the lit slot marks itself, and only it
+  const swOn = await page.$$eval('#acctog .sw3.on', (ns) => ns.map((n) => n.dataset.a));
+  if (swOn.join(',') !== '3') fail('exactly one switch slot must read as live, got: ' + swOn.join(','));
+  if (await page.$eval('#acctog', (n) => n.dataset.a) !== '3') fail('the switch marker did not move to 3');
+  // …and a chat on an account she is NOT signed into opens on the WEB
+  const hrefs = await page.evaluate(() => ({
+    live: window.__openHref('three-a', 'https://claude.ai/chat/x'),
+    other: window.__openHref('one-a', 'https://claude.ai/chat/x'),
+  }));
+  if (/no_universal_links/.test(hrefs.live)) fail('the signed-in account was pushed to the web: ' + hrefs.live);
+  if (!/no_universal_links/.test(hrefs.other)) fail('a chat on another account did not route to the web: ' + hrefs.other);
+  // tapping the live slot again is a no-op, not a flip to somewhere else
+  const before = acctPosts.length;
+  await page.click('#acctog .sw3[data-a="3"]');
+  if (acctPosts.length !== before) fail('tapping the live slot POSTed again');
+  await page.click('#acctog .sw3[data-a="1"]');
+  await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '1', null, { timeout: 4000 })
+    .catch(() => fail('the header switch did not come back to 1'));
   await page.evaluate(() => window.__setAcct(''));
 
   // 6. the red badge counts chats in THAT account that answered her, so the
   //    tab she is not on is never silent. Nothing has been opened, so every
   //    non-archived chat counts: account 1 = one-a, one-b, one-hid, one-star,
-  //    untagged (5); account 2 = two-a, two-b, two-hid, two-star, untagged (5).
+  //    untagged (5); account 2 = two-a, two-b, two-hid, two-star, untagged (5);
+  //    account 3 = three-a, three-hid, three-star, untagged (4).
   //    (badges[0] is UPDATE's own count, which is not account-scoped — see
-  //    scripts/test-chats-news.js; the two account tabs follow it)
+  //    scripts/test-chats-news.js; the account tabs follow it)
   const badges = await page.$$eval('#accrow .acctab',
     (ns) => ns.map((n) => (n.querySelector('.cc-new') || {}).textContent || ''));
-  if (badges[1] !== '5' || badges[2] !== '5') fail('account tab badges wrong: ' + JSON.stringify(badges));
+  if (badges[1] !== '5' || badges[2] !== '5' || badges[3] !== '4') fail('account tab badges wrong: ' + JSON.stringify(badges));
 
   // 7. gone where the list is not chats — and the masthead rule comes back
   for (const [btn, what] of [['#todolink', 'To do'], ['#bmklink', 'Bookmarks']]) {
@@ -270,9 +334,45 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
       return out;
     });
     if (buried.length) fail('account tab(s) ' + buried.join(',') + ' untappable at ' + width + 'px');
+    // 8b. the header switch grew a slot when the third account arrived, and
+    //     the masthead is the one row in this app that has run out of room
+    //     before (five controls plus the title put the bookmark button under
+    //     the word "Chats" and tapping the title opened Bookmarks). So: every
+    //     switch slot has to be reachable, and the title must not be sitting
+    //     under the controls.
+    const swBuried = await page.evaluate(() => {
+      const out = [];
+      document.querySelectorAll('#acctog .sw3').forEach((b) => {
+        const r = b.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (!hit || !hit.closest('.sw3')) out.push(b.dataset.a);
+      });
+      return out;
+    });
+    if (swBuried.length) fail('switch slot(s) ' + swBuried.join(',') + ' untappable at ' + width + 'px');
+    // The failure mode is a CONTROL WINNING THE TITLE'S TAP (that is how the
+    // trash shipped as a fifth word and tapping "Chats" opened Bookmarks), so
+    // ask elementFromPoint rather than compare rectangles — the two boxes have
+    // always touched at 375 by a fraction of a pixel.
+    const head = await page.evaluate(() => {
+      const t = document.getElementById('htxt').getBoundingClientRect();
+      const c = document.querySelector('.hctl').getBoundingClientRect();
+      const at = (x) => {
+        const n = document.elementFromPoint(x, t.top + t.height / 2);
+        if (!n) return 'nothing';
+        return n.closest('.hctl') ? ('CONTROL:' + (n.id || n.className)) : (n.id || n.className || n.tagName);
+      };
+      return { w: innerWidth, ctlRight: c.right, mid: at(t.left + t.width / 2), end: at(t.right - 3) };
+    });
+    for (const [where, hit] of [['middle', head.mid], ['end', head.end]]) {
+      if (/^CONTROL:/.test(String(hit))) {
+        fail('a header control took the title\'s tap at its ' + where + ' at ' + width + 'px: ' + hit);
+      }
+    }
+    if (head.ctlRight > head.w) fail('the header controls run off the screen at ' + width + 'px: ' + JSON.stringify(head));
   }
 
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('PASS: account tabs — one account at a time, both tappable');
+  if (!process.exitCode) console.log('PASS: account tabs 1·2·3 — one account at a time, all tappable, three-way switch');
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -58,16 +58,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #htitle{font-size:2.0em; margin:0; flex:0 0 auto; width:0; min-width:0;
   overflow:visible; white-space:nowrap; position:relative; z-index:2; pointer-events:none;}
 .hrow{display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-right:56px;}
-.hctl{display:flex; align-items:center; gap:6px; margin-left:auto; flex:0 0 auto;}
+.hctl{display:flex; align-items:center; gap:4px; margin-left:auto; flex:0 0 auto;}
 .rule{height:1px; background:var(--line); margin:.7em 0 1em;}
-/* ---- ACCOUNT 1 / ACCOUNT 2 — one account on screen at a time ---------------
+/* ---- ACCOUNT 1 · 2 · 3 — one account on screen at a time -------------------
    Sophie's ask (Aug 2026): "look at the pattern for where it says reviews
    versus description in the Secretly a Witch app, and follow that same
    pattern for account 1 and account 2, so on the main page of the chats app
    I can only see one account at a time."
-   That pattern is the witch shop sheet's `.ps-tabs`: NO boxes — two
-   half-width labels over a hairline, and a line under whichever one you are
-   reading that SLIDES across when you tap the other. Ported here verbatim in
+   That pattern is the witch shop sheet's `.ps-tabs`: NO boxes — equal-width
+   labels over a hairline, and a line under whichever one you are reading
+   that SLIDES across when you tap another. Ported here verbatim in
    shape — but in INK, not `--chg` (Sophie, Aug 2026: "make it not red, just
    black"). The screen already spends its red on the hidden bar and the
    answered badges, which are alarms; which account you are reading is not
@@ -83,12 +83,16 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    it needs `padding-right:56px` again (for the TAPS; the line looks after
    itself, see below).
 
-   THREE tabs since Aug 2026 — UPDATE · ACCOUNT 1 · ACCOUNT 2 (Sophie: "I
-   wanna make one more tab, and this is like a daily notifications thing",
-   then, having used it: "I would put it on the left side of the accounts and
-   call it update"). UPDATE is not an account, it is a VIEW (see renderNews),
-   which is why it lights up on its own and the two account words go quiet
-   under it — and it leads the row because it is the screen she opens first.
+   UPDATE LEADS THE ROW, then one tab per account (Sophie: "I wanna make one
+   more tab, and this is like a daily notifications thing", then, having used
+   it: "I would put it on the left side of the accounts and call it update").
+   UPDATE is not an account, it is a VIEW (see renderNews), which is why it
+   lights up on its own and the account tabs go quiet under it — and it leads
+   the row because it is the screen she opens first.
+   THE ACCOUNTS ARE BARE DIGITS since a third one arrived (Aug 2026, Sophie:
+   "maybe just call them 1 2 3 with the numbers rather than account so it
+   fits") — four tabs leave ~97px each on her 390pt phone, which "Account 3"
+   plus a badge does not fit in. The word rides in each tab's aria-label.
 
    THE SLIDING LINE MEASURES THE LIT TAB — it is never told a tab count, and
    that is the whole point (Aug 2026, Sophie: "close it so it can't happen
@@ -1177,14 +1181,46 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .archlink:active{color:var(--ink);}
-/* An on/off switch, the iOS shape. Circular track, so it's the sanctioned
-   exception to no-pills — it's a toggle, not a text button. */
-.swi{position:relative; width:42px; height:26px; border-radius:13px; border:1.5px solid var(--line);
-  background:var(--barbg); padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-.swi::after{content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
-  background:var(--ink2); transition:transform .18s, background .18s;}
-.swi.on{background:var(--chg); border-color:var(--chg);}
-.swi.on::after{transform:translateX(16px); background:var(--paper);}
+/* WHICH ACCOUNT THE APP IS SIGNED INTO — three positions since Aug 2026
+   (Sophie: "make it a three-way toggle now so there's a left, right and
+   middle option — left is account one, middle account two, right account
+   three; whichever is toggled is the one I'm signed in on, and the other ones
+   go to the website version"). It was an on/off iOS switch back when there
+   were two accounts, and an on/off switch has nowhere to put a third state.
+   It is a segmented control now: three digit slots with a marker sliding
+   under the live one, so the header says WHICH account rather than "the other
+   one".
+   THE MARKER IS INK, NOT RED. The old switch turned `--chg` red in its ON
+   position, which was readable when off was the resting state — with three
+   positions one is ALWAYS live, so red would sit permanently in the masthead.
+   Same reasoning that took the red off the account tabs (Sophie: "make it not
+   red, just black"): which account she is on is not an alarm.
+   IT IS A ROUNDED RECTANGLE, NOT A PILL. The circular track was the
+   sanctioned no-pills exception because it was a toggle with no words in it;
+   these are digits, i.e. text buttons, so the marker is the house 6px.
+   The slot width is declared ONCE (--sw) and the marker's offsets are
+   multiples of it, so re-sizing the control cannot leave the marker behind,
+   and a fourth account is one more rule of the same shape.
+   IT HAS NO TRACK, AND THAT IS A MEASUREMENT, NOT A STYLE CHOICE. The
+   masthead is the one row in this app that has run out of room before (five
+   controls plus the title put the bookmark button under the word "Chats", so
+   tapping the title opened Bookmarks). Measured at 375/390 on the real page:
+   the controls fill 205.8px and the title needs every pixel left over — the
+   old switch was 42px, and a third slot inside a bordered track came to 57px,
+   which put the controls back over the title at her own 390. Three bare
+   16px digit slots with the live one boxed come to 48px, and the row's gap
+   tightened 6px→4px pays for the rest: 205.7px, i.e. the header is exactly
+   where it was. Any future control on this row gets measured the same way. */
+.swi3{--sw:16px; position:relative; display:flex; align-items:center; height:26px;
+  padding:0; margin:0; flex:none; -webkit-tap-highlight-color:transparent;}
+.swi3::after{content:''; position:absolute; top:3px; left:0; width:var(--sw); height:20px;
+  border-radius:6px; background:var(--ink); transition:transform .18s;}
+.swi3[data-a="2"]::after{transform:translateX(var(--sw));}
+.swi3[data-a="3"]::after{transform:translateX(calc(var(--sw) * 2));}
+.sw3{position:relative; z-index:1; width:var(--sw); height:26px; padding:0; border:none; background:none;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2);}
+.sw3.on{color:var(--paper);}
 .tbtn.play{display:inline-flex; align-items:center; gap:6px;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
@@ -1437,7 +1473,7 @@ body.selecting > .float{display:none !important;}
                she is in the Archive (or the Trash itself), and it is an
                icon, which costs ~26px against the word's ~56px. -->
           <button id="trashlink" class="trashbtn" aria-label="Deleted chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
-          <button id="acctog" class="swi" aria-label="Swap which Claude account is signed into the app"></button>
+          <div id="acctog" class="swi3" role="radiogroup" aria-label="Which Claude account is signed into the app"></div>
         </div>
       </div>
       <div class="rule"></div>
@@ -1489,6 +1525,7 @@ body.selecting > .float{display:none !important;}
       <button class="acctab" data-acct="new"></button>
       <button class="acctab" data-acct="1"></button>
       <button class="acctab" data-acct="2"></button>
+      <button class="acctab" data-acct="3"></button>
     </div>
     <div id="grid"><div class="state">Loading&hellip;</div></div>
   </section>
@@ -2093,7 +2130,7 @@ function starHtml(name){
 }
 function acctHtml(name){
   var a=(chats[name]&&chats[name].account)||'';
-  return '<span class="cr-acct">'+(a==='1'||a==='2'? a : '')+'</span>';
+  return '<span class="cr-acct">'+(isAcct(a)? a : '')+'</span>';
 }
 function iconHtml(name, cls, blank){
   var icon=chats[name]&&chats[name].icon;
@@ -4061,12 +4098,12 @@ function chatTags(name){
 // tag would open the archive one morning showing a slice she has no memory of
 // choosing.
 var archTag='';
-// ---- ACCOUNT 1 / ACCOUNT 2 (Aug 2026, Sophie) ------------------------------
+// ---- ACCOUNT 1 · 2 · 3 (Aug 2026, Sophie) ----------------------------------
 // The home shows ONE account at a time, switched by the witch app's
-// Description/Reviews tab pair above the list. Unlike a category chip (which
-// narrows a pile), this SPLITS the screen in half — which is why it is a
-// labelled tab and not a third chip: the screen has to say which half she is
-// looking at, or the other 98 chats read as having vanished.
+// Description/Reviews tab row above the list. Unlike a category chip (which
+// narrows a pile), this SPLITS the screen — which is why it is a labelled tab
+// and not another chip: the screen has to say which part she is looking at,
+// or the other 98 chats read as having vanished.
 //
 // It narrows EVERYTHING that is a list of chats — the live list, the hidden
 // pile, the ★ pile and the archive — for the same reason a chip does: a bar
@@ -4082,9 +4119,17 @@ var archTag='';
 // which is the whole point of the switch. Persisting a tap would show her
 // one account's chats one morning with no memory of having chosen.
 var acctTab='';
+// THE ACCOUNTS SHE HAS, IN ONE PLACE (Aug 2026 — a third one arrived and the
+// digits were written out by hand in four spots: the tab row, the row mark,
+// the thread picker and the header switch). Add a fourth here and the tabs,
+// the switch, the marks and the picker all grow one; nothing else knows how
+// many there are. The tab row's sliding line already measures itself
+// (see the note above `.acctabs`), so a new account costs no layout either.
+var ACCOUNTS=['1','2','3'];
+function isAcct(a){ return ACCOUNTS.indexOf(a)>=0; }
 function acctFilter(){ return acctTab || appAccount(); }
-function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return (a==='1'||a==='2')?a:''; }
-// An UNTAGGED chat shows on BOTH tabs. Measured live 2026-08-10: of 200 chats
+function acctOf(name){ var a=(chats[name]&&chats[name].account)||''; return isAcct(a)?a:''; }
+// An UNTAGGED chat shows on EVERY tab. Measured live 2026-08-10: of 200 chats
 // only 2 carry no account, so this costs nothing — and the alternative (pick
 // a side for them) makes a chat disappear from a screen she can't tell is
 // filtered. A chat gets tagged by posting, or by the picker in its thread.
@@ -4116,7 +4161,7 @@ function paintAcctTabs(g){
       // one she has dealt with for now, and the boxes carry their own counts.
       fresh=newsItems(g).filter(function(it){ return !newsBoxed(it); }).length;
       label='Update';
-      hint = fresh ? fresh+' new' : 'nothing new';
+      hint = 'Update — '+(fresh ? fresh+' new' : 'nothing new');
     } else {
       // How many chats in THAT account have answered her and are unopened —
       // counted per CHAT, exactly like the category chips' badge, so the tab
@@ -4126,12 +4171,18 @@ function paintAcctTabs(g){
         var a=acctOf(n); if(a && a!==v) return false;
         return chatAnswered(n, lastOf(g,n));
       }).length;
-      label='Account '+v;
-      hint = fresh ? fresh+' answered you' : '';
+      // JUST THE DIGIT (Aug 2026, Sophie, when a third account arrived: "maybe
+      // just call them 1 2 3 with the numbers rather than account so it
+      // fits"). Four tabs across a 390pt phone leaves ~97px each and "Account
+      // 3" plus a two-digit badge does not sit in that. The word is not lost —
+      // it is the tab's aria-label, and the switch in the header is the other
+      // half of the sentence.
+      label=v;
+      hint = 'Account '+v+(fresh ? ' — '+fresh+' answered you' : '');
     }
     b.classList.toggle('on', v===on);
     b.innerHTML=esc(label)+(fresh?'<span class="cc-new">'+fresh+'</span>':'');
-    b.setAttribute('aria-label', label+(hint?' — '+hint:''));
+    b.setAttribute('aria-label', hint||label);
     b.onclick = v==='new'
       ? function(){ setHomeView('news'); }        // tap it again to come back
       : function(){ acctTab=v; if(homeView==='news') homeView='live'; renderHome(); window.scrollTo(0,0); };
@@ -4139,6 +4190,10 @@ function paintAcctTabs(g){
 }
 // The tests' way in (no other code should set the tab directly).
 window.__setAcct=function(v){ acctTab=v||''; renderHome(); };
+// …and the tests' way of asking where an Open button would actually send her,
+// which is the whole point of the header switch: the account she is signed in
+// on opens in the app, every other one opens on the web.
+window.__openHref=function(name,url){ return openHref(name,url); };
 // STARRED — "important, work I want to refer back to, but I'm not actively
 // using them" (Sophie, Aug 2026). A permanent judgement about the chat, so a
 // plain boolean like `archived`, never a self-clearing stamp.
@@ -6114,7 +6169,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   // sets it with one tap. Tapping the active number clears back to untagged.
   var acr=document.createElement('div'); acr.className='acctrow';
   var alab=document.createElement('span'); alab.textContent='Claude account'; acr.appendChild(alab);
-  ['1','2'].forEach(function(v){
+  ACCOUNTS.forEach(function(v){
     var b=document.createElement('button'); b.className='tbtn'; b.textContent=v;
     function paintA(){ b.classList.toggle('on', ((chats[name]&&chats[name].account)||'')===v); }
     paintA(); acr._paints=(acr._paints||[]).concat(paintA);
@@ -7707,20 +7762,37 @@ document.getElementById('trashlink').onclick=function(){
 document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
 
-// Which Claude account is signed into the iOS app right now (the other one is
-// on the web) \u2014 a plain on/off switch in the header: off = account 1, on =
-// account 2. Flip it after swapping sign-ins; every Open button re-routes off
-// it immediately, and the toast names the account so the switch needs no label.
+// Which Claude account is signed into the iOS app right now \u2014 the segmented
+// control in the header, one slot per account (ACCOUNTS). The one that is lit
+// is the one she is SIGNED IN ON; every other account's chats open on the WEB
+// instead, which openHref does by appending #no_universal_links so iOS hands
+// the link to the browser rather than to the Claude app.
+// It was a two-state on/off switch until a third account arrived (Aug 2026).
+// The slots are BUILT from ACCOUNTS rather than written out, so a fourth
+// account is one entry in that array \u2014 nothing here counts them.
 var acctog=document.getElementById('acctog');
+ACCOUNTS.forEach(function(v){
+  var b=document.createElement('button');
+  b.className='sw3'; b.type='button'; b.dataset.a=v; b.textContent=v;
+  b.setAttribute('role','radio');
+  b.setAttribute('aria-label','Signed into account '+v+' on this phone');
+  b.onclick=function(){ setAppAccount(v); };
+  acctog.appendChild(b);
+});
 function paintAcct(){
-  var on=appAccount()==='2';
-  acctog.classList.toggle('on', on);
-  acctog.setAttribute('aria-pressed', on?'true':'false');
+  var cur=appAccount();
+  acctog.setAttribute('data-a', cur);
+  Array.prototype.forEach.call(acctog.querySelectorAll('.sw3'), function(b){
+    var on=b.dataset.a===cur;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', on?'true':'false');
+  });
 }
-acctog.onclick=function(){
-  var prev=appAccount(), next=prev==='1'?'2':'1';
+function setAppAccount(next){
+  var prev=appAccount();
+  if(next===prev) return;                     // tapping the lit slot is a no-op
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
-  // The account tabs default to whichever account the app is on, so flipping
+  // The account tabs default to whichever account the app is on, so moving
   // this switch moves the list too \u2014 unless she has already picked a tab by
   // hand this session, which wins.
   if(!acctTab) renderHome();
@@ -7728,7 +7800,7 @@ acctog.onclick=function(){
     .then(function(r){return r.json()})
     .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
     .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); if(!acctTab) renderHome(); toast('Couldn\u2019t save that'); });
-};
+}
 paintAcct();
 
 // ---- Launch cache ---------------------------------------------------------

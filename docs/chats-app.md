@@ -313,8 +313,10 @@
   as a legacy hop for cached pages; it now just 302s to the fragment-tagged
   URL. Nothing to re-paste when she swaps accounts — only the toggle.
   Existing chats that haven't posted since the env vars were added are
-  untagged; each thread has a "Claude account 1 · 2" picker (above Archive,
-  `POST /api/chatfeed/account`) so Sophie can tag those with one tap. The hook
+  untagged; each thread has a "Claude account 1 · 2 · 3" picker (above
+  Archive, `POST /api/chatfeed/account`) so Sophie can tag those with one tap
+  — its buttons are built from `ACCOUNTS` in chats.html, the ONE list of the
+  accounts she has. The hook
   re-stamps the tag on every post, so a manual tag and the env var must agree.
 
 - **HER OWN MESSAGE NEVER RAISES THE "NEW MESSAGE" BAR (Aug 2026, Sophie: "it
@@ -732,9 +734,37 @@
     failing without the change.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
-  message first. The **App/Web account toggle is a plain on/off switch** on the
-  home header's title line (`.swi`, off = account 1, on = account 2, no text —
-  the toast names the account).
+  message first. The **App/Web account toggle is a THREE-POSITION control** on
+  the home header's title line — `.swi3`, one digit slot per account, the lit
+  one is the account she is SIGNED INTO on the phone and every other one's
+  chats open on the web (Aug 2026, Sophie: "make it a three-way toggle now so
+  there's a left, right and middle option — left is account one, middle
+  account two, right account three; whichever is toggled is the one I'm signed
+  in on, and the other ones go to the website version"). It was a two-state
+  `.swi` on/off switch until a third account arrived, and an on/off switch has
+  nowhere to put a third state.
+  - **The slots are built from `ACCOUNTS`**, so a fourth account is one entry
+    in that array — the switch, the home tabs, the row's account digit and the
+    thread's picker all grow with it and nothing counts accounts by hand.
+  - **THE MARKER IS INK AND THE CONTROL HAS NO TRACK, and both are
+    measurements rather than taste.** The old switch went `--chg` red in its
+    ON position, readable when OFF was the resting state — with three
+    positions one is ALWAYS live, so red would sit permanently in the
+    masthead (same reasoning that took the red off the account tabs). And the
+    masthead is the one row in this app that has run out of room before:
+    measured on the real page, the controls fill **205.8px** and the title
+    takes what is left, so a bordered three-slot track at 57px put the
+    controls back over the word "Chats" at her own 390. Three bare 16px digit
+    slots (48px) plus tightening `.hctl`'s gap 6px→4px come to 205.8px — the
+    header is byte-for-byte where it was. **Anything else added to that row
+    gets measured the same way**; `scripts/test-chats-title-back.js` and
+    `scripts/test-chats-accounts.js` both hit-test it.
+  - **One browser is the only web slot.** With three accounts, two of them
+    route to the web via `#no_universal_links`, and iOS opens both in the same
+    default browser — which can only hold one signed-in account at a time.
+    Signing the others in separately is a phone-side arrangement (a
+    home-screen web app and a second browser each keep their own cookie jar),
+    not something this switch can express.
   **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
   chat she wants to come back to but not look at right now gets hidden: it
   leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3
@@ -1845,14 +1875,22 @@
   would just be a mis-tap on the way into a chat. An untagged chat renders a
   blank of the same width so the names still line up.
 
-- **ONE ACCOUNT AT A TIME — the ACCOUNT 1 / ACCOUNT 2 tabs (Aug 2026, Sophie:
+- **ONE ACCOUNT AT A TIME — the 1 · 2 · 3 tabs (Aug 2026, Sophie:
   "look at the Secretly a Witch app and see the pattern for where it says
   reviews versus description, then follow that same pattern for account 1 and
   account 2 so that on the main page of the chats app I can only see one
   account at a time").** `.acctabs` in chats.html, a verbatim port of the
-  witch shop sheet's `.ps-tabs`: NO boxes — two half-width labels over a
+  witch shop sheet's `.ps-tabs`: NO boxes — equal-width labels over a
   hairline with a line under the one she is reading that SLIDES when she taps
-  the other.
+  another.
+  - **A THIRD ACCOUNT ARRIVED AND THE TABS ARE BARE DIGITS NOW (Aug 2026,
+    Sophie: "can you make account three as another toggle tab … and maybe just
+    call them 1 2 3 with the numbers rather than account so it fits").** Four
+    tabs across a 390pt phone leave ~97px each and "Account 3" plus a
+    two-digit badge does not sit in that. The word is not lost — it is the
+    tab's `aria-label`, and the switch on the title line is the other half of
+    the sentence. **The tabs are built from `ACCOUNTS`** and the sliding line
+    measures the lit tab, so a fourth account costs no layout at all.
   - **In INK, not `--chg`** (Sophie, Aug 2026: "make it not red, just
     black"). The screen spends its red on the hidden bar and the answered
     badges, which are alarms; which account she is reading is not one. The
@@ -1866,17 +1904,17 @@
     there it clears the autoscroll pill's band, so it needs neither the 56px
     corner reserve nor a shortened hairline. **Move it back up and it needs
     both again** — plus a sliding line of `calc((100% - 56px)/2)`, since an
-    abspos child measures the PADDING box. The test hit-tests both tabs at
+    abspos child measures the PADDING box. The test hit-tests every tab at
     375/390/430 rather than trusting any of that.
   - **A gray line closes the hidden block off** from the chats under it
     (`.hbsep`, her ask). It follows the whole block — the bar when the pile
     is shut, the pile's last row when it is open — and that last row drops
     its own border so the two never stack into a double line.
   - **A tab is not a chip.** A category chip narrows a pile; this SPLITS the
-    screen in half, so it has to be a labelled tab that says which half she
-    is in — 144 of 200 chats are on account 1 (measured 2026-08-10), and a
-    silent filter would read as the rest having vanished.
-  - **An UNTAGGED chat shows on BOTH tabs.** Only 2 of 200 carry no account,
+    screen, so it has to be a labelled tab that says which part she is in —
+    144 of 200 chats are on account 1 (measured 2026-08-10), and a silent
+    filter would read as the rest having vanished.
+  - **An UNTAGGED chat shows on EVERY tab.** Only 2 of 200 carry no account,
     so it costs nothing, and picking a side for them would drop a chat off a
     screen she can't tell is filtered.
   - **It narrows every list of CHATS** — live, hidden pile, ★ pile, archive —
