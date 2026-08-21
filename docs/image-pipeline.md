@@ -74,6 +74,41 @@ them already house law somewhere:
     in the feed distilled to that shape, with the rules used and which two
     needed nothing because the dreamer had already told them that way.
 
+- **WRITE IT SHORT — a few clear sentences, not a paragraph of specification
+  (2026-08-21).** Nothing says a long prompt gets a worse picture; what is
+  established is that a long one buys you nothing and costs you the ability to
+  fix it. OpenAI's own gpt-image-2 prompting guide is explicit that minimal
+  prompts, paragraphs, tag lists and JSON-ish structures all work equally well
+  when the intent is clear, that clarity beats length ("soft natural light
+  from a window on the left" over "beautiful lighting"), and that long prompts
+  are simply harder to debug — the way through a bad draw is a clean base
+  prompt plus one small change at a time, which a paragraph of stacked
+  qualifiers makes impossible. Prompt length is tied to NOTHING on the API
+  side: not the quality tier, not fidelity, not price.
+  - **The blog number going round is unsourced.** "Prompts under 200
+    characters score highest, correlation −0.07" is quoted across several
+    gpt-image-2 prompt guides; chased 2026-08-21, no paper or benchmark behind
+    it could be found. Don't repeat it as a fact, and don't build a rule on it.
+  - **Her own images cannot settle it, and that is worth knowing before
+    someone re-measures (2026-08-21).** All 379 chats swept: 2,714 captioned
+    gpt-image-2 images, 298 carrying BOTH an exact filed prompt and a ♥/✕. The
+    aggregate looks like longer wins (liked median 230 chars vs disliked 19)
+    and is an artifact of one chat — `character-sheet-portraits`, 130 votes
+    all sitting on ~18-char prompts. Compared WITHIN a chat, where the batch is
+    otherwise alike, only six chats have enough of both votes and any real
+    length spread, and four of the six have the DISLIKED prompts slightly
+    longer (335 vs 452, 478 vs 545, 75 vs 89, 160 vs 175) — noise at n=7–27.
+    The reason is structural: inside one batch her prompts are near-constant
+    length, so a ♥ measures the subject and the draw, never the length. The
+    experiment that would answer it is one subject, one style ref, three
+    lengths (one sentence · three sentences · a paragraph), four draws each at
+    low — about 6¢ — posted as a grid page for her to mark.
+  - **So the target is the monkey dream, not the transcript**: ~300 characters
+    of the one situation, action-only. Above ~1,000 the model stops drawing one
+    image at all (the measured band above); below that the argument for brevity
+    is yours, not the model's — a short prompt is one you can debug, re-style
+    and re-use, and it is what the bank is actually storing.
+
 And the consequence the map itself draws: **the road ends at the BANK, not at
 the picture.** GOLD is the second-to-last stop. The finished picture leaves
 for its project there — and the road keeps walking, because the prompt still
