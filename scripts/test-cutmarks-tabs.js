@@ -1,19 +1,23 @@
 #!/usr/bin/env node
-/* Cut Marks: the two hairline tabs (PIECES · MARKS), driven in a real
+/* Cut Marks: the two hairline tabs (CUT · MARKS & PIECES), driven in a real
  * browser against the REAL page.
  *
  *   node scripts/test-cutmarks-tabs.js
  *
- * Sophie's ask (Aug 2026): "I have to scroll down to see the pieces I cut
- * out." So what this asserts is the SCREEN, not the markup:
- *   1. the row appears once there is something to list, and opens on PIECES
- *   2. the pieces card is fully on screen without scrolling (an iPhone 13
- *      viewport, a video at its tallest) — the whole point of the change
- *   3. the player, transport and strip stay put on both tabs (a piece's ▶
- *      preview has to be visible while she reviews pieces)
+ * Sophie's ask (Aug 2026): "tabs at the top and one of them is for cutting
+ * out of the video and the other tab is for looking at all the marks and
+ * pieces you've made." So what this asserts is the SCREEN, not the markup:
+ *   1. the row is the FIRST thing in the room, above the picture, and opens
+ *      on CUT
+ *   2. CUT is the cutting and nothing else: picture, transport, strip — no
+ *      lists under it to scroll past
+ *   3. the other tab holds all three lists (pieces, marks, cuts) with the
+ *      first of them on screen without scrolling, and the picture put away
  *   4. the sliding line measures the LIT tab — no tab count anywhere
- *   5. marking from the pieces tab grows the list under her, no tab jump
- *   6. an old doc with renders but no marks keeps its Cuts (MARKS dims)
+ *   5. the MARK bar works from both, and marking grows the lists
+ *   6. ▶ on a piece and a tap on a mark's time go back to CUT, where the
+ *      picture and the playhead are
+ *   7. nothing marked yet → the lists tab says so rather than going blank
  *
  * The API is stubbed by a local server — this is the page's wiring, not the
  * cutter. Skips with exit 0 if playwright/Chromium isn't installed.
@@ -98,59 +102,60 @@ function near(name, got, want, tol) {
   page.on('pageerror', e => { console.log('PAGE ERROR:', e.message); failures++; });
 
   await page.goto(`${base}/cutmarks?url=${encodeURIComponent(DOC.source.url)}&name=Evan&kind=video`);
-  await page.waitForSelector('#roomtabs:not([hidden])', { timeout: 8000 });
+  await page.waitForSelector('#markui:not([hidden])', { timeout: 8000 });
 
-  // ── 1: the row, opening on PIECES ──
+  // ── 1: at the top, opening on CUT ──
   check('two tabs and nothing more', await page.$$eval('#roomtabs button', b => b.length), 2);
-  check('opens on PIECES', await page.$eval('#tabpieces', b => b.classList.contains('on')), true);
-  check('the pieces pane is the one showing', await page.$eval('#panepieces', el => el.hidden), false);
-  check('the marks pane is not', await page.$eval('#panemarks', el => el.hidden), true);
-  check('PIECES counts the pieces (5 marks → 6)', (await page.$eval('#npieces', el => el.textContent)).trim(), '6');
-  check('MARKS counts the marks', (await page.$eval('#nmarks', el => el.textContent)).trim(), '5');
-  check('six piece rows', await page.$$eval('#pieces .prow', r => r.length), 6);
-  check('the two dropped ones are struck out', await page.$$eval('#pieces .prow.dropped', r => r.length), 2);
+  check('the row is the FIRST thing in the room',
+    await page.$eval('#markui', el => el.firstElementChild.id
+      || el.children[1].id), 'roomtabs');
+  check('above the picture', await page.evaluate(() =>
+    document.getElementById('roomtabs').getBoundingClientRect().bottom
+      <= document.getElementById('vid').getBoundingClientRect().top), true);
+  check('opens on CUT', await page.$eval('#tabcut', b => b.classList.contains('on')), true);
 
-  // ── 2: no scrolling to reach them ──
-  // A tab on its own would only have MOVED the scroll (a video is ~30vh and
-  // six pieces still ran off the bottom), so the pane owns the room that is
-  // left and scrolls INSIDE it. The assertion is therefore about the PAGE.
-  const fit = await page.evaluate(() => {
-    const pane = document.getElementById('panepieces');
-    const bar = document.getElementById('bbar').getBoundingClientRect();
-    const rows = [...document.querySelectorAll('#pieces .prow')]
-      .filter(r => r.getBoundingClientRect().bottom <= bar.top).length;
-    return {
-      pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
-      paneBottom: pane.getBoundingClientRect().bottom, barTop: bar.top,
-      listTop: document.getElementById('pieces').getBoundingClientRect().top,
-      paneScrolls: pane.scrollHeight > pane.clientHeight, rows,
-    };
-  });
-  check('the PAGE does not scroll at all — the whole ask', fit.pageScrolls, false);
-  check('the list starts on screen', fit.listTop < fit.barTop, true);
-  check('the pane stops above the bottom bar', fit.paneBottom <= fit.barTop, true);
-  // Measured 390x750: four of six rows at once under a video, five under a
-  // recording's smaller card (below) — the rest is one flick INSIDE the list,
-  // with the player, the strip and MARK all still on screen while she does it.
-  check('four of the six rows are on screen at once', fit.rows >= 4, true);
-  check('the overflow scrolls inside the pane, not the page', fit.paneScrolls, true);
-
-  // ── 3: the instrument never tabs away ──
-  const instrument = () => page.evaluate(() => ({
+  // ── 2: CUT is the cutting and nothing else ──
+  const cut = await page.evaluate(() => ({
     vid: !document.getElementById('vid').hidden,
     seg: !!document.querySelector('.hseg').getClientRects().length,
     strip: !!document.getElementById('strip').getClientRects().length,
     mark: !document.getElementById('bbar').hidden,
+    lists: !!document.getElementById('panelists').getClientRects().length,
+    scrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
   }));
-  check('on PIECES: player + transport + strip + MARK all live',
-    JSON.stringify(await instrument()), JSON.stringify({ vid: true, seg: true, strip: true, mark: true }));
-  await page.click('#tabmarks');
-  check('on MARKS too', JSON.stringify(await instrument()),
-    JSON.stringify({ vid: true, seg: true, strip: true, mark: true }));
-  check('MARKS shows the mark rows', await page.$$eval('#marks .mrow', r => r.length), 5);
-  check('switching tabs still leaves the page unscrollable',
-    await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1), false);
-  check('and hides the pieces', await page.$eval('#panepieces', el => el.hidden), true);
+  check('picture, transport, strip and MARK are all there',
+    JSON.stringify([cut.vid, cut.seg, cut.strip, cut.mark]), JSON.stringify([true, true, true, true]));
+  check('no lists under them', cut.lists, false);
+  check('so the cutting tab does not scroll at all', cut.scrolls, false);
+
+  // ── 3: the other tab is everything she has made ──
+  await page.click('#tablists');
+  const lists = await page.evaluate(() => {
+    const bar = document.getElementById('bbar').getBoundingClientRect().top;
+    const first = document.getElementById('pieces').getBoundingClientRect();
+    return {
+      pieces: document.querySelectorAll('#pieces .prow').length,
+      dropped: document.querySelectorAll('#pieces .prow.dropped').length,
+      marks: document.querySelectorAll('#marks .mrow').length,
+      cuts: document.querySelectorAll('#renders .rrow').length,
+      vid: !!document.getElementById('vid').getClientRects().length,
+      mark: !document.getElementById('bbar').hidden,
+      scroll: window.scrollY,
+      firstTop: first.top, firstBottom: first.bottom, barTop: bar,
+      rowsOnScreen: [...document.querySelectorAll('#pieces .prow')]
+        .filter(r => r.getBoundingClientRect().bottom <= bar).length,
+    };
+  });
+  check('six pieces (five marks)', lists.pieces, 6);
+  check('the two dropped ones are struck out', lists.dropped, 2);
+  check('all five marks', lists.marks, 5);
+  check('and the finished cut', lists.cuts, 1);
+  check('the picture is put away', lists.vid, false);
+  check('the MARK bar still works from here', lists.mark, true);
+  check('it opens at the top of the list, unscrolled', lists.scroll, 0);
+  check('the whole pieces card is on screen without scrolling',
+    lists.firstBottom <= lists.barTop, true);
+  check('every piece row too', lists.rowsOnScreen, 6);
 
   // ── 4: the line measures the lit tab ──
   const lineOn = async () => page.evaluate(() => {
@@ -160,52 +165,64 @@ function near(name, got, want, tol) {
   });
   await page.waitForTimeout(300);
   let L = await lineOn();
-  near('the line is as wide as the lit tab (MARKS)', L.dw, 0, 1.5);
+  near('the line is as wide as the lit tab (MARKS & PIECES)', L.dw, 0, 1.5);
   near('and sits under it', L.dx, 0, 1.5);
-  await page.click('#tabpieces');
+  await page.click('#tabcut');
   await page.waitForTimeout(300);
   L = await lineOn();
-  near('follows to PIECES — width', L.dw, 0, 1.5);
-  near('follows to PIECES — position', L.dx, 0, 1.5);
+  near('follows to CUT — width', L.dw, 0, 1.5);
+  near('follows to CUT — position', L.dx, 0, 1.5);
 
-  // ── 5: marking from the pieces tab grows the list under her ──
+  // ── 5: marking, from the cutting tab ──
   await page.evaluate(() => { document.getElementById('vid').currentTime = 300; });
   await page.click('#mark');
   await page.waitForTimeout(200);
-  check('a new mark splits a piece in front of her', await page.$$eval('#pieces .prow', r => r.length), 7);
-  check('and she is still on PIECES', await page.$eval('#tabpieces', b => b.classList.contains('on')), true);
-  check('the count followed', (await page.$eval('#npieces', el => el.textContent)).trim(), '7');
+  check('marking leaves her on CUT', await page.$eval('#tabcut', b => b.classList.contains('on')), true);
+  await page.click('#tablists');
+  check('and the new piece is waiting on the other tab',
+    await page.$$eval('#pieces .prow', r => r.length), 7);
 
-  // ── 6: renders but no marks — the Cuts survive, MARKS dims ──
-  live = RENDERS_ONLY;
+  // ── 6: playing a piece goes where the picture is ──
+  await page.click('#pieces .prow:nth-child(2) .pplay');
+  check('▶ on a piece hands her back to CUT',
+    await page.$eval('#tabcut', b => b.classList.contains('on')), true);
+  await page.click('#tablists');
+  await page.click('#marks .mrow:nth-child(2) .t');
+  check('so does tapping a mark\'s time — the playhead is there',
+    await page.$eval('#tabcut', b => b.classList.contains('on')), true);
+  check('the playhead moved with her',
+    await page.$eval('#vid', v => Math.round(v.currentTime)), 130);
+
+  // ── 6b: a recording always OPENS on the cutting, whatever she left lit ──
+  await page.click('#tablists');
+  await page.reload();
+  await page.waitForSelector('#markui:not([hidden])', { timeout: 8000 });
+  check('reopening lands on CUT, not on the list she left lit',
+    await page.$eval('#tabcut', b => b.classList.contains('on')), true);
+  check('and the picture is back', await page.$eval('#vid', v => !!v.getClientRects().length), true);
+
+  // ── 7: nothing marked yet ──
+  live = { ...DOC, id: 'cm-test-2', marks: [], dropped: [], renders: [] };
   const p2 = await browser.newPage({ viewport: { width: 390, height: 750 } });
   p2.on('pageerror', e => { console.log('PAGE ERROR:', e.message); failures++; });
   await p2.goto(`${base}/cutmarks?url=${encodeURIComponent(DOC.source.url)}&name=Evan&kind=video`);
-  await p2.waitForSelector('#roomtabs:not([hidden])', { timeout: 8000 });
-  check('the row is still there for an old cut', await p2.$eval('#roomtabs', el => el.hidden), false);
-  check('the Cuts are showing', await p2.$eval('#rendersWrap', el => el.hidden), false);
-  check('no pieces list', await p2.$eval('#piecesWrap', el => el.hidden), true);
-  check('MARKS is dimmed out', await p2.$eval('#tabmarks', b => b.disabled), true);
-  check('and the counts stay off', (await p2.$eval('#nmarks', el => el.textContent)).trim(), '');
+  await p2.waitForSelector('#markui:not([hidden])', { timeout: 8000 });
+  check('the row is there before anything is marked',
+    await p2.$eval('#roomtabs', el => !!el.getClientRects().length), true);
+  await p2.click('#tablists');
+  check('and the empty tab says so rather than going blank',
+    await p2.$eval('#listsempty', el => el.hidden), false);
+  check('no pieces card', await p2.$eval('#piecesWrap', el => el.hidden), true);
 
-  // ── 7: audio — the card is small, so every piece fits with room to spare ──
-  live = AUDIO;
+  // ── 8: an old cut with no marks still lists its Cuts ──
+  live = { ...DOC, id: 'cm-test-3', marks: [], dropped: [] };
   const p3 = await browser.newPage({ viewport: { width: 390, height: 750 } });
   p3.on('pageerror', e => { console.log('PAGE ERROR:', e.message); failures++; });
-  await p3.goto(`${base}/cutmarks?url=${encodeURIComponent(AUDIO.source.url)}&name=Evan&kind=audio`);
-  await p3.waitForSelector('#roomtabs:not([hidden])', { timeout: 8000 });
-  const afit = await p3.evaluate(() => {
-    const pane = document.getElementById('panepieces');
-    const barTop = document.getElementById('bbar').getBoundingClientRect().top;
-    return {
-      rows: [...document.querySelectorAll('#pieces .prow')]
-        .filter(r => r.getBoundingClientRect().bottom <= barTop).length,
-      paneScrolls: pane.scrollHeight > pane.clientHeight,
-      pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
-    };
-  });
-  check('five of the six on screen for a recording (the smaller card)', afit.rows >= 5, true);
-  check('and the page still does not scroll', afit.pageScrolls, false);
+  await p3.goto(`${base}/cutmarks?url=${encodeURIComponent(DOC.source.url)}&name=Evan&kind=video`);
+  await p3.waitForSelector('#markui:not([hidden])', { timeout: 8000 });
+  await p3.click('#tablists');
+  check('the Cuts are there', await p3.$eval('#rendersWrap', el => el.hidden), false);
+  check('and no empty line beside them', await p3.$eval('#listsempty', el => el.hidden), true);
 
   await browser.close();
   server.close();

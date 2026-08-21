@@ -1306,31 +1306,37 @@ invisible in code review and obvious in her ears.
   overwrite anything so they need no undo. In native builds the page hides
   its EYEBROW too (`body.native .eyebrow`) — the nav bar already says CUT
   MARKS and Sophie flagged the double.
-- **TWO HAIRLINE TABS — PIECES · MARKS (Aug 2026, Sophie: "I have to scroll
-  down to see the pieces I cut out").** The player, the transport, the strip
-  and the MARK bar are the instrument and never tab away (a piece's ▶ preview
-  has to be visible while she reviews pieces, and marking works from either
-  tab); the two LISTS take turns under them. It opens on **PIECES** — that is
-  the tab marking feeds and the one dropping happens on — and the finished
-  **Cuts** ride at the bottom of that tab, since a cut is those pieces baked
-  into a file. Each tab carries its count; MARKS dims when there are none, so
-  an old doc with renders and no marks still shows its Cuts.
-  **A TAB ALONE WOULD ONLY HAVE MOVED THE SCROLL, and that is the load-bearing
-  half:** a video is ~30vh, so six pieces still ran off the bottom of the
-  screen. `sizePane()` measures the real geometry and gives the open pane
-  exactly the room left above the bottom bar, and the pane scrolls INSIDE
-  itself — so the page does not scroll at all in the room (`body.roomfit`
-  drops the body's bar clearance, which the pane's height now carries), and
-  the top of the list can never be below the fold. Measured 390x750: four of
-  six rows at once under a video, five under a recording's smaller card. It
-  re-measures on resize, on `loadedmetadata` (a video's box is only its real
-  height once that lands) and after the lineage line arrives. The piece row
-  went to ONE line at the same time (times · length · dropped) — the stacked
-  second line cost 12px a row for nothing — and the strip's hint hides itself
-  after the first mark, since by then she has read it and it sits between her
-  and the list. Test: `node scripts/test-cutmarks-tabs.js` (the real page,
-  headless, asserting on the SCREEN — that the page never scrolls, not that
-  the markup exists).
+- **TWO HAIRLINE TABS AT THE TOP — CUT · MARKS & PIECES (Aug 2026, Sophie:
+  "tabs at the top and one of them is for cutting out of the video and the
+  other tab is for looking at all the marks and pieces you've made").** The
+  row is the first thing in the room, above the picture, and the two halves
+  take turns on the WHOLE screen: **CUT** is the cutting — the video or the
+  audio card, the transport, the strip — and **MARKS & PIECES** is everything
+  she has made, the pieces, the marks and the finished Cuts, each under its
+  own heading. Neither is stacked under the other, so neither is ever a scroll
+  away, and the cutting tab does not scroll at all. It opens on CUT, and a
+  recording always REOPENS on CUT whatever she left lit.
+  - **The bottom bar (the time and the MARK scissors) is on both** — it is
+    fixed chrome, and marking from either tab grows the lists.
+  - **▶ on a piece, and a tap on a mark's time, hand her back to CUT** —
+    "play this piece" means watch it, and both the picture and the playhead
+    live there. The nudges (−.1/+.1) deliberately do not: she is working the
+    list then, not looking at it.
+  - **Nothing marked yet → the lists tab says so** rather than showing a blank
+    screen; an old recording with renders and no marks still lists its Cuts.
+  - **THE FIRST CUT AT THIS PUT THE ROW UNDER THE PLAYER** (the two lists
+    taking turns *below* the strip, the instrument always on screen) and she
+    rejected it: "no, you did that wrong… tabs at the top". Worth knowing
+    because that shape needed real machinery to work — a JS-measured pane that
+    scrolled inside itself, since a video is ~30vh and the list still ran off
+    the bottom — and all of it went away when the tabs took the whole screen.
+    A tab row that splits a screen needs no layout code; one that splits what
+    is BELOW something does.
+  - The piece row is ONE line (times · length · dropped), which came out of
+    that first attempt and stayed: the stacked second line cost 12px a row for
+    nothing. Test: `node scripts/test-cutmarks-tabs.js` (the real page,
+    headless at 390x750, asserting on the SCREEN — what is reachable without
+    scrolling — rather than on the markup).
 - **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
   them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
   a nudge keeps the same pieces, an added mark splits one (both halves stay
