@@ -23,6 +23,7 @@
  */
 
 const assetUnion = require('./asset-union');
+const grammar = require('./search-grammar');
 
 // The pseudo-chat that holds app-made creations (below). A real chat slug is
 // branch-derived and never contains a space, but keep it plain anyway so the
@@ -94,4 +95,65 @@ function buildMetaAssets(docs, creations) {
   return rows;
 }
 
-module.exports = { buildMetaAssets, APP_BUCKET };
+
+// ── Search, over the FULL list (Aug 2026 — Sophie searched "yarn" and got
+// nothing). The page's box used to filter only the tiles ALREADY LOADED, and
+// the grid pages 150 at a time, so anything she hadn't scrolled to was
+// unsearchable — which on a several-thousand-row list is almost everything.
+// The complete list lives in the server's cache, so the match runs HERE and
+// the page asks the server. The grammar is the house one (search-grammar.js);
+// matching is the feed's rule — every term anchored at a word start ("aries"
+// must not find "boundaries"), a quoted phrase kept adjacent — the exact
+// regexes the page's own qparse built, so a search here and a search over the
+// loaded tiles can never disagree.
+function compileQuery(q) {
+  return grammar.parseQuery(q).map((g) => ({
+    neg: g.neg,
+    terms: g.terms.map((t) => {
+      const v = t.value;
+      try {
+        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
+          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
+      } catch (e) { return null; }
+    }).filter(Boolean),
+  })).filter((g) => g.terms.length);
+}
+
+const noteKey = (chat, url) => String(chat) + '|' + urlKey(url);
+
+/**
+ * Filter built rows by a query. Everything written about an image is
+ * searchable, the same haystack the page builds per tile: label, the MODEL ·
+ * QUALITY caption, both prompt halves, the origin chat's slug AND display
+ * name, the note thread, and the [compressed] marker.
+ * `opts.names` = {slug: displayName}; `opts.notes` = Map/object keyed
+ * noteKey(chat, url) → array of note texts (alts are checked too).
+ */
+function searchMetaAssets(rows, q, opts) {
+  const groups = compileQuery(q);
+  if (!groups.length) return rows;
+  const names = (opts && opts.names) || {};
+  const notes = (opts && opts.notes) || null;
+  const noteTexts = !notes ? () => null
+    : (k) => (typeof notes.get === 'function' ? notes.get(k) : notes[k]);
+  return rows.filter((r) => {
+    const t = [r.description, r.prompt, r.promptStyle, r.promptContent,
+      r.chat, r.app ? 'My Creations' : names[r.chat]];
+    if (r.compressedAtBirth) t.push('[compressed] compressed at birth');
+    if (notes) {
+      [r.url].concat(r.alts || []).forEach((u) => {
+        const texts = noteTexts(noteKey(r.chat, u));
+        if (texts) texts.forEach((s) => t.push(s));
+      });
+    }
+    const hay = t.filter(Boolean).join(' \n ');
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i];
+      const hit = g.terms.some((rx) => rx.test(hay));
+      if (g.neg ? hit : !hit) return false;
+    }
+    return true;
+  });
+}
+
+module.exports = { buildMetaAssets, searchMetaAssets, noteKey, APP_BUCKET };
