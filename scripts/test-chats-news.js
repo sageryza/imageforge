@@ -191,12 +191,13 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   await page.goto(base + '/chats');
   await page.waitForSelector('#grid [data-chat="chat-oven"]');
 
-  // 1. three tabs, UPDATE leading
+  // 1. UPDATE leads a row of one tab per account (three of them since Aug
+  //    2026, labelled with bare digits so four tabs fit her phone)
   const labels = await page.$$eval('#accrow .acctab', ns => ns.map(n => n.textContent.trim()));
-  if (labels.length !== 3) fail('expected 3 tabs, got ' + labels.length + ': ' + labels.join(' | '));
+  if (labels.length !== 4) fail('expected 4 tabs, got ' + labels.length + ': ' + labels.join(' | '));
   if (!/^Update/.test(labels[0] || '')) fail('Update does not lead the tab row: ' + labels.join(' | '));
-  if (!/^Account 1/.test(labels[1] || '') || !/^Account 2/.test(labels[2] || '')) {
-    fail('the accounts are not the 2nd and 3rd tabs: ' + labels.join(' | '));
+  if (!/^1/.test(labels[1] || '') || !/^2/.test(labels[2] || '') || !/^3/.test(labels[3] || '')) {
+    fail('the accounts do not follow Update as 1 · 2 · 3: ' + labels.join(' | '));
   }
 
   // every tab has to be reachable at the widths she actually uses — the row

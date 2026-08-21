@@ -147,9 +147,12 @@ async function checkRow(page, sel, what, widths) {
   await page.goto(base + '/chats', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#grid .crow[data-chat="alpha"]', { timeout: 8000 });
 
-  // ── 1. the account row — three tabs, and every one of them ──────────────
+  // ── 1. the account row — four tabs, and every one of them ───────────────
+  //     (Update · 1 · 2 · 3 since a third Claude account arrived, Aug 2026 —
+  //     the sliding line measures the lit tab, so the count is only asserted
+  //     here to keep the loop below honest about what it walked)
   const accTabs = await page.$$eval('#accrow .acctab', ns => ns.length);
-  ok(accTabs === 3, 'the account row still has three tabs (Update · 1 · 2)');
+  ok(accTabs === 4, 'the account row still has four tabs (Update · 1 · 2 · 3)');
   for (let i = 0; i < accTabs; i++) {
     await page.$$eval('#accrow .acctab', (ns, j) => ns[j].click(), i);
     await page.waitForTimeout(340);
