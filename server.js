@@ -428,6 +428,10 @@ loadConfig().then(() => {
   // render is ffmpeg on our own box; nothing here spends money.
   app.use('/api/assembly', require('./assembly').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
+  // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
+  // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
+  // owning chat's wake doorbell. Nothing here generates or spends.
+  app.use('/api/witchvideo', require('./witchvideo').router);
   app.use('/api/opinions', require('./opinions').router); // Opinions: pick between two ideas, GOOD IDEA stamps, streaks — the preloaded decide-on-things game
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
   const stripeMod = require('./stripe');
@@ -571,6 +575,15 @@ app.get('/fruit', (req, res) => {
 app.get('/fruitchart', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(__dirname + '/public/fruitchart.html');
+});
+
+// The witch-video review room. PUBLIC and ungated like /fruit: it is opened
+// from a texted link by Sophie's mom, who has no studio token — the
+// unguessable who= token in the link IS the identity (fruit.js's pattern).
+// Deliberately unlinked: no tile, no iOS wrapper.
+app.get('/witchvideo', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(__dirname + '/public/witchvideo.html');
 });
 
 // Secretly a Witch — the public witchy app (moon/tarot/miracles/conjure).
