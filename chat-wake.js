@@ -112,6 +112,42 @@ async function fireSwitchboard(sb) {
   return body;
 }
 
+// The whole doorbell as one callable — queue the wake, fire the switchboard
+// (debounced). The POST /wake route below is this plus body parsing, and a
+// server module can ring it IN-PROCESS (witchvideo.js does, when a note lands
+// on the review page) instead of HTTP-ing its own server. The message itself
+// always rides its own store, never the ping.
+async function ring(deps, rawChat) {
+  const { db, registry, followMoves } = deps;
+  const chat = await followMoves(rawChat);
+  const reg = (await registry()).chats[chat] || {};
+  const sb = switchboardFor(reg.wakeAccount || reg.account || '2');
+  const decision = decideWake(reg, sb, Date.now(), lastFireAt[sb.acct]);
+  if (decision.status === 'not-wakeable' || decision.status === 'no-switchboard') {
+    // No queue entry — nothing will ever drain it. The message itself is
+    // safe wherever it was stored; the chat sees it next time it's awake.
+    return { ok: true, status: decision.status, chat };
+  }
+  // One pending entry per chat; a repeat send just renews it.
+  await db().collection(QUEUE).doc(chat).set({
+    chat,
+    account: sb.acct,
+    triggerId: reg.wakeTriggerId,
+    requestedAt: new Date().toISOString(),
+  }, { merge: true });
+  if (decision.fire) {
+    lastFireAt[sb.acct] = Date.now();
+    try {
+      await fireSwitchboard(sb);
+    } catch (err) {
+      // The entry stays queued — the next send (or the switchboard's next
+      // wake for any reason) can still drain it. Say so honestly.
+      return { ok: true, status: 'queued', chat, fireError: err.message };
+    }
+  }
+  return { ok: true, status: decision.status, chat };
+}
+
 function mount(router, deps) {
   const { db, regRef, registry, followMoves, resolveChat } = deps;
 
@@ -164,33 +200,7 @@ function mount(router, deps) {
     try {
       const raw = req.body && req.body.chat;
       if (!raw) return res.status(400).json({ error: 'chat required' });
-      const chat = await followMoves(raw);
-      const reg = (await registry()).chats[chat] || {};
-      const sb = switchboardFor(reg.wakeAccount || reg.account || '2');
-      const decision = decideWake(reg, sb, Date.now(), lastFireAt[sb.acct]);
-      if (decision.status === 'not-wakeable' || decision.status === 'no-switchboard') {
-        // No queue entry — nothing will ever drain it. The message itself is
-        // safe in the feed either way; the chat sees it next time it's awake.
-        return res.json({ ok: true, status: decision.status, chat });
-      }
-      // One pending entry per chat; a repeat send just renews it.
-      await db().collection(QUEUE).doc(chat).set({
-        chat,
-        account: sb.acct,
-        triggerId: reg.wakeTriggerId,
-        requestedAt: new Date().toISOString(),
-      }, { merge: true });
-      if (decision.fire) {
-        lastFireAt[sb.acct] = Date.now();
-        try {
-          await fireSwitchboard(sb);
-        } catch (err) {
-          // The entry stays queued — the next send (or the switchboard's next
-          // wake for any reason) can still drain it. Say so honestly.
-          return res.json({ ok: true, status: 'queued', chat, fireError: err.message });
-        }
-      }
-      res.json({ ok: true, status: decision.status, chat });
+      res.json(await ring({ db, registry, followMoves }, raw));
     } catch (err) { res.status(502).json({ error: err.message }); }
   });
 
@@ -237,4 +247,4 @@ function noteReply(dbFn, chat) {
   } catch (e) { /* never let cleanup touch the post */ }
 }
 
-module.exports = { mount, noteReply, decideWake, switchboardFor, validTrigger, FIRE_DEBOUNCE_MS };
+module.exports = { mount, ring, noteReply, decideWake, switchboardFor, validTrigger, FIRE_DEBOUNCE_MS };

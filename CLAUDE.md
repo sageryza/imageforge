@@ -2600,6 +2600,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
   answers `brevo:false`). `POST /invite` refuses with which one is missing
   rather than half-sending; run it with `dryRun:true` first, the same guard the
   App Store metadata workflow gets. Tests: `node scripts/test-fruit.js`.
+- **Witch-video pipeline** (`witchvideo.js`, `/api/witchvideo`, page at
+  `/witchvideo` — PUBLIC, deliberately unlinked, no tile) — Theo's (her mom's
+  ChatGPT's) video ideas → a chat's draft 480p cuts → **her MOM reviews on her
+  phone**: the unguessable `who=` token in her link is the identity (the fruit
+  pattern), **tapping the video pauses it and opens the note box** stamped
+  with the second she stopped at, ♥ approves / ✕ reopens, stills batches get
+  per-still notes before animation money is spent, and the box at the bottom
+  files a new idea. **Every note/verdict/idea rings the owning chat's wake
+  doorbell** (`chat-wake.ring` — the ONE shared implementation, exported Aug
+  2026 so modules ring in-process; never copy it) and lands in
+  `GET /api/witchvideo/inbox?chat=` for the sweep. **The module generates and
+  spends NOTHING** — generation is chat work (movies.js recipe, ~$1–1.50 a
+  draft; a batch of ideas ≈ $20 gets the >$3 ask). Notes over 2000 chars are
+  refused, never truncated; cuts/stills/thread are kept capped 12/8/300;
+  emails live only on the `__reviewers` doc and never ride a public read. A
+  new cut emails reviewers when Brevo is configured (it was NOT, measured
+  2026-08-14 — the response says `emailSkipped` honestly). Full map:
+  `docs/witch-video-pipeline.md`. Tests: `node scripts/test-witchvideo.js`
+  (pure + the real page headless).
 - **Opinions** (`opinions.js`, `/api/opinions`, page at `/opinions`, no iOS
   tile yet) — the decide-on-things game from Sophie's commercial concept (Aug
   2026): two ideas side by side — businesses, things to make, app ideas, or
