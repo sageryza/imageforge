@@ -5729,21 +5729,16 @@ function openPinned(pin, chatName){
   document.addEventListener('keydown',esckey);
   w.appendChild(v); w.appendChild(x);
 
-  // TAP-TO-NOTE (Aug 2026, Sophie's design; reworked on her first real use —
-  // "even pressing play on the video triggers the note thing"). No layer over
-  // the video: a floating NOTE button appears when she touches the screen and
-  // fades away, like the native controls. Tapping it pauses and starts the
-  // MIC immediately — she talks, ONE Done stops it, files the note and
-  // resumes; tapping the TEXT BOX instead stops the mic and puts the
-  // transcript there to edit (that is when the keyboard rises). Notes land on
-  // the FILM's url thread via the asset-note machinery, stamped with the
-  // video time, so the chat that pinned it sweeps them like image notes.
-  // Films only, and only when we know which chat the pin belongs to.
   // TAP-TO-NOTE — /filmnote.js, the ONE implementation, shared with
-  // compare.js's video lightbox (Aug 2026, her ask on the dream commercials
-  // grid: the mechanism was only ever on a pinned film). It owns the button,
-  // the sheet, the mic and its own CSS; this player just says where the note
-  // goes. Films only, and only when we know which chat the pin belongs to.
+  // compare.js's video lightbox. v3 is Sophie's own spec (2026-08-21): a tap
+  // anywhere on the film toggles pause/play (never the sheet), the Note
+  // button lives on the PAUSED screen, pressing play saves an open note, and
+  // notes queue on the device and send in the background so nothing ever
+  // waits on the network. It owns the button, the sheet, the mic, the outbox
+  // and its own CSS; this player just says where the note goes — the FILM's
+  // url thread via the asset-note machinery, so the pinning chat sweeps them
+  // like image notes. Films only, and only when we know which chat the pin
+  // belongs to.
   var fnote = (pin.kind!=='audio' && chatName && window.__filmNote)
     ? window.__filmNote({ wrap:w, video:v, chat:chatName, url:pin.url }) : null;
   document.body.appendChild(w); document.body.style.overflow='hidden';

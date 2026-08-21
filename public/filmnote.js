@@ -1,35 +1,45 @@
-/* TAP-TO-NOTE ON A FILM — the ONE implementation (Aug 2026).
+/* TAP-TO-NOTE ON A FILM — the ONE implementation (Aug 2026; v3 to Sophie's
+ * own spec, 2026-08-21).
  *
- * Sophie designed this on the Evan film ("I watch the video but I can tap it
- * and then the video pauses and a Field comes up where I can write a note …
- * this could be reusable not just for this"), and it shipped inside
- * chats.html's pinned-film player, where it stayed. Her ask, on the dream
- * commercials grid: "there was a chat where we built a built-in pause and
- * notetaking thing … that was only on the links at the top of the page that
- * are pinned, could you somehow bring that mechanism in here."
+ * She designed it on the Evan film, it shipped inside chats.html's pinned
+ * player, moved here so compare.js's video lightbox (every film row and
+ * playable tile on a Compare page) shares it — and after real use of the
+ * ported player she respecified the whole interaction. Her words, verbatim,
+ * because each one is a rule:
  *
- * So it lives here now and BOTH callers use it — chats.html's pinned player
- * and compare.js's video lightbox, which is what every film row and every
- * playable tile on a Compare page opens. A second copy would drift, and this
- * one has already been reworked once from real use.
+ *   - "tapping the screen anywhere should pause it, not just the pause
+ *     button — but it shouldn't pull up the note thing; pressing it again…
+ *     start it playing again."  A tap on the film TOGGLES pause/play and
+ *     never opens the sheet.
+ *   - The NOTE button shows while the film is PAUSED — pausing is one tap
+ *     now, so the pause IS the moment the option presents itself. No fade
+ *     timers, no touch-to-reveal.
+ *   - "pressing play after it's been paused should trigger the note to save
+ *     and disappear."  Play — a tap on the film or the native control — is
+ *     Done. Cancel stays as the deliberate discard.
+ *   - "rather than sending each note each time it should probably save them
+ *     all and batch them so it doesn't have to wait to send… It says note
+ *     couldn't be sent."  A finished note is QUEUED on the device (the
+ *     localStorage outbox below) and sent in the background with retries —
+ *     the sheet closes INSTANTLY, and a network hiccup can never bounce a
+ *     note back at her. 'Note saved' is honest: saved here, sent when the
+ *     network allows, still queued after a reload if it hasn't gone yet.
+ *     filmnote.js loads with the Chats app, so opening the app flushes
+ *     anything a bad connection left behind.
+ *
+ * Callers (unchanged):
  *
  *   var note = window.__filmNote({ wrap, video, chat, url });
  *   …
  *   note && note.destroy();      // in the caller's own close()
  *
- * `wrap` is the overlay element (it gets `filmnote-host`, which is what the
- * CSS below hangs off, so the module never depends on the host's class
- * names). `chat` and `url` are where the note lands: the FILM's own url
- * thread, via the same asset-note machinery her picture notes use, so the
- * chat that made the film sweeps them the same way.
- *
- * REWORKED ONCE, FROM HER FIRST REAL USE — do not undo it: there is no layer
- * over the video ("even pressing play on the video triggers the note thing").
- * A floating NOTE button appears on a touch and fades like the native
- * controls; tapping it pauses and starts the MIC immediately, so she just
- * talks and ONE Done stops it, files, and resumes. Tapping the TEXT BOX
- * instead stops the mic and drops the transcript in to edit — that is the
- * only moment the keyboard rises.
+ * `wrap` is the overlay element (it gets `filmnote-host`). `chat`/`url` are
+ * where the note lands: the FILM's own url thread, via the same asset-note
+ * machinery her picture notes use, so the chat that made the film sweeps
+ * them the same way. Closing the player over an unfinished note QUEUES what
+ * she typed (or the words already transcribed) rather than losing it; only a
+ * raw, untouched recording is discarded by a close — Cancel is the
+ * deliberate discard.
  */
 (function () {
   if (window.__filmNote) return;                 // safe to include twice
@@ -61,8 +71,7 @@
     + '.filmnote-host .nsheet .send{background:#e8e2d6; color:#17140f; border-color:#e8e2d6;}'
     + ".filmnote-host .nsheet .st{font:11px/1.3 -apple-system,'Helvetica Neue',sans-serif;"
     + ' color:#97907f; min-height:14px;}'
-    // the background-filing outcome, visible while she is already watching
-    // again — a note that fails after Done used to vanish without a word
+    // the moment-of-saving word, visible while she is already watching again
     + '.filmnote-host .ntoast{position:absolute; left:50%; transform:translateX(-50%);'
     + ' bottom:calc(env(safe-area-inset-bottom,0px) + 64px); z-index:5; padding:9px 14px;'
     + ' border-radius:6px; border:1px solid #3a352c; background:rgba(23,20,15,.92); color:#e8e2d6;'
@@ -71,13 +80,90 @@
     + '.filmnote-host .ntoast.on{opacity:1;}';
   document.head.appendChild(css);
 
+  /* THE OUTBOX — "save them all and batch them so it doesn't have to wait to
+     send". Every finished note lands here first; a background flusher walks
+     the queue one entry at a time, retrying until the server answers ok. An
+     entry is {id, chat, url, t, text, audio?, voice?}: `audio` is the
+     recording as a data: url still waiting to be uploaded+transcribed,
+     `voice` the Storage url once it has been (persisted mid-flight, so a
+     retry never uploads the same recording twice). */
+  var OUTKEY = 'forge.filmnotes.outbox';
+  function outRead(){ try{ return JSON.parse(localStorage.getItem(OUTKEY)||'[]'); }catch(_){ return []; } }
+  function outWrite(list){ try{ localStorage.setItem(OUTKEY, JSON.stringify(list)); return true; }catch(_){ return false; } }
+  function saveEntry(e){
+    var list=outRead();
+    for(var i=0;i<list.length;i++) if(list[i].id===e.id){ list[i]=e; break; }
+    outWrite(list);
+  }
+  function noteLine(t, words, voiceUrl){
+    return '['+t+'] '+(words||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
+  }
+  function postText(chat, url, line){
+    return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat: chat, url: url, from:'sophie', text: line }) })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ return !!(d&&d.ok); })
+      .catch(function(){ return false; });
+  }
+  function sendEntry(e){
+    if(e.audio && !e.voice){
+      return fetch('/api/gallery/assets/note-voice',{ method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat: e.chat, url: e.url, t: e.t, hold: true, audio: e.audio }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(!d||!d.ok) return false;
+          e.voice=d.url; if(!e.text) e.text=d.transcript||'';
+          e.audio='';                    // uploaded — stop carrying the bytes
+          saveEntry(e);                  // progress persists: a retry starts here
+          return postText(e.chat, e.url, noteLine(e.t, e.text, e.voice));
+        })
+        .catch(function(){ return false; });
+    }
+    return postText(e.chat, e.url, noteLine(e.t, e.text, e.voice));
+  }
+  var flushing=false;
+  function flush(){
+    if(flushing) return;
+    var list=outRead(), now=Date.now(), e=null;
+    for(var i=0;i<list.length;i++){
+      // a lock says another open page is (or was just) sending this one —
+      // the cheap guard against the same note filing twice from two tabs
+      if(!(list[i].lock && now-list[i].lock<25000)){ e=list[i]; break; }
+    }
+    if(!e) return;
+    e.lock=now; saveEntry(e);
+    flushing=true;
+    sendEntry(e).then(function(ok){
+      flushing=false;
+      if(ok){ outWrite(outRead().filter(function(x){ return x.id!==e.id; })); flush(); }
+      else {
+        e.lock=0; saveEntry(e);          // free it for the next try, wherever that runs
+        setTimeout(flush, 30000);        // the network will come back; the note waits here
+      }
+    });
+  }
+  function queueNote(entry){
+    entry.id = Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    var list=outRead(); list.push(entry);
+    if(!outWrite(list)){
+      // no storage (private mode / quota on a long recording): send it now,
+      // fire-and-forget — worse than the queue, better than losing it
+      sendEntry(entry);
+      return;
+    }
+    flush();
+  }
+  window.addEventListener('online', flush);
+  setInterval(flush, 45000);             // no-ops on an empty queue
+  setTimeout(flush, 1200);               // opening any page that loads this flushes stragglers
+
   window.__filmNote = function (opts) {
     opts = opts || {};
     var w = opts.wrap, v = opts.video, chat = opts.chat, url = opts.url;
     if (!w || !v || !chat || !url) return null;
     w.classList.add('filmnote-host');
     var mrec = null;
-    var sheet=null, fadeT=null;
+    var sheet=null, finishFn=null;
     var toastEl=null, toastT=null, dead=false;
     function toast(msg){
       if(dead) return;
@@ -85,34 +171,44 @@
       toastEl.textContent=msg;
       requestAnimationFrame(function(){ if(toastEl) toastEl.classList.add('on'); });
       clearTimeout(toastT);
-      toastT=setTimeout(function(){ if(toastEl) toastEl.classList.remove('on'); }, 2600);
+      toastT=setTimeout(function(){ if(toastEl) toastEl.classList.remove('on'); }, 2200);
     }
     var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
     var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
     var nb=document.createElement('button'); nb.className='notebtn off';
     nb.innerHTML=MIC+'<span>Note</span>';
-    nb.setAttribute('aria-label','Pause and leave a note');
-    // the button follows the native controls' rhythm: a touch on the video
-    // shows it, another touch (or 3.5s) fades it away
-    function showBtn(){ nb.classList.remove('off');
-      clearTimeout(fadeT); fadeT=setTimeout(function(){ nb.classList.add('off'); }, 3500); }
+    nb.setAttribute('aria-label','Leave a note here');
+    // the button lives on the PAUSED screen: paused and no sheet → shown
+    function syncBtn(){ nb.classList.toggle('off', !!sheet || !v.paused); }
+    // play — her tap, or the native control — SAVES an open note ("pressing
+    // play after it's been paused should trigger the note to save and
+    // disappear"); pause is just the button's cue to appear
+    var onPlay=function(){ if(finishFn) finishFn(); syncBtn(); };
+    v.addEventListener('play', onPlay);
+    v.addEventListener('pause', syncBtn);
+    // A TAP ANYWHERE ON THE FILM TOGGLES PAUSE/PLAY — and never the sheet.
+    // The pointerdown snapshot guards against a browser whose own controls
+    // already flipped playback on this same tap (desktop Chrome toggles on a
+    // body click; iOS does not) — no second flip.
+    var downPaused=null;
+    var onDown=function(e){ downPaused = (e.target===v) ? v.paused : null; };
     var onWrapTap=function(e){
-      if(e.target!==v || sheet) return;
-      if(nb.classList.contains('off')) showBtn();
-      else { clearTimeout(fadeT); nb.classList.add('off'); }
+      if(e.target!==v) return;
+      if(downPaused!==null && v.paused!==downPaused){ downPaused=null; syncBtn(); return; }
+      downPaused=null;
+      if(sheet){                          // tap = play = save and disappear
+        if(finishFn) finishFn();
+        v.play().catch(function(){});
+        syncBtn(); return;
+      }
+      if(v.paused) v.play().catch(function(){});
+      else v.pause();
+      syncBtn();
     };
+    w.addEventListener('pointerdown', onDown);
     w.addEventListener('click', onWrapTap);
-    // files the note text (with the voice url when there is one) onto the
-    // film's thread; background=true means she is already watching again
-    function fileNote(t, text, voiceUrl, st){
-      var line='['+t+'] '+(text||'(voice note)')+(voiceUrl?' (voice: '+voiceUrl+')':'');
-      return fetch('/api/gallery/assets/note',{ method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ chat: chat, url: url, from:'sophie', text: line }) })
-        .then(function(r){ return r.json(); });
-    }
     nb.onclick=function(){
       if(sheet) return;
-      clearTimeout(fadeT); nb.classList.add('off');
       try{ v.pause(); }catch(_){ }
       var t=fmtT(v.currentTime);
       sheet=document.createElement('div'); sheet.className='nsheet';
@@ -125,10 +221,8 @@
       // A recorder hands its data over ASYNC: dataavailable and stop fire on
       // a LATER task after stop(). Reading `chunks` synchronously right after
       // stop() got an EMPTY blob in every real browser — so every talk-then-
-      // Done note was silently dropped, and tapping the box never produced a
-      // transcript. (It shipped that way because the test's stubbed mic fired
-      // synchronously — the stub is honest about the timing now.) Anything
-      // that needs the recording passes a `cb`; the blob is built in there.
+      // Done note was silently dropped. Anything that needs the recording
+      // passes a `cb`; the blob is built in there.
       function stopMic(cb){
         var r=mrec; mrec=null;
         if(!r){ if(cb) cb(); return; }
@@ -139,10 +233,10 @@
         setTimeout(fin, 1200);  // a recorder that never reports back must not eat the note
         try{ r.stop(); }catch(_){ fin(); }
       }
-      function closeSheet(){ stopMic(); if(sheet){ sheet.remove(); sheet=null; } }
+      function closeSheet(){ stopMic(); finishFn=null; if(sheet){ sheet.remove(); sheet=null; } syncBtn(); }
       function resume(){ closeSheet(); v.play().catch(function(){}); }
       // upload + transcribe WITHOUT filing (hold:true) so her words can land
-      // in the box for editing; filing is always the text route above
+      // in the box for editing; filing is always through the outbox
       function holdVoice(blob){
         return new Promise(function(res){
           var rd=new FileReader();
@@ -154,12 +248,42 @@
           rd.readAsDataURL(blob);
         });
       }
-      // DEFAULT: the mic is already on — she talks, one Done does the rest
+      // FINISHING A NOTE — Done, play, or the player closing over it. The
+      // note goes to the OUTBOX and the sheet closes instantly; nothing here
+      // ever waits on the network. `discard` (only the player's own close)
+      // keeps typed/transcribed words but drops a raw untouched recording —
+      // Cancel is the deliberate discard for everything.
+      finishFn=function(discard){
+        if(!sheet) return;
+        var typed=ta.value.trim();
+        if(mode==='rec'){
+          stopMic(function(){
+            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+            if(discard || !blob.size){
+              if(typed){ queueNote({ chat:chat, url:url, t:t, text:typed }); if(!discard) toast('Note saved'); }
+              else if(!discard) toast('Didn’t catch any sound — nothing saved');
+              return;
+            }
+            var rd=new FileReader();
+            rd.onloadend=function(){ queueNote({ chat:chat, url:url, t:t, text:typed||'', audio:rd.result }); };
+            rd.readAsDataURL(blob);
+            if(!discard) toast('Note saved');
+          });
+          closeSheet();
+          return;
+        }
+        if(typed||voiceHeld){
+          queueNote({ chat:chat, url:url, t:t, text:typed||'', voice:voiceHeld||'' });
+          if(!discard) toast('Note saved');
+        }
+        closeSheet();
+      };
+      // DEFAULT: the mic is already on — she talks; Done (or play) does the rest
       if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof MediaRecorder!=='undefined'){
         navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
           if(!sheet){ stream.getTracks().forEach(function(tr){ tr.stop(); }); return; }
           mrec=new MediaRecorder(stream);
-          mode='rec'; st.textContent='Recording — talk, then tap Done';
+          mode='rec'; st.textContent='Recording — talk, then tap Done or press play';
           mrec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
           mrec.onstop=function(){ stream.getTracks().forEach(function(tr){ tr.stop(); }); };
           mrec.start();
@@ -181,51 +305,26 @@
           });
         });
       });
-      sheet.querySelector('.cxl').onclick=resume;
-      sheet.querySelector('.send').onclick=function(){
-        var typed=ta.value.trim();
-        // the background-filing outcomes, said out loud — a note that failed
-        // after Done used to vanish without a word ("the notes don't send")
-        function sent(d){ if(d&&d.ok) toast('Note sent'); else unsent(); }
-        function unsent(){ toast('That note didn’t send — tap Note and try again'); }
-        if(mode==='rec'){
-          // her one button: stop, file, resume — she is watching again while
-          // the upload + transcription finish in the background. The blob is
-          // built inside stopMic's callback, AFTER the recorder has actually
-          // handed its data over (see stopMic).
-          stopMic(function(){
-            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-            if(!blob.size && !typed){ toast('Didn’t catch any sound — tap Note and try again'); return; }
-            if(!blob.size){ fileNote(t, typed, null).then(sent).catch(unsent); return; }
-            holdVoice(blob).then(function(d){
-              var voice=d&&d.ok?d.url:null;
-              var words=typed||(d&&d.ok?d.transcript:'')||'';
-              if(!voice&&!words){ unsent(); return; }
-              fileNote(t, words, voice).then(sent).catch(unsent);
-            });
-          });
-          resume();
-          return;
-        }
-        if(!typed && !voiceHeld){ resume(); return; }
-        st.textContent='Sending…';
-        fileNote(t, typed, voiceHeld).then(function(d){
-          if(!d||!d.ok){ st.textContent='Couldn’t send that — it’s still in the box.'; return; }
-          resume();
-        }).catch(function(){ st.textContent='Couldn’t send that — it’s still in the box.'; });
-      };
+      sheet.querySelector('.cxl').onclick=function(){ finishFn=null; resume(); };
+      sheet.querySelector('.send').onclick=function(){ var f=finishFn; if(f) f(); v.play().catch(function(){}); };
       w.appendChild(sheet);
+      syncBtn();
     };
     w.appendChild(nb);
     return { destroy: function () {
       dead=true;
+      // an unfinished note is SAVED, not lost — the queue survives the player
+      if (finishFn) finishFn(true);
       if (mrec) { try { mrec.stop(); } catch (_) {} mrec = null; }
       if (sheet) { sheet.remove(); sheet = null; }
       // the lightbox wrap is REUSED across opens (compare.js keeps one
       // .cmp-vlb) — leave nothing behind, or listeners stack per open
+      w.removeEventListener('pointerdown', onDown);
       w.removeEventListener('click', onWrapTap);
+      v.removeEventListener('play', onPlay);
+      v.removeEventListener('pause', syncBtn);
       w.classList.remove('filmnote-host');
-      clearTimeout(fadeT); clearTimeout(toastT);
+      clearTimeout(toastT);
       if (toastEl) { toastEl.remove(); toastEl = null; }
       nb.remove();
     } };
