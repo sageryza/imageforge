@@ -1046,8 +1046,8 @@ them off the reference sheet, not off the old filenames.
   the eye hide symbol … take them out of the main thing and put them in little
   boxes like the … category tag things — don't forget to add the pin").** The
   thread header carried seven controls in one row of unlabelled glyphs; five of
-  them (star · bell · keep · hide · delete) moved into Organize as boxed,
-  NAMED chips the same shape as the tag chips, with the PUSHPIN she asked for
+  them (star · bell · keep · hide · delete) moved into Organize as boxed chips
+  the same shape as the tag chips, with the PUSHPIN she asked for
   added beside them — so the sheet is one screen of decisions about the chat:
   the four states over the two exits, then her words. The header keeps only
   ARCHIVE (a word, deliberately) and the tag icon that opens the sheet. Two
@@ -1056,7 +1056,15 @@ them off the reference sheet, not off the old filenames.
   it did not move it; and **the section labels are back** (`.orggrp`, whose own
   CSS comment always said to bring them back "the moment a second kind of chip
   lands in that sheet") because a mark and a tag are different taps in
-  identical boxes. `mkOrgMarks` in `chats.html` is all six; each keeps its old
+  identical boxes. **THE MARKS CARRY NO WORDS — JUST THE GLYPH (Aug 2026,
+  Sophie: "the top (pin, star, bell etc) of tagging chats shud be just the icon
+  not text").** They shipped as boxes with the name in caps beside the picture,
+  which ran the six of them onto three lines of a sheet that is meant to be one
+  screen; the box is a 34px SQUARE now — the tap target, not the glyph — and
+  the word lives on the `aria-label` and the `title`, so nothing is lost to a
+  screen reader. The BOXES stay (that was her earlier ask, and it is what makes
+  a mark and a tag read as the same kind of thing).
+  `mkOrgMarks` in `chats.html` is all six; each keeps its old
   class name, which is what carries its own colour (the bell stays GOLD, the
   crossed eye and the lit pinhead stay red). Test:
   `node scripts/test-chats-pin-top.js`.
