@@ -1306,6 +1306,31 @@ invisible in code review and obvious in her ears.
   overwrite anything so they need no undo. In native builds the page hides
   its EYEBROW too (`body.native .eyebrow`) — the nav bar already says CUT
   MARKS and Sophie flagged the double.
+- **TWO HAIRLINE TABS — PIECES · MARKS (Aug 2026, Sophie: "I have to scroll
+  down to see the pieces I cut out").** The player, the transport, the strip
+  and the MARK bar are the instrument and never tab away (a piece's ▶ preview
+  has to be visible while she reviews pieces, and marking works from either
+  tab); the two LISTS take turns under them. It opens on **PIECES** — that is
+  the tab marking feeds and the one dropping happens on — and the finished
+  **Cuts** ride at the bottom of that tab, since a cut is those pieces baked
+  into a file. Each tab carries its count; MARKS dims when there are none, so
+  an old doc with renders and no marks still shows its Cuts.
+  **A TAB ALONE WOULD ONLY HAVE MOVED THE SCROLL, and that is the load-bearing
+  half:** a video is ~30vh, so six pieces still ran off the bottom of the
+  screen. `sizePane()` measures the real geometry and gives the open pane
+  exactly the room left above the bottom bar, and the pane scrolls INSIDE
+  itself — so the page does not scroll at all in the room (`body.roomfit`
+  drops the body's bar clearance, which the pane's height now carries), and
+  the top of the list can never be below the fold. Measured 390x750: four of
+  six rows at once under a video, five under a recording's smaller card. It
+  re-measures on resize, on `loadedmetadata` (a video's box is only its real
+  height once that lands) and after the lineage line arrives. The piece row
+  went to ONE line at the same time (times · length · dropped) — the stacked
+  second line cost 12px a row for nothing — and the strip's hint hides itself
+  after the first mark, since by then she has read it and it sits between her
+  and the list. Test: `node scripts/test-cutmarks-tabs.js` (the real page,
+  headless, asserting on the SCREEN — that the page never scrolls, not that
+  the markup exists).
 - **Dropped pieces are keyed by the piece's times, and every mark edit REMAPS
   them by piece index** (`droppedIdxSet`/`setDroppedByIdx` in cutmarks.html):
   a nudge keeps the same pieces, an added mark splits one (both halves stay
@@ -1319,8 +1344,17 @@ invisible in code review and obvious in her ears.
   deliberately not per-piece files + concat demuxer, because concatenated
   AAC pieces add ~24ms priming per join and walk the sound off the picture
   (the Scratch Pad film finding). A soundless video renders video-only
-  (`hasAudio` probed at open). Audio renders also file into the audio
-  library (batch `cut-marks`, track `cutmarks`, hash-deduped).
+  (`hasAudio` probed at open).
+  **WHERE A RENDER GOES:** it never touches the original — it bakes a NEW
+  file into Storage (`cutmarks/<id>/render-<ts>.<ext>`), adds it to the
+  **Cuts** list on that recording (capped 8, newest first, nothing
+  overwritten), and an AUDIO render ALSO files into the audio library
+  (`forge-audio`, batch `cut-marks`, track `cutmarks`, md5-deduped) — so it
+  lists on `/audio` and is reachable from the other rooms. Cut Marks' own
+  pick list filters that batch back OUT, so a cut never reappears as a source
+  to cut again. A VIDEO render stays on the Cuts list only (the audio library
+  is audio). From a finished audio cut the scissors hand it on to the Cutting
+  Room for pauses and filler.
 - **Data:** one doc per file in `forge-cutmarks` (deckfactory),
   content-addressed by sha1 of the url (reopening resumes): `{ id, title,
   kind, source, seconds, hasAudio, marks:[t], dropped:[key], renders (capped
