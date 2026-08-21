@@ -22,8 +22,11 @@
 // default 4) and render exactly like the pad film's beat art — the still held
 // on the canvas for its length over silence. And the ONE BUTTON is the Dump:
 // `POST /:id/import { album }` pulls a whole dumped album — photos AND videos,
-// in album order — onto the project's timeline in one go (`GET /sources`
-// lists the albums). Imported items reference the Dump's urls directly; they
+// in album order — into the project's TRAY in one go (`GET /sources` lists
+// the albums). EVERYTHING ARRIVES IN THE TRAY, NEVER ON THE TIMELINE
+// (2026-08-21, her live report the first version earned: "they're supposed to
+// be above the timeline so i can drop them in. i'm confused" — an import that
+// went straight onto the timeline broke the one mental model). Imported items reference the Dump's urls directly; they
 // are never copied and never filed onto the Chunking shelf (the harvest skips
 // `drops/` on purpose — raw dumps are not made clips; here she picked them).
 // A still's timeline thumb is a DERIVED display copy via the /api/story/thumb
@@ -74,8 +77,8 @@
 //                         and/or the whole tray, each an array of
 //                         {id,url,title,poster,seconds,kind,hold} (the page
 //                         debounces; a field left out is left alone)
-//   POST   /:id/import  → { album } — append a whole Dump album (photos and
-//                         videos, in album order) to the timeline
+//   POST   /:id/import  → { album } — a whole Dump album (photos and videos,
+//                         in album order) into the TRAY, ready to drop in
 //   POST   /:id/title   → { title }
 //   POST   /:id/render  → bake the arrangement (background job on the doc)
 //   GET    /:id/job     → { job }
@@ -169,6 +172,22 @@ function cleanClips(list) {
 const itemSeconds = (c) => (c && c.kind === 'image'
   ? (Number(c.hold) || HOLD_DEFAULT)
   : (Number(c && c.seconds) || 0));
+
+// New arrivals join the TRAY, never the timeline (Sophie, 2026-08-21: "they're
+// supposed to be above the timeline so i can drop them in") — deduped by id
+// against everything already in the project, so re-importing an album (or an
+// album that holds her own uploads) can never double a piece. Pure.
+function mergeIntoTray(tray, clips, items, cap) {
+  const have = new Set((tray || []).concat(clips || []).map((c) => c.id));
+  const fresh = (items || []).filter((i) => !have.has(i.id));
+  const room = Math.max(0, (cap || MAX_CLIPS) - (tray || []).length);
+  return {
+    tray: (tray || []).concat(fresh.slice(0, room)),
+    added: Math.min(fresh.length, room),
+    already: (items || []).length - fresh.length,
+    skipped: Math.max(0, fresh.length - room),
+  };
+}
 
 // A dumped album's files → arrangement items, in album order. Pure — the
 // route feeds it the drop docs. Videos keep their baked poster; a still's
@@ -459,8 +478,14 @@ router.post('/', async (req, res) => {
     const d = db();
     if (!d) throw new Error('Firebase unavailable');
     const ref = d.collection(COL).doc();
+    // Named with HER date and time (Pacific — the server clock is UTC, which
+    // flipped an evening assembly to tomorrow's date), so two assemblies made
+    // the same day can never wear one name. Five identical "Assembly · Aug 21"
+    // rows is how her uploads "disappeared" into the wrong project (2026-08-21).
+    const PT = { timeZone: 'America/Los_Angeles' };
     const title = String(req.body.title || '').trim().slice(0, 120)
-      || 'Assembly · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      || 'Assembly · ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...PT })
+      + ' · ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...PT }).toLowerCase();
     const now = Date.now();
     await ref.set({
       id: ref.id, title, clips: [], tray: [], renders: [], job: null,
@@ -541,9 +566,12 @@ router.post('/:id/clips', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-// THE ONE BUTTON — append a whole Dump album to the timeline, photos and
-// videos alike, in album order, ready to arrange. Nothing is copied and
-// nothing lands on the Chunking shelf; items reference the Dump's own urls.
+// THE ONE BUTTON — a whole Dump album, photos and videos alike, in album
+// order, into the TRAY above the timeline (never straight onto it — she
+// places each piece herself). Deduped by id, so re-importing an album — or
+// importing the album her own Upload button filled — can never double a
+// piece. Nothing is copied and nothing lands on the Chunking shelf; items
+// reference the Dump's own urls.
 router.post('/:id/import', async (req, res) => {
   try {
     const doc = await loadDoc(req.params.id);
@@ -556,12 +584,12 @@ router.post('/:id/import', async (req, res) => {
     snap.forEach((s) => files.push({ id: s.id, ...s.data() }));
     if (!files.length) return res.status(404).json({ error: 'that album is empty or unknown' });
     const items = itemsFromDrops(files, files[0].bundleName || album);
-    const cur = cleanClips(doc.clips || []);
-    const room = MAX_CLIPS - cur.length;
-    const added = items.slice(0, Math.max(0, room));
-    const clean = cleanClips(cur.concat(added));
-    await patchDoc(req.params.id, { clips: clean });
-    res.json({ ok: true, added: added.length, skipped: items.length - added.length, clips: clean.length });
+    const merged = mergeIntoTray(cleanClips(doc.tray || []), cleanClips(doc.clips || []), items);
+    await patchDoc(req.params.id, { tray: cleanClips(merged.tray) });
+    res.json({
+      ok: true, added: merged.added, already: merged.already,
+      skipped: merged.skipped, tray: merged.tray.length,
+    });
   } catch (err) { fail(res, err); }
 });
 
@@ -595,6 +623,6 @@ module.exports = {
   router, COL,
   // pure pieces, for the tests and the page's mirror
   cleanClips, placeAt, movePlace, targetFrom, segmentFilters, trimmed,
-  itemSeconds, itemsFromDrops,
+  itemSeconds, itemsFromDrops, mergeIntoTray,
   MAX_CLIPS, MAX_RENDERS, FPS, MAX_EDGE, HOLD_DEFAULT, HOLD_MIN, HOLD_MAX,
 };
