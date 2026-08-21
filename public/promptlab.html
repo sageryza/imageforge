@@ -141,10 +141,15 @@
   .lbnav svg { width: 18px; height: 18px; }
   #lbprev { left: 8px; }
   #lbnext { right: 8px; }
-  /* What made this picture: her words, then the model and its settings. */
-  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; max-height: 14vh; overflow-y: auto; }
-  #lb .cap .capp { color: #eee; font-size: 13.5px; }
-  #lb .cap .capm { color: #9a938a; font-size: 12px; margin-top: 5px; }
+  /* What made this picture: the model and its settings, LOCKED at the top,
+     then her words under it. The meta line used to sit UNDER the prompt inside
+     one scrolling box, so a long prompt pushed the model and quality out of
+     sight — the one thing she opens a picture to check (Sophie, Aug 2026:
+     "when the prompt gets long i cant see the model or quality"). Only the
+     prompt scrolls now; the meta line never moves. */
+  #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; }
+  #lb .cap .capm { color: #9a938a; font-size: 12px; }
+  #lb .cap .capp { color: #eee; font-size: 13.5px; margin-top: 5px; max-height: 14vh; overflow-y: auto; }
   .lbbtns { display: flex; gap: 22px; margin-top: 14px; }
   .lbbtn { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid #555; background: #1c1c1c; color: #ddd; display: flex; align-items: center; justify-content: center; }
   .lbbtn svg { width: 21px; height: 21px; }
@@ -257,7 +262,7 @@
   <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
   <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
   <img id="lbimg" src="">
-  <div class="cap"><div class="capp" id="lbcapp"></div><div class="capm" id="lbcapm"></div></div>
+  <div class="cap"><div class="capm" id="lbcapm"></div><div class="capp" id="lbcapp"></div></div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
     <button class="lbbtn dislike" id="lbx" aria-label="Reject"></button>
@@ -1210,9 +1215,9 @@
     fetch(src).then(function (res) { return res.blob(); })
       .then(function (b) { lbBlob = { url: src, blob: b }; })
       .catch(function () {});
-    // Her words above, then what drew them — model, quality/scale, seed. In
-    // the tiles view this is the ONLY place the prompt appears, so it says
-    // everything about the picture.
+    // What drew it — model, quality/scale, seed — pinned on top, then her
+    // words scrolling under it. In the tiles view this is the ONLY place the
+    // prompt appears, so it says everything about the picture.
     document.getElementById('lbcapp').textContent = r.prompt || '';
     var meta = runParts(r);
     if (runImages(r).length > 1) meta.push('image ' + (i + 1));
