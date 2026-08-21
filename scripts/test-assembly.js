@@ -271,6 +271,17 @@ async function pageTests() {
       return route.fulfill({ contentType: 'application/json',
         body: JSON.stringify({ ok: true, added: ALBUM_ITEMS.length, skipped: 0, clips: DOC.clips.length }) });
     }
+    if (u.includes('/api/drop/upload-file') && m === 'POST') {
+      const fn = decodeURIComponent((u.match(/filename=([^&]*)/) || [])[1] || '');
+      const video = /\.(mp4|mov)$/i.test(fn);
+      return route.fulfill({ contentType: 'application/json',
+        body: JSON.stringify({ ok: true, session: 's1', duplicate: false, item: {
+          id: 'up-' + fn.replace(/\W/g, ''), url: 'https://storage.googleapis.com/b/drops/u/' + fn,
+          media: video ? 'video' : 'image',
+          posterUrl: video ? 'https://storage.googleapis.com/b/posters/u.webp' : null,
+          photoIndex: 0, name: null,
+        } }) });
+    }
     if (u.includes('/api/assembly/a1/clips') && m === 'POST') {
       saves.push(JSON.parse(route.request().postData() || '{}'));
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
@@ -351,6 +362,44 @@ async function pageTests() {
   await page.locator('#strip .tclip').nth(3).click();
   assert.strictEqual(await page.locator('#handHold:not([hidden])').count(), 0);
   n++; console.log('  ok — a clip in hand shows no hold chips');
+  await page.locator('#handX').click();   // put it down before the upload flow
+
+  // the Upload button: picked files land in the tray above the timeline
+  await page.locator('#upFile').setInputFiles([
+    { name: 'sunrise.png', mimeType: 'image/png', buffer: Buffer.from('fakepng') },
+    { name: 'flight.mp4', mimeType: 'video/mp4', buffer: Buffer.from('fakemp4') },
+  ]);
+  await page.waitForSelector('#tray .tclip');
+  await page.waitForTimeout(900);
+  assert.strictEqual(await page.locator('#tray .tclip').count(), 2);
+  const trayState = saves[saves.length - 1];
+  assert.strictEqual(trayState.tray.length, 2);
+  assert.strictEqual(trayState.tray[0].kind, 'image');
+  assert.strictEqual(trayState.tray[0].hold, 4);
+  assert.strictEqual(trayState.tray[1].kind, 'video');
+  n++; console.log('  ok — Upload stages picked files in the tray, saved with the doc');
+
+  // arming a tray piece lights the gaps; a tap drops it into the timeline
+  const beforeStrip = await page.locator('#strip .tclip').count();
+  await page.locator('#tray .tclip').nth(0).click();
+  assert.ok(await page.locator('#tl.placing').count(), 'tray arm lights the indicators');
+  await page.locator('#strip .gap').nth(0).click();
+  await page.waitForTimeout(800);
+  assert.strictEqual(await page.locator('#strip .tclip').count(), beforeStrip + 1);
+  assert.strictEqual(await page.locator('#tray .tclip').count(), 1);
+  const placed = saves[saves.length - 1];
+  assert.strictEqual(placed.clips[0].id, 'up-sunrisepng');
+  assert.strictEqual(placed.tray.length, 1);
+  n++; console.log('  ok — a tray piece drops into the timeline and leaves the tray');
+
+  // Remove discards a tray piece without touching the timeline
+  await page.locator('#tray .tclip').nth(0).click();
+  assert.strictEqual(await page.locator('#handRemove').textContent(), 'Remove');
+  await page.locator('#handRemove').click();
+  await page.waitForTimeout(800);
+  assert.strictEqual(await page.locator('#tray .tclip').count(), 0);
+  assert.strictEqual(await page.locator('#strip .tclip').count(), beforeStrip + 1);
+  n++; console.log('  ok — Remove discards from the tray, the timeline untouched');
 
   await browser.close();
 }

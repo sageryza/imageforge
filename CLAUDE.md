@@ -2312,6 +2312,17 @@ before working on that module. Nothing was deleted — the moved text is verbati
   and nothing is filed onto the Chunking shelf (the harvest skips `drops/` on
   purpose; here she picked them herself). A still's timeline thumb is a
   DERIVED copy via `/api/story/thumb` — the original is never touched.
+  **AND UPLOAD IS ONE BUTTON, IN THE PAGE (Aug 2026 v3, Sophie: "couldn't it
+  just be one. a button in assemblies where u can upload the footage and it
+  appears above the timeline, ready to drop in").** Upload opens the phone's
+  own picker (photos and videos together); each file rides the Dump's
+  `/api/drop/upload-file` (HEIC→JPEG, md5 dedupe, video posters — bytes never
+  stored twice, the batch shares one Dump session/album named after the
+  assembly) and lands in the doc's TRAY, a strip just above the timeline, as
+  it arrives. A tray piece arms like a shelf clip — indicators light, tap a
+  gap, it drops in and leaves the tray; Remove discards it. The tray saves
+  WHOLE alongside the arrangement (`POST /:id/clips {clips, tray}`), so a
+  half-placed batch survives leaving the app; the render reads `clips` only.
   **The render is
   the scratch-pad film's recipe, not a fresh one**: every clip normalized onto
   ONE canvas (the first clip's frame, evened, long edge capped 1280 — 30fps,
