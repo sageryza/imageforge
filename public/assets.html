@@ -497,6 +497,22 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     content.innerHTML='';
     if(!a.length){ content.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No images filed anywhere yet.'})); return; }
     var cells=[], filter=null, q='';
+    // ONE object per chat+url, however it arrives (a browse page, a server
+    // search, a catch-up refresh) — so a ♥ cast anywhere is the same object
+    // everywhere and re-rendering never forks the state.
+    var itemByKey={};
+    function keyOf(x){ return x.chat+'|'+x.url; }
+    function canon(list){
+      return (list||[]).map(function(x){
+        var k=keyOf(x), e=itemByKey[k];
+        if(!e){ itemByKey[k]=x; return x; }
+        // fields the page-scoped vote fetch may have found this time
+        ['vote','note','thread','unread','done','name','thumb'].forEach(function(f){
+          if(e[f]==null && x[f]!=null){ e[f]=x[f]; e._hay=null; }
+        });
+        return e;
+      });
+    }
     // Everything written about an image is searchable — its label, the
     // model/quality caption, both prompt halves, the note thread, AND (here)
     // the chat it came from, so "witch" finds a whole chat's tiles.
@@ -523,7 +539,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
         c.cell.style.display=show?'':'none';
         if(show) shown++;
       });
-      none.style.display=(shown||!cells.length)?'none':'';
+      none.style.display=(shown||(!cells.length&&!q))?'none':'';
     }
     var seg=document.createElement('div'); seg.className='afilter';
     [['new','New'],['like','♥'],['nox','Hide ✕']].forEach(function(m){
@@ -543,16 +559,44 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
     si.autocapitalize='none'; si.autocorrect='off';
     var sx=document.createElement('button'); sx.className='qclear'; sx.innerHTML='&times;';
     sx.style.display='none'; sx.setAttribute('aria-label','Clear search');
+    // SEARCH ASKS THE SERVER (Aug 2026 — Sophie searched "yarn" and got
+    // nothing). The box used to filter only the tiles already loaded, and the
+    // grid pages 150 at a time, so anything she hadn't scrolled to was
+    // unsearchable. Now: the client filter still runs instantly over what's on
+    // screen, and a beat later the server answers over the WHOLE list
+    // (same grammar, matched in meta-assets.js) and the grid becomes those
+    // results. Clearing the box puts the browse walk back exactly as it was.
+    var searchSeq=0, searchTimer=null;
+    function serverSearch(){
+      var seq=++searchSeq, want=q;
+      if(!want){ renderList(browseItems); more.style.display='none'; watchTail(); return; }
+      var got=[];
+      (function pageIn(off){
+        api('/api/gallery/assets/all?q='+encodeURIComponent(want)+'&limit=300&offset='+off)
+          .then(function(r){return r.json()})
+          .then(function(p){
+            if(seq!==searchSeq) return;
+            var list=(p&&p.assets)||[];
+            got=got.concat(canon(list));
+            var tot=(p&&p.total)||got.length;
+            if(list.length && got.length<tot && got.length<3000){ pageIn(off+list.length); return; }
+            renderList(got);
+          })
+          .catch(function(){ /* keep the client-filtered view */ });
+      })(0);
+    }
     function readSearch(){
       q=(si.value||'').trim().toLowerCase();
       sx.style.display=q?'':'none';
       applyFilter();
+      clearTimeout(searchTimer);
+      searchTimer=setTimeout(serverSearch, 350);
     }
     var siLive=liveInput(si, readSearch);
     // `siLive.sync()` inside it: the blur Return performs would otherwise be
     // liveInput's first sight of dictated text and would filter a second time.
     enterSubmits(si, function(){ readSearch(); siLive.sync(); });
-    sx.onclick=function(){ si.value=''; siLive.sync(); q=''; sx.style.display='none'; applyFilter(); si.focus(); };
+    sx.onclick=function(){ si.value=''; siLive.sync(); readSearch(); si.focus(); };
     srow.appendChild(si); srow.appendChild(sx);
     content.appendChild(srow);
     var none=document.createElement('div'); none.className='state';
@@ -624,7 +668,7 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       paint();
       cell.appendChild(hb); cell.appendChild(xb); cell.appendChild(nb);
     }
-    function addTiles(list){ list.forEach(function(it){
+    function addTiles(list, anchor){ list.forEach(function(it){
       var cell=document.createElement('div'); cell.className='acell';
       var b=document.createElement('button');
       var cap=it.description||'';
@@ -645,15 +689,22 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       cell.appendChild(b); voteBtns(cell,it);
       if(io) io.observe(img);
       cells.push({cell:cell, it:it});
-      grid.appendChild(cell);
+      if(anchor) grid.insertBefore(cell, anchor); else grid.appendChild(cell);
     }); }
-    addTiles(a);
+    // Rebuild the grid from one list — search mode in, search mode out.
+    function renderList(items){
+      grid.innerHTML=''; cells=[];
+      addTiles(items);
+      applyFilter();
+    }
+    var browseItems=canon(a);
+    addTiles(browseItems);
     content.appendChild(grid);
     var loaded=a.length, total=(d&&d.total)||a.length, busy=false;
     var more=document.createElement('div'); more.className='state more';
     more.style.display='none'; content.appendChild(more);
     function nextPage(){
-      if(busy || loaded>=total) return;
+      if(busy || q || loaded>=total) return;
       busy=true; more.textContent='Loading more…'; more.style.display='';
       api('/api/gallery/assets/all?limit='+PAGE+'&offset='+loaded)
         .then(function(r){return r.json()})
@@ -661,8 +712,12 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
           var got=(p&&p.assets)||[];
           if(p&&p.total) total=p.total;
           loaded+=got.length;
-          addTiles(got);
-          applyFilter();
+          // dedupe: new filings shift the offset walk, and a server search may
+          // have pulled a row in already — never two cells for one picture
+          var have={}; browseItems.forEach(function(x){ have[keyOf(x)]=1; });
+          var fresh=canon(got).filter(function(x){ return !have[keyOf(x)]; });
+          browseItems=browseItems.concat(fresh);
+          if(!q){ addTiles(fresh); applyFilter(); }
           busy=false;
           more.style.display='none';
           if(!got.length) loaded=total;
@@ -682,6 +737,29 @@ api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
       if(last) tailIO.observe(last);
     }
     watchTail();
+    // COMING BACK pulls anything filed since (Aug 2026 — the list is a 60s
+    // server cache and the page never refetched, so an open tab went stale
+    // until she reloaded it by hand). Quiet: newest-first means fresh rows
+    // belong at the TOP; nothing repaints unless something actually arrived,
+    // and a live search is left alone.
+    var lastLoadAt=Date.now();
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden || q || Date.now()-lastLoadAt<60000) return;
+      lastLoadAt=Date.now();
+      api('/api/gallery/assets/all?limit='+PAGE+'&offset=0')
+        .then(function(r){return r.json()})
+        .then(function(p){
+          if(q) return;
+          var have={}; browseItems.forEach(function(x){ have[keyOf(x)]=1; });
+          var fresh=canon((p&&p.assets)||[]).filter(function(x){ return !have[keyOf(x)]; });
+          if(!fresh.length) return;
+          if(p&&p.total) total=p.total;
+          loaded+=fresh.length;               // the walk's offset shifted by this many
+          browseItems=fresh.concat(browseItems);
+          addTiles(fresh, grid.firstElementChild);
+          applyFilter();
+        }).catch(function(){});
+    });
   })
   .catch(function(){ content.innerHTML='<div class="state">Couldn\u2019t load images.</div>'; });
 })();

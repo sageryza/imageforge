@@ -54,13 +54,30 @@ const ASSETS = [
     description: 'Supercalifragilisticexpialidociousunbreakablelabelwordthatneverends',
     created: iso(T0 - 5000) },
 ];
+// A tile the browse walk never sends (deep in the list, past the loaded
+// pages) — searching must find it anyway, because search runs server-side
+// over the FULL list. This is the "searched yarn, nothing" bug, pinned.
+const DEEP = { chat: 'knitting', name: 'Knitting', url: 'http://127.0.0.1:PORT/i/deep.png',
+  description: 'a ball of yarn on the table', created: iso(T0 - 99000) };
 
 const votes = [];   // every vote POST the page sends, captured
+const searches = [];  // every q= the page asked the server
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/gallery/assets/all') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ assets: ASSETS, total: ASSETS.length, offset: 0, limit: 150 }));
+    const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+    if (q) {
+      // server-side search sees the WHOLE list, DEEP included
+      searches.push(q);
+      const all = ASSETS.concat([DEEP]);
+      const hit = all.filter((a) => [a.description, a.prompt, a.chat, a.name]
+        .filter(Boolean).join(' ').toLowerCase().indexOf(q) >= 0);
+      return res.end(JSON.stringify({ assets: hit, total: hit.length, offset: 0, limit: 300 }));
+    }
+    // browse never reaches DEEP — total says so, offset walks return nothing new
+    const off = parseInt(url.searchParams.get('offset'), 10) || 0;
+    return res.end(JSON.stringify({ assets: off ? [] : ASSETS, total: ASSETS.length, offset: off, limit: 150 }));
   }
   if (url.pathname === '/api/gallery/assets/vote' && req.method === 'POST') {
     let body = '';
@@ -71,6 +88,12 @@ const server = http.createServer((req, res) => {
       res.end('{"ok":true}');
     });
     return;
+  }
+  if (url.pathname === '/playground-port.js') {
+    // the real routing script — its ForgePlaygroundPort is what builds the
+    // lightbox's Playground button; without it the icon silently vanishes
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end(fs.readFileSync(path.join(PUB, 'playground-port.js'), 'utf8'));
   }
   if (url.pathname.startsWith('/i/') || url.pathname.startsWith('/api/story/thumb')) {
     res.writeHead(200, { 'Content-Type': 'image/png' });
@@ -149,6 +172,16 @@ const server = http.createServer((req, res) => {
       const es = [...document.querySelectorAll('.assetgrid .acell')];
       return es.filter((e) => e.style.display !== 'none').length === 1;
     });
+    // 5 — SEARCH REACHES PAST THE LOADED PAGES (the "yarn" bug): a tile the
+    // browse walk never sent is found, because the page asks the SERVER
+    await page.fill('.asearch input', 'yarn');
+    await page.waitForFunction(() => {
+      const es = [...document.querySelectorAll('.assetgrid .acell')];
+      const on = es.filter((e) => e.style.display !== 'none');
+      return on.length === 1 && /yarn/.test(on[0].textContent);
+    });
+    if (!searches.length) fail('search never asked the server (q= missing)');
+    // clearing the box puts the browse list back
     await page.fill('.asearch input', '');
     await page.waitForFunction(() => {
       const es = [...document.querySelectorAll('.assetgrid .acell')];
@@ -248,6 +281,14 @@ const server = http.createServer((req, res) => {
     // only the pill's own play button starts.
     const pill = await page.$('.float');
     if (!pill) fail('injected pill missing from the test serve');
+    // the pill only shows while the page can scroll (the conditional-pill
+    // contract) — this short fixture page can't, so give it something to
+    // scroll before asserting on the pill's tap rules
+    await page.evaluate(() => { document.body.style.minHeight = '3000px'; if (window.__pillSync) window.__pillSync(); });
+    await page.waitForFunction(() => {
+      const p = document.querySelector('.float');
+      return p && getComputedStyle(p).display !== 'none';
+    });
     await page.click('.app-header');   // non-interactive page chrome
     let playing = await page.$eval('#vmid', (e) => e.classList.contains('on'));
     if (playing) fail('a content tap STARTED the autoscroll');

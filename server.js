@@ -2348,6 +2348,9 @@ const metaAssets = require('./meta-assets');
 // (the page is a review surface, not a live feed).
 let metaAssetsCache = null;
 let metaAssetsCacheAt = 0;
+// Note threads for SEARCH only (chat|url → texts) — the box matches what she
+// wrote on a picture, and only the server holds the full list to match over.
+let metaAssetsNotes = new Map();
 const META_ASSETS_TTL = 60 * 1000;
 app.get('/api/gallery/assets/all', async (req, res) => {
   if (STUDIO_TOKEN && req.get('x-studio-token') !== STUDIO_TOKEN) {
@@ -2389,10 +2392,41 @@ app.get('/api/gallery/assets/all', async (req, res) => {
         }
       } catch (e) { /* uid discovery unavailable */ }
       metaAssetsCache = metaAssets.buildMetaAssets(snap.docs.map((d) => d.data()), creations);
+      // Note threads ride the same rebuild so search matches what she (or a
+      // chat) wrote on a picture — best-effort, like the creations read.
+      try {
+        const vsnap = await admin.firestore().collection('forge-asset-votes')
+          .select('chat', 'url', 'note', 'thread').get();
+        const nm = new Map();
+        vsnap.docs.forEach((v) => {
+          const d = v.data() || {};
+          if (!d.chat || !d.url) return;
+          const texts = assetThread(d).map((m) => m.text);
+          if (texts.length) nm.set(metaAssets.noteKey(d.chat, d.url), texts);
+        });
+        metaAssetsNotes = nm;
+      } catch (e) { /* notes stay searchable from the last build */ }
       metaAssetsCacheAt = Date.now();
     }
-    const total = metaAssetsCache.length;
-    const assets = metaAssetsCache.slice(offset, offset + limit).map((a) => {
+    // SEARCH runs here, over the FULL list — the page's box only ever saw the
+    // tiles already loaded, so anything past the pages she'd scrolled was
+    // unfindable (Aug 2026: she searched "yarn" and got nothing). Same
+    // grammar, same word-start anchoring as the box (meta-assets.js).
+    const q = String(req.query.q || '').trim();
+    let rows = metaAssetsCache;
+    if (q) {
+      let names = {};
+      try {
+        const reg = await require('./chatfeed').registry();
+        Object.keys(reg.chats || {}).forEach((k) => {
+          if (reg.chats[k] && reg.chats[k].displayName) names[k] = reg.chats[k].displayName;
+        });
+      } catch (e) { /* display names are best-effort */ }
+      rows = metaAssets.searchMetaAssets(metaAssetsCache, q,
+        { names, notes: metaAssetsNotes });
+    }
+    const total = rows.length;
+    const assets = rows.slice(offset, offset + limit).map((a) => {
       const o = { chat: a.chat, url: a.url, prompt: a.prompt,
         created: a.ms ? new Date(a.ms).toISOString() : '' };
       if (a.alts.length) o.alts = a.alts;

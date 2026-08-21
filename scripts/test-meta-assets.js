@@ -12,7 +12,7 @@
 //   node scripts/test-meta-assets.js
 'use strict';
 const assert = require('assert');
-const { buildMetaAssets } = require('../meta-assets');
+const { buildMetaAssets, searchMetaAssets, noteKey } = require('../meta-assets');
 
 const iso = (n) => new Date(1700000000000 + n * 1000).toISOString();
 
@@ -78,3 +78,35 @@ const again = buildMetaAssets(batch.slice().reverse()).map((r) => r.chat + '|' +
 assert.deepStrictEqual(once, again, 'equal timestamps order deterministically');
 
 console.log('test-meta-assets: all good —', rows.length, 'rows from 7 docs, order + union + twin rules hold');
+
+// 7: SEARCH runs over the full built list, server-side (Aug 2026 — she
+// searched "yarn" and the page, filtering only loaded tiles, found nothing).
+// Same grammar and word-start anchoring as the page's own box.
+const pool = buildMetaAssets([
+  { chat: 'knitting', url: 'https://x/y1.png', created: iso(1), description: 'a ball of yarn on the table' },
+  { chat: 'evan-film', url: 'https://x/y2.png', created: iso(2), description: 'boundaries of the frame' },
+  { chat: 'witch-school', url: 'https://x/y3.png', created: iso(3), prompt: 'gpt-image-2 · medium' },
+  { chat: 'dating-book', url: 'https://x/y4.png', created: iso(4), promptContent: 'a woman feeding crows' },
+]);
+assert.strictEqual(searchMetaAssets(pool, 'yarn').length, 1, 'finds by label');
+assert.strictEqual(searchMetaAssets(pool, 'aries').length, 0, 'word-start anchored — aries never finds boundaries');
+assert.strictEqual(searchMetaAssets(pool, 'boundaries').length, 1, 'the whole word still hits');
+assert.strictEqual(searchMetaAssets(pool, 'gpt-image-2').length, 1, 'caption matches, hyphens intact');
+assert.strictEqual(searchMetaAssets(pool, 'crows feeding').length, 1, 'bare words AND, any order');
+assert.strictEqual(searchMetaAssets(pool, 'yarn OR crows').length, 2, 'OR takes either');
+assert.strictEqual(searchMetaAssets(pool, 'a -yarn').length, 1, 'negation excludes (only the crows row keeps a bare "a")');
+assert.strictEqual(searchMetaAssets(pool, 'crows -woman').length, 0, 'negation kills its own row');
+assert.strictEqual(searchMetaAssets(pool, '"yarn on the table"').length, 1, 'phrase adjacent');
+assert.strictEqual(searchMetaAssets(pool, '"table yarn"').length, 0, 'phrase respects order');
+assert.strictEqual(searchMetaAssets(pool, '').length, 4, 'empty query = everything');
+// the chat slug, its display name, and the note thread are all haystack
+assert.strictEqual(searchMetaAssets(pool, 'witch').length, 1, 'chat slug matches');
+assert.strictEqual(searchMetaAssets(pool, 'Knitting Corner', { names: { knitting: 'Knitting Corner' } }).length, 1,
+  'display name matches');
+const notes = new Map([[noteKey('dating-book', 'https://x/y4.png'), ['redo the sky please']]]);
+assert.strictEqual(searchMetaAssets(pool, 'redo the sky', { notes }).length, 1, 'note thread matches');
+// my-creations rows match their bucket name
+const appPool = buildMetaAssets([], [{ url: 'https://x/app.png', prompt: 'a fox', ms: 1 }]);
+assert.strictEqual(searchMetaAssets(appPool, 'creations').length, 1, 'app rows match My Creations');
+
+console.log('meta-assets search: all assertions passed');
