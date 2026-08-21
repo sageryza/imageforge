@@ -286,9 +286,22 @@ existing clips." That sentence is the whole interaction, built literally:
   assemblies, then one open. Opening pushes a history state, so the browser
   back, the swipe-back gesture and the native chevron (`window.__navBack`)
   all go shelf-ward before they leave the tool. `?a=<id>` opens one cold.
-- **The shelf above is the Chunking library, read-only** — same tiles, same
-  house search grammar, chips for all/chunks/clips, hidden clips excluded.
-  Nothing here ever writes a library doc.
+- **An open project's surface is its own pieces — the POOL — not the library
+  (Aug 2026 v4, Sophie: "i still don't see the things but there's all these
+  other chunks or clips that compete for my attention … think carefully if
+  moving them out of the way is the best fit, versus detaching or creating a
+  separate surface, with the clips to go in").** The first cut put the whole
+  Chunking shelf on the main of the screen with a cramped tray strip in the
+  dock, and she could not find her own nine uploads among a hundred library
+  tiles. Now the main grid IS the pool (`doc.tray` — the field name is
+  historical), labeled READY TO DROP IN, big tiles four to a row; the
+  **Chunking library detached to its own door** — the third button, **From
+  the shelf**, a full-screen picker sheet carrying the house search grammar
+  and the all/chunks/clips chips. Tapping a clip there closes the sheet with
+  the clip IN HAND (her original arm-and-place interaction, one door
+  deeper); the library loads LAZILY on the sheet's first open, so a project
+  never pays for the whole shelf up front. Still read-only — nothing in
+  Assembly ever writes a library doc.
 - **An item is a clip OR a still, and the Dump is the one-button door (Aug
   2026 v2)** — her flow: Playground images, some animated with Midjourney,
   dumped from her phone as one album. **Add from the Dump** (inside an open
