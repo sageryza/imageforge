@@ -72,6 +72,15 @@
   .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
+  /* The heart beside the view switch is a FILTER, not a third view: it hides
+     everything she hasn't hearted, in whichever view she is already in. Lit =
+     hearts only, and it is sticky like the view, so a reload keeps it. */
+  .likefilt { margin-left: 8px; display: flex; align-items: center; justify-content: center; width: 38px;
+    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
+  .likefilt svg { width: 16px; height: 16px; }
+  .likefilt.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
+  #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: uniform squares four to a row, the My Creations look — small on
      purpose, so the wall stays scannable. Tapping one opens the lightbox,
      which is where the prompt, model and quality live. */
@@ -116,9 +125,22 @@
   .askrow button.yes { background: #2b2622; color: #faf7f2; border-color: #2b2622; font-weight: 600; }
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
-  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
+  /* The side padding is the arrows' lane — the picture is never under one. */
+  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px 52px; }
   #lb.on { display: flex; }
   #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
+  /* Step to the next/previous picture in the feed, in the order the view
+     behind the lightbox is showing them (the heart filter included). TALL AND
+     NARROW on purpose (Sophie's ask) so the whole side of the screen is a tap
+     target without any of it sitting over the picture. Hidden when there is
+     nothing that way — the ends of the feed are the ends. */
+  .lbnav { position: fixed; top: 50%; transform: translateY(-50%); width: 34px; height: 58vh; z-index: 55;
+    border: 1px solid #333; border-radius: 6px; background: rgba(28,28,28,.72); color: #ddd;
+    display: flex; align-items: center; justify-content: center; padding: 0; }
+  .lbnav[hidden] { display: none; }
+  .lbnav svg { width: 18px; height: 18px; }
+  #lbprev { left: 8px; }
+  #lbnext { right: 8px; }
   /* What made this picture: her words, then the model and its settings. */
   #lb .cap { margin-top: 10px; text-align: center; max-width: 560px; max-height: 14vh; overflow-y: auto; }
   #lb .cap .capp { color: #eee; font-size: 13.5px; }
@@ -211,6 +233,7 @@
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button>
   </div>
+  <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
 </div>
 <div id="pendings"></div>
 <div id="runs"></div>
@@ -231,6 +254,8 @@
 </div>
 
 <div id="lb">
+  <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
+  <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
   <img id="lbimg" src="">
   <div class="cap"><div class="capp" id="lbcapp"></div><div class="capm" id="lbcapm"></div></div>
   <div class="lbbtns">
@@ -264,6 +289,8 @@
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
     sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+    chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+    chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
     // THE generate glyph, app-wide: the hand-fitted star the witch app draws
     // from its own STAR const, an exact bezier match of SF Symbols `sparkles`.
@@ -308,6 +335,21 @@
   function setView(v) { localStorage.setItem('promptlab_view', v); applyView(); }
   document.getElementById('v-list').addEventListener('click', function () { setView('list'); });
   document.getElementById('v-tiles').addEventListener('click', function () { setView('tiles'); });
+
+  // HEARTS ONLY (Aug 2026, Sophie) — a filter that rides on top of whichever
+  // view she is in, not a view of its own. It hides every picture she hasn't
+  // hearted; a run left with nothing showing drops out of the list entirely.
+  // Sticky, same as the view, so a reload keeps it.
+  document.getElementById('v-liked').innerHTML = ICONS.heart;
+  function likedOnly() { return localStorage.getItem('promptlab_liked') === '1'; }
+  function applyLiked(repaint) {
+    document.getElementById('v-liked').classList.toggle('on', likedOnly());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-liked').addEventListener('click', function () {
+    localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
+    applyLiked(true);
+  });
 
   // The copy button beside a run's words: puts that prompt back into the box.
   function copyPromptIn(text) {
@@ -988,10 +1030,12 @@
         return sameRunKey([r.engine, r.model, r.gptStyle, (r.prompt || '').trim(), r.status,
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
+      var only = likedOnly();
       document.getElementById('runs').innerHTML = groups.map(function (g) {
         var head = g.items[0];
         var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
         if (head.status === 'failed') {
+          if (only) return '';   // a failed run has no picture to have hearted
           return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
             '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div></div>';
         }
@@ -1003,16 +1047,22 @@
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
+            if (only && v !== 'like') return;
             var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
             cells += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
           });
         });
+        if (only && !cells) return '';   // nothing hearted in this run
         return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
           runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="grid">' + cells + '</div></div>';
-      }).join('');
+      }).join('') || (only ? '<div class="emptynote">Nothing hearted yet</div>' : '');
       applyClamps(document.getElementById('runs'));
       if (curView() === 'tiles') renderTiles();
+      // The wall she is stepping through just changed under the lightbox (a
+      // ♥ with the filter lit removes the picture she is on), so the arrows
+      // re-derive rather than pointing at a row that is no longer there.
+      if (lbCur) syncLbNav();
       renderMoreBtn();
   }
 
@@ -1037,7 +1087,10 @@
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
     var html = '';
-    pendingList().slice().reverse().forEach(function (p) {
+    var only = likedOnly();
+    // A picture on its way has not been hearted, so the waiting squares are a
+    // list-of-everything thing: with the heart lit the wall is hearts only.
+    if (!only) pendingList().slice().reverse().forEach(function (p) {
       var slots = p.count || OUTPUTS;
       for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
     });
@@ -1049,11 +1102,12 @@
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
+        if (only && v !== 'like') return;
         var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
         html += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
       });
     });
-    document.getElementById('tiles').innerHTML = html;
+    document.getElementById('tiles').innerHTML = html || (only ? '<div class="emptynote">Nothing hearted yet</div>' : '');
   }
 
   // One delegated handler for every tile.
@@ -1106,6 +1160,47 @@
     // it keeps running under the lightbox and the page has moved on by the
     // time the image is closed.
     if (window.__scrollStop) window.__scrollStop();
+    showLB(id, i);
+    document.getElementById('lb').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // The order the arrows walk is READ OFF THE VIEW BEHIND THE LIGHTBOX — the
+  // pictures actually on screen, in document order — so tiles, list and the
+  // heart filter all step through exactly what she is looking at, with no
+  // second copy of the ordering rules to drift.
+  function lbSeq() {
+    var box = curView() === 'tiles' ? document.getElementById('tiles') : document.getElementById('runs');
+    return Array.prototype.map.call(box.querySelectorAll('img[data-run]'), function (im) {
+      return { id: im.getAttribute('data-run'), i: Number(im.getAttribute('data-i')) };
+    });
+  }
+  function lbAt() {
+    if (!lbCur) return -1;
+    var seq = lbSeq();
+    for (var k = 0; k < seq.length; k++) if (seq[k].id === lbCur.id && seq[k].i === lbCur.i) return k;
+    return -1;
+  }
+  function lbStep(d) {
+    var seq = lbSeq(), at = lbAt();
+    if (at < 0) return;
+    var next = seq[at + d];
+    if (next) showLB(next.id, next.i);
+  }
+  function syncLbNav() {
+    var seq = lbSeq(), at = lbAt();
+    document.getElementById('lbprev').hidden = at <= 0;
+    document.getElementById('lbnext').hidden = at < 0 || at >= seq.length - 1;
+  }
+  document.getElementById('lbprev').innerHTML = ICONS.chevronLeft;
+  document.getElementById('lbnext').innerHTML = ICONS.chevronRight;
+  document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
+  document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
+
+  // Paint one picture into the already-open (or opening) lightbox.
+  function showLB(id, i) {
+    var r = runsById[id];
+    if (!r) return;
     lbCur = { id: id, i: i };
     var src = runImages(r)[i];
     document.getElementById('lbimg').src = src;
@@ -1123,8 +1218,7 @@
     if (runImages(r).length > 1) meta.push('image ' + (i + 1));
     document.getElementById('lbcapm').textContent = meta.join(' · ');
     syncLbVotes();
-    document.getElementById('lb').classList.add('on');
-    document.body.style.overflow = 'hidden';
+    syncLbNav();
   }
   function closeLB() {
     lbCur = null;
@@ -1132,7 +1226,9 @@
     document.body.style.overflow = '';
   }
   document.getElementById('lb').addEventListener('click', function (e) {
-    if (e.target.closest('.lbbtn')) return;   // buttons handle themselves
+    // Buttons handle themselves — and the side arrows are STEPPING, not
+    // leaving: closing on them would shut the lightbox on every tap.
+    if (e.target.closest('.lbbtn') || e.target.closest('.lbnav')) return;
     closeLB();
   });
 
@@ -1214,7 +1310,7 @@
   };
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>
