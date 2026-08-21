@@ -700,9 +700,27 @@ touches the shelf).
   - `GET /history?kind=tts|sts` filters **in memory, not in the query** — a
     `where()` would silently hide every render made before `kind` existed.
     Absent means `tts`, which is what they all were.
+- **EVERY TAKE IS KEPT, AND EACH ONE HAS A ⤓ (Aug 2026, Sophie: "does it save
+  every audio take somewhere / how can I download them").** It always saved
+  them — a Firestore doc per take plus permanent public Storage objects
+  (`voice-lab/<id>.mp3` out, `voice-lab/sources/<id>.<ext>` in) — but the page
+  gave her nothing but a native `<audio>` player, which on a phone has no way
+  out, and the SOURCE existed nowhere she could reach at all.
+  `GET /file/:id` streams a take as a same-origin **attachment** (`?src=1` for
+  what she recorded), the `cuttingroom.js` `/:id/file` precedent. **The link
+  must point at OUR server, not at Storage** — a cross-origin href ignores the
+  `download` attribute and the phone just plays the file. The source keeps its
+  OWN extension (`sourceExt`); a `.webm` recording renamed `.mp3` is a file her
+  phone opens wrong.
+  **The whole library is still only the newest 30 per tab** (`/history`), and
+  nothing on the page lists a take older than that — worth building a real
+  shelf if she starts keeping them; the audio itself is never deleted.
+  A voice-changer take is also the one kind of render that does NOT file into
+  an Assets tab (only `renderJob`, the TTS half, does).
 - Tests: `node scripts/test-voice-changer.js` (drives the real page headless
   against a stub API — the tabs, the take, the raw-body send, which list a
-  card lands in, and a hit-test of both tabs at 375/390/430).
+  card lands in, both download links and a hit-test of them, and a hit-test of
+  both tabs at 375/390/430).
 
 ## Audio drop (`audio.js`) — recordings off the phone → permanent URLs
 - `audio.js` (`/api/audio`, page at `/audio`) is the generic destination for

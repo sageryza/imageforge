@@ -2389,7 +2389,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (speech-to-speech on `eleven_multilingual_sts_v2`, which keeps the performance
   and swaps only the voice). Her words stay in the box after a render. The page
   carries NO header of its own (the native bar has the title) and no character
-  counts; credits live behind the ⓘ on the tab row.
+  counts; credits live behind the ⓘ on the tab row. **Every take is kept** —
+  the output AND, on the changer, the recording that went in — and each card
+  has a ⤓ that downloads it through our own server (`GET /api/voicelab/file/:id`,
+  `?src=1` for the source); a Storage url alone only plays inline.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **Audio drop** (`audio.js`, `/api/audio`) — the generic destination for audio
   off her phone: dump first, label afterwards, files keyed by byte md5, readable

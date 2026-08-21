@@ -28,6 +28,7 @@
 //   POST   /change       → raw audio body, ?voiceId=&voiceName=&ext=&name=
 //                          → { id }  (the VOICE CHANGER — speech to speech)
 //   GET    /history?kind= → newest 30 renders ('tts' | 'sts' | omitted = both)
+//   GET    /file/:id?src= → that take's audio as a same-origin ATTACHMENT
 //   DELETE /render/:id   → remove a render (doc + audio)
 
 const express = require('express');
@@ -350,6 +351,42 @@ router.get('/history', async (req, res) => {
     let rows = snap.docs.map((d) => d.data());
     if (kind) rows = rows.filter((r) => (r.kind || 'tts') === kind).slice(0, 30);
     res.json({ renders: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A take as a DOWNLOAD. The Storage url alone only plays inline — a phone
+// needs a same-origin `Content-Disposition: attachment` to put the file in
+// Files (the `cuttingroom` /:id/file precedent). `?src=1` is the voice
+// changer's SOURCE — what she recorded, before the conversion — which is kept
+// on purpose and had no way out of the page at all.
+router.get('/file/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    if (!/^vl[a-f0-9]{12}$/.test(id)) return res.status(400).json({ error: 'bad id' });
+    const snap = await admin.firestore().collection(COL).doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: 'not found' });
+    const r = snap.data() || {};
+    const wantSrc = String(req.query.src || '') === '1';
+    if (wantSrc && !r.sourceUrl) return res.status(404).json({ error: 'no source on this take' });
+    if (!wantSrc && r.status !== 'done') return res.status(409).json({ error: 'not finished yet' });
+    // The extension is the SOURCE's own (m4a, webm, wav…) — a recording renamed
+    // .mp3 is a file her phone opens wrong.
+    const ext = wantSrc ? String(r.sourceExt || 'mp3').replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp3' : 'mp3';
+    const objPath = wantSrc ? `${SOURCE_FOLDER}/${id}.${ext}` : `${STORAGE_FOLDER}/${id}.mp3`;
+    const clean = (s) => String(s || '').replace(/[^a-zA-Z0-9 \-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const name = (clean(`${r.voiceName || 'voice'} ${clean(r.text).slice(0, 50)}`) || 'voice take').slice(0, 80)
+      + (wantSrc ? ' (source)' : '');
+    res.set('Content-Type', wantSrc ? mimeFor(ext) : 'audio/mpeg');
+    res.set('Content-Disposition', `attachment; filename="${name}.${ext}"`);
+    admin.storage().bucket().file(objPath).createReadStream()
+      .on('error', (e) => {
+        console.warn('voicelab: download stream —', e.message);
+        if (!res.headersSent) res.status(404).json({ error: 'that audio is gone' });
+        else { try { res.destroy(); } catch { /* closed */ } }
+      })
+      .pipe(res);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
