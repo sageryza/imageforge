@@ -220,6 +220,45 @@ const ok = (m) => console.log('  ok — ' + m);
   if (!lists.srcLabel || lists.audios < 2) fail('a finished change does not play both halves');
   else ok('a finished change plays what went in and what came out');
 
+  // 6b — KEEPING a take. The native player has no way out on a phone and a
+  // cross-origin href ignores `download`, so both halves need a same-origin
+  // attachment link — and the SOURCE (what she recorded) needs one too, since
+  // it exists nowhere else she can reach.
+  const dl = await page.evaluate(() => {
+    const card = document.querySelector('#changes .render[data-id="vlcccccccccccc"]');
+    card.scrollIntoView({ block: 'center' });   // elementFromPoint is viewport-relative
+    const outA = card.querySelector('.rmeta .dl');
+    const srcA = card.querySelector('.rsrc .dl');
+    const at = (a) => {
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!(el && el.closest('.dl') === a);
+    };
+    const ttsA = document.querySelector('#renders .render .dl');
+    window.scrollTo(0, 0);   // hand the page back where the next check expects it
+    return {
+      out: outA && outA.getAttribute('href'), outHit: at(outA), outDl: outA && outA.hasAttribute('download'),
+      src: srcA && srcA.getAttribute('href'), srcHit: at(srcA),
+      tts: ttsA && ttsA.getAttribute('href'),
+      pending: (window.card({ id: 'vlddddddddddd0', kind: 'sts', voiceName: 'Steve Ryza',
+        text: 'still going', status: 'rendering' }),
+      !!document.querySelector('.render[data-id="vlddddddddddd0"] .dl')),
+    };
+  });
+  if (dl.out !== '/api/voicelab/file/vlcccccccccccc') fail('the finished take has no same-origin download: ' + dl.out);
+  else ok('a finished take downloads from our own server');
+  if (!dl.outDl) fail('the download link is missing the download attribute');
+  else ok('the link is marked as a download');
+  if (dl.src !== '/api/voicelab/file/vlcccccccccccc?src=1') fail('what she recorded has no download: ' + dl.src);
+  else ok('what went in downloads too — the source is kept for a reason');
+  if (!dl.tts) fail('a Text render has no download');
+  else ok('a Text render downloads the same way');
+  if (!dl.outHit || !dl.srcHit) fail('a download control is buried under something');
+  else ok('both download controls are really tappable');
+  if (dl.pending) fail('a still-rendering take offers a download of nothing');
+  else ok('nothing to download until it is finished');
+
   // 6 — both tabs really tappable, and the line is a TAB wide
   for (const w of [375, 390, 430]) {
     await page.setViewportSize({ width: w, height: 844 });
