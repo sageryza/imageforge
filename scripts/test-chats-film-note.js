@@ -88,15 +88,22 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     .find((p) => { try { fs.accessSync(p); return true; } catch { return false; } });
   const browser = await chromium.launch(pre ? { executablePath: pre } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  // a mic that always works: records one fake chunk, stops instantly
+  // a mic that always works — and hands its chunk over ASYNC after stop(),
+  // the way every real recorder does (dataavailable/stop fire on a later
+  // task). The first version of this stub fired synchronously, which hid a
+  // real bug: the player read `chunks` right after stop() and got an empty
+  // blob in every real browser, silently dropping every talk-then-Done note.
   await page.addInitScript(() => {
     window.MediaRecorder = class {
       constructor() { this.state = 'recording'; window.__recs = (window.__recs || 0) + 1; }
       start() {}
       stop() {
         this.state = 'inactive'; window.__recStopped = true;
-        if (this.ondataavailable) this.ondataavailable({ data: new Blob([new Uint8Array(64)], { type: 'audio/webm' }) });
-        if (this.onstop) this.onstop();
+        const self = this;
+        setTimeout(() => {
+          if (self.ondataavailable) self.ondataavailable({ data: new Blob([new Uint8Array(64)], { type: 'audio/webm' }) });
+          if (self.onstop) self.onstop();
+        }, 40);
       }
     };
     navigator.mediaDevices = navigator.mediaDevices || {};
@@ -141,7 +148,7 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
     .catch(() => fail('Done did not close the sheet'));
   if (!await page.evaluate(() => document.querySelector('#pinfull video').__played)) fail('the video did not resume on Done');
   await page.waitForFunction(() => true, null, { timeout: 300 }).catch(() => {});
-  await new Promise((r) => setTimeout(r, 400));
+  await new Promise((r) => setTimeout(r, 700));   // the stub's async handoff + two fetches
   if (!voicePosts.length) fail('the voice was never uploaded');
   else if (!voicePosts[0].hold) fail('the voice route was asked to FILE instead of hold');
   if (!notePosts.length) fail('the note was never filed');

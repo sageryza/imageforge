@@ -96,9 +96,16 @@ const page = grid.build()
         'on that tile\\'s own film');
       say(document.body.style.overflow === 'hidden', 'the page behind it is locked');
       say(!q('.cmp-lb') || q('.cmp-lb').hasAttribute('hidden'), 'and the IMAGE lightbox stayed shut');
-      vlb.click();                                // the backdrop closes it
+      // the pinned-player geometry: the video ELEMENT fills the overlay, so a
+      // finger anywhere lands ON the film (that is what raises the Note
+      // button) and never on a close-on-tap backdrop beside a small video
+      var vr = v.getBoundingClientRect(), wr = vlb.getBoundingClientRect();
+      say(Math.abs(vr.width - wr.width) < 2 && Math.abs(vr.height - wr.height) < 2,
+        'the video element fills the lightbox — got ' + Math.round(vr.width) + 'x' + Math.round(vr.height)
+        + ' in ' + Math.round(wr.width) + 'x' + Math.round(wr.height));
+      q('.cmp-vlb-x').click();                    // the way out is the X now
       setTimeout(function () {
-        say(vlb.hasAttribute('hidden'), 'the backdrop closes it');
+        say(vlb.hasAttribute('hidden'), 'the X closes it');
         say(document.body.style.overflow !== 'hidden', 'the page is unlocked again');
         say(window.scrollY === before, 'and she is back exactly where she opened it — ' + window.scrollY);
 
