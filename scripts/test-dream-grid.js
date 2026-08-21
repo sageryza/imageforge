@@ -140,22 +140,37 @@ const page = grid.build()
               say(boys && /commercial-v2/.test(boys.getAttribute('data-film')),
                 'a film the resolver said nothing about kept the url it was built with');
 
-              // 8 — tap-to-note, on a Compare page
+              // 8 — tap-to-note, on a Compare page (v3: a tap anywhere on the
+              // film toggles pause/play — never the sheet — and the Note
+              // button lives on the PAUSED screen)
               song.click();
               setTimeout(function () {
                 var vlb = q('.cmp-vlb'), v = vlb.querySelector('video');
                 say(v.getAttribute('src') === song.getAttribute('data-film'),
                   'and tapping it plays the NEW cut');
-                v.click();                       // the touch that reveals it
+                // a video whose playing state the test controls, firing the
+                // real events filmnote listens to (the lightbox opens PLAYING)
+                (function(){
+                  var paused = false;
+                  Object.defineProperty(v, 'paused', { get: function(){ return paused; }, configurable: true });
+                  v.play = function(){ paused = false; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
+                  v.pause = function(){ paused = true; v.dispatchEvent(new Event('pause')); };
+                })();
+                v.click();                       // the tap that pauses it
                 setTimeout(function () {
                   var nb = vlb.querySelector('.notebtn');
-                  say(!!nb, 'touching the film raises the Note button — the pinned-player mechanism, here');
-                  say(nb && !nb.classList.contains('off'), 'and it is showing');
+                  say(v.paused, 'a tap anywhere on the film pauses it');
+                  say(nb && !nb.classList.contains('off'), 'and the Note button shows on the paused screen');
+                  say(!vlb.querySelector('.nsheet'), 'without raising the sheet');
+                  v.click();                     // a second tap plays it again
+                  say(!v.paused && nb.classList.contains('off'),
+                    'a second tap plays it again and puts the button away');
+                  v.click();                     // paused again, for the note
                   nb.click();
                   setTimeout(function () {
                     var sheet = vlb.querySelector('.nsheet');
                     say(!!sheet, 'tapping Note opens the sheet');
-                    say(v.paused, 'and pauses the film');
+                    say(v.paused, 'and the film stays paused under it');
                     say(sheet && /Note at \\d+:\\d\\d/.test(sheet.textContent), 'stamped with where she is');
                     sheet.querySelector('textarea').value = 'the ending drags';
                     sheet.querySelector('.send').click();
