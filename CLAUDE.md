@@ -2426,7 +2426,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **Cut Marks** (`cutmarks.js`, `/api/cutmarks`, `/cutmarks`, iOS tile) — the
   manual sibling of the Cutting Room: no transcript, no waveform. She plays the
   file, taps the scissors at the spot, the marks split it into pieces she keeps or
-  drops, render bakes one new file. Audio or video. Renders never overwrite.
+  drops, render bakes one new file. Audio or video. Renders never overwrite — an
+  audio one also files into the audio library (batch `cut-marks`), a video one
+  stays on the recording's Cuts list. **Two hairline tabs, PIECES · MARKS** (Aug
+  2026): the player, transport and strip never tab away, and the open pane takes
+  the room left on screen and scrolls inside itself, so the page never scrolls in
+  the room.
   **Full details: `docs/modules/audio-and-film.md`.**
 - **YouTube auto-upload** — finished videos post to her business channel as
   **private drafts** for her to publish by hand; nothing goes public
