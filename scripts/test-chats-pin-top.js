@@ -232,18 +232,27 @@ const RED = /rgb\(179,\s*68,\s*63\)/;
   //     things — don't forget to add the pin").
   const marks = await page.$$eval('.askwrap .orgmarks .markchip', (ns) => ns.map((n) => ({
     cls: n.className,
-    word: (n.querySelector('span') || {}).textContent || '',
+    text: (n.textContent || '').trim(),
+    label: n.getAttribute('aria-label') || '',
     svg: !!n.querySelector('svg'),
+    w: Math.round(n.getBoundingClientRect().width),
+    h: Math.round(n.getBoundingClientRect().height),
     box: getComputedStyle(n).borderTopWidth + '/' + getComputedStyle(n).borderTopLeftRadius,
   })));
   const want = ['mk-star', 'mk-bell', 'mk-bmk', 'mk-pin', 'mk-eye', 'mk-del'];
   if (JSON.stringify(marks.map((m) => want.find((w) => m.cls.includes(w)))) !== JSON.stringify(want)) {
     fail('the marks row is not star · bell · keep · pin · hide · delete — ' + JSON.stringify(marks.map((m) => m.cls)));
   } else ok();
-  // A BOX with a WORD in it, like the tag chips under them — that is the whole
-  // ask. An icon on its own is what she was looking at in the header.
-  if (marks.some((m) => !m.svg || !m.word.trim())) {
-    fail('a mark is missing its glyph or its word — ' + JSON.stringify(marks));
+  // JUST THE GLYPH, IN THE BOX (Aug 2026, Sophie: "the top (pin, star, bell
+  // etc) of tagging chats shud be just the icon not text"). The word moved to
+  // the aria-label, so the mark still says what it is without saying it twice
+  // — and the box stays a real 34px tap target rather than shrinking to the
+  // 17px picture inside it.
+  if (marks.some((m) => !m.svg || m.text || !m.label.trim())) {
+    fail('a mark is not an icon-only box with a label — ' + JSON.stringify(marks));
+  } else ok();
+  if (marks.some((m) => m.w < 30 || m.h < 30 || Math.abs(m.w - m.h) > 1)) {
+    fail('a mark is not a square box big enough to tap — ' + JSON.stringify(marks.map((m) => m.w + 'x' + m.h)));
   } else ok();
   const chipBox = await page.$eval('.askwrap .arctags .catchip',
     (n) => getComputedStyle(n).borderTopWidth + '/' + getComputedStyle(n).borderTopLeftRadius);

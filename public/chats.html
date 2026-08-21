@@ -1077,20 +1077,23 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 /* THE MARKS, AS BOXES (Aug 2026, Sophie: "put the little icons like the bell
    and the star and the pin and the trashcan and the eye hide symbol … in
    little boxes like the … category tag things"). Same box as `.catchip` — 1.5px
-   hairline, 6px corners, caps sans — with the glyph in front of the word, so a
-   mark and a tag read as the same kind of thing in the same sheet.
+   hairline, 6px corners — but holding JUST THE GLYPH (Aug 2026, Sophie: "the
+   top (pin, star, bell etc) of tagging chats shud be just the icon not text").
+   The words came off, not the boxes: a mark and a tag still read as the same
+   kind of thing in the same sheet, and the six of them fit one line instead of
+   wrapping to three. So the box is a SQUARE — 34px, which is the tap target,
+   not the glyph — and the word lives on the aria-label and the title.
    These buttons keep their old class names (`.starbtn`, `.bellbtn`, `.pinbtn`,
    `.eyebtn`, `.trashbtn`, `.bmk.chatbmk`) because that is what carries each
    glyph's own colour rules — so this block has to out-specify the borderless
    header styling they were written for, which `.orgmarks .markchip` does. */
 .orgmarks{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 14px;}
-.orgmarks .markchip{display:inline-flex; align-items:center; gap:5px;
-  font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.08em;
-  text-transform:uppercase; white-space:nowrap;
+.orgmarks .markchip{display:inline-flex; align-items:center; justify-content:center;
+  width:34px; height:34px; flex:none;
   border:1.5px solid var(--line); border-radius:6px; background:transparent;
-  color:var(--ink2); padding:6px 9px; margin:0; cursor:pointer;
+  color:var(--ink2); padding:0; margin:0; cursor:pointer;
   -webkit-tap-highlight-color:transparent;}
-.orgmarks .markchip svg{width:13px; height:13px; display:block; flex:none;}
+.orgmarks .markchip svg{width:17px; height:17px; display:block; flex:none;}
 .orgmarks .markchip.on{border-color:var(--chg); color:var(--chg);
   background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
 /* THE GLYPH ITSELF HAS TO FILL for the two marks drawn as outlines — the same
@@ -7014,7 +7017,13 @@ function mkOrgMarks(name, close){
     function paint(){
       var on=o.get();
       b.classList.toggle('on', on);
-      b.innerHTML=o.svg(on)+'<span>'+o.word+'</span>';
+      // JUST THE GLYPH (Aug 2026, Sophie: "the top (pin, star, bell etc) of
+      // tagging chats shud be just the icon not text"). The word rides the
+      // aria-label and the title instead, so the mark still says what it is to
+      // a screen reader and on a long press — it just no longer says it in
+      // three words of caps beside a picture that already means it.
+      b.innerHTML=o.svg(on);
+      b.title=o.word;
       b.setAttribute('aria-pressed', on?'true':'false');
       b.setAttribute('aria-label', on?o.off:o.on);
     }
@@ -7078,7 +7087,8 @@ function mkOrgMarks(name, close){
     var b=document.createElement('button'); b.type='button';
     var hid=chatHidden(name,last0);
     b.className='markchip eyebtn mk-eye'+(hid?' hid':'');
-    b.innerHTML=(hid? EYE_OFF_SVG : EYE_SVG)+'<span>'+(hid?'Unhide':'Hide')+'</span>';
+    b.innerHTML=(hid? EYE_OFF_SVG : EYE_SVG);
+    b.title=hid?'Unhide':'Hide';
     b.setAttribute('aria-label', hid? 'In the hidden pile — unhide this chat' : 'Hide this chat');
     b.onclick=function(e){
       e.stopPropagation();
@@ -7093,7 +7103,8 @@ function mkOrgMarks(name, close){
   (function(){
     var b=document.createElement('button'); b.type='button';
     b.className='markchip trashbtn delbtn mk-del';
-    b.innerHTML=TRASH_SVG+'<span>Delete</span>';
+    b.innerHTML=TRASH_SVG;
+    b.title='Delete';
     b.setAttribute('aria-label','Delete this chat');
     b.onclick=function(e){
       e.stopPropagation();
