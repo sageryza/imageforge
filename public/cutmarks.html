@@ -100,39 +100,27 @@
   #strip #ph{position:absolute; top:0; bottom:0; width:2px; background:var(--ink); pointer-events:none; z-index:2}
   .striphint{font-size:12px; color:var(--soft); margin-top:6px}
 
-  /* THE TWO HAIRLINE TABS — PIECES (what the marks cut out) · MARKS (the cut
-     points themselves). Sophie's ask (Aug 2026): "I have to scroll down to see
-     the pieces I cut out." The player, the transport and the strip stay ABOVE
-     the row and never tab away — a piece's ▶ preview has to be visible while
-     she reviews pieces, and marking happens from either tab.
+  /* THE TWO HAIRLINE TABS, AT THE TOP OF THE ROOM — CUT (cutting out of the
+     recording: the picture, the transport, the strip) · MARKS & PIECES (every
+     mark and piece she has made, and the finished cuts). Sophie's ask (Aug
+     2026): "tabs at the top and one of them is for cutting out of the video
+     and the other tab is for looking at all the marks and pieces you've made."
+     So the two halves take turns on the WHOLE screen — nothing is stacked
+     under anything, and neither half is ever a scroll away.
      The line MEASURES the lit tab (`tabLine` below) — never a share of the row
      per tab count; that shape drifted on a clean merge once (design-rules).
-     The 56px reserve keeps a tap off the fixed pill's corner when the row
-     scrolls up into its band. */
-  .acctabs{display:flex; border-bottom:1px solid var(--line); margin-top:12px;
+     The 56px reserve keeps the taps out of the fixed pill's corner, which the
+     row sits inside up here. */
+  .acctabs{display:flex; border-bottom:1px solid var(--line); margin:2px 0 4px;
     padding-right:56px; position:relative}
   .acctabs button{flex:1; background:none; border:none; padding:11px 0 10px;
     font-size:12px; letter-spacing:.04em; text-transform:uppercase;
     color:var(--soft); font-weight:400; font-family:inherit}
   .acctabs button.on{color:var(--ink)}
   .acctabs button[disabled]{opacity:.35}
-  .acctabs .n{font-variant-numeric:tabular-nums; opacity:.65; margin-left:5px}
   .acctabs .tline{position:absolute; bottom:-1px; left:0; width:var(--tw,0);
     height:2px; background:var(--ink); transform:translateX(var(--tx,0))}
   .acctabs.tl .tline{transition:transform .18s, width .18s}
-  /* THE PANE TAKES THE ROOM THAT IS LEFT AND SCROLLS INSIDE IT. A tab on its
-     own would only have MOVED the scroll: a video is ~30vh, so six pieces
-     still ran off the bottom. Sized in JS (`sizePane`) against the real
-     geometry — so the player, the transport and the strip never leave the
-     screen, and neither does the top of the list. */
-  #panepieces, #panemarks{overflow-y:auto; overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch}
-  /* the bar's clearance is in the pane's height now, so the body must not
-     also reserve it or the page scrolls 26px for nothing (and the shared
-     pill appears to say so) */
-  body.roomfit{padding-bottom:0}
-  /* on the pieces tab a tall video gives a little height back to the list */
-  body.onpieces #vid{max-height:30vh}
 
   /* pieces */
   /* ONE line a piece (Aug 2026): the times, its length, and whether it is
@@ -250,36 +238,46 @@
   </div>
 
   <div id="markui" hidden>
-    <video id="vid" playsinline preload="metadata" hidden></video>
-    <div id="acard" hidden>
-      <div class="mic"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
-      <div class="tc" id="atc">0:00.0</div>
-    </div>
-
-    <div class="hwrap">
-      <div class="hseg">
-        <button id="hleft" aria-label="Back two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
-        <button id="hmid" aria-label="Play or pause"></button>
-        <button id="hright" aria-label="Forward two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg></button>
-      </div>
-      <span id="hlbl">2s a tap</span>
-    </div>
-    <div class="tiny" id="jobnote"></div>
-
-    <div id="strip"><div id="ph"></div></div>
-    <div class="striphint" id="striphint">Tap the strip to jump. Marks split it into the pieces below.</div>
-    <!-- the walk: where this file came from and went on to (derived, free) -->
-    <div class="tiny" id="lineage" style="margin-top:8px"></div>
-
-    <div class="acctabs" id="roomtabs" hidden>
-      <button id="tabpieces" class="on">Pieces<span class="n" id="npieces"></span></button>
-      <button id="tabmarks">Marks<span class="n" id="nmarks"></span></button>
+    <!-- the two hairline tabs own the whole room: CUT is the cutting, MARKS &
+         PIECES is everything she has made. Neither is under the other. -->
+    <div class="acctabs" id="roomtabs">
+      <button id="tabcut" class="on">Cut</button>
+      <button id="tablists">Marks &amp; pieces</button>
       <span class="tline"></span>
     </div>
 
-    <div id="panepieces" hidden>
+    <div id="panecut">
+      <video id="vid" playsinline preload="metadata" hidden></video>
+      <div id="acard" hidden>
+        <div class="mic"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
+        <div class="tc" id="atc">0:00.0</div>
+      </div>
+
+      <div class="hwrap">
+        <div class="hseg">
+          <button id="hleft" aria-label="Back two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+          <button id="hmid" aria-label="Play or pause"></button>
+          <button id="hright" aria-label="Forward two seconds"><svg viewBox="0 0 24 24" style="width:19px;height:19px"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg></button>
+        </div>
+        <span id="hlbl">2s a tap</span>
+      </div>
+      <div class="tiny" id="jobnote"></div>
+
+      <div id="strip"><div id="ph"></div></div>
+      <div class="striphint" id="striphint">Tap the strip to jump. Marks split it into pieces — they are on the next tab.</div>
+      <!-- the walk: where this file came from and went on to (derived, free) -->
+      <div class="tiny" id="lineage" style="margin-top:8px"></div>
+    </div>
+
+    <div id="panelists" hidden>
       <div id="piecesWrap" hidden>
+        <h2 class="sec">Pieces</h2>
         <div class="card" id="pieces"></div>
+      </div>
+
+      <div id="marksWrap" hidden>
+        <h2 class="sec">Marks</h2>
+        <div class="card" id="marks"></div>
       </div>
 
       <div id="rendersWrap" hidden>
@@ -287,12 +285,8 @@
         <video id="rvid" playsinline preload="none" hidden></video>
         <div class="card" id="renders"></div>
       </div>
-    </div>
 
-    <div id="panemarks" hidden>
-      <div id="marksWrap" hidden>
-        <div class="card" id="marks"></div>
-      </div>
+      <div class="muted" id="listsempty" hidden>Nothing marked yet — tap the scissors on the Cut tab where you want a cut.</div>
     </div>
   </div>
 </div>
@@ -310,7 +304,7 @@
 <div id="helpcard" hidden>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></span><span>step back or forward two seconds a tap; the middle plays and pauses. Tap the strip to jump anywhere.</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span><span>mark a cut exactly where the playhead is — marks split the recording into pieces</span></div>
-  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="6" rx="2"/><path d="M9 6v12"/></svg></span><span>the PIECES tab lists what the marks cut out — the scissors drop a piece and the curled arrow puts it back; ▶ plays just that piece. MARKS is the same cuts as times you can nudge.</span></div>
+  <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><rect width="18" height="12" x="3" y="6" rx="2"/><path d="M9 6v12"/></svg></span><span>the MARKS &amp; PIECES tab holds everything you have made — the scissors drop a piece and the curled arrow puts it back, ▶ plays just that piece, and the marks are the same cuts as times you can nudge</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></span><span>−.1 and +.1 nudge a mark by a tenth of a second; tapping its time jumps the playhead there</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span><span>undo the last change — tap again to step further back (marks and drops; renders never overwrite anything)</span></div>
   <div class="hrow"><span class="hic"><svg viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m6 9 6 6 6-6"/><path d="M19 21H5"/></svg></span><span>render a fresh file with the dropped pieces gone — the original is never touched. Audio cuts land in your audio library too, and the scissors on a finished cut send it on to the Cutting Room, where pauses and filler words come out on its transcript.</span></div>
@@ -418,7 +412,6 @@ async function showHome() {
   clearInterval(docPoll); clearInterval(jobPoll);
   doc = null; hist = [];
   localStorage.removeItem('cutmarks_open');
-  document.body.classList.remove('roomfit', 'onpieces');
   $('room').hidden = true; $('bbar').hidden = true; $('back').hidden = true;
   $('hicons').hidden = true;
   $('home').hidden = false;
@@ -530,9 +523,7 @@ function buildRoom() {
     media.src = doc.source.url;
     if (isVid && doc.posterUrl) media.poster = doc.posterUrl;
   }
-  curTab = TAB_PIECES;              // every recording opens on its pieces
-  // a video's box is only its real height once the metadata lands
-  media.onloadedmetadata = () => { sizePane(); tabLine(); };
+  setTab(TAB_CUT);                  // every recording opens on the cutting
   media.onended = () => paintTransport();
   media.onpause = () => paintTransport();
   media.onplay = () => { startRaf(); paintTransport(); };
@@ -568,7 +559,6 @@ async function paintLineage() {
     if (up.length) bits.push('came from ' + up.map(lineageLink).join(' ← '));
     if (down.length) bits.push('went on to ' + down.map(lineageLink).join(' · '));
     el.innerHTML = bits.join(' &nbsp;·&nbsp; ');
-    sizePane();                    // it landed above the pane, so re-measure
   } catch (_) { /* stays blank */ }
 }
 
@@ -612,19 +602,21 @@ $('hmid').onclick = togglePlay;
 document.addEventListener('visibilitychange', () => { if (document.hidden) { stopMedia(); stopRenderPlayback(); } });
 window.__pauseAudio = () => { stopMedia(); stopRenderPlayback(); };
 
-// ── the two hairline tabs: PIECES · MARKS ───────────────────────────
-// Her ask (Aug 2026): the pieces were a scroll away under the player. The
-// row appears the moment there is anything to list and opens on PIECES —
-// that is the tab marking feeds and the one dropping happens on.
+// ── the two hairline tabs: CUT · MARKS & PIECES ─────────────────────
+// Her ask (Aug 2026): "tabs at the top and one of them is for cutting out of
+// the video and the other tab is for looking at all the marks and pieces
+// you've made." So the room is halved — the picture, the transport and the
+// strip on CUT; the pieces, the marks and the finished cuts on the other —
+// and it opens on CUT, because that is where the work starts.
 // The sliding line MEASURES the lit tab (see the CSS note): no tab count
 // lives anywhere. The first measurement lands instantly and the slide is
 // switched on a frame later, so the room opens with the line already in
 // place and only a tap animates it.
-const TAB_PIECES = 1, TAB_MARKS = 2;
-let curTab = TAB_PIECES;
+const TAB_CUT = 1, TAB_LISTS = 2;
+let curTab = TAB_CUT;
 
 function tabLine() {
-  const row = $('roomtabs'); if (!row || row.hidden) return;
+  const row = $('roomtabs'); if (!row || row.offsetParent === null) return;
   const on = row.querySelector('button.on'); const line = row.querySelector('.tline');
   if (!on || !line) return;
   const r = row.getBoundingClientRect(); const t = on.getBoundingClientRect();
@@ -638,34 +630,22 @@ function tabLine() {
 // still reports its old width (measured 2026-08-13, the Chats rows).
 window.addEventListener('resize', () => {
   const row = $('roomtabs'); if (row) { row.classList.remove('tl'); row.__tl = 0; }
-  requestAnimationFrame(() => { tabLine(); sizePane(); });
+  requestAnimationFrame(tabLine);
 }, { passive: true });
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { tabLine(); sizePane(); });
-
-// The open pane ends where the bottom bar begins. Measured off the real
-// geometry every time anything above it can have changed — a video's height
-// isn't known until its metadata lands, so this runs again then.
-function sizePane() {
-  const pane = curTab === TAB_PIECES ? $('panepieces') : $('panemarks');
-  if (!pane || pane.hidden) return;
-  const bar = $('bbar').hidden ? 0 : $('bbar').getBoundingClientRect().height;
-  // document coordinates: what is left ON SCREEN when the page sits at the top
-  const top = pane.getBoundingClientRect().top + window.scrollY;
-  pane.style.maxHeight = Math.max(170, window.innerHeight - top - bar - 8) + 'px';
-}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(tabLine);
 
 function setTab(n) {
   curTab = n;
-  $('tabpieces').classList.toggle('on', n === TAB_PIECES);
-  $('tabmarks').classList.toggle('on', n === TAB_MARKS);
-  $('panepieces').hidden = n !== TAB_PIECES;
-  $('panemarks').hidden = n !== TAB_MARKS;
-  document.body.classList.toggle('onpieces', n === TAB_PIECES);
+  $('tabcut').classList.toggle('on', n === TAB_CUT);
+  $('tablists').classList.toggle('on', n === TAB_LISTS);
+  $('panecut').hidden = n !== TAB_CUT;
+  $('panelists').hidden = n !== TAB_LISTS;
+  // switching tabs must never leave her halfway down the other one's list
+  window.scrollTo(0, 0);
   tabLine();
-  sizePane();
 }
-$('tabpieces').onclick = () => setTab(TAB_PIECES);
-$('tabmarks').onclick = () => setTab(TAB_MARKS);
+$('tabcut').onclick = () => setTab(TAB_CUT);
+$('tablists').onclick = () => setTab(TAB_LISTS);
 
 // ── marks + pieces (client mirror of the server's keptSegments keys) ─
 const marksOf = () => (doc.marks || []).slice().sort((a, b) => a - b);
@@ -760,20 +740,11 @@ function rebuild() {
     strip.appendChild(d);
   });
 
-  // the tab row: it exists as soon as there is anything to list. With no
-  // marks there are no pieces and no marks — but old renders can still be on
-  // file, so the row stays and MARKS dims rather than the Cuts vanishing.
+  // The tab row is permanent — both halves of the room always exist. With
+  // nothing marked yet the lists tab says so rather than showing a blank
+  // screen she has to guess about.
   const renders0 = doc.renders || [];
-  const anyList = marks.length || renders0.length;
-  $('roomtabs').hidden = !anyList;
-  document.body.classList.toggle('roomfit', !!anyList);
-  // the hint teaches the model once — after the first mark it is 26px of
-  // read-it-already sitting between her and the list (the "?" still says it)
-  $('striphint').hidden = !!marks.length;
-  $('npieces').textContent = marks.length ? ' ' + pieces.length : '';
-  $('nmarks').textContent = marks.length ? ' ' + marks.length : '';
-  $('tabmarks').disabled = !marks.length;
-  setTab(marks.length ? curTab : TAB_PIECES);
+  $('listsempty').hidden = !!(marks.length || renders0.length);
 
   // pieces list (only once there are marks)
   $('piecesWrap').hidden = !marks.length;
@@ -835,6 +806,8 @@ $('pieces').onclick = (e) => {
   const row = e.target.closest('.prow'); if (!row) return;
   const s = Number(row.dataset.s); const eN = Number(row.dataset.e);
   if (e.target.closest('.pplay')) {
+    // "play this piece" means watch it, and the picture lives on the CUT tab
+    setTab(TAB_CUT);
     seek(s); pieceStop = eN;
     media.play().catch((err) => toast(err.message));
     return;
@@ -854,7 +827,7 @@ $('marks').onclick = (e) => {
   const row = e.target.closest('.mrow'); if (!row) return;
   const i = Number(row.dataset.i);
   const marks = marksOf();
-  if (e.target.closest('.t')) { seek(marks[i]); return; }
+  if (e.target.closest('.t')) { setTab(TAB_CUT); seek(marks[i]); return; }
   if (e.target.closest('.nud')) {
     const d = Number(e.target.closest('.nud').dataset.d);
     const t = Math.round(clampT(marks[i] + d * NUDGE) * 100) / 100;
@@ -964,7 +937,7 @@ function watchRender() {
       if (job.status === 'error') toast(job.error || 'render failed', 3500);
       else {
         await refreshDoc(doc.id);
-        curTab = TAB_PIECES;          // the new Cut row lives on this tab
+        setTab(TAB_LISTS);            // the new Cut row lives on that tab
         rebuild();
         toast('Cut rendered');
       }
