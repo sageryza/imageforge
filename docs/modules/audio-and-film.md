@@ -273,6 +273,68 @@ Tests: `node scripts/test-clips.js` — the grammar matching, the sweep skip
 list, the title fallback, the her-edits-win merge, and the gatherers, all
 pure, no network.
 
+## Assembly (`assembly.js`, `/assembly`) — clips in order → one film
+
+Sophie's ask (Aug 2026): "one thing missing from our image film pipeline is
+an easy way to assemble clips — I can put them in order, sort of like the
+scratch pad in Story Room, but for clips. They appear on a timeline at the
+bottom; dropping one in gives you a little place indicator between each clip
+that already exists, and you click one to drop the clip between the two
+existing clips." That sentence is the whole interaction, built literally:
+
+- **Two levels, one page** (the timeline.html pattern): the shelf of
+  assemblies, then one open. Opening pushes a history state, so the browser
+  back, the swipe-back gesture and the native chevron (`window.__navBack`)
+  all go shelf-ward before they leave the tool. `?a=<id>` opens one cold.
+- **The shelf above is the Chunking library, read-only** — same tiles, same
+  house search grammar, chips for all/chunks/clips, hidden clips excluded.
+  Nothing here ever writes a library doc.
+- **The timeline is docked at the bottom** and everything is a tap (the
+  wrist rule): tap a shelf clip to pick it up → a `+` place indicator
+  appears in every gap (both ends included; an empty timeline shows one) →
+  tap the gap and it drops in between. Tap a clip already ON the timeline to
+  pick it up instead — the same indicators MOVE it, and the in-hand bar
+  above the strip carries ▶ (play just this clip), **Take off** (timeline
+  only — the clip stays on the shelf) and ✕ (put it down).
+- **The arrangement saves WHOLE** (`POST /:id/clips`, debounced) — order and
+  membership always change together, so a partial write could never be
+  right. Items are snapshots `{id,url,title,poster,seconds}` whitelisted by
+  `cleanClips`; the id ties back to `forge-clip-library`.
+- **The gap arithmetic lives in assembly.js** (`placeAt`/`movePlace`,
+  mirrored on the page, pinned by the test): gap `g` means "before the clip
+  now at index g", and a move counts gaps against the list SHE is looking at
+  — the two gaps hugging the lifted clip are both "staying put".
+- **Render is free and is the scratch-pad film's recipe** (do not simplify
+  it): per clip — download via the Admin SDK first (`clips.bucketForUrl`),
+  probe, normalize onto ONE canvas (`targetFrom`: the first clip's frame,
+  evened, long edge capped 1280; `segmentFilters`: scale + pad, fps=30,
+  setsar=1, yuv420p) as its own x264 segment; audio as PCM WAV cut/padded
+  (`apad -t`) to the segment's REAL encoded length, `anullsrc` when the clip
+  is silent. Video segments join via the concat demuxer `-c copy`; the WAVs
+  concatenate sample-exact; AAC is encoded ONCE at the mux. Per-piece aac
+  would add priming at every join and walk the sound off the picture — the
+  pad film's measured finding (~24ms per two units).
+- At render time each item **re-resolves its current library doc by id**, so
+  a re-baked chunk renders from its newest file; the snapshot url is the
+  fallback. One source file on disk at a time (512MB box).
+- **Renders never overwrite**: `assembly/<id>/film-<n>.mp4`, kept on the doc
+  newest-first, capped 12. `assembly/` is on clips.js's `SKIP_PREFIXES` so a
+  film made OF clips is never harvested back onto the shelf as a clip.
+- The round ▶ on the bar plays the arrangement **clip by clip in the
+  browser** — a rough preview with a beat at each join; the render is the
+  real, gapless film. The renders list is lines of text with play buttons
+  (never an embedded `<video>`), newest first, above the shelf.
+- Background job on the doc (`job` + `GET /:id/job`), stale takeover at
+  20 min, re-open resumes polling. `POST /` mints an assembly (auto-named by
+  date), `POST /:id/title` renames, `DELETE /:id` removes the doc (Storage
+  renders stay).
+
+Tests: `node scripts/test-assembly.js` — the place arithmetic, the
+whitelist, the canvas and filter chain, the shelf row, all pure; then the
+real page in headless Chromium (gaps appear only while something is in
+hand; a drop lands between the two clips; a pick-up moves; Take off never
+touches the shelf).
+
 ## Songs (phone recording → real song, keeping the real voice)
 - `songs.js` (`/api/songs`, page at `/song`) — Sophie sings a made-up song into
   her phone; out comes a produced track with HER actual voice (built because
