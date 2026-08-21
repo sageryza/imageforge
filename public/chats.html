@@ -1245,6 +1245,21 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
 #toolrow .catrow{display:inline;}
 #toolrow .catchip{margin:0 6px 6px 0; vertical-align:top;}
 #toolrow .iconbtn{display:inline-flex; vertical-align:top; margin:0 8px 6px 0;}
+/* …except the Instagram icon, which floats to the RIGHT end of the row (see
+   its markup). It follows #pillnotch in the flow, so it lands immediately left
+   of the pill's reserved corner rather than under it, and the chips wrap around
+   both. `float` beats the inline-flex rule above, so the display is left alone
+   on purpose — a floated element is already a block box. */
+/* It is the same 34px as the glass beside it, and the row is one line taller
+   for it — MEASURED, not conceded blind. On a 390pt phone the UPDATE row runs
+   glass(34+8) · "Come back to"(117+6) · "In a minute"(97+6) and the pill's
+   corner takes the last 64, which leaves 25px of line. Shrinking the button to
+   26 and then 24 still wrapped the second box (a chip's own 6px right margin
+   counts against the line, so it needs 103 of the 103 available), and nothing
+   ≥20px fits — so the choice was a wrap either way, and a full-size tap target
+   is the better half of it. Row: 40px → 72px on the UPDATE screen only. */
+#toolrow .igbtn{float:right; margin:0 0 6px 8px;}
+#toolrow .igbtn[hidden]{display:none !important;}
 /* The line between the two groups when both are open: her "small red line or
    a label" — a thin line in the accent, then the group's name under it. A
    block in the inline flow, so it also breaks the chips onto a new line. */
@@ -1458,6 +1473,18 @@ body.selecting > .float{display:none !important;}
          and her pull is the big title. -->
     <div id="toolrow" class="toolrow">
       <div id="pillnotch"></div>
+      <!-- THE INSTAGRAM MOCKUPS — an icon at the right of this row, on the
+           UPDATE tab only (Aug 2026, Sophie: "an icon button in the top right
+           within the existing header space where the tags are, of my update
+           tab … that leads to two tabs — two mockups of instagram"). It is a
+           RIGHT FLOAT placed after #pillnotch, so it takes the rightmost place
+           the row actually has: the true corner (x 324-374, y 14-192) belongs
+           to the injected autoscroll pill, which the notch already reserves,
+           and anything put under it would be unreachable. The glyph is
+           Instagram's reel mark, hand-inlined — Lucide drops brand icons for
+           trademark reasons, and this is the same mark the grid mockup draws
+           on every tile. Shown by paintHomeChrome(); hidden everywhere else. -->
+      <button id="iglink" class="iconbtn igbtn" hidden aria-label="Instagram — the two grid mockups"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M2 8h20M8.5 2 12 8M15 2l3.5 6"/><path d="m10.5 12.5 4.5 2.6-4.5 2.6z" fill="currentColor"/></svg></button>
       <button id="selbtn" class="iconbtn" aria-label="Select chats to file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></button>
       <div id="catrow" class="catrow"></div>
     </div>
@@ -2246,6 +2273,10 @@ function paintHomeChrome(){
   // (renderNews is the only thing that ever fills them).
   var doors=document.getElementById('nwdoors');
   if(doors && homeView!=='news'){ doors.hidden=true; doors.innerHTML=''; }
+  // The Instagram mockups ride the same rule: her ask put the icon on the
+  // UPDATE tab, and this row is shared with every other view.
+  var ig=document.getElementById('iglink');
+  if(ig) ig.hidden = homeView!=='news';
   if(other && selMode) exitSelect();
   // The to-do list is not chats: the whole tool row and the search bar (which
   // searches MESSAGES) would both be controls that do nothing to it.
@@ -7706,6 +7737,9 @@ document.getElementById('trashlink').onclick=function(){
 };
 document.getElementById('todolink').onclick=function(){ setHomeView('todo'); };
 document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks'); };
+// The Instagram mockups — a page, not a view of this list, so it navigates the
+// way the Update and Review doors on the same screen do.
+document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
 
 // Which Claude account is signed into the iOS app right now (the other one is
 // on the web) \u2014 a plain on/off switch in the header: off = account 1, on =

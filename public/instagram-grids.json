@@ -1,0 +1,127 @@
+{
+  "_": "ONE source for both Instagram grid mockups — see public/instagrid.js.",
+  "accounts": [
+    {
+      "id": "dream",
+      "tab": "Dream",
+      "handle": "you...my.dreams",
+      "bio": "dreams, shared. youwereinmydreams.com",
+      "avatar": "✦",
+      "tiles": [
+        {
+          "id": "boys",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/groupchat-v2.webp",
+          "label": "The boys — before / after",
+          "meta": "0:44",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/commercial-v2.mp4",
+          "prefix": "dream-commercial/commercial-",
+          "chat": "dream-app-commercial"
+        },
+        {
+          "id": "everynight",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/everydream3.webp",
+          "label": "Every night",
+          "meta": "0:59",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/everydream3/everydream3-reel-draft-v1.mp4",
+          "prefix": "commercials/reels/everydream",
+          "chat": "fictional-pill-commercial"
+        },
+        {
+          "id": "birdcostume",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/birdcostume.webp",
+          "label": "The bird costume",
+          "meta": "0:41",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdcostume/birdcostume-reel-draft-v1.mp4",
+          "prefix": "commercials/reels/birdcostume",
+          "chat": "commercial-production-series"
+        },
+        {
+          "id": "birdstory",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/birdstory.webp",
+          "label": "The bird, as a story",
+          "meta": "0:41",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/birdstory/birdstory-reel-draft-v2.mp4",
+          "prefix": "commercials/reels/birdstory",
+          "chat": "fictional-pill-commercial"
+        },
+        {
+          "id": "reverie",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/reverie3.webp",
+          "label": "Rêverie",
+          "meta": "0:27",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/commercials/reels/reverie3/reverie3-reel-draft-v1.mp4",
+          "prefix": "commercials/reels/reverie",
+          "chat": "fictional-pill-commercial"
+        },
+        {
+          "id": "song",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/covers/song-v2.webp",
+          "label": "The song spot",
+          "meta": "0:13",
+          "film": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v4.mp4",
+          "prefix": "dream-commercial/spot-",
+          "chat": "song-commercial-selection"
+        },
+        {
+          "id": "somnivex",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercials/stills/d1c9b2fe3285.webp",
+          "label": "Somnivex®",
+          "meta": "storyboard",
+          "chat": "fictional-pill-commercial-01h7qx"
+        },
+        {
+          "id": "next1",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next2",
+          "empty": true,
+          "label": "next"
+        }
+      ]
+    },
+    {
+      "id": "witch",
+      "tab": "Witch",
+      "handle": "moonsickbaby",
+      "bio": "secretly a witch. secretlyawitch.com",
+      "avatar": "☾",
+      "tiles": [
+        {
+          "id": "moonmilk",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/survey/covers/moon-milk.webp",
+          "label": "Moon milk",
+          "meta": "no film here yet",
+          "prefix": "moon-milk/",
+          "chat": "moon-milk-meta"
+        },
+        {
+          "id": "next1",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next2",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next3",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next4",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next5",
+          "empty": true,
+          "label": "next"
+        }
+      ]
+    }
+  ]
+}
