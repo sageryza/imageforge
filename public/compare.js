@@ -195,7 +195,9 @@
     vlb.innerHTML = '<button class="cmp-vlb-x" aria-label="Close">✕</button>'
       + '<video controls playsinline preload="metadata"></video>';
     vlb.addEventListener('click', function (e) {
-      // only the backdrop and the ✕ close it — a tap on the controls must not
+      // the ✕ closes it (the video fills the overlay now, so the backdrop
+      // branch is nearly unreachable — kept for a zero-size video edge case);
+      // a tap on the video or its controls must never close it
       if (e.target === vlb || (e.target.className || '') === 'cmp-vlb-x') closeVideo();
     });
     document.body.appendChild(vlb);
@@ -213,10 +215,17 @@
     var css = document.createElement('style');
     css.id = 'cmp-media-css';
     css.textContent =
+      // the pinned player's geometry (#pinfull in chats.html), on purpose:
+      // the video ELEMENT fills the overlay and letterboxes inside itself
+      // (object-fit), so every tap lands ON the video — which is what makes
+      // filmnote's Note button reliably appear, and what keeps a stray tap
+      // beside a small video from closing the lightbox over a half-written
+      // note. Sized-to-content, most of the screen was close-on-tap backdrop
+      // ("the note box only appears sometimes"). Close is the ✕, or Esc.
       '.cmp-vlb{position:fixed; inset:0; z-index:61; background:rgba(20,18,15,.94);'
-      + ' display:flex; align-items:center; justify-content:center; padding:14px;}'
+      + ' display:flex; align-items:center; justify-content:center;}'
       + '.cmp-vlb[hidden]{display:none !important;}'
-      + '.cmp-vlb video{max-width:100%; max-height:100%; border-radius:4px; background:#000;}'
+      + '.cmp-vlb video{width:100%; height:100%; object-fit:contain; background:#000;}'
       + '.cmp-vlb-x{position:absolute; top:max(10px,env(safe-area-inset-top)); right:12px;'
       + ' width:38px; height:38px; border-radius:50%; border:1.5px solid #fff; background:rgba(0,0,0,.35);'
       + ' color:#fff; font-size:17px; line-height:1; cursor:pointer;}'

@@ -48,16 +48,27 @@
     + ' background:#17140f; border-top:1px solid #3a352c; padding:10px 12px'
     + ' calc(env(safe-area-inset-bottom,0px) + 10px); display:flex; flex-direction:column; gap:7px;}'
     + ".filmnote-host .nsheet .nt{font:12px/1.3 -apple-system,'Helvetica Neue',sans-serif; color:#97907f;}"
+    // 16px on purpose (the original pinned player's size): anything smaller
+    // makes iOS zoom the whole page the moment the box focuses, which shoves
+    // the fixed overlay around and reads as "the note box is broken"
     + '.filmnote-host .nsheet textarea{width:100%; min-height:62px; box-sizing:border-box; padding:8px;'
     + ' border:1px solid #3a352c; border-radius:6px; background:#211d16; color:#e8e2d6;'
-    + " font:15px/1.4 -apple-system,'Helvetica Neue',sans-serif; resize:none;}"
+    + " font:16px/1.4 -apple-system,'Helvetica Neue',sans-serif; resize:none;}"
     + '.filmnote-host .nsheet .row{display:flex; gap:10px; align-items:center;}'
     + '.filmnote-host .nsheet .row button{border:1px solid #3a352c; border-radius:6px;'
     + " background:#211d16; color:#e8e2d6; padding:7px 13px;"
     + " font:600 13px/1 -apple-system,'Helvetica Neue',sans-serif;}"
     + '.filmnote-host .nsheet .send{background:#e8e2d6; color:#17140f; border-color:#e8e2d6;}'
     + ".filmnote-host .nsheet .st{font:11px/1.3 -apple-system,'Helvetica Neue',sans-serif;"
-    + ' color:#97907f; min-height:14px;}';
+    + ' color:#97907f; min-height:14px;}'
+    // the background-filing outcome, visible while she is already watching
+    // again — a note that fails after Done used to vanish without a word
+    + '.filmnote-host .ntoast{position:absolute; left:50%; transform:translateX(-50%);'
+    + ' bottom:calc(env(safe-area-inset-bottom,0px) + 64px); z-index:5; padding:9px 14px;'
+    + ' border-radius:6px; border:1px solid #3a352c; background:rgba(23,20,15,.92); color:#e8e2d6;'
+    + " font:600 12px/1.3 -apple-system,'Helvetica Neue',sans-serif; text-align:center;"
+    + ' max-width:86%; opacity:0; transition:opacity .25s; pointer-events:none;}'
+    + '.filmnote-host .ntoast.on{opacity:1;}';
   document.head.appendChild(css);
 
   window.__filmNote = function (opts) {
@@ -67,6 +78,15 @@
     w.classList.add('filmnote-host');
     var mrec = null;
     var sheet=null, fadeT=null;
+    var toastEl=null, toastT=null, dead=false;
+    function toast(msg){
+      if(dead) return;
+      if(!toastEl){ toastEl=document.createElement('div'); toastEl.className='ntoast'; w.appendChild(toastEl); }
+      toastEl.textContent=msg;
+      requestAnimationFrame(function(){ if(toastEl) toastEl.classList.add('on'); });
+      clearTimeout(toastT);
+      toastT=setTimeout(function(){ if(toastEl) toastEl.classList.remove('on'); }, 2600);
+    }
     var fmtT=function(s){ s=Math.max(0,Math.floor(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
     var MIC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
     var nb=document.createElement('button'); nb.className='notebtn off';
@@ -76,11 +96,12 @@
     // shows it, another touch (or 3.5s) fades it away
     function showBtn(){ nb.classList.remove('off');
       clearTimeout(fadeT); fadeT=setTimeout(function(){ nb.classList.add('off'); }, 3500); }
-    w.addEventListener('click', function(e){
+    var onWrapTap=function(e){
       if(e.target!==v || sheet) return;
       if(nb.classList.contains('off')) showBtn();
       else { clearTimeout(fadeT); nb.classList.add('off'); }
-    });
+    };
+    w.addEventListener('click', onWrapTap);
     // files the note text (with the voice url when there is one) onto the
     // film's thread; background=true means she is already watching again
     function fileNote(t, text, voiceUrl, st){
@@ -101,7 +122,23 @@
         +'<button class="cxl">Cancel</button><button class="send">Done</button></div>';
       var ta=sheet.querySelector('textarea'), st=sheet.querySelector('.st');
       var chunks=[], voiceHeld=null, mode='text'; // 'rec' | 'held' | 'text'
-      function stopMic(){ if(mrec){ try{ mrec.stop(); }catch(_){ } mrec=null; } }
+      // A recorder hands its data over ASYNC: dataavailable and stop fire on
+      // a LATER task after stop(). Reading `chunks` synchronously right after
+      // stop() got an EMPTY blob in every real browser — so every talk-then-
+      // Done note was silently dropped, and tapping the box never produced a
+      // transcript. (It shipped that way because the test's stubbed mic fired
+      // synchronously — the stub is honest about the timing now.) Anything
+      // that needs the recording passes a `cb`; the blob is built in there.
+      function stopMic(cb){
+        var r=mrec; mrec=null;
+        if(!r){ if(cb) cb(); return; }
+        if(!cb){ try{ r.stop(); }catch(_){ } return; }
+        var fired=false, fin=function(){ if(!fired){ fired=true; cb(); } };
+        var prev=r.onstop;
+        r.onstop=function(){ if(prev) prev(); fin(); };
+        setTimeout(fin, 1200);  // a recorder that never reports back must not eat the note
+        try{ r.stop(); }catch(_){ fin(); }
+      }
       function closeSheet(){ stopMic(); if(sheet){ sheet.remove(); sheet=null; } }
       function resume(){ closeSheet(); v.play().catch(function(){}); }
       // upload + transcribe WITHOUT filing (hold:true) so her words can land
@@ -131,33 +168,43 @@
       // tapping the box: stop the mic, put her words there, keyboard rises
       ta.addEventListener('focus', function(){
         if(mode!=='rec') return;
-        mode='held'; stopMic();
+        mode='held';
         st.textContent='Getting your words…';
-        var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-        if(!blob.size){ mode='text'; st.textContent=''; return; }
-        holdVoice(blob).then(function(d){
+        stopMic(function(){
           if(!sheet) return;
-          if(d&&d.ok){ voiceHeld=d.url; if(!ta.value.trim()) ta.value=d.transcript||''; st.textContent=''; }
-          else st.textContent='Couldn’t hear that — type it instead.';
+          var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+          if(!blob.size){ mode='text'; st.textContent=''; return; }
+          holdVoice(blob).then(function(d){
+            if(!sheet) return;
+            if(d&&d.ok){ voiceHeld=d.url; if(!ta.value.trim()) ta.value=d.transcript||''; st.textContent=''; }
+            else st.textContent='Couldn’t hear that — type it instead.';
+          });
         });
       });
       sheet.querySelector('.cxl').onclick=resume;
       sheet.querySelector('.send').onclick=function(){
         var typed=ta.value.trim();
+        // the background-filing outcomes, said out loud — a note that failed
+        // after Done used to vanish without a word ("the notes don't send")
+        function sent(d){ if(d&&d.ok) toast('Note sent'); else unsent(); }
+        function unsent(){ toast('That note didn’t send — tap Note and try again'); }
         if(mode==='rec'){
           // her one button: stop, file, resume — she is watching again while
-          // the transcription finishes in the background
-          stopMic();
-          var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
-          resume();
-          if(!blob.size && !typed) return;
-          if(!blob.size){ fileNote(t, typed, null); return; }
-          holdVoice(blob).then(function(d){
-            var voice=d&&d.ok?d.url:null;
-            var words=typed||(d&&d.ok?d.transcript:'')||'';
-            if(!voice&&!words) return;
-            fileNote(t, words, voice);
+          // the upload + transcription finish in the background. The blob is
+          // built inside stopMic's callback, AFTER the recorder has actually
+          // handed its data over (see stopMic).
+          stopMic(function(){
+            var blob=new Blob(chunks,{type:chunks[0]&&chunks[0].type||'audio/webm'});
+            if(!blob.size && !typed){ toast('Didn’t catch any sound — tap Note and try again'); return; }
+            if(!blob.size){ fileNote(t, typed, null).then(sent).catch(unsent); return; }
+            holdVoice(blob).then(function(d){
+              var voice=d&&d.ok?d.url:null;
+              var words=typed||(d&&d.ok?d.transcript:'')||'';
+              if(!voice&&!words){ unsent(); return; }
+              fileNote(t, words, voice).then(sent).catch(unsent);
+            });
           });
+          resume();
           return;
         }
         if(!typed && !voiceHeld){ resume(); return; }
@@ -171,8 +218,15 @@
     };
     w.appendChild(nb);
     return { destroy: function () {
+      dead=true;
       if (mrec) { try { mrec.stop(); } catch (_) {} mrec = null; }
       if (sheet) { sheet.remove(); sheet = null; }
+      // the lightbox wrap is REUSED across opens (compare.js keeps one
+      // .cmp-vlb) — leave nothing behind, or listeners stack per open
+      w.removeEventListener('click', onWrapTap);
+      w.classList.remove('filmnote-host');
+      clearTimeout(fadeT); clearTimeout(toastT);
+      if (toastEl) { toastEl.remove(); toastEl = null; }
       nb.remove();
     } };
   };
