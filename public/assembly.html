@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Assembly — put clips in order on a timeline, then bake one film.
+     Sophie's brief (Aug 2026): like the Story Room's scratch pad but for
+     CLIPS — the arrangement rides a timeline at the bottom; picking a clip
+     lights a little place indicator in every gap, and tapping one drops the
+     clip between the two clips already there. Everything is a tap, nothing
+     drags (the house wrist rule).
+     TWO LEVELS, one page: the shelf of assemblies, and one open.
+     window.__navBack takes the native chevron back to the shelf.
+     Nothing here spends money — the render is ffmpeg on our own box. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Assembly</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+:root{
+  /* the five pill tokens + the chunking cream (one family, one paper) */
+  --ink:#3a3530; --paper:#faf6ee; --chg:#b48b6a; --ink2:#9e9590; --rose:#c0614a;
+  --bg:#faf6ee; --surface:#fffdf7; --surface2:#f2ece0; --border:#e6ddcb;
+}
+/* the injected pill declares its own palette ON the element — out-specify it
+   (the /chunking finding, measured 2026-08-15) */
+body.tool .float{
+  --paper:#faf6ee; --ink:#3a3530; --ink2:#9e9590; --chg:#b48b6a; --rose:#c0614a;
+}
+[hidden]{ display:none !important; }
+.tool main{ max-width:640px; margin:0 auto; }
+
+/* header — the pill owns the top-right corner (64px, the measured reserve) */
+.tool .head{ padding-right:64px; }
+#back{ display:inline-flex; align-items:center; gap:4px; font:inherit; font-size:13px;
+  color:var(--ink); background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:5px 9px 5px 6px; cursor:pointer; margin-right:10px; }
+#back svg{ width:15px; height:15px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+/* level 1 — the shelf of assemblies */
+#lvShelf .row{ margin:14px 16px 4px; }
+.arow{ display:flex; align-items:center; gap:12px; width:calc(100% - 32px); margin:0 16px;
+  padding:11px 0; border-bottom:1px solid var(--border); background:none; border-top:0;
+  border-left:0; border-right:0; cursor:pointer; text-align:left; font:inherit; color:var(--ink); }
+.arow .ph{ width:46px; height:46px; border-radius:6px; overflow:hidden; flex:0 0 auto;
+  background:var(--surface2); border:1px solid var(--border); display:flex;
+  align-items:center; justify-content:center; color:var(--dim); }
+.arow .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
+.arow .ph svg{ width:20px; height:20px; stroke:currentColor; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+.arow .t{ font-family:Georgia,'Times New Roman',serif; font-size:16px; }
+.arow .m{ font-size:12px; color:var(--dim); margin-top:2px; }
+
+/* level 2 — one assembly open */
+#ttl{ width:calc(100% - 96px); margin:8px 16px 0; border:0; background:transparent;
+  font-family:Georgia,serif; font-size:19px; color:var(--ink); padding:2px 0; }
+#ttl:focus{ outline:none; border-bottom:1px solid var(--border); }
+/* finished films — a line of text with a play button, never an embedded video */
+#films{ margin:4px 16px 0; }
+#films button{ display:flex; align-items:center; gap:8px; background:none; border:0;
+  padding:6px 0; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; }
+#films svg{ width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
+#films .m{ color:var(--dim); }
+
+/* search + chips (the chunking pattern) */
+.searchrow{ display:flex; align-items:center; gap:8px; padding:10px 64px 8px 16px; }
+.searchrow svg{ width:17px; height:17px; stroke:var(--dim); stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
+.searchrow input{ flex:1; border:1px solid var(--border); border-radius:6px; padding:9px 10px;
+  font:inherit; font-size:16px; background:var(--surface); color:var(--ink); min-width:0; }
+.searchrow .x{ width:26px; height:26px; border-radius:50%; border:1px solid var(--border);
+  background:var(--surface); color:var(--dim); font-size:13px; flex:0 0 auto; cursor:pointer;
+  padding:0; line-height:1; }
+.kindrow{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:0 64px 0 16px; }
+.cnt{ font-size:12px; color:var(--dim); margin-left:auto; }
+
+/* the clip shelf — four to a row, names under the pictures */
+.shelf{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; padding:12px 14px 8px; }
+.clip{ display:block; background:none; border:0; padding:0; margin:0; cursor:pointer;
+  text-align:left; font:inherit; color:var(--ink); }
+.clip .ph{ display:block; position:relative; aspect-ratio:1; border-radius:6px;
+  overflow:hidden; background:var(--surface2); border:1px solid var(--border); }
+.clip.armed .ph{ outline:3px solid var(--rose); outline-offset:-3px; }
+.clip .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
+.clip .ph .noart{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  color:var(--dim); }
+.clip .ph .noart svg{ width:22px; height:22px; stroke:currentColor; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+.clip .dur{ position:absolute; right:3px; bottom:3px; font-family:-apple-system,system-ui,sans-serif;
+  font-size:9px; letter-spacing:.03em; color:#fff; background:rgba(42,38,32,.72);
+  border-radius:4px; padding:1px 4px; }
+.clip .nm{ display:block; font-family:Georgia,'Times New Roman',serif; font-size:11px; line-height:1.3;
+  margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; word-break:break-word; }
+.stateline{ padding:10px 16px; }
+
+/* ── THE TIMELINE — docked at the bottom, the whole point of the tool ── */
+#tl{ position:fixed; left:0; right:0; bottom:0; z-index:20; background:var(--bg);
+  border-top:1px solid var(--border);
+  padding:0 0 calc(6px + env(safe-area-inset-bottom)); }
+#tl .bar{ display:flex; align-items:center; gap:10px; padding:8px 14px 2px; }
+#tl .sum{ font-size:12.5px; color:var(--dim); }
+#tl .bar .btn{ margin-left:auto; }
+#tl .bar #playAll{ margin-left:auto; }
+#tl .bar #playAll + .btn{ margin-left:0; }
+#playAll{ width:32px; height:32px; border-radius:50%; border:1.5px solid var(--ink);
+  background:var(--surface); color:var(--ink); display:inline-flex; align-items:center;
+  justify-content:center; padding:0; cursor:pointer; flex:0 0 auto; }
+#playAll svg{ width:14px; height:14px; fill:currentColor; stroke:none; margin-left:2px; }
+#jobline{ font-size:12.5px; color:var(--dim); margin-left:auto; text-align:right; }
+
+/* the strip: thumbs in order, a place indicator living in every gap */
+#strip{ display:flex; align-items:center; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  padding:6px 12px 8px; min-height:66px; }
+.tclip{ position:relative; flex:0 0 auto; width:54px; height:54px; border-radius:6px; overflow:hidden;
+  border:1px solid var(--border); background:var(--surface2); padding:0; cursor:pointer;
+  transition:transform .15s ease; }
+.tclip img{ width:100%; height:100%; object-fit:cover; display:block; }
+.tclip .dur{ position:absolute; right:2px; bottom:2px; font-family:-apple-system,system-ui,sans-serif;
+  font-size:8px; color:#fff; background:rgba(42,38,32,.72); border-radius:3px; padding:0 3px; }
+.tclip.sel{ outline:3px solid var(--rose); outline-offset:-3px; transform:translateY(-4px); }
+/* the gap: nothing when idle, the little place indicator when something is in hand */
+.gap{ flex:0 0 auto; width:8px; height:54px; padding:0; border:0; background:none; }
+#tl.placing .gap{ width:30px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; }
+#tl.placing .gap i{ width:22px; height:22px; border-radius:50%; border:1.5px solid var(--rose);
+  color:var(--rose); background:var(--surface); display:flex; align-items:center;
+  justify-content:center; font-style:normal; font-size:15px; line-height:1; }
+#empty{ font-size:12.5px; color:var(--dim); padding:2px 4px; }
+
+/* the in-hand bar — what is armed / selected, riding on top of the timeline */
+#hand{ display:flex; align-items:center; gap:9px; padding:7px 14px;
+  border-top:1px solid var(--border); background:var(--surface); }
+#hand .ph{ width:34px; height:34px; border-radius:5px; overflow:hidden; flex:0 0 auto;
+  background:var(--surface2); border:1px solid var(--border); }
+#hand .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
+#hand .t{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+#hand .t .m{ color:var(--dim); }
+#hand button{ flex:0 0 auto; }
+#hand .icobtn{ width:30px; height:30px; border-radius:50%; border:1px solid var(--border);
+  background:var(--bg); color:var(--ink); display:inline-flex; align-items:center;
+  justify-content:center; padding:0; cursor:pointer; }
+#hand .icobtn svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#hand .icobtn.play svg{ fill:currentColor; stroke:none; margin-left:1px; }
+
+/* the player overlay — freezes the page behind it */
+#lb{ position:fixed; inset:0; background:rgba(20,17,14,.96); display:none; z-index:50; }
+#lb.open{ display:flex; flex-direction:column; align-items:center; justify-content:center; }
+#lb video{ width:100%; max-height:78vh; background:#000; display:block; }
+#lb .cap{ color:#e8e2d6; font-size:13px; padding:10px 16px; text-align:center; }
+#lb .x{ position:absolute; top:calc(12px + env(safe-area-inset-top)); right:14px; width:36px;
+  height:36px; border-radius:50%; background:rgba(250,246,238,.14); border:0; color:#f2ece0;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+#lb .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+</style>
+</head>
+<body class="tool">
+
+<div class="head">
+  <button id="back" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>Assemblies</button>
+  <div class="eyebrow tool-eyebrow">ASSEMBLY</div>
+  <button id="help">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Put clips in order — get one film.</b> Open an assembly (or start a new
+  one) and the clips already placed ride the timeline along the bottom. Tap a
+  clip on the shelf and a little <b>place indicator</b> appears in every gap
+  on the timeline — tap the gap where it goes and it drops in between. Tap a
+  clip already ON the timeline to pick it up: the same indicators move it,
+  and the bar above the timeline plays it or takes it off (the clip itself
+  stays on the shelf).<br><br>
+  The round ▶ plays the arrangement clip by clip — a rough preview.
+  <b>Render</b> bakes the real film: every clip on one canvas, sound intact,
+  one mp4. Renders are kept newest-first above the shelf and nothing is ever
+  overwritten. All of it is free — no model calls, just our own box.<br><br>
+  The search speaks the house grammar: bare words need all of them, <b>OR</b>
+  takes either, <b>-word</b> excludes, <b>"quoted words"</b> stay together,
+  and <b>tag:</b> <b>title:</b> <b>from:</b> <b>vo:</b> <b>kind:</b> narrow
+  a word to one field.
+</div>
+
+<!-- level 1: the shelf of assemblies -->
+<div id="lvShelf">
+  <div class="row"><button class="btn" id="newBtn">New assembly</button></div>
+  <div id="alist"></div>
+  <div class="note stateline" id="shelfNote" hidden></div>
+</div>
+
+<!-- level 2: one assembly open -->
+<div id="lvOpen" hidden>
+  <input id="ttl" aria-label="Assembly name">
+  <div id="films"></div>
+  <div class="searchrow">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search clips">
+    <button class="x" id="clearq" hidden>✕</button>
+  </div>
+  <div class="kindrow">
+    <div class="chips" id="kinds"></div>
+    <span class="cnt" id="cnt"></span>
+  </div>
+  <main>
+    <div class="shelf" id="shelf"></div>
+    <div class="note stateline" id="stateline" hidden></div>
+  </main>
+
+  <div id="tl">
+    <div id="hand" hidden>
+      <span class="ph" id="handPh"></span>
+      <span class="t" id="handT"></span>
+      <button class="icobtn play" id="handPlay" aria-label="Play this clip">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="btn ghost" id="handRemove" hidden>Take off</button>
+      <button class="icobtn" id="handX" aria-label="Put it down">
+        <svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+    <div class="bar">
+      <span class="sum" id="sum"></span>
+      <span id="jobline" hidden></span>
+      <button id="playAll" hidden aria-label="Play the arrangement">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="btn" id="renderBtn">Render</button>
+    </div>
+    <div id="strip"></div>
+  </div>
+</div>
+
+<div id="lb">
+  <button class="x" id="lbClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+  <video id="lbVideo" controls playsinline preload="metadata"></video>
+  <div class="cap" id="lbCap"></div>
+</div>
+
+<script>
+(function () {   /* IIFE — the injected pill runs in global scope; never collide */
+'use strict';
+var STUDIO_TOKEN = '__STUDIO_TOKEN__';
+var TOK = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+var $ = function (id) { return document.getElementById(id); };
+var B = '/api/assembly';
+/* in the app the chrome outside the page owns back (the Episode Editor
+   pattern) — hide our own Assemblies button and answer __navBack instead */
+if (window.__nativeNavBar) document.body.classList.add('native');
+
+function api(path, opts) {
+  opts = opts || {};
+  if (opts.body && typeof opts.body === 'object') {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers = Object.assign({}, opts.headers, { 'content-type': 'application/json' });
+  }
+  if (TOK) opts.headers = Object.assign({}, opts.headers, { 'x-studio-token': TOK });
+  return fetch(path, opts).then(function (r) {
+    return r.text().then(function (t) {
+      var b; try { b = JSON.parse(t); } catch (e) { b = t; }
+      if (!r.ok) throw new Error((b && b.error) || ('HTTP ' + r.status));
+      return b;
+    });
+  });
+}
+
+/* ── the house search grammar, matched the clip-library way (clips.html) ── */
+var FIELDS = { tag: 'tag', tags: 'tag', title: 'title', name: 'title',
+  from: 'from', source: 'from', movie: 'from', prompt: 'prompt', note: 'note', kind: 'kind',
+  vo: 'vo', script: 'vo', says: 'vo' };
+function norm(s) {
+  return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ').replace(/^ | $/g, '');
+}
+function qparse(q) {
+  var groups = [], re = /(-|!)?(?:([a-zA-Z]+):)?(?:"([^"]*)"|(\S+))/g, m;
+  var orNext = false, notNext = false;
+  while ((m = re.exec(String(q || '')))) {
+    var quoted = m[3] !== undefined, raw = quoted ? m[3] : m[4];
+    var bare = !m[1] && !m[2] && !quoted;
+    if (bare && /^or$/i.test(raw)) { orNext = true; continue; }
+    if (bare && /^and$/i.test(raw)) continue;
+    if (bare && /^not$/i.test(raw)) { notNext = true; continue; }
+    var field = m[2] ? (FIELDS[m[2].toLowerCase()] || '') : '';
+    var value = norm(m[2] && !FIELDS[m[2].toLowerCase()] ? m[2] + ' ' + raw : raw);
+    if (!value) continue;
+    var neg = !!m[1] || notNext, last = groups[groups.length - 1];
+    var term = { field: field, value: value };
+    if (orNext && last && !last.neg && !neg) last.terms.push(term);
+    else groups.push({ neg: neg, terms: [term] });
+    orNext = false; notNext = false;
+  }
+  return groups;
+}
+function hayOf(c) {
+  if (!c._hay) {
+    var tags = (c.tags || []).map(norm);
+    c._hay = { title: norm(c.title), from: norm(c.from), prompt: norm(c.prompt),
+      note: norm(c.note), kind: norm(c.kind), vo: norm(c.vo), tag: tags };
+    c._hay.all = [c._hay.title, c._hay.from, c._hay.prompt, c._hay.note, c._hay.kind,
+      c._hay.vo, tags.join(' ')].join('  ');
+  }
+  return c._hay;
+}
+function qmatch(c, groups) {
+  var h = hayOf(c);
+  for (var i = 0; i < groups.length; i++) {
+    var g = groups[i], hit = false;
+    for (var j = 0; j < g.terms.length && !hit; j++) {
+      var t = g.terms[j];
+      if (t.field === 'tag') hit = h.tag.some(function (x) { return x.indexOf(t.value) !== -1; });
+      else if (t.field) hit = (h[t.field] || '').indexOf(t.value) !== -1;
+      else hit = h.all.indexOf(t.value) !== -1;
+    }
+    if (g.neg ? hit : !hit) return false;
+  }
+  return true;
+}
+function liveInput(el, fn) {
+  var last = el.value, timer = null;
+  function fire() { if (el.value === last) return; last = el.value; fn(); }
+  ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
+    .forEach(function (ev) { el.addEventListener(ev, function () { setTimeout(fire, 0); }); });
+  el.addEventListener('focus', function () { clearInterval(timer); timer = setInterval(fire, 150); });
+  el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
+  return { sync: function () { last = el.value; } };
+}
+function enterSubmits(el, fn) {
+  el.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    if (fn) fn();
+    el.blur();
+  });
+}
+
+/* ── state ── */
+var LIB = [];              // the clip library shelf
+var A = null;              // the open assembly doc
+var pile = 'all';          // all | chunks | clips
+var armed = null;          // a shelf clip in hand (to insert)
+var sel = -1;              // a timeline index in hand (to move/remove)
+var playlist = null, playAt = 0;   // the ▶-all queue
+var jobT = null, saveT = null;
+
+function fmtDur(s) {
+  if (s == null) return '';
+  var t = Math.round(s);
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/>'
+  + '<path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/>'
+  + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
+var PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/></svg>';
+
+/* the place arithmetic — mirrors assembly.js (placeAt / movePlace) */
+function placeAt(list, item, gap) {
+  var g = Math.max(0, Math.min(list.length, Math.floor(gap)));
+  return list.slice(0, g).concat([item], list.slice(g));
+}
+function movePlace(list, from, gap) {
+  var f = Math.floor(from);
+  if (f < 0 || f >= list.length) return list.slice();
+  var g = Math.max(0, Math.min(list.length, Math.floor(gap)));
+  var rest = list.slice(0, f).concat(list.slice(f + 1));
+  var at = g > f ? g - 1 : g;
+  return rest.slice(0, at).concat([list[f]], rest.slice(at));
+}
+function snapshot(c) {
+  return { id: c.id, url: c.url, title: c.title || '', poster: c.poster || null,
+    seconds: c.seconds != null ? c.seconds : null };
+}
+
+/* ── two levels, one page (the timeline.html history pattern) ── */
+function aUrl(id) {
+  var u = new URL(location.href);
+  if (id) u.searchParams.set('a', id); else u.searchParams.delete('a');
+  return u.pathname + u.search;
+}
+function show(level) {
+  $('lvShelf').hidden = level !== 'shelf';
+  $('lvOpen').hidden = level !== 'open';
+  $('back').hidden = level !== 'open' || document.body.classList.contains('native');
+}
+window.__navBack = function () {
+  if ($('lvOpen').hidden) return false;
+  leaveOpen();
+  return true;
+};
+function toShelf() { A = null; armed = null; sel = -1; clearInterval(jobT); show('shelf'); shelfPaint(); }
+function leaveOpen() {
+  if (history.state && history.state.a) { history.back(); return; }
+  try { history.replaceState({}, '', aUrl(null)); } catch (_) {}
+  toShelf();
+}
+$('back').onclick = leaveOpen;
+window.addEventListener('popstate', function () {
+  var aid = new URLSearchParams(location.search).get('a');
+  if (aid && (!A || A.id !== aid)) open(aid, true);
+  else if (!aid && A) toShelf();
+});
+
+/* ── level 1: the shelf of assemblies ── */
+function shelfPaint() {
+  api(B).then(function (r) {
+    var box = $('alist'); box.innerHTML = '';
+    (r.assemblies || []).forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'arow';
+      b.innerHTML = '<span class="ph">' + (a.poster ? '<img loading="lazy" src="' + esc(a.poster) + '" alt="">' : FILM_ICON) + '</span>'
+        + '<span><span class="t">' + esc(a.title) + '</span>'
+        + '<span class="m">' + a.clips + (a.clips === 1 ? ' clip' : ' clips')
+        + (a.seconds ? ' · ' + fmtDur(a.seconds) : '')
+        + (a.renders ? ' · ' + a.renders + (a.renders === 1 ? ' film' : ' films') : '')
+        + (a.job ? ' · rendering…' : '') + '</span></span>';
+      b.onclick = function () { open(a.id); };
+      box.appendChild(b);
+    });
+    $('shelfNote').hidden = (r.assemblies || []).length > 0;
+    $('shelfNote').textContent = 'Nothing assembled yet.';
+  }).catch(function (e) {
+    $('shelfNote').hidden = false;
+    $('shelfNote').textContent = String(e.message || e);
+  });
+}
+$('newBtn').onclick = function () {
+  api(B, { method: 'POST', body: {} }).then(function (r) { open(r.id); })
+    .catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
+};
+
+/* ── level 2: one assembly open ── */
+function open(id, fromHistory) {
+  api(B + '/' + encodeURIComponent(id)).then(function (doc) {
+    A = doc; A.id = id; armed = null; sel = -1;
+    $('ttl').value = A.title || '';
+    if (!fromHistory) {
+      try { history.pushState({ a: id }, '', aUrl(id)); } catch (_) {}
+    }
+    show('open');
+    paint();
+    window.scrollTo(0, 0);
+    if (A.job && A.job.status === 'running') pollJob();
+    if (!LIB.length) loadLib();
+  }).catch(function (e) {
+    $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e);
+  });
+}
+$('ttl').addEventListener('change', function () {
+  if (!A) return;
+  var t = $('ttl').value.trim();
+  if (!t) { $('ttl').value = A.title || ''; return; }
+  A.title = t;
+  api(B + '/' + A.id + '/title', { method: 'POST', body: { title: t } }).catch(function () {});
+});
+
+function loadLib() {
+  api('/api/clips').then(function (r) {
+    LIB = (r.clips || []).filter(function (c) { return !c.hidden && c.status !== 'error'; });
+    paintShelf();
+  }).catch(function (e) {
+    $('stateline').hidden = false;
+    $('stateline').textContent = 'Couldn’t load the clip shelf — ' + String(e.message || e);
+  });
+}
+
+/* ── the clip shelf ── */
+function buildPiles() {
+  var row = $('kinds'); row.innerHTML = '';
+  var counts = { all: 0, chunks: 0, clips: 0 };
+  LIB.forEach(function (c) { counts.all++; counts[c.kind === 'chunk' ? 'chunks' : 'clips']++; });
+  ['all', 'chunks', 'clips'].forEach(function (p) {
+    if (p !== 'all' && !counts[p]) return;
+    var b = document.createElement('button');
+    b.className = 'chip' + (pile === p ? ' on' : '');
+    b.textContent = p;
+    b.onclick = function () { pile = p; paintShelf(); };
+    row.appendChild(b);
+  });
+}
+function visible() {
+  var groups = qparse($('q').value);
+  return LIB.filter(function (c) {
+    if (pile === 'chunks' && c.kind !== 'chunk') return false;
+    if (pile === 'clips' && c.kind === 'chunk') return false;
+    return !groups.length || qmatch(c, groups);
+  });
+}
+function paintShelf() {
+  buildPiles();
+  var list = visible();
+  var shelf = $('shelf'); shelf.innerHTML = '';
+  list.forEach(function (c) {
+    var b = document.createElement('button');
+    b.className = 'clip' + (armed && armed.id === c.id ? ' armed' : '');
+    b.innerHTML = '<span class="ph">'
+      + (c.poster ? '<img loading="lazy" src="' + esc(c.poster) + '" alt="">'
+                  : '<span class="noart">' + FILM_ICON + '</span>')
+      + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '')
+      + '</span><span class="nm">' + esc(c.title) + '</span>';
+    b.onclick = function () { arm(c); };
+    shelf.appendChild(b);
+  });
+  $('cnt').textContent = list.length ? String(list.length) : '';
+  var line = $('stateline');
+  line.hidden = true;
+  if (!LIB.length) {
+    line.textContent = 'The clip shelf is empty — Chunking has nothing yet.';
+    line.hidden = false;
+  } else if (!list.length) {
+    line.textContent = 'Nothing matches.';
+    line.hidden = false;
+  }
+  $('clearq').hidden = !$('q').value;
+}
+
+/* ── picking things up and putting them down ── */
+function arm(c) {
+  if (armed && armed.id === c.id) { disarm(); return; }
+  sel = -1;
+  armed = c;
+  paint();
+}
+function selectAt(i) {
+  armed = null;
+  sel = sel === i ? -1 : i;
+  paint();
+}
+function disarm() { armed = null; sel = -1; paint(); }
+
+function dropAt(gap) {
+  if (armed) {
+    A.clips = placeAt(A.clips || [], snapshot(armed), gap);
+    disarm();
+    save();
+    // show her where it landed
+    requestAnimationFrame(function () {
+      var kids = $('strip').querySelectorAll('.tclip');
+      var k = kids[Math.min(gap, kids.length - 1)];
+      if (k && k.scrollIntoView) k.scrollIntoView({ inline: 'center', block: 'nearest' });
+    });
+  } else if (sel >= 0) {
+    A.clips = movePlace(A.clips || [], sel, gap);
+    disarm();
+    save();
+  }
+}
+function removeSel() {
+  if (sel < 0) return;
+  A.clips = (A.clips || []).slice(0, sel).concat((A.clips || []).slice(sel + 1));
+  disarm();
+  save();
+}
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(function () {
+    if (!A) return;
+    api(B + '/' + A.id + '/clips', { method: 'POST', body: { clips: A.clips || [] } })
+      .catch(function (e) {
+        $('stateline').hidden = false;
+        $('stateline').textContent = 'Couldn’t save — ' + String(e.message || e);
+      });
+  }, 600);
+}
+
+/* ── the timeline ── */
+function paintTl() {
+  var tl = $('tl');
+  var list = A ? (A.clips || []) : [];
+  var placing = Boolean(armed) || sel >= 0;
+  tl.classList.toggle('placing', placing);
+
+  var strip = $('strip'); strip.innerHTML = '';
+  function gapEl(g) {
+    var b = document.createElement('button');
+    b.className = 'gap';
+    b.setAttribute('aria-label', 'Place here');
+    if (placing) b.innerHTML = '<i>+</i>';
+    b.onclick = function () { if (placing) dropAt(g); };
+    return b;
+  }
+  strip.appendChild(gapEl(0));
+  list.forEach(function (c, i) {
+    var t = document.createElement('button');
+    t.className = 'tclip' + (sel === i ? ' sel' : '');
+    t.innerHTML = (c.poster ? '<img src="' + esc(c.poster) + '" alt="">' : FILM_ICON)
+      + (c.seconds != null ? '<span class="dur">' + fmtDur(c.seconds) + '</span>' : '');
+    t.onclick = function () { selectAt(i); };
+    strip.appendChild(t);
+    strip.appendChild(gapEl(i + 1));
+  });
+  if (!list.length && !placing) {
+    var e = document.createElement('span');
+    e.id = 'empty';
+    e.textContent = 'empty';
+    strip.appendChild(e);
+  }
+
+  var totalS = list.reduce(function (s, c) { return s + (Number(c.seconds) || 0); }, 0);
+  $('sum').textContent = list.length
+    ? list.length + (list.length === 1 ? ' clip' : ' clips') + ' · ' + fmtDur(totalS)
+    : '0 clips';
+  $('playAll').hidden = !list.length;
+  $('renderBtn').disabled = !list.length || (A.job && A.job.status === 'running');
+
+  // the in-hand bar
+  var hand = $('hand');
+  var held = armed || (sel >= 0 ? list[sel] : null);
+  hand.hidden = !held;
+  if (held) {
+    $('handPh').innerHTML = held.poster ? '<img src="' + esc(held.poster) + '" alt="">' : FILM_ICON;
+    $('handT').innerHTML = esc(held.title || 'untitled')
+      + (held.seconds != null ? ' <span class="m">· ' + fmtDur(held.seconds) + '</span>' : '');
+    $('handRemove').hidden = !(sel >= 0);
+  }
+
+  // the shelf never hides under the dock
+  requestAnimationFrame(function () {
+    var main = document.querySelector('#lvOpen main');
+    if (main) main.style.paddingBottom = (tl.offsetHeight + 24) + 'px';
+  });
+}
+$('handX').onclick = disarm;
+$('handRemove').onclick = removeSel;
+$('handPlay').onclick = function () {
+  var held = armed || (sel >= 0 ? (A.clips || [])[sel] : null);
+  if (held) playOne(held);
+};
+
+function paintFilms() {
+  var box = $('films'); box.innerHTML = '';
+  ((A && A.renders) || []).forEach(function (r, i) {
+    var b = document.createElement('button');
+    var name = 'Film v' + (((A.renders || []).length) - i);
+    b.innerHTML = PLAY_ICON + '<span>' + name + '</span><span class="m">· '
+      + fmtDur(r.seconds) + ' · ' + r.clips + ' clips'
+      + (i === 0 ? ' · newest' : '') + '</span>';
+    b.onclick = function () { playUrl(r.url, name + ' · ' + fmtDur(r.seconds)); };
+    box.appendChild(b);
+  });
+}
+function paint() { paintShelf(); paintTl(); paintFilms(); }
+
+/* ── render + the job line ── */
+$('renderBtn').onclick = function () {
+  if (!A || !(A.clips || []).length) return;
+  // an unsaved arrangement must land before the bake reads it
+  clearTimeout(saveT);
+  api(B + '/' + A.id + '/clips', { method: 'POST', body: { clips: A.clips || [] } })
+    .then(function () { return api(B + '/' + A.id + '/render', { method: 'POST', body: {} }); })
+    .then(function () {
+      A.job = { status: 'running', label: 'starting' };
+      paintTl(); pollJob();
+    })
+    .catch(function (e) {
+      $('jobline').hidden = false;
+      $('jobline').textContent = String(e.message || e);
+    });
+};
+function pollJob() {
+  clearInterval(jobT);
+  var line = $('jobline');
+  line.hidden = false;
+  jobT = setInterval(function () {
+    if (!A) { clearInterval(jobT); return; }
+    api(B + '/' + A.id + '/job').then(function (r) {
+      var j = r.job;
+      A.job = j;
+      if (j && j.status === 'running') {
+        line.textContent = 'baking ' + (j.total ? (j.done + '/' + j.total + ' — ') : '') + (j.label || '');
+      } else {
+        clearInterval(jobT);
+        if (j && j.status === 'error') {
+          line.textContent = 'render failed — ' + (j.error || 'unknown');
+        } else {
+          line.hidden = true;
+          A.renders = r.renders || A.renders;
+          paintFilms();
+        }
+        paintTl();
+      }
+    }).catch(function () {});
+  }, 3000);
+}
+
+/* ── the player overlay ── */
+var savedY = 0;
+function lbOpen(cap) {
+  if (window.__scrollStop) window.__scrollStop();
+  savedY = window.scrollY;
+  $('lbCap').textContent = cap || '';
+  $('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function lbClose() {
+  var v = $('lbVideo');
+  v.pause(); v.onended = null; v.removeAttribute('src'); v.load();
+  playlist = null;
+  $('lb').classList.remove('open');
+  document.body.style.overflow = '';
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { window.scrollTo(0, savedY); });
+  });
+}
+$('lbClose').onclick = lbClose;
+function playUrl(url, cap) {
+  lbOpen(cap);
+  var v = $('lbVideo');
+  v.onended = null;
+  v.src = url;
+  v.play().catch(function () {});
+}
+function playOne(c) { playUrl(c.url, c.title || ''); }
+$('playAll').onclick = function () {
+  var list = (A && A.clips) || [];
+  if (!list.length) return;
+  playlist = list.slice(); playAt = 0;
+  lbOpen('');
+  playNext(true);
+};
+function playNext(first) {
+  if (!playlist) return;
+  if (!first) playAt++;
+  if (playAt >= playlist.length) { lbClose(); return; }
+  var c = playlist[playAt];
+  $('lbCap').textContent = (playAt + 1) + ' of ' + playlist.length + ' · ' + (c.title || '');
+  var v = $('lbVideo');
+  v.onended = function () { playNext(); };
+  v.src = c.url;
+  v.play().catch(function () {});
+}
+
+/* ── the "?" card ── */
+$('help').onclick = function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
+document.addEventListener('click', function (e) {
+  if (!$('helpcard').hidden && !$('helpcard').contains(e.target) && e.target !== $('help')) {
+    $('helpcard').hidden = true;
+  }
+});
+
+/* ── the pill's tap gesture (shared contract): interactive taps pause the
+   autoscroll; plain paper toggles it. The overlay and the dock own their own
+   taps. ── */
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  if (t && t.closest && (t.closest('#lb') || t.closest('#tl'))) return;
+  if (window.__pillInteractive && window.__pillInteractive(t)) {
+    if (window.__scrollStop) window.__scrollStop();
+    return;
+  }
+  if (window.__scrollTap) window.__scrollTap(e);
+});
+document.addEventListener('focusin', function () { if (window.__scrollStop) window.__scrollStop(); });
+
+/* ── search wiring ── */
+var qLive = liveInput($('q'), paintShelf);
+enterSubmits($('q'), function () { paintShelf(); qLive.sync(); });
+$('clearq').onclick = function () { $('q').value = ''; qLive.sync(); paintShelf(); };
+
+/* ── launch: a ?a= link opens that assembly cold; otherwise the shelf ── */
+var startId = new URLSearchParams(location.search).get('a');
+if (startId) { show('open'); open(startId, true); }
+else { show('shelf'); shelfPaint(); }
+loadLib();
+})();
+</script>
+</body>
+</html>

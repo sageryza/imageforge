@@ -423,6 +423,10 @@ loadConfig().then(() => {
   // Storage), searchable, so a re-cut reuses clips instead of re-paying for
   // them. Nothing here generates anything; it is a shelf and a search box.
   app.use('/api/clips', require('./clips').router);
+  // Assembly: put library clips in order on a timeline, then bake one film —
+  // the arranging step between the Chunking shelf and a finished film. The
+  // render is ffmpeg on our own box; nothing here spends money.
+  app.use('/api/assembly', require('./assembly').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
   app.use('/api/opinions', require('./opinions').router); // Opinions: pick between two ideas, GOOD IDEA stamps, streaks — the preloaded decide-on-things game
   // Secretly a Witch membership (Stripe Checkout → entitlement in membry users/{uid}).
@@ -3114,6 +3118,13 @@ app.get('/pause-plan.js', (req, res) => {
 // supplies only `--ink` of them.
 app.get('/chunking', serveGated('clips.html', { pill: true }));
 app.get('/clips', serveGated('clips.html', { pill: true }));
+
+// Assembly: clips in order on a timeline at the bottom of the screen — tap a
+// clip, tap the place indicator in a gap, it drops in between; Render bakes
+// the arrangement into one film. Engine is /api/assembly (assembly.js). The
+// clip shelf scrolls, so it carries the pill and pays the contract's price
+// (five tokens on .float, the 64px corner reserve).
+app.get('/assembly', serveGated('assembly.html', { pill: true }));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

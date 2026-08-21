@@ -2288,6 +2288,31 @@ before working on that module. Nothing was deleted — the moved text is verbati
   never starts a harvest — it only shows a running one.
   Tests: `node scripts/test-clips.js` (pure, no network).
   **Full details: `docs/modules/audio-and-film.md`.**
+- **Assembly** (`assembly.js`, `/api/assembly`, page at `/assembly`, iOS tile
+  under the FILM filter) — put library clips IN ORDER on a timeline, then bake
+  one film. Sophie's ask (Aug 2026): like the Story Room's scratch pad but for
+  CLIPS — the arrangement rides a **timeline at the bottom**; tapping a shelf
+  clip lights a **place indicator in every gap**, and tapping a gap drops the
+  clip between the two already there. Tapping a timeline clip picks it UP (the
+  same indicators move it; Take off removes it — the clip itself stays on the
+  Chunking shelf). Everything is a tap, nothing drags. **It costs nothing** —
+  the shelf is `forge-clip-library` read-only, and Render is ffmpeg on our own
+  box. One doc per assembly (`forge-assemblies`); the arrangement saves WHOLE
+  (order and membership change together — an insert is both). **The render is
+  the scratch-pad film's recipe, not a fresh one**: every clip normalized onto
+  ONE canvas (the first clip's frame, evened, long edge capped 1280 — 30fps,
+  setsar=1, yuv420p) as its own segment so the concat demuxer joins with
+  `-c copy`, and audio as per-segment PCM cut/padded to each segment's REAL
+  encoded length, concatenated sample-exact, AAC-encoded ONCE at the mux —
+  per-piece aac priming walks the sound off the picture (the pad's measured
+  finding). A clip re-resolves its CURRENT library doc at render time, so a
+  re-baked chunk renders from its newest file. Renders never overwrite
+  (`assembly/<id>/film-<n>.mp4`, capped 12, newest first) and `assembly/` is
+  on the clip harvest's SKIP_PREFIXES — a film made OF clips must not harvest
+  back onto the shelf as a clip. The round ▶ plays the arrangement clip-by-clip
+  in the browser as a rough preview; the render is the real join.
+  Tests: `node scripts/test-assembly.js` (the place-indicator arithmetic pure,
+  then the real page headless). **Full details: `docs/modules/audio-and-film.md`.**
 - **The audio PROJECT** (`audioproject.js`, `/api/audioproject`,
   `forge-audio-projects` — no page of its own) — the light cross-room id
   Sophie picked (2026-08-19): threaded through every audio hand-off as

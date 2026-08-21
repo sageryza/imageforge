@@ -103,6 +103,8 @@ const SKIP_PREFIXES = [
                      // recordings (none present at measurement; the tool writes here)
   'cutroom/',        // Cutting Room artifacts, same reason
   'clip-library/',   // this module's own posters
+  'assembly/',       // Assembly renders — films MADE OF these clips; harvesting
+                     // one back onto the shelf would nest the library in itself
 ];
 
 // Fields a client may write. Everything else — url, poster, seconds, kind,
