@@ -2602,6 +2602,13 @@ async function syncVoteToAssets(url, vote) {
     const key = canonicalAssetUrl(url);
     if (key) queries.push(col.where('urlKey', '==', key));
     const chats = new Set();
+    // Every Playground picture rides into Meta Assets through the My
+    // Creations join (the iOS gallery), where its row votes as chat
+    // 'my-creations' — no forge-chat-assets record exists for it unless a
+    // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
+    // Playground pictures had ONLY that row, so a record-only sync wrote
+    // nothing at all.
+    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
     for (const q of queries) {
       try {
         (await q.limit(20).get()).docs.forEach((d) => {
