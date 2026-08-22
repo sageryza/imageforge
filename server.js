@@ -5126,6 +5126,23 @@ const PL_GPT = {
     'colors rather than copying the colors of the style reference.',
   characterLine: ' Use the second attached image as a character reference. ' +
     'Her name is Sophie. Whenever the prompt mentions Sophie, draw her as that girl.',
+  // HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "Freeform has the ability to
+  // upload a photo reference, but playground doesn't ... in the case of dreamy
+  // or watercolor, where they already have references, it will go as the
+  // second reference automatically"). One photo, uploaded per run from the
+  // file button on the page — it is NOT a library like Freeform's, because
+  // the Playground's whole point is a FIXED recipe per style with one thing
+  // changed at a time.
+  // It rides LAST, after the style references AND after the Sophie card, so
+  // the wording below can name it unambiguously however many images precede
+  // it — the character line says "the second attached image", and inserting
+  // the photo anywhere earlier would silently make that sentence a lie.
+  // The line is DISCLOSED: it is served by GET /api/promptlab/styles and the
+  // page prints it in the Prompt panel whenever a photo is attached, so
+  // nothing is added to her words without the page saying so.
+  photoLine: ' The LAST attached image is a photo reference: use it for the ' +
+    'subject described below — the person, place or object in it — and NOT ' +
+    'for the drawing style, which comes from the style reference above.',
 };
 // The ChatGPT engine's selectable styles (Aug 2026). Each is the same recipe
 // — gpt-image-2 edits, refs attached as pure STYLE references, quality/size
@@ -5405,6 +5422,9 @@ async function runPromptLabGptJob(docRef, cfg) {
     const st = PL_GPT_STYLES[cfg.styleId] || PL_GPT_STYLES.evan;
     const refs = await playgroundRefs(st);
     if (cfg.character) refs.push(playgroundRef(PL_GPT.characterFile));
+    // Her uploaded photo rides LAST — see PL_GPT.photoLine for why the order
+    // matters (the character line names "the second attached image").
+    if (cfg.photoBuf) refs.push(cfg.photoBuf);
     const images = [];
     let failed = 0;
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
@@ -5525,12 +5545,34 @@ app.post('/api/promptlab', async (req, res) => {
       const prefix = over(req.body.prefix, st.prefix);
       const suffix = over(req.body.suffix, st.suffix);
       const edited = prefix !== st.prefix || suffix !== st.suffix;
+      // Her own photo reference, uploaded with this run (Aug 2026). The bytes
+      // go straight to the job so a failed Storage write costs the record, not
+      // the picture; the url is only what the run's doc remembers it by.
+      let photoBuf = null;
+      let photoUrl = '';
+      const photoIn = String(req.body.photo || '');
+      const pm = photoIn.match(/^data:(image\/[a-z.+-]+);base64,(.+)$/i);
+      if (pm) {
+        photoBuf = Buffer.from(pm[2], 'base64');
+        const up = await saveBufferToFirebase(photoBuf, pm[1], 'promptlab/photorefs');
+        if (/^https?:\/\//.test(up)) photoUrl = up;
+      } else if (/^https?:\/\//.test(photoIn)) {
+        try {
+          const r = await fetch(photoIn);
+          if (r.ok) { photoBuf = Buffer.from(await r.arrayBuffer()); photoUrl = photoIn; }
+        } catch (e) { console.warn('promptlab photo ref fetch failed:', e.message); }
+      }
       // The no-text toggle is NOT an edit of hers — it is a switch on the
       // house tail, so it is applied AFTER the override and left out of
       // `edited`. A style with no `noText` never offers it.
       const noText = Boolean(req.body.noText) && !!st.noText;
       const tail = applyNoText(suffix, st, noText);
-      const fullPrompt = `${prefix}${character ? st.characterLine : ''}${prefix ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
+      // The head is prefix + whichever extra lines actually ride this run, so
+      // the blank line before her words is there whenever ANY of them is —
+      // the old separator keyed on the prefix alone, which glued the character
+      // line onto her first word if she had deleted the prefix.
+      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? PL_GPT.photoLine : ''}`;
+      const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       // Portrait unless she asked for the square; an unknown value is portrait,
@@ -5542,9 +5584,9 @@ app.post('/api/promptlab', async (req, res) => {
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
         aspectRatio: canvas.aspectRatio, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
-        character, images: [], createdAt: admin.firestore.Timestamp.now(),
+        character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId, size: canvas.size });
+      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -5601,7 +5643,7 @@ app.get('/api/promptlab/styles', (req, res) => {
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
-  res.json({ styles: out, sizes: PL_GPT.sizes, max: PL_GPT.promptMax });
+  res.json({ styles: out, sizes: PL_GPT.sizes, max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {

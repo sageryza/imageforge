@@ -2156,6 +2156,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
     the LIVE VALUE that will be sent, the way reopening her waiting-for box
     shows the sentence she already wrote. Her own words go in the main box,
     which still ships empty.
+  **A PHOTO REFERENCE OF HER OWN — the file button (Aug 2026, Sophie:
+  "Freeform has the ability to upload a photo reference, but playground
+  doesn't … in the case of dreamy or watercolor, where they already have
+  references, it will go as the second reference automatically").** One photo
+  per run, picked from the file button beside the Sophie card — deliberately
+  NOT a library like Freeform's, because the Playground's whole point is a
+  fixed recipe per style with one thing changed at a time.
+  - **IT RIDES LAST, after the style refs AND after the Sophie card**, and
+    that order is load-bearing: `characterLine` says "the second attached
+    image is a character reference", so slotting the photo in front of her
+    card would make that sentence describe the wrong picture. `PL_GPT.photoLine`
+    names it as "the LAST attached image" for the same reason — it is true
+    however many references precede it.
+  - **THE LINE IS DISCLOSED, like everything else wrapped around her words.**
+    It is served by `GET /api/promptlab/styles` (never copied into the page)
+    and the Prompt panel prints it, with the character line beside it,
+    whenever one is actually attached. Read-only there: taking the photo off
+    is what removes the line, not editing it.
+  - **NOT PERSISTED across loads** (same reasoning as quality and the canvas)
+    — a photo attached last week silently riding today's run is exactly the
+    hidden ingredient the panel exists to prevent. It survives between runs in
+    one sitting, so a re-roll is one tap. The run doc keeps `photoRef` and the
+    run's card says **photo ref**, so two runs of the same words are told apart.
+  - **A small png/jpeg is sent BYTE-FOR-BYTE.** Only a photo over 1600px or
+    over ~9MB of base64 is redrawn through a canvas — a phone photo is 4-12MB
+    and often HEIC, which the model refuses.
+  - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
+    attachment slot at all, so the button comes off there rather than sitting
+    there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
   **PORTRAIT OR SQUARE, opening on SQUARE (Aug 2026, her call).**
   `PL_GPT.sizes`; the run carries `canvas`, and an unknown value still lands on
   a real size server-side, never an invented one. **The square is the DEARER

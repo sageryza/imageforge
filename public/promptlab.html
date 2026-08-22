@@ -179,6 +179,28 @@
     overflow: hidden; background: #fdfcf9; opacity: .4; cursor: pointer; }
   #charpick img { width: 100%; height: 100%; object-fit: cover; display: block; }
   #charpick.on { opacity: 1; border-color: #2b2622; }
+  /* HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "could you add a little file
+     icon so I can upload a photo reference"). Empty = the file glyph; once a
+     photo is picked the button wears the photo itself, exactly the way the
+     Sophie card does, and the small x on its corner takes it back off. It is
+     ONE photo per run, not a library — the Playground's recipe is fixed per
+     style so a run stays comparable to the last one. */
+  #photowrap { position: relative; flex: none; display: none; }
+  #photowrap.on { display: block; }
+  #photopick { display: block; width: 30px; height: 30px; padding: 0; border: 1.5px solid #d8d0c4;
+    border-radius: 6px; overflow: hidden; background: #fdfcf9; color: #6f675e; cursor: pointer; }
+  #photopick svg { width: 17px; height: 17px; display: block; margin: 0 auto; }
+  #photopick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #photowrap.has #photopick { border-color: #2b2622; }
+  #photoclear { display: none; position: absolute; top: -6px; right: -6px; width: 17px; height: 17px;
+    padding: 0; border: 1px solid #d8d0c4; border-radius: 50%; background: #faf7f2; color: #2b2622;
+    cursor: pointer; }
+  #photoclear svg { width: 11px; height: 11px; display: block; margin: 0 auto; }
+  #photowrap.has #photoclear { display: block; }
+  /* What the photo adds to the prompt, shown whenever one is attached — the
+     house rule that anything added to her words is disclosed word for word. */
+  #promptpanel .added { font-size: 12px; color: #6f675e; line-height: 1.4;
+    border-left: 2px solid #2b2622; padding: 2px 0 2px 8px; margin: 4px 0 0; }
   /* Arrived from the Scratch Pad (?from=scratchpad): a way back, top-left. */
   #backchip { display: none; position: fixed; top: 12px; left: 12px; z-index: 80; align-items: center;
     font-size: 13px; color: #2b2622; text-decoration: none; background: #faf7f2; border: 1px solid #d8d0c4;
@@ -243,6 +265,8 @@
     <button class="seedbtn" id="seedbtn" aria-label="Next seed"></button>
     <span class="seedtag" id="seedtag"></span>
     <button id="charpick" hidden aria-label="Draw Sophie from her reference" title="Sophie character reference"><img src="https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1785884140714-d37oym.webp" alt="Sophie"></button>
+    <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
+    <input type="file" id="photofile" accept="image/*" hidden>
     <button class="stylebtn promptbtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
     <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
@@ -318,6 +342,9 @@
     chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
     chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    // The photo-reference button (Aug 2026) — Lucide `image-plus`, a picture
+    // with a plus, so the control says "add a photo" rather than "a file".
+    imagePlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" x2="22" y1="5" y2="5"/><line x1="19" x2="19" y1="2" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
     // THE generate glyph, app-wide: the hand-fitted star the witch app draws
     // from its own STAR const, an exact bezier match of SF Symbols `sparkles`.
     // Anything that makes a picture with AI wears this (the Story Room's beat
@@ -341,6 +368,8 @@
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
   document.getElementById('lowmed').innerHTML = ICONS.pyramid;
+  document.getElementById('photopick').innerHTML = ICONS.imagePlus;
+  document.getElementById('photoclear').innerHTML = ICONS.x;
 
   // LIST (a box per run) or TILES (a wall of thumbnails). Sticky across loads.
   // Both buttons are always on screen and always labelled — the switch can
@@ -478,6 +507,10 @@
     charOn = !charOn;
     this.classList.toggle('on', charOn);
     updateShape();
+    // Her card adds a line to the prompt, so the open panel has to say so the
+    // moment it goes on — the panel is the one place the whole sent prompt is
+    // visible, and a line appearing there only after a reload is a line hidden.
+    if (promptOpen) paintPromptPanel();
   });
 
   // Arrived from the Scratch Pad? Show the way back.
@@ -561,6 +594,7 @@
   // style marks its button, so she can never be running her own wording
   // without the page saying so.
   var BAKED = null;                  // {gptStyleId: {label, prefix, suffix, refs}}
+  var PHOTO_LINE = '';               // the line server.js adds when a photo is attached
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
 
@@ -631,6 +665,20 @@
       el.appendChild(l); el.appendChild(t);
     }
     field('Before your words', p.prefix, 'prefix');
+    // Whatever else actually rides this run, printed word for word. Read-only
+    // on purpose: these are server-owned lines tied to an attachment, not a
+    // half of the prompt she edits — taking the photo off is what removes the
+    // photo line, and the Sophie button is what removes the character one.
+    var extras = [];
+    if (charOn && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
+    if (photoRef && PHOTO_LINE) extras.push(PHOTO_LINE);
+    if (extras.length) {
+      var al = document.createElement('div'); al.className = 'plab';
+      al.textContent = 'Also added before your words';
+      var av = document.createElement('div'); av.className = 'added';
+      av.textContent = extras.join(' ').trim();
+      el.appendChild(al); el.appendChild(av);
+    }
     var y = document.createElement('div'); y.className = 'plab'; y.textContent = 'Your words';
     var yv = document.createElement('div'); yv.className = 'yours';
     yv.textContent = document.getElementById('prompt').value.trim() || '(the box below)';
@@ -671,8 +719,93 @@
     promptOpen = !promptOpen; paintPromptPanel();
   });
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
-    .then(function (d) { BAKED = d.styles || {}; paintPromptPanel(); syncControls(); })
+    .then(function (d) { BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || ''; paintPromptPanel(); syncControls(); })
     .catch(function () {});
+
+  // ── HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "Freeform has the ability
+  //    to upload a photo reference, but playground doesn't ... in the case of
+  //    dreamy or watercolor, where they already have references, it will go as
+  //    the second reference automatically") ────────────────────────────────
+  //
+  // ONE photo per run, attached from the file button — deliberately NOT a
+  // library like Freeform's. The Playground's whole point is a fixed recipe
+  // per style with one thing changed at a time; a shelf of references would
+  // be a second thing moving.
+  //
+  // The picture rides LAST, after the style references and after the Sophie
+  // card, and server.js appends `photoLine` to the prefix so the model knows
+  // which of the attachments is the photo. That line is READ FROM THE SERVER
+  // like the rest of the prompt and printed in the Prompt panel whenever a
+  // photo is attached — nothing is added to her words unannounced.
+  //
+  // It is NOT persisted across loads: a photo she attached last week silently
+  // riding today's run is exactly the kind of hidden ingredient the panel
+  // exists to prevent. It DOES survive between runs in one sitting, so a
+  // re-roll is one tap.
+  var photoRef = null;              // { data: <dataURL>, name } — one per run
+  var PHOTO_MAX_EDGE = 1600;        // gpt-image-2 works from ~1024; this is headroom
+  var PHOTO_SEND_MAX = 9e6;         // ~9MB of base64, well under the server's 25mb body
+
+  function paintPhoto() {
+    var wrap = document.getElementById('photowrap');
+    var btn = document.getElementById('photopick');
+    wrap.classList.toggle('has', !!photoRef);
+    if (photoRef) {
+      btn.innerHTML = '<img alt="Photo reference">';
+      btn.querySelector('img').src = photoRef.data;
+      btn.title = 'Photo reference: ' + (photoRef.name || 'attached') + ' — tap to swap it';
+    } else {
+      btn.innerHTML = ICONS.imagePlus;
+      btn.title = 'Attach a photo reference';
+    }
+    if (promptOpen) paintPromptPanel();
+  }
+  // A phone photo is 4-12MB and often HEIC, which the model will not take, so
+  // anything big or oversized is redrawn through a canvas to a JPEG first. A
+  // photo already small enough is sent BYTE-FOR-BYTE — the house rule is that
+  // a derived copy is fine but nothing gets quietly transformed when it does
+  // not have to be.
+  function prepPhoto(dataUrl, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var big = Math.max(img.width, img.height) > PHOTO_MAX_EDGE;
+      var heavy = dataUrl.length > PHOTO_SEND_MAX;
+      var isJpegOrPng = /^data:image\/(jpeg|png)/i.test(dataUrl);
+      if (!big && !heavy && isJpegOrPng) return cb(dataUrl);
+      var scale = big ? PHOTO_MAX_EDGE / Math.max(img.width, img.height) : 1;
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      cb(c.toDataURL('image/jpeg', 0.92));
+    };
+    img.onerror = function () { cb(null); };
+    img.src = dataUrl;
+  }
+  document.getElementById('photopick').addEventListener('click', function () {
+    document.getElementById('photofile').click();
+  });
+  document.getElementById('photoclear').addEventListener('click', function () {
+    photoRef = null;
+    document.getElementById('photofile').value = '';
+    paintPhoto();
+  });
+  document.getElementById('photofile').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      prepPhoto(String(rd.result || ''), function (data) {
+        var err = document.getElementById('err');
+        if (!data) { err.textContent = 'That file could not be read as a picture.'; err.hidden = false; return; }
+        photoRef = { data: data, name: f.name || '' };
+        err.hidden = true;
+        paintPhoto();
+      });
+    };
+    rd.readAsDataURL(f);
+  });
+  paintPhoto();
 
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
   // Portrait is the default and stays the default: every run to date used it,
@@ -743,6 +876,10 @@
       document.getElementById(id).hidden = gpt;
     });
     document.getElementById('charpick').hidden = !gpt || !!STYLES[styleKey].noCharacter;
+    // The photo rides gpt-image-2's EDITS call. The WTR LoRA has no
+    // attachment slot at all — it takes a trigger word and nothing else — so
+    // the button comes off rather than sitting there doing nothing.
+    document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
     document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
   }
@@ -821,6 +958,9 @@
     var body = gpt
       ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual,
           character: charOn && !S.noCharacter, canvas: canvas,
+          // Her uploaded photo reference, when there is one. Absent otherwise,
+          // so an ordinary run is byte-for-byte what it always was.
+          photo: photoRef ? photoRef.data : undefined,
           // Only sent when she has actually edited it — an absent field means
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
@@ -1047,6 +1187,9 @@
     if (r.engine === 'gptimage') {
       if (r.quality) parts.push(r.quality);
       if (r.aspectRatio) parts.push(r.aspectRatio);
+      // A run made with a photo attached says so on its card — otherwise two
+      // runs of the same words look identical and only one had the photo.
+      if (r.photoRef) parts.push('photo ref');
     } else {
       parts.push('scale ' + r.loraScale);
       if (r.seed != null) parts.push('seed ' + r.seed);
