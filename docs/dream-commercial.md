@@ -366,6 +366,31 @@ https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-comme
 **Still to do:** the padding around her two clips is ink for now; she asked for
 the app's beige with a hand-drawn line framing the picture instead.
 
+#### v9 — four more of her clips, and the beige frame on everything (2026-08-19)
+
+She sent four more Midjourney clips and asked where they go, then: "can u make
+it so all the clips have the beige border? the back to back clips don't but
+they shud."
+
+**Her own clips arrive already framed** — a cream border with a drawn edge is
+part of the picture in all four. That settled the question from the turn
+before: the look already exists in her art, and the job was matching it on the
+three clips that are full-bleed (both quick-animates and the first Midjourney
+one).
+
+- **The surround is the app cream `#ece7dc`**, not the ink the earlier cuts
+  used, so the padding and her built-in borders read as one thing.
+- **`scripts/dream-commercial/border.js` draws the line** — a jittered path,
+  not a rectangle, rendered to a transparent PNG through the same headless
+  Chromium the films use, then overlaid. Fixed seed, so a re-render gives the
+  same line rather than a new wobble.
+
+Running order, hers except where noted: the girl awake in bed → the palindrome
+pair (its head trimmed, at her ask, so the reversed half runs ~2.5s) → the two
+hands → the first Midjourney clip → the jar of stars → riding to the moon →
+the spot. 46.8s, song from 1:04.
+https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/dream-commercial/spot-v9.mp4
+
 ### Before it can go in a public commercial
 
 Nothing here is blocking — it is the one thing to do before the song is
