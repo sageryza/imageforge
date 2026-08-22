@@ -167,6 +167,41 @@ them needs from her. Read-only; the queue is edited here, where it is run.
 
 ---
 
+### Let `ASC review status` be asked about any app (needs a `workflow` scope push)
+
+- **Why:** `ci/asc_review_status.py` is the one tool that prints an app's
+  App Store version states AND its review-submission state, but
+  `.github/workflows/asc-status.yml` hardcodes `APP_BUNDLE_ID:
+  com.sageryza.xi`, so it can only ever be asked about XI. Checking Secretly a
+  Witch's review state today meant going the long way round through the ASC
+  metadata dry run, which never shows the submission itself. A cloud session
+  CANNOT do this: GitHub refuses any push or API write that touches
+  `.github/workflows/**` without the `workflow` OAuth scope, which the session
+  token does not carry (tried both, both 403).
+- **Where:** ~/memory-library-react (clone it if it is not there)
+- **Run:**
+  ```bash
+  cd ~/memory-library-react && git checkout main && git pull origin main \
+    && git checkout -b claude/asc-status-bundle-input
+  # in .github/workflows/asc-status.yml, under `on: workflow_dispatch:` add:
+  #     inputs:
+  #       bundle:
+  #         description: Bundle id (e.g. com.sageryza.secretlyawitch)
+  #         required: false
+  #         default: com.sageryza.xi
+  # and change the env line to:
+  #     APP_BUNDLE_ID: ${{ inputs.bundle }}
+  git commit -am "ASC review status: take the bundle id as an input" \
+    && git push -u origin claude/asc-status-bundle-input
+  ```
+  The default stays `com.sageryza.xi`, so a run that passes nothing is
+  unchanged.
+- **Needs from her:** nothing beyond running it from her Mac, where the git
+  credential has `workflow` scope.
+- **Queued:** 2026-08-22 by secretly-witch-review-status
+
+---
+
 ## DONE
 
 ### Hand Apple's Voice Memos transcripts to the archive — SUPERSEDED, then solved another way
