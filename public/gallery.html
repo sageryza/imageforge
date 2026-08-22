@@ -313,13 +313,27 @@ paintPill();
           ? `${modelLabel}${m.quality ? ' · ' + m.quality : ''}`
           : img.folder;
         div.innerHTML = `
-          <img src="${img.url}" alt="${img.name}" onclick="openLightbox('${img.url}')">
+          <img src="${thumbFor(img.url)}" loading="lazy" alt="${img.name}" onclick="openLightbox('${img.url}')">
           <div class="gallery-item-info">
             <span>${label}</span>
           </div>
         `;
         grid.appendChild(div);
       });
+    }
+
+    // A grid tile loads a DERIVED display copy via the house thumb service
+    // (`/api/story/thumb` — sharp once, cached webp, 302 ever after); the
+    // originals are full-size generated images, and pulling them for ~180px
+    // tiles is what made this page slow. The lightbox and the download button
+    // keep the untouched original.
+    function thumbFor(u) {
+      // The bucket listing includes the thumbs/ folder itself — a thumb of a
+      // thumb would bake a pointless second copy, so those pass through.
+      if (/\/thumbs\//.test(u || '')) return u;
+      return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
+        ? '/api/story/thumb?w=480&url=' + encodeURIComponent(u)
+        : u;
     }
 
     // "gpt-image-2" -> "ChatGPT 2", "gpt-image-1.5" -> "ChatGPT 1.5", etc.
