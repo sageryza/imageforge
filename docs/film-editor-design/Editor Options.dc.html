@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>body{margin:0;background:#f0eee9;font-family:'Instrument Sans',system-ui,sans-serif}a{color:#1a1a1a}a:hover{color:#b06a3b}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 'Instrument Sans',sans-serif;color:#1a1a1a}.dv-notes{max-width:640px;font:12.5px/1.55 'Instrument Sans',sans-serif;color:rgba(0,0,0,.6);margin:0 0 24px}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55)}.dv-opt:target .dv-oid{background:#b06a3b;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 'Instrument Sans',sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Tap-only minimal film editor — three timeline directions</span></div>
+<p class="dv-notes">Assumptions: phone, cream palette, Lucide icons, zero scrub/scroll — every move is a single tap. All three cover your scope: trim &amp; split, delete, reorder, and an audio track with sync. They differ in how the timeline reads: <a class="dv-oid" href="#1a">1a</a> classic filmstrip, <a class="dv-oid" href="#1b">1b</a> vertical clip list, <a class="dv-oid" href="#1c">1c</a> one-clip-at-a-time focus mode.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Filmstrip — tap a clip to jump, frame-step buttons</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="display:flex;flex-direction:column;height:100%;background:#fbf9f4;color:#26221c">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 20px 6px">
+    <i data-lucide="chevron-left" style="width:20px;height:20px"></i>
+    <span style="font-size:13px;font-weight:600;letter-spacing:.02em">Rooftop cut</span>
+    <i data-lucide="upload" style="width:19px;height:19px"></i>
+  </div>
+  <div style="margin:8px 16px 0;aspect-ratio:16/9;background:linear-gradient(180deg,#e9e3d6,#ddd5c4);border-radius:14px;position:relative;display:flex;align-items:center;justify-content:center">
+    <span style="font:11px ui-monospace,monospace;color:#8b8271">clip 2 · frame preview</span>
+    <span style="position:absolute;bottom:8px;left:12px;font:500 11px ui-monospace,monospace;color:#6f6654;background:rgba(251,249,244,.8);padding:2px 7px;border-radius:6px">00:04.12</span>
+  </div>
+  <div style="display:flex;justify-content:center;align-items:center;gap:22px;padding:18px 0 10px">
+    <i data-lucide="skip-back" style="width:22px;height:22px;color:#6f6654"></i>
+    <i data-lucide="chevron-left" style="width:24px;height:24px;color:#6f6654"></i>
+    <div style="width:56px;height:56px;border-radius:50%;background:#26221c;display:flex;align-items:center;justify-content:center"><i data-lucide="play" style="width:22px;height:22px;color:#fbf9f4"></i></div>
+    <i data-lucide="chevron-right" style="width:24px;height:24px;color:#6f6654"></i>
+    <i data-lucide="skip-forward" style="width:22px;height:22px;color:#6f6654"></i>
+  </div>
+  <div style="display:flex;justify-content:center;gap:26px;padding:2px 0 14px;font:10px 'Instrument Sans',sans-serif;color:#a39a86">
+    <span>−1 clip</span><span>−1 frame</span><span style="visibility:hidden">.</span><span>+1 frame</span><span>+1 clip</span>
+  </div>
+  <div style="margin:auto 0 0;padding:0 16px 8px">
+    <div style="display:flex;gap:4px;margin-bottom:10px">
+      <div style="flex:2;height:52px;border-radius:8px;background:repeating-linear-gradient(90deg,#e5ddcc 0 14px,#ded5c1 14px 28px);display:flex;align-items:end;padding:4px 6px"><span style="font:9px ui-monospace,monospace;color:#8b8271">01</span></div>
+      <div style="flex:3;height:52px;border-radius:8px;background:repeating-linear-gradient(90deg,#e0d8c6 0 14px,#d8cfba 14px 28px);outline:2px solid #b06a3b;outline-offset:1px;display:flex;align-items:end;padding:4px 6px;position:relative"><span style="font:9px ui-monospace,monospace;color:#8b8271">02</span><div style="position:absolute;left:38%;top:-4px;bottom:-4px;width:2px;background:#b06a3b;border-radius:2px"></div></div>
+      <div style="flex:2;height:52px;border-radius:8px;background:repeating-linear-gradient(90deg,#e5ddcc 0 14px,#ded5c1 14px 28px);display:flex;align-items:end;padding:4px 6px"><span style="font:9px ui-monospace,monospace;color:#8b8271">03</span></div>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-bottom:12px">
+      <i data-lucide="audio-lines" style="width:14px;height:14px;color:#9a8f77;flex:none"></i>
+      <div style="flex:1;height:22px;border-radius:6px;background:linear-gradient(90deg,#efe9db 0 60%,#e7dfcd 60%);position:relative;display:flex;align-items:center;padding:0 8px"><span style="font:9px ui-monospace,monospace;color:#a39a86">soundtrack.wav</span><span style="position:absolute;right:8px;font:9px 'Instrument Sans',sans-serif;color:#b06a3b;display:flex;align-items:center;gap:3px"><i data-lucide="link" style="width:10px;height:10px"></i>synced</span></div>
+    </div>
+    <div style="display:flex;justify-content:space-around;align-items:center;background:#f3efe5;border-radius:16px;padding:12px 8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px"><i data-lucide="scissors" style="width:20px;height:20px"></i><span style="font-size:9px;color:#8b8271">Split</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px"><i data-lucide="arrow-left-right" style="width:20px;height:20px"></i><span style="font-size:9px;color:#8b8271">Move</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px"><i data-lucide="link" style="width:20px;height:20px"></i><span style="font-size:9px;color:#8b8271">Sync</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px"><i data-lucide="trash-2" style="width:20px;height:20px"></i><span style="font-size:9px;color:#8b8271">Delete</span></div>
+    </div>
+  </div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Clip list — reorder with tap arrows, rows are big targets</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="display:flex;flex-direction:column;height:100%;background:#fbf9f4;color:#26221c">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 20px 6px">
+    <i data-lucide="chevron-left" style="width:20px;height:20px"></i>
+    <span style="font-size:13px;font-weight:600">Rooftop cut</span>
+    <i data-lucide="upload" style="width:19px;height:19px"></i>
+  </div>
+  <div style="margin:8px 16px 0;aspect-ratio:16/9;background:linear-gradient(180deg,#e9e3d6,#ddd5c4);border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative">
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(38,34,28,.85);display:flex;align-items:center;justify-content:center"><i data-lucide="play" style="width:18px;height:18px;color:#fbf9f4"></i></div>
+    <span style="position:absolute;bottom:8px;left:12px;font:500 11px ui-monospace,monospace;color:#6f6654;background:rgba(251,249,244,.8);padding:2px 7px;border-radius:6px">00:04.12</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;padding:16px 16px 0">
+    <div style="display:flex;align-items:center;gap:12px;background:#f3efe5;border-radius:14px;padding:12px 14px;min-height:44px">
+      <div style="width:48px;height:32px;border-radius:6px;background:repeating-linear-gradient(90deg,#ddd5c1 0 8px,#d5cbb4 8px 16px);flex:none"></div>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:600">Clip 01</div><div style="font:10px ui-monospace,monospace;color:#a39a86">0:00 – 0:03.4</div></div>
+      <i data-lucide="chevron-up" style="width:22px;height:22px;color:#c9c0ab"></i>
+      <i data-lucide="chevron-down" style="width:22px;height:22px;color:#6f6654"></i>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;background:#fbf9f4;border:2px solid #b06a3b;border-radius:14px;padding:12px 14px;min-height:44px">
+      <div style="width:48px;height:32px;border-radius:6px;background:repeating-linear-gradient(90deg,#ddd5c1 0 8px,#d5cbb4 8px 16px);flex:none"></div>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:600">Clip 02</div><div style="font:10px ui-monospace,monospace;color:#a39a86">0:03.4 – 0:09.1</div></div>
+      <i data-lucide="chevron-up" style="width:22px;height:22px;color:#6f6654"></i>
+      <i data-lucide="chevron-down" style="width:22px;height:22px;color:#6f6654"></i>
+    </div>
+    <div style="display:flex;justify-content:space-around;background:#f3efe5;border-radius:12px;padding:10px 8px;margin:2px 0">
+      <i data-lucide="scissors" style="width:19px;height:19px"></i>
+      <i data-lucide="copy" style="width:19px;height:19px"></i>
+      <i data-lucide="link" style="width:19px;height:19px;color:#b06a3b"></i>
+      <i data-lucide="trash-2" style="width:19px;height:19px"></i>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;background:#f3efe5;border-radius:14px;padding:12px 14px;min-height:44px">
+      <div style="width:48px;height:32px;border-radius:6px;background:repeating-linear-gradient(90deg,#ddd5c1 0 8px,#d5cbb4 8px 16px);flex:none"></div>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:600">Clip 03</div><div style="font:10px ui-monospace,monospace;color:#a39a86">0:09.1 – 0:12.8</div></div>
+      <i data-lucide="chevron-up" style="width:22px;height:22px;color:#6f6654"></i>
+      <i data-lucide="chevron-down" style="width:22px;height:22px;color:#c9c0ab"></i>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;background:#f7f3ea;border:1px dashed #cfc6b0;border-radius:14px;padding:10px 14px">
+      <i data-lucide="audio-lines" style="width:18px;height:18px;color:#9a8f77"></i>
+      <div style="flex:1"><div style="font-size:12px;font-weight:500;color:#6f6654">soundtrack.wav</div><div style="font:10px 'Instrument Sans',sans-serif;color:#b06a3b;display:flex;align-items:center;gap:4px"><i data-lucide="link" style="width:10px;height:10px"></i>synced to Clip 02</div></div>
+      <i data-lucide="volume-2" style="width:18px;height:18px;color:#6f6654"></i>
+    </div>
+  </div>
+  <div style="margin:auto 16px 8px;display:flex;justify-content:center;align-items:center;gap:20px">
+    <i data-lucide="chevron-left" style="width:24px;height:24px;color:#6f6654"></i>
+    <div style="width:52px;height:52px;border-radius:50%;background:#26221c;display:flex;align-items:center;justify-content:center"><i data-lucide="play" style="width:20px;height:20px;color:#fbf9f4"></i></div>
+    <i data-lucide="chevron-right" style="width:24px;height:24px;color:#6f6654"></i>
+  </div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Focus mode — one clip at a time, clip dots, floating tool pill</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="display:flex;flex-direction:column;height:100%;background:#fdfcf9;color:#26221c">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 20px 6px">
+    <i data-lucide="x" style="width:20px;height:20px"></i>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="width:8px;height:8px;border-radius:50%;background:#d9d0bb"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:#b06a3b"></span>
+      <span style="width:8px;height:8px;border-radius:50%;background:#d9d0bb"></span>
+      <span style="width:8px;height:8px;border-radius:50%;background:#d9d0bb"></span>
+    </div>
+    <i data-lucide="check" style="width:20px;height:20px"></i>
+  </div>
+  <div style="text-align:center;font:10.5px ui-monospace,monospace;color:#a39a86;padding:2px 0 8px">clip 2 of 4 · 00:05.7</div>
+  <div style="margin:0 14px;flex:1;background:linear-gradient(180deg,#ece6d9,#ded5c4);border-radius:18px;position:relative;display:flex;align-items:center;justify-content:center">
+    <span style="font:11px ui-monospace,monospace;color:#8b8271">full-height clip preview</span>
+    <div style="position:absolute;left:14px;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px">
+      <div style="height:6px;border-radius:3px;background:rgba(38,34,28,.12);position:relative"><div style="position:absolute;left:0;width:42%;top:0;bottom:0;border-radius:3px;background:#26221c"></div><div style="position:absolute;left:42%;top:-3px;width:2px;height:12px;background:#b06a3b;border-radius:2px"></div></div>
+      <div style="display:flex;justify-content:space-between;font:9px ui-monospace,monospace;color:#8b8271"><span>in 0:00.0</span><span style="color:#b06a3b;display:flex;align-items:center;gap:3px"><i data-lucide="link" style="width:9px;height:9px"></i>audio sync</span><span>out 0:05.7</span></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center;align-items:center;gap:24px;padding:16px 0 6px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i data-lucide="chevrons-left" style="width:22px;height:22px;color:#6f6654"></i><span style="font-size:8.5px;color:#a39a86">prev clip</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i data-lucide="chevron-left" style="width:22px;height:22px;color:#6f6654"></i><span style="font-size:8.5px;color:#a39a86">−1 frame</span></div>
+    <div style="width:56px;height:56px;border-radius:50%;background:#26221c;display:flex;align-items:center;justify-content:center"><i data-lucide="play" style="width:22px;height:22px;color:#fdfcf9"></i></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i data-lucide="chevron-right" style="width:22px;height:22px;color:#6f6654"></i><span style="font-size:8.5px;color:#a39a86">+1 frame</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><i data-lucide="chevrons-right" style="width:22px;height:22px;color:#6f6654"></i><span style="font-size:8.5px;color:#a39a86">next clip</span></div>
+  </div>
+  <div style="margin:8px auto 10px;display:flex;gap:8px;background:#f3efe5;border-radius:999px;padding:8px 10px;box-shadow:0 2px 8px rgba(38,34,28,.06)">
+    <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fdfcf9"><i data-lucide="scissors" style="width:19px;height:19px"></i></div>
+    <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fdfcf9"><i data-lucide="brackets" style="width:19px;height:19px"></i></div>
+    <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fdfcf9"><i data-lucide="arrow-left-right" style="width:19px;height:19px"></i></div>
+    <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fdfcf9"><i data-lucide="link" style="width:19px;height:19px;color:#b06a3b"></i></div>
+    <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fdfcf9"><i data-lucide="trash-2" style="width:19px;height:19px"></i></div>
+  </div>
+</div>
+</x-import></div>
+
+</div>
+<p class="dv-next">Try next: "make <a class="dv-oid" href="#1a">1a</a> a working prototype" · "combine <a class="dv-oid" href="#1c">1c</a>'s focus mode with <a class="dv-oid" href="#1b">1b</a>'s reorder arrows" · "show the split flow step by step"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    const run = () => { if (window.lucide) { window.lucide.createIcons({attrs:{'stroke-width':1.75}}); } else { setTimeout(run, 150); } };
+    run();
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons({attrs:{'stroke-width':1.75}}); }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
