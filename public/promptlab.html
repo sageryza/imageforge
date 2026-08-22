@@ -16,7 +16,22 @@
      bridge is there and the bar is gone. */
   body.native .app-header { display: none; }
   .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
-  .styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  /* THE STYLE PICKER IS A DROP-DOWN, not a row of tiles (Aug 2026, Sophie:
+     "make the tiles at the top like dreamy, etc. into a drop-down so I don't
+     see all the tiles I just see the selected one and an arrow that shows
+     it's a drop-down"). One control showing the style she is on, with a
+     chevron so it reads as a menu; the other five are behind the tap.
+     It is a NATIVE <select> on purpose — iOS opens its own picker, it is the
+     same control the quality field beside it already uses, and it needs no
+     open/close state of its own to go wrong. Painted like the old lit tile
+     (dark) so the selected style still reads as chosen at a glance, and the
+     chevron is a flat SVG data URI — never a gradient. 16px, or iOS zooms the
+     page when it opens the picker. */
+  .styles { display: flex; margin-bottom: 10px; }
+  #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
+    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #2b2622; color: #faf7f2;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23faf7f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center; background-size: 15px 15px; }
   .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
@@ -213,7 +228,7 @@
 <header class="app-header"><h1>Playground</h1></header>
 
 <div class="panel">
-  <div class="styles" id="styles"></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
   <div id="reftag"></div>
   <div id="promptpanel"></div>
   <textarea id="prompt"></textarea>
@@ -643,12 +658,19 @@
   document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); });
   paintCanvas();
 
+  // One control, the selected style on its face. Re-rendered rather than just
+  // re-selected so a style added to STYLES needs nothing here.
   function renderStyles() {
-    document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
-      return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
-        STYLES[k].label + '</button>';
+    var sel = document.getElementById('stylepick');
+    sel.innerHTML = Object.keys(STYLES).map(function (k) {
+      return '<option value="' + k + '"' + (k === styleKey ? ' selected' : '') + '>' +
+        STYLES[k].label + '</option>';
     }).join('');
+    sel.value = styleKey;
   }
+  document.getElementById('stylepick').addEventListener('change', function () {
+    setStyle(this.value);
+  });
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
