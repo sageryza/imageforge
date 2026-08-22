@@ -14,7 +14,7 @@
  * cost for anything else.
  *
  *   node scripts/playground-rerun-size.js <runId> --size 1568x2352
- *     [--quality medium] [--folder promptlab] [--dry-run]
+ *     [--quality medium] [--folder promptlab] [--moderation low] [--dry-run]
  *
  * The prompt is taken VERBATIM from the stored run's `fullPrompt` (what was
  * really sent, including any prefix/suffix override she had saved that day) —
@@ -80,6 +80,7 @@ function checkSize(s) {
   if (!snap.exists) throw new Error(`run ${runId} not found in ${PROMPTLAB}`);
   const run = snap.data();
   const quality = flag('quality', run.quality || 'medium');
+  const moderation = flag('moderation', '');
 
   console.log(`run      ${runId}  (${new Date(run.createdAt?.toMillis?.() || run.createdAt)
     .toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT)`);
@@ -103,6 +104,14 @@ function checkSize(s) {
   form.append('size', size);
   form.append('quality', quality);
   form.append('output_format', 'webp');
+  // Off by default. gpt-image-2's moderation is STOCHASTIC on the same input:
+  // this exact prompt drew fine at 1568x2352 and 2336x3504, then was refused
+  // twice in a row minutes later with safety_violations=[violence] (raw meat +
+  // a shirtless man). `low` is OpenAI's documented "less restrictive" setting,
+  // not a bypass. It changes what the filter allows through, so it is never
+  // implicit — it must be asked for, and it must be named in the reply that
+  // hands over any picture drawn with it.
+  if (moderation) form.append('moderation', moderation);
   form.append('image[]', new Blob([refBuf], { type: 'image/png' }), 'ref1.png');
 
   console.log('\ndrawing…');
