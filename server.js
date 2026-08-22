@@ -5227,6 +5227,18 @@ const PL_GPT_STYLES = {
     suffix: 'Render as ONE single illustration — a single image, NOT a grid, NOT ' +
       'split panels. Minimal text only. Again: the attached image is a STYLE ' +
       'reference only — do not draw its content, its subjects or its composition.',
+    // THE NO-TEXT TOGGLE (Aug 2026, Sophie: "add a no text line to the prompt
+    // that can be toggled on and off with a little toggle"). Dreamy is the one
+    // house style whose tail deliberately ALLOWS text — "Minimal text only",
+    // because the handwriting on that diary-comic page is part of the look —
+    // so this SWAPS that clause rather than appending a second sentence
+    // arguing with it. Off is the default: the baked tail is unchanged and a
+    // run with the toggle off is byte-for-byte what it always was.
+    noText: {
+      from: 'Minimal text only.',
+      to: 'NO text anywhere in the image — no words, no letters, no numbers, ' +
+        'no captions, no handwriting.',
+    },
     noCharacter: true,
   },
   // "Hoonies" (Aug 2026, Sophie) — her woodcut smallies, the same drawings the
@@ -5253,6 +5265,19 @@ const PL_GPT_STYLES = {
     noCharacter: true,
   },
 };
+// The no-text switch on a style's tail. It SWAPS the style's own text clause
+// where that clause is there to swap, so the sent prompt says one thing about
+// text instead of two contradicting things; if she has edited the tail and her
+// wording no longer carries the clause, the line is appended at the very end
+// instead — so the toggle always does what it says, whoever wrote the tail.
+function applyNoText(suffix, st, on) {
+  if (!on || !st || !st.noText) return suffix;
+  const { from, to } = st.noText;
+  const s = String(suffix || '');
+  if (from && s.includes(from)) return s.replace(from, to);
+  return s ? `${s} ${to}` : to;
+}
+
 const plRefCache = {};
 function playgroundRef(file) {
   if (!plRefCache[file]) plRefCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
@@ -5500,7 +5525,12 @@ app.post('/api/promptlab', async (req, res) => {
       const prefix = over(req.body.prefix, st.prefix);
       const suffix = over(req.body.suffix, st.suffix);
       const edited = prefix !== st.prefix || suffix !== st.suffix;
-      const fullPrompt = `${prefix}${character ? st.characterLine : ''}${prefix ? '\n\n' : ''}${typed}${suffix ? `\n\n${suffix}` : ''}`;
+      // The no-text toggle is NOT an edit of hers — it is a switch on the
+      // house tail, so it is applied AFTER the override and left out of
+      // `edited`. A style with no `noText` never offers it.
+      const noText = Boolean(req.body.noText) && !!st.noText;
+      const tail = applyNoText(suffix, st, noText);
+      const fullPrompt = `${prefix}${character ? st.characterLine : ''}${prefix ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       // Portrait unless she asked for the square; an unknown value is portrait,
@@ -5510,7 +5540,7 @@ app.post('/api/promptlab', async (req, res) => {
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
-        aspectRatio: canvas.aspectRatio, promptEdited: edited,
+        aspectRatio: canvas.aspectRatio, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
@@ -5565,6 +5595,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       prefix: st.prefix || '',
       suffix: st.suffix || '',
       characterLine: st.noCharacter ? '' : (st.characterLine || ''),
+      // What the no-text toggle would put in this style's tail, or null when
+      // the style doesn't offer one — that is what hides the button.
+      noText: st.noText ? { from: st.noText.from, to: st.noText.to } : null,
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
