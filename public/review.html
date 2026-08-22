@@ -23,6 +23,15 @@
      piles view (judge.js). The hidden pile still lives under the DONE tab and
      un-hides with ↩, which is the only write this page makes.
 
+     THE WAY BACK IS THE PAGE'S OWN (Aug 2026, Sophie: "no back button way out
+     of the review queue"). Two doors reach this screen and only one had a
+     chevron: the iOS tile opens it ?embed=1 inside ReviewQueueView, whose bar
+     owns back — but the Chats app's Review chip is a plain
+     `location.href='/review'` in the SAME web view, which installs no
+     `__forgeLeave`, so pagehead.js draws nothing there and the queue was a
+     dead end. `#back` (the brief.html pattern) shows on every un-embedded
+     load.
+
      House kit it follows:
        tool.css           the look; title once (the native bar carries it)
        .acctabs           WAITING · AUTO · DONE — hairline row, line measured
@@ -43,6 +52,19 @@
   /* 64, not 56: the pill's left edge lands at x=326 on a 390pt phone, so a
      56px reserve leaves the last 8px of the "?" dead. */
   .tool .head{ padding-right:64px; }
+
+  /* THE WAY BACK (Aug 2026, Sophie: "no back button way out of the review
+     queue"). This page has two doors and only ONE of them ever had a chevron:
+     the iOS tile opens it with ?embed=1 inside ReviewQueueView, whose bar owns
+     back — but the Chats app's Review chip is a plain `location.href='/review'`
+     in the SAME web view, and that web view installs no `__forgeLeave`, so
+     pagehead.js does nothing there and the screen had no way out at all.
+     Shown only when the page is NOT embedded, the brief.html pattern. */
+  .backch{ flex:0 0 auto; width:26px; height:26px; margin-left:-8px; padding:0;
+    border:0; background:transparent; color:var(--dim); font:inherit;
+    font-size:24px; line-height:1; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; }
+  .backch[hidden]{ display:none !important; }
 
   /* WAITING · DONE — the hairline row, the voice.html pattern verbatim: the
      sliding line MEASURES the lit tab (tabLine below), never a tab count. It
@@ -105,6 +127,7 @@
 
 <body class="tool">
 <header class="head">
+  <button class="backch" id="back" aria-label="back" hidden>&lsaquo;</button>
   <div class="eyebrow tool-eyebrow">REVIEW QUEUE</div>
   <button id="help" aria-label="what this is">?</button>
 </header>
@@ -295,6 +318,37 @@ window.__navBack = function () {
   if (!$('helpcard').hidden) { $('helpcard').hidden = true; return true; }
   return false;
 };
+
+/* THE CHEVRON — the way back out of the queue on the door that never had one
+   (Aug 2026, Sophie: "no back button way out of the review queue"). Opened
+   from the Chats app's Review chip this page is a plain navigation inside that
+   same web view, which installs no `__forgeLeave`, so pagehead.js draws
+   nothing and the queue was a dead end. Embedded in the native tool screen
+   (?embed=1) the bar's own chevron owns the job and this stays hidden.
+
+   It asks the page first (the "?" card), then steps history — with the BELT
+   pagehead.js earned on this exact page: after a deck round-trip the queue can
+   sit at history index 0 with length 2, where `history.back()` is a silent
+   no-op. A real back fires popstate or pagehide and cancels the timer; nothing
+   moving lands her back on the UPDATE tab she came from instead of on a dead
+   button. */
+if (!/[?&]embed=1/.test(location.search)) {
+  var backBtn = $('back');
+  backBtn.hidden = false;
+  backBtn.addEventListener('click', function () {
+    if (window.__navBack && window.__navBack() === true) return;
+    var out = function () { location.href = '/chats?view=news'; };
+    if (history.length > 1) {
+      var bail = setTimeout(out, 400);
+      var cancel = function () { clearTimeout(bail); };
+      window.addEventListener('popstate', cancel, { once: true });
+      window.addEventListener('pagehide', cancel, { once: true });
+      history.back();
+      return;
+    }
+    out();
+  });
+}
 
 $('refresh').addEventListener('click', function () { load(true); });
 $('help').addEventListener('click', function () { $('helpcard').hidden = !$('helpcard').hidden; });

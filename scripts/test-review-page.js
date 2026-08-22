@@ -14,6 +14,11 @@
 //   • the WAITING · DONE hairline tabs switch panes and the sliding line
 //     lands under the lit tab (measured, never a count)
 //   • the hidden pile's ↩ still posts hidden:false — the page's one write
+//   • THE WAY BACK (Aug 2026, Sophie: "no back button way out of the review
+//     queue") — the chevron is drawn and tappable on the un-embedded page,
+//     closes the "?" first, goes back to the Chats app she came from, falls
+//     through to the UPDATE tab when back moves nothing, and stays hidden
+//     under ?embed=1 where the native bar owns it
 //   • nothing scrolls sideways on a 390pt phone
 //
 // Playwright is optional — this skips cleanly without it.
@@ -100,6 +105,11 @@ const QUEUE = {
     }
     if (/\/review(\?|$)/.test(url)) {
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: html + pill });
+    }
+    // the Chats app — where the Review chip sends her here FROM, and where the
+    // chevron has to be able to put her back
+    if (/\/chats(\?|$)/.test(url)) {
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!doctype html><title>Chats</title>chats' });
     }
     if (/\/tool\.css/.test(url)) {
       return route.fulfill({ contentType: 'text/css',
@@ -201,6 +211,58 @@ const QUEUE = {
   await page.locator('[data-unhide="h1"]').click();
   await page.waitForTimeout(120);
   is('the ↩ posted it back', hides[0], { id: 'h1', hidden: false });
+
+  // ── THE WAY BACK (Aug 2026, Sophie: "no back button way out of the review
+  //    queue") ───────────────────────────────────────────────────────────────
+  // The iOS tile opens ?embed=1 and its bar owns back; the Chats app's Review
+  // chip is a plain navigation in a web view with no `__forgeLeave`, where
+  // pagehead.js draws nothing — so the page has to carry its own.
+  {
+    ok('the chevron is on screen on the un-embedded page',
+      await page.locator('#back').isVisible());
+    const b = await page.locator('#back').boundingBox();
+    is('…and a tap at its own centre reaches it, not the pill or the title',
+      await page.evaluate(([x, y]) => {
+        const el = document.elementFromPoint(x, y);
+        return el && el.closest('#back') ? 'back' : (el && el.id) || (el && el.tagName);
+      }, [b.x + b.width / 2, b.y + b.height / 2]), 'back');
+
+    // 1. the "?" card closes first — the chevron must never leave with an
+    //    overlay still up
+    await page.locator('#help').click();
+    await page.waitForTimeout(60);
+    await page.locator('#back').click();
+    await page.waitForTimeout(120);
+    is('the chevron closes the "?" card before it leaves',
+      await page.locator('#helpcard').isHidden(), true);
+    is('…and stays on the queue', new URL(page.url()).pathname, '/review');
+
+    // 2. THE BELT: a back that moves nothing (the queue sitting at history
+    //    index 0 after a deck round-trip — pagehead.js's finding on this very
+    //    page) lands her on the UPDATE tab instead of reading as dead.
+    await page.evaluate(() => { history.back = function () {}; });
+    await page.locator('#back').click();
+    await page.waitForURL(/\/chats/, { timeout: 3000 }).catch(() => {});
+    is('a back that moves nothing falls through to the UPDATE tab', page.url(),
+      'https://forge.test/chats?view=news');
+  }
+  {
+    // 3. arrived from the Chats app → straight back to it
+    await page.goto('https://forge.test/chats?view=news', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => { location.href = '/review'; });
+    await page.waitForSelector('#pane-wait .qtile', { timeout: 5000 }).catch(() => {});
+    await page.locator('#back').click();
+    await page.waitForURL(/\/chats/, { timeout: 3000 }).catch(() => {});
+    is('arriving from the Chats app, the chevron goes back to it', page.url(),
+      'https://forge.test/chats?view=news');
+  }
+  {
+    // 4. embedded in the native tool screen the bar owns back — one chevron
+    await page.goto('https://forge.test/review?embed=1', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#pane-wait .qtile', { timeout: 5000 }).catch(() => {});
+    is('embedded, the page draws no chevron of its own',
+      await page.locator('#back').isVisible(), false);
+  }
 
   await browser.close();
   if (fails.length) {
