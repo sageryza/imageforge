@@ -2275,6 +2275,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **A SEARCH BAR SITS IN THE ROW THAT WAS ALREADY THERE (Aug 2026, Sophie: "a
+  little search bar that fits in the space between the heart toggle (next to
+  tiles/grid)").** `flex: 1` between the heart and the 56px the autoscroll pill
+  owns, so nothing moved to make room and the row still fits one line on a
+  390pt phone (measured: 126px of box). It filters by RUN — her words belong to
+  a run, not a picture — so list view drops whole boxes and tiles drops that
+  run's pictures off the wall; it stacks with the heart (search picks the runs,
+  the heart the pictures) and hides "Older" while it is running. Searchable:
+  her words, the style by its LABEL and its key, quality, the canvas by its
+  ratio AND by the word on the button, `photo ref`, failed/cancelled.
+  **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
+  scans the whole run history (a few hundred ~1KB docs, capped 1500, held
+  60s) because a box that only filters the loaded page answers "nothing
+  matches" for everything behind the 40-run window: the Assets tab's own
+  lesson, re-learned rather than re-lived. The loaded runs are still filtered
+  INSTANTLY while that lands. **The two haystacks are pinned equal by the
+  test** (`runHay` in promptlab.html, `promptlabHay` in server.js) — if they
+  drift, the view changes under her a beat after she types. The house grammar
+  and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
+  is deliberately NOT sticky, unlike the view and the heart. Test:
+  `node scripts/test-playground-search.js`.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3

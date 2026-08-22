@@ -2373,6 +2373,7 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
 // BE the heart there, in both directions, with no mirroring machinery.
 // Ordering/union rules live in meta-assets.js (pure, tested).
 const metaAssets = require('./meta-assets');
+const searchGrammar = require('./search-grammar');
 // The full list is rebuilt at most once a minute — one collection read
 // (~5k docs) serving every page of the walk; a fresh filing shows within 60s
 // (the page is a review surface, not a live feed).
@@ -5726,11 +5727,85 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
 // Until Aug 2026 this route had no cursor at all and the page only ever asked
 // for the newest 40 — so every run older than that was unreachable, which read
 // as her older pictures having disappeared (213 runs existed, 40 were visible).
+// ─── The Playground's search ────────────────────────────────────────────
+// A SEARCH READS THE WHOLE FEED, not the page she is looking at — the Assets
+// tab's lesson (Aug 2026: she searched "yarn" and got nothing, because that
+// box only filtered the tiles already loaded). The Playground pages 40 runs at
+// a time out of a few hundred, so a client-only filter would answer "nothing
+// matches" for almost everything she has ever drawn.
+//
+// Firestore has no text search, so this scans — which is affordable here and
+// nowhere near it on the big collections: the whole run history is a few
+// hundred docs of ~1KB. The scan is capped and held for a minute, so typing
+// costs one read of it however many keystrokes land.
+const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
+const PL_SEARCH_MAX = 300;      // matches handed back
+let plScan = { at: 0, runs: null };
+async function promptlabScan() {
+  if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
+  const snap = await admin.firestore().collection(PROMPTLAB)
+    .orderBy('createdAt', 'desc').limit(PL_SEARCH_SCAN).get();
+  const runs = snap.docs.map((d) => {
+    const v = d.data();
+    return { ...v, createdAt: v.createdAt?.toMillis?.() || null };
+  });
+  plScan = { at: Date.now(), runs };
+  return runs;
+}
+// Everything a run's card says: her words, its style (by the label she sees
+// AND the key the doc stores), and the tags beside them.
+function promptlabHay(r) {
+  const st = PL_GPT_STYLES[r.gptStyle || ''] || null;
+  // The canvas is stored as a ratio and shown to her as one, but the button
+  // she picked it with says Portrait or Square — so both words find it.
+  const shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+  return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
+    r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
+    r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+}
+// The house grammar (search-grammar.js), matched the FEED's way — every term
+// anchored at a word start, a quoted phrase kept adjacent. Same regexes the
+// page's own qparse builds, so a search here and the client's instant filter
+// over the loaded runs can never disagree. (Deliberately a local copy: the
+// grammar module parses only, because its callers disagree about what a match
+// is — meta-assets.js carries the identical one for the same reason.)
+function plCompileQuery(q) {
+  return searchGrammar.parseQuery(q).map((g) => ({
+    neg: g.neg,
+    terms: g.terms.map((t) => {
+      const v = t.value;
+      try {
+        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
+          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
+      } catch (e) { return null; }
+    }).filter(Boolean),
+  })).filter((g) => g.terms.length);
+}
+function plSearchRuns(runs, q) {
+  const groups = plCompileQuery(q);
+  if (!groups.length) return runs;
+  return runs.filter((r) => {
+    const hay = promptlabHay(r);
+    return groups.every((g) => (g.terms.some((rx) => rx.test(hay)) ? !g.neg : g.neg));
+  });
+}
+
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const before = Number(req.query.before) || 0;
+    // A search answers over the whole history at once — there is no `before`
+    // walk behind it, so the page hides "Older" while one is running.
+    const search = String(req.query.q || '').trim();
+    if (search) {
+      const hits = plSearchRuns(await promptlabScan(), search);
+      return res.json({
+        runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
+        more: false,
+        matched: hits.length,
+      });
+    }
     let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
     // Inequality on the same field the query orders by — no composite index.
     if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
