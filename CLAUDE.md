@@ -2089,26 +2089,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the other main style reference we use in the chat, which can be called
   dreamy"). It was the most-used reference in the repo with no tile — 270 filed
   images name it (measured 2026-08-20) — so every one of them used to port onto
-  ChatGPT and silently pick up sage sandy mirror instead. Its wording is NOT
-  new: `scripts/nde-panel.py`'s in-use recipe, the one `style-triptych.js`
-  already ran beside the house styles. **THE ANTI-CONTENT RULE IS BOOKENDED**
+  ChatGPT and silently pick up sage sandy mirror instead. It shipped carrying
+  `scripts/nde-panel.py`'s in-use recipe, the one `style-triptych.js` already
+  ran beside the house styles. **THE ANTI-CONTENT RULE IS BOOKENDED**
   (her ask) — it opens the prefix and closes the suffix, because that reference
   is itself a multi-panel comic page full of drawn people and is the one house
   ref the model will happily redraw the CONTENT of; the suffix rides at the
   very end of the sent prompt, after her words. The anti-grid half of the
   suffix is load-bearing for the same reason. No Sophie character card.
-  **ITS TAIL IS THE DREAM FEED'S CURRENT WORDING, not nde-panel.py's** (Sophie,
-  2026-08-20: "I think we recently changed the prompt anyway" — and she was
-  right; measured against the live filed prompts that day, the newest runs
-  naming this reference say "render as a single image, not a grid, not split
-  panels. Minimal text only"). Two clauses came OUT of the imported version and
-  neither should go back: **"no borders"** / **"no caption boxes"** (Sophie: "it
-  should have a border" then "take your borderline out … and also take out
-  where it says no caption boxes" — the reference IS a diary comic and its
-  drawn frames and boxes are the look, so a ban fought the style it was
-  copying; it does not ASK for a border either, which shipped for an hour and
-  came straight back out) and **"vertical"** (the canvas toggles, so a prompt
-  naming one shape fights the other).
+  **BOTH HALVES ARE HER OWN DICTATED WORDING SINCE 2026-08-22** ("change the
+  default prompt in the dreamy style in the playground to this one that
+  follows … the first paragraph is the prefix and the second paragraph is the
+  suffix") — paste them verbatim, do not reconstruct them from the history
+  below. The prefix shortened to "copy its drawing style" (the old "linework,
+  hand-drawn texture, and muted palette EXACTLY" list is gone), and the tail
+  moved two clauses BACK to things this file previously recorded her taking
+  out — **she changed her mind, so those are history now, not rules**:
+  **the BORDER is asked for again** ("Draw it inside a hand-drawn border, like
+  the frames in the style reference" — an earlier cut added one and she pulled
+  it the same day, "take your borderline out"; this time she dictated it
+  herself), and **"Minimal text only." became a flat "no text."** Still gone
+  and still unmentioned: **"no caption boxes"** (the reference IS a diary comic
+  and its boxes are the look) and **"vertical"** (the canvas toggles, so a
+  prompt naming one shape fights the other). The wording before this was the
+  dream feed's, imported 2026-08-20.
   **THE OLDER WORDING IS SIGNPOSTED, NOT ORPHANED (her ask: "a note that says
   there's a new prompt in town … so other chats can decide if they want that
   one or the new one").** `scripts/nde-panel.py` and
@@ -2117,15 +2121,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   says the pick is deliberate. **Writing a new surface against this reference?
   Read both and choose; if you reword one, say which you started from.** A
   silent old copy is exactly how this tile shipped a day-stale tail. Pinned by
-  the test. The prefix is identical across every version ever sent — it is only
-  ever the tail that moves.
+  the test. Both halves have moved since — the 2026-08-22 rewrite is the first
+  time the PREFIX changed, so an older doc quoting it is stale too.
   **THE "NO TEXT" TOGGLE — Dreamy only, off by default (Aug 2026, Sophie: "add
   a no text line to the prompt that can be toggled on and off with a little
   toggle").** A little dark-when-on button beside Prompt. It **SWAPS** the
-  tail's `Minimal text only.` for a flat ban rather than appending a second
-  sentence arguing with it — Dreamy is the ONE house style whose tail
-  deliberately allows text (that reference's handwriting is the look), and
-  every other style already bans it, so no other tile shows the toggle.
+  tail's own text clause (`no text.` since 2026-08-22; `Minimal text only.`
+  before that) for the spelled-out ban — no letters, no numbers, no captions,
+  no handwriting — rather than appending a second sentence arguing with it.
+  Dreamy is the only tile that shows it: every other style's baked tail already
+  bans text outright, so a switch there would change nothing.
   `PL_GPT_STYLES.dreamy.noText {from,to}` + `applyNoText()` own it; the swap is
   applied AFTER her prefix/suffix override and is deliberately NOT counted as
   her edit, and if her edited tail no longer carries the clause the line is

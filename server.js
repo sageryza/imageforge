@@ -5214,45 +5214,49 @@ const PL_GPT_STYLES = {
   dreamy: {
     label: 'Dreamy',
     refFiles: ['dream-mystery.jpg'],
-    prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style, ' +
-      'linework, hand-drawn texture, and muted palette EXACTLY, but do NOT copy ' +
-      'its content, subjects, or composition.',
-    // THE TAIL IS THE DREAM FEED'S CURRENT WORDING, not nde-panel.py's (Sophie,
-    // 2026-08-20: "I think we recently changed the prompt anyway"). Measured
-    // that day against the live filed prompts: the newest runs naming this
-    // reference say "render as a single image, not a grid, not split panels.
-    // Minimal text only." The prefix is identical across every version — it is
-    // the tail that moved, and it moved in two ways that matter here:
-    //   • "no borders" is GONE. Sophie: "it should have a border" — this
-    //     reference is a diary comic and its drawn frame is part of the look,
-    //     so the old clause was fighting the style it was copying. It does not
-    //     ASK for one either: the first cut added "draw it inside a hand-drawn
-    //     border" and she took that back out the same day ("take your
-    //     borderline out"). Saying nothing lets the reference's own framing
-    //     come through without a second instruction arguing about it.
-    //   • "no caption boxes" is gone too, at her ask, for the same reason —
-    //     the reference HAS them.
-    //   • "no text or lettering anywhere" became "minimal text only", because
-    //     her handwriting is part of that page too.
-    // "vertical" is dropped as well: the canvas toggles portrait/square now,
-    // so a prompt naming one shape would fight the other.
+    // HER OWN WORDING, dictated 2026-08-22 ("change the default prompt in the
+    // dreamy style in the playground to this one that follows"): the prefix is
+    // her first paragraph, the suffix her second, verbatim. The prefix lost the
+    // "linework, hand-drawn texture, and muted palette EXACTLY" list — she
+    // shortened it to "copy its drawing style" — so do not put that back.
+    prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
+      'but do NOT copy its content, subjects, or composition.',
+    // THE TAIL IS HERS, dictated verbatim 2026-08-22. Two clauses moved from
+    // the wording that shipped 2026-08-20, and both moved BACK to something
+    // this file had previously recorded her taking OUT — she changed her mind,
+    // so read the history as history, not as a rule that still binds:
+    //   • THE BORDER IS ASKED FOR AGAIN: "Draw it inside a hand-drawn border,
+    //     like the frames in the style reference." An earlier cut added a
+    //     border line and she removed it the same day ("take your borderline
+    //     out"); this time she dictated it herself, with the reference named
+    //     as what the frame should look like. Do not "restore" the silence.
+    //   • "Minimal text only." became a flat "no text." — the handwriting on
+    //     that diary-comic page is no longer wanted in the output.
+    // Still gone and still deliberately unmentioned: "no caption boxes" and any
+    // word about shape ("vertical"), because the canvas toggles portrait/square
+    // and a prompt naming one would fight the other.
     // THE ORIGINAL WORDING IS STILL IN THE REPO AND IS STILL VALID for what it
     // was built for — `scripts/nde-panel.py` (a full-bleed NDE panel wants
     // those bans) and `scripts/style-triptych.js`. Both carry a note pointing
     // here. Writing a new surface against this reference? Read both and pick
     // deliberately; this one is Sophie's current wording, not the only one.
-    suffix: 'Render as ONE single illustration — a single image, NOT a grid, NOT ' +
-      'split panels. Minimal text only. Again: the attached image is a STYLE ' +
-      'reference only — do not draw its content, its subjects or its composition.',
+    suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
+      'Draw it inside a hand-drawn border, like the frames in the style ' +
+      'reference. no text. Again: the attached image is a STYLE reference ' +
+      'only — do not draw its content, its subjects or its composition.',
     // THE NO-TEXT TOGGLE (Aug 2026, Sophie: "add a no text line to the prompt
-    // that can be toggled on and off with a little toggle"). Dreamy is the one
-    // house style whose tail deliberately ALLOWS text — "Minimal text only",
-    // because the handwriting on that diary-comic page is part of the look —
-    // so this SWAPS that clause rather than appending a second sentence
-    // arguing with it. Off is the default: the baked tail is unchanged and a
-    // run with the toggle off is byte-for-byte what it always was.
+    // that can be toggled on and off with a little toggle"). It SWAPS the
+    // tail's own text clause rather than appending a second sentence arguing
+    // with it, so `from` has to track the tail VERBATIM — her 2026-08-22
+    // wording says "no text." where the old one said "Minimal text only.", so
+    // this moved with it (`test-playground-notext.js` pins the two together).
+    // The toggle still earns its place: her tail bans text in three quiet
+    // words, and turning it on spells the ban out — no letters, no numbers, no
+    // captions, no handwriting. Off is the default and the baked tail is
+    // unchanged, so a run with the toggle off is byte-for-byte what she asked
+    // for.
     noText: {
-      from: 'Minimal text only.',
+      from: 'no text.',
       to: 'NO text anywhere in the image — no words, no letters, no numbers, ' +
         'no captions, no handwriting.',
     },
