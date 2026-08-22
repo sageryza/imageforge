@@ -228,6 +228,27 @@ it out anyway is how this repo lost weeks:
   the window was gone before she could look. Judge parking/tint on a LONG
   turn, or from the gap test above — never on a fast one.
 
+## WHAT A CHAT COSTS IS READABLE — and the obvious call hides it
+**Measured 2026-08-22, and Sophie's own note that no chat had ever managed
+this.** A session's spend is on `get_session` at
+`external_metadata.usage.cost_usd`, with `input_tokens` / `output_tokens` /
+`cache_read_tokens` / `cache_write_tokens` beside it, and `rate_limit_info`
+(`resetsAt`, epoch seconds; `isUsingOverage`) beside that. `list_sessions`
+carries the same block for every session at once, which is how you total a day.
+- **THE TRAP: `get_session` with NO `session_id` — the natural "describe
+  myself" call — comes back with NO `usage` block at all.** Pass your own id
+  explicitly (`CLAUDE_CODE_REMOTE_SESSION_ID` with `cse_` swapped for
+  `session_`) and it is there. That one difference is the likeliest reason
+  this went unfound.
+- The number is the session's LIFETIME cost, not this turn's — subtract an
+  earlier reading to price one turn. A session created today has a clean
+  daily figure; one created yesterday and answered today does not.
+- **Two figures worth carrying around** (2026-08-22): a fresh container that
+  did nothing but ask "What are we working on?" cost **$1.52** — that is the
+  floor for opening a chat at all, before any work — and nine sessions across
+  that one day came to about **$45**.
+- Nothing here is a model call, so reading it is free.
+
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
 time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
