@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./dc-rt-2.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>body{margin:0;background:#f0eee9;font-family:'Instrument Sans',system-ui,sans-serif;display:flex;justify-content:center;padding:32px 0}a{color:#1a1a1a}a:hover{color:#b06a3b}</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="display:flex;flex-direction:column;height:100%;background:#fbf9f4;color:#26221c;user-select:none">
+
+  <input type="file" accept="video/*" multiple style="display:none" ref="{{ fileRef }}" onChange="{{ onFiles }}">
+  <input type="file" accept="audio/*" style="display:none" ref="{{ audioFileRef }}" onChange="{{ onAudioFile }}">
+  <audio ref="{{ audioRef }}" src="{{ audioSrc }}"></audio>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 16px 6px">
+    <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px"><i data-lucide="film" style="width:20px;height:20px;color:#6f6654"></i></div>
+    <span style="font-size:13px;font-weight:600;letter-spacing:.02em">Untitled Cut</span>
+    <div onClick="{{ pickFiles }}" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#f3efe5;cursor:pointer"><i data-lucide="plus" style="width:20px;height:20px"></i></div>
+  </div>
+
+  <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:0 40px">
+      <i data-lucide="clapperboard" style="width:40px;height:40px;color:#c9c0ab"></i>
+      <div style="font-size:14px;color:#8b8271;text-align:center;line-height:1.5">No clips yet.<br>Upload videos from your device, or try the demo timeline.</div>
+      <div onClick="{{ pickFiles }}" style="display:flex;align-items:center;gap:10px;background:#26221c;color:#fbf9f4;border-radius:14px;padding:14px 22px;min-height:44px;box-sizing:border-box;cursor:pointer"><i data-lucide="upload" style="width:18px;height:18px"></i><span style="font-size:13px;font-weight:600">Upload clips</span></div>
+      <div onClick="{{ addDemo }}" style="display:flex;align-items:center;gap:10px;background:#f3efe5;border-radius:14px;padding:14px 22px;min-height:44px;box-sizing:border-box;cursor:pointer"><i data-lucide="sparkles" style="width:18px;height:18px;color:#6f6654"></i><span style="font-size:13px;font-weight:600;color:#6f6654">Try demo clips</span></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasClips }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+
+      <div style="flex:1;margin:6px 16px 0;border-radius:16px;overflow:hidden;position:relative;background:#111;min-height:0">
+        <video ref="{{ videoRef }}" playsInline="{{ true }}" preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:{{ videoDisp }}"></video>
+        <div style="position:absolute;inset:0;background:{{ previewBg }};display:{{ demoDisp }};align-items:center;justify-content:center"><span style="font:11px ui-monospace,monospace;color:rgba(38,34,28,.5)">{{ curName }}</span></div>
+        <span style="position:absolute;bottom:10px;left:12px;font:500 11px ui-monospace,monospace;color:#26221c;background:rgba(251,249,244,.85);padding:3px 8px;border-radius:6px">{{ tc }} / {{ totalTc }}</span>
+      </div>
+
+      <div style="display:flex;justify-content:center;align-items:center;gap:8px;padding:14px 0 2px">
+        <div onClick="{{ backSec }}" style="width:48px;height:48px;border-radius:12px;background:#f3efe5;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevrons-left" style="width:20px;height:20px;color:#6f6654"></i></div>
+        <div onClick="{{ backFrame }}" style="width:48px;height:48px;border-radius:12px;background:#f3efe5;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#6f6654"></i></div>
+        <div onClick="{{ playPause }}" style="width:60px;height:48px;border-radius:12px;background:#26221c;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i data-lucide="play" style="width:20px;height:20px;color:#fbf9f4;display:{{ playDisp }}"></i>
+          <i data-lucide="pause" style="width:20px;height:20px;color:#fbf9f4;display:{{ pauseDisp }}"></i>
+        </div>
+        <div onClick="{{ fwdFrame }}" style="width:48px;height:48px;border-radius:12px;background:#f3efe5;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevron-right" style="width:20px;height:20px;color:#6f6654"></i></div>
+        <div onClick="{{ fwdSec }}" style="width:48px;height:48px;border-radius:12px;background:#f3efe5;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevrons-right" style="width:20px;height:20px;color:#6f6654"></i></div>
+      </div>
+      <div style="display:{{ labelDisp }};justify-content:center;gap:30px;padding:3px 0 0;font-size:9px;color:#a39a86"><span>−1s</span><span>−1 frame</span><span style="width:24px"></span><span>+1 frame</span><span>+1s</span></div>
+
+      <div style="padding:12px 16px 0">
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ segs }}" as="seg" hint-placeholder-count="3">
+            <div onClick="{{ seg.select }}" style="flex:{{ seg.dur }} 1 0px;min-width:34px;height:52px;border-radius:8px;background:{{ seg.bg }};outline:{{ seg.outline }};outline-offset:1px;position:relative;cursor:pointer;overflow:hidden">
+              <span style="position:absolute;left:6px;bottom:4px;font:9px ui-monospace,monospace;color:#8b8271">{{ seg.label }}</span>
+              <div style="position:absolute;left:{{ seg.ph }}%;top:0;bottom:0;width:2px;background:#b06a3b;display:{{ seg.phDisp }}"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+          <i data-lucide="audio-lines" style="width:14px;height:14px;color:#9a8f77;flex:none"></i>
+          <sc-if value="{{ hasAudio }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;height:26px;border-radius:6px;background:#efe9db;display:flex;align-items:center;padding:0 8px;justify-content:space-between"><span style="font:9px ui-monospace,monospace;color:#a39a86">{{ audioName }}</span><span style="font-size:9px;color:#b06a3b;display:flex;align-items:center;gap:3px"><i data-lucide="link" style="width:10px;height:10px"></i>{{ syncLabel }}</span></div>
+          </sc-if>
+          <sc-if value="{{ noAudio }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ pickAudio }}" style="flex:1;height:26px;border-radius:6px;border:1px dashed #cfc6b0;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><i data-lucide="plus" style="width:11px;height:11px;color:#9a8f77"></i><span style="font-size:10px;color:#9a8f77">add audio track</span></div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:6px;padding:14px 8px 26px">
+        <div onClick="{{ split }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="scissors" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">split</span></div>
+        <div onClick="{{ trimIn }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="arrow-left-to-line" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">trim in</span></div>
+        <div onClick="{{ trimOut }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="arrow-right-to-line" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">trim out</span></div>
+        <div onClick="{{ moveL }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="move-left" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">earlier</span></div>
+        <div onClick="{{ moveR }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="move-right" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">later</span></div>
+        <div onClick="{{ syncAudio }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="link" style="width:18px;height:18px;color:#b06a3b"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">sync</span></div>
+        <div onClick="{{ del }}" style="width:46px;height:52px;border-radius:12px;background:#f3efe5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;opacity:{{ toolOp }}"><i data-lucide="trash-2" style="width:18px;height:18px"></i><span style="display:{{ labelFlex }};font-size:8px;color:#8b8271">delete</span></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;460px&quot;,&quot;height&quot;:&quot;940px&quot;},&quot;fps&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:30,&quot;options&quot;:[24,30,60],&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Playback&quot;},&quot;stepSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:5,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Playback&quot;},&quot;showLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Interface&quot;}}">
+class Component extends DCLogic {
+  state = { clips: [], audio: null, audioOffset: 0, syncedTo: null, selectedId: null, playhead: 0, playing: false };
+  fileRef = React.createRef(); audioFileRef = React.createRef(); videoRef = React.createRef(); audioRef = React.createRef();
+  nextId = 1; raf = null; lastTs = null; iconSig = "";
+
+  fps() { return Number(this.props.fps ?? 30); }
+  step() { return Number(this.props.stepSeconds ?? 1); }
+
+  componentDidMount() { this.refreshIcons(true); }
+  componentDidUpdate() { this.refreshIcons(); }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  refreshIcons(force) {
+    const sig = this.state.clips.length + ":" + (this.state.clips.length === 0) + ":" + !!this.state.audio;
+    if (!force && sig === this.iconSig) return;
+    this.iconSig = sig;
+    const run = () => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); else setTimeout(run, 150); };
+    setTimeout(run, 0);
+  }
+
+  segsRaw() { let t = 0; return this.state.clips.map(c => { const s = { clip: c, start: t, dur: c.out - c.in }; t += s.dur; return s; }); }
+  total() { return this.segsRaw().reduce((a, s) => a + s.dur, 0); }
+  segAt(t) { const ss = this.segsRaw(); for (const s of ss) { if (t < s.start + s.dur - 1e-4) return s; } return ss[ss.length - 1] || null; }
+  fmt(t) { t = Math.max(0, t); const m = Math.floor(t / 60), s = Math.floor(t % 60), f = Math.floor((t % 1) * this.fps()); return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "." + String(f).padStart(2, "0"); }
+
+  addClips(defs) { this.setState(st => { const clips = st.clips.concat(defs); return { clips, selectedId: st.selectedId ?? (defs[0] && defs[0].id) }; }, () => this.seekTo(this.state.playhead)); }
+  onFiles = (e) => {
+    const files = Array.from(e.target.files || []); e.target.value = "";
+    files.forEach(f => {
+      const url = URL.createObjectURL(f), v = document.createElement("video");
+      v.preload = "metadata"; v.src = url;
+      v.onloadedmetadata = () => { const d = Math.max(0.5, v.duration || 5); this.addClips([{ id: this.nextId++, name: f.name, url, in: 0, out: d, bg: null }]); };
+      v.onerror = () => URL.revokeObjectURL(url);
+    });
+  };
+  pickFiles = () => this.fileRef.current && this.fileRef.current.click();
+  pickAudio = () => this.audioFileRef.current && this.audioFileRef.current.click();
+  onAudioFile = (e) => { const f = (e.target.files || [])[0]; e.target.value = ""; if (f) this.setState({ audio: { name: f.name, url: URL.createObjectURL(f) }, audioOffset: 0, syncedTo: null }); };
+  addDemo = () => {
+    const hues = [["#e7dfc9", "#d8cdb0"], ["#dfe4d3", "#c8d1b8"], ["#e9dcd2", "#d9c4b4"]];
+    this.addClips([4, 6, 3].map((d, i) => ({ id: this.nextId++, name: "demo clip " + (i + 1), url: null, in: 0, out: d, bg: "linear-gradient(160deg," + hues[i][0] + "," + hues[i][1] + ")" })));
+  };
+
+  pause() { cancelAnimationFrame(this.raf); this.lastTs = null; const v = this.videoRef.current, a = this.audioRef.current; if (v) v.pause(); if (a) a.pause(); this.setState({ playing: false }); }
+  seekTo(t, sel) {
+    t = Math.min(Math.max(0, t), Math.max(0, this.total() - 0.001));
+    if (this.state.playing) this.pause();
+    const st = { playhead: t }; if (sel !== undefined) st.selectedId = sel;
+    this.setState(st, () => this.syncVideo(false));
+  }
+  syncVideo(play) {
+    const seg = this.segAt(this.state.playhead), v = this.videoRef.current; if (!seg || !v) return;
+    if (seg.clip.url) {
+      const target = seg.clip.in + (this.state.playhead - seg.start);
+      if (v.getAttribute("data-src") !== seg.clip.url) { v.setAttribute("data-src", seg.clip.url); v.src = seg.clip.url; }
+      const set = () => { try { v.currentTime = target; } catch (e) {} if (play) v.play().catch(() => {}); };
+      if (v.readyState >= 1) set(); else v.onloadedmetadata = set;
+    }
+    const a = this.audioRef.current;
+    if (a && this.state.audio) { const at = this.state.playhead - this.state.audioOffset; if (play && at >= 0) { a.currentTime = at; a.play().catch(() => {}); } else if (!play) { a.pause(); if (at >= 0) { try { a.currentTime = at; } catch (e) {} } } }
+  }
+  playPause = () => {
+    if (this.state.playing) { this.pause(); return; }
+    let t = this.state.playhead; if (t >= this.total() - 0.02) t = 0;
+    this.setState({ playing: true, playhead: t }, () => { this.syncVideo(true); this.raf = requestAnimationFrame(this.tick); });
+  };
+  tick = (ts) => {
+    if (!this.state.playing) return;
+    const dt = this.lastTs == null ? 0 : (ts - this.lastTs) / 1000; this.lastTs = ts;
+    const seg = this.segAt(this.state.playhead); if (!seg) { this.pause(); return; }
+    let t;
+    const v = this.videoRef.current;
+    if (seg.clip.url && v && v.getAttribute("data-src") === seg.clip.url) t = seg.start + Math.max(0, v.currentTime - seg.clip.in);
+    else t = this.state.playhead + dt;
+    const segEnd = seg.start + seg.dur;
+    if (t >= segEnd - 0.03) {
+      const next = this.segAt(segEnd + 0.01);
+      if (!next || next === seg) { this.setState({ playhead: this.total() }); this.pause(); return; }
+      this.setState({ playhead: next.start, selectedId: next.clip.id }, () => this.syncVideo(true));
+    } else this.setState({ playhead: t });
+    this.raf = requestAnimationFrame(this.tick);
+  };
+
+  selSeg() { return this.segsRaw().find(s => s.clip.id === this.state.selectedId) || null; }
+  mutateClips(fn) { if (this.state.playing) this.pause(); this.setState(st => ({ clips: fn(st.clips.slice()) }), () => this.seekTo(this.state.playhead)); }
+  split = () => {
+    const seg = this.selSeg(); if (!seg) return;
+    const off = this.state.playhead - seg.start;
+    if (off < 0.1 || off > seg.dur - 0.1) return;
+    const c = seg.clip, cut = c.in + off;
+    const a = Object.assign({}, c, { out: cut }), b = Object.assign({}, c, { id: this.nextId++, in: cut });
+    this.mutateClips(cl => { const i = cl.indexOf(c); cl.splice(i, 1, a, b); return cl; });
+  };
+  trimIn = () => { const seg = this.selSeg(); if (!seg) return; const off = this.state.playhead - seg.start; if (off <= 0 || off >= seg.dur - 0.2) return; this.mutateClips(cl => cl.map(c => c.id === seg.clip.id ? Object.assign({}, c, { in: c.in + off }) : c)); };
+  trimOut = () => { const seg = this.selSeg(); if (!seg) return; const off = this.state.playhead - seg.start; if (off <= 0.2 || off >= seg.dur) return; this.mutateClips(cl => cl.map(c => c.id === seg.clip.id ? Object.assign({}, c, { out: c.in + off }) : c)); };
+  moveSel(dir) { const id = this.state.selectedId; this.mutateClips(cl => { const i = cl.findIndex(c => c.id === id), j = i + dir; if (i < 0 || j < 0 || j >= cl.length) return cl; const [c] = cl.splice(i, 1); cl.splice(j, 0, c); return cl; }); }
+  moveL = () => this.moveSel(-1);
+  moveR = () => this.moveSel(1);
+  del = () => { const id = this.state.selectedId; if (id == null) return; this.mutateClips(cl => cl.filter(c => c.id !== id)); this.setState({ selectedId: null, playhead: 0 }); };
+  syncAudio = () => { const seg = this.selSeg(); if (!seg || !this.state.audio) { if (!this.state.audio) this.pickAudio(); return; } this.setState({ audioOffset: seg.start, syncedTo: seg.clip.id }, () => this.syncVideo(false)); };
+
+  renderVals() {
+    const st = this.state, segs = this.segsRaw(), cur = this.segAt(st.playhead);
+    const clipIdx = (id) => st.clips.findIndex(c => c.id === id) + 1;
+    return {
+      fileRef: this.fileRef, audioFileRef: this.audioFileRef, videoRef: this.videoRef, audioRef: this.audioRef,
+      onFiles: this.onFiles, onAudioFile: this.onAudioFile, pickFiles: this.pickFiles, pickAudio: this.pickAudio, addDemo: this.addDemo,
+      empty: st.clips.length === 0, hasClips: st.clips.length > 0,
+      playPause: this.playPause,
+      backSec: () => this.seekTo(st.playhead - this.step()), fwdSec: () => this.seekTo(st.playhead + this.step()),
+      backFrame: () => this.seekTo(st.playhead - 1 / this.fps()), fwdFrame: () => this.seekTo(st.playhead + 1 / this.fps()),
+      split: this.split, trimIn: this.trimIn, trimOut: this.trimOut, moveL: this.moveL, moveR: this.moveR, del: this.del, syncAudio: this.syncAudio,
+      tc: this.fmt(st.playhead), totalTc: this.fmt(this.total()),
+      playDisp: st.playing ? "none" : "block", pauseDisp: st.playing ? "block" : "none",
+      videoDisp: cur && cur.clip.url ? "block" : "none",
+      demoDisp: cur && !cur.clip.url ? "flex" : "none",
+      previewBg: cur && cur.clip.bg ? cur.clip.bg : "#eae4d6",
+      curName: cur ? cur.clip.name : "",
+      toolOp: st.selectedId != null ? 1 : 0.35,
+      labelDisp: (this.props.showLabels ?? true) ? "flex" : "none",
+      labelFlex: (this.props.showLabels ?? true) ? "block" : "none",
+      hasAudio: !!st.audio, noAudio: !st.audio,
+      audioSrc: st.audio ? st.audio.url : "",
+      audioName: st.audio ? st.audio.name : "",
+      syncLabel: st.syncedTo != null ? "synced to clip " + clipIdx(st.syncedTo) : "from start",
+      segs: segs.map((s, i) => {
+        const sel = s.clip.id === st.selectedId;
+        const inSeg = cur === s;
+        return {
+          dur: Math.max(0.5, s.dur), label: String(i + 1).padStart(2, "0") + " · " + this.fmt(s.dur),
+          bg: s.clip.bg || "repeating-linear-gradient(90deg,#e0d8c6 0 12px,#d8cfba 12px 24px)",
+          outline: sel ? "2px solid #b06a3b" : "1px solid rgba(38,34,28,.08)",
+          ph: inSeg ? Math.min(99, (st.playhead - s.start) / s.dur * 100).toFixed(2) : 0,
+          phDisp: inSeg ? "block" : "none",
+          select: () => this.seekTo(s.start, s.clip.id),
+        };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>
