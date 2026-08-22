@@ -2294,6 +2294,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  **QUALITY IS THE ACCOUNT SWITCHER'S THREE-WAY TOGGLE, IN BLACK (Aug 2026,
+  Sophie: "make the low medium high drop down in the playground into the exact
+  three way toggle that the account switcher uses … but black not red. and put
+  the initial of the choice - L, M, or H").** It was a native `<select>`, and a
+  picker you have to open to read hides which quality a run is about to spend.
+  `.qtog` in `promptlab.html` is `.swi` from `chats.html` VERBATIM — 48px track,
+  26 tall, an 18px knob, three stops DERIVED from `--gap` — with the track ink
+  (`#2b2622`) instead of the rose and the letter riding the knob (`content:
+  attr(data-i)`, so the letter and the position are one element and cannot
+  disagree). Tapping anywhere moves to the next notch and WRAPS, exactly as the
+  account one does, so low → medium → high → low. **The two rules live in
+  different files with no shared stylesheet, so nothing but the test would ever
+  notice one drifting from the other** — `node
+  scripts/test-playground-quality-toggle.js` pins them property by property,
+  asserts the colour as a DIFFERENCE (a copy-paste must not bring the rose
+  back), and reads the knob's real x at each stop in headless Chromium. A
+  fourth quality is an entry in `QUALITIES` plus one CSS rule of the same
+  shape; nothing counts the notches. Still not persisted, same as before.
   **PORTRAIT OR SQUARE, opening on SQUARE (Aug 2026, her call).**
   `PL_GPT.sizes`; the run carries `canvas`, and an unknown value still lands on
   a real size server-side, never an invented one. **The square is the DEARER

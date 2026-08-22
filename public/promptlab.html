@@ -54,8 +54,37 @@
   .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
-  /* Quality — 16px so iOS doesn't zoom the page when it opens the picker. */
-  #qpick { border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 6px; font: inherit; font-size: 16px; background: #fdfcf9; color: #2b2622; }
+  /* QUALITY — the account switcher's three-way toggle, in black (Aug 2026,
+     Sophie: "make the low medium high drop down in the playground into the
+     exact three way toggle that the account switcher uses … but black not red.
+     and put the initial of the choice - L, M, or H"). It was a native <select>
+     — the same control the style picker beside it still is — and a picker that
+     has to be opened to be read hides which quality a run is about to spend.
+     THE GEOMETRY IS `.swi` IN chats.html, VERBATIM: 48px track, 26px tall,
+     an 18px round knob, and the three stops DERIVED from --gap (one notch,
+     two notches) rather than typed, so they can never drift apart. Track ink
+     instead of rose, per her ask; the knob keeps its paper fill and now
+     carries the initial, which is the one thing the account switch has no use
+     for (its notches are numbered by their position, these are named).
+     Tapping anywhere on it moves to the next notch and wraps, exactly the way
+     the account one does — so low → medium → high → low, and the dearest
+     setting is never one stray tap from the cheapest.
+     Still the sanctioned exception to no-pills: it is a toggle, not a text
+     button. */
+  .qtog { --tw: 48px; --k: 18px; --gap: 11.5px;
+    position: relative; box-sizing: border-box; width: var(--tw); height: 26px; border-radius: 13px;
+    border: 1.5px solid #2b2622; background: #2b2622;
+    padding: 0; margin: 0; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* The letter rides the knob, so what it says and where it sits are one
+     element and can never disagree. 11px is what fits inside 18px with air
+     either side; line-height 18px centres it without a flex box. */
+  .qtog::after { content: attr(data-i); position: absolute; top: 2px; left: 2px;
+    width: var(--k); height: 18px; border-radius: 50%;
+    background: #faf7f2; color: #2b2622;
+    font: 600 11px/18px -apple-system, sans-serif; text-align: center;
+    transition: transform .18s; }
+  .qtog[data-q="medium"]::after { transform: translateX(var(--gap)); }
+  .qtog[data-q="high"]::after { transform: translateX(calc(var(--gap) * 2)); }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   /* Generate is the stars icon, not the word — one image, one tap. */
   button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 9px 15px; font: inherit; display: flex; align-items: center; justify-content: center; }
@@ -291,7 +320,7 @@
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
-    <select id="qpick" aria-label="Quality"></select>
+    <button type="button" id="qpick" class="qtog" aria-label="Quality"></button>
     <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
     <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
   </div>
@@ -662,12 +691,26 @@
   // without her meaning it.)
   var QUALITIES = ['low', 'medium', 'high'];
   var quality = 'medium';
-  document.getElementById('qpick').innerHTML = QUALITIES.map(function (q) {
-    return '<option value="' + q + '"' + (q === quality ? ' selected' : '') + '>' + q + '</option>';
-  }).join('');
-  document.getElementById('qpick').addEventListener('change', function (e) {
-    quality = QUALITIES.indexOf(e.target.value) >= 0 ? e.target.value : 'medium';
+  // The three-way toggle (see .qtog). Nothing here counts the notches: the
+  // stops come from QUALITIES, so a fourth quality would be an entry in that
+  // array plus one rule in the CSS — the same shape as the account switch.
+  // `data-q` drives the knob's position and `data-i` the letter on it, both
+  // written in one place so the two can never fall out of step.
+  var qpick = document.getElementById('qpick');
+  function paintQuality() {
+    qpick.setAttribute('data-q', quality);
+    qpick.setAttribute('data-i', quality.charAt(0).toUpperCase());
+    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap for the next one');
+  }
+  qpick.addEventListener('click', function () {
+    // an unknown quality (arrived on a link) still has somewhere to go:
+    // indexOf is -1, so the next tap lands on the first notch rather than
+    // doing nothing at all
+    var i = QUALITIES.indexOf(quality);
+    quality = QUALITIES[(i + 1) % QUALITIES.length];
+    paintQuality();
   });
+  paintQuality();
 
   // The Sophie character toggle — plain variable like quality, so every fresh
   // load starts OFF and a run only carries her when the picture is lit.
@@ -707,7 +750,7 @@
     if (st && STYLES[st]) setStyle(st);
     if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
     var qq = q.get('quality');
-    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; document.getElementById('qpick').value = qq; }
+    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; paintQuality(); }
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
