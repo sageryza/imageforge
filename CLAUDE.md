@@ -273,6 +273,41 @@ around them change, so verify the labels and use these for the URL.
   to her when she is pasting on account 1, it just adds a decision that
   doesn't exist. A chat settles which account and environment it is on by
   calling `get_session` on its own session id and reading `environment_id`.
+- **Cloud environments on ACCOUNT 3 — TWO again, and the live one had the
+  WRONG account number baked in (measured 2026-08-22 via `list_environments`
+  + `get_session` from inside an account-3 session).** Both named "Default",
+  created 2026-08-21 within 0.04s of each other, i.e. auto-provisioned at
+  account setup — the same pair-of-Defaults shape as account 2, and the same
+  tell: the one with the EMPTY description is the live one.
+  - `env_01VB9pNj6pnXgsTxpyeLv14a` — description **empty**. This is the one
+    account-3 sessions actually run in.
+  - `env_01UhUAKEXwfZZ8M61whDFu9Q` — description "Default - trusted network
+    access". Nothing observed running on it.
+  **THE FAILURE HERE WAS NOT A MISSING SETTING — IT WAS A WRONG ONE, AND THAT
+  IS THE LOUDER LESSON.** The note below says account 3 was silent because the
+  three per-environment settings were unset. Measured from inside: two of the
+  three were fine (the Render domain answered 200, and the pasted Setup script
+  had installed a CURRENT hook, v14), and the third, `FORGE_ACCOUNT`, was set
+  to **`2`** — copied from account 2 along with everything else. So account-3
+  chats were never silent at all; they posted, correctly, filed into account
+  **2**'s pile. A missing setting makes a chat vanish and someone eventually
+  looks; a wrong one makes it land somewhere plausible and nobody does. **Any
+  chat can settle its own case in one command:** `get_session` for
+  `environment_id`, then `echo $FORGE_ACCOUNT`, and check the two agree.
+  - **Fixing it is Sophie's, one field** — the environment's env vars (cloud
+    icon → the environment → Environment variables) → `FORGE_ACCOUNT` → `3`.
+    Until she does, every NEW account-3 session starts mislabeled again.
+  - **A chat can fix ITSELF for its own session**, no waiting: prefix its
+    hook commands in `/home/user/.claude/settings.json` with
+    `FORGE_ACCOUNT=3 ` (settings and hooks are re-read per event, so it takes
+    effect on the next one), and `POST /api/chatfeed/account {chat,
+    account:"3"}` to tag the registry for turns already posted. The hook reads
+    the env var on every post and stamps it, so the prefix is the durable half
+    of the two — the manual tag alone is overwritten by the next post.
+  - **Chats on account 3 from before this was found are tagged `2` and there
+    is no way to tell them apart from real account-2 chats** — the tag is all
+    that was ever recorded. The environment was created 2026-08-21, so the
+    mislabeled ones are only ever that recent.
 - **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
   and only one is used (measured 2026-08-10 via `list_environments` +
   `list_sessions`/`get_session`).** Telling them apart matters, because the
@@ -762,10 +797,16 @@ them off the reference sheet, not off the old filenames.
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
-  Measured 2026-08-22: **zero chats have ever been tagged account 3** — a whole
-  account silent, because those three per-environment settings (Network access
-  for `imageforge-q125.onrender.com`, the Setup script, `FORGE_ACCOUNT`) are
-  Sophie's to set and nothing warns when they are missing. Recover a chat from
+  Measured 2026-08-22: **zero chats had ever been tagged account 3** — and the
+  reason turned out NOT to be the missing-settings one first written here.
+  Measured the same day from inside an account-3 session: its network reached
+  the app, its Setup script had installed a current hook, and `FORGE_ACCOUNT`
+  was set — to **`2`**. Those chats were posting all along, filed into account
+  2's pile. **So diagnose a "silent account" by measuring the three settings,
+  never by assuming they are unset** — a wrong value looks like silence from
+  the outside and needs no backfill at all, just the right tag. The account-3
+  environment ids and the fix are in the ACCOUNT 3 bullet up in *Dashboard
+  deep links*. Recover a genuinely silent chat from
   INSIDE it (its transcript exists nowhere else):
   `bash scripts/backfill-chat-history.sh` diagnoses and posts nothing;
   `--go` posts every turn and every message of hers, oldest first; `--account 3`
