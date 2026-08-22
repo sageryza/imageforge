@@ -292,6 +292,38 @@
   `.claude/hooks/post-to-feed.sh` — different means stale, and the self-heal
   below fixes it in-session.
 
+- **A WHOLE ACCOUNT CAN BE SILENT, AND THE SILENCE IS SELF-SEALING — the
+  backfill flag (Aug 2026).** Measured 2026-08-22 against the live registry:
+  **292 chats tagged account 1, 128 tagged account 2, ZERO ever tagged
+  account 3** — and nothing posting untagged either (the 5 untagged chats are
+  all older account-1/2 legacy), so nothing on that account has ever reached
+  the app. Everything the app needs is already there — the third tab, the row
+  mark, the thread picker and the header switch all read `ACCOUNTS` and an
+  untagged chat shows on EVERY tab — so an empty tab 3 is not an app bug: it
+  is that account's ENVIRONMENT missing one of the three per-environment
+  settings (**Network access** must allow `imageforge-q125.onrender.com`, the
+  **Setup script**, and **`FORGE_ACCOUNT=3`**). Only Sophie can set those.
+  - **Healing the hook does NOT bring the history back**, which is the part
+    that makes this worth writing down. The hook BASELINES: the first time it
+    runs in a session it marks every turn but the latest as already-posted, so
+    a chat that heals mid-life never floods the feed — and a chat that never
+    posted at all loses its whole past on the very firing that fixes it.
+  - **`FORGE_BACKFILL=1` is the deliberate opt-out**, and it is set by ONE
+    thing: `bash scripts/backfill-chat-history.sh --go` (`--account 3` tags
+    the posts when the environment doesn't). It must never be set on an
+    environment, or every new session would dump its backlog on turn one.
+  - **It runs INSIDE the chat being recovered** — a session's transcript lives
+    only in its own container, so no chat can backfill another one, and no
+    chat on another account can do it for her. Run with no flags it only
+    diagnoses (hook present, backfill flag present, feed reachable, ledger,
+    turn count) and posts nothing.
+  - **Re-running is safe**: the server upserts on `sha1(session|turn)`, so a
+    turn already on file lands on the same message doc rather than a twin.
+  - The script never parses a transcript itself — it drives the real hook, so
+    the two can never disagree about a turn's key. Test:
+    `node scripts/test-chat-backfill.js` (the real hook against a fixture,
+    both halves — verified failing against the pre-flag hook, 4 of 10).
+
 - **Two Claude accounts (July 2026) — Open buttons route app vs browser.**
   Sophie runs two Claude accounts: one signed into the Claude iOS app, one used
   on claude.ai in her phone browser (the app can't hold both). Each cloud

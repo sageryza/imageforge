@@ -524,7 +524,9 @@ if uf and users:
         except Exception:
             pass
     new_useen = set(useen)
-    if first_u:
+    # …and her own messages baseline with them (same flag, same reason: a
+    # backfilled thread that carried only the replies would read as a monologue)
+    if first_u and not os.environ.get('FORGE_BACKFILL', '').strip():
         for u in users[:-1]:
             new_useen.add(u['uuid'])
     for u in users:
@@ -622,7 +624,16 @@ if not first_feed:
     except Exception:
         pass
 new_posted = set(posted)
-if first_feed:
+# THE BASELINE IS WHAT MAKES A CHAT'S PAST UNRECOVERABLE, and that is normally
+# right: a session healing its hook mid-life must not dump a week of replies
+# into the feed. But it also means a chat that NEVER posted (a whole account
+# whose environment was missing the domain, the setup script, or FORGE_ACCOUNT
+# — account 3, measured 2026-08-22: zero chats ever tagged "3") can never be
+# recovered afterwards, because the first firing of a healed hook silently
+# marks its whole history as already-posted. FORGE_BACKFILL=1 is the deliberate
+# opt-out, set only by scripts/backfill-chat-history.sh — never by an
+# environment, or every new session would flood the feed on its first turn.
+if first_feed and not os.environ.get('FORGE_BACKFILL', '').strip():
     # brand-new session: baseline the whole history, post only the latest turn,
     # so upgrading the hook (or a fresh sandbox) never floods with old messages
     for tn in turns[:-1]:

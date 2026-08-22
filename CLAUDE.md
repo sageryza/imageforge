@@ -759,6 +759,18 @@ them off the reference sheet, not off the old filenames.
     The robust setup is to configure one environment once with all three:
     Network access (add the domain), the Setup script (auto-poster), and
     `FIREBASE_SERVICE_ACCOUNT`.
+- **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
+  (Aug 2026).** The hook BASELINES on its first firing in a session (only the
+  latest turn posts), so fixing a silent chat also throws its history away.
+  Measured 2026-08-22: **zero chats have ever been tagged account 3** — a whole
+  account silent, because those three per-environment settings (Network access
+  for `imageforge-q125.onrender.com`, the Setup script, `FORGE_ACCOUNT`) are
+  Sophie's to set and nothing warns when they are missing. Recover a chat from
+  INSIDE it (its transcript exists nowhere else):
+  `bash scripts/backfill-chat-history.sh` diagnoses and posts nothing;
+  `--go` posts every turn and every message of hers, oldest first; `--account 3`
+  tags them when the environment doesn't. Re-running is safe (upsert by turn).
+  Full rules in `docs/chats-app.md`; test `node scripts/test-chat-backfill.js`.
 - **Sophie can reply in the app** (`POST /reply`, shows as `from:"sophie"`) — a
   chat picks up replies addressed to its chat name the next time Sophie messages
   it (`GET /api/chatfeed?limit=50`), then acts on them. **NOT on a timer.**
