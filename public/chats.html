@@ -1328,6 +1328,15 @@ body.newspick #toolrow{position:sticky; top:0; z-index:30; background:var(--pape
    it wears the ink instead of the boxes' quiet grey — and it is only on the
    row while something is picked (paintNewsQRow). */
 .catchip.nwdone{border-color:var(--ink2); color:var(--ink);}
+/* THE TAG ICON, beside Done on that same pinned row (Aug 2026, Sophie: "add
+   the tag icon to allow me to put any tag on a selected chat — add it next to
+   done, it only shows if something is selected"). It is a `.catchip` and not
+   an `.iconbtn` on purpose: it lives in the chips' flow, wraps with them, and
+   reads as the third thing she can do with a picked card rather than as page
+   chrome. Glyph only — the same luggage tag the thread header's Organize
+   button wears, so the sheet it opens is recognisable before it opens. */
+.catchip.nwtag{padding:5px 9px; line-height:0; border-color:var(--ink2); color:var(--ink);}
+.catchip.nwtag svg{width:15px; height:15px; display:block;}
 /* HOW MANY ANSWERED (Sophie, Aug 2026: "a little number next to stories that
    says if there's chats that just recently answered to me"). A dot said only
    "something happened in here"; the number says how much. It is a badge — a
@@ -1448,6 +1457,18 @@ body.ontop > .float{display:none !important;}
    corner. `display:none` rather than a z-index, because of the layer promotion
    above — and the pill has no job while she is picking chats to file. */
 body.selecting > .float{display:none !important;}
+/* And the SAME collision on the Update screen (Aug 2026, Sophie, from a
+   screenshot with one card picked: "something weird - covering the pill").
+   Picking a card pins the tool row (`body.newspick #toolrow` — sticky,
+   z-index 30, on the page's own paper), and that row sits inside the pill's
+   fixed band (y 14-192), so the row paints straight over it: what she was
+   looking at was the pill's outline with its glyphs and its fill covered.
+   Same fix and the same reason as select mode above — `display:none`, not a
+   z-index, because `.float` is promoted to its own layer (translateZ) and iOS
+   composites it above regardless; and the pill has no job while she is
+   picking. `sizePillNotch` reads the same class, so the row also gets the
+   corner back. */
+body.newspick > .float{display:none !important;}
 
 </style>
 
@@ -3284,7 +3305,114 @@ function paintNewsQRow(row,g){
     d.setAttribute('aria-label','Clear these without filing them');
     d.onclick=doneNews;
     row.appendChild(d);
+    // ANY WORD, not just the three boxes (Aug 2026, her ask). The three chips
+    // beside it file into the update QUEUE — Come back to · In a minute ·
+    // Maybe never — which is a different question from what a chat IS. This
+    // opens her whole vocabulary on the picked cards, the same chips and the
+    // same writer the Organize sheet uses.
+    var t=document.createElement('button');
+    t.className='catchip nwtag'; t.innerHTML=TAG_SVG;
+    t.title='Tag these';
+    t.setAttribute('aria-label','Tag the picked chats');
+    t.onclick=function(e){ e.stopPropagation(); askTagPicked(Object.keys(newsPick)); };
+    row.appendChild(t);
   }
+}
+// ---- TAG WHAT IS PICKED ------------------------------------------------------
+// The Organize sheet's chips, over a SELECTION instead of one chat (Aug 2026,
+// Sophie: "add the tag icon to allow me to put any tag on a selected chat").
+// It shares `paintVocabChips` (so the two groups and the line between them are
+// the same everywhere) and `saveLabels` (the one writer, optimistic with the
+// roll-back), so nothing here can disagree with the sheet the thread header
+// opens.
+//
+// A chip is LIT only when every picked chat already carries the word, and that
+// is what makes one control do both directions honestly: lit means "all of
+// them have this", so tapping it takes it off all of them; unlit — including
+// the half-and-half case — means "not all of them", so tapping it puts it on
+// the ones missing it. `saveLabels`' add/remove are per-chat edits, so a chat
+// that already has the word keeps its other words untouched.
+//
+// The picking is deliberately LEFT ON when the sheet shuts: she may want a
+// second word on the same cards, and filing them is the Done chip's job, not
+// this one's.
+//
+// `waiting for something` does NOT open its what-is-it-waiting-for box here —
+// that answer is per chat, and asking it six times in a row for one tap is a
+// worse thing than the prompt she already gets on each row.
+function askTagPicked(names){
+  if(!names || !names.length) return;
+  scrollStop();
+  var wrap=document.createElement('div'); wrap.className='askwrap';
+  var box=document.createElement('div'); box.className='askbox';
+  var q=document.createElement('p'); q.className='archq';
+  q.textContent = names.length===1 ? 'Tag '+dispName(names[0])
+                                   : 'Tag these '+names.length+' chats';
+  box.appendChild(q);
+  var trow=document.createElement('div'); trow.className='arctags'; box.appendChild(trow);
+  function allHave(c){
+    return names.every(function(n){ return chatLabels(n).indexOf(c)>-1; });
+  }
+  function paint(){
+    trow.innerHTML='';
+    paintVocabChips(trow, function(c){
+      var on=allHave(c);
+      var b=document.createElement('button'); b.type='button';
+      b.className='catchip'+(on?' on':'');
+      b.textContent=catLabel(c);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.onclick=function(e){ e.stopPropagation(); set(c, !on); };
+      return b;
+    });
+    var none=document.createElement('button'); none.type='button';
+    none.className='catchip'; none.textContent='None';
+    none.setAttribute('aria-label','Take these out of every pile');
+    none.onclick=function(e){ e.stopPropagation();
+      saveLabels(names, {set:[], repaint:paint}); paint();
+      toast(names.length===1 ? 'Out of every pile' : 'All out of every pile');
+    };
+    trow.appendChild(none);
+    var inp=document.createElement('input'); inp.type='text'; inp.placeholder='New…';
+    inp.autocapitalize='none'; inp.autocorrect='off'; inp.setAttribute('autocomplete','off');
+    // Enter OR tapping away — she dictates these (same reasoning as the
+    // Organize sheet: a name lost to a stray tap is a word she has to invent
+    // twice).
+    function takeNew(){
+      var v=(inp.value||'').trim().toLowerCase().slice(0,40);
+      if(!v) return;
+      inp.value=''; set(v, true);
+    }
+    inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); takeNew(); } };
+    inp.onblur=takeNew;
+    trow.appendChild(inp);
+  }
+  function set(c, on){
+    saveLabels(names, on?{add:[c],repaint:paint}:{remove:[c],repaint:paint});
+    paint();
+    // Same sentence the Organize sheet says, and for the same reason: a pile
+    // word takes these chats off the main list and a plain tag does not, and
+    // as chips the two are identical.
+    var many = names.length>1 ? ' \u00d7'+names.length : '';
+    if(!on) toast('Took off '+catLabel(c)+many);
+    else if(isPile(c)) toast('Filed under '+catLabel(c)+many+' — off the main list');
+    else toast('Tagged '+catLabel(c)+many);
+  }
+  paint();
+  var row=document.createElement('div'); row.className='askrow';
+  var done=document.createElement('button'); done.className='go'; done.textContent='Done';
+  function close(){
+    wrap.remove(); document.body.style.overflow='';
+    // The picked cards may belong to a different list now, so repaint rather
+    // than leaving a stale screen — and `newsPickChrome` keeps the pinned row
+    // and this icon in step with a selection that survived the sheet.
+    renderHome(); newsPickChrome(); saveCache();
+  }
+  done.onclick=function(e){ e.stopPropagation(); close(); };
+  row.appendChild(done); box.appendChild(row);
+  wrap.onclick=function(e){ if(e.target===wrap) close(); };
+  box.onclick=function(e){ e.stopPropagation(); };
+  wrap.appendChild(box);
+  document.body.appendChild(wrap); document.body.style.overflow='hidden';
 }
 // Repaint just the boxes — the counts move on a ✓ and when the delivered
 // caches land, and neither is worth a whole re-render of the list she is
@@ -3293,6 +3421,11 @@ function paintNewsChips(g){
   if(homeView!=='news') return;
   var row=document.getElementById('catrow'); if(!row) return;
   row.innerHTML=''; paintNewsQRow(row,g);
+  // The row just changed shape — DONE and the tag icon come and go with the
+  // selection, and picking hides the pill entirely — so the notch has to be
+  // re-measured here as well as on a full paint, or it goes on reserving the
+  // pill's corner against a pill that is no longer on screen.
+  sizePillNotch();
 }
 // Picking is what pins the row (body.newspick) and what puts DONE on it, so
 // both are refreshed from here — the one place a selection ever changes by
@@ -4495,6 +4628,12 @@ function paintCatRow(g){
 function sizePillNotch(){
   var n=document.getElementById('pillnotch'), t=document.getElementById('toolrow');
   if(!n||!t) return;
+  // NO PILL, NO CORNER. Select mode and picking on the Update screen both hide
+  // the pill outright (see `body.selecting`/`body.newspick > .float`), and a
+  // notch reserved against a pill that is not on screen is 64px of nothing at
+  // the end of the row — which is exactly the width the tag icon needs.
+  var pill=document.querySelector('body > .float');
+  if(!pill || !pill.getClientRects().length){ n.style.height='0px'; return; }
   var top=t.getBoundingClientRect().top;
   var band=Math.max(0, Math.min(200, 192-top));
   n.style.height=band+'px';

@@ -2380,10 +2380,51 @@
         So clearing a card is two taps now (✓ then DONE) — her design, and
         the reason the ✓ could stop being a one-tap delete on a screen where
         every other gesture is a selection.
+      - **THE PINNED ROW WAS PAINTING OVER THE PILL, and the fix is the one
+        select mode already uses (Aug 2026, Sophie, from a screenshot with
+        one card picked: "something weird - covering the pill").** Sticky
+        with `z-index:30` on the page's own paper, that row sits inside the
+        autoscroll pill's fixed band (y 14-192), so it covered the pill's
+        fill and its glyphs and left her looking at an empty outline.
+        `body.newspick > .float{display:none}` — `display`, not a z-index,
+        because `.float` is promoted to its own layer (translateZ) and iOS
+        composites it above regardless, which is the same reason
+        `body.selecting` and `body.ontop` hide it rather than re-stack it.
+        `sizePillNotch` reads the same thing from the other end: **no pill on
+        screen, no corner reserved**, so the row gets its last 64px back —
+        and `paintNewsChips` re-measures it, because DONE and the tag icon
+        come and go with the selection.
+      - **THE TAG ICON — ANY word on everything picked (Aug 2026, Sophie:
+        "add the tag icon to allow me to put any tag on a selected chat — add
+        it next to done, it only shows if something is selected").** The
+        three boxes beside it file into the update QUEUE (Come back to · In a
+        minute · Maybe never), which is a different question from what a chat
+        IS; this opens her whole vocabulary. It is a `.catchip` and not an
+        `.iconbtn` on purpose — it lives in the chips' flow, wraps with them,
+        and reads as the third thing she can do with a picked card. Glyph
+        only, the same luggage tag the thread header's Organize button wears.
+        - The sheet (`askTagPicked`) shares **`paintVocabChips`** (so the two
+          groups and the line between them are the same everywhere) and
+          **`saveLabels`** (the one writer, optimistic with the roll-back), so
+          it can never disagree with the Organize sheet.
+        - **A chip is lit only when EVERY picked chat carries the word**, and
+          that is what lets one control do both directions honestly: lit means
+          all of them have it, so the tap takes it off all of them; unlit —
+          including the half-and-half case — ADDS it to the ones missing it.
+          `add`/`remove` are per-chat edits, so a chat keeps its other words.
+        - **The picking survives the sheet** — a second word on the same cards
+          is one more tap, and clearing them is DONE's job, not this one's.
+        - **`waiting for something` does NOT open its what-is-it-waiting-for
+          box here.** That answer is per chat, and asking it six times for one
+          tap is worse than the prompt each row already carries.
       - Tests: `node scripts/test-chats-news-queue.js` covers the pin, the
         DONE-only-while-picked rule, and DONE clearing without filing.
         `test-chats-news.js` / `test-chats-news-sticky.js` were updated to
-        the two-tap clear.
+        the two-tap clear. `node scripts/test-chats-news-tag.js` covers the
+        pill (asked with `elementFromPoint` at its own centre — "is it
+        visible" answers yes for an element with something painted on top of
+        it, which is the whole bug), the notch, and the tag sheet's add /
+        remove; verified failing against the pre-fix page.
     - Tests: `node scripts/test-chats-news-queue.js`.
 
 - **A DEPLOY MUST NOT PULL HER OUT OF WHAT SHE IS READING (Aug 2026, Sophie:

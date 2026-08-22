@@ -94,9 +94,16 @@ const geom = (page) => page.evaluate(() => {
   // is 34px of real control, not blank page. (On UPDATE it is parked into the
   // tool row and hidden, which is why that screen showed the waste so plainly.)
   const sr = document.querySelector('.searchrow');
+  // …and #nwdoors, the Update/Review chips, which landed between the tool row
+  // and the account tabs after this test was written (Aug 2026 — "they're
+  // supposed to go above the chats"). It is a real row of controls, so the gap
+  // it fills is not the blank page this test is hunting; measuring past it
+  // failed the UPDATE screen for 47px of buttons.
+  const nd = document.getElementById('nwdoors');
   const above = [].concat(
     chips.map((r) => r.bottom),
-    sr && sr.getClientRects().length ? [sr.getBoundingClientRect().bottom] : []);
+    sr && sr.getClientRects().length ? [sr.getBoundingClientRect().bottom] : [],
+    nd && nd.getClientRects().length ? [nd.getBoundingClientRect().bottom] : []);
   return {
     rowTop: Math.round(tr.top), rowH: Math.round(tr.height),
     notchH: Math.round(nr.height), notchLeft: Math.round(nr.left),
