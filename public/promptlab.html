@@ -1241,7 +1241,7 @@
     var groups = groupBy(list, function (p) {
       return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
     });
-    document.getElementById('pendings').innerHTML = groups.map(function (g) {
+    var pendHtml = groups.map(function (g) {
       var p = g.items[0];
       var slots = g.items.reduce(function (n, x) { return n + (x.count || OUTPUTS); }, 0);
       var tags = [p.style || ''];
@@ -1263,7 +1263,15 @@
         '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
         '<div class="grid">' + cells + '</div></div>';
     }).join('');
-    applyClamps(document.getElementById('pendings'));
+    // Rebuilt only when it actually changed — the poll calls this on every
+    // transition, and re-assigning identical HTML restarts every placeholder's
+    // pulse and costs a repaint for nothing.
+    var pendBox = document.getElementById('pendings');
+    if (pendBox.__html !== pendHtml) {
+      pendBox.innerHTML = pendHtml;
+      pendBox.__html = pendHtml;
+      applyClamps(pendBox);
+    }
     // The same runs are squares at the front of the tile wall — keep it current.
     if (curView() === 'tiles') renderTiles();
   }
@@ -1350,6 +1358,111 @@
     return (r.images && r.images.length) ? r.images : (r.tempImages || []);
   }
 
+  // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
+  // "the playground flashes a lot and sometimes things don't load") ────────
+  //
+  // SLOW: a tile is ~90-190px but its src was the full-size ORIGINAL
+  // (1024x1536, hundreds of KB each) — the first page pulled tens of MB of
+  // pictures over cell for one screen. Tiles load the house thumb service
+  // now (`/api/story/thumb`, the Assets tab's own pattern: sharp once, a
+  // cached webp in Storage, a 302 ever after). The LIGHTBOX and Save still
+  // get the untouched original — this is the derived display copy, never the
+  // picture. A temp Replicate/OpenAI url or a data: url has no derived copy
+  // and is sent as-is (the thumb service only re-serves Google storage
+  // hosts, and those temp urls expire on their own anyway).
+  var THUMB_W = 480;
+  function thumbFor(u) {
+    return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
+      ? '/api/story/thumb?w=' + THUMB_W + '&url=' + encodeURIComponent(u)
+      : u;
+  }
+
+  // FLASHING: every repaint used to be `innerHTML = …` over the whole feed,
+  // which destroys and recreates every <img> on screen — the browser blanks
+  // and re-decodes the wall, so a ♥, a search keystroke, a poll transition or
+  // a finishing run flashed everything she was looking at. Repaints
+  // RECONCILE now: a node whose content did not change is LEFT ALONE (same
+  // element, same decoded picture), a changed one is updated in place, and
+  // order is fixed by MOVING nodes — moving an element never reloads its
+  // image. The lightbox arrows read the DOM (lbSeq), so they walk exactly
+  // what reconciliation put there, same as before.
+  function syncChildren(box, items, make, update) {
+    var stray = [], byKey = {}, el, k;
+    for (el = box.firstElementChild; el; el = el.nextElementSibling) {
+      k = el.getAttribute('data-key');
+      if (k == null) stray.push(el); else byKey[k] = el;
+    }
+    stray.forEach(function (s) { s.remove(); });     // e.g. an old empty-note
+    var prev = null;
+    items.forEach(function (it) {
+      var node = byKey[it.key];
+      if (node) delete byKey[it.key];
+      else { node = make(it); node.setAttribute('data-key', it.key); }
+      var want = prev ? prev.nextElementSibling : box.firstElementChild;
+      if (node !== want) box.insertBefore(node, want || null);
+      update(node, it);       // after insertion — the clamp check needs layout
+      prev = node;
+    });
+    Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
+  }
+  // One cell = one picture (or a breathing placeholder while it draws).
+  function makeCell(it) {
+    var d = document.createElement('div');
+    if (it.ph) { d.className = 'cell ph'; return d; }
+    d.className = 'cell';
+    var img = document.createElement('img');
+    img.setAttribute('loading', 'lazy');
+    d.appendChild(img);
+    return d;
+  }
+  function updateCell(el, it) {
+    if (it.ph) return;
+    var img = el.firstElementChild;
+    if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
+    if (img.getAttribute('data-run') !== it.runId) img.setAttribute('data-run', it.runId);
+    if (img.getAttribute('data-i') !== it.i) img.setAttribute('data-i', it.i);
+    var badge = el.querySelector('.badge');
+    var have = badge ? (badge.classList.contains('like') ? 'like' : 'dislike') : '';
+    if (have !== it.vote) {
+      if (badge) badge.remove();
+      if (it.vote) {
+        var b = document.createElement('span');
+        b.className = 'badge ' + it.vote;
+        b.innerHTML = it.vote === 'like' ? ICONS.heart : ICONS.x;
+        el.appendChild(b);
+      }
+    }
+  }
+  // One run box: the head rebuilds only when its words/tags changed (it holds
+  // no pictures, so that is cheap); the grid reconciles cell by cell.
+  function makeRun() {
+    var d = document.createElement('div');
+    d.className = 'run';
+    return d;
+  }
+  function updateRun(el, it) {
+    if (it.bodyHtml !== undefined) {                // a failed run — words only
+      if (el.__body !== it.bodyHtml) {
+        el.innerHTML = it.bodyHtml; el.__body = it.bodyHtml;
+        el.__head = undefined;
+        applyClamps(el);
+      }
+      return;
+    }
+    var head = el.querySelector('.runhead');
+    if (!head || el.__body !== undefined) {
+      el.__body = undefined; el.__head = undefined;
+      el.innerHTML = '<div class="runhead"></div><div class="grid"></div>';
+      head = el.firstElementChild;
+    }
+    if (el.__head !== it.headHtml) {
+      head.innerHTML = it.headHtml;
+      el.__head = it.headHtml;
+      applyClamps(head);
+    }
+    syncChildren(el.querySelector('.grid'), it.cells, makeCell, updateCell);
+  }
+
   // What a run is labelled with. LoRA runs carry scale + seed; a gpt-image-2
   // run carries its quality and shape instead (it has neither of the others).
   function runParts(r) {
@@ -1425,33 +1538,37 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
       var only = likedOnly();
-      document.getElementById('runs').innerHTML = groups.map(function (g) {
+      var items = [];
+      groups.forEach(function (g) {
         var head = g.items[0];
         var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
         if (head.status === 'failed') {
-          if (only) return '';   // a failed run has no picture to have hearted
-          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
-            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div></div>';
+          if (only) return;   // a failed run has no picture to have hearted
+          items.push({ key: g.key, bodyHtml:
+            '<div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
+            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div>' });
+          return;
         }
         // Oldest first, so a second tap's picture lands to the RIGHT of the
         // first. Every cell still points at its OWN run, so the lightbox shows
         // that picture's real settings and a ♥ goes on the right doc.
-        var cells = '';
+        var cells = [];
         g.items.slice().reverse().forEach(function (r) {
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
             if (only && v !== 'like') return;
-            var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
-            cells += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
           });
         });
-        if (only && !cells) return '';   // nothing hearted in this run
-        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
-          runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
-          '<div class="grid">' + cells + '</div></div>';
-      }).join('') || emptyNote();
-      applyClamps(document.getElementById('runs'));
+        if (only && !cells.length) return;   // nothing hearted in this run
+        items.push({ key: g.key, cells: cells,
+          headHtml: '<span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
+            runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') });
+      });
+      var box = document.getElementById('runs');
+      if (!items.length) box.innerHTML = emptyNote();
+      else syncChildren(box, items, makeRun, updateRun);
       if (curView() === 'tiles') renderTiles();
       // The wall she is stepping through just changed under the lightbox (a
       // ♥ with the filter lit removes the picture she is on), so the arrows
@@ -1482,14 +1599,14 @@
   // drawn hold an empty square each at the FRONT, so the wall is the whole
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
-    var html = '';
+    var items = [];
     var only = likedOnly();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     if (!only) pendingList().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
       var slots = p.count || OUTPUTS;
-      for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
+      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
     // Object.keys of the id map relied on insertion order holding, which is a
@@ -1500,11 +1617,12 @@
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
         if (only && v !== 'like') return;
-        var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
-        html += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
       });
     });
-    document.getElementById('tiles').innerHTML = html || emptyNote();
+    var box = document.getElementById('tiles');
+    if (!items.length) box.innerHTML = emptyNote();
+    else syncChildren(box, items, makeCell, updateCell);
   }
 
   // One delegated handler for every tile.
