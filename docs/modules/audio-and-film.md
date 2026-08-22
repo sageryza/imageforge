@@ -75,6 +75,22 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
     before the callback returns or it is deleted underneath you. `denied` raises
     the Settings alert rather than a toast — `requestAuthorization` never
     re-prompts after a "Don't Allow", so a toast there is a dead end.
+  - **THE BACKLOG IS A SCRIPT, AND IT WAITS FOR THE APP BUILD.**
+    `node scripts/backfill-movie-clips.js` (dry by default, `--write` to file,
+    `--undo --write` to remove only what it filed) walks `forge-movies` and
+    `forge-quick` and files everything already made — scene clips including
+    superseded re-rolls, bridges, cuts, quick animates — each with its poster
+    and its REAL make-time (`stitchedAt` / `createdAt`), so a backfill
+    interleaves with the rest of the gallery instead of landing in a slab at
+    the top. Idempotent: it skips any url already there.
+    **Measured 2026-08-22: 166 finished videos, every one of them with a
+    poster, none previously in the gallery.** It was run and undone the same
+    minute on purpose — **a build without video support draws a creation by
+    decoding its `url` as a picture, and there is no picture inside an mp4**,
+    so a clip filed before the build tiles as a blank white square. The server
+    filing new clips from here on is a trickle that self-corrects the moment
+    she updates; 166 at once is not. Run it for real once the build is on her
+    phone.
   - Test: `node scripts/test-movies-creations.js` (pure — the wiring, the
     poster, the film/clip split, and that a failing writer never reaches the
     render).
