@@ -265,7 +265,7 @@ catch {
   ok(await page.inputValue('#prompt') === 'a cat', 'the content half landed in the box');
 
   // She taps a different tile — the claim must stop being "this picture's".
-  await page.click('.stylebtn:has-text("Pastel")');
+  await page.selectOption('#stylepick', 'pastel');
   t = await tag();
   ok(/\bon\b/.test(t.cls) && !/same/.test(t.cls), 'after switching tile: no longer "same"');
   ok(/Pastel/.test(t.text) && /Dreamy/.test(t.text),
@@ -319,6 +319,27 @@ catch {
   ok(!(await page.evaluate(() => document.getElementById('promptbtn').classList.contains('edited'))),
     'and clears the mark');
 
+  // ── the style drop-down ────────────────────────
+  // She sees the style she is on and nothing else — the other five are behind
+  // the tap, and a chevron says so.
+  console.log('the style drop-down');
+  const pick = await page.evaluate(() => {
+    const sel = document.getElementById('stylepick');
+    const cs = getComputedStyle(sel);
+    return {
+      exists: !!sel,
+      tiles: document.querySelectorAll('.styles .stylebtn').length,
+      options: sel.options.length,
+      value: sel.value,
+      chevron: /svg/.test(cs.backgroundImage),
+      font: parseFloat(cs.fontSize),
+    };
+  });
+  ok(pick.exists && pick.tiles === 0, 'the row of tiles is gone — one control in its place');
+  ok(pick.options === 6, 'every style is still reachable inside it');
+  ok(pick.chevron, 'and it wears an arrow so it reads as a drop-down');
+  ok(pick.font >= 16, 'at 16px, or iOS zooms the page when it opens the picker');
+
   // ── the canvas toggle ───────────────────────────────────────────────
   console.log('the canvas toggle');
   ok(await page.isVisible('#canvastog'), 'the toggle shows on a gpt style');
@@ -348,7 +369,7 @@ catch {
     'and it switches');
 
   // The LoRA has no baked prefix and rides a different shape parameter.
-  await page.click('.stylebtn:has-text("WTR")');
+  await page.selectOption('#stylepick', 'watercolor');
   ok(!(await page.isVisible('#promptbtn')), 'no prompt button on the LoRA');
   ok(!(await page.isVisible('#canvastog')), 'no canvas toggle on the LoRA');
   ok(!(await page.isVisible('#promptpanel')), 'and an open panel closes with it');
