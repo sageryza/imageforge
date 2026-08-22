@@ -5,13 +5,13 @@
  * prompt that can be toggled on and off with a little toggle").
  *
  * Two halves. The first is source-only and always runs:
- *   1. the SWAP rule. Dreamy's tail deliberately ALLOWS text ("Minimal text
- *      only" — her handwriting is part of that reference), so the toggle
- *      replaces that clause instead of appending a second sentence arguing
- *      with it. The clause is matched VERBATIM, so this pins the tail and the
- *      toggle's `from` to each other: reword one without the other and the
- *      toggle silently falls back to appending, which is the failure nobody
- *      would notice.
+ *   1. the SWAP rule. Dreamy's tail carries its own text clause (her
+ *      2026-08-22 wording says "no text."; before that it said "Minimal text
+ *      only"), so the toggle replaces that clause instead of appending a
+ *      second sentence arguing with it. The clause is matched VERBATIM, so
+ *      this pins the tail and the toggle's `from` to each other: reword one
+ *      without the other and the toggle silently falls back to appending,
+ *      which is the failure nobody would notice.
  *   2. off is the default and changes nothing, and no other style grew one.
  * The second drives the real promptlab.html in headless Chromium: the button
  * shows only where the server says the style has the toggle, it survives a
@@ -62,7 +62,7 @@ ok(/no text/i.test(dream.noText.to) && !/minimal/i.test(dream.noText.to),
 ok(applyNoText(dream.suffix, dream, false) === dream.suffix, 'off: the tail is untouched');
 const on = applyNoText(dream.suffix, dream, true);
 ok(on.indexOf(dream.noText.to) >= 0, 'on: the ban is in the sent tail');
-ok(on.indexOf(dream.noText.from) < 0, 'and the "minimal text" clause is GONE, not contradicted');
+ok(on.indexOf(dream.noText.from) < 0, 'and the tail\'s own text clause is GONE, not contradicted');
 ok(on.indexOf('do not draw its content') >= 0,
   'the bookended anti-content rule still closes the tail');
 
@@ -155,9 +155,9 @@ catch {
   ok(await page.getAttribute('#notextbtn', 'aria-pressed') === 'false', 'and starts OFF');
 
   // A style whose tail already bans text must show no switch that changes nothing.
-  await page.click('.stylebtn:has-text("Pastel")');
+  await page.selectOption('#stylepick', 'pastel');
   ok(!(await page.isVisible('#notextbtn')), 'no toggle on a style the server gave no line');
-  await page.click('.stylebtn:has-text("Dreamy")');
+  await page.selectOption('#stylepick', 'dreamy');
   ok(await page.isVisible('#notextbtn'), 'back on Dreamy, back on screen');
 
   await page.click('#notextbtn');

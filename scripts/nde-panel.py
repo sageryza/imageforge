@@ -22,14 +22,16 @@ PREFIX = ("The FIRST attached image is a STYLE reference — copy its drawing st
 # still renders exactly what this script was built for: a full-bleed VERTICAL
 # panel with nothing else in the frame.
 #
-# Sophie's current wording, live in `PL_GPT_STYLES.dreamy` in server.js (the
-# Playground's Dreamy tile), is deliberately looser, and differs in four ways:
+# Sophie's current wording (dictated 2026-08-22), live in `PL_GPT_STYLES.dreamy`
+# in server.js (the Playground's Dreamy tile), differs in four ways:
 #   • it names no orientation      — that tile's canvas toggles portrait/square
-#   • "minimal text only"          — not "no text or lettering anywhere"; her
-#                                    handwriting is part of that page
-#   • no "no borders"              — the reference IS a diary comic and its
-#                                    drawn frames are the look
-#   • no "no caption boxes"        — same reason
+#   • a shorter style instruction  — just "copy its drawing style", without the
+#                                    linework/texture/palette list above
+#   • it ASKS FOR a hand-drawn border, "like the frames in the style
+#     reference" — where this script bans borders outright
+#   • no "no caption boxes"        — the reference IS a diary comic and its
+#                                    boxes are part of the look
+# (Her tail bans text too — "no text." — so that is no longer a difference.)
 # It also repeats the anti-content rule at the END, because the tail is the
 # last thing the model reads.
 #
