@@ -2578,6 +2578,61 @@ function assetVoteRef(chat, url) {
     .update(String(chat) + '|' + String(url)).digest('hex');
   return admin.firestore().collection('forge-asset-votes').doc(id);
 }
+
+// ── Hearts sync BOTH WAYS between the Playground and the Assets tabs (Aug
+// 2026, Sophie: "i don't know if the hearts in playground are syncing to the
+// hearts in meta-assets" — they were not: a Playground ♥ lived only on the
+// run doc and an Assets ♥ only in forge-asset-votes; measured that day, 21 of
+// the 22 hearted Playground pictures in the newest 100 runs sat unhearted in
+// Meta Assets). Each vote still writes where it always did; its route now
+// ALSO carries the vote — and a CLEAR — across, so un-hearting on one surface
+// cannot leave a stuck heart on the other. Best-effort by design: a sync
+// failure must never fail the vote itself. Matching is by exact url (plus the
+// canonical urlKey); an md5-only twin (a re-encoded copy under a different
+// name) is not chased — the Assets read's union already finds a vote left on
+// either path of one picture.
+async function syncVoteToAssets(url, vote) {
+  if (!url || !admin.apps.length) return;
+  try {
+    const col = admin.firestore().collection('forge-chat-assets');
+    // Two doors to one record: its literal url, and its canonical urlKey —
+    // the voted url is usually already canonical, so the urlKey query is the
+    // one that finds a record filed with a query-string on its url.
+    const queries = [col.where('url', '==', url)];
+    const key = canonicalAssetUrl(url);
+    if (key) queries.push(col.where('urlKey', '==', key));
+    const chats = new Set();
+    for (const q of queries) {
+      try {
+        (await q.limit(20).get()).docs.forEach((d) => {
+          const chat = (d.data() || {}).chat;
+          if (chat) chats.add(chat);
+        });
+      } catch (e) { /* a lookup failing must never block the vote */ }
+    }
+    await Promise.all([...chats].map((chat) => assetVoteRef(chat, url).set({
+      chat: String(chat).slice(0, 60),
+      url: String(url).slice(0, 500),
+      vote: (vote === 'like' || vote === 'dislike') ? vote : admin.firestore.FieldValue.delete(),
+      updated: new Date().toISOString(),
+    }, { merge: true }).catch(() => {})));
+  } catch (e) { /* best-effort */ }
+}
+async function syncVoteToPlayground(url, vote) {
+  if (!url || !/\/promptlab\//.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await admin.firestore().collection('forge-promptlab')
+      .where('images', 'array-contains', url).limit(1).get();
+    if (snap.empty) return;
+    const doc = snap.docs[0];
+    const i = (doc.data().images || []).indexOf(url);
+    if (i < 0) return;
+    await doc.ref.update({
+      [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
+        ? vote : admin.firestore.FieldValue.delete(),
+    });
+  } catch (e) { /* best-effort */ }
+}
 // Legacy docs hold only a single `note` string (everything written before the
 // thread existed). Those are PRESENTED as a one-message thread from Sophie, so
 // no migration is needed and no old note is lost.
@@ -2677,6 +2732,9 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
       await appendAssetMessage(ref, chat, url, 'sophie',
         String(note).trim());
     }
+    // A ♥/✕ (or a clear) on a Playground-made picture also lands on its run
+    // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
+    if (vote !== undefined) await syncVoteToPlayground(url, vote);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5713,6 +5771,15 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
     await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
+    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding this
+    // picture, so the two surfaces agree — see syncVoteToAssets. Awaited so a
+    // reload straight after the tap already reads the synced state; a sync
+    // failure never fails the vote (the helper swallows its own errors).
+    try {
+      const run = (await ref.get()).data() || {};
+      const url = (run.images || [])[i];
+      if (url) await syncVoteToAssets(url, vote);
+    } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
