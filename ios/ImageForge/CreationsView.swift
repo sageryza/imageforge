@@ -75,6 +75,48 @@ final class PhotoSaver {
     }
 }
 
+/// Saves a VIDEO to the photo library. Photos wants a real file on disk with a
+/// video resource — it will not take a remote URL and it will not take decoded
+/// frames — so the clip is downloaded to tmp first and handed over with
+/// `shouldMoveFile`, exactly the way `PhotoSaver` hands over image bytes.
+///
+/// Built Aug 2026, when Sophie pointed out that a clip she animated in Movies
+/// had nowhere to go: "there's no download button and they don't appear in my
+/// creations". Anything in the app that plays a clip saves it through here, so
+/// there is one download path and one set of failure messages.
+final class VideoSaver {
+    static let shared = VideoSaver()
+
+    func save(from url: URL, _ done: @escaping (PhotoSaveOutcome) -> Void) {
+        let finish: (PhotoSaveOutcome) -> Void = { r in DispatchQueue.main.async { done(r) } }
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else { finish(.denied); return }
+            // Keep the real extension where there is one: Photos reads the
+            // container off the file, and a clip named `.dat` is refused.
+            let ext = url.pathExtension.isEmpty ? "mp4" : url.pathExtension
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("clip-\(UUID().uuidString).\(ext)")
+            URLSession.shared.downloadTask(with: url) { located, _, error in
+                guard let located else {
+                    finish(.failed(error?.localizedDescription ?? "couldn’t download that clip")); return
+                }
+                // The download's own temp file is deleted the moment this
+                // callback returns, so it has to be moved before anything else.
+                do { try FileManager.default.moveItem(at: located, to: tmp) }
+                catch { finish(.failed(error.localizedDescription)); return }
+                let opts = PHAssetResourceCreationOptions()
+                opts.shouldMoveFile = true
+                PHPhotoLibrary.shared().performChanges {
+                    PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: tmp, options: opts)
+                } completionHandler: { ok, err in
+                    try? FileManager.default.removeItem(at: tmp)   // no-op once moved
+                    finish(ok ? .saved : .failed(err?.localizedDescription ?? "Photos refused the video"))
+                }
+            }.resume()
+        }
+    }
+}
+
 /// A grid of everything you've made. Reads the server-saved creations list, so
 /// generations show up here even if a connection dropped or the app was
 /// backgrounded mid-generation.
@@ -109,7 +151,7 @@ struct CreationsView: View {
     /// Types present in the user's creations, in a friendly fixed order.
     private var types: [String] {
         let present = Set(creations.map { $0.type })
-        let order = ["sticker", "coloring", "storybook", "card", "dream", "instagram"]
+        let order = ["sticker", "coloring", "storybook", "card", "dream", "instagram", "clip", "film"]
         var out = order.filter { present.contains($0) }
         for t in present.sorted() where !out.contains(t) { out.append(t) }
         return out
@@ -179,7 +221,7 @@ struct CreationsView: View {
             }
             Button("Not now", role: .cancel) { }
         } message: {
-            Text("Turn on “Add Photos Only” for ImageForge to save pictures to your library.")
+            Text("Turn on “Add Photos Only” for ImageForge to save pictures and clips to your library.")
         }
         .overlay { previewPopup }
         .overlay(alignment: .bottom) { toastView }
@@ -248,6 +290,8 @@ struct CreationsView: View {
         case "card":      return "Cards"
         case "dream":     return "Dreams"
         case "instagram": return "Instagram"
+        case "clip":      return "Clips"
+        case "film":      return "Films"
         default:          return t.capitalized
         }
     }
@@ -285,7 +329,20 @@ struct CreationsView: View {
         // gigabyte of decoded pictures. At tile size it is ~0.4MB.
         Color.white
             .aspectRatio(1, contentMode: .fit)
-            .overlay(CachedImageView(url: c.url, contentMode: .fill, maxPixel: 400))
+            // A video tiles as its POSTER — the panel it was animated from.
+            // There is no frame to decode out of an mp4 here, so a clip with no
+            // poster on file would be a blank white square.
+            .overlay(CachedImageView(url: c.thumbURL, contentMode: .fill, maxPixel: 400))
+            .overlay(alignment: .bottomTrailing) {
+                if c.isVideo {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 24, height: 24)
+                        .background(Circle().fill(Color.black.opacity(0.55)))
+                        .padding(6)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
             .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))
     }
@@ -304,6 +361,14 @@ struct CreationsView: View {
                             Label("Save", systemImage: "arrow.down.to.line")
                                 .font(.subheadline.weight(.semibold))
                         }
+                        // The other way out: Files, AirDrop, Messages. A clip
+                        // is the case that needs it — Photos is not always
+                        // where a piece of footage is wanted next.
+                        ShareLink(item: c.url) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                        .padding(.leading, 14)
                         Spacer()
                         Button { preview = nil } label: {
                             Image(systemName: "xmark").font(.system(size: 15, weight: .semibold))
@@ -311,11 +376,19 @@ struct CreationsView: View {
                     }
                     .tint(Theme.accent)
 
-                    CachedImageView(url: c.url, contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                        .frame(maxHeight: 420)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                    if c.isVideo {
+                        MoviePlayer(url: c.url)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 260)
+                            .background(Color.black)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                    } else {
+                        CachedImageView(url: c.url, contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .frame(maxHeight: 420)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+                    }
 
                     // What made it — model · quality. First line of the caption,
                     // because it's the thing she's checking when she opens one.
@@ -387,6 +460,14 @@ struct CreationsView: View {
     private func savePreview(_ c: Creation) {
         // Say something the instant it's tapped: the download + the permission
         // round trip take a moment, and a silent button reads as a dead one.
+        // A clip is downloaded to a file and handed to Photos as a video
+        // resource — none of the image path below applies to it, and a few MB
+        // of footage takes longer to land than a picture does.
+        if c.isVideo {
+            showToast("Saving…", seconds: 30)
+            VideoSaver.shared.save(from: c.url) { outcome in report(outcome) }
+            return
+        }
         showToast("Saving…", seconds: 20)
         Task {
             // Prefer the bytes exactly as they were downloaded — Photos takes a
@@ -403,16 +484,19 @@ struct CreationsView: View {
                 await MainActor.run { showToast("Couldn’t load that image") }
                 return
             }
-            PhotoSaver.shared.save(data: bytes, image: image) { outcome in
-                switch outcome {
-                case .saved:            showToast("Saved to Photos")
-                // A toast for this was too easy to miss — once permission is
-                // off, nothing inside the app can turn it back on, so say so
-                // and offer the one door that works.
-                case .denied:           withAnimation { toast = nil }; photosDenied = true
-                case .failed(let why):  showToast("Couldn’t save — \(why)", seconds: 4)
-                }
-            }
+            PhotoSaver.shared.save(data: bytes, image: image) { outcome in report(outcome) }
+        }
+    }
+
+    /// One place both save paths land, so a clip and a picture fail the same
+    /// way. `denied` is deliberately NOT a toast: once permission is off
+    /// nothing inside the app can turn it back on, so it raises the alert that
+    /// offers Settings — the one door that works.
+    private func report(_ outcome: PhotoSaveOutcome) {
+        switch outcome {
+        case .saved:            showToast("Saved to Photos")
+        case .denied:           withAnimation { toast = nil }; photosDenied = true
+        case .failed(let why):  showToast("Couldn’t save — \(why)", seconds: 4)
         }
     }
 

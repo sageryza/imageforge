@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import UIKit          // UIApplication.openSettingsURLString — the Photos-denied door
 
 // The Gallery — everything a movie has generated, organized and laid out:
 //   • CUTS: every finished stitch, kept and named by what changed since the
@@ -282,6 +283,8 @@ struct GalleryDetail: Identifiable {
 private struct GalleryDetailSheet: View {
     let detail: GalleryDetail
     @Environment(\.dismiss) private var dismiss
+    @State private var toast: String?
+    @State private var photosDenied = false
 
     var body: some View {
         NavigationStack {
@@ -321,13 +324,46 @@ private struct GalleryDetailSheet: View {
                             .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Reel.border, lineWidth: 1))
                     }
                     if let url = detail.mediaURL {
-                        ShareLink(item: url) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                                .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                        HStack(spacing: 18) {
+                            // Every re-roll lives on this screen, superseded
+                            // ones included, so this is where a clip that
+                            // never made the cut gets saved out.
+                            if detail.isVideo {
+                                Button { save(url) } label: {
+                                    Label("Save to Photos", systemImage: "arrow.down.to.line")
+                                        .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                                }
+                            }
+                            ShareLink(item: url) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                                    .font(.caption.weight(.semibold)).foregroundColor(Reel.amber)
+                            }
                         }
                     }
                 }
                 .padding()
+            }
+            .overlay(alignment: .bottom) {
+                if let t = toast {
+                    Text(t)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Reel.base)
+                        .padding(.horizontal, 18).padding(.vertical, 12)
+                        .background(Reel.amber)
+                        .cornerRadius(Theme.radius)
+                        .padding(.bottom, 40)
+                        .transition(.opacity)
+                }
+            }
+            .alert("Photos access is off", isPresented: $photosDenied) {
+                Button("Open Settings") {
+                    if let u = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(u)
+                    }
+                }
+                Button("Not now", role: .cancel) { }
+            } message: {
+                Text("Turn on “Add Photos Only” for ImageForge to save clips to your library.")
             }
             .background(Reel.base.ignoresSafeArea())
             .navigationTitle(detail.title)
@@ -337,6 +373,25 @@ private struct GalleryDetailSheet: View {
                     Button("Done") { dismiss() }.foregroundColor(Reel.amber)
                 }
             }
+        }
+    }
+
+    private func save(_ url: URL) {
+        show("Saving…", seconds: 30)
+        VideoSaver.shared.save(from: url) { outcome in
+            switch outcome {
+            case .saved:           show("Saved to Photos")
+            case .denied:          withAnimation { toast = nil }; photosDenied = true
+            case .failed(let why): show("Couldn’t save — \(why)", seconds: 4)
+            }
+        }
+    }
+
+    private func show(_ message: String, seconds: Double = 1.8) {
+        withAnimation { toast = message }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            withAnimation { if toast == message { toast = nil } }
         }
     }
 }

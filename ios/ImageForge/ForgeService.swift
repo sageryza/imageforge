@@ -429,7 +429,8 @@ final class ForgeService {
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
                 style: data["style"] as? String,
-                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false
+                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false,
+                poster: (data["poster"] as? String).flatMap(URL.init(string:))
             )
         }
         // Both of these read the SNAPSHOT, never `items`: a doc with no usable
@@ -479,7 +480,8 @@ final class ForgeService {
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
                 style: data["style"] as? String,
-                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false
+                compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false,
+                poster: (data["poster"] as? String).flatMap(URL.init(string:))
             ))
         }
         .sorted { $0.0 < $1.0 }          // oldest first — the order a book reads in

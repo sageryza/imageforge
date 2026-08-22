@@ -1527,10 +1527,17 @@ private struct PromptEditorSheet: View {
     }
 }
 
+/// The one player every clip in Movies opens in — a scene's clip, a quick
+/// animation, a finished cut — which is why the way OUT of the app lives here:
+/// one download button, one share sheet, one set of failure messages, on
+/// everything Movies makes (Sophie, Aug 2026: "there's no download button and
+/// they don't appear in my creations").
 struct ClipPreviewSheet: View {
     let title: String
     let url: URL
     @Environment(\.dismiss) private var dismiss
+    @State private var toast: String?
+    @State private var photosDenied = false
 
     var body: some View {
         NavigationStack {
@@ -1542,8 +1549,67 @@ struct ClipPreviewSheet: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Done") { dismiss() }.foregroundColor(Reel.amber)
                     }
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        Button { save() } label: {
+                            Image(systemName: "arrow.down.to.line").foregroundColor(Reel.amber)
+                        }
+                        // Files / AirDrop / Messages — Photos is not always
+                        // where a piece of footage is wanted next.
+                        ShareLink(item: url) {
+                            Image(systemName: "square.and.arrow.up").foregroundColor(Reel.amber)
+                        }
+                    }
                 }
                 .toolbarBackground(Reel.base, for: .navigationBar)
+                .overlay(alignment: .bottom) { toastView }
+                // Permission was refused at some point: the request returns
+                // instantly from then on and never shows the system prompt
+                // again, so the only way back is Settings.
+                .alert("Photos access is off", isPresented: $photosDenied) {
+                    Button("Open Settings") {
+                        if let u = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(u)
+                        }
+                    }
+                    Button("Not now", role: .cancel) { }
+                } message: {
+                    Text("Turn on “Add Photos Only” for ImageForge to save clips to your library.")
+                }
+        }
+    }
+
+    @ViewBuilder private var toastView: some View {
+        if let t = toast {
+            Text(t)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(Reel.base)
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .background(Reel.amber)
+                .cornerRadius(Theme.radius)
+                .padding(.bottom, 40)
+                .transition(.opacity)
+        }
+    }
+
+    /// Say something the instant it's tapped: a clip is a few MB and the
+    /// download plus the permission round trip take a moment, so a silent
+    /// button reads as a dead one.
+    private func save() {
+        showToast("Saving…", seconds: 30)
+        VideoSaver.shared.save(from: url) { outcome in
+            switch outcome {
+            case .saved:           showToast("Saved to Photos")
+            case .denied:          withAnimation { toast = nil }; photosDenied = true
+            case .failed(let why): showToast("Couldn’t save — \(why)", seconds: 4)
+            }
+        }
+    }
+
+    private func showToast(_ message: String, seconds: Double = 1.8) {
+        withAnimation { toast = message }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            withAnimation { if toast == message { toast = nil } }
         }
     }
 }

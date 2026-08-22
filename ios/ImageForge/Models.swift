@@ -76,6 +76,23 @@ struct Creation: Identifiable, Hashable {
     /// reached us (written by scripts/tag-compressed-at-birth.js). The flag is
     /// the data; the "[compressed]" below is presentation.
     var compressedAtBirth: Bool = false
+    /// The still a VIDEO creation tiles with — a clip has no frame the grid can
+    /// decode, so without this it would tile as a blank square. For a Movies
+    /// clip it's the panel the clip was animated from (movies.js files it).
+    var poster: URL? = nil
+
+    /// Whether this creation plays rather than displays. The TYPE is what the
+    /// filer writes, but the url is checked too, so a clip filed before this
+    /// existed (or by a script that called it something else) still plays
+    /// instead of tiling as a broken picture.
+    var isVideo: Bool {
+        if ["clip", "film", "video", "movie"].contains(type) { return true }
+        return ["mp4", "mov", "m4v", "webm"].contains(url.pathExtension.lowercased())
+    }
+
+    /// What the grid draws in the tile: the poster for a video, the thing
+    /// itself for a picture.
+    var thumbURL: URL { poster ?? url }
 
     /// The line shown under a creation when you open it — model · quality,
     /// led by "[compressed]" when the original was thrown away at birth. A

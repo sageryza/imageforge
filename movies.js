@@ -57,6 +57,41 @@ const DREAM_BREAKDOWN_EFFORT = process.env.DREAM_BREAKDOWN_EFFORT || 'low';
 // requires the x-studio-token header. Generation costs real money.
 const STUDIO_TOKEN = process.env.STUDIO_TOKEN || '';
 
+// ─── Out of the Movies tab: everything made here files into "My Creations" ──
+// Sophie, Aug 2026: "there's no download button and they don't appear in my
+// creations" — a clip she paid for lived only inside the movie that made it.
+// The gallery lives in the OTHER Firebase project (membry), whose credential
+// this module doesn't hold, so server.js hands the writer down at mount time:
+// `movies.init({ fileCreation })`.
+//
+// Two rules, both deliberate. Every filing carries a POSTER (the panel the clip
+// was animated from, or the still it started as) because a video creation has
+// no frame the grid can decode — without one it tiles as a blank square. And
+// every filing is best-effort and never awaited by the render: a gallery
+// hiccup must not cost a clip that already exists and is already on screen.
+let fileCreation = null;
+function init(opts = {}) {
+  if (typeof opts.fileCreation === 'function') fileCreation = opts.fileCreation;
+}
+
+// Fire-and-forget: file one finished video. Re-rolls file too — a superseded
+// clip is history she may still want (the house rule is that she decides what
+// is too much for her gallery, not us), and the writer de-dupes by url.
+function fileVideoToCreations({ url, poster, prompt, type, model, quality }) {
+  if (!fileCreation || !url || String(url).startsWith('data:')) return;
+  Promise.resolve()
+    .then(() => fileCreation({
+      url,
+      poster: poster && !String(poster).startsWith('data:') ? poster : null,
+      type: type || 'clip',
+      prompt: String(prompt || '').slice(0, 500),
+      model: model || null,
+      quality: quality || null,
+      source: 'movies',
+    }))
+    .catch(err => console.warn('movies → My Creations failed:', err.message));
+}
+
 // ffmpeg / ffprobe: static binaries from npm so Render's stock Node image can
 // stitch video, with a fall-back to system binaries (FFMPEG_PATH/FFPROBE_PATH
 // env vars or anything on PATH). Defensive — without them generation still
@@ -1312,6 +1347,10 @@ async function generateClipFor(movie, scene, idx, { tier = 'draft', frames } = {
   keepHistory(scene, 'clip');
   scene.clip = { url, tier, status: 'done', error: null, frames: usedFrames, cost, promptUsed: prompt };
   movie.spend = +((movie.spend || 0) + cost).toFixed(2);
+  fileVideoToCreations({
+    url, poster: scene.panel?.url, prompt,
+    model: (tier === 'draft' ? 'wan-2.2-i2v-fast' : 'kling-v2.1'), quality: tier,
+  });
 }
 
 // Dream mode: a bridge clip across a hard cut. Start = previous clip's last
@@ -1361,6 +1400,10 @@ async function generateBridge(movie, bridge, tmpDir) {
   const cost = m.costPerClip(121);
   bridge.clip = { url, status: 'done', error: null, cost, promptUsed: prompt };
   movie.spend = +((movie.spend || 0) + cost).toFixed(2);
+  fileVideoToCreations({
+    url, poster: toScene.panel?.url, prompt,
+    model: 'wan-2.2-i2v-fast', quality: 'bridge',
+  });
 }
 
 // ─── The zine: the same story as captioned pages ────────────────────
@@ -2325,6 +2368,12 @@ function recordCut(movie, seq, url, duration) {
     frames,
   };
   movie.cuts = [...(movie.cuts || []), cut].slice(-20);
+  // A finished cut files as its own kind, so the grid's filter row separates
+  // the films from the clips they are made of.
+  fileVideoToCreations({
+    url, type: 'film', poster: frames.find(f => f.panelUrl)?.panelUrl,
+    prompt: `${movie.title || 'movie'} — ${cut.name}`,
+  });
   movie.lastCutSig = sig;
   movie.lastCutBridges = bridgeCount;
 }
@@ -2602,6 +2651,10 @@ router.post('/animate', async (req, res) => {
         if (!output) throw new Error('video model produced no output');
         quick.clipUrl = await saveUrlToStorage(output, 'movies/quick', 'video/mp4');
         quick.status = 'done';
+        fileVideoToCreations({
+          url: quick.clipUrl, poster: imageUrl, prompt: fullPrompt,
+          model: (tier === 'draft' ? 'wan-2.2-i2v-fast' : 'kling-v2.1'), quality: tier,
+        });
       } catch (err) {
         quick.status = 'error';
         quick.error = err.message;
@@ -3471,6 +3524,8 @@ router.post('/:id/stitch', async (req, res) => {
 
 module.exports = {
   router,
+  init,
+  fileVideoToCreations,   // exported for the wiring test
   breakdownStory,
   movieSequence,
   timelineSequence,
