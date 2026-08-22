@@ -297,6 +297,36 @@ around them change, so verify the labels and use these for the URL.
   - **Fixing it is Sophie's, one field** — the environment's env vars (cloud
     icon → the environment → Environment variables) → `FORGE_ACCOUNT` → `3`.
     Until she does, every NEW account-3 session starts mislabeled again.
+  - **AND A SAVED ENV-VAR EDIT IS NOT PROOF IT REACHED ANYTHING — MEASURE IT
+    (2026-08-22, hours later).** She added the line, screenshotted the box
+    showing `FORGE_ACCOUNT=3` at the top, and reported new sessions still
+    weren't tagged. A probe container started 17 minutes after that edit read
+    **`2`** and stamped its chat 2. Leading hypothesis, unproven: the OLD
+    `FORGE_ACCOUNT=2` line is still further down the same box and wins (.env
+    duplicate keys, last one wins) — the box scrolls, so a value added at the
+    top hides its own twin. Not the wrong-box trap: the other environment
+    (`env_01UhUAKEXwfZZ8M61whDFu9Q`) was measured the same hour and has NO
+    `FORGE_ACCOUNT` at all and no hook installed, i.e. genuinely unused.
+  - **THE PROBE — how to ask what a NEW session sees, in about a minute.**
+    `create_session {prompt: "run echo $FORGE_ACCOUNT and reply with just that
+    line"}` (it inherits the calling session's environment), then
+    `get_session` on the returned id and read
+    `external_metadata.post_turn_summary.status_detail` — the child's answer is
+    right there, so nothing has to be read out of the feed. Cost ~$0.50-$0.90 a
+    probe. Clean up after: the probe's own hook files a stray chat
+    (`POST /api/chatfeed/delete {chat}` trashes it, reversibly) and
+    `archive_session` closes the session.
+  - **THE DURABLE FIX NOBODY HAS BUILT: `CLAUDE_CODE_ACCOUNT_UUID`.** Every
+    container carries it — account 3 is
+    `226fb540-b801-46a1-9612-09ffd6a973fe` (measured 2026-08-22) — set by the
+    platform, not by Sophie, so it cannot be copied from another account or
+    pasted into the wrong box the way `FORGE_ACCOUNT` was. A hook that posted
+    it plus a uuid→number map on the settings doc would make the account tag
+    self-correcting, with the posted `FORGE_ACCOUNT` as the fallback for an
+    unmapped uuid. NOT BUILT — it needs a hook change, and a hook change only
+    reaches a session when Sophie re-pastes the environment's Setup script
+    (session init has no network, so the pasted copy is static: this container
+    ran a hook a day older than the served one).
   - **A chat can fix ITSELF for its own session**, no waiting: prefix its
     hook commands in `/home/user/.claude/settings.json` with
     `FORGE_ACCOUNT=3 ` (settings and hooks are re-read per event, so it takes
