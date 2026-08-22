@@ -2294,6 +2294,54 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
+  "add a little oval next to the pyramid, colored on top, white empty on
+  bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
+  1 high job" · "move the pyramid and the oval to the right side so they're
+  next to the generate button but still to the left of it" · "make the generate
+  button a square").** A ladder is one tap that draws the same prompt at more
+  than one quality, and each wears a picture of HOW MANY and at what tier,
+  never a word: the **pyramid** is two lows along its split base with the
+  better one filling the cap (~10¢), the **oval** is medium under high with the
+  top half filled (~21¢ portrait, ~26¢ square). The oval has NO vertical
+  divider on purpose — two tiers, one draw each; the split base is what says
+  *two lows*. Both go through one `ladder()` starter, and `startRun`'s `q`
+  overrides the toggle for that run only, so **neither ladder moves what the
+  knob says**.
+  - **The two ladders and Generate are ONE group (`.gogroup`), and it has to
+    be a group**: `.controls` wraps, so `margin-left:auto` on each button
+    separately would right-align whichever ones happened to share a line and
+    scatter the rest. The auto margin moved off `.go` onto the group.
+  - **Generate is a 38×38 SQUARE** — the box the seed button already is, so the
+    three taps at the right end read as one set rather than a wide slab beside
+    two small ones. The 6px radius stays: the house rule is rounded rectangles,
+    and sharp corners there would be the only ones on the page.
+  - **The style picker is NOT filled dark any more** (her ask, same message:
+    "just white, even tho it's selected"). It was painted like the old lit
+    tile so the selected style read as chosen — but there is only ever ONE
+    picker on the row, so there was nothing for it to read as chosen against,
+    and a black slab was the heaviest thing on a page of pale controls. The
+    INK BORDER stays; it is what still separates the one control that decides
+    the run from its pale neighbours.
+  - Test: `node scripts/test-playground-controls.js` — the headless half IS
+    the test here, because every one of these asks is a measurement: "coloured
+    on top" is the filled path's `getBBox` against the oval's centre (a wrong
+    arc sweep flag is perfectly valid markup that fills the wrong half),
+    "square" is two numbers that must match, "to the left of it" is an x
+    coordinate, and the three share a line by their CENTRES (the group centres
+    them and the ladders are shorter, so equal tops would be the wrong
+    question).
+  **THE CANVAS IS REMEMBERED — this REVERSES the note below it (Aug 2026,
+  Sophie: "make it not default to square, but just whatever the last option
+  was").** This file said a shape she picked once must not carry into every
+  later visit; she has since asked for exactly that, so the old reasoning is
+  history rather than a rule. `promptlab_canvas` in localStorage, written on
+  the TAP rather than on the run (the shape she is looking at is the one she
+  comes back to), with `square` surviving only as the FIRST-EVER default and
+  as the fallback for an unknown stored value. **QUALITY IS DELIBERATELY NOT
+  CHANGED WITH IT** — she named the canvas, and a remembered `high` is
+  16.5-21.1¢ a tap arriving unasked, where a remembered shape costs nothing it
+  did not cost last time.
   **QUALITY IS THE ACCOUNT SWITCHER'S THREE-WAY TOGGLE, IN BLACK (Aug 2026,
   Sophie: "make the low medium high drop down in the playground into the exact
   three way toggle that the account switcher uses … but black not red. and put
@@ -2317,7 +2365,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   a real size server-side, never an invented one. **The square is the DEARER
   one** — 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
   table warns about — so both buttons print what they cost; she picked it as
-  the default knowing that. Not persisted, same reasoning as quality.
+  the opening default knowing that. **It is PERSISTED since Aug 2026** (see
+  THE CANVAS IS REMEMBERED above) — this line used to read "not persisted,
+  same reasoning as quality" and she asked for the opposite.
   gpt-image-2 only — the LoRA has no baked prefix to show and rides
   `aspect_ratio` instead, so both controls hide on WTR.
   **THE ROW WRAPS, and that is load-bearing:** with the Prompt button and the
