@@ -16,7 +16,22 @@
      bridge is there and the bar is gone. */
   body.native .app-header { display: none; }
   .panel { background: #fff; border: 1px solid #e3dcd1; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
-  .styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  /* THE STYLE PICKER IS A DROP-DOWN, not a row of tiles (Aug 2026, Sophie:
+     "make the tiles at the top like dreamy, etc. into a drop-down so I don't
+     see all the tiles I just see the selected one and an arrow that shows
+     it's a drop-down"). One control showing the style she is on, with a
+     chevron so it reads as a menu; the other five are behind the tap.
+     It is a NATIVE <select> on purpose — iOS opens its own picker, it is the
+     same control the quality field beside it already uses, and it needs no
+     open/close state of its own to go wrong. Painted like the old lit tile
+     (dark) so the selected style still reads as chosen at a glance, and the
+     chevron is a flat SVG data URI — never a gradient. 16px, or iOS zooms the
+     page when it opens the picker. */
+  .styles { display: flex; margin-bottom: 10px; }
+  #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
+    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #2b2622; color: #faf7f2;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23faf7f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center; background-size: 15px 15px; }
   .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
   /* Inputs stay at 16px — anything smaller makes iOS zoom the page on focus. */
@@ -224,6 +239,11 @@
   #promptpanel .pnote { font-size: 11.5px; color: #9a9186; margin-left: auto; text-align: right; }
   .promptbtn { flex: none; }
   .promptbtn.edited { border-color: #2b2622; color: #2b2622; }
+  /* The no-text toggle — one button, dark when it is on (Aug 2026, Sophie).
+     Only the styles whose tail allows text ever show it. */
+  .notextbtn { flex: none; font-size: 12.5px; padding: 6px 10px; cursor: pointer; }
+  .notextbtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
+  #promptpanel .swapped { font-size: 11.5px; color: #6f675e; font-style: italic; margin: 4px 0 0; }
   /* The canvas toggle — portrait or square. Two segments, no pill. */
   .canvastog { display: flex; flex: none; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; }
   .canvastog button { flex: none; white-space: nowrap; border: none; background: #fdfcf9;
@@ -235,7 +255,7 @@
 <header class="app-header"><h1>Playground</h1></header>
 
 <div class="panel">
-  <div class="styles" id="styles"></div>
+  <div class="styles"><select id="stylepick" aria-label="Style"></select></div>
   <div id="reftag"></div>
   <div id="promptpanel"></div>
   <textarea id="prompt"></textarea>
@@ -248,6 +268,7 @@
     <span id="photowrap"><button id="photopick" type="button" aria-label="Attach a photo reference" title="Attach a photo reference"></button><button id="photoclear" type="button" aria-label="Take the photo reference off" title="Take the photo reference off"></button></span>
     <input type="file" id="photofile" accept="image/*" hidden>
     <button class="stylebtn promptbtn" id="promptbtn" title="What is wrapped around your words">Prompt</button>
+    <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
@@ -606,6 +627,30 @@
     };
   }
 
+  // ── NO TEXT — one toggle on the styles that allow text (Aug 2026, Sophie:
+  // "add a no text line to the prompt that can be toggled on and off with a
+  // little toggle"). Dreamy is the only one today: its tail says "Minimal text
+  // only" on purpose, and this swaps that clause for a flat ban. The server
+  // owns the wording and says per style whether the toggle exists at all, so
+  // the page has no copy of the line to drift out of step.
+  // Kept per style in localStorage — unlike quality and the canvas it costs
+  // nothing, so carrying it into the next visit can never spend money unmeant.
+  var NOTEXTKEY = 'promptlab_notext_';
+  function noTextFor(k) {
+    var b = bakedFor(k), S = STYLES[k];
+    if (!b || !b.noText || !S || !S.gptStyle) return false;
+    return localStorage.getItem(NOTEXTKEY + S.gptStyle) === '1';
+  }
+  function setNoText(k, on) {
+    var S = STYLES[k]; if (!S || !S.gptStyle) return;
+    if (on) localStorage.setItem(NOTEXTKEY + S.gptStyle, '1');
+    else localStorage.removeItem(NOTEXTKEY + S.gptStyle);
+    syncControls(); paintPromptPanel();
+  }
+  document.getElementById('notextbtn').addEventListener('click', function () {
+    setNoText(styleKey, !noTextFor(styleKey));
+  });
+
   function paintPromptPanel() {
     var el = document.getElementById('promptpanel');
     if (!promptOpen || !isGpt(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
@@ -639,6 +684,16 @@
     yv.textContent = document.getElementById('prompt').value.trim() || '(the box below)';
     el.appendChild(y); el.appendChild(yv);
     field('After your words', p.suffix, 'suffix');
+    // The toggle is not an edit of hers, so it does not go in the box — the
+    // box holds her text. This line under it says what the switch does to the
+    // tail on the way out, so nothing is added to the prompt unannounced.
+    if (noTextFor(styleKey) && p.baked.noText) {
+      var sw = document.createElement('div'); sw.className = 'swapped';
+      sw.textContent = p.suffix.indexOf(p.baked.noText.from) >= 0
+        ? 'No text is on — “' + p.baked.noText.from + '” is sent as “' + p.baked.noText.to + '”'
+        : 'No text is on — “' + p.baked.noText.to + '” is added at the end';
+      el.appendChild(sw);
+    }
     var row = document.createElement('div'); row.className = 'prow';
     var rst = document.createElement('button'); rst.type = 'button'; rst.textContent = 'Reset';
     rst.onclick = function () { saveOverride(styleKey, null); paintPromptPanel(); };
@@ -776,12 +831,19 @@
   document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); });
   paintCanvas();
 
+  // One control, the selected style on its face. Re-rendered rather than just
+  // re-selected so a style added to STYLES needs nothing here.
   function renderStyles() {
-    document.getElementById('styles').innerHTML = Object.keys(STYLES).map(function (k) {
-      return '<button class="stylebtn' + (k === styleKey ? ' on' : '') + '" onclick="setStyle(\'' + k + '\')">' +
-        STYLES[k].label + '</button>';
+    var sel = document.getElementById('stylepick');
+    sel.innerHTML = Object.keys(STYLES).map(function (k) {
+      return '<option value="' + k + '"' + (k === styleKey ? ' selected' : '') + '>' +
+        STYLES[k].label + '</option>';
     }).join('');
+    sel.value = styleKey;
   }
+  document.getElementById('stylepick').addEventListener('change', function () {
+    setStyle(this.value);
+  });
   function setStyle(k) {
     styleKey = k;
     localStorage.setItem('promptlab_style', k);
@@ -798,6 +860,17 @@
     var ct = document.getElementById('canvastog');
     if (pb) { pb.hidden = !gpt; pb.classList.toggle('edited', gpt && !!overrideFor(styleKey)); }
     if (ct) ct.style.display = gpt ? 'flex' : 'none';
+    // The no-text toggle exists only for a style whose tail allows text — the
+    // server says which, so a style that already bans text shows no button
+    // rather than a switch that would change nothing.
+    var nt = document.getElementById('notextbtn');
+    var b = bakedFor(styleKey);
+    if (nt) {
+      nt.hidden = !gpt || !b || !b.noText;
+      var on = !nt.hidden && noTextFor(styleKey);
+      nt.classList.toggle('on', on);
+      nt.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     if (!gpt && promptOpen) { promptOpen = false; paintPromptPanel(); }
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
@@ -891,7 +964,8 @@
           // Only sent when she has actually edited it — an absent field means
           // "use the house text", so a normal run is byte-for-byte what it
           // always was.
-          prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined }
+          prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
+          noText: noTextFor(styleKey) }
       : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

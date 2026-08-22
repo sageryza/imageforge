@@ -2119,6 +2119,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   silent old copy is exactly how this tile shipped a day-stale tail. Pinned by
   the test. The prefix is identical across every version ever sent — it is only
   ever the tail that moves.
+  **THE "NO TEXT" TOGGLE — Dreamy only, off by default (Aug 2026, Sophie: "add
+  a no text line to the prompt that can be toggled on and off with a little
+  toggle").** A little dark-when-on button beside Prompt. It **SWAPS** the
+  tail's `Minimal text only.` for a flat ban rather than appending a second
+  sentence arguing with it — Dreamy is the ONE house style whose tail
+  deliberately allows text (that reference's handwriting is the look), and
+  every other style already bans it, so no other tile shows the toggle.
+  `PL_GPT_STYLES.dreamy.noText {from,to}` + `applyNoText()` own it; the swap is
+  applied AFTER her prefix/suffix override and is deliberately NOT counted as
+  her edit, and if her edited tail no longer carries the clause the line is
+  appended instead. `/api/promptlab/styles` says which styles offer one, so the
+  page holds no copy of the wording. **Rewording the tail's text clause without
+  moving `noText.from` would make the toggle silently append instead of swap** —
+  `node scripts/test-playground-notext.js` pins the two together.
   **THE PROMPT BUTTON — see what is wrapped around her words, and change it
   (Aug 2026, Sophie: "add a prompt button so you can see what's being added
   and … allow yourself to edit it as well").** Two boxes under the style row —
