@@ -308,7 +308,7 @@ enum Screen: Hashable { case home, tool(Tool), gallery }
 /// What the home grid is showing. `.all` is the normal module list; the other
 /// three are the shortcut row's filter chips — tapping the lit one clears back
 /// to `.all` (the Dump sort page's convention).
-enum HomeFilter: Hashable { case all, business, crafts, movie, image }
+enum HomeFilter: Hashable { case all, business, crafts, movie, movieFlat, image }
 
 extension Tool {
     /// The tools behind the BRIEFCASE filter — running the shop rather than
@@ -642,6 +642,17 @@ private struct HomeGrid: View {
     @Binding var filter: HomeFilter
     @ObservedObject var recents: Recents
     private let grid = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+    /// THREE to a row, fixed — the flat movie pile's cards are small enough
+    /// that an adaptive minimum would give four on a big phone and two on a
+    /// small one. Sophie asked for three, so three it is at every width.
+    /// The second film chip's glyph. `movieclapper` is iOS 17+, and an SF
+    /// Symbol the running OS doesn't know renders as NOTHING — so the fallback
+    /// is named HERE rather than left to `ToolGlyph.resolve`, whose generic
+    /// `square.stack` would say nothing about film on the one chip that has to
+    /// read as a second film chip.
+    private static let flatFilmSymbol: String =
+        UIImage(systemName: "movieclapper") != nil ? "movieclapper" : "video"
+    private static let tightGrid = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
 
     /// THE MOVIE & SOUND TAB IS A PIPELINE, NOT A PILE (Aug 2026, Sophie:
     /// "right now there's so many movie tools it's confusing… my possible fix
@@ -708,6 +719,32 @@ private struct HomeGrid: View {
     /// them off the home screen and in the movie tab, not in both places.
     private static let movieTools: [Tool] = HomeGrid.pipeline.flatMap { $0.tools }
 
+    /// THE SECOND MOVIES CHIP — the same tools as one flat pile (Aug 2026,
+    /// Sophie: "add a second movies icon but choose a different icon for it …
+    /// the exact same modules except smaller so they just have the icon and
+    /// the name, three to a row … get rid of the words that say number one
+    /// number two etc. so it's all just one big pile").
+    ///
+    /// It is the SAME set as `movieTools`, deliberately — one road, two ways
+    /// of looking at it: the numbered stops when she wants the order
+    /// explained, this when she just wants to get to a tool. So it is DERIVED
+    /// from `pipeline` too, and adding a tool to a stage puts it in both.
+    ///
+    /// Two changes she asked for on top of the flattening:
+    /// - **Story Timeline leads** — this view is meant to read as the
+    ///   pipeline, and the timeline is where a film starts.
+    /// - **Story Room is not here** ("take out story room since it's already
+    ///   on the home screen"). It stays stop 1 of the numbered tab.
+    ///
+    /// The FINAL ORDER is still Sophie's call — she said she would decide it
+    /// off the mockup — so this array is the thing to re-order and nothing
+    /// else follows from it.
+    private static let flatMovieTools: [Tool] = {
+        let lead: [Tool] = [.timeline]
+        let drop: Set<Tool> = [.story, .timeline]
+        return lead + HomeGrid.pipeline.flatMap { $0.tools }.filter { !drop.contains($0) }
+    }()
+
     /// The image filter's set — the three "make me a picture" tools. This is
     /// the only place the Test Station gets a CARD: it's otherwise just the
     /// test tube beside the masthead. Playground and **Freeform** also sit on
@@ -722,6 +759,7 @@ private struct HomeGrid: View {
         case .business: return Tool.allCases.filter { $0.isBusiness }
         case .crafts:   return Tool.allCases.filter { $0.isCraft }
         case .movie:    return Self.movieTools
+        case .movieFlat: return Self.flatMovieTools
         case .image:    return Self.imageTools
         }
     }
@@ -807,6 +845,17 @@ private struct HomeGrid: View {
                 // every other slice is the plain grid it has always been.
                 if filter == .movie {
                     pipelineCards
+                } else if filter == .movieFlat {
+                    // One pile, three to a row, icon + name only.
+                    LazyVGrid(columns: Self.tightGrid, spacing: 12) {
+                        ForEach(Self.flatMovieTools) { t in
+                            Button { open(t) } label: {
+                                TightCard(tool: t, title: t.title)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding()
                 } else {
                     LazyVGrid(columns: grid, spacing: 14) {
                         ForEach(shown) { t in
@@ -909,11 +958,18 @@ private struct HomeGrid: View {
     /// The glyph inside, scaled with the square (48/21 ≈ 60/26).
     private static let squareIcon: CGFloat = 26
 
-    /// FIVE rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
-    /// opens a tool (Chats); the other four are filters on the cards below —
+    /// FOUR rounded SQUARES across, icons only (Sophie: "just the icon"). ONE
+    /// opens a tool (Chats); the other three are filters on the cards below —
     /// the lit one clears back to everything when tapped again. Chats is here
     /// AND in its top-right corner on purpose ("it can be in two places,
     /// silly"), so don't "fix" that duplicate.
+    ///
+    /// **THE BRIEFCASE AND THE QUILT CAME OFF (Aug 2026, Sophie: "get rid of
+    /// the briefcase and the quilt icons in the five line row … since they
+    /// also exist in the very top header row").** Both filters are unchanged
+    /// and still one tap away — they live in the masthead corners, which is
+    /// where they were duplicated FROM. The row is Chats · Pictures · Movies ·
+    /// Movies-as-a-pile now.
     ///
     /// **The DUMP square came off (Aug 2026, Sophie: "we can get rid of the
     /// dump button in the row at the top since it's now in the main home
@@ -930,14 +986,15 @@ private struct HomeGrid: View {
             square(lit: filter == .image, label: "Pictures") { toggle(.image) } icon: {
                 Image(systemName: "photo").font(.system(size: Self.squareIcon))
             }
-            square(lit: filter == .business, label: "Business") { toggle(.business) } icon: {
-                Image(systemName: "briefcase").font(.system(size: Self.squareIcon))
-            }
-            square(lit: filter == .crafts, label: "Old fashioned") { toggle(.crafts) } icon: {
-                quiltGlyph(Self.squareIcon)
-            }
             square(lit: filter == .movie, label: "Movies & sound") { toggle(.movie) } icon: {
                 Image(systemName: "film").font(.system(size: Self.squareIcon))
+            }
+            // The SECOND movies chip — the same tools as one flat pile of
+            // small cards (Sophie, Aug 2026). A different glyph on purpose:
+            // the clapperboard, so the two film chips can never be mistaken
+            // for each other in a row of four.
+            square(lit: filter == .movieFlat, label: "Movies, all in one pile") { toggle(.movieFlat) } icon: {
+                Image(systemName: Self.flatFilmSymbol).font(.system(size: Self.squareIcon))
             }
         }
         .padding(.horizontal, 16)
@@ -991,6 +1048,40 @@ private struct HomeGrid: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+/// A SMALL module card — the glyph and the name, nothing else (Aug 2026,
+/// Sophie: "they should all be smaller so they just have the icon and then the
+/// name of the module but not the little explanation text so I can fit three
+/// to a row instead of two").
+///
+/// It is the same chrome as `HubCard` (surface, hairline, radius) so the two
+/// read as the same family — only the description and the min-height are gone,
+/// and the contents CENTRE, because a name of one or two words looks stranded
+/// left-aligned in a square this small.
+private struct TightCard: View {
+    let tool: Tool
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ToolGlyph(tool: tool, size: 24).foregroundColor(Theme.accent)
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Theme.text)
+                .multilineTextAlignment(.center)
+                // Two lines is enough for every name in the set ("Episode
+                // Editor", "Story Timeline"); fixedSize keeps the second line
+                // from being truncated in a narrow column.
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 84)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .background(Theme.surface)
+        .cornerRadius(Theme.radiusLg)
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLg).stroke(Theme.border, lineWidth: 1))
     }
 }
 
