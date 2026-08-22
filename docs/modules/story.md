@@ -169,6 +169,39 @@ All 12 NDE-category stories were linked to their montage episodes on
   is encoded once at the mux. Animating between a chunk's panels (her
   literal→metaphorical formula, Wan i2v ~$0.06 a pair) is the planned paid
   follow-up, deliberately not in v1.
+- **A BEAT CAN BE A FILM CLIP (Aug 2026, Sophie: "can u add film clips to
+  story room (the new version - aka scratch pad)").** A clip beat is an
+  ordinary beat whose `url` is an mp4 — `kind:'clip'` plus `poster`,
+  `seconds`, `title` and the `clipId` it came off. It sits in the order like
+  any other beat, takes a frame color, carries her words, links into a chunk.
+  - **The shelf is the Chunking clip library, read-only** (`forge-clip-library`
+    via `GET /shelf?q=`, whose `?q=` is parsed by clips.js's own grammar —
+    never a second copy). A clip is REFERENCED, never copied, the same rule
+    Assembly follows; and unlike the picture inbox, a clip already on the pad
+    is NOT filtered out of the shelf — a library is not an inbox, and a motif
+    can legitimately come round twice.
+  - **It tiles as its POSTER with a film mark, never as a `<video>`** — a pad
+    of decoding films is what makes a phone crawl. The `<video>` exists in
+    ONE place, the beat's popup, at the card's width (the never-blow-the-art-
+    up rule is about her drawings; a film nobody can see is not a preview).
+  - **Nothing draws a clip**, so the star / Playground / inbox doors come off
+    its popup — and **its own sound is its voice**, so the speak and record
+    icons come off too rather than promising something the render won't do.
+  - **In the film it passes through WHOLE** — its pictures, its sound, its
+    length — normalized onto the film's canvas with the same
+    scale+pad+fps+setsar chain Assembly uses, which is what keeps the
+    concat-copy join safe beside the still segments; its audio is cut to the
+    SEGMENT's real encoded length, so the sample-exact wav concat can't walk
+    off the picture. A clip with no audio track brings its own silence.
+    Deliberately NOT segment-cached like a still: a clip's audio has to come
+    off the source anyway, so a cache would save the encode and still pay the
+    download.
+  - The door on the page is the add sheet's second hairline tab (PICTURES ·
+    CLIPS) — the title row already carries six 34px icons on a 390pt phone,
+    and the line measures the lit tab, so no tab count lives anywhere.
+  - Routes: `GET /shelf?q=`, `POST /clip {clip:{id,url,poster,seconds,title},
+    at? | id?}` (insert at a place, or drop into an existing blank beat).
+    Test: `node scripts/test-scratchpad-clips.js` (the real page, headless).
 - Data: one doc PER STORY in `forge-scratchpad` (deckfactory) — `{ beats:[{id, url,
   color, src:{runId,i,prompt,model,engine,quality}, addedAt}] }`; `src` is
   carried so the later regenerate knows how each image was made. Routes:

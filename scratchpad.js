@@ -40,6 +40,13 @@
 //                          ('mustard'|'green'|'blue'|'pink'|null = back to gray)
 //   POST /text           → { id, text } — the beat's note (the popup's
 //                          three-line text box; 5000 chars max)
+//   GET  /shelf          → { clips } — the Chunking clip library (ready
+//                          clips only), newest first; ?q= speaks the house
+//                          search grammar (clips.js parses it — never a
+//                          second copy)
+//   POST /clip           → { clip:{id,url,poster,seconds,title}, at? | id? }
+//                          — a FILM CLIP as a beat: inserted at `at`, or
+//                          dropped into the existing (blank) beat `id`
 //   POST /episode        → { episodeId, remove? } — link/unlink an Episode
 //                          Editor episode to this story; GET / returns the
 //                          linked episodes' newest renders as `audios`, and
@@ -63,6 +70,22 @@ const PROMPTLAB = 'forge-promptlab';
 // (the NDE montages were cut there), listenable from the story page.
 const EDITOR = 'forge-editor';
 const COLORS = ['mustard', 'green', 'blue', 'pink'];
+// The Chunking clip library — the shelf a film-clip beat is picked off.
+const CLIPS = process.env.CLIPS_COLLECTION || 'forge-clip-library';
+
+// ── A beat can be a FILM CLIP ───────────────────────────────────────
+// Sophie, Aug 2026: "can u add film clips to story room". A clip beat is an
+// ordinary beat whose `url` is an mp4 rather than a picture — kind:'clip',
+// plus the poster it tiles as, its length, its name and the library id it
+// came from. It sits in the order like any other beat, takes a frame color,
+// carries her words, links into a chunk. Two things are deliberately NOT
+// true of it: nothing DRAWS a clip (the star/Playground/inbox doors are for
+// pictures), and in the film **the clip's own sound is its voice** — a TTS
+// read of its note would talk over what is already on the tape.
+const isClip = (b) => Boolean(b && b.kind === 'clip');
+// What a beat shows as a PICTURE — a clip's face is its poster, never its
+// mp4 (the shelf tile and the story cover are <img>).
+const beatArt = (b) => (b ? (isClip(b) ? (b.poster || null) : (b.url || null)) : null);
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
 // ("Sophie — morning") on eleven_multilingual_v2, the Voice Studio recipe.
@@ -141,6 +164,21 @@ async function mediaSeconds(file) {
     return parseFloat(stdout.trim()) || 0;
   } catch { return 0; }
 }
+// What streams a downloaded file actually has — a clip beat's segment is
+// built from this (no video = nothing to show; no audio = its own silence).
+async function probeStreams(file) {
+  if (!FFPROBE) return { hasVideo: true, hasAudio: false };
+  try {
+    const { stdout } = await run(FFPROBE, ['-v', 'error', '-show_entries', 'stream=codec_type',
+      '-of', 'json', file], 60000);
+    const streams = (JSON.parse(stdout || '{}').streams) || [];
+    return {
+      hasVideo: streams.some((x) => x.codec_type === 'video'),
+      hasAudio: streams.some((x) => x.codec_type === 'audio'),
+    };
+  } catch { return { hasVideo: true, hasAudio: false }; }
+}
+
 async function fetchTo(url, file) {
   const r = await fetch(url, { redirect: 'follow', timeout: 300000 });
   if (!r.ok) throw new Error(`fetch ${r.status} for ${url.slice(0, 80)}`);
@@ -347,7 +385,7 @@ router.get('/pads', async (req, res) => {
     const pads = snap.docs.map((d) => {
       const v = d.data() || {};
       const beats = Array.isArray(v.beats) ? v.beats : [];
-      const withArt = beats.find((b) => b.url);
+      const withArt = beats.find((b) => beatArt(b));
       // A seeded story keeps its art in its own inbox until it is placed on
       // the timeline, so the shelf cover falls back there — a tile is a real
       // picture from the story, never a blank (the survey prototype's rule).
@@ -357,7 +395,7 @@ router.get('/pads', async (req, res) => {
         id: d.id, title: v.title || '', beats: beats.length,
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
-        cover: v.cover || (withArt ? withArt.url : (inboxArt ? inboxArt.url : null)),
+        cover: v.cover || (withArt ? beatArt(withArt) : (inboxArt ? inboxArt.url : null)),
         category: v.category || null, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -403,9 +441,10 @@ router.post('/cover', async (req, res) => {
     }
     const pad = await readPad(pid);
     const beat = (pad.beats || []).find((b) => b.id === beatId);
-    if (!beat || !beat.url) return res.status(400).json({ error: 'that beat has no art' });
-    await padRef(pid).set({ cover: beat.url }, { merge: true });
-    res.json({ ok: true, pad: pid, cover: beat.url });
+    const art = beatArt(beat);
+    if (!art) return res.status(400).json({ error: 'that beat has no art' });
+    await padRef(pid).set({ cover: art }, { merge: true });
+    res.json({ ok: true, pad: pid, cover: art });
   } catch (e) { fail(res, e); }
 });
 
@@ -509,8 +548,86 @@ router.post('/image', async (req, res) => {
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
+      // Swapping a picture into a clip beat makes it a picture beat again —
+      // leaving `kind` behind would render an image url as a film.
+      if (isClip(b)) { delete b.kind; delete b.poster; delete b.seconds; delete b.title; delete b.clipId; }
       b.url = url;
       if (src) b.src = src;
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
+// ── The clip shelf ──────────────────────────────────────────────────
+// The Chunking library, read-only, straight through: a clip lives there and
+// is REFERENCED here, never copied (the same rule Assembly follows). The
+// search grammar is clips.js's own — required lazily, because nothing else
+// in this module needs the clip module and its boot pulls in ffmpeg probing.
+router.get('/shelf', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const lib = require('./clips');
+    const snap = await db().collection(CLIPS).get();
+    let items = [];
+    snap.forEach((x) => {
+      const v = x.data() || {};
+      // Only a clip that is actually playable: baked, not hidden, with a file.
+      if (v.hidden || (v.status && v.status !== 'ready') || !v.url) return;
+      items.push({
+        id: x.id, url: v.url, poster: v.poster || null, title: v.title || '',
+        seconds: v.seconds ?? null, from: v.from || '', tags: v.tags || [],
+        kind: v.kind || 'short', prompt: v.prompt || null, note: v.note || null,
+        vo: v.vo || null, createdAt: v.createdAt || 0,
+      });
+    });
+    if (req.query.q) {
+      const groups = lib.parseClipQuery(String(req.query.q));
+      items = items.filter((c) => lib.matchClip(c, groups));
+    }
+    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    res.json({ count: items.length, clips: items });
+  } catch (e) { fail(res, e); }
+});
+
+// A film clip onto the pad. With `at` it is a new beat at that place; with
+// `id` it drops into that (usually blank) beat, exactly like picking a
+// picture out of the inbox does. Only the fields the pad draws and renders
+// are stored — the library doc stays the truth for everything else.
+router.post('/clip', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const c = (req.body && typeof req.body.clip === 'object' && req.body.clip) || {};
+    const url = String(c.url || '').trim();
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'clip url must be http(s)' });
+    const fields = {
+      kind: 'clip',
+      url,
+      poster: c.poster && /^https?:\/\//.test(String(c.poster)) ? String(c.poster) : null,
+      seconds: Number.isFinite(Number(c.seconds)) ? Math.round(Number(c.seconds) * 10) / 10 : null,
+      title: String(c.title || '').slice(0, 200),
+      clipId: String(c.id || '').slice(0, 60) || null,
+    };
+    const beatId = String(req.body.id || '').trim();
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      if (beatId) {
+        const b = cur.find((x) => x.id === beatId);
+        if (!b) throw new Error('no such beat');
+        // A picture this beat already had is kept, never destroyed.
+        if (b.url && !isClip(b)) b.imageHistory = (b.imageHistory || []).concat([{ url: b.url, at: Date.now() }]);
+        Object.assign(b, fields);
+        delete b.gen;
+      } else {
+        let at = Number(req.body.at);
+        if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
+        cur.splice(at, 0, {
+          id: db().collection(COL).doc().id, color: null, src: null,
+          addedAt: Date.now(), ...fields,
+        });
+      }
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -749,6 +866,41 @@ router.post('/voice', async (req, res) => {
 // POST returns at once, the page polls the pad, leaving the app loses
 // nothing. Every render is kept, so an old cut is never overwritten.
 
+// ONE SHOT MADE OF A FILM CLIP. The clip passes through WHOLE — its own
+// pictures, its own sound, its own length — normalized onto the film's
+// canvas (the same scale+pad+fps+sar chain Assembly uses, which is what makes
+// the concat-copy join safe beside the still segments). Its audio is taken
+// from the SEGMENT's real encoded length, so the sample-exact wav concat can
+// never walk off the picture.
+//
+// Deliberately NOT segment-cached, unlike a still: a still's segment is the
+// whole shot, while a clip's audio has to come off the source anyway, so a
+// cache would save the encode and still pay the download. Clips here are
+// short by construction (they come off the Chunking shelf).
+async function clipSegment(dir, u, beat) {
+  const src = path.join(dir, `c${u}-src`);
+  await fetchTo(beat.url, src);
+  const { hasVideo, hasAudio } = await probeStreams(src);
+  if (!hasVideo) throw new Error(`"${beat.title || 'a clip'}" has no video in it`);
+  const seg = path.join(dir, `s${u}-clip.mp4`);
+  await run(FFMPEG, ['-y', '-i', src, '-an',
+    '-vf', `scale=${FILM.w}:${FILM.h}:force_original_aspect_ratio=decrease,pad=${FILM.w}:${FILM.h}:(ow-iw)/2:(oh-ih)/2:color=white,fps=${FILM.fps},setsar=1,format=yuv420p`,
+    '-threads', '1', '-x264opts', 'ref=1:rc-lookahead=12',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-movflags', '+faststart', seg], 900000);
+  const seconds = await mediaSeconds(seg);
+  if (!seconds) throw new Error(`"${beat.title || 'a clip'}" encoded to nothing`);
+  const wav = path.join(dir, `a${u}.wav`);
+  if (hasAudio) {
+    await run(FFMPEG, ['-y', '-i', src, '-vn', '-af', 'apad', '-t', seconds.toFixed(3),
+      '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+  } else {
+    await run(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', seconds.toFixed(3), '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', wav], 600000);
+  }
+  fs.rmSync(src, { force: true });   // one source on disk at a time
+  return { seg, wav, seconds, hasAudio };
+}
+
 async function runFilmJob(padId) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
   const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
@@ -756,7 +908,7 @@ async function runFilmJob(padId) {
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
     const shots = pad.beats.filter((b) => b.url);
-    if (!shots.length) throw new Error('draw some art first — the film is made of the pictures');
+    if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
 
     const segs = [];      // { file } per picture
     const auds = [];      // { file, seconds } per shot
@@ -764,6 +916,17 @@ async function runFilmJob(padId) {
     let total = 0;
     for (let u = 0; u < shots.length; u++) {
       const lead = shots[u];
+      // A FILM CLIP is its own shot, whole: its pictures, its sound, its
+      // length. No TTS — reading its note aloud would talk over the tape.
+      if (isClip(lead)) {
+        const cut = await clipSegment(dir, u, lead);
+        segs.push(cut.seg);
+        auds.push(cut.wav);
+        total += cut.seconds;
+        notes.push(`shot ${u + 1}: clip ${cut.hasAudio ? 'with its own sound' : 'silent'} ${cut.seconds.toFixed(1)}s`);
+        await padRef(padId).set({ film: { status: 'making', at: Date.now(), progress: `clip ${segs.length}` } }, { merge: true }).catch(() => {});
+        continue;
+      }
       // The shot's voice: her take wins; then the line read aloud; else quiet.
       let audio = lead.voiceUrl || null;
       let audioKind = audio ? 'her voice' : 'quiet';

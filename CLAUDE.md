@@ -2537,7 +2537,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
   incomplete rows centered; tapping one opens a cream CARD popup with the art at
   thumbnail size, five bare colour chips, and a text box. Her OWN recording always
   wins over TTS, and **every take is kept**. Chunks link contiguous beats into one
-  tile. The film stitches every beat with art, each held for its own audio's
+  tile. **A beat can also be a FILM CLIP** (Aug 2026): the add sheet's
+  second hairline tab is the Chunking clip library, read-only — a clip is
+  referenced not copied, tiles as its POSTER with a film mark (never a
+  `<video>` on the pad), draws nothing, and in the film passes through whole
+  with its own sound and its own length. The film stitches every beat with art, each held for its own audio's
   length — per-unit audio is PCM, never aac, or the voice walks out from under the
   pictures. **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are deliberately UNLABELLED, and no machinery lives on the canvas.**
