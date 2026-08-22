@@ -37,6 +37,63 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   clients poll `GET /api/movies/:id`. Same `STUDIO_TOKEN` gate as the pipeline
   (only `GET /status` open). Panels/clips/films are saved to Firebase Storage
   (Replicate URLs expire ~1hr).
+- **EVERYTHING MOVIES MAKES GETS OUT OF THE MOVIES TAB (Aug 2026, Sophie:
+  "there shud be a way to download individual clips … right now i can make them
+  but they just stay there. theres no download button and they dont appear in my
+  creations").** Two halves, and both were needed — a clip she paid for was
+  reachable only from inside the movie that made it.
+  - **It files into "My Creations."** Every finished video — a scene clip, a
+    dream bridge, a quick animation, a stitched cut — is handed to the same
+    `users/{uid}/creations` collection in membry that the gallery reads, as
+    `type:'clip'` (a stitch is `type:'film'`, so the grid's filter row separates
+    the films from the clips they are made of) with `source:'movies'`.
+    **The gallery lives in the OTHER Firebase project and movies.js does not
+    hold that credential**, so server.js hands the writer down at mount time —
+    `movies.init({ fileCreation })` — the same shape as `stories.init`.
+  - **Every filing carries a POSTER** (the panel the clip was animated from, or
+    the still a quick animate started as). A video creation has no frame the
+    grid can decode out of an mp4, so without one it tiles as a blank white
+    square. `Creation.thumbURL` is what the tile draws; `Creation.isVideo` reads
+    the TYPE but falls back to the url's extension, so a clip filed by anything
+    that called it something else still plays instead of tiling as a broken
+    picture.
+  - **Filing is fire-and-forget and never awaited by the render** (and de-duped
+    by url by the writer): a gallery hiccup must never cost a clip that already
+    exists and is already on screen. Re-rolls file too — a superseded clip is
+    history she may still want, and the house rule is that she decides what is
+    too much for her gallery.
+  - **The download button lives on `ClipPreviewSheet`**, the one player every
+    clip in Movies opens in (a scene's clip, a quick animation, a finished cut),
+    so one change put it on all of them: Save to Photos + a share sheet for
+    Files/AirDrop. The Gallery's raw-generations detail sheet got the same Save
+    beside its existing Share — that screen is where the superseded re-rolls
+    live, and they are the ones with nowhere else to go.
+  - **`VideoSaver` (CreationsView.swift, beside `PhotoSaver`) is the ONE video
+    download path.** Photos will not take a remote URL and will not take decoded
+    frames: the clip is downloaded to tmp and handed over as a `.video` resource
+    with `shouldMoveFile`, and the download's own temp file has to be MOVED
+    before the callback returns or it is deleted underneath you. `denied` raises
+    the Settings alert rather than a toast — `requestAuthorization` never
+    re-prompts after a "Don't Allow", so a toast there is a dead end.
+  - **THE BACKLOG IS A SCRIPT, AND IT WAITS FOR THE APP BUILD.**
+    `node scripts/backfill-movie-clips.js` (dry by default, `--write` to file,
+    `--undo --write` to remove only what it filed) walks `forge-movies` and
+    `forge-quick` and files everything already made — scene clips including
+    superseded re-rolls, bridges, cuts, quick animates — each with its poster
+    and its REAL make-time (`stitchedAt` / `createdAt`), so a backfill
+    interleaves with the rest of the gallery instead of landing in a slab at
+    the top. Idempotent: it skips any url already there.
+    **Measured 2026-08-22: 166 finished videos, every one of them with a
+    poster, none previously in the gallery.** It was run and undone the same
+    minute on purpose — **a build without video support draws a creation by
+    decoding its `url` as a picture, and there is no picture inside an mp4**,
+    so a clip filed before the build tiles as a blank white square. The server
+    filing new clips from here on is a trickle that self-corrects the moment
+    she updates; 166 at once is not. Run it for real once the build is on her
+    phone.
+  - Test: `node scripts/test-movies-creations.js` (pure — the wiring, the
+    poster, the film/clip split, and that a failing writer never reaches the
+    render).
 - **Replicate gotchas baked in:** 429 retry with exponential backoff on create,
   download retries + size verification (replicate.delivery truncates under
   parallel load), ~5-parallel prediction pool.

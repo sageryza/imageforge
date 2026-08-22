@@ -315,6 +315,12 @@ loadConfig().then(() => {
   app.use('/api/lulu', lulu.router);
   app.use('/api/pipeline', pipeline.router);
   app.use('/api/photostudio', photostudio.router);
+  // Everything Movies makes — a clip, a bridge, a quick animation, a finished
+  // cut — also files into the iOS "My Creations" gallery, so it can be found
+  // and saved outside the Movies tab (Sophie, Aug 2026: "they just stay
+  // there"). Best-effort inside movies.js; a gallery hiccup never fails a
+  // render.
+  movies.init({ fileCreation: fileCreationDoc });
   app.use('/api/movies', movies.router);
   app.use('/api/songs', songs.router);
   // Stories live on the boards now: hand the module the story-project
@@ -5287,6 +5293,46 @@ async function sweepStuckPromptlabRuns() {
 }
 setTimeout(sweepStuckPromptlabRuns, 90 * 1000);
 setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
+
+// File ONE thing into the iOS "My Creations" gallery — the same
+// `users/{uid}/creations` collection in membry that POST /api/gallery writes.
+// Generalized out of fileRunToCreations (below) so a module that isn't holding
+// the membry credential can hand its deliverable over: movies.js gets this as
+// `movies.init({ fileCreation })`, which is how a clip she animated stops
+// living only inside the Movies tab.
+//
+// `poster` is the still the grid tiles a VIDEO with — a video creation has no
+// frame to decode, so without one it would tile as a blank square. Best-effort
+// throughout and de-duped by url: filing must never fail the work that made the
+// thing, and re-filing the same url must never add a second tile.
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs } = {}) {
+  try {
+    if (!url) return null;
+    await storyDb();
+    if (!storyApp) return null;
+    const uid = await galleryUid();
+    const col = storyApp.firestore().collection('users').doc(uid).collection('creations');
+    const dup = await col.where('url', '==', url).limit(1).get();
+    if (!dup.empty) return dup.docs[0].id;
+    const doc = {
+      type: String(type || 'image'), url,
+      prompt: String(prompt || '').slice(0, 500), stickers: null,
+      createdAt: createdMs
+        ? admin.firestore.Timestamp.fromMillis(Number(createdMs))
+        : admin.firestore.Timestamp.now(),
+      source: String(source || 'server'),
+    };
+    if (poster) doc.poster = String(poster);
+    if (style) doc.style = String(style).slice(0, 80);
+    if (model) doc.model = String(model).slice(0, 80);
+    if (quality) doc.quality = String(quality).slice(0, 40);
+    const ref = await col.add(doc);
+    return ref.id;
+  } catch (err) {
+    console.warn('→ My Creations failed:', err.message);
+    return null;
+  }
+}
 
 // Every finished Playground image also lands in the iOS "My Creations" gallery
 // (Sophie asked, Aug 2026) so she can browse them as thumbnails on the phone —

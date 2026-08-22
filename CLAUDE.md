@@ -2210,6 +2210,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   page is redrawn with its narrative softened — never retried), the character
   anchor, dream-bridge clips, the zine, and quick-animate. Editing is free
   server-side ffmpeg; every re-roll is kept.
+  **EVERYTHING IT MAKES GETS OUT OF THE MOVIES TAB (Aug 2026, Sophie: "they
+  just stay there. theres no download button and they dont appear in my
+  creations").** Every finished video — scene clip, bridge, quick animation,
+  stitched cut — files into "My Creations" as `type:'clip'` (a stitch is
+  `'film'`), carrying a POSTER, because there is no frame the grid can decode
+  out of an mp4 and a video creation without one tiles as a blank square. The
+  gallery is in the OTHER Firebase project, so server.js hands movies.js the
+  writer at mount time (`movies.init({ fileCreation })`) — filing is
+  fire-and-forget and never awaited by the render. The download button lives on
+  `ClipPreviewSheet`, the ONE player every clip in Movies opens in, and
+  `VideoSaver` (beside `PhotoSaver`) is the one video-to-Photos path: Photos
+  takes neither a remote URL nor decoded frames, only a downloaded FILE as a
+  `.video` resource.
   **Full details: `docs/modules/audio-and-film.md`.** Making one of her concept
   videos? `docs/movies/sophies-movie-pipeline.md` first.
 - **Cutting Blocks** (`blocks.js`, `/api/blocks`, page at `/blocks`, iOS tile
