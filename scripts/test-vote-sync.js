@@ -105,20 +105,30 @@ const PL_URL = 'https://storage.googleapis.com/b/promptlab/1755-abc.webp';
   ];
   state.voteWrites = [];
   await syncVoteToAssets(PL_URL, 'like');
-  ok(state.voteWrites.length === 2, 'every chat holding the picture gets the vote ('
-    + state.voteWrites.length + ' of 2)');
+  ok(state.voteWrites.length === 3, 'every holder of the picture gets the vote ('
+    + state.voteWrites.length + ' of 3: two chats + the My Creations row)');
   ok(state.voteWrites.every((w) => w.patch.vote === 'like'), 'and it is the ♥ she cast');
   ok(state.voteWrites.some((w) => w.patch.chat === 'dating-book'),
     'a record matched by urlKey is found too');
+  // Playground pictures reach Meta Assets through the My Creations join, not
+  // forge-chat-assets — measured 2026-08-22, 21 of 22 hearted ones had ONLY
+  // that row, so this write is the one that makes the sync visible at all.
+  ok(state.voteWrites.some((w) => w.patch.chat === 'my-creations'),
+    'the My Creations row is always written for a Playground picture');
 
   state.voteWrites = [];
   await syncVoteToAssets(PL_URL, null);
-  ok(state.voteWrites.length === 2 && state.voteWrites.every((w) => w.patch.vote === DELETE),
+  ok(state.voteWrites.length === 3 && state.voteWrites.every((w) => w.patch.vote === DELETE),
     'a CLEAR crosses as a clear — no stuck heart on the other surface');
 
   state.voteWrites = [];
   await syncVoteToAssets('https://storage.googleapis.com/b/promptlab/nobody-filed.webp', 'like');
-  ok(state.voteWrites.length === 0, 'a picture no chat filed writes nothing');
+  ok(state.voteWrites.length === 1 && state.voteWrites[0].patch.chat === 'my-creations',
+    'a picture no chat filed still votes on its My Creations row');
+
+  state.voteWrites = [];
+  await syncVoteToAssets('https://storage.googleapis.com/b/witch-school/assets/x.png', 'like');
+  ok(state.voteWrites.length === 0, 'a non-Playground picture no chat filed writes nothing');
 
   console.log('\nassets ♥ → the Playground run');
   state.runs = [{ id: 'r1', images: ['other.webp', PL_URL], votes: {} }];
