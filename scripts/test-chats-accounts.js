@@ -258,37 +258,56 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
   await page.evaluate(() => window.__setAcct(''));
   rows = await listed(page);
   if (!same(rows, ['one-a', 'one-b', 'untagged', 'one-star'])) fail('the default tab is not the app account: ' + rows.join(','));
-  const slots = await page.$$eval('#acctog .sw3', (ns) => ns.map((n) => n.dataset.a + ':' + n.textContent.trim()));
-  if (slots.join(',') !== '1:1,2:2,3:3') fail('the switch is not three digit slots left→right: ' + slots.join(','));
-  // left · middle · right really are 1 · 2 · 3 on screen, not just in the DOM
-  const xs = await page.$$eval('#acctog .sw3', (ns) => ns.map((n) => n.getBoundingClientRect().left));
-  if (!(xs[0] < xs[1] && xs[1] < xs[2])) fail('the switch slots are not in 1·2·3 order across: ' + xs.join(','));
+  // It is the SAME iOS switch it always was, with a third notch: one tap moves
+  // the knob to the next account and the last one wraps back to the first.
+  if (await page.$('#acctog .sw3')) fail('the switch is a row of digit slots again, not the toggle');
+  if (await page.$eval('#acctog', (n) => n.tagName) !== 'BUTTON') fail('the switch is not one tappable control');
+  if (await page.$eval('#acctog', (n) => n.dataset.a) !== '1') fail('the switch did not start on the app account');
+  // the knob really MOVES, and to three distinguishable places — read the
+  // rendered transform rather than trusting the CSS
+  // (read it AFTER the .18s slide, or every stop reads as the identity matrix
+  // it is still transitioning away from)
+  const knob = async (want) => {
+    await page.$eval('#acctog', (n, w) => n.setAttribute('data-a', w), want);
+    await page.waitForTimeout(260);
+    return page.$eval('#acctog', (n) => getComputedStyle(n, '::after').transform);
+  };
+  const spots = [await knob('1'), await knob('2'), await knob('3')];
+  if (new Set(spots).size !== 3) fail('the three notches do not sit apart: ' + spots.join(' | '));
+  await page.evaluate(() => document.getElementById('acctog').setAttribute('data-a', '1'));
 
-  await page.click('#acctog .sw3[data-a="3"]');
-  await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '3', null, { timeout: 4000 })
-    .catch(() => fail('the header switch did not move the account tabs to 3'));
-  rows = await listed(page);
-  if (!same(rows, ['three-a', 'untagged', 'three-star'])) fail('switch move did not re-list: ' + rows.join(','));
-  if (!acctPosts.length) fail('the header switch stopped POSTing /app-account');
-  if (acctPosts[acctPosts.length - 1].account !== '3') fail('the switch POSTed the wrong account: ' + JSON.stringify(acctPosts));
-  // the lit slot marks itself, and only it
-  const swOn = await page.$$eval('#acctog .sw3.on', (ns) => ns.map((n) => n.dataset.a));
-  if (swOn.join(',') !== '3') fail('exactly one switch slot must read as live, got: ' + swOn.join(','));
-  if (await page.$eval('#acctog', (n) => n.dataset.a) !== '3') fail('the switch marker did not move to 3');
+  // 1 → 2 → 3 → 1, one tap each, moving the list and POSTing every time
+  for (const [tap, want, rows2] of [
+    [1, '2', ['two-a', 'two-b', 'untagged', 'two-star']],
+    [2, '3', ['three-a', 'untagged', 'three-star']],
+    [3, '1', ['one-a', 'one-b', 'untagged', 'one-star']],
+  ]) {
+    const before = acctPosts.length;
+    await page.click('#acctog');
+    await page.waitForFunction((w) => document.getElementById('accrow').dataset.on === w, want, { timeout: 4000 })
+      .catch(() => fail('tap ' + tap + ' on the switch did not move the account tabs to ' + want));
+    if (await page.$eval('#acctog', (n) => n.dataset.a) !== want) fail('tap ' + tap + ': the knob did not land on ' + want);
+    rows = await listed(page);
+    if (!same(rows, rows2)) fail('tap ' + tap + ' did not re-list: ' + rows.join(','));
+    if (acctPosts.length !== before + 1) fail('tap ' + tap + ' did not POST /app-account once');
+    if (acctPosts[acctPosts.length - 1].account !== want) fail('tap ' + tap + ' POSTed the wrong account: ' + JSON.stringify(acctPosts));
+  }
+
   // …and a chat on an account she is NOT signed into opens on the WEB
+  await page.click('#acctog');           // land on 3
+  await page.click('#acctog');
+  await page.waitForFunction(() => document.getElementById('acctog').dataset.a === '3', null, { timeout: 4000 })
+    .catch(() => fail('could not get the switch back to 3'));
   const hrefs = await page.evaluate(() => ({
     live: window.__openHref('three-a', 'https://claude.ai/chat/x'),
     other: window.__openHref('one-a', 'https://claude.ai/chat/x'),
   }));
   if (/no_universal_links/.test(hrefs.live)) fail('the signed-in account was pushed to the web: ' + hrefs.live);
   if (!/no_universal_links/.test(hrefs.other)) fail('a chat on another account did not route to the web: ' + hrefs.other);
-  // tapping the live slot again is a no-op, not a flip to somewhere else
-  const before = acctPosts.length;
-  await page.click('#acctog .sw3[data-a="3"]');
-  if (acctPosts.length !== before) fail('tapping the live slot POSTed again');
-  await page.click('#acctog .sw3[data-a="1"]');
+
+  await page.click('#acctog');           // wrap home to 1
   await page.waitForFunction(() => document.getElementById('accrow').dataset.on === '1', null, { timeout: 4000 })
-    .catch(() => fail('the header switch did not come back to 1'));
+    .catch(() => fail('the switch did not wrap back to account 1'));
   await page.evaluate(() => window.__setAcct(''));
 
   // 6. the red badge counts chats in THAT account that answered her, so the
@@ -334,22 +353,19 @@ const same = (a, b) => JSON.stringify(a.slice().sort()) === JSON.stringify(b.sli
       return out;
     });
     if (buried.length) fail('account tab(s) ' + buried.join(',') + ' untappable at ' + width + 'px');
-    // 8b. the header switch grew a slot when the third account arrived, and
+    // 8b. the header switch grew a notch when the third account arrived, and
     //     the masthead is the one row in this app that has run out of room
     //     before (five controls plus the title put the bookmark button under
-    //     the word "Chats" and tapping the title opened Bookmarks). So: every
-    //     switch slot has to be reachable, and the title must not be sitting
+    //     the word "Chats" and tapping the title opened Bookmarks). So: the
+    //     switch has to stay reachable, and the title must not be sitting
     //     under the controls.
     const swBuried = await page.evaluate(() => {
-      const out = [];
-      document.querySelectorAll('#acctog .sw3').forEach((b) => {
-        const r = b.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        if (!hit || !hit.closest('.sw3')) out.push(b.dataset.a);
-      });
-      return out;
+      const b = document.getElementById('acctog');
+      const r = b.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !hit || hit.id !== 'acctog';
     });
-    if (swBuried.length) fail('switch slot(s) ' + swBuried.join(',') + ' untappable at ' + width + 'px');
+    if (swBuried) fail('the account switch is untappable at ' + width + 'px');
     // The failure mode is a CONTROL WINNING THE TITLE'S TAP (that is how the
     // trash shipped as a fifth word and tapping "Chats" opened Bookmarks), so
     // ask elementFromPoint rather than compare rectangles — the two boxes have
