@@ -23,14 +23,21 @@
      chevron so it reads as a menu; the other five are behind the tap.
      It is a NATIVE <select> on purpose — iOS opens its own picker, it is the
      same control the quality field beside it already uses, and it needs no
-     open/close state of its own to go wrong. Painted like the old lit tile
-     (dark) so the selected style still reads as chosen at a glance, and the
-     chevron is a flat SVG data URI — never a gradient. 16px, or iOS zooms the
-     page when it opens the picker. */
+     open/close state of its own to go wrong. The chevron is a flat SVG data
+     URI — never a gradient. 16px, or iOS zooms the page when it opens the
+     picker.
+     IT IS NOT FILLED DARK ANY MORE (Aug 2026, Sophie: "make the selected style
+     dropdown not filled in w black (just white, even tho it's selected)"). It
+     was painted like the old lit tile, on the reasoning that the selected style
+     should read as chosen — but there is only ever ONE style picker on the row,
+     so there is nothing for it to read as chosen AGAINST, and a solid black
+     slab was the heaviest thing on a page of pale controls. The INK BORDER
+     stays: it is what still separates the one control that decides the run
+     from the pale `.stylebtn` neighbours. */
   .styles { display: flex; margin-bottom: 10px; }
   #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
-    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #2b2622; color: #faf7f2;
-    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23faf7f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #fdfcf9; color: #2b2622;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2622' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 9px center; background-size: 15px 15px; }
   .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
@@ -46,11 +53,22 @@
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .controls label { font-size: 12.5px; color: #6f675e; }
   .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
-  /* The low·low·medium button: a pyramid of three, two at the base and the
-     better one on top — the shape of what the tap draws. */
+  /* The quality LADDERS: one tap that draws the same prompt at more than one
+     quality. Each wears a picture of HOW MANY and at what tier, never a word —
+     the pyramid is two lows along its base and the better one filling the cap;
+     the oval is medium under high, the top half filled. */
   .stepbtn { display: flex; align-items: center; justify-content: center; padding: 7px 9px; }
   .stepbtn svg { width: 18px; height: 18px; display: block; }
   .stepbtn:disabled { opacity: .5; }
+  /* THE LADDERS RIDE WITH GENERATE, AT THE RIGHT END (Aug 2026, Sophie: "move
+     the pyramid and the oval to the right side so they're next to the generate
+     button but still to the left of it"). They are all three "draw it now"
+     buttons, so they are one group rather than three things that happen to
+     land near each other — and it has to BE a group, because `.controls`
+     wraps: `margin-left:auto` on each button separately would right-align
+     whichever ones share a line and scatter the rest. The auto margin moved
+     off `.go` and onto the group for the same reason. */
+  .gogroup { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
   .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
@@ -86,8 +104,13 @@
   .qtog[data-q="medium"]::after { transform: translateX(var(--gap)); }
   .qtog[data-q="high"]::after { transform: translateX(calc(var(--gap) * 2)); }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
-  /* Generate is the stars icon, not the word — one image, one tap. */
-  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 9px 15px; font: inherit; display: flex; align-items: center; justify-content: center; }
+  /* Generate is the stars icon, not the word — one image, one tap. SQUARE
+     since Aug 2026 (Sophie: "make the generate button a square"): 38x38, the
+     same box the seed button already is, so the three buttons at the right end
+     of the row read as one set of taps rather than one wide slab beside two
+     small ones. The 6px radius stays — the house rule is rounded rectangles,
+     and sharp corners here would be the only ones on the page. */
+  button.go { width: 38px; height: 38px; padding: 0; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; font: inherit; display: flex; align-items: center; justify-content: center; }
   button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
@@ -321,8 +344,11 @@
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
     <button type="button" id="qpick" class="qtog" aria-label="Quality"></button>
-    <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
-    <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
+    <div class="gogroup">
+      <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
+      <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
+      <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
+    </div>
   </div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -418,9 +444,20 @@
     // house stroke, normalized by scripts/normalize-glyphs.py). Move BOTH if
     // this ever changes; this 24-box copy is the web one.
     pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
+    // The medium-and-high button (Aug 2026, Sophie: "a little oval next to the
+    // pyramid, colored on top, white empty on bottom, signifying medium, and
+    // high"). Same grammar as the pyramid beside it — an outline cut into
+    // tiers, the better tier FILLED — so the two ladders read as one family
+    // and neither needs a word on it. Two tiers, one draw each, so there is no
+    // vertical divider: the pyramid's split base is what says "two lows".
+    // It takes the pyramid's own vertical extent (y 4.21 to 19.8, cut at
+    // 12.005 dead centre) and is narrower than it is tall — rx 6.5 against
+    // ry 7.795 — or it reads as a circle rather than an oval.
+    oval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12.005" rx="6.5" ry="7.795"/><path d="M5.5 12.005h13"/><path d="M18.5 12.005A6.5 7.795 0 0 0 5.5 12.005Z" fill="currentColor"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
   document.getElementById('lowmed').innerHTML = ICONS.pyramid;
+  document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
 
@@ -1020,27 +1057,39 @@
   paintPhoto();
 
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
-  // Portrait is the default and stays the default: every run to date used it,
-  // and it is the CHEAPER of the two. gpt-image-2 charges MORE for the square
-  // (0.6c/5.3c/21.1c against 0.5c/4.1c/16.5c), which is the opposite of the
-  // obvious guess, so the button says so rather than leaving her to assume.
-  // Like quality, it is NOT persisted — a fresh load is back to portrait, so
-  // an expensive shape can never carry over into next time unmeant.
-  // SQUARE IS THE DEFAULT (Aug 2026, Sophie's call, made knowing the price).
-  // It is the DEARER of the two — gpt-image-2 charges 0.6c/5.3c/21.1c for
-  // 1024x1024 against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price
-  // table warns about — so the buttons still print what they cost. Like
-  // quality, it is not persisted: a fresh load is back to this default rather
-  // than carrying a shape she picked once into every later visit.
-  var canvas = 'square';
+  // gpt-image-2 charges MORE for the SQUARE — 0.6c/5.3c/21.1c for 1024x1024
+  // against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price table warns
+  // about — so both buttons print what they cost rather than leaving her to
+  // assume the obvious. Square was her call as the opening default, made
+  // knowing that.
+  // IT IS REMEMBERED NOW (Aug 2026, Sophie: "make it not default to square,
+  // but just whatever the last option was"). This REVERSES what was written
+  // here — the note said a shape she picked once must not carry into every
+  // later visit, and she has since said she wants exactly that, so the old
+  // reasoning is history rather than a rule. `square` survives only as the
+  // FIRST-EVER default, for a phone that has never picked one; an unknown
+  // stored value falls back to it rather than riding through as an invented
+  // shape. QUALITY IS DELIBERATELY NOT CHANGED WITH IT: she named the canvas,
+  // and a remembered `high` is 16.5-21.1c a tap arriving unasked, where a
+  // remembered shape costs nothing it did not cost last time.
+  var CANVASES = ['portrait', 'square'];
+  var canvas = CANVASES.indexOf(localStorage.getItem('promptlab_canvas')) >= 0
+    ? localStorage.getItem('promptlab_canvas') : 'square';
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
     document.getElementById('c-portrait').title = 'Portrait 1024x1536 — low 0.5\u00A2 \u00B7 medium 4.1\u00A2 \u00B7 high 16.5\u00A2';
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
-  document.getElementById('c-portrait').addEventListener('click', function () { canvas = 'portrait'; paintCanvas(); });
-  document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); });
+  function pickCanvas(shape) {
+    canvas = shape;
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+    paintCanvas();
+  }
+  document.getElementById('c-portrait').addEventListener('click', function () { pickCanvas('portrait'); });
+  document.getElementById('c-square').addEventListener('click', function () { pickCanvas('square'); });
   paintCanvas();
 
   // One control, the selected style on its face. Re-rendered rather than just
@@ -1093,7 +1142,10 @@
     // the button comes off rather than sitting there doing nothing.
     document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
-    document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
+    // Both ladders are quality ladders, so both come off the Replicate LoRA,
+    // which has no quality parameter at all.
+    document.getElementById('lowmed').hidden = !gpt;
+    document.getElementById('medhigh').hidden = !gpt;
   }
   function styleLabelFor(model) {
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
@@ -1246,11 +1298,30 @@
   // medium is its own box because its tags differ. ~10¢ a tap.
   document.getElementById('lowmed').addEventListener('click', function () {
     if (!checkPrompt()) return;
-    var btn = this;
-    btn.disabled = true;
-    Promise.all(['low', 'low', 'medium'].map(function (q) { return startRun(1, q).catch(showErr); }))
-      .finally(function () { btn.disabled = false; });
+    ladder(this, ['low', 'low', 'medium']);
   });
+
+  // Medium and high in one tap (Aug 2026, Sophie: "when pressed, it kicks off
+  // 1 medium and 1 high job") — the step ABOVE the pyramid, for a prompt she
+  // has already settled and wants to see properly. Two runs, not three: each
+  // tier is its own box, because a box's tags have to describe every picture
+  // under it and these two differ by quality. ~21¢ a tap on portrait, ~26¢ on
+  // square (medium + high at the canvas's own prices).
+  document.getElementById('medhigh').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    ladder(this, ['medium', 'high']);
+  });
+
+  // Both ladders start their runs the same way: every tier at once, the button
+  // dead until the last one has been ACCEPTED (not finished — the pictures
+  // arrive by polling), and one failure showing rather than silently dropping
+  // the tier. `startRun`'s own `q` overrides the toggle for that run only, so
+  // neither ladder moves what the knob says.
+  function ladder(btn, tiers) {
+    btn.disabled = true;
+    Promise.all(tiers.map(function (q) { return startRun(1, q).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  }
 
   // Tapping Generate twice on the same prompt is ONE job as far as she's
   // concerned, so identical runs share a box: same prompt, same style, same
