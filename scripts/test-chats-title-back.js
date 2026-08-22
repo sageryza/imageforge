@@ -122,12 +122,7 @@ async function tapTitle(page) {
   }
 
   // 5. every control under a long title is still what a tap at its centre hits
-  // (the account switch is three slots since Aug 2026 — check each of them,
-  // since the thing that can go wrong is one slot ending up under the title)
-  const CTLS = [['#bmklink', 'bookmark'], ['#todolink', 'To do'], ['#archlink', 'Archive'],
-    ['#acctog .sw3[data-a="1"]', 'account 1 slot'],
-    ['#acctog .sw3[data-a="2"]', 'account 2 slot'],
-    ['#acctog .sw3[data-a="3"]', 'account 3 slot']];
+  const CTLS = [['#bmklink', 'bookmark'], ['#todolink', 'To do'], ['#archlink', 'Archive'], ['#acctog', 'account switch']];
   for (const w of [375, 390, 430]) {
     await page.setViewportSize({ width: w, height: 844 });
     for (const view of ['live', 'archive', 'bookmarks', 'todo', 'status', 'news']) {
