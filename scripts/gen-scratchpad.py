@@ -178,6 +178,50 @@ body.native header #storiesbtn{position:static;}
 .sfloat button+button{border-top:1.5px solid var(--ink);}
 .sfloat button.on{background:color-mix(in srgb, var(--gold,#a8845c) 18%, var(--paper)); color:var(--gold,#a8845c);}
 .sheet .wrap{padding-top:3vh;}
+/* TWO TABS in the add sheet — PICTURES and CLIPS (Aug 2026, Sophie: "can u
+   add film clips to story room"). The house `.acctabs` pattern verbatim: two
+   labels over a hairline, the line MEASURING the lit tab so the count lives
+   nowhere. A seventh icon in the title row was the alternative and the row
+   already carries six at 34px on a 390pt phone. */
+.acctabs{position:relative; display:flex; border-bottom:1px solid var(--line);
+  margin:14px 0 12px; padding-right:56px;}
+.acctab{flex:1 1 0; min-width:0; padding:7px 4px 9px; border:none; background:none; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink2); -webkit-tap-highlight-color:transparent;}
+.acctab.on{color:var(--ink);}
+.acctabs::after{content:''; position:absolute; left:0; bottom:-1px; height:2px;
+  width:var(--tw,0); background:var(--ink); transform:translateX(var(--tx,0));}
+.acctabs.tl::after{transition:transform .2s ease, width .2s ease;}
+/* The clip shelf: two to a row (a clip is landscape and its NAME is how she
+   knows which one it is — four across left no room for either). The tile is
+   the clip's POSTER, never the mp4: a grid of decoding videos is what makes
+   a picker crawl on a phone. */
+#clipq{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:1em;
+  padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--barbg);
+  color:var(--ink); -webkit-appearance:none;}
+#clipgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px 10px; margin-top:1.1em;}
+#clipgrid button{padding:0; background:none; border:none; text-align:left; color:var(--ink);
+  font-family:'EBGaramond',Georgia,serif; cursor:pointer;}
+#clipgrid .cpost{position:relative; display:block; width:100%; aspect-ratio:16/9;
+  border:1px solid var(--line); border-radius:4px; background:var(--barbg); overflow:hidden;}
+#clipgrid .cpost img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+#clipgrid .cnm{display:block; padding-top:5px; font-size:.8em; font-weight:700; line-height:1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+#clipgrid .cdur{display:block; font-size:.72em; color:var(--ink2); padding-top:2px;}
+/* The film mark — what says a beat is a CLIP and not a picture, on the pad
+   tile, on a shelf poster, and on a blank clip that has no poster. */
+.fmark{position:absolute; left:4px; bottom:4px; width:18px; height:18px; border-radius:50%;
+  background:var(--paper); border:1px solid var(--ink); display:flex; align-items:center;
+  justify-content:center; z-index:2;}
+.fmark svg{width:9px; height:9px; display:block;}
+.fmark.mid{left:50%; bottom:50%; transform:translate(-50%,50%); width:26px; height:26px;}
+.fmark.mid svg{width:13px; height:13px;}
+/* A clip in the beat popup is WATCHABLE — the full card width, not the pad
+   tile's ~90px. The never-blow-the-art-up rule is about her drawings; a film
+   nobody can see is not a preview. */
+#popvid{width:100%; display:block; border-radius:4px; background:#000;}
+#popvid.c-mustard{outline:3px solid var(--mustard);} #popvid.c-green{outline:3px solid var(--green);}
+#popvid.c-blue{outline:3px solid var(--blue);} #popvid.c-pink{outline:3px solid var(--pink);}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
 #inboxgrid button{aspect-ratio:2/3; border:1px solid var(--line); border-radius:4px; background:var(--barbg);
   padding:0; overflow:hidden; cursor:pointer;}
@@ -329,7 +373,7 @@ body.native header #storiesbtn{position:static;}
   </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
-  <div class="state" id="empty" hidden>Empty page — the button top right opens what you hearted in the Playground.</div>
+  <div class="state" id="empty" hidden>Empty page — the button top right opens your pictures and your clips.</div>
 </div>
 
 <div class="sheet" id="stories" hidden>
@@ -349,10 +393,22 @@ body.native header #storiesbtn{position:static;}
   <div class="wrap">
     <div class="sheethead">
       <button class="iconbtn" id="inboxclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-      <div class="no">From the Playground</div>
+      <div class="no" id="inboxno">From the Playground</div>
     </div>
-    <div id="inboxgrid"></div>
-    <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+    <div class="acctabs" id="inboxtabs">
+      <button class="acctab on" id="tab-pics" type="button">Pictures</button>
+      <button class="acctab" id="tab-clips" type="button">Clips</button>
+    </div>
+    <div id="picpane">
+      <div id="inboxgrid"></div>
+      <div class="state" id="inboxempty" hidden>Nothing hearted in the Playground yet.</div>
+    </div>
+    <div id="clippane" hidden>
+      <input id="clipq" type="search" enterkeyhint="search" autocomplete="off"
+             spellcheck="false" placeholder="Search clips">
+      <div id="clipgrid"></div>
+      <div class="state" id="clipempty" hidden>No clips on the shelf yet.</div>
+    </div>
   </div>
 </div>
 
@@ -388,6 +444,7 @@ body.native header #storiesbtn{position:static;}
     <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
   <img id="popimg" alt="">
+  <video id="popvid" hidden playsinline preload="metadata" controls></video>
   <div id="verrow" hidden></div>
   <div id="popblank" hidden>
     <button id="pbdraw" aria-label="Draw it here">__STAR__</button>
@@ -542,6 +599,23 @@ function padUnits(){
   }
   return units;
 }
+/* A beat can be a FILM CLIP (Aug 2026, Sophie: "can u add film clips to
+   story room") — an ordinary beat whose url is an mp4. It tiles as its
+   POSTER with a film mark, never as a <video>: a page of decoding videos is
+   what makes a phone crawl, and the pad is a thinking surface. */
+function isClip(b){ return Boolean(b&&b.kind==='clip'); }
+function artOf(b){ return b?(isClip(b)?(b.poster||null):(b.url||null)):null; }
+var FILM_TRI='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
+function filmMark(mid){
+  var m=document.createElement('span'); m.className='fmark'+(mid?' mid':'');
+  m.innerHTML=FILM_TRI; return m;
+}
+/* Fills a tile (or a chunk slice) with what the beat shows. */
+function fillTile(el, b){
+  var art=artOf(b);
+  if(art){ var im=document.createElement('img'); im.src=art; im.alt=''; el.appendChild(im); }
+  if(isClip(b)) el.appendChild(filmMark(!art));
+}
 function capFor(wrap, b){
   if(!b.text)return;
   var cap=document.createElement('div'); cap.className='bcap'; cap.textContent=b.text;
@@ -564,7 +638,7 @@ function render(){
       var b=u.members[0];
       var el=document.createElement('button');
       el.className='beat'+(b.color?' c-'+b.color:'')+((b.gen&&b.gen.status==='drawing')?' drawing':'');
-      if(b.url){ var im=document.createElement('img'); im.src=b.url; im.alt=''; el.appendChild(im); }
+      fillTile(el, b);
       el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
       wrap.appendChild(el);
       capFor(wrap, b);
@@ -572,7 +646,7 @@ function render(){
       var ck=document.createElement('div'); ck.className='chunk'+(u.members[0].color?' c-'+u.members[0].color:'');
       u.members.forEach(function(m){
         var sl=document.createElement('button'); sl.className='slice';
-        if(m.url){ var mi=document.createElement('img'); mi.src=m.url; mi.alt=''; sl.appendChild(mi); }
+        fillTile(sl, m);
         sl.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(m);};
         ck.appendChild(sl);
       });
@@ -977,15 +1051,102 @@ function sheetPill(sheet){
   paint(); sheet.appendChild(el); sheet._stopPill=stop;
   return el;
 }
+/* ── the add sheet's two tabs: PICTURES · CLIPS ────────────────────
+   The line MEASURES the lit tab, so the tab count lives nowhere (the house
+   `.acctabs` rule). */
+var inboxTab=0, shelfClips=null, clipQ='';
+function tabLine(){
+  var tabs=document.getElementById('inboxtabs');
+  var on=tabs.querySelector('.acctab.on'); if(!on) return;
+  var r=tabs.getBoundingClientRect(), t=on.getBoundingClientRect();
+  if(!t.width) return;
+  tabs.style.setProperty('--tw', t.width+'px');
+  tabs.style.setProperty('--tx', (t.left-r.left-tabs.clientLeft)+'px');
+  if(!tabs.__tl){ tabs.__tl=1; requestAnimationFrame(function(){ tabs.classList.add('tl'); }); }
+}
+window.addEventListener('resize',function(){
+  var tabs=document.getElementById('inboxtabs');
+  tabs.classList.remove('tl'); tabs.__tl=0; requestAnimationFrame(tabLine);
+},{passive:true});
+function showInboxTab(i){
+  inboxTab=i;
+  document.getElementById('tab-pics').classList.toggle('on',i===0);
+  document.getElementById('tab-clips').classList.toggle('on',i===1);
+  document.getElementById('picpane').hidden=i!==0;
+  document.getElementById('clippane').hidden=i!==1;
+  var no=document.getElementById('inboxno');
+  if(i===1) no.textContent='From the clip shelf';
+  else no.textContent=inboxSource==='story'?'This story\u2019s art':'From the Playground';
+  tabLine();
+  if(i===1&&shelfClips===null) loadClips();
+}
+document.getElementById('tab-pics').onclick=function(ev){ ev.stopPropagation(); showInboxTab(0); };
+document.getElementById('tab-clips').onclick=function(ev){ ev.stopPropagation(); showInboxTab(1); };
+
+/* The Chunking clip library, read-only. A clip is REFERENCED, never copied
+   (Assembly's rule) — and unlike the picture inbox, a clip already on the pad
+   is NOT filtered out: the shelf is a library, and one clip can legitimately
+   come round twice in a story. */
+function loadClips(){
+  var g=document.getElementById('clipgrid');
+  api('/shelf'+(clipQ?'?q='+encodeURIComponent(clipQ):'')).then(function(r){return r.json()}).then(function(d){
+    shelfClips=d.clips||[];
+    g.innerHTML='';
+    document.getElementById('clipempty').hidden=Boolean(shelfClips.length);
+    if(!shelfClips.length&&clipQ) document.getElementById('clipempty').textContent='No clips match that.';
+    else document.getElementById('clipempty').textContent='No clips on the shelf yet.';
+    shelfClips.forEach(function(c){
+      var el=document.createElement('button');
+      var po=document.createElement('span'); po.className='cpost';
+      if(c.poster){ var im=document.createElement('img'); im.src=c.poster; im.alt=''; im.loading='lazy'; po.appendChild(im); }
+      po.appendChild(filmMark(!c.poster));
+      el.appendChild(po);
+      var nm=document.createElement('span'); nm.className='cnm'; nm.textContent=c.title||'Untitled clip'; el.appendChild(nm);
+      if(c.seconds){ var du=document.createElement('span'); du.className='cdur'; du.textContent=Math.round(c.seconds)+'s'; el.appendChild(du); }
+      el.onclick=function(ev){ ev.stopPropagation(); pick({film:true, clip:c}); };
+      g.appendChild(el);
+    });
+  }).catch(function(){});
+}
+/* The house search contract on a live box: iOS dictation can fill a field
+   without ever firing `input`, so the value is POLLED while it has focus,
+   and RETURN runs it at once and drops the keyboard. */
+(function(){
+  var box=document.getElementById('clipq'), timer=null, poll=null, last='';
+  function sync(){
+    var v=box.value.trim();
+    if(v===last) return;
+    last=v;
+    clearTimeout(timer);
+    timer=setTimeout(function(){ clipQ=v; loadClips(); },350);
+  }
+  box.onclick=function(ev){ ev.stopPropagation(); };
+  box.addEventListener('input',sync);
+  box.addEventListener('focus',function(){ poll=setInterval(sync,300); });
+  box.addEventListener('blur',function(){ clearInterval(poll); poll=null; sync(); });
+  box.addEventListener('keydown',function(ev){
+    if(ev.key!=='Enter') return;
+    ev.preventDefault();
+    clearTimeout(timer);
+    last=box.value.trim(); clipQ=last; loadClips();
+    box.blur();
+  });
+})();
+
+var inboxSource='playground';
 function openInbox(){
   var sh=document.getElementById('inbox');
   sh.hidden=false; lock(true); sheetPill(sh);
+  showInboxTab(inboxTab);
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
     // A story that carries its own gathered art says so; otherwise this is
     // still the Playground hearts.
-    var hd=document.querySelector('#inbox .no');
-    if(hd) hd.textContent = (d.source==='story') ? 'This story\u2019s art' : 'From the Playground';
+    inboxSource=d.source||'playground';
+    if(inboxTab===0){
+      var hd=document.getElementById('inboxno');
+      if(hd) hd.textContent = (inboxSource==='story') ? 'This story\u2019s art' : 'From the Playground';
+    }
     var g=document.getElementById('inboxgrid'); g.innerHTML='';
     document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
     // A picture she has already placed is gone from here, not dimmed: the
@@ -1015,8 +1176,14 @@ function pick(it){
   document.getElementById('inbox').hidden=true;
   if(fillBeat){
     var target=fillBeat; fillBeat=null;
-    var src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
-    api('/image',{method:'POST',body:JSON.stringify({id:target.id,url:it.url,src:src})})
+    var body, path;
+    if(it.film){ path='/clip'; body={id:target.id, clip:it.clip}; }
+    else {
+      path='/image';
+      body={id:target.id, url:it.url,
+        src:{runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality}};
+    }
+    api(path,{method:'POST',body:JSON.stringify(body)})
       .then(function(r){return r.json()})
       .then(function(d){
         if(d.beats){ beats=d.beats; render(); }
@@ -1031,12 +1198,13 @@ function pick(it){
 }
 function place(at, it){
   it=it||pending; if(!it)return; pending=null;
-  var body={at:at};
-  if(!it.empty){
+  var body={at:at}, path='/add';
+  if(it.film){ path='/clip'; body.clip=it.clip; }
+  else if(!it.empty){
     body.url=it.url;
     body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
   }
-  api('/add',{method:'POST',body:JSON.stringify(body)})
+  api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
     .then(function(d){if(d.beats)beats=d.beats;render();});
   render();
@@ -1055,23 +1223,31 @@ document.addEventListener('click',function(){ if(pending){pending=null;render();
 function openBeat(b){
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
-  // Same size as it sits on the pad — the popup never blows the art up.
+  var vid=document.getElementById('popvid');
+  var clip=isClip(b);
+  // Same size as it sits on the pad — the popup never blows the ART up. A
+  // CLIP is the exception and takes the card's width: it is a film, and one
+  // playing at 90px is not a preview.
   var tile=document.querySelector('#pad .beat');
   var w=(tile?tile.offsetWidth:90)+'px';
-  im.hidden=!b.url; bl.hidden=Boolean(b.url);
+  im.hidden=clip||!b.url; bl.hidden=clip||Boolean(b.url); vid.hidden=!clip;
   bl.style.width=w;
-  if(b.url){ im.style.width=w; im.src=b.url; im.className=b.color?'c-'+b.color:''; }
+  if(clip){
+    if(vid.src!==b.url){ vid.src=b.url; }
+    if(b.poster) vid.poster=b.poster; else vid.removeAttribute('poster');
+    vid.className=b.color?'c-'+b.color:'';
+  } else if(b.url){ im.style.width=w; im.src=b.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
   document.querySelectorAll('.chip').forEach(function(c){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
   });
   document.getElementById('pnote').value=b.text||'';
-  document.getElementById('coverbtn').hidden=!b.url;
+  document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
   // ringed. Only shows once there is more than the current picture.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
-  var vers=(b.url?[b.url]:[]).concat((b.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  var vers=((b.url&&!clip)?[b.url]:[]).concat((b.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
   vr.hidden=vers.length<2;
   if(vers.length>1){
     vers.forEach(function(u,i){
@@ -1094,8 +1270,9 @@ function openBeat(b){
   lb.hidden=!(myUnit>=0 && myUnit<units.length-1);
   ub.hidden=!b.chunk;
   // The two ways to (re)make art: above the picture when there is one, in
-  // the blank tile when there isn't.
-  document.getElementById('artrow').hidden=!b.url;
+  // the blank tile when there isn't. NEITHER on a clip — nothing here draws
+  // a film, and a picture-maker over one would only ever replace it.
+  document.getElementById('artrow').hidden=clip||!b.url;
   // Drawing here: the prompt starts as the beat's own words.
   var db_=document.getElementById('drawbox');
   db_.hidden=true;
@@ -1107,10 +1284,21 @@ function openBeat(b){
   st.hidden=!(drawing||(b.gen&&b.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((b.gen&&b.gen.error)||'');
   if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
+  // A clip's own sound IS its voice — the film plays the tape rather than
+  // reading her note over it — so the speak and record icons come off
+  // instead of sitting there promising something the render won't do.
+  document.getElementById('speak').hidden=clip;
   var mb=document.getElementById('micbtn');
+  mb.hidden=clip;
   mb.classList.remove('rec','busy');
   mb.classList.toggle('on',Boolean(b.voiceUrl));
   document.getElementById('beatpop').hidden=false; lock(true);
+}
+/* Leaving the popup stops a clip — a film still talking behind the pad is
+   the same bug as a sheet that keeps scrolling. */
+function stopPopVid(){
+  var v=document.getElementById('popvid');
+  if(!v.hidden){ try{ v.pause(); }catch(e){} }
 }
 function chunkAction(pathname){
   var b=popBeat; if(!b)return;
@@ -1217,7 +1405,7 @@ document.querySelectorAll('.chip').forEach(function(c){
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
-    document.getElementById(popBeat.url?'popimg':'popblank').className=col?'c-'+col:'';
+    document.getElementById(isClip(popBeat)?'popvid':(popBeat.url?'popimg':'popblank')).className=col?'c-'+col:'';
     document.querySelectorAll('.chip').forEach(function(x){
       x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
     });
@@ -1295,7 +1483,7 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+function closeBeat(){stopRec(); stopPopVid(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
