@@ -705,16 +705,35 @@
     // card open exactly the same thing. A hand-built judge page that doesn't
     // carry it keeps compare.js's plain lightbox, which is why this is a
     // capability test and not an assumption.
+    // A PICTURE INSIDE A SPREAD HAS ITS OWN HEART, AND IT IS THE ASSETS
+    // TAB'S (Aug 2026, Sophie, on the witch reels: "the heart doesn't work in
+    // the review queue… per image. they're supposed to tie back in to the
+    // original chat likes so all likes are synchronized everywhere"). The
+    // card's ♥/✕ answers the SPREAD — that is the whole point of a spread key
+    // — so a per-picture heart cannot be the card's verdict, and the old cast
+    // simply did nothing at all for one: it compared the picture's id against
+    // the spread's, which never match, so her tap fell on the floor and
+    // NOTHING was written anywhere. A picture's own mark is the asset vote,
+    // exactly what the grid's tile casts on an own-states page.
+    function onDeck(it) {
+      return !!it && items.some(function (x) { return x.id === it.id; });
+    }
+    var assetVotes = {};   // url → 'like' | 'dislike', the Assets tab's own
     var views = window.__assetViews ? window.__assetViews({
       chat: chat,
       voteOf: function (it) {
+        if (!onDeck(it)) return assetVotes[it.url] || null;
         return verdicts[it.id] === true ? 'like'
           : verdicts[it.id] === false ? 'dislike' : null;
       },
       // the lightbox's ♥/✕ is the CARD's mark when she is on that card —
       // one verdict, reachable from either surface, never two that disagree
-      cast: function (it, v) {
-        if (items[cur] && items[cur].id === it.id) judge(v === 'like');
+      cast: function (it, v, a) {
+        if (onDeck(it)) { judge(v === 'like'); return; }
+        a.vote = a.vote === v ? null : v;
+        if (a.vote) assetVotes[it.url] = a.vote; else delete assetVotes[it.url];
+        mirrorVote(it, a.vote === 'like' ? true : a.vote === 'dislike' ? false : null);
+        if (a._lbPaint) a._lbPaint();
       },
     }) : null;
 
@@ -1661,6 +1680,50 @@
             if (next === -1) view = 'piles'; else cur = next;
           }
           render();
+          return loadAssetVotes(move);
+        });
+    }
+
+    // …THEN THE CHAT'S ASSETS TAB FILLS IN WHAT THE PAGE IS MISSING — the
+    // other half of "all likes are synchronized everywhere", and the half the
+    // deck never had (the grid has read this since it shipped). A ♥ she gave
+    // in the Assets tab shows on the card here, and on a picture inside a
+    // spread it is the only place that heart is kept at all.
+    function loadAssetVotes(move) {
+      var pics = [];
+      items.forEach(function (it) {
+        if (it.url) pics.push(it);
+        (it.cards || []).forEach(function (c) { if (c.url) pics.push(c); });
+      });
+      if (!pics.length) return null;
+      return fetch('/api/gallery/assets?chat=' + encodeURIComponent(chat) + '&limit=500')
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .catch(function () { return {}; })
+        .then(function (a) {
+          var votes = {};
+          ((a && a.assets) || []).forEach(function (as) {
+            if (!as.vote) return;
+            votes[as.url] = as.vote;
+            // one picture can sit at two storage paths; the union hands the
+            // others along as `alts`, and the page may name either
+            (as.alts || []).forEach(function (u) { votes[u] = as.vote; });
+          });
+          var moved = false;
+          pics.forEach(function (it) {
+            var v = votes[it.url];
+            if (v) assetVotes[it.url] = v; else delete assetVotes[it.url];
+            // a TOP-LEVEL card's vote is the page's verdict too, so the two
+            // surfaces agree in BOTH directions — the page's own mark wins
+            if (!onDeck(it) || !v) return;
+            if (verdicts[it.id] !== undefined) return;
+            verdicts[it.id] = v === 'like';
+            moved = true;
+          });
+          if (moved && move) {
+            var next = firstUnjudged();
+            if (next === -1) view = 'piles'; else cur = next;
+          }
+          if (moved) render();
         });
     }
     resume(true);

@@ -3103,6 +3103,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
     own frozen Storage JSON (cached forever per id — a new version is a new
     page), her progress is the verdict doc (`<chat>__page-<id>`), names come
     from the registry cache. No model call, no cost; the answer is held 60s.
+  - **A PICTURE INSIDE A SPREAD HEARTS TO THE ASSETS TAB, NOT TO THE PAGE
+    (found live 2026-08-22, Sophie on the witch reels: "the heart doesn't work
+    in the review queue… per image. they're supposed to tie back in to the
+    original chat likes so all likes are synchronized everywhere").** The
+    card's ♥/✕ answers the SPREAD — that is what the `s:` key is for — so a
+    per-picture heart cannot be the card's verdict. judge.js's lightbox cast
+    used to compare the picture's id against the CURRENT CARD's, which for a
+    spread's picture never match, so her tap **did nothing at all**: no light,
+    no verdict, no vote, nothing written anywhere. It casts the ASSET vote now,
+    exactly what the grid's tile does on an own-states page. That page is 47
+    pictures in 8 labeled groups, i.e. every picture on it, and it had zero
+    marks on file.
+  - **AND THE DECK READS THE ASSETS TAB AT LOAD, which it never did** — the
+    grid has since it shipped, so "the two surfaces agree in BOTH directions"
+    was only ever half true. A ♥ she gave in the Assets tab now fills in a
+    top-level card's verdict and lights a spread picture's own heart. Tests:
+    `node scripts/test-judge-spread-heart.js` (the real page headless, verified
+    failing against the pre-fix file, 6 of 15).
   - **A SPREAD VERDICT COUNTS AS PROGRESS (found live 2026-08-20).** Her ♥/✕
     on a whole spread and her "this one" pick land under the `s:` key, and the
     queue used to count only card ids — she reviewed the "Monkey + summit"
