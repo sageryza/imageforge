@@ -148,6 +148,20 @@ ok('caption parses MODEL · QUALITY · SIZE, and the older two-slot shape too', 
     { model: 'gpt-image-2', quality: 'medium', size: '' });
   assert.strictEqual(parseCaption('from some-chat'), null);
   assert.strictEqual(parseCaption(''), null);
+
+  // A PANEL CUT OUT OF A SHEET carries "1/4 (4K)" (Sophie: "1/4 panel could
+  // say 1/4 (4k)"), so the size slot holds a slash, a space and parentheses.
+  // The slot shipped as [a-z0-9x×] and the WHOLE caption then failed to parse
+  // on exactly the pictures the diff-row rule was built for — measured live on
+  // her ladders page: the four quarters lost their size off the row and fell
+  // through to their style line.
+  assert.deepStrictEqual(parseCaption('gpt-image-2 · medium · 1/4 (4K)'),
+    { model: 'gpt-image-2', quality: 'medium', size: '1/4 (4K)' });
+  assert.deepStrictEqual(parseCaption('gpt-image-2 · medium · 1/9 (4k)'),
+    { model: 'gpt-image-2', quality: 'medium', size: '1/9 (4K)' });
+  // and a raw canvas still parses — records filed before the tier correction
+  assert.deepStrictEqual(parseCaption('gpt-image-2 · medium · 1568x2352'),
+    { model: 'gpt-image-2', quality: 'medium', size: '1568X2352' });
 });
 
 const CONTENT = 'a woman in a yellow raincoat feeding crows on a park bench at dusk';
