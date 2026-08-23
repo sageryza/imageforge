@@ -190,13 +190,29 @@
   .viewtog button { border: 0; background: none; font: inherit; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: #6f675e; padding: 7px 15px; }
   .viewtog button + button { border-left: 1px solid #d8d0c4; }
   .viewtog button.on { background: #2b2622; color: #faf7f2; font-weight: 600; }
-  /* The heart beside the view switch is a FILTER, not a third view: it hides
-     everything she hasn't hearted, in whichever view she is already in. Lit =
-     hearts only, and it is sticky like the view, so a reload keeps it. */
-  .likefilt { margin-left: 8px; display: flex; align-items: center; justify-content: center; width: 38px;
-    border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
+  /* THE TWO MARK FILTERS, one segmented box beside the view switch — neither
+     is a third view: each rides on top of whichever view she is already in,
+     and both are sticky, so a reload keeps them.
+       ♥ = hearts only.
+       ✕ = hide the ones she crossed out (Aug 2026, Sophie: "can u also add a
+           button next to the heart that hides anything i've 'exed'").
+     They share one border for the reason the List/Tiles pair does — they are
+     one kind of decision — and that is also what pays for the second button:
+     the row reserves 56px for the injected autoscroll pill, and two separate
+     38px boxes with their own margins left the search box at 80px, clipping
+     its own placeholder to "Searc" (measured). One box of two 34px buttons
+     gives it back.
+     LIT, THEY MUST NOT MATCH: the heart keeps only what it names and the ✕
+     drops it, so the ✕ takes the GREY of the dislike badge rather than the
+     rose. Two identical-looking filters read as two of the same thing. */
+  .filttog { margin-left: 8px; display: flex; flex: none; border: 1px solid #d8d0c4;
+    border-radius: 6px; overflow: hidden; background: #fdfcf9; }
+  .likefilt { display: flex; align-items: center; justify-content: center; width: 34px;
+    border: 0; background: none; color: #6f675e; padding: 0; }
+  .likefilt + .likefilt { border-left: 1px solid #d8d0c4; }
   .likefilt svg { width: 16px; height: 16px; }
-  .likefilt.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  .likefilt.on { background: #c25a72; color: #fff; }
+  .xfilt.on { background: #9a938a; color: #fff; }
   /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
      little search bar that fits in the space between the heart toggle and
      tiles/grid") — `flex: 1` between the heart and the 56px the autoscroll
@@ -418,7 +434,10 @@
   <div class="viewtog">
     <button id="v-list">List</button><button id="v-tiles">Tiles</button>
   </div>
-  <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+  <div class="filttog" role="group" aria-label="Filters">
+    <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+    <button class="likefilt xfilt" id="v-hidex" aria-label="Hide the ones you have crossed out" title="Hide the &times;'d"></button>
+  </div>
   <div class="feedsearch">
     <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
            autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
@@ -557,6 +576,23 @@
     applyLiked(true);
   });
 
+  // HIDE THE ✕'d (Aug 2026, Sophie: "can u also add a button next to the
+  // heart that hides anything i've 'exed'"). The heart's opposite and its
+  // twin: a filter over pictures, in whichever view she is in, sticky. A run
+  // left with nothing showing drops out of the list, exactly as with the
+  // heart. The two stack without arguing — hearts-only has already dropped
+  // every ✕'d picture, so this one simply finds nothing more to do.
+  document.getElementById('v-hidex').innerHTML = ICONS.x;
+  function hideX() { return localStorage.getItem('promptlab_hidex') === '1'; }
+  function applyHideX(repaint) {
+    document.getElementById('v-hidex').classList.toggle('on', hideX());
+    if (repaint) renderFeed();
+  }
+  document.getElementById('v-hidex').addEventListener('click', function () {
+    localStorage.setItem('promptlab_hidex', hideX() ? '' : '1');
+    applyHideX(true);
+  });
+
   // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
   // the space between the heart toggle (next to tiles/grid)") ──────────────
   // It filters the feed by RUN — her words are a run's, not a picture's — so
@@ -632,7 +668,8 @@
   }
   function emptyNote() {
     if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
-    return likedOnly() ? '<div class="emptynote">Nothing hearted yet</div>' : '';
+    if (likedOnly()) return '<div class="emptynote">Nothing hearted yet</div>';
+    return hideX() ? '<div class="emptynote">Everything here is crossed out</div>' : '';
   }
 
   // A SEARCH READS THE WHOLE FEED, NOT THE PAGE SHE IS LOOKING AT — the
@@ -1788,6 +1825,7 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
       var only = likedOnly();
+      var nox = hideX();
       var items = [];
       groups.forEach(function (g) {
         var head = g.items[0];
@@ -1808,10 +1846,13 @@
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
             if (only && v !== 'like') return;
+            if (nox && v === 'dislike') return;
             cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
           });
         });
-        if (only && !cells.length) return;   // nothing hearted in this run
+        // Nothing left to show in this run — everything hearted away or
+        // crossed out — so the box goes with it rather than sitting empty.
+        if ((only || nox) && !cells.length) return;
         items.push({ key: g.key, cells: cells,
           headHtml: '<span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
             runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') });
@@ -1851,6 +1892,7 @@
   function renderTiles() {
     var items = [];
     var only = likedOnly();
+    var nox = hideX();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     if (!only) pendingList().slice().reverse().forEach(function (p) {
@@ -1867,6 +1909,7 @@
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
         if (only && v !== 'like') return;
+        if (nox && v === 'dislike') return;
         items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
       });
     });
@@ -2075,7 +2118,7 @@
   };
 
   if (window.__nativeNavBar) document.body.classList.add('native');
-  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyView(); loadRuns();
+  renderStyles(); updateShape(); syncControls(); applyLiked(false); applyHideX(false); applyView(); loadRuns();
   if (pendingList().length) { renderPendings(); startPolling(); }
 </script>
 </body></html>
