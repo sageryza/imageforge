@@ -55,6 +55,10 @@ function ok(cond, name) {
   };
   const vidA = mk('a.webm', 'tomato', 440);
   const vidB = mk('b.webm', 'teal', 660);
+  const oggT = path.join(dir, 't.ogg');
+  execFileSync(FF, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=520:duration=6',
+    '-c:a', 'libvorbis', oggT]);
+  const audT = fs.readFileSync(oggT);
 
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'filmeditor.html'), 'utf8');
   const DOC = {
@@ -68,6 +72,8 @@ function ok(cond, name) {
 
   let PROX = {};   // what /proxies answers — flipped per scenario
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
+  const DOC3 = { id: 't3', title: 'Cut with music', clips: JSON.parse(JSON.stringify(DOC.clips)),
+    audio: { url: 'http://forge.test/fx/t.ogg', name: 'song', offset: 0 }, renders: [], job: null };
 
   const browser = await pw.chromium.launch({
     ...(exe ? { executablePath: exe } : {}),
@@ -80,6 +86,13 @@ function ok(cond, name) {
     if (u.includes('/fx/b.webm')) return route.fulfill({ contentType: 'video/webm', body: vidB });
     if (u.includes('/api/filmeditor/proxies')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX }) });
+    }
+    if (u.includes('/fx/t.ogg')) return route.fulfill({ contentType: 'audio/ogg', body: audT });
+    if (u.includes('/api/filmeditor/t3/pieces')) {
+      return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
+    }
+    if (u.includes('/api/filmeditor/t3')) {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC3) });
     }
     if (u.includes('/api/filmeditor/t2')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC2) });
@@ -183,6 +196,25 @@ function ok(cond, name) {
   await page.waitForSelector('#emptyBox:not([hidden])', { timeout: 8000 });
   ok(await page.$eval('#msg', (el) => el.offsetParent !== null),
     'the quiet line shows even while the empty state is up');
+
+  console.log('the audio track:');
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  ok((await page.$eval('#audSyncT', (el) => el.textContent)) === 'from start',
+    'an untouched track says FROM START, never "synced to piece 1"');
+  await page.evaluate(() => {
+    window.__seeks = 0;
+    document.getElementById('audEl').addEventListener('seeking', () => { window.__seeks++; });
+  });
+  await page.click('#play');
+  await page.waitForTimeout(700);
+  ok(await page.$eval('#audEl', (el) => !el.paused), 'the track plays from the top');
+  await page.waitForFunction(
+    () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
+    { timeout: 9000 }).catch(() => {});
+  const seeks = await page.evaluate(() => window.__seeks);
+  ok(seeks <= 2, 'the track is NOT re-seeked at every piece boundary (seeks: ' + seeks + ')');
+  ok(await page.$eval('#audEl', (el) => el.currentTime >= 3), 'it rolled through the whole film');
 
   console.log('preview proxies take over the player:');
   PROX = {

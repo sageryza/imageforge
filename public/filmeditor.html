@@ -252,7 +252,7 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
         <button class="rm" id="audRm" aria-label="Remove the audio track">✕</button>
       </div>
       <button id="audoff" hidden><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>add audio track</button>
-      <audio id="audEl"></audio>
+      <audio id="audEl" preload="auto"></audio>
     </div>
 
     <div id="tools">
@@ -578,14 +578,26 @@ function seekVideo(playIt) {
 }
 function syncAudio(playIt) {
   var a = $('audEl');
-  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); return; }
+  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); a.removeAttribute('data-src'); return; }
   if (a.getAttribute('data-src') !== A.audio.url) {
-    a.setAttribute('data-src', A.audio.url); a.src = A.audio.url;
+    a.setAttribute('data-src', A.audio.url);
+    a.preload = 'auto';       // buffered before the first play, not during it
+    a.src = A.audio.url;
   }
   var at = playhead - (A.audio.offset || 0);
   if (playIt && at >= 0) {
-    try { a.currentTime = at; } catch (e) {}
-    a.play().catch(function () {});
+    // THE TRACK ROLLS CONTINUOUSLY. The film's timeline is one unbroken line,
+    // so a piece boundary is nothing to the audio — yet this used to re-seek
+    // it at every joint, and each seek is a network hiccup: the "stops
+    // between every clip" chop Sophie heard. Touch it only when it is
+    // genuinely out of step or not running.
+    var drift = Math.abs((a.currentTime || 0) - at);
+    if (a.paused || drift > 0.35) {
+      try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+      a.play().catch(function () {});
+    }
+  } else if (playIt) {
+    a.pause();   // still before the track's offset — the tick starts it there
   } else {
     a.pause();
     if (at >= 0) { try { a.currentTime = at; } catch (e) {} }
@@ -816,12 +828,21 @@ function paintAudio() {
   $('audoff').hidden = has;
   if (has) {
     $('audName').textContent = A.audio.name || 'audio track';
-    var ss = segs();
+    // offset ~0 is "from start", FULL STOP — piece 1 also starts at 0, so the
+    // old piece-matching loop labeled a fresh untouched track "synced to
+    // piece 1" and read as something she never did (Sophie, 2026-08-22)
+    var off = A.audio.offset || 0;
     var label = 'from start';
-    for (var i = 0; i < ss.length; i++) {
-      if (Math.abs(ss[i].start - (A.audio.offset || 0)) < 0.05) { label = 'synced to piece ' + (i + 1); break; }
+    if (off >= 0.05) {
+      label = 'from ' + fmt(off);
+      var ss = segs();
+      for (var i = 0; i < ss.length; i++) {
+        if (ss[i].start >= 0.05 && Math.abs(ss[i].start - off) < 0.05) {
+          label = 'starts at piece ' + (i + 1);
+          break;
+        }
+      }
     }
-    if ((A.audio.offset || 0) > 0 && label === 'from start') label = 'from ' + fmt(A.audio.offset);
     $('audSyncT').textContent = label;
   }
 }
