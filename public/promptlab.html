@@ -234,8 +234,8 @@
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
-  /* Tiles: four to a row, the My Creations look — small on purpose, so the
-     wall stays scannable. Tapping one opens the lightbox, which is where the
+  /* Tiles: THREE to a row (Aug 2026, her ask — four was too small to judge a
+     picture by once they stopped being cropped squares). Tapping one opens the lightbox, which is where the
      prompt, model and quality live.
      EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
      want the playground to show portrait aspect ratios to match my 2:3
@@ -245,7 +245,7 @@
      The ratio rides on the cell as `--ar`, written from the run's own
      `aspectRatio`, so a square run still tiles square and the two shapes sit
      on the same wall as what they are. */
-  #tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 5px; }
+  #tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* A picture still being drawn holds its place at the front of the wall, so
      the tiles view shows the whole feed and not just what has landed. It
      breathes, because a flat empty box in a wall of pictures reads as a
@@ -288,21 +288,38 @@
   .failed { color: #a33; }
   .note { font-size: 12px; color: #8a8177; }
   /* The side padding is the arrows' lane — the picture is never under one. */
-  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px 52px; }
+  #lb { display: none; position: fixed; inset: 0; background: #111; z-index: 50; flex-direction: column; align-items: center; justify-content: center; padding: 12px; }
   #lb.on { display: flex; }
+  /* The stage is the IMAGE AREA — the picture and the two step zones over it,
+     ending where the caption starts. The zones are sized to it rather than to
+     the window, so a tap "in the image area" means exactly that and the
+     caption, the ♥/✕ row and the buttons under it are never covered. */
+  .lbstage { position: relative; display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 0; }
   #lb img { max-width: 100%; max-height: 76vh; border-radius: 6px; }
   /* Step to the next/previous picture in the feed, in the order the view
-     behind the lightbox is showing them (the heart filter included). TALL AND
-     NARROW on purpose (Sophie's ask) so the whole side of the screen is a tap
-     target without any of it sitting over the picture. Hidden when there is
-     nothing that way — the ends of the feed are the ends. */
-  .lbnav { position: fixed; top: 50%; transform: translateY(-50%); width: 34px; height: 58vh; z-index: 55;
-    border: 1px solid #333; border-radius: 6px; background: rgba(28,28,28,.72); color: #ddd;
-    display: flex; align-items: center; justify-content: center; padding: 0; }
+     behind the lightbox is showing them (the heart filter included).
+     THE BUTTON IS THE WHOLE SIDE OF THE IMAGE AREA, THE BAR IS JUST THE MARK
+     (Aug 2026, Sophie: "the side arrow bars - buttons shud be smaller, tap
+     targets bigger. tap anywhere on the right or left of the screen in the
+     image area and it switches left or right. arrow bars are just about an
+     inch tall"). So `.lbnav` is a transparent 28% strip running the full
+     height of the stage — the picture included, which is the point — and
+     `.lbbar` is the ~1in chip drawn at its outer edge. The 52px of side
+     padding the old tall bars needed is gone with them, so the picture is
+     bigger too.
+     Hidden when there is nothing that way — the ends of the feed are the
+     ends, and with the zone gone a tap there closes, exactly as it did when
+     the bars were the whole control. */
+  .lbnav { position: absolute; top: 0; bottom: 0; width: 28%; z-index: 55;
+    border: 0; background: none; padding: 0 6px; display: flex; align-items: center; }
   .lbnav[hidden] { display: none; }
-  .lbnav svg { width: 18px; height: 18px; }
-  #lbprev { left: 8px; }
-  #lbnext { right: 8px; }
+  .lbbar { width: 26px; height: 96px; border: 1px solid #333; border-radius: 6px;
+    background: rgba(28,28,28,.72); color: #ddd;
+    display: flex; align-items: center; justify-content: center; }
+  .lbnav svg { width: 16px; height: 16px; }
+  #lbprev { left: 0; justify-content: flex-start; }
+  #lbnext { right: 0; justify-content: flex-end; }
   /* What made this picture: the model and its settings, LOCKED at the top,
      then her words under it. The meta line used to sit UNDER the prompt inside
      one scrolling box, so a long prompt pushed the model and quality out of
@@ -463,9 +480,11 @@
 </div>
 
 <div id="lb">
-  <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
-  <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
-  <img id="lbimg" src="">
+  <div class="lbstage">
+    <img id="lbimg" src="">
+    <button class="lbnav" id="lbprev" aria-label="Previous picture" hidden></button>
+    <button class="lbnav" id="lbnext" aria-label="Next picture" hidden></button>
+  </div>
   <div class="cap"><div class="capm" id="lbcapm"></div><div class="capp" id="lbcapp"></div></div>
   <div class="lbbtns">
     <button class="lbbtn like" id="lblike" aria-label="Heart"></button>
@@ -2000,8 +2019,10 @@
     document.getElementById('lbprev').hidden = at <= 0;
     document.getElementById('lbnext').hidden = at < 0 || at >= seq.length - 1;
   }
-  document.getElementById('lbprev').innerHTML = ICONS.chevronLeft;
-  document.getElementById('lbnext').innerHTML = ICONS.chevronRight;
+  // The chip lives INSIDE the zone, so what she taps and what she sees are
+  // deliberately different sizes.
+  document.getElementById('lbprev').innerHTML = '<span class="lbbar">' + ICONS.chevronLeft + '</span>';
+  document.getElementById('lbnext').innerHTML = '<span class="lbbar">' + ICONS.chevronRight + '</span>';
   document.getElementById('lbprev').addEventListener('click', function () { lbStep(-1); });
   document.getElementById('lbnext').addEventListener('click', function () { lbStep(1); });
 

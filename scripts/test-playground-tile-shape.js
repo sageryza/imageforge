@@ -18,7 +18,7 @@
 //      toggle) falls back to portrait rather than to a square,
 //   4. a waiting placeholder holds the shape its picture is about to be, so
 //      the wall does not re-flow when it lands,
-//   5. the four columns stay EQUAL with the two shapes mixed — a bare `1fr`
+//   5. the columns stay EQUAL with the two shapes mixed — a bare `1fr`
 //      is `minmax(auto, 1fr)` and a square's automatic minimum width is
 //      transferred from the row height through its own aspect ratio, which
 //      blew one column out to 132px and squeezed the rest to 73.
@@ -121,8 +121,9 @@ const near = (got, want) => Math.abs(got - want) < 0.02;
   const cols = await page.evaluate(() =>
     getComputedStyle(document.getElementById('tiles')).gridTemplateColumns
       .split(' ').map(parseFloat));
-  ok(cols.length === 4 && cols.every(w => Math.abs(w - cols[0]) < 0.5),
-    'the four columns stay equal with both shapes on the wall (' + cols.join(' · ') + ')');
+  ok(cols.length === 3, 'the wall is three to a row (' + cols.length + ')');
+  ok(cols.every(w => Math.abs(w - cols[0]) < 0.5),
+    'the columns stay equal with both shapes on the wall (' + cols.join(' · ') + ')');
 
   // The placeholder is the square run on its way — it must already hold a
   // square, or the wall jumps when the picture lands.
