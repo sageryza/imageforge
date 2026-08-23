@@ -47,6 +47,11 @@
 //   POST /clip           → { clip:{id,url,poster,seconds,title}, at? | id? }
 //                          — a FILM CLIP as a beat: inserted at `at`, or
 //                          dropped into the existing (blank) beat `id`
+//   POST /remove         → { id, style? } — delete a beat FROM A SIDE: with
+//                          art still on the other side only this side goes
+//                          (emptied + `off`, the beat keeps its place and
+//                          its words there); with nothing left anywhere the
+//                          whole beat goes, as it always did
 //   POST /style          → { style:'watercolor'|'dreamy' } — which art set
 //                          the story shows (the toggle at the top; the beats
 //                          and their words are shared, only the art differs —
@@ -162,6 +167,20 @@ function artSlot(b, style, make) {
   if (make) { b.alt = b.alt || {}; b.alt.dreamy = b.alt.dreamy || {}; }
   return (b.alt && b.alt.dreamy) || {};
 }
+const otherStyle = (style) => (style === 'dreamy' ? 'watercolor' : 'dreamy');
+// EVERY field that belongs to ONE side, and nothing else. The watercolor
+// slot IS the beat root, so emptying a side is done by this explicit list
+// and NEVER by wiping the object — the words, the frame color, her voice
+// takes and the chunk link live at the root too and belong to BOTH sides.
+const SLOT_KEYS = ['url', 'src', 'gen', 'imageHistory', 'kind', 'poster', 'seconds', 'title', 'clipId'];
+function clearSlot(slot) { SLOT_KEYS.forEach((k) => { delete slot[k]; }); }
+// A side she DELETED the beat from (2026-08-23, Sophie: "if I delete a beat
+// in one of the styles … leave it in the other style cause that one might
+// have an image for that"). `off` is per-slot, so the beat keeps its place
+// in the order and its words on the side that still wants it, and simply is
+// not drawn on the side she removed it from. Giving that side art again
+// clears the mark — putting something back is what brings it back.
+const slotOff = (s) => Boolean(s && s.off);
 // DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
 // with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
 // exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
@@ -688,6 +707,8 @@ router.post('/image', async (req, res) => {
       if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
       slot.url = url;
       if (src) slot.src = src;
+      // Art here again un-deletes this side (see `off` above).
+      delete slot.off;
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -761,6 +782,8 @@ router.post('/clip', async (req, res) => {
         if (slot.url && !slotClip(slot)) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
         Object.assign(slot, fields);
         delete slot.gen;
+        // Art here again un-deletes this side (see `off` above).
+        delete slot.off;
       } else {
         let at = Number(req.body.at);
         if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
@@ -848,6 +871,8 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
         character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
       };
       slot.gen = { status: 'done', at: Date.now() };
+      // Art here again un-deletes this side (see `off` above).
+      delete slot.off;
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
     // hand-off surface for every image made for Sophie). Through the server's
@@ -875,28 +900,60 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
 // the pad but nothing is destroyed: its full record (art, history, takes,
 // words) moves to pad.trash, and every drawn image is already in Storage /
 // My Creations regardless.
+// DELETING IS PER STYLE (2026-08-23, Sophie: "if I delete a beat in one of
+// the styles does it delete it for the other style too? … I don't want it
+// to. Make it persist … leave it in the other style cause that one might
+// have an image for that"). So a delete asks one question first — is there
+// still art on the OTHER side?
+//   • Yes → only THIS side goes: its picture (or clip) is banked in the
+//     trash, the side is emptied and marked `off`, and the beat keeps its
+//     place, its words, its color and her voice for the side that still
+//     wants it. It simply stops being drawn on the side she deleted it from.
+//   • No  → the beat itself is gone, exactly as before (the whole record to
+//     pad.trash, a chunk left with one member un-chunked). Her own reason IS
+//     this rule: the thing worth keeping is the other side's image, and with
+//     no image over there a words-only beat she deleted is just deleted.
 router.post('/remove', async (req, res) => {
   try {
     const pid = padIdOf(req);
     const id = String(req.body.id || '');
     if (!id) return res.status(400).json({ error: 'beat id required' });
-    const beats = await db().runTransaction(async (tx) => {
+    const style = styleOf(req);
+    const out = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));
       const v = snap.exists ? snap.data() : {};
       const cur = Array.isArray(v.beats) ? v.beats : [];
       const idx = cur.findIndex((x) => x.id === id);
       if (idx < 0) throw new Error('no such beat');
+      const trash = Array.isArray(v.trash) ? v.trash : [];
+      const b = cur[idx];
+
+      if (artSlot(b, otherStyle(style)).url) {
+        // ONE SIDE ONLY. The banked record names its beat and its side, so a
+        // per-side removal is never mistaken for a whole deleted beat.
+        const mine = artSlot(b, style, true);
+        const kept = { beatId: b.id, style, text: b.text || '', removedAt: Date.now() };
+        SLOT_KEYS.forEach((k) => { if (mine[k] !== undefined) kept[k] = mine[k]; });
+        clearSlot(mine);
+        mine.off = true;
+        tx.set(padRef(pid), {
+          beats: cur, trash: trash.concat([kept]).slice(-50), updatedAt: Date.now(),
+        }, { merge: true });
+        return { beats: cur, style, whole: false };
+      }
+
       const [gone] = cur.splice(idx, 1);
       // A chunk of one is just a beat again.
       if (gone.chunk) {
-        const rest = cur.filter((b) => b.chunk === gone.chunk);
+        const rest = cur.filter((x) => x.chunk === gone.chunk);
         if (rest.length === 1) delete rest[0].chunk;
       }
-      const trash = (Array.isArray(v.trash) ? v.trash : []).concat([{ ...gone, removedAt: Date.now() }]).slice(-50);
-      tx.set(padRef(pid), { beats: cur, trash, updatedAt: Date.now() }, { merge: true });
-      return cur;
+      tx.set(padRef(pid), {
+        beats: cur, trash: trash.concat([{ ...gone, removedAt: Date.now() }]).slice(-50), updatedAt: Date.now(),
+      }, { merge: true });
+      return { beats: cur, style, whole: true };
     });
-    res.json({ ok: true, beats });
+    res.json({ ok: true, ...out });
   } catch (e) { fail(res, e); }
 });
 
@@ -929,7 +986,9 @@ router.post('/drawall', async (req, res) => {
     // beat that is a CLIP on the other side still draws on this one (a clip
     // slot itself never draws).
     const targets = pad.beats
-      .filter((b) => { const s = artSlot(b, style); return !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
+      // A beat she DELETED from this side is not missing art here — it is
+      // not on this side at all, so the wand must never draw it back.
+      .filter((b) => { const s = artSlot(b, style); return !slotOff(s) && !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
       .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
     if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
     const ids = new Set(targets.map((t) => t.id));
@@ -973,6 +1032,8 @@ router.post('/generate', async (req, res) => {
       const slot = artSlot(b, style, true);
       if (slotClip(slot)) throw new Error('nothing draws a clip');
       slot.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+      // Art here again un-deletes this side (see `off` above).
+      delete slot.off;
     });
     runArtJob(pid, id, { prompt, quality, character, style });   // fire and forget
     res.json({ ok: true, beats });

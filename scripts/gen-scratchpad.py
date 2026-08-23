@@ -544,7 +544,7 @@ body.native.pagehead header > .no{display:block;}
 
 <div id="delask" hidden>
   <div class="bulkbox">
-    <p>Delete this beat? Its pictures are already saved in your galleries.</p>
+    <p id="delline">Delete this beat? Its pictures are already saved in your galleries.</p>
     <div class="bulkrow">
       <button id="delno">Not now</button>
       <button id="delyes">Delete it</button>
@@ -600,6 +600,12 @@ function slotOf(b){
   return padStyle==='dreamy' ? ((b.alt&&b.alt.dreamy)||{}) : b;
 }
 function clipOf(b){ var s=slotOf(b); return Boolean(s&&s.kind==='clip'); }
+/* The side she DELETED this beat from (2026-08-23, Sophie: "leave it in the
+   other style cause that one might have an image for that"). The beat keeps
+   its place and its words on the side that still wants it; here it is
+   simply not drawn. */
+function beatOff(b){ var s=slotOf(b); return Boolean(s&&s.off); }
+function otherSlotOf(b){ return padStyle==='dreamy' ? b : ((b.alt&&b.alt.dreamy)||{}); }
 function slotDrawing(b){ var s=slotOf(b); return Boolean(s.gen&&s.gen.status==='drawing'); }
 function renderStyle(){
   document.getElementById('styletog').setAttribute('data-a', padStyle==='dreamy'?'2':'1');
@@ -683,12 +689,19 @@ document.getElementById('micbtn').onclick=function(ev){
 /* The pad renders UNITS: a lone beat, or a CHUNK — contiguous beats sharing
    a chunk id, drawn in one tile's width as side-by-side slices in a shared
    frame. Slots (and placement) happen between units, never inside one. */
+/* Chunks are grouped over the WHOLE list (a chunk link is shared by both
+   styles), then each unit is drawn from the members this side still has —
+   a unit whose every member was deleted here is not drawn at all. `at`
+   stays the TRUE index into `beats`, so placing a new beat next to a
+   visible one lands where she expects however many hidden ones sit
+   between. */
 function padUnits(){
   var units=[], i=0;
   while(i<beats.length){
     var b=beats[i], members=[b];
     if(b.chunk){ while(i+members.length<beats.length && beats[i+members.length].chunk===b.chunk) members.push(beats[i+members.length]); }
-    units.push({members:members, at:i});
+    var shown=members.filter(function(m){ return !beatOff(m); });
+    if(shown.length) units.push({members:shown, at:i});
     i+=members.length;
   }
   return units;
@@ -930,6 +943,7 @@ function drawables(){
   return beats.filter(function(b){
     var s=slotOf(b);
     if(s.kind==='clip')return false;   // a clip slot never draws; the OTHER side still can
+    if(s.off)return false;             // deleted from this side — never draw it back
     return !s.url && !(s.gen&&s.gen.status==='drawing') && stripSpeech(b.text);
   });
 }
@@ -1689,9 +1703,19 @@ document.getElementById('coverbtn').onclick=function(ev){
 };
 /* Delete, behind an are-you-sure. The beat leaves the pad; its pictures are
    already in Storage and My Creations, and its record moves to pad.trash. */
+/* The box says WHICH SIDE is going, because a delete here means two
+   different things (2026-08-23, Sophie): with art on the other side only
+   this side goes and the beat stays over there; with nothing anywhere else,
+   the beat itself goes. */
+var STYLE_WORD={watercolor:'Watercolor', dreamy:'Dreamy'};
 document.getElementById('delbtn').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
+  var keeps=Boolean(otherSlotOf(popBeat).url);
+  document.getElementById('delline').textContent=keeps
+    ? ('Delete this beat from '+STYLE_WORD[padStyle]+'? It stays in '
+        +STYLE_WORD[padStyle==='dreamy'?'watercolor':'dreamy']+'.')
+    : 'Delete this beat? Its pictures are already saved in your galleries.';
   document.getElementById('delask').hidden=false;
 };
 document.getElementById('delno').onclick=function(ev){ ev.stopPropagation(); document.getElementById('delask').hidden=true; };
@@ -1700,7 +1724,7 @@ document.getElementById('delyes').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b)return;
   var btn=this; btn.disabled=true;
-  api('/remove',{method:'POST',body:JSON.stringify({id:b.id})})
+  api('/remove',{method:'POST',body:JSON.stringify({id:b.id,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
       btn.disabled=false;
