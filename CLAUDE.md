@@ -2815,9 +2815,13 @@ before working on that module. Nothing was deleted — the moved text is verbati
     it likes and she pays for it at the sheet's price.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
-    hides. Tests: `node scripts/test-panels.js` (26 checks, pure — including
-    the real cut driven over real pixels with a distinctly-coloured cell per
-    panel, so a wrong crop shows up as a wrong colour).
+    hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
+    real cut driven over real pixels with a distinctly-coloured cell per panel
+    (a wrong crop shows up as a wrong colour, not as a plausible picture), plus
+    6 more that drive the REAL page in headless Chromium when a server is up
+    (`PORT=3111 node server.js`; it skips cleanly otherwise). The page half
+    never makes a model call — Generate is only tapped with empty boxes, and
+    the test asserts that produced ZERO requests.
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run

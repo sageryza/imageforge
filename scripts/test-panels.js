@@ -377,5 +377,102 @@ t('the searchable text is her words first', () => {
       + `(${plan.sheet} -> ${plan.count} x ${plan.cell})`);
   }
 
+  await drivePage();
   console.log(`\n${n} checks passed.\n`);
 })().catch((e) => { console.error('\nFAILED:', e.message, '\n'); process.exit(1); });
+
+// --------------------------------------------------------------------------
+// THE REAL PAGE, driven in headless Chromium against a LOCAL server.
+// Skips cleanly without playwright (the house rule for headless tests).
+// It NEVER makes a model call: Generate is only tapped with empty boxes, and
+// the test asserts that produced ZERO requests.
+// Needs a server on PANELS_TEST_URL (default localhost:3111); skips if none.
+// --------------------------------------------------------------------------
+async function drivePage() {
+  let chromium;
+  try { ({ chromium } = require('playwright')); }
+  catch (e) { console.log('  --  page: skipped (no playwright)'); return; }
+  const base = process.env.PANELS_TEST_URL || 'http://localhost:3111';
+  try {
+    const probe = await fetch(base + '/api/panels/config');
+    if (!probe.ok) throw new Error(String(probe.status));
+  } catch (e) {
+    console.log(`  --  page: skipped (no server at ${base} — start one with PORT=3111 node server.js)`);
+    return;
+  }
+
+  let b;
+  try { b = await chromium.launch(); }
+  catch { b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
+  try {
+    const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+    const fatal = [];
+    p.on('pageerror', (e) => fatal.push(e.message));
+    await p.goto(base + '/panels', { waitUntil: 'networkidle' });
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length > 0,
+      { timeout: 15000 });
+
+    const boxes = () => p.$$eval('#cells textarea', (t) => t.length);
+    const across = () => p.$eval('#cells',
+      (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+
+    // THE BOXES ARE THE GRID — her ask, and the reason this is its own page.
+    assert.strictEqual(await boxes(), 4, 'four boxes by default');
+    assert.strictEqual(await across(), 2, 'laid out 2 across');
+    n++; console.log('  ok  page: the boxes are the grid she picked');
+
+    // Her words survive a grid change — switching 4 -> 9 must ADD boxes, not
+    // wipe what she has already written into them.
+    await p.fill('#c0', 'a cat on a fire escape');
+    await p.click('#ctrls button[data-grid="9"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 9);
+    assert.strictEqual(await across(), 3, 'nine lays out 3 across');
+    assert.strictEqual(await p.$eval('#c0', (e) => e.value), 'a cat on a fire escape',
+      'her words survived 4 -> 9');
+    await p.click('#ctrls button[data-grid="2"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 2);
+    assert.strictEqual(await p.$eval('#c0', (e) => e.value), 'a cat on a fire escape',
+      'her words survived 9 -> 2');
+    assert.deepStrictEqual(await p.$$eval('#cells label', (l) => l.map((x) => x.textContent)),
+      ['left', 'right'], 'two is left and right, not a grid');
+    n++; console.log('  ok  page: her words survive every grid change');
+
+    // The plan line carries the SERVED numbers, and moves with the pickers.
+    const planTwo = await p.$eval('#plan', (e) => e.textContent);
+    assert.ok(/3264x2448/.test(planTwo), `the two-up sheet is named: ${planTwo}`);
+    assert.ok(/\dc\b/.test(planTwo), 'and what it costs');
+    await p.click('#ctrls button[data-grid="4"]');
+    await p.waitForFunction(() => document.querySelectorAll('#cells textarea').length === 4);
+    assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
+    n++; console.log('  ok  page: the plan line is served and moves with the pickers');
+
+    // The slider steps and WRAPS, like the Playground's.
+    const steps = [];
+    for (let i = 0; i < 4; i++) {
+      steps.push(await p.$eval('#respick', (e) => e.dataset.i));
+      await p.click('#respick');
+    }
+    assert.strictEqual(steps[0], steps[3], 'the slider wraps');
+    assert.strictEqual(new Set(steps).size, 3, 'three distinct stops');
+    n++; console.log(`  ok  page: the size slider steps and wraps (${steps.join(' → ')})`);
+
+    // AN EMPTY BOX IS REFUSED BEFORE ANY REQUEST — the model fills an unnamed
+    // cell with whatever it likes and she pays for it at the sheet's price.
+    let posts = 0;
+    p.on('request', (r) => { if (r.method() === 'POST') posts++; });
+    await p.click('#go');
+    await p.waitForTimeout(400);
+    assert.ok(/every panel needs words/.test(await p.$eval('#msg', (e) => e.textContent)),
+      'it says which');
+    assert.strictEqual(posts, 0, 'and nothing was requested — no money at risk');
+    n++; console.log('  ok  page: an empty box is refused with ZERO requests');
+
+    // The pill's corner is clear and the page threw nothing.
+    const right = await p.$eval('#ctrls', (e) => getComputedStyle(e).paddingRight);
+    assert.strictEqual(right, '64px', 'the control row reserves the pill column');
+    assert.deepStrictEqual(fatal, [], `no page errors: ${fatal.join(' | ')}`);
+    n++; console.log('  ok  page: pill corner reserved, no script errors');
+  } finally {
+    await b.close();
+  }
+}
