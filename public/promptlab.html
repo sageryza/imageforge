@@ -250,6 +250,14 @@
     color: #6f675e; font: inherit; font-size: 12.5px; padding: 6px 9px; margin: 0; cursor: pointer; }
   .canvastog button + button { border-left: 1px solid #d8d0c4; }
   .canvastog button.on { background: #2b2622; color: #faf7f2; }
+  /* The resolution tiers wear the canvas toggle's clothes — a shape and a size
+     are the same kind of decision, so they should read as the same control. */
+  .restog { display: flex; flex: none; border: 1px solid #d8d0c4; border-radius: 6px; overflow: hidden; }
+  .restog button { flex: none; white-space: nowrap; border: none; background: #fdfcf9;
+    color: #6b6259; font: 500 11px/1 -apple-system, sans-serif; letter-spacing: .08em;
+    padding: 9px 11px; cursor: pointer; }
+  .restog button + button { border-left: 1px solid #d8d0c4; }
+  .restog button.on { background: #2b2622; color: #faf7f2; }
 </style></head><body>
 <a id="backchip" href="/scratchpad">&lsaquo; Scratch Pad</a>
 <header class="app-header"><h1>Playground</h1></header>
@@ -271,6 +279,9 @@
     <button class="stylebtn notextbtn" id="notextbtn" hidden aria-pressed="false" title="Ask for no text at all in the picture">No text</button>
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
+    </div>
+    <div class="restog" id="restog" role="group" aria-label="Resolution">
+      <button id="r-1k" type="button">1K</button><button id="r-2k" type="button">2K</button><button id="r-4k" type="button">4K</button>
     </div>
     <select id="qpick" aria-label="Quality"></select>
     <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
@@ -719,7 +730,13 @@
     promptOpen = !promptOpen; paintPromptPanel();
   });
   fetch('/api/promptlab/styles').then(function (r) { return r.json(); })
-    .then(function (d) { BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || ''; paintPromptPanel(); syncControls(); })
+    .then(function (d) {
+      BAKED = d.styles || {}; PHOTO_LINE = d.photoLine || '';
+      RES = d.res || null; RES_DEFAULT = d.resDefault || '1k';
+      if (RES && !RES[canvas]) canvas = 'portrait';
+      if (RES && RES[canvas] && !RES[canvas].tiers[resTier]) resTier = RES_DEFAULT;
+      paintPromptPanel(); syncControls(); paintRes();
+    })
     .catch(function () {});
 
   // ── HER OWN PHOTO REFERENCE (Aug 2026, Sophie: "Freeform has the ability
@@ -827,9 +844,44 @@
     document.getElementById('c-portrait').title = 'Portrait 1024x1536 — low 0.5\u00A2 \u00B7 medium 4.1\u00A2 \u00B7 high 16.5\u00A2';
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
-  document.getElementById('c-portrait').addEventListener('click', function () { canvas = 'portrait'; paintCanvas(); });
-  document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); });
+  document.getElementById('c-portrait').addEventListener('click', function () { canvas = 'portrait'; paintCanvas(); paintRes(); });
+  document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); paintRes(); });
   paintCanvas();
+
+  // ── THE RESOLUTION — 1K, 2K or 4K (Aug 2026, Sophie: "adding the size as a
+  // toggle in the playground for things I want to print versus things I'm
+  // using for like videos") ────────────────────────────────────────────────
+  // 1K stays the default and every earlier run is a 1K run: the tiers are an
+  // addition, not a re-aim. Not persisted, for the same reason quality and the
+  // canvas are not — 4K at high is 47c a picture and must never be something
+  // she is spending without having just chosen it.
+  // THE PRICES ARE THE SERVER'S, never a copy kept here: PL_GPT.res carries a
+  // MEASURED `cents` per quality (OpenAI publishes only the three 1K sizes),
+  // and the page that owns its own copy of a price is the page that goes stale
+  // the day the model changes. Until /styles answers, the buttons carry the
+  // tier name and no claim about cost.
+  var resTier = '1k';
+  var RES = null, RES_DEFAULT = '1k';
+  function tierIds() { return ['1k', '2k', '4k']; }
+  function paintRes() {
+    var shape = RES && RES[canvas];
+    tierIds().forEach(function (id) {
+      var b = document.getElementById('r-' + id);
+      if (!b) return;
+      b.classList.toggle('on', resTier === id);
+      var t = shape && shape.tiers[id];
+      if (!t) { b.title = ''; return; }
+      var c = t.cents || {};
+      b.textContent = t.label;
+      b.title = t.label + ' ' + t.size + ' \u2014 low ' + c.low + '\u00A2 \u00B7 medium '
+        + c.medium + '\u00A2 \u00B7 high ' + c.high + '\u00A2';
+    });
+  }
+  tierIds().forEach(function (id) {
+    var b = document.getElementById('r-' + id);
+    if (b) b.addEventListener('click', function () { resTier = id; paintRes(); });
+  });
+  paintRes();
 
   // One control, the selected style on its face. Re-rendered rather than just
   // re-selected so a style added to STYLES needs nothing here.
@@ -858,8 +910,13 @@
     // no baked prefix to show, and its shape rides a different parameter.
     var pb = document.getElementById('promptbtn');
     var ct = document.getElementById('canvastog');
+    var rt = document.getElementById('restog');
     if (pb) { pb.hidden = !gpt; pb.classList.toggle('edited', gpt && !!overrideFor(styleKey)); }
     if (ct) ct.style.display = gpt ? 'flex' : 'none';
+    // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
+    // rides `aspect_ratio`, so the row comes off there rather than offering a
+    // choice that would change nothing.
+    if (rt) rt.style.display = gpt ? 'flex' : 'none';
     // The no-text toggle exists only for a style whose tail allows text — the
     // server says which, so a style that already bans text shows no button
     // rather than a switch that would change nothing.
@@ -957,7 +1014,7 @@
     var over = gpt ? overrideFor(styleKey) : null;
     var body = gpt
       ? { prompt: prompt, model: S.model, style: S.gptStyle, outputs: OUTPUTS, quality: qual,
-          character: charOn && !S.noCharacter, canvas: canvas,
+          character: charOn && !S.noCharacter, canvas: canvas, res: resTier,
           // Her uploaded photo reference, when there is one. Absent otherwise,
           // so an ordinary run is byte-for-byte what it always was.
           photo: photoRef ? photoRef.data : undefined,
