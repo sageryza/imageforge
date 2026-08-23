@@ -11,10 +11,13 @@
 // because "datacenter IPs are bot-blocked", and that sentence is why nobody
 // built this. Measured 2026-08-23 from a cloud container: yt-dlp pulled the
 // metadata, a 3.3MB m4a AND a 17MB 720p mp4, all clean, first try. So the claim
-// was stale for at least one cloud egress. It is NOT proof about Render — a
-// different datacenter with a different IP reputation — which is exactly the
-// population-fact trap in CLAUDE.md, so `GET /status?probe=1` runs the same
-// measurement from wherever this is actually deployed and reports what it got.
+// was stale for at least one cloud egress. That was NOT proof about Render — a
+// different datacenter with a different IP reputation, exactly the population-fact
+// trap in CLAUDE.md — so it was measured there too, the same day, once deployed:
+// the probe answered in 4.8s, a 3.4MB m4a came down in under 6s, and a 360p mp4
+// merged, postered and filed into the Dump at 9.1MB. Render is not blocked.
+// `GET /status?probe=1` re-runs that measurement whenever the answer is in
+// doubt — it can regress, because the blocking is YouTube's to change.
 // If Render is blocked, the honest answer is the block, not a hung job:
 // `blocked:true` on the doc plus the yt-dlp error, and the desktop queue is
 // still there.
