@@ -159,11 +159,15 @@ const api=(p,o={})=>{ if(tok) o.headers={...(o.headers||{}),'x-studio-token':tok
 
 // The known tracks; "other…" reveals a free-text box. Deliberately few — a
 // track is a project, not a tag cloud.
-const TRACKS=['crystals','story-art','hoonies','reference','product'];
+// The SERVER owns this list now (GET /api/drop/tracks) so the iOS share sheet
+// offers the same folders; this copy is the fallback for a failed fetch, and
+// scripts/test-dump-session-time.js pins the two equal.
+let TRACKS=['crystals','story-art','hoonies','reference','product'];
 let sessions=[], curSession='', curFolder='', onlyUnlabelled=false, bundles=[];
 
 let folders=[];
 async function load(){
+  const t=await api('/tracks'); if(t.ok&&Array.isArray(t.body.tracks)&&t.body.tracks.length)TRACKS=t.body.tracks;
   const s=await api('/sessions'); sessions=(s.ok&&s.body.sessions)||[];
   const all=await api('/bundles');
   folders=[...new Set(((all.ok&&all.body.bundles)||[]).map(b=>b.track).filter(Boolean))].sort();
@@ -193,8 +197,13 @@ function renderFilters(){
     '<span class="chip'+(onlyUnlabelled?' on':'')+'" data-un="1">Unfiled</span>'+
     folders.map(f=>'<span class="chip fold'+(curFolder===f?' on':'')+'" data-f="'+esc(f)+'">'
       +esc(f)+'</span>').join('')+
-    sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'">'
-      +esc(s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
+    // The LABEL is her wall clock, the value stays the session id. Dumps made
+    // before 2026-08-23 carry a UTC-stamped id, so an evening one reads as the
+    // next day — the label is built server-side from the files' real
+    // timestamps instead (see sessionLabel in dropbox.js).
+    sessions.map(s=>'<span class="chip'+(curSession===s.session?' on':'')+'" data-s="'+esc(s.session)+'"'
+      +' title="'+esc(s.session)+'">'
+      +esc(s.label||s.session)+(s.unlabelled?' · '+s.unlabelled:'')+'</span>').join('');
   el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
     if(c.dataset.sel){ setSelectMode(!selectMode); return; }
     if(c.dataset.f!==undefined){ curFolder=(curFolder===c.dataset.f)?'':c.dataset.f; }
@@ -235,7 +244,7 @@ function renderList(){
       '<div class="head"'+(selectMode?' data-pick="'+i+'"':' onclick="toggle('+i+')"')+'>'+
         '<img class="cover" src="'+esc(b.cover||'')+'" loading="lazy" alt="">'+
         '<div class="meta"><div class="nm">'+esc(nm)+'</div>'+
-        '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.session)+'</div></div>'+
+        '<div class="sub">'+b.files.length+' file'+(b.files.length===1?'':'s')+' · '+esc(b.label||b.session)+'</div></div>'+
         tk+'</div>'+
       '<div class="body" id="body'+i+'" hidden></div></div>';
   }).join('');
