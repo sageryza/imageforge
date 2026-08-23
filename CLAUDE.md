@@ -928,6 +928,27 @@ them off the reference sheet, not off the old filenames.
     Cancel keeps the summary and archiving mid-write loses nothing — which is
     why it is not a background job. The summary reads back in the sheet before
     she commits. ~1-2¢ a tap.
+  - **ONE SENTENCE EACH IS CUT IN CODE, AND THE LINE IS WHAT SHE ASKED FOR
+    (Aug 2026, Sophie: "I thought that each of the questions was supposed to be
+    just one sentence but the middle question is longer" → "ok hard cap it" ·
+    "4 the default line just use what you asked and then the arrow shows the
+    next two bolded fields").** Two rules from one screenshot, both about the
+    same duplication. `wrapPartOf` (chatfeed.js) cuts every answer to its FIRST
+    sentence on the way in and to 200 characters behind that, at a word
+    boundary; `onePart` (chats.html) is its twin and cuts on the way OUT, which
+    is what reaches the two the server cannot — a wrap-up written before the cap
+    existed, and the live **Update card**, whose own 300-character fields stay
+    uncut on the Update tab (that is where the two-sentence middle came from:
+    the chat had no wrap-up at all, so the summary was falling back to its
+    Update card, which never had a sentence rule). A sentence ends at `.!?` plus
+    a space plus a CAPITAL, so "e.g." and "12x18." survive. And **the one line
+    is now `asked`** — it used to be `wrapLine`, then what the chat DID, which
+    on that same chat put the identical sentence on the line and again under
+    "What I did"; her question is the one answer that can never repeat what is
+    under it. The arrow opens the other two only, and a summary that is `asked`
+    alone draws no arrow. `wrapLine` still holds the line for an older record
+    with no three answers. Tests: `node scripts/test-chats-wrapup.js` (the two
+    copies run over the same cases so they cannot drift).
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just

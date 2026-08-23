@@ -42,7 +42,7 @@ const frozenWrapUp = new Function(
   'const admin={firestore:{FieldValue:{delete:()=>' + JSON.stringify(DEL) + '}}};'
   + 'const wrapLineOf=(s)=>String(s||"").replace(/\\s+/g," ").trim().slice(0,200);'
   + 'const wrapTextOf=(s)=>String(s||"").replace(/[ \\t]+/g," ").trim().slice(0,2000);'
-  + 'const wrapPartOf=(s)=>String(s||"").replace(/\\s+/g," ").trim().slice(0,200);'
+  + 'const WRAP_PART_MAX=200;' + lift('wrapPartOf')
   + 'const wrapProse=(a,d,n)=>wrapTextOf([a,d,n].map((s)=>String(s||"").trim())'
   + '.filter(Boolean).join(" "));'
   + lift('frozenWrapUp') + ' return frozenWrapUp;')();
@@ -101,7 +101,9 @@ console.log('caps');
 {
   const w = frozenWrapUp({ updDid: 'x'.repeat(500) });
   ok('the row line is capped at 200', w.wrapLine.length === 200, String(w.wrapLine.length));
-  ok('each answer is capped too', w.wrapDid.length === 200, String(w.wrapDid.length));
+  // 200 plus the ellipsis the cut adds — the cap is on the words, not the mark.
+  ok('each answer is capped too', w.wrapDid.length === 201 && /…$/.test(w.wrapDid),
+    String(w.wrapDid.length));
 }
 
 // ── the page's row line, lifted out of chats.html and run ──────────────────
@@ -139,8 +141,11 @@ console.log('the row line');
 // wrote a wrap-up it falls back to the Update card it already posts — the same
 // three answers, which is exactly what she pointed at ("chat already answered
 // those three questions").
-const wrapParts = new Function(liftHtml('wrapParts') + ' return wrapParts;')();
+const onePart = new Function('var WRAP_PART_MAX=200;' + liftHtml('onePart')
+  + ' return onePart;')();
+const wrapParts = new Function('onePart', liftHtml('wrapParts') + ' return wrapParts;')(onePart);
 const wrapLine = new Function('wrapParts', liftHtml('wrapLineOf') + ' return wrapLineOf;')(wrapParts);
+const wrapHasMore = new Function('wrapParts', liftHtml('wrapHasMore') + ' return wrapHasMore;')(wrapParts);
 
 console.log('what the summary reads');
 {
@@ -157,11 +162,54 @@ console.log('what the summary reads');
   ok('an empty Update card is not a summary',
     wrapParts({ updAsked: '  ', updDid: '' }) === null);
 
-  ok('the line is the summary line when there is one',
-    wrapLine({ wrapLine: 'built the cutter', wrapDid: 'shipped it' }) === 'built the cutter');
-  ok('…else what it DID, so an Update card alone still shows a line',
-    wrapLine({ updAsked: 'fix the hook', updDid: 'shipped v14' }) === 'shipped v14');
+  // THE LINE IS WHAT SHE ASKED FOR (Aug 2026, Sophie: "4 the default line just
+  // use what you asked and then the arrow shows the next two bolded fields").
+  // It used to be `wrapLine`, then what the chat DID — and on a chat with no
+  // wrap-up that put the identical sentence on the line and under "What I did".
+  ok('the line is what she ASKED for',
+    wrapLine({ wrapLine: 'built the cutter', wrapAsked: 'a cutter for her tape',
+      wrapDid: 'shipped it' }) === 'a cutter for her tape');
+  ok('an Update card alone puts its ASKED on the line, not its did',
+    wrapLine({ updAsked: 'fix the hook', updDid: 'shipped v14' }) === 'fix the hook');
+  ok('no three answers → the summary line a chat wrote still holds',
+    wrapLine({ wrapLine: 'built the cutter', wrapUp: 'A prose one.' }) === 'built the cutter');
   ok('…and nothing to say draws nothing', wrapLine({}) === '');
+  // The line can never repeat what is behind the arrow.
+  ok('asked alone opens onto nothing, so no arrow is drawn',
+    wrapHasMore({ wrapAsked: 'a cutter for her tape' }) === false);
+  ok('did or next is something to open',
+    wrapHasMore({ wrapAsked: 'a', wrapDid: 'b' }) === true);
+}
+
+// ── ONE SENTENCE, CUT IN CODE (Aug 2026, Sophie: "I thought that each of the
+// questions was supposed to be just one sentence but the middle question is
+// longer" → "ok hard cap it"). WRAP_SYS has asked for one sentence since the
+// shape was hers and the model still returns two — the same lesson the short
+// summary learned. TWO copies exist by necessity (the server cuts a new
+// wrap-up on the way in, the page cuts an old one and the live Update card on
+// the way out), so they are run over the SAME cases here.
+{
+  const serverPart = new Function('const WRAP_PART_MAX=200;' + lift('wrapPartOf')
+    + ' return wrapPartOf;')();
+  const TWO = 'Drew 2336x3504 for 13c and a second 2K for 7.8c. Worked the print sizes: 2K is comfortable to 12x18.';
+  const cases = [
+    TWO,
+    'One sentence only.',
+    'Used e.g. a thing and shipped 12x18. and kept going.',
+    'No full stop at all',
+    'x'.repeat(260) + ' and more',
+    '',
+  ];
+  cases.forEach((c, i) => ok('the two copies agree on case ' + i,
+    serverPart(c) === onePart(c), JSON.stringify([serverPart(c), onePart(c)])));
+  ok('a second sentence is cut',
+    serverPart(TWO) === 'Drew 2336x3504 for 13c and a second 2K for 7.8c.', serverPart(TWO));
+  ok('an abbreviation is not a sentence end',
+    serverPart(cases[2]).indexOf('kept going') > 0);
+  ok('over the cap it still ends on a whole word',
+    /[^ ]…$/.test(serverPart(cases[4])) && serverPart(cases[4]).length <= 201);
+  ok('the page cuts the live Update card too',
+    wrapParts({ updDid: TWO }).did === 'Drew 2336x3504 for 13c and a second 2K for 7.8c.');
 }
 
 // ── THE THREE QUESTIONS, and the loose ends folded into the third ──────────
