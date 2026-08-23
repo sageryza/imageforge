@@ -428,6 +428,7 @@ final class ForgeService {
                 prompt: data["prompt"] as? String,
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
+                size: data["size"] as? String,
                 style: data["style"] as? String,
                 compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false,
                 poster: (data["poster"] as? String).flatMap(URL.init(string:))
@@ -479,6 +480,7 @@ final class ForgeService {
                 prompt: data["prompt"] as? String,
                 model: data["model"] as? String,
                 quality: data["quality"] as? String,
+                size: data["size"] as? String,
                 style: data["style"] as? String,
                 compressedAtBirth: (data["compressedAtBirth"] as? Bool) ?? false,
                 poster: (data["poster"] as? String).flatMap(URL.init(string:))
