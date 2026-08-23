@@ -349,28 +349,42 @@ var upSession = '', uploading = false;
    a running tick. ── */
 var PROXY = {};        // url → proxy url, live
 var PROXY_NEXT = {};   // ready but waiting for playback to stop
+var PROXY_AUD = {};    // the music track's audio-only copy — her real track
+var PROXY_AUD_NEXT = {};   // was a 13.9MB 480p VIDEO mp4 (measured 2026-08-23)
 var proxyT = null;
 function srcOf(c) { return (c && PROXY[c.url]) || (c && c.url) || ''; }
+function audSrc() {
+  return (A && A.audio && (PROXY_AUD[A.audio.url] || A.audio.url)) || '';
+}
 function adoptProxies() {
   if (playing) return;
   for (var u in PROXY_NEXT) PROXY[u] = PROXY_NEXT[u];
   PROXY_NEXT = {};
+  for (var a in PROXY_AUD_NEXT) PROXY_AUD[a] = PROXY_AUD_NEXT[a];
+  PROXY_AUD_NEXT = {};
 }
 function askProxies(post) {
   var urls = [];
   ((A && A.clips) || []).forEach(function (c) {
     if (c.url && urls.indexOf(c.url) === -1) urls.push(c.url);
   });
-  if (!urls.length) return;
+  var audio = (A && A.audio && A.audio.url) ? [A.audio.url] : [];
+  if (!urls.length && !audio.length) return;
   var req = post
-    ? api(B + '/proxies', { method: 'POST', body: { urls: urls } })
-    : api(B + '/proxies?urls=' + encodeURIComponent(urls.join(',')));
+    ? api(B + '/proxies', { method: 'POST', body: { urls: urls, audio: audio } })
+    : api(B + '/proxies?urls=' + encodeURIComponent(urls.join(','))
+      + '&audio=' + encodeURIComponent(audio.join(',')));
   req.then(function (r) {
     var making = false;
     var map = (r && r.proxies) || {};
     for (var u in map) {
       if (map[u].status === 'ready' && map[u].proxyUrl) PROXY_NEXT[u] = map[u].proxyUrl;
       if (map[u].status === 'making') making = true;
+    }
+    var amap = (r && r.audio) || {};   // absent on an older server — fine
+    for (var v in amap) {
+      if (amap[v].status === 'ready' && amap[v].proxyUrl) PROXY_AUD_NEXT[v] = amap[v].proxyUrl;
+      if (amap[v].status === 'making') making = true;
     }
     adoptProxies();
     clearTimeout(proxyT);
@@ -593,6 +607,8 @@ function stopPlayback() {
   $('vA').pause();   // BOTH elements — the idle one may be priming muted
   $('vB').pause();
   $('audEl').pause();
+  $('audEl').playbackRate = 1;   // never leave a pacing lean behind
+  audPacing = false;
   paintPlayBtn();
   adoptProxies();   // a proxy that finished baking mid-play takes over now
 }
@@ -647,10 +663,11 @@ function seekVideo(playIt) {
 function syncAudio(playIt) {
   var a = $('audEl');
   if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); a.removeAttribute('data-src'); return; }
-  if (a.getAttribute('data-src') !== A.audio.url) {
-    a.setAttribute('data-src', A.audio.url);
+  var wantA = audSrc();   // the audio-only baked copy when one exists
+  if (a.getAttribute('data-src') !== wantA) {
+    a.setAttribute('data-src', wantA);
     a.preload = 'auto';       // buffered before the first play, not during it
-    a.src = A.audio.url;
+    a.src = wantA;
   }
   var at = playhead - (A.audio.offset || 0);
   if (playIt && at >= 0) {
@@ -660,9 +677,10 @@ function syncAudio(playIt) {
     // batched frame counter, see the tick) — so every joint read as ">0.35s
     // of drift" and yanked the music backward: the stop-start chop at every
     // cut, same-source cuts included (her report, 2026-08-23). This path
-    // only STARTS a paused track; a genuine stall's drift is corrected in
-    // the tick, against a playhead that is now honest.
+    // only STARTS a paused track; a genuine drift is PACED away in the tick,
+    // against a playhead that is now honest.
     if (a.paused) {
+      a.playbackRate = 1; audPacing = false;
       try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
       a.play().catch(function () {});
     }
@@ -693,6 +711,15 @@ function playPause() {
 var lastTs = null;
 var lastNudge = 0;
 var frameEl = null, frameCount = -1, frameAt = 0;
+// Music pacing: drift = track ahead (+) or behind (−) the playhead. Lean the
+// rate 4% against a moderate drift instead of seeking — with hysteresis, so
+// the correction runs until the two genuinely meet (start past 0.3s, stop
+// under 0.12s) rather than flapping at one threshold. Pure, for the tests.
+var audPacing = false;
+function audioPace(drift, correcting) {
+  var on = Math.abs(drift) > (correcting ? 0.12 : 0.3);
+  return { rate: on ? (drift > 0 ? 0.96 : 1.04) : 1, correcting: on };
+}
 function tick(ts) {
   if (!playing) return;
   // dt is capped: a frame that arrives late (tab switch, slow decode) must
@@ -760,18 +787,33 @@ function tick(ts) {
     seekVideo(true);
   } else playhead = t;
   // the track starts the moment the playhead crosses its offset, and a
-  // RUNNING track is pulled back in step only when a real stall has let the
-  // two drift apart (>0.5s) — never at a joint, where the timeline is one
-  // unbroken line and a seek is the chop she hears
+  // RUNNING track is PACED back into step, never yanked. Drift is not only
+  // stalls: every source-swap joint holds the playhead a beat while the next
+  // piece paints its first frame, and the music rolls on through it — so
+  // drift ACCUMULATES joint by joint. Her 17.9s cut crossed the old 0.5s
+  // hard-reseek threshold around the 12s mark, and from there the tick
+  // repeatedly yanked the music backward: "fine for a while, then choppy at
+  // about 3/4 of the way through" (2026-08-23). A gentle 4% rate lean is
+  // inaudible on a music bed and converges without a single seek; only a
+  // drift past 2s — a genuinely broken state — is hard-resynced.
   if (A && A.audio) {
     var a = $('audEl');
     var at = playhead - (A.audio.offset || 0);
-    if (at >= 0 && a.getAttribute('data-src') === A.audio.url) {
+    if (at >= 0 && a.getAttribute('data-src') === audSrc()) {
       if (a.paused) {
+        a.playbackRate = 1; audPacing = false;
         try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
         a.play().catch(function () {});
-      } else if (Math.abs((a.currentTime || 0) - at) > 0.5) {
-        try { a.currentTime = at; } catch (e) { /* a stall pulled them apart */ }
+      } else {
+        var dr = (a.currentTime || 0) - at;
+        if (Math.abs(dr) > 2) {
+          try { a.currentTime = at; } catch (e) { /* broken state — resync */ }
+          a.playbackRate = 1; audPacing = false;
+        } else {
+          var pace = audioPace(dr, audPacing);
+          audPacing = pace.correcting;
+          if (a.playbackRate !== pace.rate) a.playbackRate = pace.rate;
+        }
       }
     }
   }

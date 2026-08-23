@@ -93,6 +93,19 @@ console.log('preview proxies:');
     && args.indexOf('+faststart') !== -1, 'the bake caps the frame and fronts the moov');
   ok(fe.proxyArgs('/in', '/o', false).join(' ').indexOf('-an') !== -1,
     'a silent source bakes a silent proxy');
+  // The music track's own proxy (2026-08-23 — her real track was a 13.9MB
+  // 480p VIDEO mp4 streamed through the <audio> element).
+  ok(fe.audioProxyId('https://x/y.mp4') === fe.proxyId('https://x/y.mp4') + '-aud',
+    'the audio proxy lives beside the video proxy, never over it');
+  ok(fe.audioProxyNeeded({ hasVideo: true, hasAudio: true }, 500000) === true,
+    'a VIDEO file used as a music track always gets an audio-only copy');
+  ok(fe.audioProxyNeeded({ hasVideo: false, hasAudio: true }, 3 * 1024 * 1024) === false,
+    'a small pure-audio file streams as itself');
+  ok(fe.audioProxyNeeded({ hasVideo: false, hasAudio: true }, 40 * 1024 * 1024) === true,
+    'a heavy audio file still gets shrunk');
+  const aargs = fe.audioProxyArgs('/in', '/out.m4a').join(' ');
+  ok(aargs.indexOf('-vn') !== -1 && aargs.indexOf('+faststart') !== -1,
+    'the audio bake drops the video stream and fronts the moov');
 }
 
 console.log('trimmedCut:');
@@ -132,8 +145,17 @@ console.log('the page contracts (static):');
     'a late frame nudges the playhead, never flings it');
   ok(!/var cur = segAt\(playhead\)/.test(html),
     'the strip finds the current piece in its OWN array (the invisible playhead)');
-  ok(/at >= 0 && a\.getAttribute\('data-src'\) === A\.audio\.url/.test(html),
+  ok(/at >= 0 && a\.getAttribute\('data-src'\) === audSrc\(\)/.test(html),
     'the audio track starts when the playhead crosses its offset mid-play');
+  // Her "fine for a while, then choppy at 3/4" (2026-08-23): joint holds
+  // accumulate as music drift, and the old hard >0.5s reseek yanked the
+  // track backward once the film had enough joints behind it. Paced now.
+  ok(/function audioPace/.test(html) && /playbackRate/.test(html),
+    'moderate music drift is PACED with a 4% rate lean, never seeked');
+  ok(/Math\.abs\(dr\) > 2/.test(html),
+    'only a drift past 2s — a broken state — is hard-resynced');
+  ok(/function audSrc/.test(html) && /PROXY_AUD/.test(html),
+    'the music track plays its audio-only baked copy when one exists');
   // The lag-and-leap playhead + the music chop, 2026-08-23: iOS batches the
   // quality counters, so the frame truth is rVFC where it exists, the
   // counter hold is capped, and a joint never seeks a running music track.

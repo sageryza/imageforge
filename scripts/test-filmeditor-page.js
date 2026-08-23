@@ -79,7 +79,8 @@ function ok(cond, name) {
     audio: null, renders: [], job: null,
   };
 
-  let PROX = {};   // what /proxies answers — flipped per scenario
+  let PROX = {};      // what /proxies answers — flipped per scenario
+  let AUDPROX = {};   // the audio-proxy half of the same answer
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
   // TRIMMED pieces on purpose (out < the file's end): the joint then fires
   // mid-file, while a lagging playhead is still behind real time — the exact
@@ -121,9 +122,10 @@ function ok(cond, name) {
     if (u.includes('/fx/a.webm')) return serveMedia(route, 'video/webm', vidA);
     if (u.includes('/fx/b.webm')) return serveMedia(route, 'video/webm', vidB);
     if (u.includes('/api/filmeditor/proxies')) {
-      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX }) });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX, audio: AUDPROX }) });
     }
     if (u.includes('/fx/t.ogg')) return serveMedia(route, 'audio/ogg', audT);
+    if (u.includes('/fx/t2.ogg')) return serveMedia(route, 'audio/ogg', audT);
     if (u.includes('/api/filmeditor/t3/pieces')) {
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
     }
@@ -327,6 +329,43 @@ function ok(cond, name) {
     return act.getAttribute('data-src') === 'http://forge.test/fx/b.webm';
   }), 'playback runs on the baked preview copy, not the heavy original');
   await page.click('#play');
+
+  console.log('music drift is PACED, never yanked:');
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await page.waitForTimeout(300);
+  await page.click('#play');
+  await page.waitForTimeout(400);
+  await page.evaluate(() => {
+    window.__aSeeks = 0;
+    document.getElementById('audEl').addEventListener('seeking', () => { window.__aSeeks++; });
+    document.getElementById('audEl').currentTime += 0.6;   // moderate drift — 1 seek, ours
+  });
+  await page.waitForTimeout(400);
+  ok(await page.$eval('audio', (a) => Math.abs(a.playbackRate - 0.96) < 0.001),
+    'a moderate drift leans the rate 4% down');
+  ok((await page.evaluate(() => window.__aSeeks)) === 1,
+    'and the page adds NO seek of its own');
+  await page.evaluate(() => { document.getElementById('audEl').currentTime += 2.5; });   // now >2s out
+  await page.waitForTimeout(400);
+  ok((await page.evaluate(() => window.__aSeeks)) === 3,
+    'a drift past 2s is hard-resynced — one seek, once');
+  ok(await page.$eval('audio', (a) => a.playbackRate === 1),
+    'and the rate comes back to 1 with it');
+  await page.click('#play');
+  await page.waitForTimeout(200);
+
+  console.log('the music plays its audio-only baked copy:');
+  AUDPROX = { 'http://forge.test/fx/t.ogg': { status: 'ready', proxyUrl: 'http://forge.test/fx/t2.ogg' } };
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await page.waitForTimeout(600);   // the proxies answer lands and is adopted
+  await page.click('#play');
+  await page.waitForTimeout(400);
+  ok(await page.$eval('audio', (a) => a.getAttribute('data-src') === 'http://forge.test/fx/t2.ogg' && !a.paused),
+    'the track streams the baked audio copy, not the heavy original');
+  await page.click('#play');
+  AUDPROX = {};
 
   // ── the iPHONE SHAPE: a frozen getVideoPlaybackQuality counter (iOS WebKit
   // batches or flatlines totalVideoFrames). The old tick trusted that counter
