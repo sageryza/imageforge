@@ -136,14 +136,53 @@ ok('clean drops the h1 — the Review Queue opens straight onto the cards', () =
 });
 
 // ── grouping ────────────────────────────────────────────────────────────────
-ok('caption parses MODEL · QUALITY and nothing else', () => {
+ok('caption parses MODEL · QUALITY · SIZE, and the older two-slot shape too', () => {
+  // The size became a required third slot in Aug 2026. BOTH shapes must parse:
+  // thousands of two-slot captions are already on file, and a caption that
+  // stops parsing does not fail loudly — it falls through to the picture's
+  // long description, which is the "the caption says everything" Sophie
+  // reported on the auto-compare sheets.
+  assert.deepStrictEqual(parseCaption('gpt-image-2 · medium · 2K'),
+    { model: 'gpt-image-2', quality: 'medium', size: '2K' });
   assert.deepStrictEqual(parseCaption('gpt-image-2 · medium'),
-    { model: 'gpt-image-2', quality: 'medium' });
+    { model: 'gpt-image-2', quality: 'medium', size: '' });
   assert.strictEqual(parseCaption('from some-chat'), null);
   assert.strictEqual(parseCaption(''), null);
 });
 
 const CONTENT = 'a woman in a yellow raincoat feeding crows on a park bench at dusk';
+
+ok('a row says only what CHANGED — the diff and nothing else', () => {
+  // Sophie, Aug 2026: "the auto compare sheets shud say the diff (e.g. the
+  // resolution) and nothing else, in their pre-lightbox caption".
+  const at = (u, cap, d) => ({ url: u, prompt: cap, promptContent: CONTENT,
+    promptStyle: 'wtr watercolor', description: d, ms: 1 });
+  // only the SIZE differs → the row IS the size, never the shared quality
+  let g = groupAssetVariants([
+    at('a', 'gpt-image-2 · medium · 1K', 'Crows — the small one'),
+    at('b', 'gpt-image-2 · medium · 2K', 'Crows — the big one'),
+    at('c', 'gpt-image-2 · medium · 4K', 'Crows — the biggest one'),
+  ]);
+  assert.deepStrictEqual(g.ladders[0].items.map((i) => i.label), ['1K', '2K', '4K']);
+  // SIZE ALONE IS A VARIANT — without it the group collapses to one tile and
+  // the comparison never appears at all
+  assert.strictEqual(g.ladders[0].items.length, 3);
+  // two fields vary → both, in the caption's own order
+  g = groupAssetVariants([
+    at('a', 'gpt-image-2 · low · 1K', 'x'),
+    at('b', 'gpt-image-2 · high · 4K', 'y'),
+  ]);
+  assert.deepStrictEqual(g.ladders[0].items.map((i) => i.label), ['low · 1K', 'high · 4K']);
+  // nothing in the caption varies → the style diff still wins the row
+  g = groupAssetVariants([
+    { url: 'a', prompt: 'gpt-image-2 · medium · 2K', promptContent: CONTENT,
+      promptStyle: 'wtr watercolor\nloose wet-on-wet wash', description: 'x', ms: 1 },
+    { url: 'b', prompt: 'gpt-image-2 · medium · 2K', promptContent: CONTENT,
+      promptStyle: 'wtr watercolor\ntight ink line', description: 'y', ms: 1 },
+  ]);
+  assert.deepStrictEqual(g.ladders[0].items.map((i) => i.label),
+    ['loose wet-on-wet wash', 'tight ink line']);
+});
 ok('same prompt + differing quality auto-groups into a ladder, low→high', () => {
   const { ladders } = groupAssetVariants([
     { url: 'u-high', prompt: 'gpt-image-2 · high', promptContent: CONTENT },
