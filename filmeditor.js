@@ -48,6 +48,7 @@
 
 const express = require('express');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const os = require('os');
@@ -60,7 +61,9 @@ const assembly = require('./assembly');       // targetFrom + segmentFilters —
 const { storageRef } = require('./asset-hash');
 
 const COL = process.env.FILMEDITOR_COLLECTION || 'forge-film-edits';
+const PROXY_COL = 'forge-film-proxies';
 const STORAGE_FOLDER = 'filmeditor';
+const PROXY_EDGE = 720;        // preview copies cap both edges here
 const MAX_PIECES = 80;         // splits multiply — roomier than assembly's 60
 const MAX_RENDERS = 12;        // the house cap; older cuts kept
 const MIN_PIECE = 0.1;         // a piece shorter than this is a mis-tap, refused
@@ -151,6 +154,92 @@ function splitPiece(piece, offset, newKey) {
     { ...piece, out: Math.round(cut * 1000) / 1000 },
     { ...piece, key: newKey, in: Math.round(cut * 1000) / 1000 },
   ];
+}
+
+// ── Preview proxies ────────────────────────────────────────────────────────
+// Her sources stall in the player because they are HEAVY, not because the
+// web can't play video (measured 2026-08-22: a 784x1168 Midjourney export at
+// 19 Mbps — 12.3MB for five seconds). The editor therefore PREVIEWS a baked
+// lightweight copy per source (the proxy-editing pattern every real editor
+// uses) while the RENDER always cuts the original — the house display-copy
+// rule, applied to video. Measured on her real clip: 12.3MB → 278KB.
+const proxyId = (url) => crypto.createHash('sha1').update(String(url)).digest('hex');
+
+// Pure: a source that is already small and light streams fine as itself.
+function proxyNeeded(probe, bytes) {
+  const secs = probe && probe.seconds;
+  const kbps = secs ? (bytes * 8) / secs / 1000 : null;
+  const edge = Math.max((probe && probe.width) || 0, (probe && probe.height) || 0);
+  return !(kbps != null && kbps < 3000 && edge <= PROXY_EDGE);
+}
+// Pure: the exact bake. CRF with a maxrate ceiling, both edges capped, moov
+// up front so it streams from the first byte.
+function proxyArgs(src, out, hasAudio) {
+  return ['-y', '-i', src,
+    '-vf', `scale=${PROXY_EDGE}:${PROXY_EDGE}:force_original_aspect_ratio=decrease:force_divisible_by=2`,
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25',
+    '-maxrate', '3M', '-bufsize', '6M', '-pix_fmt', 'yuv420p',
+    ...(hasAudio ? ['-c:a', 'aac', '-b:a', '96k'] : ['-an']),
+    '-movflags', '+faststart', out];
+}
+
+// One bake at a time — the 512MB box (the Playground's serialize lesson).
+let proxyChain = Promise.resolve();
+function enqueueProxy(url) {
+  proxyChain = proxyChain.then(() => bakeProxy(url)).catch(() => {});
+}
+async function bakeProxy(url) {
+  const d = db();
+  if (!d || !FFMPEG || !FFPROBE) return;
+  const ref = d.collection(PROXY_COL).doc(proxyId(url));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'feproxy-'));
+  try {
+    const src = path.join(dir, 'src');
+    await downloadSource(url, src);
+    const bytes = fs.statSync(src).size;
+    const probe = await probeFile(src);
+    if (!probe.hasVideo) throw new Error('no video stream');
+    if (!proxyNeeded(probe, bytes)) {
+      await ref.set({ url, status: 'skip', proxyUrl: null, at: Date.now() }, { merge: true });
+      return;
+    }
+    const out = path.join(dir, 'proxy.mp4');
+    await run(FFMPEG, proxyArgs(src, out, probe.hasAudio), 900000);
+    const proxyUrl = await editor.uploadPublic(out,
+      `${STORAGE_FOLDER}/proxy/${proxyId(url)}.mp4`, 'video/mp4');
+    await ref.set({
+      url, status: 'ready', proxyUrl,
+      bytes: fs.statSync(out).size, srcBytes: bytes, at: Date.now(),
+    }, { merge: true });
+  } catch (err) {
+    console.warn('filmeditor: proxy failed —', err.message);
+    await ref.set({ url, status: 'error', proxyUrl: null, error: String(err.message).slice(0, 300), at: Date.now() }, { merge: true }).catch(() => {});
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+// The shared read+enqueue: answer what exists, start what doesn't. A wedged
+// 'making' older than 20 min and an 'error' older than 10 get another go.
+async function proxyStates(urls, mayEnqueue) {
+  const d = db();
+  const map = {};
+  for (const url of urls) {
+    const snap = await d.collection(PROXY_COL).doc(proxyId(url)).get();
+    const v = snap.exists ? snap.data() : null;
+    const age = v ? Date.now() - (v.at || 0) : 0;
+    const retry = v && ((v.status === 'making' && age > 20 * 60 * 1000)
+      || (v.status === 'error' && age > 10 * 60 * 1000));
+    if (mayEnqueue && (!v || retry)) {
+      await d.collection(PROXY_COL).doc(proxyId(url)).set(
+        { url, status: 'making', proxyUrl: null, at: Date.now() }, { merge: true });
+      enqueueProxy(url);
+      map[url] = { status: 'making', proxyUrl: null };
+    } else {
+      map[url] = v ? { status: v.status, proxyUrl: v.proxyUrl || null }
+        : { status: 'none', proxyUrl: null };
+    }
+  }
+  return map;
 }
 
 // The mix graph for the audio track: delay it to its offset, mix it under the
@@ -410,6 +499,28 @@ router.post('/', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
+// Preview proxies — MUST stay registered above GET /:id or Express reads
+// "proxies" as a cut id (the /api/promptlab/styles lesson).
+// POST { urls:[…] } ensures a bake exists or starts one; GET ?urls=a,b only
+// reads. The page polls GET while any answer says 'making'.
+router.post('/proxies', async (req, res) => {
+  try {
+    const urls = [...new Set((Array.isArray(req.body.urls) ? req.body.urls : [])
+      .map((u) => String(u || '').slice(0, 500))
+      .filter((u) => /^https:\/\//.test(u)))].slice(0, 40);
+    if (!urls.length) return res.status(400).json({ error: 'urls[] required' });
+    res.json({ proxies: await proxyStates(urls, true) });
+  } catch (err) { fail(res, err); }
+});
+router.get('/proxies', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const urls = [...new Set(String(req.query.urls || '').split(',')
+      .map((u) => u.trim()).filter((u) => /^https:\/\//.test(u)))].slice(0, 40);
+    res.json({ proxies: urls.length ? await proxyStates(urls, false) : {} });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
@@ -471,8 +582,9 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = {
-  router, COL,
+  router, COL, PROXY_COL,
   // pure pieces, for the tests and the page's mirror
   cleanPieces, cleanAudio, pieceSeconds, totalSeconds, splitPiece, mixGraph,
-  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE,
+  proxyId, proxyNeeded, proxyArgs,
+  trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE,
 };

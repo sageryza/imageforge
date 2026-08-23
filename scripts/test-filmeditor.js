@@ -77,6 +77,24 @@ console.log('mixGraph:');
   ok(fe.mixGraph(0).indexOf('adelay=0|0') !== -1, 'offset 0 still builds a valid graph');
 }
 
+console.log('preview proxies:');
+{
+  ok(/^[0-9a-f]{40}$/.test(fe.proxyId('https://x/y.mp4')), 'the proxy id is a sha1 of the url');
+  ok(fe.proxyId('https://x/a.mp4') !== fe.proxyId('https://x/b.mp4'), 'different urls, different ids');
+  // her real case, measured 2026-08-22: 784x1168 at 19 Mbps stalls the player
+  ok(fe.proxyNeeded({ seconds: 5.2, width: 784, height: 1168 }, 12336709) === true,
+    'a 19 Mbps Midjourney export gets a proxy');
+  ok(fe.proxyNeeded({ seconds: 5.2, width: 484, height: 720 }, 277669) === false,
+    'a small light file streams as itself — no proxy');
+  ok(fe.proxyNeeded({ seconds: 5.2, width: 3840, height: 2160 }, 1000000) === true,
+    'a big frame needs shrinking even at a low bitrate');
+  const args = fe.proxyArgs('/in', '/out.mp4', true).join(' ');
+  ok(args.indexOf('force_original_aspect_ratio=decrease') !== -1
+    && args.indexOf('+faststart') !== -1, 'the bake caps the frame and fronts the moov');
+  ok(fe.proxyArgs('/in', '/o', false).join(' ').indexOf('-an') !== -1,
+    'a silent source bakes a silent proxy');
+}
+
 console.log('trimmedCut:');
 {
   const t = fe.trimmedCut({
@@ -116,6 +134,14 @@ console.log('the page contracts (static):');
     'the strip finds the current piece in its OWN array (the invisible playhead)');
   ok(/a\.paused && a\.getAttribute\('data-src'\)/.test(html),
     'the audio track starts when the playhead crosses its offset mid-play');
+  ok(/getVideoPlaybackQuality/.test(html),
+    'the playhead holds when no new frame has been decoded (the waffle guard)');
+  ok(/addEventListener\('canplay', reveal/.test(html),
+    'the old frame stays up until the new source can paint (no black gap)');
+  ok(/function srcOf/.test(html) && /askProxies/.test(html),
+    'the player prefers the baked preview copy; the render keeps the original');
+  ok(html.indexOf('id="msg"') > html.indexOf('</div>', html.indexOf('id="tools"')),
+    'the progress line lives OUTSIDE the editor panel, visible on first upload');
 }
 
 console.log('');
