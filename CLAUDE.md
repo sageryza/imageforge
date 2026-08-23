@@ -2687,6 +2687,65 @@ before working on that module. Nothing was deleted — the moved text is verbati
   canvas is the dear one, not the cheap one), deliberately not
   persisted. Cancel is Replicate-only on purpose. The feed pages backwards through
   time and has LIST and TILES views. **Full details: `docs/modules/pictures.md`.**
+- **Panels** (`panels.js` + `sheet-grid.js`, `/api/panels`, page at `/panels`,
+  iOS tile under the PICTURES filter) — the Playground's recipe with the run
+  turned inside out: **N prompts drawn TOGETHER on one sheet and cut apart
+  locally**. Sophie's ask, 2026-08-23: "i think we copy the playground code for
+  it's own module. this has four text boxes, one for each panel — or an option
+  for other grid sizes like 9 or 2 (landscape, side by side)".
+  **THE BOXES ARE THE GRID** — the grid picker reshapes the box layout, so four
+  boxes are a 2x2 and two sit side by side; she writes into the layout she gets
+  back rather than into a numbered list she has to map onto one. That is the
+  whole reason it is a page and not a flag on the Playground.
+  - **IT IS CHEAPER TWICE OVER, measured** (`docs/modules/pictures.md`): output
+    tokens scale sub-linearly with pixels, AND a sheet is ONE call, so it pays
+    the style reference once instead of once per picture. At 4K medium: four
+    separate 1K draws are 4.1c each, one quartered 4K sheet is **2.94c each and
+    1.30x the pixels**. Nine ninths of the same sheet are 1.28c each.
+    **2K is cheaper still but its cuts come out SMALLER than a plain 1K
+    picture** — the thing that is easy to get backwards.
+  - **THE CANVAS IS DERIVED, NEVER A LOOKUP TABLE** (`sheet-grid.js`, the same
+    rule `size-tier.js` follows). Every canvas satisfies all of gpt-image-2's
+    constraints plus the one this tool adds — the sheet must divide into
+    WHOLE-pixel cells, so a cut is a lossless crop of the model's own pixels
+    rather than a resample. The derivation reproduces the Playground's own
+    portrait ladder (1024x1536 · 1568x2352 · 2336x3504) from the constraints
+    alone, which is the strongest check that it is right.
+    **The tier is a TARGET, not a ceiling** (below the hard 8,294,400 cap): the
+    closest canvas wins, which is what makes 2K come out at 1568x2352 — 1,536
+    pixels OVER nominal — exactly as the Playground draws it.
+  - **A CUT PANEL'S CAPTION IS `1/4 (4K)`**, the fraction and the SHEET's tier,
+    via `sizeTier.cutSize`. Its own 1168x1752 lands on the **1K** rung and would
+    read as an ordinary small picture. `fileCreationDoc` takes a `sizeSlot`
+    override for exactly this — a cut panel's slot cannot be derived from its
+    own pixels.
+  - **THE STYLE'S OWN TAIL FIGHTS THIS, and the fix is a REMOVAL not an
+    argument.** `PL_GPT_STYLES.dreamy` ends "Render as ONE single illustration
+    — NOT a grid, NOT split panels", which is load-bearing for ordinary runs
+    (that reference IS a multi-panel comic page). `sheetSuffix()` strips that
+    CLAUSE and keeps the rest of the tail verbatim — the border, the no-text
+    rule, the reference rule all survive. Two sentences arguing produce one
+    panel with ghosts of the others.
+  - **THE GRID SENTENCE STATES THE CUT AND NOTHING ELSE** — no gutters, no page
+    margin, each illustration fills its own part edge to edge, because the page
+    is going to be cut along those lines. It deliberately says nothing about
+    borders or caption boxes: those are the STYLE's business, and Dreamy asks
+    for a hand-drawn frame per panel.
+  - **THE COST ESTIMATE IS FITTED TO THE MEASURED TABLE, and it is not a price
+    per megapixel** — that was the first cut and it was ~2x wrong at 4K.
+    `cents = fixed + rate * MP` reproduces `PL_GPT.res` to within 0.2% at
+    medium and high; there are two anchors because **cost tracks the aspect
+    ratio, not the area**, and a ratio outside the measured 1:1–2:3 range is
+    **CLAMPED, never extrapolated** (a 2:1 page is quoted at the 2:3 price,
+    which errs high). Every estimate carries `approx:true`; the run stores the
+    real `usage` the API returns, which is what a later comparison should read.
+  - **An EMPTY box is refused** — the model fills an unnamed cell with whatever
+    it likes and she pays for it at the sheet's price.
+  - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
+    holds no copy of either, and a test pins that. Nothing is deleted — a run
+    hides. Tests: `node scripts/test-panels.js` (26 checks, pure — including
+    the real cut driven over real pixels with a distinctly-coloured cell per
+    panel, so a wrong crop shows up as a wrong colour).
 - **Freeform** (`freeform.js`, `/api/freeform`, `/freeform`) — the one image
   surface with **no opinion**: the prompt goes to gpt-image-2 verbatim, no prefix,
   no suffix, not even a trailing-period trim. `promptSent` is stored on every run
