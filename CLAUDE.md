@@ -1083,6 +1083,36 @@ them off the reference sheet, not off the old filenames.
     scripts/test-chats-archive-summary.js` (the button) and `node
     scripts/test-chats-archive-tags.js` (the tags, the vocabulary and the
     filter row) — the last two headless against the real page.
+- **A BOOKMARK CARRIES A NOTE AND A TAG SET — on a MESSAGE AND ON AN
+  ARTIFACT, identically (Aug 2026, Sophie: "when i bookmark a message it offers
+  a textbox to say whi i'm saving it. shud be same for artifact" · "also, both
+  shud now have a set of tag buttons: to read, and 'important' level (1-3) -
+  icons, and review finished feature, review bug fix or information/question
+  answered").** Keeping either one opens the same box straight away and focuses
+  it — the reason is in her head at that moment and nowhere else — and it stays
+  under the thing for as long as it is kept.
+  - **ONE RENDERER, THREE SURFACES.** `mkBmkEdit` (the note + the tags in ONE
+    node) is drawn under a message in a thread, under an artifact's row in the
+    Compare tab, and — the tags alone — on a row in the keep-pile, where
+    triaging a backlog actually happens. One node so un-keeping takes the whole
+    editor with it and a row can never keep half of it; one renderer so a
+    message and an artifact can never end up with two different sets of
+    controls.
+  - **THE WORDS ARE A FIXED VOCABULARY** — `BMK_TAGS` in `chatfeed.js` and in
+    `chats.html`, pinned equal by `node scripts/test-chats-bookmark-tags.js`,
+    the same contract `TAGS`/`TAG_LIST` have kept since the archive sheet:
+    `to-read` · `feature` (finished feature) · `bugfix` · `answered`
+    (information / question answered). An unknown word is DROPPED server-side
+    rather than refused, so an older cached page can never fail a save.
+  - **THE IMPORTANCE IS A DIAL, NOT A FIFTH TAG** — `bmkLevel` 1-3 on its own
+    field, in one segmented box: a thing has one level where it can carry
+    several words. Each button is a meter of three bars with the ones above the
+    level left faint, so the picture says "2 of 3" with no number to read;
+    tapping the lit one clears it. Icons, never words — her ask.
+  - **A PATCH TOUCHES ONLY WHAT IT NAMES.** Both routes (`POST /bookmark`,
+    `POST /page/:id/bookmark`) take `note`, `tags` and `level` and carry no
+    keep-flag unless one is sent — so tagging can never un-keep a thing, and
+    naming one can never drop its tags.
 - **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
   "I'm constantly referring to a link to a page… I just wanna make that
   pattern more clear that chats have that option and make it the expected and
@@ -3461,9 +3491,25 @@ before working on that module. Nothing was deleted — the moved text is verbati
     CHROME and not list: `paintNewsDoors` fills that row, `paintHomeChrome`
     empties it on every other view, and only the review CARDS behind the ⌄
     still live in the grid. Measured on a 390pt phone: 26px instead of 92, and
-    the first card moved up 66px. Review keeps the rose (it is the one door
-    that says something is owed) and its ⌄; Update is never owed, so it
-    doesn't.
+    the first card moved up 66px. Review keeps its ⌄; Update is never owed, so
+    it doesn't.
+  - **NONE OF THE THREE IS RED (Aug 2026 v4, Sophie: "make the review button on
+    updates tab not red").** Review was the one door painted in the accent, on
+    the reasoning recorded here that it is "the door that says something is
+    owed" — she looked at it and said no, so that reasoning is history rather
+    than a rule. Every door now wears the quiet `var(--line)` box every other
+    chip on the page wears, and the COUNT beside the word is what says how much
+    is waiting. Don't paint one back.
+  - **AND A THIRD DOOR — TO READ (Aug 2026 v4, Sophie: "add a to read button
+    next to it").** The one bookmark tag with a door of its own: things she
+    kept meaning to read back are the pile that goes stale when it can only be
+    reached by remembering it is there. It is on EVERY paint (like Update) and
+    carries a count (unlike Update, because unlike Update it can be empty), and
+    it opens the KEEP-PILE with the To read filter lit — never a fourth pile of
+    its own, because there is one place kept things live. The count is its own
+    tiny route (`GET /api/chatfeed/to-read`, two array-contains queries), asked
+    once per load and repainted when it lands: this tab paints on every poll
+    and `GET /bookmarks` returns up to a thousand documents.
   - **IT OPENS ON THE LAST LIST SHE SAW, AND THE READ IS A TAP (Aug 2026 v2,
     Sophie: "rather than immediately doing another API read, I'd like to be
     able to go back and forth, so the update should be behind one more tap …
