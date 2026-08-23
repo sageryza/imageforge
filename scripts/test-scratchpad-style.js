@@ -26,7 +26,13 @@
 //   5. the add sheet's upload button feeds the system picker into the Dump's
 //      upload-file route, files the result with POST /upload, and a movie
 //      tiles at the top of the grid with the film mark and places as a CLIP
-//      beat via POST /clip.
+//      beat via POST /clip — on the side she is showing, and only there,
+//   6. DELETING IS PER SIDE (2026-08-23, Sophie: "if I delete a beat in one
+//      of the styles … leave it in the other style cause that one might have
+//      an image for that"): with art still on the other side the beat keeps
+//      its place and its words there and only this side goes — and the box
+//      says so before she taps; with nothing left anywhere the whole beat
+//      goes, exactly as it always did.
 //
 //   node scripts/test-scratchpad-style.js
 //
@@ -111,6 +117,22 @@ const server = http.createServer((req, res) => {
         const t = beats.find((x) => x.id === b.id);
         const slot = b.style === 'dreamy' ? ((t.alt = t.alt || {}), (t.alt.dreamy = t.alt.dreamy || {})) : t;
         slot.gen = { status: 'drawing', at: Date.now() };
+      }
+      if (url.pathname === '/api/scratchpad/remove') {
+        // Mirrors the real route: art still on the OTHER side → only this
+        // side goes (emptied + off); nothing anywhere else → the whole beat.
+        const i = beats.findIndex((x) => x.id === b.id);
+        const t = beats[i];
+        const other = b.style === 'dreamy' ? t : ((t.alt && t.alt.dreamy) || {});
+        if (other.url) {
+          const mine = b.style === 'dreamy' ? ((t.alt = t.alt || {}), (t.alt.dreamy = t.alt.dreamy || {})) : t;
+          ['url', 'src', 'gen', 'imageHistory', 'kind', 'poster', 'seconds', 'title', 'clipId']
+            .forEach((k) => { delete mine[k]; });
+          mine.off = true;
+          return json({ ok: true, beats, whole: false });
+        }
+        beats.splice(i, 1);
+        return json({ ok: true, beats, whole: true });
       }
       if (url.pathname === '/api/scratchpad/upload') {
         uploads = [b.item].concat(uploads.filter((x) => x.url !== b.item.url));
@@ -246,7 +268,7 @@ const server = http.createServer((req, res) => {
   // placing it: tap → the lines → a slot → POST /clip, carrying the style
   await page.click('#inboxgrid button');
   await page.waitForSelector('#pad .slot');
-  await page.click('#pad .slot');
+  await page.click('#pad .slot >> nth=-1');   // the last line — the movie goes at the end
   await page.waitForFunction(() => document.querySelectorAll('#pad .slot').length === 0);
   const placed = posted.find(([p]) => p === '/api/scratchpad/clip');
   ok(Boolean(placed) && placed[1].clip.url.includes('up1.mp4'),
@@ -266,6 +288,47 @@ const server = http.createServer((req, res) => {
      (await page.$$eval('#pad .beat img', (els) => els.map((e) => e.src)))
        .every((s) => !s.includes('po1')),
     'but the movie itself is not on the watercolor side — no poster, no film mark');
+
+  // 7 — DELETING IS PER SIDE (2026-08-23, Sophie: "if I delete a beat in one
+  // of the styles … leave it in the other style cause that one might have an
+  // image for that"). b2 has art on BOTH sides: delete it from watercolor and
+  // the beat has to survive, whole, on dreamy.
+  const beatCount = () => page.$$eval('#pad .beat, #pad .chunk', (els) => els.length);
+  const before = await beatCount();
+  ok(before === 3, 'watercolor is showing all three beats to start');
+  await page.click('#pad .beatwrap:nth-child(2) .beat');   // b2 — art on both sides
+  await page.waitForSelector('#beatpop:not([hidden])');
+  await page.click('#delbtn');
+  await page.waitForSelector('#delask:not([hidden])');
+  const line = await page.$eval('#delline', (el) => el.textContent);
+  ok(/from Watercolor/.test(line) && /stays in Dreamy/.test(line),
+    'the box says which side is going, and which one keeps it');
+  await page.click('#delyes');
+  await page.waitForFunction((n) => document.querySelectorAll('#pad .beat, #pad .chunk').length === n - 1, before);
+  const rm = posted.find(([p]) => p === '/api/scratchpad/remove');
+  ok(Boolean(rm) && rm[1].style === 'watercolor', 'delete carries the side she is on');
+  ok(beats.some((b) => b.id === 'b2'), 'the beat itself is NOT thrown away');
+  ok((beats.find((b) => b.id === 'b2').text || '') === 'the drive home',
+    'its words survive — they belong to both sides');
+
+  await page.click('#swdreamy');
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-a') === '2');
+  const dreamySrcs = await page.$$eval('#pad .beat img', (els) => els.map((e) => e.src));
+  ok(dreamySrcs.some((s) => s.includes('d2')),
+    'on the other side it is still there, with its own picture');
+
+  // and with nothing left on the other side, a delete is a real delete —
+  // the movie beat (b3) is dreamy-only, so deleting it here ends the beat.
+  const gone = await beatCount();
+  await page.click('#pad .beatwrap:nth-child(3) .beat');
+  await page.waitForSelector('#beatpop:not([hidden])');
+  await page.click('#delbtn');
+  await page.waitForSelector('#delask:not([hidden])');
+  ok(!/stays in/.test(await page.$eval('#delline', (el) => el.textContent)),
+    'a beat with nothing on the other side promises no survivor');
+  await page.click('#delyes');
+  await page.waitForFunction((n) => document.querySelectorAll('#pad .beat, #pad .chunk').length === n - 1, gone);
+  ok(!beats.some((b) => b.id === 'b3'), 'that one leaves the pad entirely, as it always did');
 
   await browser.close();
   server.close();

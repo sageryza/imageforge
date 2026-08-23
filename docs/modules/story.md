@@ -172,6 +172,30 @@ All 12 NDE-category stories were linked to their montage episodes on
     `pad.style` and stamps `style` on the render, which is how the page
     knows a watercolor cut is not the dreamy film (the toggle never bumps
     updatedAt, so this is the freshness signal across a flip).
+  - **DELETING IS PER SIDE TOO (2026-08-23, Sophie: "if I delete a beat in
+    one of the styles does it delete it for the other style too? … I don't
+    want it to … leave it in the other style cause that one might have an
+    image for that").** `POST /remove {id, style}` asks one question first —
+    is there still art on the OTHER side? **Yes** → only this side goes: its
+    picture (or clip) is banked in `pad.trash` (as `{beatId, style, …}`, so a
+    per-side removal is never mistaken for a deleted beat), the side is
+    emptied and marked `off`, and the beat keeps its place, its words, its
+    frame color and her voice takes for the side that still wants it — it is
+    simply not drawn where she deleted it. **No** → the whole beat goes,
+    exactly as before. Her own reason IS the rule: the thing worth keeping is
+    the other side's image, so a words-only beat she deleted is just deleted.
+    - **`off` is per SLOT**, `slotOff` server-side / `beatOff` on the page.
+      `padUnits()` groups chunks over the whole list, then draws each unit
+      from the members THIS side still has (a unit whose every member was
+      deleted here isn't drawn) while `at` stays the true index into
+      `beats` — so placing next to a visible beat lands where she expects
+      however many hidden ones sit between.
+    - **Anything that puts art back clears `off`** (`/image`, `/clip`, a
+      draw starting and landing) — putting something there is what brings
+      the side back. The wand skips a side she deleted from, and the film
+      skips it by itself (an emptied slot has no url).
+    - **The confirm box says which side is going** and which one keeps it,
+      because the same button means two different things.
   - **A CLIP is per-style TOO (2026-08-23, Sophie — the first live use of
     the toggle taught this).** The design shipped with clips shared between
     the sides ("footage, not drawn art") and she overruled it within the
