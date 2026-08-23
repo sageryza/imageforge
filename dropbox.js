@@ -472,11 +472,16 @@ router.get('/status', (req, res) => {
 // page keeps a copy as its offline fallback and a test pins the two equal.
 //
 // These five are the ORIGINAL vocabulary and measured 2026-08-23 not one of
-// them is in use — every folder she actually files into she typed herself
-// ("From ChatGPT" 16, "dream upload from ChatGPT" 16, "Crystals" 15, "style
-// references" 13, "story room" 7, "Inspiration" 3). So they are the fallback
-// and the tail of the list, never its head; `orderTracks` below is what puts
-// her own words first.
+// them is in use — every folder she actually files into she typed herself,
+// in ALBUMS: "From ChatGPT" 16, "dream upload from ChatGPT" 16, "Crystals"
+// 15, "style references" 13, "story room" 7, "Inspiration" 3. So they are the
+// fallback and the tail of the list, never its head; `orderTracks` below is
+// what puts her own words first.
+//
+// Albums and FILES rank these differently and the difference is not small:
+// by files Crystals leads outright, because her mother's crystal catalogue is
+// hundreds of photos in a handful of runs. The route counts albums — see the
+// note on it.
 const KNOWN_TRACKS = ['crystals', 'story-art', 'hoonies', 'reference', 'product'];
 
 /// The chips, in the order they should be offered: the folders she actually
@@ -528,15 +533,24 @@ router.get('/tracks', async (req, res) => {
     if (tracksCache.tracks && Date.now() - tracksCache.at < TRACKS_TTL) {
       return res.json({ tracks: tracksCache.tracks, known: KNOWN_TRACKS, cached: true });
     }
-    const counts = new Map();
+    // Counted in ALBUMS, not files — the question a chip answers is "which
+    // folder do I file into", and one catalogue run of 300 photos is ONE
+    // decision to file. Counting files ranked Crystals top on the strength of
+    // a single photo shoot; counting albums puts the folders she reaches for
+    // most often first. A loose file counts as its own album, which is what
+    // it is here.
+    const albums = new Map();
     try {
       const snap = await db().collection(COL).get();
       snap.forEach((d) => {
         const t = d.get('track');
-        if (t) counts.set(String(t), (counts.get(String(t)) || 0) + 1);
+        if (!t) return;
+        const key = String(t);
+        if (!albums.has(key)) albums.set(key, new Set());
+        albums.get(key).add(d.get('bundle') || 'loose:' + d.id);
       });
     } catch { /* no Firestore → the known list still answers */ }
-    const tracks = orderTracks([...counts]);
+    const tracks = orderTracks([...albums].map(([t, set]) => [t, set.size]));
     tracksCache = { at: Date.now(), tracks };
     return res.json({ tracks, known: KNOWN_TRACKS });
   } catch (e) { return fail(res, e); }
