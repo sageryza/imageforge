@@ -23,6 +23,7 @@
  */
 
 const assetUnion = require('./asset-union');
+const sizeTier = require('./size-tier');
 const grammar = require('./search-grammar');
 
 // The pseudo-chat that holds app-made creations (below). A real chat slug is
@@ -80,7 +81,12 @@ function buildMetaAssets(docs, creations) {
     // differ 5x in pixels and 3x in price. Absent on everything filed before
     // the field existed, and an absent slot is simply left out rather than
     // guessed — there is nothing on those records that says how big they are.
-    const made = [c.model, c.quality, c.size].map((v) => String(v || '').trim())
+    // The third slot is the TIER — "2K", not "1568x2352" (Sophie: "i asked for
+    // it to say 1k 2k or 4k"). Normalised on READ as well as on write, so the
+    // records filed with raw pixels before her correction show the tier too
+    // and nothing needs backfilling.
+    const made = [c.model, c.quality, sizeTier.captionSize(c.size)]
+      .map((v) => String(v || '').trim())
       .filter(Boolean).join(' · ') || String(c.style || '').trim();
     appRecs.push({
       url: c.url, ms: c.ms || 0,

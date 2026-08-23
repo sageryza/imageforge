@@ -40,8 +40,10 @@ The numbers are measured, not guessed.
 4. **Label it.** `[Penny — the blue Kleenex](url)`, never `[p01](url)` or a bare
    URL. The label becomes what she reviews by.
 5. **File the MODEL · QUALITY · SIZE caption** — `prompt:"gpt-image-2 · medium
-   · 1568x2352"`. **The size is a required third slot since Aug 2026** (Sophie:
-   "1K 2K 4K should be a third slot in the model/quality required tagging") —
+   · 2K"`. **The size is a required third slot since Aug 2026, and it is the
+   TIER — 1K / 2K / 4K, never the pixels** (Sophie: "1K 2K 4K should be a third
+   slot in the model/quality required tagging" · "i asked for it to say 1k 2k
+   or 4k") —
    gpt-image-2 draws any canvas, so the first two stopped saying what a picture
    is: one prompt at one quality spans 5x in pixels and 3x in price.
    *Measured: 1,938 of 2,488 images have none, and only 31 could ever be
@@ -1832,12 +1834,19 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   params); if a necessary line has to come from you, say which line is yours.
 - **FILE THE MODEL · QUALITY · SIZE CAPTION on every image too (Aug 2026,
   Sophie).** The Assets tile's caption is the asset doc's `prompt` field — file
-  it as a curated tag like `gpt-image-2 · medium · 1568x2352` via
+  it as a curated tag like `gpt-image-2 · medium · 2K` via
   `POST /api/gallery
-  { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 1568x2352", description }`
-  **THE SIZE IS A REQUIRED THIRD SLOT (Aug 2026, Sophie: "1K 2K 4K should be a
-  third slot in the model/quality required tagging, in the playground and in
-  assets and Meta assets").** Model and quality alone answered the question
+  { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 2K", description }`
+  **THE SIZE IS A REQUIRED THIRD SLOT, AND IT IS THE TIER (Aug 2026, Sophie:
+  "1K 2K 4K should be a third slot in the model/quality required tagging, in
+  the playground and in assets and Meta assets" — then, on the first cut, which
+  wrote the raw canvas: "i asked for it to say 1k 2k or 4k").** The pixels are
+  the FACT but the rung is what a caption is read for. `size-tier.js` derives
+  the tier from pixel count (never a lookup table, so an unseen canvas still
+  lands on a rung) and normalises on READ as well as on write, so records filed
+  with `1568x2352` display as `2K` with no backfill. The exact canvas is kept
+  beside it as `canvas`, because 2K portrait and 2K square are different
+  canvases at different prices. Model and quality alone answered the question
   while every surface here drew 1024x1536 and nothing else; gpt-image-2 takes
   any canvas, so the same prompt at the same quality now spans 5x in pixels and
   3x in price and the caption has to say which. It rides all three surfaces:
