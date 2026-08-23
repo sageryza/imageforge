@@ -138,7 +138,7 @@ catch {
   ok(posted.map((p) => p.quality).sort().join(',') === 'high,medium', 'one medium and one high');
   ok(posted.every((p) => p.prompt === 'a cat'), 'both on the same prompt');
   // The ladder must not move what the toggle says — she can tap it again.
-  ok(await page.getAttribute('#qpick', 'data-q') === 'medium', 'the quality knob is where she left it');
+  ok(await page.getAttribute('#qpick', 'data-n') === '1', 'the quality knob is where she left it');
 
   console.log('the right-hand group');
   const g = await box('.gogroup');
@@ -160,7 +160,23 @@ catch {
 
   console.log('Generate is a square');
   ok(go.w === go.h, 'its width equals its height (' + go.w + 'x' + go.h + ')');
-  ok(go.w === 38, 'and it is the 38px box the seed button already is');
+  // It was a flat 38 until Aug 2026, when Sophie asked for the whole row to
+  // share one height at lower padding ("can you make them all have lower
+  // padding") — so the number now comes from --ctl-h rather than being typed
+  // here, and what this guards is that Generate is still square and still the
+  // same box as its neighbours rather than a size of its own.
+  const rowH = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.querySelector('.controls')).getPropertyValue('--ctl-h')));
+  ok(go.w === rowH, 'and it is the row\'s own height, ' + rowH + 'px');
+  // The seed button is the LoRA's, so it is off screen on a gpt-image-2 style —
+  // un-hide it to measure rather than reading 0 off a hidden box.
+  const seedH = await page.evaluate(() => {
+    const b = document.querySelector('.seedbtn');
+    b.hidden = false; b.style.display = 'flex';
+    const h = Math.round(b.getBoundingClientRect().height);
+    return h;
+  });
+  ok(seedH === rowH, 'the same box the seed button is (' + seedH + ')');
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('go')).borderRadius) === '6px',
     'still a 6px rounded rectangle — the house rule, not sharp corners');
 

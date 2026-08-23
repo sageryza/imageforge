@@ -51,29 +51,66 @@ const decl = (body, prop) => {
   return m ? m[1].trim().replace(/\s+/g, ' ') : null;
 };
 
-console.log('it IS the account switcher');
+console.log('it is the account switcher\'s SHAPE, at her own width');
 const swi = rule(chatsSrc, '.swi{');
-const qtog = rule(pageSrc, '.qtog {');
+const qtog = rule(pageSrc, '.swtog {');
 ok(swi && qtog, 'both rules exist to compare');
-// The geometry, verbatim. --gap is what puts the three stops where they are, so
-// a drift here is a toggle whose middle notch no longer reads as the middle.
-['--tw', '--k', '--gap', 'width', 'height', 'border-radius'].forEach((p) => {
+// WHAT STILL HAS TO MATCH is the shape — a round knob inset in a filled track
+// with derived stops. The SIZE deliberately does not: Sophie asked for this
+// one wider ("can you make the low medium high quality toggle a little bit
+// wider so it's easier to change it"), and "4K" does not fit on an 18px knob.
+// So the width is asserted as a DIFFERENCE, the way the colour already is —
+// otherwise a later copy-paste would quietly shrink it back.
+const px = (v) => parseFloat(v);
+ok(px(decl(qtog, '--tw')) > px(decl(swi, '--tw')),
+  'the Playground toggle is WIDER than the account switcher ('
+  + decl(qtog, '--tw') + ' vs ' + decl(swi, '--tw') + ')');
+ok(px(decl(qtog, '--k')) > px(decl(swi, '--k')),
+  'and its knob is bigger, because it carries "4K" and not just a letter');
+ok(decl(qtog, 'width') === 'var(--tw)' && decl(swi, 'width') === 'var(--tw)',
+  'both still take their width from --tw rather than a typed number');
+['padding', 'margin', 'flex', 'position', 'box-sizing'].forEach((p) => {
   ok(decl(swi, p) && decl(swi, p) === decl(qtog, p),
     p + ' matches the account switcher (' + decl(swi, p) + ')');
 });
 const swiA = rule(chatsSrc, '.swi::after{');
-const qtogA = rule(pageSrc, '.qtog::after {');
-['top', 'left', 'width', 'height', 'border-radius', 'transition'].forEach((p) => {
-  ok(decl(swiA, p) && decl(swiA, p) === decl(qtogA, p),
-    'the knob\'s ' + p + ' matches (' + decl(swiA, p) + ')');
+const qtogA = rule(pageSrc, '.swtog::after {');
+['top', 'left'].forEach((p) => {
+  ok(decl(qtogA, p), 'the knob declares its ' + p + ' inset (' + decl(qtogA, p) + ')');
 });
+ok(decl(swiA, 'border-radius') === decl(qtogA, 'border-radius'),
+  'the knob is still round (' + decl(qtogA, 'border-radius') + ')');
+ok(decl(swiA, 'transition') === decl(qtogA, 'transition'),
+  'and still slides rather than jumping (' + decl(qtogA, 'transition') + ')');
+ok(decl(qtogA, 'width') === 'var(--k)' && decl(qtogA, 'height') === 'var(--k)',
+  'the knob is a square of --k, so it cannot go oval when the track grows');
+// THE GEOMETRY MUST CLOSE. --gap is what puts the three stops where they are,
+// and it is typed rather than calc'd, so this is the one place a wrong number
+// would show as a knob that overshoots its track or stops short of the end.
+{
+  const tw = px(decl(qtog, '--tw')), k = px(decl(qtog, '--k')), gap = px(decl(qtog, '--gap'));
+  const border = px(decl(qtog, 'border')) || 1.5;
+  const inset = px(decl(qtogA, 'left'));
+  const travel = tw - 2 * border - 2 * inset - k;
+  ok(Math.abs(travel / 2 - gap) < 0.51,
+    'two --gaps land the knob exactly at the far end (travel ' + travel + ', gap ' + gap + ')');
+  const h = px(decl(qtog, 'height'));
+  ok(Math.abs((h - 2 * border - k) / 2 - inset) < 0.51,
+    'and the knob is vertically centred in the track');
+  ok(Math.abs(px(decl(qtog, 'border-radius')) - h / 2) < 0.51, 'the track is a full capsule');
+}
 // THREE stops, each a multiple of --gap — derived, never typed, exactly as the
-// account one derives them. A fourth quality would be one more rule of this
-// shape and nothing else.
-ok(/\.qtog\[data-q="medium"\]::after\s*\{\s*transform:\s*translateX\(var\(--gap\)\)/.test(pageSrc),
+// account one derives them. The stops are NUMBERED, which is what lets the
+// resolution toggle share this rule instead of keeping a second copy.
+ok(/\.swtog\[data-n="1"\]::after\s*\{\s*transform:\s*translateX\(var\(--gap\)\)/.test(pageSrc),
   'the middle stop is one --gap along');
-ok(/\.qtog\[data-q="high"\]::after\s*\{\s*transform:\s*translateX\(calc\(var\(--gap\) \* 2\)\)/.test(pageSrc),
+ok(/\.swtog\[data-n="2"\]::after\s*\{\s*transform:\s*translateX\(calc\(var\(--gap\) \* 2\)\)/.test(pageSrc),
   'the last stop is two --gaps along');
+// ONE rule, two toggles — the whole reason the stops are numbered.
+ok(!/\.qtog\s*\{/.test(pageSrc) && !/\.rtog\s*\{/.test(pageSrc),
+  'there is no second copy of the geometry for the resolution toggle');
+ok((pageSrc.match(/class="swtog"/g) || []).length === 2,
+  'both toggles wear the one class');
 
 console.log('black, not red');
 // The one declared difference. chats.html paints the track with its own rose
@@ -89,7 +126,7 @@ ok(decl(qtogA, 'background') === '#faf7f2', 'the knob is still paper');
 
 console.log('the dropdown is gone');
 ok(!/<select id="qpick"/.test(pageSrc), 'no <select> left behind');
-ok(/<button type="button" id="qpick" class="qtog"/.test(pageSrc), 'it is a button now');
+ok(/<button type="button" id="qpick" class="swtog"/.test(pageSrc), 'it is a button now');
 ok(!/qpick'\)\.innerHTML|qpick'\)\.value|qpick\.value/.test(pageSrc),
   'nothing still builds options or reads a .value off it');
 ok(/QUALITIES\[\(i \+ 1\) % QUALITIES\.length\]/.test(pageSrc),
@@ -145,18 +182,21 @@ catch {
   // the position ride ONE pseudo-element, so this is the whole control in one
   // read — and `transform` comes back as a matrix, whose last-but-one number is
   // the x offset in real pixels.
-  const knob = () => page.evaluate(() => {
-    const el = document.getElementById('qpick');
+  // Reads either toggle — they share the rule, so they get the same probe.
+  const knob = (id) => page.evaluate((sel) => {
+    const el = document.getElementById(sel);
     const cs = getComputedStyle(el, '::after');
     const m = /matrix\(([^)]*)\)/.exec(cs.transform);
+    const track = getComputedStyle(el);
     return {
       letter: cs.content.replace(/["']/g, ''),
       x: m ? Math.round(parseFloat(m[1].split(',')[4]) * 10) / 10 : 0,
-      q: el.getAttribute('data-q'),
+      n: el.getAttribute('data-n'),
       w: el.getBoundingClientRect().width,
       h: el.getBoundingClientRect().height,
+      gap: parseFloat(track.getPropertyValue('--gap')),
     };
-  });
+  }, id || 'qpick');
 
   console.log('the toggle on the real page');
   // The page opens on the WTR LoRA, which has no quality ladder — so the
@@ -165,27 +205,52 @@ catch {
   await page.selectOption('#stylepick', 'chatgpt');
   await page.waitForSelector('#qpick:not([hidden])');
   let k = await knob();
-  ok(k.q === 'medium' && k.letter === 'M', 'it opens on medium, showing M');
-  ok(k.w === 48 && k.h === 26, 'it is the switcher\'s own 48x26 box');
-  const mid = k.x;
-  ok(mid === 11.5, 'medium sits one notch along (11.5px)');
+  ok(k.n === '1' && k.letter === 'M', 'it opens on medium, showing M');
+  const gap = k.gap;
+  ok(k.x === gap, 'medium sits one notch along (' + gap + 'px)');
 
   // 250ms out of the way of the knob's own .18s slide — reading mid-flight
   // gives a real but meaningless x, which is exactly the sort of "flaky test"
   // that gets a correct assertion deleted later.
   await page.click('#qpick'); await page.waitForTimeout(250);
   k = await knob();
-  ok(k.q === 'high' && k.letter === 'H', 'a tap moves to high, showing H');
-  ok(k.x === 23, 'and the knob is two notches along (23px)');
+  ok(k.n === '2' && k.letter === 'H', 'a tap moves to high, showing H');
+  ok(k.x === gap * 2, 'and the knob is two notches along (' + gap * 2 + 'px)');
 
   await page.click('#qpick'); await page.waitForTimeout(250);
   k = await knob();
-  ok(k.q === 'low' && k.letter === 'L', 'the next tap WRAPS to low, showing L');
+  ok(k.n === '0' && k.letter === 'L', 'the next tap WRAPS to low, showing L');
   ok(k.x === 0, 'and the knob is back at the first stop');
 
   // The three stops are distinct enough to tell apart — the whole reason the
-  // account switcher is 48px wide and not 42.
-  ok(mid - 0 >= 10 && 23 - mid >= 10, 'the stops are >=10px apart, readable as three');
+  // account switcher is 48px wide and not 42, and the reason Sophie asked for
+  // this one wider still.
+  ok(gap >= 10, 'the stops are >=10px apart, readable as three');
+
+  // THE RESOLUTION TOGGLE IS THE SAME CONTROL (Aug 2026, her ask). Same box,
+  // same stops, same wrap — and its knob says the VALUE, not an initial.
+  const q = await knob('qpick');
+  const r = await knob('rpick');
+  ok(r.w === q.w && r.h === q.h,
+    'it is exactly the same box as the quality toggle (' + r.w + 'x' + r.h + ')');
+  ok(r.n === '0' && /^1K$/.test(r.letter), 'it opens on 1K, and the knob says 1K');
+  await page.click('#rpick'); await page.waitForTimeout(250);
+  const r2 = await knob('rpick');
+  ok(r2.n === '1' && r2.letter === '2K', 'a tap moves to 2K');
+  ok(r2.x === r.gap, 'and the knob moved one notch');
+  await page.click('#rpick'); await page.click('#rpick'); await page.waitForTimeout(250);
+  const r4 = await knob('rpick');
+  ok(r4.n === '0' && r4.letter === '1K', 'past 4K it WRAPS back to 1K');
+  // The knob has to actually FIT its longest word, or "4K" clips.
+  const fits = await page.evaluate(() => {
+    const el = document.getElementById('rpick');
+    const cs = getComputedStyle(el, '::after');
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = cs.font;
+    return { text: c.measureText('4K').width, knob: parseFloat(cs.width) };
+  });
+  ok(fits.text < fits.knob - 2,
+    '"4K" fits inside the knob (' + fits.text.toFixed(1) + 'px of text in ' + fits.knob + 'px)');
 
   // It is one tap, anywhere on it — no menu to open, which is the point.
   ok(await page.getAttribute('#qpick', 'aria-label') === 'Quality low — tap for the next one',
@@ -199,9 +264,9 @@ catch {
 
   // Ported in from an Assets image: the knob shows what the link asked for.
   await page.goto(base + '/playground?prompt=a%20cat&style=chatgpt&quality=high');
-  await page.waitForFunction(() => document.getElementById('qpick').getAttribute('data-q') === 'high');
+  await page.waitForFunction(() => document.getElementById('qpick').getAttribute('data-n') === '2');
   k = await knob();
-  ok(k.letter === 'H' && k.x === 23, 'a ported quality moves the knob, not just the variable');
+  ok(k.letter === 'H' && k.x === k.gap * 2, 'a ported quality moves the knob, not just the variable');
 
   // Not persisted — a fresh load is back to medium, same as it always was, so
   // an expensive 'high' can never ride along into next time.
@@ -209,13 +274,19 @@ catch {
   await page.selectOption('#stylepick', 'chatgpt');
   await page.waitForSelector('#qpick:not([hidden])');
   k = await knob();
-  ok(k.q === 'medium' && k.letter === 'M', 'a fresh load is back to medium');
+  ok(k.n === '1' && k.letter === 'M', 'a fresh load is back to medium');
+
+  // The resolution tier is not persisted either — 4K at high is 47c a picture.
+  const rFresh = await knob('rpick');
+  ok(rFresh.n === '0' && rFresh.letter === '1K', 'and the resolution is back to 1K');
 
   // It hides on the LoRA, exactly as the dropdown did (no quality ladder there).
   await page.selectOption('#stylepick', 'watercolor');
   ok(!(await page.isVisible('#qpick')), 'it hides on the Replicate LoRA');
+  ok(!(await page.isVisible('#rpick')), 'and so does the resolution toggle');
   await page.selectOption('#stylepick', 'chatgpt');
   ok(await page.isVisible('#qpick'), 'and comes back on a gpt-image-2 style');
+  ok(await page.isVisible('#rpick'), 'both of them');
 
   await browser.close();
   server.close();
