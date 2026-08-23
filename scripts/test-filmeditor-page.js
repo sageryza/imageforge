@@ -81,7 +81,11 @@ function ok(cond, name) {
 
   let PROX = {};   // what /proxies answers — flipped per scenario
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
-  const DOC3 = { id: 't3', title: 'Cut with music', clips: JSON.parse(JSON.stringify(DOC.clips)),
+  // TRIMMED pieces on purpose (out < the file's end): the joint then fires
+  // mid-file, while a lagging playhead is still behind real time — the exact
+  // shape that made the old drift guard yank the music backward on the phone.
+  const DOC3 = { id: 't3', title: 'Cut with music',
+    clips: JSON.parse(JSON.stringify(DOC.clips)).map((c) => ({ ...c, out: 1.8 })),
     audio: { url: 'http://forge.test/fx/t.ogg', name: 'song', offset: 0 }, renders: [], job: null };
   // ONE source with the middle trimmed out — her core flow, and a joint that
   // is a JUMP inside the same file: it must swap to the parked idle element,
@@ -112,7 +116,7 @@ function ok(cond, name) {
     args: ['--autoplay-policy=no-user-gesture-required'],
   });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await page.route('**/*', (route) => {
+  const routeHandler = (route) => {
     const u = route.request().url();
     if (u.includes('/fx/a.webm')) return serveMedia(route, 'video/webm', vidA);
     if (u.includes('/fx/b.webm')) return serveMedia(route, 'video/webm', vidB);
@@ -147,7 +151,8 @@ function ok(cond, name) {
     if (u.includes('/filmeditor')) return route.fulfill({ contentType: 'text/html', body: html });
     if (u.includes('/tool.css')) return route.fulfill({ contentType: 'text/css', body: '' });
     return route.fulfill({ status: 404, body: '' });
-  });
+  };
+  await page.route('**/*', routeHandler);
 
   const disp = (id) => page.$eval('#' + id, (el) => getComputedStyle(el).display);
   const tc = () => page.$eval('#tc', (el) => el.textContent);
@@ -282,7 +287,7 @@ function ok(cond, name) {
     { timeout: 9000 }).catch(() => {});
   const seeks = await page.evaluate(() => window.__seeks);
   ok(seeks <= 2, 'the track is NOT re-seeked at every piece boundary (seeks: ' + seeks + ')');
-  ok(await page.$eval('#audEl', (el) => el.currentTime >= 3), 'it rolled through the whole film');
+  ok(await page.$eval('#audEl', (el) => el.currentTime >= 3.2), 'it rolled through the whole film');
 
   console.log('a same-source jump (the middle trimmed out — her core flow):');
   await page.goto('http://forge.test/filmeditor?c=t4');
@@ -322,6 +327,73 @@ function ok(cond, name) {
     return act.getAttribute('data-src') === 'http://forge.test/fx/b.webm';
   }), 'playback runs on the baked preview copy, not the heavy original');
   await page.click('#play');
+
+  // ── the iPHONE SHAPE: a frozen getVideoPlaybackQuality counter (iOS WebKit
+  // batches or flatlines totalVideoFrames). The old tick trusted that counter
+  // alone, so the playhead lagged whole beats behind the picture and then
+  // leapt to catch up — and the lagging playhead made syncAudio read ">0.35s
+  // drift" at every joint and yank the MUSIC backward: the stop-start chop
+  // (Sophie, 2026-08-23). rVFC is the frame truth now, so a lying counter
+  // must change nothing. ──
+  const pageF = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await pageF.addInitScript(() => {
+    Object.defineProperty(HTMLVideoElement.prototype, 'getVideoPlaybackQuality', {
+      value: () => ({ totalVideoFrames: 0 }),
+    });
+  });
+  await pageF.route('**/*', routeHandler);
+  const tcSecs = (t) => {
+    const m = /^(\d+):(\d+)\.(\d+)/.exec(t.split(' ')[0]);
+    return m ? Number(m[1]) * 60 + Number(m[2]) + Number(m[3]) / 30 : 0;
+  };
+
+  console.log('the playhead with a frozen frame counter (the iOS shape):');
+  await pageF.goto('http://forge.test/filmeditor?c=t1');
+  await pageF.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await pageF.waitForTimeout(400);
+  await pageF.click('#play');
+  await pageF.waitForTimeout(1300);
+  const lagTc = tcSecs(await pageF.$eval('#tc', (el) => el.textContent));
+  ok(lagTc > 0.8,
+    'the playhead TRACKS the picture — no lag-and-leap (at +1.3s it reads ' + lagTc.toFixed(2) + 's)');
+  await pageF.waitForFunction(
+    () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
+    { timeout: 9000 }).catch(() => {});
+  ok(await pageF.$eval('#playIco', (el) => getComputedStyle(el).display !== 'none'),
+    'and the film still plays through and stops');
+
+  console.log('the music with a frozen frame counter:');
+  await pageF.goto('http://forge.test/filmeditor?c=t3');
+  await pageF.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await pageF.waitForTimeout(400);
+  await pageF.click('#play');
+  await pageF.waitForTimeout(400);   // past the start-up seek — joints only from here
+  await pageF.evaluate(() => {
+    const a = document.getElementById('audEl');
+    window.__audSeeks = 0;
+    window.__audBack = 0;
+    let last = a.currentTime || 0;
+    a.addEventListener('seeking', () => { window.__audSeeks++; });
+    setInterval(() => {
+      const ct = a.currentTime || 0;
+      if (ct < last - 0.05) window.__audBack++;
+      last = ct;
+    }, 100);
+  });
+  await pageF.waitForFunction(
+    () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
+    { timeout: 9000 }).catch(() => {});
+  // trimmed pieces never fire `ended`, so under the old counter-held playhead
+  // this film HUNG short of its first joint forever — finishing at all is the
+  // assertion here, and only then do the music counts mean anything
+  ok(await pageF.$eval('#playIco', (el) => getComputedStyle(el).display !== 'none'),
+    'a TRIMMED cut still reaches its joints and stops under a lying counter');
+  const audSeeks = await pageF.evaluate(() => window.__audSeeks);
+  const audBack = await pageF.evaluate(() => window.__audBack);
+  ok(audSeeks === 0,
+    'the music is never re-seeked at a joint, even with a lying counter (seeks: ' + audSeeks + ')');
+  ok(audBack === 0,
+    'the music never jumps BACKWARD mid-film (backward jumps: ' + audBack + ')');
 
   await browser.close();
   fs.rmSync(dir, { recursive: true, force: true });
