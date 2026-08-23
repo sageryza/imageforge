@@ -4,8 +4,9 @@ nde-grab-local.py — run this on YOUR OWN Mac. Give it Anthony Chene YouTube
 links; it downloads each video's audio + captions from your home connection and
 banks them in Firebase in EXACTLY the layout the NDE cutting pipeline reads.
 
-Why local: cloud/datacenter IPs are bot-blocked by YouTube ("Sign in to confirm
-you're not a bot"), so the downloads have to come from a residential connection.
+Why local: the LAYOUT above, not the download — /api/ytdl grabs from the cloud
+fine (measured live 2026-08-23). Use this when a video has to land where the
+cutting pipeline reads it; use /api/ytdl when you just need the bytes.
 Everything after that (theme mining, the Episode Editor, supercuts) already runs
 in the cloud off what this script banks.
 

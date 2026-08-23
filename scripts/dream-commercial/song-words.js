@@ -14,8 +14,9 @@
 // never file it as the lyric without listening. And the number it prints is
 // what `song.hook` in spot.json wants: the spot's whole cut hangs off that
 // one timestamp, so a corrected hook re-aligns the film with no other edit.
-// Needs OPENAI_API_KEY, and the audio has to be local (YouTube bot-blocks
-// datacenter IPs, which is why this runs on the Mac).
+// Needs OPENAI_API_KEY and a local audio file. A cloud session can get one:
+// POST /api/ytdl/grab {url, kind:'audio', to:'none'} and download the url it
+// answers with — the Mac is no longer required for this.
 const fs = require('fs');
 const path = require('path');
 const { transcribeAudio } = require(path.join(__dirname, '..', '..', 'movies'));
