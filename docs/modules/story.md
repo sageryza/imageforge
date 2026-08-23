@@ -111,19 +111,27 @@ All 12 NDE-category stories were linked to their montage episodes on
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
   with `refs/sage-sandy-mirror.png` as the style ref and, by default,
-  `refs/sophie-book.png` as the character card; the prompt defaults to
-  the beat's own words, quality low/medium/high default medium, NO style
-  picker — one style per story; superseded art goes to `beat.imageHistory`,
-  never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
+  `refs/sophie-book.png` as the character card; quality low/medium/high
+  default medium, NO style picker — one style per story; superseded art
+  goes to `beat.imageHistory`, never deleted. **The draw box holds the
+  beat's OWN PROMPT since Aug 2026** — `beat.prompt`, its own field, so
+  tuning what a picture shows never rewrites what the film says. It saves
+  ITSELF (`POST /prompt {id, prompt}` on blur / closing the popup / Draw —
+  no save button, her rule), seeds from the words with speech markup
+  stripped when empty, and a prompt edited back to just-the-words is
+  CLEARED server-side so the beat keeps following its note; `promptFor` in
+  scratchpad.js / `promptOf` on the page are the one fallback rule, pinned
+  equal by `node scripts/test-scratchpad-prompt.js`), palette → `/playground?from=scratchpad`, inbox → pick a
   hearted image straight INTO that beat (`POST /image {id, url, src?}`).
   **Draw-the-missing (Aug 2026):** a wand icon on the title row (visible
   only when some beat has words but no art) → a confirm box stating count
   and cost (`POST /drawall {quality}`, default LOW) → every such beat draws,
   two at a time. Chunk siblings without their own text are deliberately
   skipped (their art is the hand-made literal→metaphorical pair), and
-  speech-only markup ([pause], <break/>) is STRIPPED from bulk prompts —
-  the single-beat draw box still sends her words untouched. Safe to re-tap:
-  it only ever draws what is still missing.
+  the wand draws each beat's `promptFor` — a stored prompt stays tuned in
+  the bulk pass, and speech-only markup ([pause], <break/>) is stripped
+  wherever words become a prompt, the single-beat seed included. Safe to
+  re-tap: it only ever draws what is still missing.
   ART.prefix / ART.characterLine in scratchpad.js are COPIES of
   PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
   identical. `/scratchpad-sophie.png` serves the character card to the
