@@ -3,7 +3,10 @@
 // Sophie: "next to tiles and list toggle, can u put a heart, that shows only
 // the liked ones" · "add arrows to the left and right sides, so i can scroll
 // through the playground made assets left and right by tapping. make the
-// arrows tall but narrow so they don't overlap the picture").
+// arrows tall but narrow so they don't overlap the picture" — then, Aug 2026:
+// "the side arrow bars - buttons shud be smaller, tap targets bigger. tap
+// anywhere on the right or left of the screen in the image area and it
+// switches left or right. arrow bars are just about an inch tall").
 //
 // Drives the REAL public/promptlab.html in headless Chromium against a stub
 // API and asserts:
@@ -13,8 +16,10 @@
 //   3. the arrows step through the pictures in the order the view behind the
 //      lightbox is showing them, the filter included,
 //   4. they are hidden at the two ends of the feed,
-//   5. they are TALL AND NARROW and do NOT overlap the picture — measured
-//      with real boxes, which is the only honest way to ask,
+//   5. the visible BAR is small (~1in tall) while its TAP ZONE is the whole
+//      side of the image area, the picture included — measured with real
+//      boxes and with elementFromPoint, the only honest way to ask what a tap
+//      actually reaches,
 //   6. tapping one steps rather than closing the lightbox.
 //
 //   npm install playwright --no-save && node scripts/test-playground-liked-arrows.js
@@ -58,12 +63,13 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ runs: ALL, more: false }));
   }
+  // A REAL-SIZED 2:3 picture, not a 1x1 pixel: the lightbox sizes itself to
+  // the picture, so a pixel-wide fixture would put the arrow zones nowhere
+  // near it and the tap-on-the-edge question could not be asked at all.
   if (url.pathname === '/px.png') {
-    const png = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-      'base64');
-    res.writeHead(200, { 'Content-Type': 'image/png' });
-    return res.end(png);
+    res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+    return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536">' +
+      '<rect width="1024" height="1536" fill="#8a7f70"/></svg>');
   }
   if (url.pathname === '/' || url.pathname === '/playground') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -132,15 +138,28 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (await prev.isHidden()) fail('no back arrow from the middle of the feed');
   if (await next.isHidden()) fail('no forward arrow from the middle of the feed');
 
-  // 5 — tall, narrow, and clear of the picture (measured, not assumed).
-  const [pb, nb, img] = await Promise.all([
-    prev.boundingBox(), next.boundingBox(), page.locator('#lbimg').boundingBox()]);
+  // 5 — a small bar inside a big zone. The bar is about an inch tall; the
+  // zone runs the full height of the image area and reaches well over the
+  // picture, which is exactly what "tap anywhere on the right or left" means.
+  const [pb, nb, img, chip] = await Promise.all([
+    prev.boundingBox(), next.boundingBox(), page.locator('#lbimg').boundingBox(),
+    page.locator('#lbprev .lbbar').boundingBox()]);
+  if (chip.width > 34) fail(`the arrow bar is ${chip.width}px wide — not small`);
+  if (chip.height < 80 || chip.height > 112) fail(`the arrow bar is ${chip.height}px tall, wanted about an inch`);
   for (const [name, b] of [['prev', pb], ['next', nb]]) {
-    if (b.width > 44) fail(`the ${name} arrow is ${b.width}px wide — not narrow`);
-    if (b.height < 300) fail(`the ${name} arrow is only ${b.height}px tall`);
+    if (b.width < 80) fail(`the ${name} tap zone is only ${b.width}px wide`);
+    if (b.height < img.height - 1) fail(`the ${name} tap zone is ${b.height}px against ${img.height}px of picture`);
   }
-  if (pb.x + pb.width > img.x) fail('the back arrow overlaps the picture');
-  if (nb.x < img.x + img.width) fail('the forward arrow overlaps the picture');
+  if (pb.x + pb.width <= img.x) fail('the back tap zone does not reach the picture');
+  if (nb.x >= img.x + img.width) fail('the forward tap zone does not reach the picture');
+
+  // A tap well INSIDE the picture, near its left edge, must step — not close.
+  // elementFromPoint, because "is the zone visible" was never the question.
+  const atEdge = await page.evaluate(([x, y]) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest('.lbnav') ? el.closest('.lbnav').id : (el && el.id);
+  }, [Math.round(img.x + 24), Math.round(img.y + img.height / 2)]);
+  if (atEdge !== 'lbprev') fail(`a tap 24px inside the picture's left edge reaches ${atEdge}, not the back zone`);
 
   // 6 — a tap steps, and does NOT close the lightbox.
   await next.click();
@@ -156,5 +175,5 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
 
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('PASS: heart filters both views and sticks; arrows step the shown order, clear of the picture');
+  if (!process.exitCode) console.log('PASS: heart filters both views and sticks; small bars in full-height tap zones step the shown order');
 })().catch(e => { console.error(e); process.exit(1); });
