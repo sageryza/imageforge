@@ -109,5 +109,8 @@ work is the front door, not the data.
    sets it; `scripts/seed-pad-categories.js` tagged the seeded stories.
 
 The shelf shipped into the live pad page (`scripts/gen-scratchpad.py`, the
-`#stories` sheet) — tests in `scripts/test-storyroom-shelf.js`. This folder
-stays as the design record.
+`#stories` sheet) — tests in `scripts/test-storyroom-shelf.js`. Since
+2026-08-23 it is the room the page OPENS on rather than a sheet reached
+through a door, and the back chevron is what walks between it and a story
+(Sophie: "the back button IS the shelf button") — see the Story Room section
+of `docs/modules/story.md`. This folder stays as the design record.

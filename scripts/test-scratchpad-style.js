@@ -176,6 +176,9 @@ const server = http.createServer((req, res) => {
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
   await page.goto(base + '/scratchpad.html');
+  // THE ROOM OPENS ON THE SHELF (2026-08-23, Sophie) — a story is one tap
+  // below it, so step into one the way her tap on a tile does.
+  await page.evaluate((id) => window.openPad(id), 'pad');
   await page.waitForSelector('#pad .beat');
 
   // 1 — the account switcher's format, measured

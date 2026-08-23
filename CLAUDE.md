@@ -3099,11 +3099,26 @@ before working on that module. Nothing was deleted — the moved text is verbati
   the header should be like normal it should say the shelf"). The shelf and every
   other sheet in the page wear the page's own header — back chevron left, **name
   centred**, actions right, one CSS rule over `header,.sheethead` — the shelf is
-  called **The shelf**, and there is no ✕ in this page's chrome at all. The shelf
-  door on the pad moved to the RIGHT of the header as an action (it is Lucide
-  `library` now, not four abstract squares), which is what frees the left for the
-  chevron. Test: `node scripts/test-storyroom-header.js` (three states —
-  web / old build / new build; verified failing 12 against the pre-fix page). Stories carry **listen rows**
+  called **The shelf**, and there is no ✕ in this page's chrome at all.
+  **AND THE BACK BUTTON IS THE SHELF BUTTON — THE SHELF IS THE ROOM
+  (2026-08-23, Sophie: "i think the story room architecture is backwards. the
+  shelf is the main room. the back button goes to the shelf. story room opens
+  on the shelf. we don't need a separate shelf button. the back button IS the
+  shelf button").** The `library` door that had just moved to the RIGHT of the
+  header is GONE, and the walk runs the other way: the page **opens on the
+  shelf** and loads no story until she taps a tile, a bare story answers
+  `__navBack` with TRUE and opens the shelf, and only the shelf answers false —
+  which is where the app leaves the tool. It used to be the reverse (open on
+  the last story, a door to go and fetch the shelf, the shelf's chevron
+  dropping back onto that story), so the tool had two ways up and the pad read
+  as the room. The shelf is still a `.sheet` — opaque, `inset:0` — which is why
+  nothing else in the page moved; its own chevron leaves the tool now. **A
+  plain browser injects no chevron**, so the page draws its own (`#shelfback`)
+  and stands it down under `body.native` / `body.pagehead` — the same "whoever
+  owns back draws it once" rule the ten `__nativeNavBar` pages follow; without
+  it a story is a dead end in a browser. Test:
+  `node scripts/test-storyroom-header.js` (three states —
+  web / old build / new build). Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the
   **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,

@@ -47,6 +47,10 @@ header > :last-child:not(.no),.sheethead > :last-child:not(.no){margin-left:auto
    it comes back. Both halves ship separately, so both states have to hold. */
 body.native header > .no{display:none;}
 body.native.pagehead header > .no{display:block;}
+/* ...and the page's own back chevron yields to whichever chevron the app has
+   already drawn. It shows in a plain browser ONLY, where nothing injects one
+   and a story would otherwise be a dead end with no way back to the shelf. */
+body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* The title row PINS to the top while she scrolls a long story, so film /
    play / add / inbox are always a thumb away (Sophie). Paper background so
    beats slide beneath it. Its z-index stays BELOW the pill's 9 (the house
@@ -372,14 +376,23 @@ body.native.pagehead header > .no{display:block;}
 #filmplay video{max-width:100vw; max-height:100vh; background:#000;}
 </style>
 <div class="wrap">
-  <!-- The name sits centred; the shelf door is an ACTION at the right, so the
-       left of the row is free for the back chevron (pagehead.js inserts it
-       there in the app). The door wears Lucide `library` — books on a shelf,
-       which is what it opens — rather than the four abstract squares it
-       shipped with. -->
+  <!-- THE BACK BUTTON IS THE SHELF BUTTON (2026-08-23, Sophie: "the story
+       room architecture is backwards. the shelf is the main room. the back
+       button goes to the shelf. story room opens on the shelf. we don't need
+       a separate shelf button. the back button IS the shelf button").
+       The `library` door that used to sit at the right of this row is GONE: a
+       story is one level DOWN from the shelf, so going back up is what the
+       one chevron at the left already means, and a second control saying the
+       same thing was the backwards half.
+       In the app that chevron belongs to chrome outside the page — Apple's
+       bar on the old build, pagehead.js's on the new one — and both ask
+       __navBack, which hands them the shelf. A plain browser injects
+       neither, so the page draws its own (#shelfback), hidden under
+       body.native / body.pagehead by exactly the rule the ten __nativeNavBar
+       pages follow: whoever owns back draws it once. -->
   <header>
+    <button class="iconbtn" id="shelfback" hidden aria-label="Back to the shelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div class="no">Story room</div>
-    <button class="iconbtn" id="storiesbtn" aria-label="The shelf — all your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M8 8v12"/><path d="M12 6v14"/><path d="m16 6 4 14"/></svg></button>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
@@ -1002,15 +1015,29 @@ var shelfCat='personal';
 var PLAIN_SHELF=/(\?|&)plain=1/.test(location.search);
 var shelfPads=[];
 function thumbOf(u){return '/api/story/thumb?w=240&url='+encodeURIComponent(u);}
-document.getElementById('storiesbtn').onclick=function(ev){
-  ev.stopPropagation();
+/* THE SHELF IS THE ROOM (2026-08-23, Sophie). It is still drawn as a .sheet —
+   opaque, inset:0, its own scroller — but it is no longer somewhere you go:
+   the page OPENS here (see the bottom of this file), a story is the level
+   below it, and the back chevron is what walks between them. */
+function openShelf(){
   var sh=document.getElementById('stories');
-  sh.hidden=false; lock(true); sheetPill(sh);
+  if(!sh.hidden) return;
+  sh.hidden=false; sh.scrollTop=0; lock(true); sheetPill(sh);
+  paintShelfBack();
   api('/pads').then(function(r){return r.json()}).then(function(d){
     shelfPads=d.pads||[];
     if(PLAIN_SHELF) renderPlainShelf(); else renderShelf();
   });
-};
+}
+/* The page's own chevron (a plain browser only — the CSS above hides it under
+   both app builds) belongs to a STORY, because the shelf has nothing above
+   it. `padOpened` is what says a story is showing: padId is remembered across
+   loads, so it cannot answer that on its own. */
+var padOpened=false;
+function paintShelfBack(){
+  document.getElementById('shelfback').hidden =
+    !padOpened || !document.getElementById('stories').hidden;
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
@@ -1062,10 +1089,17 @@ function renderPlainShelf(){
 function closeShelf(){
   var sh=document.getElementById('stories');
   if(sh._stopPill) sh._stopPill();
-  sh.hidden=true; lock(false);
+  sh.hidden=true; lock(false); paintShelfBack();
 }
+/* The shelf's own chevron used to drop back onto the story behind it. Nothing
+   is behind it any more, so it does what the app's chevron does at the top of
+   a tool: leaves. In a plain browser there is nothing to leave to, so it goes
+   back through history if there is any and otherwise stays put — a browser
+   tab opened straight at /storyroom has no outside to return to. */
 document.getElementById('storiesclose').onclick=function(ev){
-  ev.stopPropagation(); closeShelf();
+  ev.stopPropagation();
+  if(window.__forgeLeave){ window.__forgeLeave(); return; }
+  if(history.length>1) history.back();
 };
 
 /* ── About this story: what she said about it, verbatim + recordings ──
@@ -1099,7 +1133,7 @@ document.getElementById('descclose').onclick=function(ev){
   sh.hidden=true; lock(false);
 };
 function openPad(id){
-  padId=id; localStorage.setItem('scratchpad_pad',id);
+  padId=id; padOpened=true; localStorage.setItem('scratchpad_pad',id);
   if(genTimer){ clearInterval(genTimer); genTimer=null; }
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
@@ -1109,6 +1143,9 @@ function openPad(id){
   beats=[]; padTitle=''; render();
   load();
 }
+document.getElementById('shelfback').onclick=function(ev){
+  ev.stopPropagation(); openShelf();
+};
 document.getElementById('newstory').onclick=function(ev){
   ev.stopPropagation();
   api('/pads',{method:'POST',body:JSON.stringify({pad:null,title:''})})
@@ -1725,8 +1762,13 @@ document.getElementById('beatpop').onclick=function(ev){
    chevron asks __navBack first: close the topmost open layer — film,
    lightbox, a confirm box, the beat popup, a sheet — each through its own
    close path so nothing skips its cleanup (closeBeat saves the note, the
-   inbox returns to the beat it was filling). Only a bare pad answers false,
-   and the app leaves the tool. */
+   inbox returns to the beat it was filling).
+   BELOW ALL OF THAT IS THE SHELF, and it is the floor (2026-08-23, Sophie:
+   "the back button goes to the shelf … the back button IS the shelf
+   button"). So a bare story answers TRUE and opens the shelf, and only the
+   shelf itself answers false, which is where the app leaves the tool. It
+   used to be the other way round — the shelf closed onto a story and the
+   story handed back — which is the architecture she called backwards. */
 if(window.__nativeNavBar) document.body.classList.add('native');
 window.__navBack=function(){
   var el=document.getElementById('filmplay');
@@ -1750,9 +1792,14 @@ window.__navBack=function(){
   el=document.getElementById('descsheet');
   if(!el.hidden){ document.getElementById('descclose').click(); return true; }
   el=document.getElementById('stories');
-  if(!el.hidden){ closeShelf(); return true; }
-  return false;
+  if(!el.hidden) return false;    // the shelf is the floor — the app leaves
+  openShelf(); return true;       // a story steps up to it
 };
 
-load();
+/* THE ROOM OPENS ON THE SHELF (2026-08-23, Sophie: "story room opens on the
+   shelf"). Nothing loads a story until she taps one — the last one she was on
+   is still remembered (padId), but only to mark its tile as where she left
+   off. Loading it here would spend a fetch on a page nobody is looking at and
+   put a stale story one chevron behind the shelf. */
+openShelf();
 </script>
