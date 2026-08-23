@@ -122,6 +122,21 @@
     is the whole turn, so deriving from it would mark the entire reply as
     pre-work and fold nothing. That guard is in `chatfeed.js` and pinned by a
     test.
+  - **BOLD IS A SECOND METRIC, AND IT ONLY EVER UN-HIDES (Aug 2026, Sophie:
+    "working details was hiding a message meant for me … anything bold is
+    always for me. can it be an added decision metric").** The tool calls
+    still decide where the work starts and stops; inside that middle, a line
+    carrying bold — a markdown heading renders bold too — stays on screen and
+    the narration either side of it folds around it, which is why a message
+    can carry several fold buttons. **This is NOT the v1 vocabulary
+    classifier coming back**: it never HIDES anything the structural signal
+    left visible, and with no bold in the middle the output is byte-identical
+    to what it was. A run shorter than 200 characters shows rather than
+    earning a button of its own, and a middle that turns out to be all bold
+    folds nothing at all instead of drawing a row of empty buttons. **A `**`
+    inside fenced code does not count** — it is not a line for her, and
+    cutting inside a fence would leave it unbalanced and break the render of
+    everything after it.
   - Tests: `node scripts/test-chats-working-fold.js` — covers all three layers
     (hook parser against a real JSONL, the server's contract, and `foldBody`
     lifted out of chats.html and run for real). Needs no playwright.
