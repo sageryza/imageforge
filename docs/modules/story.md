@@ -141,6 +141,57 @@ All 12 NDE-category stories were linked to their montage episodes on
   screen-change reload in PlaygroundView. iOS: home-grid tile
   "Scratch Pad" (`ScratchPadView.swift`, bare WKWebView per the page-owns-
   header rule).
+- **THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "I want to
+  have the same beats but I wanna fill them with new art … a style toggle at
+  the top of a story that alternates between dreamy and watercolor … the same
+  format that the account's toggle is").** One story, TWO sets of art over
+  the SAME beats: words, frame colors, voice takes, chunks and order are
+  shared; only the pictures differ. The toggle is `.swi` — the account
+  switcher's switch from chats.html verbatim (48px track, 26 tall, 18px
+  knob), two stops, in INK on the cream page, on its own line under the
+  title row (the row above already carries six icons on a 390pt phone).
+  - **Watercolor is the pad's original look and lives where it always did**
+    (`beat.url/src/gen/imageHistory` — nothing that exists migrated), so
+    every old story opens exactly as before. **Dreamy lives in
+    `beat.alt.dreamy`**, the same four fields, EMPTY until she fills it —
+    flipping the toggle shows the same beats with the same writing and
+    honestly blank tiles where dreamy art isn't drawn yet.
+  - `pad.style` remembers the side; `POST /style` sets it (like /category,
+    NO updatedAt bump — flipping the view is not a story edit). Every
+    request that touches ART carries `style` (`/generate`, `/drawall`,
+    `/image`, `/add`, `/cover`), so a stale page can never draw into the
+    wrong side. `artSlot(b, style)` in scratchpad.js / `slotOf(b)` in the
+    page are the ONE accessor pair.
+  - **Dreamy draws the Playground's Dreamy recipe** — `refs/dream-mystery.jpg`
+    as the one reference, her dictated prefix and suffix bookending the
+    words, NEVER the Sophie card (`noCharacter` — her card is the watercolor
+    look). `DREAMY.prefix/.suffix` in scratchpad.js are COPIES of
+    `PL_GPT_STYLES.dreamy` in server.js — keep them identical;
+    `test-scratchpad-style.js` pins the pair byte-for-byte.
+  - **The film is the side the story is showing** — `runFilmJob` reads
+    `pad.style` and stamps `style` on the render, which is how the page
+    knows a watercolor cut is not the dreamy film (the toggle never bumps
+    updatedAt, so this is the freshness signal across a flip). A CLIP beat
+    is footage, not drawn art: the same in both styles, never a slot.
+- **ADDING FROM HER PHONE (Aug 2026, Sophie: "add clips right from my phone
+  into the inbox … a file picker that looks in my photos so I can add movies
+  or photos").** The upload button in the add sheet's header opens the
+  system picker (`accept="image/*,video/*" multiple` — that is what reaches
+  her Photos library); each file's bytes ride the Dump's
+  `/api/drop/upload-file` (md5 dedupe, HEIC→JPEG, video posters — the
+  Assembly pattern, never a second upload path), and the finished url is
+  filed on the story with `POST /api/scratchpad/upload {item:{url, kind,
+  poster?, title?}}` → `pad.uploads`. Uploads lead the PICTURES grid
+  (movies as their poster with the film mark, photos through the thumb
+  service), place exactly like inbox items — a movie becomes a CLIP beat
+  via `/clip`, a photo a picture — and disappear once placed, like the
+  hearts do. NO updatedAt bump on /upload: an upload waiting in the sheet
+  isn't on the timeline yet, so it must not stale the film.
+- **The + button un-arms on a second tap (Aug 2026, Sophie: "if I click the
+  plus button … and then change my mind and click it again, the lines
+  between the clips should disappear").** The + stops propagation, so the
+  document-level cancel never hears it — the handler clears `pending`
+  itself. Tests for all three: `node scripts/test-scratchpad-style.js`.
 - **PHILOSOPHY (Sophie, Aug 2026 — do not "improve" this):** the pad is a
   place for thinking on paper, so it is MINIMAL. The frame colors are
   deliberately UNLABELLED indicators — never write "example"/"explanation"/

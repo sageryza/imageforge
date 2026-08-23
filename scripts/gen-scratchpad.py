@@ -86,6 +86,31 @@ body.native.pagehead header > .no{display:block;}
 .titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;
   position:sticky; top:0; z-index:5; background:var(--paper); padding-top:6px; padding-bottom:6px;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
+/* THE STYLE TOGGLE — watercolor ↔ dreamy (Aug 2026, Sophie: "a style toggle
+   at the top of a story that alternates between dreamy and watercolor …
+   the same format that the account's toggle is, with a switch that moves
+   back-and-forth"). `.swi` is the account switcher's toggle from chats.html
+   VERBATIM — 48px track, 26 tall, an 18px knob — with TWO stops instead of
+   three and the track in INK on this cream page (the Playground's quality
+   toggle set that precedent; the rose belongs to the Chats app). The far
+   stop's 23px offset is the same arithmetic as the account one's third stop
+   (2 + 23 + 18 leaves the same 2px margin the near stop has). The words
+   either side say which is which — the lit one is where the knob sits — and
+   tapping a word or the switch flips the story. Its own line under the
+   title row: the row above already carries six 34px icons on a 390pt phone,
+   and a 48px track cannot fit beside them. */
+.stylerow{display:flex; align-items:center; gap:9px; padding:2px 56px 4px 0;}
+.stylerow .sw{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); background:none; border:none; padding:2px 0; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;}
+.stylerow .sw.on{color:var(--ink); font-weight:600;}
+.swi{--tw:48px; --k:18px; --gap:23px;
+  position:relative; box-sizing:border-box; width:var(--tw); height:26px; border-radius:13px;
+  border:1.5px solid var(--ink); background:var(--ink);
+  padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.swi::after{content:''; position:absolute; top:2px; left:2px; width:var(--k); height:18px; border-radius:50%;
+  background:var(--paper); transition:transform .18s;}
+.swi[data-a="2"]::after{transform:translateX(var(--gap));}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -239,10 +264,12 @@ body.native.pagehead header > .no{display:block;}
 #popvid.c-mustard{outline:3px solid var(--mustard);} #popvid.c-green{outline:3px solid var(--green);}
 #popvid.c-blue{outline:3px solid var(--blue);} #popvid.c-pink{outline:3px solid var(--pink);}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
-#inboxgrid button{aspect-ratio:2/3; border:1px solid var(--line); border-radius:4px; background:var(--barbg);
+#inboxgrid button{position:relative; aspect-ratio:2/3; border:1px solid var(--line); border-radius:4px; background:var(--barbg);
   padding:0; overflow:hidden; cursor:pointer;}
 #inboxgrid button img{width:100%; height:100%; object-fit:cover; display:block;}
 #inboxgrid button.used{opacity:.35;}
+/* Uploading from her phone says how far along it is — one quiet line. */
+#upline{font-style:italic; color:var(--ink2); font-size:.9em; margin-top:1em;}
 /* The beat popup is an opaque cream CARD, not a dark lightbox: white/cream
    paper with a light border, centered, and only as TALL as what's on it
    (Sophie, Aug 2026 — a full-height card was "too tall"; the pad showing
@@ -392,6 +419,11 @@ body.native.pagehead header > .no{display:block;}
     <button class="iconbtn" id="addbtn" aria-label="Add an empty beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     <button class="iconbtn" id="inboxbtn" aria-label="Hearted in the Playground"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
   </div>
+  <div class="stylerow">
+    <button class="sw on" id="swwater" type="button">Watercolor</button>
+    <button class="swi" id="styletog" type="button" data-a="1" aria-label="Which style this story is showing"></button>
+    <button class="sw" id="swdreamy" type="button">Dreamy</button>
+  </div>
   <div id="filmrow" hidden><span class="filmnote" id="filmnote"></span></div>
   <div id="pad"></div>
   <div class="state" id="empty" hidden>Empty page — the button top right opens your pictures and your clips.</div>
@@ -415,7 +447,15 @@ body.native.pagehead header > .no{display:block;}
     <div class="sheethead">
       <button class="iconbtn" id="inboxclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <div class="no" id="inboxno">From the Playground</div>
+      <!-- Photos and movies straight off her phone (Aug 2026, Sophie: "add
+           clips right from my phone into the inbox … a file picker that looks
+           in my photos so I can add movies or photos"). The system picker
+           reaches her Photos library by itself; the bytes ride the Dump's
+           upload-file route, and the finished urls wait here to be placed. -->
+      <button class="iconbtn" id="upbtn" aria-label="Add photos or movies from your phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></button>
     </div>
+    <input type="file" id="upfile" accept="image/*,video/*" multiple hidden>
+    <div id="upline" hidden></div>
     <div class="acctabs" id="inboxtabs">
       <button class="acctab on" id="tab-pics" type="button">Pictures</button>
       <button class="acctab" id="tab-clips" type="button">Clips</button>
@@ -534,14 +574,44 @@ function api(p,opts){
   if(TOKEN)opts.headers['x-studio-token']=TOKEN;
   if(opts.body){
     try{var b=JSON.parse(opts.body); if(b.pad===undefined){b.pad=padId; opts.body=JSON.stringify(b);}}catch(e){}
-    if(p!=='/film'&&p.indexOf('/pads')!==0&&p!=='/tts') dirtySinceFilm=true;
+    /* /style and /upload don't stale the film: flipping the view is not an
+       edit (the film's own `style` field handles the flip), and an upload
+       still waiting in the add sheet isn't on the timeline yet. */
+    if(p!=='/film'&&p.indexOf('/pads')!==0&&p!=='/tts'&&p!=='/style'&&p!=='/upload') dirtySinceFilm=true;
   } else if(p.indexOf('/pads')!==0){
     p+=(p.indexOf('?')>=0?'&':'?')+'pad='+encodeURIComponent(padId);
   }
   return fetch('/api/scratchpad'+p,opts);
 }
-var beats=[], inboxItems=[], pending=null, popBeat=null, padTitle='';
+var beats=[], inboxItems=[], uploads=[], pending=null, popBeat=null, padTitle='';
 var player=new Audio();
+/* ── the STYLE TOGGLE: watercolor ↔ dreamy ──────────────────────────
+   One story, two sets of art over the SAME beats (Sophie, Aug 2026): the
+   words, colors, voice and order are shared; only the pictures differ.
+   "watercolor" is the pad's original look and lives where it always did
+   (beat.url/src/gen/imageHistory); "dreamy" lives in beat.alt.dreamy, empty
+   until she fills it. slotOf() is the one accessor — everything that touches
+   ART goes through it, so the rest of the page never asks which side is up.
+   A CLIP is footage, not drawn art: the same in both styles, never a slot. */
+var padStyle='watercolor';
+function slotOf(b){
+  return (padStyle==='dreamy'&&!isClip(b)) ? ((b.alt&&b.alt.dreamy)||{}) : b;
+}
+function slotDrawing(b){ var s=slotOf(b); return Boolean(s.gen&&s.gen.status==='drawing'); }
+function renderStyle(){
+  document.getElementById('styletog').setAttribute('data-a', padStyle==='dreamy'?'2':'1');
+  document.getElementById('swwater').classList.toggle('on', padStyle!=='dreamy');
+  document.getElementById('swdreamy').classList.toggle('on', padStyle==='dreamy');
+}
+function setStyle(s){
+  if(s===padStyle)return;
+  padStyle=s; renderStyle(); render(); renderFilm();
+  api('/style',{method:'POST',body:JSON.stringify({style:s})}).catch(function(){});
+  if(anyDrawing()) startGenPoll();
+}
+document.getElementById('styletog').onclick=function(ev){ ev.stopPropagation(); setStyle(padStyle==='dreamy'?'watercolor':'dreamy'); };
+document.getElementById('swwater').onclick=function(ev){ ev.stopPropagation(); setStyle('watercolor'); };
+document.getElementById('swdreamy').onclick=function(ev){ ev.stopPropagation(); setStyle('dreamy'); };
 
 function lock(v){document.body.style.overflow=v?'hidden':'';}
 
@@ -625,7 +695,11 @@ function padUnits(){
    POSTER with a film mark, never as a <video>: a page of decoding videos is
    what makes a phone crawl, and the pad is a thinking surface. */
 function isClip(b){ return Boolean(b&&b.kind==='clip'); }
-function artOf(b){ return b?(isClip(b)?(b.poster||null):(b.url||null)):null; }
+/* What a beat SHOWS — the active style's picture (a clip's face is always
+   its poster). Under dreamy an undrawn beat is honestly blank. */
+function artOf(b){ return b?(isClip(b)?(b.poster||null):(slotOf(b).url||null)):null; }
+/* A beat that is a SHOT in the current style's film — art, or a clip. */
+function hasShot(b){ return isClip(b)?Boolean(b.url):Boolean(slotOf(b).url); }
 var FILM_TRI='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
 function filmMark(mid){
   var m=document.createElement('span'); m.className='fmark'+(mid?' mid':'');
@@ -658,7 +732,7 @@ function render(){
     if(u.members.length===1){
       var b=u.members[0];
       var el=document.createElement('button');
-      el.className='beat'+(b.color?' c-'+b.color:'')+((b.gen&&b.gen.status==='drawing')?' drawing':'');
+      el.className='beat'+(b.color?' c-'+b.color:'')+(slotDrawing(b)?' drawing':'');
       fillTile(el, b);
       el.onclick=function(ev){ev.stopPropagation(); if(pending)return; openBeat(b);};
       wrap.appendChild(el);
@@ -708,13 +782,16 @@ function renderTitle(){
 var film=null, padUpdated=0, dirtySinceFilm=false, autoplayWanted=false;
 function filmFresh(){
   // Server-clock to server-clock only — never compare against the phone's.
-  return Boolean(film&&film.url&&film.status==='done'&&!dirtySinceFilm&&(film.at||0)>=(padUpdated-2500));
+  // A film is also only fresh for the STYLE it was cut in: the watercolor
+  // render is not the dreamy film, however recent it is.
+  return Boolean(film&&film.url&&film.status==='done'&&!dirtySinceFilm&&(film.at||0)>=(padUpdated-2500)
+    &&(film.style||'watercolor')===padStyle);
 }
 function renderFilm(){
   var note=document.getElementById('filmnote');
   var play=document.getElementById('playbtn');
   var making=Boolean(film&&film.status==='making');
-  play.hidden=!beats.some(function(b){return b.url;});
+  play.hidden=!beats.some(hasShot);
   play.disabled=making;
   play.style.opacity=making?'.45':'';
   var msg=making?('making the film… '+(film.progress||''))
@@ -840,7 +917,13 @@ function stripSpeech(t){
   return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
 }
 function drawables(){
-  return beats.filter(function(b){ return !b.url && !(b.gen&&b.gen.status==='drawing') && stripSpeech(b.text); });
+  // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
+  // empty is exactly what the toggle exists to fill.
+  return beats.filter(function(b){
+    if(isClip(b))return false;
+    var s=slotOf(b);
+    return !s.url && !(s.gen&&s.gen.status==='drawing') && stripSpeech(b.text);
+  });
 }
 function renderDrawall(){
   document.getElementById('drawallbtn').hidden=!drawables().length;
@@ -867,7 +950,7 @@ document.getElementById('bulkask').onclick=function(ev){ if(ev.target===this){th
 document.getElementById('bulkyes').onclick=function(ev){
   ev.stopPropagation();
   var btn=this; btn.disabled=true;
-  api('/drawall',{method:'POST',body:JSON.stringify({quality:document.getElementById('bq').value})})
+  api('/drawall',{method:'POST',body:JSON.stringify({quality:document.getElementById('bq').value,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){
       btn.disabled=false;
@@ -900,6 +983,8 @@ function startFilmPoll(){
 function load(){
   api('').then(function(r){return r.json()}).then(function(d){
     beats=d.beats||[]; padTitle=d.title||''; film=d.film||null;
+    padStyle=(d.style==='dreamy')?'dreamy':'watercolor'; renderStyle();
+    uploads=d.uploads||[];
     audios=d.audios||[]; renderAudios();
     padUpdated=d.updatedAt||0; dirtySinceFilm=false;
     padDesc=d.description||''; padDescAudio=d.descriptionAudio||null;
@@ -1026,6 +1111,7 @@ function openPad(id){
   if(filmTimer){ clearInterval(filmTimer); filmTimer=null; }
   film=null; padUpdated=0; dirtySinceFilm=false; autoplayWanted=false; renderFilm();
   player.pause(); audios=[]; renderAudios();
+  padStyle='watercolor'; renderStyle(); uploads=[];
   closeShelf();
   beats=[]; padTitle=''; render();
   load();
@@ -1155,12 +1241,57 @@ function loadClips(){
 })();
 
 var inboxSource='playground';
+/* A picture she has already placed is gone from here, not dimmed: the inbox
+   is what is still waiting to be used (Sophie, Aug 2026). "Placed" means on
+   EITHER side of the style toggle, and covers her uploads too. */
+function urlsOnPad(){
+  var onPad={};
+  beats.forEach(function(b){
+    if(b.url)onPad[b.url]=1;
+    if(b.alt&&b.alt.dreamy&&b.alt.dreamy.url)onPad[b.alt.dreamy.url]=1;
+  });
+  return onPad;
+}
+function renderInboxGrid(){
+  var g=document.getElementById('inboxgrid'); g.innerHTML='';
+  var onPad=urlsOnPad();
+  /* Her phone uploads lead the grid \u2014 the thing she just added is the thing
+     she came to place. A movie tiles as its poster with the film mark and
+     places as a CLIP beat; a photo places as a picture. Phone photos are
+     huge, so the tile loads a derived thumb, never the original. */
+  var ups=uploads.filter(function(u){ return u&&u.url&&!onPad[u.url]; });
+  ups.forEach(function(u){
+    var el=document.createElement('button');
+    var face=u.kind==='clip'?(u.poster||null):thumbOf(u.url);
+    if(face){ var im=document.createElement('img'); im.src=face; im.alt=''; im.loading='lazy'; el.appendChild(im); }
+    if(u.kind==='clip') el.appendChild(filmMark(!u.poster));
+    el.onclick=function(ev){
+      ev.stopPropagation();
+      pick(u.kind==='clip'
+        ? {film:true, clip:{id:null, url:u.url, poster:u.poster, seconds:null, title:u.title||''}}
+        : {url:u.url});
+    };
+    g.appendChild(el);
+  });
+  var items=inboxItems.filter(function(it){ return !onPad[it.url]; });
+  document.getElementById('inboxempty').hidden=Boolean(items.length||ups.length);
+  items.forEach(function(it){
+    var el=document.createElement('button');
+    var im=document.createElement('img'); im.src=it.url; im.alt=''; im.loading='lazy'; el.appendChild(im);
+    // stopPropagation matters: this click must not reach the document-level
+    // cancel handler, which would clear the placing mode it just started.
+    el.onclick=function(ev){ev.stopPropagation(); pick(it);};
+    g.appendChild(el);
+  });
+}
 function openInbox(){
   var sh=document.getElementById('inbox');
   sh.hidden=false; lock(true); sheetPill(sh);
   showInboxTab(inboxTab);
+  renderInboxGrid();   // what we already know, instantly
   api('/inbox').then(function(r){return r.json()}).then(function(d){
     inboxItems=d.items||[];
+    if(d.uploads)uploads=d.uploads;
     // A story that carries its own gathered art says so; otherwise this is
     // still the Playground hearts.
     inboxSource=d.source||'playground';
@@ -1168,22 +1299,67 @@ function openInbox(){
       var hd=document.getElementById('inboxno');
       if(hd) hd.textContent = (inboxSource==='story') ? 'This story\u2019s art' : 'From the Playground';
     }
-    var g=document.getElementById('inboxgrid'); g.innerHTML='';
-    document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
-    // A picture she has already placed is gone from here, not dimmed: the
-    // inbox is what is still waiting to be used (Sophie, Aug 2026).
-    var onPad={}; beats.forEach(function(b){onPad[b.url]=1;});
-    inboxItems=inboxItems.filter(function(it){ return !onPad[it.url]; });
-    document.getElementById('inboxempty').hidden=Boolean(inboxItems.length);
-    inboxItems.forEach(function(it){
-      var el=document.createElement('button');
-      var im=document.createElement('img'); im.src=it.url; im.alt=''; im.loading='lazy'; el.appendChild(im);
-      // stopPropagation matters: this click must not reach the document-level
-      // cancel handler, which would clear the placing mode it just started.
-      el.onclick=function(ev){ev.stopPropagation(); pick(it);};
-      g.appendChild(el);
-    });
+    renderInboxGrid();
   });
+}
+/* \u2500\u2500 adding straight from her phone (Aug 2026, Sophie: "add clips right
+   from my phone into the inbox \u2026 so I can add movies or photos") \u2500\u2500\u2500\u2500\u2500
+   The system file picker reads her Photos library by itself. Each file's
+   bytes ride the Dump's /api/drop/upload-file (md5 dedupe, HEIC\u2192JPEG, video
+   posters \u2014 never a second upload path, the Assembly pattern), one at a
+   time so a batch never floods the connection; the finished url is filed on
+   the story with POST /upload and lands at the top of this grid, ready to
+   place. */
+var upSession='';
+document.getElementById('upbtn').onclick=function(ev){
+  ev.stopPropagation();
+  document.getElementById('upfile').click();
+};
+document.getElementById('upfile').onclick=function(ev){ ev.stopPropagation(); };
+document.getElementById('upfile').onchange=function(){
+  var files=Array.prototype.slice.call(this.files||[]);
+  this.value='';
+  if(files.length) uploadBatch(files);
+};
+function uploadBatch(files){
+  var line=document.getElementById('upline');
+  var total=files.length, done=0, failed=0;
+  function say(){
+    line.hidden=false;
+    line.textContent=(done+failed<total)
+      ? 'adding '+(done+failed+1)+' of '+total+'\u2026'
+      : (failed?(failed+(failed===1?' file':' files')+' didn\u2019t make it \u2014 try again'):'');
+    if(done+failed>=total&&!failed) line.hidden=true;
+  }
+  say();
+  function next(){
+    if(!files.length){ say(); return; }
+    var f=files.shift();
+    var q='?bundle='+encodeURIComponent(('Story Room \u00b7 '+(padTitle||'Untitled')).slice(0,80))
+      +'&filename='+encodeURIComponent(f.name||'upload')
+      +(upSession?'&session='+encodeURIComponent(upSession):'');
+    var headers={'content-type':f.type||'application/octet-stream'};
+    if(TOKEN)headers['x-studio-token']=TOKEN;
+    fetch('/api/drop/upload-file'+q,{method:'POST',headers:headers,body:f})
+      .then(function(r){return r.json()})
+      .then(function(r){
+        if(!r||!r.item||!r.item.url)throw new Error((r&&r.error)||'upload failed');
+        upSession=r.session||upSession;
+        var video=(r.item.media||'image')==='video';
+        var item={url:r.item.url, kind:video?'clip':'image',
+          poster:video?(r.item.posterUrl||null):null,
+          title:String(f.name||'').replace(/\.[a-z0-9]+$/i,'').slice(0,200)};
+        return api('/upload',{method:'POST',body:JSON.stringify({item:item})})
+          .then(function(r2){return r2.json()})
+          .then(function(d){
+            if(d.uploads)uploads=d.uploads;
+            done++; renderInboxGrid();
+          });
+      })
+      .catch(function(){ failed++; })
+      .then(function(){ say(); next(); });
+  }
+  next();
 }
 document.getElementById('inboxbtn').onclick=function(){ fillBeat=null; openInbox(); };
 document.getElementById('inboxclose').onclick=function(){
@@ -1201,8 +1377,10 @@ function pick(it){
     if(it.film){ path='/clip'; body={id:target.id, clip:it.clip}; }
     else {
       path='/image';
-      body={id:target.id, url:it.url,
-        src:{runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality}};
+      // style rides along so the picture lands on the side she is looking at
+      // (an upload has no run to remember, so it carries no src).
+      body={id:target.id, url:it.url, style:padStyle};
+      if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
     }
     api(path,{method:'POST',body:JSON.stringify(body)})
       .then(function(r){return r.json()})
@@ -1222,8 +1400,8 @@ function place(at, it){
   var body={at:at}, path='/add';
   if(it.film){ path='/clip'; body.clip=it.clip; }
   else if(!it.empty){
-    body.url=it.url;
-    body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
+    body.url=it.url; body.style=padStyle;
+    if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
   }
   api(path,{method:'POST',body:JSON.stringify(body)})
     .then(function(r){return r.json()})
@@ -1231,9 +1409,14 @@ function place(at, it){
   render();
 }
 /* + adds an EMPTY beat — a blank tile whose art comes later (its popup has
-   the Playground shortcut for now). Same placement flow as the inbox. */
+   the Playground shortcut for now). Same placement flow as the inbox.
+   A SECOND tap is changing her mind (Aug 2026, Sophie: "if I click the plus
+   button … and then change my mind and click it again, the lines between
+   the clips should disappear"): the + stops propagation, so the document-
+   level cancel below never hears it — it has to un-arm here itself. */
 document.getElementById('addbtn').onclick=function(ev){
   ev.stopPropagation();
+  if(pending){ pending=null; render(); return; }
   if(!beats.length){ place(0, {empty:true}); return; }
   pending={empty:true}; render();
 };
@@ -1246,18 +1429,22 @@ function openBeat(b){
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   var vid=document.getElementById('popvid');
   var clip=isClip(b);
+  // The popup shows the side the toggle is showing — under dreamy an
+  // undrawn beat opens BLANK, with its shared words underneath, which is
+  // exactly the fill-it-in state the toggle exists for.
+  var su=slotOf(b);
   // Same size as it sits on the pad — the popup never blows the ART up. A
   // CLIP is the exception and takes the card's width: it is a film, and one
   // playing at 90px is not a preview.
   var tile=document.querySelector('#pad .beat');
   var w=(tile?tile.offsetWidth:90)+'px';
-  im.hidden=clip||!b.url; bl.hidden=clip||Boolean(b.url); vid.hidden=!clip;
+  im.hidden=clip||!su.url; bl.hidden=clip||Boolean(su.url); vid.hidden=!clip;
   bl.style.width=w;
   if(clip){
     if(vid.src!==b.url){ vid.src=b.url; }
     if(b.poster) vid.poster=b.poster; else vid.removeAttribute('poster');
     vid.className=b.color?'c-'+b.color:'';
-  } else if(b.url){ im.style.width=w; im.src=b.url; im.className=b.color?'c-'+b.color:''; }
+  } else if(su.url){ im.style.width=w; im.src=su.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
   document.querySelectorAll('.chip').forEach(function(c){
     c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
@@ -1268,11 +1455,11 @@ function openBeat(b){
   // Every generation this beat has had — thumbnails, newest first, current
   // ringed. Only shows once there is more than the current picture.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
-  var vers=((b.url&&!clip)?[b.url]:[]).concat((b.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
+  var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
   vr.hidden=vers.length<2;
   if(vers.length>1){
     vers.forEach(function(u,i){
-      var t=document.createElement('button'); if(i===0&&b.url)t.className='cur';
+      var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
       t.onclick=function(ev){
         ev.stopPropagation();
@@ -1293,7 +1480,7 @@ function openBeat(b){
   // The two ways to (re)make art: above the picture when there is one, in
   // the blank tile when there isn't. NEITHER on a clip — nothing here draws
   // a film, and a picture-maker over one would only ever replace it.
-  document.getElementById('artrow').hidden=clip||!b.url;
+  document.getElementById('artrow').hidden=clip||!su.url;
   // Drawing here: the prompt starts as the beat's own words.
   var db_=document.getElementById('drawbox');
   db_.hidden=true;
@@ -1301,9 +1488,9 @@ function openBeat(b){
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
-  var drawing=Boolean(b.gen&&b.gen.status==='drawing');
-  st.hidden=!(drawing||(b.gen&&b.gen.status==='failed'));
-  st.textContent=drawing?'drawing…':((b.gen&&b.gen.error)||'');
+  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
+  st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
+  st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
   if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
   // A clip's own sound IS its voice — the film plays the tape rather than
   // reading her note over it — so the speak and record icons come off
@@ -1341,6 +1528,10 @@ function openDraw(ev){
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
   box.hidden=!box.hidden;
+  // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
+  // her card is the watercolor look, the wrong reference there) — so the
+  // toggle comes off rather than sitting there doing nothing.
+  document.getElementById('dchar').hidden=(padStyle==='dreamy');
   if(!box.hidden){
     // The prompt starts as whatever the text box says RIGHT NOW — not the
     // beat's last SAVED text. Words typed seconds ago aren't saved until the
@@ -1369,7 +1560,8 @@ document.getElementById('dgo').onclick=function(ev){
   api('/generate',{method:'POST',body:JSON.stringify({
     id:b.id, prompt:prompt,
     quality:document.getElementById('dq').value,
-    character:document.getElementById('dchar').classList.contains('on'),
+    style:padStyle,
+    character:padStyle!=='dreamy'&&document.getElementById('dchar').classList.contains('on'),
   })}).then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;
     if(d.error){ alert(d.error); return; }
@@ -1382,7 +1574,14 @@ document.getElementById('dgo').onclick=function(ev){
 /* A draw is a background job: poll the pad while any beat is drawing, and
    resume that poll on return, so leaving the app never loses a picture. */
 var genTimer=null;
-function anyDrawing(){ return beats.some(function(b){ return b.gen&&b.gen.status==='drawing'; }); }
+/* Watches BOTH sides of the toggle — she can flip away while a dreamy draw
+   is still cooking, and the poll must keep going until it lands. */
+function anyDrawing(){
+  return beats.some(function(b){
+    return (b.gen&&b.gen.status==='drawing')
+      ||(b.alt&&b.alt.dreamy&&b.alt.dreamy.gen&&b.alt.dreamy.gen.status==='drawing');
+  });
+}
 function startGenPoll(){
   if(genTimer)return;
   genTimer=setInterval(function(){
@@ -1391,7 +1590,7 @@ function startGenPoll(){
       beats=d.beats||beats; render();
       if(popBeat){
         var fresh=beats.find(function(x){return x.id===popBeat.id;});
-        if(fresh&&(!fresh.gen||fresh.gen.status!=='drawing')&&popBeat.gen&&popBeat.gen.status==='drawing'){
+        if(fresh&&!slotDrawing(fresh)&&slotDrawing(popBeat)){
           popBeat=fresh; openBeat(fresh);
         } else if(fresh){ popBeat=fresh; }
       }
@@ -1426,7 +1625,7 @@ document.querySelectorAll('.chip').forEach(function(c){
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
-    document.getElementById(isClip(popBeat)?'popvid':(popBeat.url?'popimg':'popblank')).className=col?'c-'+col:'';
+    document.getElementById(isClip(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
     document.querySelectorAll('.chip').forEach(function(x){
       x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
     });
@@ -1461,7 +1660,7 @@ document.getElementById('speak').onclick=function(ev){
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  document.getElementById('lbimg').src=popBeat.url;
+  document.getElementById('lbimg').src=slotOf(popBeat).url;
   document.getElementById('lightbox').hidden=false;
 };
 document.getElementById('lightbox').onclick=function(ev){
@@ -1472,9 +1671,9 @@ document.getElementById('lightbox').onclick=function(ev){
    dark as the ack and the popup stays open (same manner as the color chips). */
 document.getElementById('coverbtn').onclick=function(ev){
   ev.stopPropagation();
-  var b=popBeat; if(!b||!b.url)return;
+  var b=popBeat; if(!b||!artOf(b))return;
   var btn=this;
-  api('/cover',{method:'POST',body:JSON.stringify({id:b.id})})
+  api('/cover',{method:'POST',body:JSON.stringify({id:b.id,style:padStyle})})
     .then(function(r){return r.json()})
     .then(function(d){ if(d&&d.ok){ btn.classList.add('on'); } })
     .catch(function(){});
