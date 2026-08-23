@@ -1922,6 +1922,18 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   thing on screen is the shape of the whole thing, not its contents. Her worked
   example, the Story Room: organize by projects and by level of completion,
   with the LAST hairline tab holding the ones she wants to start on.
+- **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
+  Sophie: "the ... button for longer than two line prompt is huge … truncated
+  text shud always just be a ...with a line under it that links to open
+  (untruncate) or it can say 'more' or 'see more'. never a separate button.
+  document that as a ui pattern").** `…` / `… more` / `see more`, underlined,
+  inline, inheriting the surrounding type — no border, no padding, no
+  background, and never a bare unstyled `<button>` (which draws the browser's
+  own box). Still a `<button>` ELEMENT — the rule is about paint, not markup.
+  The class is `.moretxt` on every page. The full pattern, and the class-name
+  collision that actually caused this (`.morebtn` was the opener AND the
+  "Older" paging button in one file, later rule wins), are in
+  `docs/design-rules.md`; pinned by `node scripts/test-truncation-opener.js`.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   Circular icon buttons (toggles, dots) are the only exception. **Plus one
   named exception Sophie asked for (Aug 2026): the Chats home screen's

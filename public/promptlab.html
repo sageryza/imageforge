@@ -166,7 +166,21 @@
      layout, and OUTSIDE the capped box — anything inside a line-clamp box after
      the clamped text gets clipped away with it. */
   .runhead .p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
+  /* THE HOUSE OPENER FOR TRUNCATED TEXT — a underlined word, never a button
+     (Aug 2026, Sophie: "the ... button for longer than two line prompt is
+     huge … truncated text shud always just be a … with a line under it that
+     links to open, or it can say more or see more. never a separate button.
+     it shud be fixed everywhere"). The full pattern is in
+     docs/design-rules.md.
+     IT WAS ALREADY WRITTEN THAT WAY AND LOST A NAME FIGHT: this rule used to
+     be `.morebtn`, borderless and correct — and `.morebtn` is ALSO the
+     "Older" paging button further down this file, 1px border and 9x18 of
+     padding, defined later, so the later rule won and the opener rendered as
+     a big empty box. Two unrelated controls must never share a class name.
+     `.moretxt` is the opener; `.morebtn` stays the paging button. */
+  .moretxt { display: inline; border: 0; background: none; margin: 0; padding: 0;
+    font: inherit; font-size: 12.5px; color: #6f675e; text-decoration: underline;
+    -webkit-tap-highlight-color: transparent; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
   /* `minmax(0, 1fr)` and `align-items: start`, both load-bearing now that a
      cell carries its own shape: a bare `1fr` is `minmax(auto, 1fr)`, and a
@@ -1964,11 +1978,11 @@
       (function (el) {
         if (el.scrollHeight - el.clientHeight <= 1) return;
         var btn = document.createElement('button');
-        btn.className = 'morebtn';
-        btn.textContent = '…';
+        btn.className = 'moretxt';
+        btn.textContent = '… more';
         btn.addEventListener('click', function () {
           var open = el.classList.toggle('clamp') === false;
-          btn.textContent = open ? 'less' : '…';
+          btn.textContent = open ? 'less' : '… more';
         });
         el.parentNode.insertBefore(btn, el.nextSibling);
       })(ps[i]);
