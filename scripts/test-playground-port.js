@@ -115,14 +115,20 @@ ok(fs.existsSync(path.join(ROOT, 'refs', 'dream-mystery.jpg')),
 ok(/do NOT copy its content/.test(dream.prefix), 'the anti-content rule OPENS the prefix');
 ok(/STYLE reference only/.test(dream.suffix) && /do not draw its content/.test(dream.suffix),
   'and CLOSES the suffix — bookended');
-// Sophie, 2026-08-20: "it should have a border" — the tail imported from
-// nde-panel.py banned one, on a reference whose own drawn frames are the look.
-// It does not ASK for one either: that shipped for an hour and she took it
-// back out ("take your borderline out"). Saying NOTHING about borders is the
-// settled state — the reference's own framing comes through unargued-with.
-ok(!/border/i.test(dream.suffix), 'the sent suffix neither bans nor asks for a border');
+// Borders have been round the houses. The tail imported from nde-panel.py
+// BANNED one, on a reference whose own drawn frames are the look; a cut that
+// asked for one shipped for an hour and she took it back out ("take your
+// borderline out"); then on 2026-08-22 she dictated the whole tail herself and
+// put it back — "Draw it inside a hand-drawn border, like the frames in the
+// style reference". So it ASKS for one now, in her words, and the thing to
+// guard is that it never goes back to banning one.
+ok(/hand-drawn border/i.test(dream.suffix), 'the sent suffix asks for a hand-drawn border');
+ok(!/no border|without a border/i.test(dream.suffix), 'and never bans one');
 ok(!/caption box/i.test(dream.suffix), 'and does not ban caption boxes (her ask — the reference has them)');
-ok(/minimal text only/i.test(dream.suffix), 'it says "minimal text only", the dream feed\'s current wording');
+// "Minimal text only." until 2026-08-22, a flat "no text." in her own rewrite.
+// The No-text TOGGLE swaps this exact clause, so test-playground-notext.js
+// pins it against dreamy.noText.from — this only checks the tail still has one.
+ok(/no text\./i.test(dream.suffix), 'it says "no text.", her 2026-08-22 wording');
 // The canvas toggles now, so the prompt must not name a shape.
 ok(!/vertical|portrait|square/i.test(dream.prefix + dream.suffix),
   'and it names no orientation, because the canvas toggles');
@@ -194,7 +200,9 @@ ok(/square:\s*\{\s*size:\s*'1024x1024'/.test(plgptOne), 'square is 1024x1024');
 // The default must stay portrait: it is what every run to date used AND the
 // cheaper of the two (gpt-image-2 charges MORE for the square — the one price
 // table in docs/modules/pictures.md).
-ok(/PL_GPT\.sizes\[String\(req\.body\.canvas \|\| ''\)\] \|\| PL_GPT\.sizes\.portrait/.test(serverSrc),
+// (Aug 2026: the canvas gained resolution TIERS, so the lookup moved from the
+// flat PL_GPT.sizes onto PL_GPT.res — the rule it is guarding is unchanged.)
+ok(/PL_GPT\.res\[String\(req\.body\.canvas \|\| ''\)\] \? String\(req\.body\.canvas\) : 'portrait'/.test(serverSrc),
   'an unknown canvas still falls back to a REAL size on the server, never an invented one');
 // SQUARE is the first-ever default only — the shape is REMEMBERED since Aug
 // 2026 ("make it not default to square, but just whatever the last option

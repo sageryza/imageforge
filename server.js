@@ -4942,7 +4942,7 @@ async function loadHouseRef(storagePath) {
 // Multi-reference gpt-image-2 edit (accepts several image[] style anchors).
 // `timeout` is per attempt — a medium 1024x1536 render can run well past the
 // 90s that suits the low-quality square calls, so callers can raise it.
-async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000 } = {}, retries = 2) {
+async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000, moderation = 'low' } = {}, retries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -4952,6 +4952,17 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       form.append('size', size);
       form.append('quality', quality);
       form.append('output_format', 'webp');
+      // MODERATION: LOW BY DEFAULT (Aug 2026, Sophie's call). gpt-image-2's
+      // filter is stochastic on identical input — a Dreamy prompt of hers drew
+      // fine at two sizes and was then refused twice in a row minutes later
+      // with safety_violations=[violence] (raw meat and a bare chest in a
+      // cartoon). A refusal costs a run and reads as a bug, and the pictures
+      // this app makes are her own illustrations. `low` is OpenAI's documented
+      // less-restrictive setting and the ONLY alternative — there is no
+      // "none", and CSAM and a handful of other categories are refused at
+      // every setting, so this cannot be turned off further and should not be
+      // described to her as if it could.
+      if (moderation) form.append('moderation', moderation);
       // NO output_compression. This is a LOSSY setting applied by OpenAI
       // BEFORE the bytes come back, so whatever it throws away is gone for
       // good — it cannot be undone later, only re-drawn (and a re-draw is a
@@ -5175,6 +5186,50 @@ const PL_GPT = {
   // prints that on the toggle so she is never guessing.
   sizes: { portrait: { size: '1024x1536', aspectRatio: '2:3' },
            square:   { size: '1024x1024', aspectRatio: '1:1' } },
+  // THE RESOLUTION TIERS (Aug 2026, Sophie: "adding the size as a toggle in
+  // the playground for things I want to print versus things I'm using for like
+  // videos"). Every surface in this repo had been pinned to 1024x1536 or
+  // 1024x1024 — the only three sizes the OLD gpt-image-1 took. gpt-image-2
+  // accepts ANY resolution inside its constraints (long edge <= 3840, both
+  // edges a multiple of 16, ratio <= 3:1, 655,360 <= pixels <= 8,294,400), so
+  // the model id was swapped and the size lines were simply never revisited.
+  //
+  // 2K and 4K here are the biggest EXACT 2:3 and 1:1 canvases at those pixel
+  // budgets, not OpenAI's landscape presets: an exact 2:3 needs both edges a
+  // multiple of 16, which forces w=2m/h=3m with m itself a multiple of 16, and
+  // 2336x3504 is the largest such canvas under the 8,294,400 cap (2352x3528
+  // would be 3,456 pixels over it). 1568x2352 lands on 3,687,936 — 2K to
+  // within 1,536 pixels. The square tiers are exact: 1920² IS 3,686,400 and
+  // 2880² IS 8,294,400.
+  //
+  // EVERY `cents` FIGURE IS MEASURED, NOT DERIVED (2026-08-22, via
+  // scripts/measure-image-cost.js reading the API's own `usage`). The 1K rows
+  // are OpenAI's published table; the rest are unpublished — the guide stops
+  // at three sizes and says "additional sizes available". They CANNOT be
+  // reasoned out from area, because gpt-image-2 does not price by area: 1920²
+  // and 1568x2352 hold the same 3.69 megapixels and the square costs 50% more
+  // at every quality. Re-measure rather than re-derive if the model changes.
+  // (One relationship does hold across every size tested: high is exactly 4x
+  // medium. Low is medium/8.71 portrait, medium/9 square.)
+  res: {
+    portrait: {
+      aspectRatio: '2:3',
+      tiers: {
+        '1k': { size: '1024x1536', label: '1K', cents: { low: 0.5, medium: 4.1, high: 16.5 } },
+        '2k': { size: '1568x2352', label: '2K', cents: { low: 0.75, medium: 6.55, high: 26.21 } },
+        '4k': { size: '2336x3504', label: '4K', cents: { low: 1.35, medium: 11.74, high: 46.94 } },
+      },
+    },
+    square: {
+      aspectRatio: '1:1',
+      tiers: {
+        '1k': { size: '1024x1024', label: '1K', cents: { low: 0.6, medium: 5.3, high: 21.1 } },
+        '2k': { size: '1920x1920', label: '2K', cents: { low: 1.09, medium: 9.83, high: 39.31 } },
+        '4k': { size: '2880x2880', label: '4K', cents: { low: 1.98, medium: 17.79, high: 71.16 } },
+      },
+    },
+  },
+  resDefault: '1k',
   // Generous — a full style prompt with her own additions. Over-length is cut
   // rather than refused here because this is a live editor, not a filing.
   promptMax: 4000,
@@ -5646,13 +5701,19 @@ app.post('/api/promptlab', async (req, res) => {
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       // Portrait unless she asked for the square; an unknown value is portrait,
-      // never an invented canvas.
-      const canvas = PL_GPT.sizes[String(req.body.canvas || '')] || PL_GPT.sizes.portrait;
+      // never an invented canvas. The resolution tier is the same rule, and it
+      // defaults to 1k — a page cached on her phone from before the toggle
+      // shipped sends no `res` at all, and must keep drawing exactly what it
+      // always drew rather than silently jumping to a dearer canvas.
+      const shapeId = PL_GPT.res[String(req.body.canvas || '')] ? String(req.body.canvas) : 'portrait';
+      const shape = PL_GPT.res[shapeId];
+      const resId = shape.tiers[String(req.body.res || '')] ? String(req.body.res) : PL_GPT.resDefault;
+      const canvas = { size: shape.tiers[resId].size, aspectRatio: shape.aspectRatio };
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
-        aspectRatio: canvas.aspectRatio, promptEdited: edited, noText,
+        aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
@@ -5713,7 +5774,10 @@ app.get('/api/promptlab/styles', (req, res) => {
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
-  res.json({ styles: out, sizes: PL_GPT.sizes, max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
+  // `sizes` is the old flat shape and stays exactly as it was — a page cached
+  // on her phone reads it, and this endpoint is the only thing that serves it.
+  res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
+    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
@@ -6066,6 +6130,8 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       form.append('size', '1024x1024');
       form.append('quality', 'low');
       form.append('output_format', 'webp');
+      // Moderation low, for the reason spelled out on openaiImageEditRefs.
+      form.append('moderation', 'low');
       // NO output_compression. This is a LOSSY setting applied by OpenAI
       // BEFORE the bytes come back, so whatever it throws away is gone for
       // good — it cannot be undone later, only re-drawn (and a re-draw is a

@@ -2391,6 +2391,44 @@ before working on that module. Nothing was deleted — the moved text is verbati
   same reasoning as quality" and she asked for the opposite.
   gpt-image-2 only — the LoRA has no baked prefix to show and rides
   `aspect_ratio` instead, so both controls hide on WTR.
+  **AND THE SIZE TIERS BESIDE IT — 1K · 2K · 4K (Aug 2026, Sophie: "adding the
+  size as a toggle in the playground for things I want to print versus things
+  I'm using for like videos").** `PL_GPT.res`, a second segmented group next to
+  the canvas; the run stores `res`. **Every image surface in this repo had been
+  pinned to 1024x1536 or 1024x1024 — the only three sizes the OLD gpt-image-1
+  accepted.** gpt-image-2 takes any canvas inside its constraints (long edge
+  ≤ 3840, both edges a multiple of 16, ratio ≤ 3:1, 655,360–8,294,400 pixels);
+  the model id was swapped and the size lines were never revisited. Sizes are
+  CONTINUOUS, not three presets — "2K" and "4K" here are just the names for two
+  useful budgets.
+  - **The tiers are the biggest EXACT 2:3 and 1:1 canvases at each budget**, so
+    a tier is the same picture with more pixels and never a different crop. An
+    exact 2:3 with both edges a multiple of 16 forces w=2m/h=3m with m itself a
+    multiple of 16 — which is why 4K portrait is **2336x3504** and one step up
+    (2352x3528) is 3,456 pixels over the cap. The squares land exactly on their
+    budgets: 1920² IS 3,686,400 and 2880² IS 8,294,400.
+  - **1K IS STILL THE DEFAULT AND STILL WHAT AN OLD PAGE SENDS.** A phone
+    holding a page cached from before this shipped sends no `res` at all, and
+    the absent value must land on the old canvas rather than a dearer one.
+  - **NOT PERSISTED**, same reasoning as quality and the canvas — 4K at high is
+    47¢ a picture, and that must never be something she is spending without
+    having just chosen it.
+  - **The tooltip prices are SERVED, never copied into the page** —
+    `PL_GPT.res` carries a MEASURED `cents` per quality (the table in
+    `docs/modules/pictures.md`) and a test pins that promptlab.html holds no
+    copy of a cost figure. Same rule as the baked prompts.
+  - **Re-rendering an existing run at another size** is
+    `node scripts/playground-rerun-size.js <runId> --size WxH` — it re-sends
+    the stored `fullPrompt` verbatim and prints the real `usage`.
+  Test: `node scripts/test-playground-res.js`.
+  **MODERATION IS `low` ON EVERY gpt-image-2 EDIT (Aug 2026, Sophie's call).**
+  `openaiImageEditRefs` sends it by default. The filter is STOCHASTIC on
+  identical input — a Dreamy prompt of hers drew fine at two sizes and was then
+  refused twice in a row minutes later with `safety_violations=[violence]` (raw
+  meat and a bare chest, in a cartoon). A refusal costs the run and reads as a
+  bug. **There is no `none`** — `auto` and `low` are the only two values, and
+  a handful of categories are refused at every setting, so this cannot be
+  turned off further and must not be described to her as if it could.
   **THE ROW WRAPS, and that is load-bearing:** with the Prompt button and the
   toggle added, flex squeezed the toggle to 50px on a 390pt phone — "Portrait"
   bled out of its box and **the Square half was clipped off the row**, which is
