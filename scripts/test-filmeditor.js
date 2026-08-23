@@ -103,6 +103,19 @@ console.log('the page contracts (static):');
   ok(/id="vA"/.test(html) && /id="vB"/.test(html), 'two video elements — a source boundary must not flash');
   ok(/window\.__navBack/.test(html), 'the native chevron can walk open → shelf');
   ok(/helpcard/.test(html), 'the instructions live behind the "?"');
+  // Sophie's live bugs, 2026-08-22 — all three were object-identity or
+  // stale-clock mistakes in the playback engine. Pinned so they stay dead.
+  ok(/next\.c\.key === seg\.c\.key/.test(html),
+    'end-of-film compares KEYS, not object identity (the last-clip loop)');
+  ok(!/next === seg/.test(html), 'the identity comparison is gone outright');
+  ok((html.match(/lastTs = null/g) || []).length >= 3,
+    'the tick clock resets on every play AND stop (the instant-skip bug)');
+  ok(/Math\.min\(0\.1, \(ts - lastTs\)/.test(html),
+    'a late frame nudges the playhead, never flings it');
+  ok(!/var cur = segAt\(playhead\)/.test(html),
+    'the strip finds the current piece in its OWN array (the invisible playhead)');
+  ok(/a\.paused && a\.getAttribute\('data-src'\)/.test(html),
+    'the audio track starts when the playhead crosses its offset mid-play');
 }
 
 console.log('');
