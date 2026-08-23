@@ -152,15 +152,9 @@ late or never.
 - **URGENT is the only interrupt** — she is blocked without it, or it expires.
   Say so plainly in the reply AND queue it anyway, so it survives her not being
   near the computer. "It would be faster" is not urgent.
-- **YouTube downloads ARE NO LONGER DESKTOP-ONLY (measured 2026-08-23 — see
-  *Grab a video* under Audio & film).** This line said for months that datacenter
-  IPs are bot-blocked, and that sentence is why `/api/ytdl` was never built.
-  Measured on the LIVE Render box that day: metadata, a 3.4MB m4a and a 9.1MB
-  360p mp4 (merged, postered, filed into the Dump), all clean, no cookies. So
-  send a video url to `POST /api/ytdl/grab` instead of queueing it here. It can
-  regress — YouTube's blocking is theirs to change — and when it does the grab
-  says `blocked:true` in yt-dlp's own words and THEN this queue is the fallback.
-  Re-measure with `GET /api/ytdl/status?probe=1` before believing either way.
+- **A video url is NOT a desktop task** — `POST /api/ytdl/grab` downloads it
+  from the cloud (*Grab a video* under Audio & film, measured live 2026-08-23).
+  If a grab ever comes back `blocked:true`, then queue it here.
 - **What counts as desktop-only:** anything needing her logged-in browser,
   keychain or Photos library, a plugged-in device, local files that live only on
   the Mac, and big uploads that must be chunked on her home connection. Anything
@@ -3213,13 +3207,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### The Anthony Chene NDE project
 - **Anthony Chene NDE moments database** (`nde.js`, `/api/nde`) — reads his
   near-death-experience interviews and extracts illustratable moments unique to
-  each experiencer. **Adding videos NO LONGER has to run on Sophie's Mac** — the
-  "YouTube bot-blocks datacenter IPs" rule was measured stale on 2026-08-23 and
-  `POST /api/ytdl/grab` pulls an interview from the cloud (*Grab a video* under
-  Audio & film). `scripts/nde-grab-local.py` still banks a video in the exact
-  layout the cutter reads, which the generic grab does not, so the Mac path
-  stays the one that files an interview INTO the NDE pipeline — it is no longer
-  the only way to get the bytes. Her one
+  each experiencer. **Adding videos runs on SOPHIE'S Mac** — not for the bytes
+  (`/api/ytdl` grabs those from the cloud) but because `nde-grab-local.py` banks
+  them in the exact layout the cutter reads. Her one
   command is `cd ~/imageforge && git checkout main && git pull origin main &&
   ./scripts/grab` (the `git checkout main` is load-bearing, not boilerplate).
   `./scripts/clip` pulls short video clips instead.

@@ -6,10 +6,8 @@
 // the error reading that tells a bot-block apart from an ordinary failure.
 //
 // `--live` adds the one measurement no unit test can stand in for: fetch the
-// real yt-dlp and pull a real video from whatever IP this is running on.
-// CLAUDE.md says datacenter IPs are bot-blocked; that is a claim about an
-// environment, and the house rule is to measure it. Run it on the box you are
-// asking about — the answer is only ever about that box.
+// real yt-dlp and pull a real video from whatever IP this is running on. Run it
+// on the box you are asking about — the answer is only ever about that box.
 
 const assert = require('assert');
 const ytdl = require('../ytdl.js');

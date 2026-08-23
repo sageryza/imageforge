@@ -6,21 +6,11 @@
 // it works, but it hands the file to her Files app, so every download still
 // needs a second trip to upload it into whichever tool wanted it.
 //
-// WHY THIS WAS THOUGHT IMPOSSIBLE, AND WHAT WAS ACTUALLY MEASURED.
-// CLAUDE.md has said since the NDE work that YouTube downloads are desktop-only
-// because "datacenter IPs are bot-blocked", and that sentence is why nobody
-// built this. Measured 2026-08-23 from a cloud container: yt-dlp pulled the
-// metadata, a 3.3MB m4a AND a 17MB 720p mp4, all clean, first try. So the claim
-// was stale for at least one cloud egress. That was NOT proof about Render — a
-// different datacenter with a different IP reputation, exactly the population-fact
-// trap in CLAUDE.md — so it was measured there too, the same day, once deployed:
-// the probe answered in 4.8s, a 3.4MB m4a came down in under 6s, and a 360p mp4
-// merged, postered and filed into the Dump at 9.1MB. Render is not blocked.
-// `GET /status?probe=1` re-runs that measurement whenever the answer is in
-// doubt — it can regress, because the blocking is YouTube's to change.
-// If Render is blocked, the honest answer is the block, not a hung job:
-// `blocked:true` on the doc plus the yt-dlp error, and the desktop queue is
-// still there.
+// RENDER IS NOT BLOCKED — measured live 2026-08-23: probe 4.8s, a 3.4MB m4a in
+// under 6s, a 360p mp4 merged, postered and filed at 9.1MB. It can regress
+// (the blocking is YouTube's to change), so `GET /status?probe=1` re-runs that
+// measurement on demand, and a real block lands as `blocked:true` on the doc
+// with yt-dlp's own words rather than as a hung job.
 //
 // THE BINARY IS FETCHED AT RUNTIME AND REFRESHES ITSELF WEEKLY, deliberately.
 // Render's stock Node image has no yt-dlp and no Python, so the choices were a
