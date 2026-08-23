@@ -32,6 +32,10 @@ later.
    — 1K / 2K / 4K, not the pixels** ("i asked for it to say 1k 2k or 4k").
    Filing a creation as well? `post-to-gallery.js --size 1568x2352` takes the
    real canvas and writes the tier for the caption plus `canvas` beside it.
+   **A panel CUT out of a sheet says `1/4 (4K)`, not its own tier** — a quarter
+   of a 4K sheet is 1168x1752 and would otherwise read as an ordinary 1K
+   picture. `size-tier.js`'s `cutSize(sheetCanvas, parts)` builds the slot, and
+   `scripts/panel-sheet.js` prints the ready caption for every piece.
    — the asset doc's `prompt` field is the tile caption. Only the chat that
    generated an image ever knows its quality; a sweep of 171 chats found 1,938
    images with no caption and almost none recoverable. Never invent one for an

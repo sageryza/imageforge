@@ -47,6 +47,24 @@ is(captionSize(null), '', 'null too');
 // says something we did not anticipate should still say it.
 is(captionSize('poster'), 'poster', 'an unknown value survives rather than vanishing');
 
+// A PANEL CUT OUT OF A SHEET SAYS SO (Aug 2026, Sophie: "1/4 panel could say
+// 1/4 (4k)"). Its own pixels are the wrong answer here: a quarter of a 4K
+// sheet is 1168x1752, which lands on the 1K rung and reads as an ordinary
+// small picture, losing what it is and what it cost.
+const { cutSize } = require(path.join(__dirname, '..', 'size-tier'));
+is(cutSize('2336x3504', 4), '1/4 (4K)', 'a quarter of the 4K sheet');
+is(cutSize('1568x2352', 4), '1/4 (2K)', 'a quarter of the 2K sheet');
+is(cutSize('2336x3504', 9), '1/9 (4K)', 'the fraction is whatever it was cut into');
+is(cutSize('2336x3504', 1), '4K', 'one part is not a cut — it IS the sheet');
+is(cutSize('2336x3504', 0), '4K', 'and neither is nought');
+is(cutSize('junk', 4), '1/4', 'an unreadable sheet still says it is a quarter');
+// It must survive captionSize untouched, or the auto-compare row that makes
+// "1/4 (4K)" vs "1/4 (2K)" the diff would print something else.
+is(captionSize('1/4 (4K)'), '1/4 (4K)', 'a cut slot passes through the normaliser');
+is(tierOf('1/4 (4K)'), null, 'and is never mistaken for a canvas');
+// The tier a quarter would get from its OWN pixels — the thing this avoids.
+is(tierOf('1168x1752'), '1K', "a 4K sheet's quarter is only 1K by pixel count");
+
 // The readers agree — meta-assets builds the caption from the same helper.
 const meta = fs.readFileSync(path.join(__dirname, '..', 'meta-assets.js'), 'utf8');
 assert(/sizeTier\.captionSize\(c\.size\)/.test(meta),

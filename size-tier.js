@@ -41,4 +41,26 @@ function captionSize(v) {
   return tierOf(s) || s;
 }
 
-module.exports = { tierOf, captionSize };
+/**
+ * A PANEL CUT OUT OF A SHEET SAYS SO (Aug 2026, Sophie: "1/4 panel could say
+ * 1/4 (4k)"). Deriving the tier from the panel's OWN pixels is true but
+ * useless here — a quarter of a 4K sheet is 1168x1752, which lands on the 1K
+ * rung and reads as an ordinary small picture, losing the one fact that
+ * explains what it is and what it cost. So a cut panel's slot is the fraction
+ * and the SHEET's tier: "1/4 (4K)".
+ *
+ * It passes through `captionSize` untouched (it is neither a bare tier nor a
+ * canvas), so nothing downstream has to know about it — the auto-compare rows
+ * print it as-is, which is what makes "1/4 (4K)" vs "1/4 (2K)" the diff on a
+ * sheet comparison.
+ *
+ *   cutSize('2336x3504', 4)  →  '1/4 (4K)'
+ */
+function cutSize(sheetCanvas, parts) {
+  const n = Math.round(Number(parts) || 0);
+  if (n < 2) return captionSize(sheetCanvas);   // not a cut — it IS the sheet
+  const tier = tierOf(sheetCanvas);
+  return tier ? `1/${n} (${tier})` : `1/${n}`;
+}
+
+module.exports = { tierOf, captionSize, cutSize };

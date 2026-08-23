@@ -1846,7 +1846,14 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   lands on a rung) and normalises on READ as well as on write, so records filed
   with `1568x2352` display as `2K` with no backfill. The exact canvas is kept
   beside it as `canvas`, because 2K portrait and 2K square are different
-  canvases at different prices. Model and quality alone answered the question
+  canvases at different prices.
+  **A PANEL CUT OUT OF A SHEET SAYS SO INSTEAD — `1/4 (4K)`** (Aug 2026,
+  Sophie: "1/4 panel could say 1/4 (4k)"). Its own pixels are the wrong answer
+  there: a quarter of a 4K sheet is 1168x1752, which lands on the 1K rung and
+  reads as an ordinary small picture, losing the one fact that says what it is
+  and what it cost. `cutSize(sheetCanvas, parts)` builds the slot, it passes
+  through the normaliser untouched, and `scripts/panel-sheet.js` prints the
+  file-ready caption for the sheet and for every piece. Model and quality alone answered the question
   while every surface here drew 1024x1536 and nothing else; gpt-image-2 takes
   any canvas, so the same prompt at the same quality now spans 5x in pixels and
   3x in price and the caption has to say which. It rides all three surfaces:
