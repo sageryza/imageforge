@@ -183,10 +183,25 @@ function proxyArgs(src, out, hasAudio) {
     '-movflags', '+faststart', out];
 }
 
+// THE AUDIO TRACK GETS A PROXY TOO (2026-08-23, measured on her real cut:
+// the "music" was a 13.9MB 480p YouTube VIDEO mp4 streamed through the
+// <audio> element — a 17.9s film needs ~300KB of actual audio). An
+// audio-only AAC copy is baked for any track that is a video file or heavy;
+// a small pure-audio file honestly skips.
+const audioProxyId = (url) => `${proxyId(url)}-aud`;
+function audioProxyNeeded(probe, bytes) {
+  return Boolean(probe.hasVideo) || bytes > 12 * 1024 * 1024;
+}
+function audioProxyArgs(src, out) {
+  return ['-y', '-i', src, '-vn', '-c:a', 'aac', '-b:a', '128k',
+    '-movflags', '+faststart', out];
+}
+
 // One bake at a time — the 512MB box (the Playground's serialize lesson).
 let proxyChain = Promise.resolve();
-function enqueueProxy(url) {
-  proxyChain = proxyChain.then(() => bakeProxy(url)).catch(() => {});
+function enqueueProxy(url, kind) {
+  const fn = kind === 'audio' ? bakeAudioProxy : bakeProxy;
+  proxyChain = proxyChain.then(() => fn(url)).catch(() => {});
 }
 async function bakeProxy(url) {
   const d = db();
@@ -218,21 +233,53 @@ async function bakeProxy(url) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
+async function bakeAudioProxy(url) {
+  const d = db();
+  if (!d || !FFMPEG || !FFPROBE) return;
+  const ref = d.collection(PROXY_COL).doc(audioProxyId(url));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'feaprox-'));
+  try {
+    const src = path.join(dir, 'src');
+    await downloadSource(url, src);
+    const bytes = fs.statSync(src).size;
+    const probe = await probeFile(src);
+    if (!probe.hasAudio) throw new Error('no audio stream');
+    if (!audioProxyNeeded(probe, bytes)) {
+      await ref.set({ url, kind: 'audio', status: 'skip', proxyUrl: null, at: Date.now() }, { merge: true });
+      return;
+    }
+    const out = path.join(dir, 'proxy.m4a');
+    await run(FFMPEG, audioProxyArgs(src, out), 900000);
+    const proxyUrl = await editor.uploadPublic(out,
+      `${STORAGE_FOLDER}/proxy/${proxyId(url)}.m4a`, 'audio/mp4');
+    await ref.set({
+      url, kind: 'audio', status: 'ready', proxyUrl,
+      bytes: fs.statSync(out).size, srcBytes: bytes, at: Date.now(),
+    }, { merge: true });
+  } catch (err) {
+    console.warn('filmeditor: audio proxy failed —', err.message);
+    await ref.set({ url, kind: 'audio', status: 'error', proxyUrl: null, error: String(err.message).slice(0, 300), at: Date.now() }, { merge: true }).catch(() => {});
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // The shared read+enqueue: answer what exists, start what doesn't. A wedged
 // 'making' older than 20 min and an 'error' older than 10 get another go.
-async function proxyStates(urls, mayEnqueue) {
+async function proxyStates(urls, mayEnqueue, kind) {
   const d = db();
+  const idFor = kind === 'audio' ? audioProxyId : proxyId;
   const map = {};
   for (const url of urls) {
-    const snap = await d.collection(PROXY_COL).doc(proxyId(url)).get();
+    const snap = await d.collection(PROXY_COL).doc(idFor(url)).get();
     const v = snap.exists ? snap.data() : null;
     const age = v ? Date.now() - (v.at || 0) : 0;
     const retry = v && ((v.status === 'making' && age > 20 * 60 * 1000)
       || (v.status === 'error' && age > 10 * 60 * 1000));
     if (mayEnqueue && (!v || retry)) {
-      await d.collection(PROXY_COL).doc(proxyId(url)).set(
-        { url, status: 'making', proxyUrl: null, at: Date.now() }, { merge: true });
-      enqueueProxy(url);
+      await d.collection(PROXY_COL).doc(idFor(url)).set(
+        { url, ...(kind === 'audio' ? { kind: 'audio' } : {}), status: 'making', proxyUrl: null, at: Date.now() }, { merge: true });
+      enqueueProxy(url, kind);
       map[url] = { status: 'making', proxyUrl: null };
     } else {
       map[url] = v ? { status: v.status, proxyUrl: v.proxyUrl || null }
@@ -503,21 +550,29 @@ router.post('/', async (req, res) => {
 // "proxies" as a cut id (the /api/promptlab/styles lesson).
 // POST { urls:[…] } ensures a bake exists or starts one; GET ?urls=a,b only
 // reads. The page polls GET while any answer says 'making'.
+const cleanUrls = (list) => [...new Set(list
+  .map((u) => String(u || '').trim().slice(0, 500))
+  .filter((u) => /^https:\/\//.test(u)))].slice(0, 40);
 router.post('/proxies', async (req, res) => {
   try {
-    const urls = [...new Set((Array.isArray(req.body.urls) ? req.body.urls : [])
-      .map((u) => String(u || '').slice(0, 500))
-      .filter((u) => /^https:\/\//.test(u)))].slice(0, 40);
-    if (!urls.length) return res.status(400).json({ error: 'urls[] required' });
-    res.json({ proxies: await proxyStates(urls, true) });
+    const urls = cleanUrls(Array.isArray(req.body.urls) ? req.body.urls : []);
+    const audioUrls = cleanUrls(Array.isArray(req.body.audio) ? req.body.audio : []);
+    if (!urls.length && !audioUrls.length) return res.status(400).json({ error: 'urls[] required' });
+    res.json({
+      proxies: urls.length ? await proxyStates(urls, true) : {},
+      audio: audioUrls.length ? await proxyStates(audioUrls, true, 'audio') : {},
+    });
   } catch (err) { fail(res, err); }
 });
 router.get('/proxies', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const urls = [...new Set(String(req.query.urls || '').split(',')
-      .map((u) => u.trim()).filter((u) => /^https:\/\//.test(u)))].slice(0, 40);
-    res.json({ proxies: urls.length ? await proxyStates(urls, false) : {} });
+    const urls = cleanUrls(String(req.query.urls || '').split(','));
+    const audioUrls = cleanUrls(String(req.query.audio || '').split(','));
+    res.json({
+      proxies: urls.length ? await proxyStates(urls, false) : {},
+      audio: audioUrls.length ? await proxyStates(audioUrls, false, 'audio') : {},
+    });
   } catch (err) { fail(res, err); }
 });
 
@@ -586,5 +641,6 @@ module.exports = {
   // pure pieces, for the tests and the page's mirror
   cleanPieces, cleanAudio, pieceSeconds, totalSeconds, splitPiece, mixGraph,
   proxyId, proxyNeeded, proxyArgs,
+  audioProxyId, audioProxyNeeded, audioProxyArgs,
   trimmedCut, MAX_PIECES, MAX_RENDERS, MIN_PIECE, PROXY_EDGE,
 };

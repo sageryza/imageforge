@@ -2732,8 +2732,19 @@ before working on that module. Nothing was deleted — the moved text is verbati
   track** (same day, same root: syncAudio compared the music against the
   LAGGING playhead, read >0.35s of "drift" at every joint and yanked the
   music backward — the stop-start chop on same-source cuts too. The joint
-  path now only STARTS a paused track; a genuine stall's drift is corrected
-  in the tick, >0.5s, against the now-honest playhead), **a source boundary keeps
+  path now only STARTS a paused track — and drift is PACED, never yanked:
+  every swap joint holds the playhead a beat while the next piece paints, the
+  music rolls on through it, so drift ACCUMULATES joint by joint — her 17.9s
+  cut crossed a 0.5s hard-reseek threshold around the 12s mark, which was
+  "fine for a while, then choppy at 3/4 of the way through" (2026-08-23).
+  `audioPace` leans the rate 4% against a moderate drift (inaudible on a
+  music bed, hysteresis 0.3→0.12); only a drift past 2s is hard-resynced.
+  **And the music track gets its own audio-only proxy** — measured the same
+  day: her "music" was a 13.9MB 480p YouTube VIDEO mp4 streamed through the
+  <audio> element for a 17.9s film. `bakeAudioProxy` (filmeditor.js — a
+  video file or >12MB always bakes, a small pure-audio file skips) answers on
+  the same `/proxies` routes under `audio`, and the page plays `audSrc()`,
+  adopted between plays like the video proxies), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
   gap), and **a joint never seeks the element on screen** (2026-08-23, her
   "little pauses between all the clips": #1564 fixed the seek-at-every-joint
