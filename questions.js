@@ -12,16 +12,38 @@
 // remembered by anybody — this reads what is already there, works retroactively
 // over the whole history, and cannot go stale.
 //
-// THE ANSWER IS THE REPLY'S OPENING — its TLDR, else its first paragraph. The
-// house rules (TLDR first; answer her questions first, once; short by default)
-// are what make that the right text. There WAS a companion writing rule here
-// for one day — repeat her question verbatim in bold, answer underneath, so
-// this file could extract the exact block — and Sophie retired it 2026-08-15:
-// chats answered first AND echoed the bold block, so every reply said the same
-// thing twice, and the verbatim echo read as clutter. The bold-block path below
-// (`boldBlocks`/`matchBlock`) is KEPT: it still gives the day-old replies that
-// carry blocks their exact answers, and a reply that naturally structures
-// itself that way still benefits. It must never go back to being REQUIRED.
+// SHE FLAGS A QUESTION WITH THE WORD "QUESTION" — NOTHING ELSE REACHES THE TAB
+// (2026-08-23, Sophie: "get rid of the directions for chats to bold question
+// answers. it ONLY applies if i use the word question in my text eg i have a
+// question, or my question is: or 'quick question' etc. THEN it's bolded and
+// put in the questions tab").
+//
+// This is the third shape of the same feature, and the first one that asks HER
+// instead of guessing. The detector below was tuned twice against her real
+// threads and still could not tell a question from a dictated aside: the first
+// pass produced 466 rows she looked at and said "most of them aren't even
+// questions", and the wh-word and code-fragment rules further down are what was
+// left after cutting the worst of them. The reason is structural, not a tuning
+// miss — **she dictates**, so her questions carry no question mark and her
+// statements open with auxiliaries, and no heuristic separates "Can you make
+// the dashes pink" from "Can't wait to see it" reliably enough for a list she
+// trusts. One word from her settles it for free, and she is already saying it.
+//
+// So `findQuestions` returns NOTHING at all unless her message carries the word
+// `question` (`flagsQuestion`). Inside a flagged message the old sentence-level
+// heuristics still pick which sentence is the ask — a false positive there
+// costs one extra row in a message that really was about a question, which is a
+// different order of problem from filing her whole transcript.
+//
+// AND THE FLAG IS WHAT BRINGS THE BOLD ECHO BACK. A blanket "repeat her
+// question verbatim in bold" rule shipped for one day (2026-08-14→15) and
+// Sophie retired it: chats answered her question first AND echoed the bold
+// block, so every reply said the same thing twice, and the verbatim echo of her
+// dictation read as clutter. It is worth its space again now, because it fires
+// only on the handful of messages she deliberately marked — and the block is
+// what gives THIS file the exact answer to file, instead of the reply's opening
+// paragraph and a hope (`boldBlocks`/`matchBlock`, which stay the first source
+// `answerFor` tries).
 //
 // Pure functions only (no Firestore, no network) so the whole thing is testable:
 // `node scripts/test-questions.js`.
@@ -58,11 +80,12 @@ const LEAD = /^(can|could|should|would|do|does|did|is|are)(?![\w'’])/i;
 // The case that made this necessary: "I'm wondering if this should be part of
 // the message or should be filed separately" — a real question with no question
 // mark anywhere in it (her own words, 2026-08-14).
-// `my question is` was in this list and had to come out: her message ABOUT this
-// feature contained "my question is repeated verbatim and bold", which is her
-// describing the format, not asking anything — and it lit up the very first
-// sentence of the very first message the list was built from. A framing phrase
-// that can also be spoken about a question is not a signal.
+// `my question is` was in this list and had to come out, because on an UNGATED
+// list a framing phrase that can also be spoken ABOUT a question is not a
+// signal: her message describing this very feature said "my question is
+// repeated verbatim and bold" and it lit up the first row of the first list.
+// It lives in `ASKING` now instead — that runs only inside a message she
+// deliberately marked, where the same phrase means what it says.
 const WONDER = /\b(i'?m wondering|i wonder|wondering (?:if|whether|about)|curious (?:if|whether|about)|can you tell me|do you know|any chance)\b/i;
 
 // A QUESTION MARK IS NOT ENOUGH ON ITS OWN. Her messages sometimes carry
@@ -92,16 +115,74 @@ function isQuestion(s) {
   return false;
 }
 
+// ---- Her flag ---------------------------------------------------------------
+// THE GATE IS THE WORD ITSELF, not a phrase list. Her sentence was "if i use the
+// word question in my text", and the three shapes she gave — "i have a
+// question", "my question is:", "quick question" — are examples of saying it,
+// not a vocabulary to match. A phrase list would silently drop the fourth way
+// she says it, and the failure would be invisible: a question she marked simply
+// never appears, with nothing on screen admitting why.
+//
+// The cost is the other direction, and it is worth naming: a message ABOUT
+// questions trips it — this feature's own conversation would. That is one stray
+// row in a message that really was about a question, and an unanswered one is
+// never listed anyway (`answeredOnly`).
+const FLAG = /\bquestions?\b/i;
+function flagsQuestion(text) {
+  return FLAG.test(String(text || ''));
+}
+
+// The asking phrases, used ONLY to decide WHICH sentence of a flagged message is
+// the ask — never to decide whether the message counts. They exist because her
+// commonest shape carries no other signal at all: "quick question, can you make
+// the dashes pink" has no mark and opens on a noun, so every heuristic below
+// misses it.
+const ASKING = /\b(?:i\s+(?:have|had|got)\s+(?:a|an|another|one|two|three|some|a\s+few|a\s+couple(?:\s+of)?)?\s*\w*\s*questions?|my\s+questions?\s+(?:is|are)|(?:quick|dumb|small|silly|random|serious|last|final|one\s+more|another)\s+questions?|questions?\s+for\s+(?:you|u)|questions?\s*[:—-])/i;
+
+// Is the ask IN the framing sentence, or is the framing a sentence of its own?
+// "my question is whether the tabs should be pink" carries it; "I have a
+// question." does not, and filing that as a row would put a heading in her list
+// where the question belongs. Three words after the phrase is the floor — the
+// same shape of floor `looksTyped` uses, for the same reason.
+function carriesAsk(s) {
+  const m = ASKING.exec(s);
+  if (!m) return false;
+  const rest = s.slice(m.index + m[0].length);
+  return rest.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length >= 3;
+}
+
 // Every question in one of her messages, verbatim — her words, untouched, which
 // is the point ("my question is repeated verbatim and bold").
 function findQuestions(text) {
-  return sentences(text).filter(isQuestion).map((s) => s.trim()).slice(0, 8);
+  if (!flagsQuestion(text)) return [];      // she did not mark this one
+  const ss = sentences(text);
+  const out = [];
+  const add = (s) => {
+    const t = String(s || '').trim();
+    if (t && looksTyped(t) && out.indexOf(t) < 0) out.push(t);
+  };
+  ss.forEach((s, i) => {
+    if (ASKING.test(s)) {
+      // Bare framing ("I have a question." / "Quick question.") hands the row to
+      // the sentence AFTER it, whatever that sentence looks like — she has just
+      // said in her own words that what follows is a question, and that beats
+      // any test this file could run on it.
+      if (carriesAsk(s)) add(s);
+      else if (ss[i + 1] && !ASKING.test(ss[i + 1])) add(ss[i + 1]);
+      return;
+    }
+    if (isQuestion(s)) add(s);
+  });
+  return out.slice(0, 8);
 }
 
 // ---- Pairing a question with its answer -----------------------------------
-// A reply written to the house rule opens each answer with the question itself
-// on its own line in bold. Pull those out as (heading, body) pairs; the body
-// runs to the next bold-only line.
+// A reply written to the house rule repeats each FLAGGED question on its own
+// line in bold and answers underneath. Pull those out as (heading, body) pairs;
+// the body runs to the next bold-only line. This is the first source
+// `answerFor` tries, and since Aug 2026 it is the one a chat is asked to
+// produce — but it stays OPTIONAL in code: a reply that answered plainly still
+// files its opening, so a chat on an older rule never leaves a row blank.
 function boldBlocks(reply) {
   const lines = String(reply || '').split('\n');
   const blocks = [];
@@ -231,6 +312,11 @@ function collapseSharedAnswers(list) {
 // message that isn't hers. A live draft (`working`) is still the same doc that
 // becomes the finished reply, so it is used as-is — the list simply improves
 // when the turn lands.
+//
+// A message she never flagged contributes nothing (see `flagsQuestion`), so
+// this runs over the whole history and answers "the questions I MARKED" rather
+// than "every sentence that parsed like one". Nothing was migrated: the list is
+// derived on every read, so the change reaches every chat's whole past at once.
 function buildQuestions(messages) {
   const list = (messages || []).slice().sort((a, b) => (
     (a.created || '') < (b.created || '') ? -1 : (a.created || '') > (b.created || '') ? 1 : 0
@@ -272,5 +358,5 @@ function answeredOnly(list) {
   return (list || []).filter((q) => q && q.answer);
 }
 
-module.exports = { sentences, isQuestion, findQuestions, boldBlocks, matchBlock, answerFor,
-  collapseSharedAnswers, buildQuestions, answeredOnly };
+module.exports = { sentences, isQuestion, flagsQuestion, findQuestions, boldBlocks, matchBlock,
+  answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };

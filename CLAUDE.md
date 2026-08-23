@@ -74,9 +74,10 @@ to-do list. Act on them, then answer on the image itself. **Never on a timer.**
 **Writing the reply** — **SHORT BY DEFAULT** (a few short paragraphs; only
 what changes what she does next — detail goes behind "want the long version?"
 or into the PR description) · TLDR first · answer her questions before
-anything else, **each answered ONCE — never echo the question back and answer
-it a second time** (see *Answering a question*) · small question, short
-answer · full clickable links · no markdown tables · times in 12-hour
+anything else, **each answered ONCE** · **did she say the word "question"?
+then repeat THAT question in bold on its own line and answer under it —
+otherwise never echo a question back** (see *Answering a question*) · small
+question, short answer · full clickable links · no markdown tables · times in 12-hour
 Pacific · files and images LAST · working links at the very bottom.
 
 ## Where everything is
@@ -1313,16 +1314,31 @@ them off the reference sheet, not off the old filenames.
     build sends.** The `app:true` requirement did exactly that: the phone
     keeps a cached page for days, so her own edit was refused with
     "couldn't be saved" while the note she was trying to fix stayed put.
-- **ANSWERING A QUESTION — answer it ONCE, at the top, plainly. Do NOT echo
-  the question back in bold.** For one day (2026-08-14→15) this file said the
-  opposite — repeat her question verbatim in bold, answer underneath — and
-  Sophie retired it after reading the result: **chats answered her question
-  first (the older rule) and then echoed it in bold and answered it AGAIN**,
-  so every reply carried the same answer twice, and the verbatim echo of her
-  dictation read as clutter ("the verbatim is kind of annoying … if they want
-  to rephrase it that's fine"). If restating a question helps the answer,
-  restate it in your own words — never as a required bold block. And keep the
-  answer SHORT; the length rule above applies to answers first of all.
+- **ANSWERING A QUESTION — answer it ONCE, at the top, plainly. THE BOLD ECHO
+  FIRES ONLY WHEN SHE SAYS THE WORD "QUESTION" (2026-08-23, Sophie: "get rid of
+  the directions for chats to bold question answers. it ONLY applies if i use
+  the word question in my text eg i have a question, or my question is: or
+  'quick question' etc. THEN it's bolded and put in the questions tab").** One
+  rule with a switch on it, and the switch is hers:
+  - **She did NOT say it → answer plainly and move on.** No bold heading, no
+    restatement as a required block. If restating helps the answer, restate it
+    in your own words. Nothing from that message reaches the Questions tab.
+  - **She DID say it → repeat THAT question on its own line in bold, verbatim,
+    and answer underneath, not bold.** That is the shape `questions.js` reads
+    to file the exact answer under the exact question, so it earns its space
+    here — and the rest of the reply is unchanged: this is a heading on the
+    answer you were already writing first, never a second pass at it.
+  - **Keep the answer SHORT either way**; the length rule above applies to
+    answers first of all.
+  - **Why it has a switch at all.** The blanket version shipped for one day
+    (2026-08-14→15) and Sophie retired it: chats answered her question first
+    (the older rule) and then echoed it in bold and answered it AGAIN, so every
+    reply carried the same answer twice, and the verbatim echo of her dictation
+    read as clutter ("the verbatim is kind of annoying"). It was never the bold
+    that was wrong — it was bolding EVERY sentence a detector thought was a
+    question, on a list she looked at and said "most of them aren't even
+    questions". Her word is what makes the echo rare enough to be worth
+    reading.
   - **The QUESTIONS button needs nothing from you.** Under a chat's header, on
     the note row, a button **swaps the message list for her questions** and
     swaps it back — the header, tabs and her note stay put; each row is a real
@@ -1340,9 +1356,20 @@ them off the reference sheet, not off the old filenames.
   - It shipped first as a full-screen overlay with an ✕ and that was wrong —
     "not totally separate not an x"; a new surface here should take the
     messages' place, not cover them.
-  - Her dictation often carries **no question mark at all** ("I'm wondering if
-    this should be part of the message"), so the detector keys off phrasing
-    too. Don't assume a question needs a `?` to reach the list.
+  - **THE GATE IS HER WORD, NOT A `?` AND NOT A DETECTOR (2026-08-23).** A
+    message with no `question` in it contributes NOTHING to the list, however
+    much it reads like an ask; inside a message that has it, the old heuristics
+    still pick WHICH sentence — her dictation often carries no question mark at
+    all ("I'm wondering if this should be part of the message"), and "quick
+    question, can you make the dashes pink" has neither a mark nor an
+    auxiliary, so only her word finds it. **Bare framing hands the row to the
+    next sentence** — "I have a question." is a heading, so the row reads what
+    follows it. The list is DERIVED on every read, so this changed every
+    chat's whole history at once, with nothing migrated.
+  - **The cost, named:** a message merely ABOUT questions trips the gate — this
+    feature's own conversation would. That is one stray row in a message that
+    really was about a question, against the 466 rows the ungated version
+    produced, and an unanswered row is never shown anyway.
   - `GET /api/chatfeed/questions?chat=` returns them, newest first
     (`?open=1` includes unanswered ones).
   - Tests: `node scripts/test-questions.js` (the extraction, pure, no
@@ -2191,10 +2218,13 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   never before or in the middle. Write the explanation first, deliver last.
 - **Answer questions FIRST — and answer each one ONCE.** If Sophie's message
   contains a question, answer it at the top of the reply, before doing or
-  reporting on any tasks from the same message. **Do NOT echo her question
-  back in bold and answer it again** — that rule existed for one day and was
-  retired (see *Answering a question* in the Chats app section for why).
-  Restating a question in your own words, where it helps the answer, is fine.
+  reporting on any tasks from the same message. **Bold the question back ONLY
+  when she used the word "question"** ("I have a question", "my question is:",
+  "quick question") — then repeat that question verbatim on its own line in
+  bold with the answer under it, and it lands in her Questions tab. Any other
+  question gets a plain answer and no echo; restating it in your own words,
+  where it helps, is fine. Full rules: *Answering a question* in the Chats app
+  section.
 - **SHORT REPLIES BY DEFAULT — every reply, not just small questions (Aug
   2026, Sophie: "a lot of my responses are really long and it's actually
   annoying cause I don't wanna read through it all").** The default reply is a
@@ -3849,8 +3879,9 @@ before working on that module. Nothing was deleted — the moved text is verbati
   her screenshot — this, not the timing, is what she was actually reporting).**
   Two house rules collided: *Answering a question* at the time REQUIRED a
   reply to open with her question repeated verbatim in bold on its own line
-  (that rule is retired — same day — but day-old replies still carry the
-  shape, and a reply may still open bold on its own), and the push body was
+  (that blanket rule was retired the same day, and since 2026-08-23 the echo is
+  back for the questions SHE marks with the word "question" — so this skip
+  matters MORE now, not less), and the push body was
   `tldr || the reply's first non-empty line` — so every answer buzzed her with
   her own sentence, asterisks and all. Leading **entirely bold** lines are now
   skipped (that is exactly the shape the answering rule produces; `**TLDR** —
