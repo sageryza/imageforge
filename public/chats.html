@@ -370,6 +370,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
 .qclear{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
+/* ---- WHO SAID IT — the search's first filter row (Aug 2026) --------------
+   Shown ONLY while the bar is open, driven off the row's own `.on` class so
+   it obeys `paintSearch` for free — including the to-do view, where the
+   whole search bar hides because that list is not chats. A general sibling
+   (`~`, not `+`) because a row landing between the two later must not
+   silently take the filters off screen.
+   The 56px reserve is the search row's own: the injected autoscroll pill is
+   fixed over x 326-374 / y 14-192 on a 390pt phone, and this row sits inside
+   that band. Three chips measure ~170px from the left, so they clear it
+   comfortably — the reserve is what keeps a FOURTH filter from sliding under
+   the pill when she asks for one. */
+.searchfilters{display:none; margin:-.2em 0 .8em; padding-right:56px;
+  gap:6px; flex-wrap:wrap; align-items:center;}
+.searchrow.on ~ .searchfilters{display:flex;}
+/* The in-thread twin follows its OWN box open (`.msgsearch.open`) and takes
+   no pill reserve: it sits well below the header band, and the thread's
+   search is collapsed behind the magnifier until she asks for it. */
+.msgfilters{padding-right:0; margin:-.4em 0 .9em;}
+.msgsearch.open ~ .msgfilters{display:flex;}
 .sres{display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .sr-top{display:flex; align-items:baseline; gap:8px; margin-bottom:3px;}
 .sr-chat{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--rose); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
@@ -1565,6 +1584,20 @@ body.newspick > .float{display:none !important;}
       <button id="searchbtn" class="iconbtn" aria-label="Search all chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
       <div class="qwrap"><input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off"><button id="qwipe" class="qwipe" aria-label="Clear the words">&times;</button></div>
       <button id="qclear" class="qclear" aria-label="Close the search">&times;</button>
+    </div>
+    <!-- WHO SAID IT — the first search filter (Aug 2026, Sophie: "add some
+         filters to the search in the chats thing … one would be a filter
+         allowing me to search through my messages versus Claude's
+         messages"). Chips rather than a typed `from:` prefix because she
+         dictates every word she puts in that box and would have to say the
+         punctuation out loud. It rides UNDER the bar and only while the bar
+         is open (`.searchrow.on ~`), so a folded search costs the home
+         screen nothing — and it is deliberately the same `.catchip` box as
+         her tag chips, since both are "narrow this list to a word". -->
+    <div class="searchfilters" id="searchfilters" role="group" aria-label="Whose messages to search">
+      <button class="catchip whochip on" data-who="all">All</button>
+      <button class="catchip whochip" data-who="me">Mine</button>
+      <button class="catchip whochip" data-who="claude">Claude</button>
     </div>
     <div id="searchresults" style="display:none"></div>
     <!-- The witch shop sheet's Description/Reviews toggle, doing the same job
@@ -6162,6 +6195,23 @@ function openChat(name, keepScroll, focusId, noFetch){
   var sclr=document.createElement('button'); sclr.className='qclear'; sclr.innerHTML='&times;';
   sclr.style.display='none'; sclr.setAttribute('aria-label','Clear search');
   srow.appendChild(sinp); srow.appendChild(sclr);
+  // WHO SAID IT, inside one thread too (Aug 2026 — the same ask as the home
+  // bar). This is where it earns the most: a thread is her question and its
+  // answer alternating, so "what did I ask this chat about the image doc"
+  // is a question the messages themselves can answer once the replies that
+  // quoted her back are out of the way. Unlike the home bar this one filters
+  // what is ALREADY rendered — the thread is fully loaded, so there is no
+  // truncate to fall through and no request to make.
+  var mwho='all';
+  var mfrow=document.createElement('div'); mfrow.className='searchfilters msgfilters';
+  mfrow.setAttribute('role','group');
+  mfrow.setAttribute('aria-label','Whose messages to search');
+  [['all','All'],['me','Mine'],['claude','Claude']].forEach(function(p){
+    var b=document.createElement('button'); b.className='catchip whochip'+(p[0]==='all'?' on':'');
+    b.setAttribute('data-who',p[0]); b.textContent=p[1];
+    b.setAttribute('aria-pressed', p[0]==='all'?'true':'false');
+    mfrow.appendChild(b);
+  });
   var scount=document.createElement('div'); scount.className='msgcount'; scount.style.display='none';
   // Her pinned note on this chat (Aug 2026): HER OWN reminder of what's going
   // on here ("waiting on the palette", "this one makes the zine"). Not
@@ -6259,7 +6309,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   // from outside openChat, exactly like her note above it.
   threadWrap=paintThreadWrap;
   chatPanel.appendChild(wrow);
-  chatPanel.appendChild(srow); chatPanel.appendChild(scount);
+  chatPanel.appendChild(srow); chatPanel.appendChild(mfrow); chatPanel.appendChild(scount);
   // The messages live in their OWN box so the Questions list can take their
   // place without disturbing anything above it — the header, the tabs and her
   // note stay put, which is what she asked for after the first version came
@@ -6349,30 +6399,45 @@ function openChat(name, keepScroll, focusId, noFetch){
     }
     var row=renderMsg(m);
     if(m.id&&wasOpen[m.id]) row.classList.add('open');
-    mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
+    mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
+      hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     mlist.appendChild(row);
   });
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
     sclr.style.display=q?'':'none';
+    // The FILTER narrows on its own, with no words at all — "just show me
+    // what I said in here" is a whole question, and one the thread can
+    // answer without her having to think of a search term first.
+    var narrowing=!!q || mwho!=='all';
     // A chapter heading labels the block under it, so it has no meaning over a
     // filtered list — the messages it named are mostly gone. Hide them while
     // she is searching and bring them back when she clears the box.
-    chaprows.forEach(function(h){ h.style.display=q?'none':''; });
-    if(!q){
+    chaprows.forEach(function(h){ h.style.display=narrowing?'none':''; });
+    if(!narrowing){
       mrows.forEach(function(r){ r.row.style.display=''; });
       scount.style.display='none';
       return;
     }
-    var hits=0, groups=qparse(q);
+    var hits=0, groups=q?qparse(q):[];
     mrows.forEach(function(r){
-      var on=groups.length? qmatch(r.hay, groups) : true;
+      var on=(mwho==='all'||r.who===mwho) && (groups.length? qmatch(r.hay, groups) : true);
       r.row.style.display=on?'':'none';
       if(on) hits++;
     });
     scount.style.display='';
     scount.textContent=hits? (hits+' message'+(hits===1?'':'s')) : 'No messages match that';
   }
+  mfrow.querySelectorAll('.whochip').forEach(function(b){ b.onclick=function(){
+    var w=b.getAttribute('data-who')||'all';
+    if(w===mwho) return;
+    mwho=w;
+    mfrow.querySelectorAll('.whochip').forEach(function(o){
+      var on=o.getAttribute('data-who')===mwho;
+      o.classList.toggle('on', on); o.setAttribute('aria-pressed', on?'true':'false');
+    });
+    applyMsgFilter();
+  }; });
   var sinpLive=liveInput(sinp, applyMsgFilter);
   // Return here just ends it and drops the keyboard (the filtering is already
   // live) — sync'd for the same reason as the home bar.
@@ -6407,6 +6472,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     mlist.style.display=on?'none':'';
     comp.style.display=on?'none':'';         // the composer belongs to the messages
     srow.style.display=on?'none':'';         // that box searches messages
+    mfrow.style.display=on?'none':'';        // …and those chips filter them
     scount.style.display=on?'none':scount.textContent?'':'none';
     qpanel.style.display=on?'':'none';
     qbtn.classList.toggle('on', on);
@@ -6420,7 +6486,17 @@ function openChat(name, keepScroll, focusId, noFetch){
     var open=srow.classList.toggle('open');
     tsBtn.classList.toggle('on', open);
     if(open){ sinp.focus(); }
-    else { sinp.value=''; applyMsgFilter(); }   // closing always restores every message
+    else {
+      // Closing always restores every message — the FILTER has to come off
+      // with the words, or a thread she reopens later is silently missing
+      // half its messages with no box on screen saying why.
+      sinp.value=''; mwho='all';
+      mfrow.querySelectorAll('.whochip').forEach(function(o){
+        var isAll=o.getAttribute('data-who')==='all';
+        o.classList.toggle('on', isAll); o.setAttribute('aria-pressed', isAll?'true':'false');
+      });
+      applyMsgFilter();
+    }
   };
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
@@ -7777,6 +7853,25 @@ document.getElementById('back').onclick=function(){ goHome(); };
   var qi=document.getElementById('qsearch'), qc=document.getElementById('qclear'),
       qw=document.getElementById('qwipe'),
       sr=document.getElementById('searchresults'), grid=document.getElementById('grid'), t=null;
+  // ---- WHO SAID IT (Aug 2026, Sophie: "a filter allowing me to search
+  // through my messages versus Claude's messages") ------------------------
+  // `all` | `me` | `claude`, and it rides the QUERY rather than the page:
+  // filtering client-side would only narrow the 80 results already on
+  // screen, so "my messages about the image doc" would answer from whatever
+  // happened to survive the unfiltered top-80 — the Assets tab's hard-
+  // truncate lesson. The server holds the whole index and filters before it
+  // ranks, so a hit five hundred messages back is still found.
+  var whoFilter='all';
+  var whochips=[].slice.call(document.querySelectorAll('#searchfilters .whochip'));
+  function paintWho(){
+    whochips.forEach(function(c){ var on=c.getAttribute('data-who')===whoFilter;
+      c.classList.toggle('on', on); c.setAttribute('aria-pressed', on?'true':'false'); });
+  }
+  // The one place the filter is read into a request, so a new caller cannot
+  // forget that `all` sends nothing at all — an absent `from` is what every
+  // older cached page on her phone already sends, and it must keep meaning
+  // "both".
+  function whoQuery(){ return whoFilter==='all' ? '' : '&from='+encodeURIComponent(whoFilter); }
   // The account tabs govern the GRID, and a search deliberately looks across
   // both accounts — so they come off with it and back with it.
   var accrow=document.getElementById('accrow');
@@ -7820,25 +7915,39 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // reload inside that minute (the app repaints its webview freely) keeps it,
   // and a cold launch never does.
   var RECENT_MS=60000, RECENT_KEY='forgeLastSearch';
+  // The FILTER rides in that memory beside the words, because it is part of
+  // the same hunt: coming back to "my messages about the image doc" with the
+  // words restored but the filter reset would answer a different question
+  // with her old query still in the box.
   function remember(q){
-    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now()})); }catch(_){ }
+    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now(), who:whoFilter})); }catch(_){ }
   }
   function recent(){
     try{
       var r=JSON.parse(sessionStorage.getItem(RECENT_KEY)||'null');
-      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r.q : '';
-    }catch(_){ return ''; }
+      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r : null;
+    }catch(_){ return null; }
   }
   // Tapping the glass while a search is open means "a NEW one" — so it forgets
   // the old words outright, or closing the bar right after would bring back
   // exactly the query she just cleared.
-  window._forgetSearch=function(){ try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ } };
+  // …and a NEW search is unfiltered. The filter is a narrowing of one hunt,
+  // not a mode she has switched the app into, so it goes with the words.
+  window._forgetSearch=function(){
+    try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ }
+    whoFilter='all'; paintWho();
+  };
   // Only ever fills a box she left EMPTY, and only on the way in — never over
   // words already in front of her.
   window._restoreRecentSearch=function(){
     if(!qi || qi.value.trim()) return false;
-    var q=recent(); if(!q) return false;
-    qi.value=q; live.sync(); run(q);
+    var r=recent();
+    // Nothing to come back to (a cold open, or more than the minute) opens
+    // on ALL — the filter must never outlive the search that set it and
+    // silently narrow a hunt she is starting fresh.
+    if(!r){ whoFilter='all'; paintWho(); return false; }
+    whoFilter=(r.who==='me'||r.who==='claude') ? r.who : 'all'; paintWho();
+    qi.value=r.q; live.sync(); run(r.q);
     return true;
   };
   function run(q){
@@ -7849,10 +7958,14 @@ document.getElementById('back').onclick=function(){ goHome(); };
     q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
     remember(q);
-    api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
+    // The filter is captured with the query and checked again on the way
+    // back: tapping Mine while an All request is still in the air would
+    // otherwise let the older, wider answer land on top of the narrow one.
+    var who=whoFilter;
+    api('/api/chatfeed/search?q='+encodeURIComponent(q)+whoQuery()+'&_='+Date.now())
       .then(function(r){return r.json()})
       .then(function(d){
-        if(qi.value.trim()!==q) return;   // a newer keystroke already fired
+        if(qi.value.trim()!==q || whoFilter!==who) return;   // a newer keystroke or filter already fired
         var rs=(d&&d.results)||[];
         var cm=(d&&d.chatMatches)||[];
         grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='';
@@ -7903,6 +8016,20 @@ document.getElementById('back').onclick=function(){ goHome(); };
     window._resetSearch();
     qi.focus();
   };
+  // Tapping a chip re-runs what is already in the box at once — no debounce,
+  // because a tap is a finished gesture the way Return is, not a keystroke
+  // that might be followed by another. With an empty box it just arms the
+  // filter for whatever she dictates next.
+  whochips.forEach(function(c){ c.onclick=function(){
+    var w=c.getAttribute('data-who')||'all';
+    if(w===whoFilter) return;
+    whoFilter=w; paintWho();
+    clearTimeout(t);
+    var v=(qi&&qi.value||'').trim();
+    if(v.length>=2) run(v); else showGrid();
+  }; });
+  paintWho();
+  window.__setSearchWho=function(w){ whoFilter=w; paintWho(); };  // the tests' way in
   wipePaint();
 })();
 
