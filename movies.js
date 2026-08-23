@@ -113,22 +113,59 @@ const FFMPEG = process.env.FFMPEG_PATH || tryRequire('ffmpeg-static') || firstOn
 const FFPROBE = process.env.FFPROBE_PATH || (tryRequire('ffprobe-static') || {}).path || firstOnPath('ffprobe');
 
 // ─── Video models (versions validated live) ─────────────────────────
+// `shape` names the PARAMETER FAMILY, not the tier. Each family's input keys
+// are different and none of them is guessable from the model id (the Science
+// School animator learned that at 130 credits a guess), so every call site
+// asks `videoInput` rather than branching on a tier's NAME — a tier name is a
+// price band, and two tiers can share one shape. Adding a model is a row here,
+// plus an arm in `videoInput` only if it is a new family.
 const VIDEO_MODELS = {
   draft: {
     name: 'wan-2.2-i2v-fast',
+    shape: 'wan22',
     version: '4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea',
     fps: 16, // interpolate_output:true → delivered at 30fps
     costPerClip: f => (f > 81 ? 0.08 : 0.06),
   },
   standard: {
     name: 'kling-v2.1 (720p)',
+    shape: 'kling',
+    mode: 'standard',
     version: 'daad218feb714b03e2a1ac445986aebb9d05243cd00da2af17be2e4049f48f69',
     costPerClip: d => (d >= 10 ? 0.50 : 0.25),
   },
   pro: {
     name: 'kling-v2.1 pro (1080p)',
+    shape: 'kling',
+    mode: 'pro',
     version: 'daad218feb714b03e2a1ac445986aebb9d05243cd00da2af17be2e4049f48f69',
     costPerClip: d => (d >= 10 ? 1.10 : 0.55),
+  },
+  // Wan 2.7 (measured live 2026-08-23, one 720p 5s clip): REAL first-and-last
+  // frame conditioning — `last_frame`, a target rather than 2.2's `last_image`
+  // hint — 2-15s instead of a fixed 5, and 720p/1080p with no 480p at all.
+  // Two things to know before reaching for it:
+  //   · IT INVENTS AUDIO. With no `audio` supplied the model writes its own,
+  //     and the schema offers no way to ask for silence — the probe clip came
+  //     back carrying an aac track. Fine for a standalone animate, noise under
+  //     a film that already has her voice, so anything stitching these must
+  //     drop the track deliberately.
+  //   · IT IS PRICED PER SECOND OF OUTPUT ($0.10/s at 720p, $0.15/s at 1080p),
+  //     which is why its costPerClip takes a DURATION where draft's takes
+  //     frames — 5s at 720p is $0.50 against draft's $0.16.
+  wan27: {
+    name: 'wan-2.7-i2v (720p)',
+    shape: 'wan27',
+    version: 'b2d9c361e32024e17b7080c0bd351775be2a8cf732e04a4feb11c8653a40b1c1',
+    resolution: '720p',
+    costPerClip: d => Math.round(0.10 * d * 100) / 100,
+  },
+  wan27hd: {
+    name: 'wan-2.7-i2v (1080p)',
+    shape: 'wan27',
+    version: 'b2d9c361e32024e17b7080c0bd351775be2a8cf732e04a4feb11c8653a40b1c1',
+    resolution: '1080p',
+    costPerClip: d => Math.round(0.15 * d * 100) / 100,
   },
 };
 
@@ -223,6 +260,51 @@ const DEFAULT_NEGATIVE = 'photorealistic, 3d render, blurry, distorted face';
 const DEFAULT_IMAGE_STYLE =
   'Hand-drawn ink and watercolor illustration on textured paper, storybook ' +
   'panel, muted palette, clean composition.';
+
+// The ONE place that knows each family's parameter keys. `start`/`end` are
+// public image URLs — `end` is honoured only where the family really supports
+// it, and silently dropped where it does not (kling's end frame is pro-only).
+function videoInput(m, { start, end, prompt, negativePrompt, frames, duration, resolution }) {
+  if (m.shape === 'wan22') {
+    const input = {
+      image: start,
+      prompt,
+      // 2.2 is asked per call (a movie scene renders 480p, quick animate lets
+      // her pick); 2.7 has no 480p at all, so its size rides its tier instead.
+      resolution: resolution || m.resolution || '480p',
+      num_frames: frames,
+      frames_per_second: 16,
+      interpolate_output: true,
+      go_fast: true,
+    };
+    if (end) input.last_image = end;
+    return input;
+  }
+  if (m.shape === 'wan27') {
+    const input = {
+      first_frame: start,
+      prompt,
+      negative_prompt: negativePrompt || '',
+      resolution: m.resolution,
+      duration,
+      // OFF deliberately: `enable_prompt_expansion` defaults to true, which is
+      // the model rewriting the prompt before it draws. Nothing stands between
+      // what she wrote and what the model got.
+      enable_prompt_expansion: false,
+    };
+    if (end) input.last_frame = end;
+    return input;
+  }
+  const input = {
+    start_image: start,
+    prompt,
+    negative_prompt: negativePrompt || DEFAULT_NEGATIVE,
+    duration,
+    mode: m.mode || 'standard',
+  };
+  if (end && m.mode === 'pro') input.end_image = end;
+  return input;
+}
 const STATIC_TEXT_SUFFIX =
   ' Any text in the illustration stays perfectly static and legible.';
 
@@ -1304,44 +1386,26 @@ async function generateClipFor(movie, scene, idx, { tier = 'draft', frames } = {
   if (!scene.panel?.url || scene.panel.url.startsWith('data:')) {
     throw new Error('panel not rendered yet (or not on permanent storage)');
   }
+  const m = VIDEO_MODELS[tier];
+  if (!m) throw new Error(`unknown tier "${tier}"`);
   const prompt = scene.motionPromptOverride || motionPromptFor(movie, scene);
-  // Same-shot pair → animate BETWEEN the two drawn panels via last_image.
+  // Same-shot pair → animate BETWEEN the two drawn panels. Which key carries
+  // that (and whether the family honours it at all) is videoInput's problem.
   const nextPanel = scene.pairWithNext ? movie.scenes[idx + 1]?.panel?.url : null;
-  let output, cost, usedFrames = null;
+  const end = nextPanel && !nextPanel.startsWith('data:') ? nextPanel : null;
+  // 81 ≈ 5s, 121 ≈ 7.5s @16fps — draft counts frames, everyone else seconds.
+  const usedFrames = m.shape === 'wan22' ? (frames === 121 ? 121 : 81) : null;
+  const duration = 5;
 
-  if (tier === 'draft') {
-    const m = VIDEO_MODELS.draft;
-    usedFrames = frames === 121 ? 121 : 81; // 81 ≈ 5s, 121 ≈ 7.5s @16fps
-    const input = {
-      image: scene.panel.url,
-      prompt,
-      resolution: '480p',
-      num_frames: usedFrames,
-      frames_per_second: 16,
-      interpolate_output: true,
-      go_fast: true,
-    };
-    if (nextPanel && !nextPanel.startsWith('data:')) input.last_image = nextPanel;
-    const p = await replicatePredict(m.version, input);
-    output = Array.isArray(p.output) ? p.output[0] : p.output;
-    cost = m.costPerClip(usedFrames);
-  } else {
-    const m = VIDEO_MODELS[tier];
-    if (!m) throw new Error(`unknown tier "${tier}"`);
-    const duration = 5;
-    const input = {
-      start_image: scene.panel.url,
-      prompt,
-      negative_prompt: movie.negativePrompt || DEFAULT_NEGATIVE,
-      duration,
-      mode: tier === 'pro' ? 'pro' : 'standard',
-    };
-    // end_image conditioning REQUIRES kling pro.
-    if (tier === 'pro' && nextPanel && !nextPanel.startsWith('data:')) input.end_image = nextPanel;
-    const p = await replicatePredict(m.version, input, { pollMs: 6000, maxPolls: 120 });
-    output = Array.isArray(p.output) ? p.output[0] : p.output;
-    cost = m.costPerClip(duration);
-  }
+  const input = videoInput(m, {
+    start: scene.panel.url, end, prompt,
+    negativePrompt: movie.negativePrompt, frames: usedFrames, duration,
+  });
+  const p = await replicatePredict(m.version, input,
+    m.shape === 'wan22' ? undefined : { pollMs: 6000, maxPolls: 120 });
+  const output = Array.isArray(p.output) ? p.output[0] : p.output;
+  const cost = m.costPerClip(m.shape === 'wan22' ? usedFrames : duration);
+
   if (!output) throw new Error('video model produced no output');
   const url = await saveUrlToStorage(output, 'movies/clips', 'video/mp4');
   keepHistory(scene, 'clip');
@@ -1349,7 +1413,7 @@ async function generateClipFor(movie, scene, idx, { tier = 'draft', frames } = {
   movie.spend = +((movie.spend || 0) + cost).toFixed(2);
   fileVideoToCreations({
     url, poster: scene.panel?.url, prompt,
-    model: (tier === 'draft' ? 'wan-2.2-i2v-fast' : 'kling-v2.1'), quality: tier,
+    model: m.name, quality: tier,
   });
 }
 
@@ -2429,12 +2493,17 @@ router.get('/status', (req, res) => {
     voiceover: Boolean(OPENAI_API_KEY),   // whisper transcription for narrated films
     styles: Object.values(MOVIE_STYLES).map(s => ({ id: s.id, label: s.label, refs: s.refs.length })),
     gated: Boolean(STUDIO_TOKEN),
-    models: {
-      draft: VIDEO_MODELS.draft.name,
-      standard: VIDEO_MODELS.standard.name,
-      pro: VIDEO_MODELS.pro.name,
+    // Derived, so a model added to VIDEO_MODELS shows up here by itself.
+    models: Object.fromEntries(Object.entries(VIDEO_MODELS).map(([k, m]) => [k, m.name])),
+    costs: {
+      panel: PANEL_COST,
+      clip: {
+        draft: 0.06, draftLong: 0.08, standard: 0.25, pro: 0.55, bridge: 0.08,
+        // Per second of output, so these are the 5s figures.
+        wan27: VIDEO_MODELS.wan27.costPerClip(5),
+        wan27hd: VIDEO_MODELS.wan27hd.costPerClip(5),
+      },
     },
-    costs: { panel: PANEL_COST, clip: { draft: 0.06, draftLong: 0.08, standard: 0.25, pro: 0.55, bridge: 0.08 } },
   });
 });
 
@@ -2591,33 +2660,41 @@ router.post('/:id/characters', async (req, res) => {
 });
 
 // ─── Quick animate: one image in, one clip out (no movie) ───────────
-// Home-screen "animate" button: upload a picture (drawing, photo, panel),
-// wan-2.2 animates it at 720p by default. Runs as its own polled doc.
+// Home-screen "animate" button: upload a picture (drawing, photo, panel), a
+// video model animates it. Runs as its own polled doc.
+// The tier picks the model AND the price band — draft/720p on wan-2.2 is 16¢,
+// wan27 is 50¢ for the same five seconds, so the caller names one deliberately.
 // NOTE: registered before '/:id' so the path wins the route match.
 router.post('/animate', async (req, res) => {
   try {
-    const { image, prompt = '', resolution = '720p', frames, tier: tierIn = 'draft' } = req.body || {};
+    const { image, prompt = '', resolution = '720p', frames, duration: durIn, tier: tierIn = 'draft' } = req.body || {};
     if (!image || !/^data:image\//.test(image)) return res.status(400).json({ error: 'image (data URL) required' });
     if (!REPLICATE_API_TOKEN) return res.status(400).json({ error: 'REPLICATE_API_TOKEN not set' });
-    const tier = ['draft', 'standard', 'pro'].includes(tierIn) ? tierIn : 'draft';
-    const m = /^data:([^;]+);base64,(.*)$/.exec(image);
-    if (!m) return res.status(400).json({ error: 'bad image data URL' });
-    const imageUrl = await saveBufferToStorage(Buffer.from(m[2], 'base64'), m[1], 'movies/quick');
+    const tier = VIDEO_MODELS[tierIn] ? tierIn : 'draft';
+    const model = VIDEO_MODELS[tier];
+    const parts = /^data:([^;]+);base64,(.*)$/.exec(image);
+    if (!parts) return res.status(400).json({ error: 'bad image data URL' });
+    const imageUrl = await saveBufferToStorage(Buffer.from(parts[2], 'base64'), parts[1], 'movies/quick');
     if (imageUrl.startsWith('data:')) return res.status(400).json({ error: 'quick animate needs Firebase Storage (public image URLs)' });
 
-    // draft = wan (480p/720p); standard/pro = kling (720p/1080p, fixed 5s).
+    // wan-2.2 counts FRAMES at a resolution she picks; kling is a fixed 5s at
+    // the tier's own size; wan-2.7 takes 2-15s and its size rides its tier.
     const res720 = resolution === '480p' ? '480p' : '720p';
-    const numFrames = tier === 'draft' ? (frames === 121 ? 121 : 81) : null;
-    const cost = tier === 'standard' ? 0.25
-               : tier === 'pro' ? 0.55
-               : res720 === '720p' ? (numFrames > 81 ? 0.24 : 0.16) : (numFrames > 81 ? 0.08 : 0.06);
+    const numFrames = model.shape === 'wan22' ? (frames === 121 ? 121 : 81) : null;
+    const duration = model.shape === 'wan27'
+      ? Math.min(15, Math.max(2, Math.round(Number(durIn) || 5)))
+      : 5;
+    const cost = model.shape === 'wan22'
+      ? (res720 === '720p' ? (numFrames > 81 ? 0.24 : 0.16) : (numFrames > 81 ? 0.08 : 0.06))
+      : model.costPerClip(duration);
     const quick = {
       id: 'q' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
       status: 'running', error: null,
       prompt: String(prompt).trim(),
       imageUrl, clipUrl: null,
-      resolution: tier === 'standard' ? '720p' : tier === 'pro' ? '1080p' : res720,
-      frames: numFrames, cost, tier,
+      resolution: model.shape === 'wan22' ? res720 : (model.resolution || (tier === 'pro' ? '1080p' : '720p')),
+      frames: numFrames, duration: model.shape === 'wan22' ? null : duration,
+      cost, tier, model: model.name,
       createdAt: new Date().toISOString(),
     };
     await saveQuick(quick);
@@ -2627,33 +2704,17 @@ router.post('/animate', async (req, res) => {
       try {
         const fullPrompt = (quick.prompt || '') +
           '. The subject, style and composition of the image are preserved exactly.';
-        let p;
-        if (tier === 'draft') {
-          p = await replicatePredict(VIDEO_MODELS.draft.version, {
-            image: imageUrl,
-            prompt: fullPrompt,
-            resolution: res720,
-            num_frames: numFrames,
-            frames_per_second: 16,
-            interpolate_output: true,
-            go_fast: true,
-          });
-        } else {
-          p = await replicatePredict(VIDEO_MODELS[tier].version, {
-            start_image: imageUrl,
-            prompt: fullPrompt,
-            negative_prompt: DEFAULT_NEGATIVE,
-            duration: 5,
-            mode: tier === 'pro' ? 'pro' : 'standard',
-          }, { pollMs: 6000, maxPolls: 120 });
-        }
+        const p = await replicatePredict(model.version, videoInput(model, {
+          start: imageUrl, end: null, prompt: fullPrompt,
+          frames: numFrames, duration, resolution: res720,
+        }), model.shape === 'wan22' ? undefined : { pollMs: 6000, maxPolls: 120 });
         const output = Array.isArray(p.output) ? p.output[0] : p.output;
         if (!output) throw new Error('video model produced no output');
         quick.clipUrl = await saveUrlToStorage(output, 'movies/quick', 'video/mp4');
         quick.status = 'done';
         fileVideoToCreations({
           url: quick.clipUrl, poster: imageUrl, prompt: fullPrompt,
-          model: (tier === 'draft' ? 'wan-2.2-i2v-fast' : 'kling-v2.1'), quality: tier,
+          model: model.name, quality: tier,
         });
       } catch (err) {
         quick.status = 'error';
@@ -3533,6 +3594,7 @@ module.exports = {
   transcribeAudio,
   motionPromptFor,
   VIDEO_MODELS,
+  videoInput,            // exported for the parameter-shape test
   // building blocks, exported for scripts/tests
   renderPanelFor,
   renderSketchGrid,

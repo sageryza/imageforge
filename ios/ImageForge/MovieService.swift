@@ -260,8 +260,10 @@ final class MovieService {
     // MARK: Quick animate (one image → one clip, no movie)
 
     /// Kick off a quick animation. `jpeg` is the picked image, already
-    /// downscaled client-side. `tier` picks the model: "draft" = wan
-    /// (480p/720p via `resolution`), "standard" = kling 720p, "pro" = kling 1080p.
+    /// downscaled client-side. `tier` picks the model: "draft" = wan 2.2
+    /// (480p/720p via `resolution`), "wan27"/"wan27hd" = wan 2.7 at 720p/1080p,
+    /// "standard"/"pro" = kling 720p/1080p. `resolution` is read by the draft
+    /// tier only — the others carry their size in the tier itself.
     func animate(jpeg: Data, prompt: String, resolution: String = "720p", tier: String = "draft") async throws -> QuickClip {
         let dataURL = "data:image/jpeg;base64," + jpeg.base64EncodedString()
         return try await fetch(QuickClip.self, "POST", "/animate",

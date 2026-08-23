@@ -22,7 +22,28 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
 - **Video tiers:** draft `wan-video/wan-2.2-i2v-fast` (480p, ~$0.06/clip,
   `last_image` conditioning animates BETWEEN the two panels of a pair);
   quality `kwaivgi/kling-v2.1` standard 720p $0.25 / pro 1080p $0.55
-  (`end_image` requires pro). Versions pinned in `VIDEO_MODELS`.
+  (`end_image` requires pro); **`wan27` / `wan27hd` =
+  `wan-video/wan-2.7-i2v`**, 720p $0.10/s and 1080p $0.15/s, i.e. **$0.50 and
+  $0.75 for the standard five seconds** — three times the draft tier for the
+  same length. Versions pinned in `VIDEO_MODELS`.
+- **What 2.7 buys, and what it costs you besides money (measured live
+  2026-08-23, two probe clips):** REAL first-and-last-frame conditioning —
+  `last_frame` is a TARGET where 2.2's `last_image` is a hint — plus a
+  duration anywhere from **2 to 15s** instead of a fixed 5, and 720p/1080p
+  with **no 480p at all**. Two costs: **it invents its own audio** when none
+  is supplied (the probe clip came back carrying an aac track and the schema
+  offers no way to ask for silence — fine standalone, noise under a film that
+  already has her voice, so anything stitching these must drop the track), and
+  its `enable_prompt_expansion` defaults **true**, i.e. the model rewriting
+  the prompt before it draws. That is off in `videoInput` on purpose.
+- **A model's INPUT KEYS ride its `shape`, never its tier name** — `wan22`
+  (`image`/`last_image`, counts frames), `wan27` (`first_frame`/`last_frame`,
+  counts seconds), `kling` (`start_image`/`end_image`, fixed 5s). One builder,
+  `videoInput`, is the only place that knows them, because a wrong key does
+  not fail loudly: the model ignores it, draws something unconditioned, and
+  the bill arrives anyway. Adding a model is a row in `VIDEO_MODELS` plus an
+  arm in `videoInput` only if it is a new family. Test:
+  `node scripts/test-video-models.js` (pure, no spend).
 - **Dream mode:** bridge clips over every hard cut — start = previous clip's
   last frame (ffmpeg `-sseof` extract), end = next panel, num_frames 121 and an
   AI-written prompt describing one continuous PHYSICAL action (short morphs
@@ -118,9 +139,14 @@ Everything that makes or cuts moving pictures and sound: Movies, Songs, the Voic
   previous cut ("trimmed sc 3, slowed sc 7"), with an ordered `frames[]`
   snapshot the iOS Gallery renders as a comic-panel contact sheet.
 - **Quick animate:** `POST /api/movies/animate` — one image (data URL) → one
-  wan clip, default **720p** (~$0.16); its own polled docs in `forge-quick`
+  clip, default draft/**720p** (~$0.16); its own polled docs in `forge-quick`
   (`GET /quick`, `GET/DELETE /quick/:id`). Home-screen "Animate one image" in
-  the app.
+  the app. `tier` picks the model and the price band (`draft` · `wan27` ·
+  `wan27hd` · `standard` · `pro`); `resolution` is read by the draft tier
+  ONLY — every other tier carries its size in the tier itself — and `duration`
+  (2-15s, default 5) by wan 2.7 only. **The app's quality menu offers the four
+  wan rows** (480p 6¢ · 720p 16¢ · 720p 50¢ · 1080p 75¢); kling is still a
+  tier on the route and still on the per-scene menus inside a movie.
 - **The zine:** `POST /api/movies/:id/zine` — the same scenes as a printed
   medium: a hand-lettered cover + one captioned 2x2 page per four scenes
   (captions = scene titles, rendered in the style reference's own lettering;
