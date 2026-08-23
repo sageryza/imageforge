@@ -14,6 +14,7 @@ struct ScratchPadView: View {
     @AppStorage("forge.studioToken") private var studioToken = ""
     @State private var loadFailed = false
     @State private var reloadKey = 0
+    @Environment(\.goBack) private var goBack
 
     var body: some View {
         Group {
@@ -41,7 +42,7 @@ struct ScratchPadView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                ScratchPadWebView(token: studioToken, failed: $loadFailed)
+                ScratchPadWebView(token: studioToken, failed: $loadFailed, onLeave: goBack)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
@@ -54,6 +55,8 @@ struct ScratchPadView: View {
 private struct ScratchPadWebView: UIViewRepresentable {
     let token: String
     @Binding var failed: Bool
+    /// Leave the tool — what `window.__forgeLeave()` reaches.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -61,6 +64,14 @@ private struct ScratchPadWebView: UIViewRepresentable {
         // shouldn't demand a gesture-per-play either.
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        // THE SAME PAGE IS BEHIND TWO TILES, so it must get the same chrome
+        // from both (Aug 2026, Sophie: "make sure the pattern is consistent
+        // everywhere"). /storyroom and /scratchpad both serve
+        // public/scratchpad.html; the Story Room wrapper hands the header over
+        // and this one did not, so the identical page drew a back chevron
+        // through one door and none through the other.
+        context.coordinator.leaveHandler =
+            ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -79,6 +90,9 @@ private struct ScratchPadWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let parent: ScratchPadWebView
+        /// `addScriptMessageHandler` does NOT retain — hold the leave bridge
+        /// here or `window.__forgeLeave()` reaches nothing.
+        var leaveHandler: ForgeLeaveHandler?
         init(_ parent: ScratchPadWebView) { self.parent = parent }
 
         // The mic icon records via getUserMedia — grant the capture request
