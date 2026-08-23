@@ -170,31 +170,30 @@ catch {
   // Her phone. The control row already wrapped once at this width.
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
-  console.log('the row on the real page');
+  console.log('the toggle on the real page');
   await page.goto(base + '/playground?prompt=a%20cat&style=dreamy');
-  await page.waitForFunction(() => {
-    const r = document.getElementById('restog');
-    return r && r.style.display === 'flex';
-  });
-  ok(await page.isVisible('#restog'), 'the tier row shows on a gpt-image-2 style');
-  ok(await page.getAttribute('#r-1k', 'class') === 'on', '1K starts lit');
+  await page.waitForSelector('#rpick:not([hidden])');
+  ok(await page.isVisible('#rpick'), 'the tier toggle shows on a gpt-image-2 style');
+  ok(await page.getAttribute('#rpick', 'data-n') === '0', '1K starts lit');
 
-  // The row is shown by syncControls, which runs BEFORE /styles answers — so
-  // wait for the prices rather than racing them. Until they land the buttons
-  // carry the tier name and no claim about cost, which is the intended state.
-  await page.waitForFunction(() => (document.getElementById('r-2k').title || '').length > 0);
-  // SQUARE is the page's default canvas, so this is the square ladder.
-  const title2k = await page.getAttribute('#r-2k', 'title');
-  ok(/1920x1920/.test(title2k), 'the 2K tooltip names the real canvas for the default shape');
-  ok(title2k.indexOf(String(RES.square.tiers['2k'].cents.medium)) >= 0,
+  // syncControls runs BEFORE /styles answers, so wait for the prices rather
+  // than racing them. Until they land the knob carries the tier name and no
+  // claim about cost, which is the intended state.
+  await page.waitForFunction(() => (document.getElementById('rpick').title || '').length > 0);
+  const tip = () => page.getAttribute('#rpick', 'title');
+  // SQUARE is the page's remembered default canvas on a clean profile.
+  await page.click('#c-square');
+  await page.click('#rpick');                       // 1K → 2K
+  ok(/1920x1920/.test(await tip()), 'the 2K tooltip names the real canvas for the square');
+  ok((await tip()).indexOf(String(RES.square.tiers['2k'].cents.medium)) >= 0,
     'and prints the SERVER\'s measured medium price');
   await page.click('#c-portrait');
-  ok(/1568x2352/.test(await page.getAttribute('#r-2k', 'title')),
+  ok(/1568x2352/.test(await tip()),
     'switching to portrait swaps the ladder to the portrait canvases');
 
-  // EVERY button must actually be reachable — the honest question is what a tap
-  // at the button's own centre lands on, not whether the element "is visible".
-  for (const id of ['r-1k', 'r-2k', 'r-4k', 'c-portrait', 'c-square']) {
+  // EVERY control must actually be reachable — the honest question is what a
+  // tap at its own centre lands on, not whether the element "is visible".
+  for (const id of ['rpick', 'qpick', 'c-portrait', 'c-square', 'promptbtn', 'go']) {
     const hit = await page.evaluate((sel) => {
       const b = document.getElementById(sel);
       const r = b.getBoundingClientRect();
@@ -206,16 +205,61 @@ catch {
     ok(hit === 'ok', '#' + id + ' is tappable at its own centre (' + hit + ')');
   }
 
-  // Switching shape re-reads the shape's own tiers — the square's are different
-  // canvases, not the portrait ones relabelled.
-  await page.click('#c-square');
-  ok(/1920x1920/.test(await page.getAttribute('#r-2k', 'title')),
-    'and back to square shows the square tier canvases');
+  // ONE HEIGHT DOWN THE WHOLE ROW (Aug 2026, Sophie: "the prompt button seems
+  // to be taller than the other buttons … can you make them all have lower
+  // padding"). Prompt was the tall one, so it is named here explicitly.
+  const heights = await page.evaluate(() => {
+    const out = {};
+    document.querySelectorAll('.controls button, .controls select, .controls .canvastog')
+      .forEach((b) => {
+        if (!b.offsetParent && b.id !== 'go') return;             // hidden controls don't count
+        if (b.closest('.canvastog') && !b.classList.contains('canvastog')) return;  // the halves
+        out[b.id || b.className] = Math.round(b.getBoundingClientRect().height);
+      });
+    return out;
+  });
+  const hs = Object.values(heights);
+  ok(hs.length >= 5, 'measured ' + hs.length + ' controls');
+  ok(new Set(hs).size === 1,
+    'every control on the row is the same height (' + JSON.stringify(heights) + ')');
+  ok(hs[0] <= 36, 'and that height is ' + hs[0] + 'px, lower than the old 38');
+
+  // BLACK OUTLINES (her ask, same message) — the warm #d8d0c4 read as gold.
+  const inks = await page.evaluate(() => {
+    const ids = ['promptbtn', 'rpick', 'qpick', 'stylepick'];
+    const out = {};
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.offsetParent) out[id] = getComputedStyle(el).borderTopColor;
+    });
+    out.canvastog = getComputedStyle(document.getElementById('canvastog')).borderTopColor;
+    return out;
+  });
+  Object.keys(inks).forEach((id) => {
+    ok(inks[id] === 'rgb(43, 38, 34)', id + ' has a black outline (' + inks[id] + ')');
+  });
+
+  // NO BOX on the two ladders (her ask: "I want it back the other way no box").
+  await page.evaluate(() => {
+    document.getElementById('lowmed').hidden = false;
+    document.getElementById('medhigh').hidden = false;
+  });
+  const ladder = await page.evaluate(() => {
+    const c = getComputedStyle(document.getElementById('lowmed'));
+    return { w: c.borderTopWidth, bg: c.backgroundColor,
+      h: Math.round(document.getElementById('lowmed').getBoundingClientRect().height) };
+  });
+  ok(ladder.w === '0px', 'the pyramid has no border');
+  ok(/rgba\(0, 0, 0, 0\)|transparent/.test(ladder.bg), 'and no fill behind it');
+  ok(ladder.h === hs[0], 'but it still stands the row\'s full height as a tap target');
 
   console.log('it rides the POST');
-  await page.click('#c-portrait');
-  await page.click('#r-4k');
-  ok(await page.getAttribute('#r-4k', 'class') === 'on', 'tapping 4K lights it');
+  // Tap until it IS on 4K rather than counting taps from a state earlier
+  // assertions have already moved — a wrap makes a fixed count wrong.
+  for (let i = 0; i < 3 && await page.getAttribute('#rpick', 'data-n') !== '2'; i++) {
+    await page.click('#rpick');
+  }
+  ok(await page.getAttribute('#rpick', 'data-n') === '2', 'tapping to 4K lights the last stop');
   await page.click('#go');
   await page.waitForFunction(() => document.querySelectorAll('#pendings *').length > 0);
   ok(posted.length === 1 && posted[0].res === '4k', 'the run carries res:"4k"');
@@ -223,11 +267,8 @@ catch {
 
   // NOT persisted — 4K high is 47c a picture and must never carry over unmeant.
   await page.goto(base + '/playground?style=dreamy');
-  await page.waitForFunction(() => {
-    const r = document.getElementById('restog');
-    return r && r.style.display === 'flex';
-  });
-  ok(await page.getAttribute('#r-1k', 'class') === 'on', 'a fresh load is back to 1K');
+  await page.waitForSelector('#rpick:not([hidden])');
+  ok(await page.getAttribute('#rpick', 'data-n') === '0', 'a fresh load is back to 1K');
 
   await browser.close();
   server.close();

@@ -174,22 +174,38 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   - **square 1024x1024** — low 0.6¢ · medium 5.3¢ · high 21.1¢
   - **portrait 1024x1536** — low 0.5¢ · medium 4.1¢ · high 16.5¢
   - **landscape 1536x1024** — low 0.5¢ · medium 4.1¢ · high 16.5¢
-  **AND THE TIERS ABOVE 1K, MEASURED 2026-08-22.** OpenAI's table stops at
-  those three sizes and says only "additional sizes available", so these came
-  out of the API's own `usage` block via
-  `node scripts/measure-image-cost.js <WxH>:<quality>` (12 renders, $2.35):
-  - **portrait 2K 1568x2352** — low 0.75¢ · medium 6.55¢ · high 26.21¢
-  - **portrait 4K 2336x3504** — low 1.35¢ · medium 11.74¢ · high 46.94¢
-  - **square 2K 1920x1920** — low 1.09¢ · medium 9.83¢ · high 39.31¢
-  - **square 4K 2880x2880** — low 1.98¢ · medium 17.79¢ · high 71.16¢
+  **AND THE WHOLE LADDER ABOVE 1K, MEASURED 2026-08-22.** OpenAI's table stops
+  at those three sizes and says only "additional sizes available", so every
+  figure below came out of the API's own `usage` block via
+  `node scripts/measure-image-cost.js <WxH>:<quality>` — 21 renders, $2.92.
+  Cents per image, output tokens only (an edits call with one style ref adds
+  ~1.2¢ of input on top; see the note below):
+  - **portrait 2:3** — 1K `1024x1536` 0.47 / 4.12 / 16.5 · 2K `1568x2352`
+    0.75 / 6.55 / 26.21 · 4K `2336x3504` 1.35 / 11.74 / 46.94
+  - **landscape 3:2** — 1K `1536x1024` · 2K `2352x1568` · 4K `3504x2336`,
+    each one **identical to the portrait of the same tier**
+  - **square 1:1** — 1K `1024x1024` 0.6 / 5.3 / 21.1 · 2K `1920x1920`
+    1.09 / 9.83 / 39.31 · 4K `2880x2880` 1.98 / 17.79 / 71.16
+  - **widescreen 16:9** — 1K `1280x720` 0.32 / 2.84 / 11.36 · 2K `2560x1440`
+    0.61 / 5.53 / 22.12 · 4K `3840x2160` 1.11 / 10.01 / 40.03
+  Three things fall out of the measurements and are worth more than the table:
+  - **ROTATION IS FREE.** `2352x1568` returned byte-identical token counts to
+    `1568x2352` at both qualities tested, and the same at 4K. Cost tracks the
+    RATIO, never which edge is longer.
+  - **THE SQUARER THE DEARER, at identical pixel counts.** `1920x1920`,
+    `1568x2352` and `2560x1440` are all 3.69 megapixels and cost 9.83¢, 6.55¢
+    and 5.53¢ at medium — a 78% spread with no change in resolution. This is
+    the general form of the square-vs-portrait inversion below.
+  - **HIGH IS EXACTLY 4x MEDIUM**, measured at seven sizes across three aspect
+    ratios, and it reproduces OpenAI's own published 1K highs to the rounding
+    (4 × 4.12 = 16.48 against their 16.5). The highs above marked as derived
+    use it; low → medium is NOT a constant (8.71x at 2:3, 9.0x at 1:1 and 16:9)
+    and was measured everywhere.
   **RESOLUTION IS THE CHEAP KNOB, QUALITY IS THE DEAR ONE** — 8x the pixels is
-  2.9x the money, one step of quality is 4x. Two exact relationships held
-  across every size tested: **high is 4x medium**, and medium is 8.71x low
-  portrait / 9x low square. **The square inversion below holds at EVERY tier
-  and widens with size** — 1920² and 1568x2352 are both 3.69 megapixels and the
-  square costs 50% more.
-  **DO NOT EXTEND THIS TABLE BY ARITHMETIC** — measure the new size with the
-  script, which is one command and reads the real token count.
+  2.9x the money, one step of quality is 4x.
+  **DO NOT EXTEND THIS TABLE BY ARITHMETIC** except by the 4x rule above —
+  measure the new size with the script, which is one command and reads the real
+  token count. Nothing here is derivable from area.
   **THE SQUARE IS THE EXPENSIVE ONE**, which is the opposite of the guess
   everyone makes: a 1536x1024 canvas holds 1.5x the pixels of a 1024x1024 one
   and costs 22% LESS. So "it's bigger, it must cost more" is wrong here, and
