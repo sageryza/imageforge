@@ -1370,11 +1370,38 @@ them off the reference sheet, not off the old filenames.
     feature's own conversation would. That is one stray row in a message that
     really was about a question, against the 466 rows the ungated version
     produced, and an unanswered row is never shown anyway.
+  - **A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION — THE ANSWER KEEPS
+    READING (found live 2026-08-23 in her tab, two of three rows on one
+    chat).** `answerFor` falls back to the reply's opening when there is no
+    bold block and no TLDR, and it stopped at the FIRST paragraph — so a row
+    read *"Now the size tiers on the server:"* and another ended *"…the
+    difference between ChatGPT the app and what we call:"*, both fragments
+    that answer nothing, with the real answer in the paragraph the colon was
+    introducing. It reads on now, up to three paragraphs. **It only ever reads
+    FURTHER — it never DROPS one**: a mid-turn progress line and a real
+    lead-in ("Two things:") are the same shape and no honest test separates
+    them, so keeping both is merely noisy where dropping would be wrong. This
+    path matters less going forward — a question she marked gets a bold echo,
+    and `matchBlock` hands back the exact answer first.
+  - **THE PILL SAT ON THE QUESTIONS BUTTON (2026-08-23, her screenshot: the
+    door read "QUES").** The note row is the thread's LAST header line and it
+    does not scroll, so its right end is permanently inside the injected
+    pill's fixed corner, and the button is the rightmost thing on it —
+    47px of it covered on a 390pt phone. `fitNoteRow()` reserves `--pillgap`
+    MEASURED against the pill's real rect, not the home screen's hardcoded
+    `192-top` band: in a thread the header is a different height and her
+    safe-area inset pushes the pill down (measured off the screenshot: y
+    63→222pt, not 14→192). It re-measures on a delay and on resize, because
+    the pill is conditional and appears only once there is something to
+    scroll. **`elementFromPoint` is the only honest test** — the button passed
+    `offsetParent !== null` and every width assertion the whole time it was
+    unreachable.
   - `GET /api/chatfeed/questions?chat=` returns them, newest first
     (`?open=1` includes unanswered ones).
-  - Tests: `node scripts/test-questions.js` (the extraction, pure, no
-    network) and `node scripts/test-chats-questions.js` (the real page,
-    headless).
+  - Tests: `node scripts/test-questions.js` (the extraction and the lead-in
+    rule, pure, no network) and `node scripts/test-chats-questions.js` (the
+    real page, headless — including the pill collision, verified failing 2
+    against the pre-fix page).
 - **CHATS SORT THEMSELVES INTO HER FOLDERS — and there is NOTHING for you to
   do (Aug 2026, Sophie: "I've been manually sorting all my chats, but they
   could sort themselves").** Do NOT post a category, and do not add one to

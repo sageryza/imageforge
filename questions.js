@@ -236,13 +236,45 @@ function matchBlock(blocks, question) {
   return bestScore >= 0.5 ? best : null;
 }
 
-// The first real paragraph of a reply — the last-resort answer when a chat
-// wrote neither a bold question block nor a TLDR.
+// The opening of a reply — the last-resort answer when a chat wrote neither a
+// bold question block nor a TLDR.
+//
+// A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION, NOT AN ANSWER, so it keeps
+// reading (found live 2026-08-23 in her Questions tab, two of the three rows on
+// one chat). Both failures were the same shape:
+//
+//   "…The bigger one I skipped is the difference between **ChatGPT the app**
+//    and what we call:"                     ← the whole row, ending on a colon
+//   "Now the size tiers on the server:"     ← a mid-turn progress line
+//
+// The answer in each case was in the paragraph the colon was introducing, and
+// stopping at the first paragraph threw it away — so the row read as a fragment
+// that answered nothing. Neither reply carried a TLDR, which is what put this
+// path in play at all.
+//
+// IT ONLY EVER READS FURTHER — it never DROPS a paragraph. A leading progress
+// line and a real lead-in ("Two things:") are the same shape, and no honest
+// test tells them apart; keeping both is noisy in one case and correct in the
+// other, where dropping is wrong in one and right in the other. THREE is the
+// stop, so a reply that is nothing but colon-ended headings cannot swallow
+// itself whole.
+//
+// Going forward this path matters less, not more: a question SHE marked gets a
+// bold echo (see the header), and `matchBlock` hands back the exact answer
+// before this ever runs. It is the fallback for the replies already on file and
+// for a chat that answered plainly.
+const LEAD_IN = /:\s*$/;
+const MAX_PARAS = 3;
 function firstPara(reply) {
   const t = String(reply || '').trim();
   if (!t) return '';
-  const para = t.split(/\n\s*\n/)[0] || '';
-  return para.replace(/^\s*(tldr|tl;dr)\s*[:—-]\s*/i, '').trim();
+  const paras = t.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const out = [];
+  for (let i = 0; i < paras.length && out.length < MAX_PARAS; i++) {
+    out.push(paras[i]);
+    if (!LEAD_IN.test(paras[i])) break;
+  }
+  return out.join('\n\n').replace(/^\s*(tldr|tl;dr)\s*[:—-]\s*/i, '').trim();
 }
 
 // An ORPHANED BOLD MARKER (measured 2026-08-14 against her real threads): five
