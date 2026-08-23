@@ -138,6 +138,12 @@ console.log('the page contracts (static):');
     'the playhead holds when no new frame has been decoded (the waffle guard)');
   ok(/addEventListener\('canplay', reveal/.test(html),
     'the old frame stays up until the new source can paint (no black gap)');
+  // The little-pauses chop, 2026-08-23: #1564 fixed seek-at-every-joint for
+  // the AUDIO track only — the video half lived on. Pinned both ways.
+  ok(/function warmNext/.test(html),
+    'the idle element is PARKED on the next joint\'s frame, not merely loaded');
+  ok(/seekless/.test(html),
+    'an element already on the joint\'s frame is never re-seeked (the visible hiccup)');
   ok(/function srcOf/.test(html) && /askProxies/.test(html),
     'the player prefers the baked preview copy; the render keeps the original');
   ok(html.indexOf('id="msg"') > html.indexOf('</div>', html.indexOf('id="tools"')),

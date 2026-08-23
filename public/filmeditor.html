@@ -523,6 +523,35 @@ function ensureSrc(el, url) {
     el.load();
   }
 }
+// Park the idle element ON the frame the next joint needs, muted — loading
+// alone was not enough (Sophie, 2026-08-23: "little pauses between all the
+// clips"): the joint still paid the seek, and on the phone — where
+// preload=auto is a suggestion, not a promise — the FETCH too. The muted
+// prime-play forces real buffering and pauses itself parked at the in-point,
+// so crossing the joint is a swap, never a wait.
+function warmNext(el, url, at) {
+  if (el === actEl) return;                 // never disturb the one on screen
+  el.muted = true;
+  if (el.getAttribute('data-src') !== url) {
+    el.onloadedmetadata = null;
+    el.setAttribute('data-src', url);
+    el.src = url;
+    el.load();
+    el.onloadedmetadata = function () {
+      el.onloadedmetadata = null;
+      try { el.currentTime = at; } catch (e) { /* not seekable yet */ }
+    };
+    el.addEventListener('canplay', function prime() {
+      el.removeEventListener('canplay', prime);
+      if (el === actEl || el.getAttribute('data-src') !== url) return;   // adopted or re-aimed meanwhile
+      el.pause();
+      if (Math.abs((el.currentTime || 0) - at) > 0.2) { try { el.currentTime = at; } catch (e) { /* not seekable */ } }
+    });
+    el.play().catch(function () {});
+  } else if (el.paused && el.readyState >= 1 && Math.abs((el.currentTime || 0) - at) > 0.2) {
+    try { el.currentTime = at; } catch (e) { /* not seekable yet */ }
+  }
+}
 var actToken = 0;
 function activate(el) {
   if (actEl === el) { el.hidden = false; return; }
@@ -548,7 +577,8 @@ function stopPlayback() {
   cancelAnimationFrame(raf);
   playing = false;
   lastTs = null;   // a stale clock made the next play leap seconds ahead
-  if (actEl) actEl.pause();
+  $('vA').pause();   // BOTH elements — the idle one may be priming muted
+  $('vB').pause();
   $('audEl').pause();
   paintPlayBtn();
   adoptProxies();   // a proxy that finished baking mid-play takes over now
@@ -557,22 +587,47 @@ function seekVideo(playIt) {
   var seg = segAt(playhead);
   if (!seg) { if (actEl) { actEl.pause(); actEl.removeAttribute('data-src'); actEl.removeAttribute('src'); } return; }
   var want = srcOf(seg.c);
-  var el = actEl && actEl.getAttribute('data-src') === want ? actEl
-    : (otherEl().getAttribute('data-src') === want ? otherEl() : (actEl || $('vA')));
+  var target = seg.c.in + (playhead - seg.start);
+  // pick the element already sitting NEAREST the wanted frame — warmNext may
+  // have parked the idle one exactly there, and using it makes the joint a
+  // swap instead of a visible seek (a same-source jump included: two pieces
+  // of one recording with the middle trimmed out). Ties go to the visible one.
+  var offBy = function (v) {
+    return v.getAttribute('data-src') === want ? Math.abs((v.currentTime || 0) - target) : Infinity;
+  };
+  var a = actEl || $('vA');
+  var b = a === $('vA') ? $('vB') : $('vA');
+  var el = (offBy(b) + 0.25 < offBy(a)) ? b
+    : (offBy(a) < Infinity ? a : (offBy(b) < Infinity ? b : a));
   ensureSrc(el, want);
   activate(el);
-  var target = seg.c.in + (playhead - seg.start);
   var setPos = function () {
     el.onloadedmetadata = null;   // fire once — never against a later load
-    try { el.currentTime = target; } catch (e) { /* not seekable yet */ }
-    if (playIt) el.play().catch(function () {});
+    el.muted = false;             // warmNext parks its element muted
+    var drift = Math.abs((el.currentTime || 0) - target);
+    // A rolling element already at the joint (a split's contiguous twin) and
+    // a parked warm element need NO seek — the unconditional
+    // `el.currentTime = target` here was the video half of the
+    // seek-at-every-joint chop (#1564 fixed only the audio track's half).
+    // Stepping and scrubbing (playIt false) always seek: exactness matters.
+    var seekless = playIt && (drift < 0.06 || (!el.paused && drift < 0.25));
+    if (!seekless) { try { el.currentTime = target; } catch (e) { /* not seekable yet */ } }
+    if (playIt) { if (el.paused) el.play().catch(function () {}); }
+    else if (!el.paused) el.pause();   // a priming warm element must not roll under a paused film
   };
   if (el.readyState >= 1) setPos(); else el.onloadedmetadata = setPos;
-  // warm the NEXT source in the idle element so the boundary doesn't flash
+  // warm the piece behind the NEXT joint that needs a swap or a jump — a
+  // contiguous same-source joint rolls through with no work at all.
+  // (Find the piece by KEY — segAt builds fresh objects, so indexOf(seg)
+  // against a second segs() call is always -1: this file's own oldest lesson.)
   var ss = segs();
-  var idx = ss.indexOf(seg);
+  var idx = 0;
+  for (var i2 = 0; i2 < ss.length; i2++) { if (ss[i2].c.key === seg.c.key) { idx = i2; break; } }
   for (var j = idx + 1; j < ss.length; j++) {
-    if (srcOf(ss[j].c) !== want) { ensureSrc(otherEl(), srcOf(ss[j].c)); break; }
+    var back = ss[j - 1].c, fwd = ss[j].c;
+    if (srcOf(fwd) === srcOf(back) && Math.abs(fwd.in - back.out) < 0.05) continue;
+    warmNext(otherEl(), srcOf(fwd), fwd.in);
+    break;
   }
   syncAudio(playIt);
 }
