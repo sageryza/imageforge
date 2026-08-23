@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Film Editor — Sophie's tap-only phone film editor, her own Claude Design
+     canvas (docs/film-editor-design/) built for real. The one surface that
+     CUTS video: split, trim in/out, reorder, delete, one audio track — all
+     taps, nothing drags. A piece is a REFERENCE into a source file (url +
+     in/out), so every tool is non-destructive metadata; the render is the
+     only moment anything is actually cut (ffmpeg on our own box, free).
+     TWO LEVELS, one page: the shelf of cuts, and one open (the assembly
+     pattern; window.__navBack walks open → shelf).
+     Fixes carried in from the gaps file (docs/film-editor-design/README.md):
+     saving + resume, render/export, selection FOLLOWS the playhead, dimmed
+     tools are inert, refused taps say why, the timeline scrolls instead of
+     running off the screen, real poster frames instead of a fake filmstrip,
+     two video elements swapped so crossing a source boundary doesn't flash
+     black, and an undecodable upload reports itself. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Film Editor</title>
+<link rel="stylesheet" href="/tool.css">
+<style>
+:root{
+  /* her canvas's palette (Tap Editor Prototype), flat solid colors only */
+  --ink:#26221c; --paper:#fbf9f4; --chg:#b06a3b; --ink2:#8b8271; --rose:#b06a3b;
+  --bg:#fbf9f4; --surface:#f3efe5; --surface2:#eae4d6; --border:#e0d8c6; --dim:#8b8271;
+}
+[hidden]{ display:none !important; }
+html, body{ height:100%; }
+body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
+.tool main{ max-width:640px; margin:0 auto; }
+
+.tool .head{ padding-right:64px; }
+#back{ display:inline-flex; align-items:center; gap:4px; font:inherit; font-size:13px;
+  color:var(--ink); background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:5px 9px 5px 6px; cursor:pointer; margin-right:10px; }
+#back svg{ width:15px; height:15px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+/* level 1 — the shelf of cuts */
+#lvShelf{ height:calc(100dvh - 56px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+#lvShelf .row{ margin:14px 16px 4px; }
+.arow{ display:flex; align-items:center; gap:12px; width:calc(100% - 32px); margin:0 16px;
+  padding:11px 0; border-bottom:1px solid var(--border); background:none; border-top:0;
+  border-left:0; border-right:0; cursor:pointer; text-align:left; font:inherit; color:var(--ink); }
+.arow .ph{ width:46px; height:46px; border-radius:6px; overflow:hidden; flex:0 0 auto;
+  background:var(--surface2); border:1px solid var(--border); display:flex;
+  align-items:center; justify-content:center; color:var(--dim); }
+.arow .ph img{ width:100%; height:100%; object-fit:cover; display:block; }
+.arow .ph svg{ width:20px; height:20px; stroke:currentColor; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+.arow .t{ font-family:Georgia,'Times New Roman',serif; font-size:16px; }
+.arow .m{ font-size:12px; color:var(--dim); margin-top:2px; }
+
+/* level 2 — one cut open: her editor screen, one column, no page scroll */
+#lvOpen{ display:flex; flex-direction:column; height:calc(100dvh - 56px);
+  max-width:640px; margin:0 auto; }
+#toprow{ display:flex; align-items:center; gap:8px; padding:4px 14px 2px; }
+#filmsBtn{ position:relative; width:40px; height:40px; border-radius:10px; border:0;
+  background:none; color:var(--dim); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; padding:0; flex:0 0 auto; }
+#filmsBtn svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.75; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#filmsBtn .dot{ position:absolute; top:5px; right:5px; min-width:14px; height:14px;
+  border-radius:7px; background:var(--chg); color:#fff; font-size:9px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; padding:0 3px; }
+#ttl{ flex:1; min-width:0; border:0; background:transparent; text-align:center;
+  font:600 13px -apple-system,system-ui,sans-serif; letter-spacing:.02em; color:var(--ink); padding:4px 0; }
+#ttl:focus{ outline:none; border-bottom:1px solid var(--border); }
+#addBtn{ width:40px; height:40px; border-radius:10px; border:0; background:var(--surface);
+  color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer;
+  padding:0; flex:0 0 auto; }
+#addBtn svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.75; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+/* empty state */
+#emptyBox{ flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:16px; padding:0 40px; }
+#emptyBox svg{ width:40px; height:40px; stroke:#c9c0ab; stroke-width:1.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#emptyBox .t{ font-size:14px; color:var(--dim); text-align:center; line-height:1.5; }
+
+/* the preview — her dark canvas with the timecode chip */
+#stage{ flex:1; min-height:0; margin:4px 14px 0; border-radius:14px; overflow:hidden;
+  position:relative; background:#111; }
+#stage video{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  background:#000; }
+#tc{ position:absolute; bottom:10px; left:12px; font:500 11px ui-monospace,monospace;
+  color:var(--ink); background:rgba(251,249,244,.85); padding:3px 8px; border-radius:6px; }
+
+/* transport — «  ‹  ▶  ›  » with the tiny labels under it */
+#trans{ display:flex; justify-content:center; align-items:center; gap:8px; padding:12px 0 0; }
+#trans button{ width:48px; height:44px; border-radius:10px; background:var(--surface);
+  border:0; color:var(--ink2); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; padding:0; }
+#trans #play{ width:58px; background:var(--ink); color:var(--paper); }
+#trans svg{ width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#trans #play svg{ fill:currentColor; stroke:none; }
+#translbl{ display:flex; justify-content:center; gap:28px; padding:2px 0 0;
+  font-size:9px; color:#a39a86; }
+#translbl span:nth-child(3){ width:24px; }
+
+/* the timeline — proportional widths, REAL poster frames, and it SCROLLS */
+#strip{ display:flex; gap:4px; padding:10px 14px 0; overflow-x:auto;
+  -webkit-overflow-scrolling:touch; flex:0 0 auto; }
+.seg{ position:relative; flex:1 1 0; min-width:34px; height:52px; border-radius:8px;
+  overflow:hidden; border:1px solid rgba(38,34,28,.08); background:var(--surface2);
+  background-size:cover; background-position:center; padding:0; cursor:pointer; }
+.seg.sel{ outline:2px solid var(--chg); outline-offset:1px; }
+.seg .lbl{ position:absolute; left:6px; bottom:4px; font:9px ui-monospace,monospace;
+  color:var(--ink); background:rgba(251,249,244,.8); border-radius:3px; padding:0 3px; }
+.seg .ph{ position:absolute; top:0; bottom:0; width:2px; background:var(--chg); }
+
+/* audio track row */
+#audrow{ display:flex; align-items:center; gap:6px; padding:8px 14px 0; flex:0 0 auto; }
+#audrow > svg{ width:14px; height:14px; stroke:#9a8f77; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
+#audon{ flex:1; min-width:0; height:26px; border-radius:6px; background:#efe9db;
+  display:flex; align-items:center; padding:0 8px; gap:8px; }
+#audon .nm{ font:9px ui-monospace,monospace; color:#a39a86; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+#audon .sync{ font-size:9px; color:var(--chg); display:flex; align-items:center; gap:3px;
+  flex:0 0 auto; }
+#audon .sync svg{ width:10px; height:10px; stroke:currentColor; stroke-width:2; fill:none; }
+#audon .rm{ border:0; background:none; color:#a39a86; font-size:11px; cursor:pointer;
+  padding:2px 4px; flex:0 0 auto; }
+#audoff{ flex:1; height:26px; border-radius:6px; border:1px dashed #cfc6b0; background:none;
+  display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;
+  font-size:10px; color:#9a8f77; }
+#audoff svg{ width:11px; height:11px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+/* the seven tools — her row, with inert dimming (never a tappable ghost) */
+#tools{ display:flex; justify-content:center; gap:6px; padding:10px 8px 4px; flex:0 0 auto; }
+#tools button{ width:46px; height:52px; border-radius:10px; background:var(--surface);
+  border:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; cursor:pointer; padding:0; color:var(--ink); }
+#tools button.off{ opacity:.35; pointer-events:none; }
+#tools svg{ width:18px; height:18px; stroke:currentColor; stroke-width:1.75; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#tools .w{ font-size:8px; color:var(--ink2); }
+#tools #syncBtn svg{ color:var(--chg); }
+
+/* one quiet line for refusals and progress — a refused tap says why */
+#msg{ text-align:center; font-size:11.5px; color:var(--dim); min-height:16px;
+  padding:2px 16px calc(8px + env(safe-area-inset-bottom)); flex:0 0 auto; }
+
+/* the films sheet — renders + the Render button */
+.sheet{ position:fixed; inset:0; z-index:40; background:rgba(251,249,244,.985); overflow-y:auto; }
+.sheet .wrap{ max-width:640px; margin:0 auto; padding:14px 16px calc(40px + env(safe-area-inset-bottom)); }
+.sheet .x{ position:sticky; top:10px; z-index:2; margin-left:auto; display:flex; width:36px;
+  height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+  color:var(--ink); align-items:center; justify-content:center; cursor:pointer; padding:0; }
+.sheet .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+#films{ margin-top:6px; }
+#films button{ display:flex; align-items:center; gap:8px; background:none; border:0;
+  padding:8px 0; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; }
+#films svg{ width:15px; height:15px; fill:currentColor; stroke:none; flex:0 0 auto; }
+#films .m{ color:var(--dim); }
+#jobline{ font-size:12.5px; color:var(--dim); margin-top:10px; }
+
+/* the player overlay — freezes the page behind it */
+#lb{ position:fixed; inset:0; background:rgba(20,17,14,.96); display:none; z-index:50; }
+#lb.open{ display:flex; flex-direction:column; align-items:center; justify-content:center; }
+#lb video{ width:100%; max-height:78vh; background:#000; display:block; object-fit:contain; }
+#lb .cap{ color:#e8e2d6; font-size:13px; padding:10px 16px; text-align:center; }
+#lb .x{ position:absolute; top:calc(12px + env(safe-area-inset-top)); right:14px; width:36px;
+  height:36px; border-radius:50%; background:rgba(251,249,244,.14); border:0; color:#f2ece0;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+#lb .x svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.8; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; }
+</style>
+</head>
+<body class="tool">
+
+<div class="head">
+  <button id="back" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>Cuts</button>
+  <div class="eyebrow tool-eyebrow">FILM EDITOR</div>
+  <button id="help">?</button>
+</div>
+<div class="helpcard" id="helpcard" hidden>
+  <b>Cut a film with taps.</b> Open a cut (or start one), tap <b>+</b> to
+  upload videos from your phone, and they line up on the timeline. Play, or
+  step with the arrows — <b>‹ ›</b> move one frame, <b>« »</b> one second.
+  The piece under the playhead is always the selected one.<br><br>
+  The tools work at the playhead: <b>split</b> cuts the piece in two,
+  <b>trim in</b>/<b>trim out</b> move its start or end to where you are,
+  <b>earlier</b>/<b>later</b> swap it with its neighbour, <b>delete</b> takes
+  it off. Nothing touches the original footage — a trim can always be trimmed
+  back out.<br><br>
+  <b>sync</b> lays one audio track under the film, starting at the selected
+  piece (or from the top). The film icon top-left holds your finished films:
+  <b>Render</b> bakes the cut into one real mp4 — free, on our own box — and
+  every render is kept.
+</div>
+
+<!-- level 1: the shelf of cuts -->
+<div id="lvShelf">
+  <div class="row"><button class="btn" id="newBtn">New cut</button></div>
+  <div id="alist"></div>
+  <div class="note" id="shelfNote" style="padding:10px 16px" hidden></div>
+</div>
+
+<!-- level 2: one cut open — her editor screen -->
+<div id="lvOpen" hidden>
+  <div id="toprow">
+    <button id="filmsBtn" aria-label="Finished films">
+      <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
+      <span class="dot" id="filmsDot" hidden></span>
+    </button>
+    <input id="ttl" aria-label="Cut name">
+    <button id="addBtn" aria-label="Upload clips">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    </button>
+    <input id="upFile" type="file" multiple accept="video/*" hidden>
+    <input id="audFile" type="file" accept="audio/*" hidden>
+  </div>
+
+  <div id="emptyBox" hidden>
+    <svg viewBox="0 0 24 24"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.4Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+    <div class="t">No clips yet.<br>Tap + to upload videos from your phone.</div>
+    <button class="btn" id="emptyUp">Upload clips</button>
+  </div>
+
+  <div id="editBox" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div id="stage">
+      <video id="vA" playsinline preload="auto"></video>
+      <video id="vB" playsinline preload="auto" hidden></video>
+      <span id="tc">00:00.00 / 00:00.00</span>
+    </div>
+    <div id="trans">
+      <button id="backSec" aria-label="Back one second"><svg viewBox="0 0 24 24"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg></button>
+      <button id="backFr" aria-label="Back one frame"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+      <button id="play" aria-label="Play or pause">
+        <svg id="playIco" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIco" viewBox="0 0 24 24" hidden><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <button id="fwdFr" aria-label="Forward one frame"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button id="fwdSec" aria-label="Forward one second"><svg viewBox="0 0 24 24"><path d="m13 17 5-5-5-5"/><path d="m6 17 5-5-5-5"/></svg></button>
+    </div>
+    <div id="translbl"><span>−1s</span><span>−1 frame</span><span></span><span>+1 frame</span><span>+1s</span></div>
+
+    <div id="strip"></div>
+
+    <div id="audrow">
+      <svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+      <div id="audon" hidden>
+        <span class="nm" id="audName"></span>
+        <span class="sync" id="audSync"><svg viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span id="audSyncT"></span></span>
+        <button class="rm" id="audRm" aria-label="Remove the audio track">✕</button>
+      </div>
+      <button id="audoff" hidden><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>add audio track</button>
+      <audio id="audEl"></audio>
+    </div>
+
+    <div id="tools">
+      <button id="splitBtn"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><span class="w">split</span></button>
+      <button id="trimInBtn"><svg viewBox="0 0 24 24"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg><span class="w">trim in</span></button>
+      <button id="trimOutBtn"><svg viewBox="0 0 24 24"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg><span class="w">trim out</span></button>
+      <button id="moveL"><svg viewBox="0 0 24 24"><path d="M6 8L2 12L6 16"/><path d="M2 12H22"/></svg><span class="w">earlier</span></button>
+      <button id="moveR"><svg viewBox="0 0 24 24"><path d="M18 8L22 12L18 16"/><path d="M2 12H22"/></svg><span class="w">later</span></button>
+      <button id="syncBtn"><svg viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span class="w">sync</span></button>
+      <button id="delBtn"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg><span class="w">delete</span></button>
+    </div>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<!-- the films sheet: Render + every render kept, newest first -->
+<div id="filmsSheet" class="sheet" hidden>
+  <div class="wrap">
+    <button class="x" id="filmsClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="row"><button class="btn" id="renderBtn">Render</button></div>
+    <div id="jobline" hidden></div>
+    <div id="films"></div>
+    <div class="note" id="filmsNote" hidden></div>
+  </div>
+</div>
+
+<div id="lb">
+  <button class="x" id="lbClose"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+  <video id="lbVideo" controls playsinline preload="metadata"></video>
+  <div class="cap" id="lbCap"></div>
+</div>
+
+<script>
+(function () {   /* IIFE — never collide with injected globals */
+'use strict';
+var STUDIO_TOKEN = '__STUDIO_TOKEN__';
+var TOK = STUDIO_TOKEN.indexOf('__') === 0 ? '' : STUDIO_TOKEN;
+var $ = function (id) { return document.getElementById(id); };
+var B = '/api/filmeditor';
+var FPS = 30;
+var MIN_PIECE = 0.1;
+if (window.__nativeNavBar) document.body.classList.add('native');
+
+function api(path, opts) {
+  opts = opts || {};
+  if (opts.body && typeof opts.body === 'object') {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers = Object.assign({}, opts.headers, { 'content-type': 'application/json' });
+  }
+  if (TOK) opts.headers = Object.assign({}, opts.headers, { 'x-studio-token': TOK });
+  return fetch(path, opts).then(function (r) {
+    return r.text().then(function (t) {
+      var b; try { b = JSON.parse(t); } catch (e) { b = t; }
+      if (!r.ok) throw new Error((b && b.error) || ('HTTP ' + r.status));
+      return b;
+    });
+  });
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function fmtDur(s) {
+  if (s == null) return '';
+  var t = Math.round(s);
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+function fmt(t) {
+  t = Math.max(0, t || 0);
+  var m = Math.floor(t / 60), s = Math.floor(t % 60), f = Math.floor((t % 1) * FPS);
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(f).padStart(2, '0');
+}
+function keyGen() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/>'
+  + '<path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/>'
+  + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
+
+/* ── state ── */
+var A = null;                 // the open cut doc {id,title,clips,audio,renders,job}
+var playhead = 0;
+var playing = false;
+var selKey = null;            // the selected piece — FOLLOWS the playhead
+var raf = null, saveT = null, jobT = null;
+var upSession = '', uploading = false;
+
+/* mirrors filmeditor.js */
+function pieceSeconds(c) { return Math.max(0, (Number(c && c.out) || 0) - (Number(c && c.in) || 0)); }
+function segs() {
+  var t = 0;
+  return ((A && A.clips) || []).map(function (c) {
+    var s = { c: c, start: t, dur: pieceSeconds(c) };
+    t += s.dur;
+    return s;
+  });
+}
+function total() { return segs().reduce(function (a, s) { return a + s.dur; }, 0); }
+function segAt(t) {
+  var ss = segs();
+  for (var i = 0; i < ss.length; i++) { if (t < ss[i].start + ss[i].dur - 1e-4) return ss[i]; }
+  return ss[ss.length - 1] || null;
+}
+function selSeg() {
+  var ss = segs();
+  for (var i = 0; i < ss.length; i++) { if (ss[i].c.key === selKey) return ss[i]; }
+  return null;
+}
+function splitPiece(piece, offset, newKey) {
+  var dur = pieceSeconds(piece);
+  if (!(offset >= MIN_PIECE && offset <= dur - MIN_PIECE)) return null;
+  var cut = Math.round((piece.in + offset) * 1000) / 1000;
+  var a = Object.assign({}, piece, { out: cut });
+  var b = Object.assign({}, piece, { key: newKey, in: cut });
+  return [a, b];
+}
+
+/* ── two levels, one page ── */
+function aUrl(id) {
+  var u = new URL(location.href);
+  if (id) u.searchParams.set('c', id); else u.searchParams.delete('c');
+  return u.pathname + u.search;
+}
+function show(level) {
+  $('lvShelf').hidden = level !== 'shelf';
+  $('lvOpen').hidden = level !== 'open';
+  $('back').hidden = level !== 'open' || document.body.classList.contains('native');
+}
+window.__navBack = function () {
+  if ($('lvOpen').hidden) return false;
+  leaveOpen();
+  return true;
+};
+function toShelf() {
+  stopPlayback();
+  A = null; selKey = null; clearInterval(jobT);
+  show('shelf'); shelfPaint();
+}
+function leaveOpen() {
+  if (history.state && history.state.c) { history.back(); return; }
+  try { history.replaceState({}, '', aUrl(null)); } catch (_) {}
+  toShelf();
+}
+$('back').onclick = leaveOpen;
+window.addEventListener('popstate', function () {
+  var cid = new URLSearchParams(location.search).get('c');
+  if (cid && (!A || A.id !== cid)) open(cid, true);
+  else if (!cid && A) toShelf();
+});
+
+/* ── level 1: the shelf of cuts ── */
+function shelfPaint() {
+  api(B).then(function (r) {
+    var box = $('alist'); box.innerHTML = '';
+    (r.cuts || []).forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'arow';
+      b.innerHTML = '<span class="ph">' + (a.poster ? '<img loading="lazy" src="' + esc(a.poster) + '" alt="">' : FILM_ICON) + '</span>'
+        + '<span><span class="t">' + esc(a.title) + '</span>'
+        + '<span class="m">' + a.pieces + (a.pieces === 1 ? ' piece' : ' pieces')
+        + (a.seconds ? ' · ' + fmtDur(a.seconds) : '')
+        + (a.hasAudio ? ' · audio' : '')
+        + (a.renders ? ' · ' + a.renders + (a.renders === 1 ? ' film' : ' films') : '')
+        + (a.job ? ' · rendering…' : '') + '</span></span>';
+      b.onclick = function () { open(a.id); };
+      box.appendChild(b);
+    });
+    $('shelfNote').hidden = (r.cuts || []).length > 0;
+    $('shelfNote').textContent = 'No cuts yet.';
+  }).catch(function (e) {
+    $('shelfNote').hidden = false;
+    $('shelfNote').textContent = String(e.message || e);
+  });
+}
+$('newBtn').onclick = function () {
+  api(B, { method: 'POST', body: {} }).then(function (r) { open(r.id); })
+    .catch(function (e) { $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e); });
+};
+
+/* ── level 2: one cut open ── */
+function open(id, fromHistory) {
+  api(B + '/' + encodeURIComponent(id)).then(function (doc) {
+    A = doc; A.id = id;
+    playhead = 0; playing = false; selKey = null;
+    $('ttl').value = A.title || '';
+    if (!fromHistory) {
+      try { history.pushState({ c: id }, '', aUrl(id)); } catch (_) {}
+    }
+    show('open');
+    paint();
+    syncSelection();
+    seekVideo(false);
+    if (A.job && A.job.status === 'running') { openFilms(); pollJob(); }
+  }).catch(function (e) {
+    $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e);
+  });
+}
+$('ttl').addEventListener('change', function () {
+  if (!A) return;
+  var t = $('ttl').value.trim();
+  if (!t) { $('ttl').value = A.title || ''; return; }
+  A.title = t;
+  api(B + '/' + A.id + '/title', { method: 'POST', body: { title: t } }).catch(function () {});
+});
+
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(function () {
+    if (!A) return;
+    api(B + '/' + A.id + '/pieces', { method: 'POST', body: { clips: A.clips || [], audio: A.audio || null } })
+      .catch(function (e) { say('Couldn’t save — ' + String(e.message || e)); });
+  }, 600);
+}
+var msgT = null;
+function say(t) {
+  $('msg').textContent = t || '';
+  clearTimeout(msgT);
+  if (t) msgT = setTimeout(function () { $('msg').textContent = ''; }, 3500);
+}
+
+/* ── the two-element player: crossing a source boundary must not flash ── */
+var actEl = null;   // the visible <video>
+function otherEl() { return actEl === $('vA') ? $('vB') : $('vA'); }
+function ensureSrc(el, url) {
+  if (el.getAttribute('data-src') !== url) {
+    el.setAttribute('data-src', url);
+    el.src = url;
+    el.load();
+  }
+}
+function activate(el) {
+  if (actEl === el) return;
+  var old = actEl;
+  actEl = el;
+  el.hidden = false;
+  if (old) { old.pause(); old.hidden = true; }
+}
+function stopPlayback() {
+  cancelAnimationFrame(raf);
+  playing = false;
+  if (actEl) actEl.pause();
+  $('audEl').pause();
+  paintPlayBtn();
+}
+function seekVideo(playIt) {
+  var seg = segAt(playhead);
+  if (!seg) { if (actEl) { actEl.pause(); actEl.removeAttribute('data-src'); actEl.removeAttribute('src'); } return; }
+  var el = actEl && actEl.getAttribute('data-src') === seg.c.url ? actEl
+    : (otherEl().getAttribute('data-src') === seg.c.url ? otherEl() : (actEl || $('vA')));
+  ensureSrc(el, seg.c.url);
+  activate(el);
+  var target = seg.c.in + (playhead - seg.start);
+  var setPos = function () {
+    try { el.currentTime = target; } catch (e) { /* not seekable yet */ }
+    if (playIt) el.play().catch(function () {});
+  };
+  if (el.readyState >= 1) setPos(); else el.onloadedmetadata = setPos;
+  // warm the NEXT source in the idle element so the boundary doesn't flash
+  var ss = segs();
+  var idx = ss.indexOf(seg);
+  for (var j = idx + 1; j < ss.length; j++) {
+    if (ss[j].c.url !== seg.c.url) { ensureSrc(otherEl(), ss[j].c.url); break; }
+  }
+  syncAudio(playIt);
+}
+function syncAudio(playIt) {
+  var a = $('audEl');
+  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); return; }
+  if (a.getAttribute('data-src') !== A.audio.url) {
+    a.setAttribute('data-src', A.audio.url); a.src = A.audio.url;
+  }
+  var at = playhead - (A.audio.offset || 0);
+  if (playIt && at >= 0) {
+    try { a.currentTime = at; } catch (e) {}
+    a.play().catch(function () {});
+  } else {
+    a.pause();
+    if (at >= 0) { try { a.currentTime = at; } catch (e) {} }
+  }
+}
+function seekTo(t) {
+  if (playing) stopPlayback();
+  playhead = Math.min(Math.max(0, t), Math.max(0, total() - 0.001));
+  syncSelection();
+  seekVideo(false);
+  paintStrip(); paintTc();
+}
+function playPause() {
+  if (!segs().length) return;
+  if (playing) { stopPlayback(); return; }
+  if (playhead >= total() - 0.02) playhead = 0;
+  playing = true;
+  paintPlayBtn();
+  seekVideo(true);
+  raf = requestAnimationFrame(tick);
+}
+var lastTs = null;
+function tick(ts) {
+  if (!playing) return;
+  var dt = lastTs == null ? 0 : (ts - lastTs) / 1000;
+  lastTs = ts;
+  var seg = segAt(playhead);
+  if (!seg) { stopPlayback(); return; }
+  var t;
+  if (actEl && actEl.getAttribute('data-src') === seg.c.url && actEl.readyState >= 2) {
+    t = seg.start + Math.max(0, actEl.currentTime - seg.c.in);
+  } else t = playhead + dt;
+  var segEnd = seg.start + seg.dur;
+  if (t >= segEnd - 0.03) {
+    var next = segAt(segEnd + 0.01);
+    if (!next || next === seg) {
+      playhead = total();
+      stopPlayback();
+      syncSelection(); paintStrip(); paintTc();
+      return;
+    }
+    playhead = next.start;
+    syncSelection();
+    seekVideo(true);
+  } else playhead = t;
+  paintStrip(); paintTc();
+  raf = requestAnimationFrame(tick);
+}
+/* the selection FOLLOWS the playhead — the prototype's worst bug, fixed:
+   split/trim always act on the piece she is looking at */
+function syncSelection() {
+  var seg = segAt(playhead);
+  selKey = seg ? seg.c.key : null;
+}
+
+/* ── transport ── */
+$('play').onclick = playPause;
+$('backSec').onclick = function () { seekTo(playhead - 1); };
+$('fwdSec').onclick = function () { seekTo(playhead + 1); };
+$('backFr').onclick = function () { seekTo(playhead - 1 / FPS); };
+$('fwdFr').onclick = function () { seekTo(playhead + 1 / FPS); };
+function paintPlayBtn() {
+  $('playIco').hidden = playing;
+  $('pauseIco').hidden = !playing;
+}
+
+/* ── the tools — at the playhead, on the selected piece ── */
+function mustSel() {
+  var seg = selSeg();
+  if (!seg) say('nothing selected — tap a piece or press play');
+  return seg;
+}
+$('splitBtn').onclick = function () {
+  var seg = mustSel(); if (!seg) return;
+  var off = playhead - seg.start;
+  var pair = splitPiece(seg.c, off, keyGen());
+  if (!pair) { say('too close to the edge to split — step into the piece first'); return; }
+  var i = A.clips.indexOf(seg.c);
+  A.clips.splice(i, 1, pair[0], pair[1]);
+  syncSelection(); paint(); save();
+};
+$('trimInBtn').onclick = function () {
+  var seg = mustSel(); if (!seg) return;
+  var off = playhead - seg.start;
+  if (off <= 0 || off >= seg.dur - MIN_PIECE) { say('step inside the piece to trim its start here'); return; }
+  seg.c.in = Math.round((seg.c.in + off) * 1000) / 1000;
+  playhead = seg.start;   // the piece now starts here
+  syncSelection(); paint(); save(); seekVideo(false);
+};
+$('trimOutBtn').onclick = function () {
+  var seg = mustSel(); if (!seg) return;
+  var off = playhead - seg.start;
+  if (off <= MIN_PIECE || off >= seg.dur) { say('step inside the piece to trim its end here'); return; }
+  seg.c.out = Math.round((seg.c.in + off) * 1000) / 1000;
+  syncSelection(); paint(); save();
+};
+function move(dir) {
+  var seg = mustSel(); if (!seg) return;
+  var i = A.clips.indexOf(seg.c), j = i + dir;
+  if (j < 0 || j >= A.clips.length) { say(dir < 0 ? 'already first' : 'already last'); return; }
+  A.clips.splice(i, 1);
+  A.clips.splice(j, 0, seg.c);
+  // keep the playhead on the moved piece
+  var ns = segs().filter(function (s) { return s.c.key === seg.c.key; })[0];
+  if (ns) playhead = ns.start;
+  syncSelection(); paint(); save(); seekVideo(false);
+}
+$('moveL').onclick = function () { move(-1); };
+$('moveR').onclick = function () { move(1); };
+$('delBtn').onclick = function () {
+  var seg = mustSel(); if (!seg) return;
+  var i = A.clips.indexOf(seg.c);
+  A.clips.splice(i, 1);
+  playhead = Math.min(playhead, Math.max(0, total() - 0.001));
+  syncSelection(); paint(); save(); seekVideo(false);
+};
+$('syncBtn').onclick = function () {
+  if (!A) return;
+  if (!A.audio) { $('audFile').click(); return; }
+  var seg = selSeg();
+  A.audio.offset = seg ? Math.round(seg.start * 1000) / 1000 : 0;
+  paint(); save(); syncAudio(false);
+  say(seg ? 'audio starts at this piece' : 'audio starts from the top');
+};
+
+/* ── painting ── */
+function paintTc() { $('tc').textContent = fmt(playhead) + ' / ' + fmt(total()); }
+function paintStrip() {
+  var strip = $('strip');
+  var ss = segs();
+  var kids = strip.children;
+  var rebuild = kids.length !== ss.length;
+  if (!rebuild) {
+    for (var i = 0; i < ss.length; i++) {
+      if (kids[i].getAttribute('data-key') !== ss[i].c.key) { rebuild = true; break; }
+    }
+  }
+  if (rebuild) {
+    strip.innerHTML = '';
+    ss.forEach(function (s, i) {
+      var b = document.createElement('button');
+      b.className = 'seg';
+      b.setAttribute('data-key', s.c.key);
+      if (s.c.poster) b.style.backgroundImage = 'url("' + s.c.poster.replace(/"/g, '%22') + '")';
+      b.innerHTML = '<span class="lbl"></span><span class="ph" hidden></span>';
+      b.onclick = function () {
+        var now = segs().filter(function (x) { return x.c.key === s.c.key; })[0];
+        if (now) seekTo(now.start + 0.001);
+      };
+      strip.appendChild(b);
+    });
+  }
+  var cur = segAt(playhead);
+  ss.forEach(function (s, i) {
+    var el = kids[i];
+    if (!el) return;
+    el.style.flexGrow = Math.max(0.5, s.dur);
+    el.classList.toggle('sel', s.c.key === selKey);
+    el.querySelector('.lbl').textContent = String(i + 1).padStart(2, '0') + ' · ' + fmt(s.dur);
+    var ph = el.querySelector('.ph');
+    var inSeg = cur === s;
+    ph.hidden = !inSeg;
+    if (inSeg) ph.style.left = Math.min(99, (playhead - s.start) / (s.dur || 1) * 100).toFixed(2) + '%';
+  });
+}
+function paintAudio() {
+  var has = Boolean(A && A.audio);
+  $('audon').hidden = !has;
+  $('audoff').hidden = has;
+  if (has) {
+    $('audName').textContent = A.audio.name || 'audio track';
+    var ss = segs();
+    var label = 'from start';
+    for (var i = 0; i < ss.length; i++) {
+      if (Math.abs(ss[i].start - (A.audio.offset || 0)) < 0.05) { label = 'synced to piece ' + (i + 1); break; }
+    }
+    if ((A.audio.offset || 0) > 0 && label === 'from start') label = 'from ' + fmt(A.audio.offset);
+    $('audSyncT').textContent = label;
+  }
+}
+function paintFilms() {
+  var renders = (A && A.renders) || [];
+  var box = $('films'); box.innerHTML = '';
+  renders.forEach(function (r, i) {
+    var b = document.createElement('button');
+    var name = 'Film v' + (renders.length - i);
+    b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>' + name + '</span>'
+      + '<span class="m">· ' + fmtDur(r.seconds) + ' · ' + r.pieces + ' pieces'
+      + (i === 0 ? ' · newest' : '') + '</span>';
+    b.onclick = function () { playUrl(r.url, name + ' · ' + fmtDur(r.seconds)); };
+    box.appendChild(b);
+  });
+  $('filmsNote').hidden = renders.length > 0;
+  $('filmsNote').textContent = 'No films yet — Render bakes the cut into one.';
+  $('filmsDot').hidden = !renders.length;
+  $('filmsDot').textContent = renders.length;
+  $('renderBtn').disabled = !((A && A.clips) || []).length || (A && A.job && A.job.status === 'running');
+}
+function paint() {
+  var has = Boolean(A && (A.clips || []).length);
+  $('emptyBox').hidden = has;
+  $('editBox').hidden = !has;
+  var toolsOff = !has;
+  ['splitBtn', 'trimInBtn', 'trimOutBtn', 'moveL', 'moveR', 'delBtn'].forEach(function (id) {
+    $(id).classList.toggle('off', toolsOff);
+  });
+  if (has) { paintStrip(); paintTc(); }
+  paintAudio(); paintFilms(); paintPlayBtn();
+}
+
+/* ── uploads: the Dump's machinery, then metadata read CLIENT-side so a
+   piece always knows its length before it joins the timeline. A file the
+   browser can't read reports itself instead of vanishing. ── */
+$('addBtn').onclick = function () { $('upFile').click(); };
+$('emptyUp').onclick = function () { $('upFile').click(); };
+$('upFile').addEventListener('change', function () {
+  var files = [].slice.call($('upFile').files || []);
+  $('upFile').value = '';
+  if (!files.length || !A || uploading) return;
+  uploadBatch(files);
+});
+function probeSeconds(url) {
+  return new Promise(function (resolve) {
+    var v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = function () {
+      resolve(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null);
+      v.removeAttribute('src'); v.load();
+    };
+    v.onerror = function () { resolve(null); };
+    v.src = url;
+  });
+}
+function uploadBatch(files) {
+  uploading = true;
+  var total_ = files.length, done = 0, failed = 0;
+  function sayUp() {
+    if (done + failed < total_) say('Uploading ' + (done + failed + 1) + ' of ' + total_ + '…');
+    else say(failed ? failed + ' of ' + total_ + ' didn’t upload or couldn’t be read — try those again' : '');
+  }
+  sayUp();
+  function next() {
+    if (!files.length) { uploading = false; sayUp(); paint(); save(); return; }
+    var f = files.shift();
+    var q = '?bundle=' + encodeURIComponent((A.title || 'Film Editor').slice(0, 80))
+      + '&filename=' + encodeURIComponent(f.name || 'upload')
+      + (upSession ? '&session=' + encodeURIComponent(upSession) : '');
+    var headers = { 'content-type': f.type || 'application/octet-stream' };
+    if (TOK) headers['x-studio-token'] = TOK;
+    fetch('/api/drop/upload-file' + q, { method: 'POST', headers: headers, body: f })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.item || !r.item.url) throw new Error((r && r.error) || 'upload failed');
+        upSession = r.session || upSession;
+        return probeSeconds(r.item.url).then(function (secs) {
+          if (!secs) { failed++; return; }
+          A.clips = (A.clips || []).concat([{
+            key: keyGen(), url: r.item.url,
+            title: String(r.item.name || f.name || 'clip').slice(0, 200),
+            poster: r.item.posterUrl || null,
+            seconds: Math.round(secs * 1000) / 1000,
+            in: 0, out: Math.round(secs * 1000) / 1000,
+          }]);
+          done++;
+          syncSelection(); paint(); seekVideo(false);
+        });
+      })
+      .catch(function () { failed++; })
+      .then(function () { sayUp(); next(); });
+  }
+  next();
+}
+
+/* the audio track: one file, through the audio library's upload (md5 dedupe) */
+$('audoff').onclick = function () { $('audFile').click(); };
+$('audFile').addEventListener('change', function () {
+  var f = ($('audFile').files || [])[0];
+  $('audFile').value = '';
+  if (!f || !A) return;
+  say('Uploading audio…');
+  var q = '?batch=filmeditor&filename=' + encodeURIComponent(f.name || 'audio')
+    + '&name=' + encodeURIComponent((f.name || 'audio').replace(/\.[a-z0-9]+$/i, ''));
+  var headers = { 'content-type': f.type || 'application/octet-stream' };
+  if (TOK) headers['x-studio-token'] = TOK;
+  fetch('/api/audio/upload-file' + q, { method: 'POST', headers: headers, body: f })
+    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (!r || !r.item || !r.item.url) throw new Error((r && r.error) || 'upload failed');
+      A.audio = { url: r.item.url, name: r.item.name || f.name || 'audio track', offset: 0 };
+      say('');
+      paint(); save();
+    })
+    .catch(function (e) { say('Audio didn’t upload — ' + String(e.message || e)); });
+});
+$('audRm').onclick = function () {
+  if (!A) return;
+  A.audio = null;
+  $('audEl').pause(); $('audEl').removeAttribute('src'); $('audEl').removeAttribute('data-src');
+  paint(); save();
+};
+
+/* ── render + the films sheet ── */
+function openFilms() {
+  $('filmsSheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+  paintFilms();
+}
+function closeFilms() {
+  $('filmsSheet').hidden = true;
+  document.body.style.overflow = '';
+}
+$('filmsBtn').onclick = openFilms;
+$('filmsClose').onclick = closeFilms;
+$('filmsSheet').addEventListener('click', function (e) { if (e.target === $('filmsSheet')) closeFilms(); });
+$('renderBtn').onclick = function () {
+  if (!A || !(A.clips || []).length) return;
+  clearTimeout(saveT);
+  api(B + '/' + A.id + '/pieces', { method: 'POST', body: { clips: A.clips || [], audio: A.audio || null } })
+    .then(function () { return api(B + '/' + A.id + '/render', { method: 'POST', body: {} }); })
+    .then(function () {
+      A.job = { status: 'running', label: 'starting' };
+      paintFilms(); pollJob();
+    })
+    .catch(function (e) {
+      $('jobline').hidden = false;
+      $('jobline').textContent = String(e.message || e);
+    });
+};
+function pollJob() {
+  clearInterval(jobT);
+  var line = $('jobline');
+  line.hidden = false;
+  jobT = setInterval(function () {
+    if (!A) { clearInterval(jobT); return; }
+    api(B + '/' + A.id + '/job').then(function (r) {
+      var j = r.job;
+      A.job = j;
+      if (j && j.status === 'running') {
+        line.textContent = 'baking ' + (j.total ? (j.done + '/' + j.total + ' — ') : '') + (j.label || '');
+      } else {
+        clearInterval(jobT);
+        if (j && j.status === 'error') {
+          line.textContent = 'render failed — ' + (j.error || 'unknown');
+        } else {
+          line.hidden = true;
+          A.renders = r.renders || A.renders;
+        }
+        paintFilms();
+      }
+    }).catch(function () {});
+  }, 3000);
+}
+
+/* ── the finished-film player — freezes the page behind it ── */
+function playUrl(url, cap) {
+  stopPlayback();
+  $('lbCap').textContent = cap || '';
+  $('lb').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  var v = $('lbVideo');
+  v.src = url;
+  v.play().catch(function () {});
+}
+$('lbClose').onclick = function () {
+  var v = $('lbVideo');
+  v.pause(); v.removeAttribute('src'); v.load();
+  $('lb').classList.remove('open');
+  document.body.style.overflow = $('filmsSheet').hidden ? '' : 'hidden';
+};
+
+/* ── the "?" card ── */
+$('help').onclick = function (e) { e.stopPropagation(); $('helpcard').hidden = !$('helpcard').hidden; };
+document.addEventListener('click', function (e) {
+  if (!$('helpcard').hidden && !$('helpcard').contains(e.target) && e.target !== $('help')) {
+    $('helpcard').hidden = true;
+  }
+});
+
+/* ── launch: a ?c= link opens that cut cold; otherwise the shelf ── */
+actEl = $('vA');
+var startId = new URLSearchParams(location.search).get('c');
+if (startId) { show('open'); open(startId, true); }
+else { show('shelf'); shelfPaint(); }
+})();
+</script>
+</body>
+</html>

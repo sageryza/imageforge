@@ -82,4 +82,11 @@ start and an end — is the one nothing else has, and the back end for it is
 already built. Wiring split/trim to `POST /chunk` needs no render change in
 either arranging tool, because both pull their clips off that same shelf.
 
-Not decided yet: whether to build that, and where it lives.
+Decided and built (Aug 2026, Sophie: "build it with the prototype I got from
+Claude design"): the prototype became the **Film Editor** — `filmeditor.js` +
+`public/filmeditor.html`, live at `/filmeditor`, iOS tile under the FILM
+filter. Every gap and bug listed above was fixed in the build (saving, render,
+selection following the playhead, inert dimmed tools, the scrolling timeline,
+real posters, the two-element video swap, loud refusals). This folder stays
+the design source: when Sophie reworks the canvas in Claude Design, re-bank it
+here and fold the look into the live page.

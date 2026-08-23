@@ -5,7 +5,7 @@ import UIKit   // UIImage(systemName:) — the SF Symbol existence check in Tool
 /// (My Creations) are fixed ends of the bar; everything here is a "mode" that
 /// cycles through the three middle slots by most-recently-used.
 enum Tool: String, CaseIterable, Identifiable {
-    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, timeline, review
+    case movie, sticker, coloring, storybook, greeting, dreams, instagram, ads, blog, product, report, story, lessons, writing, editor, cutroom, cutmarks, blocks, pausing, search, chats, test, dump, playground, scratchpad, voice, song, character, films, freeform, vector, chunking, assembly, filmeditor, timeline, review
     var id: String { rawValue }
 
     var title: String {
@@ -43,6 +43,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .vector:    return "Vector"
         case .chunking:  return "Chunking"
         case .assembly:  return "Assembly"
+        case .filmeditor: return "Film Editor"
         case .timeline:  return "Story Timeline"
         case .review:    return "Review Queue"
         }
@@ -84,6 +85,7 @@ enum Tool: String, CaseIterable, Identifiable {
         case .timeline:  return "Dictate a story's moments — then put them in order."
         case .chunking:  return "Every clip you’ve made, searchable — the pieces films get cut from."
         case .assembly:  return "Put clips in order on a timeline — then bake one film."
+        case .filmeditor: return "Cut a film with taps — split, trim, reorder, one audio track."
         case .review:    return "Everything still waiting on your swipe — one pile."
         }
     }
@@ -147,6 +149,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // together. Distinct from Chunking's shelf stack (squares) and from
         // Films' film.stack: this one is the act of joining, not the library.
         case .assembly:  return "play.rectangle.on.rectangle"
+        // A timeline with a span selected — the editor is the act of
+        // choosing spans. Distinct from Assembly (joining rectangles) and
+        // the scissors family (audio cutting).
+        case .filmeditor: return "timeline.selection"
         // Moments stacked in an order, with one of them picked up — the whole
         // tool is moving a card up and down a list.
         case .timeline:  return "list.bullet.indent"
@@ -224,6 +230,10 @@ enum Tool: String, CaseIterable, Identifiable {
         // chevron goes shelf-ward before it leaves.
         case .assembly:  GatedWebTool(path: "/assembly", name: "Assembly", icon: "play.rectangle.on.rectangle",
                                       navTitle: "Assembly")
+        // Film Editor: her tap editor — two levels (the shelf of cuts, one
+        // open); the page answers window.__navBack.
+        case .filmeditor: GatedWebTool(path: "/filmeditor", name: "Film Editor", icon: "timeline.selection",
+                                       navTitle: "Film Editor")
         // Story Timeline: a shelf of stories, then one open. The page answers
         // window.__navBack, so the chevron goes shelf-ward before it leaves.
         case .timeline:  GatedWebTool(path: "/timeline", name: "Story Timeline", icon: "list.bullet.indent",
@@ -556,6 +566,8 @@ struct RootView: View {
             if t == .chunking { return false }
             // Assembly is served with { pill: true } as well.
             if t == .assembly { return false }
+            // Film Editor is ONE screen that never scrolls — no pill at all.
+            if t == .filmeditor { return false }
             // Story Timeline is served with { pill: true } as well.
             if t == .timeline { return false }
             // Review Queue is served with { pill: true } as well.
@@ -705,7 +717,7 @@ private struct HomeGrid: View {
                    tools: [.character, .movie, .dreams]),
         MovieStage(n: 6, name: "The shelf",
                    line: "What is already made — to cut from, or to watch.",
-                   tools: [.chunking, .assembly, .films]),
+                   tools: [.chunking, .assembly, .filmeditor, .films]),
     ]
 
     /// The film filter's set — everything that makes or cuts moving pictures

@@ -2479,6 +2479,40 @@ before working on that module. Nothing was deleted — the moved text is verbati
   in the browser as a rough preview; the render is the real join.
   Tests: `node scripts/test-assembly.js` (the place-indicator arithmetic pure,
   then the real page headless). **Full details: `docs/modules/audio-and-film.md`.**
+- **Film Editor** (`filmeditor.js`, `/api/filmeditor`, page at `/filmeditor`,
+  iOS tile under the FILM filter) — **the one surface that CUTS video**, built
+  Aug 2026 from Sophie's own Claude Design canvas (`docs/film-editor-design/`,
+  which also carries the other chat's gaps file — the build fixed every bug it
+  names). Her tap-only editor: split · trim in · trim out · earlier · later ·
+  sync · delete, a transport that steps ±1 frame / ±1s, ONE audio track with
+  an offset. **A piece is a REFERENCE into a source file (url + in/out), so
+  every tool is non-destructive metadata** — a split is two references into
+  one file, a trim can always be trimmed back out, and the render is the only
+  moment anything is actually cut. **The selection FOLLOWS the playhead**
+  (the prototype's worst bug — split/trim always act on the piece she is
+  looking at), refused taps say why in the quiet line, and two swapped
+  `<video>` elements keep a source boundary from flashing black. Sources
+  arrive through the Dump's `/api/drop/upload-file` (md5 dedupe, posters —
+  the assembly pattern), the audio track through `/api/audio/upload-file`;
+  lengths are read CLIENT-side before a piece joins the timeline, so an
+  undecodable file reports itself. **The render is the scratch-pad recipe via
+  assembly.js's own exports** (`targetFrom`/`segmentFilters` — one canvas,
+  per-segment PCM, AAC once at the mux) with `-ss/-to` as INPUT options for
+  the trim (source timestamps, accurate under a re-encode) and the track
+  mixed at the mux with `normalize=0` (amix's default halves both voices).
+  One download per unique source url — twelve pieces of one recording cost
+  one download. **It costs nothing** — ffmpeg on our own box; the only paid
+  side-effect is the audio library's unconditional transcription of an
+  uploaded track (~$0.006/min, once ever per file). One doc per cut
+  (`forge-film-edits`); arrangement + audio save WHOLE (a split changes two
+  pieces and the order at once). Renders never overwrite
+  (`filmeditor/<id>/film-<n>.mp4`, capped 12) and `filmeditor/` is on
+  clips.js's SKIP_PREFIXES. The film icon top-left (a dead control in the
+  prototype) opens the films sheet — Render, the job line, every render kept.
+  The page is ONE screen, never scrolls, NO pill. Story Room = think about
+  the story, Assembly = arrange footage, this = actually cut it.
+  Tests: `node scripts/test-filmeditor.js` (pure + the static page
+  contracts, no network).
 - **The audio PROJECT** (`audioproject.js`, `/api/audioproject`,
   `forge-audio-projects` — no page of its own) — the light cross-room id
   Sophie picked (2026-08-19): threaded through every audio hand-off as

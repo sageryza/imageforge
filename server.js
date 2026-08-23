@@ -433,6 +433,10 @@ loadConfig().then(() => {
   // the arranging step between the Chunking shelf and a finished film. The
   // render is ffmpeg on our own box; nothing here spends money.
   app.use('/api/assembly', require('./assembly').router);
+  // Film Editor: Sophie's tap-only phone editor (her Claude Design canvas,
+  // docs/film-editor-design/) — the one surface that CUTS video: split, trim
+  // in/out, reorder, one audio track. Render is ffmpeg on our own box; free.
+  app.use('/api/filmeditor', require('./filmeditor').router);
   app.use('/api/fruit', require('./fruit').router); // favorite-fruit poll: a swipe deck per person → the fridge chart
   // Witch-video pipeline: Theo's ideas → draft cuts → the review room at
   // /witchvideo (tap the video to pause + leave a note; ♥/✕). Notes ring the
@@ -3151,6 +3155,11 @@ app.get('/clips', serveGated('clips.html', { pill: true }));
 // clip shelf scrolls, so it carries the pill and pays the contract's price
 // (five tokens on .float, the 64px corner reserve).
 app.get('/assembly', serveGated('assembly.html', { pill: true }));
+
+// Film Editor: her tap editor made real — split / trim / reorder / audio at
+// the playhead, one screen that never scrolls, so NO pill. Engine is
+// /api/filmeditor (filmeditor.js).
+app.get('/filmeditor', serveGated('filmeditor.html'));
 
 // ─── Available models ───────────────────────────────────────────────
 // House styles. Each Replicate entry is a Flux LoRA with a trigger word that's

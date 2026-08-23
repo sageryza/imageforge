@@ -105,6 +105,7 @@ const SKIP_PREFIXES = [
   'clip-library/',   // this module's own posters
   'assembly/',       // Assembly renders — films MADE OF these clips; harvesting
                      // one back onto the shelf would nest the library in itself
+  'filmeditor/',     // Film Editor renders — finished cuts, same reason
 ];
 
 // Fields a client may write. Everything else — url, poster, seconds, kind,
