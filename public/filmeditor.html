@@ -492,6 +492,7 @@ function activate(el) {
 function stopPlayback() {
   cancelAnimationFrame(raf);
   playing = false;
+  lastTs = null;   // a stale clock made the next play leap seconds ahead
   if (actEl) actEl.pause();
   $('audEl').pause();
   paintPlayBtn();
@@ -544,6 +545,7 @@ function playPause() {
   if (playing) { stopPlayback(); return; }
   if (playhead >= total() - 0.02) playhead = 0;
   playing = true;
+  lastTs = null;   // never carry the previous session's clock into this one
   paintPlayBtn();
   seekVideo(true);
   raf = requestAnimationFrame(tick);
@@ -551,7 +553,9 @@ function playPause() {
 var lastTs = null;
 function tick(ts) {
   if (!playing) return;
-  var dt = lastTs == null ? 0 : (ts - lastTs) / 1000;
+  // dt is capped: a frame that arrives late (tab switch, slow decode) must
+  // nudge the playhead, never fling it past whole pieces
+  var dt = lastTs == null ? 0 : Math.min(0.1, (ts - lastTs) / 1000);
   lastTs = ts;
   var seg = segAt(playhead);
   if (!seg) { stopPlayback(); return; }
@@ -562,7 +566,9 @@ function tick(ts) {
   var segEnd = seg.start + seg.dur;
   if (t >= segEnd - 0.03) {
     var next = segAt(segEnd + 0.01);
-    if (!next || next === seg) {
+    // compare KEYS, never object identity — segAt builds fresh objects every
+    // call, so an identity check was never true and the last piece looped forever
+    if (!next || next.c.key === seg.c.key) {
       playhead = total();
       stopPlayback();
       syncSelection(); paintStrip(); paintTc();
@@ -572,6 +578,16 @@ function tick(ts) {
     syncSelection();
     seekVideo(true);
   } else playhead = t;
+  // the track starts the moment the playhead crosses its offset — without
+  // this it only ever started on a seek or a piece boundary
+  if (A && A.audio) {
+    var a = $('audEl');
+    var at = playhead - (A.audio.offset || 0);
+    if (at >= 0 && a.paused && a.getAttribute('data-src') === A.audio.url) {
+      try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+      a.play().catch(function () {});
+    }
+  }
   paintStrip(); paintTc();
   raf = requestAnimationFrame(tick);
 }
@@ -679,7 +695,14 @@ function paintStrip() {
       strip.appendChild(b);
     });
   }
-  var cur = segAt(playhead);
+  // the current piece must come from THIS ss array — segAt builds fresh
+  // objects, so `cur === s` against a second call never matched and the
+  // playhead line never drew (Sophie's report, 2026-08-22)
+  var cur = null;
+  for (var ci = 0; ci < ss.length; ci++) {
+    cur = ss[ci];
+    if (playhead < ss[ci].start + ss[ci].dur - 1e-4) break;
+  }
   ss.forEach(function (s, i) {
     var el = kids[i];
     if (!el) return;
