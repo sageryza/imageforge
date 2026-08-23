@@ -146,7 +146,9 @@ The generic phone inbox, the APNs doorbell, and the Google Drawing extractor.
     asterisks and all, because nothing stripped the markdown either. Leading
     lines that are ENTIRELY bold are now skipped — that is precisely the shape
     the answering rule produces, and `**TLDR** — …` has ordinary text after
-    the bold, so a real opening line is kept. The chosen line is then
+    the bold, so a real opening line is kept. (Since 2026-08-23 that bold echo
+    fires only on a question she marked with the word "question", so the skip
+    reaches fewer replies but exactly the ones that matter.) The chosen line is then
     flattened (emphasis, headings, quote marks, inline code, and a link
     reduced to its text). A reply that is nothing but bolded questions still
     sends its first line rather than a blank banner.

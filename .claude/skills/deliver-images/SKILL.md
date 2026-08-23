@@ -25,11 +25,13 @@ later.
    Firebase Storage (`saveToFirebase()` in server.js, or `bucket.upload()`)
    before filing anything.
 2. **File the MODEL · QUALITY · SIZE caption — this is the step chats forget.**
-   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 1568x2352", description }`
+   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 2K", description }`
    The SIZE is a required third slot since Aug 2026 — gpt-image-2 draws any
    canvas, so model and quality alone no longer say what a picture is (one
-   prompt at one quality spans 5x in pixels and 3x in price). Filing a creation
-   as well? `post-to-gallery.js --size 1568x2352` writes the matching field.
+   prompt at one quality spans 5x in pixels and 3x in price). **It is the TIER
+   — 1K / 2K / 4K, not the pixels** ("i asked for it to say 1k 2k or 4k").
+   Filing a creation as well? `post-to-gallery.js --size 1568x2352` takes the
+   real canvas and writes the tier for the caption plus `canvas` beside it.
    — the asset doc's `prompt` field is the tile caption. Only the chat that
    generated an image ever knows its quality; a sweep of 171 chats found 1,938
    images with no caption and almost none recoverable. Never invent one for an
