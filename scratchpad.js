@@ -958,14 +958,24 @@ router.post('/remove', async (req, res) => {
 });
 
 // Speech-only markup has no business in an image prompt: [pause]-style
-// tags and <break time="1s" /> are directions for the VOICE. The bulk pass
-// strips them; the single-beat draw box leaves her words alone (she can see
-// and edit those herself).
+// tags and <break time="1s" /> are directions for the VOICE. Stripped
+// wherever words become a prompt — the wand here, and the draw box's seed
+// on the page (its own copy, stripSpeech).
 function drawablePrompt(text) {
   return String(text || '')
     .replace(/<break[^>]*>/gi, ' ')
     .replace(/\[[^\]\n]{1,40}\]/g, ' ')
     .replace(/\s+/g, ' ').trim();
+}
+
+// What a beat DRAWS: its own stored prompt when Sophie has written one, else
+// its words with the speech markup stripped. The prompt is its own field
+// (beat.prompt) so tuning what a picture shows never rewrites what the film
+// says — and an absent prompt keeps following the words, so nothing existing
+// changed the day this landed.
+function promptFor(beat) {
+  const p = String((beat && beat.prompt) || '').trim();
+  return p || drawablePrompt(beat && beat.text);
 }
 
 // The one-tap outline pass: draw every beat that has its OWN words but no
@@ -988,15 +998,15 @@ router.post('/drawall', async (req, res) => {
     const targets = pad.beats
       // A beat she DELETED from this side is not missing art here — it is
       // not on this side at all, so the wand must never draw it back.
-      .filter((b) => { const s = artSlot(b, style); return !slotOff(s) && !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
-      .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
+      .filter((b) => { const s = artSlot(b, style); return !slotOff(s) && !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && promptFor(b); })
+      .map((b) => ({ id: b.id, prompt: promptFor(b) }));
     if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
     const ids = new Set(targets.map((t) => t.id));
     const beats = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       cur.forEach((b) => {
-        if (ids.has(b.id)) artSlot(b, style, true).gen = { status: 'drawing', prompt: drawablePrompt(b.text), quality, character, at: Date.now() };
+        if (ids.has(b.id)) artSlot(b, style, true).gen = { status: 'drawing', prompt: promptFor(b), quality, character, at: Date.now() };
       });
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
@@ -1474,6 +1484,31 @@ router.post('/text', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// The beat's DRAWING PROMPT — what its picture is asked for, apart from what
+// the film says. Saved automatically by the page (no save button, Sophie's
+// rule): the draw box POSTs here on blur/close/draw. A prompt that matches
+// the words' own drawable form is stored as NOTHING — the beat keeps
+// following its words, so editing the note later still updates what draws.
+router.post('/prompt', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const id = String(req.body.id || '');
+    if (!id) return res.status(400).json({ error: 'beat id required' });
+    const prompt = String(req.body.prompt ?? '').slice(0, 5000).trim();
+    const beats = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
+      const b = cur.find((x) => x.id === id);
+      if (!b) throw new Error('no such beat');
+      if (!prompt || prompt === drawablePrompt(b.text)) delete b.prompt;
+      else b.prompt = prompt;
+      tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
+      return cur;
+    });
+    res.json({ ok: true, beats });
+  } catch (e) { fail(res, e); }
+});
+
 router.post('/color', async (req, res) => {
   try {
     const pid = padIdOf(req);
@@ -1513,4 +1548,4 @@ async function attachVoiceUrl(padId, beatId, url) {
   });
 }
 
-module.exports = { router, attachVoiceUrl };
+module.exports = { router, attachVoiceUrl, drawablePrompt, promptFor };

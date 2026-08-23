@@ -935,6 +935,12 @@ var BULK_PRICE={low:2, medium:6, high:25};   // ¢ per picture, gpt-image-2
 function stripSpeech(t){
   return String(t||'').replace(/<break[^>]*>/gi,' ').replace(/\[[^\]\n]{1,40}\]/g,' ').replace(/\s+/g,' ').trim();
 }
+/* What a beat draws: its own stored prompt, else its words stripped of
+   speech markup — the server's promptFor, kept in step. */
+function promptOf(b){
+  var p=String((b&&b.prompt)||'').trim();
+  return p||stripSpeech(b&&b.text);
+}
 function drawables(){
   // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
   // empty is exactly what the toggle exists to fill.
@@ -942,7 +948,7 @@ function drawables(){
     var s=slotOf(b);
     if(s.kind==='clip')return false;   // a clip slot never draws; the OTHER side still can
     if(s.off)return false;             // deleted from this side — never draw it back
-    return !s.url && !(s.gen&&s.gen.status==='drawing') && stripSpeech(b.text);
+    return !s.url && !(s.gen&&s.gen.status==='drawing') && promptOf(b);
   });
 }
 function renderDrawall(){
@@ -1529,7 +1535,7 @@ function openBeat(b){
   // Drawing here: the prompt starts as the beat's own words.
   var db_=document.getElementById('drawbox');
   db_.hidden=true;
-  document.getElementById('dprompt').value=b.text||'';
+  document.getElementById('dprompt').value=promptOf(b);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
@@ -1578,12 +1584,14 @@ function openDraw(ev){
   // toggle comes off rather than sitting there doing nothing.
   document.getElementById('dchar').hidden=(padStyle==='dreamy');
   if(!box.hidden){
-    // The prompt starts as whatever the text box says RIGHT NOW — not the
-    // beat's last SAVED text. Words typed seconds ago aren't saved until the
-    // popup closes, and the stale prefill was drawing the old line (Sophie:
-    // "it doesn't take the words I put in").
+    // A prompt she already wrote wins; otherwise the seed is whatever the
+    // text box says RIGHT NOW — not the beat's last SAVED text (words typed
+    // seconds ago aren't saved until the popup closes, and the stale prefill
+    // was drawing the old line: "it doesn't take the words I put in") —
+    // with the speech markup stripped, same as the wand.
+    var stored=String(popBeat.prompt||'').trim();
     var live=document.getElementById('pnote').value.trim();
-    document.getElementById('dprompt').value=live||(popBeat.text||'');
+    document.getElementById('dprompt').value=stored||stripSpeech(live||popBeat.text);
     saveNote();
     document.getElementById('dprompt').focus();
   }
@@ -1601,7 +1609,7 @@ document.getElementById('dgo').onclick=function(ev){
   var prompt=document.getElementById('dprompt').value.trim();
   if(!prompt){ document.getElementById('dprompt').focus(); return; }
   var btn=this; btn.disabled=true;
-  saveNote();
+  saveNote(); savePrompt();
   api('/generate',{method:'POST',body:JSON.stringify({
     id:b.id, prompt:prompt,
     quality:document.getElementById('dq').value,
@@ -1682,6 +1690,22 @@ document.querySelectorAll('.chip').forEach(function(c){
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */
+/* The draw prompt saves ITSELF — on leaving the box, closing the popup, or
+   drawing. No save button (Sophie's rule). The server clears a prompt that
+   just equals the words, so an untouched box keeps following the note. */
+function savePrompt(){
+  if(!popBeat)return Promise.resolve();
+  var box=document.getElementById('drawbox');
+  if(box.hidden)return Promise.resolve();   // never seeded — nothing she said
+  var t=document.getElementById('dprompt').value;
+  if(t.trim()===promptOf(popBeat))return Promise.resolve();
+  return api('/prompt',{method:'POST',body:JSON.stringify({id:popBeat.id,prompt:t})})
+    .then(function(r){return r.json()})
+    .then(function(d){if(d.beats){
+      var keep=popBeat; beats=d.beats; popBeat=beats.find(function(x){return x.id===keep.id;})||keep;
+    }});
+}
+document.getElementById('dprompt').onblur=function(){savePrompt();};
 function saveNote(){
   if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
@@ -1758,7 +1782,7 @@ document.getElementById('delyes').onclick=function(ev){
     .catch(function(){ btn.disabled=false; });
 };
 
-function closeBeat(){stopRec(); stopPopVid(); saveNote(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
+function closeBeat(){stopRec(); stopPopVid(); saveNote(); savePrompt(); document.getElementById('beatpop').hidden=true; popBeat=null; lock(false); render();}
 /* Close on the edge around the card OR on the card's own empty cream — the
    same "tap anywhere that isn't a control" contract the old scrim had. */
 document.getElementById('beatpop').onclick=function(ev){
