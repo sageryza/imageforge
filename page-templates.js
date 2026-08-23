@@ -415,8 +415,15 @@ function normContent(s) {
 // a caption that stopped parsing does not fail loudly: it falls through to the
 // picture's long description, which is exactly the "the caption says
 // everything" Sophie reported on the auto-compare sheets.
+// THE SIZE SLOT IS NOT ALWAYS A BARE WORD — a panel cut out of a sheet reads
+// "1/4 (4K)" (Sophie: "1/4 panel could say 1/4 (4k)"), so the slot has to
+// allow a slash, a space and parentheses. It shipped as [a-z0-9x×] and the
+// whole caption then failed to parse on exactly the pictures this rule was
+// built for: the four quarters lost their size off the row and fell through
+// to their style line, which is the silent-fallthrough failure the comment
+// above already warns about. Measured on her live ladders page.
 function parseCaption(prompt) {
-  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([a-z0-9x×]{1,20}))?$/i
+  const m = /^([^·]{1,60}?)\s*·\s*([a-z0-9-]{1,20})(?:\s*·\s*([a-z0-9x×/() ]{1,20}))?$/i
     .exec(String(prompt || '').trim());
   if (!m) return null;
   return {
