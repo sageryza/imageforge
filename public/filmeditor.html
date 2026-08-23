@@ -567,7 +567,7 @@ function tick(ts) {
   if (t >= segEnd - 0.03) {
     var next = segAt(segEnd + 0.01);
     // compare KEYS, never object identity — segAt builds fresh objects every
-    // call, so `next === seg` was never true and the last piece looped forever
+    // call, so an identity check was never true and the last piece looped forever
     if (!next || next.c.key === seg.c.key) {
       playhead = total();
       stopPlayback();
