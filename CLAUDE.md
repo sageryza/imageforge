@@ -2505,7 +2505,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Audio & film
 - **Movies** (`movies.js`, `/api/movies`, iOS Movies tab — no web page) — story ->
   ~8-12 self-contained scenes -> gpt-image-2 panels -> Replicate image-to-video ->
-  ffmpeg stitch, ~$1.35 for a 12-scene film. Also holds **Dreams** (the staged
+  ffmpeg stitch, ~$1.35 for a 12-scene film.
+  **THE ANIMATE BUTTON CAN RUN WAN 2.7 SINCE AUG 2026 (Sophie's ask), AND IT IS
+  NOT A FREE UPGRADE — it is priced per SECOND** ($0.10/s at 720p, $0.15/s at
+  1080p, so 50¢ and 75¢ for the standard five seconds against draft's 16¢).
+  What it buys, measured live rather than read off a page: real
+  first-and-last-frame conditioning (`last_frame` is a TARGET, where 2.2's
+  `last_image` is only a hint), 2-15s instead of a fixed 5, and no 480p at
+  all. What it costs besides money: **it writes its own audio** when none is
+  handed to it and there is no way to ask for silence, so a 2.7 clip stitched
+  under her voice must have its track dropped deliberately. The quality menu
+  on the animate button is four wan rows now (480p 6¢ · 720p 16¢ · 720p 50¢ ·
+  1080p 75¢) — kling is still a tier on the route and still on the per-scene
+  menus inside a movie, it just no longer holds two of those four rows.
+  **A MODEL'S INPUT KEYS RIDE ITS `shape`, NEVER ITS TIER NAME**, in one
+  builder (`videoInput`): a wrong key does not fail loudly — the model ignores
+  it, draws something unconditioned, and the bill arrives anyway. Test:
+  `node scripts/test-video-models.js` (pure). Also holds **Dreams** (the staged
   dream -> comic pipeline, where a gpt-image-2 SAFETY REFUSAL is terminal and the
   page is redrawn with its narrative softened — never retried), the character
   anchor, dream-bridge clips, the zine, and quick-animate. Editing is free
