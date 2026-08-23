@@ -39,7 +39,11 @@ The numbers are measured, not guessed.
 **Delivering an image — every single one, including a test**
 4. **Label it.** `[Penny — the blue Kleenex](url)`, never `[p01](url)` or a bare
    URL. The label becomes what she reviews by.
-5. **File the MODEL · QUALITY caption** — `prompt:"gpt-image-2 · medium"`.
+5. **File the MODEL · QUALITY · SIZE caption** — `prompt:"gpt-image-2 · medium
+   · 1568x2352"`. **The size is a required third slot since Aug 2026** (Sophie:
+   "1K 2K 4K should be a third slot in the model/quality required tagging") —
+   gpt-image-2 draws any canvas, so the first two stopped saying what a picture
+   is: one prompt at one quality spans 5x in pixels and 3x in price.
    *Measured: 1,938 of 2,488 images have none, and only 31 could ever be
    recovered.* **No later chat can backfill this** — you are the only one who
    knows. Say the quality as a word in the reply too, not "the default".
@@ -1769,10 +1773,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   style description in the prompt and she only found out from the PROMPT
   overlay. A truly plain run contains only her words (plus unavoidable API
   params); if a necessary line has to come from you, say which line is yours.
-- **FILE THE MODEL · QUALITY CAPTION on every image too (Aug 2026, Sophie).**
-  The Assets tile's caption is the asset doc's `prompt` field — file it as a
-  curated tag like `gpt-image-2 · medium` via `POST /api/gallery
-  { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium", description }`
+- **FILE THE MODEL · QUALITY · SIZE CAPTION on every image too (Aug 2026,
+  Sophie).** The Assets tile's caption is the asset doc's `prompt` field — file
+  it as a curated tag like `gpt-image-2 · medium · 1568x2352` via
+  `POST /api/gallery
+  { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 1568x2352", description }`
+  **THE SIZE IS A REQUIRED THIRD SLOT (Aug 2026, Sophie: "1K 2K 4K should be a
+  third slot in the model/quality required tagging, in the playground and in
+  assets and Meta assets").** Model and quality alone answered the question
+  while every surface here drew 1024x1536 and nothing else; gpt-image-2 takes
+  any canvas, so the same prompt at the same quality now spans 5x in pixels and
+  3x in price and the caption has to say which. It rides all three surfaces:
+  the Playground writes `size` onto every creation it files, `post-to-gallery.js`
+  takes `--size`, and `meta-assets.js` joins the three parts. **An absent slot
+  is left out, never guessed** — nothing on an older record says how big it is,
+  exactly as with quality.
   (it upgrades an already-filed tile in place; search matches it). And when a
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by

@@ -49,7 +49,7 @@ const withApp = buildMetaAssets(
   [
     // app-made sticker sheet — joins, prompt becomes the label, made caption fills the caption slot
     { url: 'https://x/sticker.png', prompt: 'seven woodland stickers', type: 'sticker',
-      model: 'gpt-image-2', quality: 'medium', ms: 5000 },
+      model: 'gpt-image-2', quality: 'medium', size: '1568x2352', ms: 5000 },
     // in-app plain image — prompt also lands in promptContent (Playground/PROMPT work)
     { url: 'https://x/drawn.png', prompt: 'a fox in a yellow raincoat', type: 'image',
       style: 'ChatGPT · medium', ms: 4000 },
@@ -61,7 +61,20 @@ const stick = withApp.find((r) => r.url === 'https://x/sticker.png');
 assert.strictEqual(stick.chat, 'my-creations', 'app rows live in the my-creations bucket');
 assert.ok(stick.app, 'app rows are marked');
 assert.strictEqual(stick.description, 'seven woodland stickers', 'prompt is the label');
-assert.strictEqual(stick.prompt, 'gpt-image-2 · medium', 'model·quality fills the caption slot');
+// MODEL · QUALITY · SIZE — the size became a required third slot in Aug 2026
+// (Sophie: "1K 2K 4K should be a third slot in the model/quality required
+// tagging"), because gpt-image-2 draws any canvas and the first two stopped
+// saying what a picture is.
+assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 1568x2352',
+  'model·quality·size fills the caption slot');
+// An absent slot is LEFT OUT, never guessed — nothing on a record filed before
+// the field existed says how big it is, exactly as with quality.
+{
+  const older = buildMetaAssets([], [{ url: 'https://x/old.png', prompt: 'a fox', type: 'image',
+    model: 'gpt-image-2', quality: 'medium', ms: 9 }])[0];
+  assert.strictEqual(older.prompt, 'gpt-image-2 · medium',
+    'a record with no size keeps the two-slot caption rather than inventing one');
+}
 assert.strictEqual(stick.promptContent, '', 'a sticker sheet is not a plain image — no overlay half');
 const drawn = withApp.find((r) => r.url === 'https://x/drawn.png');
 assert.strictEqual(drawn.prompt, 'ChatGPT · medium', 'old single style label is the caption fallback');

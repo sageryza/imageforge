@@ -24,8 +24,12 @@ later.
 1. **Permanent URL first.** Replicate/OpenAI URLs expire in ~1hr — upload to
    Firebase Storage (`saveToFirebase()` in server.js, or `bucket.upload()`)
    before filing anything.
-2. **File the MODEL · QUALITY caption — this is the step chats forget.**
-   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium", description }`
+2. **File the MODEL · QUALITY · SIZE caption — this is the step chats forget.**
+   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 1568x2352", description }`
+   The SIZE is a required third slot since Aug 2026 — gpt-image-2 draws any
+   canvas, so model and quality alone no longer say what a picture is (one
+   prompt at one quality spans 5x in pixels and 3x in price). Filing a creation
+   as well? `post-to-gallery.js --size 1568x2352` writes the matching field.
    — the asset doc's `prompt` field is the tile caption. Only the chat that
    generated an image ever knows its quality; a sweep of 171 chats found 1,938
    images with no caption and almost none recoverable. Never invent one for an

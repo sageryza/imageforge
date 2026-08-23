@@ -71,6 +71,12 @@ struct Creation: Identifiable, Hashable {
     /// medium", "Watercolor Drawings") that everything filed before them carries.
     var model: String? = nil
     var quality: String? = nil
+    /// The canvas it was drawn on ("1568x2352"), the THIRD required slot since
+    /// Aug 2026 (Sophie: "1K 2K 4K should be a third slot in the model/quality
+    /// required tagging"). gpt-image-2 draws any resolution, so model and
+    /// quality alone no longer say what a picture actually is — two runs of the
+    /// same prompt at the same quality can differ 5x in pixels and 3x in price.
+    var size: String? = nil
     var style: String? = nil
     /// This picture's only copy was encoded lossily before the bytes ever
     /// reached us (written by scripts/tag-compressed-at-birth.js). The flag is
@@ -94,12 +100,12 @@ struct Creation: Identifiable, Hashable {
     /// itself for a picture.
     var thumbURL: URL { poster ?? url }
 
-    /// The line shown under a creation when you open it — model · quality,
+    /// The line shown under a creation when you open it — model · quality · size,
     /// led by "[compressed]" when the original was thrown away at birth. A
     /// picture with no model/quality on file still says it, so the mark never
     /// depends on a caption that may not exist.
     var madeWith: String? {
-        let parts = [model, quality].compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+        let parts = [model, quality, size].compactMap { $0?.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         var line: String? = nil
         if !parts.isEmpty { line = parts.joined(separator: " · ") }
