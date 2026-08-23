@@ -132,10 +132,19 @@ console.log('the page contracts (static):');
     'a late frame nudges the playhead, never flings it');
   ok(!/var cur = segAt\(playhead\)/.test(html),
     'the strip finds the current piece in its OWN array (the invisible playhead)');
-  ok(/a\.paused && a\.getAttribute\('data-src'\)/.test(html),
+  ok(/at >= 0 && a\.getAttribute\('data-src'\) === A\.audio\.url/.test(html),
     'the audio track starts when the playhead crosses its offset mid-play');
+  // The lag-and-leap playhead + the music chop, 2026-08-23: iOS batches the
+  // quality counters, so the frame truth is rVFC where it exists, the
+  // counter hold is capped, and a joint never seeks a running music track.
+  ok(/requestVideoFrameCallback/.test(html) && /armFrameWatch/.test(html),
+    'the frame truth is per PRESENTED frame (rVFC), not the batched counters');
+  ok(/ts - frameAt > 350 && ts - frameAt < 1200/.test(html),
+    'a flatlined frame counter can never hold the playhead forever');
   ok(/getVideoPlaybackQuality/.test(html),
     'the playhead holds when no new frame has been decoded (the waffle guard)');
+  ok(!/a\.paused \|\| drift > 0\.35/.test(html),
+    'a joint never yanks a RUNNING music track back to a lagging playhead');
   ok(/addEventListener\('canplay', reveal/.test(html),
     'the old frame stays up until the new source can paint (no black gap)');
   // The little-pauses chop, 2026-08-23: #1564 fixed seek-at-every-joint for

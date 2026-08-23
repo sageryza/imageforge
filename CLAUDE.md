@@ -2722,8 +2722,18 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (the webp rule) applied to video — the original is never touched. Four
   player rules that came from her reports, all pinned by tests: **the video
   is the playhead's clock** (a stall freezes both), **the picture is the
-  truth** (no new decoded frame for 350ms → the playhead holds even if the
-  clock moves — `getVideoPlaybackQuality`), **a source boundary keeps
+  truth** (no new PRESENTED frame for 350ms → the playhead holds even if the
+  clock moves — `requestVideoFrameCallback`, per presented frame; NOT the
+  quality counters where rVFC exists: iOS WebKit batches `totalVideoFrames`
+  in ~1s clumps, which held the playhead back a beat and leapt it to catch
+  up — her lag-and-leap report, 2026-08-23. The counter path survives only
+  as the fallback, its hold capped at 1200ms so a flatlined counter can
+  never freeze the playhead), **a joint never touches a RUNNING music
+  track** (same day, same root: syncAudio compared the music against the
+  LAGGING playhead, read >0.35s of "drift" at every joint and yanked the
+  music backward — the stop-start chop on same-source cuts too. The joint
+  path now only STARTS a paused track; a genuine stall's drift is corrected
+  in the tick, >0.5s, against the now-honest playhead), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
   gap), and **a joint never seeks the element on screen** (2026-08-23, her
   "little pauses between all the clips": #1564 fixed the seek-at-every-joint

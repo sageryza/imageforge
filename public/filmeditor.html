@@ -552,6 +552,19 @@ function warmNext(el, url, at) {
     try { el.currentTime = at; } catch (e) { /* not seekable yet */ }
   }
 }
+// Stamp every PRESENTED frame on its element (armed once each at launch —
+// rVFC fires only while frames actually reach the compositor). This is the
+// playhead's frame-truth signal: exact on Safari 15.4+/Chromium, where the
+// quality counters batch or flatline.
+function armFrameWatch(el) {
+  if (!el.requestVideoFrameCallback || el.__rvfc) return;
+  el.__rvfc = true;
+  var loop = function (now) {
+    el.__frameAt = now;
+    el.requestVideoFrameCallback(loop);
+  };
+  el.requestVideoFrameCallback(loop);
+}
 var actToken = 0;
 function activate(el) {
   if (actEl === el) { el.hidden = false; return; }
@@ -641,13 +654,15 @@ function syncAudio(playIt) {
   }
   var at = playhead - (A.audio.offset || 0);
   if (playIt && at >= 0) {
-    // THE TRACK ROLLS CONTINUOUSLY. The film's timeline is one unbroken line,
-    // so a piece boundary is nothing to the audio — yet this used to re-seek
-    // it at every joint, and each seek is a network hiccup: the "stops
-    // between every clip" chop Sophie heard. Touch it only when it is
-    // genuinely out of step or not running.
-    var drift = Math.abs((a.currentTime || 0) - at);
-    if (a.paused || drift > 0.35) {
+    // THE TRACK ROLLS CONTINUOUSLY — a RUNNING track is NEVER touched from a
+    // joint. The old guard here compared the music against the PLAYHEAD, and
+    // on the phone the playhead lagged whole beats behind real time (the
+    // batched frame counter, see the tick) — so every joint read as ">0.35s
+    // of drift" and yanked the music backward: the stop-start chop at every
+    // cut, same-source cuts included (her report, 2026-08-23). This path
+    // only STARTS a paused track; a genuine stall's drift is corrected in
+    // the tick, against a playhead that is now honest.
+    if (a.paused) {
       try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
       a.play().catch(function () {});
     }
@@ -698,12 +713,24 @@ function tick(ts) {
       : seg.start + Math.max(0, el.currentTime - seg.c.in);
     // THE PICTURE IS THE TRUTH (her waffle clip): a clock that advances
     // while no new frame has been decoded is lying — hold with the frame.
-    if (!el.ended) {
-      var q = el.getVideoPlaybackQuality ? el.getVideoPlaybackQuality().totalVideoFrames
-        : (typeof el.webkitDecodedFrameCount === 'number' ? el.webkitDecodedFrameCount : null);
-      if (q != null) {
-        if (el !== frameEl || q !== frameCount) { frameEl = el; frameCount = q; frameAt = ts; }
-        else if (!el.paused && ts - frameAt > 350) t = playhead;
+    // The frame signal is requestVideoFrameCallback — per PRESENTED frame,
+    // exact — NEVER the quality counters where rVFC exists: iOS WebKit
+    // updates totalVideoFrames in ~1s clumps, so the counter said "no new
+    // frames" while the clip played fine, held the playhead back a beat and
+    // then leapt it to catch up (her report, 2026-08-23). The counter path
+    // stays only as the fallback, and its hold is CAPPED — a counter that
+    // flatlines for over a second while the clock rolls steadily is lying
+    // about a stall, not reporting one.
+    if (!el.ended && !el.paused) {
+      if (el.__rvfc) {
+        if ((el.__frameAt || 0) < ts - 350) t = playhead;
+      } else {
+        var q = el.getVideoPlaybackQuality ? el.getVideoPlaybackQuality().totalVideoFrames
+          : (typeof el.webkitDecodedFrameCount === 'number' ? el.webkitDecodedFrameCount : null);
+        if (q != null) {
+          if (el !== frameEl || q !== frameCount) { frameEl = el; frameCount = q; frameAt = ts; }
+          else if (ts - frameAt > 350 && ts - frameAt < 1200) t = playhead;
+        }
       }
     }
     // and a paused element that should be playing (a recovered stall, a
@@ -732,14 +759,20 @@ function tick(ts) {
     syncSelection();
     seekVideo(true);
   } else playhead = t;
-  // the track starts the moment the playhead crosses its offset — without
-  // this it only ever started on a seek or a piece boundary
+  // the track starts the moment the playhead crosses its offset, and a
+  // RUNNING track is pulled back in step only when a real stall has let the
+  // two drift apart (>0.5s) — never at a joint, where the timeline is one
+  // unbroken line and a seek is the chop she hears
   if (A && A.audio) {
     var a = $('audEl');
     var at = playhead - (A.audio.offset || 0);
-    if (at >= 0 && a.paused && a.getAttribute('data-src') === A.audio.url) {
-      try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
-      a.play().catch(function () {});
+    if (at >= 0 && a.getAttribute('data-src') === A.audio.url) {
+      if (a.paused) {
+        try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+        a.play().catch(function () {});
+      } else if (Math.abs((a.currentTime || 0) - at) > 0.5) {
+        try { a.currentTime = at; } catch (e) { /* a stall pulled them apart */ }
+      }
     }
   }
   paintStrip(); paintTc();
@@ -1102,6 +1135,8 @@ document.addEventListener('click', function (e) {
 
 /* ── launch: a ?c= link opens that cut cold; otherwise the shelf ── */
 actEl = $('vA');
+armFrameWatch($('vA'));
+armFrameWatch($('vB'));
 var startId = new URLSearchParams(location.search).get('c');
 if (startId) { show('open'); open(startId, true); }
 else { show('shelf'); shelfPaint(); }
