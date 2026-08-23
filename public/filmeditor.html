@@ -362,6 +362,7 @@ function adoptProxies() {
   PROXY_NEXT = {};
   for (var a in PROXY_AUD_NEXT) PROXY_AUD[a] = PROXY_AUD_NEXT[a];
   PROXY_AUD_NEXT = {};
+  primeAudio();   // a freshly adopted track buffers NOW, not at the play tap
 }
 function askProxies(post) {
   var urls = [];
@@ -609,6 +610,7 @@ function stopPlayback() {
   $('audEl').pause();
   $('audEl').playbackRate = 1;   // never leave a pacing lean behind
   audPacing = false;
+  audEntry = false;   // a stale entry mark must not re-seek the next session
   paintPlayBtn();
   adoptProxies();   // a proxy that finished baking mid-play takes over now
 }
@@ -660,9 +662,76 @@ function seekVideo(playIt) {
   }
   syncAudio(playIt);
 }
+// The audio twin of warmNext (Sophie, 2026-08-23: the music "starts late" and
+// "keeps pausing about 3/4 of the way through"). iOS treats preload=auto as a
+// SUGGESTION on the <audio> element exactly as it does on <video>, so setting
+// src + preload buffered NOTHING: the fetch began at her play tap — the late
+// start — and the buffer ran dry mid-film — the pause. A muted prime-play
+// forces real buffering, then parks the track at its spot with the sound back
+// on. A programmatic play() with no gesture may be refused; the catch clears
+// the mark so the next pointerdown (a gesture) primes instead.
+var audPrimed = '', audPriming = false, audPrimeT = null;
+function primeAudio() {
+  var a = $('audEl');
+  if (playing || !A || !A.audio) return;
+  var want = audSrc();
+  if (!want || audPrimed === want) return;
+  audPrimed = want;
+  if (a.getAttribute('data-src') !== want) {
+    a.setAttribute('data-src', want);
+    a.preload = 'auto';
+    a.src = want;
+  }
+  a.muted = true;
+  audPriming = true;
+  var park = function () {
+    a.removeEventListener('canplaythrough', park);
+    clearTimeout(audPrimeT);
+    audPriming = false;
+    if (playing) { a.muted = false; return; }   // she started meanwhile — the start path owns it
+    a.pause();
+    try { a.currentTime = Math.max(0, playhead - ((A && A.audio && A.audio.offset) || 0)); } catch (e) {}
+    a.muted = false;
+  };
+  a.addEventListener('canplaythrough', park);
+  audPrimeT = setTimeout(park, 4000);   // iOS can withhold canplaythrough on a stream — park anyway
+  a.play().catch(function () {
+    a.removeEventListener('canplaythrough', park);
+    clearTimeout(audPrimeT);
+    audPriming = false;
+    a.muted = false;
+    audPrimed = '';
+  });
+}
+document.addEventListener('pointerdown', function () { primeAudio(); }, true);
+// The track re-aligns the moment it actually STARTS sounding — the first play,
+// and the resume after a buffering stall. Before this, a track that came in
+// late kept its whole song shifted behind the picture for the rest of the film
+// (the 4% pacing lean needs ~25s to absorb one late second), and a stall came
+// back permanently behind. This is an ENTRY correction, never a joint touch —
+// it acts ONLY when `audEntry` is armed (our own play() call, or a genuine
+// 'waiting' stall), so a seek's own 'playing' echo — including the pacing
+// engine's 2s hard resync — never triggers a second seek on a rolling track.
+var audEntry = false;
+$('audEl').addEventListener('waiting', function () {
+  // a 'waiting' fired mid-SEEK is the seek's own echo, not a buffer running
+  // dry — arming on it would turn any seek into a second seek
+  if (!$('audEl').seeking) audEntry = true;
+});
+$('audEl').addEventListener('playing', function () {
+  if (!playing || !A || !A.audio) return;
+  if (!audEntry) return;
+  audEntry = false;
+  var a = $('audEl');
+  var at = playhead - (A.audio.offset || 0);
+  if (at < 0 || a.getAttribute('data-src') !== audSrc()) return;
+  if (Math.abs((a.currentTime || 0) - at) > 0.35) {
+    try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+  }
+});
 function syncAudio(playIt) {
   var a = $('audEl');
-  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); a.removeAttribute('data-src'); return; }
+  if (!A || !A.audio) { a.pause(); a.removeAttribute('src'); a.removeAttribute('data-src'); audPrimed = ''; return; }
   var wantA = audSrc();   // the audio-only baked copy when one exists
   if (a.getAttribute('data-src') !== wantA) {
     a.setAttribute('data-src', wantA);
@@ -670,6 +739,7 @@ function syncAudio(playIt) {
     a.src = wantA;
   }
   var at = playhead - (A.audio.offset || 0);
+  if (playIt) a.muted = false;   // a prime may have left the element muted
   if (playIt && at >= 0) {
     // THE TRACK ROLLS CONTINUOUSLY — a RUNNING track is NEVER touched from a
     // joint. The old guard here compared the music against the PLAYHEAD, and
@@ -678,10 +748,14 @@ function syncAudio(playIt) {
     // of drift" and yanked the music backward: the stop-start chop at every
     // cut, same-source cuts included (her report, 2026-08-23). This path
     // only STARTS a paused track; a genuine drift is PACED away in the tick,
-    // against a playhead that is now honest.
-    if (a.paused) {
+    // against a playhead that is now honest. A track still mid-PRIME counts
+    // as paused here — it was rolling muted to force the fetch, not sounding,
+    // so seeking it to the playhead chops nothing audible.
+    if (a.paused || audPriming) {
+      audPriming = false; clearTimeout(audPrimeT);
       a.playbackRate = 1; audPacing = false;
       try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+      audEntry = true;   // when sound actually lands, re-align to the playhead
       a.play().catch(function () {});
     }
   } else if (playIt) {
@@ -800,10 +874,20 @@ function tick(ts) {
     var a = $('audEl');
     var at = playhead - (A.audio.offset || 0);
     if (at >= 0 && a.getAttribute('data-src') === audSrc()) {
-      if (a.paused) {
+      if (a.muted) a.muted = false;   // a prime must never mute the film
+      if (a.paused || audPriming) {
+        audPriming = false; clearTimeout(audPrimeT);
         a.playbackRate = 1; audPacing = false;
         try { a.currentTime = at; } catch (e) { /* not seekable yet */ }
+        audEntry = true;   // when sound actually lands, re-align to the playhead
         a.play().catch(function () {});
+      } else if (a.seeking || a.readyState < 3) {
+        // stalled or mid-seek: a frozen clock is not drift (the picture-is-
+        // the-truth rule, for sound). Pacing a stall does nothing, and the
+        // 2s hard resync below would seek INTO the unbuffered region it is
+        // stalled on — the repeated mid-film pause (her 3/4 report). The
+        // 'playing' handler re-enters the track in sync when data arrives.
+        a.playbackRate = 1; audPacing = false;
       } else {
         var dr = (a.currentTime || 0) - at;
         if (Math.abs(dr) > 2) {

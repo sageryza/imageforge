@@ -177,6 +177,21 @@ console.log('the page contracts (static):');
     'an element already on the joint\'s frame is never re-seeked (the visible hiccup)');
   ok(/function srcOf/.test(html) && /askProxies/.test(html),
     'the player prefers the baked preview copy; the render keeps the original');
+  // The music "starts late" + "keeps pausing about 3/4 of the way through"
+  // (Sophie, 2026-08-23, round two): iOS treats preload=auto as a SUGGESTION
+  // on <audio> exactly as on <video>, so the track's fetch began at her play
+  // tap (the late start) and the buffer ran dry mid-film (the pause) — the
+  // warmNext lesson, never applied to the audio element. Three pins:
+  ok(/function primeAudio/.test(html) && /canplaythrough/.test(html),
+    'the track is PRIMED — a muted play forces the fetch before the play tap');
+  ok(/pointerdown', function \(\) \{ primeAudio\(\)/.test(html),
+    'a refused no-gesture prime retries on her next tap');
+  ok(/audEntry/.test(html) && /addEventListener\('playing'/.test(html),
+    'the track re-aligns the moment it actually STARTS sounding (entry, never a joint)');
+  ok(/if \(!\$\('audEl'\)\.seeking\) audEntry = true/.test(html),
+    'a seek\'s own waiting echo never arms the entry realign (pacing owns a rolling track)');
+  ok(/a\.seeking \|\| a\.readyState < 3/.test(html),
+    'a stalled clock is not drift — pacing and the 2s resync skip a buffering track');
   ok(html.indexOf('id="msg"') > html.indexOf('</div>', html.indexOf('id="tools"')),
     'the progress line lives OUTSIDE the editor panel, visible on first upload');
 }
