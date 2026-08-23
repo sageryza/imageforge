@@ -2964,6 +2964,55 @@ before working on that module. Nothing was deleted — the moved text is verbati
   **private drafts** for her to publish by hand; nothing goes public
   automatically. `scripts/youtube_upload.py` (stdlib only), auth via a durable
   refresh token, upload-only scope. **Full details: `docs/modules/audio-and-film.md`.**
+- **Grab a video** (`ytdl.js`, `/api/ytdl`, no page — a chat calls it) — paste a
+  YouTube (or Vimeo, or almost anything yt-dlp knows) url, get the file, already
+  filed where the tools look. Sophie's ask, Aug 2026: "can u create an endpoint
+  so i can give u a youtube url and download it thru here? otherwise i have to
+  do it on my computer" — the alternative was a third-party site on her phone,
+  which works but leaves the file in Files, needing a second trip to upload it
+  into whichever tool wanted it.
+  **THE "DATACENTER IPs ARE BOT-BLOCKED" LINE IS WHY NOBODY BUILT THIS, AND IT
+  WAS STALE.** Measured 2026-08-23 from a cloud container: yt-dlp read the
+  metadata AND pulled a real 3.3MB m4a and a 17MB 720p mp4, first try, no
+  cookies. That is the exact shape CLAUDE.md warns about at the top — a dated
+  measurement going stale when the environment moves underneath it. It is NOT
+  proof about Render, a different datacenter with its own IP reputation, so
+  `GET /api/ytdl/status?probe=1` re-runs the measurement from wherever it is
+  deployed and reports what it got (metadata only — no bytes, no cost). A
+  block lands on the doc as `blocked:true` with yt-dlp's own words, so the one
+  failure with a different remedy never reads like a generic error.
+  **It costs nothing** — no model call; it is bandwidth and ffmpeg on our own
+  box. `POST /grab {url, kind:'audio'|'video', quality?, to?}` returns an id in
+  ~0.3s and the work runs behind it (`GET /:id/job` to poll).
+  - **It files through the SIBLINGS' OWN ROUTES, never its own copy of them** —
+    video to the Dump (`/api/drop/upload-file`, bundle `YouTube`), audio to the
+    audio library (`/api/audio/upload-file`, batch `youtube`) — so md5 dedupe,
+    the video poster, duration probing and the memo filing each happen once, in
+    the place that already knows how. Assembly's "Add from the Dump" and the
+    Film Editor read those two libraries already, so a grab is usable the
+    moment it lands.
+  - **`to:"none"` for MUSIC.** The audio library transcribes unconditionally
+    (~$0.006/min) and files into her voice-memo archive — right for an
+    interview, wrong for a song, which would put lyrics in among her memos.
+    `none` keeps the only copy under `ytdl/` and just hands back the url.
+  - **The 300MB cap is a MEMORY fact, not a preference** — both sibling routes
+    sit behind `express.raw`, which buffers the whole body, and the box has
+    512MB. Raise `YTDL_MAX_MB` only if that changes.
+  - **yt-dlp is fetched at RUNTIME and refreshes weekly**, not pinned at build:
+    it is the one dependency that goes stale on someone else's schedule (YouTube
+    moves its player and last month's binary stops extracting), so a build-time
+    pin is a tool that works until it silently doesn't. `yt-dlp_linux` is
+    self-contained — Render needs no Python. A failed refresh keeps the cached
+    copy; ffmpeg comes from `ffmpeg-static`, already a dependency.
+  - The doc id is `sha1(video|kind|quality)`, so the six spellings of one
+    YouTube url (`youtu.be`, `/shorts`, `&t=90`, a playlist tail) are ONE grab
+    and asking twice never pays twice. `DELETE /:id` forgets the grab but leaves
+    the filed copy alone — it belongs to the Dump now, and quietly pulling a clip
+    out of an Assembly would be the worst kind of surprise.
+  - Tests: `node scripts/test-ytdl.js` (the url rules, the id, the format
+    strings and the block detection — pure, no network) and
+    `--live`, which drives the REAL argv all the way to a file on disk and is
+    the only honest way to ask whether this box can still reach YouTube.
 
 ### Story
 - **The pad IS the Story Room now (Aug 2026)** — `/storyroom` serves the pad page

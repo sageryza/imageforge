@@ -334,6 +334,9 @@ loadConfig().then(() => {
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
+  // Paste a video url, get the file — filed straight into the Dump (video) or
+  // the audio library (audio), so it is usable without a trip through her phone.
+  app.use('/api/ytdl', require('./ytdl').router);
   app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
