@@ -186,6 +186,7 @@ const HEADS = [
   {
     const { ctx, pg } = await open('new');
     await pg.waitForSelector('.stile');
+    const rows = [];
     for (const [label, sel, reach] of HEADS) {
       if (reach) { await reach(pg); await pg.waitForTimeout(400); }
       const shape = await pg.$eval(sel, el => {
@@ -198,8 +199,10 @@ const HEADS = [
           nameAbs: name ? getComputedStyle(name).position : null,
           firstIsButton: Boolean(first && first.tagName === 'BUTTON'),
           firstLeft: first ? Math.round(first.getBoundingClientRect().left) : -1,
+          rowTop: Math.round(el.getBoundingClientRect().top),
         };
       });
+      rows.push([label, shape]);
       ok(label + ': the row is a flex row', shape.flex === 'flex', shape.flex);
       ok(label + ': it carries a name', shape.named);
       ok(label + ': the name is centred absolutely', shape.nameAbs === 'absolute');
@@ -207,6 +210,24 @@ const HEADS = [
       ok(label + ': that button is at the left', shape.firstLeft >= 0 && shape.firstLeft < 40,
         'left ' + shape.firstLeft);
     }
+    /* THE SAME ROW, IN THE SAME PLACE, ON EVERY SURFACE (2026-08-23, Sophie's
+       two screenshots: "the header is different in both, and not at the
+       top"). Measured before the fix: the page's row started at y=8 and the
+       shelf's at y=25 (a flat `3vh` on `.sheet .wrap` that also ignored the
+       safe area), and the chevron sat at x=16 where pagehead drew it against
+       x=20 where the page drew its own. Both are MEASUREMENTS — a row that is
+       17px lower is perfectly valid markup and looks fine on its own screen;
+       it only reads as wrong beside the one it is supposed to match. */
+    const tops = rows.map(([, r]) => r.rowTop);
+    const lefts = rows.map(([, r]) => r.firstLeft);
+    ok('every row starts at the same height',
+      Math.max(...tops) - Math.min(...tops) === 0,
+      rows.map(([l, r]) => l + ' ' + r.rowTop).join(' · '));
+    ok('every leading chevron starts at the same x',
+      Math.max(...lefts) - Math.min(...lefts) === 0,
+      rows.map(([l, r]) => l + ' ' + r.firstLeft).join(' · '));
+    ok('and the row is at the TOP of the screen', Math.max(...tops) <= 8,
+      'top ' + Math.max(...tops));
     await ctx.close();
   }
 
