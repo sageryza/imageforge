@@ -1044,7 +1044,28 @@ router.get('/go', (req, res) => {
 const wrapLineOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 200);
 const wrapTextOf = (s) => String(s || '').replace(/[ \t]+/g, ' ').trim().slice(0, 2000);
 const WRAP_PART_MAX = 200;
-const wrapPartOf = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, WRAP_PART_MAX);
+// ONE SENTENCE, CUT IN CODE — a length in a prompt is a hope (Aug 2026, Sophie,
+// reading a summary whose middle answer ran to two: "I thought that each of the
+// questions was supposed to be just one sentence but the middle question is
+// longer" → "ok hard cap it"). WRAP_SYS has asked for one sentence since the
+// shape was hers, and the model still returns two, exactly the way it returned
+// 223 characters when asked for under 180 — so the rule lives here now and the
+// prompt is only the hint.
+//
+// A sentence ends at .!? followed by a space and a CAPITAL: that leaves "e.g."
+// and "12x18." alone, and it errs toward keeping MORE rather than cutting a
+// thought in half. The character cap behind it is the hard stop, and it cuts at
+// a word boundary — a summary that ends mid-word reads worse than a long one.
+function wrapPartOf(s) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const m = /([.!?]["')\]]?)\s+(?=[A-Z“"'(\[])/.exec(t);
+  const one = m ? t.slice(0, m.index + m[1].length) : t;
+  if (one.length <= WRAP_PART_MAX) return one;
+  const cut = one.slice(0, WRAP_PART_MAX);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > WRAP_PART_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
 // The prose mirror for an older reader — unlabelled, because the labels are the
 // renderer's ("What you asked" / "What I did" / "What's next") and a reader
 // that cannot draw the three lines is better served by three plain sentences.
@@ -1196,7 +1217,7 @@ const WRAP_SYS = `You are writing the note a chat leaves behind when it is archi
 
 Return JSON: {"line": "...", "asked": "...", "did": "...", "next": "...", "long": "..."}
 
-THE SUMMARY IS THREE ANSWERS TO THREE QUESTIONS — what she asked for, what you did about it, and what is next. ONE SENTENCE EACH, three sentences in total for the whole summary. That is a hard limit, not a target: two sentences in a field is already twice what she asked for.
+THE SUMMARY IS THREE ANSWERS TO THREE QUESTIONS — what she asked for, what you did about it, and what is next. ONE SENTENCE EACH, three sentences in total for the whole summary. That is a hard limit, not a target: two sentences in a field is already twice what she asked for. It is CUT IN CODE on the way in, so a second sentence is not shortened — it is thrown away. Put what matters in the first one.
 
 "line": ONE line, under 120 characters, no trailing period. What this chat WAS — concrete and specific, naming the actual thing worked on. It is the only line she sees on the archive row.
 "asked": ONE SENTENCE, under 140 characters. What Sophie wanted, in her terms — the thing she came here for, not a list of every request in the thread.
