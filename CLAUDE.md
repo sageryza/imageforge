@@ -2468,6 +2468,21 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
+  next to the heart that hides anything i've 'exed'").** The heart's opposite
+  and its twin — a filter over PICTURES in whichever view she is in, sticky,
+  and a run left with nothing showing drops out of the list. The two stack
+  without arguing: hearts-only has already dropped every ✕'d picture. **Lit,
+  the ✕ takes the GREY of the dislike badge, never the rose** — the heart
+  keeps only what it names and this one drops it, and two identical-looking
+  filters read as two of the same thing. **They share ONE segmented box now**
+  (the List/Tiles pattern), and that is not only tidiness: the feed row
+  reserves 56px for the injected autoscroll pill, and a second standalone 38px
+  button with its own margin left the search box at 80px, clipping its own
+  placeholder to "Searc" — one box of two 34px buttons gives it back. Test:
+  `node scripts/test-playground-hide-x.js` (headless — including the
+  placeholder measured against the room the input actually has, because a
+  clipped field passes both `isVisible()` and a width assertion).
   **EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
   want the playground to show portrait aspect ratios to match my 2:3
   pictures").** The wall forced `aspect-ratio: 1 / 1` and `object-fit: cover`
