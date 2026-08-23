@@ -2760,7 +2760,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   <audio> element for a 17.9s film. `bakeAudioProxy` (filmeditor.js — a
   video file or >12MB always bakes, a small pure-audio file skips) answers on
   the same `/proxies` routes under `audio`, and the page plays `audSrc()`,
-  adopted between plays like the video proxies), **a source boundary keeps
+  adopted between plays like the video proxies. **AND THE TRACK IS PRIMED
+  LIKE A VIDEO (2026-08-23, round two: "starts late" + "keeps pausing about
+  3/4 of the way through").** iOS treats `preload=auto` as a suggestion on
+  `<audio>` exactly as on `<video>` — the warmNext lesson, never applied to
+  the audio element — so the track's fetch began AT her play tap (the late
+  start) and the buffer ran dry mid-film (the pause). `primeAudio` is the
+  audio twin of warmNext: a muted play parked at the track's spot, retried on
+  her next tap when a no-gesture play() is refused; and the track RE-ALIGNS
+  the moment it actually starts sounding (`audEntry`, armed by our own play()
+  or a genuine `waiting` stall — never a seek's own echo, so pacing still
+  owns a rolling track), because the 4% lean needs ~25s to absorb one late
+  second. A stalled/buffering element is skipped by pacing and the 2s resync
+  outright — a frozen clock is not drift, and reseeking INTO the unbuffered
+  region it is stalled on was the repeated mid-film pause), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
   gap), and **a joint never seeks the element on screen** (2026-08-23, her
   "little pauses between all the clips": #1564 fixed the seek-at-every-joint

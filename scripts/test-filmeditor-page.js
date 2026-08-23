@@ -81,6 +81,7 @@ function ok(cond, name) {
 
   let PROX = {};      // what /proxies answers — flipped per scenario
   let AUDPROX = {};   // the audio-proxy half of the same answer
+  let AUD_DELAY = 0;  // ms to hold the audio fixture's next response — the late-start shape
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
   // TRIMMED pieces on purpose (out < the file's end): the joint then fires
   // mid-file, while a lagging playhead is still behind real time — the exact
@@ -124,7 +125,15 @@ function ok(cond, name) {
     if (u.includes('/api/filmeditor/proxies')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX, audio: AUDPROX }) });
     }
-    if (u.includes('/fx/t.ogg')) return serveMedia(route, 'audio/ogg', audT);
+    if (u.includes('/fx/t.ogg')) {
+      // AUD_DELAY holds the track's FIRST byte back — the "starts late" shape
+      // (Sophie, 2026-08-23): the film rolls while the music is still fetching.
+      if (AUD_DELAY) {
+        const wait = AUD_DELAY; AUD_DELAY = 0;
+        return new Promise((r) => setTimeout(r, wait)).then(() => serveMedia(route, 'audio/ogg', audT));
+      }
+      return serveMedia(route, 'audio/ogg', audT);
+    }
     if (u.includes('/fx/t2.ogg')) return serveMedia(route, 'audio/ogg', audT);
     if (u.includes('/api/filmeditor/t3/pieces')) {
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
@@ -366,6 +375,48 @@ function ok(cond, name) {
     'the track streams the baked audio copy, not the heavy original');
   await page.click('#play');
   AUDPROX = {};
+
+  // ── the track is PRIMED before the play tap (Sophie, 2026-08-23: the music
+  // "starts late" — iOS treats preload=auto as a suggestion on <audio> exactly
+  // as on <video>, so the fetch used to begin AT the tap). The prime is a
+  // muted play parked at the track's spot; by the time she taps play, real
+  // bytes are buffered and nothing is left muted.
+  console.log('the track is primed before the play tap:');
+  PROX = {}; AUDPROX = {};   // earlier scenarios remap the video sources — a
+                             // stale map here mis-derives the playhead below
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await page.waitForTimeout(800);   // the proxies answer lands → adoptProxies → primeAudio
+  ok(await page.$eval('audio', (a) => a.buffered.length > 0 && a.buffered.end(0) > 0),
+    'the audio element holds REAL buffered data before any play tap');
+  ok(await page.$eval('audio', (a) => a.paused && !a.muted),
+    'and the prime parked it — paused, sound back on');
+
+  // ── a track whose bytes arrive LATE enters IN SYNC (the other half of the
+  // same report: a late start used to keep the whole song shifted behind the
+  // picture for the rest of the film — the 4% pacing lean needs ~25s to
+  // absorb one late second). The 'playing' entry realign is what fixes it.
+  console.log('a late-arriving track enters in sync:');
+  await page.goto('http://forge.test/filmeditor?c=t3');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  AUD_DELAY = 1200;                    // the next audio fetch stalls 1.2s
+  // wiping data-src makes the play tap re-set src → a fresh fetch, under the delay
+  await page.$eval('audio', (a) => { a.removeAttribute('src'); a.removeAttribute('data-src'); });
+  await page.click('#play');
+  await page.waitForTimeout(2300);     // film at ~2.2s; the track came in ~1.2s late
+  const late = await page.evaluate(() => {
+    const a = document.getElementById('audEl');
+    // the page's playhead lives inside its IIFE — derive it from the visible
+    // video: t3 is a.webm [0,1.8) then b.webm from 1.8
+    const v = [document.getElementById('vA'), document.getElementById('vB')].find((x) => !x.hidden);
+    const ph = ((v.getAttribute('data-src') || '').includes('b.webm') ? 1.8 : 0) + (v.currentTime || 0);
+    return { paused: a.paused, off: Math.abs((a.currentTime || 0) - ph) };
+  });
+  ok(!late.paused, 'the late track did start');
+  ok(late.off < 0.45,
+    'and it entered mid-song, in step with the picture (off by ' + late.off.toFixed(2) + 's)');
+  await page.click('#play');
+  await page.waitForTimeout(200);
 
   // ── the iPHONE SHAPE: a frozen getVideoPlaybackQuality counter (iOS WebKit
   // batches or flatlines totalVideoFrames). The old tick trusted that counter
