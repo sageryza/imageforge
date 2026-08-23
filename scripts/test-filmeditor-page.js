@@ -10,7 +10,16 @@
 //   - pressing play again starts clean (the stale-clock leap)
 //   - split → play still runs through and stops
 //   - a refused trim says why
+//   - a joint NEVER seeks the element on screen (the little-pauses chop,
+//     2026-08-23) — measured by counting `seeking` events on the visible
+//     element mid-play, across a source swap, a split, and a same-source jump
 // Run: node scripts/test-filmeditor-page.js  (skips cleanly without playwright)
+//
+// MEDIA FIXTURES MUST BE SERVED WITH RANGE SUPPORT (serveMedia below).
+// route.fulfill with a plain 200 makes Chromium report seekable [0,0], so
+// every currentTime write silently clamps to 0 — the player restarts pieces
+// from the top and no seek assertion measures anything real (found
+// 2026-08-23, while these tests were green over exactly that behaviour).
 
 const fs = require('fs');
 const os = require('os');
@@ -74,6 +83,29 @@ function ok(cond, name) {
   const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
   const DOC3 = { id: 't3', title: 'Cut with music', clips: JSON.parse(JSON.stringify(DOC.clips)),
     audio: { url: 'http://forge.test/fx/t.ogg', name: 'song', offset: 0 }, renders: [], job: null };
+  // ONE source with the middle trimmed out — her core flow, and a joint that
+  // is a JUMP inside the same file: it must swap to the parked idle element,
+  // never seek the one on screen.
+  const DOC4 = { id: 't4', title: 'Middle out', clips: [
+    { key: 'j1', url: 'http://forge.test/fx/a.webm', title: 'a1', poster: null, seconds: 2, in: 0, out: 0.8 },
+    { key: 'j2', url: 'http://forge.test/fx/a.webm', title: 'a2', poster: null, seconds: 2, in: 1.4, out: 2 },
+  ], audio: null, renders: [], job: null };
+
+  // Serve media like a real server: honoring Range. A bare route.fulfill 200
+  // leaves Chromium's `seekable` at [0,0] and every seek clamps to 0.
+  const serveMedia = (route, contentType, body) => {
+    const m = /bytes=(\d+)-(\d*)/.exec(route.request().headers().range || '');
+    if (m) {
+      const start = parseInt(m[1], 10);
+      const end = m[2] ? Math.min(parseInt(m[2], 10), body.length - 1) : body.length - 1;
+      return route.fulfill({
+        status: 206, contentType,
+        headers: { 'accept-ranges': 'bytes', 'content-range': `bytes ${start}-${end}/${body.length}` },
+        body: body.slice(start, end + 1),
+      });
+    }
+    return route.fulfill({ contentType, headers: { 'accept-ranges': 'bytes' }, body });
+  };
 
   const browser = await pw.chromium.launch({
     ...(exe ? { executablePath: exe } : {}),
@@ -82,17 +114,23 @@ function ok(cond, name) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.route('**/*', (route) => {
     const u = route.request().url();
-    if (u.includes('/fx/a.webm')) return route.fulfill({ contentType: 'video/webm', body: vidA });
-    if (u.includes('/fx/b.webm')) return route.fulfill({ contentType: 'video/webm', body: vidB });
+    if (u.includes('/fx/a.webm')) return serveMedia(route, 'video/webm', vidA);
+    if (u.includes('/fx/b.webm')) return serveMedia(route, 'video/webm', vidB);
     if (u.includes('/api/filmeditor/proxies')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX }) });
     }
-    if (u.includes('/fx/t.ogg')) return route.fulfill({ contentType: 'audio/ogg', body: audT });
+    if (u.includes('/fx/t.ogg')) return serveMedia(route, 'audio/ogg', audT);
     if (u.includes('/api/filmeditor/t3/pieces')) {
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
     }
     if (u.includes('/api/filmeditor/t3')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC3) });
+    }
+    if (u.includes('/api/filmeditor/t4/pieces')) {
+      return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
+    }
+    if (u.includes('/api/filmeditor/t4')) {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC4) });
     }
     if (u.includes('/api/filmeditor/t2')) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC2) });
@@ -128,7 +166,29 @@ function ok(cond, name) {
   ok((await disp('pauseIco')) === 'none' && (await disp('playIco')) !== 'none',
     'idle shows the play icon');
 
+  // The joint discipline (2026-08-23, "little pauses between all the clips"):
+  // the element ON SCREEN must never seek — that decoder flush is the visible
+  // hiccup. The warm element parks itself with hidden seeks, which are fine.
+  const armSeekCounter = () => page.evaluate(() => {
+    window.__visSeeks = 0;
+    ['vA', 'vB'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el.__seekCounted) return;
+      el.__seekCounted = true;
+      el.addEventListener('seeking', () => { if (!el.hidden) window.__visSeeks++; });
+    });
+  });
+  const visSeeks = () => page.evaluate(() => window.__visSeeks);
+
   console.log('play:');
+  await page.waitForTimeout(400);   // the open's own seek + warm settle first
+  await armSeekCounter();
+  ok(await page.evaluate(() => {
+    const a = document.getElementById('vA');
+    const b = document.getElementById('vB');
+    const idle = a.hidden ? a : b;
+    return idle.getAttribute('data-src') === 'http://forge.test/fx/b.webm' && idle.muted;
+  }), 'the idle element is PARKED on the next source, muted, before play');
   await page.click('#play');
   await page.waitForTimeout(500);
   ok((await disp('pauseIco')) !== 'none' && (await disp('playIco')) === 'none',
@@ -150,6 +210,9 @@ function ok(cond, name) {
     () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
     { timeout: 8000 }).catch(() => {});
   ok((await disp('playIco')) !== 'none', 'the film STOPS at the end (no last-clip loop)');
+  const swapSeeks = await visSeeks();
+  ok(swapSeeks === 0,
+    'the source swap never seeks the element on screen (visible seeks: ' + swapSeeks + ')');
   const tcEnd = await tc();
   await page.waitForTimeout(900);
   ok((await tc()) === tcEnd && !(await playing()), 'and STAYS stopped');
@@ -178,11 +241,16 @@ function ok(cond, name) {
   console.log('play through the split:');
   await page.$$eval('.seg', (els) => els[0].click());
   await page.waitForTimeout(200);
+  await armSeekCounter();
+  await page.evaluate(() => { window.__visSeeks = 0; });
   await page.click('#play');
   await page.waitForFunction(
     () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
     { timeout: 9000 }).catch(() => {});
   ok((await disp('playIco')) !== 'none', 'a split cut still plays through and stops');
+  const splitSeeks = await visSeeks();
+  ok(splitSeeks === 0,
+    'a split joint just ROLLS ON — no seek at all (visible seeks: ' + splitSeeks + ')');
 
   console.log('delete:');
   await page.$$eval('.seg', (els) => els[1].click());
@@ -215,6 +283,27 @@ function ok(cond, name) {
   const seeks = await page.evaluate(() => window.__seeks);
   ok(seeks <= 2, 'the track is NOT re-seeked at every piece boundary (seeks: ' + seeks + ')');
   ok(await page.$eval('#audEl', (el) => el.currentTime >= 3), 'it rolled through the whole film');
+
+  console.log('a same-source jump (the middle trimmed out — her core flow):');
+  await page.goto('http://forge.test/filmeditor?c=t4');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await page.waitForTimeout(500);   // the open's warm parks the idle element
+  await armSeekCounter();
+  await page.evaluate(() => { window.__visSeeks = 0; });
+  await page.click('#play');
+  await page.waitForFunction(
+    () => getComputedStyle(document.getElementById('playIco')).display !== 'none',
+    { timeout: 9000 }).catch(() => {});
+  ok((await disp('playIco')) !== 'none', 'plays through the jump and stops');
+  const jumpSeeks = await visSeeks();
+  ok(jumpSeeks === 0,
+    'the jump swaps to the PARKED element — no visible seek (visible seeks: ' + jumpSeeks + ')');
+  ok(await page.evaluate(() => {
+    const a = document.getElementById('vA');
+    const b = document.getElementById('vB');
+    const act = a.hidden ? b : a;
+    return act.currentTime > 1.7;
+  }), 'the second piece really played ITS OWN span (ended near the source end, not at 0.6)');
 
   console.log('preview proxies take over the player:');
   PROX = {

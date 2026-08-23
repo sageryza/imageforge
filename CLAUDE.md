@@ -2719,21 +2719,38 @@ before working on that module. Nothing was deleted — the moved text is verbati
   our own box; `POST/GET /api/filmeditor/proxies` starts and reports them,
   the page polls and **adopts a fresh proxy only between plays**, and a small
   light source is honestly `skip`ped. This is the house display-copy rule
-  (the webp rule) applied to video — the original is never touched. Three
+  (the webp rule) applied to video — the original is never touched. Four
   player rules that came from her reports, all pinned by tests: **the video
   is the playhead's clock** (a stall freezes both), **the picture is the
   truth** (no new decoded frame for 350ms → the playhead holds even if the
-  clock moves — `getVideoPlaybackQuality`), and **a source boundary keeps
+  clock moves — `getVideoPlaybackQuality`), **a source boundary keeps
   the old frame on screen until the new one can paint** (the black-second
-  gap). SVG icons toggle via ATTRIBUTES — the `hidden` IDL property is
+  gap), and **a joint never seeks the element on screen** (2026-08-23, her
+  "little pauses between all the clips": #1564 fixed the seek-at-every-joint
+  chop for the AUDIO track only, and the video half lived on — every joint
+  re-seeked the visible element, a decoder flush and, on the phone, a fetch.
+  `warmNext` parks the idle element ON the next joint's frame — muted
+  prime-play, because iOS treats `preload=auto` as a suggestion — a
+  contiguous split joint just ROLLS ON with no seek at all, and a
+  same-source JUMP (the middle trimmed out) swaps to the parked element
+  instead of seeking the one she is watching. `seekVideo` picks whichever
+  element already sits nearest the wanted frame; stepping/scrubbing still
+  always seeks, exactness matters there). SVG icons toggle via ATTRIBUTES —
+  the `hidden` IDL property is
   HTMLElement-only and `.hidden =` on an SVG is a dead expando (the
   pause-button-that-never-was). The progress line (`#msg`) lives OUTSIDE
   `#editBox`, because the first upload happens while the empty state shows.
   Tests: `node scripts/test-filmeditor.js` (pure + the static page
   contracts, no network) and `node scripts/test-filmeditor-page.js`
   (headless Chromium PLAYS real generated videos through the real page —
-  icon swap, moving playhead, boundary crossing, end stop, split, proxies;
-  fixtures must be WebM/VP8 — playwright's Chromium has no H.264/AAC).
+  icon swap, moving playhead, boundary crossing, end stop, split, proxies,
+  and the joint discipline: `seeking` events on the VISIBLE element are
+  counted and must be ZERO across a swap, a split and a jump — verified
+  failing 4 against the pre-fix page, 2-3 visible seeks per short film;
+  fixtures must be WebM/VP8 — playwright's Chromium has no H.264/AAC — and
+  **must be served with Range support** (`serveMedia`): a plain
+  `route.fulfill` leaves `seekable` at [0,0], every seek silently clamps to
+  0, and the old green playback tests were measuring exactly that).
 - **The audio PROJECT** (`audioproject.js`, `/api/audioproject`,
   `forge-audio-projects` — no page of its own) — the light cross-room id
   Sophie picked (2026-08-19): threaded through every audio hand-off as
