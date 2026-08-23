@@ -38,9 +38,15 @@ The near-death-experience interview database, the montage pipeline, and the wate
   extraction), `YOUTUBE_API_KEY` (required for channel discovery + metadata —
   transcript scraping needs no key), plus the usual Firebase creds. Without
   Firebase the pipeline still runs but nothing persists (in-memory only).
-- **Adding videos runs on SOPHIE'S Mac** — YouTube bot-blocks datacenter IPs
-  (yt-dlp: "Sign in to confirm you're not a bot"), so a cloud session can never
-  download a new interview. `scripts/nde-grab-local.py` is the local grabber:
+- **Adding videos runs on SOPHIE'S Mac — for the LAYOUT now, not because the
+  cloud is blocked (re-measured 2026-08-23).** This said YouTube bot-blocks
+  datacenter IPs (yt-dlp: "Sign in to confirm you're not a bot") and that a
+  cloud session can never download a new interview. Measured on the live Render
+  box that day, it can: `POST /api/ytdl/grab` pulled audio and video clean, no
+  cookies. What the Mac script still does that the generic grab does not is bank
+  the result in the exact layout the cutter reads, so it remains the way to add
+  an INTERVIEW; use `/api/ytdl` when you just need the bytes, and re-measure
+  with `GET /api/ytdl/status?probe=1` rather than trusting either sentence. `scripts/nde-grab-local.py` is the local grabber:
   URLs in → audio + captions down → banked in the exact layout the cutter reads
   (Storage `nde-audio/<videoId>.<ext>` public, raw bestaudio/webm, no re-encode;
   Firestore `forge-nde-videos/<videoId>` merged so existing moments survive).
@@ -188,6 +194,8 @@ do not pull it into these renders. The pastel stills-videos are SCRAPPED.
   white paper whether the prompt says so or not.
 - **Only nine people have an approved likeness.** The other ~30 experiencers
   across the montages have no reference photo, and new ones cannot be grabbed
-  from a cloud session (YouTube bot-blocks datacenter IPs). Standing rule:
+  from a cloud session — not because YouTube blocks it (that was re-measured
+  stale 2026-08-23; `/api/ytdl` grabs fine) but because a likeness has to be
+  APPROVED, and that is Sophie's call rather than a download. Standing rule:
   **never invent a face for a real person** — draw them from behind, from
   above, or far enough back that the face is not the subject.
