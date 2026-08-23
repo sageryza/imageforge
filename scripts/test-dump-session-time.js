@@ -149,6 +149,19 @@ t('nothing filed yet still offers the baked five', () => {
   assert.deepStrictEqual(drop.orderTracks([]), drop.KNOWN_TRACKS);
 });
 
+t('the route counts ALBUMS, not files', () => {
+  // Counting files ranks Crystals top on the strength of one photo shoot
+  // (hundreds of images in a handful of catalogue runs); counting albums puts
+  // the folders she reaches for most OFTEN first. The comment above the route
+  // and the code have to agree — they did not for one deploy.
+  const src = fs.readFileSync(path.join(ROOT, 'dropbox.js'), 'utf8');
+  const i = src.indexOf("router.get('/tracks'");
+  const body = src.slice(i, src.indexOf('\n});', i));
+  assert.ok(/new Set\(\)/.test(body), 'a per-track Set is what makes it albums');
+  assert.ok(/d\.get\('bundle'\)/.test(body), 'albums are counted by bundle');
+  assert.ok(/set\.size/.test(body), 'the count passed to orderTracks is the album count');
+});
+
 console.log('\none folder list, three readers');
 
 // A track is a project, not a tag cloud — and a second hardcoded copy is how
