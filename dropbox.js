@@ -470,7 +470,37 @@ router.get('/status', (req, res) => {
 // SERVED rather than baked into each client, because there are three readers
 // now: the /dump page, the iOS share sheet, and any chat filing a dump. The
 // page keeps a copy as its offline fallback and a test pins the two equal.
+//
+// These five are the ORIGINAL vocabulary and measured 2026-08-23 not one of
+// them is in use — every folder she actually files into she typed herself
+// ("From ChatGPT" 16, "dream upload from ChatGPT" 16, "Crystals" 15, "style
+// references" 13, "story room" 7, "Inspiration" 3). So they are the fallback
+// and the tail of the list, never its head; `orderTracks` below is what puts
+// her own words first.
 const KNOWN_TRACKS = ['crystals', 'story-art', 'hoonies', 'reference', 'product'];
+
+/// The chips, in the order they should be offered: the folders she actually
+/// uses first (most-used first, ties alphabetical), then the untouched known
+/// ones.
+///
+/// Case-insensitive, and the spelling SHE uses wins — `Crystals` has 15 albums
+/// in it and `crystals` has none, so offering both would put a real folder
+/// next to a dead twin one keystroke away from it. That is a worse mistake
+/// than a missing chip: a photo filed into the empty one is a photo she cannot
+/// find in the folder she looks in.
+function orderTracks(counts) {
+  const bySpelling = new Map();          // lowercase → { name, n }
+  for (const [name, n] of counts) {
+    const k = name.toLowerCase();
+    const prev = bySpelling.get(k);
+    if (!prev || n > prev.n) bySpelling.set(k, { name, n });
+  }
+  const used = [...bySpelling.values()]
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
+    .map((e) => e.name);
+  const unused = KNOWN_TRACKS.filter((t) => !bySpelling.has(t.toLowerCase()));
+  return [...used, ...unused];
+}
 
 // The two labels an upload may carry. Pure, so the rule is testable without
 // Firebase: an absent or blank one must come back EMPTY rather than as the
@@ -498,13 +528,15 @@ router.get('/tracks', async (req, res) => {
     if (tracksCache.tracks && Date.now() - tracksCache.at < TRACKS_TTL) {
       return res.json({ tracks: tracksCache.tracks, known: KNOWN_TRACKS, cached: true });
     }
-    const inUse = new Set();
+    const counts = new Map();
     try {
       const snap = await db().collection(COL).get();
-      snap.forEach((d) => { const t = d.get('track'); if (t) inUse.add(String(t)); });
+      snap.forEach((d) => {
+        const t = d.get('track');
+        if (t) counts.set(String(t), (counts.get(String(t)) || 0) + 1);
+      });
     } catch { /* no Firestore → the known list still answers */ }
-    const extra = [...inUse].filter((t) => !KNOWN_TRACKS.includes(t)).sort();
-    const tracks = [...KNOWN_TRACKS, ...extra];
+    const tracks = orderTracks([...counts]);
     tracksCache = { at: Date.now(), tracks };
     return res.json({ tracks, known: KNOWN_TRACKS });
   } catch (e) { return fail(res, e); }
@@ -868,5 +900,5 @@ router.delete('/items/:id', async (req, res) => {
 
 module.exports = {
   router, COL, slug, bundleNamer,
-  newSession, sessionLabel, uploadLabels, KNOWN_TRACKS,
+  newSession, sessionLabel, uploadLabels, KNOWN_TRACKS, orderTracks,
 };
