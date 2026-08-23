@@ -445,7 +445,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    kept message does. */
 .bmk.pr-bmk{margin-left:4px; align-self:center; padding:4px 2px; flex:0 0 auto;}
 .bmk.pr-bmk svg{display:block;}
-.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
+/* `flex-wrap` so a kept page's note + tag row can ride UNDER the title on the
+   same row element (the message row's own trick — `flex:1 0 100%`), rather
+   than needing a wrapper that would change what `.pagerow` means everywhere. */
+.pagerow{display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
   /* THE SERIF, back again (Sophie, Aug 2026 — LATEST word: "I actually
      prefer the other font for the updates page and the compare pages"). It
      went sans for an evening to match the Current/Superseded labels above it;
@@ -483,6 +486,41 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
   color:var(--ink); background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:7px 10px;}
 .bmknote input:focus{outline:none; border-color:var(--chg);}
+/* WHAT THIS ONE IS — the tag row under a kept thing (Aug 2026, Sophie: "both
+   shud now have a set of tag buttons: to read, and 'important' level (1-3) -
+   icons, and review finished feature, review bug fix or information/question
+   answered"). It sits under her note, because the note is the sentence she
+   dictates and these are the four words she taps.
+
+   ONE ROW, drawn by ONE renderer (`mkBmkMarks`) wherever a bookmark is met —
+   under a message, under an artifact in the Compare tab, and on its row in the
+   keep-pile — so a tag can never look like two different controls.
+
+   The chips are the house `.catchip`: a filter chip and a tag chip are the
+   same gesture, and this is the same set of words she already taps in the
+   Organize sheet. */
+/* The lit tag filter at the top of the keep-pile. It takes the tab row's place,
+   so it takes the tab row's job of keeping out of the injected pill's corner
+   (x 324-374, y 14-192) with it. */
+.bmktagbar{margin:0 0 10px; padding-right:64px;}
+/* The note and the tags travel together — one node, so un-keeping a thing
+   takes its whole editor with it and a row can never keep half of it. */
+.bmkedit{flex:1 0 100%; min-width:0;}
+.bmkmarks{flex:1 0 100%; display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0 0;}
+/* IMPORTANCE IS A DIAL, NOT A TAG — a thing has ONE level, where it can carry
+   several words — so the three sit in one segmented box (the List/Tiles
+   pattern) rather than loose beside the chips. Each is a meter of three bars
+   with the ones above the level left faint, so the picture says "2 of 3"
+   without a number to read. Tapping the lit one clears it. */
+.lvlbox{display:inline-flex; border:1.5px solid var(--line); border-radius:6px; overflow:hidden; flex:none;}
+.lvlbox button{background:none; border:0; padding:4px 7px; cursor:pointer; color:var(--ink2);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.lvlbox button + button{border-left:1.5px solid var(--line);}
+.lvlbox button svg{width:15px; height:15px; display:block;}
+.lvlbox button.on{color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+/* the pile's rows are tighter than a message's — the note input above it
+   already carries the margin */
+.bmkrow .bmkmarks{margin:6px 0 0;}
 /* The note on a bookmark row is an INPUT that doesn't look like one until she
    taps it — the list has to read as a list, but every note has to be editable
    in place or naming a backlog means opening each message in turn. */
@@ -899,12 +937,20 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
   -webkit-tap-highlight-color:transparent;}
 .nwdoor .stn{font-weight:600;}
 /* The pair reads as ONE control: the word and its arrow share a box, split by
-   a hairline, the way the slab did. */
-.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--rose);
+   a hairline, the way the slab did.
+
+   NOT RED ANY MORE (Aug 2026, Sophie: "make the review button on updates tab
+   not red"). It was the one door on the screen painted in the accent, on the
+   reasoning that Review is the door that says something is owed — she looked
+   at it and said no, so it wears the quiet border every other chip on this
+   page wears, and the COUNT beside the word is what says how much is waiting.
+   The To read chip beside it is the same box for the same reason: two doors
+   that do the same kind of thing must not read as two different weights. */
+.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--line);
   border-radius:6px; overflow:hidden;}
-.nwrevpair .nwdoor{border:0; border-radius:0; color:var(--rose);}
-.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--rose);
-  cursor:pointer; color:var(--rose); display:flex; align-items:center; justify-content:center;
+.nwrevpair .nwdoor{border:0; border-radius:0;}
+.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--line);
+  cursor:pointer; color:var(--ink2); display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
 .nwrevfold svg{width:15px; height:15px; display:block; transition:transform .18s ease;}
 .nwrevfold.folded svg{transform:rotate(-90deg);}
@@ -2530,6 +2576,8 @@ function setSearchOpen(on){
 // half-finished, not a state to carry to another screen and back.
 function setHomeView(v){
   homeView = (homeView===v ? 'live' : v);
+  // a tag filter belongs to one visit to the keep-pile, never to the next one
+  if(homeView!=='bookmarks') bmkTag='';
   if(homeView!=='news') newsPick={};
   document.body.classList.toggle('newspick', false);
   renderHome(); window.scrollTo(0,0);
@@ -2577,10 +2625,17 @@ var BMK_TABS=[['chat','Chats'],['page','Artifacts'],['msg','Messages']];
 // what the server's `kind` means for the tabs: code/read are both Messages
 function bmkTabOf(kind){ return kind==='chat' ? 'chat' : kind==='page' ? 'page' : 'msg'; }
 var bmkCache=null;
+// A TAG FILTER NARROWS THE PILE, IT DOES NOT SPLIT IT (Aug 2026) — which is
+// why it is a chip and the three kinds are tabs. It is what the To read door
+// on the Update tab opens, and it is session-only and cleared on the way out
+// of this view: a filter she cannot see, hiding most of what she kept, is the
+// failure to avoid.
+var bmkTag='';       // '' | one of BMK_TAGS' keys
 function paintBookmarks(el){
   var all=(bmkCache||[]);
-  var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   el.innerHTML='';
+  if(bmkTag){ paintBmkTagPile(el, all); return; }
+  var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   // the hairline tab row — same markup and classes as the account tabs, so
   // the two can never drift apart. `.bmktabs` only adds the pill's corner
   // reserve (this row sits high, inside x 324–374 / y 14–192).
@@ -2624,6 +2679,29 @@ function paintBookmarks(el){
       refs.concat(kept).forEach(function(m){ el.appendChild(bmkRow(m, el)); });
     }
     return;
+  }
+  items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+}
+// ONE FLAT LIST while a tag is lit — a message and an artifact tagged "to
+// read" are the same errand, so splitting them across tabs would make her tap
+// twice to find out whether she is finished. Kept chats carry no tags and are
+// simply not in it.
+function paintBmkTagPile(el, all){
+  var word='';
+  BMK_TAGS.forEach(function(t){ if(t[0]===bmkTag) word=t[1]; });
+  var bar=document.createElement('div'); bar.className='catrow bmktagbar';
+  var chip=document.createElement('button'); chip.className='catchip on';
+  chip.innerHTML=esc(word||bmkTag)+' \u2715';
+  chip.setAttribute('aria-label','Clear the '+(word||bmkTag)+' filter');
+  chip.onclick=function(){ bmkTag=''; paintBookmarks(el); };
+  bar.appendChild(chip);
+  el.appendChild(bar);
+  var items=all.filter(function(m){
+    return (m.tags||[]).indexOf(bmkTag)>=0 && (m.kind||'read')!=='chat'; });
+  if(!items.length){
+    var st=document.createElement('div'); st.className='state';
+    st.textContent='Nothing tagged \u201c'+(word||bmkTag)+'\u201d yet \u2014 tap the tag under a kept message or artifact.';
+    el.appendChild(st); return;
   }
   items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
 }
@@ -2715,9 +2793,15 @@ function bmkRow(m, el){
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
     row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
+    // The tag row rides here too — triaging a backlog is exactly what this
+    // screen is for, and the note above it is already editable in place. A
+    // kept CHAT gets none: its marks are the star/bell/pin in its own header,
+    // and the tags live on the message or the artifact, not on a whole chat.
+    if(kind!=='chat') row.appendChild(mkBmkMarks(m, kind==='page'?'page':'msg'));
     row.setAttribute('role','button'); row.tabIndex=0;
     row.onclick=function(e){
       if(e.target===inp) return;          // typing a name must not open the chat
+      if(e.target.closest && e.target.closest('.bmkmarks')) return;   // …nor tagging it
       // A kept ARTIFACT opens the artifact itself — that is the thing she
       // saved. openPage wants {id, title}; the title fills the snippet slot.
       if(kind==='page'){ openPage({ id:m.id, title:m.title||m.snippet||'' }); return; }
@@ -3820,6 +3904,40 @@ function newsUpdDoor(){
   b.onclick=function(){ location.href='/brief'; };
   return b;
 }
+// THE TO READ DOOR (Aug 2026, Sophie: "add a to read button next to it") —
+// the third chip in the row, beside Review. It is the one bookmark tag with a
+// door of its own: things she kept meaning to read back are the pile that goes
+// stale if it is only ever reachable by remembering it is there.
+//
+// It carries a COUNT, unlike Update, because unlike Update it can be empty —
+// and it goes to the keep-pile with the To read filter already lit, never to a
+// fourth pile of its own: there is ONE place kept things live.
+//
+// The count is its own tiny request (GET /to-read), asked once per load and
+// repainted when it lands: this tab paints on every poll, and the keep-pile
+// route returns up to a thousand documents.
+var toReadN=null;          // null = not asked yet; a number = what came back
+var toReadPend=false;
+var newsRevsLast=[];       // what the doors were last painted with, for the repaint
+function toReadFetch(){
+  if(toReadN!==null || toReadPend) return;
+  toReadPend=true;
+  api('/api/chatfeed/to-read?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      toReadPend=false; toReadN=(d&&d.count)||0;
+      if(homeView==='news') paintNewsDoors(newsRevsLast);
+    })
+    .catch(function(){ toReadPend=false; });   // silent — a door with no count still works
+}
+function newsToReadDoor(){
+  var b=document.createElement('button'); b.className='nwdoor';
+  var n=toReadN;
+  b.innerHTML='<span>To read</span>'+(n?'<span class="stn">'+n+'</span>':'');
+  b.setAttribute('aria-label','To read'+(n?' — '+n+' waiting':''));
+  b.onclick=function(){ bmkTag='to-read'; setHomeView('bookmarks'); };
+  return b;
+}
 // THE DOORS ROW — both of them, above the account tabs (Aug 2026, Sophie:
 // "both supposed to be smaller and they're supposed to go above the chats").
 // It is chrome, not list: it lives in #nwdoors between the search row and the
@@ -3835,8 +3953,13 @@ function paintNewsDoors(revs){
   row.innerHTML='';
   if(homeView!=='news'){ row.hidden=true; return; }
   row.hidden=false;
+  newsRevsLast = revs || [];
   row.appendChild(newsUpdDoor());
   if(!newsQ && revs && revs.length) row.appendChild(newsReviewDoor(revs));
+  // To read is on every paint, like Update: an empty pile is not a reason to
+  // take the door away, and its count says when there is something in it.
+  row.appendChild(newsToReadDoor());
+  toReadFetch();
 }
 function newsEmptyCheck(waiting){
   var el=document.getElementById('grid');
@@ -5822,9 +5945,10 @@ function renderMsg(m){
   ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
-  // an already-bookmarked message carries its note box from the first paint,
-  // so what she wrote is visible and editable without hunting for a gesture
-  if(m.bookmarked) ob.appendChild(mkBmkNote(m));
+  // an already-bookmarked message carries its note box and its tags from the
+  // first paint, so what she wrote is visible and editable without hunting
+  // for a gesture
+  if(m.bookmarked) ob.appendChild(mkBmkEdit(m,'msg'));
   row.appendChild(ob);
   return row;
 }
@@ -5843,7 +5967,114 @@ function renderMsg(m){
 // That is why there is no separate "edit the note" gesture: the box is simply
 // there, holding whatever she wrote, and it saves on tap-away like everything
 // else she dictates into.
-function mkBmkNote(m){
+// ---- WHAT A KEPT THING IS — the tag row (Aug 2026, Sophie: "both shud now
+// have a set of tag buttons: to read, and 'important' level (1-3) - icons, and
+// review finished feature, review bug fix or information/question answered")
+// ---------------------------------------------------------------------------
+// Her note says WHY she kept it, in her own words; these say WHAT it is, in
+// the same four words every time, so the pile can be filtered instead of read
+// back one row at a time.
+//
+// A FIXED VOCABULARY pinned equal to BMK_TAGS in chatfeed.js by
+// `node scripts/test-chats-bookmark-tags.js` — the same contract TAG_LIST and
+// TAGS have kept since the archive sheet shipped. `to-read` is the one word
+// with a door of its own: the To read chip on the Update tab counts it.
+var BMK_TAGS=[['to-read','To read'],['feature','Finished feature'],
+              ['bugfix','Bug fix'],['answered','Answered']];
+// THE IMPORTANCE METER — three bars, the ones above the level left faint, so
+// the picture says "2 of 3" with no number to read. It is a DIAL, not a fifth
+// tag: a thing has one level where it can carry several words, which is why
+// the three live in one segmented box and tapping the lit one clears it.
+function LVL_SVG(n){
+  var bars=[[5,13,4,6],[11,8,4,11],[17,3,4,16]];
+  var out='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">';
+  for(var i=0;i<3;i++){ var b=bars[i];
+    out+='<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" rx="1"'
+       + (i<n?'':' opacity=".22"')+'/>'; }
+  return out+'</svg>';
+}
+// A bookmark reaches this renderer under three different shapes — a message in
+// a thread (`bmkTags`/`bmkLevel`, spread straight off its doc), a page in the
+// Compare tab (the same two), and a row in the keep-pile (`tags`/`level`, as
+// GET /bookmarks names them). Reading BOTH names, and writing both back, is
+// what lets one renderer serve all three without the caller caring.
+function bmkMarksOf(m){
+  var t = m.tags || m.bmkTags || [];
+  return { tags: t.slice(), level: Number(m.level || m.bmkLevel || 0) || 0 };
+}
+function bmkMarksSet(m, st){
+  m.tags=st.tags.slice(); m.bmkTags=st.tags.slice();
+  m.level=st.level; m.bmkLevel=st.level;
+}
+// The saver per kind — the note routes' own contract, field for field: a patch
+// sent on its own touches ONLY what it names, so tagging can never un-keep a
+// thing and naming one can never drop its tags.
+function bmkSaver(kind, m){
+  return function(patch){
+    var url = kind==='page' ? '/api/chatfeed/page/'+encodeURIComponent(m.id)+'/bookmark'
+                            : '/api/chatfeed/bookmark';
+    var body = kind==='page' ? patch : Object.assign({id:m.id}, patch);
+    return api(url,{method:'POST',body:JSON.stringify(body)})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; });
+  };
+}
+// ONE ROW, drawn the same wherever a bookmark is met. `kind` is 'msg' or
+// 'page' — it only decides which route the taps go to.
+function mkBmkMarks(m, kind){
+  var save=bmkSaver(kind, m);
+  var row=document.createElement('div'); row.className='bmkmarks';
+  var st=bmkMarksOf(m);
+  function paint(){
+    row.innerHTML='';
+    BMK_TAGS.forEach(function(t){
+      var on=st.tags.indexOf(t[0])>=0;
+      var b=document.createElement('button');
+      b.className='catchip'+(on?' on':'');
+      b.textContent=t[1];
+      b.dataset.tag=t[0];
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.onclick=function(e){
+        e.stopPropagation();
+        var prev=st.tags.slice();
+        st.tags = on ? st.tags.filter(function(x){ return x!==t[0]; }) : st.tags.concat([t[0]]);
+        bmkMarksSet(m, st); paint();
+        // the To read door's count is now a turn old — drop it so the next
+        // paint of the Update tab asks again rather than showing a stale number
+        if(t[0]==='to-read') toReadN=null;
+        save({tags:st.tags}).catch(function(){
+          st.tags=prev; bmkMarksSet(m, st); paint(); toast('Couldn\u2019t save that');
+        });
+      };
+      row.appendChild(b);
+    });
+    var box=document.createElement('div'); box.className='lvlbox';
+    box.setAttribute('role','group');
+    box.setAttribute('aria-label','How important this is');
+    [1,2,3].forEach(function(n){
+      var b=document.createElement('button');
+      b.className=(st.level===n?'on':'');
+      b.innerHTML=LVL_SVG(n);
+      b.dataset.level=String(n);
+      b.setAttribute('aria-label','Important \u2014 level '+n+' of 3');
+      b.setAttribute('aria-pressed', st.level===n?'true':'false');
+      b.onclick=function(e){
+        e.stopPropagation();
+        var prev=st.level;
+        st.level = (st.level===n ? 0 : n);      // tapping the lit one clears it
+        bmkMarksSet(m, st); paint();
+        save({level:st.level}).catch(function(){
+          st.level=prev; bmkMarksSet(m, st); paint(); toast('Couldn\u2019t save that');
+        });
+      };
+      box.appendChild(b);
+    });
+    row.appendChild(box);
+  }
+  paint();
+  return row;
+}
+function mkBmkNote(m, kind){
+  var put=bmkSaver(kind||'msg', m);
   var box=document.createElement('div'); box.className='bmknote';
   var inp=document.createElement('input'); inp.type='text';
   inp.placeholder='Why keep this?'; inp.value=m.bookmarkNote||'';
@@ -5854,8 +6085,7 @@ function mkBmkNote(m){
     var prev=m.bookmarkNote||''; m.bookmarkNote=v;
     // note ONLY — sending it without `bookmarked` means saving a note can
     // never quietly un-save the message
-    api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    put({note:v})
       .catch(function(){ m.bookmarkNote=prev; inp.value=prev; toast('Couldn’t save that'); });
   }
   inp.onblur=save;
@@ -5863,6 +6093,18 @@ function mkBmkNote(m){
   inp.onclick=function(e){ e.stopPropagation(); };
   box.appendChild(inp);
   return box;
+}
+// EVERYTHING A BOOKMARK CARRIES, in one node — the note she dictates and the
+// tags she taps (Aug 2026, Sophie: "when i bookmark a message it offers a
+// textbox to say whi i'm saving it. shud be same for artifact" · "both shud
+// now have a set of tag buttons"). One node so a bookmark toggled off takes
+// its whole editor with it, and so a message and an artifact can never end up
+// with two different sets of controls.
+function mkBmkEdit(m, kind){
+  var w=document.createElement('div'); w.className='bmkedit';
+  w.appendChild(mkBmkNote(m, kind));
+  w.appendChild(mkBmkMarks(m, kind));
+  return w;
 }
 // ONE bookmark glyph — a message row and a Compare page row both draw this,
 // so "kept" can never read as two different marks in two places.
@@ -5915,9 +6157,9 @@ function bookmarkBtn(m, row){
   b.onclick=function(e){
     e.stopPropagation();
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
-    var open=row.querySelector('.bmknote');
+    var open=row.querySelector('.bmkedit');
     if(nv && !open){
-      var box=mkBmkNote(m);
+      var box=mkBmkEdit(m,'msg');
       row.querySelector('.openrow').appendChild(box);
       box.querySelector('input').focus();   // the reason is in her head NOW
     } else if(!nv && open) open.remove();
@@ -5926,7 +6168,7 @@ function bookmarkBtn(m, row){
       .then(function(d){ if(!d.ok) throw 0; })
       .catch(function(){
         m.bookmarked=!nv; b.classList.toggle('on',!nv);
-        var bx=row.querySelector('.bmknote'); if(bx&&!m.bookmarked) bx.remove();
+        var bx=row.querySelector('.bmkedit'); if(bx&&!m.bookmarked) bx.remove();
         toast('Couldn’t save that');
       });
   };
@@ -6850,7 +7092,13 @@ function openChat(name, keepScroll, focusId, noFetch){
           set.forEach(function(p){
             var row=document.createElement('div'); row.className='pagerow';
             row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
-            row.onclick=function(e){ if(e.target.closest('.pr-sup')||e.target.closest('.pr-bmk')) return; openPage(p); };
+            row.onclick=function(e){
+              if(e.target.closest('.pr-sup')||e.target.closest('.pr-bmk')) return;
+              // her note box and her tag chips live INSIDE this row now, so a
+              // tap on either must not launch the artifact behind them
+              if(e.target.closest('.bmkedit')) return;
+              openPage(p);
+            };
             // KEEP IT (Aug 2026, Sophie). The same bookmark as a message's,
             // and it sends the page to the same Bookmarks view — so there is
             // one pile of kept things, not two. Optimistic: the mark lights
@@ -6865,12 +7113,23 @@ function openChat(name, keepScroll, focusId, noFetch){
               var nv=!p.bookmarked; p.bookmarked=nv; bm.classList.toggle('on',nv);
               bm.setAttribute('aria-label', nv?'Remove from Bookmarks':'Keep in Bookmarks');
               bm.title = nv ? 'In Bookmarks' : 'Keep in Bookmarks';
+              // THE SAME BOX A MESSAGE GETS (Aug 2026, Sophie: "when i bookmark
+              // a message it offers a textbox to say whi i'm saving it. shud be
+              // same for artifact"). Keeping opens it straight away and focuses
+              // it — the reason is in her head at that moment and nowhere else.
+              var open=row.querySelector('.bmkedit');
+              if(nv && !open){
+                var ed=mkBmkEdit(p,'page');
+                row.appendChild(ed);
+                ed.querySelector('input').focus();
+              } else if(!nv && open) open.remove();
               api('/api/chatfeed/page/'+encodeURIComponent(p.id)+'/bookmark',{method:'POST',
                 headers:{'Content-Type':'application/json'},
                 body:JSON.stringify({bookmarked:nv})})
                 .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
                 .catch(function(){
                   p.bookmarked=!nv; bm.classList.toggle('on',!nv);
+                  var bx=row.querySelector('.bmkedit'); if(bx&&!p.bookmarked) bx.remove();
                   toast('Couldn’t save that');
                 });
             };
@@ -6887,6 +7146,9 @@ function openChat(name, keepScroll, focusId, noFetch){
                 .then(function(){ loadPages(true); }).catch(function(){});
             };
             row.appendChild(sup);
+            // an artifact she already keeps carries its note and its tags from
+            // the first paint, exactly as a kept message does
+            if(p.bookmarked) row.appendChild(mkBmkEdit(p,'page'));
             list.appendChild(row);
           });
         }
