@@ -228,6 +228,27 @@ it out anyway is how this repo lost weeks:
   the window was gone before she could look. Judge parking/tint on a LONG
   turn, or from the gap test above — never on a fast one.
 
+## WHAT A CHAT COSTS IS READABLE — and the obvious call hides it
+**Measured 2026-08-22, and Sophie's own note that no chat had ever managed
+this.** A session's spend is on `get_session` at
+`external_metadata.usage.cost_usd`, with `input_tokens` / `output_tokens` /
+`cache_read_tokens` / `cache_write_tokens` beside it, and `rate_limit_info`
+(`resetsAt`, epoch seconds; `isUsingOverage`) beside that. `list_sessions`
+carries the same block for every session at once, which is how you total a day.
+- **THE TRAP: `get_session` with NO `session_id` — the natural "describe
+  myself" call — comes back with NO `usage` block at all.** Pass your own id
+  explicitly (`CLAUDE_CODE_REMOTE_SESSION_ID` with `cse_` swapped for
+  `session_`) and it is there. That one difference is the likeliest reason
+  this went unfound.
+- The number is the session's LIFETIME cost, not this turn's — subtract an
+  earlier reading to price one turn. A session created today has a clean
+  daily figure; one created yesterday and answered today does not.
+- **Two figures worth carrying around** (2026-08-22): a fresh container that
+  did nothing but ask "What are we working on?" cost **$1.52** — that is the
+  floor for opening a chat at all, before any work — and nine sessions across
+  that one day came to about **$45**.
+- Nothing here is a model call, so reading it is free.
+
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
 time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
@@ -297,6 +318,36 @@ around them change, so verify the labels and use these for the URL.
   - **Fixing it is Sophie's, one field** — the environment's env vars (cloud
     icon → the environment → Environment variables) → `FORGE_ACCOUNT` → `3`.
     Until she does, every NEW account-3 session starts mislabeled again.
+  - **AND A SAVED ENV-VAR EDIT IS NOT PROOF IT REACHED ANYTHING — MEASURE IT
+    (2026-08-22, hours later).** She added the line, screenshotted the box
+    showing `FORGE_ACCOUNT=3` at the top, and reported new sessions still
+    weren't tagged. A probe container started 17 minutes after that edit read
+    **`2`** and stamped its chat 2. Leading hypothesis, unproven: the OLD
+    `FORGE_ACCOUNT=2` line is still further down the same box and wins (.env
+    duplicate keys, last one wins) — the box scrolls, so a value added at the
+    top hides its own twin. Not the wrong-box trap: the other environment
+    (`env_01UhUAKEXwfZZ8M61whDFu9Q`) was measured the same hour and has NO
+    `FORGE_ACCOUNT` at all and no hook installed, i.e. genuinely unused.
+  - **THE PROBE — how to ask what a NEW session sees, in about a minute.**
+    `create_session {prompt: "run echo $FORGE_ACCOUNT and reply with just that
+    line"}` (it inherits the calling session's environment), then
+    `get_session` on the returned id and read
+    `external_metadata.post_turn_summary.status_detail` — the child's answer is
+    right there, so nothing has to be read out of the feed. Cost ~$0.50-$0.90 a
+    probe. Clean up after: the probe's own hook files a stray chat
+    (`POST /api/chatfeed/delete {chat}` trashes it, reversibly) and
+    `archive_session` closes the session.
+  - **THE DURABLE FIX NOBODY HAS BUILT: `CLAUDE_CODE_ACCOUNT_UUID`.** Every
+    container carries it — account 3 is
+    `226fb540-b801-46a1-9612-09ffd6a973fe` (measured 2026-08-22) — set by the
+    platform, not by Sophie, so it cannot be copied from another account or
+    pasted into the wrong box the way `FORGE_ACCOUNT` was. A hook that posted
+    it plus a uuid→number map on the settings doc would make the account tag
+    self-correcting, with the posted `FORGE_ACCOUNT` as the fallback for an
+    unmapped uuid. NOT BUILT — it needs a hook change, and a hook change only
+    reaches a session when Sophie re-pastes the environment's Setup script
+    (session init has no network, so the pasted copy is static: this container
+    ran a hook a day older than the served one).
   - **A chat can fix ITSELF for its own session**, no waiting: prefix its
     hook commands in `/home/user/.claude/settings.json` with
     `FORGE_ACCOUNT=3 ` (settings and hooks are re-read per event, so it takes
@@ -877,6 +928,27 @@ them off the reference sheet, not off the old filenames.
     Cancel keeps the summary and archiving mid-write loses nothing — which is
     why it is not a background job. The summary reads back in the sheet before
     she commits. ~1-2¢ a tap.
+  - **ONE SENTENCE EACH IS CUT IN CODE, AND THE LINE IS WHAT SHE ASKED FOR
+    (Aug 2026, Sophie: "I thought that each of the questions was supposed to be
+    just one sentence but the middle question is longer" → "ok hard cap it" ·
+    "4 the default line just use what you asked and then the arrow shows the
+    next two bolded fields").** Two rules from one screenshot, both about the
+    same duplication. `wrapPartOf` (chatfeed.js) cuts every answer to its FIRST
+    sentence on the way in and to 200 characters behind that, at a word
+    boundary; `onePart` (chats.html) is its twin and cuts on the way OUT, which
+    is what reaches the two the server cannot — a wrap-up written before the cap
+    existed, and the live **Update card**, whose own 300-character fields stay
+    uncut on the Update tab (that is where the two-sentence middle came from:
+    the chat had no wrap-up at all, so the summary was falling back to its
+    Update card, which never had a sentence rule). A sentence ends at `.!?` plus
+    a space plus a CAPITAL, so "e.g." and "12x18." survive. And **the one line
+    is now `asked`** — it used to be `wrapLine`, then what the chat DID, which
+    on that same chat put the identical sentence on the line and again under
+    "What I did"; her question is the one answer that can never repeat what is
+    under it. The arrow opens the other two only, and a summary that is `asked`
+    alone draws no arrow. `wrapLine` still holds the line for an older record
+    with no three answers. Tests: `node scripts/test-chats-wrapup.js` (the two
+    copies run over the same cases so they cannot drift).
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just
@@ -2243,14 +2315,120 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
+  "add a little oval next to the pyramid, colored on top, white empty on
+  bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
+  1 high job" · "move the pyramid and the oval to the right side so they're
+  next to the generate button but still to the left of it" · "make the generate
+  button a square").** A ladder is one tap that draws the same prompt at more
+  than one quality, and each wears a picture of HOW MANY and at what tier,
+  never a word: the **pyramid** is two lows along its split base with the
+  better one filling the cap (~10¢), the **oval** is medium under high with the
+  top half filled (~21¢ portrait, ~26¢ square). The oval has NO vertical
+  divider on purpose — two tiers, one draw each; the split base is what says
+  *two lows*. Both go through one `ladder()` starter, and `startRun`'s `q`
+  overrides the toggle for that run only, so **neither ladder moves what the
+  knob says**.
+  - **The two ladders and Generate are ONE group (`.gogroup`), and it has to
+    be a group**: `.controls` wraps, so `margin-left:auto` on each button
+    separately would right-align whichever ones happened to share a line and
+    scatter the rest. The auto margin moved off `.go` onto the group.
+  - **Generate is a 38×38 SQUARE** — the box the seed button already is, so the
+    three taps at the right end read as one set rather than a wide slab beside
+    two small ones. The 6px radius stays: the house rule is rounded rectangles,
+    and sharp corners there would be the only ones on the page.
+  - **The style picker is NOT filled dark any more** (her ask, same message:
+    "just white, even tho it's selected"). It was painted like the old lit
+    tile so the selected style read as chosen — but there is only ever ONE
+    picker on the row, so there was nothing for it to read as chosen against,
+    and a black slab was the heaviest thing on a page of pale controls. The
+    INK BORDER stays; it is what still separates the one control that decides
+    the run from its pale neighbours.
+  - Test: `node scripts/test-playground-controls.js` — the headless half IS
+    the test here, because every one of these asks is a measurement: "coloured
+    on top" is the filled path's `getBBox` against the oval's centre (a wrong
+    arc sweep flag is perfectly valid markup that fills the wrong half),
+    "square" is two numbers that must match, "to the left of it" is an x
+    coordinate, and the three share a line by their CENTRES (the group centres
+    them and the ladders are shorter, so equal tops would be the wrong
+    question).
+  **THE CANVAS IS REMEMBERED — this REVERSES the note below it (Aug 2026,
+  Sophie: "make it not default to square, but just whatever the last option
+  was").** This file said a shape she picked once must not carry into every
+  later visit; she has since asked for exactly that, so the old reasoning is
+  history rather than a rule. `promptlab_canvas` in localStorage, written on
+  the TAP rather than on the run (the shape she is looking at is the one she
+  comes back to), with `square` surviving only as the FIRST-EVER default and
+  as the fallback for an unknown stored value. **QUALITY IS DELIBERATELY NOT
+  CHANGED WITH IT** — she named the canvas, and a remembered `high` is
+  16.5-21.1¢ a tap arriving unasked, where a remembered shape costs nothing it
+  did not cost last time.
+  **QUALITY IS THE ACCOUNT SWITCHER'S THREE-WAY TOGGLE, IN BLACK (Aug 2026,
+  Sophie: "make the low medium high drop down in the playground into the exact
+  three way toggle that the account switcher uses … but black not red. and put
+  the initial of the choice - L, M, or H").** It was a native `<select>`, and a
+  picker you have to open to read hides which quality a run is about to spend.
+  `.qtog` in `promptlab.html` is `.swi` from `chats.html` VERBATIM — 48px track,
+  26 tall, an 18px knob, three stops DERIVED from `--gap` — with the track ink
+  (`#2b2622`) instead of the rose and the letter riding the knob (`content:
+  attr(data-i)`, so the letter and the position are one element and cannot
+  disagree). Tapping anywhere moves to the next notch and WRAPS, exactly as the
+  account one does, so low → medium → high → low. **The two rules live in
+  different files with no shared stylesheet, so nothing but the test would ever
+  notice one drifting from the other** — `node
+  scripts/test-playground-quality-toggle.js` pins them property by property,
+  asserts the colour as a DIFFERENCE (a copy-paste must not bring the rose
+  back), and reads the knob's real x at each stop in headless Chromium. A
+  fourth quality is an entry in `QUALITIES` plus one CSS rule of the same
+  shape; nothing counts the notches. Still not persisted, same as before.
   **PORTRAIT OR SQUARE, opening on SQUARE (Aug 2026, her call).**
   `PL_GPT.sizes`; the run carries `canvas`, and an unknown value still lands on
   a real size server-side, never an invented one. **The square is the DEARER
   one** — 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
   table warns about — so both buttons print what they cost; she picked it as
-  the default knowing that. Not persisted, same reasoning as quality.
+  the opening default knowing that. **It is PERSISTED since Aug 2026** (see
+  THE CANVAS IS REMEMBERED above) — this line used to read "not persisted,
+  same reasoning as quality" and she asked for the opposite.
   gpt-image-2 only — the LoRA has no baked prefix to show and rides
   `aspect_ratio` instead, so both controls hide on WTR.
+  **AND THE SIZE TIERS BESIDE IT — 1K · 2K · 4K (Aug 2026, Sophie: "adding the
+  size as a toggle in the playground for things I want to print versus things
+  I'm using for like videos").** `PL_GPT.res`, a second segmented group next to
+  the canvas; the run stores `res`. **Every image surface in this repo had been
+  pinned to 1024x1536 or 1024x1024 — the only three sizes the OLD gpt-image-1
+  accepted.** gpt-image-2 takes any canvas inside its constraints (long edge
+  ≤ 3840, both edges a multiple of 16, ratio ≤ 3:1, 655,360–8,294,400 pixels);
+  the model id was swapped and the size lines were never revisited. Sizes are
+  CONTINUOUS, not three presets — "2K" and "4K" here are just the names for two
+  useful budgets.
+  - **The tiers are the biggest EXACT 2:3 and 1:1 canvases at each budget**, so
+    a tier is the same picture with more pixels and never a different crop. An
+    exact 2:3 with both edges a multiple of 16 forces w=2m/h=3m with m itself a
+    multiple of 16 — which is why 4K portrait is **2336x3504** and one step up
+    (2352x3528) is 3,456 pixels over the cap. The squares land exactly on their
+    budgets: 1920² IS 3,686,400 and 2880² IS 8,294,400.
+  - **1K IS STILL THE DEFAULT AND STILL WHAT AN OLD PAGE SENDS.** A phone
+    holding a page cached from before this shipped sends no `res` at all, and
+    the absent value must land on the old canvas rather than a dearer one.
+  - **NOT PERSISTED**, same reasoning as quality and the canvas — 4K at high is
+    47¢ a picture, and that must never be something she is spending without
+    having just chosen it.
+  - **The tooltip prices are SERVED, never copied into the page** —
+    `PL_GPT.res` carries a MEASURED `cents` per quality (the table in
+    `docs/modules/pictures.md`) and a test pins that promptlab.html holds no
+    copy of a cost figure. Same rule as the baked prompts.
+  - **Re-rendering an existing run at another size** is
+    `node scripts/playground-rerun-size.js <runId> --size WxH` — it re-sends
+    the stored `fullPrompt` verbatim and prints the real `usage`.
+  Test: `node scripts/test-playground-res.js`.
+  **MODERATION IS `low` ON EVERY gpt-image-2 EDIT (Aug 2026, Sophie's call).**
+  `openaiImageEditRefs` sends it by default. The filter is STOCHASTIC on
+  identical input — a Dreamy prompt of hers drew fine at two sizes and was then
+  refused twice in a row minutes later with `safety_violations=[violence]` (raw
+  meat and a bare chest, in a cartoon). A refusal costs the run and reads as a
+  bug. **There is no `none`** — `auto` and `low` are the only two values, and
+  a handful of categories are refused at every setting, so this cannot be
+  turned off further and must not be described to her as if it could.
   **THE ROW WRAPS, and that is load-bearing:** with the Prompt button and the
   toggle added, flex squeezed the toggle to 50px on a 390pt phone — "Portrait"
   bled out of its box and **the Square half was clipped off the row**, which is
@@ -2275,6 +2453,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **A SEARCH BAR SITS IN THE ROW THAT WAS ALREADY THERE (Aug 2026, Sophie: "a
+  little search bar that fits in the space between the heart toggle (next to
+  tiles/grid)").** `flex: 1` between the heart and the 56px the autoscroll pill
+  owns, so nothing moved to make room and the row still fits one line on a
+  390pt phone (measured: 126px of box). It filters by RUN — her words belong to
+  a run, not a picture — so list view drops whole boxes and tiles drops that
+  run's pictures off the wall; it stacks with the heart (search picks the runs,
+  the heart the pictures) and hides "Older" while it is running. Searchable:
+  her words, the style by its LABEL and its key, quality, the canvas by its
+  ratio AND by the word on the button, `photo ref`, failed/cancelled.
+  **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
+  scans the whole run history (a few hundred ~1KB docs, capped 1500, held
+  60s) because a box that only filters the loaded page answers "nothing
+  matches" for everything behind the 40-run window: the Assets tab's own
+  lesson, re-learned rather than re-lived. The loaded runs are still filtered
+  INSTANTLY while that lands. **The two haystacks are pinned equal by the
+  test** (`runHay` in promptlab.html, `promptlabHay` in server.js) — if they
+  drift, the view changes under her a beat after she types. The house grammar
+  and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
+  is deliberately NOT sticky, unlike the view and the heart. Test:
+  `node scripts/test-playground-search.js`.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3
@@ -2600,7 +2799,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Story
 - **The pad IS the Story Room now (Aug 2026)** — `/storyroom` serves the pad page
   and the app's Story Room tile opens it. The OLD board surface (`storyroom.html`,
-  `/api/story/*`) stays in the repo, unpointed. Stories carry **listen rows**
+  `/api/story/*`) stays in the repo, unpointed.
+  **IT WAS THE LAST TOOL STILL WEARING APPLE'S BAR, and the stale doc is why
+  (Aug 2026, Sophie: "I made the impression that we had gotten rid of the Apple
+  native header, but I think story room still has it cause there's a back
+  Chevron").** `StoryRoomView` carried a hand-written `.toolbar` chevron from
+  before `.forgeWebToolBar` existed, and `docs/design-rules.md` still told a new
+  tool to ship with the native bar — so nothing ever flagged it. Both are fixed;
+  the page draws the one chevron via `pagehead.js` now.
+  **AND ITS SHEETS ARE LEVELS, NOT DIALOGS** (same message: "there's like an X to
+  get out of it and a weird icon. I just want it to be a back button and no X …
+  the header should be like normal it should say the shelf"). The shelf and every
+  other sheet in the page wear the page's own header — back chevron left, **name
+  centred**, actions right, one CSS rule over `header,.sheethead` — the shelf is
+  called **The shelf**, and there is no ✕ in this page's chrome at all. The shelf
+  door on the pad moved to the RIGHT of the header as an action (it is Lucide
+  `library` now, not four abstract squares), which is what frees the left for the
+  chevron. Test: `node scripts/test-storyroom-header.js` (three states —
+  web / old build / new build; verified failing 12 against the pre-fix page). Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the
   **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,

@@ -174,6 +174,22 @@ ceiling are all in `docs/image-pipeline.md` (*The walker is the prompt*).
   - **square 1024x1024** — low 0.6¢ · medium 5.3¢ · high 21.1¢
   - **portrait 1024x1536** — low 0.5¢ · medium 4.1¢ · high 16.5¢
   - **landscape 1536x1024** — low 0.5¢ · medium 4.1¢ · high 16.5¢
+  **AND THE TIERS ABOVE 1K, MEASURED 2026-08-22.** OpenAI's table stops at
+  those three sizes and says only "additional sizes available", so these came
+  out of the API's own `usage` block via
+  `node scripts/measure-image-cost.js <WxH>:<quality>` (12 renders, $2.35):
+  - **portrait 2K 1568x2352** — low 0.75¢ · medium 6.55¢ · high 26.21¢
+  - **portrait 4K 2336x3504** — low 1.35¢ · medium 11.74¢ · high 46.94¢
+  - **square 2K 1920x1920** — low 1.09¢ · medium 9.83¢ · high 39.31¢
+  - **square 4K 2880x2880** — low 1.98¢ · medium 17.79¢ · high 71.16¢
+  **RESOLUTION IS THE CHEAP KNOB, QUALITY IS THE DEAR ONE** — 8x the pixels is
+  2.9x the money, one step of quality is 4x. Two exact relationships held
+  across every size tested: **high is 4x medium**, and medium is 8.71x low
+  portrait / 9x low square. **The square inversion below holds at EVERY tier
+  and widens with size** — 1920² and 1568x2352 are both 3.69 megapixels and the
+  square costs 50% more.
+  **DO NOT EXTEND THIS TABLE BY ARITHMETIC** — measure the new size with the
+  script, which is one command and reads the real token count.
   **THE SQUARE IS THE EXPENSIVE ONE**, which is the opposite of the guess
   everyone makes: a 1536x1024 canvas holds 1.5x the pixels of a 1024x1024 one
   and costs 22% LESS. So "it's bigger, it must cost more" is wrong here, and

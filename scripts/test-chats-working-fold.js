@@ -75,6 +75,46 @@ console.log('foldBody');
   ok('turn with no closing folds the rest', noTail.indexOf('foldtog') >= 0);
 }
 
+// ── BOLD IS ALWAYS FOR HER (Aug 2026, Sophie: "working details was hiding a
+// message meant for me … anything bold is always for me. can it be an added
+// decision metric"). A second metric on top of the tool calls, and it can only
+// ever un-hide: bold inside the middle stays on screen and the narration folds
+// around it. The fenced-code case is here because a `**` in a code block is not
+// a line for her, and a cut inside a fence breaks every render after it.
+{
+  const NAR = 'Checking the registry now. ' + 'x'.repeat(300);
+  const HER = '**Spent 21c this turn** — 13c for the 4K.';
+  const NAR2 = 'Running the tests. ' + 'y'.repeat(300);
+  const T = TOP + '\n\n' + NAR + '\n\n' + HER + '\n\n' + NAR2 + '\n\n' + BOT;
+  const out = foldBody(T, TOP.length, T.length - BOT.length);
+  // Strip what the fold HIDES and the bold line has to still be there — the
+  // whole point, and the assertion that fails against the pre-fix page.
+  const shown = out.replace(/<div class="foldbody" hidden>[\s\S]*?<\/div><\/div>/g, '');
+  ok('a bold line in the middle is never folded', shown.indexOf(HER) >= 0);
+  ok('the narration itself is still hidden', shown.indexOf('x'.repeat(300)) < 0);
+  ok('the narration either side folds around it', (out.match(/foldtog/g) || []).length === 2);
+  ok('a heading counts as bold too',
+    foldBody(TOP + '\n\n' + NAR + '\n\n## What I found\n\n' + NAR2 + '\n\n' + BOT,
+      TOP.length, TOP.length + NAR.length + 300).indexOf('## What I found') >= 0);
+}
+{
+  // `**` inside fenced code is not a line for her — and splitting there would
+  // leave the fence unbalanced, so the whole block stays inside one fold.
+  const CODE = 'Editing the file.\n\n```js\nvar a = x ** 2; // ' + 'z'.repeat(260) + '\n```\n\nDone editing.';
+  const T = TOP + '\n\n' + CODE + '\n\n' + BOT;
+  const out = foldBody(T, TOP.length, T.length - BOT.length);
+  ok('a ** inside fenced code does not un-hide it', (out.match(/foldtog/g) || []).length === 1);
+  const body = out.slice(out.indexOf('foldbody'));
+  ok('the fence stays whole inside the fold', (body.match(/```/g) || []).length === 2);
+}
+{
+  // Bold everywhere: nothing left worth hiding, so the message shows whole —
+  // no row of empty fold buttons.
+  const B = TOP + '\n\n**' + 'a'.repeat(300) + '**\n\n**' + 'b'.repeat(300) + '**\n\n' + BOT;
+  ok('all-bold middle folds nothing at all',
+    foldBody(B, TOP.length, B.length - BOT.length).indexOf('foldtog') < 0);
+}
+
 // ── 2. the hook's parser, run against a synthetic transcript ───────────────
 // Rebuilt here from the hook's own source so a drift in either is caught: the
 // test extracts the embedded python and drives it with a real JSONL file.

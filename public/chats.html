@@ -1810,6 +1810,19 @@ function md(t){
 // which was the whole point. Do NOT reintroduce a text-based fallback: with no
 // signal this shows the message WHOLE, which is the honest default and exactly
 // what she had before the feature existed.
+//
+// BOLD IS ALWAYS FOR HER, so bold never goes inside the fold (Aug 2026,
+// Sophie: "working details was hiding a message meant for me … anything bold is
+// always for me. can it be an added decision metric"). The tool calls still
+// DECIDE where the work starts and stops — this is a second metric layered on
+// top of that one, and it can only ever un-hide: a bold line inside the middle
+// (a markdown heading renders bold too) keeps its place on screen and the
+// narration either side of it folds around it. That is why a message can carry
+// several fold buttons; the wiring has always allowed for it.
+//
+// Fenced code is skipped when looking for bold: a `**` inside a code block is
+// not a line meant for her, and cutting inside a fence would leave it
+// unbalanced and break the rendering of everything after it.
 function foldBody(text, head, tail){
   var s=String(text||'');
   var h=Number(head), t=Number(tail);
@@ -1820,12 +1833,33 @@ function foldBody(text, head, tail){
   // A short middle isn't worth a button — a fold that hides two lines is the
   // clutter this is meant to remove.
   if(mid.length<200) return md(s);
+  // Cut the middle into runs: a run carrying bold is hers and shows, the rest
+  // is narration and folds. With no bold in there at all this is ONE run and
+  // the result is exactly what it has always been.
+  var segs=[], fence=false;
+  mid.split('\n').forEach(function(l){
+    var mark=/^\s*```/.test(l);
+    if(mark) fence=!fence;
+    var hers=!fence && !mark && (/\*\*/.test(l) || /^\s{0,3}#{1,4}\s+\S/.test(l));
+    if(!segs.length || segs[segs.length-1].hers!==hers) segs.push({hers:hers, lines:[]});
+    segs[segs.length-1].lines.push(l);
+  });
   var top=s.slice(0,h).trim(), bot=s.slice(t).trim(), parts=[];
   if(top) parts.push(md(top));
-  parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
-    + '<div class="foldbody" hidden>'+md(mid)+'</div></div>');
+  segs.forEach(function(g){
+    var body=g.lines.join('\n').trim();
+    if(!body) return;
+    // Hers, or too little narration to be worth a button in front of it.
+    if(g.hers || body.length<200){ parts.push(md(body)); return; }
+    parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
+      + '<div class="foldbody" hidden>'+md(body)+'</div></div>');
+  });
   if(bot) parts.push(md(bot));
-  return parts.join('\n');
+  var out=parts.join('\n');
+  // Every run was hers or too short, so nothing folded — show the message whole
+  // rather than repainting it identically in pieces.
+  if(out.indexOf('foldtog')<0) return md(s);
+  return out;
 }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
 // previews/status lines: strip the marks instead of showing asterisks
@@ -5471,21 +5505,43 @@ function fillWrap(el, text, open){
 // identical three questions. Order matters: a prose wrap-up written before this
 // shape is still a deliberate summary of the whole chat, so it beats the live
 // Update card, which is only ever about the last turn.
+// ONE SENTENCE, CUT HERE TOO (Aug 2026, Sophie: "I thought that each of the
+// questions was supposed to be just one sentence but the middle question is
+// longer" → "ok hard cap it"). The TWIN of `wrapPartOf` in chatfeed.js, which
+// cuts every new wrap-up on the way in — this one cuts on the way OUT, which is
+// what reaches the two cases the server cannot: a wrap-up written before the
+// cap existed, and the live UPDATE CARD, whose own fields are 300 characters
+// with no sentence rule at all and must stay that way on the Update tab.
+// `scripts/test-chats-wrapup.js` runs the two over the same cases so they
+// cannot drift apart.
+var WRAP_PART_MAX=200;
+function onePart(v){
+  var t=String(v||'').replace(/\s+/g,' ').trim();
+  if(!t) return '';
+  var m=/([.!?]["')\]]?)\s+(?=[A-Z“"'(\[])/.exec(t);
+  var one=m ? t.slice(0, m.index+m[1].length) : t;
+  if(one.length<=WRAP_PART_MAX) return one;
+  var cut=one.slice(0,WRAP_PART_MAX), sp=cut.lastIndexOf(' ');
+  return (sp>WRAP_PART_MAX*0.6 ? cut.slice(0,sp) : cut).replace(/[,;:.\-\s]+$/,'')+'…';
+}
 function wrapParts(r){
-  var a=String(r.wrapAsked||'').trim(), d=String(r.wrapDid||'').trim(),
-      n=String(r.wrapNext||'').trim();
+  var a=onePart(r.wrapAsked), d=onePart(r.wrapDid), n=onePart(r.wrapNext);
   if(a||d||n) return { asked:a, did:d, next:n };
   if(String(r.wrapUp||'').trim()) return null;          // an older prose one
-  var u={ asked:String(r.updAsked||'').trim(), did:String(r.updDid||'').trim(),
-          next:String(r.updNext||'').trim() };
+  var u={ asked:onePart(r.updAsked), did:onePart(r.updDid), next:onePart(r.updNext) };
   return (u.asked||u.did||u.next) ? u : null;
 }
-// The one line for the row and the thread — the summary line a chat or the
-// Summarize button wrote, else the first thing the three answers say.
+// The one line for the row and the thread — WHAT SHE ASKED FOR (Aug 2026,
+// Sophie: "4 the default line just use what you asked and then the arrow shows
+// the next two bolded fields"). It used to be `wrapLine` first and, failing
+// that, what the chat DID — which on a chat with no wrap-up meant the line and
+// the "What I did" answer behind the arrow were the identical sentence, read
+// twice. Her question is the one line that can never repeat what is under it.
+// `wrapLine` stays the line for an older record that has no three answers.
 function wrapLineOf(r){
   var p=wrapParts(r);
-  return String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim()
-    || (p ? (p.did||p.asked||p.next) : '');
+  if(p) return p.asked || p.did || p.next;
+  return String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim();
 }
 // Draw the three answers, each under its own bold question.
 function fillWrapParts(el, parts, open){
@@ -5502,7 +5558,11 @@ function fillWrapParts(el, parts, open){
 // or a still-open half? When the line already is the whole thing there is
 // nothing to expand and no expander is drawn.
 function wrapHasMore(r){
-  if(wrapParts(r)) return true;
+  var p=wrapParts(r);
+  // `asked` is the line itself now, so it is not something to open — a chat
+  // whose whole summary is that one answer shows no arrow at all rather than an
+  // arrow onto an empty box.
+  if(p) return !!(p.did || p.next || String(r.wrapLong||'').trim());
   var full=String(r.wrapUp||'').trim();
   // What was still open when it stopped (Aug 2026, her ask) — its own
   // paragraph under the summary, because that is the half she opens this
@@ -5528,7 +5588,12 @@ function wrapBody(r){
   // which is bullets and has never been in that shape.
   function paint(showLong){
     if(showLong) fillWrap(body, long, open);
-    else if(parts) fillWrapParts(body, parts, open);
+    // THE NEXT TWO BOLDED FIELDS, her words — `asked` is already the line above
+    // this box, and drawing it again is the duplication this replaced. Blanked
+    // rather than deleted from the object because `sumRows` skips an empty
+    // answer already, and the archive sheet's read-back still draws all three
+    // (there is no line above it there).
+    else if(parts) fillWrapParts(body, {asked:'', did:parts.did, next:parts.next}, open);
     else fillWrap(body, full, open);
   }
   paint(false);

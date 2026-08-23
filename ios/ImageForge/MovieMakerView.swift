@@ -173,12 +173,12 @@ struct MovieMakerHome: View {
             // Full-screen push (not a popup sheet) — the boards read as a
             // proper native screen; the webview inside is still the live page.
             .navigationDestination(isPresented: $showStoryRoom) {
+                // No .forgeTitle: the PAGE owns the header here too (Aug 2026,
+                // "get rid of the apple native bar"). StoryRoomView's own
+                // .forgeWebToolBar hides the bar while the page is up; pushed
+                // means its chevron dismisses back into Movies rather than
+                // jumping to the home grid.
                 StoryRoomView(pushed: true)
-                    // The single "Story Room" heading lives in the native nav
-                    // bar, in the branded eyebrow style (see forgeTitle).
-                    // paper = the web page's own, so there's no white strip
-                    // between the nav bar and the cream page
-                    .forgeTitle("Story Room", paper: StoryRoomView.paper)
             }
             // Expanded (full-screen) story editor — same $story binding.
             .fullScreenCover(isPresented: $storyExpanded) {

@@ -211,12 +211,40 @@ async function posterFrame(buf, ct) {
   }
 }
 
-// A session id that sorts chronologically and reads as a date.
+// A session id that sorts chronologically and reads as a date — stamped in
+// HER wall clock, not the server's.
+//
+// This was UTC until 2026-08-23, and the server clock is UTC, so every evening
+// dump wore tomorrow's date: a video shared at 5:53 pm Pacific on Aug 22 came
+// back named `2026-08-23-0052`, and a chat looking for "the video from the
+// 22nd" scrolled straight past it. Same bug, same fix as assembly.js's project
+// names — the stamp is the moment SHE dumped it.
+//
+// The share extension mints its own id (ios/DumpShare) and had the identical
+// UTC bug; both halves are Pacific now. This one is the fallback for a POST
+// that names no session.
+const DUMP_TZ = process.env.DUMP_TZ || 'America/Los_Angeles';
 function newSession(at) {
-  const d = new Date(at || Date.now());
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`
-    + `-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
+  const dtf = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DUMP_TZ, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+  const p = Object.fromEntries(dtf.formatToParts(new Date(at || Date.now())).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}-${p.hour}${p.minute}`;
+}
+
+// What a dump is CALLED on screen. Derived from the real epoch ms of its
+// files, never by parsing the session id back into a date — the 31 dumps made
+// before the fix above carry a UTC-stamped id, and re-keying them would mean
+// rewriting `session` on every file doc and every bundle registry entry to
+// change a label. The id stays the identity; this is the wall clock.
+function sessionLabel(ms) {
+  if (!ms) return null;
+  const d = new Date(ms);
+  const day = d.toLocaleDateString('en-US', { timeZone: DUMP_TZ, month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { timeZone: DUMP_TZ, hour: 'numeric', minute: '2-digit' })
+    .toLowerCase().replace(/\s+/g, ' ');
+  return `${day} · ${time}`;
 }
 
 const hashOf = (buf) => crypto.createHash('md5').update(buf).digest('hex');
@@ -436,6 +464,98 @@ router.get('/status', (req, res) => {
   });
 });
 
+// The folders a dump can be sorted into. Deliberately few — a track is a
+// project, not a tag cloud (the /dump page's own comment, and its list).
+//
+// SERVED rather than baked into each client, because there are three readers
+// now: the /dump page, the iOS share sheet, and any chat filing a dump. The
+// page keeps a copy as its offline fallback and a test pins the two equal.
+//
+// These five are the ORIGINAL vocabulary and measured 2026-08-23 not one of
+// them is in use — every folder she actually files into she typed herself,
+// in ALBUMS: "From ChatGPT" 16, "dream upload from ChatGPT" 16, "Crystals"
+// 15, "style references" 13, "story room" 7, "Inspiration" 3. So they are the
+// fallback and the tail of the list, never its head; `orderTracks` below is
+// what puts her own words first.
+//
+// Albums and FILES rank these differently and the difference is not small:
+// by files Crystals leads outright, because her mother's crystal catalogue is
+// hundreds of photos in a handful of runs. The route counts albums — see the
+// note on it.
+const KNOWN_TRACKS = ['crystals', 'story-art', 'hoonies', 'reference', 'product'];
+
+/// The chips, in the order they should be offered: the folders she actually
+/// uses first (most-used first, ties alphabetical), then the untouched known
+/// ones.
+///
+/// Case-insensitive, and the spelling SHE uses wins — `Crystals` has 15 albums
+/// in it and `crystals` has none, so offering both would put a real folder
+/// next to a dead twin one keystroke away from it. That is a worse mistake
+/// than a missing chip: a photo filed into the empty one is a photo she cannot
+/// find in the folder she looks in.
+function orderTracks(counts) {
+  const bySpelling = new Map();          // lowercase → { name, n }
+  for (const [name, n] of counts) {
+    const k = name.toLowerCase();
+    const prev = bySpelling.get(k);
+    if (!prev || n > prev.n) bySpelling.set(k, { name, n });
+  }
+  const used = [...bySpelling.values()]
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
+    .map((e) => e.name);
+  const unused = KNOWN_TRACKS.filter((t) => !bySpelling.has(t.toLowerCase()));
+  return [...used, ...unused];
+}
+
+// The two labels an upload may carry. Pure, so the rule is testable without
+// Firebase: an absent or blank one must come back EMPTY rather than as the
+// string "undefined", which is what a bare String(req.query.x) would give.
+function uploadLabels(query) {
+  const q = query || {};
+  return {
+    bundleName: String(q.bundle == null ? '' : q.bundle).trim().slice(0, 80),
+    track: String(q.track == null ? '' : q.track).trim().slice(0, 60),
+  };
+}
+
+// GET /tracks — the known folders plus any she has actually used, so a folder
+// invented on the page shows up in the share sheet without a new build.
+//
+// Held for a minute: finding the in-use folders means reading the whole
+// collection, and the share sheet asks on every single open. A folder invented
+// on /dump is a rare event and a minute late is nobody's problem.
+let tracksCache = { at: 0, tracks: null };
+const TRACKS_TTL = 60 * 1000;
+
+router.get('/tracks', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    if (tracksCache.tracks && Date.now() - tracksCache.at < TRACKS_TTL) {
+      return res.json({ tracks: tracksCache.tracks, known: KNOWN_TRACKS, cached: true });
+    }
+    // Counted in ALBUMS, not files — the question a chip answers is "which
+    // folder do I file into", and one catalogue run of 300 photos is ONE
+    // decision to file. Counting files ranked Crystals top on the strength of
+    // a single photo shoot; counting albums puts the folders she reaches for
+    // most often first. A loose file counts as its own album, which is what
+    // it is here.
+    const albums = new Map();
+    try {
+      const snap = await db().collection(COL).get();
+      snap.forEach((d) => {
+        const t = d.get('track');
+        if (!t) return;
+        const key = String(t);
+        if (!albums.has(key)) albums.set(key, new Set());
+        albums.get(key).add(d.get('bundle') || 'loose:' + d.id);
+      });
+    } catch { /* no Firestore → the known list still answers */ }
+    const tracks = orderTracks([...albums].map(([t, set]) => [t, set.size]));
+    tracksCache = { at: Date.now(), tracks };
+    return res.json({ tracks, known: KNOWN_TRACKS });
+  } catch (e) { return fail(res, e); }
+});
+
 // GET /sessions — the dumps themselves, newest first.
 router.get('/sessions', async (req, res) => {
   try {
@@ -446,18 +566,25 @@ router.get('/sessions', async (req, res) => {
       const v = d.data();
       const s = v.session || 'unknown';
       if (!by.has(s)) {
-        by.set(s, { session: s, files: 0, bundles: new Set(), unlabelled: 0, at: 0, cover: null });
+        by.set(s, {
+          session: s, files: 0, bundles: new Set(), unlabelled: 0,
+          at: 0, startedAt: 0, label: null, cover: null,
+        });
       }
       const e = by.get(s);
       e.files += 1;
       if (v.bundle) e.bundles.add(v.bundle);
       if (!v.track) e.unlabelled += 1;
       if ((v.createdAt || 0) > e.at) e.at = v.createdAt || 0;
+      // When the dump STARTED — what the label reads, because that is the
+      // moment the session id was minted. `at` (the newest file) still drives
+      // the sort, so a re-dumped album keeps floating to the top.
+      if (v.createdAt && (!e.startedAt || v.createdAt < e.startedAt)) e.startedAt = v.createdAt;
       if (!e.cover && v.media === 'image') e.cover = v.url;
       if (!e.cover && v.posterUrl) e.cover = v.posterUrl;
     });
     const sessions = [...by.values()]
-      .map((e) => ({ ...e, bundles: e.bundles.size }))
+      .map((e) => ({ ...e, bundles: e.bundles.size, label: sessionLabel(e.startedAt || e.at) }))
       .sort((a, b) => b.at - a.at);
     res.json({ count: sessions.length, sessions });
   } catch (e) { fail(res, e); }
@@ -504,16 +631,25 @@ router.get('/bundles', async (req, res) => {
           // orders by (newest first), since seq is arrival order across ALL
           // albums and says nothing about a re-dumped album's freshness.
           newest: 0,
+          // When the FIRST file landed, and the wall-clock label built from
+          // it. The label never parses the session id: dumps made before
+          // 2026-08-23 carry a UTC-stamped one (see newSession).
+          oldest: 0,
+          label: null,
           files: [],
         });
       }
       const at = Number(it.createdAt) || 0;
       if (at > out[index.get(key)].newest) out[index.get(key)].newest = at;
+      if (at && (!out[index.get(key)].oldest || at < out[index.get(key)].oldest)) {
+        out[index.get(key)].oldest = at;
+      }
       out[index.get(key)].files.push({
         id: it.id, url: it.url, media: it.media || 'image',
         posterUrl: it.posterUrl || null, photoIndex: it.photoIndex || 0,
       });
     }
+    for (const b of out) b.label = sessionLabel(b.oldest || b.newest);
     res.json({ count: out.length, files: items.length, bundles: out });
   } catch (e) { fail(res, e); }
 });
@@ -572,9 +708,15 @@ router.post('/upload', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// POST /upload-file?session=&bundle=&filename= — ONE file as the raw request
-// body. This is the path iOS uses: a background URLSession can only upload from
-// a file, and base64 in JSON would inflate a 200MB clip by a third.
+// POST /upload-file?session=&bundle=&track=&filename= — ONE file as the raw
+// request body. This is the path iOS uses: a background URLSession can only
+// upload from a file, and base64 in JSON would inflate a 200MB clip by a third.
+//
+// `bundle` and `track` are the two labels the share sheet can now set AT DUMP
+// TIME (Aug 2026, Sophie: "add an option to add a name or sort it in the share
+// sheet pop-up"). Both stay optional and both are still editable afterwards on
+// /dump — dump-first is the rule, this just saves the trip back when she
+// already knows what the thing is.
 router.post('/upload-file',
   express.raw({ type: () => true, limit: '600mb' }),
   async (req, res) => {
@@ -585,15 +727,20 @@ router.post('/upload-file',
       const bucket = bucketOrNull();
       if (!bucket) return res.status(503).json({ error: 'Firebase Storage not configured' });
 
+      const { bundleName, track } = uploadLabels(req.query);
       const session = String(req.query.session || '').trim() || newSession();
-      const bundleName = String(req.query.bundle || '').trim();
       const filename = String(req.query.filename || '').trim();
       // Trust the declared content type, but fall back to the filename — iOS
       // sends application/octet-stream for some asset exports.
       let ct = req.get('content-type') || '';
       if (!ct || /octet-stream/i.test(ct)) ct = ctForName(filename);
 
-      const item = await storeOne({ bucket, session, buf: req.body, ct, filename, bundleName });
+      const item = await storeOne({
+        bucket, session, buf: req.body, ct, filename, bundleName,
+        // Only ever a folder she picked — an absent one leaves the doc's own
+        // `track: null` alone, so an unsorted dump is unchanged.
+        defaults: track ? { track } : null,
+      });
       // `duplicate` tells the app this photo was already in the album, so a
       // re-dump can report "12 already here" instead of counting them as new.
       res.json({ ok: true, session, duplicate: Boolean(item.duplicate), item });
@@ -765,4 +912,7 @@ router.delete('/items/:id', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-module.exports = { router, COL, slug, bundleNamer, newSession };
+module.exports = {
+  router, COL, slug, bundleNamer,
+  newSession, sessionLabel, uploadLabels, KNOWN_TRACKS, orderTracks,
+};

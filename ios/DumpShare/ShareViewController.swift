@@ -33,10 +33,25 @@ final class ShareViewController: UIViewController {
     private let cancelButton = UIButton(type: .system)
     // Whisper opt-in for recordings — shown only when the share contains audio.
     private let transcribeSwitch = UISwitch()
+    // Name it / sort it at dump time (Aug 2026, Sophie: "add an option to add
+    // a name or sort it in the share sheet pop-up"). Both stay OPTIONAL —
+    // dump-first is still the rule, and everything here is editable on /dump
+    // afterwards. This just saves the trip back when she already knows what
+    // the thing is.
+    private let nameField = UITextField()
+    private let folderRow = ChipFlowView()
+    private var folders: [String] = ShareViewController.bakedFolders
+    private var chosenFolder: String?
+    private var cardCenterY: NSLayoutConstraint?
 
     private var attachments: [NSItemProvider] = []
     private var failed = 0
     private var session = ""
+
+    /// The folders offered before `GET /api/drop/tracks` answers — and if it
+    /// never does. Kept equal to the server's `KNOWN_TRACKS` by
+    /// scripts/test-dump-session-time.js.
+    private static let bakedFolders = ["crystals", "story-art", "hoonies", "reference", "product"]
 
     // House palette, matched to Theme.swift.
     private let ink = UIColor(red: 0.23, green: 0.21, blue: 0.19, alpha: 1)
@@ -53,6 +68,8 @@ final class ShareViewController: UIViewController {
                    || $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
                    || $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
         buildUI()
+        observeKeyboard()
+        loadFolders()
     }
 
     // MARK: - UI
@@ -115,6 +132,42 @@ final class ShareViewController: UIViewController {
             row.alignment = .center
             rows.append(row)
         }
+        // Name it, and sort it. Both optional; a share with only recordings in
+        // it has no album and no folder to set, so the folder row comes off
+        // there rather than sitting there doing nothing.
+        let onlyAudio = !attachments.isEmpty && attachments.allSatisfy {
+            $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+        }
+        if !attachments.isEmpty {
+            // Ships EMPTY, and the placeholder NAMES the field rather than
+            // filling it or instructing — house rule, no pre-written text in
+            // anything she writes in.
+            nameField.placeholder = "Name"
+            nameField.font = .systemFont(ofSize: 15)
+            nameField.textColor = ink
+            nameField.borderStyle = .none
+            nameField.backgroundColor = .white
+            nameField.layer.cornerRadius = 6      // rounded rectangle, never a pill
+            nameField.layer.borderWidth = 1
+            nameField.layer.borderColor = UIColor(red: 0.89, green: 0.87, blue: 0.85, alpha: 1).cgColor
+            nameField.autocapitalizationType = .sentences
+            nameField.returnKeyType = .done
+            nameField.delegate = self
+            nameField.clearButtonMode = .whileEditing
+            // Room inside the box for the text to breathe.
+            let pad = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 1))
+            nameField.leftView = pad
+            nameField.leftViewMode = .always
+            nameField.translatesAutoresizingMaskIntoConstraints = false
+            nameField.heightAnchor.constraint(equalToConstant: 40).isActive = true
+            rows.append(nameField)
+
+            if !onlyAudio {
+                folderRow.onPick = { [weak self] folder in self?.chosenFolder = folder }
+                folderRow.set(folders, selected: nil, ink: ink, dim: dim, accent: accent)
+                rows.append(folderRow)
+            }
+        }
         rows.append(contentsOf: [progress, sendButton, cancelButton])
         let stack = UIStackView(arrangedSubviews: rows)
         stack.axis = .vertical
@@ -123,9 +176,10 @@ final class ShareViewController: UIViewController {
         stack.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(stack)
 
+        cardCenterY = card.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         NSLayoutConstraint.activate([
             card.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            card.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            cardCenterY!,
             card.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             card.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 20),
@@ -136,6 +190,76 @@ final class ShareViewController: UIViewController {
         ])
     }
 
+    // MARK: - Folders and the keyboard
+
+    /// The folders come from the SERVER (`GET /api/drop/tracks`) so a folder
+    /// she invented on /dump shows up here without a new build. The baked list
+    /// is already on screen by then — this only ever adds to it, so a failed
+    /// or slow fetch costs nothing and the sheet is never waiting on a network
+    /// call to be usable.
+    private func loadFolders() {
+        guard let url = URL(string: Self.serverBase() + "/api/drop/tracks") else { return }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 4
+        let token = UserDefaults.standard.string(forKey: "forge.studioToken") ?? ""
+        if !token.isEmpty { req.setValue(token, forHTTPHeaderField: "x-studio-token") }
+        URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+            guard let self,
+                  let data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let list = json["tracks"] as? [String],
+                  !list.isEmpty else { return }
+            DispatchQueue.main.async {
+                self.folders = list
+                self.folderRow.set(list, selected: self.chosenFolder,
+                                   ink: self.ink, dim: self.dim, accent: self.accent)
+            }
+        }.resume()
+    }
+
+    /// The card is centred, so the keyboard would sit over the name box on a
+    /// short phone. Lift it by however much the two actually overlap — never a
+    /// fixed nudge, which over-scrolls on a big screen.
+    private func observeKeyboard() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(keyboardChanged),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(keyboardHidden),
+            name: UIResponder.keyboardWillHideNotification, object: nil)
+        // MUST NOT swallow the touch — the default cancels it, which would
+        // eat every tap on Dump it / Cancel / a folder chip.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+    }
+
+    @objc private func keyboardChanged(_ note: Notification) {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                as? NSValue else { return }
+        let kb = view.convert(frame.cgRectValue, from: nil)
+        // Measure against where the card SITS AT REST, not where it is now —
+        // the keyboard sends this again when the predictive bar appears, and
+        // reading the already-lifted frame would stack a second lift on top.
+        let atRest = card.frame.maxY - (cardCenterY?.constant ?? 0)
+        let overlap = max(0, atRest + 12 - kb.minY)
+        cardCenterY?.constant = -overlap
+        UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
+    }
+
+    @objc private func keyboardHidden() {
+        cardCenterY?.constant = 0
+        UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
+    }
+
+    @objc private func dismissKeyboard() { view.endEditing(true) }
+
+    /// What she typed, trimmed. Empty means she didn't name it — the dump then
+    /// behaves exactly as it always did, one unnamed bundle in the inbox.
+    private var typedName: String {
+        nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     // MARK: - Sending
 
     @objc private func cancel() {
@@ -143,6 +267,7 @@ final class ShareViewController: UIViewController {
     }
 
     @objc private func send() {
+        view.endEditing(true)
         sendButton.isEnabled = false
         sendButton.alpha = 0.45
         cancelButton.isHidden = true
@@ -295,12 +420,23 @@ final class ShareViewController: UIViewController {
     }
 
     /// Images and clips go to the Dump, one date-stamped bundle per share.
+    ///
+    /// A typed name becomes the album (`bundle`), which also means re-sharing
+    /// into the same name CONTINUES that album rather than starting a second
+    /// one — the server looks a bundle up by slug across every dump. A picked
+    /// folder becomes the `track`. Neither is sent when she left it alone.
     private func dumpRequest(for file: URL) -> URLRequest {
         var comps = URLComponents(string: Self.serverBase() + "/api/drop/upload-file")!
-        comps.queryItems = [
+        var items: [URLQueryItem] = [
             .init(name: "session", value: session),
             .init(name: "filename", value: file.lastPathComponent),
         ]
+        let name = typedName
+        if !name.isEmpty { items.append(.init(name: "bundle", value: name)) }
+        if let folder = chosenFolder, !folder.isEmpty {
+            items.append(.init(name: "track", value: folder))
+        }
+        comps.queryItems = items
         return Self.signedRequest(comps.url!, contentType: Self.contentType(for: file))
     }
 
@@ -341,6 +477,11 @@ final class ShareViewController: UIViewController {
         var title = file.deletingPathExtension().lastPathComponent
         if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
         if title.count > 37, title.prefix(37).hasSuffix("-") { title = String(title.dropFirst(37)) }
+        // A name she typed beats the filename — that IS the name for this
+        // thing, whichever shelf it lands on. The archive keys memos by their
+        // recording stamp, not the title, so sharing several recordings under
+        // one name files them all correctly.
+        if !typedName.isEmpty { title = typedName }
 
         let iso = ISO8601DateFormatter().string(from: when)
         var comps = URLComponents(string: Self.serverBase() + "/api/memos/ingest")!
@@ -389,10 +530,134 @@ final class ShareViewController: UIViewController {
         }
     }
 
+    /// The dump's id, stamped in HER wall clock.
+    ///
+    /// This was UTC until Aug 2026, and that is what made an evening dump wear
+    /// tomorrow's date: a clip shared at 5:53 pm Pacific on Aug 22 landed as
+    /// `2026-08-23-0052`, and looking for "the video from the 22nd" found
+    /// nothing. The server's own fallback stamp (dropbox.js `newSession`) had
+    /// the same bug and was fixed in the same change.
     private static func newSessionID() -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd-HHmm"
-        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "America/Los_Angeles") ?? .current
         return f.string(from: Date())
     }
+}
+
+// MARK: - Return closes the keyboard
+
+extension ShareViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+}
+
+/// A row of folder chips that WRAPS.
+///
+/// A horizontal scroll view was the other option and it hides folders off the
+/// right edge — on a sheet whose whole job is "pick one", an option you have
+/// to discover by scrolling may as well not be there. UIStackView cannot wrap,
+/// so this lays the chips out itself and reports the height it needs.
+final class ChipFlowView: UIView {
+    var onPick: ((String?) -> Void)?
+
+    private var chips: [UIButton] = []
+    private var selected: String?
+    private let hGap: CGFloat = 6
+    private let vGap: CGFloat = 6
+
+    func set(_ folders: [String], selected: String?,
+             ink: UIColor, dim: UIColor, accent: UIColor) {
+        self.selected = selected
+        chips.forEach { $0.removeFromSuperview() }
+        chips = folders.map { folder in
+            let b = UIButton(type: .system)
+            b.setTitle(folder, for: .normal)
+            b.titleLabel?.font = Self.chipFont
+            b.layer.cornerRadius = 6          // rounded rectangle, never a pill
+            b.layer.borderWidth = 1
+            b.accessibilityIdentifier = folder
+            b.addTarget(self, action: #selector(tap(_:)), for: .touchUpInside)
+            addSubview(b)
+            return b
+        }
+        self.ink = ink; self.dim = dim; self.accent = accent
+        paint()
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+
+    private var ink: UIColor = .darkText
+    private var dim: UIColor = .gray
+    private var accent: UIColor = .brown
+
+    private func paint() {
+        for b in chips {
+            // Both sides are optional, so a plain `==` would light every chip
+            // the moment nothing is selected (nil == nil).
+            let on = b.accessibilityIdentifier != nil && b.accessibilityIdentifier == selected
+            b.backgroundColor = on ? accent : .white
+            b.setTitleColor(on ? .white : ink, for: .normal)
+            b.layer.borderColor = (on ? accent : dim.withAlphaComponent(0.45)).cgColor
+        }
+    }
+
+    /// Tapping the lit chip again clears it back to unsorted — the same
+    /// gesture the /dump page's track chips use, so the two behave alike.
+    @objc private func tap(_ sender: UIButton) {
+        let folder = sender.accessibilityIdentifier
+        selected = (selected == folder) ? nil : folder
+        paint()
+        onPick?(selected)
+    }
+
+    private var lastPackedHeight: CGFloat = 0
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let h = pack(width: bounds.width, place: true)
+        // The first intrinsic height is measured against a GUESSED width (the
+        // real one isn't known until the stack lays out). Tell the stack once
+        // the true number is in, or a wrapped second row is clipped.
+        if abs(h - lastPackedHeight) > 0.5 {
+            lastPackedHeight = h
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    override var intrinsicContentSize: CGSize {
+        // Before the stack lays out, neither this view nor its superview has a
+        // width yet — fall back to one chip row so the sheet never opens with
+        // the row collapsed to nothing.
+        let w = bounds.width > 0 ? bounds.width : (superview?.bounds.width ?? 0)
+        let h = w > 0 ? pack(width: w, place: false) : Self.chipHeight
+        return CGSize(width: UIView.noIntrinsicMetric, height: h)
+    }
+
+    /// One pass: walk the chips left to right, wrapping when the next one
+    /// would overflow. Returns the total height, and optionally places them.
+    @discardableResult
+    private func pack(width: CGFloat, place: Bool) -> CGFloat {
+        guard !chips.isEmpty, width > 0 else { return 0 }
+        var x: CGFloat = 0, y: CGFloat = 0
+        for b in chips {
+            // Measured, not asked of the button: `contentEdgeInsets` is
+            // deprecated and `UIButton.Configuration` paints its own
+            // background, which would fight the lit/unlit colours above.
+            let text = (b.title(for: .normal) ?? "") as NSString
+            let textW = text.size(withAttributes: [.font: Self.chipFont]).width
+            let w = min(ceil(textW) + Self.chipPadX * 2, width)
+            if x > 0, x + w > width { x = 0; y += Self.chipHeight + vGap }
+            if place { b.frame = CGRect(x: x, y: y, width: w, height: Self.chipHeight) }
+            x += w + hGap
+        }
+        return y + Self.chipHeight
+    }
+
+    private static let chipFont = UIFont.systemFont(ofSize: 13)
+    private static let chipHeight: CGFloat = 30
+    private static let chipPadX: CGFloat = 11
 }

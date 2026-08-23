@@ -84,6 +84,13 @@ for event in ('Stop', 'UserPromptSubmit', 'PostToolUse'):
     arr = s.setdefault('hooks', {}).setdefault(event, [])
     if not any('post-to-feed' in json.dumps(x) for x in arr):
         arr.append(entry)
+# The /concise output style — Sophie's ask (Aug 2026): every chat leads with
+# the result and keeps replies short. setdefault, so an explicit choice already
+# in the file is never overwritten. Read at session START only, so it reaches
+# NEW sessions; both repos also commit the same key in their own
+# .claude/settings.json for sessions that start inside a repo, where this file
+# is not the project settings file.
+s.setdefault('outputStyle', 'Concise')
 json.dump(s, open(p, 'w'), indent=2)
 print('chats auto-filer registered (Stop + UserPromptSubmit + PostToolUse)')
 PY_SETTINGS

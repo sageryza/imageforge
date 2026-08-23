@@ -225,10 +225,15 @@ final class DumpUploader: NSObject, ObservableObject {
         }
     }
 
+    /// The dump's id, stamped in HER wall clock — see the same function in
+    /// DumpShare/ShareViewController.swift and `newSession` in dropbox.js.
+    /// All three were UTC until Aug 2026, which made an evening dump wear
+    /// tomorrow's date (a 5:53 pm Pacific clip landed as `2026-08-23-0052`).
     static func newSessionID() -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd-HHmm"
-        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "America/Los_Angeles") ?? .current
         return f.string(from: Date())
     }
 

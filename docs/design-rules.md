@@ -30,11 +30,26 @@ The house rules that only bite when you are actually building a page, an iOS scr
     `/chats` section — `padding-right:56px`): with no native bar the page's
     pill floats high over its own header, so no control may live in that
     corner.
-  - **A page with inner levels draws its own back affordance** (Story Room's
-    in-page back row is the model). Where a native chevron exists on current
-    builds it asks the page first (`window.__navBack` steps one in-page
-    level, then the web view's own history via `canGoBack`, then leaves the
-    tool) — keep that contract working on pages that have it.
+  - **A page with inner levels answers `window.__navBack`** — one in-page
+    level per tap (a sheet shut, a story back to its shelf), then the web
+    view's own history via `canGoBack`, then leave the tool. The chevron
+    that asks is `pagehead.js`'s now rather than Apple's, but the contract
+    is unchanged.
+  - **A BACK CHEVRON, NEVER AN ✕ — and it is the same row every time (Aug
+    2026, Sophie on the Story Room's shelf: "there's like an X to get out of
+    it and a weird icon. I just want it to be a back button and no X … the
+    header should be like normal it should say the shelf just like all the
+    other pages have a header at the top. Make sure the pattern is
+    consistent everywhere").** A page's own full-screen sheets are LEVELS,
+    not dialogs, so each one wears the header the page wears: the back
+    control in a 34px rounded box at the left, **the name centred**, actions
+    at the right. Centre the name ABSOLUTELY (`left:88px;right:88px`,
+    `translateY(-50%)`), never with `flex:1` — the two ends are different
+    widths because the row reserves the pill's 56px, so a flex-centred name
+    reads visibly off-centre. That is `pagehead.js`'s own `.fh` rule, and a
+    page drawing its own sheets should copy it so the sheet and the row
+    behind it are the same shape. `public/scratchpad.html` (the Story Room)
+    is the worked example — one CSS rule over `header,.sheethead`.
   - **PURE-NATIVE tools (no web page — Test Station, Dump, Lessons, My
     Creations, etc.) still use `.forgeToolBar("<Tool title>")`**
     (ForgeNavTitle.swift): eyebrow title in the nav bar, back chevron
@@ -42,23 +57,36 @@ The house rules that only bite when you are actually building a page, an iOS scr
     injects `\.goBack`), per-screen actions top-right, NO in-content
     `StarTitle` rows (the Home grid keeps the serif masthead). There's no
     page to own a header there, so the native pattern stays right.
-  - Web tools that shipped WITH a native bar (Playground, Episode Editor,
-    Story Room's title/chevron) keep working as-is; move each to a
-    page-owned header at its next real redesign, not as churn.
-  - **A NEW web tool ships with the NATIVE bar + chevron — the Episode
-    Editor wrapper is the reference (Aug 2026, earned on the Cutting Room
-    v1).** The page-owns-header rule above describes where headers are
-    HEADING, not what a new tool should ship as today: the Cutting Room v1
-    followed it literally (bare WKWebView host, page header only) and Sophie
-    flagged the mismatch the first time she opened it — "there's no back
-    arrow to go back to the home screen and it's a different autoscroll
-    pill." A new tool must match the tools BESIDE it: copy
-    `EpisodeEditorView.swift` (forgeToolBar + chevron asking
-    `window.__navBack` first, `__nativeNavBar` injected so the page hides
-    its own back button via `body.native`, audio paused on
-    `.forgeScreenChanged`). Only a page that replaces the WHOLE chrome with
-    a rich header of its own (Chats, Writing Room) earns the bare host — an
-    eyebrow-and-title header does not.
+  - **APPLE'S BAR IS GONE FROM EVERY WEB-WRAPPED TOOL, NEW ONES INCLUDED
+    (Aug 2026 v3, Sophie: "yes, definitely pick B … get rid of the apple
+    native bar").** This bullet and the one under it used to say the
+    opposite — a new tool ships with the native bar, and the tools that
+    already had one keep it "until their next real redesign". That is
+    history now, and **the stale wording is what left the Story Room
+    behind**: it was still carrying a `.toolbar` chevron a week after every
+    sibling had moved (Sophie, Aug 2026: "I made the impression that we had
+    gotten rid of the Apple native header, but I think story room still has
+    it cause there's a back Chevron"). Every web wrapper now uses
+    **`.forgeWebToolBar(title, tint:, paper:, failed: loadFailed, back:
+    navBack)`** — no bar while the page is up, the bar back for the failure
+    screen, which has no page to draw one and would otherwise strand her on
+    "Couldn't open …". `PlaygroundView.swift` is the reference wrapper.
+    - Swift's one remaining job is LEAVING: `ForgePageHeader.install(into:
+      onLeave:)` in `makeUIView` (BEFORE the web view is created — a user
+      script added after misses the current load), and the coordinator holds
+      the returned `ForgeLeaveHandler`, because `addScriptMessageHandler`
+      does not retain.
+    - `public/pagehead.js` draws the chevron into the page's own header row
+      and walks `__navBack` → web history → `__forgeLeave`. It is injected on
+      every gated page by `serveGated`, and self-gates on the bridge, so the
+      web and the older build see no change at all.
+    - The reason the old rule existed is still real and still binding: a new
+      tool must MATCH the tools beside it. That now means no bar, not a bar.
+      The Cutting Room v1 was flagged for shipping a bare host while its
+      neighbours had bars; today the mismatch runs the other way.
+    - Test: `node scripts/test-pagehead.js` (both builds, headless), and
+      `node scripts/test-storyroom-header.js` for the three-state check on a
+      page that draws its own sheets too.
   - **An icon-first tool carries a "?" circle (Aug 2026, Sophie).** When a
     tool's controls are icons with no words (her preference), add a small
     gold "?" circle that toggles a card explaining what each icon does —

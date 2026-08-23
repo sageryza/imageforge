@@ -71,7 +71,12 @@
       // dream mystery — her "1000 Dreams Per Night" diary-comic page. Old
       // name movie-style.jpg (174) still outnumbers the current one (84).
       refs: ['dream-mystery.jpg', 'movie-style.jpg'],
-      prefixes: ['copy its drawing style, linework, hand-drawn texture'],
+      // Verbatim from PL_GPT_STYLES.dreamy.prefix. Her 2026-08-22 rewrite
+      // shortened it to "copy its drawing style" and dropped the linework /
+      // hand-drawn texture / muted palette list this used to quote, so the
+      // fragment stopped matching — kept short on purpose now, since it is the
+      // half of the sentence her wording has held through every revision.
+      prefixes: ['copy its drawing style but do NOT copy its content'],
     },
     {
       key: 'pastel', label: 'Pastel',

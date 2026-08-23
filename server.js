@@ -2377,6 +2377,7 @@ app.get('/api/gallery/assets/recent', async (req, res) => {
 // BE the heart there, in both directions, with no mirroring machinery.
 // Ordering/union rules live in meta-assets.js (pure, tested).
 const metaAssets = require('./meta-assets');
+const searchGrammar = require('./search-grammar');
 // The full list is rebuilt at most once a minute — one collection read
 // (~5k docs) serving every page of the walk; a fresh filing shows within 60s
 // (the page is a review surface, not a live feed).
@@ -2581,6 +2582,68 @@ function assetVoteRef(chat, url) {
     .update(String(chat) + '|' + String(url)).digest('hex');
   return admin.firestore().collection('forge-asset-votes').doc(id);
 }
+
+// ── Hearts sync BOTH WAYS between the Playground and the Assets tabs (Aug
+// 2026, Sophie: "i don't know if the hearts in playground are syncing to the
+// hearts in meta-assets" — they were not: a Playground ♥ lived only on the
+// run doc and an Assets ♥ only in forge-asset-votes; measured that day, 21 of
+// the 22 hearted Playground pictures in the newest 100 runs sat unhearted in
+// Meta Assets). Each vote still writes where it always did; its route now
+// ALSO carries the vote — and a CLEAR — across, so un-hearting on one surface
+// cannot leave a stuck heart on the other. Best-effort by design: a sync
+// failure must never fail the vote itself. Matching is by exact url (plus the
+// canonical urlKey); an md5-only twin (a re-encoded copy under a different
+// name) is not chased — the Assets read's union already finds a vote left on
+// either path of one picture.
+async function syncVoteToAssets(url, vote) {
+  if (!url || !admin.apps.length) return;
+  try {
+    const col = admin.firestore().collection('forge-chat-assets');
+    // Two doors to one record: its literal url, and its canonical urlKey —
+    // the voted url is usually already canonical, so the urlKey query is the
+    // one that finds a record filed with a query-string on its url.
+    const queries = [col.where('url', '==', url)];
+    const key = canonicalAssetUrl(url);
+    if (key) queries.push(col.where('urlKey', '==', key));
+    const chats = new Set();
+    // Every Playground picture rides into Meta Assets through the My
+    // Creations join (the iOS gallery), where its row votes as chat
+    // 'my-creations' — no forge-chat-assets record exists for it unless a
+    // chat also delivered it. Measured 2026-08-22: 21 of 22 hearted
+    // Playground pictures had ONLY that row, so a record-only sync wrote
+    // nothing at all.
+    if (/\/promptlab\//.test(String(url))) chats.add('my-creations');
+    for (const q of queries) {
+      try {
+        (await q.limit(20).get()).docs.forEach((d) => {
+          const chat = (d.data() || {}).chat;
+          if (chat) chats.add(chat);
+        });
+      } catch (e) { /* a lookup failing must never block the vote */ }
+    }
+    await Promise.all([...chats].map((chat) => assetVoteRef(chat, url).set({
+      chat: String(chat).slice(0, 60),
+      url: String(url).slice(0, 500),
+      vote: (vote === 'like' || vote === 'dislike') ? vote : admin.firestore.FieldValue.delete(),
+      updated: new Date().toISOString(),
+    }, { merge: true }).catch(() => {})));
+  } catch (e) { /* best-effort */ }
+}
+async function syncVoteToPlayground(url, vote) {
+  if (!url || !/\/promptlab\//.test(String(url)) || !admin.apps.length) return;
+  try {
+    const snap = await admin.firestore().collection('forge-promptlab')
+      .where('images', 'array-contains', url).limit(1).get();
+    if (snap.empty) return;
+    const doc = snap.docs[0];
+    const i = (doc.data().images || []).indexOf(url);
+    if (i < 0) return;
+    await doc.ref.update({
+      [`votes.${i}`]: (vote === 'like' || vote === 'dislike')
+        ? vote : admin.firestore.FieldValue.delete(),
+    });
+  } catch (e) { /* best-effort */ }
+}
 // Legacy docs hold only a single `note` string (everything written before the
 // thread existed). Those are PRESENTED as a one-message thread from Sophie, so
 // no migration is needed and no old note is lost.
@@ -2680,6 +2743,9 @@ app.post('/api/gallery/assets/vote', express.json(), async (req, res) => {
       await appendAssetMessage(ref, chat, url, 'sophie',
         String(note).trim());
     }
+    // A ♥/✕ (or a clear) on a Playground-made picture also lands on its run
+    // doc, so the Playground's own feed agrees — see syncVoteToPlayground.
+    if (vote !== undefined) await syncVoteToPlayground(url, vote);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -4885,7 +4951,7 @@ async function loadHouseRef(storagePath) {
 // Multi-reference gpt-image-2 edit (accepts several image[] style anchors).
 // `timeout` is per attempt — a medium 1024x1536 render can run well past the
 // 90s that suits the low-quality square calls, so callers can raise it.
-async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000 } = {}, retries = 2) {
+async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size = '1024x1024', timeout = 90000, moderation = 'low' } = {}, retries = 2) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -4895,6 +4961,17 @@ async function openaiImageEditRefs(prompt, refBuffers, { quality = 'low', size =
       form.append('size', size);
       form.append('quality', quality);
       form.append('output_format', 'webp');
+      // MODERATION: LOW BY DEFAULT (Aug 2026, Sophie's call). gpt-image-2's
+      // filter is stochastic on identical input — a Dreamy prompt of hers drew
+      // fine at two sizes and was then refused twice in a row minutes later
+      // with safety_violations=[violence] (raw meat and a bare chest in a
+      // cartoon). A refusal costs a run and reads as a bug, and the pictures
+      // this app makes are her own illustrations. `low` is OpenAI's documented
+      // less-restrictive setting and the ONLY alternative — there is no
+      // "none", and CSAM and a handful of other categories are refused at
+      // every setting, so this cannot be turned off further and should not be
+      // described to her as if it could.
+      if (moderation) form.append('moderation', moderation);
       // NO output_compression. This is a LOSSY setting applied by OpenAI
       // BEFORE the bytes come back, so whatever it throws away is gone for
       // good — it cannot be undone later, only re-drawn (and a re-draw is a
@@ -5118,6 +5195,50 @@ const PL_GPT = {
   // prints that on the toggle so she is never guessing.
   sizes: { portrait: { size: '1024x1536', aspectRatio: '2:3' },
            square:   { size: '1024x1024', aspectRatio: '1:1' } },
+  // THE RESOLUTION TIERS (Aug 2026, Sophie: "adding the size as a toggle in
+  // the playground for things I want to print versus things I'm using for like
+  // videos"). Every surface in this repo had been pinned to 1024x1536 or
+  // 1024x1024 — the only three sizes the OLD gpt-image-1 took. gpt-image-2
+  // accepts ANY resolution inside its constraints (long edge <= 3840, both
+  // edges a multiple of 16, ratio <= 3:1, 655,360 <= pixels <= 8,294,400), so
+  // the model id was swapped and the size lines were simply never revisited.
+  //
+  // 2K and 4K here are the biggest EXACT 2:3 and 1:1 canvases at those pixel
+  // budgets, not OpenAI's landscape presets: an exact 2:3 needs both edges a
+  // multiple of 16, which forces w=2m/h=3m with m itself a multiple of 16, and
+  // 2336x3504 is the largest such canvas under the 8,294,400 cap (2352x3528
+  // would be 3,456 pixels over it). 1568x2352 lands on 3,687,936 — 2K to
+  // within 1,536 pixels. The square tiers are exact: 1920² IS 3,686,400 and
+  // 2880² IS 8,294,400.
+  //
+  // EVERY `cents` FIGURE IS MEASURED, NOT DERIVED (2026-08-22, via
+  // scripts/measure-image-cost.js reading the API's own `usage`). The 1K rows
+  // are OpenAI's published table; the rest are unpublished — the guide stops
+  // at three sizes and says "additional sizes available". They CANNOT be
+  // reasoned out from area, because gpt-image-2 does not price by area: 1920²
+  // and 1568x2352 hold the same 3.69 megapixels and the square costs 50% more
+  // at every quality. Re-measure rather than re-derive if the model changes.
+  // (One relationship does hold across every size tested: high is exactly 4x
+  // medium. Low is medium/8.71 portrait, medium/9 square.)
+  res: {
+    portrait: {
+      aspectRatio: '2:3',
+      tiers: {
+        '1k': { size: '1024x1536', label: '1K', cents: { low: 0.5, medium: 4.1, high: 16.5 } },
+        '2k': { size: '1568x2352', label: '2K', cents: { low: 0.75, medium: 6.55, high: 26.21 } },
+        '4k': { size: '2336x3504', label: '4K', cents: { low: 1.35, medium: 11.74, high: 46.94 } },
+      },
+    },
+    square: {
+      aspectRatio: '1:1',
+      tiers: {
+        '1k': { size: '1024x1024', label: '1K', cents: { low: 0.6, medium: 5.3, high: 21.1 } },
+        '2k': { size: '1920x1920', label: '2K', cents: { low: 1.09, medium: 9.83, high: 39.31 } },
+        '4k': { size: '2880x2880', label: '4K', cents: { low: 1.98, medium: 17.79, high: 71.16 } },
+      },
+    },
+  },
+  resDefault: '1k',
   // Generous — a full style prompt with her own additions. Over-length is cut
   // rather than refused here because this is a live editor, not a filing.
   promptMax: 4000,
@@ -5589,13 +5710,19 @@ app.post('/api/promptlab', async (req, res) => {
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
       // Portrait unless she asked for the square; an unknown value is portrait,
-      // never an invented canvas.
-      const canvas = PL_GPT.sizes[String(req.body.canvas || '')] || PL_GPT.sizes.portrait;
+      // never an invented canvas. The resolution tier is the same rule, and it
+      // defaults to 1k — a page cached on her phone from before the toggle
+      // shipped sends no `res` at all, and must keep drawing exactly what it
+      // always drew rather than silently jumping to a dearer canvas.
+      const shapeId = PL_GPT.res[String(req.body.canvas || '')] ? String(req.body.canvas) : 'portrait';
+      const shape = PL_GPT.res[shapeId];
+      const resId = shape.tiers[String(req.body.res || '')] ? String(req.body.res) : PL_GPT.resDefault;
+      const canvas = { size: shape.tiers[resId].size, aspectRatio: shape.aspectRatio };
       const docRef = admin.firestore().collection(PROMPTLAB).doc();
       await docRef.set({
         id: docRef.id, status: 'running', engine: 'gptimage', prompt: typed, fullPrompt,
         model: PL_GPT.id, gptStyle: styleId, quality, size: canvas.size,
-        aspectRatio: canvas.aspectRatio, promptEdited: edited, noText,
+        aspectRatio: canvas.aspectRatio, res: resId, promptEdited: edited, noText,
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
@@ -5656,7 +5783,10 @@ app.get('/api/promptlab/styles', (req, res) => {
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
-  res.json({ styles: out, sizes: PL_GPT.sizes, max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
+  // `sizes` is the old flat shape and stays exactly as it was — a page cached
+  // on her phone reads it, and this endpoint is the only thing that serves it.
+  res.json({ styles: out, sizes: PL_GPT.sizes, res: PL_GPT.res, resDefault: PL_GPT.resDefault,
+    max: PL_GPT.promptMax, photoLine: PL_GPT.photoLine });
 });
 
 app.get('/api/promptlab/:id', async (req, res) => {
@@ -5721,6 +5851,15 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
     const vote = ['like', 'dislike'].includes(req.body.vote) ? req.body.vote : null;
     const ref = admin.firestore().collection(PROMPTLAB).doc(req.params.id);
     await ref.update({ [`votes.${i}`]: vote === null ? admin.firestore.FieldValue.delete() : vote });
+    // Carry the ♥/✕ (or the clear) onto any Assets-tab record holding this
+    // picture, so the two surfaces agree — see syncVoteToAssets. Awaited so a
+    // reload straight after the tap already reads the synced state; a sync
+    // failure never fails the vote (the helper swallows its own errors).
+    try {
+      const run = (await ref.get()).data() || {};
+      const url = (run.images || [])[i];
+      if (url) await syncVoteToAssets(url, vote);
+    } catch (e) { /* best-effort */ }
     res.json({ ok: true, image: i, vote });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5735,11 +5874,85 @@ app.post('/api/promptlab/:id/vote', async (req, res) => {
 // Until Aug 2026 this route had no cursor at all and the page only ever asked
 // for the newest 40 — so every run older than that was unreachable, which read
 // as her older pictures having disappeared (213 runs existed, 40 were visible).
+// ─── The Playground's search ────────────────────────────────────────────
+// A SEARCH READS THE WHOLE FEED, not the page she is looking at — the Assets
+// tab's lesson (Aug 2026: she searched "yarn" and got nothing, because that
+// box only filtered the tiles already loaded). The Playground pages 40 runs at
+// a time out of a few hundred, so a client-only filter would answer "nothing
+// matches" for almost everything she has ever drawn.
+//
+// Firestore has no text search, so this scans — which is affordable here and
+// nowhere near it on the big collections: the whole run history is a few
+// hundred docs of ~1KB. The scan is capped and held for a minute, so typing
+// costs one read of it however many keystrokes land.
+const PL_SEARCH_SCAN = 1500;    // newest runs a search ever reads
+const PL_SEARCH_MAX = 300;      // matches handed back
+let plScan = { at: 0, runs: null };
+async function promptlabScan() {
+  if (plScan.runs && Date.now() - plScan.at < 60000) return plScan.runs;
+  const snap = await admin.firestore().collection(PROMPTLAB)
+    .orderBy('createdAt', 'desc').limit(PL_SEARCH_SCAN).get();
+  const runs = snap.docs.map((d) => {
+    const v = d.data();
+    return { ...v, createdAt: v.createdAt?.toMillis?.() || null };
+  });
+  plScan = { at: Date.now(), runs };
+  return runs;
+}
+// Everything a run's card says: her words, its style (by the label she sees
+// AND the key the doc stores), and the tags beside them.
+function promptlabHay(r) {
+  const st = PL_GPT_STYLES[r.gptStyle || ''] || null;
+  // The canvas is stored as a ratio and shown to her as one, but the button
+  // she picked it with says Portrait or Square — so both words find it.
+  const shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+  return [r.prompt, st && st.label, r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
+    r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
+    r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+}
+// The house grammar (search-grammar.js), matched the FEED's way — every term
+// anchored at a word start, a quoted phrase kept adjacent. Same regexes the
+// page's own qparse builds, so a search here and the client's instant filter
+// over the loaded runs can never disagree. (Deliberately a local copy: the
+// grammar module parses only, because its callers disagree about what a match
+// is — meta-assets.js carries the identical one for the same reason.)
+function plCompileQuery(q) {
+  return searchGrammar.parseQuery(q).map((g) => ({
+    neg: g.neg,
+    terms: g.terms.map((t) => {
+      const v = t.value;
+      try {
+        return new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '')
+          + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
+      } catch (e) { return null; }
+    }).filter(Boolean),
+  })).filter((g) => g.terms.length);
+}
+function plSearchRuns(runs, q) {
+  const groups = plCompileQuery(q);
+  if (!groups.length) return runs;
+  return runs.filter((r) => {
+    const hay = promptlabHay(r);
+    return groups.every((g) => (g.terms.some((rx) => rx.test(hay)) ? !g.neg : g.neg));
+  });
+}
+
 app.get('/api/promptlab', async (req, res) => {
   try {
     if (!admin.apps.length) return res.status(500).json({ error: 'Firebase not configured' });
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const before = Number(req.query.before) || 0;
+    // A search answers over the whole history at once — there is no `before`
+    // walk behind it, so the page hides "Older" while one is running.
+    const search = String(req.query.q || '').trim();
+    if (search) {
+      const hits = plSearchRuns(await promptlabScan(), search);
+      return res.json({
+        runs: hits.slice(0, Math.min(Math.max(Number(req.query.limit) || PL_SEARCH_MAX, 1), PL_SEARCH_MAX)),
+        more: false,
+        matched: hits.length,
+      });
+    }
     let q = admin.firestore().collection(PROMPTLAB).orderBy('createdAt', 'desc');
     // Inequality on the same field the query orders by — no composite index.
     if (before) q = q.where('createdAt', '<', admin.firestore.Timestamp.fromMillis(before));
@@ -5926,6 +6139,8 @@ async function openaiImageEdit(prompt, refBuffer, retries = 2) {
       form.append('size', '1024x1024');
       form.append('quality', 'low');
       form.append('output_format', 'webp');
+      // Moderation low, for the reason spelled out on openaiImageEditRefs.
+      form.append('moderation', 'low');
       // NO output_compression. This is a LOSSY setting applied by OpenAI
       // BEFORE the bytes come back, so whatever it throws away is gone for
       // good — it cannot be undone later, only re-drawn (and a re-draw is a
