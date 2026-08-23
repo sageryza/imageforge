@@ -6028,6 +6028,15 @@ function openPinned(pin, chatName){
 // it already stores (questions.js), so the list is complete over the chat's
 // whole history and no chat has to remember anything. Fetched on the first tap,
 // never on load — an unopened list costs nothing.
+//
+// SINCE 2026-08-23 A MESSAGE ONLY COUNTS IF SHE SAID THE WORD "QUESTION" in it
+// ("i have a question", "my question is:", "quick question") — her ask, after
+// the detector alone filled the list with dictated asides. Because the list is
+// derived rather than filed, that reached every chat's whole past on the next
+// read, with nothing migrated: an existing list simply got shorter and truer.
+// It is also why this panel can legitimately come up EMPTY on a chat full of
+// questions she never marked — "No answered questions in this chat yet." is the
+// honest answer there, not a bug.
 function renderQuestion(q){
   var row=document.createElement('div'); row.className='msg qrow';
   var short=q.question.slice(0,140)+(q.question.length>140?'\u2026':'');
