@@ -132,6 +132,39 @@ eq('no tldr and no block falls back to the first paragraph',
   Q.answerFor('It cost about four cents.\n\nMore detail after.', '', 'How much did it cost'),
   'It cost about four cents.');
 
+console.log('\na paragraph ending in a colon is an introduction, not an answer');
+// Both of these were live rows in her Questions tab, 2026-08-23, on
+// playground-image-resolution — a fragment that answered nothing, because the
+// answer was in the paragraph the colon was introducing.
+const leadIn = "Sorry — here's the straight answer. Yes, there are more differences we never "
+  + 'considered. The bigger one I skipped is the difference between **ChatGPT the app** and what we call:'
+  + '\n\n**The app thinks before it draws.** ChatGPT runs a reasoning pass first.';
+ok('it reads on past the colon',
+   /reasoning pass/.test(Q.answerFor(leadIn, '', "u didn't answer my question")),
+   Q.answerFor(leadIn, '', 'x'));
+
+// Two colon-ended progress lines, then the real reply.
+const narrated = 'Now the size tiers on the server:\n\nNow the docs, then commit and merge:'
+  + '\n\n**Spent $2.35 this turn** — measuring the real price of every size.';
+ok('and past two of them', /Spent \$2\.35/.test(Q.answerFor(narrated, '', 'how soft would it be')),
+   Q.answerFor(narrated, '', 'x'));
+
+// It only ever reads FURTHER — a real lead-in keeps its own words.
+ok('the lead-in itself is kept, never dropped',
+   Q.answerFor('Two things:\n\nThe first one. The second one.', '', 'what changed')
+     .indexOf('Two things:') === 0);
+
+// THREE is the stop, so a reply that is nothing but headings cannot swallow
+// itself whole.
+eq('it stops after three paragraphs',
+  Q.answerFor('One:\n\nTwo:\n\nThree:\n\nFour:\n\nFive:', '', 'what changed'),
+  'One:\n\nTwo:\n\nThree:');
+
+// A paragraph that ends normally still stops at one, exactly as before.
+eq('a normal opening is still one paragraph',
+  Q.answerFor('It cost four cents.\n\nAnd here is why.', '', 'how much'),
+  'It cost four cents.');
+
 // Straight off her real threads, 2026-08-14: the stored TLDR had lost the words
 // its opening ** belonged to, so five answers in one chat began with literal
 // asterisks.

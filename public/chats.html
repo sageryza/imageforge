@@ -810,6 +810,18 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 1em; font-size:15px; line-height:1.4;}
 .noterow .notewrap{flex:1 1 auto; min-width:0;}
 .noterow .qbtn{flex:none; margin-top:1px;}
+/* THE QUESTIONS BUTTON RAN UNDER THE AUTOSCROLL PILL (2026-08-23, from her
+   screenshot: the door to her Questions tab read "QUES" with the rest covered).
+   This row is the thread's LAST header line and it does not scroll, so on a
+   390pt phone its right end sits permanently inside the pill's fixed corner —
+   and the button is the rightmost thing on it. The home screen solved the same
+   collision with `#pillnotch`, but that float hardcodes the band as `192-top`,
+   which is the HOME header's geometry; in a thread the header is a different
+   height and her safe-area inset pushes the pill down (measured off the
+   screenshot: the pill ran y 63→222pt, not 14→192). So this reserve is
+   MEASURED against the pill's real rect instead of assumed — `fitNoteRow()`
+   sets the value and clears it to 0 when there is no pill on screen. */
+.noterow{padding-right:var(--pillgap, 0px);}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
@@ -6280,6 +6292,27 @@ function openChat(name, keepScroll, focusId, noFetch){
   // opened, and her answer only appears after a reload.
   threadNote=paintNote;
   chatPanel.appendChild(nrow);
+  // Reserve exactly as much of this row as the pill actually covers — see the
+  // `.noterow` CSS note. Measured, never assumed: the pill is conditional (it
+  // hides in select mode and when there is nothing to scroll) and its top
+  // rides `env(safe-area-inset-top)`, so both the presence and the position
+  // have to be read rather than hardcoded.
+  function fitNoteRow(){
+    var pill=document.querySelector('body > .float');
+    if(!pill || !pill.getClientRects().length){ nrow.style.setProperty('--pillgap','0px'); return; }
+    nrow.style.setProperty('--pillgap','0px');          // measure the row unreserved
+    var r=nrow.getBoundingClientRect(), p=pill.getBoundingClientRect();
+    // Vertically clear of the pill → nothing to reserve.
+    if(r.bottom<=p.top || r.top>=p.bottom) return;
+    var gap=Math.max(0, Math.ceil(r.right-p.left)+8);   // +8 so the button never touches it
+    nrow.style.setProperty('--pillgap', gap+'px');
+  }
+  fitNoteRow();
+  // The pill appears LATE — it is injected and its own ResizeObserver only
+  // shows it once the thread has content to scroll — so one measurement at
+  // paint time would run against a pill that is not there yet.
+  setTimeout(fitNoteRow, 0); setTimeout(fitNoteRow, 400);
+  window.addEventListener('resize', fitNoteRow);
   // ---- THE WRAP-UP, UNDER HER NOTE (Aug 2026, Sophie: "i want the archive
   // summary to show below my note, as u said, including the down arrow to make
   // it longer") ------------------------------------------------------------
