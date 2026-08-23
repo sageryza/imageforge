@@ -5349,6 +5349,10 @@ const PL_GPT_STYLES = {
     // her first paragraph, the suffix her second, verbatim. The prefix lost the
     // "linework, hand-drawn texture, and muted palette EXACTLY" list — she
     // shortened it to "copy its drawing style" — so do not put that back.
+    // The Story Room pad's DREAMY toggle draws this same recipe —
+    // scratchpad.js's DREAMY.prefix/.suffix are COPIES of these two strings
+    // (test-scratchpad-style.js pins them byte-for-byte). Reword here → move
+    // that copy in the same commit.
     prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
       'but do NOT copy its content, subjects, or composition.',
     // THE TAIL IS HERS, dictated verbatim 2026-08-22. Two clauses moved from

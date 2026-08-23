@@ -47,6 +47,14 @@
 //   POST /clip           → { clip:{id,url,poster,seconds,title}, at? | id? }
 //                          — a FILM CLIP as a beat: inserted at `at`, or
 //                          dropped into the existing (blank) beat `id`
+//   POST /style          → { style:'watercolor'|'dreamy' } — which art set
+//                          the story shows (the toggle at the top; the beats
+//                          and their words are shared, only the art differs —
+//                          see the STYLE TOGGLE block below)
+//   POST /upload         → { item:{url, kind:'image'|'clip', poster?, title?} }
+//                          — file a photo/movie she added from her phone onto
+//                          the story's add sheet (bytes go through the Dump's
+//                          /api/drop/upload-file first; this stores the url)
 //   POST /episode        → { episodeId, remove? } — link/unlink an Episode
 //                          Editor episode to this story; GET / returns the
 //                          linked episodes' newest renders as `audios`, and
@@ -121,6 +129,47 @@ function artRef(file) {
   if (!refCache[file]) refCache[file] = fs.readFileSync(path.join(__dirname, 'refs', file));
   return refCache[file];
 }
+
+// ── The STYLE TOGGLE: watercolor ↔ dreamy (Aug 2026, Sophie: "I want to
+// have the same beats but I wanna fill them with new art … a style toggle at
+// the top of a story that alternates between dreamy and watercolor").
+// One story, TWO sets of art over the SAME beats: the words, colors, voice
+// takes and order are shared; only the pictures differ. "watercolor" is the
+// pad's original look (sage sandy mirror — the fields already on the beat,
+// so nothing that exists migrates or moves), and "dreamy" keeps its art in
+// a parallel slot, `beat.alt.dreamy` ({url, src, gen, imageHistory}), empty
+// until she fills it. `pad.style` remembers which side the story is showing;
+// requests that touch ART carry `style` so a stale page can never draw into
+// the wrong side. A CLIP beat is footage, not drawn art — it is the same in
+// both styles and never uses a slot.
+const STYLES = ['watercolor', 'dreamy'];
+const styleOf = (req) => {
+  const s = String((req.body && req.body.style) || req.query.style || '');
+  return s === 'dreamy' ? 'dreamy' : 'watercolor';
+};
+// The object holding a beat's art for a style. For watercolor it IS the beat
+// (url/src/gen/imageHistory live at the root, exactly as they always have);
+// for dreamy it is beat.alt.dreamy, created on first write.
+function artSlot(b, style, make) {
+  if (style !== 'dreamy') return b;
+  if (make) { b.alt = b.alt || {}; b.alt.dreamy = b.alt.dreamy || {}; }
+  return (b.alt && b.alt.dreamy) || {};
+}
+// DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
+// with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
+// exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
+// strings are COPIES of PL_GPT_STYLES.dreamy.prefix/.suffix in server.js —
+// keep them identical (test-scratchpad-style.js pins the pair). No Sophie
+// character card: hers is the watercolor look, the wrong reference here.
+const DREAMY = {
+  styleFile: 'dream-mystery.jpg',
+  prefix: 'The FIRST attached image is a STYLE reference — copy its drawing style ' +
+    'but do NOT copy its content, subjects, or composition.',
+  suffix: 'Render as ONE single illustration — NOT a grid, NOT split panels. ' +
+    'Draw it inside a hand-drawn border, like the frames in the style ' +
+    'reference. no text. Again: the attached image is a STYLE reference ' +
+    'only — do not draw its content, its subjects or its composition.',
+};
 
 // ── The film ────────────────────────────────────────────────────────
 // The pad already knows how long every picture should be on screen: each
@@ -203,8 +252,13 @@ async function readPad(padId) {
   const v = snap.exists ? snap.data() : {};
   return {
     title: v.title || '', beats: Array.isArray(v.beats) ? v.beats : [],
+    // Which art set the story is showing — see the STYLE TOGGLE block above.
+    style: STYLES.includes(v.style) ? v.style : 'watercolor',
     film: v.film || null, films: Array.isArray(v.films) ? v.films : [],
     inbox: Array.isArray(v.inbox) ? v.inbox : null,
+    // Photos and movies she added straight off her phone (POST /upload) —
+    // they ride the add sheet beside the inbox, waiting to be placed.
+    uploads: Array.isArray(v.uploads) ? v.uploads : [],
     // "About this story" — what Sophie said about it, in her own words
     // (verbatim, written by a chat; never paraphrased). When what she said
     // is a recording, descriptionAudio carries it instead of text; voiceover
@@ -292,6 +346,58 @@ router.get('/', async (req, res) => {
     // the finished cuts and the raw recordings alike (Sophie, Aug 2026).
     const audios = (await episodeAudios(pad.episodes)).concat(sourceAudios(pad.sources, req));
     res.json({ ...pad, audios, pad: pid });
+  } catch (e) { fail(res, e); }
+});
+
+// Which art set the story shows — the style toggle at the top of a story.
+// Like /category, deliberately NO updatedAt bump: flipping the view is not a
+// story edit, so it must not stale the film or reshuffle the shelf (the film
+// carries its own `style`, which is how the page knows a watercolor render
+// is not the dreamy film).
+router.post('/style', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const style = String(req.body.style || '');
+    if (!STYLES.includes(style)) {
+      return res.status(400).json({ error: `style must be one of ${STYLES.join('/')}` });
+    }
+    await padRef(pid).set({ style }, { merge: true });
+    res.json({ ok: true, pad: pid, style });
+  } catch (e) { fail(res, e); }
+});
+
+// A photo or movie straight off her phone (Aug 2026, Sophie: "add clips
+// right from my phone into the inbox … a file picker that looks in my photos
+// so I can add movies or photos"). The BYTES go through the Dump's
+// /api/drop/upload-file (md5 dedupe, HEIC→JPEG, video posters — never a
+// second upload path); this route only files the finished url onto the
+// story, so the add sheet lists it beside the inbox, waiting to be placed.
+// A movie places as a CLIP beat, a photo as a picture.
+router.post('/upload', async (req, res) => {
+  try {
+    const pid = padIdOf(req);
+    const it = (req.body && typeof req.body.item === 'object' && req.body.item) || {};
+    const url = String(it.url || '').trim();
+    if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'item.url must be http(s)' });
+    const entry = {
+      url,
+      kind: it.kind === 'clip' ? 'clip' : 'image',
+      poster: it.poster && /^https?:\/\//.test(String(it.poster)) ? String(it.poster) : null,
+      title: String(it.title || '').slice(0, 200),
+      at: Date.now(),
+    };
+    const uploads = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(padRef(pid));
+      const cur = (snap.exists && Array.isArray(snap.data().uploads)) ? snap.data().uploads : [];
+      // The Dump content-addresses bytes, so re-adding the same file is the
+      // same url — move it to the front rather than doubling it.
+      const next = [entry].concat(cur.filter((x) => x && x.url !== url)).slice(0, 300);
+      // NO updatedAt bump: an upload waiting in the add sheet is not on the
+      // timeline yet, so it must not stale the film (placing it will).
+      tx.set(padRef(pid), { uploads: next }, { merge: true });
+      return next;
+    });
+    res.json({ ok: true, pad: pid, count: uploads.length, uploads });
   } catch (e) { fail(res, e); }
 });
 
@@ -385,7 +491,13 @@ router.get('/pads', async (req, res) => {
     const pads = snap.docs.map((d) => {
       const v = d.data() || {};
       const beats = Array.isArray(v.beats) ? v.beats : [];
-      const withArt = beats.find((b) => beatArt(b));
+      const style = STYLES.includes(v.style) ? v.style : 'watercolor';
+      // The shelf face follows the toggle — the side the story is showing —
+      // falling back to the other side so a tile is never blank while any
+      // art exists at all.
+      const faceOf = (b) => (isClip(b) ? beatArt(b)
+        : (artSlot(b, style).url || b.url || (b.alt && b.alt.dreamy && b.alt.dreamy.url) || null));
+      const withArt = beats.find((b) => faceOf(b));
       // A seeded story keeps its art in its own inbox until it is placed on
       // the timeline, so the shelf cover falls back there — a tile is a real
       // picture from the story, never a blank (the survey prototype's rule).
@@ -395,7 +507,7 @@ router.get('/pads', async (req, res) => {
         id: d.id, title: v.title || '', beats: beats.length,
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
-        cover: v.cover || (withArt ? beatArt(withArt) : (inboxArt ? inboxArt.url : null)),
+        cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
         category: v.category || null, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -441,7 +553,12 @@ router.post('/cover', async (req, res) => {
     }
     const pad = await readPad(pid);
     const beat = (pad.beats || []).find((b) => b.id === beatId);
-    const art = beatArt(beat);
+    // The cover comes off the side she is LOOKING at — a dreamy beat's popup
+    // pins the dreamy picture, never silently the watercolor one.
+    const style = styleOf(req);
+    const art = beat && !isClip(beat) && style === 'dreamy'
+      ? (artSlot(beat, style).url || null)
+      : beatArt(beat);
     if (!art) return res.status(400).json({ error: 'that beat has no art' });
     await padRef(pid).set({ cover: art }, { merge: true });
     res.json({ ok: true, pad: pid, cover: art });
@@ -456,9 +573,13 @@ router.post('/cover', async (req, res) => {
 router.get('/inbox', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
-    const own = (await readPad(padIdOf(req))).inbox;
+    const padData = await readPad(padIdOf(req));
+    // Her phone uploads ride along whichever inbox this story shows — the
+    // add sheet draws them at the top, waiting to be placed.
+    const uploads = padData.uploads;
+    const own = padData.inbox;
     if (own && own.length) {
-      return res.json({ count: own.length, items: own, source: 'story' });
+      return res.json({ count: own.length, items: own, source: 'story', uploads });
     }
     const q = await db().collection(PROMPTLAB)
       .orderBy('createdAt', 'desc').limit(300).get();
@@ -476,7 +597,7 @@ router.get('/inbox', async (req, res) => {
         });
       });
     });
-    res.json({ count: items.length, items, source: 'playground' });
+    res.json({ count: items.length, items, source: 'playground', uploads });
   } catch (e) { fail(res, e); }
 });
 
@@ -514,10 +635,14 @@ router.post('/add', async (req, res) => {
     const url = String(req.body.url || '').trim();
     if (url && !/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url must be http(s)' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
+    const style = styleOf(req);
     const beat = {
-      id: db().collection(COL).doc().id, url: url || null, color: null, src,
+      id: db().collection(COL).doc().id, url: null, color: null, src: null,
       addedAt: Date.now(),
     };
+    // A picture placed while the story shows DREAMY lands in the dreamy slot;
+    // the watercolor side of the new beat stays blank (and vice versa).
+    if (url) { const slot = artSlot(beat, style, true); slot.url = url; slot.src = src; }
     // Single-user tool, but the read-modify-write still goes through a
     // transaction so two quick adds can't drop each other.
     const beats = await db().runTransaction(async (tx) => {
@@ -543,16 +668,21 @@ router.post('/image', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'beat id required' });
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'image url required' });
     const src = (req.body.src && typeof req.body.src === 'object') ? req.body.src : null;
+    const style = styleOf(req);
     const beats = await db().runTransaction(async (tx) => {
       const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
       // Swapping a picture into a clip beat makes it a picture beat again —
-      // leaving `kind` behind would render an image url as a film.
-      if (isClip(b)) { delete b.kind; delete b.poster; delete b.seconds; delete b.title; delete b.clipId; }
-      b.url = url;
-      if (src) b.src = src;
+      // leaving `kind` behind would render an image url as a film. (A clip is
+      // the same in both styles, so this holds whichever side is showing.)
+      if (isClip(b)) { delete b.kind; delete b.poster; delete b.seconds; delete b.title; delete b.clipId; delete b.url; }
+      const slot = artSlot(b, style, true);
+      // The picture this side already had is kept, never destroyed.
+      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
+      slot.url = url;
+      if (src) slot.src = src;
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -653,11 +783,18 @@ async function patchBeat(padId, id, fn) {
 // at once with the beat marked drawing, the page polls the pad, and leaving
 // the app can't lose the picture. Superseded art is never deleted — it goes
 // to beat.imageHistory.
-async function runArtJob(padId, id, { prompt, quality, character }) {
+async function runArtJob(padId, id, { prompt, quality, character, style }) {
+  const dreamy = style === 'dreamy';
   try {
-    const refs = [artRef(ART.styleFile)];
-    if (character) refs.push(artRef(ART.characterFile));
-    const full = `${ART.prefix}${character ? ART.characterLine : ''}\n\n${prompt}`;
+    // DREAMY draws the Playground Dreamy recipe: dream-mystery as the one
+    // reference, her dictated prefix and suffix bookending the words, and
+    // never the Sophie card (see the STYLE TOGGLE block). Watercolor is the
+    // pad's original recipe, byte-for-byte.
+    const refs = [artRef(dreamy ? DREAMY.styleFile : ART.styleFile)];
+    if (!dreamy && character) refs.push(artRef(ART.characterFile));
+    const full = dreamy
+      ? `${DREAMY.prefix}\n\n${prompt}\n\n${DREAMY.suffix}`
+      : `${ART.prefix}${character ? ART.characterLine : ''}\n\n${prompt}`;
     const form = new FormData();
     form.append('model', 'gpt-image-2');
     form.append('prompt', full);
@@ -668,7 +805,12 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
     // come back, and every beat's art here is a KEPT original (superseded art
     // goes to beat.imageHistory rather than being deleted). See
     // scripts/test-no-generation-compression.js.
-    refs.forEach((b, i) => form.append('image[]', b, { filename: `ref${i + 1}.png`, contentType: 'image/png' }));
+    // dream-mystery is a JPEG — declare each ref as what it actually is.
+    const jpeg = dreamy;
+    refs.forEach((b, i) => form.append('image[]', b, {
+      filename: `ref${i + 1}.${i === 0 && jpeg ? 'jpg' : 'png'}`,
+      contentType: i === 0 && jpeg ? 'image/jpeg' : 'image/png',
+    }));
     const r = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...form.getHeaders() },
@@ -688,10 +830,14 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
     fs.unlink(tmp, () => {});
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     await patchBeat(padId, id, (b) => {
-      if (b.url && b.url !== url) b.imageHistory = (b.imageHistory || []).concat([{ url: b.url, at: Date.now() }]);
-      b.url = url;
-      b.src = { engine: 'gptimage', model: 'gpt-image-2', prompt, quality, character: Boolean(character), promptUsed: full };
-      b.gen = { status: 'done', at: Date.now() };
+      const slot = artSlot(b, style, true);
+      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
+      slot.url = url;
+      slot.src = {
+        engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
+        character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
+      };
+      slot.gen = { status: 'done', at: Date.now() };
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
     // hand-off surface for every image made for Sophie). Through the server's
@@ -703,13 +849,15 @@ async function runArtJob(padId, id, { prompt, quality, character }) {
           'content-type': 'application/json',
           ...(process.env.STUDIO_TOKEN ? { 'x-studio-token': process.env.STUDIO_TOKEN } : {}),
         },
-        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${quality}` }),
+        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}` }),
         timeout: 30000,
       });
     } catch (e) { console.warn('scratchpad → creations:', e.message); }
   } catch (err) {
     console.warn('scratchpad art:', err.message);
-    await patchBeat(padId, id, (b) => { b.gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() }; }).catch(() => {});
+    await patchBeat(padId, id, (b) => {
+      artSlot(b, style, true).gen = { status: 'failed', error: String(err.message || err).slice(0, 300), at: Date.now() };
+    }).catch(() => {});
   }
 }
 
@@ -763,9 +911,14 @@ router.post('/drawall', async (req, res) => {
     const pid = padIdOf(req);
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'OPENAI_API_KEY is not set' });
     const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : 'low';
+    const style = styleOf(req);
+    const character = style !== 'dreamy';   // dreamy never takes the Sophie card
     const pad = await readPad(pid);
+    // "Missing" is per STYLE: a beat whose watercolor is drawn but whose
+    // dreamy slot is empty is exactly what the toggle exists to fill.
     const targets = pad.beats
-      .filter((b) => !b.url && !(b.gen && b.gen.status === 'drawing') && drawablePrompt(b.text))
+      .filter((b) => !isClip(b))
+      .filter((b) => { const s = artSlot(b, style); return !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
       .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
     if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
     const ids = new Set(targets.map((t) => t.id));
@@ -773,7 +926,7 @@ router.post('/drawall', async (req, res) => {
       const snap = await tx.get(padRef(pid));
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       cur.forEach((b) => {
-        if (ids.has(b.id)) b.gen = { status: 'drawing', prompt: drawablePrompt(b.text), quality, character: true, at: Date.now() };
+        if (ids.has(b.id)) artSlot(b, style, true).gen = { status: 'drawing', prompt: drawablePrompt(b.text), quality, character, at: Date.now() };
       });
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
@@ -783,7 +936,7 @@ router.post('/drawall', async (req, res) => {
       await Promise.all(Array.from({ length: 2 }, async () => {
         while (queue.length) {
           const t = queue.shift();
-          await runArtJob(pid, t.id, { prompt: t.prompt, quality, character: true });
+          await runArtJob(pid, t.id, { prompt: t.prompt, quality, character, style });
         }
       }));
     })();
@@ -800,12 +953,16 @@ router.post('/generate', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'beat id required' });
     if (!prompt) return res.status(400).json({ error: 'say what to draw first' });
     const quality = ART.qualities.includes(req.body.quality) ? req.body.quality : ART.quality;
-    // Sophie's character card rides along unless explicitly turned off.
-    const character = req.body.character === false ? false : true;
+    const style = styleOf(req);
+    // Sophie's character card rides along unless explicitly turned off —
+    // and never on dreamy (the Playground's noCharacter rule: her card is
+    // the watercolor look, the wrong reference there).
+    const character = style === 'dreamy' ? false : (req.body.character === false ? false : true);
     const beats = await patchBeat(pid, id, (b) => {
-      b.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+      if (isClip(b)) throw new Error('nothing draws a clip');
+      artSlot(b, style, true).gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
     });
-    runArtJob(pid, id, { prompt, quality, character });   // fire and forget
+    runArtJob(pid, id, { prompt, quality, character, style });   // fire and forget
     res.json({ ok: true, beats });
   } catch (e) { fail(res, e); }
 });
@@ -907,7 +1064,11 @@ async function runFilmJob(padId) {
   try {
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
-    const shots = pad.beats.filter((b) => b.url);
+    // The film is the SIDE the story is showing: the toggled style's art
+    // (clips are the same in both). A beat with no art in this style is
+    // simply not a shot — same as a blank beat always was.
+    const style = pad.style;
+    const shots = pad.beats.filter((b) => (isClip(b) ? b.url : artSlot(b, style).url));
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
 
     const segs = [];      // { file } per picture
@@ -966,8 +1127,8 @@ async function runFilmJob(padId) {
       auds.push(aFile);
       total += seconds;
 
-      // One picture per shot, held for its whole audio.
-      const pics = [lead];
+      // One picture per shot, held for its whole audio — the active style's.
+      const pics = [{ url: artSlot(lead, style).url }];
       const each = seconds;
       for (let p = 0; p < pics.length; p++) {
         const seg = path.join(dir, `s${u}-${p}.mp4`);
@@ -1027,9 +1188,12 @@ async function runFilmJob(padId) {
       const snap = await tx.get(padRef(padId));
       const v = snap.exists ? snap.data() : {};
       const films = Array.isArray(v.films) ? v.films : [];
-      const prev = v.film && v.film.url ? [{ url: v.film.url, at: v.film.at, seconds: v.film.seconds }] : [];
+      const prev = v.film && v.film.url ? [{ url: v.film.url, at: v.film.at, seconds: v.film.seconds, style: v.film.style || 'watercolor' }] : [];
       tx.set(padRef(padId), {
-        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes },
+        // `style` on the record is how the page knows a watercolor render is
+        // not the dreamy film — the toggle never bumps updatedAt, so this is
+        // the freshness signal across a flip.
+        film: { status: 'done', url, seconds, at: Date.now(), pictures: segs.length, notes, style },
         films: prev.concat(films).slice(0, 12),   // older cuts are kept, never overwritten
         updatedAt: Date.now(),
       }, { merge: true });
@@ -1044,7 +1208,9 @@ router.post('/film', async (req, res) => {
   try {
     const pid = padIdOf(req);
     const pad = await readPad(pid);
-    if (!pad.beats.some((b) => b.url)) return res.status(400).json({ error: 'draw some art first' });
+    if (!pad.beats.some((b) => (isClip(b) ? b.url : artSlot(b, pad.style).url))) {
+      return res.status(400).json({ error: 'draw some art first' });
+    }
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
     runFilmJob(pid);   // fire and forget — the page polls the pad
     res.json({ ok: true, status: 'making' });
@@ -1069,10 +1235,13 @@ async function sweepStuckJobs() {
       let beatsChanged = false;
       const beats = Array.isArray(v.beats) ? v.beats : [];
       beats.forEach((b) => {
-        if (b.gen && b.gen.status === 'drawing' && (b.gen.at || 0) < cutoff) {
-          b.gen = { status: 'failed', error: 'interrupted by a server restart', at: Date.now() };
-          beatsChanged = true;
-        }
+        // Both art slots — a draw can be stuck on either side of the toggle.
+        [b, b.alt && b.alt.dreamy].forEach((slot) => {
+          if (slot && slot.gen && slot.gen.status === 'drawing' && (slot.gen.at || 0) < cutoff) {
+            slot.gen = { status: 'failed', error: 'interrupted by a server restart', at: Date.now() };
+            beatsChanged = true;
+          }
+        });
       });
       if (beatsChanged) patch.beats = beats;
       if (Object.keys(patch).length) {
