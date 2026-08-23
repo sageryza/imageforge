@@ -2036,11 +2036,12 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         // arrive after the hook's generic record — upgrade the existing doc in
         // place instead of silently dropping it.
         const patch = {};
-        const curated = String(prompt || '').trim();
-        const old = String(existing.data().prompt || '');
-        if (curated && !/^from /.test(curated) && (!old || /^from /.test(old))) {
-          patch.prompt = curated.slice(0, 500);
-        }
+        // What a later filing may do to the caption already on the record —
+        // ONE rule, shared with the sweep's own reasoning (asset-guard.js).
+        // A curated caption may CORRECT another curated one; the hook's
+        // generic "from <chat>" line never overwrites anything.
+        const nextCap = assetGuard.captionUpgrade(existing.data().prompt, prompt);
+        if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
         // An older record filed before content-joining existed: give it its

@@ -1861,7 +1861,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   takes `--size`, and `meta-assets.js` joins the three parts. **An absent slot
   is left out, never guessed** — nothing on an older record says how big it is,
   exactly as with quality.
-  (it upgrades an already-filed tile in place; search matches it). And when a
+  (it upgrades an already-filed tile in place; search matches it).
+  **AND A RE-POST CAN NOW CORRECT A CAPTION, WHICH IT COULD NOT UNTIL
+  2026-08-23.** The write only landed on a BLANK or a generic `from <chat>`
+  record, so re-POSTing to FIX one answered `ok:true, deduped:true` and
+  changed nothing, silently — while this file promised it upgraded the tile in
+  place. It was found backfilling the cut panels, and it is why every image
+  filed before the third slot became the TIER was stuck showing a raw canvas
+  that no chat could correct. One rule now, `assetGuard.captionUpgrade`, read
+  by the route: **a curated caption always wins, including over another
+  curated one** (nothing but a deliberate chat filing ever sends one, so
+  curated → curated is someone fixing something), and **a `from <chat>` line
+  never overwrites anything** — that is the hook's background catch, and the
+  half the old rule existed to stop. Pinned by
+  `node scripts/test-asset-guard.js`, which also fails if the condition is
+  ever re-inlined into `server.js`. And when a
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by
   ChatGPT").
