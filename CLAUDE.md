@@ -1922,6 +1922,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   thing on screen is the shape of the whole thing, not its contents. Her worked
   example, the Story Room: organize by projects and by level of completion,
   with the LAST hairline tab holding the ones she wants to start on.
+- **BACK TO THE TOP RIDES IN THE PILL'S RAIL (Aug 2026, Sophie: "add a small
+  back to top arrow in playground when i scroll down. as well as other long
+  scrolls like meta assets").** A small round button under the autoscroll
+  pill, shown a full screen down, gone at the top — in the rail rather than
+  floating loose, because that corner is the only one reserved on every page.
+  It is not the pill's ▲ (which walks up gradually): it jumps, and stops any
+  running autoscroll first. Source is `scripts/pill.py` (re-run
+  `python3 scripts/gen-pill-inject.py` after editing); full rules in
+  `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
