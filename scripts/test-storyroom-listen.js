@@ -109,6 +109,9 @@ function ok(cond, msg) {
     HTMLMediaElement.prototype.pause = function () { this._playing = false; this.dispatchEvent(new Event('pause')); };
   });
   await page.goto(base + '/scratchpad.html');
+  // THE ROOM OPENS ON THE SHELF (2026-08-23, Sophie) — a story is one tap
+  // below it, so step into one the way her tap on a tile does.
+  await page.evaluate((id) => window.openPad(id), 'pad');
   await page.waitForSelector('#audios .aurow', { state: 'attached' });
 
   // 1 — behind the waveform button, not in the page flow
@@ -162,6 +165,7 @@ function ok(cond, msg) {
   const page2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page2.addInitScript(() => { localStorage.setItem('scratchpad_pad', 'empty'); });
   await page2.goto(base + '/scratchpad.html');
+  await page2.evaluate(() => window.openPad('empty'));
   await page2.waitForFunction(() => document.getElementById('title').textContent.length > 0);
   const hidden = await page2.$eval('#audiobtn', (el) => el.hidden);
   const norows = await page2.$eval('#audios', (el) => el.children.length === 0);

@@ -3,6 +3,9 @@
 // v5): category chips + portrait tiles, tap → straight to that story's beat
 // canvas. Drives the REAL public/scratchpad.html in a headless browser
 // against a stub API and asserts the things the design has to get right:
+//   0. THE PAGE OPENS ON THE SHELF (2026-08-23, Sophie: "story room opens on
+//      the shelf … we don't need a separate shelf button") — no door to tap,
+//      and no story loaded until she picks one,
 //   1. the shelf opens on Personal — tiles for personal + UNTAGGED stories
 //      (a brand-new story must never be invisible), covers requested through
 //      /api/story/thumb (never the raw full-size picture), a story with no
@@ -86,10 +89,15 @@ function ok(cond, name) {
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
 
-  // 1 — open the shelf: Personal by default, tiles + covers right
+  // 0/1 — the page OPENS on the shelf: Personal by default, tiles + covers
   await page.goto(base + '/scratchpad.html');
-  await page.click('#storiesbtn');
   await page.waitForSelector('.stile');
+  ok(await page.$eval('#stories', (el) => !el.hidden),
+    'the page opens on the shelf, with nothing to tap to get there');
+  ok((await page.$$('#storiesbtn')).length === 0,
+    'the separate shelf door is gone');
+  ok(padLoads.length === 0,
+    'no story is loaded until she picks one');
   ok(await page.$eval('#shelfcats .scat.on', (el) => el.textContent) === 'Personal',
     'shelf opens on the Personal chip');
   ok((await page.$$('.stile')).length === 3,
@@ -118,12 +126,10 @@ function ok(cond, name) {
 
   // 4 — the plain old list survives ONLY behind ?plain=1
   await page.goto(base + '/scratchpad.html?plain=1');
-  await page.click('#storiesbtn');
   await page.waitForSelector('.srow');
   ok((await page.$$('.srow')).length === PADS.length, '?plain=1 renders the old row list');
   ok(await page.$eval('#shelfcats', (el) => el.hidden), 'chips hidden in plain mode');
   await page.goto(base + '/scratchpad.html');
-  await page.click('#storiesbtn');
   await page.waitForSelector('.stile');
   ok((await page.$$('.srow')).length === 0, 'nothing renders the old rows without ?plain=1');
 

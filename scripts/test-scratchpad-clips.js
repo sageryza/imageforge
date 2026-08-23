@@ -94,6 +94,9 @@ function ok(cond, name) {
   const browser = await chromium.launch(preinstalled ? { executablePath: preinstalled } : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 780 } });
   await page.goto(base + '/scratchpad.html');
+  // THE ROOM OPENS ON THE SHELF (2026-08-23, Sophie) — a story is one tap
+  // below it, so step into one the way her tap on a tile does.
+  await page.evaluate((id) => window.openPad(id), 'pad');
 
   // 1 — the two tabs, and the line under the lit one
   await page.click('#inboxbtn');

@@ -237,11 +237,37 @@ All 12 NDE-category stories were linked to their montage episodes on
   the current shape is settled.
 - **More than one story (Aug 2026):** every story is its own doc in
   `forge-scratchpad`; the original keeps doc id `pad` and is just one of the
-  list. The book icon in the title row opens the shelf (cover = first art,
-  name, beat count, newest-touched first); + there starts a new one. The
-  open story is remembered per device (`scratchpad_pad` in localStorage) and
-  rides on EVERY request — `?pad=` on GETs, `pad` in the body on POSTs
-  (`GET /pads`, `POST /pads {title}`).
+  list. The shelf lists them (cover = first art, name, newest-touched first);
+  the + on its header starts a new one. The open story is remembered per
+  device (`scratchpad_pad` in localStorage) and rides on EVERY request —
+  `?pad=` on GETs, `pad` in the body on POSTs (`GET /pads`, `POST /pads
+  {title}`).
+- **THE SHELF IS THE ROOM, AND THE BACK BUTTON IS THE SHELF BUTTON
+  (2026-08-23, Sophie: "i think the story room architecture is backwards. the
+  shelf is the main room. the back button goes to the shelf. story room opens
+  on the shelf. we don't need a separate shelf button. the back button IS the
+  shelf button").** It used to be the other way round: the page opened on the
+  story she was last on, a `library` door at the right of the header went and
+  fetched the shelf, and the shelf's chevron dropped back onto that story —
+  so the tool had two ways up and the pad read as the room.
+  - The page **opens on the shelf** and loads no story until she taps a tile.
+    `padId` is still remembered, but only to mark that tile as where she left
+    off — loading it would spend a fetch nobody is looking at and park a stale
+    story one chevron behind the shelf.
+  - **`__navBack` runs the other way**: after every layer it already walked
+    (film, lightbox, a confirm, the beat popup, the inbox), a bare story
+    answers TRUE and opens the shelf, and only the shelf answers false, which
+    is where the app leaves the tool.
+  - The shelf is still drawn as a `.sheet` — opaque, `inset:0`, its own
+    scroller and its own pill — which is why nothing else in the page had to
+    move. Its own chevron leaves the tool now (`__forgeLeave`), since nothing
+    is behind it.
+  - **A plain browser has no injected chevron**, so the page draws its own
+    (`#shelfback`, left of the header) and hides it under `body.native` /
+    `body.pagehead` — the same "whoever owns back draws it once" rule the ten
+    `__nativeNavBar` pages follow. Without it a story is a dead end in a
+    browser. Tests: `node scripts/test-storyroom-header.js` (all three
+    builds) and `node scripts/test-storyroom-shelf.js`.
 - **The film (Aug 2026) — a play button at the TOP of the pad.** `POST
   /film` stitches the story: every beat with art is its own shot (CHUNKS ARE
   DISPLAY-ONLY — Sophie), each held for exactly its own audio's length —
