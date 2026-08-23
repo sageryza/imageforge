@@ -6,6 +6,31 @@ The house rules that only bite when you are actually building a page, an iOS scr
 
 *(Moved out of `CLAUDE.md` Aug 2026 — see the pointers there. Nothing was rewritten; this is the text as it stood.)*
 
+- **BACK TO THE TOP RIDES IN THE PILL'S RAIL (Aug 2026, Sophie: "add a small
+  back to top arrow in playground when i scroll down. as well as other long
+  scrolls like meta assets").** A 38px round button under the autoscroll
+  pill's speed label, shown only once she is a full screen down.
+  - **It goes in the RAIL, not loose on the page.** The pill's top-right
+    corner is already reserved everywhere (header rows pad 56px for it), so a
+    second free-floating control is a control landing on page content — the
+    exact thing that reservation exists to prevent. One rail, not two floats.
+  - **It is NOT the pill's ▲.** That segment walks up gradually at the
+    autoscroll speed; this one jumps. The glyph says so: arrow-up-TO-LINE, not
+    a bare chevron.
+  - **A tap stops any running autoscroll FIRST**, then smooth-scrolls. Without
+    that the scroll keeps walking the page back down under the animation.
+  - **It hides with the pill**, so a page with nothing to scroll never grows
+    one, and `<meta name="forge-pill" content="off">` takes it away too
+    (`window.__pillTopSync` becomes a no-op alongside `__pillSync`).
+  - **The source is `scripts/pill.py`** → `python3 scripts/gen-pill-inject.py`
+    → `public/pill-inject.html`, which the server appends to every gated page
+    that opts in (`serveGated(..., {pill:true})`) and to every Compare page.
+    The pages that BAKE their own pill copy carry it too — and three of them
+    (`chats.html`, `gallery.html`, `writing.html`) hold an OLDER hand-drifted
+    pill with no conditional-pill pass at all, so they got a self-contained
+    copy that leans only on `window.__scrollStop`. Re-generating those pages
+    is its own job (see the stale-generator warning in `CLAUDE.md`).
+  - Pinned by `node scripts/test-back-to-top.js`.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always
