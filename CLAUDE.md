@@ -1570,6 +1570,61 @@ them off the reference sheet, not off the old filenames.
   `node scripts/test-search-return-everywhere.js` (the other three pages,
   headless — verified failing against the pre-fix pages),
   `node scripts/test-chats-note-wrap-clear.js` (the clear control).
+- **WHO SAID IT — the search's FIRST filter, and the pattern the next ones
+  follow (Aug 2026, Sophie: "I'd like to add some filters to the search in
+  the chats thing that are optional. one would be a filter allowing me to
+  search through my messages versus Claude's messages. start with that and
+  then we can think of other filters").** Three chips under the search box —
+  **All · Mine · Claude** — on the `/chats` home bar AND inside a thread. Her
+  words and a chat's answers are two haystacks she hunts for different
+  reasons, and a search across both buries the shorter one: she posts about
+  40 messages to every 220 replies (measured on one live feed read), so the
+  one sentence she remembers saying loses to the twelve replies that quoted
+  it back at her.
+  - **HERS IS `from === 'sophie'` EXACTLY; EVERYTHING ELSE IS CLAUDE'S.** The
+    asymmetry is load-bearing and is the rule the app already used in three
+    places (`renderMsg`'s own me/claude label among them). A reply is stamped
+    `from:'claude'` today but older docs carry an empty `from` — and those are
+    replies, since her messages have only ever reached the feed through
+    `POST /reply` and the hook's her_words path, both of which stamp `sophie`.
+    So an unstamped record lands on HIS side, and a `from` value nobody has
+    seen is never counted as hers: silence is the safe direction for the
+    smaller pile.
+  - **THE HOME BAR ASKS THE SERVER — `GET /api/chatfeed/search?q=&from=me`.**
+    Filtering the 80 results already on screen would answer "my messages about
+    the image doc" out of whatever survived the UNFILTERED top-80 — the Assets
+    tab's hard-truncate lesson, re-learned rather than re-lived. The server
+    holds the whole index and filters BEFORE it ranks, so a hit five hundred
+    messages back is still found. **`all` sends no `from` at all**, which is
+    exactly what every older cached page on her phone already sends, and an
+    unknown value WIDENS to `all` rather than emptying the list — a filter she
+    cannot see must never silently delete results.
+  - **A chat's NAME was said by nobody**, so the `chatMatches` rows come off
+    while a side is picked rather than sitting above results that all share
+    one voice.
+  - **The THREAD's copy filters what is already rendered** — the thread is
+    fully loaded, so there is no truncate to fall through and no request to
+    make — and **it narrows with an EMPTY box**: "just show me what I said in
+    here" is a whole question, and the one a thread can answer without her
+    thinking of a search term first.
+  - **NEITHER FILTER OUTLIVES ITS HUNT.** It rides the home bar's one-minute
+    memory beside the words (the same hunt continuing), the GLASS resets it to
+    All with the query it forgets, and closing a thread's search takes the
+    filter off with the words — a thread reopened later silently missing half
+    its messages, with no box on screen saying why, is the failure to avoid.
+  - **Chips, never a typed `from:` prefix.** She dictates every word into that
+    box and would have to say the punctuation out loud. They are the house
+    `.catchip`, since a filter chip and a tag chip are the same gesture.
+  - **The next filter is a chip in the same row** (`SEARCH_WHO` +
+    `whoOf`/`whoParam`/`whoMatches` in `chatfeed.js`, `.searchfilters` in
+    `chats.html`) — the row keeps the search bar's own 56px pill reserve, so a
+    fourth chip cannot slide under the injected autoscroll pill. **A filter
+    that needs the whole history goes to the server like this one; one the
+    loaded page can answer honestly may stay client-side — say which you
+    built.**
+  - Test: `node scripts/test-search-who-filter.js` (the decision table pure,
+    then the real page headless — including the chips' right edge measured
+    against the pill's column; verified failing against the pre-fix page).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does

@@ -418,7 +418,7 @@ router.get('/', async (req, res) => {
 // as history grows (Sophie posts ~125/day). Throttled so a burst of keystrokes
 // doesn't re-query Firestore each time; the Render process losing the cache on
 // spin-down just means one full reload on the next search.
-let searchIndex = [];        // [{chat, id, text, tldr, created, url}]
+let searchIndex = [];        // [{chat, id, text, tldr, created, url, from}]
 const searchSeen = new Set(); // doc ids already in the index
 let indexMaxCreated = '';
 let indexInit = false;
@@ -437,7 +437,7 @@ function refreshSearchIndex(force) {
       if (searchSeen.has(d.id)) return;
       searchSeen.add(d.id);
       const m = d.data();
-      searchIndex.push({ chat: m.chat || '', id: d.id, text: m.text || '', tldr: m.tldr || '', created: m.created || '', url: m.url || '' });
+      searchIndex.push({ chat: m.chat || '', id: d.id, text: m.text || '', tldr: m.tldr || '', created: m.created || '', url: m.url || '', from: m.from || '' });
       if ((m.created || '') > indexMaxCreated) indexMaxCreated = m.created || '';
     });
     indexInit = true;
@@ -561,10 +561,39 @@ function orderRank(src, pos, phraseRe) {
   return 1;
 }
 
+// ---- WHO SAID IT — the search's first filter -------------------------------
+// Aug 2026, Sophie: "I'd like to add some filters to the search in the chats
+// thing … one would be a filter allowing me to search through my messages
+// versus Claude's messages." Her own words and a chat's answers are two
+// different haystacks and she hunts in them for different reasons: what SHE
+// asked for once ("that thing about how to make images") versus what a chat
+// told her. A search across both buries the shorter half — she posts ~40
+// messages to every 220 of theirs, measured on one live feed read — so the
+// one word she remembers saying loses to the twelve replies that quoted it
+// back at her.
+//
+// HERS IS `from === 'sophie'` EXACTLY, AND EVERYTHING ELSE IS CLAUDE'S. That
+// asymmetry is deliberate and is the same rule the app already uses in three
+// places. A reply is stamped `from:'claude'` today but older docs carry an
+// empty `from`, and those are replies — her messages have only ever reached
+// the feed through `POST /reply` and the hook's her_words path, both of which
+// stamp `sophie`. So an unstamped record has to land on Claude's side, and a
+// `from` value nobody has seen must never be counted as hers: silence is the
+// safe direction for the smaller pile.
+const SEARCH_WHO = ['all', 'me', 'claude'];
+const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
+// An unknown value is `all`, never an empty result — a filter she cannot see
+// (an old cached page sending a word this server never learned) must widen
+// the answer, not silently delete it.
+const whoParam = (v) => (SEARCH_WHO.indexOf(String(v || '').toLowerCase().trim()) > 0
+  ? String(v).toLowerCase().trim() : 'all');
+const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
+    const who = whoParam(req.query.from);
     if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const groups = compileQuery(q);
@@ -573,8 +602,11 @@ router.get('/search', async (req, res) => {
     // slug as fallback — returned separately so the client can pin them at
     // the top of the results (her rule: searching a chat's name should find
     // the chat itself before any message-content hits).
+    // A chat's NAME was said by nobody, so it is not an answer to "show me my
+    // messages" — the name rows come off while a side is picked rather than
+    // sitting above results that all share one voice.
     let chatMatches = [];
-    try {
+    if (who === 'all') try {
       const reg = await registry();
       chatMatches = Object.keys(reg.chats || {})
         .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
@@ -586,7 +618,8 @@ router.get('/search', async (req, res) => {
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
-    const hits = searchIndex.filter((m) => queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
+    const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+      && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
     // Ranked into a parallel array rather than stamped onto the index rows:
     // those objects are the shared, long-lived search index and a leftover
@@ -4295,6 +4328,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, orderRank,
+  SEARCH_WHO, whoOf, whoParam, whoMatches,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
