@@ -107,6 +107,48 @@ t('/upload-file reads track and passes it as a default, only when set', () => {
     'an unpicked folder must leave the doc alone');
 });
 
+console.log('\nthe folders are offered in the order she uses them');
+
+// Measured live 2026-08-23: NOT ONE of the five baked tracks is in use. Every
+// folder she files into she typed herself, so leading the chips with the baked
+// five would put five dead options in front of her six real ones.
+const LIVE_COUNTS = [
+  ['From ChatGPT', 16], ['dream upload from ChatGPT', 16], ['Crystals', 15],
+  ['style references', 13], ['story room', 7], ['Inspiration', 3],
+];
+
+t('her own folders lead, the untouched known ones tail', () => {
+  const out = drop.orderTracks(LIVE_COUNTS);
+  const mine = LIVE_COUNTS.map((c) => c[0]);
+  const lastMine = Math.max(...mine.map((m) => out.indexOf(m)));
+  const firstKnown = Math.min(...['story-art', 'hoonies', 'reference', 'product']
+    .map((k) => out.indexOf(k)));
+  assert.ok(lastMine < firstKnown,
+    'every folder she uses must come before every one she does not: ' + out.join(', '));
+});
+
+t('most-used first', () => {
+  const out = drop.orderTracks([['rare', 1], ['common', 40], ['middling', 9]]);
+  assert.deepStrictEqual(out.slice(0, 3), ['common', 'middling', 'rare']);
+});
+
+t('the dead lowercase twin of a folder she uses is dropped', () => {
+  // `Crystals` holds 15 albums; the baked `crystals` holds none. Offering both
+  // puts a real folder next to an empty one keystroke-identical to it.
+  const out = drop.orderTracks(LIVE_COUNTS);
+  assert.ok(out.includes('Crystals'), 'her spelling stays');
+  assert.ok(!out.includes('crystals'), 'the unused twin must not be offered');
+});
+
+t('when two spellings are BOTH in use, the busier one wins', () => {
+  const out = drop.orderTracks([['Crystals', 15], ['crystals', 2]]);
+  assert.deepStrictEqual(out.filter((x) => x.toLowerCase() === 'crystals'), ['Crystals']);
+});
+
+t('nothing filed yet still offers the baked five', () => {
+  assert.deepStrictEqual(drop.orderTracks([]), drop.KNOWN_TRACKS);
+});
+
 console.log('\none folder list, three readers');
 
 // A track is a project, not a tag cloud — and a second hardcoded copy is how
