@@ -2710,8 +2710,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   prototype) opens the films sheet — Render, the job line, every render kept.
   The page is ONE screen, never scrolls, NO pill. Story Room = think about
   the story, Assembly = arrange footage, this = actually cut it.
+  **THE PLAYER RUNS ON PREVIEW PROXIES; THE RENDER CUTS ORIGINALS (Aug 2026,
+  from her live stalls).** Her sources are HEAVY, not unplayable — measured:
+  a 784x1168 Midjourney export at 19 Mbps, 12.3MB for five seconds — and
+  streaming that raw is what stalled the player. Each unique source gets a
+  baked preview copy (`forge-film-proxies`, sha1(url), 720p cap / crf 25 /
+  maxrate 3M / faststart — measured 12.3MB → 278KB), one bake at a time on
+  our own box; `POST/GET /api/filmeditor/proxies` starts and reports them,
+  the page polls and **adopts a fresh proxy only between plays**, and a small
+  light source is honestly `skip`ped. This is the house display-copy rule
+  (the webp rule) applied to video — the original is never touched. Three
+  player rules that came from her reports, all pinned by tests: **the video
+  is the playhead's clock** (a stall freezes both), **the picture is the
+  truth** (no new decoded frame for 350ms → the playhead holds even if the
+  clock moves — `getVideoPlaybackQuality`), and **a source boundary keeps
+  the old frame on screen until the new one can paint** (the black-second
+  gap). SVG icons toggle via ATTRIBUTES — the `hidden` IDL property is
+  HTMLElement-only and `.hidden =` on an SVG is a dead expando (the
+  pause-button-that-never-was). The progress line (`#msg`) lives OUTSIDE
+  `#editBox`, because the first upload happens while the empty state shows.
   Tests: `node scripts/test-filmeditor.js` (pure + the static page
-  contracts, no network).
+  contracts, no network) and `node scripts/test-filmeditor-page.js`
+  (headless Chromium PLAYS real generated videos through the real page —
+  icon swap, moving playhead, boundary crossing, end stop, split, proxies;
+  fixtures must be WebM/VP8 — playwright's Chromium has no H.264/AAC).
 - **The audio PROJECT** (`audioproject.js`, `/api/audioproject`,
   `forge-audio-projects` — no page of its own) — the light cross-room id
   Sophie picked (2026-08-19): threaded through every audio hand-off as

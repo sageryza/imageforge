@@ -264,8 +264,11 @@ body.tool{ background:var(--bg); color:var(--ink); overflow:hidden; }
       <button id="syncBtn"><svg viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span class="w">sync</span></button>
       <button id="delBtn"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg><span class="w">delete</span></button>
     </div>
-    <div id="msg"></div>
   </div>
+  <!-- OUTSIDE #editBox on purpose: the very first upload happens while the
+       empty state is showing, and a progress line inside the hidden editor
+       was invisible exactly then (Sophie, 2026-08-22) -->
+  <div id="msg"></div>
 </div>
 
 <!-- the films sheet: Render + every render kept, newest first -->
@@ -338,6 +341,42 @@ var playing = false;
 var selKey = null;            // the selected piece — FOLLOWS the playhead
 var raf = null, saveT = null, jobT = null;
 var upSession = '', uploading = false;
+
+/* ── preview proxies: the editor PLAYS a light baked copy of each source
+   (~40x smaller — her Midjourney exports are 19 Mbps and stall the player),
+   while the render always cuts the ORIGINAL. A freshly ready proxy is
+   adopted only between plays, so the clock's element can never change under
+   a running tick. ── */
+var PROXY = {};        // url → proxy url, live
+var PROXY_NEXT = {};   // ready but waiting for playback to stop
+var proxyT = null;
+function srcOf(c) { return (c && PROXY[c.url]) || (c && c.url) || ''; }
+function adoptProxies() {
+  if (playing) return;
+  for (var u in PROXY_NEXT) PROXY[u] = PROXY_NEXT[u];
+  PROXY_NEXT = {};
+}
+function askProxies(post) {
+  var urls = [];
+  ((A && A.clips) || []).forEach(function (c) {
+    if (c.url && urls.indexOf(c.url) === -1) urls.push(c.url);
+  });
+  if (!urls.length) return;
+  var req = post
+    ? api(B + '/proxies', { method: 'POST', body: { urls: urls } })
+    : api(B + '/proxies?urls=' + encodeURIComponent(urls.join(',')));
+  req.then(function (r) {
+    var making = false;
+    var map = (r && r.proxies) || {};
+    for (var u in map) {
+      if (map[u].status === 'ready' && map[u].proxyUrl) PROXY_NEXT[u] = map[u].proxyUrl;
+      if (map[u].status === 'making') making = true;
+    }
+    adoptProxies();
+    clearTimeout(proxyT);
+    if (making) proxyT = setTimeout(function () { askProxies(false); }, 3000);
+  }).catch(function () {});
+}
 
 /* mirrors filmeditor.js */
 function pieceSeconds(c) { return Math.max(0, (Number(c && c.out) || 0) - (Number(c && c.in) || 0)); }
@@ -444,6 +483,7 @@ function open(id, fromHistory) {
     paint();
     syncSelection();
     seekVideo(false);
+    askProxies(true);   // preview copies: start any missing bakes right away
     if (A.job && A.job.status === 'running') { openFilms(); pollJob(); }
   }).catch(function (e) {
     $('shelfNote').hidden = false; $('shelfNote').textContent = String(e.message || e);
@@ -483,12 +523,26 @@ function ensureSrc(el, url) {
     el.load();
   }
 }
+var actToken = 0;
 function activate(el) {
-  if (actEl === el) return;
+  if (actEl === el) { el.hidden = false; return; }
   var old = actEl;
   actEl = el;
-  el.hidden = false;
-  if (old) { old.pause(); old.hidden = true; }
+  var tok = ++actToken;
+  // keep the OLD frame on screen until the new source can actually paint —
+  // hiding it immediately is the black second at every boundary (Sophie,
+  // 2026-08-22). The old element is paused at once so nothing double-plays.
+  if (old) old.pause();
+  var reveal = function () {
+    if (tok !== actToken) return;
+    el.hidden = false;
+    if (old && old !== el) old.hidden = true;
+  };
+  if (el.readyState >= 2) reveal();
+  else {
+    el.addEventListener('canplay', reveal, { once: true });
+    setTimeout(reveal, 1500);   // never wedge behind a dead source
+  }
 }
 function stopPlayback() {
   cancelAnimationFrame(raf);
@@ -497,13 +551,15 @@ function stopPlayback() {
   if (actEl) actEl.pause();
   $('audEl').pause();
   paintPlayBtn();
+  adoptProxies();   // a proxy that finished baking mid-play takes over now
 }
 function seekVideo(playIt) {
   var seg = segAt(playhead);
   if (!seg) { if (actEl) { actEl.pause(); actEl.removeAttribute('data-src'); actEl.removeAttribute('src'); } return; }
-  var el = actEl && actEl.getAttribute('data-src') === seg.c.url ? actEl
-    : (otherEl().getAttribute('data-src') === seg.c.url ? otherEl() : (actEl || $('vA')));
-  ensureSrc(el, seg.c.url);
+  var want = srcOf(seg.c);
+  var el = actEl && actEl.getAttribute('data-src') === want ? actEl
+    : (otherEl().getAttribute('data-src') === want ? otherEl() : (actEl || $('vA')));
+  ensureSrc(el, want);
   activate(el);
   var target = seg.c.in + (playhead - seg.start);
   var setPos = function () {
@@ -516,7 +572,7 @@ function seekVideo(playIt) {
   var ss = segs();
   var idx = ss.indexOf(seg);
   for (var j = idx + 1; j < ss.length; j++) {
-    if (ss[j].c.url !== seg.c.url) { ensureSrc(otherEl(), ss[j].c.url); break; }
+    if (srcOf(ss[j].c) !== want) { ensureSrc(otherEl(), srcOf(ss[j].c)); break; }
   }
   syncAudio(playIt);
 }
@@ -554,6 +610,7 @@ function playPause() {
 }
 var lastTs = null;
 var lastNudge = 0;
+var frameEl = null, frameCount = -1, frameAt = 0;
 function tick(ts) {
   if (!playing) return;
   // dt is capped: a frame that arrives late (tab switch, slow decode) must
@@ -563,7 +620,7 @@ function tick(ts) {
   var seg = segAt(playhead);
   if (!seg) { stopPlayback(); return; }
   var t;
-  var el = actEl && actEl.getAttribute('data-src') === seg.c.url ? actEl : null;
+  var el = actEl && actEl.getAttribute('data-src') === srcOf(seg.c) ? actEl : null;
   if (el && el.readyState >= 1) {
     // the VIDEO is the clock. A buffering stall freezes currentTime, so the
     // playhead freezes WITH the picture — the wall-clock fallback here is
@@ -572,6 +629,16 @@ function tick(ts) {
     // its piece, or the film would deadlock just short of the finish line.
     t = el.ended ? seg.start + seg.dur
       : seg.start + Math.max(0, el.currentTime - seg.c.in);
+    // THE PICTURE IS THE TRUTH (her waffle clip): a clock that advances
+    // while no new frame has been decoded is lying — hold with the frame.
+    if (!el.ended) {
+      var q = el.getVideoPlaybackQuality ? el.getVideoPlaybackQuality().totalVideoFrames
+        : (typeof el.webkitDecodedFrameCount === 'number' ? el.webkitDecodedFrameCount : null);
+      if (q != null) {
+        if (el !== frameEl || q !== frameCount) { frameEl = el; frameCount = q; frameAt = ts; }
+        else if (!el.paused && ts - frameAt > 350) t = playhead;
+      }
+    }
     // and a paused element that should be playing (a recovered stall, a
     // blocked autoplay at a source swap) gets a nudge, at most once a second
     if (el.paused && !el.ended && ts - lastNudge > 1000) {
@@ -843,6 +910,7 @@ function uploadBatch(files) {
           }]);
           done++;
           syncSelection(); paint(); seekVideo(false);
+          askProxies(true);   // its preview copy starts baking immediately
         });
       })
       .catch(function () { failed++; })

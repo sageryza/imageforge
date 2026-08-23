@@ -66,6 +66,9 @@ function ok(cond, name) {
     audio: null, renders: [], job: null,
   };
 
+  let PROX = {};   // what /proxies answers — flipped per scenario
+  const DOC2 = { id: 't2', title: 'Empty cut', clips: [], audio: null, renders: [], job: null };
+
   const browser = await pw.chromium.launch({
     ...(exe ? { executablePath: exe } : {}),
     args: ['--autoplay-policy=no-user-gesture-required'],
@@ -75,6 +78,12 @@ function ok(cond, name) {
     const u = route.request().url();
     if (u.includes('/fx/a.webm')) return route.fulfill({ contentType: 'video/webm', body: vidA });
     if (u.includes('/fx/b.webm')) return route.fulfill({ contentType: 'video/webm', body: vidB });
+    if (u.includes('/api/filmeditor/proxies')) {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ proxies: PROX }) });
+    }
+    if (u.includes('/api/filmeditor/t2')) {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(DOC2) });
+    }
     if (u.includes('/api/filmeditor/t1/pieces')) {
       return route.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
     }
@@ -168,6 +177,30 @@ function ok(cond, name) {
   await page.click('#delBtn');
   await page.waitForTimeout(300);
   ok((await page.$$('.seg')).length === 2, 'delete takes the piece off');
+
+  console.log('the progress line is visible on a first upload:');
+  await page.goto('http://forge.test/filmeditor?c=t2');
+  await page.waitForSelector('#emptyBox:not([hidden])', { timeout: 8000 });
+  ok(await page.$eval('#msg', (el) => el.offsetParent !== null),
+    'the quiet line shows even while the empty state is up');
+
+  console.log('preview proxies take over the player:');
+  PROX = {
+    'http://forge.test/fx/a.webm': { status: 'ready', proxyUrl: 'http://forge.test/fx/b.webm' },
+    'http://forge.test/fx/b.webm': { status: 'ready', proxyUrl: 'http://forge.test/fx/a.webm' },
+  };
+  await page.goto('http://forge.test/filmeditor?c=t1');
+  await page.waitForSelector('#editBox:not([hidden])', { timeout: 8000 });
+  await page.waitForTimeout(600);   // the proxies answer lands and is adopted
+  await page.click('#play');
+  await page.waitForTimeout(400);
+  ok(await page.evaluate(() => {
+    const a = document.getElementById('vA');
+    const b = document.getElementById('vB');
+    const act = a.hidden ? b : a;
+    return act.getAttribute('data-src') === 'http://forge.test/fx/b.webm';
+  }), 'playback runs on the baked preview copy, not the heavy original');
+  await page.click('#play');
 
   await browser.close();
   fs.rmSync(dir, { recursive: true, force: true });
