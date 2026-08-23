@@ -773,10 +773,14 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
    the short summary as one small word, not a second control competing with the
    "See more…" link that opened this. */
+/* Underlined, like `.wrapmore` above it — the house rule for an opener on
+   truncated text (docs/design-rules.md): a word with a line under it, never a
+   button. This one keeps its small caps because it sits under a bold field
+   label rather than at the end of a sentence. */
 .wrapmore2{display:block; margin:6px 0 0; padding:0; background:none; border:0;
   color:var(--chg); font-family:-apple-system,sans-serif; font-size:11px;
   letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
-  -webkit-tap-highlight-color:transparent;}
+  text-decoration:underline; -webkit-tap-highlight-color:transparent;}
 .t-tldr.t-note{font-style:italic;}
 /* Her note on a chat, editable at the top of its thread. Quiet until tapped.
    The QUESTIONS button rides the same row (Aug 2026, Sophie: "there's hardly

@@ -12,7 +12,7 @@ body{margin:0;padding:0 0 60px;background:#f7f4ee;color:#2a2622;
   .tabs{border-color:#37322a} .tabs button{color:#97907f}
   .words{color:#d9d3c6} .tx{color:#d9d3c6}
   .top{border-color:#37322a}
-  .more{background:#211e19;border-color:#37322a;color:#c9c2b4}
+  .more{color:#c9c2b4}
   .pane img{background:#211e19}
 }
 .top{padding:18px 16px 12px;border-bottom:1px solid #ddd4c6}
@@ -38,8 +38,11 @@ h2{font-size:19px;margin:4px 0 3px}
 .words .rest{display:none;white-space:pre-wrap}
 .words.open .head{display:none}
 .words.open .rest{display:block}
-.more{font:inherit;font-size:14px;margin-top:10px;padding:5px 12px;border-radius:6px;
-  border:1px solid #ddd4c6;background:#fff;color:#5d564e;cursor:pointer}
+/* The house opener for truncated text: an underlined word, never a button
+   (docs/design-rules.md). It shipped as a bordered, padded box. */
+.more{display:inline-block;font:inherit;font-size:14px;margin-top:8px;padding:0;border:0;
+  background:none;color:#5d564e;text-decoration:underline;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
 audio{width:100%;max-width:520px;display:block}
 .anote{font-size:13px;color:#8a8074;margin:8px 0 0}
 #shut{position:fixed;left:14px;bottom:16px;z-index:60;display:none;font:inherit;font-size:15px;

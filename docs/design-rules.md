@@ -6,6 +6,50 @@ The house rules that only bite when you are actually building a page, an iOS scr
 
 *(Moved out of `CLAUDE.md` Aug 2026 — see the pointers there. Nothing was rewritten; this is the text as it stood.)*
 
+- **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
+  Sophie, pointing at the Playground: "the ... button for longer than two line
+  prompt is huge. why? it shud be fixed everywhere. truncated text shud always
+  just be a ...with a line under it that links to open (untruncate) or it can
+  say 'more' or 'see more'. never a separate button. document that as a ui
+  pattern").** Wherever a page cuts text and offers a way to see the rest, the
+  way in is **a word with a line under it**, sitting at the end of the text it
+  opens.
+  - **The mark:** `…`, `… more`, `more`, or `see more` — whichever reads best
+    where it sits. Underlined. Inline. Inherits the surrounding font, size and
+    colour. `border: 0; background: none; padding: 0; margin: 0`. Opened, the
+    same control says `less` / `see less` / `Close` and closes it again.
+  - **NOT:** a bordered or padded box, a rounded rectangle, a chip, a bare
+    unstyled `<button>` (which draws the browser's own grey box), or a control
+    parked away from the words it belongs to.
+  - **Still a `<button>` element** — it does something, so it must be
+    focusable and reachable by a screen reader. This is a rule about how it is
+    PAINTED, not about markup.
+  - **The class is `.moretxt` on every page**, with the same declarations.
+    There is no shared stylesheet across these pages, so the copies are by
+    necessity; keeping the name identical is what makes the next one a
+    copy-paste instead of a fresh invention. Live copies: `promptlab.html`,
+    `dreamapp.html` (beside `.dmore`, which is the same pattern with a dashed
+    underline), `dreams-archive.html` (`.more`), `chats.html` (`.wrapmore`,
+    and `.wrapmore2`, which keeps its small caps because it sits under a bold
+    field label rather than at the end of a sentence).
+  - **TWO UNRELATED CONTROLS MUST NEVER SHARE A CLASS NAME — that is what
+    actually broke it.** The Playground's opener was written correctly the
+    first time: `.morebtn`, borderless, `padding: 0`. Then the "Older" paging
+    button took the same class further down the same file with a 1px border
+    and `9px 18px` of padding, and the later rule won — so the "…" rendered as
+    a big empty box in the middle of a run's header. Nothing was wrong with
+    the opener; it lost a name fight. The paging button keeps `.morebtn`, the
+    opener is `.moretxt`.
+  - **The opener goes OUTSIDE the clamped box.** `-webkit-line-clamp` clips
+    everything inside it after the cut, so a control nested in the clamped
+    element disappears with the text it was meant to open. Add it after
+    layout, as a SIBLING (`applyClamps` in `promptlab.html` is the reference),
+    and measure `scrollHeight` against `clientHeight` rather than counting
+    characters — only the browser knows whether the text really overflowed.
+  - **Text that is cut with no way to open it is a different thing** and this
+    rule does not reach it (a card title clipped to one line, a caption cut to
+    three). If you add a way in, it takes this shape.
+  - Pinned by `node scripts/test-truncation-opener.js`.
 - **Headers: a WEB-WRAPPED tool's PAGE owns its header (Aug 2026 v2, Sophie's
   decision — REVERSES the earlier "forgeToolBar on every tool root" rule for
   web tools).** For any tool that is a WKWebView on a served page, the header
