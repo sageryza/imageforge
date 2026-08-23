@@ -584,11 +584,29 @@ function groupAssetVariants(assets) {
     // when the differing variable is the STYLE, the caption words repeat
     // ("medium" · "medium") and say nothing — the line under the tile is the
     // style segment this variant does not share, i.e. what actually changed
+    // WHEN THE CAPTION ALREADY SAYS IT, THAT IS THE WHOLE ROW (Sophie,
+    // 2026-08-23, looking at the cut panels: "make it shorter"). The four
+    // quarters read "1/4 (4K) · (this picture is the top-left quarter of the
+    // 2336x3504 sheet above, cut locally" — the tail after the dot is the same
+    // fact again in longhand, and it is the part that runs off the tile.
+    // A style line is only appended where the caption diff would leave two
+    // rows in this group reading the SAME thing, which is the one case it is
+    // actually carrying information ("medium · watercolour" vs
+    // "medium · gouache"). Everywhere else the diff stands alone.
+    const capLabel = new Map(items.map((it) => [it, captionDiff(it, capParts)]));
+    const capCount = {};
+    items.forEach((it) => { const c = capLabel.get(it); if (c) capCount[c] = (capCount[c] || 0) + 1; });
+    const capTellsApart = (it) => {
+      const c = capLabel.get(it);
+      return Boolean(c) && capCount[c] === 1;
+    };
     const styleSet = new Set(items.map((i) => normContent(i.promptStyle)));
     if (styleSet.size > 1) {
       const capsVary = capParts.length > 0;
       const allStyles = items.map((i) => i.promptStyle);
       items.forEach((it, idx) => {
+        // the caption already tells this row apart from every sibling — done
+        if (capsVary && capTellsApart(it)) return;
         const d = uniqueStyleLine(it.promptStyle, allStyles.filter((_, j) => j !== idx));
         if (d) {
           const pre = capsVary ? captionDiff(it, capParts) : '';
