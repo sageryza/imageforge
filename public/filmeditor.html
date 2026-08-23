@@ -477,6 +477,7 @@ var actEl = null;   // the visible <video>
 function otherEl() { return actEl === $('vA') ? $('vB') : $('vA'); }
 function ensureSrc(el, url) {
   if (el.getAttribute('data-src') !== url) {
+    el.onloadedmetadata = null;   // a stale seek handler must not fire on the new load
     el.setAttribute('data-src', url);
     el.src = url;
     el.load();
@@ -506,6 +507,7 @@ function seekVideo(playIt) {
   activate(el);
   var target = seg.c.in + (playhead - seg.start);
   var setPos = function () {
+    el.onloadedmetadata = null;   // fire once — never against a later load
     try { el.currentTime = target; } catch (e) { /* not seekable yet */ }
     if (playIt) el.play().catch(function () {});
   };
@@ -551,6 +553,7 @@ function playPause() {
   raf = requestAnimationFrame(tick);
 }
 var lastTs = null;
+var lastNudge = 0;
 function tick(ts) {
   if (!playing) return;
   // dt is capped: a frame that arrives late (tab switch, slow decode) must
@@ -560,9 +563,26 @@ function tick(ts) {
   var seg = segAt(playhead);
   if (!seg) { stopPlayback(); return; }
   var t;
-  if (actEl && actEl.getAttribute('data-src') === seg.c.url && actEl.readyState >= 2) {
-    t = seg.start + Math.max(0, actEl.currentTime - seg.c.in);
-  } else t = playhead + dt;
+  var el = actEl && actEl.getAttribute('data-src') === seg.c.url ? actEl : null;
+  if (el && el.readyState >= 1) {
+    // the VIDEO is the clock. A buffering stall freezes currentTime, so the
+    // playhead freezes WITH the picture — the wall-clock fallback here is
+    // what let the playhead march on while a stalled clip stood still
+    // (Sophie's pizza clip). A file that ran out early counts as the end of
+    // its piece, or the film would deadlock just short of the finish line.
+    t = el.ended ? seg.start + seg.dur
+      : seg.start + Math.max(0, el.currentTime - seg.c.in);
+    // and a paused element that should be playing (a recovered stall, a
+    // blocked autoplay at a source swap) gets a nudge, at most once a second
+    if (el.paused && !el.ended && ts - lastNudge > 1000) {
+      lastNudge = ts;
+      el.play().catch(function () {});
+    }
+  } else if (el) {
+    t = playhead;         // matching element still loading — hold, don't drift
+  } else {
+    t = playhead + dt;    // between sources for a frame or two, at most
+  }
   var segEnd = seg.start + seg.dur;
   if (t >= segEnd - 0.03) {
     var next = segAt(segEnd + 0.01);
@@ -605,8 +625,16 @@ $('fwdSec').onclick = function () { seekTo(playhead + 1); };
 $('backFr').onclick = function () { seekTo(playhead - 1 / FPS); };
 $('fwdFr').onclick = function () { seekTo(playhead + 1 / FPS); };
 function paintPlayBtn() {
-  $('playIco').hidden = playing;
-  $('pauseIco').hidden = !playing;
+  // ATTRIBUTES, not the .hidden property — these are SVG elements, and the
+  // hidden IDL property lives on HTMLElement only, so `.hidden =` set a dead
+  // JS expando and the icon never swapped (Sophie saw play while playing)
+  if (playing) {
+    $('playIco').setAttribute('hidden', '');
+    $('pauseIco').removeAttribute('hidden');
+  } else {
+    $('pauseIco').setAttribute('hidden', '');
+    $('playIco').removeAttribute('hidden');
+  }
 }
 
 /* ── the tools — at the playhead, on the selected piece ── */
