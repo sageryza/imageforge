@@ -5524,6 +5524,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
 async function fileRunToCreations(images, { prompt, style, model, quality, size } = {}) {
+  const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
     await storyDb();
@@ -5549,7 +5550,14 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size 
       // the tiers. The gallery and Meta Assets both read it as the caption's
       // last part; absent on anything filed before the field existed, and an
       // absent slot is left out rather than guessed.
-      if (size) doc.size = String(size).slice(0, 40);
+      // IT IS THE TIER, NOT THE PIXELS (her correction: "i asked for it to say
+      // 1k 2k or 4k") — `size` is what the caption shows and `canvas` keeps
+      // the exact one, because 2K portrait and 2K square are different
+      // canvases at different prices.
+      if (size) {
+        doc.canvas = String(size).slice(0, 40);
+        doc.size = sizeTier.captionSize(size) || doc.canvas;
+      }
       await col.add(doc);
     }
   } catch (err) {

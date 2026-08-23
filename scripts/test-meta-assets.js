@@ -65,8 +65,11 @@ assert.strictEqual(stick.description, 'seven woodland stickers', 'prompt is the 
 // (Sophie: "1K 2K 4K should be a third slot in the model/quality required
 // tagging"), because gpt-image-2 draws any canvas and the first two stopped
 // saying what a picture is.
-assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 1568x2352',
-  'model·quality·size fills the caption slot');
+// …and the third slot is the TIER, not the pixels ("i asked for it to say 1k
+// 2k or 4k"). Normalised on READ, so a record filed with the raw canvas before
+// her correction still displays the rung and needs no backfill.
+assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 2K',
+  'model·quality·size fills the caption slot, with size as the tier');
 // An absent slot is LEFT OUT, never guessed — nothing on a record filed before
 // the field existed says how big it is, exactly as with quality.
 {
