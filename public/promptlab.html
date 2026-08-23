@@ -168,7 +168,14 @@
   .runhead .p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .morebtn { border: 0; background: none; font: inherit; font-size: 12.5px; color: #6f675e; padding: 0 0 2px; }
   .tag { font-size: 11px; color: #6f675e; background: #f0ebe3; border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  /* `minmax(0, 1fr)` and `align-items: start`, both load-bearing now that a
+     cell carries its own shape: a bare `1fr` is `minmax(auto, 1fr)`, and a
+     square cell's automatic minimum width is TRANSFERRED from the row's
+     height through its aspect-ratio — so one square on a row of portraits
+     blew its own column out to 132px and squeezed the other three to 73
+     (measured). `start` keeps a shorter cell its own height instead of
+     stretching it to the tallest on the row. */
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 5px; }
   /* Two ways to read the feed: LIST (a box per run, prompt above its pictures)
      and TILES (every picture as a thumbnail, four to a row, prompt in the
      lightbox). The switch is STICKY so it is reachable from anywhere in a long
@@ -211,22 +218,31 @@
     color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
-  /* Tiles: uniform squares four to a row, the My Creations look — small on
-     purpose, so the wall stays scannable. Tapping one opens the lightbox,
-     which is where the prompt, model and quality live. */
-  #tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  #tiles .cell img { aspect-ratio: 1 / 1; }
-  /* A picture still being drawn holds its square at the front of the wall, so
+  /* Tiles: four to a row, the My Creations look — small on purpose, so the
+     wall stays scannable. Tapping one opens the lightbox, which is where the
+     prompt, model and quality live.
+     EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
+     want the playground to show portrait aspect ratios to match my 2:3
+     pictures"). The wall used to force 1:1 and `object-fit: cover` did the
+     rest — so a 2:3 picture, which is nearly everything she draws here, lost
+     a third of itself to a crop on the one screen meant for scanning them.
+     The ratio rides on the cell as `--ar`, written from the run's own
+     `aspectRatio`, so a square run still tiles square and the two shapes sit
+     on the same wall as what they are. */
+  #tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 5px; }
+  /* A picture still being drawn holds its place at the front of the wall, so
      the tiles view shows the whole feed and not just what has landed. It
      breathes, because a flat empty box in a wall of pictures reads as a
      broken image rather than as one on its way. */
-  #tiles .cell.ph { aspect-ratio: 1 / 1; animation: plwait 1.5s ease-in-out infinite; }
+  #tiles .cell.ph { animation: plwait 1.5s ease-in-out infinite; }
   @keyframes plwait { 0%, 100% { background: #f0ebe3; } 50% { background: #e4dbcd; } }
   .copybtn { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; border: none; background: none; color: #8a8177; cursor: pointer; }
   .copybtn svg { width: 14px; height: 14px; }
   .cell { position: relative; }
-  .cell img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
+  /* `--ar` is the run's real canvas; 2/3 is the fallback for a run with no
+     ratio on file, which is what every run before the canvas toggle was. */
+  .cell img { width: 100%; aspect-ratio: var(--ar, 2 / 3); object-fit: cover; border-radius: 6px; display: block; background: #eee7dc; }
   .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .badge.like { background: #c25a72; color: #fff; }
   .badge.dislike { background: #9a938a; color: #fff; }
@@ -236,7 +252,7 @@
      Generate therefore always adds something visible at the TOP, which is what
      keeps "newest first" true while a slow run is still going. */
   .runhead .waiting { margin-left: auto; }
-  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: 2 / 3; }
+  .cell.ph { background: #f0ebe3; border: 1px solid #e3dcd1; border-radius: 6px; aspect-ratio: var(--ar, 2 / 3); }
   /* "Older" — the way further back through the feed. Hugs its text, rounded
      rectangle (no pills), centered under whichever view is showing. */
   #more { display: flex; justify-content: center; padding: 4px 0 22px; }
@@ -1345,10 +1361,13 @@
       if (!d.id) throw new Error(d.error || 'Could not start.');
       var list = pendingList();
       list.push(gpt
-        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual }
+        // `ar` rides along so the waiting slots hold the shape the picture is
+        // about to be — the wall must not re-flow when it lands.
+        ? { id: d.id, prompt: prompt, style: S.label, engine: 'gptimage', count: OUTPUTS, quality: qual,
+            ar: (RES && RES[canvas] && RES[canvas].aspectRatio) || '2:3' }
         // `key` rides along so a second tap can see this one is already on its
         // way, before it has any images to be recognised by.
-        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key });
+        : { id: d.id, prompt: prompt, scale: scale, style: S.label, engine: 'replicate', count: OUTPUTS, seed: seed, key: key, ar: '2:3' });
       setPending(list);
       renderPendings(); startPolling();
     });
@@ -1476,7 +1495,8 @@
       var kill = p.engine === 'gptimage' ? ''
         : '<button class="killbtn" data-kill="' + ids + '" aria-label="Cancel this job">' + ICONS.x + '</button>';
       var cells = '';
-      for (var i = 0; i < slots; i++) cells += '<div class="cell ph"></div>';
+      var par = arCss(p.ar);
+      for (var i = 0; i < slots; i++) cells += '<div class="cell ph" style="--ar: ' + par + '"></div>';
       return '<div class="run"><div class="runhead">' +
         '<span class="p clamp">' + esc(p.prompt || '') + '</span>' +
         '<button class="copybtn" data-copy="' + p.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>' +
@@ -1626,9 +1646,18 @@
     });
     Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
   }
+  // A picture's own shape, as a CSS ratio. The run stores it as '2:3' / '1:1';
+  // anything else (an older run from before the canvas toggle, a hand-written
+  // value) falls back to portrait, which is what every run before it drew.
+  // Parsed rather than passed through — it lands in a style attribute.
+  function arCss(a) {
+    var m = /^(\d{1,2}):(\d{1,2})$/.exec(String(a || ''));
+    return m ? m[1] + ' / ' + m[2] : '2 / 3';
+  }
   // One cell = one picture (or a breathing placeholder while it draws).
   function makeCell(it) {
     var d = document.createElement('div');
+    d.style.setProperty('--ar', it.ar || '2 / 3');
     if (it.ph) { d.className = 'cell ph'; return d; }
     d.className = 'cell';
     var img = document.createElement('img');
@@ -1779,7 +1808,7 @@
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
             if (only && v !== 'like') return;
-            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
+            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
           });
         });
         if (only && !cells.length) return;   // nothing hearted in this run
@@ -1827,7 +1856,7 @@
     if (!only) pendingList().slice().reverse().forEach(function (p) {
       if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
       var slots = p.count || OUTPUTS;
-      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true });
+      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true, ar: arCss(p.ar) });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
     // Object.keys of the id map relied on insertion order holding, which is a
@@ -1838,7 +1867,7 @@
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
         if (only && v !== 'like') return;
-        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
+        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i), ar: arCss(r.aspectRatio) });
       });
     });
     var box = document.getElementById('tiles');

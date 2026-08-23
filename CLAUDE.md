@@ -2468,6 +2468,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **EVERY TILE WEARS ITS OWN PICTURE'S SHAPE (Aug 2026, Sophie: "i kind of
+  want the playground to show portrait aspect ratios to match my 2:3
+  pictures").** The wall forced `aspect-ratio: 1 / 1` and `object-fit: cover`
+  did the rest, so a 2:3 picture — nearly everything she draws here — lost a
+  third of itself to a crop on the one screen meant for scanning them; the
+  list view forced 2/3 the same way and cropped the square runs instead. The
+  ratio rides on the cell as `--ar`, written from the run's own
+  `aspectRatio`, with **portrait the fallback** for a run from before the
+  canvas toggle. **`minmax(0, 1fr)` + `align-items: start` on both grids is
+  load-bearing** — a bare `1fr` is `minmax(auto, 1fr)` and a square cell's
+  automatic minimum width is TRANSFERRED from the row's height through its
+  own aspect ratio, so one square on a row of portraits blew its column out
+  to 132px and squeezed the other three to 73 (measured). A waiting
+  placeholder carries the shape its picture is about to be (`ar` on the
+  pending entry), so the wall does not re-flow when it lands. Test: `node
+  scripts/test-playground-tile-shape.js` — a MEASUREMENT of the real boxes,
+  because `object-fit: cover` makes a wrong ratio look like a fine picture
+  (verified failing 4 of 8 against the pre-fix page).
   **A SEARCH BAR SITS IN THE ROW THAT WAS ALREADY THERE (Aug 2026, Sophie: "a
   little search bar that fits in the space between the heart toggle (next to
   tiles/grid)").** `flex: 1` between the heart and the 56px the autoscroll pill
