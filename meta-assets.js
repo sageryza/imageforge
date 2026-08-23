@@ -38,14 +38,14 @@ const urlKey = (u) => String(u || '').split('?')[0].split('#')[0].trim().toLower
  * promptContent, kind, alts}) plus `chat`.
  *
  * `creations` (optional) are the iOS gallery's docs, mapped to
- * {url, ms, prompt, type, model, quality, style}. The ones a CHAT filed ride
+ * {url, ms, prompt, type, model, quality, size, style}. The ones a CHAT filed ride
  * in as hook copies labeled "from <chat>" and already have a chat row — those
  * are skipped, as is any url a chat row (or its alts) already shows. What
  * survives is the APP-MADE work (stickers, dream pages, in-app generations),
  * which lives nowhere in forge-chat-assets and would otherwise vanish the day
  * the My Creations tile points here. Those rows join as the 'my-creations'
  * bucket: prompt→description (it is what the tile is reviewed by, exactly how
- * CreationsView showed it), model·quality→the caption slot, and — for plain
+ * CreationsView showed it), model·quality·size→the caption slot, and — for plain
  * images — the prompt also lands in promptContent so the PROMPT overlay and
  * the Playground button work on them too. `app:true` marks them so the page
  * can skip the open-the-chat button (there is no chat to open).
@@ -73,11 +73,18 @@ function buildMetaAssets(docs, creations) {
     const p = String(c.prompt || '');
     if (/^from /.test(p)) return;            // a chat deliverable's hook copy
     if (seenUrls.has(urlKey(c.url))) return; // already a chat's tile
-    const made = [c.model, c.quality].map((v) => String(v || '').trim())
+    // MODEL · QUALITY · SIZE — the size is the third required slot since Aug
+    // 2026 (Sophie: "1K 2K 4K should be a third slot in the model/quality
+    // required tagging"). gpt-image-2 draws any canvas, so the first two no
+    // longer say what a picture is: the same prompt at the same quality can
+    // differ 5x in pixels and 3x in price. Absent on everything filed before
+    // the field existed, and an absent slot is simply left out rather than
+    // guessed — there is nothing on those records that says how big they are.
+    const made = [c.model, c.quality, c.size].map((v) => String(v || '').trim())
       .filter(Boolean).join(' · ') || String(c.style || '').trim();
     appRecs.push({
       url: c.url, ms: c.ms || 0,
-      prompt: made,                          // the MODEL · QUALITY caption slot
+      prompt: made,                          // the MODEL · QUALITY · SIZE caption slot
       description: p,                        // what she reviews it by
       promptContent: (c.type || 'image') === 'image' ? p : '',
       compressedAtBirth: c.compressedAtBirth === true,

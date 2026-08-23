@@ -5520,7 +5520,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality, size } = {}) {
   try {
     if (!images || !images.length) return;
     await storyDb();
@@ -5539,6 +5539,14 @@ async function fileRunToCreations(images, { prompt, style, model, quality } = {}
       // "model · quality" and shouldn't have to parse a label back apart.
       if (model) doc.model = String(model).slice(0, 80);
       if (quality) doc.quality = String(quality).slice(0, 40);
+      // THE THIRD SLOT (Aug 2026, Sophie: "1K 2K 4K should be a third slot in
+      // the model/quality required tagging"). gpt-image-2 draws any canvas, so
+      // model and quality alone stopped saying what a picture is — the same
+      // prompt at the same quality spans 5x in pixels and 3x in price across
+      // the tiers. The gallery and Meta Assets both read it as the caption's
+      // last part; absent on anything filed before the field existed, and an
+      // absent slot is left out rather than guessed.
+      if (size) doc.size = String(size).slice(0, 40);
       await col.add(doc);
     }
   } catch (err) {
@@ -5590,7 +5598,7 @@ async function runPromptLabGptJob(docRef, cfg) {
     await docRef.update({ status: 'done', images, failedRenders: failed });
     fileRunToCreations(images, {
       prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
-      model: PL_GPT.id, quality: cfg.quality,
+      model: PL_GPT.id, quality: cfg.quality, size: cfg.size || PL_GPT.size,
     });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
