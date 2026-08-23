@@ -9,8 +9,16 @@
   [hidden]{display:none !important}
   body{background:#f6f2ea;color:#2b2620;font:16px/1.45 -apple-system,BlinkMacSystemFont,Georgia,serif;
        padding:14px 12px 40px;-webkit-text-size-adjust:100%}
-  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9a8f7d}
-  h1{font:26px/1.15 Georgia,serif;margin:2px 0 2px;padding-right:56px}
+  /* THE PAGE'S OWN HEADER BAND — a real row for pagehead.js to put its back
+     chevron into (Aug 2026). This page had no header element at all, so on the
+     new build pagehead.js fell to its last resort and FLOATED the chevron in
+     the corner, where it landed on top of the title. The house shape is the
+     Playground's: caps, letter-spaced, one row, the pill's corner reserved.
+     On the OLD build the native bar still says Freeform, and the server's
+     ?embed=1 rule hides `.app-header` — never two titles. */
+  .app-header{display:flex;align-items:center;min-height:34px;padding-right:64px;margin:0 0 8px}
+  .app-header h1{font:400 11px/1 -apple-system,'Helvetica Neue',sans-serif;letter-spacing:.34em;
+                 text-transform:uppercase;color:#6f675e;margin:0}
   .lede{color:#7a6f60;font-size:13px;margin-bottom:16px;padding-right:56px}
   .panel{background:#fff;border:1px solid #e0d8ca;border-radius:6px;padding:12px;margin-bottom:14px}
   .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a8f7d;margin-bottom:7px}
@@ -58,8 +66,7 @@
 </style>
 </head>
 <body>
-<div class="eyebrow">Image Forge</div>
-<h1>Freeform</h1>
+<header class="app-header"><h1>Freeform</h1></header>
 <p class="lede">Your references, your words, nothing added. Whatever you type is exactly what gets sent —
 no style prompt, no trigger word, no extra lines. If you want a style, say it yourself.</p>
 
@@ -133,8 +140,28 @@ function toast(msg) {
 // empty paper toggles it — stop, tap again to start (__scrollTap, the shared
 // pill's own content-tap gesture). Images are excluded here because the
 // lightbox open/close below owns their scroll behavior.
+// THE PILL'S OWN BUTTONS ARE NOT THE PAGE'S, AND THE QUESTION IS ASKED AT
+// POINTERDOWN (found live Aug 2026 — the play button did nothing at all here,
+// and neither did the arrows). Two things had to be true at once. `.vseg
+// button` is a <button>, so the skip list below called it interactive: play
+// started the scroll and this handler stopped it in the same click — every
+// other page that wires a document tap excludes `.float` first (compare.js,
+// cuttingroom, cutmarks, assets) and this one never did. And a `.float` test
+// at CLICK time cannot see it anyway: the tap lands on the play triangle's
+// <polygon>, and paintPill replaces the button's innerHTML the instant the
+// scroll starts — so by the time the click bubbles here the tapped node is
+// detached and closest() walks a subtree with no `.float` left in it. That is
+// the same detached-node trap the Assets lightbox hit. Asked at pointerdown,
+// while the node is still in the page, and remembered for the one gesture.
+var pillTap = false;
+document.addEventListener('pointerdown', function (e) {
+  var t = e.target;
+  try { pillTap = !!(t && t.closest && t.closest('.float')); } catch (_) { pillTap = false; }
+}, true);
 document.addEventListener('click', function (e) {
   var t = e.target;
+  var fromPill = pillTap; pillTap = false;
+  if (fromPill || (t && t.closest && t.closest('.float'))) return;
   if (t && t.closest && (t.closest('#lb') || t.closest('img[data-full]'))) return;
   var interactive = (window.__pillInteractive && window.__pillInteractive(t)) ||
                     (t && t.closest && t.closest('.ref'));   // library tiles select refs
@@ -144,8 +171,15 @@ document.addEventListener('click', function (e) {
   }
   if (window.__scrollTap) window.__scrollTap(e);
 });
-// Typing focus (keyboard up) always pauses, even without a click landing.
-document.addEventListener('focusin', function () {
+// Typing focus (keyboard up) always pauses, even without a click landing —
+// but focus landing on the PILL's own button is the pill being used, not the
+// page (a button takes focus on tap, so this stopped the scroll the play
+// button had just started, one listener after the click guard above).
+document.addEventListener('focusin', function (e) {
+  var t = e && e.target;
+  // the focus target here is the pill's BUTTON, never the glyph inside it, so
+  // it is still in the page and closest() alone answers this one
+  if (t && t.closest && t.closest('.float')) return;
   if (window.__scrollStop) window.__scrollStop();
 });
 
