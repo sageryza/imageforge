@@ -1873,7 +1873,14 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   lands on a rung) and normalises on READ as well as on write, so records filed
   with `1568x2352` display as `2K` with no backfill. The exact canvas is kept
   beside it as `canvas`, because 2K portrait and 2K square are different
-  canvases at different prices. Model and quality alone answered the question
+  canvases at different prices.
+  **A PANEL CUT OUT OF A SHEET SAYS SO INSTEAD — `1/4 (4K)`** (Aug 2026,
+  Sophie: "1/4 panel could say 1/4 (4k)"). Its own pixels are the wrong answer
+  there: a quarter of a 4K sheet is 1168x1752, which lands on the 1K rung and
+  reads as an ordinary small picture, losing the one fact that says what it is
+  and what it cost. `cutSize(sheetCanvas, parts)` builds the slot, it passes
+  through the normaliser untouched, and `scripts/panel-sheet.js` prints the
+  file-ready caption for the sheet and for every piece. Model and quality alone answered the question
   while every surface here drew 1024x1536 and nothing else; gpt-image-2 takes
   any canvas, so the same prompt at the same quality now spans 5x in pixels and
   3x in price and the caption has to say which. It rides all three surfaces:
@@ -1881,7 +1888,21 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   takes `--size`, and `meta-assets.js` joins the three parts. **An absent slot
   is left out, never guessed** — nothing on an older record says how big it is,
   exactly as with quality.
-  (it upgrades an already-filed tile in place; search matches it). And when a
+  (it upgrades an already-filed tile in place; search matches it).
+  **AND A RE-POST CAN NOW CORRECT A CAPTION, WHICH IT COULD NOT UNTIL
+  2026-08-23.** The write only landed on a BLANK or a generic `from <chat>`
+  record, so re-POSTing to FIX one answered `ok:true, deduped:true` and
+  changed nothing, silently — while this file promised it upgraded the tile in
+  place. It was found backfilling the cut panels, and it is why every image
+  filed before the third slot became the TIER was stuck showing a raw canvas
+  that no chat could correct. One rule now, `assetGuard.captionUpgrade`, read
+  by the route: **a curated caption always wins, including over another
+  curated one** (nothing but a deliberate chat filing ever sends one, so
+  curated → curated is someone fixing something), and **a `from <chat>` line
+  never overwrites anything** — that is the hook's background catch, and the
+  half the old rule existed to stop. Pinned by
+  `node scripts/test-asset-guard.js`, which also fails if the condition is
+  ever re-inlined into `server.js`. And when a
   style prompt has an author worth knowing — Claude's own text vs ChatGPT's vs
   Sophie's formula — name it in the description label ("style prompt by
   ChatGPT").
