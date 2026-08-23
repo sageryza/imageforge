@@ -117,8 +117,12 @@ const server = http.createServer((req, res) => {
         return json({ ok: true, uploads });
       }
       if (url.pathname === '/api/scratchpad/clip') {
+        // Mirrors the real route: the clip lands in the STYLE's slot — the
+        // beat root for watercolor, alt.dreamy under dreamy.
         const c = b.clip || {};
-        const beat = { id: 'b' + (beats.length + 1), kind: 'clip', url: c.url, poster: c.poster, title: c.title, color: null };
+        const fields = { kind: 'clip', url: c.url, poster: c.poster, title: c.title };
+        const beat = { id: 'b' + (beats.length + 1), color: null };
+        if (b.style === 'dreamy') beat.alt = { dreamy: fields }; else Object.assign(beat, fields);
         beats.splice(Number.isInteger(b.at) ? b.at : beats.length, 0, beat);
       }
       json({ ok: true, beats, style: padStyle });
@@ -239,7 +243,7 @@ const server = http.createServer((req, res) => {
     'it tiles in the grid wearing the film mark');
   ok((await page.$$('#inboxgrid video')).length === 0, 'no <video> in the grid');
 
-  // placing it: tap → the lines → a slot → POST /clip
+  // placing it: tap → the lines → a slot → POST /clip, carrying the style
   await page.click('#inboxgrid button');
   await page.waitForSelector('#pad .slot');
   await page.click('#pad .slot');
@@ -247,6 +251,21 @@ const server = http.createServer((req, res) => {
   const placed = posted.find(([p]) => p === '/api/scratchpad/clip');
   ok(Boolean(placed) && placed[1].clip.url.includes('up1.mp4'),
     'placing the movie makes a CLIP beat via POST /clip, never /add');
+  ok(Boolean(placed) && placed[1].style === 'dreamy',
+    'the clip carries the style — it lands on the side she is showing');
+  await page.waitForFunction(() => document.querySelectorAll('#pad .fmark').length === 1);
+  ok(true, 'under dreamy the new beat tiles as the movie (film mark on)');
+
+  // 6 — the movie belongs to the DREAMY side only (2026-08-23, Sophie: "the
+  // beats should be added, but the Art should not"): back on watercolor the
+  // beat is there and honestly blank.
+  await page.click('#swwater');
+  await page.waitForFunction(() => document.getElementById('styletog').getAttribute('data-a') === '1');
+  ok((await page.$$('#pad .beat')).length === 3, 'the placed beat stays in the order on watercolor');
+  ok((await page.$$('#pad .fmark')).length === 0 &&
+     (await page.$$eval('#pad .beat img', (els) => els.map((e) => e.src)))
+       .every((s) => !s.includes('po1')),
+    'but the movie itself is not on the watercolor side — no poster, no film mark');
 
   await browser.close();
   server.close();

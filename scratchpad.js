@@ -90,10 +90,14 @@ const CLIPS = process.env.CLIPS_COLLECTION || 'forge-clip-library';
 // true of it: nothing DRAWS a clip (the star/Playground/inbox doors are for
 // pictures), and in the film **the clip's own sound is its voice** — a TTS
 // read of its note would talk over what is already on the tape.
-const isClip = (b) => Boolean(b && b.kind === 'clip');
-// What a beat shows as a PICTURE — a clip's face is its poster, never its
+// Per-SLOT clip test — since the style toggle, a clip lives in the art slot
+// it was placed in (the beat root IS the watercolor slot, so every
+// pre-toggle clip record reads unchanged), and "is this a clip" is a
+// question about a SIDE, not the beat.
+const slotClip = (s) => Boolean(s && s.kind === 'clip');
+// What a slot shows as a PICTURE — a clip's face is its poster, never its
 // mp4 (the shelf tile and the story cover are <img>).
-const beatArt = (b) => (b ? (isClip(b) ? (b.poster || null) : (b.url || null)) : null);
+const slotFace = (s) => (slotClip(s) ? (s.poster || null) : ((s && s.url) || null));
 
 // A beat's note read aloud — Sophie's professional ElevenLabs clone
 // ("Sophie — morning") on eleven_multilingual_v2, the Voice Studio recipe.
@@ -140,8 +144,11 @@ function artRef(file) {
 // a parallel slot, `beat.alt.dreamy` ({url, src, gen, imageHistory}), empty
 // until she fills it. `pad.style` remembers which side the story is showing;
 // requests that touch ART carry `style` so a stale page can never draw into
-// the wrong side. A CLIP beat is footage, not drawn art — it is the same in
-// both styles and never uses a slot.
+// the wrong side. A CLIP is per-style TOO (2026-08-23, Sophie, after movies
+// she added on the dreamy side showed up on watercolor: "The beats should be
+// added, but the Art should not") — a slot holds a picture OR a clip
+// (kind:'clip' + poster/seconds/title/clipId on the slot), so a movie placed
+// under dreamy leaves the watercolor side exactly as it was.
 const STYLES = ['watercolor', 'dreamy'];
 const styleOf = (req) => {
   const s = String((req.body && req.body.style) || req.query.style || '');
@@ -495,8 +502,8 @@ router.get('/pads', async (req, res) => {
       // The shelf face follows the toggle — the side the story is showing —
       // falling back to the other side so a tile is never blank while any
       // art exists at all.
-      const faceOf = (b) => (isClip(b) ? beatArt(b)
-        : (artSlot(b, style).url || b.url || (b.alt && b.alt.dreamy && b.alt.dreamy.url) || null));
+      const faceOf = (b) => slotFace(artSlot(b, style))
+        || slotFace(b) || slotFace((b.alt && b.alt.dreamy) || null);
       const withArt = beats.find((b) => faceOf(b));
       // A seeded story keeps its art in its own inbox until it is placed on
       // the timeline, so the shelf cover falls back there — a tile is a real
@@ -556,9 +563,7 @@ router.post('/cover', async (req, res) => {
     // The cover comes off the side she is LOOKING at — a dreamy beat's popup
     // pins the dreamy picture, never silently the watercolor one.
     const style = styleOf(req);
-    const art = beat && !isClip(beat) && style === 'dreamy'
-      ? (artSlot(beat, style).url || null)
-      : beatArt(beat);
+    const art = beat ? slotFace(artSlot(beat, style)) : null;
     if (!art) return res.status(400).json({ error: 'that beat has no art' });
     await padRef(pid).set({ cover: art }, { merge: true });
     res.json({ ok: true, pad: pid, cover: art });
@@ -674,11 +679,11 @@ router.post('/image', async (req, res) => {
       const cur = (snap.exists && Array.isArray(snap.data().beats)) ? snap.data().beats : [];
       const b = cur.find((x) => x.id === id);
       if (!b) throw new Error('no such beat');
-      // Swapping a picture into a clip beat makes it a picture beat again —
-      // leaving `kind` behind would render an image url as a film. (A clip is
-      // the same in both styles, so this holds whichever side is showing.)
-      if (isClip(b)) { delete b.kind; delete b.poster; delete b.seconds; delete b.title; delete b.clipId; delete b.url; }
       const slot = artSlot(b, style, true);
+      // Swapping a picture into a clip SLOT makes that side a picture again —
+      // leaving `kind` behind would render an image url as a film. Only this
+      // side: the other style's clip (or picture) is untouched.
+      if (slotClip(slot)) { delete slot.kind; delete slot.poster; delete slot.seconds; delete slot.title; delete slot.clipId; delete slot.url; }
       // The picture this side already had is kept, never destroyed.
       if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
       slot.url = url;
@@ -725,12 +730,17 @@ router.get('/shelf', async (req, res) => {
 // `id` it drops into that (usually blank) beat, exactly like picking a
 // picture out of the inbox does. Only the fields the pad draws and renders
 // are stored — the library doc stays the truth for everything else.
+// PER STYLE since 2026-08-23 (see the STYLE TOGGLE block): the clip lands in
+// the side she is showing, so a movie placed under dreamy never touches the
+// watercolor art — the very first live use of the toggle put three movies
+// onto both sides, two of them OVER existing watercolor panels.
 router.post('/clip', async (req, res) => {
   try {
     const pid = padIdOf(req);
     const c = (req.body && typeof req.body.clip === 'object' && req.body.clip) || {};
     const url = String(c.url || '').trim();
     if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: 'clip url must be http(s)' });
+    const style = styleOf(req);
     const fields = {
       kind: 'clip',
       url,
@@ -746,17 +756,17 @@ router.post('/clip', async (req, res) => {
       if (beatId) {
         const b = cur.find((x) => x.id === beatId);
         if (!b) throw new Error('no such beat');
-        // A picture this beat already had is kept, never destroyed.
-        if (b.url && !isClip(b)) b.imageHistory = (b.imageHistory || []).concat([{ url: b.url, at: Date.now() }]);
-        Object.assign(b, fields);
-        delete b.gen;
+        const slot = artSlot(b, style, true);
+        // A picture this side already had is kept, never destroyed.
+        if (slot.url && !slotClip(slot)) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
+        Object.assign(slot, fields);
+        delete slot.gen;
       } else {
         let at = Number(req.body.at);
         if (!Number.isInteger(at) || at < 0 || at > cur.length) at = cur.length;
-        cur.splice(at, 0, {
-          id: db().collection(COL).doc().id, color: null, src: null,
-          addedAt: Date.now(), ...fields,
-        });
+        const beat = { id: db().collection(COL).doc().id, color: null, src: null, addedAt: Date.now() };
+        Object.assign(artSlot(beat, style, true), fields);
+        cur.splice(at, 0, beat);
       }
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
@@ -915,10 +925,11 @@ router.post('/drawall', async (req, res) => {
     const character = style !== 'dreamy';   // dreamy never takes the Sophie card
     const pad = await readPad(pid);
     // "Missing" is per STYLE: a beat whose watercolor is drawn but whose
-    // dreamy slot is empty is exactly what the toggle exists to fill.
+    // dreamy slot is empty is exactly what the toggle exists to fill — and a
+    // beat that is a CLIP on the other side still draws on this one (a clip
+    // slot itself never draws).
     const targets = pad.beats
-      .filter((b) => !isClip(b))
-      .filter((b) => { const s = artSlot(b, style); return !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
+      .filter((b) => { const s = artSlot(b, style); return !slotClip(s) && !s.url && !(s.gen && s.gen.status === 'drawing') && drawablePrompt(b.text); })
       .map((b) => ({ id: b.id, prompt: drawablePrompt(b.text) }));
     if (!targets.length) return res.status(400).json({ error: 'every beat with words already has its picture' });
     const ids = new Set(targets.map((t) => t.id));
@@ -959,8 +970,9 @@ router.post('/generate', async (req, res) => {
     // the watercolor look, the wrong reference there).
     const character = style === 'dreamy' ? false : (req.body.character === false ? false : true);
     const beats = await patchBeat(pid, id, (b) => {
-      if (isClip(b)) throw new Error('nothing draws a clip');
-      artSlot(b, style, true).gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
+      const slot = artSlot(b, style, true);
+      if (slotClip(slot)) throw new Error('nothing draws a clip');
+      slot.gen = { status: 'drawing', prompt, quality, character, at: Date.now() };
     });
     runArtJob(pid, id, { prompt, quality, character, style });   // fire and forget
     res.json({ ok: true, beats });
@@ -1034,6 +1046,8 @@ router.post('/voice', async (req, res) => {
 // whole shot, while a clip's audio has to come off the source anyway, so a
 // cache would save the encode and still pay the download. Clips here are
 // short by construction (they come off the Chunking shelf).
+// `beat` here is the shot's ART SLOT (the beat root for watercolor, the
+// dreamy slot under dreamy) — it carries the clip's url/title either way.
 async function clipSegment(dir, u, beat) {
   const src = path.join(dir, `c${u}-src`);
   await fetchTo(beat.url, src);
@@ -1065,10 +1079,10 @@ async function runFilmJob(padId) {
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
     // The film is the SIDE the story is showing: the toggled style's art
-    // (clips are the same in both). A beat with no art in this style is
-    // simply not a shot — same as a blank beat always was.
+    // AND its clips (both live in the slot). A beat with nothing in this
+    // style is simply not a shot — same as a blank beat always was.
     const style = pad.style;
-    const shots = pad.beats.filter((b) => (isClip(b) ? b.url : artSlot(b, style).url));
+    const shots = pad.beats.filter((b) => artSlot(b, style).url);
     if (!shots.length) throw new Error('draw some art first — the film is made of the pictures and clips');
 
     const segs = [];      // { file } per picture
@@ -1077,10 +1091,11 @@ async function runFilmJob(padId) {
     let total = 0;
     for (let u = 0; u < shots.length; u++) {
       const lead = shots[u];
+      const slot = artSlot(lead, style);
       // A FILM CLIP is its own shot, whole: its pictures, its sound, its
       // length. No TTS — reading its note aloud would talk over the tape.
-      if (isClip(lead)) {
-        const cut = await clipSegment(dir, u, lead);
+      if (slotClip(slot)) {
+        const cut = await clipSegment(dir, u, slot);
         segs.push(cut.seg);
         auds.push(cut.wav);
         total += cut.seconds;
@@ -1128,7 +1143,7 @@ async function runFilmJob(padId) {
       total += seconds;
 
       // One picture per shot, held for its whole audio — the active style's.
-      const pics = [{ url: artSlot(lead, style).url }];
+      const pics = [{ url: slot.url }];
       const each = seconds;
       for (let p = 0; p < pics.length; p++) {
         const seg = path.join(dir, `s${u}-${p}.mp4`);
@@ -1208,7 +1223,7 @@ router.post('/film', async (req, res) => {
   try {
     const pid = padIdOf(req);
     const pad = await readPad(pid);
-    if (!pad.beats.some((b) => (isClip(b) ? b.url : artSlot(b, pad.style).url))) {
+    if (!pad.beats.some((b) => artSlot(b, pad.style).url)) {
       return res.status(400).json({ error: 'draw some art first' });
     }
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });

@@ -592,11 +592,14 @@ var player=new Audio();
    (beat.url/src/gen/imageHistory); "dreamy" lives in beat.alt.dreamy, empty
    until she fills it. slotOf() is the one accessor — everything that touches
    ART goes through it, so the rest of the page never asks which side is up.
-   A CLIP is footage, not drawn art: the same in both styles, never a slot. */
+   A CLIP is per-style TOO (2026-08-23, Sophie, after movies she added on
+   the dreamy side showed up on watercolor): a slot holds a picture OR a
+   clip, so "is this a clip" is a question about the side she is showing. */
 var padStyle='watercolor';
 function slotOf(b){
-  return (padStyle==='dreamy'&&!isClip(b)) ? ((b.alt&&b.alt.dreamy)||{}) : b;
+  return padStyle==='dreamy' ? ((b.alt&&b.alt.dreamy)||{}) : b;
 }
+function clipOf(b){ var s=slotOf(b); return Boolean(s&&s.kind==='clip'); }
 function slotDrawing(b){ var s=slotOf(b); return Boolean(s.gen&&s.gen.status==='drawing'); }
 function renderStyle(){
   document.getElementById('styletog').setAttribute('data-a', padStyle==='dreamy'?'2':'1');
@@ -695,11 +698,16 @@ function padUnits(){
    POSTER with a film mark, never as a <video>: a page of decoding videos is
    what makes a phone crawl, and the pad is a thinking surface. */
 function isClip(b){ return Boolean(b&&b.kind==='clip'); }
-/* What a beat SHOWS — the active style's picture (a clip's face is always
-   its poster). Under dreamy an undrawn beat is honestly blank. */
-function artOf(b){ return b?(isClip(b)?(b.poster||null):(slotOf(b).url||null)):null; }
-/* A beat that is a SHOT in the current style's film — art, or a clip. */
-function hasShot(b){ return isClip(b)?Boolean(b.url):Boolean(slotOf(b).url); }
+/* What a beat SHOWS in the current style — the slot's picture, or its
+   clip's poster. Under dreamy an unfilled beat is honestly blank. */
+function artOf(b){
+  if(!b)return null;
+  var s=slotOf(b);
+  return s.kind==='clip'?(s.poster||null):(s.url||null);
+}
+/* A beat that is a SHOT in the current style's film — art, or a clip
+   (both live on the slot's url). */
+function hasShot(b){ return Boolean(slotOf(b).url); }
 var FILM_TRI='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5z"/></svg>';
 function filmMark(mid){
   var m=document.createElement('span'); m.className='fmark'+(mid?' mid':'');
@@ -709,7 +717,7 @@ function filmMark(mid){
 function fillTile(el, b){
   var art=artOf(b);
   if(art){ var im=document.createElement('img'); im.src=art; im.alt=''; el.appendChild(im); }
-  if(isClip(b)) el.appendChild(filmMark(!art));
+  if(clipOf(b)) el.appendChild(filmMark(!art));
 }
 function capFor(wrap, b){
   if(!b.text)return;
@@ -920,8 +928,8 @@ function drawables(){
   // Per STYLE: a beat whose watercolor is drawn but whose dreamy slot is
   // empty is exactly what the toggle exists to fill.
   return beats.filter(function(b){
-    if(isClip(b))return false;
     var s=slotOf(b);
+    if(s.kind==='clip')return false;   // a clip slot never draws; the OTHER side still can
     return !s.url && !(s.gen&&s.gen.status==='drawing') && stripSpeech(b.text);
   });
 }
@@ -1374,7 +1382,7 @@ function pick(it){
   if(fillBeat){
     var target=fillBeat; fillBeat=null;
     var body, path;
-    if(it.film){ path='/clip'; body={id:target.id, clip:it.clip}; }
+    if(it.film){ path='/clip'; body={id:target.id, clip:it.clip, style:padStyle}; }
     else {
       path='/image';
       // style rides along so the picture lands on the side she is looking at
@@ -1398,7 +1406,7 @@ function pick(it){
 function place(at, it){
   it=it||pending; if(!it)return; pending=null;
   var body={at:at}, path='/add';
-  if(it.film){ path='/clip'; body.clip=it.clip; }
+  if(it.film){ path='/clip'; body.clip=it.clip; body.style=padStyle; }
   else if(!it.empty){
     body.url=it.url; body.style=padStyle;
     if(it.runId!==undefined) body.src={runId:it.runId,i:it.i,prompt:it.prompt,model:it.model,engine:it.engine,quality:it.quality};
@@ -1428,11 +1436,12 @@ function openBeat(b){
   popBeat=b;
   var im=document.getElementById('popimg'), bl=document.getElementById('popblank');
   var vid=document.getElementById('popvid');
-  var clip=isClip(b);
   // The popup shows the side the toggle is showing — under dreamy an
-  // undrawn beat opens BLANK, with its shared words underneath, which is
-  // exactly the fill-it-in state the toggle exists for.
+  // unfilled beat opens BLANK, with its shared words underneath, which is
+  // exactly the fill-it-in state the toggle exists for. A clip is the
+  // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
+  var clip=su.kind==='clip';
   // Same size as it sits on the pad — the popup never blows the ART up. A
   // CLIP is the exception and takes the card's width: it is a film, and one
   // playing at 90px is not a preview.
@@ -1441,8 +1450,8 @@ function openBeat(b){
   im.hidden=clip||!su.url; bl.hidden=clip||Boolean(su.url); vid.hidden=!clip;
   bl.style.width=w;
   if(clip){
-    if(vid.src!==b.url){ vid.src=b.url; }
-    if(b.poster) vid.poster=b.poster; else vid.removeAttribute('poster');
+    if(vid.src!==su.url){ vid.src=su.url; }
+    if(su.poster) vid.poster=su.poster; else vid.removeAttribute('poster');
     vid.className=b.color?'c-'+b.color:'';
   } else if(su.url){ im.style.width=w; im.src=su.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
@@ -1625,7 +1634,7 @@ document.querySelectorAll('.chip').forEach(function(c){
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
-    document.getElementById(isClip(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
+    document.getElementById(clipOf(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
     document.querySelectorAll('.chip').forEach(function(x){
       x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
     });

@@ -171,8 +171,19 @@ All 12 NDE-category stories were linked to their montage episodes on
   - **The film is the side the story is showing** — `runFilmJob` reads
     `pad.style` and stamps `style` on the render, which is how the page
     knows a watercolor cut is not the dreamy film (the toggle never bumps
-    updatedAt, so this is the freshness signal across a flip). A CLIP beat
-    is footage, not drawn art: the same in both styles, never a slot.
+    updatedAt, so this is the freshness signal across a flip).
+  - **A CLIP is per-style TOO (2026-08-23, Sophie — the first live use of
+    the toggle taught this).** The design shipped with clips shared between
+    the sides ("footage, not drawn art") and she overruled it within the
+    hour: three movies she placed under dreamy showed up on watercolor, two
+    of them OVER existing panels ("The beats should be added, but the Art
+    should not"). So a SLOT holds a picture or a clip — `kind:'clip'` +
+    poster/seconds/title/clipId live on the slot, the beat root being the
+    watercolor slot (every pre-toggle clip record reads unchanged) —
+    `slotClip`/`slotFace` in scratchpad.js, `clipOf` on the page, and
+    `/clip` carries `style` like every other art write. A beat can be a
+    movie on one side and a drawn picture (or blank) on the other; drawall
+    still fills the non-clip side.
 - **ADDING FROM HER PHONE (Aug 2026, Sophie: "add clips right from my phone
   into the inbox … a file picker that looks in my photos so I can add movies
   or photos").** The upload button in the add sheet's header opens the
