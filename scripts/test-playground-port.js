@@ -204,8 +204,12 @@ ok(/square:\s*\{\s*size:\s*'1024x1024'/.test(plgptOne), 'square is 1024x1024');
 // flat PL_GPT.sizes onto PL_GPT.res — the rule it is guarding is unchanged.)
 ok(/PL_GPT\.res\[String\(req\.body\.canvas \|\| ''\)\] \? String\(req\.body\.canvas\) : 'portrait'/.test(serverSrc),
   'an unknown canvas still falls back to a REAL size on the server, never an invented one');
-ok(/var canvas = 'square'/.test(pageSrc),
-  'the page opens on SQUARE (Sophie\'s call, made knowing it is the dearer one)');
+// SQUARE is the first-ever default only — the shape is REMEMBERED since Aug
+// 2026 ("make it not default to square, but just whatever the last option
+// was"), so what this pins now is that an unknown stored value still falls
+// back to a real shape rather than riding through as an invented one.
+ok(/localStorage\.getItem\('promptlab_canvas'\) : 'square'/.test(pageSrc),
+  'the page falls back to SQUARE when nothing valid is stored');
 ok(/size:\s*cfg\.size \|\| PL_GPT\.size/.test(serverSrc),
   'the render job uses the RUN\'s size, not the module default');
 // The page must not carry its own copy of the style prompt — that is the whole

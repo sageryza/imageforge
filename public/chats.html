@@ -1184,46 +1184,38 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
   font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink2); -webkit-tap-highlight-color:transparent;}
 .archlink:active{color:var(--ink);}
-/* WHICH ACCOUNT THE APP IS SIGNED INTO — three positions since Aug 2026
-   (Sophie: "make it a three-way toggle now so there's a left, right and
-   middle option — left is account one, middle account two, right account
-   three; whichever is toggled is the one I'm signed in on, and the other ones
-   go to the website version"). It was an on/off iOS switch back when there
-   were two accounts, and an on/off switch has nowhere to put a third state.
-   It is a segmented control now: three digit slots with a marker sliding
-   under the live one, so the header says WHICH account rather than "the other
-   one".
-   THE MARKER IS INK, NOT RED. The old switch turned `--chg` red in its ON
-   position, which was readable when off was the resting state — with three
-   positions one is ALWAYS live, so red would sit permanently in the masthead.
-   Same reasoning that took the red off the account tabs (Sophie: "make it not
-   red, just black"): which account she is on is not an alarm.
-   IT IS A ROUNDED RECTANGLE, NOT A PILL. The circular track was the
-   sanctioned no-pills exception because it was a toggle with no words in it;
-   these are digits, i.e. text buttons, so the marker is the house 6px.
-   The slot width is declared ONCE (--sw) and the marker's offsets are
-   multiples of it, so re-sizing the control cannot leave the marker behind,
-   and a fourth account is one more rule of the same shape.
-   IT HAS NO TRACK, AND THAT IS A MEASUREMENT, NOT A STYLE CHOICE. The
-   masthead is the one row in this app that has run out of room before (five
-   controls plus the title put the bookmark button under the word "Chats", so
-   tapping the title opened Bookmarks). Measured at 375/390 on the real page:
-   the controls fill 205.8px and the title needs every pixel left over — the
-   old switch was 42px, and a third slot inside a bordered track came to 57px,
-   which put the controls back over the title at her own 390. Three bare
-   16px digit slots with the live one boxed come to 48px, and the row's gap
-   tightened 6px→4px pays for the rest: 205.7px, i.e. the header is exactly
-   where it was. Any future control on this row gets measured the same way. */
-.swi3{--sw:16px; position:relative; display:flex; align-items:center; height:26px;
-  padding:0; margin:0; flex:none; -webkit-tap-highlight-color:transparent;}
-.swi3::after{content:''; position:absolute; top:3px; left:0; width:var(--sw); height:20px;
-  border-radius:6px; background:var(--ink); transition:transform .18s;}
-.swi3[data-a="2"]::after{transform:translateX(var(--sw));}
-.swi3[data-a="3"]::after{transform:translateX(calc(var(--sw) * 2));}
-.sw3{position:relative; z-index:1; width:var(--sw); height:26px; padding:0; border:none; background:none;
-  cursor:pointer; -webkit-tap-highlight-color:transparent;
-  font-family:-apple-system,sans-serif; font-size:11px; font-weight:600; color:var(--ink2);}
-.sw3.on{color:var(--paper);}
+/* WHICH ACCOUNT THE APP IS SIGNED INTO — the SAME iOS switch, with a third
+   notch (Aug 2026, Sophie, after a first attempt replaced it with a row of
+   digits: "i wanted a three way toggle — the exact red toggle, just with a
+   third slot/notch added"). So: the circular track and the round knob exactly
+   as they were, and the knob now has THREE stops — left = account 1, middle =
+   2, right = 3. Tapping anywhere on it moves to the next notch and wraps, the
+   way the two-state one flipped; the toast names the account it landed on.
+   Still the sanctioned exception to no-pills — it is a toggle, not a text
+   button.
+   THE TRACK IS RED IN EVERY POSITION now. It used to be grey for OFF and red
+   for ON, and with three stops there is no OFF for grey to mean — a third
+   colour would be inventing a state she never asked for.
+   THE STOPS ARE DERIVED, NOT TYPED: --k is the knob, --gap the travel between
+   notches, and each stop is a multiple of it. A fourth account is one more
+   rule of the same shape (and a wider --tw).
+   IT IS 48px WIDE, WHICH IS MEASURED, NOT CHOSEN. The masthead is the one row
+   in this app that has run out of room before (five controls plus the title
+   put the bookmark button under the word "Chats", so tapping the title opened
+   Bookmarks). The controls fill 205.8px and the title takes what is left; the
+   old two-stop switch was 42px, and the 6px this one costs are paid for by
+   tightening `.hctl`'s gap 6px→4px — the row measures 205.8px before and
+   after. A 42px track would have left the three stops only 8.5px apart, which
+   is not enough to tell the middle from either end. Anything else added to
+   that row gets measured the same way. */
+.swi{--tw:48px; --k:18px; --gap:11.5px;
+  position:relative; box-sizing:border-box; width:var(--tw); height:26px; border-radius:13px;
+  border:1.5px solid var(--chg); background:var(--chg);
+  padding:0; margin:0; flex:none; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.swi::after{content:''; position:absolute; top:2px; left:2px; width:var(--k); height:18px; border-radius:50%;
+  background:var(--paper); transition:transform .18s;}
+.swi[data-a="2"]::after{transform:translateX(var(--gap));}
+.swi[data-a="3"]::after{transform:translateX(calc(var(--gap) * 2));}
 .tbtn.play{display:inline-flex; align-items:center; gap:6px;}
 .backwrap{position:fixed; top:max(14px, env(safe-area-inset-top)); left:max(14px,4vw); z-index:9; display:none;}
 body.reading .backwrap{display:block;}
@@ -1512,7 +1504,7 @@ body.newspick > .float{display:none !important;}
                she is in the Archive (or the Trash itself), and it is an
                icon, which costs ~26px against the word's ~56px. -->
           <button id="trashlink" class="trashbtn" aria-label="Deleted chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
-          <div id="acctog" class="swi3" role="radiogroup" aria-label="Which Claude account is signed into the app"></div>
+          <button id="acctog" class="swi" aria-label="Which Claude account is signed into the app"></button>
         </div>
       </div>
       <div class="rule"></div>
@@ -1818,6 +1810,19 @@ function md(t){
 // which was the whole point. Do NOT reintroduce a text-based fallback: with no
 // signal this shows the message WHOLE, which is the honest default and exactly
 // what she had before the feature existed.
+//
+// BOLD IS ALWAYS FOR HER, so bold never goes inside the fold (Aug 2026,
+// Sophie: "working details was hiding a message meant for me … anything bold is
+// always for me. can it be an added decision metric"). The tool calls still
+// DECIDE where the work starts and stops — this is a second metric layered on
+// top of that one, and it can only ever un-hide: a bold line inside the middle
+// (a markdown heading renders bold too) keeps its place on screen and the
+// narration either side of it folds around it. That is why a message can carry
+// several fold buttons; the wiring has always allowed for it.
+//
+// Fenced code is skipped when looking for bold: a `**` inside a code block is
+// not a line meant for her, and cutting inside a fence would leave it
+// unbalanced and break the rendering of everything after it.
 function foldBody(text, head, tail){
   var s=String(text||'');
   var h=Number(head), t=Number(tail);
@@ -1828,12 +1833,33 @@ function foldBody(text, head, tail){
   // A short middle isn't worth a button — a fold that hides two lines is the
   // clutter this is meant to remove.
   if(mid.length<200) return md(s);
+  // Cut the middle into runs: a run carrying bold is hers and shows, the rest
+  // is narration and folds. With no bold in there at all this is ONE run and
+  // the result is exactly what it has always been.
+  var segs=[], fence=false;
+  mid.split('\n').forEach(function(l){
+    var mark=/^\s*```/.test(l);
+    if(mark) fence=!fence;
+    var hers=!fence && !mark && (/\*\*/.test(l) || /^\s{0,3}#{1,4}\s+\S/.test(l));
+    if(!segs.length || segs[segs.length-1].hers!==hers) segs.push({hers:hers, lines:[]});
+    segs[segs.length-1].lines.push(l);
+  });
   var top=s.slice(0,h).trim(), bot=s.slice(t).trim(), parts=[];
   if(top) parts.push(md(top));
-  parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
-    + '<div class="foldbody" hidden>'+md(mid)+'</div></div>');
+  segs.forEach(function(g){
+    var body=g.lines.join('\n').trim();
+    if(!body) return;
+    // Hers, or too little narration to be worth a button in front of it.
+    if(g.hers || body.length<200){ parts.push(md(body)); return; }
+    parts.push('<div class="fold"><button type="button" class="foldtog" aria-expanded="false">··· working details</button>'
+      + '<div class="foldbody" hidden>'+md(body)+'</div></div>');
+  });
   if(bot) parts.push(md(bot));
-  return parts.join('\n');
+  var out=parts.join('\n');
+  // Every run was hers or too short, so nothing folded — show the message whole
+  // rather than repainting it identically in pieces.
+  if(out.indexOf('foldtog')<0) return md(s);
+  return out;
 }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
 // previews/status lines: strip the marks instead of showing asterisks
@@ -7941,35 +7967,28 @@ document.getElementById('bmklink').onclick=function(){ setHomeView('bookmarks');
 // way the Update and Review doors on the same screen do.
 document.getElementById('iglink').onclick=function(){ location.href='/instagram'; };
 
-// Which Claude account is signed into the iOS app right now \u2014 the segmented
-// control in the header, one slot per account (ACCOUNTS). The one that is lit
-// is the one she is SIGNED IN ON; every other account's chats open on the WEB
-// instead, which openHref does by appending #no_universal_links so iOS hands
-// the link to the browser rather than to the Claude app.
-// It was a two-state on/off switch until a third account arrived (Aug 2026).
-// The slots are BUILT from ACCOUNTS rather than written out, so a fourth
-// account is one entry in that array \u2014 nothing here counts them.
+// Which Claude account is signed into the iOS app right now \u2014 the switch on
+// the header's title line. Its knob has one notch per account (ACCOUNTS) and
+// tapping moves to the next one, wrapping at the end, exactly the way the
+// two-state version flipped; the toast names where it landed, so the control
+// needs no label. The account it points at is the one she is SIGNED IN ON \u2014
+// every other account's chats open on the WEB instead, which openHref does by
+// appending #no_universal_links so iOS hands the link to the browser rather
+// than to the Claude app.
+// Nothing here counts accounts: the notches come from ACCOUNTS, so a fourth
+// one is an entry in that array plus a stop in the CSS.
 var acctog=document.getElementById('acctog');
-ACCOUNTS.forEach(function(v){
-  var b=document.createElement('button');
-  b.className='sw3'; b.type='button'; b.dataset.a=v; b.textContent=v;
-  b.setAttribute('role','radio');
-  b.setAttribute('aria-label','Signed into account '+v+' on this phone');
-  b.onclick=function(){ setAppAccount(v); };
-  acctog.appendChild(b);
-});
 function paintAcct(){
   var cur=appAccount();
   acctog.setAttribute('data-a', cur);
-  Array.prototype.forEach.call(acctog.querySelectorAll('.sw3'), function(b){
-    var on=b.dataset.a===cur;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-checked', on?'true':'false');
-  });
+  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap for the next one');
 }
-function setAppAccount(next){
-  var prev=appAccount();
-  if(next===prev) return;                     // tapping the lit slot is a no-op
+acctog.onclick=function(){
+  var prev=appAccount(), i=ACCOUNTS.indexOf(prev);
+  // an account the switch has never heard of (a hand-set tag, a future one)
+  // still has somewhere to go: indexOf is -1, so the next tap lands on the
+  // first notch rather than doing nothing at all
+  var next=ACCOUNTS[(i+1) % ACCOUNTS.length];
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
   // The account tabs default to whichever account the app is on, so moving
   // this switch moves the list too \u2014 unless she has already picked a tab by
@@ -7979,7 +7998,7 @@ function setAppAccount(next){
     .then(function(r){return r.json()})
     .then(function(d){ if(!d.ok) throw 0; toast('The app is account '+next+' now'); })
     .catch(function(){ settings.appAccount=prev; paintAcct(); saveCache(); if(!acctTab) renderHome(); toast('Couldn\u2019t save that'); });
-}
+};
 paintAcct();
 
 // ---- Launch cache ---------------------------------------------------------

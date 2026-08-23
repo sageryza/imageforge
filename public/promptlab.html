@@ -23,14 +23,21 @@
      chevron so it reads as a menu; the other five are behind the tap.
      It is a NATIVE <select> on purpose — iOS opens its own picker, it is the
      same control the quality field beside it already uses, and it needs no
-     open/close state of its own to go wrong. Painted like the old lit tile
-     (dark) so the selected style still reads as chosen at a glance, and the
-     chevron is a flat SVG data URI — never a gradient. 16px, or iOS zooms the
-     page when it opens the picker. */
+     open/close state of its own to go wrong. The chevron is a flat SVG data
+     URI — never a gradient. 16px, or iOS zooms the page when it opens the
+     picker.
+     IT IS NOT FILLED DARK ANY MORE (Aug 2026, Sophie: "make the selected style
+     dropdown not filled in w black (just white, even tho it's selected)"). It
+     was painted like the old lit tile, on the reasoning that the selected style
+     should read as chosen — but there is only ever ONE style picker on the row,
+     so there is nothing for it to read as chosen AGAINST, and a solid black
+     slab was the heaviest thing on a page of pale controls. The INK BORDER
+     stays: it is what still separates the one control that decides the run
+     from the pale `.stylebtn` neighbours. */
   .styles { display: flex; margin-bottom: 10px; }
   #stylepick { appearance: none; -webkit-appearance: none; border: 1px solid #2b2622; border-radius: 6px;
-    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #2b2622; color: #faf7f2;
-    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23faf7f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    padding: 8px 32px 8px 12px; font: inherit; font-size: 16px; background-color: #fdfcf9; color: #2b2622;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2622' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 9px center; background-size: 15px 15px; }
   .stylebtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 13.5px; background: #fdfcf9; color: #6f675e; }
   .stylebtn.on { background: #2b2622; color: #faf7f2; border-color: #2b2622; }
@@ -46,19 +53,64 @@
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .controls label { font-size: 12.5px; color: #6f675e; }
   .xthree, .stepbtn { border: 1px solid #d8d0c4; border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 600; background: #fdfcf9; color: #2b2622; }
-  /* The low·low·medium button: a pyramid of three, two at the base and the
-     better one on top — the shape of what the tap draws. */
+  /* The quality LADDERS: one tap that draws the same prompt at more than one
+     quality. Each wears a picture of HOW MANY and at what tier, never a word —
+     the pyramid is two lows along its base and the better one filling the cap;
+     the oval is medium under high, the top half filled. */
   .stepbtn { display: flex; align-items: center; justify-content: center; padding: 7px 9px; }
   .stepbtn svg { width: 18px; height: 18px; display: block; }
   .stepbtn:disabled { opacity: .5; }
+  /* THE LADDERS RIDE WITH GENERATE, AT THE RIGHT END (Aug 2026, Sophie: "move
+     the pyramid and the oval to the right side so they're next to the generate
+     button but still to the left of it"). They are all three "draw it now"
+     buttons, so they are one group rather than three things that happen to
+     land near each other — and it has to BE a group, because `.controls`
+     wraps: `margin-left:auto` on each button separately would right-align
+     whichever ones share a line and scatter the rest. The auto margin moved
+     off `.go` and onto the group for the same reason. */
+  .gogroup { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
   .seedbtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
-  /* Quality — 16px so iOS doesn't zoom the page when it opens the picker. */
-  #qpick { border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px 6px; font: inherit; font-size: 16px; background: #fdfcf9; color: #2b2622; }
+  /* QUALITY — the account switcher's three-way toggle, in black (Aug 2026,
+     Sophie: "make the low medium high drop down in the playground into the
+     exact three way toggle that the account switcher uses … but black not red.
+     and put the initial of the choice - L, M, or H"). It was a native <select>
+     — the same control the style picker beside it still is — and a picker that
+     has to be opened to be read hides which quality a run is about to spend.
+     THE GEOMETRY IS `.swi` IN chats.html, VERBATIM: 48px track, 26px tall,
+     an 18px round knob, and the three stops DERIVED from --gap (one notch,
+     two notches) rather than typed, so they can never drift apart. Track ink
+     instead of rose, per her ask; the knob keeps its paper fill and now
+     carries the initial, which is the one thing the account switch has no use
+     for (its notches are numbered by their position, these are named).
+     Tapping anywhere on it moves to the next notch and wraps, exactly the way
+     the account one does — so low → medium → high → low, and the dearest
+     setting is never one stray tap from the cheapest.
+     Still the sanctioned exception to no-pills: it is a toggle, not a text
+     button. */
+  .qtog { --tw: 48px; --k: 18px; --gap: 11.5px;
+    position: relative; box-sizing: border-box; width: var(--tw); height: 26px; border-radius: 13px;
+    border: 1.5px solid #2b2622; background: #2b2622;
+    padding: 0; margin: 0; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* The letter rides the knob, so what it says and where it sits are one
+     element and can never disagree. 11px is what fits inside 18px with air
+     either side; line-height 18px centres it without a flex box. */
+  .qtog::after { content: attr(data-i); position: absolute; top: 2px; left: 2px;
+    width: var(--k); height: 18px; border-radius: 50%;
+    background: #faf7f2; color: #2b2622;
+    font: 600 11px/18px -apple-system, sans-serif; text-align: center;
+    transition: transform .18s; }
+  .qtog[data-q="medium"]::after { transform: translateX(var(--gap)); }
+  .qtog[data-q="high"]::after { transform: translateX(calc(var(--gap) * 2)); }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
-  /* Generate is the stars icon, not the word — one image, one tap. */
-  button.go { margin-left: auto; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; padding: 9px 15px; font: inherit; display: flex; align-items: center; justify-content: center; }
+  /* Generate is the stars icon, not the word — one image, one tap. SQUARE
+     since Aug 2026 (Sophie: "make the generate button a square"): 38x38, the
+     same box the seed button already is, so the three buttons at the right end
+     of the row read as one set of taps rather than one wide slab beside two
+     small ones. The 6px radius stays — the house rule is rounded rectangles,
+     and sharp corners here would be the only ones on the page. */
+  button.go { width: 38px; height: 38px; padding: 0; background: #2b2622; color: #faf7f2; border: 0; border-radius: 6px; font: inherit; display: flex; align-items: center; justify-content: center; }
   button.go svg { width: 21px; height: 21px; display: block; }
   button.go:disabled { opacity: .5; }
   .err { font-size: 12.5px; color: #a33; margin-top: 8px; }
@@ -94,6 +146,25 @@
     border: 1px solid #d8d0c4; border-radius: 6px; background: #fdfcf9; color: #6f675e; padding: 0; }
   .likefilt svg { width: 16px; height: 16px; }
   .likefilt.on { background: #c25a72; border-color: #c25a72; color: #fff; }
+  /* THE SEARCH BOX FILLS THE GAP THE ROW ALREADY HAD (Aug 2026, Sophie: "a
+     little search bar that fits in the space between the heart toggle and
+     tiles/grid") — `flex: 1` between the heart and the 56px the autoscroll
+     pill owns, so nothing moved to make room for it and the row still fits on
+     one line. `min-width: 0` on both the box and the input or the flex item
+     refuses to shrink below the input's default size and pushes the row wide.
+     16px is a FLOOR, not a taste: iOS auto-zooms a focused input under 16px,
+     that zoom ignores `user-scalable=no` (which this page sets), and pinching
+     back out is then blocked — one tap would leave the whole page stuck
+     zoomed (found live on her phone on /assets, Aug 2026). */
+  .feedsearch { flex: 1; min-width: 0; margin-left: 8px; position: relative; display: flex; }
+  .feedsearch input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: #2b2622;
+    background: #fdfcf9; border: 1px solid #d8d0c4; border-radius: 6px; padding: 6px 28px 6px 9px; }
+  .feedsearch input:focus { outline: none; border-color: #c25a72; }
+  .feedsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  /* CLEAR, not dismiss: it empties the box and keeps her in it. Shown only
+     while there are words to wipe. */
+  .qclear { position: absolute; right: 0; top: 0; height: 100%; width: 28px; border: 0; background: none;
+    color: #8a8177; font-size: 18px; line-height: 1; padding: 0; }
   .emptynote { font-size: 13px; color: #8a8177; padding: 18px 0; text-align: center; }
   #tiles .emptynote { grid-column: 1 / -1; }
   /* Tiles: uniform squares four to a row, the My Creations look — small on
@@ -283,9 +354,12 @@
     <div class="restog" id="restog" role="group" aria-label="Resolution">
       <button id="r-1k" type="button">1K</button><button id="r-2k" type="button">2K</button><button id="r-4k" type="button">4K</button>
     </div>
-    <select id="qpick" aria-label="Quality"></select>
-    <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
-    <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
+    <button type="button" id="qpick" class="qtog" aria-label="Quality"></button>
+    <div class="gogroup">
+      <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
+      <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
+      <button class="go" id="go" onclick="go()" aria-label="Generate" title="Generate"></button>
+    </div>
   </div>
   <div class="err" id="err" hidden></div>
 </div>
@@ -295,6 +369,11 @@
     <button id="v-list">List</button><button id="v-tiles">Tiles</button>
   </div>
   <button class="likefilt" id="v-liked" aria-label="Show only the ones you hearted" title="Hearts only"></button>
+  <div class="feedsearch">
+    <input id="q" type="search" placeholder="Search" aria-label="Search your runs"
+           autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <button class="qclear" id="qclear" aria-label="Clear search" hidden>&times;</button>
+  </div>
 </div>
 <div id="pendings"></div>
 <div id="runs"></div>
@@ -376,9 +455,20 @@
     // house stroke, normalized by scripts/normalize-glyphs.py). Move BOTH if
     // this ever changes; this 24-box copy is the web one.
     pyramid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.21 21 19.8H3Z"/><path d="M7.5 12.01h9"/><path d="M12 12.01v7.79"/><path d="M12 4.21 16.5 12.01H7.5Z" fill="currentColor"/></svg>',
+    // The medium-and-high button (Aug 2026, Sophie: "a little oval next to the
+    // pyramid, colored on top, white empty on bottom, signifying medium, and
+    // high"). Same grammar as the pyramid beside it — an outline cut into
+    // tiers, the better tier FILLED — so the two ladders read as one family
+    // and neither needs a word on it. Two tiers, one draw each, so there is no
+    // vertical divider: the pyramid's split base is what says "two lows".
+    // It takes the pyramid's own vertical extent (y 4.21 to 19.8, cut at
+    // 12.005 dead centre) and is narrower than it is tall — rx 6.5 against
+    // ry 7.795 — or it reads as a circle rather than an oval.
+    oval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12.005" rx="6.5" ry="7.795"/><path d="M5.5 12.005h13"/><path d="M18.5 12.005A6.5 7.795 0 0 0 5.5 12.005Z" fill="currentColor"/></svg>',
   };
   document.getElementById('go').innerHTML = ICONS.sparkles;
   document.getElementById('lowmed').innerHTML = ICONS.pyramid;
+  document.getElementById('medhigh').innerHTML = ICONS.oval;
   document.getElementById('photopick').innerHTML = ICONS.imagePlus;
   document.getElementById('photoclear').innerHTML = ICONS.x;
 
@@ -415,6 +505,151 @@
   document.getElementById('v-liked').addEventListener('click', function () {
     localStorage.setItem('promptlab_liked', likedOnly() ? '' : '1');
     applyLiked(true);
+  });
+
+  // ─── SEARCH (Aug 2026, Sophie: "can u add a little search bar that fits in
+  // the space between the heart toggle (next to tiles/grid)") ──────────────
+  // It filters the feed by RUN — her words are a run's, not a picture's — so
+  // in list view whole boxes drop out and in tiles every picture from a
+  // matching run stays on the wall. It stacks with the heart the same way the
+  // view does: search narrows which runs, the heart which pictures.
+  //
+  // NOT sticky, unlike the view and the heart: a query she typed yesterday
+  // silently hiding most of the feed on open is a worse surprise than
+  // re-typing four letters.
+  var query = '';        // exactly what she typed
+  var qGroups = [];      // parsed — the house grammar
+  var hits = null;       // the server's answer for `query`; null until it lands
+  var qSeq = 0, qTimer = null;
+
+  // The house grammar (search-grammar.js parses it server-side): bare words
+  // AND within one run, `OR` for either, `-word` to exclude, "quoted" for a
+  // phrase. Matching is the feed's rule — each term anchored at a word START,
+  // so "aries" never finds "boundaries" and `gpt-image-2` keeps its hyphens —
+  // the same regexes /assets builds, so the client filter and the server
+  // search can never disagree about what matches.
+  function qparse(q) {
+    var groups = [], re = /(-|!)?(?:"([^"]*)"|(\S+))/g, m, orNext = false, notNext = false;
+    while ((m = re.exec(String(q || '')))) {
+      var quoted = m[2] !== undefined, raw = quoted ? m[2] : m[3], bare = !m[1] && !quoted;
+      if (bare && /^or$/i.test(raw)) { orNext = true; continue; }
+      if (bare && /^and$/i.test(raw)) continue;
+      if (bare && /^not$/i.test(raw)) { notNext = true; continue; }
+      var v = String(raw == null ? '' : raw).toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!v) continue;
+      var rx = null;
+      try {
+        rx = new RegExp((/^[a-z0-9]/i.test(v) ? '\\b' : '') +
+          v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'i');
+      } catch (e) { rx = null; }
+      if (!rx) continue;
+      var neg = !!m[1] || notNext, last = groups[groups.length - 1];
+      if (orNext && last && !last.neg && !neg) last.terms.push(rx);
+      else groups.push({ neg: neg, terms: [rx] });
+      orNext = false; notNext = false;
+    }
+    return groups;
+  }
+  function qmatch(hay, groups) {
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i], hit = false;
+      for (var j = 0; j < g.terms.length; j++) { if (g.terms[j].test(hay)) { hit = true; break; } }
+      if (g.neg ? hit : !hit) return false;
+    }
+    return true;
+  }
+  // Everything a run's card actually says: her words, the style it was drawn
+  // in, and the tags beside them — so "dreamy", "medium", "square", "photo
+  // ref" and "failed" all find what she is looking at.
+  function runHay(r) {
+    // The canvas is stored and shown as a ratio, but the button she picked it
+    // with says Portrait or Square — so both words find it. (The server's own
+    // haystack, promptlabHay in server.js, is the same list.)
+    var shape = r.aspectRatio === '1:1' ? 'square' : (r.aspectRatio === '2:3' ? 'portrait' : '');
+    return [r.prompt, runStyleLabel(r), r.gptStyle, r.model, r.quality, r.aspectRatio, shape,
+      r.status === 'failed' ? 'failed' : '', r.status === 'cancelled' ? 'cancelled' : '',
+      r.photoRef ? 'photo ref' : ''].filter(Boolean).join('  ');
+  }
+  function pendHay(p) {
+    return [p.prompt, p.style, p.quality].filter(Boolean).join('  ');
+  }
+  // What the feed shows: everything, the server's answer, or — while that is
+  // still in flight — the same filter run over what is already loaded.
+  function visibleRuns() {
+    if (!qGroups.length) return feed;
+    if (hits) return hits;
+    return feed.filter(function (r) { return qmatch(runHay(r), qGroups); });
+  }
+  function emptyNote() {
+    if (qGroups.length) return '<div class="emptynote">Nothing matches that</div>';
+    return likedOnly() ? '<div class="emptynote">Nothing hearted yet</div>' : '';
+  }
+
+  // A SEARCH READS THE WHOLE FEED, NOT THE PAGE SHE IS LOOKING AT — the
+  // Assets tab's lesson (Aug 2026: she searched "yarn" and got nothing back,
+  // because the box only ever filtered the tiles already loaded). This feed
+  // pages 40 at a time, so a client-only filter would answer "nothing matches"
+  // for almost every run she has ever made. The client filter still runs
+  // instantly over what is on screen; a beat later the server answers over the
+  // whole collection and the feed becomes those runs.
+  function runSearch() {
+    var seq = ++qSeq, want = query;
+    if (!want) { hits = null; return; }
+    fetch('/api/promptlab?q=' + encodeURIComponent(want) + '&limit=300')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (seq !== qSeq) return;                       // she typed on; this answer is stale
+        var runs = (d.runs || []).filter(function (r) { return r.status !== 'running'; });
+        // The lightbox and the copy button read runsById, and a hit may be an
+        // older run the feed itself has never paged in.
+        runs.forEach(function (r) { runsById[r.id] = r; });
+        hits = runs;
+        renderFeed();
+      })
+      .catch(function () { /* the client-filtered view stands */ });
+  }
+  function readSearch() {
+    var box = document.getElementById('q');
+    query = (box.value || '').trim();
+    qGroups = qparse(query);
+    document.getElementById('qclear').hidden = !query;
+    hits = null;                                        // the loaded feed answers meanwhile
+    clearTimeout(qTimer);
+    if (query) qTimer = setTimeout(runSearch, 350);
+    else qSeq++;                                        // and any answer still coming is dropped
+    renderPendings();
+    renderFeed();
+  }
+  // Search as she DICTATES — iOS can fill a field without ever firing `input`,
+  // so the box polls its value while focused (the house liveInput).
+  function liveInput(el, fn) {
+    var last = el.value, timer = null;
+    function fire() { if (el.value === last) return; last = el.value; fn(); }
+    ['input', 'change', 'compositionupdate', 'compositionend', 'keyup', 'paste']
+      .forEach(function (ev) { el.addEventListener(ev, function () { setTimeout(fire, 0); }); });
+    el.addEventListener('focus', function () { clearInterval(timer); timer = setInterval(fire, 150); });
+    el.addEventListener('blur', function () { clearInterval(timer); timer = null; fire(); });
+    return { sync: function () { last = el.value; } };
+  }
+  // RETURN ENDS THE SEARCH TOO (Aug 2026, Sophie) — a lone <input type=search>
+  // outside a <form> has nothing to submit to, so Return would do nothing at
+  // all. It runs the search and drops the keyboard, so what she is left
+  // looking at is the pictures.
+  function enterSubmits(el, fn) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.keyCode !== 13) return;
+      e.preventDefault();
+      if (fn) fn();
+      el.blur();
+    });
+  }
+  var qLive = liveInput(document.getElementById('q'), readSearch);
+  // `qLive.sync()` inside it: the blur Return performs would otherwise be
+  // liveInput's first sight of dictated text and would search a second time.
+  enterSubmits(document.getElementById('q'), function () { readSearch(); qLive.sync(); });
+  document.getElementById('qclear').addEventListener('click', function () {
+    var box = document.getElementById('q');
+    box.value = ''; qLive.sync(); readSearch(); box.focus();
   });
 
   // The copy button beside a run's words: puts that prompt back into the box.
@@ -504,12 +739,26 @@
   // without her meaning it.)
   var QUALITIES = ['low', 'medium', 'high'];
   var quality = 'medium';
-  document.getElementById('qpick').innerHTML = QUALITIES.map(function (q) {
-    return '<option value="' + q + '"' + (q === quality ? ' selected' : '') + '>' + q + '</option>';
-  }).join('');
-  document.getElementById('qpick').addEventListener('change', function (e) {
-    quality = QUALITIES.indexOf(e.target.value) >= 0 ? e.target.value : 'medium';
+  // The three-way toggle (see .qtog). Nothing here counts the notches: the
+  // stops come from QUALITIES, so a fourth quality would be an entry in that
+  // array plus one rule in the CSS — the same shape as the account switch.
+  // `data-q` drives the knob's position and `data-i` the letter on it, both
+  // written in one place so the two can never fall out of step.
+  var qpick = document.getElementById('qpick');
+  function paintQuality() {
+    qpick.setAttribute('data-q', quality);
+    qpick.setAttribute('data-i', quality.charAt(0).toUpperCase());
+    qpick.setAttribute('aria-label', 'Quality ' + quality + ' — tap for the next one');
+  }
+  qpick.addEventListener('click', function () {
+    // an unknown quality (arrived on a link) still has somewhere to go:
+    // indexOf is -1, so the next tap lands on the first notch rather than
+    // doing nothing at all
+    var i = QUALITIES.indexOf(quality);
+    quality = QUALITIES[(i + 1) % QUALITIES.length];
+    paintQuality();
   });
+  paintQuality();
 
   // The Sophie character toggle — plain variable like quality, so every fresh
   // load starts OFF and a run only carries her when the picture is lit.
@@ -549,7 +798,7 @@
     if (st && STYLES[st]) setStyle(st);
     if (q.get('prompt')) document.getElementById('prompt').value = q.get('prompt');
     var qq = q.get('quality');
-    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; document.getElementById('qpick').value = qq; }
+    if (qq && QUALITIES.indexOf(qq) >= 0) { quality = qq; paintQuality(); }
     if (q.get('character') === '1' && isGpt(styleKey) && !STYLES[styleKey].noCharacter) { charOn = true; document.getElementById('charpick').classList.add('on'); }
     var sc = parseFloat(q.get('scale'));
     if (!isNaN(sc)) document.getElementById('scale').value = sc;
@@ -825,27 +1074,43 @@
   paintPhoto();
 
   // ── THE CANVAS — portrait or square (Aug 2026, Sophie) ──────────────────
-  // Portrait is the default and stays the default: every run to date used it,
-  // and it is the CHEAPER of the two. gpt-image-2 charges MORE for the square
-  // (0.6c/5.3c/21.1c against 0.5c/4.1c/16.5c), which is the opposite of the
-  // obvious guess, so the button says so rather than leaving her to assume.
-  // Like quality, it is NOT persisted — a fresh load is back to portrait, so
-  // an expensive shape can never carry over into next time unmeant.
-  // SQUARE IS THE DEFAULT (Aug 2026, Sophie's call, made knowing the price).
-  // It is the DEARER of the two — gpt-image-2 charges 0.6c/5.3c/21.1c for
-  // 1024x1024 against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price
-  // table warns about — so the buttons still print what they cost. Like
-  // quality, it is not persisted: a fresh load is back to this default rather
-  // than carrying a shape she picked once into every later visit.
-  var canvas = 'square';
+  // gpt-image-2 charges MORE for the SQUARE — 0.6c/5.3c/21.1c for 1024x1024
+  // against 0.5c/4.1c/16.5c for 1024x1536, the inversion the price table warns
+  // about — so both buttons print what they cost rather than leaving her to
+  // assume the obvious. Square was her call as the opening default, made
+  // knowing that.
+  // IT IS REMEMBERED NOW (Aug 2026, Sophie: "make it not default to square,
+  // but just whatever the last option was"). This REVERSES what was written
+  // here — the note said a shape she picked once must not carry into every
+  // later visit, and she has since said she wants exactly that, so the old
+  // reasoning is history rather than a rule. `square` survives only as the
+  // FIRST-EVER default, for a phone that has never picked one; an unknown
+  // stored value falls back to it rather than riding through as an invented
+  // shape. QUALITY IS DELIBERATELY NOT CHANGED WITH IT: she named the canvas,
+  // and a remembered `high` is 16.5-21.1c a tap arriving unasked, where a
+  // remembered shape costs nothing it did not cost last time.
+  var CANVASES = ['portrait', 'square'];
+  var canvas = CANVASES.indexOf(localStorage.getItem('promptlab_canvas')) >= 0
+    ? localStorage.getItem('promptlab_canvas') : 'square';
   function paintCanvas() {
     document.getElementById('c-portrait').classList.toggle('on', canvas === 'portrait');
     document.getElementById('c-square').classList.toggle('on', canvas === 'square');
     document.getElementById('c-portrait').title = 'Portrait 1024x1536 — low 0.5\u00A2 \u00B7 medium 4.1\u00A2 \u00B7 high 16.5\u00A2';
     document.getElementById('c-square').title = 'Square 1024x1024 — low 0.6\u00A2 \u00B7 medium 5.3\u00A2 \u00B7 high 21.1\u00A2 (dearer than portrait)';
   }
-  document.getElementById('c-portrait').addEventListener('click', function () { canvas = 'portrait'; paintCanvas(); paintRes(); });
-  document.getElementById('c-square').addEventListener('click', function () { canvas = 'square'; paintCanvas(); paintRes(); });
+  function pickCanvas(shape) {
+    canvas = shape;
+    // Written on the TAP, not on the run — the shape she is looking at is the
+    // one she comes back to, whether or not she generated anything with it.
+    try { localStorage.setItem('promptlab_canvas', shape); } catch (e) { /* private mode */ }
+    paintCanvas();
+    // Each shape has its OWN tier canvases (portrait 1568x2352 vs square
+    // 1920x1920), so the ladder is repainted with the shape. The TIER itself
+    // is deliberately not persisted alongside the shape — see paintRes.
+    paintRes();
+  }
+  document.getElementById('c-portrait').addEventListener('click', function () { pickCanvas('portrait'); });
+  document.getElementById('c-square').addEventListener('click', function () { pickCanvas('square'); });
   paintCanvas();
 
   // ── THE RESOLUTION — 1K, 2K or 4K (Aug 2026, Sophie: "adding the size as a
@@ -938,7 +1203,10 @@
     // the button comes off rather than sitting there doing nothing.
     document.getElementById('photowrap').classList.toggle('on', gpt);
     document.getElementById('qpick').hidden = !gpt;
-    document.getElementById('lowmed').hidden = !gpt;   // it is a quality ladder
+    // Both ladders are quality ladders, so both come off the Replicate LoRA,
+    // which has no quality parameter at all.
+    document.getElementById('lowmed').hidden = !gpt;
+    document.getElementById('medhigh').hidden = !gpt;
   }
   function styleLabelFor(model) {
     for (var k in STYLES) if (STYLES[k].model === model) return STYLES[k].label;
@@ -1091,11 +1359,30 @@
   // medium is its own box because its tags differ. ~10¢ a tap.
   document.getElementById('lowmed').addEventListener('click', function () {
     if (!checkPrompt()) return;
-    var btn = this;
-    btn.disabled = true;
-    Promise.all(['low', 'low', 'medium'].map(function (q) { return startRun(1, q).catch(showErr); }))
-      .finally(function () { btn.disabled = false; });
+    ladder(this, ['low', 'low', 'medium']);
   });
+
+  // Medium and high in one tap (Aug 2026, Sophie: "when pressed, it kicks off
+  // 1 medium and 1 high job") — the step ABOVE the pyramid, for a prompt she
+  // has already settled and wants to see properly. Two runs, not three: each
+  // tier is its own box, because a box's tags have to describe every picture
+  // under it and these two differ by quality. ~21¢ a tap on portrait, ~26¢ on
+  // square (medium + high at the canvas's own prices).
+  document.getElementById('medhigh').addEventListener('click', function () {
+    if (!checkPrompt()) return;
+    ladder(this, ['medium', 'high']);
+  });
+
+  // Both ladders start their runs the same way: every tier at once, the button
+  // dead until the last one has been ACCEPTED (not finished — the pictures
+  // arrive by polling), and one failure showing rather than silently dropping
+  // the tier. `startRun`'s own `q` overrides the toggle for that run only, so
+  // neither ladder moves what the knob says.
+  function ladder(btn, tiers) {
+    btn.disabled = true;
+    Promise.all(tiers.map(function (q) { return startRun(1, q).catch(showErr); }))
+      .finally(function () { btn.disabled = false; });
+  }
 
   // Tapping Generate twice on the same prompt is ONE job as far as she's
   // concerned, so identical runs share a box: same prompt, same style, same
@@ -1125,10 +1412,11 @@
   // page — never a finished older run sitting where the new one should be.
   function renderPendings() {
     var list = pendingList().slice().reverse();
+    if (qGroups.length) list = list.filter(function (p) { return qmatch(pendHay(p), qGroups); });
     var groups = groupBy(list, function (p) {
       return sameRunKey([p.engine, p.style, (p.prompt || '').trim(), p.quality, p.scale, p.seed]);
     });
-    document.getElementById('pendings').innerHTML = groups.map(function (g) {
+    var pendHtml = groups.map(function (g) {
       var p = g.items[0];
       var slots = g.items.reduce(function (n, x) { return n + (x.count || OUTPUTS); }, 0);
       var tags = [p.style || ''];
@@ -1150,7 +1438,15 @@
         '<span class="tag waiting">drawing…</span>' + kill + '</div>' +
         '<div class="grid">' + cells + '</div></div>';
     }).join('');
-    applyClamps(document.getElementById('pendings'));
+    // Rebuilt only when it actually changed — the poll calls this on every
+    // transition, and re-assigning identical HTML restarts every placeholder's
+    // pulse and costs a repaint for nothing.
+    var pendBox = document.getElementById('pendings');
+    if (pendBox.__html !== pendHtml) {
+      pendBox.innerHTML = pendHtml;
+      pendBox.__html = pendHtml;
+      applyClamps(pendBox);
+    }
     // The same runs are squares at the front of the tile wall — keep it current.
     if (curView() === 'tiles') renderTiles();
   }
@@ -1237,6 +1533,111 @@
     return (r.images && r.images.length) ? r.images : (r.tempImages || []);
   }
 
+  // ── DERIVED DISPLAY COPIES + REPAINT WITHOUT REBUILDING (Aug 2026, Sophie:
+  // "the playground flashes a lot and sometimes things don't load") ────────
+  //
+  // SLOW: a tile is ~90-190px but its src was the full-size ORIGINAL
+  // (1024x1536, hundreds of KB each) — the first page pulled tens of MB of
+  // pictures over cell for one screen. Tiles load the house thumb service
+  // now (`/api/story/thumb`, the Assets tab's own pattern: sharp once, a
+  // cached webp in Storage, a 302 ever after). The LIGHTBOX and Save still
+  // get the untouched original — this is the derived display copy, never the
+  // picture. A temp Replicate/OpenAI url or a data: url has no derived copy
+  // and is sent as-is (the thumb service only re-serves Google storage
+  // hosts, and those temp urls expire on their own anyway).
+  var THUMB_W = 480;
+  function thumbFor(u) {
+    return /^https:\/\/(storage|firebasestorage)\.googleapis\.com\//.test(u || '')
+      ? '/api/story/thumb?w=' + THUMB_W + '&url=' + encodeURIComponent(u)
+      : u;
+  }
+
+  // FLASHING: every repaint used to be `innerHTML = …` over the whole feed,
+  // which destroys and recreates every <img> on screen — the browser blanks
+  // and re-decodes the wall, so a ♥, a search keystroke, a poll transition or
+  // a finishing run flashed everything she was looking at. Repaints
+  // RECONCILE now: a node whose content did not change is LEFT ALONE (same
+  // element, same decoded picture), a changed one is updated in place, and
+  // order is fixed by MOVING nodes — moving an element never reloads its
+  // image. The lightbox arrows read the DOM (lbSeq), so they walk exactly
+  // what reconciliation put there, same as before.
+  function syncChildren(box, items, make, update) {
+    var stray = [], byKey = {}, el, k;
+    for (el = box.firstElementChild; el; el = el.nextElementSibling) {
+      k = el.getAttribute('data-key');
+      if (k == null) stray.push(el); else byKey[k] = el;
+    }
+    stray.forEach(function (s) { s.remove(); });     // e.g. an old empty-note
+    var prev = null;
+    items.forEach(function (it) {
+      var node = byKey[it.key];
+      if (node) delete byKey[it.key];
+      else { node = make(it); node.setAttribute('data-key', it.key); }
+      var want = prev ? prev.nextElementSibling : box.firstElementChild;
+      if (node !== want) box.insertBefore(node, want || null);
+      update(node, it);       // after insertion — the clamp check needs layout
+      prev = node;
+    });
+    Object.keys(byKey).forEach(function (kk) { byKey[kk].remove(); });
+  }
+  // One cell = one picture (or a breathing placeholder while it draws).
+  function makeCell(it) {
+    var d = document.createElement('div');
+    if (it.ph) { d.className = 'cell ph'; return d; }
+    d.className = 'cell';
+    var img = document.createElement('img');
+    img.setAttribute('loading', 'lazy');
+    d.appendChild(img);
+    return d;
+  }
+  function updateCell(el, it) {
+    if (it.ph) return;
+    var img = el.firstElementChild;
+    if (img.getAttribute('src') !== it.src) img.setAttribute('src', it.src);
+    if (img.getAttribute('data-run') !== it.runId) img.setAttribute('data-run', it.runId);
+    if (img.getAttribute('data-i') !== it.i) img.setAttribute('data-i', it.i);
+    var badge = el.querySelector('.badge');
+    var have = badge ? (badge.classList.contains('like') ? 'like' : 'dislike') : '';
+    if (have !== it.vote) {
+      if (badge) badge.remove();
+      if (it.vote) {
+        var b = document.createElement('span');
+        b.className = 'badge ' + it.vote;
+        b.innerHTML = it.vote === 'like' ? ICONS.heart : ICONS.x;
+        el.appendChild(b);
+      }
+    }
+  }
+  // One run box: the head rebuilds only when its words/tags changed (it holds
+  // no pictures, so that is cheap); the grid reconciles cell by cell.
+  function makeRun() {
+    var d = document.createElement('div');
+    d.className = 'run';
+    return d;
+  }
+  function updateRun(el, it) {
+    if (it.bodyHtml !== undefined) {                // a failed run — words only
+      if (el.__body !== it.bodyHtml) {
+        el.innerHTML = it.bodyHtml; el.__body = it.bodyHtml;
+        el.__head = undefined;
+        applyClamps(el);
+      }
+      return;
+    }
+    var head = el.querySelector('.runhead');
+    if (!head || el.__body !== undefined) {
+      el.__body = undefined; el.__head = undefined;
+      el.innerHTML = '<div class="runhead"></div><div class="grid"></div>';
+      head = el.firstElementChild;
+    }
+    if (el.__head !== it.headHtml) {
+      head.innerHTML = it.headHtml;
+      el.__head = it.headHtml;
+      applyClamps(head);
+    }
+    syncChildren(el.querySelector('.grid'), it.cells, makeCell, updateCell);
+  }
+
   // What a run is labelled with. LoRA runs carry scale + seed; a gpt-image-2
   // run carries its quality and shape instead (it has neither of the others).
   function runParts(r) {
@@ -1264,7 +1665,9 @@
     fresh.forEach(function (r) { byId[r.id] = r; });
     feed = Object.keys(byId).map(function (k) { return byId[k]; })
       .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-    runsById = byId;
+    // Merged, never replaced: a search hit can be an older run this feed has
+    // not paged in, and the lightbox reads its settings out of here.
+    Object.keys(byId).forEach(function (k) { runsById[k] = byId[k]; });
   }
 
   // Refresh the newest page. Anything already paged in behind it is kept — a
@@ -1301,7 +1704,7 @@
   }
 
   function renderFeed() {
-      var runs = feed;
+      var runs = visibleRuns();
       // Identical runs share a box. A failed run never joins one — its error is
       // its own — so it keys on its id and stays alone.
       var groups = groupBy(runs, function (r) {
@@ -1310,33 +1713,37 @@
           r.quality, r.aspectRatio, r.character ? 'c' : '', r.loraScale, r.seed]);
       });
       var only = likedOnly();
-      document.getElementById('runs').innerHTML = groups.map(function (g) {
+      var items = [];
+      groups.forEach(function (g) {
         var head = g.items[0];
         var cp = '<button class="copybtn" data-copy="' + head.id + '" aria-label="Put this prompt back in the box">' + ICONS.copy + '</button>';
         if (head.status === 'failed') {
-          if (only) return '';   // a failed run has no picture to have hearted
-          return '<div class="run"><div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
-            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div></div>';
+          if (only) return;   // a failed run has no picture to have hearted
+          items.push({ key: g.key, bodyHtml:
+            '<div class="runhead"><span class="p clamp failed">' + esc(head.prompt) + '</span>' + cp +
+            '<span class="tag">failed</span></div><div class="note">' + esc(head.error || 'generation failed') + '</div>' });
+          return;
         }
         // Oldest first, so a second tap's picture lands to the RIGHT of the
         // first. Every cell still points at its OWN run, so the lightbox shows
         // that picture's real settings and a ♥ goes on the right doc.
-        var cells = '';
+        var cells = [];
         g.items.slice().reverse().forEach(function (r) {
           var votes = r.votes || {};
           runImages(r).forEach(function (u, i) {
             var v = votes[i];
             if (only && v !== 'like') return;
-            var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
-            cells += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+            cells.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
           });
         });
-        if (only && !cells) return '';   // nothing hearted in this run
-        return '<div class="run"><div class="runhead"><span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
-          runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
-          '<div class="grid">' + cells + '</div></div>';
-      }).join('') || (only ? '<div class="emptynote">Nothing hearted yet</div>' : '');
-      applyClamps(document.getElementById('runs'));
+        if (only && !cells.length) return;   // nothing hearted in this run
+        items.push({ key: g.key, cells: cells,
+          headHtml: '<span class="p clamp">' + esc(head.prompt) + '</span>' + cp +
+            runParts(head).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') });
+      });
+      var box = document.getElementById('runs');
+      if (!items.length) box.innerHTML = emptyNote();
+      else syncChildren(box, items, makeRun, updateRun);
       if (curView() === 'tiles') renderTiles();
       // The wall she is stepping through just changed under the lightbox (a
       // ♥ with the filter lit removes the picture she is on), so the arrows
@@ -1351,7 +1758,9 @@
   // data without her asking for any of them.
   function renderMoreBtn() {
     var el = document.getElementById('more');
-    if (!feed.length || !feedMore) { el.innerHTML = ''; return; }
+    // "Older" walks the BROWSE feed; a search is already answered over the
+    // whole collection, so there is nothing behind it to page in.
+    if (qGroups.length || !feed.length || !feedMore) { el.innerHTML = ''; return; }
     el.innerHTML = '<button class="morebtn"' + (paging ? ' disabled' : '') + '>' +
       (paging ? 'Loading…' : 'Older') + '</button>';
   }
@@ -1365,28 +1774,30 @@
   // drawn hold an empty square each at the FRONT, so the wall is the whole
   // feed — a picture on its way has its place in it before it lands.
   function renderTiles() {
-    var html = '';
+    var items = [];
     var only = likedOnly();
     // A picture on its way has not been hearted, so the waiting squares are a
     // list-of-everything thing: with the heart lit the wall is hearts only.
     if (!only) pendingList().slice().reverse().forEach(function (p) {
+      if (qGroups.length && !qmatch(pendHay(p), qGroups)) return;
       var slots = p.count || OUTPUTS;
-      for (var i = 0; i < slots; i++) html += '<div class="cell ph"></div>';
+      for (var i = 0; i < slots; i++) items.push({ key: 'ph|' + p.id + '|' + i, ph: true });
     });
     // Straight off `feed` — it is already sorted newest-first. (Walking
     // Object.keys of the id map relied on insertion order holding, which is a
     // property of the map, not of the wall's intended order.)
-    feed.forEach(function (r) {
+    visibleRuns().forEach(function (r) {
       if (r.status === 'failed') return;
       var votes = r.votes || {};
       runImages(r).forEach(function (u, i) {
         var v = votes[i];
         if (only && v !== 'like') return;
-        var badge = v ? '<span class="badge ' + v + '">' + (v === 'like' ? ICONS.heart : ICONS.x) + '</span>' : '';
-        html += '<div class="cell"><img src="' + u + '" loading="lazy" data-run="' + r.id + '" data-i="' + i + '">' + badge + '</div>';
+        items.push({ key: r.id + '|' + i, src: thumbFor(u), vote: v || '', runId: r.id, i: String(i) });
       });
     });
-    document.getElementById('tiles').innerHTML = html || (only ? '<div class="emptynote">Nothing hearted yet</div>' : '');
+    var box = document.getElementById('tiles');
+    if (!items.length) box.innerHTML = emptyNote();
+    else syncChildren(box, items, makeCell, updateCell);
   }
 
   // One delegated handler for every tile.

@@ -122,6 +122,21 @@
     is the whole turn, so deriving from it would mark the entire reply as
     pre-work and fold nothing. That guard is in `chatfeed.js` and pinned by a
     test.
+  - **BOLD IS A SECOND METRIC, AND IT ONLY EVER UN-HIDES (Aug 2026, Sophie:
+    "working details was hiding a message meant for me … anything bold is
+    always for me. can it be an added decision metric").** The tool calls
+    still decide where the work starts and stops; inside that middle, a line
+    carrying bold — a markdown heading renders bold too — stays on screen and
+    the narration either side of it folds around it, which is why a message
+    can carry several fold buttons. **This is NOT the v1 vocabulary
+    classifier coming back**: it never HIDES anything the structural signal
+    left visible, and with no bold in the middle the output is byte-identical
+    to what it was. A run shorter than 200 characters shows rather than
+    earning a button of its own, and a middle that turns out to be all bold
+    folds nothing at all instead of drawing a row of empty buttons. **A `**`
+    inside fenced code does not count** — it is not a line for her, and
+    cutting inside a fence would leave it unbalanced and break the render of
+    everything after it.
   - Tests: `node scripts/test-chats-working-fold.js` — covers all three layers
     (hook parser against a real JSONL, the server's contract, and `foldBody`
     lifted out of chats.html and run for real). Needs no playwright.
@@ -766,37 +781,38 @@
     failing without the change.
   **Archive/Unarchive lives in the thread header** (same button, same spot,
   either label) — deciding whether to archive must not mean scrolling past every
-  message first. The **App/Web account toggle is a THREE-POSITION control** on
-  the home header's title line — `.swi3`, one digit slot per account, the lit
-  one is the account she is SIGNED INTO on the phone and every other one's
-  chats open on the web (Aug 2026, Sophie: "make it a three-way toggle now so
-  there's a left, right and middle option — left is account one, middle
-  account two, right account three; whichever is toggled is the one I'm signed
-  in on, and the other ones go to the website version"). It was a two-state
-  `.swi` on/off switch until a third account arrived, and an on/off switch has
-  nowhere to put a third state.
-  - **The slots are built from `ACCOUNTS`**, so a fourth account is one entry
-    in that array — the switch, the home tabs, the row's account digit and the
-    thread's picker all grow with it and nothing counts accounts by hand.
-  - **THE MARKER IS INK AND THE CONTROL HAS NO TRACK, and both are
-    measurements rather than taste.** The old switch went `--chg` red in its
-    ON position, readable when OFF was the resting state — with three
-    positions one is ALWAYS live, so red would sit permanently in the
-    masthead (same reasoning that took the red off the account tabs). And the
-    masthead is the one row in this app that has run out of room before:
-    measured on the real page, the controls fill **205.8px** and the title
-    takes what is left, so a bordered three-slot track at 57px put the
-    controls back over the word "Chats" at her own 390. Three bare 16px digit
-    slots (48px) plus tightening `.hctl`'s gap 6px→4px come to 205.8px — the
-    header is byte-for-byte where it was. **Anything else added to that row
-    gets measured the same way**; `scripts/test-chats-title-back.js` and
-    `scripts/test-chats-accounts.js` both hit-test it.
-  - **One browser is the only web slot.** With three accounts, two of them
-    route to the web via `#no_universal_links`, and iOS opens both in the same
-    default browser — which can only hold one signed-in account at a time.
-    Signing the others in separately is a phone-side arrangement (a
-    home-screen web app and a second browser each keep their own cookie jar),
-    not something this switch can express.
+  message first. The **App/Web account toggle is the same iOS switch it always
+  was, with a THIRD NOTCH** (`.swi`) — the knob's stops are left = account 1,
+  middle = 2, right = 3, one tap moves to the next and the last wraps home, and
+  the toast names where it landed. The account it points at is the one she is
+  SIGNED INTO on the phone; every other one's chats open on the web.
+  - **It shipped once as a row of digit slots and that was wrong** (Aug 2026,
+    Sophie: "i wanted a three way toggle — the exact red toggle, just with a
+    third slot/notch added"). A three-state control does not need to be a
+    different control; the ask was one more notch on the one she already knows.
+  - **The track is red in every position now.** It was grey for OFF and red for
+    ON, and with three stops there is no OFF for grey to mean — a third colour
+    would invent a state she never asked for.
+  - **The stops come from `--k` / `--gap`, and the notches from `ACCOUNTS`**, so
+    a fourth account is an entry in that array plus one CSS rule of the same
+    shape. Nothing counts accounts by hand — not the switch, not the home tabs,
+    not the row's account digit, not the thread's picker.
+  - **48px wide, which is measured rather than chosen.** The masthead is the one
+    row in this app that has run out of room before (five controls plus the
+    title put the bookmark button under the word "Chats", so tapping the title
+    opened Bookmarks). The controls fill **205.8px** and the title takes what is
+    left; the old two-stop switch was 42px, and the 6px this one costs are paid
+    for by tightening `.hctl`'s gap 6px→4px — the row measures 205.8px before
+    and after. At 42px the three stops would have sat 8.5px apart, not enough to
+    tell the middle from either end. **Anything else added to that row gets
+    measured the same way**; `test-chats-title-back.js` and
+    `test-chats-accounts.js` both hit-test it.
+  - **One browser is the only web slot.** With three accounts, two of them route
+    to the web via `#no_universal_links`, and iOS opens both in the same default
+    browser — which can only hold one signed-in account at a time. Signing the
+    others in separately is a phone-side arrangement (a home-screen web app and
+    a second browser each keep their own cookie jar), not something this switch
+    can express.
   **HIDDEN — the red bar at the top of the chat list (Aug 2026, Sophie).** A
   chat she wants to come back to but not look at right now gets hidden: it
   leaves the list and waits behind a red bar above it (`.hidebar`, "Hidden 3

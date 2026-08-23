@@ -228,6 +228,27 @@ it out anyway is how this repo lost weeks:
   the window was gone before she could look. Judge parking/tint on a LONG
   turn, or from the gap test above — never on a fast one.
 
+## WHAT A CHAT COSTS IS READABLE — and the obvious call hides it
+**Measured 2026-08-22, and Sophie's own note that no chat had ever managed
+this.** A session's spend is on `get_session` at
+`external_metadata.usage.cost_usd`, with `input_tokens` / `output_tokens` /
+`cache_read_tokens` / `cache_write_tokens` beside it, and `rate_limit_info`
+(`resetsAt`, epoch seconds; `isUsingOverage`) beside that. `list_sessions`
+carries the same block for every session at once, which is how you total a day.
+- **THE TRAP: `get_session` with NO `session_id` — the natural "describe
+  myself" call — comes back with NO `usage` block at all.** Pass your own id
+  explicitly (`CLAUDE_CODE_REMOTE_SESSION_ID` with `cse_` swapped for
+  `session_`) and it is there. That one difference is the likeliest reason
+  this went unfound.
+- The number is the session's LIFETIME cost, not this turn's — subtract an
+  earlier reading to price one turn. A session created today has a clean
+  daily figure; one created yesterday and answered today does not.
+- **Two figures worth carrying around** (2026-08-22): a fresh container that
+  did nothing but ask "What are we working on?" cost **$1.52** — that is the
+  floor for opening a chat at all, before any work — and nine sessions across
+  that one day came to about **$45**.
+- Nothing here is a model call, so reading it is free.
+
 ## Dashboard deep links (give Sophie EXACT links, never "go find it")
 Sophie reads on a phone and hunting through a dashboard's menus wastes her
 time, so ALWAYS hand her a full clickable deep link. These ids are the pieces
@@ -273,6 +294,71 @@ around them change, so verify the labels and use these for the URL.
   to her when she is pasting on account 1, it just adds a decision that
   doesn't exist. A chat settles which account and environment it is on by
   calling `get_session` on its own session id and reading `environment_id`.
+- **Cloud environments on ACCOUNT 3 — TWO again, and the live one had the
+  WRONG account number baked in (measured 2026-08-22 via `list_environments`
+  + `get_session` from inside an account-3 session).** Both named "Default",
+  created 2026-08-21 within 0.04s of each other, i.e. auto-provisioned at
+  account setup — the same pair-of-Defaults shape as account 2, and the same
+  tell: the one with the EMPTY description is the live one.
+  - `env_01VB9pNj6pnXgsTxpyeLv14a` — description **empty**. This is the one
+    account-3 sessions actually run in.
+  - `env_01UhUAKEXwfZZ8M61whDFu9Q` — description "Default - trusted network
+    access". Nothing observed running on it.
+  **THE FAILURE HERE WAS NOT A MISSING SETTING — IT WAS A WRONG ONE, AND THAT
+  IS THE LOUDER LESSON.** The note below says account 3 was silent because the
+  three per-environment settings were unset. Measured from inside: two of the
+  three were fine (the Render domain answered 200, and the pasted Setup script
+  had installed a CURRENT hook, v14), and the third, `FORGE_ACCOUNT`, was set
+  to **`2`** — copied from account 2 along with everything else. So account-3
+  chats were never silent at all; they posted, correctly, filed into account
+  **2**'s pile. A missing setting makes a chat vanish and someone eventually
+  looks; a wrong one makes it land somewhere plausible and nobody does. **Any
+  chat can settle its own case in one command:** `get_session` for
+  `environment_id`, then `echo $FORGE_ACCOUNT`, and check the two agree.
+  - **Fixing it is Sophie's, one field** — the environment's env vars (cloud
+    icon → the environment → Environment variables) → `FORGE_ACCOUNT` → `3`.
+    Until she does, every NEW account-3 session starts mislabeled again.
+  - **AND A SAVED ENV-VAR EDIT IS NOT PROOF IT REACHED ANYTHING — MEASURE IT
+    (2026-08-22, hours later).** She added the line, screenshotted the box
+    showing `FORGE_ACCOUNT=3` at the top, and reported new sessions still
+    weren't tagged. A probe container started 17 minutes after that edit read
+    **`2`** and stamped its chat 2. Leading hypothesis, unproven: the OLD
+    `FORGE_ACCOUNT=2` line is still further down the same box and wins (.env
+    duplicate keys, last one wins) — the box scrolls, so a value added at the
+    top hides its own twin. Not the wrong-box trap: the other environment
+    (`env_01UhUAKEXwfZZ8M61whDFu9Q`) was measured the same hour and has NO
+    `FORGE_ACCOUNT` at all and no hook installed, i.e. genuinely unused.
+  - **THE PROBE — how to ask what a NEW session sees, in about a minute.**
+    `create_session {prompt: "run echo $FORGE_ACCOUNT and reply with just that
+    line"}` (it inherits the calling session's environment), then
+    `get_session` on the returned id and read
+    `external_metadata.post_turn_summary.status_detail` — the child's answer is
+    right there, so nothing has to be read out of the feed. Cost ~$0.50-$0.90 a
+    probe. Clean up after: the probe's own hook files a stray chat
+    (`POST /api/chatfeed/delete {chat}` trashes it, reversibly) and
+    `archive_session` closes the session.
+  - **THE DURABLE FIX NOBODY HAS BUILT: `CLAUDE_CODE_ACCOUNT_UUID`.** Every
+    container carries it — account 3 is
+    `226fb540-b801-46a1-9612-09ffd6a973fe` (measured 2026-08-22) — set by the
+    platform, not by Sophie, so it cannot be copied from another account or
+    pasted into the wrong box the way `FORGE_ACCOUNT` was. A hook that posted
+    it plus a uuid→number map on the settings doc would make the account tag
+    self-correcting, with the posted `FORGE_ACCOUNT` as the fallback for an
+    unmapped uuid. NOT BUILT — it needs a hook change, and a hook change only
+    reaches a session when Sophie re-pastes the environment's Setup script
+    (session init has no network, so the pasted copy is static: this container
+    ran a hook a day older than the served one).
+  - **A chat can fix ITSELF for its own session**, no waiting: prefix its
+    hook commands in `/home/user/.claude/settings.json` with
+    `FORGE_ACCOUNT=3 ` (settings and hooks are re-read per event, so it takes
+    effect on the next one), and `POST /api/chatfeed/account {chat,
+    account:"3"}` to tag the registry for turns already posted. The hook reads
+    the env var on every post and stamps it, so the prefix is the durable half
+    of the two — the manual tag alone is overwritten by the next post.
+  - **Chats on account 3 from before this was found are tagged `2` and there
+    is no way to tell them apart from real account-2 chats** — the tag is all
+    that was ever recorded. The environment was created 2026-08-21, so the
+    mislabeled ones are only ever that recent.
 - **Cloud environments on ACCOUNT 2 — there are TWO, both named "Default",
   and only one is used (measured 2026-08-10 via `list_environments` +
   `list_sessions`/`get_session`).** Telling them apart matters, because the
@@ -762,10 +848,16 @@ them off the reference sheet, not off the old filenames.
 - **A CHAT THAT NEVER POSTED CANNOT HEAL ITS OWN PAST — back it up on purpose
   (Aug 2026).** The hook BASELINES on its first firing in a session (only the
   latest turn posts), so fixing a silent chat also throws its history away.
-  Measured 2026-08-22: **zero chats have ever been tagged account 3** — a whole
-  account silent, because those three per-environment settings (Network access
-  for `imageforge-q125.onrender.com`, the Setup script, `FORGE_ACCOUNT`) are
-  Sophie's to set and nothing warns when they are missing. Recover a chat from
+  Measured 2026-08-22: **zero chats had ever been tagged account 3** — and the
+  reason turned out NOT to be the missing-settings one first written here.
+  Measured the same day from inside an account-3 session: its network reached
+  the app, its Setup script had installed a current hook, and `FORGE_ACCOUNT`
+  was set — to **`2`**. Those chats were posting all along, filed into account
+  2's pile. **So diagnose a "silent account" by measuring the three settings,
+  never by assuming they are unset** — a wrong value looks like silence from
+  the outside and needs no backfill at all, just the right tag. The account-3
+  environment ids and the fix are in the ACCOUNT 3 bullet up in *Dashboard
+  deep links*. Recover a genuinely silent chat from
   INSIDE it (its transcript exists nowhere else):
   `bash scripts/backfill-chat-history.sh` diagnoses and posts nothing;
   `--go` posts every turn and every message of hers, oldest first; `--account 3`
@@ -2202,12 +2294,80 @@ before working on that module. Nothing was deleted — the moved text is verbati
   - **gpt-image-2 only.** The WTR LoRA takes a trigger word and has no
     attachment slot at all, so the button comes off there rather than sitting
     there doing nothing. Test: `node scripts/test-playground-photo-ref.js`.
+  **TWO QUALITY LADDERS, AT THE RIGHT END WITH GENERATE (Aug 2026, Sophie:
+  "add a little oval next to the pyramid, colored on top, white empty on
+  bottom, signifying medium, and high. when pressed, it kicks off 1 medium and
+  1 high job" · "move the pyramid and the oval to the right side so they're
+  next to the generate button but still to the left of it" · "make the generate
+  button a square").** A ladder is one tap that draws the same prompt at more
+  than one quality, and each wears a picture of HOW MANY and at what tier,
+  never a word: the **pyramid** is two lows along its split base with the
+  better one filling the cap (~10¢), the **oval** is medium under high with the
+  top half filled (~21¢ portrait, ~26¢ square). The oval has NO vertical
+  divider on purpose — two tiers, one draw each; the split base is what says
+  *two lows*. Both go through one `ladder()` starter, and `startRun`'s `q`
+  overrides the toggle for that run only, so **neither ladder moves what the
+  knob says**.
+  - **The two ladders and Generate are ONE group (`.gogroup`), and it has to
+    be a group**: `.controls` wraps, so `margin-left:auto` on each button
+    separately would right-align whichever ones happened to share a line and
+    scatter the rest. The auto margin moved off `.go` onto the group.
+  - **Generate is a 38×38 SQUARE** — the box the seed button already is, so the
+    three taps at the right end read as one set rather than a wide slab beside
+    two small ones. The 6px radius stays: the house rule is rounded rectangles,
+    and sharp corners there would be the only ones on the page.
+  - **The style picker is NOT filled dark any more** (her ask, same message:
+    "just white, even tho it's selected"). It was painted like the old lit
+    tile so the selected style read as chosen — but there is only ever ONE
+    picker on the row, so there was nothing for it to read as chosen against,
+    and a black slab was the heaviest thing on a page of pale controls. The
+    INK BORDER stays; it is what still separates the one control that decides
+    the run from its pale neighbours.
+  - Test: `node scripts/test-playground-controls.js` — the headless half IS
+    the test here, because every one of these asks is a measurement: "coloured
+    on top" is the filled path's `getBBox` against the oval's centre (a wrong
+    arc sweep flag is perfectly valid markup that fills the wrong half),
+    "square" is two numbers that must match, "to the left of it" is an x
+    coordinate, and the three share a line by their CENTRES (the group centres
+    them and the ladders are shorter, so equal tops would be the wrong
+    question).
+  **THE CANVAS IS REMEMBERED — this REVERSES the note below it (Aug 2026,
+  Sophie: "make it not default to square, but just whatever the last option
+  was").** This file said a shape she picked once must not carry into every
+  later visit; she has since asked for exactly that, so the old reasoning is
+  history rather than a rule. `promptlab_canvas` in localStorage, written on
+  the TAP rather than on the run (the shape she is looking at is the one she
+  comes back to), with `square` surviving only as the FIRST-EVER default and
+  as the fallback for an unknown stored value. **QUALITY IS DELIBERATELY NOT
+  CHANGED WITH IT** — she named the canvas, and a remembered `high` is
+  16.5-21.1¢ a tap arriving unasked, where a remembered shape costs nothing it
+  did not cost last time.
+  **QUALITY IS THE ACCOUNT SWITCHER'S THREE-WAY TOGGLE, IN BLACK (Aug 2026,
+  Sophie: "make the low medium high drop down in the playground into the exact
+  three way toggle that the account switcher uses … but black not red. and put
+  the initial of the choice - L, M, or H").** It was a native `<select>`, and a
+  picker you have to open to read hides which quality a run is about to spend.
+  `.qtog` in `promptlab.html` is `.swi` from `chats.html` VERBATIM — 48px track,
+  26 tall, an 18px knob, three stops DERIVED from `--gap` — with the track ink
+  (`#2b2622`) instead of the rose and the letter riding the knob (`content:
+  attr(data-i)`, so the letter and the position are one element and cannot
+  disagree). Tapping anywhere moves to the next notch and WRAPS, exactly as the
+  account one does, so low → medium → high → low. **The two rules live in
+  different files with no shared stylesheet, so nothing but the test would ever
+  notice one drifting from the other** — `node
+  scripts/test-playground-quality-toggle.js` pins them property by property,
+  asserts the colour as a DIFFERENCE (a copy-paste must not bring the rose
+  back), and reads the knob's real x at each stop in headless Chromium. A
+  fourth quality is an entry in `QUALITIES` plus one CSS rule of the same
+  shape; nothing counts the notches. Still not persisted, same as before.
   **PORTRAIT OR SQUARE, opening on SQUARE (Aug 2026, her call).**
   `PL_GPT.sizes`; the run carries `canvas`, and an unknown value still lands on
   a real size server-side, never an invented one. **The square is the DEARER
   one** — 0.6¢/5.3¢/21.1¢ against 0.5¢/4.1¢/16.5¢, the inversion the price
   table warns about — so both buttons print what they cost; she picked it as
-  the default knowing that. Not persisted, same reasoning as quality.
+  the opening default knowing that. **It is PERSISTED since Aug 2026** (see
+  THE CANVAS IS REMEMBERED above) — this line used to read "not persisted,
+  same reasoning as quality" and she asked for the opposite.
   gpt-image-2 only — the LoRA has no baked prefix to show and rides
   `aspect_ratio` instead, so both controls hide on WTR.
   **AND THE SIZE TIERS BESIDE IT — 1K · 2K · 4K (Aug 2026, Sophie: "adding the
@@ -2272,6 +2432,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **A SEARCH BAR SITS IN THE ROW THAT WAS ALREADY THERE (Aug 2026, Sophie: "a
+  little search bar that fits in the space between the heart toggle (next to
+  tiles/grid)").** `flex: 1` between the heart and the 56px the autoscroll pill
+  owns, so nothing moved to make room and the row still fits one line on a
+  390pt phone (measured: 126px of box). It filters by RUN — her words belong to
+  a run, not a picture — so list view drops whole boxes and tiles drops that
+  run's pictures off the wall; it stacks with the heart (search picks the runs,
+  the heart the pictures) and hides "Older" while it is running. Searchable:
+  her words, the style by its LABEL and its key, quality, the canvas by its
+  ratio AND by the word on the button, `photo ref`, failed/cancelled.
+  **IT ASKS THE SERVER, and that is the point** — `GET /api/promptlab?q=`
+  scans the whole run history (a few hundred ~1KB docs, capped 1500, held
+  60s) because a box that only filters the loaded page answers "nothing
+  matches" for everything behind the 40-run window: the Assets tab's own
+  lesson, re-learned rather than re-lived. The loaded runs are still filtered
+  INSTANTLY while that lands. **The two haystacks are pinned equal by the
+  test** (`runHay` in promptlab.html, `promptlabHay` in server.js) — if they
+  drift, the view changes under her a beat after she types. The house grammar
+  and both house helpers (`liveInput`, `enterSubmits`) are wired, and the box
+  is deliberately NOT sticky, unlike the view and the heart. Test:
+  `node scripts/test-playground-search.js`.
   **A Replicate run she already has is never sent again** (Flux with a fixed seed
   is deterministic); ChatGPT is never deduped, because an identical run there
   draws a different picture. Quality low/medium/high 0.5c/4.1c/16.5c at its 2:3
