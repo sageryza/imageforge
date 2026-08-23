@@ -132,6 +132,49 @@ eq('no tldr and no block falls back to the first paragraph',
   Q.answerFor('It cost about four cents.\n\nMore detail after.', '', 'How much did it cost'),
   'It cost about four cents.');
 
+console.log('\nTHE ANSWER CAN LIVE ANYWHERE IN THE REPLY — bestParagraph digs it out');
+// A condensed version of the real reply that earned this (2026-08-23, Sophie:
+// "did u check the answer? it didn't actually answer the question. ull have to
+// be smarter about this whole thing"): the answer to each question is a
+// MIDDLE paragraph, the opening is progress lines, and there is no TLDR.
+const sizesReply = [
+  'Now the size tiers on the server:',
+  '',
+  '**Spent $2.35 this turn** — measuring the real price of every new size at every quality.',
+  '',
+  "**2K and 4K are not the only sizes — it's continuous.** Any canvas up to 3840px on the",
+  'long edge, with both edges a multiple of 16. Nothing between them is special.',
+  '',
+  "**Legal paper at 1024x1536: soft, and you'd see it.** Legal is 8.5x14 and your image is",
+  "2:3 — printed inside margins you're at roughly 137 dpi. At reading distance it reads mushy.",
+].join('\n');
+ok('a short question finds its middle paragraph',
+   /not the only sizes/.test(Q.answerFor(sizesReply, '', "are 2k and 4k the only sizes or are there in between sizes?")),
+   Q.answerFor(sizesReply, '', 'x'));
+// Her dictated questions run LONG — the denominator cap is what lets a real
+// 4-word match survive 13 words of framing.
+ok('a long dictated question still finds its paragraph',
+   /Legal paper/.test(Q.answerFor(sizesReply, '',
+     "Last question: if I were to print one of the normal images at the original size 1500 or whatever, let's say I printed it on legalize paper, how soft would it be")),
+   Q.answerFor(sizesReply, '', 'long'));
+// The stem must land singular and plural on the same root — her "images"
+// against the reply's "image" is exactly the hit the old stem lost.
+ok('singular and plural stem to the same root',
+   Q.matchBlock([{ q: 'the image sizes', body: 'yes' }], 'are the sizes of the images right') !== null);
+// Two shared words is a coincidence, not an answer — the floor is 3 distinct
+// hits, so "answer" + "question" appearing together cannot hijack a row.
+ok('two shared words do not pick a paragraph',
+   Q.bestParagraph('Here is context.\n\nI will answer your question soon.\n\nDone.', '',
+     "u didn't answer my question") === null);
+// The TLDR competes as a candidate — a summary that really is the answer wins.
+eq('a tldr that scores wins as the answer',
+  Q.bestParagraph('Unrelated opening.\n\nMore prose.', 'The witch lesson cards render at medium quality now.',
+    'what quality do the witch lesson cards render at'),
+  'The witch lesson cards render at medium quality now.');
+// Below the bar it stays out of the way entirely.
+ok('nothing scoring → null, the old chain runs',
+   Q.bestParagraph(sizesReply, '', 'how do I repoint the DNS at Hover') === null);
+
 console.log('\na paragraph ending in a colon is an introduction, not an answer');
 // Both of these were live rows in her Questions tab, 2026-08-23, on
 // playground-image-resolution — a fragment that answered nothing, because the
