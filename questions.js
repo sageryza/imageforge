@@ -208,12 +208,29 @@ const STOP = new Set(['the', 'a', 'an', 'is', 'are', 'do', 'does', 'did', 'to', 
 // "no turn from this repo has ever POSTED". Unstemmed those share nothing, and
 // that question scored zero against its own answer — which is how the ten-row
 // collapse first kept a transcript fragment instead of the real ask.
+//
+// IT MUST LAND SINGULAR AND PLURAL ON THE SAME ROOT (2026-08-23, found on a
+// live row): the old version stripped "es" whole, so her "images" became
+// `imag` while the reply's "image" stayed `image`, and "sizes"/`siz` never met
+// "size"/`size` — two real hits lost on the exact paragraph that answered her.
+// So: -ies → y, then -ing/-ed, then a single plural -s, then a trailing silent
+// -e — applied to BOTH sides by the same function, so "image(s)" → `imag` and
+// "size(s)" → `siz` whichever form each side used. The roots are ugly and that
+// is fine; they are compared, never shown.
 function stem(w) {
-  return w.replace(/(ies)$/, 'y').replace(/(ing|ed|es|s)$/, (m, _g, i) => (i >= 3 ? '' : m));
+  let t = w.replace(/ies$/, 'y');
+  if (t.length > 4) t = t.replace(/(ing|ed)$/, '');
+  if (t.length > 3 && /[^s]s$/.test(t)) t = t.slice(0, -1);
+  if (t.length > 3 && t.endsWith('e')) t = t.slice(0, -1);
+  return t;
 }
+// A SHORT TOKEN WITH A DIGIT IN IT IS KEPT (2026-08-23): "2k", "4k" and their
+// kind are the most load-bearing words in her size/version questions, and the
+// three-letter floor was throwing them away — the question "are 2k and 4k the
+// only sizes" lost its two most distinctive words before scoring began.
 function tokens(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
-    .filter((w) => w.length > 2 && !STOP.has(w))
+    .filter((w) => (w.length > 2 || (w.length === 2 && /\d/.test(w))) && !STOP.has(w))
     .map(stem);
 }
 
@@ -236,8 +253,70 @@ function matchBlock(blocks, question) {
   return bestScore >= 0.5 ? best : null;
 }
 
+// THE ANSWER CAN LIVE ANYWHERE IN THE REPLY — score every paragraph against
+// the question and take the one that talks about it (2026-08-23, Sophie,
+// looking at a row that opened on progress lines: "did u check the answer? it
+// didn't actually answer the question. ull have to be smarter about this whole
+// thing").
+//
+// The row that earned this: her "are 2k and 4k the only sizes or are there in
+// between sizes" was answered with the reply's opening — "Now the size tiers
+// on the server:" — while the reply's FIFTH paragraph literally begins "**2K
+// and 4K are not the only sizes — it's continuous.**" The opening-only
+// fallback assumed the answer-first house rule always holds; on a working
+// turn's reply it often doesn't, and no amount of reading FORWARD from the top
+// fixes an answer that lives in the middle.
+//
+// So this is `matchBlock` without the bold requirement: split the reply into
+// paragraphs, count how many of the question's own content words each one
+// carries, and hand back the best — the TLDR competes as a candidate too, so
+// a summary that really is the answer still wins. Free, derived, no model
+// call, exactly like everything else in this file.
+//
+// THE GUARDS ARE WHAT KEEP IT HONEST:
+//   • at least 3 DISTINCT question words must hit — two shared words is a
+//     coincidence ("answer" + "question" appear together in half her threads),
+//     three is the paragraph being about her subject;
+//   • the score's denominator is capped at 8, because her dictated questions
+//     run long ("if I were to print one of the normal images at the original
+//     size 1500 or whatever, let's say I printed it on legalize paper, how
+//     soft would it be") and an uncapped fraction buries a real 4-word match
+//     under 13 words of framing;
+//   • a winner ending in a colon pulls the next paragraph up with it — the
+//     same lead-in rule `firstPara` follows;
+//   • below the bar it returns null and the old chain (tldr → opening) runs
+//     unchanged, so nothing already right moves.
+const PARA_MIN_HITS = 3;
+const PARA_DENOM_CAP = 8;
+function bestParagraph(reply, tldr, question) {
+  const qt = Array.from(new Set(tokens(question)));
+  if (qt.length < PARA_MIN_HITS) return null;
+  const paras = String(reply || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const cands = [];
+  const t = String(tldr || '').trim();
+  if (t) cands.push({ text: t, i: -1 });
+  paras.forEach((p, i) => cands.push({ text: p, i }));
+  let best = null;
+  let bestScore = 0;
+  cands.forEach((c) => {
+    const pt = new Set(tokens(c.text));
+    let hit = 0;
+    qt.forEach((w) => { if (pt.has(w)) hit++; });
+    if (hit < PARA_MIN_HITS) return;
+    const score = hit / Math.min(qt.length, PARA_DENOM_CAP);
+    // Ties keep the EARLIEST candidate — the answer-first rule as a tiebreak.
+    if (score > bestScore) { bestScore = score; best = c; }
+  });
+  if (!best || bestScore < 0.5) return null;
+  if (best.i >= 0 && /:\s*$/.test(best.text) && paras[best.i + 1]) {
+    return best.text + '\n\n' + paras[best.i + 1];
+  }
+  return best.text;
+}
+
 // The opening of a reply — the last-resort answer when a chat wrote neither a
-// bold question block nor a TLDR.
+// bold question block nor a TLDR nor any paragraph that scores against the
+// question.
 //
 // A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION, NOT AN ANSWER, so it keeps
 // reading (found live 2026-08-23 in her Questions tab, two of the three rows on
@@ -288,9 +367,15 @@ function tidy(s) {
 }
 
 const ANSWER_CAP = 1200;
+// The chain, most specific first: the bold block a reply wrote for THIS
+// question → the paragraph that scores against it (`bestParagraph` — the TLDR
+// competes inside that) → the TLDR → the reply's opening.
 function answerFor(reply, tldr, question) {
   const block = matchBlock(boldBlocks(reply), question);
-  const raw = tidy((block && block.body) || String(tldr || '').trim() || firstPara(reply));
+  const raw = tidy((block && block.body)
+    || bestParagraph(reply, tldr, question)
+    || String(tldr || '').trim()
+    || firstPara(reply));
   return raw.length > ANSWER_CAP ? raw.slice(0, ANSWER_CAP).trim() + '…' : raw;
 }
 
@@ -391,4 +476,4 @@ function answeredOnly(list) {
 }
 
 module.exports = { sentences, isQuestion, flagsQuestion, findQuestions, boldBlocks, matchBlock,
-  answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };
+  bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };

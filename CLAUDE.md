@@ -1400,19 +1400,34 @@ them off the reference sheet, not off the old filenames.
     feature's own conversation would. That is one stray row in a message that
     really was about a question, against the 466 rows the ungated version
     produced, and an unanswered row is never shown anyway.
-  - **A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION — THE ANSWER KEEPS
-    READING (found live 2026-08-23 in her tab, two of three rows on one
-    chat).** `answerFor` falls back to the reply's opening when there is no
-    bold block and no TLDR, and it stopped at the FIRST paragraph — so a row
-    read *"Now the size tiers on the server:"* and another ended *"…the
-    difference between ChatGPT the app and what we call:"*, both fragments
-    that answer nothing, with the real answer in the paragraph the colon was
-    introducing. It reads on now, up to three paragraphs. **It only ever reads
-    FURTHER — it never DROPS one**: a mid-turn progress line and a real
-    lead-in ("Two things:") are the same shape and no honest test separates
-    them, so keeping both is merely noisy where dropping would be wrong. This
-    path matters less going forward — a question she marked gets a bold echo,
-    and `matchBlock` hands back the exact answer first.
+  - **THE ANSWER CAN LIVE ANYWHERE IN THE REPLY — `bestParagraph` scores every
+    paragraph against the question and takes the one that talks about it
+    (2026-08-23, Sophie, looking at a row still opening on progress lines:
+    "did u check the answer? it didn't actually answer the question. ull have
+    to be smarter about this whole thing").** The reply-opening fallback
+    assumed answer-first always holds; on a working turn's reply it often
+    doesn't — her "are 2k and 4k the only sizes" was answered with "Now the
+    size tiers on the server:" while the reply's FIFTH paragraph literally
+    began "2K and 4K are not the only sizes — it's continuous." It is
+    `matchBlock` without the bold requirement: ≥3 distinct question words must
+    hit (two is a coincidence — "answer"+"question" co-occur in half her
+    threads), the score's denominator is capped at 8 (her dictated questions
+    run long, and an uncapped fraction buries a real 4-word match under 13
+    words of framing), the TLDR competes as a candidate, and below the bar it
+    returns null so the old chain runs unchanged — which is also why no row
+    can REGRESS: the new path only fires when the paragraph provably shares
+    the question's words. **The stem lands singular and plural on one root**
+    — the old one sent "images"→`imag` but "image"→`image`, losing the two
+    hits on exactly the paragraph that answered her. Measured over her 120
+    recent chats, 36 answered rows: answers sharing ≥3 content words with
+    their question went 11 → 20. Free, derived, no model call.
+  - **A PARAGRAPH ENDING IN A COLON IS AN INTRODUCTION — the fallback keeps
+    READING (same day, the earlier half of the fix).** When nothing scores,
+    `firstPara` reads past colon-ended lead-ins, up to three paragraphs, and
+    only ever reads FURTHER — a mid-turn progress line and a real lead-in
+    ("Two things:") are the same shape, so keeping both is merely noisy where
+    dropping would be wrong. Going forward the bold echo on questions she
+    marks hands `matchBlock` the exact answer before either fallback runs.
   - **THE PILL SAT ON THE QUESTIONS BUTTON (2026-08-23, her screenshot: the
     door read "QUES").** The note row is the thread's LAST header line and it
     does not scroll, so its right end is permanently inside the injected
