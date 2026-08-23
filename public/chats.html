@@ -1259,13 +1259,17 @@ body.reading .backwrap{display:block;}
 .newbar svg{flex:none;}
 .nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
-/* The jump pair, bottom-right: back to the top, and all the way DOWN beside it
-   (Aug 2026, Sophie). Each shows only when it would actually go somewhere, so
-   at the top of a short list there is nothing floating over the page at all.
-   Hidden in select mode — the filing bar owns the bottom of the screen then,
-   and these would sit on top of it. */
+/* The jump pair, bottom-right: back to the top, and all the way DOWN.
+   STACKED, up ABOVE down (Aug 2026, Sophie: "right now the scroll to top and
+   scroll to bottom arrows are adjacent. the up shud be above") — side by side
+   they read as one two-part control and the arrow pointing up sat to the LEFT
+   of the one pointing down, which says nothing about direction. In a column
+   the buttons ARE the directions they mean. Each shows only when it would
+   actually go somewhere, so at the top of a short list there is nothing
+   floating over the page at all. Hidden in select mode — the filing bar owns
+   the bottom of the screen then, and these would sit on top of it. */
 .jumps{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom));
-  z-index:9; display:flex; gap:8px; transform:translateZ(0);}
+  z-index:9; display:flex; flex-direction:column; gap:8px; transform:translateZ(0);}
 body.selecting .jumps{display:none;}
 .totop{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg);
   color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none;
@@ -8100,10 +8104,23 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // falls back to a hairline of air when neither arrow is showing, since then
   // there is nothing to clear. (The page-BOTTOM jump needs none of this:
   // `.wrap` already ends in 16vh of padding, which is more than the pair.)
+  // IT RESERVES ROOM FOR **BOTH** ARROWS, NOT THE ONE ON SCREEN RIGHT NOW
+  // (Aug 2026, when the pair was stacked into a column). At the top of the
+  // page only the DOWN arrow shows, so the group is one button tall — but the
+  // jump itself scrolls down, which brings the UP arrow out and grows the
+  // column UPWARD, straight over the Open button the landing had just cleared.
+  // Side by side that could not happen (the row's height never changed), which
+  // is why this only became a bug with the column. So: the group's bottom edge
+  // (stable, it is bottom-anchored) plus two buttons and the gap between them.
   function bottomReserve(){
     var j=document.querySelector('.jumps');
-    if(!j || !j.querySelector('.totop.show')) return 14;
-    return Math.max(14, Math.round(window.innerHeight - j.getBoundingClientRect().top + 10));
+    if(!j) return 14;
+    var btn=j.querySelector('.totop.show');
+    if(!btn) return 14;
+    var jr=j.getBoundingClientRect(), br=btn.getBoundingClientRect();
+    var gap=parseFloat(getComputedStyle(j).rowGap)||0;
+    var tall=br.height*2+gap;
+    return Math.max(14, Math.round(window.innerHeight - jr.bottom + tall + 10));
   }
   function openMsgEnd(){
     var rows=document.querySelectorAll('#thread .msg.open');
