@@ -63,22 +63,24 @@ struct StoryRoomView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg)
             } else {
-                StoryRoomWebView(token: studioToken, failed: $loadFailed, webRef: webRef)
+                StoryRoomWebView(token: studioToken, failed: $loadFailed,
+                                 webRef: webRef, onLeave: leave)
                     .id(reloadKey)
                     .ignoresSafeArea(edges: .bottom)
             }
         }
         .background(Self.paper.ignoresSafeArea())
-        // The back arrow lives in the nav bar's top-left corner, like every
-        // other tool (this screen had none, and the page's own back chip sat
-        // stranded below the header). One chevron, two jobs: inside a story or
-        // film the page consumes it and steps back a level (__navBack); on the
-        // shelf it pops to the home grid.
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                ForgeBackButton(tint: Self.ink, action: navBack)
-            }
-        }
+        // APPLE'S BAR IS GONE FROM HERE TOO (Aug 2026, Sophie: "I made the
+        // impression that we had gotten rid of the Apple native header, but I
+        // think story room still has it cause there's a back Chevron"). It was
+        // the last web-wrapped tool still carrying one — a `.toolbar` with
+        // ForgeBackButton, written before `.forgeWebToolBar` existed — so the
+        // Story Room wore two title strips while every sibling wore one. The
+        // PAGE draws the chevron now (pagehead.js), which is also what lets the
+        // shelf and every sheet share that one row's shape. The bar comes back
+        // for the failure screen only: there is no page there to draw one.
+        .forgeWebToolBar("Story Room", tint: Self.ink, paper: Self.paper,
+                         failed: loadFailed, back: navBack)
         // The page carries its own in-page autoscroll pill — hide the native
         // one while this screen is up (and stop any run already in flight).
         .onAppear {
@@ -115,18 +117,22 @@ private struct StoryRoomWebView: UIViewRepresentable {
     let token: String
     @Binding var failed: Bool
     let webRef: StoryRoomWebRef
+    /// Leave the tool — what `window.__forgeLeave()` reaches now that the page
+    /// draws the back chevron instead of Apple's bar.
+    var onLeave: () -> Void = {}
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(context.coordinator, name: "pasteVoiceover")
-        // Tells the page this build's nav bar carries the back chevron, so it
-        // hides its own in-page back row (body.native). Older builds don't
-        // inject this and keep the page's row — never both, never neither.
-        config.userContentController.addUserScript(WKUserScript(
-            source: "window.__nativeNavBar = true",
-            injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        // The page draws its own header now. This installs both halves of the
+        // hand-over: `__nativeNavBar` (unchanged — it has always meant "chrome
+        // outside your content owns back, don't draw your own", and pagehead.js
+        // is that chrome now) and the `__forgeLeave` bridge the chevron calls
+        // once the page has no level left to step back through.
+        context.coordinator.leaveHandler =
+            ForgePageHeader.install(into: config, onLeave: onLeave)
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.isOpaque = false
@@ -148,6 +154,9 @@ private struct StoryRoomWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let parent: StoryRoomWebView
         weak var webView: WKWebView?
+        /// `addScriptMessageHandler` does NOT retain — hold the leave bridge
+        /// here or `window.__forgeLeave()` reaches nothing.
+        var leaveHandler: ForgeLeaveHandler?
         private var screenChangeObserver: NSObjectProtocol?
         init(_ parent: StoryRoomWebView) { self.parent = parent }
 

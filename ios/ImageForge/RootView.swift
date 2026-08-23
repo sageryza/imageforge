@@ -183,10 +183,12 @@ enum Tool: String, CaseIterable, Identifiable {
         case .blog:      GatedWebTool(path: "/blog?embed=1", name: "Blog Studio", icon: "newspaper", navTitle: "Blog Studio")
         case .product:   GatedWebTool(path: "/studio?embed=1", name: "the Product Creator", icon: "shippingbox", navTitle: "Product Creator")
         case .report:    GatedWebTool(path: "/report?embed=1", name: "the Shop Report", icon: "chart.line.uptrend.xyaxis", navTitle: "Shop Report")
+                         // No .forgeTitle: the PAGE owns the header (Aug 2026,
+                         // Sophie: "get rid of the apple native bar"). The view
+                         // carries .forgeWebToolBar itself, which hides the bar
+                         // while the page is up and brings it back — with this
+                         // title — only for the failure screen.
         case .story:     StoryRoomView()
-                             // Same dress as the movies-pushed Story Room: the
-                             // heading in the native bar, matched to the page's paper.
-                             .forgeTitle("Story Room", paper: StoryRoomView.paper)
         case .lessons:   LessonsView().forgeToolBar("Lessons", paper: LessonsView.paper)
         case .writing:   WritingRoomView()
         case .editor:    EpisodeEditorView()

@@ -2765,7 +2765,24 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Story
 - **The pad IS the Story Room now (Aug 2026)** — `/storyroom` serves the pad page
   and the app's Story Room tile opens it. The OLD board surface (`storyroom.html`,
-  `/api/story/*`) stays in the repo, unpointed. Stories carry **listen rows**
+  `/api/story/*`) stays in the repo, unpointed.
+  **IT WAS THE LAST TOOL STILL WEARING APPLE'S BAR, and the stale doc is why
+  (Aug 2026, Sophie: "I made the impression that we had gotten rid of the Apple
+  native header, but I think story room still has it cause there's a back
+  Chevron").** `StoryRoomView` carried a hand-written `.toolbar` chevron from
+  before `.forgeWebToolBar` existed, and `docs/design-rules.md` still told a new
+  tool to ship with the native bar — so nothing ever flagged it. Both are fixed;
+  the page draws the one chevron via `pagehead.js` now.
+  **AND ITS SHEETS ARE LEVELS, NOT DIALOGS** (same message: "there's like an X to
+  get out of it and a weird icon. I just want it to be a back button and no X …
+  the header should be like normal it should say the shelf"). The shelf and every
+  other sheet in the page wear the page's own header — back chevron left, **name
+  centred**, actions right, one CSS rule over `header,.sheethead` — the shelf is
+  called **The shelf**, and there is no ✕ in this page's chrome at all. The shelf
+  door on the pad moved to the RIGHT of the header as an action (it is Lucide
+  `library` now, not four abstract squares), which is what frees the left for the
+  chevron. Test: `node scripts/test-storyroom-header.js` (three states —
+  web / old build / new build; verified failing 12 against the pre-fix page). Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the
   **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,

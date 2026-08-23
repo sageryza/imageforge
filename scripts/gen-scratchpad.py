@@ -43,21 +43,39 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 [hidden]{display:none !important;}
 .wrap{max-width:34em; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 8px) 5vw 16vh;}
 .no{font-family:-apple-system,'Helvetica Neue',sans-serif; font-size:11px; letter-spacing:.34em; color:var(--ink2); text-transform:uppercase;}
-/* SCRATCH PAD is the header: centered on its own line at the VERY top (the
-   old 5vh wrap padding left it stranded mid-page in the app — Sophie's
-   screenshot). The buttons live on the title row below, right-aligned and
-   stopping 56px short of the pill's corner, so nothing overlaps the word. */
-/* The shelf button sits top-LEFT, where a back control normally lives —
-   leaving a story feels like going back. */
-header{display:block; text-align:center; padding:6px 0 0; position:relative;}
-header #storiesbtn{position:absolute; left:0; top:2px;}
-/* In the app the native nav bar already says STORY ROOM — never two titles
-   (the Playground rule). Builds inject window.__nativeNavBar; the page
-   answers with body.native: the eyebrow hides and the shelf button becomes a
-   normal block so the header keeps its height instead of collapsing under
-   the absolute-positioned button. Plain browsers keep the eyebrow. */
-body.native header .no{display:none;}
-body.native header #storiesbtn{position:static;}
+/* The name sits on its own line at the VERY top (the old 5vh wrap padding
+   left it stranded mid-page in the app — Sophie's screenshot). The story's
+   own buttons live on the title row below, right-aligned and stopping 56px
+   short of the pill's corner, so nothing overlaps the word. */
+/* THE ONE HEADER SHAPE — the page's header AND every sheet in it (Aug 2026,
+   Sophie, looking at the shelf: "there's like an X to get out of it and a
+   weird icon. I just want it to be a back button and no X … the header
+   should be like normal it should say the shelf just like all the other
+   pages have a header at the top. Make sure the pattern is consistent
+   everywhere"). Back control in a 34px rounded box at the LEFT — never an
+   ✕ — the name centred, actions at the right.
+   THE NAME IS CENTRED ABSOLUTELY, not by flex, because the two ends are
+   different widths (the pill owns the top-right 56px), so a flex-centred
+   name reads visibly off-centre. That is pagehead.js's own `.fh` rule,
+   copied here on purpose: this page draws its whole chrome, and its sheets
+   have to look identical to the row pagehead draws on the page behind
+   them. */
+header,.sheethead{display:flex; align-items:center; gap:10px; position:relative;
+  min-height:34px; padding:6px 56px 0 0;}
+header > .no,.sheethead > .no{position:absolute; left:88px; right:88px; top:50%;
+  transform:translateY(-50%); margin:0; text-align:center; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;}
+/* whatever ENDS the row (the + on the shelf, the shelf door on the pad) hugs
+   the right — the centred name is absolute, so it cannot be the flex spacer */
+header > :last-child:not(.no),.sheethead > :last-child:not(.no){margin-left:auto;}
+/* THE OLD BUILD STILL HAS APPLE'S BAR, and it already says STORY ROOM — never
+   two titles (the Playground rule). Builds inject window.__nativeNavBar and
+   the page answers with body.native. The build that HANDS THE HEADER OVER
+   also runs pagehead.js, which stamps body.pagehead and draws the chevron
+   into this row — and then the page's own name is the only one there is, so
+   it comes back. Both halves ship separately, so both states have to hold. */
+body.native header > .no{display:none;}
+body.native.pagehead header > .no{display:block;}
 /* The title row PINS to the top while she scrolls a long story, so film /
    play / add / inbox are always a thumb away (Sophie). Paper background so
    beats slide beneath it. Its z-index stays BELOW the pill's 9 (the house
@@ -68,8 +86,6 @@ body.native header #storiesbtn{position:static;}
 .titlerow{display:flex; align-items:center; gap:10px; padding-right:56px; margin-top:.4em;
   position:sticky; top:0; z-index:5; background:var(--paper); padding-top:6px; padding-bottom:6px;}
 .titlerow #title{flex:1; min-width:0; margin:0;}
-.sheethead{display:flex; align-items:center; gap:10px; padding:6px 56px 0 0;}
-.sheethead .no{flex:1;}
 /* THE SHELF (Aug 2026, the media-asset-survey prototype v5, ~15 rounds with
    Sophie): category chips + portrait tiles four across. A tile is a REAL
    picture from that story — portrait 2:3 so nothing crops the art — with the
@@ -358,9 +374,14 @@ body.native header #storiesbtn{position:static;}
 #filmplay video{max-width:100vw; max-height:100vh; background:#000;}
 </style>
 <div class="wrap">
+  <!-- The name sits centred; the shelf door is an ACTION at the right, so the
+       left of the row is free for the back chevron (pagehead.js inserts it
+       there in the app). The door wears Lucide `library` — books on a shelf,
+       which is what it opens — rather than the four abstract squares it
+       shipped with. -->
   <header>
-    <button class="iconbtn" id="storiesbtn" aria-label="Your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></button>
     <div class="no">Story room</div>
+    <button class="iconbtn" id="storiesbtn" aria-label="The shelf — all your stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M8 8v12"/><path d="M12 6v14"/><path d="m16 6 4 14"/></svg></button>
   </header>
   <div class="titlerow">
     <div id="title" contenteditable="true" spellcheck="false"></div>
@@ -379,8 +400,8 @@ body.native header #storiesbtn{position:static;}
 <div class="sheet" id="stories" hidden>
   <div class="wrap">
     <div class="sheethead">
-      <button class="iconbtn" id="storiesclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-      <div class="no">Your stories</div>
+      <button class="iconbtn" id="storiesclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="no">The shelf</div>
       <button class="iconbtn" id="newstory" aria-label="Start a new story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
     </div>
     <div id="shelfcats"></div>
@@ -392,7 +413,7 @@ body.native header #storiesbtn{position:static;}
 <div class="sheet" id="inbox" hidden>
   <div class="wrap">
     <div class="sheethead">
-      <button class="iconbtn" id="inboxclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <button class="iconbtn" id="inboxclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <div class="no" id="inboxno">From the Playground</div>
     </div>
     <div class="acctabs" id="inboxtabs">
@@ -417,7 +438,7 @@ body.native header #storiesbtn{position:static;}
 <div class="sheet" id="ausheet" hidden>
   <div class="wrap">
     <div class="sheethead">
-      <button class="iconbtn" id="auclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <button class="iconbtn" id="auclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <div class="no">Audio on this story</div>
     </div>
     <div id="audios"></div>
@@ -428,7 +449,7 @@ body.native header #storiesbtn{position:static;}
 <div class="sheet" id="descsheet" hidden>
   <div class="wrap">
     <div class="sheethead">
-      <button class="iconbtn" id="descclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      <button class="iconbtn" id="descclose" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       <div class="no">About this story</div>
     </div>
     <div id="descaudios"></div>
@@ -1491,10 +1512,13 @@ document.getElementById('beatpop').onclick=function(ev){
   if(t===this||t.id==='beatcard'||t.id==='cardin')closeBeat();
 };
 
-/* ── the app's native nav bar ──────────────────────────────────────────
-   Builds inject window.__nativeNavBar before the page runs. body.native
-   hides the page's own STORY ROOM eyebrow (the native bar already says it —
-   a double header shipped for real, Sophie's screenshot, Aug 2026). The
+/* ── the back chevron, wherever it is drawn ────────────────────────────
+   Builds inject window.__nativeNavBar before the page runs. On the OLD build
+   that means Apple's bar, and body.native hides the page's own STORY ROOM
+   name so there are never two titles (a double header shipped for real,
+   Sophie's screenshot, Aug 2026). On the build that hands the header over,
+   pagehead.js draws the chevron into the page's own row instead and the name
+   comes back — see the header CSS. Either way the
    chevron asks __navBack first: close the topmost open layer — film,
    lightbox, a confirm box, the beat popup, a sheet — each through its own
    close path so nothing skips its cleanup (closeBeat saves the note, the
