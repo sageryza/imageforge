@@ -3061,6 +3061,14 @@ function bookmarkMarks(body) {
     const n = Math.round(Number(body.level) || 0);
     patch.bmkLevel = (n >= 1 && n <= 3) ? n : admin.firestore.FieldValue.delete();
   }
+  // I READ IT — hers to tick, never derived (Aug 2026, Sophie: "a rounded
+  // square check box that is empty with a gray outline and becomes red with a
+  // check in it… I'll mark it manually"). Opening a thing is not reading it,
+  // which is why nothing here watches for a view: the tick is the whole
+  // signal, and it is what takes a thing out of the To read count.
+  if (body.read !== undefined) {
+    patch.bmkRead = body.read ? true : admin.firestore.FieldValue.delete();
+  }
   return patch;
 }
 
@@ -3159,6 +3167,7 @@ router.get('/bookmarks', async (req, res) => {
         // place — the same two fields on a message and on an artifact
         tags: Array.isArray(m.bmkTags) ? m.bmkTags : [],
         level: Number(m.bmkLevel) || 0,
+        read: !!m.bmkRead,
       };
     }).concat(pageDocs.map((d) => {
       const p = d.data() || {};
@@ -3182,6 +3191,7 @@ router.get('/bookmarks', async (req, res) => {
         topic: p.refTopic || '',
         tags: Array.isArray(p.bmkTags) ? p.bmkTags : [],
         level: Number(p.bmkLevel) || 0,
+        read: !!p.bmkRead,
       };
     })).concat(Object.keys(reg.chats).filter((slug) => {
       const r = reg.chats[slug] || {};
@@ -3229,7 +3239,11 @@ router.get('/to-read', async (req, res) => {
     // read 4 with 3 things in the pile. Filtered HERE rather than in the query
     // because `array-contains` + an equality needs a composite index, and both
     // reads are already capped at 300.
-    const kept = (snap) => snap.docs.filter((d) => d.data().bookmarked !== false).length;
+    // AND A TICKED ONE LEAVES IT TOO (Aug 2026, Sophie: "when I read it I'll
+    // mark it manually") — the pile is what is still waiting, so her tick is
+    // what makes the number go down.
+    const kept = (snap) => snap.docs
+      .filter((d) => d.data().bookmarked !== false && !d.data().bmkRead).length;
     const m = kept(msgs); const pg = kept(pages);
     res.json({ ok: true, count: m + pg, messages: m, pages: pg });
   } catch (err) { fail(res, err); }
@@ -3661,6 +3675,7 @@ router.get('/pages', async (req, res) => {
         // tag row a kept message carries
         bmkTags: Array.isArray(d.data().bmkTags) ? d.data().bmkTags : [],
         bmkLevel: Number(d.data().bmkLevel) || 0,
+        bmkRead: !!d.data().bmkRead,
         reference: !!d.data().reference,
         topic: d.data().refTopic || '',
       }))
