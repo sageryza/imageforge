@@ -188,11 +188,20 @@ router.post('/refs', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
+// MOST RECENTLY USED FIRST, falling back to when it was uploaded (Aug 2026 —
+// the page folds the library behind a `Recently used` button, so the order the
+// server hands back IS what that button opens). A ref that has never been on a
+// run has no `lastUsedAt`, so it sorts by upload date exactly as it always did
+// — nothing needed backfilling for this.
+function refOrder(refs) {
+  const when = (r) => (r && (r.lastUsedAt || r.createdAt)) || 0;
+  return refs.slice().sort((a, b) => when(b) - when(a));
+}
+
 router.get('/refs', async (req, res) => {
   try {
     const snap = await db().collection(REFS).get();
-    const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const refs = refOrder(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     res.json({ ok: true, refs });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
@@ -236,6 +245,11 @@ router.post('/run', async (req, res) => {
       const snap = await db().collection(REFS).doc(r).get();
       if (snap.exists && snap.data().url) { refUrls.push(snap.data().url); refIds.push(r); }
     }
+    // Stamped so the library comes back in the order she actually reaches for
+    // them. Best-effort: a failed stamp costs an ordering, never a run.
+    const usedAt = Date.now();
+    await Promise.all(refIds.map(id => db().collection(REFS).doc(id)
+      .set({ lastUsedAt: usedAt }, { merge: true }).catch(() => {})));
 
     const ref = db().collection(RUNS).doc();
     const doc = {
@@ -279,4 +293,4 @@ router.delete('/run/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
-module.exports = { router, SIZES, QUALITIES };
+module.exports = { router, SIZES, QUALITIES, refOrder };
