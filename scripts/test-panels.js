@@ -171,22 +171,43 @@ t('her words go in VERBATIM, one line per cell, in reading order', () => {
   });
 });
 
-t('the grid sentence states the CUT, and says nothing about decoration', () => {
-  // A sentence here about borders or caption boxes would argue with a style's
-  // own tail — the exact failure the module header warns about, and Dreamy
-  // legitimately asks for a hand-drawn frame per panel.
+t('the grid sentence is SHORT, and asks for the margins and gutters', () => {
+  // Sophie's note on the first sheet (2026-08-24): "add margins and gutters" ·
+  // "less instructions because it's copying the reference image". Both halves
+  // are one insight — the style reference IS a multi-panel comic page, so the
+  // layout only has to be NAMED, not described.
+  //
+  // And with a gutter the cut comes out EVEN: slicing at exact halves puts
+  // half a gutter on each inner edge and the page margin on each outer one, so
+  // a panel is bordered on all four sides. The first version forbade gutters
+  // "because the cut needs that" and got a panel bordered on TWO sides.
   const plan = G.sheetFor(4, 'portrait', '4k');
+  const line = P.gridLine(plan);
+  assert.ok(/even margin/.test(line), 'it asks for the page margin');
+  assert.ok(/gutters between the panels/.test(line), 'and the gutters');
+  assert.ok(!/no gutters/.test(line), 'the old anti-gutter clause is gone');
+  assert.ok(/style reference/.test(line), 'it points at the reference to do the work');
+
+  // SHORT. The first version was three sentences and 300+ characters of
+  // forbidding what the reference was going to do anyway.
+  assert.ok(line.length < 240, `one short sentence-ish: ${line.length} chars`);
+  assert.ok(line.split(/[.!?] /).length <= 2, 'at most two sentences');
+
+  // Still silent about decoration — that is the STYLE's business, and a
+  // sentence here arguing with a style's own tail is the module's named
+  // failure mode. Dreamy legitimately asks for a hand-drawn frame per panel.
+  assert.ok(!/\bborder\b/i.test(line), 'it says nothing about borders');
+  assert.ok(!/caption box/i.test(line), 'it says nothing about caption boxes');
+
+  // and it still names the real geometry
+  assert.ok(line.includes('2x2 grid of 4'), 'names the grid');
+  assert.ok(/single row of 2 .* side by side/.test(P.gridLine(G.sheetFor(2, 'portrait', '4k'))),
+    'two reads as a row, not a grid');
+
+  // the line really is what goes into the prompt
   const out = P.buildPrompt({ plan, panels: ['a', 'b', 'c', 'd'],
     prefix: '', suffix: '', cells: G.cellNames(4) });
-  assert.ok(/no gutters/.test(out), 'it forbids gutters — the cut needs that');
-  assert.ok(/cut along those lines/.test(out), 'it says why');
-  assert.ok(!/\bborder\b/i.test(out), 'it says nothing about borders');
-  assert.ok(!/caption box/i.test(out), 'it says nothing about caption boxes');
-  // and it names the real geometry
-  assert.ok(out.includes('2x2 grid of 4'), 'names the grid');
-  const two = P.buildPrompt({ plan: G.sheetFor(2, 'portrait', '4k'),
-    panels: ['a', 'b'], prefix: '', suffix: '', cells: G.cellNames(2) });
-  assert.ok(/single row of 2 .* side by side/.test(two), 'two reads as a row, not a grid');
+  assert.ok(out.includes(line), 'buildPrompt sends the same sentence gridLine returns');
 });
 
 // --------------------------------------------------------------------------
