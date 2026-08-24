@@ -11,6 +11,7 @@ const path = require('path');
 const G = require('../sheet-grid');
 const P = require('../panels');
 const sizeTier = require('../size-tier');
+const { promptRecord } = require('../prompt-record');
 
 // The two measured anchors' medium rates, read out of panels.js rather than
 // retyped — the direction of the clamp depends on them.
@@ -444,6 +445,42 @@ t('a wedged job is takeoverable, a working one is not', () => {
     n++; console.log('  ok  a resume cuts only what is missing, in reading order');
   }
 
+  // THE WHOLE PROMPT IS FILED WITH EVERY PICTURE — the sheet and each cut
+  // panel (Sophie's hard rule, 2026-08-24). This module shipped filing neither,
+  // so a panel's PROMPT overlay had no style half at all.
+  {
+    const plan = G.sheetFor(4, 'portrait', '4k');
+    const filed = [];
+    P.__setDeps({ fileCreation: (a) => { filed.push(a); return 'id'; },
+      styles: { dreamy: { label: 'Dreamy', prefix: 'PRE', suffix: 'SUF' } },
+      gpt: { id: 'gpt-image-2' } });
+    const cfg = { plan, panels: ['a crow', 'a door', 'a bell', 'a hand'], quality: 'medium',
+      styleId: 'dreamy', prefix: 'PRE', suffix: 'SUF',
+      fullPrompt: P.buildPrompt({ plan, panels: ['a crow', 'a door', 'a bell', 'a hand'],
+        prefix: 'PRE', suffix: 'SUF', cells: G.cellNames(4) }) };
+    const images = G.cellNames(4).map((cell, i) => ({ url: `https://x/${i}.webp`, cell,
+      prompt: cfg.panels[i] }));
+    P.fileRun('https://x/sheet.webp', images, cfg, 0);
+    assert.strictEqual(filed.length, 5, 'the sheet and all four panels are filed');
+    filed.forEach((f, i) => assert.strictEqual(f.fullPrompt, cfg.fullPrompt,
+      `filing ${i} carries the LITERAL page-sized prompt that drew it`));
+    filed.forEach((f, i) => assert.ok(f.promptPrefix.includes(P.gridLine(plan)),
+      `filing ${i}'s style half carries the grid sentence this module adds`));
+    // What the shared builder would actually write onto the doc.
+    const sheetRec = promptRecord({ full: filed[0].fullPrompt, content: filed[0].promptContent,
+      prefix: filed[0].promptPrefix, suffix: filed[0].promptSuffix });
+    assert.ok(!/the sheet —/.test(sheetRec.promptContent),
+      "the sheet's content half is HER words, never our caption line");
+    assert.ok(cfg.panels.every((w) => sheetRec.promptContent.includes(w)),
+      'and it is every cell she wrote, verbatim');
+    const panelRec = promptRecord({ full: filed[1].fullPrompt, content: filed[1].prompt,
+      prefix: filed[1].promptPrefix, suffix: filed[1].promptSuffix });
+    assert.strictEqual(panelRec.promptContent, 'a crow', "a panel's content half is its own cell");
+    assert.ok(panelRec.promptStyle.includes('PRE') && panelRec.promptStyle.includes('SUF'),
+      "and its style half is the run's real wrapper");
+    n++; console.log('  ok  the sheet and every panel file the whole prompt');
+  }
+
   await drivePage();
   console.log(`\n${n} checks passed.\n`);
 })().catch((e) => { console.error('\nFAILED:', e.message, '\n'); process.exit(1); });
@@ -513,15 +550,23 @@ async function drivePage() {
     assert.ok(/2336x3504/.test(await p.$eval('#plan', (e) => e.textContent)), 'and it moves');
     n++; console.log('  ok  page: the plan line is served and moves with the pickers');
 
-    // The slider steps and WRAPS, like the Playground's.
-    const steps = [];
-    for (let i = 0; i < 4; i++) {
-      steps.push(await p.$eval('#respick', (e) => e.dataset.i));
-      await p.click('#respick');
+    // THE SLIDER LANDS WHERE SHE TAPS, like the Playground's (2026-08-24 —
+    // /tritoggle.js). This used to assert a CYCLE, which is the bug Sophie
+    // reported: from the middle stop every tap went right, whichever side she
+    // aimed at.
+    const tapTri = async (sel, frac) => {
+      const box = await p.locator(sel).boundingBox();
+      await p.mouse.click(box.x + box.width * frac, box.y + box.height / 2);
+      await p.waitForTimeout(220);
+    };
+    const stops = [];
+    for (const frac of [1 / 6, 5 / 6, 1 / 2]) {
+      await tapTri('#respick', frac);
+      stops.push(await p.$eval('#respick', (e) => e.dataset.i));
     }
-    assert.strictEqual(steps[0], steps[3], 'the slider wraps');
-    assert.strictEqual(new Set(steps).size, 3, 'three distinct stops');
-    n++; console.log(`  ok  page: the size slider steps and wraps (${steps.join(' → ')})`);
+    assert.deepStrictEqual(stops, ['1K', '4K', '2K'],
+      `left/right/middle pick their own stop (${stops.join(' → ')})`);
+    n++; console.log(`  ok  page: the size slider lands where she taps (${stops.join(' → ')})`);
 
     // AN EMPTY BOX IS REFUSED BEFORE ANY REQUEST — the model fills an unnamed
     // cell with whatever it likes and she pays for it at the sheet's price.

@@ -991,12 +991,36 @@
   - **Session-only, always starting CLOSED**, like the hidden pile and every
     other filter here: a fold that remembered itself would hide half her
     chats one morning with no memory of having asked.
+  - **AND IT KEEPS HER SPOT — `repaintKeepingBar` (Aug 2026, Sophie: "when I
+    click more, it takes me all the way back to the top and should stay where
+    I am").** Nothing was scrolling her, which is why this read as
+    unexplainable: `renderHome` empties `#grid`, so for that instant the page
+    is nothing tall and the BROWSER clamps `scrollY` to 0 — the rebuild puts
+    the height back but not the position. Every other `renderHome` caller
+    follows it with a deliberate `scrollTo(0,0)` (a filter, a tab and a pile
+    change what the list IS), so nothing else ever showed it. The tapped bar
+    is put back at its own **viewport offset**, never the old `scrollY`, which
+    is already wrong if any chrome above it changed height in the repaint; and
+    the hidden bar goes through the same helper.
   - **The split happens in `renderHome`, not inside `renderList`** — so the
     hidden pile, the archive, ★ and Status keep showing their piles whole.
     Those are places she went on purpose, and a second fold inside one is a
     filter on a filter. A category chip DOES narrow it, like everything else
     on the live list.
-  - Tests: `node scripts/test-chats-more.js` (verified failing without the
+  - **A CHAT BEHIND THE FOLD CAN OPEN EMPTY, AND IT STILL NEEDS THE DOOR (Aug
+    2026, same message: "the messages are gone that might be fine but there's
+    also no button to get back into that chat").** The Open-in-Claude button
+    has only ever been drawn on a MESSAGE ROW, so a thread with nothing in it
+    had no way back into the session at all — and the chats behind this fold
+    are exactly the quiet ones whose thread comes back empty. The session url
+    is on the REGISTRY doc, not only on the messages (476 of 505 chats carry
+    one, measured 2026-08-24), so the empty state offers it. **A chat with no
+    url on file gets no button** — the same rule as everywhere else here:
+    nothing invented to fill a gap.
+  - Tests: `node scripts/test-chats-more-spot.js` (her spot kept, the hidden
+    bar still landing at the top, and the empty thread's door — asked with
+    `elementFromPoint`, verified failing 4 against the pre-fix page), and
+    `node scripts/test-chats-more.js` (verified failing without the
     split; covers the boundary, the count, the bar's position under the list,
     open/close, the working exemption, and no bar when nothing is stale).
   **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug
@@ -1445,6 +1469,44 @@
     files two chats into it, with no code change. The sorter's own answers are
     excluded from the examples, or one early mistake would become a folder's
     definition and compound.
+  - **WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie: "for chats
+    that are tagging themselves, if it's in the story room but it's just a bug
+    fix for the story room then they shouldn't tag it story, they should just
+    tag it bug fix — and that applies to all the other categories
+    obviously").** Her vocabulary holds two DIFFERENT kinds of word and the
+    sorter could not tell them apart: some name a SUBJECT AREA (`witch` ·
+    `story` · `film` · `dream app` · `tech` · `meta` · `xi` · `chunk making` ·
+    `just for fun` · `pelt`) and some name WHAT THE WORK IS (`bug fix` · `new
+    feature` · `research` · `failure` · `built` · `quick question`). Every chat
+    has a subject, so the subject word always looked like the safe answer — and
+    that is useless in both directions: `story` fills with plumbing, and `bug
+    fix`, the pile she reaches for when she wants to know what has been going
+    wrong, stays empty.
+    - **ENFORCED IN CODE, NOT ONLY IN THE PROMPT** — the archive summary's
+      length cap taught that a prompt instruction is a hope. The model answers
+      `kind` in its OWN field beside `category`, and `pickCategory` PREFERS it;
+      forgetting the rule would take an active `"none"` rather than a slip.
+      The prompt still states the rule and marks each kind folder in the list
+      it is handed (`[what the work IS]`), because a model that cannot tell
+      which of her words are subjects is guessing.
+    - **Three things not to undo**, each a case in the test: a `kind` naming a
+      SUBJECT is IGNORED (otherwise the rule inverts — the field built to beat
+      subjects would carry one); an invented kind is refused exactly like any
+      other invented folder (rule 3 is untouched); and a kind with NO subject
+      beside it still files, because "sure it was a bug fix, unsure which
+      corner of the app" is an honest answer to what that pile is for.
+    - **`WORK_KINDS` is a HINT OVER HER LIVE VOCABULARY, never an addition to
+      it.** A word in it she does not have annotates nothing; a folder she
+      invents next month is still offered and still fileable, it just is not
+      read as a kind until it is named there. `GET /api/chatfeed/sort` prints
+      `workKinds` — the folders currently being read that way — so the day the
+      list goes stale against her words is measurable in one read rather than
+      silent. Deliberately NOT kinds: `to read`, `waiting for something`, `in a
+      minute`, `maybe never` — those say WHEN, the same reason `TRIAGE` is off
+      limits.
+    - **Chats she filed herself never move** (rule 1), and auto-filed ones
+      reach the new rule on their next re-check (`RESORT_*`) — or immediately
+      with `POST /api/chatfeed/sort {chat, force:true}`, ~a cent a chat.
   - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
     she wants something, not what it is; nothing outside her head can know
     that, and guessing buries real work in a to-do folder. She still files
@@ -2184,6 +2246,44 @@
       would show the pin only where it is not needed. `pinLive` is
       `filedAt > notifSeenAt` and nothing else — the tag written after the
       last time she settled the chat.
+      - **AND THE CHAT WEARS A MARK, EVERYWHERE (2026-08-24, Sophie: "are
+        there any extra instructions for if I tag a chat waiting for a
+        response? Since I'm waiting for it I'd like a chat that's tagged like
+        that to come with some extra indication").** The pin above was the
+        whole of the rule, and a pin only exists on the Update tab — so on the
+        home list, and inside the thread itself, a chat she was owed an answer
+        from looked like every other chat, and the one screen that knew she
+        was waiting was the one screen she had to already be on.
+        `waitMarkHtml` is a Lucide **hourglass** in the marks' red (`--chg`),
+        drawn at the front of the row beside the star and the bookmark — the
+        slot this file already reserves for a state with no control of its own
+        — and inside the thread's `<h1>`. One renderer, so the three row
+        builders that share `starHtml` (the home list, the Status row and the
+        Update card) cannot draw it three ways.
+        - **IT FOLLOWS THE TAG, NOT THE CARD.** Her ✓ on the Update tab
+          settles the CARD (`pinLive` goes out); the mark stays until the WORD
+          comes off, which is the same rule the sibling tag's `Waiting for:`
+          line has always followed. Two different questions — "have I dealt
+          with this card" and "am I still waiting" — so they end at two
+          different moments.
+        - **IT READS `TAG_RULES`, NOT THE STRING** (`waitingReply` asks
+          `tagRuleOf(name).rule === 'pin'`), so the mark and the pin can never
+          disagree about which word means this. First-match ordering means a
+          chat wearing both rule words still answers `pin`, which is the right
+          answer here for the same reason it is right on the tab.
+        - **IT IS A `<span>`.** A row is a `<button>`; a nested button is
+          invalid markup and the tap would bubble into opening the chat. The
+          word rides `title` + `aria-label` instead.
+        - **`syncWaitMark` repaints the THREAD header**, which is built once
+          in `openChat` — and the Organize sheet opens from inside that same
+          thread, so without it the screen she is standing on is the last to
+          know. The lists need no such thing: `saveLabels` mutates `chats`
+          synchronously before its callers redraw.
+        - **Nothing tells the CHAT.** `GET /api/chatfeed/status` returns her
+          note, the status card and the pinned link — no labels — so a chat
+          cannot see that she is waiting on it. That half is unbuilt.
+        - Test: `node scripts/test-chats-waiting-mark.js` (the real page,
+          headless — verified failing 8 of 14 against the pre-fix page).
     - **`to be reviewed` → THE REVIEW ROW** ("movies that are done, images
       waiting on my decision, go into a `review` button (which links to the
       review queue) at the top of the updates tab, and get hidden from the

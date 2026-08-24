@@ -256,15 +256,35 @@ const server = http.createServer((req, res) => {
   ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button', (n) => n.every((x) => !x.textContent.trim())),
      '…with no text in them');
 
-  // …but a message she kept EARLIER, painted fresh, carries the note alone
+  // …but a message she kept EARLIER, painted fresh, carries NOTHING — not the
+  // tags and not the note box (Sophie: "the why keep this bookmark button
+  // should only show up at the time that I'm bookmarking it or if I un
+  // bookmark and bookmark again")
   ok(await page.$$eval('#thread .msg', (ns) => {
     const kept = ns.find((n) => /one she kept a while ago/.test(n.textContent));
     return kept ? kept.querySelectorAll('.bmknote input').length : -1;
-  }) === 1, 'a thing kept earlier still carries its note on a fresh paint');
+  }) === 0, 'a thing kept earlier carries NO note box: that is not the moment she is keeping it');
   ok(await page.$$eval('#thread .msg', (ns) => {
     const kept = ns.find((n) => /one she kept a while ago/.test(n.textContent));
     return kept ? kept.querySelectorAll('.bmkmarks').length : -1;
-  }) === 0, '…and NO tags: that is not the moment she is keeping it');
+  }) === 0, '…and no tags either');
+  // …and un-keeping it and keeping it again is the way back in, with what she
+  // wrote still in the box
+  const keptSel = await page.$$eval('#thread .msg', (ns) => {
+    const kept = ns.find((n) => /one she kept a while ago/.test(n.textContent));
+    return kept ? kept.getAttribute('data-mid') : '';
+  });
+  ok(!!keptSel, 'found the message she kept a while ago: ' + keptSel);
+  await page.click('#thread .msg[data-mid="' + keptSel + '"] .bmk');   // un-keep
+  await page.waitForTimeout(300);
+  await page.click('#thread .msg[data-mid="' + keptSel + '"] .bmk');   // keep again
+  await page.waitForTimeout(300);
+  ok(await page.$$eval('#thread .msg[data-mid="' + keptSel + '"] .bmkedit .bmknote input', (n) => n.length) === 1,
+     'un-keeping and keeping again opens the box again');
+  ok(await page.$$eval('#thread .msg[data-mid="' + keptSel + '"] .bmkedit .bmkmarks', (n) => n.length) === 1,
+     '…with its tags, exactly as a first keep');
+  ok(await page.$eval('#thread .msg[data-mid="' + keptSel + '"] .bmknote input', (n) => n.value) !== '',
+     '…still holding the note she wrote, because un-keeping never cleared it');
 
   before = posts.length;
   await page.click('#thread .msg[data-mid="m1"] .bmkedit .bmkmarks .catchip[data-tag="to-read"]');

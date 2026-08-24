@@ -12,8 +12,9 @@
 //   3. the star button in a chat's header sets it (POST /star),
 //   4. bookmarking a message opens a note box straight away and typing in it
 //      POSTs the note without touching the bookmark itself,
-//   5. the note box STAYS under a bookmarked message (no hunting for a gesture
-//      to edit it) and goes when she un-bookmarks,
+//   5. the note box belongs to the TAP that keeps a thing: it stays through
+//      that moment, is not redrawn under a message kept earlier, and comes
+//      back — with what she wrote — when she un-keeps and keeps again,
 //   6. the note is EDITABLE right on the row in the Bookmarks view — naming a
 //      backlog must not mean opening each message in turn — and typing there
 //      POSTs the note without touching the bookmark.
@@ -202,14 +203,29 @@ const fail = (m) => { console.error('FAIL: ' + m); process.exitCode = 1; };
   if (!notePost) fail('the note was never POSTed: ' + JSON.stringify(bmkPosts));
   if (notePost && notePost.bookmarked !== undefined) fail('saving a note also wrote the bookmark flag');
 
-  // 5. the box is still there (it belongs to the bookmark, not to the tap that
-  //    made it), and un-bookmarking takes it away
-  if (!(await page.$('#thread .bmknote input'))) fail('the note box vanished while the message was still bookmarked');
+  // 5. the box stays put for as long as she is in the moment that opened it —
+  //    tapping away to save must not close it — but it is NOT redrawn under a
+  //    message she kept earlier (Aug 2026, Sophie: "the why keep this bookmark
+  //    button should only show up at the time that I'm bookmarking it or if I
+  //    un bookmark and bookmark again").
+  if (!(await page.$('#thread .bmknote input'))) fail('the note box vanished while she was still in the tap that opened it');
   if (await page.$eval('#thread .bmknote input', (n) => n.value) !== 'the montage cut list') fail('the note box lost what she typed');
-  await page.click('#thread .msg .bmk');
-  await page.waitForFunction(() => !document.querySelector('#thread .bmknote'),
-    null, { timeout: 4000 }).catch(() => fail('un-bookmarking left the note box behind'));
+  //    …a fresh paint of the same thread: still kept, and no box
+  await page.click('#back');
+  await page.waitForSelector('#grid > .clist .crow[data-chat="chat-plain"]');
+  await page.click('#grid > .clist .crow[data-chat="chat-plain"]');
+  await page.waitForSelector('#thread .msg');
+  if (!(await page.$('#thread .msg .bmk.on'))) fail('the message lost its bookmark on a fresh paint');
+  if (await page.$('#thread .bmknote')) fail('a message kept earlier still drew the "Why keep this?" box');
+  //    …and un-keeping and keeping again is her own way back into it
+  await page.click('#thread .msg .bmk');                       // un-keep
+  await page.waitForTimeout(300);
   if (!bmkPosts.some((p) => p.bookmarked === false)) fail('un-bookmarking never POSTed');
+  await page.click('#thread .msg .bmk');                       // keep again
+  await page.waitForSelector('#thread .bmknote input', { timeout: 4000 })
+    .catch(() => fail('keeping it again did not open the box'));
+  if (await page.$eval('#thread .bmknote input', (n) => n.value) !== 'the montage cut list')
+    fail('keeping it again lost the note she had written');
 
   // 6. the note leads the row in the Bookmarks view
   await page.click('#back');

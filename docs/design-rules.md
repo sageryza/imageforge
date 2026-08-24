@@ -31,6 +31,35 @@ The house rules that only bite when you are actually building a page, an iOS scr
     copy that leans only on `window.__scrollStop`. Re-generating those pages
     is its own job (see the stale-generator warning in `CLAUDE.md`).
   - Pinned by `node scripts/test-back-to-top.js`.
+  - **IT FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie: "some
+    surfaces scroll but have no to top arrow. like story room shelf").** A
+    full-screen sheet (`position:fixed; inset:0; overflow-y:auto` — the Story
+    Room's shelf) takes the scroll away from the window, and every check here
+    asked the window, so on the shelf there was no pill and no arrow at all;
+    the sheet's z-index 40 also sat over the pill's 9, so a lit arrow was
+    unreachable (measured with `elementFromPoint`). The pill hears an inner
+    scroller through a CAPTURE-phase `scroll` listener (scroll does not bubble
+    but it does capture, so `e.target` names the box) and, before she has
+    scrolled anything, through `elementsFromPoint` at the middle of the screen
+    — asked only when the window itself cannot scroll, and re-asked by a
+    MutationObserver, because a fixed sheet opening changes nothing a
+    ResizeObserver watches. **Only a nearly-full-screen overlay is adopted**
+    (80% wide, 60% tall): a note list or a drawer must never steal the pill
+    from the page behind it. Adopting one lifts the pill to that box's
+    z-index + 1 and releasing restores its own. Test:
+    `node scripts/test-pill-sheet.js`.
+  - **NEVER hand-roll a second one.** `/chunking` carried its own circle at
+    the bottom-right from before this existed — two back-to-tops, two corners,
+    one job, and a round plate the icon rule has since retired.
+  - **A PAGE CAN KILL THE WHOLE INJECTED PILL BY NAMING A VARIABLE.** Its
+    script runs in the page's global scope, so a top-level `let`/`const`
+    sharing a name with one of the pill's `var`s (`playing`, `raf`, `I`,
+    `dir`, `last`, `si`…) is a parse-time SyntaxError that takes the pill with
+    it, silently — `/search` had `let playing` and had no autoscroll and no
+    arrow for as long as it existed. **Wrap a page script in an IIFE**
+    (`/cutmarks` already does, and its comment says why).
+    `node scripts/test-pill-globals.js` loads every injected page in a real
+    browser and asks whether the pill's script ran.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD — NEVER A BUTTON (Aug 2026,
   Sophie, pointing at the Playground: "the ... button for longer than two line
   prompt is huge. why? it shud be fixed everywhere. truncated text shud always
@@ -118,6 +147,44 @@ The house rules that only bite when you are actually building a page, an iOS scr
     `/chats` section — `padding-right:56px`): with no native bar the page's
     pill floats high over its own header, so no control may live in that
     corner.
+  - **THE HEADER TOP IS ONE NUMBER, AND `pagehead.js` ENFORCES IT BY
+    MEASUREMENT (2026-08-23, Sophie: "the header is different in both, and
+    not at the top" — the Story Room was just the pair she screenshotted).**
+    Measured across all 39 gated pages that day: the gap above the header ran
+    **0 to 42px** and the chevron's left edge **-4 to 16**, no two families
+    agreeing — because no one owned the number. Every page improvised its own
+    status-bar clearance (chats' `5vh` IS roughly the notch on an 844pt
+    phone, by accident; 16 pages shipped without `viewport-fit=cover`, so
+    `env(safe-area-inset-top)` read 0 for them and fixed pixels were the only
+    tool they had), and every new page copied its neighbour's number. A page
+    alone can't be wrong — a header 40px low is valid markup and looks fine on
+    its own screen — so no per-page test could ever catch it.
+    - **The number: the header row's CONTENT-BOX top sits at
+      `var(--headtop)` = `env(safe-area-inset-top) + 4px`, and the chevron's
+      left edge at 16px.** The content-box, not the chevron itself: a tall
+      band (search — title + its box) centres the chevron a few px inside
+      itself, and that is its own business.
+    - **`levelRow()` in `pagehead.js` enforces it the way the pill defends
+      its colours: measure the real box, correct, re-check** (fonts,
+      resize, a ResizeObserver, an IntersectionObserver for headers that are
+      hidden until content loads). A sticky/fixed row is corrected through
+      its PADDING (margin cannot pull sticky up — it re-pins at 0; measured
+      on /studio, where -10.5px of margin moved the header exactly 0px); an
+      in-flow row through its MARGIN, so dead space above it is reclaimed. A
+      row is pulled UP only when the space above it is dead, and nothing
+      moves more than 64px.
+    - **So a page needs NO top-inset code of its own** — write a sane
+      `.wrap` and let the injected chrome level it in the app. A page that
+      must look right in a plain BROWSER too (nothing injected there) uses
+      the token: `:root{--headtop:calc(env(safe-area-inset-top,0px) + 4px)}`
+      and `padding-top:var(--headtop)` on its wrap — `scratchpad.html` is the
+      worked example.
+    - **The test derives its page list from `server.js`** — every
+      `serveGated(...)` page is measured against 4/16, so a new page is in
+      the test the day it is registered, before anyone remembers it exists.
+      That, not the fix, is the half that stops the bug coming back: 39
+      pages each got this wrong by faithfully copying the page next door.
+      `node scripts/test-header-top.js`.
   - **A page with inner levels answers `window.__navBack`** — one in-page
     level per tap (a sheet shut, a story back to its shelf), then the web
     view's own history via `canGoBack`, then leave the tool. The chevron

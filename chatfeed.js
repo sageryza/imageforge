@@ -1200,10 +1200,16 @@ function herAskOf(s) {
 // her message — the harness hands it to the model as a user turn and the hook
 // lifts it exactly like something she typed, so it would file 7,000 characters
 // of recited rules as what she asked for. One copy of that rule, in questions.js.
-function lastHerText(msgs) {
+//
+// `before` (an ISO string) caps it at a moment — the BACKFILL's case. A summary
+// written on the 20th is her question of the 20th paired with what the chat did
+// by the 20th; taking her newest message instead would file a question she
+// asked afterwards over answers that predate it.
+function lastHerText(msgs, before) {
   for (let i = (msgs || []).length - 1; i >= 0; i--) {
     const m = msgs[i] || {};
     if (m.from !== 'sophie') continue;
+    if (before && String(m.created || '') > String(before)) continue;
     const t = String(m.text || '').trim();
     if (!t || isCompacted(t)) continue;
     return t;
@@ -1483,6 +1489,87 @@ router.post('/wrapup/trim', async (req, res) => {
       // kept whole, so it is still over. Named rather than silently counted.
       stillOver: hits.filter((h) => h.now > cap).map((h) => h.chat),
       sample: hits.slice(0, 5).map((h) => ({ chat: h.chat, was: h.was, now: h.now })) });
+  } catch (err) { fail(res, err); }
+});
+
+// PUT HER OWN WORDS BACK ON THE SUMMARIES ALREADY ON FILE, FREE (2026-08-24,
+// Sophie a day after the fix shipped: "what I asked, which is the default note
+// at the top of every chat, is paraphrased … make it not paraphrase, just my
+// actual words truncated").
+//
+// She was right and the code was right — #1631 lifts her opening on all three
+// writing paths, but a wrap-up is STORED, not derived on read, so every summary
+// written before it kept its model paraphrase forever. Measured that day: 9
+// chats carried her words, 70 carried a paraphrase. Nothing re-writes a
+// wrap-up on its own, so the repair is its own pass — the `/wrapup/trim`
+// pattern: pure text surgery, no model call, dry by default.
+//
+// Three rules, and each one is about not overreaching:
+//   1. It only ever touches `wrapAsked` (plus the `wrapUp` mirror when that
+//      mirror is provably the three answers joined). `wrapDid`, `wrapNext`,
+//      `wrapLine` and `wrapLong` are the chat's own account of its work and
+//      are never reworded.
+//   2. HER MESSAGE AS OF WHEN THE SUMMARY WAS WRITTEN (`wrapUpAt`), not her
+//      newest — see `lastHerText`'s `before`. A summary is a moment, and
+//      pairing today's question with last week's answers reads as nonsense.
+//   3. A chat she never posted into is LEFT ALONE. There is nothing of hers to
+//      lift, and the chat's `asked` is the honest fallback exactly as it is on
+//      the live paths.
+router.post('/wrapup/rehers', async (req, res) => {
+  try {
+    const dry = !(req.body && req.body.dry === false);
+    const only = String((req.body || {}).chat || '').trim();
+    const snap = await db().collection(REG).get();
+    const todo = [];
+    snap.docs.forEach((d) => {
+      if (d.id === SETTINGS_DOC) return;
+      if (only && d.id !== only) return;
+      const r = d.data() || {};
+      if (r.wrapAskedHers === true) return;             // already hers
+      if (!String(r.wrapAsked || '').trim()) return;    // nothing to replace
+      todo.push({ chat: d.id, r });
+    });
+    const changed = [];
+    const noMessage = [];
+    for (const t of todo) {
+      // One equality filter, sorted in memory — the house rule in this file.
+      let msgs = [];
+      try {
+        const ms = await db().collection(MSGS).where('chat', '==', t.chat).get();
+        msgs = ms.docs.map((x) => x.data())
+          .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+      } catch (_) { /* best-effort, exactly like herAskFor */ }
+      const hers = herAskOf(lastHerText(msgs, t.r.wrapUpAt));
+      if (!hers) { noMessage.push(t.chat); continue; }
+      if (hers === t.r.wrapAsked) continue;             // identical already
+      // NOTHING IS DESTROYED — the paraphrase moves aside rather than being
+      // overwritten. Measured over the 62 this pass rewrites: ~56 are plainly
+      // better and about SIX come out worse, because her last message before
+      // that summary was a sign-off ("ok build is here now. anything else to
+      // do?") or a machine-authored prompt the hook lifted as hers (a
+      // routine's deploy check-in, a handoff brief). Those really are the
+      // words that were sent as her turn, and her rule is her rule, so the
+      // pass applies it everywhere rather than inventing a quality bar over
+      // her messages — the detector-over-her-words mistake this repo has
+      // already made twice (see *Answering a question*). Keeping the old line
+      // is what makes that the cheap, reversible call instead of a permanent
+      // one.
+      const patch = { wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t.r.wrapAsked };
+      // The prose mirror is rebuilt ONLY when it is provably the three answers
+      // joined — anything else is a summary written as a paragraph, and
+      // splicing her sentence into someone's prose would leave a broken one.
+      const mirror = wrapProse(t.r.wrapAsked, t.r.wrapDid, t.r.wrapNext);
+      if (mirror && String(t.r.wrapUp || '').trim() === mirror) {
+        patch.wrapUp = wrapProse(hers, t.r.wrapDid, t.r.wrapNext);
+      }
+      changed.push({ chat: t.chat, was: t.r.wrapAsked, now: hers, mirror: !!patch.wrapUp });
+      if (!dry) await regRef(t.chat).set(patch, { merge: true });
+    }
+    res.json({ ok: true, dry, checked: todo.length, rewrote: changed.length,
+      // Named rather than silently skipped: a chat she never posted into keeps
+      // its chat-written answer, which is the same fallback the live paths use.
+      noMessageOfHers: noMessage,
+      sample: changed.slice(0, 8) });
   } catch (err) { fail(res, err); }
 });
 
@@ -2655,6 +2742,11 @@ router.get('/sort', async (_req, res) => {
       anthropic: require('./anthropic').available(),
       categories: cats,
       triage: chatSort.TRIAGE,
+      // Which of her folders are being read as WHAT THE WORK IS rather than as
+      // a subject area — the half that beats the subject when both fit (see
+      // WORK_KINDS in chat-sort.js). Printed here so the day the hint list goes
+      // stale against her vocabulary is measurable in one read, not silent.
+      workKinds: chatSort.workKinds(cats),
       examples,
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),
