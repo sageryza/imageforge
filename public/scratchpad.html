@@ -373,6 +373,10 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
    quality, Draw. The STYLE is never asked — one style per story. */
 #drawbox{width:100%; display:flex; flex-direction:column; gap:8px;}
+/* Says which words a draw is about to use. Chrome, not content — it is
+   never IN the box she writes in. */
+#promhint{font-family:'EBGaramond',Georgia,serif; font-size:13px; font-style:italic;
+  color:var(--ink2); margin-top:-2px;}
 #dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
@@ -578,6 +582,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
     <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     <div id="drawbox" hidden>
       <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div id="promhint" hidden>empty — this beat draws from its caption</div>
       <div class="drawrow">
         <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
         <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
@@ -1589,9 +1594,13 @@ function openBeat(b){
   // pair. NEVER on a clip: nothing here draws a film, and a picture-maker
   // over one would only ever replace it.
   document.getElementById('artrow').hidden=clip;
-  // Drawing here: the prompt starts as the beat's own prompt or its words,
-  // and the box opens COLLAPSED (her rule) with the caption showing.
-  document.getElementById('dprompt').value=promptOf(b);
+  // Drawing here: the box holds ONLY her own stored prompt — never the
+  // caption (2026-08-24: seeding it with the caption meant a beat with no
+  // prompt of its own showed the caption's words in the prompt box, so
+  // there was nothing on screen to tell "this beat has its own prompt" from
+  // "you are about to draw the caption", and Draw sent the caption). Empty
+  // means FOLLOW THE CAPTION, which the hint line says out loud.
+  document.getElementById('dprompt').value=String(b.prompt||'');
   setBoxes(true,false);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
@@ -1644,14 +1653,12 @@ function openDraw(ev){
   // takes the toggle off rather than leaving it there doing nothing.
   setBoxes(opening?false:document.getElementById('caplab').getAttribute('aria-expanded')==='true', opening);
   if(opening){
-    // A prompt she already wrote wins; otherwise the seed is whatever the
-    // text box says RIGHT NOW — not the beat's last SAVED text (words typed
-    // seconds ago aren't saved until the popup closes, and the stale prefill
-    // was drawing the old line: "it doesn't take the words I put in") —
-    // with the speech markup stripped, same as the wand.
-    var stored=String(popBeat.prompt||'').trim();
-    var live=document.getElementById('pnote').value.trim();
-    document.getElementById('dprompt').value=stored||stripSpeech(live||popBeat.text);
+    // Only her own prompt goes in the box. An empty box is the honest
+    // default and it still DRAWS — from the caption, live, exactly as it
+    // always did ("it doesn't take the words I put in" was the old bug and
+    // stays fixed: drawPrompt() reads the caption box, never the last
+    // SAVED text).
+    document.getElementById('dprompt').value=String(popBeat.prompt||'');
     saveNote();
     document.getElementById('dprompt').focus();
   }
@@ -1674,7 +1681,7 @@ document.getElementById('dchar').onclick=function(ev){
 document.getElementById('dgo').onclick=function(ev){
   ev.stopPropagation();
   var b=popBeat; if(!b)return;
-  var prompt=document.getElementById('dprompt').value.trim();
+  var prompt=drawPrompt();
   if(!prompt){ document.getElementById('dprompt').focus(); return; }
   var btn=this; btn.disabled=true;
   saveNote(); savePrompt();
@@ -1771,6 +1778,7 @@ function setBoxes(capOpen, promOpen){
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
   document.getElementById('dchar').hidden=(padStyle==='dreamy');
+  paintPromptHint();
 }
 document.getElementById('caplab').onclick=function(ev){
   ev.stopPropagation();
@@ -1799,6 +1807,27 @@ function savePrompt(){
     }});
 }
 document.getElementById('dprompt').onblur=function(){savePrompt();};
+/* WHAT DRAW WILL ACTUALLY SEND — one function, so the hint line and the
+   Draw button can never disagree about it. Her own prompt when the box has
+   one; otherwise the caption as it reads RIGHT NOW, speech markup stripped.
+   The server's promptFor() is the same rule over the SAVED fields. */
+function drawPrompt(){
+  var typed=document.getElementById('dprompt').value.trim();
+  if(typed)return typed;
+  var live=document.getElementById('pnote').value.trim();
+  return stripSpeech(live||(popBeat&&popBeat.text));
+}
+/* The empty box is not a dead box — it follows the caption, and the line
+   under it says so rather than leaving her to guess which words a draw is
+   about to use (2026-08-24: "it sent the wrong prompt … from the caption
+   part not the drawing part"). */
+function paintPromptHint(){
+  var h=document.getElementById('promhint');
+  if(!h)return;
+  var typed=document.getElementById('dprompt').value.trim();
+  h.hidden=Boolean(typed);
+}
+document.getElementById('dprompt').addEventListener('input',paintPromptHint);
 function saveNote(){
   if(!popBeat)return Promise.resolve();
   var t=document.getElementById('pnote').value;
