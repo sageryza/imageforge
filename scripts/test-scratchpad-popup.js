@@ -144,6 +144,20 @@ const VW = 390, VH = 780;
     'it is screen-shaped, not square (card ' + cardAR.toFixed(2) + ' vs screen ' + screenAR.toFixed(2) + ')');
   ok(Math.abs(cardAR - 1) > 0.25, 'and it is nowhere near square');
 
+  // 1b — IT LEAVES THE HEADER AND PART OF THE NAME SHOWING (2026-08-24,
+  // Sophie: "it shud comfortably show the story room header, and part of the
+  // story name"). Both are MEASUREMENTS against the real chrome behind the
+  // card, not a pixel constant: the card's top edge must clear the header
+  // outright and land INSIDE the name's own line, so a slice of the story's
+  // name is still readable above it.
+  const hdr = await box('header');
+  const ttl = await box('#title');
+  ok(card.y >= hdr.b, 'the card starts below the Story room header (card ' +
+    Math.round(card.y) + ' vs header bottom ' + Math.round(hdr.b) + ')');
+  ok(card.y > ttl.y && card.y < ttl.b, 'and cuts through the story name, so part of it shows (' +
+    'name ' + Math.round(ttl.y) + '-' + Math.round(ttl.b) + ', card ' + Math.round(card.y) + ')');
+  ok(card.y - ttl.y >= 12, 'with a comfortable slice of it — not a sliver');
+
   // 2 — the picture is big now, not the pad tile's width
   const img = await box('#popimg');
   ok(img.w > tile.w * 2, 'the picture is far bigger than its pad tile (' +

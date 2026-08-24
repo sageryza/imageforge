@@ -294,9 +294,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    all around it is also the tap-out target). Capped at the screen and
    scrolls inside if content ever overflows. Everything — art, versions,
    chips, note, icons — lives ON the card. No scrim. */
+/* IT STARTS BELOW THE HEADER, AND CUTS THROUGH THE STORY'S NAME (2026-08-24,
+   Sophie: "someone made the beat one at a time popup too big. it shud
+   comfortably show the story room header, and part of the story name"). The
+   card's top used to be 18px down, which put it OVER both — so the one thing
+   on screen saying which room she was in and which story she was in was gone
+   the moment she opened a beat. Measured on the real page at 390x780: the
+   header runs y 4-38 and the name y 52-83, so a 68px top clears the header
+   whole and leaves the top half of the name showing above the card. The
+   number is a MEASUREMENT, not a taste — re-measure it if the header or the
+   title's type ever changes. The card is still screen-shaped and still
+   leaves a strip of pad all round as the tap-out target. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
+  padding:calc(env(safe-area-inset-top,0px) + 68px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
 /* THE CARD IS NEARLY THE WHOLE SCREEN, AND SCREEN-SHAPED (Aug 2026, Sophie:
    "the whole popup gets bigger, so there's only room enough to comfortably
    see behind it. similar aspect ratio as total screen (not square)"). It
