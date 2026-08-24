@@ -1368,6 +1368,10 @@ them off the reference sheet, not off the old filenames.
     to file the exact answer under the exact question, so it earns its space
     here — and the rest of the reply is unchanged: this is a heading on the
     answer you were already writing first, never a second pass at it.
+  - **Or she said a CODE WORD** — "file this" / "save that answer" / "for the
+    questions tab" — which files the exchange even when nothing in it was
+    shaped like a question. Same shape of reply: bold the thing she wants kept
+    on its own line, answer under it.
   - **Keep the answer SHORT either way**; the length rule above applies to
     answers first of all.
   - **Why it has a switch at all.** The blanket version shipped for one day
@@ -1406,10 +1410,39 @@ them off the reference sheet, not off the old filenames.
     next sentence** — "I have a question." is a heading, so the row reads what
     follows it. The list is DERIVED on every read, so this changed every
     chat's whole history at once, with nothing migrated.
-  - **The cost, named:** a message merely ABOUT questions trips the gate — this
-    feature's own conversation would. That is one stray row in a message that
-    really was about a question, against the 466 rows the ungated version
-    produced, and an unanswered row is never shown anyway.
+  - **SHE HAS TO BE ASKING, NOT TALKING ABOUT ASKING — the gate is her
+    PHRASES, not the bare word (2026-08-24, Sophie: "i noticed ur still
+    structuring ur response w bold questions. is that cuz ur rules are out of
+    date?").** The rules were not out of date; the gate fired exactly as
+    written, and that WAS the bug. Measured in this chat's own tab that day:
+    **all 3 rows were false positives**, none of them a question she had marked
+    — "…ur still structuring ur response w bold questions" (describing), "it
+    didn't actually answer the question" (complaining), "it ONLY applies if i
+    use the word question in my text" (specifying). So `ASKING` — the phrase
+    list that already picked WHICH sentence — decides whether the message counts
+    at all, plus `BARE_FRAME`, a WHOLE sentence that is nothing but a count of
+    them ("Two questions." / "Questions:"). **`BARE_FRAME` is anchored at both
+    ends and that is load-bearing**: any looser rule matches the trailing
+    `question.` of "it didn't actually answer the question." Measured over her
+    120 recent chats, 399 of her messages: **36 flagged → 17**, and the
+    survivors read as her genuinely marking one.
+  - **THE HAND-OFF IS A LAST RESORT.** Bare framing gives the row to the next
+    sentence ONLY when nothing else in the message reads as a question —
+    otherwise her setup line ("so basically, I have this idea…") files as a
+    second row beside the real ask.
+  - **A CODE WORD FILES ON PURPOSE (2026-08-24, her idea: "maybe a code word
+    that triggers the chat to file the answer intentionally?").** `file this` ·
+    `file that` · `save that answer` · `for the questions tab` — it reaches the
+    case no phrase rule can: an exchange that was never shaped like a question,
+    where she reads an explanation and decides she wants it back. **A SMALL
+    VOCABULARY, NOT ONE MAGIC STRING** — she dictates and paraphrases, so a
+    single exact string would silently drop the second spelling. It runs first
+    and then falls THROUGH, so a message carrying both still picks the real ask.
+  - **The cost, named:** a message that QUOTES the trigger phrases — her own
+    spec above literally contains "i have a question" and "my question is:" as
+    examples — is indistinguishable from asking one. Irreducible by any phrase
+    rule, rare (a message about this feature), and an unanswered row is never
+    shown anyway.
   - **THE ANSWER CAN LIVE ANYWHERE IN THE REPLY — `bestParagraph` scores every
     paragraph against the question and takes the one that talks about it
     (2026-08-23, Sophie, looking at a row still opening on progress lines:
