@@ -207,11 +207,34 @@ t('the cost model reproduces the MEASURED table it was not fitted on', () => {
   for (const [name, w, h, want] of cases) {
     const got = P.sheetCents({ pixels: w * h, width: w, height: h, count: 1 });
     for (const q of ['low', 'medium', 'high']) {
-      const err = Math.abs(got[q].sheet - want[q]) / want[q];
+      // PL_GPT.res is an OUTPUT-only table, so compare the output half —
+      // `input` is named separately on every estimate for exactly this reason
+      const err = Math.abs((got[q].sheet - got[q].input) - want[q]) / want[q];
       assert.ok(err < 0.05, `${name} ${w}x${h} ${q}: ${got[q].sheet} vs ${want[q]} (${(err * 100).toFixed(1)}%)`);
       assert.strictEqual(got[q].approx, true, 'every estimate says it is one');
     }
   }
+});
+
+t('the estimate matches the REAL bill from the first live sheet', () => {
+  // Measured 2026-08-24 on this tool's first real run — the API's own `usage`
+  // for a 2336x3504 Dreamy sheet at medium with ONE style reference:
+  //   output 3,912 image tokens x $30/1M = 11.74c
+  //   input  1,505 image tokens x  $8/1M =  1.20c   the reference
+  //   input    246 text  tokens x  $5/1M =  0.12c
+  //                                total = 13.06c
+  // The first estimate this tool printed said 11.74c, because PL_GPT.res is an
+  // OUTPUT-only table — it under-quoted by the cost of sending the reference,
+  // which is the very thing the sheet pays once instead of four times.
+  const plan = G.sheetFor(4, 'portrait', '4k');
+  const c = P.sheetCents(plan, ['medium'], 1).medium;
+  assert.ok(Math.abs(c.sheet - 13.06) < 0.05, `sheet: ${c.sheet} vs the billed 13.06`);
+  assert.ok(Math.abs(c.input - 1.32) < 0.01, `input side named separately: ${c.input}`);
+  // and a style with MORE references costs more to send, once
+  const four = P.sheetCents(plan, ['medium'], 4).medium;
+  assert.ok(four.sheet > c.sheet, 'four references cost more than one');
+  assert.ok(Math.abs((four.input - c.input) - 3 * 1.20) < 0.01,
+    'each extra reference is one more image-input charge');
 });
 
 t('"each" is the sheet split by the panel count — the number the tool is for', () => {
@@ -294,16 +317,19 @@ t('the generate glyph is the house star, character for character', () => {
   assert.ok(PAGE.includes(star[1]), 'panels.html carries the identical glyph');
 });
 
-t('the slider is the Playground’s .swtog, geometry for geometry', () => {
-  // The same control in two tools must not drift — she asked for them to be
-  // identical there and this is a third copy of the same shape.
-  const lab = fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8');
-  for (const prop of ['--tw: 78px', '--k: 26px', '--gap: 22px', 'height: 34px', 'border-radius: 17px']) {
-    assert.ok(lab.includes(prop), `promptlab declares ${prop}`);
-    assert.ok(PAGE.includes(prop), `panels declares ${prop}`);
+t('the slider is the SHARED three-way shell, not a copy of it', () => {
+  // This block used to be "LIFTED VERBATIM from promptlab.html" and was pinned
+  // against that file property by property. The geometry lives in
+  // /tritoggle.css now (Aug 2026, Sophie: "make a reusable three toggle shell
+  // so we can change the styling all at once"), so what this asserts is that
+  // the page links it and keeps only its own colour and size.
+  assert.ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(PAGE), 'the page links the shell');
+  assert.ok(!/\.swtog/.test(PAGE), 'and has no leftover hand-copy of the old rule');
+  for (const prop of ['--tri-track: #2b2622', '--tri-knob: #faf7f2', '--tri-w: 78px', '--tri-k: 26px']) {
+    assert.ok(PAGE.includes(prop), 'the instance still declares ' + prop);
   }
-  assert.ok(/\.swtog\[data-n="2"\]::after \{ transform: translateX\(calc\(var\(--gap\) \* 2\)\)/.test(PAGE),
-    'the stops are derived from --gap, not typed');
+  assert.ok(!/\.tri \{[^}]*(position|transition|border-radius)\s*:/.test(PAGE),
+    'the instance carries colour and size only, never the geometry');
 });
 
 t('server.js mounts it, and hands it every dependency it names', () => {
@@ -334,6 +360,25 @@ t('the searchable text is her words first', () => {
   assert.ok(hay.startsWith('a cat on a fire escape'), 'her words lead');
   assert.ok(hay.includes('dreamy') && hay.includes('medium'), 'and how it was drawn is in there');
   assert.strictEqual(hay, hay.toLowerCase(), 'lowercased for matching');
+});
+
+t('a wedged job is takeoverable, a working one is not', () => {
+  // Measured the first time this tool drew anything (2026-08-24): the sheet
+  // landed, two of four panels cut, and thirteen seconds later ANOTHER CHAT
+  // merged a PR — the Render deploy restarted the box mid-job and the doc sat
+  // `running` forever with no watchdog. Several chats merge here all day, so
+  // that is a normal event and the takeover is not optional.
+  const now = Date.now();
+  assert.strictEqual(P.isStale({ job: { status: 'running', startedAt: now - 1000 } }), false,
+    'a job that stamped a second ago is working');
+  assert.strictEqual(P.isStale({ job: { status: 'running', startedAt: now - P.STALE_MS - 1 } }), true,
+    'one silent past the window may be taken over');
+  // a finished or failed job is never "stale" — there is nothing to take over
+  assert.strictEqual(P.isStale({ job: { status: 'done', startedAt: 0 } }), false);
+  assert.strictEqual(P.isStale({ job: { status: 'failed', startedAt: 0 } }), false);
+  assert.strictEqual(P.isStale({}), false);
+  // a running job with no timestamp is stale, not immortal
+  assert.strictEqual(P.isStale({ job: { status: 'running' } }), true);
 });
 
 // --------------------------------------------------------------------------
@@ -375,6 +420,28 @@ t('the searchable text is her words first', () => {
     n++;
     console.log(`  ok  the cut lands on the right pixels — grid ${grid} ${shape} `
       + `(${plan.sheet} -> ${plan.count} x ${plan.cell})`);
+  }
+
+  // A RESUME ONLY CUTS WHAT IS MISSING, and keeps reading order. The sheet is
+  // paid for, so a re-cut costs nothing — and must not re-upload a panel she
+  // may already have hearted.
+  {
+    const plan = G.sheetFor(4, 'portrait', '1k');
+    const blank = await sharp({ create: { width: plan.width, height: plan.height,
+      channels: 3, background: '#888' } }).webp({ lossless: true }).toBuffer();
+    const saved = [];
+    P.__setDeps({ saveBuffer: async () => { saved.push(1); return `https://x/${saved.length}.webp`; } });
+    const names = G.cellNames(4);
+    // exactly what was on the doc live: the first two landed, then the restart
+    const have = [{ url: 'https://x/old1.webp', cell: names[0] },
+      { url: 'https://x/old2.webp', cell: names[1] }];
+    const out = await P.cutSheet(blank, { plan, panels: ['a', 'b', 'c', 'd'], gridId: 4 },
+      async () => {}, have);
+    assert.strictEqual(out.length, 4, 'four panels in the end');
+    assert.strictEqual(saved.length, 2, 'only the TWO missing ones were cut and uploaded');
+    assert.strictEqual(out[0].url, 'https://x/old1.webp', 'the one she already has is untouched');
+    assert.deepStrictEqual(out.map((i) => i.cell), names, 'reading order is restored');
+    n++; console.log('  ok  a resume cuts only what is missing, in reading order');
   }
 
   await drivePage();

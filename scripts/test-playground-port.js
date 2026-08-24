@@ -88,10 +88,19 @@ ok(port.PORT_STYLES.some((s) => s.key === port.FALLBACK), 'the fallback names a 
 
 // Every style must be identifiable by SOMETHING, or a picture made on it can
 // never route back to it.
+// `evidence:false` is a DELIBERATE opt-out, and exactly one tile may claim it:
+// the plain ChatGPT tile sends her words with no reference and no baked prefix,
+// so nothing on a picture's record can ever name it. Every other tile must be
+// identifiable by something, or a picture made on it can never route back.
 port.PORT_STYLES.forEach((s) => {
+  if (s.evidence === false) return;
   ok((s.refs || []).length + (s.prefixes || []).length + (s.triggers || []).length > 0,
     s.key + ' has evidence that can identify it');
 });
+ok(port.PORT_STYLES.filter((s) => s.evidence === false).length === 1,
+  'exactly one tile opts out of evidence (the reference-less ChatGPT one)');
+ok(port.PORT_STYLES.find((s) => s.evidence === false).key === 'plain',
+  'and it is `plain`');
 
 // The server's real dreamy recipe. ASSERT ON THE VALUES, NOT THE SOURCE TEXT:
 // the first cut of these checks regexed the raw block and matched the COMMENT
@@ -137,7 +146,8 @@ ok(dream.noCharacter === true,
 
 // Every `prefixes` fragment must be a verbatim substring of that style's REAL
 // baked prefix in server.js — otherwise it is a vibe, not evidence.
-const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry', hoonies: 'hoonies' };
+const GPT_ID = { chatgpt: 'evan', dreamy: 'dreamy', pastel: 'pastel', scarry: 'scarry',
+  hoonies: 'hoonies', plain: 'plain' };
 port.PORT_STYLES.forEach((s) => {
   (s.prefixes || []).forEach((frag) => {
     const id = GPT_ID[s.key];
@@ -348,7 +358,10 @@ catch {
     };
   });
   ok(pick.exists && pick.tiles === 0, 'the row of tiles is gone — one control in its place');
-  ok(pick.options === 6, 'every style is still reachable inside it');
+  // Counted off the page's own STYLES, never a literal — a new tile is one
+  // entry in that table and must not also be a number to remember here.
+  ok(pick.options === pageKeys.length,
+    'every style is still reachable inside it (' + pick.options + ' of ' + pageKeys.length + ')');
   ok(pick.chevron, 'and it wears an arrow so it reads as a drop-down');
   ok(pick.font >= 16, 'at 16px, or iOS zooms the page when it opens the picker');
 

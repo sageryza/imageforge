@@ -251,7 +251,7 @@ function pillInteractive(t){
 window.__pillInteractive=pillInteractive;
 window.__scrollTap=function(e){
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(1);
+  playing? scrollStop() : scrollStart(dir||1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };

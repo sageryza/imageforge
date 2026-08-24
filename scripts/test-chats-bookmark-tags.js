@@ -23,6 +23,13 @@
 //   3. tapping it opens the keep-pile with the To read filter lit;
 //   4. keeping a MESSAGE opens a textbox AND the tag row, and a tag POSTs to
 //      the message route carrying no keep-flag;
+//   4b. THE TAGS ARE THE KEEPING STEP ONLY (Aug 2026, her correction: "those
+//      tags were supposed to only show up in the step when I'm actively
+//      bookmarking it") — a kept thing painted fresh carries its note and no
+//      tags, and the keep-pile's rows carry none either;
+//   4c. the keep-pile's rows carry HER READ BOX instead: a rounded square, grey
+//      and empty, red with a tick once she marks it, POSTing {read:true} with
+//      no keep-flag — and a kept CHAT has none;
 //   5. keeping an ARTIFACT opens the same textbox and the same tag row — one
 //      renderer, so the two can never drift — and its tags POST to the page's
 //      own route;
@@ -107,6 +114,8 @@ const server = http.createServer((req, res) => {
         snippet: 'the long explanation', note: '', kind: 'read', tags: ['to-read'], level: 2 },
       { id: 'm2', chat: 'chat-a', from: 'claude', created: iso(T0 - 4e5),
         snippet: 'a kept reply with no tags', note: '', kind: 'read', tags: [], level: 0 },
+      { id: 'chat-b', chat: 'chat-b', from: '', created: iso(T0 - 5e5),
+        title: 'chat-b', snippet: 'a kept chat', note: '', kind: 'chat' },
     ],
   });
   if (p === '/api/chatfeed') {
@@ -115,6 +124,9 @@ const server = http.createServer((req, res) => {
       build: 't', settings: {}, truncated: [], delta: false, chats: CHATS,
       messages: [{ id: 'm1', chat: 'chat-a', from: 'claude', text: 'a long explanation',
                    tldr: 'hi', created: t, postedAt: t },
+                 { id: 'm4', chat: 'chat-a', from: 'claude', text: 'one she kept a while ago',
+                   tldr: 'kept', created: t, postedAt: t, bookmarked: true,
+                   bookmarkNote: 'why I kept it', bmkTags: ['to-read'], bmkLevel: 1 },
                  { id: 'm3', chat: 'chat-b', from: 'claude', text: 'the deck is ready',
                    tldr: 'deck ready', created: t, postedAt: t }],
     });
@@ -179,55 +191,108 @@ const server = http.createServer((req, res) => {
      'and shows only what is tagged to read');
   ok(await page.$$eval('#grid .acctabs.bmktabs', (n) => n.length) === 0,
      'the kind tabs stand down while a tag narrows the pile — one flat list');
+  ok(await page.$$eval('#grid .bmkrow .bmkmarks', (n) => n.length) === 0,
+     'no tag chips on a keep-pile row — the tags are the keeping step, not the reading one');
+
+  // HER READ BOX, on the row she is reading through
+  const box = await page.$$eval('#grid .bmkrow .bmkchk', (ns) => ns.map((n) => {
+    const cs = getComputedStyle(n);
+    return { r: cs.borderRadius, on: n.classList.contains('on'),
+             tick: !!n.querySelector('svg'),
+             w: Math.round(n.getBoundingClientRect().width),
+             h: Math.round(n.getBoundingClientRect().height) };
+  }));
+  ok(box.length === 1, 'the To read row carries one read box');
+  ok(box[0] && box[0].w === box[0].h, '…a square (' + (box[0] && box[0].w) + '×' + (box[0] && box[0].h) + ')');
+  ok(box[0] && /^6px/.test(box[0].r), '…rounded at the house 6px, not a circle (' + (box[0] && box[0].r) + ')');
+  ok(box[0] && !box[0].on, '…empty until she ticks it');
+
+  let before = posts.length; let last;
+  await page.click('#grid .bmkrow .bmkchk');
+  await page.waitForTimeout(400);
+  last = posts[posts.length - 1];
+  ok(posts.length === before + 1 && last.route === 'bookmark' && last.body.read === true,
+     'ticking it POSTs {read:true} to that thing’s own route');
+  ok(!('bookmarked' in last.body) && !('tags' in last.body),
+     '…and touches nothing else — a tick can never un-keep or re-tag it');
+  const litbox = await page.$eval('#grid .bmkrow .bmkchk', (n) => {
+    const cs = getComputedStyle(n); const svg = getComputedStyle(n.querySelector('svg'));
+    const rose = getComputedStyle(document.documentElement).getPropertyValue('--chg').trim();
+    const d = document.createElement('div'); d.style.color = rose; document.body.appendChild(d);
+    const want = getComputedStyle(d).color; d.remove();
+    return { on: n.classList.contains('on'), bg: cs.backgroundColor, want, tick: svg.visibility };
+  });
+  ok(litbox.on && litbox.bg === litbox.want, 'and it goes red (' + litbox.bg + ')');
+  ok(litbox.tick === 'visible', '…with the check shown in it');
+  ok(await page.$eval('#thread', (n) => n.style.display === 'none' || !n.offsetParent),
+     'ticking a row does not open the thing behind it');
+
   await page.click('#grid .bmktagbar .catchip.on');
   await page.waitForTimeout(400);
   ok(await page.$$eval('#grid .bmkrow', (n) => n.length) === 2, 'clearing the chip gives the whole pile back');
+  // a kept CHAT is not a thing you finish reading — Chats tab, third row
+  await page.$$eval('#grid .acctabs.bmktabs .acctab', (ns) => ns[0].click());
+  await page.waitForTimeout(400);
+  ok(await page.$$eval('#grid .bmkrow', (n) => n.length) === 1, 'the Chats tab holds the kept chat');
+  ok(await page.$$eval('#grid .bmkrow .bmkchk', (n) => n.length) === 0,
+     '…and it carries no read box');
 
   // ---- keeping a MESSAGE --------------------------------------------------
   await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.crow[data-chat="chat-a"]', { timeout: 8000 });
   await page.click('.crow[data-chat="chat-a"]');
   await page.waitForTimeout(400);
-  await page.click('#thread .msg .bmk');
+  // m1 is the one she has NOT kept; m4 is one kept a while ago (below)
+  await page.click('#thread .msg[data-mid="m1"] .bmk');
   await page.waitForTimeout(400);
-  ok(await page.$$eval('#thread .bmkedit .bmknote input', (n) => n.length) === 1,
+  ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .bmknote input', (n) => n.length) === 1,
      'keeping a message opens the textbox that says why she saved it');
-  const chips = await page.$$eval('#thread .bmkedit .bmkmarks .catchip', (n) => n.map((x) => x.textContent.trim()));
+  const chips = await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .bmkmarks .catchip', (n) => n.map((x) => x.textContent.trim()));
   ok(chips.length === 4, 'and four tag chips beside it: ' + chips.join(' · '));
-  ok(await page.$$eval('#thread .bmkedit .lvlbox button', (n) => n.length) === 3,
+  ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button', (n) => n.length) === 3,
      'and the three importance levels, drawn as icons');
-  ok(await page.$$eval('#thread .bmkedit .lvlbox button svg', (n) => n.length) === 3,
+  ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button svg', (n) => n.length) === 3,
      '…icons, not words');
-  ok(await page.$$eval('#thread .bmkedit .lvlbox button', (n) => n.every((x) => !x.textContent.trim())),
+  ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button', (n) => n.every((x) => !x.textContent.trim())),
      '…with no text in them');
 
-  let before = posts.length;
-  await page.click('#thread .bmkedit .bmkmarks .catchip[data-tag="to-read"]');
+  // …but a message she kept EARLIER, painted fresh, carries the note alone
+  ok(await page.$$eval('#thread .msg', (ns) => {
+    const kept = ns.find((n) => /one she kept a while ago/.test(n.textContent));
+    return kept ? kept.querySelectorAll('.bmknote input').length : -1;
+  }) === 1, 'a thing kept earlier still carries its note on a fresh paint');
+  ok(await page.$$eval('#thread .msg', (ns) => {
+    const kept = ns.find((n) => /one she kept a while ago/.test(n.textContent));
+    return kept ? kept.querySelectorAll('.bmkmarks').length : -1;
+  }) === 0, '…and NO tags: that is not the moment she is keeping it');
+
+  before = posts.length;
+  await page.click('#thread .msg[data-mid="m1"] .bmkedit .bmkmarks .catchip[data-tag="to-read"]');
   await page.waitForTimeout(400);
-  let last = posts[posts.length - 1];
+  last = posts[posts.length - 1];
   ok(posts.length === before + 1 && last.route === 'bookmark' && last.id === 'm1',
      'a tag POSTs to the message’s own route');
   ok(JSON.stringify(last.body.tags) === '["to-read"]', '…carrying the word she tapped');
   ok(!('bookmarked' in last.body), '…and no keep-flag, so tagging can never un-keep it');
-  ok(await page.$eval('#thread .bmkedit .catchip[data-tag="to-read"]', (n) => n.classList.contains('on')),
+  ok(await page.$eval('#thread .msg[data-mid="m1"] .bmkedit .catchip[data-tag="to-read"]', (n) => n.classList.contains('on')),
      '…and the chip lights');
 
   // the importance is a dial
-  await page.click('#thread .bmkedit .lvlbox button[data-level="1"]');
+  await page.click('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button[data-level="1"]');
   await page.waitForTimeout(300);
-  await page.click('#thread .bmkedit .lvlbox button[data-level="2"]');
+  await page.click('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button[data-level="2"]');
   await page.waitForTimeout(300);
-  let lit = await page.$$eval('#thread .bmkedit .lvlbox button', (n) => n.map((x) => x.classList.contains('on')));
+  let lit = await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button', (n) => n.map((x) => x.classList.contains('on')));
   ok(JSON.stringify(lit) === '[false,true,false]', 'setting a level clears the one before it — it is a dial, not a fourth tag');
   ok(posts[posts.length - 1].body.level === 2, '…and the level goes to the server');
-  await page.click('#thread .bmkedit .lvlbox button[data-level="2"]');
+  await page.click('#thread .msg[data-mid="m1"] .bmkedit .lvlbox button[data-level="2"]');
   await page.waitForTimeout(300);
   ok(posts[posts.length - 1].body.level === 0, 'tapping the lit one clears it');
 
   // un-keeping takes the whole editor with it
-  await page.click('#thread .msg .bmk');
+  await page.click('#thread .msg[data-mid="m1"] .bmk');
   await page.waitForTimeout(300);
-  ok(await page.$$eval('#thread .bmkedit', (n) => n.length) === 0,
+  ok(await page.$$eval('#thread .msg[data-mid="m1"] .bmkedit', (n) => n.length) === 0,
      'un-keeping takes the note AND the tags away — one node, never half of it');
 
   // ---- keeping an ARTIFACT ------------------------------------------------
@@ -242,6 +307,7 @@ const server = http.createServer((req, res) => {
   ok(await page.$$eval('.pagerow .bmkedit .lvlbox button', (n) => n.length) === 3,
      '…and the same three levels');
   ok(await page.$$eval('.pageview', (n) => n.length) === 0, 'and keeping it still does not launch the artifact');
+
 
   before = posts.length;
   await page.click('.pagerow .bmkedit .catchip[data-tag="bugfix"]');

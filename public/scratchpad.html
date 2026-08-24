@@ -113,50 +113,68 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   border-radius:6px; padding:7px 13px; font:600 13px -apple-system,'Helvetica Neue',sans-serif;
   cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .scat.on{border-color:var(--gold); color:var(--gold);}
-#shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
-/* Inside a folder the chips come off, and their margin goes with them — so
-   the tiles keep the same air under the header either way. */
-#shelfcats[hidden]+#shelftiles{margin-top:14px;}
+/* THREE to a row (Aug 2026, Sophie), and the tile is a FRAMED picture: the
+   art sits on a white mat inside the one hairline outline, both corners
+   slightly rounded, the name centred underneath. The mat is the .cov's own
+   padding — so `inset:5px` on the art, not `inset:0`, because an absolutely
+   positioned child is placed against the PADDING BOX and would otherwise sit
+   on top of the mat — and the art's size is spelled out rather than left to
+   `inset`, because an absolutely positioned IMG with auto width shrinks to
+   its intrinsic size instead of stretching between two offsets. `box-sizing` is not global on this page, so the frame
+   declares its own or the padding pushes each tile out of its grid cell. */
+#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
-.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
-/* box-sizing is load-bearing, not tidiness: nothing on this page sets it
-   globally, so width/height:100% plus the 1px border made the picture 2px
-   wider and taller than its own box, hanging over the bottom edge. */
-.stile .cov img{position:absolute; inset:0; width:100%; height:100%; box-sizing:border-box;
-  object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
-.stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
-  background:var(--barbg);}
-.stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
+.stile .cov{display:block; position:relative; box-sizing:border-box; width:100%; aspect-ratio:2/3;
+  padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile .cov img,.stile .cov .none{position:absolute; top:5px; left:5px;
+  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
+.stile .cov img{object-fit:cover;}
+.stile .cov .none{box-sizing:border-box; border:1px dashed var(--line);}
+/* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
+   house rule). It rides the tile's top-left corner because the injected
+   autoscroll pill owns the top-RIGHT of the screen, and the first row's last
+   tile sits under it. Only the HEAD fills when it is set, as on the Chats
+   app's rows. Its plate is a ROUNDED SQUARE at the house 6px, never a circle
+   (2026-08-24, Sophie: rounded squares or a plain icon, not circles). */
+.stile .pinpin{position:absolute; top:4px; left:4px; z-index:2; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; border:none;
+  border-radius:6px; background:rgba(255,255,255,.92); color:var(--ink2);
+  box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.stile .pinpin svg{width:14px; height:14px; display:block;}
+.stile .pinpin.on{color:var(--gold);}
+.stile .pinpin.on .pinhead{fill:var(--gold); stroke:var(--gold);}
+.stile .snm{padding-top:5px; text-align:center; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-.stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
-.stile.cur .snm{color:var(--gold);}
-/* A FOLDER IS A STACK (Aug 2026, Sophie: "treat the Evan and Mason ones as a
-   folder … some sort of UI design like a stack that you can see underneath
+/* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
+   a folder … some sort of UI design like a stack that you can see underneath
    the cover image so you can tell there's multiple stories in there").
-   THE STACK IS DRAWN INSIDE THE TILE'S OWN BOX — the cover is lifted 8px off
-   the bottom and two flat layers peek out under it, rather than the layers
-   hanging below the box. That is what keeps a folder and a story exactly the
-   same height, so the names still line up across a row and the grid never
-   ends ragged. Flat solid fills and NO shadow (house rule): the offset alone
-   says there is more underneath. The layers are pseudo-elements, so a folder
-   tile is one node like every other tile. */
-/* THE COVER IS SHORTENED, NOT PUSHED UP — `bottom` alone does nothing to the
-   picture. An absolutely positioned REPLACED element with an explicit height
-   is over-constrained, so the browser drops `bottom` on the floor and the
-   stack never shows (it shipped that way for one test run). The dashed
-   empty-box is not replaced and takes `bottom` normally. */
-.stile.fold .cov img{height:calc(100% - 8px); z-index:1;}
-.stile.fold .cov .none{bottom:8px; z-index:1;}
+   THE STACK IS DRAWN INSIDE THE FRAME'S OWN MAT — the art is shortened from
+   the bottom and two flat cards peek out under it — rather than hanging below
+   the tile. That is what keeps a folder exactly as tall as a story, so the
+   names still line up across a row and the grid never ends ragged. Flat solid
+   fills and NO shadow (house rule): the offset alone says there is more
+   underneath. Pseudo-elements, so a folder tile is one node like the rest.
+   The art sits at top:5px with height calc(100% - 10px) inside the mat, so
+   the extra 8px comes off its height and the layers live in that strip. */
+.stile.fold .cov img,.stile.fold .cov .none{height:calc(100% - 18px); z-index:1;}
 .stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
-  height:24px; border-radius:6px; background:var(--barbg); border:1px solid var(--line);}
-.stile.fold .cov::before{left:4px; right:4px; bottom:4px;}
-.stile.fold .cov::after{left:9px; right:9px; bottom:0;}
+  height:16px; border-radius:2px; background:var(--barbg); border:1px solid var(--line);}
+.stile.fold .cov::before{left:9px; right:9px; bottom:9px;}
+.stile.fold .cov::after{left:14px; right:14px; bottom:5px;}
 /* How many are in there. The stack says "more than one"; this says how many,
    so she can tell a pair from a pile without opening it. */
-.stile .cnt{position:absolute; z-index:2; right:5px; bottom:13px;
+.stile .cnt{position:absolute; z-index:2; right:9px; bottom:17px;
   background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
   padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
+/* The way to the rest of the shelf. An underlined word, never a button with a
+   box round it — the house truncation-opener pattern. */
+#shelfmore{grid-column:1/-1; justify-self:center; margin:2px 0 0; padding:6px 4px;
+  background:none; border:none; color:var(--ink2); cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:.95em; text-decoration:underline;
+  -webkit-tap-highlight-color:transparent;}
+.stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
+.stile.cur .snm{color:var(--gold);}
 /* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
    links here (Sophie's call); ?plain=1 is the one way in. */
 #storylist{margin-top:1.2em;}
@@ -451,9 +469,25 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 .bulkrow #bulkyes{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
 #popblank.c-mustard{border-color:var(--mustard);} #popblank.c-green{border-color:var(--green);}
 #popblank.c-blue{border-color:var(--blue);} #popblank.c-pink{border-color:var(--pink);}
-#lightbox{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-  background:rgba(20,17,12,.94); padding:3vw;}
+#lightbox{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; background:rgba(20,17,12,.94); padding:3vw;}
 #lightbox img{max-width:94vw; max-height:88vh; border-radius:4px;}
+/* Picking an older picture happens HERE, looking at it big — the row's
+   thumbnails are 44px, which is not enough to choose by (Sophie,
+   2026-08-24: "make the past picture thumbnails so that I can actually pick
+   one"). Shown only for a picture that is NOT the current one, so the button
+   never offers her what she is already looking at. */
+/* Cream on the dark, in BOTH themes — the backdrop above is a fixed dark
+   wash, so the tokens are the wrong tool here: --paper is nearly the
+   backdrop's own colour on a dark phone. The page's serif, like the confirm
+   box's buttons, never a pill. */
+#lbuse{background:#f6f2e9; color:#26221c; border:1.5px solid #f6f2e9;
+  border-radius:6px; padding:9px 18px; font-family:'EBGaramond',Georgia,serif;
+  font-size:16px; font-weight:600; cursor:pointer;}
+#lbuse.busy{opacity:.45;}
+/* Only the picking state gives up height for the button — a plain look at a
+   picture keeps every pixel it always had. */
+#lightbox.pick img{max-height:78vh;}
 /* Listen rows — every recording attached to this story, behind the waveform
    button on the title row (Aug 2026, Sophie: "a story can hold multiple
    audios … hide them all behind a single icon that has a wave form"). Two
@@ -682,7 +716,8 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   </div></div>
 </div>
 
-<div id="lightbox" hidden><img id="lbimg" alt=""></div>
+<div id="lightbox" hidden><img id="lbimg" alt="">
+  <button id="lbuse" hidden>Use this one</button></div>
 
 <div id="delask" hidden>
   <div class="bulkbox">
@@ -1313,11 +1348,22 @@ function paintShelfBack(){
    beyond which level it is on. Session-only, like the category chip: every
    open starts on the shelf proper. */
 var shelfFolder=null;
-/* One tile, drawn the same way whether it is a story or a folder — the stack
-   and the count are the only difference, and both hang off the `fold` class.
-   `cover` may be null: a folder whose stories have no art yet gets the same
-   dashed box a story does. */
+/* PINNED STORIES LEAD, THE REST GO BEHIND "see more" (Aug 2026, Sophie: "a
+   pinning feature where i can pin a couple stories i'm actively working on and
+   the rest go behind a see more toggle"). The fold only exists once something
+   in this category is pinned — with no pins the shelf is the whole shelf, as
+   it always was, because a "see more" hiding EVERY story would be a shelf with
+   nothing on it. Pinned ones keep the newest-first order among themselves.
+   The open/closed state is per category and per visit: tapping a chip is
+   asking for that shelf fresh. */
+var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
+var shelfMore=false;
+/* ONE tile builder for a story and for a folder. `pad` draws a story (its
+   pushpin, its title, tap opens it); `count` draws a folder (the stack, the
+   count, tap steps into it) and carries NO pushpin — a pin says "I'm working
+   on this story", and a folder is only the way to one. */
 function shelfTile(o){
+  var p=o.pad;
   var t=document.createElement('button');
   t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
@@ -1331,11 +1377,60 @@ function shelfTile(o){
     var c=document.createElement('span'); c.className='cnt';
     c.textContent=o.count; cov.appendChild(c);
   }
+  if(p){
+    var pin=document.createElement('span');
+    pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+    pin.setAttribute('role','button');
+    pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+    pin.title=pin.getAttribute('aria-label');
+    /* The pin sits INSIDE the tile, which is itself a button, so the tap has
+       to be stopped here or pinning a story would also open it. */
+    pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+    cov.appendChild(pin);
+  }
   t.appendChild(cov);
   var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
   nm.textContent=o.name||'Untitled'; t.appendChild(nm);
   t.onclick=function(e){ e.stopPropagation(); o.go(); };
   return t;
+}
+function togglePin(p){
+  var was=!!p.pinned; p.pinned=!was; renderShelf();
+  api('/pads/pin',{method:'POST',body:JSON.stringify({pad:p.id, pinned:!was})})
+    .then(function(r){ if(!r.ok) throw 0; })
+    .catch(function(){ p.pinned=was; renderShelf(); });
+}
+/* THE SHELF'S ROWS, folders already collapsed. A folder takes the place of
+   its NEWEST story and the rest of its stories come off the shelf — that is
+   the whole point, and it is why this is a walk in place rather than a
+   group-then-append, which would sort every folder to the top and lose the
+   newest-first order she reads by.
+   A FOLDER IS PINNED WHEN ANY STORY IN IT IS. Her pin means "I'm working on
+   this", and with the story folded away the folder is the only thing on
+   screen that can carry it — otherwise pinning a story inside a folder would
+   hide it behind "see more" instead of lifting it. */
+function shelfRows(){
+  var seen={}, rows=[];
+  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
+    .forEach(function(p){
+      if(!p.folder){
+        rows.push({ pad:p, cover:p.cover, name:p.title, pinned:!!p.pinned,
+          cur:p.id===padId, go:function(){ openPad(p.id); } });
+        return;
+      }
+      if(seen[p.folder]) return;
+      seen[p.folder]=true;
+      var name=p.folder;
+      var inIt=shelfPads.filter(function(q){ return q.folder===name; });
+      var withArt=inIt.filter(function(q){ return q.cover; })[0];
+      rows.push({
+        cover:withArt?withArt.cover:null, name:name, count:inIt.length,
+        pinned:inIt.some(function(q){ return q.pinned; }),
+        cur:inIt.some(function(q){ return q.id===padId; }),
+        go:function(){ shelfFolder=name; shelfMore=false; renderShelf();
+          document.getElementById('stories').scrollTop=0; } });
+    });
+  return rows;
 }
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
@@ -1351,40 +1446,29 @@ function renderShelf(){
   if(!shelfFolder) SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
-    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
+    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
-  if(shelfFolder){
-    shelfPads.filter(function(p){ return p.folder===shelfFolder; }).forEach(function(p){
-      tiles.appendChild(shelfTile({ cover:p.cover, name:p.title, cur:p.id===padId,
-        go:function(){ openPad(p.id); } }));
-    });
-    return;
+  /* Inside a folder the rows are its own stories; on the shelf they are
+     shelfRows(), with each folder already standing in for its stories. Either
+     way the pin/fold rule below runs over ROWS and never over pads, so it
+     works identically at both levels. */
+  var mine = shelfFolder
+    ? shelfPads.filter(function(p){ return p.folder===shelfFolder; })
+        .map(function(p){ return { pad:p, cover:p.cover, name:p.title,
+          pinned:!!p.pinned, cur:p.id===padId, go:function(){ openPad(p.id); } }; })
+    : shelfRows();
+  var pinned=mine.filter(function(r){ return r.pinned; });
+  var rest=mine.filter(function(r){ return !r.pinned; });
+  var show=pinned.length ? pinned.concat(shelfMore?rest:[]) : mine;
+  show.forEach(function(r){ tiles.appendChild(shelfTile(r)); });
+  if(pinned.length && rest.length){
+    var more=document.createElement('button'); more.id='shelfmore';
+    more.textContent=shelfMore?'see less':'see more ('+rest.length+')';
+    more.onclick=function(e){ e.stopPropagation(); shelfMore=!shelfMore; renderShelf(); };
+    tiles.appendChild(more);
   }
-  /* A folder sits where its NEWEST story would have sat, and the stories in
-     it come off the shelf — that is the whole point, and it is why the walk
-     is in place rather than a group-then-append (which would sort every
-     folder to the top and lose the newest-first order she reads by). */
-  var seen={};
-  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
-    .forEach(function(p){
-      if(p.folder){
-        if(seen[p.folder]) return;
-        seen[p.folder]=true;
-        var inIt=shelfPads.filter(function(q){ return q.folder===p.folder; });
-        var withArt=inIt.filter(function(q){ return q.cover; })[0];
-        var name=p.folder;
-        tiles.appendChild(shelfTile({
-          cover:withArt?withArt.cover:null, name:name, count:inIt.length,
-          cur:inIt.some(function(q){ return q.id===padId; }),
-          go:function(){ shelfFolder=name; renderShelf();
-            document.getElementById('stories').scrollTop=0; } }));
-        return;
-      }
-      tiles.appendChild(shelfTile({ cover:p.cover, name:p.title, cur:p.id===padId,
-        go:function(){ openPad(p.id); } }));
-    });
 }
 function renderPlainShelf(){
   document.getElementById('shelfcats').hidden=true;
@@ -1814,10 +1898,12 @@ function openBeat(b){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
       var ti=document.createElement('img'); ti.src=u; ti.alt=''; ti.loading='lazy'; t.appendChild(ti);
+      // Tapping a thumbnail opens it BIG with a way to take it — the
+      // current one opens plain, since "use this one" for the picture
+      // already on the card is a button that does nothing.
       t.onclick=function(ev){
         ev.stopPropagation();
-        document.getElementById('lbimg').src=u;
-        document.getElementById('lightbox').hidden=false;
+        openLb(u, (i===0&&su.url)?null:u);
       };
       vr.appendChild(t);
     });
@@ -2088,16 +2174,53 @@ document.getElementById('speak').onclick=function(ev){
   btn.classList.add('busy');
   saveNote().then(function(){ speakBeat(b, btn); });
 };
+/* ── the lightbox ──────────────────────────────────────────────────
+   ONE open and ONE close path, because the Use button's state has to be
+   right every single time: `pick` is the url this picture WOULD become the
+   beat's art from, or null for the picture that already is. */
+var lbPick=null;
+function openLb(url,pick){
+  lbPick=pick||null;
+  document.getElementById('lbimg').src=url;
+  var u=document.getElementById('lbuse');
+  u.hidden=!lbPick; u.classList.remove('busy');
+  var lb=document.getElementById('lightbox');
+  lb.classList.toggle('pick',Boolean(lbPick));
+  lb.hidden=false;
+}
+function closeLb(){
+  lbPick=null;
+  document.getElementById('lbuse').hidden=true;
+  var lb=document.getElementById('lightbox');
+  lb.classList.remove('pick'); lb.hidden=true;
+}
 /* Tapping the thumbnail opens it big — a lightbox over the popup. */
 document.getElementById('popimg').onclick=function(ev){
   ev.stopPropagation();
   if(!popBeat)return;
-  document.getElementById('lbimg').src=slotOf(popBeat).url;
-  document.getElementById('lightbox').hidden=false;
+  openLb(slotOf(popBeat).url,null);
 };
 document.getElementById('lightbox').onclick=function(ev){
   ev.stopPropagation();
-  this.hidden=true;
+  closeLb();
+};
+/* Take this older picture back as the beat's art. The same POST the inbox
+   makes — /image swaps it in, banks the one it replaces in the past-pictures
+   row and lifts this one OUT of that row (pad-art.js), so nothing is lost
+   and nothing shows twice. */
+document.getElementById('lbuse').onclick=function(ev){
+  ev.stopPropagation();
+  var url=lbPick, b=popBeat; if(!url||!b)return;
+  this.classList.add('busy');
+  api('/image',{method:'POST',body:JSON.stringify({id:b.id,url:url,style:padStyle})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.beats){ beats=d.beats; render(); }
+      closeLb();
+      var fresh=beats.find(function(x){return x.id===b.id;});
+      if(fresh){ popBeat=fresh; openBeat(fresh); }
+    })
+    .catch(function(){ document.getElementById('lbuse').classList.remove('busy'); });
 };
 /* Make this beat's art the story's cover on the shelf. The button fills in
    dark as the ack and the popup stays open (same manner as the color chips). */
@@ -2175,7 +2298,7 @@ window.__navBack=function(){
   var el=document.getElementById('filmplay');
   if(!el.hidden){ document.getElementById('filmvid').pause(); el.hidden=true; lock(false); return true; }
   el=document.getElementById('lightbox');
-  if(!el.hidden){ el.hidden=true; return true; }
+  if(!el.hidden){ closeLb(); return true; }
   el=document.getElementById('delask');
   if(!el.hidden){ el.hidden=true; return true; }
   el=document.getElementById('bulkask');

@@ -5331,10 +5331,42 @@ const PL_GPT = {
 // `suffix` (Aug 2026, Sophie) rides at the VERY END of the sent prompt, after
 // her words — the no-text rule reads last so the model can't bury it.
 const PL_GPT_STYLES = {
+  // "Sandy mirror" (Aug 2026, Sophie: "change the one that's called ChatGPT
+  // right now to make it be called Sandy mirror"). The KEY stays `evan` — it
+  // is what 1,000+ run docs store in `gptStyle`, what ?style= deep links and
+  // playground-port.js route onto, and what her per-style prompt override and
+  // no-text switch are keyed by in localStorage. Renaming a key would orphan
+  // all of that; only the label she reads changed. The name is the reference
+  // it attaches: refs/sage-sandy-mirror.png, her scanned ink-and-watercolour
+  // page — which is exactly what "ChatGPT" had stopped saying, now that the
+  // tile below draws on the same engine with no reference at all.
   evan: {
-    label: 'ChatGPT', refFiles: [PL_GPT.refFile],
+    label: 'Sandy mirror', refFiles: [PL_GPT.refFile],
     prefix: PL_GPT.prefix, characterLine: PL_GPT.characterLine,
     suffix: 'Do not include any text in the image.',
+  },
+  // "ChatGPT" (Aug 2026, Sophie: "add one more endpoint option to the
+  // playground, which is called ChatGPT … the ChatGPT new one will have no
+  // reference image"). Her words, gpt-image-2, and NOTHING else: no style
+  // reference, no baked prefix, no baked tail, no Sophie card. It is the
+  // model's own idea of her prompt, which is the one thing every other tile
+  // here makes impossible — every one of them wraps her words in a reference
+  // and a paragraph about it.
+  // IT IS LITERALLY A DIFFERENT ENDPOINT, which is why she called it one: with
+  // no images to attach there is nothing to EDIT, so runPromptLabGptJob sends
+  // it to /v1/images/generations instead of /v1/images/edits (see the branch
+  // there). Attaching her own photo reference puts it back on edits with that
+  // one photo — the only image in the call, so `photoLine` below says so
+  // rather than pointing at a style reference that isn't there.
+  // NO Sophie character card: her card is the watercolor look, i.e. a style
+  // reference by another name, and this tile's whole point is that none rides
+  // along.
+  plain: {
+    label: 'ChatGPT',
+    prefix: '', suffix: '',
+    photoLine: 'The attached image is a photo reference: use it for the ' +
+      'subject described below — the person, place or object in it.',
+    noCharacter: true,
   },
   // "Scarry" (Sophie's name for it): Instagram saves she sent (busy-animal
   // picture-book pages), cropped to the artwork and banked in refs/. TWO of
@@ -5654,10 +5686,24 @@ async function runPromptLabGptJob(docRef, cfg) {
     const want = Math.min(Math.max(Number(cfg.outputs) || 1, 1), PL_GPT.maxOutputs);
     await Promise.all(Array.from({ length: want }, async () => {
       try {
-        const data = await openaiImageEditRefs(cfg.fullPrompt, refs, {
-          quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
-        });
-        if (data.error) throw new Error(data.error.message || 'gpt-image-2 edit error');
+        // NO IMAGES TO ATTACH → THE OTHER ENDPOINT (Aug 2026, the plain
+        // ChatGPT tile). /v1/images/edits exists to edit something; with an
+        // empty image[] it is a malformed request, so a style with no
+        // reference goes to /v1/images/generations instead. Same model, same
+        // quality/size, same moderation:'low' (the filter is stochastic — see
+        // openaiImageEditRefs), same webp bytes back, so everything below this
+        // line is unchanged. A photo reference SHE attached is an image like
+        // any other, so a plain run carrying one is back on edits.
+        const data = refs.length
+          ? await openaiImageEditRefs(cfg.fullPrompt, refs, {
+            quality: cfg.quality, size: cfg.size || PL_GPT.size, timeout: 300000,
+          })
+          : await openaiImage({
+            model: PL_GPT.id, prompt: cfg.fullPrompt, n: 1,
+            size: cfg.size || PL_GPT.size, quality: cfg.quality,
+            output_format: 'webp', moderation: 'low',
+          }, 2, 300000);
+        if (data.error) throw new Error(data.error.message || 'gpt-image-2 error');
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) throw new Error('gpt-image-2 returned no image');
         let buf = Buffer.from(b64, 'base64');
@@ -5808,7 +5854,17 @@ app.post('/api/promptlab', async (req, res) => {
       // the blank line before her words is there whenever ANY of them is —
       // the old separator keyed on the prefix alone, which glued the character
       // line onto her first word if she had deleted the prefix.
-      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? PL_GPT.photoLine : ''}`;
+      // A style may own its photo line: PL_GPT.photoLine says the drawing
+      // style "comes from the style reference above", which is true of every
+      // tile that attaches one and a lie on the plain ChatGPT tile, where her
+      // photo is the ONLY attachment. Whatever rides is disclosed either way —
+      // GET /styles serves the same string the page prints.
+      // A style's own line carries no leading space (it can be the whole head
+      // on a style with no prefix), so one is added when something precedes
+      // it. PL_GPT.photoLine's own leading space is left alone — it is byte
+      // for byte what the other five tiles have always sent.
+      const photoLine = st.photoLine ? ` ${st.photoLine}` : PL_GPT.photoLine;
+      const head = `${prefix}${character ? st.characterLine : ''}${photoBuf ? photoLine : ''}`.trim();
       const fullPrompt = `${head}${head ? '\n\n' : ''}${typed}${tail ? `\n\n${tail}` : ''}`;
       const outputs = Math.min(Math.max(Number(req.body.outputs) || PL_GPT.outputs, 1), PL_GPT.maxOutputs);
       const quality = PL_GPT.qualities.includes(req.body.quality) ? req.body.quality : PL_GPT.quality;
@@ -5890,6 +5946,9 @@ app.get('/api/promptlab/styles', (req, res) => {
       // What the no-text toggle would put in this style's tail, or null when
       // the style doesn't offer one — that is what hides the button.
       noText: st.noText ? { from: st.noText.from, to: st.noText.to } : null,
+      // The photo line this style would really add, so the Prompt panel prints
+      // the sentence that is actually sent. Absent = the house one below.
+      photoLine: st.photoLine || '',
       refs: (st.refFiles || []).concat(st.storageRefs || []),
     };
   });
@@ -6196,8 +6255,13 @@ const TALKING_TYPES = {
 // per-minute rate limit — holding the request open caused phone-side timeouts
 // ("couldn't reach the server"); instead it returns the rate-limit error fast
 // and the client tells the user to wait a moment.
-async function openaiImage(body, retries = 2) {
-  const timeout = OPENAI_IMAGE_TIMEOUTS[body.quality] || 90000;
+// `timeoutOverride` (Aug 2026): the per-quality table below suits the square
+// low/medium calls the zine and the single-image routes make. The Playground's
+// plain ChatGPT tile draws canvases up to 2336x3504, where a medium render can
+// run well past the 150s medium is allowed here — the same reason
+// openaiImageEditRefs takes a `timeout`. 0 keeps the table.
+async function openaiImage(body, retries = 2, timeoutOverride = 0) {
+  const timeout = timeoutOverride || OPENAI_IMAGE_TIMEOUTS[body.quality] || 90000;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -6508,6 +6572,15 @@ app.post('/api/talking/upscale', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+// A rejection escaping a fire-and-forget background job must never take the
+// whole service down with it (measured 2026-08-24: the Story Room film job's
+// pre-try mkdtempSync did exactly that — every render crashed the process,
+// wedging docs on 'making' and answering live requests with dead sockets).
+// Log it loudly; the job's own doc-stamping is each module's responsibility.
+process.on('unhandledRejection', (err) => {
+  console.error('unhandledRejection:', (err && err.stack) || err);
+});
+
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
 
 // ─── Keep-awake ─────────────────────────────────────────────────────

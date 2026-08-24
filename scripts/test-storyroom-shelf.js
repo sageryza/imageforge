@@ -15,13 +15,22 @@
 //      the page loads that pad),
 //   4. ?plain=1 still renders the old row list (the unlinked fallback) —
 //      and without it no .srow exists, i.e. nothing links there,
-//   5. FOLDERS (Aug 2026, Sophie: "treat the Evan and Mason ones as a folder
-//      … a stack that you can see underneath the cover image"): the stories
-//      in one collapse to a single tile carrying the count, the stack layers
-//      are MEASURED to sit under the cover and inside the tile's own box (a
-//      folder and a story must be the same height, or the names go ragged
-//      across a row), tapping it steps into the folder, and the chevron
-//      steps back out instead of leaving the tool.
+//   5. THE FRAMED TILE (Aug 2026, Sophie: three to a row, a white border
+//      around the image inside the hairline outline, slightly rounded corners
+//      on both, the name centred) — all four MEASURED off the real boxes,
+//      because a mat drawn with the wrong `inset` still renders a picture in
+//      a frame, it just covers the mat,
+//   6. PINNING: a pushpin on a tile pins that story to the front and folds
+//      the rest behind "see more"; the pin must not also open the story, and
+//      with nothing pinned there is no fold at all,
+//   7. FOLDERS (2026-08-24, Sophie: "treat the Evan and Mason ones as a folder
+//      … a stack that you can see underneath the cover image"): the stories in
+//      one collapse to a single tile carrying the count, the stack layers are
+//      MEASURED to sit under the cover and inside the tile's own box (a folder
+//      and a story must be the same height, or the names go ragged across a
+//      row), tapping it steps into the folder, the chevron steps back out
+//      instead of leaving the tool, and a pin on a story inside a folder lifts
+//      the FOLDER — otherwise her pin would hide the story behind "see more".
 //
 //   npm install playwright --no-save && node scripts/test-storyroom-shelf.js
 //
@@ -56,6 +65,7 @@ const PADS = [
 const padLoads = [];   // ?pad= values the page asked the doc route for
 const thumbCalls = []; // urls asked of /api/story/thumb
 const rawCovers = [];  // covers fetched raw (must stay empty)
+const pinPosts = [];   // bodies POSTed to /pads/pin
 
 const PX = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -66,6 +76,15 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/scratchpad/pads') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ count: PADS.length, pads: PADS }));
+  }
+  if (url.pathname === '/api/scratchpad/pads/pin') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    return req.on('end', () => {
+      pinPosts.push(JSON.parse(body || '{}'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
   }
   if (url.pathname === '/api/scratchpad') {
     padLoads.push(url.searchParams.get('pad'));
@@ -126,7 +145,7 @@ function ok(cond, name) {
   ok(names.includes('Untitled'), 'a blank title reads "Untitled"');
   ok(names.every((n) => !/beats?/.test(n)), 'the name only — no status line on a tile');
 
-  // 5 — the folder: one tile, gathered, stacked, and a level to step into
+  // 7 — the folder: one tile, gathered, stacked, and a level to step into
   const shelfNames = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
   ok(shelfNames.indexOf('Mason') === 1,
     'the folder sits where its NEWEST story was, not sorted to the top');
@@ -164,10 +183,13 @@ function ok(cond, name) {
   });
   ok(stack.layer1 === '""' && stack.layer2 === '""',
     'the stack is two flat layers (pseudo-elements), so a folder is still one node');
-  ok(stack.gap >= 6 && stack.gap <= 10,
-    'the cover is lifted off the bottom, so the stack shows underneath it (' + stack.gap + 'px)');
-  ok(stack.plainGap === 0,
-    'a plain story tile is untouched — its cover still fills its box');
+  // A plain tile's art already stops at the mat's own 5px padding, so the
+  // question is the DIFFERENCE: the folder's art must give up ~8px more.
+  ok(stack.gap - stack.plainGap >= 6 && stack.gap - stack.plainGap <= 10,
+    'the art is shortened so the stack shows under it ('
+      + (stack.gap - stack.plainGap) + 'px more than a story)');
+  ok(stack.plainGap >= 4 && stack.plainGap <= 6,
+    'a plain story tile is untouched — its art still fills the mat');
   ok(stack.foldH === stack.plainH,
     'a folder is exactly as tall as a story, so the names line up across a row');
 
@@ -181,6 +203,30 @@ function ok(cond, name) {
     'the folder shows all three, including the one filed under another chip');
   ok((await page.$$('.stile.fold')).length === 0, 'no folder tile inside a folder');
   ok(padLoads.length === 0, 'stepping into a folder loads no story');
+  ok((await page.$$('.stile .pinpin')).length === 3,
+    'a story inside a folder still carries its pushpin');
+
+  // A PIN ON A STORY INSIDE A FOLDER LIFTS THE FOLDER. With the story folded
+  // away the folder tile is the only thing on screen that can carry her pin —
+  // otherwise pinning would push the story behind "see more" instead.
+  pinPosts.length = 0;
+  await page.click('.stile .pinpin');
+  await page.waitForSelector('#shelfmore');
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === true,
+    'pinning inside a folder posts for that STORY, not the folder');
+  await page.click('#storiesclose');
+  await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'The shelf');
+  ok((await page.$$('.stile')).length === 1 &&
+     (await page.$eval('.stile .snm', (el) => el.textContent)) === 'Mason',
+    'back on the shelf the FOLDER leads, carrying its pinned story');
+  ok((await page.$$('.stile.fold .pinpin')).length === 0,
+    'a folder tile carries no pushpin of its own — a pin belongs to a story');
+  // put it back so the pinning section below starts from an unpinned shelf
+  await page.click('#shelfmore');
+  await page.click('.stile.fold');
+  await page.waitForFunction(() => document.getElementById('shelfno').textContent === 'Mason');
+  await page.click('.stile .pinpin.on');
+  await page.waitForFunction(() => !document.getElementById('shelfmore'));
 
   // the chevron steps OUT of the folder instead of leaving the tool
   let left = false;
@@ -215,6 +261,67 @@ function ok(cond, name) {
   await page.goto(base + '/scratchpad.html');
   await page.waitForSelector('.stile');
   ok((await page.$$('.srow')).length === 0, 'nothing renders the old rows without ?plain=1');
+
+  // 5 — the framed tile, measured
+  const cols = await page.$eval('#shelftiles',
+    (el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length);
+  ok(cols === 3, 'three tiles to a row');
+  const frame = await page.$eval('.stile .cov img', (im) => {
+    const cov = im.parentElement;
+    const a = im.getBoundingClientRect(); const b = cov.getBoundingClientRect();
+    const cs = getComputedStyle(cov); const is = getComputedStyle(im);
+    return { top: a.top - b.top, left: a.left - b.left,
+      right: b.right - a.right, bottom: b.bottom - a.bottom,
+      bg: cs.backgroundColor, outline: cs.borderTopWidth,
+      covR: parseFloat(cs.borderTopLeftRadius), imR: parseFloat(is.borderTopLeftRadius),
+      w: b.width };
+  });
+  ok([frame.top, frame.left, frame.right, frame.bottom].every((v) => v > 2 && v < 12),
+    'the art sits on a mat, inset on every side (' +
+    [frame.top, frame.left, frame.right, frame.bottom].map((v) => Math.round(v)).join('/') + ')');
+  ok(frame.bg === 'rgb(255, 255, 255)', 'the mat is white');
+  ok(parseFloat(frame.outline) >= 1, 'the hairline outline is outside the mat');
+  ok(frame.covR > 0 && frame.covR <= 5 && frame.imR > 0 && frame.imR <= 3,
+    'both the frame and the art are barely rounded (' + frame.covR + '/' + frame.imR + 'px)');
+  const plate = await page.$eval('.stile .pinpin', (el) => {
+    const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+    return { rad: parseFloat(cs.borderTopLeftRadius), w: r.width };
+  });
+  ok(plate.rad > 0 && plate.rad < plate.w / 2,
+    'the pushpin sits on a rounded SQUARE, never a circle');
+  ok(await page.$eval('.stile .snm', (el) => getComputedStyle(el).textAlign) === 'center',
+    'the name is centred');
+  ok(frame.w < 390 / 3, 'a tile fits its third of the row');
+
+  // 6 — pinning
+  ok((await page.$$('#shelfmore')).length === 0,
+    'nothing pinned yet, so the whole shelf shows and there is no fold');
+  padLoads.length = 0;
+  pinPosts.length = 0;   // the folder section above pinned and unpinned too
+  // 3rd, not 2nd: the Mason FOLDER stands where its newest story was, so The
+  // Meteorite is one along — and a folder tile carries no pushpin to click.
+  await page.click('.stile:nth-child(3) .pinpin');
+  await page.waitForSelector('#shelfmore');
+  ok(pinPosts.length === 1 && pinPosts[0].pinned === true && pinPosts[0].pad === 'p2',
+    'the pushpin POSTs /pads/pin for that story');
+  ok(padLoads.length === 0, 'pinning does not also open the story');
+  ok((await page.$$('.stile')).length === 1, 'the unpinned ones fold away');
+  ok(await page.$eval('.stile .snm', (el) => el.textContent) === 'The Meteorite',
+    'the pinned story leads the shelf');
+  ok(await page.$eval('#shelfmore', (el) => /see more/.test(el.textContent)),
+    'and the rest are behind "see more"');
+  ok(await page.$eval('#shelfmore', (el) => getComputedStyle(el).textDecorationLine) === 'underline',
+    '"see more" is an underlined word, not a boxed button');
+  await page.click('#shelfmore');
+  await page.waitForFunction(() => document.querySelectorAll('.stile').length === 4);
+  const order = await page.$$eval('.stile .snm', (els) => els.map((e) => e.textContent));
+  ok(order[0] === 'The Meteorite', 'opened up, the pinned one still leads');
+  ok(await page.$eval('.stile .pinpin', (el) => el.classList.contains('on')),
+    'the pinned tile wears a lit pushpin');
+  await page.click('.stile .pinpin');
+  await page.waitForFunction(() => !document.getElementById('shelfmore'));
+  ok(pinPosts.length === 2 && pinPosts[1].pinned === false,
+    'tapping the lit pin unpins, and the fold goes with it');
 
   await browser.close();
   server.close();

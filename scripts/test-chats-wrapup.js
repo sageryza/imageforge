@@ -143,8 +143,13 @@ console.log('the row line');
 // those three questions").
 const onePart = new Function('var WRAP_PART_MAX=200;' + liftHtml('onePart')
   + ' return onePart;')();
-const wrapParts = new Function('onePart', liftHtml('wrapParts') + ' return wrapParts;')(onePart);
+const herAskPage = new Function('var HER_ASK_MAX=200;' + liftHtml('herAsk')
+  + ' return herAsk;')();
+const wrapParts = new Function('onePart', 'herAsk',
+  liftHtml('wrapParts') + ' return wrapParts;')(onePart, herAskPage);
 const wrapLine = new Function('wrapParts', liftHtml('wrapLineOf') + ' return wrapLineOf;')(wrapParts);
+const wrapLineIsAsk = new Function('wrapParts',
+  liftHtml('wrapLineIsAsk') + ' return wrapLineIsAsk;')(wrapParts);
 const wrapHasMore = new Function('wrapParts', liftHtml('wrapHasMore') + ' return wrapHasMore;')(wrapParts);
 
 console.log('what the summary reads');
@@ -210,6 +215,111 @@ console.log('what the summary reads');
     /[^ ]…$/.test(serverPart(cases[4])) && serverPart(cases[4]).length <= 201);
   ok('the page cuts the live Update card too',
     wrapParts({ updDid: TWO }).did === 'Drew 2336x3504 for 13c and a second 2K for 7.8c.');
+}
+
+// ── WHAT SHE ASKED IS HER OWN SENTENCE (2026-08-24, Sophie: "right now the
+// what I asked sentence is paraphrased. can you make it my exact sentence and
+// just truncate it if it gets too long, so basically just the beginning of my
+// last message. and have it say what I asked in bold above it, and then the see
+// more is as it was"). Two copies again — the server lifts the opening off her
+// last message, the page draws it — so they are run over the SAME cases.
+console.log('her own sentence on the asked line');
+{
+  const herAskOf = new Function('const HER_ASK_MAX=200;' + lift('herAskOf')
+    + ' return herAskOf;')();
+  const lastHerText = new Function('const isCompacted=(t)=>'
+    + '/^\\s*\\[?\\s*this session is being continued from a previous conversation/i'
+    + '.test(String(t||""));' + lift('lastHerText') + ' return lastHerText;')();
+
+  const LONG = 'can you make the dashes pink and also '.repeat(12);
+  const cases = [
+    'quick question, can you make the dashes pink',
+    'I have a question. Can you make the dashes pink and the boxes rounded?',
+    LONG,
+    '   ',
+    '',
+  ];
+  cases.forEach((c, i) => ok('the two copies agree on case ' + i,
+    herAskOf(c) === herAskPage(c), JSON.stringify([herAskOf(c), herAskPage(c)])));
+
+  // TRUNCATED, NOT CUT AT A SENTENCE — she dictates, so a sentence rule would
+  // leave "I have a question." as the whole line, which is the one shape that
+  // says nothing at all. This is what makes it different from `wrapPartOf`.
+  ok('a dictated framing sentence does NOT end the line',
+    herAskOf(cases[1]).indexOf('dashes pink') > 0, herAskOf(cases[1]));
+  ok('a short message is her whole sentence, untouched',
+    herAskOf(cases[0]) === cases[0], herAskOf(cases[0]));
+  ok('a long one is truncated at a whole word',
+    /[^ ]…$/.test(herAskOf(LONG)) && herAskOf(LONG).length <= 201,
+    String(herAskOf(LONG).length));
+  ok('nothing to lift stays empty', herAskOf('') === '' && herAskOf('  ') === '');
+
+  // HER newest message, and nobody else's.
+  const thread = [
+    { from: 'sophie', text: 'the first thing I wanted' },
+    { from: 'claude', text: 'done — here is what I did' },
+    { from: 'sophie', text: 'now make the dashes pink' },
+    { from: 'claude', text: 'shipped it' },
+  ];
+  ok('it reads HER newest message', lastHerText(thread) === 'now make the dashes pink');
+  ok('a reply is never mistaken for her', lastHerText([{ from: 'claude', text: 'mine' }]) === '');
+  ok('an empty thread yields nothing', lastHerText([]) === '' && lastHerText(null) === '');
+  // A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE — the harness hands it over
+  // as a user turn and the hook lifts it exactly like something she typed, so
+  // it would file thousands of characters of recited rules as what she asked.
+  ok('a compaction summary is skipped, and the real ask behind it wins',
+    lastHerText(thread.concat([{ from: 'sophie',
+      text: 'This session is being continued from a previous conversation that ran out of context.' }]))
+      === 'now make the dashes pink');
+
+  // THE CUTOFF, for the backfill only (2026-08-24): a summary written on the
+  // 20th must be paired with the question she was asking on the 20th. Taking
+  // her newest message instead would file a question asked afterwards over
+  // answers that predate it.
+  const dated = [
+    { from: 'sophie', created: '2026-08-18T10:00:00Z', text: 'the first thing I wanted' },
+    { from: 'claude', created: '2026-08-18T10:05:00Z', text: 'done' },
+    { from: 'sophie', created: '2026-08-20T09:00:00Z', text: 'now make the dashes pink' },
+    { from: 'sophie', created: '2026-08-24T09:00:00Z', text: 'a whole new thing entirely' },
+  ];
+  ok('with no cutoff it is still her newest',
+    lastHerText(dated) === 'a whole new thing entirely');
+  ok('a cutoff reads what she was asking THEN',
+    lastHerText(dated, '2026-08-20T20:00:00Z') === 'now make the dashes pink');
+  ok('a cutoff before anything of hers yields nothing',
+    lastHerText(dated, '2026-08-01T00:00:00Z') === '');
+
+  // The freeze prefers hers and keeps the Update card's paraphrase as the
+  // fallback for a chat she never posted into.
+  const w = frozenWrapUp({ updAsked: 'Fix the hook so turns post', updDid: 'Shipped v14' },
+    'now make the dashes pink');
+  ok('the freeze files HER sentence, not the paraphrase',
+    w.wrapAsked === 'now make the dashes pink', w.wrapAsked);
+  ok('…and marks it as hers so the page truncates rather than cutting a sentence',
+    w.wrapAskedHers === true, String(w.wrapAskedHers));
+  const noHer = frozenWrapUp({ updAsked: 'Fix the hook so turns post', updDid: 'Shipped v14' }, '');
+  ok('with no message of hers the Update card still answers it',
+    noHer.wrapAsked === 'Fix the hook so turns post', noHer.wrapAsked);
+  ok('…and the flag is cleared rather than left true', noHer.wrapAskedHers === DEL);
+
+  // THE PAGE: a verbatim asked answer is truncated, never sentence-cut.
+  const hers = wrapParts({ wrapAsked: cases[1], wrapAskedHers: true, wrapDid: 'shipped it' });
+  ok('the page keeps her whole opening', hers.asked.indexOf('dashes pink') > 0, hers.asked);
+  const para = wrapParts({ wrapAsked: cases[1], wrapDid: 'shipped it' });
+  ok('a written paraphrase is still cut at its first sentence',
+    para.asked === 'I have a question.', para.asked);
+
+  // THE BOLD QUESTION over the line — only when the line IS the asked answer.
+  ok('the asked line earns its label',
+    wrapLineIsAsk({ wrapAsked: 'a cutter for her tape', wrapDid: 'shipped it' }) === true);
+  ok('a line that fell through to what it did does NOT',
+    wrapLineIsAsk({ wrapDid: 'shipped it' }) === false);
+  ok('…nor does an older prose summary',
+    wrapLineIsAsk({ wrapLine: 'built the cutter', wrapUp: 'A prose one.' }) === false);
+  ok('the thread draws that bold question over the line',
+    /twq[\s\S]{0,400}UPD_LABELS\[0\]\[1\]/.test(html));
+  ok('…and "See more…" is untouched, still inline on the line itself',
+    /tog\.textContent='See more…'/.test(html));
 }
 
 // ── THE THREE QUESTIONS, and the loose ends folded into the third ──────────
@@ -367,6 +477,45 @@ console.log('the short summary is cut to three lines in code');
     /const dry = !\(req\.body && req\.body\.dry === false\)/.test(src));
   ok('…and it only ever shortens `wrapUp` — never rewrites the other fields',
     /set\(\{ wrapUp: h\.text \}, \{ merge: true \}\)/.test(src));
+}
+
+// THE BACKFILL — her own words onto the summaries written before #1631
+// (2026-08-24, Sophie: "what I asked … is paraphrased. make it not paraphrase,
+// just my actual words truncated"). The live paths were already right; a
+// wrap-up is STORED, so 70 chats kept their paraphrase with nothing to rewrite
+// them. Same shape as the trim pass: free, dry by default, narrow.
+console.log('\nputting her words back on the ones already on file');
+{
+  ok('the pass exists', /router\.post\('\/wrapup\/rehers'/.test(src));
+  const body = src.slice(src.indexOf("router.post('/wrapup/rehers'"),
+    src.indexOf("router.post('/wrapup/write'"));
+  ok('it is DRY by default, like every other bulk operation here',
+    /const dry = !\(req\.body && req\.body\.dry === false\)/.test(body));
+  ok('a summary already carrying her words is skipped',
+    /if \(r\.wrapAskedHers === true\) return;/.test(body));
+  ok('a chat with no asked answer at all is left alone',
+    /if \(!String\(r\.wrapAsked \|\| ''\)\.trim\(\)\) return;/.test(body));
+  ok('it reads her message AS OF when the summary was written',
+    /lastHerText\(msgs, t\.r\.wrapUpAt\)/.test(body));
+  ok('a chat she never posted into keeps its own answer, and is NAMED',
+    /if \(!hers\) \{ noMessage\.push\(t\.chat\); continue; \}/.test(body)
+    && /noMessageOfHers: noMessage/.test(body));
+  ok('the patch touches only `wrapAsked`, its flag, and the old line it keeps',
+    /const patch = \{ wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t\.r\.wrapAsked \};/
+      .test(body));
+  ok('…so what the chat DID and what is NEXT are never reworded',
+    !/patch\.wrapDid|patch\.wrapNext|patch\.wrapLine|patch\.wrapLong/.test(body));
+  // NOTHING IS DESTROYED. Measured over the 62 this pass rewrites, ~6 come out
+  // worse — a sign-off ("ok build is here now") or a machine-authored prompt the
+  // hook lifted as hers. Her rule is applied everywhere rather than guessing at
+  // a quality bar over her own words, so keeping the paraphrase is what makes
+  // that call reversible instead of permanent.
+  ok('the paraphrase is kept rather than overwritten',
+    /wrapAskedWas: t\.r\.wrapAsked/.test(body));
+  ok('the prose mirror is rebuilt ONLY when it provably IS the three joined',
+    /String\(t\.r\.wrapUp \|\| ''\)\.trim\(\) === mirror/.test(body));
+  ok('it spends nothing — no model call in the pass',
+    !/anthropic/.test(body));
 }
 
 function WRAP_SYS_TEXT() {

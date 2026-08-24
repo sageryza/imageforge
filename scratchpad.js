@@ -181,6 +181,11 @@ function clearSlot(slot) { SLOT_KEYS.forEach((k) => { delete slot[k]; }); }
 // not drawn on the side she removed it from. Giving that side art again
 // clears the mark — putting something back is what brings it back.
 const slotOff = (s) => Boolean(s && s.off);
+// Swapping a picture into a slot — the past-pictures bookkeeping lives in
+// its own dependency-free file so it can be tested without a node_modules,
+// and so /image and a finished draw share ONE copy of the rules.
+const { swapArt } = require('./pad-art');
+
 // DREAMY's recipe is the Playground's Dreamy tile — refs/dream-mystery.jpg
 // with HER OWN dictated prefix and suffix (2026-08-22), bookending her words
 // exactly as the Playground sends them (prefix\n\nwords\n\nsuffix). These two
@@ -546,7 +551,7 @@ router.get('/pads', async (req, res) => {
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
         category: v.category || null, folder: v.folder || null,
-        updatedAt: v.updatedAt || 0,
+        pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
@@ -612,6 +617,22 @@ router.post('/pads/category', async (req, res) => {
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
     await padRef(pid).set({ category: category || null }, { merge: true });
     res.json({ ok: true, pad: pid, category: category || null });
+  } catch (e) { fail(res, e); }
+});
+
+// PINNED TO THE TOP OF THE SHELF (Aug 2026, Sophie: "a pinning feature where i
+// can pin a couple stories i'm actively working on and the rest go behind a see
+// more toggle"). Nothing to do with /cover, which pins a story's FACE — this is
+// which stories lead the shelf. Absent means unpinned, so a story is never
+// hidden behind the fold by a field nobody set. Like /category, deliberately
+// does NOT bump updatedAt: pinning is not an edit to the story.
+router.post('/pads/pin', async (req, res) => {
+  try {
+    const pid = String(req.body.pad || '').trim();
+    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const pinned = req.body.pinned === true || req.body.pinned === 'true';
+    await padRef(pid).set({ pinned }, { merge: true });
+    res.json({ ok: true, pad: pid, pinned });
   } catch (e) { fail(res, e); }
 });
 
@@ -752,14 +773,11 @@ router.post('/image', async (req, res) => {
       const slot = artSlot(b, style, true);
       // Swapping a picture into a clip SLOT makes that side a picture again —
       // leaving `kind` behind would render an image url as a film. Only this
-      // side: the other style's clip (or picture) is untouched.
-      if (slotClip(slot)) { delete slot.kind; delete slot.poster; delete slot.seconds; delete slot.title; delete slot.clipId; delete slot.url; }
-      // The picture this side already had is kept, never destroyed.
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      if (src) slot.src = src;
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
+      // side: the other style's clip (or picture) is untouched. swapArt owns
+      // that, the history bookkeeping, and the provenance — this route is
+      // both a fresh pick from the inbox AND her picking an older version
+      // back off the past-pictures row, and they must behave identically.
+      swapArt(slot, url, src);
       tx.set(padRef(pid), { beats: cur, updatedAt: Date.now() }, { merge: true });
       return cur;
     });
@@ -915,15 +933,14 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
     const url = `https://storage.googleapis.com/${bucket.name}/${dest}`;
     await patchBeat(padId, id, (b) => {
       const slot = artSlot(b, style, true);
-      if (slot.url && slot.url !== url) slot.imageHistory = (slot.imageHistory || []).concat([{ url: slot.url, at: Date.now() }]);
-      slot.url = url;
-      slot.src = {
+      // Through swapArt so the picture this draw replaces is banked WITH the
+      // run that made it — that is what lets her pick it back later and get
+      // its own prompt with it, rather than this draw's.
+      swapArt(slot, url, {
         engine: 'gptimage', model: 'gpt-image-2', prompt, quality,
         character: Boolean(character) && !dreamy, style: dreamy ? 'dreamy' : 'watercolor', promptUsed: full,
-      };
+      });
       slot.gen = { status: 'done', at: Date.now() };
-      // Art here again un-deletes this side (see `off` above).
-      delete slot.off;
     });
     // Every draw also lands in My Creations (house rule — the gallery is the
     // hand-off surface for every image made for Sophie). Through the server's
@@ -1219,8 +1236,15 @@ async function clipSegment(dir, u, beat, job = null) {
 }
 
 async function runFilmJob(padId) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
-  const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
+  // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
+  // rejects the fire-and-forget promise with no catch anywhere, which under
+  // Node's default crashes the WHOLE process: the doc wedges on 'making'
+  // with no progress, the sweep later stamps it "interrupted by a server
+  // restart", and the restart was this job's own doing. Every pad's render
+  // had been dying this shape for days with nothing to say why.
+  let dir = null;
+  const clean = () => { try { if (dir) fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
   // The cancel token. `stop()` is the checkpoint — called before every
   // expensive step, so a cancel that arrives between two encodes still ends
   // the job — and `beat()` is the only way this job writes progress, so a
@@ -1231,6 +1255,7 @@ async function runFilmJob(padId) {
   const beat = (progress) => (job.canceled ? Promise.resolve()
     : padRef(padId).set({ film: { status: 'making', at: Date.now(), progress } }, { merge: true }).catch(() => {}));
   try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
     // The film is the SIDE the story is showing: the toggled style's art
@@ -1402,7 +1427,11 @@ router.post('/film', async (req, res) => {
       return res.status(400).json({ error: 'draw some art first' });
     }
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
-    runFilmJob(pid);   // fire and forget — the page polls the pad
+    // belt for the braces above: if the job ever rejects outside its own
+    // catch again, stamp the doc instead of letting the rejection escape
+    runFilmJob(pid).catch((e) => padRef(pid)
+      .set({ film: { status: 'failed', error: String((e && e.message) || e).slice(0, 300), at: Date.now() } }, { merge: true })
+      .catch(() => {}));   // fire and forget — the page polls the pad
     res.json({ ok: true, status: 'making' });
   } catch (e) { fail(res, e); }
 });

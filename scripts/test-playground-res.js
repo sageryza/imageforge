@@ -155,6 +155,14 @@ catch {
         res: RES, resDefault: '1k',
       }));
     }
+    // The three-way toggle's geometry is a SHARED stylesheet since Aug 2026
+    // (/tritoggle.css, served by express.static in production). A stub that
+    // does not serve it collapses the toggle to a 4px sliver — which is worth
+    // knowing: a missing shell is not a subtle degradation.
+    if (url.pathname === '/tritoggle.css') {
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.css')));
+    }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(fs.readFileSync(path.join(ROOT, 'public', 'playground-port.js')));

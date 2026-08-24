@@ -181,9 +181,30 @@ function filesOnPurpose(text) {
   return FILE_IT.test(String(text || ''));
 }
 
+// ---- Not her message at all -------------------------------------------------
+// A CONTEXT-COMPACTION SUMMARY IS FILED AS ONE OF HERS, AND IT QUOTES
+// EVERYTHING (found live 2026-08-24 in this feature's own chat). When a
+// session runs out of context the harness hands the model a summary as a USER
+// turn, so the hook lifts it exactly like a message she typed — 7,232
+// characters that recite her earlier words, this file's own rules, and the
+// trigger phrases as examples. Every gate in here fires on it, several times.
+//
+// Measured over her 120 recent chats: only **4 of 408** of her messages are
+// one of these, but they produced **5 of the 35** question rows — a summary
+// quotes, so it trips far above its weight.
+//
+// Matched on the harness's own opening line, ANCHORED AT THE START: the
+// sentence is fixed text nobody dictates, and anchoring means a message that
+// merely talks about compaction is untouched. It is not the deeper fix — the
+// feed still shows the thing as hers in the thread and under the search's
+// Mine filter — but it is the half that is derived, so it reaches every chat's
+// whole history at once with nothing migrated.
+const COMPACTED = /^\s*\[?\s*this session is being continued from a previous conversation/i;
+
 /** Does this message of hers put anything in the Questions tab at all? */
 function flagsQuestion(text) {
   const t = String(text || '');
+  if (COMPACTED.test(t)) return false;   // not her message — the harness's
   if (filesOnPurpose(t) || ASKING.test(t)) return true;
   return sentences(t).some(framing);
 }
@@ -549,5 +570,10 @@ function answeredOnly(list) {
   return (list || []).filter((q) => q && q.answer);
 }
 
+// Exported so nothing else has to keep its own copy of the rule: the wrap-up's
+// "what you asked" line reads her LAST message verbatim, and a compaction
+// summary posted as hers would put 7,000 characters of harness recital there.
+function isCompacted(text) { return COMPACTED.test(String(text || '')); }
+
 module.exports = { sentences, isQuestion, flagsQuestion, filesOnPurpose, framing, findQuestions, boldBlocks, matchBlock,
-  bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };
+  bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly, isCompacted };
