@@ -37,9 +37,16 @@
      it needs straight off :root (the settled pill contract — pill-inject.html
      uses var(--x, fallback); nothing out-specifies .float any more). */
   :root { --bg: #faf7f2; --paper: #faf7f2; --surface: #fdfcf9;
-    --ink: #2b2622; --ink2: #6b6255; --dim: #6b6255;
-    --chg: #b4533a; --rose: #b4533a; --accent: #b4533a;
+    --ink: #2b2622; --ink2: #6f675e; --dim: #6f675e;
+    --chg: #c25a72; --rose: #c25a72; --accent: #c25a72;
     --border: #d8d0c4; --line: #e6ded0; }
+  /* EVERY VALUE IS THE PLAYGROUND'S OWN (promptlab.html), because this tool is
+     that tool's recipe with the run turned inside out and the two sit next to
+     each other in her Pictures tab. The accent was #b4533a until 2026-08-24 —
+     a colour that appeared in exactly ONE file in the repo, matching neither
+     the Playground it was copied from (#c25a72), the studio tan (#b48b6a) nor
+     the compare rose (#b3443f). Measured with `node scripts/audit-styles.js`,
+     which is what a new value here should be checked against. */
 
   .ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding-right: 64px; margin: 0 0 14px; }
