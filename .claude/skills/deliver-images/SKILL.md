@@ -19,6 +19,25 @@ gallery" + the Design rules on labels/prompts/captions); this is the working
 checklist. Do these AT GENERATION TIME — several of them are unrecoverable
 later.
 
+## Before you generate — the prompt itself
+
+- **Short, and action-only.** The content half says what HAPPENS; every
+  adjective about how a thing looks is a decision taken away from the model
+  and taken worse. ~300 characters of one situation is the target; past
+  ~1,000 the model stops drawing one picture at all (measured).
+- **Name the phenomenon, don't itemize it** (Sophie, Aug 2026): "meat raining
+  from the ceiling", never "ribs, drumsticks, etc." A list is a checklist the
+  model satisfies literally — each named object drawn separately and arranged
+  so it can be seen — so an inventory comes back instead of the event. Test a
+  word by swapping it for another of its kind: if "ribs" could be
+  "drumsticks", ribs was never the idea.
+- **A prompt SHE dictated goes verbatim.** This is how to write one when the
+  writing is yours, and what to encourage when she asks for one — never a
+  reason to trim her words. Anything you add is named word for word in the
+  reply.
+- Full rules: `docs/image-pipeline.md` (*DESCRIBE THE ACTION* · *WRITE IT
+  SHORT* · *NAME THE PHENOMENON*).
+
 ## At generation time (the unrecoverable steps)
 
 1. **Permanent URL first.** Replicate/OpenAI URLs expire in ~1hr — upload to

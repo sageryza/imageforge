@@ -109,6 +109,31 @@ them already house law somewhere:
     is yours, not the model's — a short prompt is one you can debug, re-style
     and re-use, and it is what the bank is actually storing.
 
+- **NAME THE PHENOMENON — DON'T ITEMIZE IT (Sophie, 2026-08-24: "highly
+  encourage short prompts that don't describe exact things — for example
+  'meat raining from the ceiling' is better than 'ribs, drumsticks, etc.'").**
+  A list of exact things is a checklist the model has to satisfy, and it
+  satisfies it the literal way: each named object gets drawn, separately,
+  laid out where it can be seen — so an inventory comes back instead of an
+  event. The compact phrase names the whole happening and leaves the parts to
+  the model, which is the one thing the model is better at than the sentence.
+  - **It is the third handle on one rule, not a new rule.** Action-only says
+    don't specify the LOOK; short says don't specify at LENGTH; this says
+    don't specify the PARTS. All three are the same trade — every
+    specification is a decision taken away from the model and taken worse.
+  - **The test: could that word be swapped for another of its kind without
+    changing the idea?** "Ribs" could be "drumsticks" and the dream is the
+    same dream — so ribs was never the idea, *meat falling* was. Name the
+    class, draw the instance for free.
+  - **It is also the collage failure in miniature.** The measured way a long
+    prompt breaks is that the model stops drawing one picture and starts
+    arranging the things it was handed; an enumeration is that same
+    instruction in three words, so a short prompt can micromanage too.
+  - **Where her words are the prompt, they stay her words.** This is guidance
+    for prompts a chat WRITES, and something to encourage when she asks for
+    one — never a licence to trim a prompt she dictated. Anything you change
+    or add is named word for word in the reply, exactly as ever.
+
 And the consequence the map itself draws: **the road ends at the BANK, not at
 the picture.** GOLD is the second-to-last stop. The finished picture leaves
 for its project there — and the road keeps walking, because the prompt still
