@@ -22,6 +22,18 @@ The bug-shaped ones (an offer naming something *broken*, not an offer to render
 or spend) were then checked against the code **as it stands today**. Findings
 below are split by that check, not by what the chat said at the time.
 
+## FIXED 2026-08-24 — everything below except #3
+
+Sophie read the audit and said: *"I think I gave the third bug to a different
+chat. Can you check if all the other bugs are still there and fix them?"* Each
+was re-verified against `main` as it stood that afternoon (which had moved 22
+commits since the audit) and then fixed. **#3, the header gap, is another
+chat's** and was deliberately left alone.
+
+One thing had already half-fixed itself in those 22 commits: `/assets` was
+migrated onto the shared `asset-lightbox.js`, so the 52vh/46vh DRIFT in #1 is
+gone. The other half of #1 — the reserved strip — was still there.
+
 ## STILL OPEN — confirmed in current code
 
 ### 1. The image lightbox reserves a notes strip even when there are no notes
@@ -37,11 +49,13 @@ And the two copies of the same lightbox have drifted:
 - `public/asset-lightbox.js:98` → `max-height:52vh`
 - `public/assets.html:113` → `max-height:46vh`
 
-The fix that chat proposed still applies: don't add `hastalk` when the thread is
-empty (picture goes to ~62vh), and bring both copies to one number. Note
-`assets.html` is the third, unmigrated copy of this lightbox — CLAUDE.md already
-records that it drifts and that the real repair is an extras hook on the shared
-file.
+**FIXED.** `hasmsgs` is written by `paintThread` from the thread it actually
+drew: an image with no notes keeps 62vh (56 with an actions row), and the room
+is given up the moment her first letter lands — live, without reopening. The
+DRIFT half fixed itself in the meantime: `/assets` was migrated onto the shared
+file, so there is no second copy left to disagree.
+Test: `node scripts/test-asset-lightbox.js` — the same picture measured taller
+with an empty thread than with letters in it, then shrinking on her first note.
 
 ### 2. A backfilled chat's replies are all stamped "now"
 *(chat `voice-memo-ideas`, 2026-08-15 — "that second one is a real bug that'll
@@ -60,8 +74,21 @@ Half of this landed and half didn't:
 
 So any chat recovered with `scripts/backfill-chat-history.sh --go` comes back
 with her half in the right order and Claude's half piled at the moment of the
-backfill. The fix is small: keep the assistant record's `timestamp` in `flush()`
-and send it as `created`.
+backfill.
+
+**FIXED — hook v15.** `flush()` keeps the turn's first assistant-record
+timestamp and the post carries it as `created`. The turn's START rather than its
+end, deliberately: the server documents `bornAt` as the turn's start so that a
+turn ALREADY RUNNING when she sends a message loses the push gate's comparison.
+Live turns are unchanged — the server keeps a doc's FIRST `created`, which a
+draft has already stamped. `public/setup.sh` and the docs copy are rebuilt from
+the hook, so a re-paste of the environment's Setup script carries it.
+Test: `node scripts/test-chat-backfill.js` — verified failing 2 against the
+pre-fix hook.
+
+**It reaches a session only when its hook is re-installed** (the self-heal, or a
+re-paste of the Setup script). Nothing to do now: it matters at the moment a
+silent chat is recovered, which is always a deliberate act.
 
 ### 3. Nothing owns the gap above a tool page's header
 *(chat `story-room-architecture`, 2026-08-23 — "Want me to fix these?", then her
@@ -77,22 +104,48 @@ Still true: `public/pagehead.js:66` sets the top for exactly one family
 hand-written number. The `.sheethead` half is narrower — only the Story Room
 uses it.
 
+**LEFT ALONE ON PURPOSE — Sophie gave this one to another chat** (2026-08-24).
+It is the only finding here that is not fixed.
+
 ### 4. The Dump still can't take audio
 *(chat `video-audio-extraction-pipeline`, 2026-08-11 — "Want me to fix that last
 part?" Never answered.)*
 
-`dropbox.js` accepts images and video only: `IMAGE_RE` (line 74) and the mime
-map (lines 122-129) have no audio type. Audio off her phone goes to
-`/api/audio` instead, so this is a gap rather than a crash — but Assembly's "Add
-from the Dump" reads the Dump, so an audio file dropped there is still nowhere.
+`dropbox.js` accepted images and video only: `IMAGE_RE` and the mime map had no
+audio type.
+
+**FIXED.** The machinery was always generic — content-addressed bytes, md5
+dedupe, albums, folders — so only three type tables and the `media` field said
+images and video. A dumped recording now lands as `media:'audio'` and plays from
+its own tile on `/dump`; a zip full of recordings is accepted the same way.
+
+Three things worth knowing:
+- **An `.m4a` is `audio/mp4`.** A table that asks about the CONTAINER before the
+  KIND files every voice recording as a video, with a poster job and a ▶ on its
+  tile. `extFor` asks about audio first, and the test pins it.
+- **`mediaKind(ct)` is the ONE answer** to "what kind of thing is this", so the
+  doc's `media` and any caller asking the same question cannot disagree.
+- **Every reader written before audio asks `=== 'video'` and calls the rest an
+  image.** Assembly's "Add from the Dump" now SKIPS audio (an assembly item is a
+  clip or a still; the Film Editor is the surface with an audio track), and both
+  page uploaders already accept `image/*,video/*` only. `crystals.js` still
+  counts a non-video as a photo — left alone, because nothing puts audio in a
+  crystals album, but it is the next place this would show.
+- **It does NOT go to the voice-memo archive.** `/api/audio` transcribes
+  everything it receives; the Dump's rule is dump first, label afterwards.
+
+Test: `node scripts/test-dump-audio.js` (pure).
 
 ### 5. One stale doc line
 *(chat `video-pin-chat-review`, 2026-08-19 — "Want me to fix that line while I'm
 in there?" Never answered.)*
 
-`docs/evan-film-collected.md` still names `evan-v13.mp4` as the film in its link
-list (lines 193-210) while line 303 records `evan-v17.mp4` as the pinned current
-cut.
+`docs/evan-film-collected.md` named `evan-v13.mp4` as the newest film in its
+link list while the same file recorded `evan-v17.mp4` as the pinned current cut.
+
+**FIXED.** The link list points at v17 (confirmed live: v17 answers 200, v18
+does not exist). Every OTHER mention of v13 in that file is history — what was
+rendered when — and was left exactly as written.
 
 ## ALREADY FIXED SINCE — nothing to do
 
