@@ -5133,7 +5133,7 @@ function renderHiddenBar(el,g,hid){
   // so the count must be refreshable without a renderHome.
   bar.dataset.hid=hid.join(',');
   paintHideWork(bar,g,hid);
-  bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
+  bar.onclick=function(){ hideOpen=!hideOpen; repaintKeepingBar('.hidebar'); };
   el.appendChild(bar);
   function sep(){ el.appendChild(Object.assign(document.createElement('div'),{className:'hbsep'})); }
   if(!hideOpen){ sep(); return; }
@@ -5151,6 +5151,31 @@ function renderHiddenBar(el,g,hid){
 //     fold can answer her in silence;
 //   * with the fold OPEN the rows are the ordinary list, so every control on
 //     them (hide, filing, select mode) works exactly as it does above.
+// A FOLD THAT OPENS IN PLACE MUST NOT MOVE THE SCREEN (Aug 2026, Sophie: "when
+// I clicked the more button in the chat app, it takes me all the way back to
+// the top. It should stay where I am"). Both bars below open UNDERNEATH the
+// list rather than replacing the screen, but their tap goes through
+// `renderHome`, which empties #grid and rebuilds it — the page height collapses
+// mid-repaint and the browser clamps her scroll to 0. The bar is at the BOTTOM
+// of a long list, so that is the whole list scrolled away under her thumb.
+//
+// Every OTHER renderHome caller scrolls to the top on purpose (a filter, a tab
+// and a pile change what the list IS). Here the tapped bar is put back exactly
+// where it was on screen — by its own viewport offset, never the old scrollY,
+// which is already wrong if any chrome above it changed height in the repaint.
+function repaintKeepingBar(sel){
+  var before=document.querySelector(sel);
+  var was=before?before.getBoundingClientRect().top:null;
+  renderHome();
+  if(was===null) return;
+  var after=document.querySelector(sel);
+  if(!after) return;   // the bar itself went away — nothing to hold still
+  // Closing the fold shortens the page, so this can ask for more scroll than
+  // there is; the browser clamps, which lands her at the bottom with the bar
+  // in view. That is the honest answer, not a jump.
+  var y=window.scrollY+(after.getBoundingClientRect().top-was);
+  window.scrollTo(0, Math.max(0,y));
+}
 function renderMoreBar(el,g,old){
   if(!old.length) return;
   var fresh=old.filter(function(n){
@@ -5161,7 +5186,7 @@ function renderMoreBar(el,g,old){
   bar.setAttribute('aria-expanded', moreOpen?'true':'false');
   bar.innerHTML='<span class="mb-n">More '+old.length
     +(fresh? ' <span class="mb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV.replace('hb-chev','mb-chev');
-  bar.onclick=function(){ moreOpen=!moreOpen; renderHome(); };
+  bar.onclick=function(){ moreOpen=!moreOpen; repaintKeepingBar('.morebar'); };
   el.appendChild(bar);
   if(!moreOpen) return;
   var box=document.createElement('div'); box.className='morelist';
