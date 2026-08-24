@@ -69,7 +69,7 @@ struct CarouselView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CAROUSEL TOPIC")
                 .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("e.g. 5 crystals for protection", text: $topic, axis: .vertical)
+            TextField("…", text: $topic, axis: .vertical)
                 .lineLimit(1...3).font(.body).foregroundColor(Theme.text)
                 .focused($focused)
                 .padding(12).background(Theme.surface)

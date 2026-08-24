@@ -589,7 +589,7 @@
     h += `<div class="section">
       <div class="eyebrow ${S.recording||S.transcribing?'rec':''}"><span>${eyebrow}</span>
         <span style="display:flex;gap:4px;align-items:center">${charBtn}${pasteBtn}${micBtn}</span></div>
-      <textarea id="ta" placeholder="Last night I dreamed…">${esc(S.text)}</textarea>
+      <textarea id="ta" placeholder="I dreamt…">${esc(S.text)}</textarea>
       <button class="btn illustrate" id="illustrate" ${S.busy?'disabled':''}>${IC.sparkles}${S.busy?'Illustrating…':'Illustrate'}</button>
     </div>`;
 
@@ -635,7 +635,7 @@
       <div class="frame">
         ${!PUBLIC?`<button class="upload" data-upload="${ei}" title="Add a photo">${IC_CAM}</button>`:''}
         ${e.creating?`<div class="mini"><div class="spinner"></div></div>`:''}
-        <textarea data-desc="${ei}" placeholder="describe them…">${esc(e.desc)}</textarea>
+        <textarea data-desc="${ei}" placeholder="who they are…">${esc(e.desc)}</textarea>
       </div>
       <div class="nm">${esc(label||'')}</div></div>`;
   }
@@ -669,7 +669,7 @@
         if(S.vexpanded[ei]){
           h += `<div class="vedit">
             ${e.photoUrl?`<div class="cslot on" data-pick="${ei}|photo" style="width:64px;flex:none"><div class="frame"><img src="${esc(e.photoUrl)}"></div></div>`:''}
-            <input data-desc="${ei}" placeholder="describe them…" value="${esc(e.desc)}">
+            <input data-desc="${ei}" placeholder="who they are…" value="${esc(e.desc)}">
             ${!PUBLIC?`<button class="vcam" data-upload="${ei}" title="Add a photo">${e.creating?'…':IC_CAM}</button>`:''}
           </div>`;
         }
