@@ -278,7 +278,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A clip in the beat popup is WATCHABLE — the full card width, not the pad
    tile's ~90px. The never-blow-the-art-up rule is about her drawings; a film
    nobody can see is not a preview. */
-#popvid{width:100%; display:block; border-radius:4px; background:#000;}
+#popvid{width:100%; max-height:100%; display:block; border-radius:4px; background:#000;}
 #popvid.c-mustard{outline:3px solid var(--mustard);} #popvid.c-green{outline:3px solid var(--green);}
 #popvid.c-blue{outline:3px solid var(--blue);} #popvid.c-pink{outline:3px solid var(--pink);}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
@@ -296,36 +296,76 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    chips, note, icons — lives ON the card. No scrim. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);}
-#beatcard{width:100%; max-height:100%; box-sizing:border-box; background:var(--barbg);
-  border:1.5px solid var(--line); border-radius:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column;}
-/* margin:auto keeps the content centered inside the card and lets it
-   scroll normally when it's taller than the screen cap (justify-content:
-   center would clip the top of overflowing content). */
-#cardin{margin:auto; width:100%; box-sizing:border-box; padding:20px 16px;
-  display:flex; flex-direction:column; align-items:center; gap:18px;}
-/* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
-   big) — openBeat() copies the pad tile's pixel width onto it. */
+  padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
+/* THE CARD IS NEARLY THE WHOLE SCREEN, AND SCREEN-SHAPED (Aug 2026, Sophie:
+   "the whole popup gets bigger, so there's only room enough to comfortably
+   see behind it. similar aspect ratio as total screen (not square)"). It
+   used to be only as tall as its contents, which on a beat with a small
+   picture left a squat card floating in the middle. height:100% of a
+   padded fixed inset IS the screen's own shape, minus the strip of pad
+   showing all round it — and that strip is still the tap-out target. */
+#beatcard{width:100%; height:100%; box-sizing:border-box; background:var(--barbg);
+  border:1.5px solid var(--line); border-radius:10px;
+  display:flex; flex-direction:column; overflow:hidden;}
+/* A thin strip that never scrolls, so the colour square keeps its corner
+   however long the card's contents get. */
+#cardtop{flex:none; display:flex; justify-content:flex-end; padding:10px 12px 0;}
+#colorwrap{position:relative;}
+/* ONE MULTICOLOURED ROUNDED SQUARE, DROPPING DOWN (Aug 2026, Sophie:
+   "colors become one multicolored rounded square in the corner, drop
+   down"). Five circles in a row cost the card a whole band; the chosen
+   colour is already legible on the picture's own frame, so the button
+   stays multicoloured rather than showing the pick — it reads as "colour"
+   from across the room, which a single filled square would not. */
+#colorbtn{width:32px; height:32px; padding:0; border:none; background:none; cursor:pointer; display:block;}
+#colorbtn svg{width:100%; height:100%; display:block;}
+#colormenu{position:absolute; top:38px; right:0; z-index:2; display:flex; gap:12px;
+  background:var(--barbg); border:1.5px solid var(--line); border-radius:8px; padding:10px 12px;}
+#cardin{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  width:100%; box-sizing:border-box; padding:8px 16px 20px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;}
+/* THE PICTURE IS BIG NOW (Sophie, same message: "that image is bigger by
+   default"). It used to be pinned to the pad tile's ~90px — a thumbnail of
+   a thumbnail. It takes the room the card has left instead: flex:1 with
+   min-height:0, and the image sized by max-height/max-width so a 2:3
+   drawing keeps its shape whatever the screen is. */
+#artwrap{flex:1; min-height:120px; width:100%; display:flex; align-items:center; justify-content:center;}
+#popimg{max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; cursor:pointer;}
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
-.chips{display:flex; gap:16px;}
-.chip{width:36px; height:36px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
+.chip{width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
 .chip.on{outline:2.5px solid var(--ink); outline-offset:3px;}
 .chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
 .chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
-#pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+/* TWO TEXT BOXES, ONE OPEN AT A TIME BY DEFAULT (Aug 2026, Sophie: "two
+   text boxes: caption, and drawing prompt. drawing prompt is collapsed by
+   default, and uncollapsing draw prompt automatically collapses the caption
+   but can be manually expanded again"). The label IS the toggle — a quiet
+   serif line with a chevron, not a button-looking button — and opening the
+   prompt folds the caption away, which she can undo by tapping Caption.
+   Both open at once is a state she can reach; neither is a state she can
+   reach by accident, since a tap on a label only ever moves that one. */
+.tbox{width:100%; max-width:26em; display:flex; flex-direction:column; gap:6px;}
+.tlab{display:flex; align-items:center; gap:4px; align-self:flex-start;
+  background:none; border:none; padding:2px 0; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2); font-style:italic;}
+.tlab .chev{width:14px; height:14px; transition:transform .15s ease;}
+.tlab[aria-expanded="false"] .chev{transform:rotate(-90deg);}
+#pnote{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
-.poprow{display:flex; gap:14px;}
+.poprow{flex:none; display:flex; gap:14px;}
 #speak,#linkbtn,#micbtn,#coverbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
 #speak svg,#linkbtn svg,#micbtn svg,#coverbtn svg,#delbtn svg{width:17px; height:17px;}
 #coverbtn.on{background:var(--ink); color:var(--barbg);}
 /* Every generation this beat has had, all the same size, newest first; the
    one currently on the pad wears the dark ring. Tap one to see it big. */
-#verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
+/* Past pictures — hidden until the stacked-squares button asks for them
+   (Sophie: "drawing a new picture replaces the old, but keeps it in the
+   stacked squares icon"). Newest first, the current one ringed. */
+#verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
 #verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
 #verrow button.cur{border:2.5px solid var(--ink);}
@@ -342,19 +382,26 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
-#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--paper);
-  display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
-#popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
-#popblank svg{width:24px; height:24px;}
+/* The blank tile is now just the empty paper at the picture's size — its
+   two icons moved into #artrow under it, beside the star, so the ways to
+   make art sit in ONE place whether the beat has a picture or not. */
+#popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
+  background:var(--paper); box-sizing:border-box;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
-#artrow{display:flex; gap:14px; justify-content:center;}
-#artrow button{background:none; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
-  color:var(--ink); cursor:pointer; display:flex;}
-#artrow svg{width:17px; height:17px;}
+/* THE WAYS TO ART, IN ROUNDED SQUARES, UNDER THE PICTURE (Aug 2026,
+   Sophie: "stars, playground and inbox buttons get put into rounded
+   squares and go under the main (currently chosen) image"). 38px SQUARES —
+   the tap target, house radius 6px — never pills. The fourth, stacked
+   squares, opens the past pictures and shows only when there are some. */
+#artrow{flex:none; display:flex; gap:12px; justify-content:center;}
+#artrow button{width:38px; height:38px; padding:0; background:none; border:1px solid var(--line);
+  border-radius:6px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;}
+#artrow button.on{background:var(--ink); color:var(--barbg); border-color:var(--ink);}
+#artrow svg{width:18px; height:18px;}
 /* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
    quality, Draw. The STYLE is never asked — one style per story. */
-#drawbox{width:min(80vw,22em); display:flex; flex-direction:column; gap:8px;}
+#drawbox{width:100%; display:flex; flex-direction:column; gap:8px;}
 #dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
@@ -525,37 +572,48 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 </div>
 
 <div id="beatpop" hidden>
-  <div id="beatcard"><div id="cardin">
-  <div id="artrow" hidden>
-    <button id="ardraw" aria-label="Draw it again here">__STAR__</button>
-    <button id="arplay" aria-label="Make different art in the Playground">__PLAYICON__</button>
-    <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <img id="popimg" alt="">
-  <video id="popvid" hidden playsinline preload="metadata" controls></video>
-  <div id="verrow" hidden></div>
-  <div id="popblank" hidden>
-    <button id="pbdraw" aria-label="Draw it here">__STAR__</button>
-    <button id="pbplay" aria-label="Make its art in the Playground">__PLAYICON__</button>
-    <button id="pbinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <div class="chips">
-    <button class="chip gray" data-c=""></button>
-    <button class="chip mustard" data-c="mustard"></button>
-    <button class="chip green" data-c="green"></button>
-    <button class="chip blue" data-c="blue"></button>
-    <button class="chip pink" data-c="pink"></button>
-  </div>
-  <div id="genstate" hidden></div>
-  <div id="drawbox" hidden>
-    <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
-    <div class="drawrow">
-      <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
-      <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
-      <button id="dgo">Draw</button>
+  <div id="beatcard">
+  <div id="cardtop">
+    <div id="colorwrap">
+      <button id="colorbtn" aria-label="Frame color"><svg viewBox="0 0 24 24" aria-hidden="true"><clipPath id="csq"><rect x="2" y="2" width="20" height="20" rx="5"/></clipPath><g clip-path="url(#csq)"><rect x="2" y="2" width="10" height="10" fill="var(--mustard)"/><rect x="12" y="2" width="10" height="10" fill="var(--green)"/><rect x="2" y="12" width="10" height="10" fill="var(--blue)"/><rect x="12" y="12" width="10" height="10" fill="var(--pink)"/></g><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.5"/></svg></button>
+      <div id="colormenu" hidden>
+        <button class="chip gray" data-c="" aria-label="No frame"></button>
+        <button class="chip mustard" data-c="mustard" aria-label="Mustard frame"></button>
+        <button class="chip green" data-c="green" aria-label="Green frame"></button>
+        <button class="chip blue" data-c="blue" aria-label="Blue frame"></button>
+        <button class="chip pink" data-c="pink" aria-label="Pink frame"></button>
+      </div>
     </div>
   </div>
-  <textarea id="pnote" rows="3"></textarea>
+  <div id="cardin">
+  <div id="artwrap">
+    <img id="popimg" alt="">
+    <video id="popvid" hidden playsinline preload="metadata" controls></video>
+    <div id="popblank" hidden></div>
+  </div>
+  <div id="artrow" hidden>
+    <button id="ardraw" aria-label="Draw it here">__STAR__</button>
+    <button id="arplay" aria-label="Make its art in the Playground">__PLAYICON__</button>
+    <button id="arinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+    <button id="arvers" hidden aria-label="Past pictures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h12a1 1 0 0 1 1 1v12"/><path d="M6 7h11a1 1 0 0 1 1 1v11"/><rect x="3" y="10" width="12" height="11" rx="1"/></svg></button>
+  </div>
+  <div id="verrow" hidden></div>
+  <div id="genstate" hidden></div>
+  <div class="tbox" id="capbox">
+    <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <textarea id="pnote" rows="3"></textarea>
+  </div>
+  <div class="tbox" id="prombox">
+    <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div id="drawbox" hidden>
+      <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div class="drawrow">
+        <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
+        <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+        <button id="dgo">Draw</button>
+      </div>
+    </div>
+  </div>
   <div class="poprow">
     <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
@@ -1513,30 +1571,28 @@ function openBeat(b){
   // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
-  // Same size as it sits on the pad — the popup never blows the ART up. A
-  // CLIP is the exception and takes the card's width: it is a film, and one
-  // playing at 90px is not a preview.
-  var tile=document.querySelector('#pad .beat');
-  var w=(tile?tile.offsetWidth:90)+'px';
+  // The picture takes the room the card has left (Sophie: "that image is
+  // bigger by default") — CSS sizes it inside #artwrap, so nothing here
+  // pins a pixel width the way the old thumbnail-sized popup did.
   im.hidden=clip||!su.url; bl.hidden=clip||Boolean(su.url); vid.hidden=!clip;
-  bl.style.width=w;
   if(clip){
     if(vid.src!==su.url){ vid.src=su.url; }
     if(su.poster) vid.poster=su.poster; else vid.removeAttribute('poster');
     vid.className=b.color?'c-'+b.color:'';
-  } else if(su.url){ im.style.width=w; im.src=su.url; im.className=b.color?'c-'+b.color:''; }
+  } else if(su.url){ im.src=su.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
-  document.querySelectorAll('.chip').forEach(function(c){
-    c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
-  });
+  paintChips(b.color||null);
+  closeColors();
   document.getElementById('pnote').value=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
-  // ringed. Only shows once there is more than the current picture.
+  // ringed — folded behind the stacked-squares button, which only appears
+  // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
   var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
-  vr.hidden=vers.length<2;
+  var av=document.getElementById('arvers');
+  av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
   if(vers.length>1){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
@@ -1557,21 +1613,22 @@ function openBeat(b){
   var myUnit=-1; units.forEach(function(u,ui){ if(u.members.indexOf(b)>=0) myUnit=ui; });
   lb.hidden=!(myUnit>=0 && myUnit<units.length-1);
   ub.hidden=!b.chunk;
-  // The two ways to (re)make art: above the picture when there is one, in
-  // the blank tile when there isn't. NEITHER on a clip — nothing here draws
-  // a film, and a picture-maker over one would only ever replace it.
-  document.getElementById('artrow').hidden=clip||!su.url;
-  // Drawing here: the prompt starts as the beat's own words.
-  var db_=document.getElementById('drawbox');
-  db_.hidden=true;
+  // The three ways to art sit UNDER the picture in one row now, whether or
+  // not there is a picture yet — the blank tile no longer carries its own
+  // pair. NEVER on a clip: nothing here draws a film, and a picture-maker
+  // over one would only ever replace it.
+  document.getElementById('artrow').hidden=clip;
+  // Drawing here: the prompt starts as the beat's own prompt or its words,
+  // and the box opens COLLAPSED (her rule) with the caption showing.
   document.getElementById('dprompt').value=promptOf(b);
+  setBoxes(true,false);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
   var drawing=Boolean(su.gen&&su.gen.status==='drawing');
   st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
-  if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
+  if(drawing){ bl.hidden=clip; im.hidden=true; }
   // A clip's own sound IS its voice — the film plays the tape rather than
   // reading her note over it — so the speak and record icons come off
   // instead of sitting there promising something the render won't do.
@@ -1607,12 +1664,15 @@ function openDraw(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
-  box.hidden=!box.hidden;
+  var opening=box.hidden;
+  if(!opening)savePrompt();
+  // Opening the prompt folds the caption away (her rule); closing it leaves
+  // the caption as she left it rather than forcing it back open.
   // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
-  // her card is the watercolor look, the wrong reference there) — so the
-  // toggle comes off rather than sitting there doing nothing.
-  document.getElementById('dchar').hidden=(padStyle==='dreamy');
-  if(!box.hidden){
+  // her card is the watercolor look, the wrong reference there) — setBoxes
+  // takes the toggle off rather than leaving it there doing nothing.
+  setBoxes(opening?false:document.getElementById('caplab').getAttribute('aria-expanded')==='true', opening);
+  if(opening){
     // A prompt she already wrote wins; otherwise the seed is whatever the
     // text box says RIGHT NOW — not the beat's last SAVED text (words typed
     // seconds ago aren't saved until the popup closes, and the stale prefill
@@ -1625,8 +1685,16 @@ function openDraw(ev){
     document.getElementById('dprompt').focus();
   }
 }
-document.getElementById('pbdraw').onclick=openDraw;
 document.getElementById('ardraw').onclick=openDraw;
+/* The stacked squares: past pictures fold out under the row and fold back.
+   A toggle, not a trip somewhere else — she is comparing against the one
+   on screen. */
+document.getElementById('arvers').onclick=function(ev){
+  ev.stopPropagation();
+  var vr=document.getElementById('verrow');
+  vr.hidden=!vr.hidden;
+  this.classList.toggle('on',!vr.hidden);
+};
 document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
@@ -1679,12 +1747,6 @@ function startGenPoll(){
     }).catch(function(){});
   },4000);
 }
-/* The blank tile's two icons: make new art in the Playground, or pick from
-   the inbox straight into THIS beat. */
-document.getElementById('pbplay').onclick=function(ev){
-  ev.stopPropagation();
-  location.href='/playground?from=scratchpad';
-};
 function inboxIntoBeat(ev){
   ev.stopPropagation();
   if(!popBeat)return;
@@ -1693,29 +1755,60 @@ function inboxIntoBeat(ev){
   document.getElementById('beatpop').hidden=true; popBeat=null;
   openInbox();
 }
-document.getElementById('pbinbox').onclick=inboxIntoBeat;
 document.getElementById('arinbox').onclick=inboxIntoBeat;
 document.getElementById('arplay').onclick=function(ev){
   ev.stopPropagation();
   location.href='/playground?from=scratchpad';
 };
-/* A chip sets the frame color and the popup STAYS open (there's a text box
-   here now); tapping outside the controls is what closes it. */
-document.querySelectorAll('.chip').forEach(function(c){
+/* ── the frame colour: one square in the corner, dropping down ────── */
+function paintChips(col){
+  document.querySelectorAll('#colormenu .chip').forEach(function(x){
+    x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
+  });
+}
+function closeColors(){ document.getElementById('colormenu').hidden=true; }
+document.getElementById('colorbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var m=document.getElementById('colormenu');
+  m.hidden=!m.hidden;
+};
+document.getElementById('colormenu').onclick=function(ev){ev.stopPropagation();};
+/* A chip sets the frame color, shuts the drop-down, and the popup STAYS
+   open (there are text boxes here); tapping outside is what closes it. */
+document.querySelectorAll('#colormenu .chip').forEach(function(c){
   c.onclick=function(ev){
     ev.stopPropagation();
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
     document.getElementById(clipOf(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
-    document.querySelectorAll('.chip').forEach(function(x){
-      x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
-    });
+    paintChips(col);
+    closeColors();
     api('/color',{method:'POST',body:JSON.stringify({id:popBeat.id,color:col})})
       .then(function(r){return r.json()})
       .then(function(d){if(d.beats)beats=d.beats;});
   };
 });
+/* ── the two text boxes: caption and drawing prompt ───────────────── */
+/* Opening the PROMPT folds the caption away — the two together are taller
+   than the card wants to be once the picture is big. She can always tap
+   Caption to bring it back and have both. */
+function setBoxes(capOpen, promOpen){
+  var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
+  document.getElementById('pnote').hidden=!capOpen;
+  document.getElementById('drawbox').hidden=!promOpen;
+  cl.setAttribute('aria-expanded',capOpen?'true':'false');
+  pl.setAttribute('aria-expanded',promOpen?'true':'false');
+  document.getElementById('dchar').hidden=(padStyle==='dreamy');
+}
+document.getElementById('caplab').onclick=function(ev){
+  ev.stopPropagation();
+  var open=this.getAttribute('aria-expanded')==='true';
+  if(open)savePrompt();
+  setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
+  if(!open)document.getElementById('pnote').focus();
+};
+document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */

@@ -225,7 +225,9 @@ const server = http.createServer((req, res) => {
   await page.click('#pad .beat');   // b1 — blank under dreamy
   await page.waitForSelector('#beatpop:not([hidden])');
   ok(await page.$eval('#popblank', (el) => !el.hidden), 'the blank face shows under dreamy');
-  await page.click('#pbdraw');
+  // The blank tile no longer carries its own star — the ways to art live in
+  // ONE row under the picture whether or not there is one (Aug 2026).
+  await page.click('#ardraw');
   await page.waitForSelector('#drawbox:not([hidden])');
   ok(await page.$eval('#dchar', (el) => el.hidden), 'the Sophie card is off the dreamy draw box');
   await page.click('#dgo');
