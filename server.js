@@ -1,5 +1,8 @@
 // imageforge-server v11 — moments v3 prompts, replicate crash fix, pwcscans model
 const express = require('express');
+// THE WHOLE PROMPT, one builder — see prompt-record.js (Sophie's hard rule,
+// 2026-08-24: anytime an image is made anywhere, the whole prompt is stored).
+const promptRecord = require('./prompt-record');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -2022,7 +2025,8 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
   try {
-    const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit } = req.body || {};
+    const { url, image, prompt, created, style, type, dry, chat, assetsOnly, session, explicit,
+      fullPrompt, promptPrefix, promptSuffix } = req.body || {};
     const createdMs = Number(created) || Date.now();
     const description = assetDescription(req.body && req.body.description);
     let chatName = chat ? String(chat).slice(0, 60) : '';
@@ -2211,6 +2215,14 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
       source: 'auto-hook',
     };
     if (style) doc.style = String(style).slice(0, 80);
+    // THE WHOLE PROMPT, when the caller has one (Sophie's hard rule,
+    // 2026-08-24). The Scratch Pad files through this route and has always
+    // known the exact text it sent; the hook's background catches have no
+    // prompt at all and simply send none, which stays absent rather than
+    // being guessed.
+    Object.assign(doc, promptRecord.promptFields({
+      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+    }));
     const ref = await col.add(doc);
     res.json({ ok: true, id: ref.id, url: finalUrl, description, assetDeduped });
   } catch (err) {
@@ -2439,12 +2451,19 @@ app.get('/api/gallery/assets/all', async (req, res) => {
           const uid = await galleryUid();
           const csnap = await storyApp.firestore().collection('users').doc(uid)
             .collection('creations')
-            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'createdAt',
-              'compressedAtBirth').get();
+            // `select` is a WHITELIST, so a field left out of it is silently
+            // undefined downstream however well the builder handles it — which
+            // is exactly what hid two caption slots for weeks (2026-08-24):
+            // `size` was never selected, so the required third slot could
+            // never show here, and `style` was selected but only read as a
+            // fallback. Add the field HERE as well as wherever it is read.
+            .select('url', 'prompt', 'type', 'model', 'quality', 'style', 'size', 'createdAt',
+              'compressedAtBirth', 'promptStyle', 'promptContent').get();
           creations = csnap.docs.map((d) => {
             const c = d.data() || {};
             return { url: c.url, prompt: c.prompt, type: c.type, model: c.model,
-              quality: c.quality, style: c.style,
+              quality: c.quality, style: c.style, size: c.size,
+              promptStyle: c.promptStyle, promptContent: c.promptContent,
               compressedAtBirth: c.compressedAtBirth,
               ms: c.createdAt && c.createdAt.toMillis ? c.createdAt.toMillis() : 0 };
           });
@@ -3643,7 +3662,11 @@ app.post('/api/witch/dream-illustrate', async (req, res) => {
         await movies.makeDreamPages(first, 'medium', async () => {});
         const page1 = first.pages && first.pages[0] && first.pages[0].url;
         if (!page1) throw new Error('no page rendered');
-        await ref.update({ status: 'done', label: 'done', page1 });
+        // THE WHOLE PROMPT (Sophie's hard rule, 2026-08-24). movies.js hands
+        // the page back carrying the exact sent text; this doc kept the
+        // picture and nothing about how it was made.
+        const fullPrompt = String((first.pages[0] || {}).promptUsed || '').slice(0, 6000);
+        await ref.update({ status: 'done', label: 'done', page1, ...(fullPrompt ? { fullPrompt } : {}) });
       } catch (err) {
         console.warn('witch dream-illustrate failed —', err.message);
         await ref.update({ status: 'error', error: String(err.message || err) }).catch(() => {});
@@ -5509,7 +5532,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot, fullPrompt, promptPrefix, promptSuffix } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5528,6 +5551,14 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     };
     if (poster) doc.poster = String(poster);
     if (style) doc.style = String(style).slice(0, 80);
+    // THE WHOLE PROMPT (2026-08-24, Sophie's hard rule: "anytime an image is
+    // made ANYWHERE the whole prompt shud be stored"). `prompt` above is her
+    // typed words, capped at 500 for the caption; these are the literal text
+    // that reached the model and the two halves the PROMPT overlay reads.
+    // Built by ONE shared module so no surface invents its own seam.
+    Object.assign(doc, promptRecord.promptFields({
+      full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+    }));
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
     // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
@@ -5553,7 +5584,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // writes, with `source:'playground'` so they're identifiable. De-dupes by url.
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
-async function fileRunToCreations(images, { prompt, style, model, quality, size } = {}) {
+async function fileRunToCreations(images, { prompt, style, model, quality, size, fullPrompt, promptPrefix, promptSuffix } = {}) {
   const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
@@ -5569,6 +5600,12 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size 
         createdAt: admin.firestore.Timestamp.now(), source: 'playground',
       };
       if (style) doc.style = String(style).slice(0, 80);
+      // THE WHOLE PROMPT — see fileCreationDoc. A Playground run has always
+      // held `fullPrompt` (the exact text sent) for the length of the request
+      // and thrown it away at filing time; this is what keeps it.
+      Object.assign(doc, promptRecord.promptFields({
+        full: fullPrompt, content: prompt, prefix: promptPrefix, suffix: promptSuffix,
+      }));
       // What made the picture, as separate fields — the gallery popup shows
       // "model · quality" and shouldn't have to parse a label back apart.
       if (model) doc.model = String(model).slice(0, 80);
@@ -5637,9 +5674,17 @@ async function runPromptLabGptJob(docRef, cfg) {
     }));
     if (!images.length) throw new Error('every gpt-image-2 render failed — see the server log');
     await docRef.update({ status: 'done', images, failedRenders: failed });
+    // `cfg.fullPrompt` is the literal string that went to the model two dozen
+    // lines up — pass it rather than rebuilding, so the stored text cannot
+    // differ from the sent text by so much as a space. The halves come from
+    // the style's own baked prefix/suffix (or her edited override, which is
+    // what `cfg.head`/`cfg.tail` carry).
     fileRunToCreations(images, {
       prompt: cfg.prompt, style: `${st.label} · ${cfg.quality}`,
       model: PL_GPT.id, quality: cfg.quality, size: cfg.size || PL_GPT.size,
+      fullPrompt: cfg.fullPrompt,
+      promptPrefix: cfg.head != null ? cfg.head : st.prefix,
+      promptSuffix: cfg.tail != null ? cfg.tail : st.suffix,
     });
   } catch (err) {
     console.warn('promptlab gpt job failed:', err.message);
@@ -5691,7 +5736,12 @@ async function runPromptLabJob(docRef, cfg) {
     const images = await Promise.all(urls.map(u => saveToFirebase(u, 'promptlab')));
     plCancelled.delete(docRef.id);
     await docRef.update({ status: 'done', images });
-    fileRunToCreations(images, { prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel });
+    // The LoRA's wrapper is its trigger word in front and its suffix behind —
+    // `cfg.fullPrompt` is what was actually sent.
+    fileRunToCreations(images, {
+      prompt: cfg.prompt, style: cfg.styleLabel, model: cfg.styleLabel,
+      fullPrompt: cfg.fullPrompt, promptPrefix: cfg.prefix, promptSuffix: cfg.suffix,
+    });
   } catch (err) {
     console.warn('promptlab job failed:', err.message);
     plCancelled.delete(docRef.id);
@@ -5779,7 +5829,11 @@ app.post('/api/promptlab', async (req, res) => {
         styleRef: (st.refFiles || []).concat(st.storageRefs || []).join(','), outputs,
         character, photoRef: photoUrl, images: [], createdAt: admin.firestore.Timestamp.now(),
       });
-      runPromptLabGptJob(docRef, { fullPrompt, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
+      // head/tail ride along so the filed style half is what ACTUALLY wrapped
+      // her words on this run — her prefix/suffix override if she made one,
+      // the character line and the photo line only when they were really
+      // attached — rather than the style's baked default.
+      runPromptLabGptJob(docRef, { fullPrompt, head, tail, outputs, quality, prompt: typed, character, styleId, size: canvas.size, photoBuf });
       return res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
     }
 
@@ -5805,7 +5859,10 @@ app.post('/api/promptlab', async (req, res) => {
       model: modelId, trigger: known.trigger, loraScale, seed, aspectRatio, steps, outputs,
       images: [], createdAt: admin.firestore.Timestamp.now(),
     });
-    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs, prompt: content, styleLabel: known.name });
+    // The LoRA's wrapper is its TRIGGER in front and `tail` behind; both ride
+    // along so the filed style half is the real one.
+    runPromptLabJob(docRef, { version, fullPrompt, loraScale, seed, aspectRatio, steps, outputs,
+      prompt: content, styleLabel: known.name, prefix: known.trigger, suffix: tail });
     res.json({ id: docRef.id, poll: `/api/promptlab/${docRef.id}` });
   } catch (err) {
     res.status(500).json({ error: err.message });

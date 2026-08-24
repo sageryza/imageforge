@@ -296,7 +296,10 @@ router.post('/', async (req, res) => {
         label: 'drawing the sheet', startedAt: Date.now() },
       createdAt: admin.firestore.Timestamp.now(),
     });
-    runSheet(docRef, { plan, fullPrompt, quality, styleId, panels, gridId, shapeId, resId });
+    // prefix/suffix ride along so each filed picture carries the real wrapper
+    // — Sophie's hard rule, 2026-08-24: the whole prompt is stored wherever an
+    // image is made, and here ONE call makes several pictures.
+    runSheet(docRef, { plan, fullPrompt, quality, styleId, panels, gridId, shapeId, resId, prefix, suffix });
     return res.json({ id: docRef.id, poll: `/api/panels/${docRef.id}`,
       sheet: plan.sheet, cell: plan.cell, count: plan.count,
       estimate: sheetCents(plan, qualities)[quality] || null });
@@ -372,13 +375,19 @@ async function runSheet(docRef, cfg) {
       const cut = sizeTier.cutSize(cfg.plan.sheet, cfg.plan.count);
       const model = (deps.gpt && deps.gpt.id) || 'gpt-image-2';
       const label = (st && st.label) || cfg.styleId;
+      // THE SHEET carries the literal text that drew it. Each PANEL carries
+      // that same full prompt — one call drew all of them, so the honest
+      // answer for a cut panel is the whole sheet's prompt, with its own cell
+      // description as the content half.
       deps.fileCreation({ url: sheetUrl, source: 'panels',
         prompt: `the sheet — ${cfg.plan.count} panels: ${cfg.panels.join(' · ')}`,
         style: `${label} · ${cfg.quality}`, model, quality: cfg.quality,
-        canvas: cfg.plan.sheet, sizeSlot: tier });
+        canvas: cfg.plan.sheet, sizeSlot: tier,
+        fullPrompt: cfg.fullPrompt, promptPrefix: cfg.prefix, promptSuffix: cfg.suffix });
       images.forEach((im) => deps.fileCreation({ url: im.url, source: 'panels',
         prompt: im.prompt, style: `${label} · ${cfg.quality}`, model,
         quality: cfg.quality, canvas: cfg.plan.cell, sizeSlot: cut,
+        fullPrompt: cfg.fullPrompt, promptPrefix: cfg.prefix, promptSuffix: cfg.suffix,
       }));
     }
   } catch (err) {
