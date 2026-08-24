@@ -3728,7 +3728,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `<video>` on the pad), draws nothing, and in the film passes through whole
   with its own sound and its own length. The film stitches every beat with art, each held for its own audio's
   length — per-unit audio is PCM, never aac, or the voice walks out from under the
-  pictures. **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
+  pictures.
+  **A PAST PICTURE CAN BE PICKED BACK, AND THE DECISION HAPPENS BIG (Aug 2026,
+  Sophie: "make the past picture thumbnails so that I can actually pick
+  one").** The stacked-squares row held every generation a beat had ever had
+  and tapping one only opened it big — there was no way to put it back, so a
+  re-roll she liked less was final. It still opens big; the big view carries
+  **Use this one**, and never for the picture that already is the beat's art
+  (a thumb is 44px — she picks by looking, so the button lives where she is
+  looking). It is the inbox's own `POST /image`, so a pick and a fresh
+  placement are the same write.
+  **`pad-art.js` owns the row's bookkeeping — the ONE copy, read by `/image`
+  AND by a finished draw**, its own dependency-free file so the rules have a
+  test that needs no `node_modules`. Two of them: the picture LEAVING is kept
+  (nothing here deletes a picture — that row is what she picks from), and the
+  picture ARRIVING comes **OUT** of the history, because a url sitting in both
+  places draws TWICE in the row, once ringed as current and once as older —
+  the bug a naive pick ships. Provenance follows the picture: a version banked
+  from here carries the `src` that made it, so picking it back restores its
+  own prompt, and where nothing is known the src is DROPPED rather than left
+  behind (the previous picture's run is a lie about what drew this one).
+  Tests: `node scripts/test-pad-art.js` (pure) and `node
+  scripts/test-scratchpad-pick-version.js` (the real page headless, its stub
+  `/image` running the real `pad-art.js`).
+  **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are deliberately UNLABELLED, and no machinery lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
   them identical. **Full details: `docs/modules/story.md`.**
