@@ -306,6 +306,45 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
 });
 
+t('no page class collides with one tool.css already owns', () => {
+  // THE BUG THIS EXISTS FOR (2026-08-24, Sophie: "layout is just really
+  // awkward"): the boxes were `class="cell"`, and tool.css owns `.tool .cell`
+  // — its image-grid TILE: aspect-ratio 1, a grey fill, centred contents,
+  // overflow hidden. At (0,0,2) that beats a bare `.cell` here whatever this
+  // page declares, so every panel box rendered as a 177x177 grey square with
+  // her writing space squeezed to 75px of it and the label floating in the
+  // middle. Nothing in either file was wrong on its own; the NAME was.
+  // Same shape as the `.morebtn` collision in the design rules.
+  const css = fs.readFileSync(path.join(ROOT, 'public', 'tool.css'), 'utf8');
+  const owned = new Set([...css.matchAll(/\.tool\s+\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+  // The shared HEADER KIT is used ON PURPOSE — the page wants those rules.
+  const kit = new Set(['head', 'eyebrow', 'helpcard', 'btn', 'note', 'row', 'chip', 'chips']);
+  const used = new Set();
+  for (const m of PAGE.matchAll(/class="([^"]+)"/g)) m[1].split(/\s+/).forEach((c) => used.add(c));
+  const clash = [...used].filter((c) => owned.has(c) && !kit.has(c));
+  assert.deepStrictEqual(clash, [],
+    `page classes tool.css also styles: ${clash.join(', ')} — rename them (see .pcell)`);
+  assert.ok(/class="pcell"/.test(PAGE), 'the boxes are .pcell, never .cell');
+});
+
+t('the control row is two deliberate lines, not three by accident', () => {
+  // Measured at 390pt before the fix: the pickers filled two lines and pushed
+  // Generate onto a third of its own — 38px of button in a 42px empty row.
+  // The zero-height break is what makes the split a decision; flex-wrap stays
+  // as the safety net if a longer style name grows line two.
+  assert.ok(/class="brk"/.test(PAGE), 'the row carries an explicit break');
+  assert.ok(/\.ctrls \.brk \{[^}]*flex:\s*1 0 100%/.test(PAGE), 'and it is a real flex row break');
+  const ctrls = /\$\('#ctrls'\)\.innerHTML =([\s\S]*?);\n/.exec(PAGE);
+  assert.ok(ctrls, 'found the control row');
+  const order = ['gridseg', 'shapeseg', 'id="go"', 'class="brk"', 'stylepick', 'respick', 'qpick'];
+  let at = -1;
+  for (const bit of order) {
+    const i = ctrls[1].indexOf(bit);
+    assert.ok(i > at, `${bit} comes after the one before it`);
+    at = i;
+  }
+});
+
 t('the boxes ship EMPTY — no placeholder, no example', () => {
   const areas = PAGE.match(/<textarea[^>]*>[\s\S]*?<\/textarea>/g) || [];
   for (const a of areas) {
