@@ -1,9 +1,16 @@
 #!/usr/bin/env node
-// THE TWO INSTAGRAM MOCKUPS, AND THE ICON THAT OPENS THEM (Aug 2026, Sophie:
+// THE INSTAGRAM MOCKUPS, AND THE ICON THAT OPENS THEM (Aug 2026, Sophie:
 // "an icon button in the top right within the existing header space where the
 // tags are, of my update tab … that leads to two tabs — two mockups of
 // instagram (the dream one is already made by the dream commercials chat so
-// reuse it exactly, it plays the films. port the shape for witch videos)").
+// reuse it exactly, it plays the films. port the shape for witch videos)";
+// then 2026-08-24, "another hairline tab … for my People Watching Club").
+//
+// NOTHING HERE COUNTS THE ACCOUNTS. The page's whole claim is that a new
+// account is one row in instagram-grids.json, so a test that hardcoded "two
+// tabs" would make that claim false the first time it was used — the assertions
+// below are all DERIVED from the data file, and the tab-count edit that adding
+// PEOPLE WATCHING would have needed is exactly the thing being prevented.
 //
 // Three things this pins, each of which broke something real when it was wrong:
 //
@@ -50,11 +57,26 @@ const exe = () => ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
 
 // ── 1. one data source, checked without a browser ────────────────────────────
 const GRIDS = JSON.parse(read('instagram-grids.json'));
-const acct = (id) => (GRIDS.accounts || []).find((a) => a.id === id);
+const ACCOUNTS = GRIDS.accounts || [];
+const acct = (id) => ACCOUNTS.find((a) => a.id === id);
 const dream = acct('dream'), witch = acct('witch');
 
-if (!dream || !witch) fail('the data file is missing one of the two accounts');
-else ok('two accounts on file: ' + GRIDS.accounts.map((a) => a.id).join(' · '));
+// dream and witch are named because each carries a rule of its own below; every
+// OTHER account is only ever checked through the generic sweeps, so a fourth one
+// needs no line here.
+if (!dream || !witch) fail('the data file is missing dream or witch');
+else ok(ACCOUNTS.length + ' accounts on file: ' + ACCOUNTS.map((a) => a.id).join(' · '));
+
+// Every account is a real grid: named, with a tab word, and at least one tile
+// that is not an empty NEXT placeholder.
+ACCOUNTS.forEach((a) => {
+  const shown = (a.tiles || []).filter((t) => !t.empty);
+  if (!a.tab || !a.handle) fail('account "' + a.id + '" has no tab word or no handle');
+  else if (!shown.length) fail('account "' + a.id + '" is nothing but empty tiles');
+  else if (shown.some((t) => !t.id || !t.cover || !t.label)) {
+    fail('a tile on "' + a.id + '" is missing id/cover/label');
+  } else ok(a.id + ': ' + shown.length + ' real tile(s), each named and covered');
+});
 
 const posted = require('../scripts/dream-commercials/grid.js').TILES;
 if (JSON.stringify(posted) !== JSON.stringify(dream.tiles)) {
@@ -63,8 +85,6 @@ if (JSON.stringify(posted) !== JSON.stringify(dream.tiles)) {
 } else ok('the posted Compare page and /instagram read the same ' + posted.length + ' dream tiles');
 
 const real = (a) => a.tiles.filter((t) => !t.empty);
-if (real(dream).some((t) => !t.id || !t.cover || !t.label)) fail('a dream tile is missing id/cover/label');
-else ok(real(dream).length + ' dream tiles, every one named and covered');
 is('the witch account holds her one existing film', real(witch).length, 1);
 is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
 
@@ -101,9 +121,14 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
     await page.goto('https://forge.test/instagram', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.acctab', { timeout: 5000 });
 
-    is('two hairline tabs', await page.locator('#tabs .acctab').count(), 2);
-    is('…named for her two accounts',
-      (await page.locator('#tabs .acctab').allTextContents()).join(' · '), 'Dream · Witch');
+    // COUNTED OFF THE DATA, never typed: this is the assertion that would have
+    // had to be edited when PEOPLE WATCHING landed, and the page's promise is
+    // that nothing did.
+    is('one hairline tab per account on file',
+      await page.locator('#tabs .acctab').count(), ACCOUNTS.length);
+    is('…named for her accounts',
+      (await page.locator('#tabs .acctab').allTextContents()).join(' · '),
+      ACCOUNTS.map((a) => a.tab || a.id).join(' · '));
 
     // the underline is MEASURED off the lit tab — no tab count lives anywhere
     const line = await page.evaluate(() => {
@@ -115,13 +140,44 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
     if (Math.abs(line.w - line.tw) > 1) fail('the tab line is ' + line.tw + 'px under a ' + line.w + 'px tab');
     else ok('the line sits under the lit tab (' + line.tw + 'px), measured not counted');
 
-    is('the dream grid drew every tile', await page.locator('.igpane:not([hidden]) .gtile').count(),
-      dream.tiles.length);
-    is('…and the ones with something behind them are buttons',
-      await page.locator('.igpane:not([hidden]) button.gtile').count(), real(dream).length);
-    is('…with the post count derived from them',
-      (await page.locator('.igpane:not([hidden]) .pnums b').first().textContent()).trim(),
-      String(real(dream).length));
+    // NO TAB WRAPS. The row divides 390pt minus the pill's reserved 64 between
+    // however many accounts there are, so every account added makes every tab
+    // narrower — and a tab word too long for its share silently goes to two
+    // lines, which pushes the WHOLE row taller and leaves that one label
+    // reading over two lines beside its neighbours' one. Measured with a Range
+    // over the label's own text: "People watching" wrapped at three accounts
+    // and "PWC" — her own shorthand for it — does not. A `textContent` or a
+    // width assertion cannot see this; only the line boxes can.
+    const wrapped = await page.evaluate(() => [].slice.call(
+      document.querySelectorAll('.acctab')).map((t) => {
+        const rg = document.createRange(); rg.selectNodeContents(t);
+        return { word: t.textContent, lines: rg.getClientRects().length };
+      }).filter((t) => t.lines > 1));
+    if (wrapped.length) {
+      fail('a tab word is too long for its share of the row and wrapped: '
+        + wrapped.map((t) => '"' + t.word + '"').join(', '));
+    } else ok('every tab word sits on one line at 390pt');
+
+    // EVERY tab drew its own account's grid — swept, so a new account is
+    // covered the day its row lands in the JSON and never needs a line here.
+    for (let i = 0; i < ACCOUNTS.length; i++) {
+      const a = ACCOUNTS[i];
+      if (i) await page.locator('#tabs .acctab').nth(i).click();
+      const pane = '.igpane:not([hidden]) ';
+      is(a.id + ': drew every tile', await page.locator(pane + '.gtile').count(), a.tiles.length);
+      is('…the ones with something behind them are buttons',
+        await page.locator(pane + 'button.gtile').count(), real(a).length);
+      is('…post count derived from them',
+        (await page.locator(pane + '.pnums b').first().textContent()).trim(),
+        String(real(a).length));
+      // the handle is a bare TEXT NODE with the bio in a <span> under it, so
+      // textContent runs the two together — read the node itself
+      is('…her handle', await page.evaluate((sel) => {
+        const el = document.querySelector(sel + '.phandle');
+        return el && el.firstChild ? String(el.firstChild.nodeValue || '').trim() : '';
+      }, pane), a.handle);
+    }
+    await page.locator('#tabs .acctab').first().click();
 
     // A TILE PLAYS. The film tile opens compare.js's video lightbox…
     await page.locator('.igpane:not([hidden]) button.gtile[data-film]').first().click();
@@ -137,8 +193,8 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
     await page.keyboard.press('Escape');
     await page.waitForSelector('.cmp-vlb[hidden]', { timeout: 3000 }).catch(() => {});
 
-    // the witch tab
-    await page.locator('#tabs .acctab').nth(1).click();
+    // the witch tab, found by POSITION IN THE DATA rather than by a typed index
+    await page.locator('#tabs .acctab').nth(ACCOUNTS.indexOf(witch)).click();
     is('the witch grid drew', await page.locator('.igpane:not([hidden]) .gtile').count(),
       witch.tiles.length);
     is('…with one real tile', await page.locator('.igpane:not([hidden]) button.gtile').count(), 1);
@@ -283,5 +339,8 @@ is('…and it is moon milk', real(witch)[0].label.toLowerCase(), 'moon milk');
   }
 
   await browser.close();
-  if (!failed) console.log('PASS: the two Instagram grids and the icon that opens them');
+  if (!failed) {
+    console.log('PASS: the ' + ACCOUNTS.length
+      + ' Instagram grids and the icon that opens them');
+  }
 })();

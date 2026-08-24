@@ -1,15 +1,18 @@
 <!doctype html>
-<!-- Instagram — the two grid mockups (Aug 2026, Sophie: "an icon button in the
-     top right within the existing header space where the tags are, of my update
-     tab … that shows an icon that leads to two tabs — two mockups of instagram
-     (the dream one is already made by the dream commercials chat so reuse it
-     exactly, it plays the films. port the shape for witch videos. only moon
-     milk exists)").
+<!-- Instagram — her account grid mockups (Aug 2026, Sophie: "an icon button in
+     the top right within the existing header space where the tags are, of my
+     update tab … that shows an icon that leads to two tabs — two mockups of
+     instagram (the dream one is already made by the dream commercials chat so
+     reuse it exactly, it plays the films. port the shape for witch videos. only
+     moon milk exists)"), plus PEOPLE WATCHING, added 2026-08-24 at her ask for
+     "another hairline tab … for my People Watching Club".
 
-     WHAT IT IS: her two Instagram accounts drawn as their profile grids, so she
+     WHAT IT IS: her Instagram accounts drawn as their profile grids, so she
      can see what the reels look like once they are posted. DREAM is the grid the
      dream-app-commercial chat built and posted into its own Compare tab; WITCH
-     is the same shape with the witch account's one existing film in it.
+     and PEOPLE WATCHING are the same shape with what each account really has —
+     which today is one thing each and a row of empty NEXT tiles. An empty grid
+     is the honest state of a young account, not a placeholder to fill in.
 
      REUSED, NOT RE-DRAWN. The phone, the 3:4 crop, the tiles that play and the
      current-cut refresh all live in /instagrid.js — a faithful lift of
@@ -18,10 +21,13 @@
      day it is posted; this page is not. Keeping one data file and one renderer
      is what stops the two mockups of the same account drifting apart.
 
-     TWO HAIRLINE TABS, not a longer page (her standing rule, and the test for
-     splitting is REFERENCE: these are two versions of one thing she reads
-     against each other). The row measures its own underline — no tab count
-     lives anywhere, so adding a third account is a row in the JSON.
+     HAIRLINE TABS, not a longer page (her standing rule, and the test for
+     splitting is REFERENCE: these are versions of one thing she reads against
+     each other). The row measures its own underline — NO TAB COUNT LIVES
+     ANYWHERE, in the page or in its test, so a fourth account is one row in
+     the JSON and nothing else. That was written as a claim when there were two
+     and paid for itself when PEOPLE WATCHING landed: the page needed no
+     change at all.
 
      House kit it follows:
        /compare.css   the look AND the five tokens the injected pill reads
@@ -52,7 +58,7 @@
     -webkit-tap-highlight-color:transparent; }
   .backch[hidden]{ display:none !important; }
 
-  /* TWO TABS — the house `.acctabs` idiom verbatim (voice.html, chats.html):
+  /* THE TABS — the house `.acctabs` idiom verbatim (voice.html, chats.html):
      no boxes, labels over a hairline, the line sliding under the one she is
      reading. It reserves the pill's corner for the TAPS; the line itself is
      MEASURED off the lit tab (tabLine below) and is never told a tab count. */
@@ -136,8 +142,8 @@ function build(accounts) {
     window.__instaGrid.render(a, pane);
   });
   showTab(0);
-  // Both grids ask at once — one request, and a tab she has not opened yet is
-  // already current when she gets to it.
+  // Every grid asks at once — ONE request for all of them, and a tab she has
+  // not opened yet is already current when she gets to it.
   window.__instaGrid.refresh(panes);
 }
 

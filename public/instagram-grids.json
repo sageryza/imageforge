@@ -1,5 +1,5 @@
 {
-  "_": "ONE source for both Instagram grid mockups — see public/instagrid.js.",
+  "_": "ONE source for every Instagram grid mockup — see public/instagrid.js. An account is a row here; nothing counts the tabs.",
   "accounts": [
     {
       "id": "dream",
@@ -118,6 +118,62 @@
         },
         {
           "id": "next5",
+          "empty": true,
+          "label": "next"
+        }
+      ]
+    },
+    {
+      "id": "pwc",
+      "tab": "PWC",
+      "handle": "people.watching.club",
+      "bio": "field notes from public places.",
+      "avatar": "◉",
+      "tiles": [
+        {
+          "id": "bingo",
+          "cover": "https://storage.googleapis.com/deckfactory-43176.firebasestorage.app/promptlab/1787605630052-93kfmk.webp",
+          "label": "Bingo — do you see?",
+          "meta": "the one you hearted",
+          "chat": "pwc-instagram-content"
+        },
+        {
+          "id": "next1",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next2",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next3",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next4",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next5",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next6",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next7",
+          "empty": true,
+          "label": "next"
+        },
+        {
+          "id": "next8",
           "empty": true,
           "label": "next"
         }
