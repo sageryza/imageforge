@@ -33,7 +33,18 @@
   .go{background:#2b2620;color:#f6f2ea;border-color:#2b2620;padding:10px 18px;font-size:16px}
   .go[disabled]{opacity:.45}
   .cost{color:#9a8f7d;font-size:12px}
-  /* Reference library: uniform squares, four to a row (the My Creations look). */
+  /* THE LIBRARY IS FOLDED AWAY BY DEFAULT (Aug 2026, Sophie: "there's like a
+     whole wall of suggested references in the Freeform tool. Can you get rid
+     of them or put them behind a recently used button?"). Every reference ever
+     uploaded was painted as a wall of squares ABOVE the prompt box — 17 of
+     them the day she asked, five rows — MEASURED on a 390x844 phone, the
+     prompt box sat at y=742, below the fold, and the page was 1,017px tall;
+     folded, they are y=316 and 590. The wall is behind `Recently used` now, and the
+     library comes back MOST-RECENTLY-USED FIRST rather than newest-uploaded,
+     so opening it puts the ones she actually reaches for in the first row.
+     WHAT IS ATTACHED IS NEVER HIDDEN — the tick on a tile used to be the only
+     thing saying which references a run would carry, so folding the grid away
+     without the strip below would mean drawing blind. */
   .refs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
   .ref{position:relative;aspect-ratio:1;border:1px solid #e0d8ca;border-radius:6px;overflow:hidden;background:#f1ece2}
   .ref img{width:100%;height:100%;object-fit:cover;display:block}
@@ -44,6 +55,12 @@
   .ref .x{position:absolute;bottom:3px;right:3px;width:20px;height:20px;border-radius:4px;
           background:rgba(255,255,255,.9);border:1px solid #d8cfc0;font-size:11px;line-height:18px;text-align:center;padding:0}
   .empty{color:#9a8f7d;font-size:13px;padding:6px 2px}
+  #reftog.on{border-color:#2b2620}
+  /* The attached strip — small, one row, always shown while anything is on. */
+  .picked{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .picked .pk{position:relative;width:44px;height:44px;border-radius:6px;overflow:hidden;
+              border:2px solid #2b2620;background:#f1ece2;padding:0}
+  .picked .pk img{width:100%;height:100%;object-fit:cover;display:block}
   .up{position:relative;overflow:hidden}
   .up input{position:absolute;inset:0;opacity:0;font-size:0}
   /* Feed */
@@ -74,10 +91,12 @@ no style prompt, no trigger word, no extra lines. If you want a style, say it yo
   <div class="lab">Reference images</div>
   <div class="row">
     <button class="up">Add images<input type="file" accept="image/*" multiple id="file"></button>
-    <span class="cost" id="refhint">tap to attach · attached images are sent with the prompt</span>
+    <button id="reftog" aria-expanded="false" hidden>Recently used</button>
+    <span class="cost" id="refhint">attached images are sent with the prompt</span>
   </div>
-  <div class="refs" id="refs"></div>
-  <div class="empty" id="refempty">No references yet — add some, or run with none for a plain generation.</div>
+  <div class="picked" id="refpicked"></div>
+  <div class="refs" id="refs" hidden></div>
+  <div class="empty" id="refempty" hidden>No references yet — add some, or run with none for a plain generation.</div>
 </div>
 
 <div class="panel">
@@ -208,18 +227,62 @@ document.getElementById('outputs').addEventListener('change', updateCost);
 updateCost();
 
 // ── Reference library ───────────────────────────────────────────────────────
+// The grid is FOLDED AWAY until she asks for it — see the CSS note above. The
+// server hands the refs back most-recently-used first, so `Recently used` is
+// what the button opens, not a second sorted list the page keeps its own copy
+// of. `known` is only what the strip needs to draw a thumb for an attached ref
+// while the grid is closed.
+var known = {};       // ref id -> record
+var libOpen = false;
+
+function libToggle(open) {
+  libOpen = open === undefined ? !libOpen : !!open;
+  var tog = document.getElementById('reftog');
+  document.getElementById('refs').hidden = !libOpen;
+  document.getElementById('refempty').hidden = !libOpen || Object.keys(known).length > 0;
+  tog.setAttribute('aria-expanded', libOpen ? 'true' : 'false');
+  tog.classList.toggle('on', libOpen);
+}
+
+// What this run will carry, whether or not the grid is open. Tapping one takes
+// it off — the same gesture as tapping its lit tile.
+function drawPicked() {
+  var wrap = document.getElementById('refpicked');
+  wrap.innerHTML = '';
+  Object.keys(picked).forEach(function (id) {
+    var r = known[id]; if (!r) return;
+    var b = document.createElement('button');
+    b.className = 'pk';
+    b.title = 'attached — tap to remove';
+    b.innerHTML = '<img src="' + (r.thumb || r.url) + '" alt="">';
+    b.addEventListener('click', function () {
+      delete picked[id];
+      drawPicked();
+      var tile = document.getElementById('ref-' + id);
+      if (tile) tile.classList.remove('on');
+    });
+    wrap.appendChild(b);
+  });
+}
+
 function drawRefs(refs) {
   var wrap = document.getElementById('refs');
   wrap.innerHTML = '';
-  document.getElementById('refempty').hidden = refs.length > 0;
+  known = {};
+  refs.forEach(function (r) { known[r.id] = r; });
+  var tog = document.getElementById('reftog');
+  tog.hidden = !refs.length;
+  tog.textContent = 'Recently used' + (refs.length ? ' (' + refs.length + ')' : '');
   refs.forEach(function (r) {
     var d = document.createElement('div');
     d.className = 'ref' + (picked[r.id] ? ' on' : '');
+    d.id = 'ref-' + r.id;
     d.innerHTML = '<img src="' + (r.thumb || r.url) + '" alt=""><div class="tick">&#10003;</div>' +
                   '<button class="x" title="remove">&#10005;</button>';
     d.querySelector('img').addEventListener('click', function () {
       if (picked[r.id]) delete picked[r.id]; else picked[r.id] = true;
       d.classList.toggle('on', !!picked[r.id]);
+      drawPicked();
     });
     d.querySelector('.x').addEventListener('click', function (e) {
       e.stopPropagation();
@@ -229,10 +292,13 @@ function drawRefs(refs) {
     });
     wrap.appendChild(d);
   });
+  drawPicked();
+  libToggle(libOpen);
 }
 function loadRefs() {
   return api('/refs').then(function (d) { drawRefs((d && d.refs) || []); }).catch(function () {});
 }
+document.getElementById('reftog').addEventListener('click', function () { libToggle(); });
 
 document.getElementById('file').addEventListener('change', function (e) {
   var files = Array.prototype.slice.call(e.target.files || []);
@@ -256,6 +322,7 @@ document.getElementById('file').addEventListener('change', function (e) {
         // next run, so it arrives already selected.
         ((d && d.refs) || []).forEach(function (r) { if (r.ok && r.id) picked[r.id] = true; });
         toast('Added');
+        libOpen = true;
         return loadRefs();
       });
   }).catch(function () { toast('Upload failed'); });
