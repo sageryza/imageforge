@@ -500,10 +500,18 @@ console.log('\nputting her words back on the ones already on file');
   ok('a chat she never posted into keeps its own answer, and is NAMED',
     /if \(!hers\) \{ noMessage\.push\(t\.chat\); continue; \}/.test(body)
     && /noMessageOfHers: noMessage/.test(body));
-  ok('the patch touches only `wrapAsked` and its flag',
-    /const patch = \{ wrapAsked: hers, wrapAskedHers: true \};/.test(body));
+  ok('the patch touches only `wrapAsked`, its flag, and the old line it keeps',
+    /const patch = \{ wrapAsked: hers, wrapAskedHers: true, wrapAskedWas: t\.r\.wrapAsked \};/
+      .test(body));
   ok('…so what the chat DID and what is NEXT are never reworded',
     !/patch\.wrapDid|patch\.wrapNext|patch\.wrapLine|patch\.wrapLong/.test(body));
+  // NOTHING IS DESTROYED. Measured over the 62 this pass rewrites, ~6 come out
+  // worse — a sign-off ("ok build is here now") or a machine-authored prompt the
+  // hook lifted as hers. Her rule is applied everywhere rather than guessing at
+  // a quality bar over her own words, so keeping the paraphrase is what makes
+  // that call reversible instead of permanent.
+  ok('the paraphrase is kept rather than overwritten',
+    /wrapAskedWas: t\.r\.wrapAsked/.test(body));
   ok('the prose mirror is rebuilt ONLY when it provably IS the three joined',
     /String\(t\.r\.wrapUp \|\| ''\)\.trim\(\) === mirror/.test(body));
   ok('it spends nothing — no model call in the pass',
