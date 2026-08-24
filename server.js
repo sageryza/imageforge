@@ -6572,6 +6572,15 @@ app.post('/api/talking/upscale', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+// A rejection escaping a fire-and-forget background job must never take the
+// whole service down with it (measured 2026-08-24: the Story Room film job's
+// pre-try mkdtempSync did exactly that — every render crashed the process,
+// wedging docs on 'making' and answering live requests with dead sockets).
+// Log it loudly; the job's own doc-stamping is each module's responsibility.
+process.on('unhandledRejection', (err) => {
+  console.error('unhandledRejection:', (err && err.stack) || err);
+});
+
 app.listen(PORT, () => console.log(`Server v11 running on http://localhost:${PORT}`));
 
 // ─── Keep-awake ─────────────────────────────────────────────────────

@@ -1195,8 +1195,15 @@ async function clipSegment(dir, u, beat, job = null) {
 }
 
 async function runFilmJob(padId) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
-  const clean = () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
+  // EVERYTHING fallible lives inside the try — measured 2026-08-24: with
+  // mkdtempSync on this line, a throw here (a full disk, an unwritable tmp)
+  // rejects the fire-and-forget promise with no catch anywhere, which under
+  // Node's default crashes the WHOLE process: the doc wedges on 'making'
+  // with no progress, the sweep later stamps it "interrupted by a server
+  // restart", and the restart was this job's own doing. Every pad's render
+  // had been dying this shape for days with nothing to say why.
+  let dir = null;
+  const clean = () => { try { if (dir) fs.rmSync(dir, { recursive: true, force: true }); } catch { /* tmp */ } };
   // The cancel token. `stop()` is the checkpoint — called before every
   // expensive step, so a cancel that arrives between two encodes still ends
   // the job — and `beat()` is the only way this job writes progress, so a
@@ -1207,6 +1214,7 @@ async function runFilmJob(padId) {
   const beat = (progress) => (job.canceled ? Promise.resolve()
     : padRef(padId).set({ film: { status: 'making', at: Date.now(), progress } }, { merge: true }).catch(() => {}));
   try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spfilm-'));
     if (!FFMPEG || !FFPROBE) throw new Error('ffmpeg is not available on this server');
     const pad = await readPad(padId);
     // The film is the SIDE the story is showing: the toggled style's art
@@ -1378,7 +1386,11 @@ router.post('/film', async (req, res) => {
       return res.status(400).json({ error: 'draw some art first' });
     }
     await padRef(pid).set({ film: { status: 'making', at: Date.now() } }, { merge: true });
-    runFilmJob(pid);   // fire and forget — the page polls the pad
+    // belt for the braces above: if the job ever rejects outside its own
+    // catch again, stamp the doc instead of letting the rejection escape
+    runFilmJob(pid).catch((e) => padRef(pid)
+      .set({ film: { status: 'failed', error: String((e && e.message) || e).slice(0, 300), at: Date.now() } }, { merge: true })
+      .catch(() => {}));   // fire and forget — the page polls the pad
     res.json({ ok: true, status: 'making' });
   } catch (e) { fail(res, e); }
 });
