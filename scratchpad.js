@@ -545,7 +545,7 @@ router.get('/pads', async (req, res) => {
         // Sophie can pin a cover from a beat's popup (POST /cover); the
         // pinned one wins over the first-art derivation.
         cover: v.cover || (withArt ? faceOf(withArt) : (inboxArt ? inboxArt.url : null)),
-        category: v.category || null, updatedAt: v.updatedAt || 0,
+        category: v.category || null, pinned: v.pinned === true, updatedAt: v.updatedAt || 0,
       };
     }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     res.json({ count: pads.length, pads });
@@ -572,6 +572,22 @@ router.post('/pads/category', async (req, res) => {
     const category = String(req.body.category || '').toLowerCase().slice(0, 24).trim();
     await padRef(pid).set({ category: category || null }, { merge: true });
     res.json({ ok: true, pad: pid, category: category || null });
+  } catch (e) { fail(res, e); }
+});
+
+// PINNED TO THE TOP OF THE SHELF (Aug 2026, Sophie: "a pinning feature where i
+// can pin a couple stories i'm actively working on and the rest go behind a see
+// more toggle"). Nothing to do with /cover, which pins a story's FACE — this is
+// which stories lead the shelf. Absent means unpinned, so a story is never
+// hidden behind the fold by a field nobody set. Like /category, deliberately
+// does NOT bump updatedAt: pinning is not an edit to the story.
+router.post('/pads/pin', async (req, res) => {
+  try {
+    const pid = String(req.body.pad || '').trim();
+    if (!pid) return res.status(400).json({ error: 'pad required' });
+    const pinned = req.body.pinned === true || req.body.pinned === 'true';
+    await padRef(pid).set({ pinned }, { merge: true });
+    res.json({ ok: true, pad: pid, pinned });
   } catch (e) { fail(res, e); }
 });
 

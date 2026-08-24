@@ -3498,7 +3498,27 @@ before working on that module. Nothing was deleted — the moved text is verbati
   owns back draws it once" rule the ten `__nativeNavBar` pages follow; without
   it a story is a dead end in a browser. Test:
   `node scripts/test-storyroom-header.js` (three states —
-  web / old build / new build). Stories carry **listen rows**
+  web / old build / new build).
+  **THE SHELF IS FRAMED TILES, THREE TO A ROW, AND SHE PINS THE ONES SHE IS ON
+  (2026-08-24, Sophie).** A tile is the story's picture on a WHITE MAT inside
+  the one hairline outline, both corners slightly rounded, the name centred
+  under it. The mat is the `.cov`'s own padding, so the art is placed with
+  `top/left` **and an explicit `calc(100% - 10px)` size** — an absolutely
+  positioned `<img>` with auto width shrinks to its intrinsic size instead of
+  stretching between two offsets, which draws a tiny picture in a big white
+  box rather than a framed one. **Pinning**: the pushpin on a tile's top-left
+  corner (round head, straight spike — never the Maps teardrop; top-LEFT
+  because the injected pill owns the top-right) writes `pinned` on the pad doc
+  via `POST /api/scratchpad/pads/pin`, which like `/pads/category`
+  deliberately does NOT bump `updatedAt` — pinning is not an edit to the
+  story. Pinned stories lead the shelf and the rest fold behind an underlined
+  **see more**; **with nothing pinned in that category the whole shelf shows**,
+  because a fold hiding every story is a shelf with nothing on it. The fold is
+  per category and per visit. Nothing to do with `/cover`, which pins a
+  story's FACE. Test: `node scripts/test-storyroom-shelf.js` (the frame
+  MEASURED off the real boxes — a mat drawn with the wrong inset still renders
+  a picture in a frame, it just covers the mat).
+  Stories carry **listen rows**
   behind ONE waveform button on the title row (Aug 2026): the Episode Editor
   episodes cut from the story, resolved to their newest render live, AND the
   **voice memos it came out of** (`POST /api/scratchpad/audio {pad, src}`,
