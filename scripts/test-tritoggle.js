@@ -64,7 +64,14 @@ ok(/^calc\(/.test(decl(base, '--tri-h') || ''), 'the height is calc\'d from the 
 ok(/^calc\(/.test(decl(base, 'border-radius') || ''), 'and the capsule radius comes off the height');
 // COLOUR IS THE PER-INSTANCE OPTION she named.
 ok(/var\(--chg,/.test(decl(base, '--tri-track') || ''), 'the default track is the house token, with a fallback for a page that has none');
-ok(decl(base, 'background') === 'var(--tri-track)', 'the track paints from --tri-track, so an instance recolours it with one line');
+// The line and the fill are their own tokens now (Aug 2026, Sophie: the
+// Playground's toggles were solid ink slabs on a row of outlined controls), and
+// BOTH DEFAULT TO THE TRACK — so an instance that names neither is exactly what
+// it was, and one that wants paper-with-a-line says so in one line.
+ok(decl(base, 'background') === 'var(--tri-fill)', 'the fill paints from --tri-fill');
+ok(/solid var\(--tri-line\)/.test(decl(base, 'border') || ''), 'and the border from --tri-line');
+ok(decl(base, '--tri-fill') === 'var(--tri-track)' && decl(base, '--tri-line') === 'var(--tri-track)',
+  'both fall back to --tri-track, so no existing instance moves');
 ok(decl(rule(CSS, '.tri::after {'), 'background') === 'var(--tri-knob)', 'and the knob from --tri-knob');
 ok(decl(rule(CSS, '.tri::after {'), 'content') === 'attr(data-i)',
   'the knob draws its word from data-i — absent means a blank knob, which is the account switcher');

@@ -11,14 +11,18 @@
 //      pictures in list view. `--cols` exists so those two can never disagree
 //      about what "3 to a row" means, and this is what pins it,
 //   3. it is sticky across a reload, like the view and the two filters,
-//   4. the glyph is a picture of the count — N bars, never a word,
-//   5. THE ROW STILL FITS ONE LINE on a 390pt phone with it added, the button
-//      is REACHABLE at its own centre and clear of the injected pill's column,
-//      and the search box still holds its own placeholder. That last one is
-//      the measurement the row has failed before (two 38px filter boxes once
-//      clipped "Search" to "Searc"), and this button costs the row another
-//      38px — which is why the view switch gave back its padding and the ✕'s
-//      clearance became conditional.
+//   4. it SAYS THE NUMBER — "3" or "4". It first drew the count as N bars, on
+//      the pyramid's reasoning that a mark should picture how many; Sophie
+//      asked for the number instead ("I asked for the button to say three or
+//      four, not a picture"), and at 16px the two bar counts really are one
+//      grey smudge,
+//   5. IT LIVES IN THE PILL'S RAIL, not in the feed row ("it can go in the
+//      same column as the auto scroll pill that way the search thing can go
+//      back to the size it was"). So: it is out of `.feedbar` entirely, the
+//      search box measures what it did before the button ever existed, the
+//      button is centred in the rail's column, it sits BELOW the pill without
+//      overlapping it, it MOVES when the back-to-top arrives under the pill,
+//      and it is reachable at its own centre.
 //
 // The COLUMN COUNT IS MEASURED off the real cells, never read off the CSS: a
 // wrong `--cols` and a wrong `repeat()` both compute to plausible-looking
@@ -36,20 +40,22 @@ catch { console.log('SKIP: playwright not installed (npm install playwright --no
 const PUB = path.join(__dirname, '..', 'public');
 const T0 = 1786000000000;
 
-// ONE run of twelve pictures: twelve divides by both 3 and 4, so every row is
-// full at either setting and a miscount cannot hide in a ragged last row.
-const RUNS = [{
-  id: 'run0',
-  prompt: 'a fox asleep on a radiator',
+// TWELVE pictures a run: twelve divides by both 3 and 4, so every row is full
+// at either setting and a miscount cannot hide in a ragged last row. Several
+// runs, because the rail's placement is only interesting on a page long enough
+// to scroll — that is when the back-to-top joins the column.
+const RUNS = Array.from({ length: 6 }, (_, r) => ({
+  id: 'run' + r,
+  prompt: 'a fox asleep on a radiator ' + r,
   status: 'done',
   engine: 'gptimage',
   model: 'gpt-image-2',
   quality: 'medium',
   aspectRatio: '2:3',
-  images: Array.from({ length: 12 }, (_, i) => '/px.png?i=' + i),
+  images: Array.from({ length: 12 }, (_, i) => '/px.png?r=' + r + '&i=' + i),
   votes: {},
-  createdAt: T0,
-}];
+  createdAt: T0 - r * 60000,
+}));
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -65,8 +71,17 @@ const server = http.createServer((req, res) => {
     return res.end(png);
   }
   if (url.pathname === '/' || url.pathname === '/playground') {
+    // Served the way serveGated serves it — the shared pill appended — because
+    // the button's whole placement is measured against that pill's rail.
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8'));
+    return res.end(fs.readFileSync(path.join(PUB, 'promptlab.html'), 'utf8')
+      + fs.readFileSync(path.join(PUB, 'pill-inject.html'), 'utf8'));
+  }
+  if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js'
+      || url.pathname === '/playground-port.js') {
+    const f = path.join(PUB, url.pathname.slice(1));
+    res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    return res.end(fs.readFileSync(f));
   }
   res.writeHead(404).end();
 });
@@ -95,14 +110,14 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   }, sel);
   const listAcross = () => across('#runs .cell');
   const wallAcross = () => across('#tiles .cell');
-  const bars = () => page.locator('#v-cols rect').count();
+  const says = () => page.locator('#v-cols').evaluate(e => e.textContent.trim());
 
   console.log('THREE, AND THE TAP THAT MAKES IT FOUR');
   ok(await listAcross() === 3, 'it opens on three across');
-  ok(await bars() === 3, 'and the button draws three bars');
+  ok(await says() === '3', 'and the button says 3');
   await page.click('#v-cols');
   ok(await listAcross() === 4, 'one tap: four across');
-  ok(await bars() === 4, 'and four bars');
+  ok(await says() === '4', 'and says 4');
   await page.click('#v-cols');
   ok(await listAcross() === 3, 'the next tap comes back to three — there is nowhere else to go');
 
@@ -120,47 +135,67 @@ const ok = (c, m) => { if (c) console.log('  ok  ' + m); else fail(m); };
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#runs .cell img').length > 0);
   ok(await listAcross() === 3, 'a reload comes back on the count she left it on');
-  ok(await bars() === 3, 'and the button says so');
+  ok(await says() === '3', 'and the button says so');
 
-  console.log('THE ROW');
-  const row = await page.evaluate(() => {
-    const b = document.getElementById('v-cols').getBoundingClientRect();
-    const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+  console.log('THE RAIL, AND THE ROW IT LEFT');
+  const rail = await page.evaluate(() => {
+    const b = document.getElementById('v-cols');
+    const f = document.querySelector('.float');
+    const bb = b.getBoundingClientRect(), fb = f.getBoundingClientRect();
+    const hit = document.elementFromPoint(bb.x + bb.width / 2, bb.y + bb.height / 2);
     const q = document.getElementById('q');
     const cs = getComputedStyle(q);
     const c = document.createElement('canvas').getContext('2d');
     c.font = cs.font;
     return {
-      barH: Math.round(document.querySelector('.feedbar').getBoundingClientRect().height),
-      w: Math.round(b.width), h: Math.round(b.height), right: Math.round(b.right),
+      inRow: !!b.closest('.feedbar'),
+      w: Math.round(bb.width), h: Math.round(bb.height),
+      radius: getComputedStyle(b).borderRadius,
+      centre: Math.round(bb.x + bb.width / 2), railCentre: Math.round(fb.x + fb.width / 2),
+      below: Math.round(bb.top - fb.bottom),
       reachable: !!(hit && hit.closest('#v-cols')),
+      barH: Math.round(document.querySelector('.feedbar').getBoundingClientRect().height),
+      searchW: Math.round(q.getBoundingClientRect().width),
       need: c.measureText(q.placeholder).width,
       have: q.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
-      groups: [...document.querySelectorAll('.feedbar > *')]
-        .map(e => Math.round(e.getBoundingClientRect().top)),
     };
   });
-  ok(row.w === row.h, `the button is square (${row.w}x${row.h})`);
-  ok(new Set(row.groups).size === 1 && row.barH <= 48,
-    `the row is still one line (${row.barH}px, ${row.groups.length} groups on one top edge)`);
-  ok(row.reachable, 'a tap at its own centre reaches it');
-  // The injected autoscroll pill owns the top-right corner from x 326 on a
-  // 390pt phone, and the row reserves 56px for exactly that.
-  ok(row.right <= 326, `it stays out of the pill's column (right edge ${row.right} ≤ 326)`);
-  ok(row.have >= row.need,
-    `"Search" still fits in its own box (needs ${Math.round(row.need)}px, has ${Math.round(row.have)}px)`);
-  // The clearance the ✕ needs is paid for only while there is an ✕ — that is
-  // what bought the placeholder its room back.
-  const pad = await page.evaluate(async () => {
-    const q = document.getElementById('q');
-    const empty = getComputedStyle(q).paddingRight;
-    q.focus(); q.value = 'fox';
-    q.dispatchEvent(new Event('input', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
-    return { empty, typed: getComputedStyle(q).paddingRight, clear: !document.getElementById('qclear').hidden };
+  ok(!rail.inRow, 'it is out of the feed row entirely');
+  ok(rail.w === rail.h, `still square (${rail.w}x${rail.h})`);
+  ok(rail.radius === '6px', `a rounded square at the house 6px, never a circle (${rail.radius})`);
+  ok(Math.abs(rail.centre - rail.railCentre) <= 2,
+    `centred in the pill's own column (${rail.centre} vs ${rail.railCentre})`);
+  ok(rail.below >= 0 && rail.below <= 16, `it sits just under the pill, clear of it (${rail.below}px)`);
+  ok(rail.reachable, 'a tap at its own centre reaches it');
+  // The row is back to what it was before this button ever sat in it — the
+  // search box's old width, and its placeholder with the old room to spare.
+  ok(rail.searchW === 94, `the search box is its old width again (${rail.searchW}px)`);
+  ok(rail.have >= rail.need,
+    `"Search" fits (needs ${Math.round(rail.need)}px, has ${Math.round(rail.have)}px)`);
+  ok(rail.barH <= 48, `the feed row is one line (${rail.barH}px)`);
+
+  // THE RAIL IS NOT A FIXED HEIGHT: the back-to-top button appears under the
+  // pill once she is a screen down, and the safe-area inset moves the whole
+  // column on her phone. A typed offset is wrong in one of those states, so
+  // the placement is measured — this is what proves it follows.
+  const moved = await page.evaluate(async () => {
+    const at = () => Math.round(document.getElementById('v-cols').getBoundingClientRect().top);
+    const before = at();
+    window.scrollTo(0, 4000);
+    await new Promise(r => setTimeout(r, 400));
+    const ptop = document.getElementById('ptop');
+    const shown = ptop && ptop.getBoundingClientRect().height > 0;
+    const after = at();
+    const overlap = shown
+      ? after < Math.round(ptop.getBoundingClientRect().bottom) : false;
+    window.scrollTo(0, 0);
+    await new Promise(r => setTimeout(r, 400));
+    return { before, after, shown, overlap, home: at() };
   });
-  ok(pad.clear && parseFloat(pad.typed) > parseFloat(pad.empty),
-    `typed text still clears the ✕ (${pad.empty} → ${pad.typed})`);
+  ok(moved.shown, 'a screen down, the back-to-top joins the rail');
+  ok(moved.after > moved.before, `and the button moves down with it (${moved.before} → ${moved.after})`);
+  ok(!moved.overlap, 'never on top of it');
+  ok(moved.home === moved.before, 'back at the top, it comes back');
 
   await browser.close();
   server.close();

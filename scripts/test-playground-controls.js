@@ -77,6 +77,13 @@ catch {
         evan: { label: 'ChatGPT', prefix: 'E', suffix: 'E TAIL', refs: [] },
       } }));
     }
+    // The toggle's shell must really be served or `.tri` renders as a 4px
+    // sliver and every measurement of it is meaningless (the house note on
+    // tritoggle.css says exactly this).
+    if (url.pathname === '/tritoggle.css' || url.pathname === '/tritoggle.js') {
+      res.writeHead(200, { 'Content-Type': url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', url.pathname.slice(1))));
+    }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(fs.readFileSync(path.join(ROOT, 'public', 'playground-port.js')));
@@ -217,6 +224,51 @@ catch {
   await page.waitForSelector('#canvastog');
   ok(await page.evaluate(() => document.getElementById('c-square').classList.contains('on')),
     'an unknown stored shape falls back to square');
+
+  // ONE FAMILY — every control on the row (Aug 2026, Sophie: "the buttons are
+  // styled so fucking weird. They should have black outlines and they're all
+  // different sizes"). Measured, because that complaint is entirely about
+  // rendered boxes: the two three-way toggles were solid ink slabs with no
+  // line at all, the seed button was the row's one circle, and the style
+  // picker stood a pixel taller than everything under it because its height
+  // rule was written as `.controls #stylepick` and it does not live in
+  // `.controls`.
+  console.log('one family');
+  await page.selectOption('#stylepick', 'chatgpt');
+  await page.waitForSelector('#qpick');
+  const family = await page.evaluate(() => {
+    const want = ['#stylepick', '#promptbtn', '#photopick', '#rpick', '#qpick', '#canvastog'];
+    const out = {};
+    want.forEach((sel) => {
+      const e = document.querySelector(sel);
+      if (!e || !e.getBoundingClientRect().height) return;
+      const cs = getComputedStyle(e);
+      out[sel] = { h: Math.round(e.getBoundingClientRect().height),
+        line: cs.borderTopColor, bg: cs.backgroundColor, bw: cs.borderTopWidth };
+    });
+    return out;
+  });
+  const seen = Object.keys(family);
+  ok(seen.length >= 5, `the row's controls are all on screen (${seen.length})`);
+  const heights = [...new Set(seen.map((k) => family[k].h))];
+  ok(heights.length === 1 && heights[0] === 34,
+    `all one height (${heights.join(', ')})`);
+  const lines = [...new Set(seen.map((k) => family[k].line))];
+  ok(lines.length === 1, `all one line colour (${lines.join(' | ')})`);
+  ok(/^rgb\(4[0-9], 3[0-9], 3[0-9]\)$/.test(lines[0]), `and that colour is the ink (${lines[0]})`);
+  ok(seen.every((k) => parseFloat(family[k].bw) > 0), 'every one of them actually draws its line');
+  // The toggles: paper behind the knob, not a solid slab. This is the whole
+  // difference she was looking at, and it is a per-instance token on the
+  // shared shell — never a second copy of the toggle.
+  ['#rpick', '#qpick'].forEach((sel) => {
+    ok(family[sel] && family[sel].bg !== family[sel].line,
+      `${sel} is paper with a line, not filled ink (${family[sel] && family[sel].bg})`);
+  });
+  // The seed button belongs to the LoRA style, and it was the one circle.
+  await page.selectOption('#stylepick', 'watercolor');
+  await page.waitForSelector('.seedbtn');
+  const seedR = await page.locator('.seedbtn').evaluate((e) => getComputedStyle(e).borderRadius);
+  ok(seedR === '6px', `the seed button is a rounded square, not a circle (${seedR})`);
 
   await browser.close();
   server.close();
