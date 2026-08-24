@@ -159,10 +159,11 @@ function ok(cond, name) {
     'a folder whose newest story has no art falls through to one that does');
 
   // THE STACK, MEASURED. "Visible" proves nothing here: the cards behind are
-  // pseudo-elements, so the questions that matter are whether the front card
-  // actually SHRANK to make room, whether the two behind are offset from it
-  // rather than hiding under it, and whether the tile is still exactly a
-  // story's height (or the names go ragged across a row).
+  // pseudo-elements, so the questions that matter are whether they hang PAST
+  // the front card's border (her correction — the previous cut tucked them
+  // inside it), whether the front card is still the full footprint so a
+  // folder's picture is the same size as every story's, and whether the tile
+  // is still exactly a story's height (or the names go ragged across a row).
   const stack = await page.evaluate(() => {
     const fold = document.querySelector('.stile.fold');
     const plain = document.querySelector('.stile:not(.fold)');
@@ -176,11 +177,19 @@ function ok(cond, name) {
       plainH: Math.round(plain.getBoundingClientRect().height),
       card1: cs(covF, '::before').content,
       card2: cs(covF, '::after').content,
-      // how much room the front card gives up on its right and bottom
+      // the front card fills the footprint on a folder too
       right: Math.round(cov.right - fr.right),
       bottom: Math.round(cov.bottom - fr.bottom),
-      // the front card starts at the footprint's own top-left
       top: Math.round(fr.top - cov.top), left: Math.round(fr.left - cov.left),
+      // how far the deepest card hangs PAST the front card's border
+      outRight: Math.round(parseFloat(cs(covF, '::before').right)),
+      outBottom: Math.round(parseFloat(cs(covF, '::before').bottom)),
+      // a folder's picture is the same size as a story's
+      sameArt: (() => {
+        const a = fold.querySelector('.frame img').getBoundingClientRect();
+        const b = plain.querySelector('.frame img').getBoundingClientRect();
+        return Math.abs(a.width - b.width) < 1 && Math.abs(a.height - b.height) < 1;
+      })(),
       // a plain tile's frame fills its footprint exactly
       plainFill: (() => {
         const c = plain.querySelector('.cov').getBoundingClientRect();
@@ -195,9 +204,13 @@ function ok(cond, name) {
   });
   ok(stack.card1 === '""' && stack.card2 === '""',
     'two cards behind, drawn as pseudo-elements — a folder is still one node');
-  ok(stack.top === 0 && stack.left === 0 && stack.right === 8 && stack.bottom === 8,
-    'the front card gives up its right and bottom edge for the stack ('
-      + stack.right + '/' + stack.bottom + 'px)');
+  ok(stack.top === 0 && stack.left === 0 && stack.right === 0 && stack.bottom === 0,
+    'the front card fills the footprint — a folder is not a smaller picture');
+  ok(stack.outRight === -8 && stack.outBottom === -8,
+    'the cards behind hang OUTSIDE the front card\'s border ('
+      + stack.outRight + '/' + stack.outBottom + 'px)');
+  ok(stack.sameArt,
+    'a folder\'s picture is exactly the size of a story\'s beside it');
   ok(stack.bg === 'rgb(255, 255, 255)',
     'the cards behind are whole white cards, not hairline slivers');
   ok(Math.abs(parseFloat(stack.deepH) - stack.frameH) < 1.5,
