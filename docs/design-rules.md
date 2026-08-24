@@ -265,6 +265,59 @@ The house rules that only bite when you are actually building a page, an iOS scr
     rows the same evening — check the newest instruction before changing
     them.**
 
+- **THREE OPTIONS = A THREE-WAY TOGGLE, AND THERE IS ONE SHELL (Aug 2026,
+  Sophie: "for things with three options, it shud be a three way toggle. add
+  the toggle as a likely pattern where it applies. make a reusable three
+  toggle shell so we can change the styling all at once. make color a per
+  instance option. apply it to the few instances that already exists").**
+  `public/tritoggle.css`, class `.tri`. Link it; never copy it.
+  - **The contract:** `<button class="tri" data-n="0|1|2" data-i="L">`.
+    `data-n` is the stop — ZERO-based and NUMBERED, which is the whole reason
+    one rule serves four unrelated controls. `data-i` is the short word riding
+    the knob; `attr(data-i)` with no attribute renders nothing, which is how
+    the account switcher gets a blank knob out of the same rule.
+  - **Per instance:** `--tri-track`, `--tri-knob`, `--tri-ink` (colour, the
+    one she named), `--tri-w`, `--tri-k` (size), `--tri-inset`, `--tri-bw`,
+    `--tri-fs`. A bare `.tri` IS the account switcher — 48px track, 18px knob,
+    the rose `--chg`, a `--paper` knob — so the shell's defaults are not an
+    invention, they are the original.
+  - **Everything else is DERIVED and must stay that way** — `--tri-h`, the
+    capsule `border-radius` and `--tri-gap` all fall out of the width, the
+    knob, the inset and the border. This is the hairline rows' lesson applied
+    to a second control: a new instance sets a width and is finished, and a
+    fourth stop is one `[data-n="3"]` rule plus a wider track. The two
+    hand-typed copies had EYEBALLED their gap (11.5 where the geometry says
+    11) and one had the knob half a pixel off centre vertically — invisible,
+    and exactly the kind of thing a derived value cannot get wrong.
+  - **Where it lives now:** the Chats account switcher (bare), the
+    Playground's quality and size (`--tri-w:78px; --tri-k:26px`, ink on
+    paper), Panels' two the same, and the Chats search filters (muted at rest,
+    the rose `--chg` when the filter is actually narrowing — which is what the
+    per-instance colour buys).
+  - **THE HISTORY, so nobody re-copies it:** it was `.swi` in `chats.html`,
+    `.swtog` in `promptlab.html`, and `.swtog` again in `panels.html` whose
+    own comment said it was "LIFTED VERBATIM" — three copies, two attribute
+    names (`data-a` 1-based and `data-n` 0-based), two palettes, and the only
+    thing that ever noticed a copy drifting was a test comparing two files
+    property by property. `data-a` survives on the account switcher as a plain
+    data attribute (it is the account NUMBER, which several readers want); the
+    STOP is `data-n` everywhere.
+  - **A stub test server has to serve `/tritoggle.css`.** express.static does
+    it in production; a harness that does not renders the toggle as a 4px
+    sliver, and three existing tests had to be taught this. If a toggle test
+    starts failing with every stop at the same place, check that first.
+  - **It stays the sanctioned exception to no-pills** — a toggle is not a text
+    button.
+  - Test: `node scripts/test-tritoggle.js` — nobody keeps a second copy, every
+    page that uses the class links the file, and the geometry is MEASURED in a
+    real browser at every stop for every instance (three stops that sit apart,
+    evenly spaced, the last one parked symmetrically, the knob square and
+    centred, the track a full capsule, and three different track colours off
+    the one rule). The tolerance on "parked symmetrically" is 1.5px on
+    purpose: the CSS calc works in the specified 1.5px border while Chromium
+    lays out with a border snapped to whole device pixels, so the two disagree
+    by up to a pixel at any DPR.
+
 - **THE HAIRLINE ROWS' SLIDING LINE MEASURES ITS TAB — no row anywhere
   declares a tab count (Aug 2026, Sophie: "close it so it can't happen
   again").** The `.acctabs` pattern (two or three labels over a rule, the

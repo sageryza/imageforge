@@ -47,15 +47,24 @@ const iPhoto = job.indexOf('refs.push(cfg.photoBuf)');
 ok(iChar > -1 && iPhoto > iChar, 'the photo is attached AFTER the Sophie character card');
 ok(job.indexOf('playgroundRefs(st)') < iPhoto, 'the photo is attached AFTER the style references');
 // The line only rides when a photo actually does.
-ok(/photoBuf \? PL_GPT\.photoLine : ''/.test(serverSrc),
+ok(/photoBuf \? photoLine : ''/.test(serverSrc),
   'the photo line is added ONLY when a photo is attached');
+// Since 2026-08-24 a STYLE may own the sentence: the house one names a style
+// reference, which is a lie on the reference-less ChatGPT tile where her photo
+// is the only attachment. See scripts/test-playground-plain.js.
+ok(/const photoLine = st\.photoLine \? ` \$\{st\.photoLine\}` : PL_GPT\.photoLine;/.test(serverSrc),
+  "and a style's own line wins over the house one");
 ok(/photoLine: PL_GPT\.photoLine/.test(serverSrc),
   'the photo line is SERVED to the page, not copied into it');
 ok(!/The LAST attached image is a photo reference/.test(pageSrc),
   'promptlab.html holds NO copy of the photo line');
 // An untouched run must be unchanged: with no photo and no character the head
 // is exactly the prefix, so the sent prompt is what it always was.
-const headLine = (serverSrc.match(/const head = `.*`;/) || [''])[0];
+// The trailing .trim() (2026-08-24) is a no-op for every style that has a
+// prefix — no house prefix has edge whitespace and both extra lines start with
+// a space — and is what keeps the reference-less tile, whose prefix is '', from
+// opening its prompt with one.
+const headLine = (serverSrc.match(/const head = `.*`\.trim\(\);/) || [''])[0];
 ok(/\$\{prefix\}/.test(headLine) && /head \? '\\n\\n' : ''/.test(serverSrc),
   'with no photo and no character the head is just the prefix');
 ok(/photoRef: photoUrl/.test(serverSrc), 'the run doc records the photo it was made with');

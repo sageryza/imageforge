@@ -484,7 +484,19 @@ function queryMatches(s, groups) {
 // Where to centre the snippet. With two words the RARE one is what found this
 // message — the common one is everywhere and shows her nothing — so the
 // snippet opens on the term with the fewest hits in that message.
-function snippetAnchor(src, groups) {
+//
+// …EXCEPT THAT THE PHRASE WINS THE WINDOW WHEN THE MESSAGE HAS IT (Aug 2026,
+// found by reading the live answer to her own `maybe never` search). The top
+// row was there BECAUSE her two words sit adjacent in it, and the snippet was
+// opening on a different, scattered occurrence further up the same message —
+// so the one result the ranking is proudest of read as though it did not
+// answer the search that put it first. A rank and a snippet that disagree are
+// worse than either alone: she judges a row by the words she can see.
+function snippetAnchor(src, groups, phraseRe) {
+  if (phraseRe) {
+    const hit = src.match(phraseRe);
+    if (hit) return { i: src.search(phraseRe), len: hit[0].length, n: 0 };
+  }
   let best = null;
   for (const g of groups) {
     if (g.neg) continue;
@@ -501,33 +513,32 @@ function snippetAnchor(src, groups) {
   return best;
 }
 
-// ---- IN THE ORDER SHE TYPED THEM COMES FIRST (Aug 2026, Sophie: "typing
-// `maybe never` finds ... the chats where those words appear in the same order
-// as typed should appear at the top and the ones where they appear anywhere
-// should appear underneath") ------------------------------------------------
-// Bare words AND anywhere in the message, in any order — that is the grammar
-// and it is what she asked for the day it shipped, so this does NOT narrow the
-// results. It only ORDERS them, which is the half that was missing: `maybe
-// never` was answering with a message about "maybe $3-5 a month" above the one
-// that actually says "maybe never", and reaching for quotes to fix that is a
-// tax on every search of more than one word.
+// ---- THE PHRASE COMES FIRST, AND NOTHING ELSE JUMPS THE QUEUE ------------
+// Sophie, 2026-08-19: "also i noticed typing: maybe never finds / The chats
+// were those words appear in the same order as typed should appear at the top
+// and the ones where they appear anywhere should appear underneath."
 //
-// Three tiers, best first, then newest-first inside each one (the old sort,
-// untouched, and still the whole sort for a one-word query):
+// TWO tiers, which is what that sentence says. It shipped as THREE (2026-08-21)
+// because the build read "in the same order as typed" as a rung of its own,
+// separate from the phrase — so a message with her words in order but with
+// other words in between ("maybe you'll never") was lifted above a plain
+// recent one. She retired that middle rung on 2026-08-24: "you mentioned if
+// it's there but there are words between it vs. different order. that's
+// stupid … only if no words moves it up." Scattered-in-order is not a
+// meaningful kind of match, and lifting it only pushed newer, better answers
+// down.
 //
 //   0. THE PHRASE — the words adjacent and in her order, exactly what quoting
 //      them would have found. This tier is why she does not have to quote.
-//   1. IN HER ORDER — each word after the one before it, with other words in
-//      between ("maybe you'll never").
-//   2. ANYWHERE — all the words are in the message, the order is not hers.
+//   1. EVERYTHING ELSE — newest first, the old sort, untouched.
 //
 // A query with one positive group has nothing to rank and skips all of this.
 // So does one carrying a field term (`tag:`), where "adjacent" is meaningless.
 const rankGroups = (groups) => groups.filter((g) => !g.neg && g.terms.some((t) => t.re));
 // The whole query as one adjacency regex, OR groups included as alternations.
-// Built as its own pass rather than falling out of the walk below, because a
-// left-to-right walk takes the EARLIEST match of each word and would miss the
-// adjacent pair further along ("maybe … never … maybe never" is the phrase).
+// Built as its own pass and NOT as a left-to-right walk: a walk takes the
+// EARLIEST match of each word and would miss the adjacent pair further along
+// ("maybe … never … maybe never" is the phrase).
 function phraseRegex(pos) {
   if (pos.some((g) => g.terms.some((t) => t.field))) return null;
   const parts = pos.map((g) => {
@@ -538,27 +549,32 @@ function phraseRegex(pos) {
   const lead = /^[a-z0-9]/i.test(pos[0].terms[0].value) ? '\\b' : '';
   try { return new RegExp(lead + parts.join('\\s+'), 'i'); } catch (e) { return null; }
 }
-// Rank one message: 0 phrase, 1 in her order, 2 anywhere. Lower sorts first.
-function orderRank(src, pos, phraseRe) {
-  if (phraseRe && phraseRe.test(src)) return 0;
-  // Walk left to right taking the earliest match of each group at or after the
-  // end of the last one — greedy-earliest is exactly right for "does an
-  // in-order occurrence exist", since taking anything later can only make the
-  // rest harder to place.
-  let at = 0;
-  for (const g of pos) {
-    let best = -1, len = 0;
-    for (const t of g.terms) {
-      if (!t.re) continue;
-      const rest = src.slice(at);
-      const i = rest.search(t.re);
-      if (i < 0) continue;
-      if (best < 0 || i < best) { best = i; len = (rest.match(t.re) || [''])[0].length; }
+// Rank one message: 0 the phrase, 1 everything else. Lower sorts first.
+const phraseRank = (src, phraseRe) => (phraseRe && phraseRe.test(src) ? 0 : 1);
+
+// ---- ONE ROW PER CHAT (Aug 2026, Sophie: "if the same word is found in the
+// same chat, only show the most recent result") -----------------------------
+// A chat that has said her word twenty times used to fill the whole first
+// screen with twenty rows of itself, so every OTHER chat that said it once was
+// pushed off the answer — and the twenty rows are the same finding twenty
+// times over. One row each, and the results list becomes a list of chats that
+// know about this rather than a list of times it was mentioned.
+//
+// WHICH row: the best-ranked, and the NEWEST among equals. With two tiers most
+// results tie, so in almost every search this is exactly "the most recent" as
+// she asked. It differs only when a chat holds the exact phrase in an older
+// message and a loose scatter in a newer one — and there, showing the newer
+// one would open the chat on something that is not what she searched for.
+function bestPerChat(ranked) {
+  const best = new Map();
+  for (const r of ranked) {
+    const cur = best.get(r.m.chat);
+    if (!cur || r.rank < cur.rank
+      || (r.rank === cur.rank && (r.m.created || '') > (cur.m.created || ''))) {
+      best.set(r.m.chat, r);
     }
-    if (best < 0) return 2;          // every word is here, but not in her order
-    at += best + len;
   }
-  return 1;
+  return Array.from(best.values());
 }
 
 // ---- WHO SAID IT — the search's first filter -------------------------------
@@ -582,43 +598,94 @@ function orderRank(src, pos, phraseRe) {
 // safe direction for the smaller pile.
 const SEARCH_WHO = ['all', 'me', 'claude'];
 const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
-// An unknown value is `all`, never an empty result — a filter she cannot see
-// (an old cached page sending a word this server never learned) must widen
-// the answer, not silently delete it.
-const whoParam = (v) => (SEARCH_WHO.indexOf(String(v || '').toLowerCase().trim()) > 0
-  ? String(v).toLowerCase().trim() : 'all');
+// ONE reader for every search filter, because they all fail the same way: an
+// unknown value must be `all`, never an empty result. A filter she cannot see
+// — an old cached page sending nothing, or a word this server has not learned
+// yet — has to WIDEN the answer rather than silently delete results. `all` is
+// index 0 of every list, so anything that does not land past it is `all`.
+const pickOne = (v, list) => {
+  const w = String(v || '').toLowerCase().trim();
+  return list.indexOf(w) > 0 ? w : 'all';
+};
+const whoParam = (v) => pickOne(v, SEARCH_WHO);
 const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+
+// ---- THE ARCHIVE — the second filter (Aug 2026, Sophie: "another filter to
+// add can be archived as in does it search the archive or not or just the
+// archive") ------------------------------------------------------------------
+// Three options, which is why it is a three-way toggle and not a checkbox: the
+// two useful narrowings are opposites, and neither is the default. Search has
+// always covered EVERYTHING, so `all` stays what it always was and the two new
+// answers are hers to reach for.
+//   all  — everywhere, the old behaviour and what an older page still sends
+//   live — skip the archive: what she is still working on
+//   only — the archive alone: an old chat she remembers but has put away
+// It filters by CHAT, not by message: `archived` is a flag on the registry
+// doc, so the set of archived slugs is one read of the cache the route already
+// takes for the name rows.
+const SEARCH_ARCH = ['all', 'live', 'only'];
+const archParam = (v) => pickOne(v, SEARCH_ARCH);
+const archMatches = (arch, isArchived) => arch === 'all'
+  || (arch === 'only' ? !!isArchived : !isArchived);
+
+// ONLY THE FIRST THREE NAME ROWS (Aug 2026, Sophie: "right now, the name
+// instances in the name are pinned to the top just pin the first three
+// instances and then show content results"). A common word matches a dozen
+// chat NAMES, and ten of those pinned above the fold pushed the message she
+// was actually looking for off the first screen — the name rows are a
+// shortcut to the obvious answer, not a second list to read through.
+// Newest-seen first, so the three she gets are the three she is most likely to
+// have meant.
+const NAME_ROWS = 3;
+function pickNameRows(reg, groups, arch) {
+  if (!reg || !reg.chats) return [];
+  return Object.keys(reg.chats)
+    // The ARCHIVE filter is about the chat, so a name row obeys it like any
+    // hit. (The WHO filter is not: a name was said by nobody, which is why the
+    // caller drops these rows entirely while a side is picked.)
+    .filter((slug) => archMatches(arch, reg.chats[slug].archived))
+    .map((slug) => ({
+      chat: slug,
+      name: reg.chats[slug].displayName || slug,
+      lastSeen: reg.chats[slug].lastSeen || '',
+    }))
+    .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
+    .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+    .slice(0, NAME_ROWS)
+    .map((c) => ({ chat: c.chat, name: c.name }));
+}
 
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
     const who = whoParam(req.query.from);
+    const arch = archParam(req.query.arch);
     if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const groups = compileQuery(q);
     if (!groups.length) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
+    // The registry is read for the name rows AND for the archive filter, so it
+    // is taken once, up front. `registry()` is the feed's own 5-minute cache —
+    // never open a second one.
+    let reg = null;
+    try { reg = await registry(); }
+    catch (e) { /* the message search still answers without it */ }
+    const archivedChat = (slug) => !!((reg && reg.chats && reg.chats[slug]) || {}).archived;
     // Chats whose NAME matches the query — Sophie's display name first, the
     // slug as fallback — returned separately so the client can pin them at
     // the top of the results (her rule: searching a chat's name should find
     // the chat itself before any message-content hits).
     // A chat's NAME was said by nobody, so it is not an answer to "show me my
     // messages" — the name rows come off while a side is picked rather than
-    // sitting above results that all share one voice.
-    let chatMatches = [];
-    if (who === 'all') try {
-      const reg = await registry();
-      chatMatches = Object.keys(reg.chats || {})
-        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
-        .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
-        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
-        .slice(0, 10)
-        .map((c) => ({ chat: c.chat, name: c.name }));
-    } catch (e) { /* name matches are a bonus; message search still answers */ }
+    // sitting above results that all share one voice. The ARCHIVE filter is
+    // different: it is about the chat, so a name row obeys it like any hit.
+    const chatMatches = who === 'all' ? pickNameRows(reg, groups, arch) : [];
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
     const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+      && archMatches(arch, archivedChat(m.chat))
       && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
     // Ranked into a parallel array rather than stamped onto the index rows:
@@ -628,15 +695,19 @@ router.get('/search', async (req, res) => {
     const phraseRe = pos.length > 1 ? phraseRegex(pos) : null;
     const ranked = hits.map((m) => ({
       m,
-      rank: pos.length > 1 ? orderRank(m.chat + '\n' + m.tldr + '\n' + m.text, pos, phraseRe) : 0,
+      rank: phraseRe ? phraseRank(m.chat + '\n' + m.tldr + '\n' + m.text, phraseRe) : 0,
     }));
-    ranked.sort((a, b) => a.rank - b.rank
+    // One row per chat, BEFORE the cap — deduping after it would answer with
+    // fewer rows than she asked for and hide whole chats behind a chat that
+    // happened to repeat itself.
+    const rows = bestPerChat(ranked);
+    rows.sort((a, b) => a.rank - b.rank
       || (a.m.created < b.m.created ? 1 : a.m.created > b.m.created ? -1 : 0));
-    const results = ranked.slice(0, limit).map(({ m }) => {
+    const results = rows.slice(0, limit).map(({ m }) => {
       // Snippet centred on the match — prefer the body, else the tldr/chat name.
-      const inBody = m.text ? snippetAnchor(m.text, groups) : null;
-      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups) ? m.tldr : (m.text || m.tldr || ''));
-      const at = inBody || snippetAnchor(src, groups);
+      const inBody = m.text ? snippetAnchor(m.text, groups, phraseRe) : null;
+      const src = inBody ? m.text : (m.tldr && snippetAnchor(m.tldr, groups, phraseRe) ? m.tldr : (m.text || m.tldr || ''));
+      const at = inBody || snippetAnchor(src, groups, phraseRe);
       let snip = src;
       if (at && at.i > -1) {
         const s = Math.max(0, at.i - 45);
@@ -3061,6 +3132,14 @@ function bookmarkMarks(body) {
     const n = Math.round(Number(body.level) || 0);
     patch.bmkLevel = (n >= 1 && n <= 3) ? n : admin.firestore.FieldValue.delete();
   }
+  // I READ IT — hers to tick, never derived (Aug 2026, Sophie: "a rounded
+  // square check box that is empty with a gray outline and becomes red with a
+  // check in it… I'll mark it manually"). Opening a thing is not reading it,
+  // which is why nothing here watches for a view: the tick is the whole
+  // signal, and it is what takes a thing out of the To read count.
+  if (body.read !== undefined) {
+    patch.bmkRead = body.read ? true : admin.firestore.FieldValue.delete();
+  }
   return patch;
 }
 
@@ -3159,6 +3238,7 @@ router.get('/bookmarks', async (req, res) => {
         // place — the same two fields on a message and on an artifact
         tags: Array.isArray(m.bmkTags) ? m.bmkTags : [],
         level: Number(m.bmkLevel) || 0,
+        read: !!m.bmkRead,
       };
     }).concat(pageDocs.map((d) => {
       const p = d.data() || {};
@@ -3182,6 +3262,7 @@ router.get('/bookmarks', async (req, res) => {
         topic: p.refTopic || '',
         tags: Array.isArray(p.bmkTags) ? p.bmkTags : [],
         level: Number(p.bmkLevel) || 0,
+        read: !!p.bmkRead,
       };
     })).concat(Object.keys(reg.chats).filter((slug) => {
       const r = reg.chats[slug] || {};
@@ -3229,7 +3310,11 @@ router.get('/to-read', async (req, res) => {
     // read 4 with 3 things in the pile. Filtered HERE rather than in the query
     // because `array-contains` + an equality needs a composite index, and both
     // reads are already capped at 300.
-    const kept = (snap) => snap.docs.filter((d) => d.data().bookmarked !== false).length;
+    // AND A TICKED ONE LEAVES IT TOO (Aug 2026, Sophie: "when I read it I'll
+    // mark it manually") — the pile is what is still waiting, so her tick is
+    // what makes the number go down.
+    const kept = (snap) => snap.docs
+      .filter((d) => d.data().bookmarked !== false && !d.data().bmkRead).length;
     const m = kept(msgs); const pg = kept(pages);
     res.json({ ok: true, count: m + pg, messages: m, pages: pg });
   } catch (err) { fail(res, err); }
@@ -3661,6 +3746,7 @@ router.get('/pages', async (req, res) => {
         // tag row a kept message carries
         bmkTags: Array.isArray(d.data().bmkTags) ? d.data().bmkTags : [],
         bmkLevel: Number(d.data().bmkLevel) || 0,
+        bmkRead: !!d.data().bmkRead,
         reference: !!d.data().reference,
         topic: d.data().refTopic || '',
       }))
@@ -4405,8 +4491,9 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 // already keeps rather than opening a second one — two caches of one collection
 // is how a stale answer gets served from whichever module happened to answer.
 module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
-  rankGroups, phraseRegex, orderRank,
+  rankGroups, phraseRegex, phraseRank, bestPerChat,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
+  SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,

@@ -2530,42 +2530,54 @@
     - Tests: `node scripts/test-chats-search-persist.js` (verified failing
       against the old page — it named all five symptoms).
 
-- **WHO SAID IT — the first search FILTER, and the row the next ones join
-  (Aug 2026, Sophie: "I'd like to add some filters to the search in the chats
-  thing that are optional. one would be a filter allowing me to search through
-  my messages versus Claude's messages. start with that and then we can think
-  of other filters").** Three chips under the box — **All · Mine · Claude** —
-  on the home bar and inside a thread. The headline rules live in CLAUDE.md
-  (*WHO SAID IT*); what belongs here is the wiring and the two mistakes it is
-  shaped around.
+- **THE SEARCH FILTERS — opt in, three-way, and the row the next ones join
+  (Aug 2026).** Her asks in order: *"add some filters to the search in the
+  chats thing that are optional … my messages versus Claude's messages"* →
+  *"now: make the filters opt in"* → *"for things with three options, it shud
+  be a three way toggle"* → *"another filter to add can be archived as in does
+  it search the archive or not or just the archive"*. The headline rules live
+  in CLAUDE.md (*THE SEARCH FILTERS*); what belongs here is the wiring and the
+  mistakes it is shaped around.
+  - **ONE builder, both boxes** — `buildFilters(mount, keys, onChange)` over
+    the `FILTERS` table in `chats.html`. The home bar passes `['who','arch']`,
+    a thread passes `['who']`. Two hand-written copies is precisely what
+    happened to the toggle's own CSS across three files before it moved into
+    `/tritoggle.css`, so there is deliberately no second copy of this either.
+    The next filter is a row in `FILTERS`: its values, its words, and the
+    query-string `param` kept together, so nothing can send a filter under a
+    name the server does not read. **Nothing counts the notches** — the stops
+    come from `vals`.
   - **`.searchfilters` is shown by its SIBLING'S state, never its own** —
     `.searchrow.on ~ .searchfilters` on the home screen, `.msgsearch.open ~
     .msgfilters` in a thread. So it inherits `paintSearch` for free, including
-    the to-do view, where the whole bar hides because that list is not chats,
+    the to-do view where the whole bar hides because that list is not chats,
     and no second predicate can ever disagree with the first about whether a
     search is open. A general sibling (`~`, not `+`) so a row landing between
     the two later cannot silently take the filters off screen.
+  - **The drawer declares `display:flex`, so `[hidden]` needs the
+    `!important` override** — the house rule, and it is not optional here.
   - **It keeps the search row's 56px pill reserve.** The injected autoscroll
     pill is fixed over x 326-374 / y 14-192 at 390pt and this row sits inside
-    that band. Three chips measure ~170px from the left, so they clear it
-    today — the reserve is what stops a FOURTH filter sliding under the pill
-    when she asks for one, and the test measures the chips' real right edge
-    rather than asking `isVisible()`, which is true either way.
-  - **The home request is captured WITH its filter and checked again on the
-    way back** (`whoFilter !== who` beside the existing `qi.value !== q`
-    guard): tapping Mine while an All request is still in the air would
-    otherwise let the older, wider answer land on top of the narrow one. The
-    two guards are the same bug at two speeds.
+    that band. The test measures the controls' real right edge rather than
+    asking `isVisible()`, which is true either way.
+  - **The home request is captured WITH its filters and checked again on the
+    way back** (`filt.stamp()` beside the existing `qi.value !== q` guard):
+    moving a toggle while a wider request is still in the air would otherwise
+    let the older answer land on top of the narrow one. The two guards are the
+    same bug at two speeds.
   - **The thread's `mrows` carry `who` as their own field**, derived once at
     render (`m.from === 'sophie' ? 'me' : 'claude'`), not re-read off the
     haystack — the haystack already ENDS with those words for the typed
     search's sake, so matching on it would make searching for the literal word
     "claude" behave like the filter.
-  - **`applyMsgFilter` narrows on `narrowing = q || mwho !== 'all'`**, which is
-    what lets the chips answer with an empty box — and it is also what keeps
-    the chapter headings hidden in that case, since a heading labels a block
-    that is mostly gone either way.
-  - The tests' way in: `window.__setSearchWho(w)` on the home bar.
+  - **`applyMsgFilter` narrows on `q || mfilt.narrowed()`**, which is what
+    lets the toggle answer with an empty box — and is also what keeps the
+    chapter headings hidden in that case, since a heading labels a block that
+    is mostly gone either way.
+  - **`pickNameRows` is a pure export** so the three-row cap and its ordering
+    can be tested without Firestore. It obeys the ARCHIVE filter and is
+    skipped entirely when a WHO side is picked.
+  - The tests' way in: `window.__setSearchFilter({who,arch})` on the home bar.
 
 - **TWO WORDS MEAN THE SAME MESSAGE — the boxes speak a small boolean grammar
   (Aug 2026, Sophie: "sometimes I want to narrow it down by finding two words
