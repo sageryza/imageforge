@@ -43,6 +43,14 @@
 
   .ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding-right: 64px; margin: 0 0 14px; }
+  /* A ZERO-HEIGHT ROW BREAK, so the two lines are a DECISION rather than
+     whatever the wrap happened to do. Measured at 390pt before this: the
+     pickers filled two lines and pushed Generate onto a third of its own,
+     38px of button in 42px of empty row. Line one is the sheet's geometry
+     with Generate at its right end (the Playground's own anchor for the
+     button that spends the money), line two is what it costs. flex-wrap is
+     still the safety net if a longer style name grows line two. */
+  .ctrls .brk { flex: 1 0 100%; height: 0; margin: 0; }
   .ctrls .seg { display: flex; border: 1.5px solid var(--ink); border-radius: 6px;
     overflow: hidden; flex: none; height: 34px; }
   .ctrls .seg button { border: 0; background: var(--surface); color: var(--ink);
@@ -68,18 +76,26 @@
   .go svg { width: 21px; height: 21px; }
   .go[disabled] { opacity: .4; cursor: default; }
 
-  /* THE BOXES ARE THE GRID. --across is written by the grid picker. */
+  /* THE BOXES ARE THE GRID. --across is written by the grid picker.
+     NAMED `pcell`, NEVER `cell` — tool.css owns `.tool .cell` (the image-grid
+     tile: aspect-ratio 1, a grey fill, centred contents, overflow hidden) and
+     at (0,0,2) it beats a bare `.cell` here whatever this file says. That is
+     the `.morebtn` collision again, and it is exactly what Sophie was looking
+     at: every panel box forced square with her writing space shrunk to a
+     third of it and the label floating in the middle of a grey tile. A page
+     class that shares a name with the shared sheet is a bug waiting for
+     someone to notice it, so this one cannot. */
   .cells { display: grid; grid-template-columns: repeat(var(--across, 2), minmax(0, 1fr));
-    gap: 8px; margin: 0 0 12px; }
-  .cell { display: flex; flex-direction: column; }
-  .cell label { font: 600 10px/1.4 -apple-system, sans-serif; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--ink2); margin-bottom: 3px; }
+    gap: 10px; margin: 0 0 14px; }
+  .pcell { display: flex; flex-direction: column; }
+  .pcell label { font: 600 10px/1.4 -apple-system, sans-serif; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink2); margin-bottom: 4px; }
   /* Ships EMPTY — no placeholder, no example (the house rule). The label above
      names the cell, which is a name and not words. */
-  .cell textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border);
+  .pcell textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border);
     border-radius: 6px; padding: 8px; font: inherit; font-size: 16px;
-    background: var(--surface); resize: vertical; min-height: 62px; }
-  .cell textarea.want { border-color: var(--chg); }
+    background: var(--surface); resize: vertical; min-height: 84px; }
+  .pcell textarea.want { border-color: var(--chg); }
 
   .plan { font: 500 12px/1.5 -apple-system, sans-serif; color: var(--ink2); margin: 0 0 12px; }
   .plan b { color: var(--ink); font-weight: 600; }
@@ -108,7 +124,7 @@
 </header>
 <div class="helpcard" id="helpcard" hidden></div>
 
-<main class="wrap">
+<main>
   <div class="ctrls" id="ctrls"></div>
   <div class="cells" id="cells"></div>
   <p class="plan" id="plan"></p>
@@ -174,12 +190,13 @@
     $('#ctrls').innerHTML =
       '<span class="seg" id="gridseg">' + gridBtns + '</span>'
       + '<span class="seg" id="shapeseg">' + shapeBtns + '</span>'
+      + '<button type="button" class="go" id="go" aria-label="Draw the sheet">' + STAR + '</button>'
+      + '<i class="brk"></i>'
       + '<select id="stylepick" aria-label="Style">' + styleOpts + '</select>'
       + '<button type="button" class="tri" id="respick" aria-label="Size"'
       + ' data-n="' + ri + '" data-i="' + esc(cfg.tiers[ri].toUpperCase()) + '"></button>'
       + '<button type="button" class="tri" id="qpick" aria-label="Quality"'
-      + ' data-n="' + qi + '" data-i="' + esc(pick.quality[0].toUpperCase()) + '"></button>'
-      + '<button type="button" class="go" id="go" aria-label="Draw the sheet">' + STAR + '</button>';
+      + ' data-n="' + qi + '" data-i="' + esc(pick.quality[0].toUpperCase()) + '"></button>';
   }
 
   // THE BOXES ARE THE GRID — one per cell, laid out the way the sheet will be.
@@ -190,7 +207,7 @@
     var el = $('#cells');
     el.style.setProperty('--across', g.across);
     el.innerHTML = g.cells.map(function (name, i) {
-      return '<div class="cell"><label for="c' + i + '">' + esc(name) + '</label>'
+      return '<div class="pcell"><label for="c' + i + '">' + esc(name) + '</label>'
         + '<textarea id="c' + i + '" data-i="' + i + '" rows="3"></textarea></div>';
     }).join('');
     g.cells.forEach(function (_, i) {
