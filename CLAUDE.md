@@ -1854,8 +1854,10 @@ them off the reference sheet, not off the old filenames.
     not or just the archive" — are that shape exactly.
   - **The value is spelled out BESIDE the knob, and the knob carries no
     letter.** "Claude's" and "Archive only" are not initials, and a code to
-    learn is a worse control than a word. Tapping the word moves the knob too:
-    a label beside a switch is what a thumb aims at. **They take the Playground's
+    learn is a worse control than a word. **Tapping the word CLEARS that
+    filter** (2026-08-24) — it used to step to the next value, which is the
+    cycle she retired; the word cannot aim at a stop it sits nowhere near, and
+    the one thing it can mean unambiguously is "put this back to Everyone". **They take the Playground's
     78px track, not the account switcher's 48**, and that is measured: at 48
     the three stops are 11px apart, which the account switcher's own note
     calls the floor — it can afford the floor because a toast names the
@@ -1876,6 +1878,13 @@ them off the reference sheet, not off the old filenames.
     the safe direction for the smaller pile. (Measured: she posts about 40
     messages to every 220 replies, which is why a search across both buries
     the shorter one.)
+  - **THE NEUTRAL STOP IS THE MIDDLE ONE, on both filters (2026-08-24, her
+    ask: "the middle should be the both option or everyone or whatever …
+    that way I can get to either way with one tap").** The row reads `Mine ·
+    Everyone · Claude's` and `Not archived · Everywhere · Archive only`, so
+    either narrowing is one aimed tap from rest and one tap back. `FILTERS`
+    carries `neutral` by NAME — see the design rules; the server's own lists
+    still lead with `all` and are untouched.
   - **ARCHIVE — `all` · `live` · `only`, filtering by CHAT.** `archived` is a
     flag on the registry doc, so the set is one read of the 5-minute cache the
     route already takes. A chat with no flag at all is live.
@@ -2488,10 +2497,32 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **A tap with NO coordinate still cycles** — a keyboard activation (a
     click with `detail === 0`) and the WORD beside a search-filter row, which
     is part of the control but sits nowhere near the stop it names.
-  - **A BLANK-KNOB toggle keeps cycling, deliberately** — the account
-    switcher in chats.html has no letter and no words beside it, so there is
-    nothing on screen to aim AT; a toast names the account after the tap.
-    Aim needs something legible to aim at.
+  - **NO TOGGLE CYCLES ON A TAP — NOT ONE (2026-08-24, her second pass: "it
+    also applies to the account thing because none of them should cycle —
+    that's a really stupid pattern … Cycling is a bad idea").** This rule
+    shipped hours earlier carving out the account switcher on the reasoning
+    that a blank knob gives her nothing to aim at; she overruled it, and she
+    is right — the stops are ordered 1·2·3 left to right and the knob shows
+    which one it is on, and a control where account 3 costs two taps from
+    account 1 is the identical complaint in a narrower box. Its zones are
+    16px on a 48px track, which is small; widening it is hers to ask for.
+  - **A LABEL BESIDE A ROW CLEARS, it does not step.** The search filters
+    spell their value out next to the knob and that word cannot aim (it is
+    nowhere near the stop it names), so tapping it returns that filter to its
+    neutral stop. A step there would be the cycle coming back in through the
+    label.
+  - **THE NEUTRAL STOP GOES IN THE MIDDLE (2026-08-24, Sophie: "the filters
+    for searching chats should start in the middle. The middle should be the
+    both option or everyone or whatever … that way I can get to either way
+    with one tap").** A three-way filter is `everything` plus two OPPOSITE
+    narrowings, so the neutral one belongs between them; leading with it put
+    one narrowing two stops out at the far end. In `FILTERS` (chats.html) the
+    neutral value is **NAMED** (`neutral:'all'`), never positional — every
+    reader used to ask `vals.indexOf(v) > 0`, i.e. "not the first one", which
+    stopped meaning "not neutral" the moment it moved. **The server's lists
+    are untouched and still lead with `all`**, because `pickOne` in
+    chatfeed.js leans on exactly that index-0 rule to widen an unknown value:
+    this is a display ORDER and the values on the wire never changed.
   - **A stub test server must serve BOTH `/tritoggle.css` and
     `/tritoggle.js`** — express.static does it in production. Without the CSS
     the toggle renders as a 4px sliver; without the JS the page falls back to
