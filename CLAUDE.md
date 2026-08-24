@@ -1438,6 +1438,19 @@ them off the reference sheet, not off the old filenames.
     VOCABULARY, NOT ONE MAGIC STRING** — she dictates and paraphrases, so a
     single exact string would silently drop the second spelling. It runs first
     and then falls THROUGH, so a message carrying both still picks the real ask.
+  - **A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE (found live 2026-08-24 in
+    this feature's own chat).** When a session runs out of context the harness
+    hands the model a summary as a USER turn, so the hook lifts it exactly like
+    something she typed — 7,232 characters reciting her earlier words, this
+    file's rules, and the trigger phrases as examples, which fires every gate
+    several times. `COMPACTED` in `questions.js` matches the harness's own
+    opening line, **anchored at the start** so a message merely talking about
+    compaction is untouched. Measured over her 120 recent chats: only **4 of
+    408** of her messages are one, but they produced **5 of the 35** rows — a
+    summary quotes, so it trips far above its weight (35 → 30 after).
+    **The deeper half is NOT fixed**: the feed still shows the summary as hers
+    in the thread and under the search's Mine filter. Only the derived half
+    was in reach without a hook change.
   - **The cost, named:** a message that QUOTES the trigger phrases — her own
     spec above literally contains "i have a question" and "my question is:" as
     examples — is indistinguishable from asking one. Irreducible by any phrase

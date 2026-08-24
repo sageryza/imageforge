@@ -81,6 +81,21 @@ ok('"A question:"', Q.flagsQuestion('A question: should the button go underneath
 ok('a bare count is framing too', Q.flagsQuestion('Two questions. Is it live? And is it merged?'));
 ok('and so is a bare "Questions:"', Q.flagsQuestion('Questions: is it live'));
 
+// A CONTEXT-COMPACTION SUMMARY IS NOT HER MESSAGE. The harness hands it over
+// as a USER turn, so the hook files it as hers — and it QUOTES everything,
+// including the trigger phrases as examples, so every gate above fires on it.
+// Measured over her 120 recent chats: 4 of 408 of her messages, but 5 of the
+// 35 rows.
+const compacted = 'This session is being continued from a previous conversation that ran out '
+  + 'of context. The summary below covers the earlier portion of the conversation. '
+  + 'Summary: she said "it ONLY applies if i use the word question in my text eg i '
+  + 'have a question, or my question is:". Quick question. Is that right?';
+ok('a compaction summary is not hers', !Q.flagsQuestion(compacted));
+eq('and it files nothing', Q.findQuestions(compacted).length, 0);
+// ANCHORED AT THE START — a message that merely talks about compaction is hers.
+ok('talking about it is untouched',
+   Q.flagsQuestion('quick question, what happens when this session is being continued after a compaction'));
+
 console.log('\nthe code word files on purpose');
 // HER IDEA (2026-08-24): "maybe a code word that triggers the chat to file the
 // answer intentionally?" — it files an exchange that was never shaped like a
