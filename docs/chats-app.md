@@ -991,12 +991,36 @@
   - **Session-only, always starting CLOSED**, like the hidden pile and every
     other filter here: a fold that remembered itself would hide half her
     chats one morning with no memory of having asked.
+  - **AND IT KEEPS HER SPOT — `repaintKeepingBar` (Aug 2026, Sophie: "when I
+    click more, it takes me all the way back to the top and should stay where
+    I am").** Nothing was scrolling her, which is why this read as
+    unexplainable: `renderHome` empties `#grid`, so for that instant the page
+    is nothing tall and the BROWSER clamps `scrollY` to 0 — the rebuild puts
+    the height back but not the position. Every other `renderHome` caller
+    follows it with a deliberate `scrollTo(0,0)` (a filter, a tab and a pile
+    change what the list IS), so nothing else ever showed it. The tapped bar
+    is put back at its own **viewport offset**, never the old `scrollY`, which
+    is already wrong if any chrome above it changed height in the repaint; and
+    the hidden bar goes through the same helper.
   - **The split happens in `renderHome`, not inside `renderList`** — so the
     hidden pile, the archive, ★ and Status keep showing their piles whole.
     Those are places she went on purpose, and a second fold inside one is a
     filter on a filter. A category chip DOES narrow it, like everything else
     on the live list.
-  - Tests: `node scripts/test-chats-more.js` (verified failing without the
+  - **A CHAT BEHIND THE FOLD CAN OPEN EMPTY, AND IT STILL NEEDS THE DOOR (Aug
+    2026, same message: "the messages are gone that might be fine but there's
+    also no button to get back into that chat").** The Open-in-Claude button
+    has only ever been drawn on a MESSAGE ROW, so a thread with nothing in it
+    had no way back into the session at all — and the chats behind this fold
+    are exactly the quiet ones whose thread comes back empty. The session url
+    is on the REGISTRY doc, not only on the messages (476 of 505 chats carry
+    one, measured 2026-08-24), so the empty state offers it. **A chat with no
+    url on file gets no button** — the same rule as everywhere else here:
+    nothing invented to fill a gap.
+  - Tests: `node scripts/test-chats-more-spot.js` (her spot kept, the hidden
+    bar still landing at the top, and the empty thread's door — asked with
+    `elementFromPoint`, verified failing 4 against the pre-fix page), and
+    `node scripts/test-chats-more.js` (verified failing without the
     split; covers the boundary, the count, the bar's position under the list,
     open/close, the working exemption, and no bar when nothing is stale).
   **CATEGORIES + SELECT MODE, where the LIST/TILES toggle used to be (Aug

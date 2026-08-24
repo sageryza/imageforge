@@ -6821,7 +6821,24 @@ function openChat(name, keepScroll, focusId, noFetch){
   // back as a separate full-screen thing.
   var mlist=document.createElement('div');
   chatPanel.appendChild(mlist);
-  if(!list.length) mlist.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  // AN EMPTY THREAD STILL NEEDS THE WAY BACK IN (Aug 2026, Sophie, on a chat
+  // opened from the MORE fold: "the messages are gone that might be fine but
+  // there's also no button to get back into that chat"). The Open-in-Claude
+  // button has only ever been drawn on a MESSAGE ROW, so a thread with nothing
+  // in it had no door at all — and the chats behind that fold are exactly the
+  // quiet ones most likely to come back empty. The registry doc carries the
+  // session url whatever the feed happens to hold (476 of 505 chats do), so
+  // the empty state can offer it. Never invented: no url, no button.
+  if(!list.length){
+    var est=document.createElement('div'); est.className='state';
+    est.appendChild(Object.assign(document.createElement('div'),{textContent:'No messages yet.'}));
+    if(curl){
+      var eop=document.createElement('div'); eop.style.marginTop='14px';
+      eop.appendChild(openClaudeBtn(openHref(name, curl)));
+      est.appendChild(eop);
+    }
+    mlist.appendChild(est);
+  }
   // ---- The composer (Aug 2026) — message this chat from its thread --------
   // Send = POST /reply (the message, exactly as the hook would file it) then
   // POST /wake (the doorbell). The status line under the box says honestly
