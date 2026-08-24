@@ -272,6 +272,13 @@
     // hide under them. A SHORT card is untouched: it centres, and never
     // reaches down there, so it keeps every pixel of the middle.
     '.jg.mom.long .jg-card.momcard{justify-content:flex-start;padding-bottom:58px;}' +
+    // AND A CARD WITH A WAY OUT RESERVES THE SAME BAND (Aug 2026, found by
+    // measuring when MAYBE arrived). The ✕ and the ♥ hug the card's bottom
+    // CORNERS, so a centred link has always sat safely between them — the ?
+    // is centred too, and it landed exactly on that anchor. The link is the
+    // last thing in the stack, so reserving the buttons' height under it
+    // lifts it clear whether the card is centred or top-aligned.
+    '.jg-card.momcard.linkroom{padding-bottom:58px;}' +
     // the piles view scrolls inside its own box on a moment deck, so the
     // page still never scrolls
     '.jg.mom .jg-piles{flex:1;min-height:0;overflow-y:auto;}' +
@@ -284,8 +291,11 @@
     ' border:1.5px solid #C9BFAA;background:#FFFDF8;color:#262016;' +
     ' font-size:18px;line-height:1;padding:0;' +
     ' display:flex;align-items:center;justify-content:center;}' +
-    // they keep the boxes' own edges, the way the row used to
+    // they keep the boxes' own edges, the way the row used to — and MAYBE
+    // sits centred between them (Aug 2026, her ask), so the three read as one
+    // scale rather than as two marks plus an extra
     '.jg-mombtn.no{left:0;}.jg-mombtn.yes{right:0;}' +
+    '.jg-mombtn.maybe{left:50%;transform:translateX(-50%);}' +
     // the hand-drawn marks (MOM_X / MOM_HEART) are FILLED paths — an explicit
     // fill, because a host page with an `svg{fill:none}` rule would otherwise
     // hollow them out (the trap the injected pill already defends against)
@@ -556,6 +566,22 @@
     + '<path d="M11.4 21.2 C8.4 18.5 3 14.4 2.6 10.3 C2.2 6.8 5.2 4.2 8.2 5.1'
     + ' C9.9 5.6 11.1 6.8 11.9 8.2 C12.8 6.6 14.3 5.2 16.2 5 C19.4 4.7 21.8 7.4 21.2 10.7'
     + ' C20.5 14.7 14.4 18.6 11.4 21.2 Z"/></svg>';
+  // ── AND HER MAYBE (Aug 2026, Sophie: "can you add a maybe option in the
+  // Tinder checklist template?"). A question mark, drawn the same way the ✕
+  // and the ♥ are — a filled ribbon with real stroke contrast and a chisel
+  // cap where it stops, plus a lopsided dot. Deliberately NOT `I.maybe`, the
+  // dashed circle: that one is a Lucide-weight LINE icon and belongs to the
+  // house chrome, and it would be the only geometric mark on her card.
+  // The ribbon is narrow where the nib enters (top left), heaviest over the
+  // shoulder, and closes on a chisel cap at the tail; the dot is an egg, not
+  // a circle.
+  var MOM_MAYBE = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M6.75 8.85 C6.55 4.85 10 2.3 13.4 2.6 C16.9 2.9 19.1 5.5 18.6 8.5'
+    + ' C18.15 11.3 15.6 12.5 14.05 13.75 C13 14.55 12.8 15.3 12.9 16.4 L10.45 16.55'
+    + ' C10.3 13.9 10.95 12.55 12.4 11.45 C13.75 10.35 15.6 9.7 15.65 8.3'
+    + ' C15.7 6.85 14.6 5.6 13.1 5.5 C11.6 5.4 9 6.2 8.65 8.95 Z"/>'
+    + '<path d="M11.2 18.45 C12.45 18.15 13.75 18.85 13.7 20.05 C13.65 21.05 12.6 21.75'
+    + ' 11.55 21.4 C10.5 21.05 10.05 19.85 10.65 19 Z"/></svg>';
 
   var I = {
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
@@ -637,9 +663,11 @@
     var momDeck = herLook || opts.style === 'moment'
       || items.some(function (x) { return isMoment(x); });
     if (momDeck && !states) {
-      // the piles speak the mockup's words — ♥ and ✕ are the only verdicts
-      piles = [{ key: true, name: 'Yes' }, { key: false, name: 'No' },
-        { key: undefined, name: 'Unsure' }];
+      // the piles speak the mockup's words — ♥, ? and ✕ (Aug 2026: maybe
+      // joined the two she started with). 'Unsure' is the UNMARKED pile and
+      // stays last; Maybe is a mark she gave, so it sits with the others.
+      piles = [{ key: true, name: 'Yes' }, { key: 'maybe', name: 'Maybe' },
+        { key: false, name: 'No' }, { key: undefined, name: 'Unsure' }];
     }
     if (momDeck) {
       document.body.classList.add('jg-mombg');
@@ -1210,12 +1238,12 @@
       // parent pill + its tap-to-toggle gesture on this document). A judge
       // page has nothing to scroll, so no tap here may ever START the scroll.
       if (view === 'piles') {
-        // HER PILES ARE Yes / No / Unsure — but a card marked before this deck
-        // became hers may hold 'maybe' or 'later', and a pile list that cannot
-        // name them would drop those cards off the screen entirely. So a
-        // legacy pile is added only when something is actually in it (measured
-        // across her live decks the day this shipped: 16 verdicts, one
-        // 'maybe', no 'later'), and it sits before Unsorted, which stays last.
+        // HER PILES ARE Yes / Maybe / No / Unsure — but a card marked before
+        // this deck became hers may hold 'later', and a pile list that cannot
+        // name it would drop those cards off the screen entirely. So a legacy
+        // pile is added only when something is actually in it, and it sits
+        // before Unsorted, which stays last. ('maybe' left this list in Aug
+        // 2026 when she asked for the button — it is a pile of its own now.)
         var shown = piles;
         if (momDeck && !states) {
           var legacy = [];
@@ -1226,7 +1254,7 @@
             legacy.push({ key: '__picked', name: 'Picked',
               match: function (v, it) { return isPick(it, v); } });
           }
-          [['maybe', 'Maybe'], ['later', 'Later']].forEach(function (p) {
+          [['later', 'Later']].forEach(function (p) {
             if (items.some(function (it) { return verdicts[it.id] === p[0]; })) {
               legacy.push({ key: p[0], name: p[1] });
             }
@@ -1290,6 +1318,14 @@
           // dark, like the mockup.
           row = '<button class="jg-mombtn' + (v === false ? ' on' : '') + '" data-act="no"'
             + ' aria-label="No">' + MOM_X + '</button>'
+            // MAYBE, between them (Aug 2026, Sophie: "can you add a maybe
+            // option in the Tinder checklist template?"). It is a real
+            // verdict with a pile of its own, not a way of skipping: it rides
+            // the same route as ♥/✕ (ok:'maybe'), clears the Assets-tab vote
+            // the way un-marking does, and stamps NOTHING — there is no good
+            // and no bad in "maybe", the rule paintStamp already keeps.
+            + '<button class="jg-mombtn maybe' + (v === 'maybe' ? ' on' : '') + '"'
+            + ' data-act="maybe" aria-label="Maybe">' + MOM_MAYBE + '</button>'
             + '<button class="jg-mombtn yes' + (v === true ? ' on' : '') + '" data-act="yes"'
             + ' aria-label="Yes">' + MOM_HEART + '</button>'
             + '<textarea class="jg-momnote" rows="4" placeholder="Note for Claude…"></textarea>'
@@ -1323,7 +1359,9 @@
           // backwards or forwards") — the middle still opens the lightbox
           + (browse ? '<button class="jg-navzone prev" data-act="prev" aria-label="Back"></button>'
             + '<button class="jg-navzone next" data-act="next" aria-label="Forward"></button>' : '')
-          + '<div class="jg-card' + (momUI ? ' momcard' : '') + ctl + (flash ? ' jg-flash' : '') + '">'
+          + '<div class="jg-card' + (momUI ? ' momcard' : '')
+          + (momUI && it.link && it.link.url ? ' linkroom' : '') + ctl
+          + (flash ? ' jg-flash' : '') + '">'
           + mediaHtml(it, momUI)
           // a date card carries no label line, no corner note and no mic —
           // her footer below IS the whole control surface (the exact-demo
@@ -1416,9 +1454,9 @@
       steps.push({ sel: momDeck && !states ? '.jg-momfoot' : '.jg-row', text: states
         ? 'Mark a card with one of these — tap the same one again to unmark it.'
         : momDeck
-          ? '♥ yes, ✕ no — marking one never moves you on, so you can change '
-            + 'your mind. The box under them is a note for this card, saved '
-            + 'as you type.'
+          ? '♥ yes, ? maybe, ✕ no — marking one never moves you on, so you can '
+            + 'change your mind. Maybe gets a pile of its own. The box under '
+            + 'them is a note for this card, saved as you type.'
           : '♥ love it, ✕ pass, the dashed circle is maybe, the arrow means sort it later. '
           + 'Each one saves the moment you tap it.' });
       if (voice) {
@@ -1450,8 +1488,8 @@
       var keys = states
         ? 'Tap a word under the card to mark it; tap it again to unmark.'
         : momDeck
-          ? '♥ yes · ✕ no — neither one moves you on · the box under them is '
-            + 'a note that saves as you type.'
+          ? '♥ yes · ? maybe (its own pile) · ✕ no — none of them moves you on '
+            + '· the box under them is a note that saves as you type.'
           : '♥ love it · ✕ pass · dashed circle = maybe (its own pile) · arrow = sort it later.';
       // WHAT SHE SAID ABOUT THIS CARD LEADS (Aug 2026, Sophie: "everything I
       // personally said about them behind a question button"). It is about the
