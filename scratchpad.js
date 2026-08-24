@@ -895,7 +895,13 @@ async function runArtJob(padId, id, { prompt, quality, character, style }) {
           'content-type': 'application/json',
           ...(process.env.STUDIO_TOKEN ? { 'x-studio-token': process.env.STUDIO_TOKEN } : {}),
         },
-        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}` }),
+        // THE WHOLE PROMPT rides along (Sophie's hard rule, 2026-08-24). This
+        // module has always built `full` and kept it on the beat as
+        // `promptUsed`; until now the gallery only ever saw her typed words.
+        body: JSON.stringify({ url, prompt, style: `Scratch Pad · ${dreamy ? 'dreamy · ' : ''}${quality}`,
+          fullPrompt: full,
+          promptPrefix: dreamy ? DREAMY.prefix : `${ART.prefix}${character && !dreamy ? ART.characterLine : ''}`,
+          promptSuffix: dreamy ? DREAMY.suffix : '' }),
         timeout: 30000,
       });
     } catch (e) { console.warn('scratchpad → creations:', e.message); }

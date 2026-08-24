@@ -1941,6 +1941,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   idea: if "ribs" could be "drumsticks", ribs was never the idea. **Guidance
   for prompts a CHAT writes** — a prompt Sophie dictated still goes verbatim,
   and anything you add is named word for word (the rule below).
+- **THE WHOLE PROMPT IS STORED WHEREVER AN IMAGE IS MADE — a HARD RULE
+  (2026-08-24, Sophie: "yes make it store the whole prompt. this is a hard
+  rule. anytime an image is made ANYWHERE the whole prompt shud be stored").**
+  Nearly every surface here wraps her words in a style prefix and a suffix
+  before sending them, and until this landed most of them persisted only the
+  TYPED words — so the exact text that drew a picture existed for the length of
+  one request and was then gone. That is why Meta Assets could show a picture's
+  style LABEL but never its style PROMPT, and why the exact-prompt rule below
+  ("never paraphrase; no exact text on hand → file nothing") had nothing to
+  file for anything the app made itself.
+  - **Use the ONE builder — `prompt-record.js`** (`promptRecord` /
+    `promptFields`). It writes three fields: **`fullPrompt`** (the literal text
+    sent), **`promptStyle`** (the wrapper, with `[content]` marking where her
+    words go — the convention the Assets PROMPT overlay documents) and
+    **`promptContent`** (her words verbatim). Empty fields are dropped, so
+    nothing writes `""`.
+  - **Pass the string you actually sent as `full`.** A rebuild can differ by a
+    space and the whole point of the field is that it is literal.
+  - **No wrapper → NO style half.** A verbatim surface (Freeform, a blog hero)
+    files an empty style half, which is the honest answer and what keeps the
+    overlay's STYLE button hidden. Never fill it with the style's LABEL —
+    "Dreamy" is the recipe's name, not the text that was sent, and filing it
+    there is exactly the reconstruction the exact-prompt rule forbids.
+  - **A NEW image surface stores it or the test fails** —
+    `node scripts/test-prompt-record.js` sweeps every call of the two gallery
+    filers and of the injected `fileCreation`, and fails if one files a picture
+    without a full prompt.
+  - **`select()` IS A WHITELIST, and that is how two caption slots hid for
+    weeks.** Meta Assets' creations read never asked for `size`, so the
+    required third slot could never appear however well the builder handled it;
+    `style` was asked for but only read as a fallback, so it was fetched and
+    dropped. When you add a field, add it to the read as well as the write.
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
