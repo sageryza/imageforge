@@ -129,6 +129,12 @@ router.get('/config', (req, res) => {
   }));
   res.json({
     grids, shapes, tiers: Object.keys(sheetGrid.TIERS), plans, styles,
+    // THE LINE THIS TOOL ADDS TO HER WORDS, served so the page can show it —
+    // the same rule the Playground's Prompt panel follows. Nothing should be
+    // wrapped around her prompt without a surface able to print it.
+    gridLines: Object.fromEntries(Object.keys(sheetGrid.GRIDS).map((g) =>
+      [g, sheetGrid.sheetFor(Number(g), 'portrait', '1k')
+        ? gridLine(sheetGrid.sheetFor(Number(g), 'portrait', '1k')) : ''])),
     qualities: (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'],
     defaults: { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: 'dreamy' },
     model: (deps.gpt && deps.gpt.id) || 'gpt-image-2',
