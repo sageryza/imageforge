@@ -2382,6 +2382,56 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
     owns that id and the sweep above counts exactly one per file; the viewer's
     button is `class="ptop"` only.
+  - **THE PILL FOLLOWS WHATEVER IS ACTUALLY SCROLLING (2026-08-24, Sophie:
+    "some surfaces scroll but have no to top arrow. like story room shelf").**
+    Every check asked the WINDOW, so a surface whose content scrolls inside a
+    full-screen sheet — the Story Room's shelf is `position:fixed; inset:0;
+    overflow-y:auto` — looked to the pill like a page with nothing to scroll:
+    no pill and no arrow, on the screen the tool now OPENS on. Measured with
+    `elementFromPoint`: even a lit arrow was unreachable, because the sheet is
+    z-index 40 over the pill's 9.
+    - **The scroller ANNOUNCES ITSELF by scrolling.** `scroll` does not bubble
+      but it does CAPTURE, so one capture-phase listener on the document hears
+      an inner element scroll and takes `e.target` as the box; the window
+      scrolling puts it down. No per-page hook, and no walking the DOM looking
+      for scrollers on every scroll event.
+    - **The PILL cannot wait for her to scroll**, so when the window has
+      nothing to scroll `findBox()` asks `elementsFromPoint` at the middle of
+      the screen — O(depth), and it finds the topmost overlay covering the
+      viewport. A **MutationObserver** on the body is what re-asks, because a
+      fixed sheet opening changes nothing the ResizeObserver watches.
+    - **Only a NEARLY-FULL-SCREEN overlay is adopted** (80% of the width, 60%
+      of the height): a note list or a filter drawer must never steal the pill
+      from the page behind it. Adopting one LIFTS the pill to the box's
+      z-index + 1 and putting it down restores the pill's own layer.
+    - It ships in `pill.py` → `pill-inject.html`, so it reaches the 35 injected
+      pages. The five BAKED copies still ride the window only — measured, none
+      of them holds a full-screen inner scroller. Test:
+      `node scripts/test-pill-sheet.js` (verified failing 4 pre-fix).
+  - **A PAGE CAN KILL THE INJECTED PILL BY NAMING A VARIABLE, silently
+    (found the same day, sweeping for the same report).** The pill's script
+    runs in the page's global scope, so a page-level `let`/`const` sharing a
+    name with one of its `var`s is a SyntaxError that takes the WHOLE pill
+    script with it at parse time. `/search` had `let playing = null` and
+    therefore no autoscroll, no back-to-top and an undefined
+    `window.__scrollStop` — with nothing on screen saying so. `/cutmarks` had
+    already been bitten and wrapped its page script in an IIFE (its comment
+    names the bug), which is the fix; `/search` is renamed.
+    **`node scripts/test-pill-globals.js` MEASURES it** — every injected page
+    served the way `serveGated` serves it, loaded in a real browser, asked
+    whether the pill's script ran. The page list is read out of server.js's own
+    `{ pill: true }` calls, so a new page joins the sweep by opting in.
+  - **THE PILL IS CONDITIONAL, SO OPT A SCROLLING PAGE IN AND STOP THINKING
+    ABOUT IT.** 15 gated pages had no pill at all (the Dump, the Shop Report,
+    Studio, Films, the dream archive, the desktop queue, Blog, Crystals…) —
+    every one a page that scrolls with no way back up. They carry it now. A
+    page that never scrolls shows nothing, so the only pages left out are the
+    two that are deliberately one screen (`/filmeditor`, `/opinions`) and the
+    five that bake their own copy.
+  - **A page must not hand-roll its own** — `/chunking` carried a circle
+    floating at the bottom-right, written before the shared arrow existed, so
+    it had two back-to-tops in two corners doing one job (and a round plate,
+    which the icon rule retired). Removed; `#ptop` is the one.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
@@ -2423,12 +2473,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     whose own comment said "LIFTED VERBATIM"), with two attribute names and
     two palettes, and the only thing that ever noticed a copy drifting was a
     test comparing two files property by property.
-  - **A stub test server must serve `/tritoggle.css`** — express.static does
-    it in production, and without it the toggle renders as a 4px sliver.
-    Three existing harnesses had to learn this.
-  - Test: `node scripts/test-tritoggle.js` (nobody keeps a second copy, and
+  - **WHERE SHE TAPPED IS THE STOP SHE MEANT — the BEHAVIOUR is shared too,
+    `public/tritoggle.js` (2026-08-24, Sophie: "when I click the low medium
+    high toggle in playground, it always goes to high from medium never low
+    even if I click it on that side").** Every copy had been wired as a CYCLE
+    — `next = (cur + 1) % count`, tap anywhere, advance one — so from medium
+    every tap went to high, a tap on the far-left `L` included. Nothing about
+    the control says that: 78px wide, the value written on the knob, three
+    legible stops. It reads as a thing you AIM at, and now it is one.
+    `triNext(el, count, ev, cur)` divides the track into `count` equal zones
+    and answers the one under the thumb; **a tap on the stop she is already
+    on does nothing**, because advancing from there is the same surprise
+    again.
+  - **A tap with NO coordinate still cycles** — a keyboard activation (a
+    click with `detail === 0`) and the WORD beside a search-filter row, which
+    is part of the control but sits nowhere near the stop it names.
+  - **A BLANK-KNOB toggle keeps cycling, deliberately** — the account
+    switcher in chats.html has no letter and no words beside it, so there is
+    nothing on screen to aim AT; a toast names the account after the tap.
+    Aim needs something legible to aim at.
+  - **A stub test server must serve BOTH `/tritoggle.css` and
+    `/tritoggle.js`** — express.static does it in production. Without the CSS
+    the toggle renders as a 4px sliver; without the JS the page falls back to
+    the old CYCLE (each page carries that one line as a floor, never a second
+    copy of the aim), which would quietly green-light the bug above.
+  - Tests: `node scripts/test-tritoggle.js` (nobody keeps a second copy, and
     the geometry measured in a real browser at every stop, for every
-    instance).
+    instance) and `node scripts/test-tritoggle-aim.js` (the aim rule pure,
+    then REAL taps at REAL coordinates on the live Playground — verified
+    failing 5 against the pre-fix behaviour). **A click on the ELEMENT is not
+    a test of this**: playwright aims at an element's centre, which on a
+    three-way toggle is the middle stop, so a cycling toggle and an aimed one
+    look identical. Click a POSITION.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
   prefer rounded squares for buttons, or plain icons, rather than circles").**
@@ -2963,8 +3039,12 @@ before working on that module. Nothing was deleted — the moved text is verbati
   26 tall, an 18px knob, three stops DERIVED from `--gap` — with the track ink
   (`#2b2622`) instead of the rose and the letter riding the knob (`content:
   attr(data-i)`, so the letter and the position are one element and cannot
-  disagree). Tapping anywhere moves to the next notch and WRAPS, exactly as the
-  account one does, so low → medium → high → low. **The two rules live in
+  disagree). **A tap LANDS ON THE STOP UNDER IT since 2026-08-24** — this used
+  to say "tapping anywhere moves to the next notch and WRAPS, exactly as the
+  account one does", which is precisely what Sophie reported as broken ("it
+  always goes to high from medium never low even if I click it on that side").
+  The aim rule is `/tritoggle.js`, shared; see *THREE OPTIONS = A THREE-WAY
+  TOGGLE* in the design rules. **The two rules live in
   different files with no shared stylesheet, so nothing but the test would ever
   notice one drifting from the other** — `node
   scripts/test-playground-quality-toggle.js` pins them property by property,
@@ -3766,6 +3846,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     swap, the cancel POST, the in-flight poll, and the legend's drawings
     compared against the real buttons; verified failing against the pre-fix
     page, where the disabled button could not even be clicked).
+  **THE CAPTION IS WORDS WITH A PENCIL BESIDE THEM, AND A PICTURE-LESS BEAT
+  IS A DIFFERENT SHAPE (2026-08-24, Sophie: "the caption and the drawing
+  thing are editable by default. Can you make it that the caption shows not
+  in a edit box but default to just the ... text and then there's an edit
+  pencil button next to it" · "if there's no image then make the image box
+  smaller / and show the caption and the drawing prompt by default instead of
+  just the caption").** Two asks about the same card, and both are about a
+  beat she is READING rather than typing into.
+  - **The caption's default face is `#captext`, the words in the serif**, with
+    a bare pencil (`#capedit`) beside them; the pencil swaps in the same
+    `#pnote` textarea as before and takes the focus. **The pencil is a
+    TOGGLE and the box never closes on its own blur** — a card that
+    reshuffles between her mousedown and her mouseup eats the tap she was
+    aiming at the button underneath. Blur still SAVES. `#pnote` keeps the
+    caption's value whether it is showing or not, which is why `drawPrompt()`
+    and `saveNote()` are untouched.
+  - **`#beatcard.noart` is the picture-less state, computed once in
+    `openBeat`** (no url and not a clip — a beat mid-draw counts, since the
+    blank paper is what is on screen). It shrinks `#popblank` to 132px and
+    drops `#artwrap`'s `flex:1`, and it opens the drawing prompt beside the
+    caption: the empty tile used to take the whole card, on exactly the beat
+    whose WORDS are all there is.
+  - **The fold rule is now conditional on that** — opening the prompt folds
+    the caption away only when a picture is taking the room. And **the star
+    (`#ardraw`) opens the drawing box, never closes it**: it would otherwise
+    fold away the box a picture-less beat now opens with; the chevron on
+    Drawing prompt is the toggle, and the star focuses an open box.
+  - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
+    the pencil measured beside the words, the empty tile measured against the
+    same card holding a picture).
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
