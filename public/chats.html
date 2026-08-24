@@ -8347,19 +8347,34 @@ var triNext = window.triNext || function (el, count, ev, cur) {
   return ((cur | 0) + 1 + count) % count;
 };
 
+// THE NEUTRAL STOP SITS IN THE MIDDLE (2026-08-24, Sophie: "the filters for
+// searching chats should start in the middle. The middle should be the both
+// option or everyone or whatever change that way I can get to either way with
+// one tap"). It used to be `all · me · claude` — everything at the LEFT end, so
+// Claude's side was two stops away and, before the toggle learned to aim, two
+// taps. The two narrowings are OPPOSITES of each other and `all` is the middle
+// ground between them, so this is also what the control was always saying.
+//
+// `neutral` is NAMED rather than positional. Every reader used to ask
+// `vals.indexOf(v) > 0`, i.e. "not the first one" — true only while `all` led
+// the list, and silently wrong the moment it moved. The server's own lists
+// (SEARCH_WHO / SEARCH_ARCH in chatfeed.js) are UNTOUCHED and still lead with
+// `all`, because `pickOne` there leans on exactly that index-0 rule to widen an
+// unknown value: this is a display ORDER, and the values on the wire are the
+// same strings they always were.
 var FILTERS = {
   // `param` is the query-string name, kept next to the values so a caller can
   // never send a filter under a name the server does not read.
-  who: { param:'from', vals:['all','me','claude'],
-         words:['Everyone','Mine','Claude\u2019s'],
+  who: { param:'from', vals:['me','all','claude'], neutral:'all',
+         words:['Mine','Everyone','Claude\u2019s'],
          label:'Whose messages to search' },
-  arch:{ param:'arch', vals:['all','live','only'],
-         words:['Everywhere','Not archived','Archive only'],
+  arch:{ param:'arch', vals:['live','all','only'], neutral:'all',
+         words:['Not archived','Everywhere','Archive only'],
          label:'Whether to search the archive' },
 };
 function buildFilters(mount, keys, onChange){
   var state={};
-  keys.forEach(function(k){ state[k]='all'; });
+  keys.forEach(function(k){ state[k]=FILTERS[k].neutral; });
   mount.innerHTML='';
   var chip=document.createElement('button');
   chip.type='button'; chip.className='catchip filtchip';
@@ -8372,7 +8387,7 @@ function buildFilters(mount, keys, onChange){
     var def=FILTERS[k];
     var row=document.createElement('div'); row.className='filtrow';
     var tog=document.createElement('button'); tog.type='button'; tog.className='tri';
-    tog.setAttribute('data-n','0');
+    tog.setAttribute('data-n', String(def.vals.indexOf(def.neutral)));
     var val=document.createElement('span'); val.className='filtval';
     row.appendChild(tog); row.appendChild(val); drawer.appendChild(row);
     rows[k]={row:row, tog:tog, val:val};
@@ -8387,20 +8402,27 @@ function buildFilters(mount, keys, onChange){
       state[k]=def.vals[i];
       paint(); if(onChange) onChange(state);
     }
-    // The word is part of the control, not a caption — a label beside a
-    // switch is the thing a thumb aims at, so it moves the knob too. It sits
-    // nowhere near the stop it names, so tapping it CYCLES: no coordinate
-    // reaches triNext from here, which is exactly what the fallback is for.
-    tog.onclick=step; val.onclick=function(){ step(null); };
+    // THE WORD CLEARS THE FILTER — it does NOT cycle (2026-08-24, Sophie:
+    // "none of them should cycle ... Cycling is a bad idea"). It is still part
+    // of the control rather than a caption, but it sits nowhere near the stop
+    // it names, so there is nothing there to aim at: the one destination it can
+    // mean unambiguously is the neutral middle, which is what the word reads
+    // when nothing is narrowed. Tapping "Mine" gives her Everyone back; tapping
+    // "Everyone" is already there and does nothing.
+    tog.onclick=step;
+    val.onclick=function(){
+      if(state[k]===def.neutral) return;
+      state[k]=def.neutral; paint(); if(onChange) onChange(state);
+    };
   });
-  function narrowed(){ return keys.filter(function(k){ return state[k]!=='all'; }); }
+  function narrowed(){ return keys.filter(function(k){ return state[k]!==FILTERS[k].neutral; }); }
   function paint(){
     keys.forEach(function(k){
       var def=FILTERS[k], r=rows[k], i=Math.max(def.vals.indexOf(state[k]),0);
       r.tog.setAttribute('data-n', String(i));
       r.tog.setAttribute('aria-label', def.label+' \u2014 '+def.words[i]+', tap a side to pick one');
       r.val.textContent=def.words[i];
-      r.row.classList.toggle('on', state[k]!=='all');
+      r.row.classList.toggle('on', state[k]!==def.neutral);
     });
     // THE CHIP CARRIES THE STATE ONLY WHILE THE DRAWER IS SHUT. Open, the
     // rows below it already say "Mine" and "Archive only" in full, and
@@ -8431,21 +8453,24 @@ function buildFilters(mount, keys, onChange){
     // meaning "everything".
     query: function(){
       return keys.map(function(k){
-        return state[k]==='all' ? ''
+        return state[k]===FILTERS[k].neutral ? ''
           : '&'+FILTERS[k].param+'='+encodeURIComponent(state[k]);
       }).join('');
     },
     // A stamp to compare a landing response against — see the in-flight guard.
     stamp: function(){ return keys.map(function(k){ return state[k]; }).join('|'); },
     narrowed: function(){ return narrowed().length>0; },
-    reset: function(){ keys.forEach(function(k){ state[k]='all'; }); setOpen(false); paint(); },
+    reset: function(){ keys.forEach(function(k){ state[k]=FILTERS[k].neutral; }); setOpen(false); paint(); },
     // Restoring a remembered hunt OPENS the drawer when it is narrowed: she is
     // coming back to the same search, and the control that is shaping it
     // should be in front of her, not folded away behind a chip.
     setAll: function(o){
       keys.forEach(function(k){
         var def=FILTERS[k], v=o&&o[k];
-        state[k]= def.vals.indexOf(v)>0 ? v : 'all';
+        // MEMBERSHIP, never a position — `indexOf(v) > 0` meant "not the
+        // first one", which stopped being "not neutral" the day the neutral
+        // stop moved to the middle.
+        state[k]= def.vals.indexOf(v)>=0 ? v : def.neutral;
       });
       setOpen(narrowed().length>0); paint();
     },
@@ -8767,9 +8792,14 @@ document.getElementById('iglink').onclick=function(){ location.href='/instagram'
 
 // Which Claude account is signed into the iOS app right now \u2014 the switch on
 // the header's title line. Its knob has one notch per account (ACCOUNTS) and
-// tapping moves to the next one, wrapping at the end, exactly the way the
-// two-state version flipped; the toast names where it landed, so the control
-// needs no label. The account it points at is the one she is SIGNED IN ON \u2014
+// A TAP LANDS ON THE ACCOUNT UNDER IT (2026-08-24, Sophie: "it also applies to
+// the account thing because none of them should cycle \u2014 that's a really stupid
+// pattern ... Cycling is a bad idea"). This used to move to the next one and
+// wrap, which meant account 3 was two taps from account 1 and there was no way
+// to say "that one" \u2014 the same complaint she made about the Playground's
+// quality toggle, in a control half the width. The aim rule is /tritoggle.js,
+// shared; the toast still names where it landed, so the blank knob needs no
+// label. The account it points at is the one she is SIGNED IN ON \u2014
 // every other account's chats open on the WEB instead, which openHref does by
 // appending #no_universal_links so iOS hands the link to the browser rather
 // than to the Claude app.
@@ -8783,14 +8813,17 @@ function paintAcct(){
   // switch has never heard of lands on the first notch instead of nowhere.
   acctog.setAttribute('data-n', String(Math.max(ACCOUNTS.indexOf(cur), 0)));
   acctog.setAttribute('data-a', cur);   // still the account itself, for readers
-  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap for the next one');
+  acctog.setAttribute('aria-label', 'Signed into account '+cur+' on this phone \u2014 tap an account to switch');
 }
-acctog.onclick=function(){
-  var prev=appAccount(), i=ACCOUNTS.indexOf(prev);
+acctog.onclick=function(e){
+  var prev=appAccount();
   // an account the switch has never heard of (a hand-set tag, a future one)
-  // still has somewhere to go: indexOf is -1, so the next tap lands on the
-  // first notch rather than doing nothing at all
-  var next=ACCOUNTS[(i+1) % ACCOUNTS.length];
+  // still has somewhere to go: indexOf is -1, so a tap with no position lands
+  // on the first notch rather than doing nothing at all
+  var next=ACCOUNTS[triNext(acctog, ACCOUNTS.length, e, ACCOUNTS.indexOf(prev))];
+  // Tapping the account she is already on is not a switch — and it must not
+  // spend a write or a toast saying nothing changed.
+  if(next===prev) return;
   settings=settings||{}; settings.appAccount=next; paintAcct(); saveCache();
   // The account tabs default to whichever account the app is on, so moving
   // this switch moves the list too \u2014 unless she has already picked a tab by
