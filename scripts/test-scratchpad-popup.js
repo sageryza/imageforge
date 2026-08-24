@@ -197,8 +197,38 @@ const VW = 390, VH = 780;
   await page.click('#caplab');
   ok(await shown('#pnote'), 'the caption can be expanded again by hand');
   ok(await shown('#drawbox'), 'with the prompt still open beside it');
-  ok(await page.$eval('#dprompt', (el) => el.value === 'the beat says this'),
-    'the prompt still seeds from the beat’s words');
+  // 7 — THE PROMPT BOX IS NOT THE CAPTION (2026-08-24, Sophie: "it sent the
+  // wrong prompt. I think it sent it from the caption part not the drawing
+  // part"). The box used to seed with the caption's words, so a beat with no
+  // prompt of its own showed the caption in the prompt box and nothing on
+  // screen told her which text a draw was about to send.
+  ok(await page.$eval('#dprompt', (el) => el.value === ''),
+    'a beat with no prompt of its own opens with an EMPTY prompt box');
+  ok(await shown('#promhint'), 'and the hint says what an empty box will draw');
+  ok(/caption/i.test(await page.$eval('#promhint', (el) => el.textContent)),
+    'it names the caption by name');
+  // Empty still DRAWS — from the caption as it reads right now, which is the
+  // old "it doesn't take the words I put in" fix and must stay fixed.
+  await page.fill('#pnote', 'A RED DOOR IN THE SNOW');
+  await page.click('#dgo');
+  await page.waitForTimeout(300);
+  let gen = posted.filter(([p]) => p === '/api/scratchpad/generate');
+  ok(gen.length === 1 && gen[0][1].prompt === 'A RED DOOR IN THE SNOW',
+    'an empty box draws the caption LIVE, not its last saved text');
+
+  // Her own prompt wins, and the hint goes away the moment she types one.
+  await page.waitForSelector('#beatpop:not([hidden])');
+  if (await page.$eval('#drawbox', (el) => el.hidden)) await page.click('#promlab');
+  await page.fill('#dprompt', 'MY OWN DRAWING PROMPT');
+  await page.waitForFunction(() => document.getElementById('promhint').hidden);
+  ok(true, 'the hint clears as soon as the box has words');
+  await page.click('#dgo');
+  await page.waitForTimeout(300);
+  gen = posted.filter(([p]) => p === '/api/scratchpad/generate');
+  ok(gen.length === 2 && gen[1][1].prompt === 'MY OWN DRAWING PROMPT',
+    'a written prompt is what gets drawn, never the caption');
+  ok(posted.some(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT'),
+    'and it saved itself on the way');
 
   await browser.close();
   server.close();

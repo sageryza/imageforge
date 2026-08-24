@@ -142,6 +142,28 @@ All 12 NDE-category stories were linked to their montage episodes on
   - **`setBoxes(capOpen, promOpen)` is the one switch** behind both text
     boxes. Opening the prompt folds the caption away; CLOSING it leaves the
     caption as she left it rather than forcing it back open.
+  - **THE PROMPT BOX IS NOT THE CAPTION, AND AN EMPTY BOX SAYS WHAT IT WILL
+    DRAW (2026-08-24, Sophie: "I just made an image and it sent the wrong
+    prompt. I think it sent it from the caption part not the drawing
+    part").** It shipped seeding `#dprompt` with the caption's words whenever
+    the beat had no prompt of its own — so the two labelled boxes showed the
+    SAME text, nothing on screen distinguished "this beat has its own prompt"
+    from "you are about to draw the caption", and typing into the only box
+    that was open (the caption) then tapping Draw sent the caption. Measured
+    on the real page before the fix: caption "A RED DOOR IN THE SNOW" → the
+    prompt box seeded with it → `/generate` sent it.
+    - **The box now holds ONLY her stored `beat.prompt`** — that is her own
+      text, which is the one thing the never-pre-written-text rule allows a
+      box to open with. Empty is the honest default.
+    - **Empty still draws, from the CAPTION, live.** `drawPrompt()` is the
+      single place that decides — typed prompt, else the caption box's
+      current value with speech markup stripped — so the hint line and the
+      Draw button can never disagree. Reading the caption box rather than the
+      last SAVED text is what keeps the older "it doesn't take the words I
+      put in" fix working.
+    - **`#promhint` under the box says `empty — this beat draws from its
+      caption`** and clears the moment she types. It is CHROME under the
+      field, never text inside it.
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
   with `refs/sage-sandy-mirror.png` as the style ref and, by default,
