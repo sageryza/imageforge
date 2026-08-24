@@ -1101,13 +1101,26 @@ them off the reference sheet, not off the old filenames.
   answered").** Keeping either one opens the same box straight away and focuses
   it — the reason is in her head at that moment and nowhere else — and it stays
   under the thing for as long as it is kept.
-  - **ONE RENDERER, THREE SURFACES.** `mkBmkEdit` (the note + the tags in ONE
-    node) is drawn under a message in a thread, under an artifact's row in the
-    Compare tab, and — the tags alone — on a row in the keep-pile, where
-    triaging a backlog actually happens. One node so un-keeping takes the whole
-    editor with it and a row can never keep half of it; one renderer so a
-    message and an artifact can never end up with two different sets of
-    controls.
+  - **ONE RENDERER, AND THE TAGS ARE THE KEEPING STEP ONLY (Aug 2026, her
+    correction the day after they shipped: "those tags were supposed to only
+    show up in the step when I'm actively bookmarking it. Either a chat or an
+    artifact").** `mkBmkEdit(m, kind, keeping)` draws the note always and the
+    tags only on the tap that keeps the thing — so a message she kept last week
+    shows her sentence back and nothing else, and the keep-pile's rows carry no
+    chips at all. The first cut painted them under every kept thing and on every
+    row of that pile, which put four chips and a meter under things she was
+    only trying to read. One node so un-keeping takes the whole editor with it;
+    one renderer so a message and an artifact can never end up with two
+    different sets of controls.
+  - **THE READ BOX IS WHAT THE KEEP-PILE'S ROWS CARRY INSTEAD (Aug 2026,
+    Sophie: "a rounded square check box that is empty with a gray outline and
+    becomes red with a check in it when I read it I'll mark it manually").**
+    `bmkRead`, hers to tick, on a message and on an artifact — a kept CHAT gets
+    none, because a chat is not a thing you finish reading once. **Nothing
+    derives it**: opening a thing is not reading it, so no view, scroll or tap
+    anywhere else may set it. A rounded rectangle at the house 6px, never a
+    circle (the circular exception is for icon toggles). Her tick is what takes
+    a thing out of the **To read** door's count.
   - **THE WORDS ARE A FIXED VOCABULARY** — `BMK_TAGS` in `chatfeed.js` and in
     `chats.html`, pinned equal by `node scripts/test-chats-bookmark-tags.js`,
     the same contract `TAGS`/`TAG_LIST` have kept since the archive sheet:
@@ -1120,9 +1133,9 @@ them off the reference sheet, not off the old filenames.
     level left faint, so the picture says "2 of 3" with no number to read;
     tapping the lit one clears it. Icons, never words — her ask.
   - **A PATCH TOUCHES ONLY WHAT IT NAMES.** Both routes (`POST /bookmark`,
-    `POST /page/:id/bookmark`) take `note`, `tags` and `level` and carry no
-    keep-flag unless one is sent — so tagging can never un-keep a thing, and
-    naming one can never drop its tags.
+    `POST /page/:id/bookmark`) take `note`, `tags`, `level` and `read`, and
+    carry no keep-flag unless one is sent — so tagging can never un-keep a
+    thing, naming one can never drop its tags, and a tick can never do either.
 - **THE PINNED LINK — if your work lives at a URL, PIN IT (Aug 2026, Sophie:
   "I'm constantly referring to a link to a page… I just wanna make that
   pattern more clear that chats have that option and make it the expected and
@@ -3806,7 +3819,10 @@ before working on that module. Nothing was deleted — the moved text is verbati
     reached by remembering it is there. It is on EVERY paint (like Update) and
     carries a count (unlike Update, because unlike Update it can be empty), and
     it opens the KEEP-PILE with the To read filter lit — never a fourth pile of
-    its own, because there is one place kept things live. The count is its own
+    its own, because there is one place kept things live. **The count is what
+    is still WAITING**: a row she has ticked read (and a thing she has since
+    un-kept) is filtered out of it in memory, because `array-contains` plus an
+    equality would need a composite index. The count is its own
     tiny route (`GET /api/chatfeed/to-read`, two array-contains queries), asked
     once per load and repainted when it lands: this tab paints on every poll
     and `GET /bookmarks` returns up to a thousand documents.

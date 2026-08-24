@@ -492,9 +492,12 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    answered"). It sits under her note, because the note is the sentence she
    dictates and these are the four words she taps.
 
-   ONE ROW, drawn by ONE renderer (`mkBmkMarks`) wherever a bookmark is met —
-   under a message, under an artifact in the Compare tab, and on its row in the
-   keep-pile — so a tag can never look like two different controls.
+   ONE ROW, drawn by ONE renderer (`mkBmkMarks`) in the one place it belongs:
+   the box that opens when she KEEPS something, under a message or under an
+   artifact in the Compare tab. It is not painted under a thing she is only
+   reading back, and not on the keep-pile's rows (Aug 2026, her correction:
+   "those tags were supposed to only show up in the step when I'm actively
+   bookmarking it").
 
    The chips are the house `.catchip`: a filter chip and a tag chip are the
    same gesture, and this is the same set of words she already taps in the
@@ -503,6 +506,26 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    so it takes the tab row's job of keeping out of the injected pill's corner
    (x 324-374, y 14-192) with it. */
 .bmktagbar{margin:0 0 10px; padding-right:64px;}
+/* I READ IT — a rounded square, empty with a grey outline, red with a check in
+   it once she ticks it (Aug 2026, Sophie: "a rounded square check box that is
+   empty with a gray outline and becomes red with a check in it when I read it
+   I'll mark it manually"). It is HERS and it is manual: nothing derives it
+   from her opening a thing, because opening is not reading.
+
+   A rounded RECTANGLE at the house 6px, never a circle — the circular
+   exception is for icon toggles, and this is a checkbox. It rides at the head
+   of the row's top line, so a pile she is working through reads down the left
+   edge: ticked, ticked, not yet. */
+.bmkchk{flex:none; align-self:center; width:19px; height:19px; padding:0; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:6px; background:transparent;
+  display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent;}
+.bmkchk svg{width:12px; height:12px; display:block; visibility:hidden;}
+.bmkchk.on{border-color:var(--chg); background:var(--chg);}
+/* the check is drawn on the RED, so it takes the paper's colour rather than a
+   hard white — on the dark theme a white tick on that rose is the only bright
+   white on the screen */
+.bmkchk.on svg{visibility:visible; color:var(--paper);}
 /* The note and the tags travel together — one node, so un-keeping a thing
    takes its whole editor with it and a row can never keep half of it. */
 .bmkedit{flex:1 0 100%; min-width:0;}
@@ -2763,6 +2786,11 @@ function bmkRow(m, el){
       +(kind==='code'?'<span class="sr-kind">code</span>':'')
       +(m.reference&&m.topic?'<span class="sr-kind">'+esc(m.topic)+'</span>':'')
       +'<span class="sr-time">'+ago(m.created)+'</span></div>';
+    // HER READ BOX leads the row's top line. A kept CHAT gets none: a chat is
+    // not a thing you finish reading once, and its own marks are the star, the
+    // bell and the pin in its header.
+    if(kind!=='chat') head.querySelector('.sr-top').insertBefore(mkBmkRead(m, kind==='page'?'page':'msg'),
+      head.querySelector('.sr-chat'));
     // Taking one OFF the shelf — the Compare list's move idiom (↓), one
     // control, no confirm: it un-files a page, it never deletes anything, and
     // a chat can always put it back.
@@ -2793,15 +2821,14 @@ function bmkRow(m, el){
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
     row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
-    // The tag row rides here too — triaging a backlog is exactly what this
-    // screen is for, and the note above it is already editable in place. A
-    // kept CHAT gets none: its marks are the star/bell/pin in its own header,
-    // and the tags live on the message or the artifact, not on a whole chat.
-    if(kind!=='chat') row.appendChild(mkBmkMarks(m, kind==='page'?'page':'msg'));
+    // NO TAG ROW HERE (Aug 2026, her correction) — the tags are part of the
+    // keeping step, and a pile she is reading through must not put four chips
+    // and a meter under every line. What this screen gets instead is the ONE
+    // mark she makes here: the read box in the row's top line.
     row.setAttribute('role','button'); row.tabIndex=0;
     row.onclick=function(e){
       if(e.target===inp) return;          // typing a name must not open the chat
-      if(e.target.closest && e.target.closest('.bmkmarks')) return;   // …nor tagging it
+      if(e.target.closest && e.target.closest('.bmkchk')) return;      // …nor ticking it read
       // A kept ARTIFACT opens the artifact itself — that is the thing she
       // saved. openPage wants {id, title}; the title fills the snippet slot.
       if(kind==='page'){ openPage({ id:m.id, title:m.title||m.snippet||'' }); return; }
@@ -5945,9 +5972,9 @@ function renderMsg(m){
   ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
-  // an already-bookmarked message carries its note box and its tags from the
-  // first paint, so what she wrote is visible and editable without hunting
-  // for a gesture
+  // an already-bookmarked message carries its note box from the first paint,
+  // so what she wrote is visible and editable without hunting for a gesture.
+  // The TAGS are not here: this is not the moment she is keeping it.
   if(m.bookmarked) ob.appendChild(mkBmkEdit(m,'msg'));
   row.appendChild(ob);
   return row;
@@ -6017,6 +6044,31 @@ function bmkSaver(kind, m){
     return api(url,{method:'POST',body:JSON.stringify(body)})
       .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; });
   };
+}
+// THE READ BOX. Optimistic like every other mark on this page: it ticks on the
+// tap and un-ticks only if the write really failed. It is the one control on a
+// keep-pile row, now that the tags have gone back to the keeping step.
+function mkBmkRead(m, kind){
+  var put=bmkSaver(kind, m);
+  var b=document.createElement('button');
+  b.className='bmkchk'+(m.read?' on':'');
+  b.innerHTML=CHECK_SVG;
+  function label(){
+    b.setAttribute('aria-label', m.read?'Read \u2014 tap to un-tick':'Mark this read');
+    b.setAttribute('aria-pressed', m.read?'true':'false');
+    b.title = m.read ? 'Read' : 'Mark read';
+  }
+  label();
+  b.onclick=function(e){
+    e.stopPropagation();
+    var nv=!m.read; m.read=nv; b.classList.toggle('on',nv); label();
+    // the To read door counts what is still waiting, so a tick moves it
+    toReadN=null;
+    put({read:nv}).catch(function(){
+      m.read=!nv; b.classList.toggle('on',!nv); label(); toast('Couldn\u2019t save that');
+    });
+  };
+  return b;
 }
 // ONE ROW, drawn the same wherever a bookmark is met. `kind` is 'msg' or
 // 'page' — it only decides which route the taps go to.
@@ -6100,12 +6152,25 @@ function mkBmkNote(m, kind){
 // now have a set of tag buttons"). One node so a bookmark toggled off takes
 // its whole editor with it, and so a message and an artifact can never end up
 // with two different sets of controls.
-function mkBmkEdit(m, kind){
+// THE TAGS BELONG TO THE ACT OF KEEPING, NOT TO THE KEPT THING (Aug 2026,
+// Sophie, the day after they shipped: "those tags were supposed to only show
+// up in the step when I'm actively bookmarking it. Either a chat or an
+// artifact"). They went out under EVERY kept message and artifact and on every
+// row of the keep-pile, which put four chips and a meter under things she was
+// only trying to read.
+//
+// So `keeping` is the tap that just happened: the box that opens on the
+// bookmark carries the note AND the tags, and every later paint of the same
+// thing carries the note alone — the note is a sentence she wrote and wants
+// back, the tags are a decision she already made.
+function mkBmkEdit(m, kind, keeping){
   var w=document.createElement('div'); w.className='bmkedit';
   w.appendChild(mkBmkNote(m, kind));
-  w.appendChild(mkBmkMarks(m, kind));
+  if(keeping) w.appendChild(mkBmkMarks(m, kind));
   return w;
 }
+// The tick inside the read box — Lucide `check`, exact path.
+var CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 // ONE bookmark glyph — a message row and a Compare page row both draw this,
 // so "kept" can never read as two different marks in two places.
 var BMK_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
@@ -6159,7 +6224,7 @@ function bookmarkBtn(m, row){
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
     var open=row.querySelector('.bmkedit');
     if(nv && !open){
-      var box=mkBmkEdit(m,'msg');
+      var box=mkBmkEdit(m,'msg',true);      // she is keeping it right now
       row.querySelector('.openrow').appendChild(box);
       box.querySelector('input').focus();   // the reason is in her head NOW
     } else if(!nv && open) open.remove();
@@ -7119,7 +7184,7 @@ function openChat(name, keepScroll, focusId, noFetch){
               // it — the reason is in her head at that moment and nowhere else.
               var open=row.querySelector('.bmkedit');
               if(nv && !open){
-                var ed=mkBmkEdit(p,'page');
+                var ed=mkBmkEdit(p,'page',true);   // she is keeping it right now
                 row.appendChild(ed);
                 ed.querySelector('input').focus();
               } else if(!nv && open) open.remove();
