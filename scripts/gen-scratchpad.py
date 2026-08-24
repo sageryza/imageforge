@@ -154,12 +154,18 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 #shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
-.stile .cov{display:block; position:relative; box-sizing:border-box; width:100%; aspect-ratio:2/3;
+/* `.cov` is the tile's FOOTPRINT — it paints nothing. `.frame` inside it is
+   the white mat that used to BE .cov, and it fills the footprint exactly on
+   an ordinary story, so nothing about a story tile changed. Splitting the two
+   is what lets a folder shrink the front card and stack real cards behind it
+   without the tile getting taller (see A FOLDER IS A STACK below). */
+.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
+.stile .frame{position:absolute; inset:0; z-index:1; box-sizing:border-box;
   padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
-.stile .cov img,.stile .cov .none{position:absolute; top:5px; left:5px;
+.stile .frame img,.stile .frame .none{position:absolute; top:5px; left:5px;
   width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
-.stile .cov img{object-fit:cover;}
-.stile .cov .none{box-sizing:border-box; border:1px dashed var(--line);}
+.stile .frame img{object-fit:cover;}
+.stile .frame .none{box-sizing:border-box; border:1px dashed var(--line);}
 /* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
    house rule). It rides the tile's top-left corner because the injected
    autoscroll pill owns the top-RIGHT of the screen, and the first row's last
@@ -178,22 +184,29 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A FOLDER IS A STACK (2026-08-24, Sophie: "treat the Evan and Mason ones as
    a folder … some sort of UI design like a stack that you can see underneath
    the cover image so you can tell there's multiple stories in there").
-   THE STACK IS DRAWN INSIDE THE FRAME'S OWN MAT — the art is shortened from
-   the bottom and two flat cards peek out under it — rather than hanging below
-   the tile. That is what keeps a folder exactly as tall as a story, so the
-   names still line up across a row and the grid never ends ragged. Flat solid
-   fills and NO shadow (house rule): the offset alone says there is more
-   underneath. Pseudo-elements, so a folder tile is one node like the rest.
-   The art sits at top:5px with height calc(100% - 10px) inside the mat, so
-   the extra 8px comes off its height and the layers live in that strip. */
-.stile.fold .cov img,.stile.fold .cov .none{height:calc(100% - 18px); z-index:1;}
+   THREE WHOLE CARDS, cascading down and to the right — the front one carrying
+   the picture, two empty ones behind it. THE FIRST CUT DREW THE LAYERS INSIDE
+   THE WHITE MAT and she rejected it on sight: two hairline slivers on white,
+   under the art, read as a rendering fault rather than as depth. A stack is
+   only legible when the thing behind is a whole CARD offset from the one in
+   front, so that is what this draws.
+   The tile is NOT taller for it: `.cov` is the footprint, and the front card
+   gives up 8px on its right and bottom for the two behind to occupy. So a
+   folder and a story are exactly the same height and the names still line up
+   across a row. Flat fills and NO shadow (house rule) — the offset alone says
+   there is more underneath.
+   ::before is the DEEPEST card and ::after the middle one, in that order,
+   because two positioned siblings at the same z-index paint in document order
+   and the deeper one has to go down first. */
+.stile.fold .frame{inset:0 8px 8px 0;}
 .stile.fold .cov::before,.stile.fold .cov::after{content:''; position:absolute; z-index:0;
-  height:16px; border-radius:2px; background:var(--barbg); border:1px solid var(--line);}
-.stile.fold .cov::before{left:9px; right:9px; bottom:9px;}
-.stile.fold .cov::after{left:14px; right:14px; bottom:5px;}
+  box-sizing:border-box; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile.fold .cov::before{inset:8px 0 0 8px;}
+.stile.fold .cov::after{inset:4px 4px 4px 4px;}
 /* How many are in there. The stack says "more than one"; this says how many,
-   so she can tell a pair from a pile without opening it. */
-.stile .cnt{position:absolute; z-index:2; right:9px; bottom:17px;
+   so she can tell a pair from a pile without opening it. It rides the FRONT
+   card, inside the mat, over the picture's bottom-right corner. */
+.stile .cnt{position:absolute; z-index:2; right:9px; bottom:9px;
   background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink2);
   padding:1px 5px; font:600 11px -apple-system,'Helvetica Neue',sans-serif;}
 /* The way to the rest of the shelf. An underlined word, never a button with a
@@ -1427,15 +1440,19 @@ function shelfTile(o){
   var t=document.createElement('button');
   t.className='stile'+(o.cur?' cur':'')+(o.count?' fold':'');
   var cov=document.createElement('span'); cov.className='cov';
+  // The FRONT card. Everything that paints lives on it, so a folder's two
+  // cards behind (the .cov pseudo-elements) sit behind the whole thing rather
+  // than behind the picture only.
+  var fr=document.createElement('span'); fr.className='frame'; cov.appendChild(fr);
   if(o.cover){
     var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-    im.src=thumbOf(o.cover); cov.appendChild(im);
+    im.src=thumbOf(o.cover); fr.appendChild(im);
   } else {
-    var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+    var n=document.createElement('span'); n.className='none'; fr.appendChild(n);
   }
   if(o.count){
     var c=document.createElement('span'); c.className='cnt';
-    c.textContent=o.count; cov.appendChild(c);
+    c.textContent=o.count; fr.appendChild(c);
   }
   if(p){
     var pin=document.createElement('span');
@@ -1446,7 +1463,7 @@ function shelfTile(o){
     /* The pin sits INSIDE the tile, which is itself a button, so the tap has
        to be stopped here or pinning a story would also open it. */
     pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
-    cov.appendChild(pin);
+    fr.appendChild(pin);
   }
   t.appendChild(cov);
   var nm=document.createElement('span'); nm.className='snm'+(o.name?'':' blank');
