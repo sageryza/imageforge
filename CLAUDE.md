@@ -4729,10 +4729,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
       one, but all five live picture decks are posted with `voice:true`
       (measured), so folding them into her look would have taken the
       hands-free notes away. It rides in the note box's own corner.
-    - **Four verdicts became two**, matching her date cards. Measured across
-      her live decks the day this shipped: 16 verdicts, **one** `maybe`, no
-      `later`. A **Maybe/Later pile is still listed when something is
-      actually in it**, so the one legacy mark cannot vanish off the screen.
+    - **Four verdicts became two, and MAYBE came back as the third
+      (2026-08-24, Sophie: "can you add a maybe option in the Tinder checklist
+      template?").** Her footer is **✕ · ? · ♥** — the ? centred between the
+      two that hug the card's bottom corners — and Maybe is a first-class
+      pile now, not a legacy one. `LATER` stays legacy: it is still listed
+      when something is actually in it, so an old mark cannot vanish off the
+      screen, but nothing can cast one on a stock deck any more.
+      - **The ? is DRAWN, like the ✕ and the ♥** — `MOM_MAYBE`, a filled
+        ribbon with the nib thin where it enters, heaviest over the shoulder,
+        a chisel cap at the tail, and a lopsided dot. Deliberately not
+        `I.maybe`, the dashed circle: that is a Lucide-weight LINE icon and
+        would be the only geometric mark inside her design.
+      - **A maybe stamps NOTHING and CLEARS the asset vote.** The
+        good/bad stamp rule already said there is no good and no bad in a
+        maybe; the vote mirror follows the same logic — a maybe is not a like,
+        so the Assets tab and the card still agree.
+      - **THE CENTRE OF A CARD'S BOTTOM WAS NOT FREE, and only a measurement
+        found it.** A card's `link` (its way out — "Open the chat ›") is
+        centred at the end of the stack, which was safe while the only two
+        buttons hugged the corners; the ? landed exactly on that anchor and
+        `elementFromPoint` reported `BLOCKED-by-jg-mombtn maybe`. A card
+        carrying a link now wears `linkroom` and reserves the buttons' 58px,
+        the same band `.long` already reserves. Pinned by
+        `node scripts/test-template-link.js`.
     - A deck with its own `states` keeps its chips — her words still win.
   - **THE MINI AUTOSCROLL — conditional, small, on the side (Aug 2026,
     Sophie: "ideally you would add a conditional auto scroll thing, but only
