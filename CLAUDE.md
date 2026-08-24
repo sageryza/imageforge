@@ -3471,6 +3471,16 @@ before working on that module. Nothing was deleted — the moved text is verbati
   for ANY focus inside its card loses what she typed when a blur leaves focus
   put. Tests: `node scripts/test-timeline.js` (the parser and the validators
   pure, then the real page driven in headless Chromium).
+  **BEATING OUT A VOICEOVER IS A PAID ROUTE HERE SINCE AUG 2026 (Sophie:
+  "this needs to be smart… it should go through fable").** `POST
+  /api/timeline/beatout { title, text, model? }` hands the transcript to
+  Claude — **`claude-fable-5` by default, on purpose; don't downgrade it** —
+  which splits it into beats (her words VERBATIM, one line each, ALL-CAPS
+  sequence headers, a beat may be several sentences) in the exact dictation
+  shape `parseStory` reads, then files the story. A background job (`{job}`
+  back at once, `GET /beatout/:job` to poll — jobs are in-memory, so a deploy
+  loses the poll, not the story); ~25-40c a run on a ~10-minute transcript.
+  Never called by the page — chats only, and never on a page load.
   Firestore `forge-timelines`, one doc per story.
 - **Writing Room** (`writing.js`, `/api/writing`, `/writing`, iOS tile) — every
   dating-book date in two versions ("Claude's" and "Mine") with every changed word

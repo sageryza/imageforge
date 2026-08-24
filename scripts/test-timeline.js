@@ -28,11 +28,38 @@ const { spawn } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const {
   parseStory, cleanMoments, cleanUnits, countMoments, packUnits, unpackUnits,
+  cleanBeatLines,
 } = require('../timeline-parse');
 
 let n = 0;
 function t(name, fn) { fn(); n++; console.log('  ok — ' + name); }
 const texts = (r) => r.units.map((u) => u.map((id) => r.moments[id].text));
+
+/* ---------------------------------------------------- a model beat reply */
+
+console.log('cleaning a model beat reply (beatout)');
+
+t('code fences are stripped, wherever they sit', () => {
+  const s = cleanBeatLines('```\nINTENTION\na beat\n```');
+  assert.strictEqual(s, 'INTENTION\na beat');
+});
+
+t('a conversational lead-in ending in ":" is dropped', () => {
+  const s = cleanBeatLines('Here are the beats:\nINTENTION\na beat');
+  assert.strictEqual(s, 'INTENTION\na beat');
+});
+
+t('an ALL-CAPS header ending in ":" is a header, never a lead-in', () => {
+  const s = cleanBeatLines('ACT 2:\na beat');
+  assert.strictEqual(s, 'ACT 2:\na beat');
+});
+
+t('a clean reply passes through untouched and parses', () => {
+  const s = cleanBeatLines('OPENING\nthe first beat\nthe second beat\n\nENDING\nthe last beat');
+  const r = parseStory(s);
+  assert.deepStrictEqual(texts(r),
+    [['the first beat', 'the second beat'], ['the last beat']]);
+});
 
 /* ------------------------------------------------------------- the parser */
 
