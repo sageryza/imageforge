@@ -67,13 +67,15 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   await pg.goto(BASE + '/vector?embed=1', { waitUntil: 'domcontentloaded' });
   await pg.waitForTimeout(400);
 
-  ok(await pg.locator('#s1.open').count() === 1, 'it opens on step 1, and only step 1 shows its controls');
-  ok(await pg.locator('#s2 .body').isVisible() === false, 'the later steps are collapsed');
+  ok(await pg.locator('#p1').isVisible(), 'it opens on the first tab, and only that section shows its controls');
+  ok(await pg.locator('#p2').isVisible() === false, 'the later sections are put away');
+  ok(await pg.locator('.acctab[data-tab="2"]').evaluate((el) => el.disabled),
+    'and their tabs are shut until there is something behind them');
 
   // The star belongs to the ONE control that spends money, and nothing else.
-  ok(await pg.locator('.btn.star').count() === 1, 'exactly one starred button — the sheet, the only paid call');
-  ok(await pg.locator('#trace').evaluate((el) => !el.classList.contains('star')),
-    'tracing is not starred: it is free');
+  ok(await pg.locator('.gobtn svg').count() === 1, 'exactly one starred button — the sheet, the only paid call');
+  ok(await pg.locator('#draw svg').count() === 1, 'and it is the one that draws');
+  ok(await pg.locator('#trace svg').count() === 0, 'tracing is not starred: it is free');
 
   // Typing descriptions must price them before she taps anything.
   await pg.locator('#cells').fill('a teacup\na kettle');
@@ -86,19 +88,23 @@ if (!chrome) { console.log('SKIP — no Chromium found (set CHROME_PATH to run)'
   await pg.locator('#urls').fill(src);
   await pg.locator('#trace').click();
 
-  await pg.waitForFunction(() => document.querySelectorAll('#items .cell').length > 0, null,
+  await pg.waitForFunction(() => document.querySelectorAll('#items button').length > 0, null,
     { timeout: 180000 }).catch(() => {});
-  const cells = await pg.locator('#items .cell').count();
+  const cells = await pg.locator('#items button').count();
   ok(cells === 1, `the traced drawing arrived as a tile (${cells})`);
   if (!cells) { await b.close(); return done(); }
 
-  await pg.waitForFunction(() => document.querySelector('#s2.open'), null, { timeout: 30000 }).catch(() => {});
-  ok(await pg.locator('#s2.open').count() === 1, 'it moves her to step 2 when the job finishes');
+  await pg.waitForFunction(() => {
+    const el = document.getElementById('p2');
+    return el && !el.hidden;
+  }, null, { timeout: 30000 }).catch(() => {});
+  ok(await pg.locator('#p2').isVisible(), 'it moves her to the drawings when the job finishes');
+  ok(await pg.locator('.acctab[data-tab="2"].on').count() === 1, 'and the tab row says which one she is on');
 
   // ── the colour boxes ──────────────────────────────────────────────────
-  await pg.locator('#items .cell').first().click();
+  await pg.locator('#items button').first().click();
   await pg.waitForTimeout(300);
-  ok(await pg.locator('#s3.open').count() === 1, 'picking a drawing opens the colours step');
+  ok(await pg.locator('#p3').isVisible(), 'picking a drawing opens the colours');
 
   const slots = await pg.locator('#slots .slot').count();
   ok(slots >= 3, `one box per colour, plus the line and the paper (${slots})`);
