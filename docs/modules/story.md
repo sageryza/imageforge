@@ -106,8 +106,42 @@ All 12 NDE-category stories were linked to their montage episodes on
   member's first line; tapping a slice opens that member's popup). Slots
   never appear inside a chunk. The lit chain icon dissolves the WHOLE
   chunk (`POST /chunk {id}` / `POST /unchunk {id}`). A beat's art is
-  made or swapped from the SAME two-or-three icons — centered in the blank
-  tile when empty, in a row ABOVE the picture when it already has one:
+  made or swapped from ONE row of icons UNDER the picture, there whether or
+  not there is a picture yet:
+  **THE POPUP WAS REMODELLED 2026-08-24 (Sophie, one message: "the whole
+  popup gets bigger, so there's only room enough to comfortably see behind
+  it. similar aspect ratio as total screen (not square)" · "that image is
+  bigger by default" · "stars, playground and inbox buttons get put into
+  rounded squares and go under the main (currently chosen) image" · "colors
+  become one multicolored rounded square in the corner, drop down" ·
+  "drawing a new picture replaces the old, but keeps it in the stacked
+  squares icon" · "two text boxes: caption, and drawing prompt. drawing
+  prompt is collapsed by default, and uncollapsing draw prompt automatically
+  collapses the caption but can be manually expanded again").** Every one of
+  those is a MEASUREMENT, which is why `node scripts/test-scratchpad-popup.js`
+  drives the real page in headless Chromium rather than grepping markup —
+  "square" is two numbers that must match, "under the image" is a y
+  coordinate, "multicoloured" is counting distinct fills, and "screen-shaped"
+  is the card's own ratio against the viewport's.
+  - **The card is `height:100%` of a padded fixed inset**, which IS the
+    screen's shape minus the strip of pad left showing all round it — and
+    that strip is still the tap-out target. It used to be only as tall as its
+    contents, so a beat with a small picture left a squat card mid-screen.
+  - **The picture is sized by CSS inside `#artwrap` (flex:1, min-height:0),
+    never by a pixel width in JS.** It was pinned to the pad tile's ~90px — a
+    thumbnail of a thumbnail — and max-height/max-width keep a 2:3 drawing its
+    own shape at any screen size. Measured on a 390pt phone: 79px → 273.
+  - **`#popblank` no longer carries its own two icons.** The star, the
+    Playground and the inbox live in ONE row of 38px squares under the
+    picture whether or not there IS one, so there is a single place to make
+    art rather than two that drift apart. The stacked-squares button joins
+    that row and appears only once a draw has actually replaced something.
+  - **The colour button stays multicoloured even when a colour is picked** —
+    the pick is already legible on the picture's own frame, and a single
+    filled square stops reading as "colour" at a glance.
+  - **`setBoxes(capOpen, promOpen)` is the one switch** behind both text
+    boxes. Opening the prompt folds the caption away; CLOSING it leaves the
+    caption as she left it rather than forcing it back open.
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
   with `refs/sage-sandy-mirror.png` as the style ref and, by default,

@@ -249,7 +249,7 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* A clip in the beat popup is WATCHABLE — the full card width, not the pad
    tile's ~90px. The never-blow-the-art-up rule is about her drawings; a film
    nobody can see is not a preview. */
-#popvid{width:100%; display:block; border-radius:4px; background:#000;}
+#popvid{width:100%; max-height:100%; display:block; border-radius:4px; background:#000;}
 #popvid.c-mustard{outline:3px solid var(--mustard);} #popvid.c-green{outline:3px solid var(--green);}
 #popvid.c-blue{outline:3px solid var(--blue);} #popvid.c-pink{outline:3px solid var(--pink);}
 #inboxgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:1.2em;}
@@ -267,36 +267,76 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    chips, note, icons — lives ON the card. No scrim. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);}
-#beatcard{width:100%; max-height:100%; box-sizing:border-box; background:var(--barbg);
-  border:1.5px solid var(--line); border-radius:10px; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column;}
-/* margin:auto keeps the content centered inside the card and lets it
-   scroll normally when it's taller than the screen cap (justify-content:
-   center would clip the top of overflowing content). */
-#cardin{margin:auto; width:100%; box-sizing:border-box; padding:20px 16px;
-  display:flex; flex-direction:column; align-items:center; gap:18px;}
-/* The art stays THUMBNAIL-sized in the popup (Sophie: the chosen art isn't
-   big) — openBeat() copies the pad tile's pixel width onto it. */
+  padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
+/* THE CARD IS NEARLY THE WHOLE SCREEN, AND SCREEN-SHAPED (Aug 2026, Sophie:
+   "the whole popup gets bigger, so there's only room enough to comfortably
+   see behind it. similar aspect ratio as total screen (not square)"). It
+   used to be only as tall as its contents, which on a beat with a small
+   picture left a squat card floating in the middle. height:100% of a
+   padded fixed inset IS the screen's own shape, minus the strip of pad
+   showing all round it — and that strip is still the tap-out target. */
+#beatcard{width:100%; height:100%; box-sizing:border-box; background:var(--barbg);
+  border:1.5px solid var(--line); border-radius:10px;
+  display:flex; flex-direction:column; overflow:hidden;}
+/* A thin strip that never scrolls, so the colour square keeps its corner
+   however long the card's contents get. */
+#cardtop{flex:none; display:flex; justify-content:flex-end; padding:10px 12px 0;}
+#colorwrap{position:relative;}
+/* ONE MULTICOLOURED ROUNDED SQUARE, DROPPING DOWN (Aug 2026, Sophie:
+   "colors become one multicolored rounded square in the corner, drop
+   down"). Five circles in a row cost the card a whole band; the chosen
+   colour is already legible on the picture's own frame, so the button
+   stays multicoloured rather than showing the pick — it reads as "colour"
+   from across the room, which a single filled square would not. */
+#colorbtn{width:32px; height:32px; padding:0; border:none; background:none; cursor:pointer; display:block;}
+#colorbtn svg{width:100%; height:100%; display:block;}
+#colormenu{position:absolute; top:38px; right:0; z-index:2; display:flex; gap:12px;
+  background:var(--barbg); border:1.5px solid var(--line); border-radius:8px; padding:10px 12px;}
+#cardin{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  width:100%; box-sizing:border-box; padding:8px 16px 20px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;}
+/* THE PICTURE IS BIG NOW (Sophie, same message: "that image is bigger by
+   default"). It used to be pinned to the pad tile's ~90px — a thumbnail of
+   a thumbnail. It takes the room the card has left instead: flex:1 with
+   min-height:0, and the image sized by max-height/max-width so a 2:3
+   drawing keeps its shape whatever the screen is. */
+#artwrap{flex:1; min-height:120px; width:100%; display:flex; align-items:center; justify-content:center;}
+#popimg{max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; cursor:pointer;}
 #beatpop img{border:3px solid var(--line); border-radius:4px; background:var(--barbg); display:block; height:auto;}
 #beatpop img.c-mustard{border-color:var(--mustard);} #beatpop img.c-green{border-color:var(--green);}
 #beatpop img.c-blue{border-color:var(--blue);} #beatpop img.c-pink{border-color:var(--pink);}
-.chips{display:flex; gap:16px;}
-.chip{width:36px; height:36px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
+.chip{width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); padding:0; cursor:pointer;}
 .chip.on{outline:2.5px solid var(--ink); outline-offset:3px;}
 .chip.gray{background:#8a8377;} .chip.mustard{background:var(--mustard);}
 .chip.green{background:var(--green);} .chip.blue{background:var(--blue);} .chip.pink{background:var(--pink);}
-#pnote{width:min(80vw,22em); box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+/* TWO TEXT BOXES, ONE OPEN AT A TIME BY DEFAULT (Aug 2026, Sophie: "two
+   text boxes: caption, and drawing prompt. drawing prompt is collapsed by
+   default, and uncollapsing draw prompt automatically collapses the caption
+   but can be manually expanded again"). The label IS the toggle — a quiet
+   serif line with a chevron, not a button-looking button — and opening the
+   prompt folds the caption away, which she can undo by tapping Caption.
+   Both open at once is a state she can reach; neither is a state she can
+   reach by accident, since a tap on a label only ever moves that one. */
+.tbox{width:100%; max-width:26em; display:flex; flex-direction:column; gap:6px;}
+.tlab{display:flex; align-items:center; gap:4px; align-self:flex-start;
+  background:none; border:none; padding:2px 0; cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2); font-style:italic;}
+.tlab .chev{width:14px; height:14px; transition:transform .15s ease;}
+.tlab[aria-expanded="false"] .chev{transform:rotate(-90deg);}
+#pnote{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
-.poprow{display:flex; gap:14px;}
+.poprow{flex:none; display:flex; gap:14px;}
 #speak,#linkbtn,#micbtn,#coverbtn,#delbtn{width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0;
   border:1px solid var(--line); border-radius:6px; background:none; color:var(--ink); cursor:pointer;}
 #speak svg,#linkbtn svg,#micbtn svg,#coverbtn svg,#delbtn svg{width:17px; height:17px;}
 #coverbtn.on{background:var(--ink); color:var(--barbg);}
 /* Every generation this beat has had, all the same size, newest first; the
    one currently on the pad wears the dark ring. Tap one to see it big. */
-#verrow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:88vw;}
+/* Past pictures — hidden until the stacked-squares button asks for them
+   (Sophie: "drawing a new picture replaces the old, but keeps it in the
+   stacked squares icon"). Newest first, the current one ringed. */
+#verrow{flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%;}
 #verrow button{width:44px; aspect-ratio:2/3; padding:0; border:1.5px solid var(--line); border-radius:4px;
   overflow:hidden; background:var(--paper); cursor:pointer;}
 #verrow button.cur{border:2.5px solid var(--ink);}
@@ -313,19 +353,26 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 /* An empty beat's popup: the blank paper tile with two quiet icons in its
    middle — the Playground (make new art) and the inbox (pick from what's
    hearted, straight into THIS beat). */
-#popblank{aspect-ratio:2/3; border:3px solid var(--line); border-radius:4px; background:var(--paper);
-  display:flex; align-items:center; justify-content:center; gap:14px; color:var(--ink2); padding:0;}
-#popblank button{background:none; border:none; padding:4px; color:var(--ink2); cursor:pointer; display:flex;}
-#popblank svg{width:24px; height:24px;}
+/* The blank tile is now just the empty paper at the picture's size — its
+   two icons moved into #artrow under it, beside the star, so the ways to
+   make art sit in ONE place whether the beat has a picture or not. */
+#popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
+  background:var(--paper); box-sizing:border-box;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
-#artrow{display:flex; gap:14px; justify-content:center;}
-#artrow button{background:none; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
-  color:var(--ink); cursor:pointer; display:flex;}
-#artrow svg{width:17px; height:17px;}
+/* THE WAYS TO ART, IN ROUNDED SQUARES, UNDER THE PICTURE (Aug 2026,
+   Sophie: "stars, playground and inbox buttons get put into rounded
+   squares and go under the main (currently chosen) image"). 38px SQUARES —
+   the tap target, house radius 6px — never pills. The fourth, stacked
+   squares, opens the past pictures and shows only when there are some. */
+#artrow{flex:none; display:flex; gap:12px; justify-content:center;}
+#artrow button{width:38px; height:38px; padding:0; background:none; border:1px solid var(--line);
+  border-radius:6px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;}
+#artrow button.on{background:var(--ink); color:var(--barbg); border-color:var(--ink);}
+#artrow svg{width:18px; height:18px;}
 /* Drawing right here: prompt (defaults to the beat's words), Sophie on/off,
    quality, Draw. The STYLE is never asked — one style per story. */
-#drawbox{width:min(80vw,22em); display:flex; flex-direction:column; gap:8px;}
+#drawbox{width:100%; display:flex; flex-direction:column; gap:8px;}
 #dprompt{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:16px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line);
   border-radius:6px; padding:10px 12px; resize:none;}
@@ -496,37 +543,48 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
 </div>
 
 <div id="beatpop" hidden>
-  <div id="beatcard"><div id="cardin">
-  <div id="artrow" hidden>
-    <button id="ardraw" aria-label="Draw it again here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
-    <button id="arplay" aria-label="Make different art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
-    <button id="arinbox" aria-label="Swap in a picture from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <img id="popimg" alt="">
-  <video id="popvid" hidden playsinline preload="metadata" controls></video>
-  <div id="verrow" hidden></div>
-  <div id="popblank" hidden>
-    <button id="pbdraw" aria-label="Draw it here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
-    <button id="pbplay" aria-label="Make its art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
-    <button id="pbinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
-  </div>
-  <div class="chips">
-    <button class="chip gray" data-c=""></button>
-    <button class="chip mustard" data-c="mustard"></button>
-    <button class="chip green" data-c="green"></button>
-    <button class="chip blue" data-c="blue"></button>
-    <button class="chip pink" data-c="pink"></button>
-  </div>
-  <div id="genstate" hidden></div>
-  <div id="drawbox" hidden>
-    <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
-    <div class="drawrow">
-      <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
-      <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
-      <button id="dgo">Draw</button>
+  <div id="beatcard">
+  <div id="cardtop">
+    <div id="colorwrap">
+      <button id="colorbtn" aria-label="Frame color"><svg viewBox="0 0 24 24" aria-hidden="true"><clipPath id="csq"><rect x="2" y="2" width="20" height="20" rx="5"/></clipPath><g clip-path="url(#csq)"><rect x="2" y="2" width="10" height="10" fill="var(--mustard)"/><rect x="12" y="2" width="10" height="10" fill="var(--green)"/><rect x="2" y="12" width="10" height="10" fill="var(--blue)"/><rect x="12" y="12" width="10" height="10" fill="var(--pink)"/></g><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.5"/></svg></button>
+      <div id="colormenu" hidden>
+        <button class="chip gray" data-c="" aria-label="No frame"></button>
+        <button class="chip mustard" data-c="mustard" aria-label="Mustard frame"></button>
+        <button class="chip green" data-c="green" aria-label="Green frame"></button>
+        <button class="chip blue" data-c="blue" aria-label="Blue frame"></button>
+        <button class="chip pink" data-c="pink" aria-label="Pink frame"></button>
+      </div>
     </div>
   </div>
-  <textarea id="pnote" rows="3"></textarea>
+  <div id="cardin">
+  <div id="artwrap">
+    <img id="popimg" alt="">
+    <video id="popvid" hidden playsinline preload="metadata" controls></video>
+    <div id="popblank" hidden></div>
+  </div>
+  <div id="artrow" hidden>
+    <button id="ardraw" aria-label="Draw it here"><svg viewBox="0 0 100 100" fill="currentColor" stroke="none"><path d="M 55.8 31.9C52.8 32.3 53.9 36.4 53.2 38.5C52.5 44.4 52.0 51.0 47.3 55.3C42.9 59.9 36.4 60.6 30.4 61.3C28.2 61.9 24.2 60.8 23.9 64.0C24.4 67.0 28.4 65.9 30.6 66.6C36.5 67.4 43.0 68.0 47.3 72.6C52.0 76.9 52.5 83.5 53.3 89.4C54.0 91.5 52.7 95.5 55.8 95.9C59.0 95.6 57.9 91.6 58.5 89.4C59.4 83.5 60.0 76.9 64.6 72.6C68.8 68.0 75.4 67.3 81.2 66.5C83.4 65.8 87.4 67.0 87.9 64.0C87.7 60.8 83.6 61.9 81.5 61.2C75.5 60.5 68.9 59.9 64.6 55.2C59.9 51.0 59.3 44.5 58.5 38.5C57.9 36.4 59.0 32.2 55.8 31.9Z"/><path d="M 25.8 21.9C24.5 22.2 25.1 23.9 24.7 24.8C24.4 27.4 24.3 30.3 22.3 32.2C20.4 34.3 17.4 34.4 14.8 34.7C13.9 35.0 12.2 34.5 11.9 35.8C12.0 37.2 13.9 36.8 14.8 37.0C17.4 37.4 20.4 37.4 22.3 39.5C24.3 41.4 24.4 44.3 24.7 46.9C25.0 47.9 24.5 49.6 25.8 49.9C27.2 49.8 26.8 48.0 27.0 47.1C27.4 44.4 27.4 41.4 29.6 39.5C31.5 37.4 34.5 37.4 37.1 37.0C38.0 36.8 39.8 37.2 39.9 35.8C39.6 34.5 37.9 35.0 36.9 34.7C34.3 34.4 31.4 34.3 29.5 32.3C27.4 30.4 27.4 27.4 27.0 24.8C26.8 23.9 27.2 22.0 25.8 21.9Z"/><path d="M 47.9 4.9C47.1 5.1 47.3 6.2 47.2 6.9C47.1 8.5 46.7 10.3 45.5 11.5C44.3 12.7 42.5 13.1 40.8 13.2C40.2 13.3 39.0 13.1 38.9 14.0C39.2 14.8 40.2 14.4 40.8 14.6C42.5 14.7 44.2 15.0 45.4 16.3C46.8 17.5 47.1 19.3 47.2 21.0C47.3 21.6 47.1 22.8 47.9 22.8C48.7 22.7 48.4 21.6 48.6 21.0C48.6 19.3 49.1 17.5 50.4 16.2C51.6 15.0 53.3 14.6 55.0 14.6C55.6 14.4 56.6 14.8 56.8 14.0C56.8 13.1 55.6 13.3 55.0 13.2C53.3 13.1 51.5 12.8 50.3 11.5C49.1 10.3 48.6 8.5 48.6 6.9C48.4 6.2 48.8 5.1 47.9 4.9Z"/></svg></button>
+    <button id="arplay" aria-label="Make its art in the Playground"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"> <g transform="translate(1.47 0) scale(0.09510)" fill="#000" stroke="none"> <g transform="translate(0,673) scale(0.1,-0.1)"> <path d="M3145 6720 c-7 -12 -58 -175 -91 -293 l-19 -69 -96 7 c-108 8 -150 -5 -171 -50 -13 -30 -4 -29 -103 -8 -119 25 -497 25 -620 0 -279 -57 -515 -175 -704 -353 -228 -215 -341 -450 -357 -744 -15 -263 37 -431 236 -766 101 -169 140 -248 179 -357 17 -49 31 -90 31 -93 0 -2 -13 -4 -30 -4 -22 0 -31 5 -35 23 -3 12 -19 80 -35 152 -39 178 -36 175 -223 175 -134 0 -149 -2 -267 -36 -159 -46 -180 -65 -180 -157 1 -52 13 -213 23 -280 2 -15 -20 -27 -107 -60 -94 -37 -112 -47 -122 -72 -17 -39 -17 -106 1 -178 l13 -58 -51 -38 c-132 -98 -289 -286 -365 -440 l-47 -94 -3 -235 c-3 -233 -3 -235 22 -286 83 -169 254 -294 596 -436 273 -114 371 -181 467 -321 l31 -45 -130 -144 c-256 -284 -597 -676 -637 -732 -12 -16 -15 -78 -18 -314 l-3 -295 24 -24 c30 -29 68 -32 586 -45 217 -5 553 -14 745 -20 626 -18 1506 -30 2165 -29 l645 0 55 63 c30 35 136 153 235 262 99 110 256 285 349 389 93 105 184 204 203 222 18 18 38 45 44 60 8 18 11 120 11 299 -1 291 -7 330 -52 354 -13 7 -105 14 -236 17 l-215 6 58 59 c149 152 351 267 663 378 320 114 423 168 555 291 84 79 131 142 183 245 72 144 73 154 70 416 l-3 233 -32 64 c-86 169 -247 296 -429 336 -128 29 -116 18 -144 130 -14 55 -29 108 -33 118 -13 33 -74 50 -164 44 l-81 -5 -12 82 c-6 44 -16 114 -22 155 -15 103 -31 120 -133 133 -110 14 -262 5 -372 -21 -131 -32 -138 -41 -146 -203 -4 -68 -4 -151 -1 -184 l6 -60 -87 -25 c-115 -32 -135 -54 -135 -147 1 -37 7 -96 15 -132 20 -93 19 -117 -6 -125 -46 -15 -261 -190 -369 -301 -274 -281 -551 -653 -676 -909 -66 -135 -132 -321 -155 -438 l-13 -68 -130 3 -131 3 -8 105 c-20 270 72 996 183 1440 42 166 103 351 177 540 102 258 159 363 368 685 128 197 230 395 266 520 21 69 24 101 24 240 0 140 -3 169 -23 235 -36 115 -89 207 -166 288 l-69 72 9 58 c15 101 11 187 -9 210 -10 11 -57 32 -103 47 -83 26 -85 28 -79 54 37 146 50 217 50 278 0 91 -11 103 -150 164 l-100 44 -192 3 c-135 2 -193 0 -198 -8z m-520 -605 c44 -10 83 -20 86 -23 4 -4 1 -41 -7 -82 -7 -41 -13 -108 -14 -148 0 -91 18 -114 106 -132 96 -19 94 -17 94 -61 0 -56 23 -105 62 -129 45 -29 163 -25 205 6 23 17 54 62 66 97 1 4 17 5 35 1 32 -6 32 -7 32 -66 0 -55 3 -63 34 -94 33 -33 36 -34 116 -34 82 0 82 0 121 39 22 22 39 48 39 61 0 17 4 21 18 15 33 -13 147 -17 174 -6 16 6 36 24 47 41 l18 31 27 -36 c69 -90 110 -215 108 -325 -2 -153 -81 -331 -286 -649 -210 -324 -269 -438 -378 -721 -155 -404 -237 -747 -308 -1295 -35 -273 -50 -472 -50 -674 l0 -194 -241 6 c-133 4 -244 9 -247 11 -11 11 24 195 70 366 69 258 84 329 102 460 25 194 28 250 16 383 -39 455 -271 788 -635 915 -95 33 -152 43 -280 50 l-119 7 -12 72 c-30 175 -83 301 -242 570 -120 202 -155 278 -188 402 -40 155 -30 288 36 458 45 117 118 224 229 333 193 192 426 311 696 355 114 18 357 13 470 -10z m-765 -2395 c295 -70 505 -291 597 -627 23 -85 26 -118 27 -248 0 -172 -20 -294 -99 -589 -63 -236 -72 -277 -86 -397 l-12 -107 -116 -6 c-64 -3 -290 -9 -502 -12 l-385 -6 -18 28 c-111 174 -239 266 -546 394 -330 138 -451 227 -527 387 -29 60 -36 87 -36 133 2 153 108 354 275 522 48 49 92 88 98 88 5 0 10 -8 10 -18 0 -29 44 -63 87 -68 21 -3 74 1 118 8 l80 14 20 -41 c25 -51 72 -75 145 -75 100 0 160 55 160 146 0 33 4 43 19 47 15 4 20 -2 25 -28 6 -32 33 -63 73 -84 36 -18 129 -13 173 9 49 25 70 64 70 128 l0 50 73 10 c61 9 76 16 100 42 23 26 27 39 27 88 0 53 -8 118 -26 200 l-6 32 48 0 c27 0 87 -9 134 -20z m4196 -296 c124 -88 204 -235 204 -378 0 -166 -117 -396 -266 -519 -98 -82 -194 -132 -401 -208 -296 -109 -361 -137 -467 -195 -181 -101 -327 -225 -452 -384 l-49 -63 -160 7 c-310 13 -836 44 -842 50 -9 8 52 196 98 303 73 172 153 303 323 528 130 172 276 345 391 461 103 104 277 241 283 224 2 -6 17 -17 34 -26 24 -13 48 -14 122 -9 l92 7 12 -39 c19 -64 52 -87 131 -91 90 -5 136 15 162 72 10 23 19 58 19 79 0 20 3 37 8 37 4 0 16 -24 27 -53 25 -65 63 -87 148 -87 103 0 157 47 157 135 l0 53 92 13 c120 16 138 32 138 118 l0 61 66 -25 c37 -14 95 -46 130 -71z m-3766 -1997 c0 -158 5 -167 95 -167 93 0 98 11 89 169 l-7 121 267 0 266 0 0 -30 c0 -32 40 -243 66 -344 31 -125 41 -136 122 -136 90 0 111 60 69 200 -26 86 -67 267 -67 295 0 12 16 15 88 15 106 0 132 -6 132 -31 0 -37 36 -59 94 -59 47 0 57 4 75 26 12 15 21 33 21 40 0 11 10 13 38 9 20 -2 181 -12 357 -20 176 -9 361 -18 411 -21 l92 -6 -54 -91 c-46 -78 -54 -100 -54 -143 0 -70 15 -86 83 -92 68 -5 73 -1 164 155 37 62 78 126 92 142 l26 30 158 -7 158 -7 -187 -215 c-103 -118 -268 -306 -367 -417 l-179 -203 -226 0 c-281 1 -1228 15 -1902 30 -486 10 -1571 48 -1579 55 -4 5 120 149 378 438 107 120 197 214 201 210 10 -11 40 -149 40 -185 0 -31 16 -68 34 -80 6 -4 35 -8 65 -8 76 0 91 16 91 97 0 64 -30 221 -55 294 l-14 39 27 1 c231 11 423 16 635 17 l257 2 0 -123z m2911 -233 l-2 -86 -207 -232 c-114 -127 -272 -304 -352 -393 l-145 -161 -3 79 c-2 53 1 86 10 98 12 17 136 158 537 613 86 97 158 174 160 172 3 -2 4 -43 2 -90z m-4281 -679 c556 -21 2082 -55 2725 -60 231 -1 473 -3 538 -4 l118 -1 -3 -137 -3 -138 -345 3 c-190 2 -514 8 -720 13 -206 6 -609 14 -895 19 -681 10 -1798 41 -1807 49 -8 7 2 271 11 271 3 0 175 -7 381 -15z"/> </g> </g> </svg></button>
+    <button id="arinbox" aria-label="Pick from the inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
+    <button id="arvers" hidden aria-label="Past pictures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h12a1 1 0 0 1 1 1v12"/><path d="M6 7h11a1 1 0 0 1 1 1v11"/><rect x="3" y="10" width="12" height="11" rx="1"/></svg></button>
+  </div>
+  <div id="verrow" hidden></div>
+  <div id="genstate" hidden></div>
+  <div class="tbox" id="capbox">
+    <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <textarea id="pnote" rows="3"></textarea>
+  </div>
+  <div class="tbox" id="prombox">
+    <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div id="drawbox" hidden>
+      <textarea id="dprompt" rows="3" placeholder="what to draw"></textarea>
+      <div class="drawrow">
+        <button id="dchar" class="on" aria-label="Draw Sophie from her reference"><img src="/scratchpad-sophie.png" alt="Sophie"></button>
+        <select id="dq" aria-label="Quality"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+        <button id="dgo">Draw</button>
+      </div>
+    </div>
+  </div>
   <div class="poprow">
     <button id="speak" aria-label="Hear it in your voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg></button>
     <button id="micbtn" aria-label="Record yourself reading it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
@@ -1484,30 +1542,28 @@ function openBeat(b){
   // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
-  // Same size as it sits on the pad — the popup never blows the ART up. A
-  // CLIP is the exception and takes the card's width: it is a film, and one
-  // playing at 90px is not a preview.
-  var tile=document.querySelector('#pad .beat');
-  var w=(tile?tile.offsetWidth:90)+'px';
+  // The picture takes the room the card has left (Sophie: "that image is
+  // bigger by default") — CSS sizes it inside #artwrap, so nothing here
+  // pins a pixel width the way the old thumbnail-sized popup did.
   im.hidden=clip||!su.url; bl.hidden=clip||Boolean(su.url); vid.hidden=!clip;
-  bl.style.width=w;
   if(clip){
     if(vid.src!==su.url){ vid.src=su.url; }
     if(su.poster) vid.poster=su.poster; else vid.removeAttribute('poster');
     vid.className=b.color?'c-'+b.color:'';
-  } else if(su.url){ im.style.width=w; im.src=su.url; im.className=b.color?'c-'+b.color:''; }
+  } else if(su.url){ im.src=su.url; im.className=b.color?'c-'+b.color:''; }
   else { bl.className=b.color?'c-'+b.color:''; }
-  document.querySelectorAll('.chip').forEach(function(c){
-    c.classList.toggle('on',(c.getAttribute('data-c')||null)===(b.color||null));
-  });
+  paintChips(b.color||null);
+  closeColors();
   document.getElementById('pnote').value=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
-  // ringed. Only shows once there is more than the current picture.
+  // ringed — folded behind the stacked-squares button, which only appears
+  // once a draw has actually replaced something.
   var vr=document.getElementById('verrow'); vr.innerHTML='';
   var vers=((su.url&&!clip)?[su.url]:[]).concat((su.imageHistory||[]).slice().reverse().map(function(h){return h.url;}).filter(Boolean));
-  vr.hidden=vers.length<2;
+  var av=document.getElementById('arvers');
+  av.hidden=vers.length<2; av.classList.remove('on'); vr.hidden=true;
   if(vers.length>1){
     vers.forEach(function(u,i){
       var t=document.createElement('button'); if(i===0&&su.url)t.className='cur';
@@ -1528,21 +1584,22 @@ function openBeat(b){
   var myUnit=-1; units.forEach(function(u,ui){ if(u.members.indexOf(b)>=0) myUnit=ui; });
   lb.hidden=!(myUnit>=0 && myUnit<units.length-1);
   ub.hidden=!b.chunk;
-  // The two ways to (re)make art: above the picture when there is one, in
-  // the blank tile when there isn't. NEITHER on a clip — nothing here draws
-  // a film, and a picture-maker over one would only ever replace it.
-  document.getElementById('artrow').hidden=clip||!su.url;
-  // Drawing here: the prompt starts as the beat's own words.
-  var db_=document.getElementById('drawbox');
-  db_.hidden=true;
+  // The three ways to art sit UNDER the picture in one row now, whether or
+  // not there is a picture yet — the blank tile no longer carries its own
+  // pair. NEVER on a clip: nothing here draws a film, and a picture-maker
+  // over one would only ever replace it.
+  document.getElementById('artrow').hidden=clip;
+  // Drawing here: the prompt starts as the beat's own prompt or its words,
+  // and the box opens COLLAPSED (her rule) with the caption showing.
   document.getElementById('dprompt').value=promptOf(b);
+  setBoxes(true,false);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
   var drawing=Boolean(su.gen&&su.gen.status==='drawing');
   st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
-  if(drawing){ document.getElementById('artrow').hidden=true; bl.hidden=false; }
+  if(drawing){ bl.hidden=clip; im.hidden=true; }
   // A clip's own sound IS its voice — the film plays the tape rather than
   // reading her note over it — so the speak and record icons come off
   // instead of sitting there promising something the render won't do.
@@ -1578,12 +1635,15 @@ function openDraw(ev){
   ev.stopPropagation();
   if(!popBeat)return;
   var box=document.getElementById('drawbox');
-  box.hidden=!box.hidden;
+  var opening=box.hidden;
+  if(!opening)savePrompt();
+  // Opening the prompt folds the caption away (her rule); closing it leaves
+  // the caption as she left it rather than forcing it back open.
   // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
-  // her card is the watercolor look, the wrong reference there) — so the
-  // toggle comes off rather than sitting there doing nothing.
-  document.getElementById('dchar').hidden=(padStyle==='dreamy');
-  if(!box.hidden){
+  // her card is the watercolor look, the wrong reference there) — setBoxes
+  // takes the toggle off rather than leaving it there doing nothing.
+  setBoxes(opening?false:document.getElementById('caplab').getAttribute('aria-expanded')==='true', opening);
+  if(opening){
     // A prompt she already wrote wins; otherwise the seed is whatever the
     // text box says RIGHT NOW — not the beat's last SAVED text (words typed
     // seconds ago aren't saved until the popup closes, and the stale prefill
@@ -1596,8 +1656,16 @@ function openDraw(ev){
     document.getElementById('dprompt').focus();
   }
 }
-document.getElementById('pbdraw').onclick=openDraw;
 document.getElementById('ardraw').onclick=openDraw;
+/* The stacked squares: past pictures fold out under the row and fold back.
+   A toggle, not a trip somewhere else — she is comparing against the one
+   on screen. */
+document.getElementById('arvers').onclick=function(ev){
+  ev.stopPropagation();
+  var vr=document.getElementById('verrow');
+  vr.hidden=!vr.hidden;
+  this.classList.toggle('on',!vr.hidden);
+};
 document.getElementById('drawbox').onclick=function(ev){ev.stopPropagation();};
 document.getElementById('dchar').onclick=function(ev){
   ev.stopPropagation();
@@ -1650,12 +1718,6 @@ function startGenPoll(){
     }).catch(function(){});
   },4000);
 }
-/* The blank tile's two icons: make new art in the Playground, or pick from
-   the inbox straight into THIS beat. */
-document.getElementById('pbplay').onclick=function(ev){
-  ev.stopPropagation();
-  location.href='/playground?from=scratchpad';
-};
 function inboxIntoBeat(ev){
   ev.stopPropagation();
   if(!popBeat)return;
@@ -1664,29 +1726,60 @@ function inboxIntoBeat(ev){
   document.getElementById('beatpop').hidden=true; popBeat=null;
   openInbox();
 }
-document.getElementById('pbinbox').onclick=inboxIntoBeat;
 document.getElementById('arinbox').onclick=inboxIntoBeat;
 document.getElementById('arplay').onclick=function(ev){
   ev.stopPropagation();
   location.href='/playground?from=scratchpad';
 };
-/* A chip sets the frame color and the popup STAYS open (there's a text box
-   here now); tapping outside the controls is what closes it. */
-document.querySelectorAll('.chip').forEach(function(c){
+/* ── the frame colour: one square in the corner, dropping down ────── */
+function paintChips(col){
+  document.querySelectorAll('#colormenu .chip').forEach(function(x){
+    x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
+  });
+}
+function closeColors(){ document.getElementById('colormenu').hidden=true; }
+document.getElementById('colorbtn').onclick=function(ev){
+  ev.stopPropagation();
+  var m=document.getElementById('colormenu');
+  m.hidden=!m.hidden;
+};
+document.getElementById('colormenu').onclick=function(ev){ev.stopPropagation();};
+/* A chip sets the frame color, shuts the drop-down, and the popup STAYS
+   open (there are text boxes here); tapping outside is what closes it. */
+document.querySelectorAll('#colormenu .chip').forEach(function(c){
   c.onclick=function(ev){
     ev.stopPropagation();
     var col=c.getAttribute('data-c')||null;
     if(!popBeat)return;
     popBeat.color=col;
     document.getElementById(clipOf(popBeat)?'popvid':(slotOf(popBeat).url?'popimg':'popblank')).className=col?'c-'+col:'';
-    document.querySelectorAll('.chip').forEach(function(x){
-      x.classList.toggle('on',(x.getAttribute('data-c')||null)===col);
-    });
+    paintChips(col);
+    closeColors();
     api('/color',{method:'POST',body:JSON.stringify({id:popBeat.id,color:col})})
       .then(function(r){return r.json()})
       .then(function(d){if(d.beats)beats=d.beats;});
   };
 });
+/* ── the two text boxes: caption and drawing prompt ───────────────── */
+/* Opening the PROMPT folds the caption away — the two together are taller
+   than the card wants to be once the picture is big. She can always tap
+   Caption to bring it back and have both. */
+function setBoxes(capOpen, promOpen){
+  var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
+  document.getElementById('pnote').hidden=!capOpen;
+  document.getElementById('drawbox').hidden=!promOpen;
+  cl.setAttribute('aria-expanded',capOpen?'true':'false');
+  pl.setAttribute('aria-expanded',promOpen?'true':'false');
+  document.getElementById('dchar').hidden=(padStyle==='dreamy');
+}
+document.getElementById('caplab').onclick=function(ev){
+  ev.stopPropagation();
+  var open=this.getAttribute('aria-expanded')==='true';
+  if(open)savePrompt();
+  setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
+  if(!open)document.getElementById('pnote').focus();
+};
+document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
 /* Returns a promise so the speech icon can wait for a fresh note to land
    server-side before asking for its audio. */
