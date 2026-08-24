@@ -732,7 +732,9 @@ The style/character references the app attaches automatically. **These are the
 names Sophie picked, so use them when talking to her about a look** — she named
 them off the reference sheet, not off the old filenames.
 - `refs/sage-sandy-mirror.png` — **sage sandy mirror**, her scanned
-  ink-and-watercolour page ("datescan0013"). The Playground's ChatGPT style,
+  ink-and-watercolour page ("datescan0013"). The Playground's **Sandy mirror**
+  style (called ChatGPT until 2026-08-24 — the tile called ChatGPT now attaches
+  no reference at all),
   the Story Room's "draw it here", the Evan film. Was `evan-film-style.png`.
 - `refs/sophie-book.png` — **sophie book**, the character card behind the
   Sophie toggle. Was `sophie-character.png`.
@@ -2600,10 +2602,34 @@ before working on that module. Nothing was deleted — the moved text is verbati
 ### Pictures
 - **Playground** (`/playground`, `public/promptlab.html` + `/api/promptlab`, iOS
   tile) — the prompt tester. Fixed recipe per style so runs stay comparable: ONE
-  image a run, 2:3, Generate is the stars icon. Six styles: WTR (the only
-  Replicate LoRA), ChatGPT, **Dreamy**, Scarry, Pastel, Hoonies (all gpt-image-2
-  edits with her own scans attached as style refs, kept in `PL_GPT_STYLES` in
-  server.js).
+  image a run, 2:3, Generate is the stars icon. Seven styles: WTR (the only
+  Replicate LoRA), **Sandy mirror**, **ChatGPT**, **Dreamy**, Scarry, Pastel,
+  Hoonies (all gpt-image-2, her own scans attached as style refs, kept in
+  `PL_GPT_STYLES` in server.js).
+  **SANDY MIRROR AND CHATGPT ARE TWO TILES SINCE 2026-08-24 (Sophie: "add one
+  more endpoint option to the playground, which is called ChatGPT and change
+  the one that's called ChatGPT right now to make it be called Sandy mirror.
+  the ChatGPT new one will have no reference image").** The tile that attaches
+  `refs/sage-sandy-mirror.png` is **Sandy mirror**; the new **ChatGPT** tile
+  attaches NOTHING — her words to gpt-image-2 alone, no style reference, no
+  baked prefix, no baked tail, no Sophie card.
+  **THE KEYS DID NOT MOVE — only the label.** `evan` (server) / `chatgpt`
+  (page) are stored in every run doc, every `?style=` deep link and her
+  localStorage prompt overrides, so renaming either would orphan all of it. The
+  new tile is `plain` in both tables.
+  **IT IS LITERALLY A DIFFERENT ENDPOINT, which is why she called it one:** with
+  no images to attach there is nothing to EDIT, so `runPromptLabGptJob` picks by
+  `refs.length` — empty goes to `openaiImage` (`/v1/images/generations`),
+  anything else to `openaiImageEditRefs` (`/v1/images/edits`). Same model,
+  quality, canvas, `moderation:'low'`, webp, no `output_compression`. **The
+  choice is the ARRAY, never the style id** — attaching her own photo gives a
+  plain run one image and it belongs on edits, and its photo line is a
+  different sentence there (`PL_GPT_STYLES.plain.photoLine`, served per style)
+  because the house one names a style reference this tile does not have.
+  A picture made here carries NO evidence of where it came from — no reference
+  filename, no baked prefix — so `playground-port.js` marks it `evidence:false`
+  and nothing ever routes back onto it. Don't invent a fragment to fix that.
+  Test: `node scripts/test-playground-plain.js`.
   **DREAMY = `refs/dream-mystery.jpg`, added Aug 2026 at Sophie's ask** ("add
   the other main style reference we use in the chat, which can be called
   dreamy"). It was the most-used reference in the repo with no tile — 270 filed
