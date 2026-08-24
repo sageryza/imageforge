@@ -2206,6 +2206,27 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   running autoscroll first. Source is `scripts/pill.py` (re-run
   `python3 scripts/gen-pill-inject.py` after editing); full rules in
   `docs/design-rules.md`, pinned by `node scripts/test-back-to-top.js`.
+  - **THERE IS A SECOND PILL AND IT DRIFTS — `mkPagePill` in `chats.html`
+    (2026-08-24, Sophie on a Compare page: "the auto scroll doesn't work on my
+    image prompt artifact so I can't scroll back up only down").** A Compare
+    page opened in the app runs in an IFRAME, and iOS renders `position:fixed`
+    unreliably inside one, so the pill she taps there lives in the PARENT page
+    and scrolls the frame — a whole second implementation, which no pill
+    resync and no `gen-*.py` touches. It had missed both of the shared pill's
+    can't-get-back-up rules: it never grew a back-to-top at all, and **resume
+    was a hardcoded `start(1)`** on the ‖ and on the tap-to-toggle, so pausing
+    an upward scroll sent her DOWN on the next tap and the ▲ had to be found
+    again every time. Both agree with `dir` now. **`__scrollTap` in the shared
+    pill had the same hardcoded 1** and was fixed with them.
+  - **CHANGE THE PILL? CHANGE BOTH.** `scripts/pill.py` → regenerate →
+    hand-patch the five baked copies (`chats.html`, `gallery.html`,
+    `storyroom.html`, `wall.html`, `writing.html`) → and `mkPagePill`.
+    `node scripts/test-page-viewer-pill.js` drives the REAL `mkPagePill` over
+    a real iframe (verified failing 4 pre-fix) and `test-back-to-top.js`
+    sweeps the baked copies.
+  - **The app's copy has no `id="ptop"` on purpose** — `chats.html`'s own pill
+    owns that id and the sweep above counts exactly one per file; the viewer's
+    button is `class="ptop"` only.
 - **TRUNCATED TEXT OPENS WITH AN UNDERLINED WORD, NEVER A BUTTON (Aug 2026,
   Sophie: "the ... button for longer than two line prompt is huge … truncated
   text shud always just be a ...with a line under it that links to open
