@@ -317,16 +317,19 @@ t('the generate glyph is the house star, character for character', () => {
   assert.ok(PAGE.includes(star[1]), 'panels.html carries the identical glyph');
 });
 
-t('the slider is the Playground’s .swtog, geometry for geometry', () => {
-  // The same control in two tools must not drift — she asked for them to be
-  // identical there and this is a third copy of the same shape.
-  const lab = fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8');
-  for (const prop of ['--tw: 78px', '--k: 26px', '--gap: 22px', 'height: 34px', 'border-radius: 17px']) {
-    assert.ok(lab.includes(prop), `promptlab declares ${prop}`);
-    assert.ok(PAGE.includes(prop), `panels declares ${prop}`);
+t('the slider is the SHARED three-way shell, not a copy of it', () => {
+  // This block used to be "LIFTED VERBATIM from promptlab.html" and was pinned
+  // against that file property by property. The geometry lives in
+  // /tritoggle.css now (Aug 2026, Sophie: "make a reusable three toggle shell
+  // so we can change the styling all at once"), so what this asserts is that
+  // the page links it and keeps only its own colour and size.
+  assert.ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(PAGE), 'the page links the shell');
+  assert.ok(!/\.swtog/.test(PAGE), 'and has no leftover hand-copy of the old rule');
+  for (const prop of ['--tri-track: #2b2622', '--tri-knob: #faf7f2', '--tri-w: 78px', '--tri-k: 26px']) {
+    assert.ok(PAGE.includes(prop), 'the instance still declares ' + prop);
   }
-  assert.ok(/\.swtog\[data-n="2"\]::after \{ transform: translateX\(calc\(var\(--gap\) \* 2\)\)/.test(PAGE),
-    'the stops are derived from --gap, not typed');
+  assert.ok(!/\.tri \{[^}]*(position|transition|border-radius)\s*:/.test(PAGE),
+    'the instance carries colour and size only, never the geometry');
 });
 
 t('server.js mounts it, and hands it every dependency it names', () => {

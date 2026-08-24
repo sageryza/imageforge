@@ -582,43 +582,94 @@ function orderRank(src, pos, phraseRe) {
 // safe direction for the smaller pile.
 const SEARCH_WHO = ['all', 'me', 'claude'];
 const whoOf = (from) => (from === 'sophie' ? 'me' : 'claude');
-// An unknown value is `all`, never an empty result — a filter she cannot see
-// (an old cached page sending a word this server never learned) must widen
-// the answer, not silently delete it.
-const whoParam = (v) => (SEARCH_WHO.indexOf(String(v || '').toLowerCase().trim()) > 0
-  ? String(v).toLowerCase().trim() : 'all');
+// ONE reader for every search filter, because they all fail the same way: an
+// unknown value must be `all`, never an empty result. A filter she cannot see
+// — an old cached page sending nothing, or a word this server has not learned
+// yet — has to WIDEN the answer rather than silently delete results. `all` is
+// index 0 of every list, so anything that does not land past it is `all`.
+const pickOne = (v, list) => {
+  const w = String(v || '').toLowerCase().trim();
+  return list.indexOf(w) > 0 ? w : 'all';
+};
+const whoParam = (v) => pickOne(v, SEARCH_WHO);
 const whoMatches = (who, from) => who === 'all' || whoOf(from) === who;
+
+// ---- THE ARCHIVE — the second filter (Aug 2026, Sophie: "another filter to
+// add can be archived as in does it search the archive or not or just the
+// archive") ------------------------------------------------------------------
+// Three options, which is why it is a three-way toggle and not a checkbox: the
+// two useful narrowings are opposites, and neither is the default. Search has
+// always covered EVERYTHING, so `all` stays what it always was and the two new
+// answers are hers to reach for.
+//   all  — everywhere, the old behaviour and what an older page still sends
+//   live — skip the archive: what she is still working on
+//   only — the archive alone: an old chat she remembers but has put away
+// It filters by CHAT, not by message: `archived` is a flag on the registry
+// doc, so the set of archived slugs is one read of the cache the route already
+// takes for the name rows.
+const SEARCH_ARCH = ['all', 'live', 'only'];
+const archParam = (v) => pickOne(v, SEARCH_ARCH);
+const archMatches = (arch, isArchived) => arch === 'all'
+  || (arch === 'only' ? !!isArchived : !isArchived);
+
+// ONLY THE FIRST THREE NAME ROWS (Aug 2026, Sophie: "right now, the name
+// instances in the name are pinned to the top just pin the first three
+// instances and then show content results"). A common word matches a dozen
+// chat NAMES, and ten of those pinned above the fold pushed the message she
+// was actually looking for off the first screen — the name rows are a
+// shortcut to the obvious answer, not a second list to read through.
+// Newest-seen first, so the three she gets are the three she is most likely to
+// have meant.
+const NAME_ROWS = 3;
+function pickNameRows(reg, groups, arch) {
+  if (!reg || !reg.chats) return [];
+  return Object.keys(reg.chats)
+    // The ARCHIVE filter is about the chat, so a name row obeys it like any
+    // hit. (The WHO filter is not: a name was said by nobody, which is why the
+    // caller drops these rows entirely while a side is picked.)
+    .filter((slug) => archMatches(arch, reg.chats[slug].archived))
+    .map((slug) => ({
+      chat: slug,
+      name: reg.chats[slug].displayName || slug,
+      lastSeen: reg.chats[slug].lastSeen || '',
+    }))
+    .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
+    .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+    .slice(0, NAME_ROWS)
+    .map((c) => ({ chat: c.chat, name: c.name }));
+}
 
 router.get('/search', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const q = String(req.query.q || '').trim();
     const who = whoParam(req.query.from);
+    const arch = archParam(req.query.arch);
     if (q.length < 2) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
     await refreshSearchIndex();
     const groups = compileQuery(q);
     if (!groups.length) return res.json({ results: [], chatMatches: [], indexed: searchIndex.length });
+    // The registry is read for the name rows AND for the archive filter, so it
+    // is taken once, up front. `registry()` is the feed's own 5-minute cache —
+    // never open a second one.
+    let reg = null;
+    try { reg = await registry(); }
+    catch (e) { /* the message search still answers without it */ }
+    const archivedChat = (slug) => !!((reg && reg.chats && reg.chats[slug]) || {}).archived;
     // Chats whose NAME matches the query — Sophie's display name first, the
     // slug as fallback — returned separately so the client can pin them at
     // the top of the results (her rule: searching a chat's name should find
     // the chat itself before any message-content hits).
     // A chat's NAME was said by nobody, so it is not an answer to "show me my
     // messages" — the name rows come off while a side is picked rather than
-    // sitting above results that all share one voice.
-    let chatMatches = [];
-    if (who === 'all') try {
-      const reg = await registry();
-      chatMatches = Object.keys(reg.chats || {})
-        .map((slug) => ({ chat: slug, name: (reg.chats[slug].displayName || slug), lastSeen: reg.chats[slug].lastSeen || '' }))
-        .filter((c) => queryMatches(`${c.name}\n${c.chat}`, groups))
-        .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
-        .slice(0, 10)
-        .map((c) => ({ chat: c.chat, name: c.name }));
-    } catch (e) { /* name matches are a bonus; message search still answers */ }
+    // sitting above results that all share one voice. The ARCHIVE filter is
+    // different: it is about the chat, so a name row obeys it like any hit.
+    const chatMatches = who === 'all' ? pickNameRows(reg, groups, arch) : [];
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 80);
     // Every word she typed has to land in the SAME message — that is the whole
     // point — so the haystack is the one message, name and TLDR included.
     const hits = searchIndex.filter((m) => whoMatches(who, m.from)
+      && archMatches(arch, archivedChat(m.chat))
       && queryMatches(m.chat + '\n' + m.tldr + '\n' + m.text, groups));
     // Her order first, then newest — see IN THE ORDER SHE TYPED THEM above.
     // Ranked into a parallel array rather than stamped onto the index rows:
@@ -4422,6 +4473,7 @@ require('./chat-wake').mount(router, { db, regRef, registry, followMoves, resolv
 module.exports = { router, pillInject, archiveActionFor, resolveChat, followMoves, compileQuery, queryMatches, snippetAnchor, registry, pickFilm,
   rankGroups, phraseRegex, orderRank,
   SEARCH_WHO, whoOf, whoParam, whoMatches,
+  SEARCH_ARCH, archParam, archMatches, pickOne, pickNameRows, NAME_ROWS,
   autoComparePoke, runAutoCompare,
   TAGS, cleanLabels, labelsOf, labelPatch, applyLabels,
   PILE_SEEDS, REVIEW_LABEL, PIN_LABEL, pileList, isPile,
