@@ -4857,10 +4857,43 @@ before working on that module. Nothing was deleted — the moved text is verbati
 - **THE INSTAGRAM MOCKUPS** (page at `/instagram`, reached from the icon at the
   RIGHT of the Chats app's UPDATE tag row — Aug 2026, Sophie: "an icon button
   in the top right within the existing header space where the tags are, of my
-  update tab … that leads to two tabs — two mockups of instagram"). Her two
-  accounts drawn as their profile grids: **DREAM** (`you...my.dreams`) and
-  **WITCH** (`moonsickbaby`), behind two hairline tabs. **It costs nothing** —
-  no model call, no job; it reads a committed JSON and one free API.
+  update tab … that leads to two tabs — two mockups of instagram"). Her
+  accounts drawn as their profile grids, behind hairline tabs: **DREAM**
+  (`you...my.dreams`), **WITCH** (`moonsickbaby`) and, since 2026-08-24,
+  **PWC** (`people.watching.club`). **It costs nothing** — no model call, no
+  job; it reads a committed JSON and one free API.
+  - **A NEW ACCOUNT IS ONE ROW IN `public/instagram-grids.json` — nothing
+    counts the tabs, in the page or in the test (2026-08-24, Sophie: "can you
+    add another Hairline tab in my Instagram posting button on the update page
+    for my People Watching Club").** The page has said that since it shipped
+    and People Watching is the first time it was collected: the page, the
+    renderer and `grid.js` needed no change at all. The TEST did — it had
+    hardcoded "two hairline tabs" and "Dream · Witch", which is exactly the
+    edit the claim exists to prevent, so every assertion is derived from the
+    data file now and each account is swept generically (its tiles, its
+    buttons, its post count, its handle).
+  - **A TAB WORD MUST FIT ITS SHARE OF THE ROW, and that is measured.** The row
+    divides 390pt minus the pill's reserved 64 between however many accounts
+    there are, so each new one makes every tab narrower: at three, "People
+    watching" wrapped to two lines, which pushes the WHOLE row from 26px to
+    36px and leaves that one label reading over two lines beside its
+    neighbours' one. The tab is **PWC**, her own shorthand for it (her deck
+    titles say "PWC Instagram", "PWC memes"). Pinned with a Range over each
+    label's own text — a width assertion cannot see a wrap.
+  - **PWC HOLDS ONE THING, the bingo card she hearted, and the rest are empty
+    NEXT tiles.** Measured 2026-08-24: the account has no films and no posted
+    art — `pwc-instagram-content` is still at the CONCEPT stage (two decks in
+    its Compare tab, 19 post ideas and 18 memes), and the only PWC picture on
+    file anywhere is a run of bingo cards in the Playground, of which exactly
+    one carries her ♥. So the grid shows that one and says nothing else. **An
+    empty grid is the honest state of a young account** — do not fill it with
+    art she has not chosen; the tile has no `prefix`, so it opens its still
+    rather than being a dead control, and a note on it lands in
+    `pwc-instagram-content`, the chat that can act on it.
+  - **The handle and bio are a PLACEHOLDER she has not confirmed** — nothing in
+    the feed or the repo records the real PWC Instagram handle, so the mockup
+    reads `people.watching.club` / "field notes from public places." Swap both
+    the moment she says what they are; they are two strings in the JSON.
   - **THE DREAM GRID IS THE ONE THE dream-app-commercial CHAT ALREADY MADE, not
     a copy of it** (her ask: "reuse it exactly, it plays the films"). The phone,
     the 3:4 crop, the tiles that play and the current-cut refresh live in
@@ -4900,10 +4933,11 @@ before working on that module. Nothing was deleted — the moved text is verbati
     ≥20px fits, so the wrap was coming either way and it keeps a full-size tap
     target. UPDATE row 40px → 72px, that screen only.
   - Test: `node scripts/test-instagram-grids.js` (the one-data-source rule
-    pure, then both real pages headless — the tabs' measured underline, a tile
-    playing, the still fallback, the pill's palette and corner, and the icon
-    asked with `elementFromPoint` at its own centre, which is the only honest
-    way to ask whether the pill is sitting on it).
+    pure, then both real pages headless — every account's grid swept, the tabs'
+    measured underline, no tab word wrapping, a tile playing, the still
+    fallback, the pill's palette and corner, and the icon asked with
+    `elementFromPoint` at its own centre, which is the only honest way to ask
+    whether the pill is sitting on it).
 - **Push notifications** (`push.js`, `/api/push`) — real APNs lock-screen
   notifications, raw HTTP/2 straight to Apple, no Firebase Messaging. Sent on a
   **finished reply** (never a draft) and on a new Compare page. They are the
