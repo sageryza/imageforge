@@ -5133,7 +5133,10 @@ function renderHiddenBar(el,g,hid){
   // so the count must be refreshable without a renderHome.
   bar.dataset.hid=hid.join(',');
   paintHideWork(bar,g,hid);
-  bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); };
+  // Deliberately NOT renderHomeKeepingSpot: the open pile is the WHOLE screen
+  // (see THE OPEN PILE IS THE WHOLE SCREEN below), so this is going somewhere,
+  // not continuing a list — and the way back out already lands at the top.
+  bar.onclick=function(){ hideOpen=!hideOpen; renderHome(); window.scrollTo(0,0); };
   el.appendChild(bar);
   function sep(){ el.appendChild(Object.assign(document.createElement('div'),{className:'hbsep'})); }
   if(!hideOpen){ sep(); return; }
@@ -5161,12 +5164,29 @@ function renderMoreBar(el,g,old){
   bar.setAttribute('aria-expanded', moreOpen?'true':'false');
   bar.innerHTML='<span class="mb-n">More '+old.length
     +(fresh? ' <span class="mb-new">&middot; '+fresh+' new</span>':'')+'</span>'+CHEV.replace('hb-chev','mb-chev');
-  bar.onclick=function(){ moreOpen=!moreOpen; renderHome(); };
+  bar.onclick=function(){ moreOpen=!moreOpen; renderHomeKeepingSpot(); };
   el.appendChild(bar);
   if(!moreOpen) return;
   var box=document.createElement('div'); box.className='morelist';
   el.appendChild(box);
   if(view==='list') renderList(box,g,old); else renderTiles(box,g,old);
+}
+// MORE KEEPS HER SPOT (Aug 2026, Sophie: "when I click more, it takes me all
+// the way back to the top and should stay where I am"). NOTHING was scrolling
+// her, which is why it read as unexplainable: renderHome empties #grid, so for
+// that instant the page is nothing tall and the browser CLAMPS scrollY to 0 —
+// the rebuild puts the height back but not the position. It only ever showed
+// on MORE because every other renderHome caller follows it with a deliberate
+// scrollTo(0,0), and those are all places she GOES (a category, the archive,
+// the hidden pile). More is the same list continuing — she asked for it
+// "underneath all the chats" — so the row she was reading has to stay under
+// her thumb. Opening it appends below her, so her spot is still there; closing
+// it can leave less page than that and the browser clamps for us, which is the
+// right answer rather than a jump to the top.
+function renderHomeKeepingSpot(){
+  var y=window.scrollY;
+  renderHome();
+  window.scrollTo(0,y);
 }
 function renderHome(){
   clearNew();   // a full rebuild shows everything, so nothing is pending
@@ -6739,7 +6759,24 @@ function openChat(name, keepScroll, focusId, noFetch){
   // back as a separate full-screen thing.
   var mlist=document.createElement('div');
   chatPanel.appendChild(mlist);
-  if(!list.length) mlist.appendChild(Object.assign(document.createElement('div'),{className:'state',textContent:'No messages yet.'}));
+  // AN EMPTY THREAD STILL NEEDS THE WAY BACK IN (Aug 2026, Sophie, on a chat
+  // opened from the MORE fold: "the messages are gone that might be fine but
+  // there's also no button to get back into that chat"). The Open-in-Claude
+  // button has only ever been drawn on a MESSAGE ROW, so a thread with nothing
+  // in it had no door at all — and the chats behind that fold are exactly the
+  // quiet ones most likely to come back empty. The registry doc carries the
+  // session url whatever the feed happens to hold (476 of 505 chats do), so
+  // the empty state can offer it. Never invented: no url, no button.
+  if(!list.length){
+    var est=document.createElement('div'); est.className='state';
+    est.appendChild(Object.assign(document.createElement('div'),{textContent:'No messages yet.'}));
+    if(curl){
+      var eop=document.createElement('div'); eop.style.marginTop='14px';
+      eop.appendChild(openClaudeBtn(openHref(name, curl)));
+      est.appendChild(eop);
+    }
+    mlist.appendChild(est);
+  }
   // ---- The composer (Aug 2026) — message this chat from its thread --------
   // Send = POST /reply (the message, exactly as the hook would file it) then
   // POST /wake (the doorbell). The status line under the box says honestly
