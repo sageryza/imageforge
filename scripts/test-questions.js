@@ -60,6 +60,52 @@ ok('a plain ask does NOT', !Q.flagsQuestion('Should the button go underneath?'))
 ok('an unmarked wondering does NOT', !Q.flagsQuestion("I'm wondering if that would work"));
 ok('"questionable" is not the word', !Q.flagsQuestion('that colour is questionable'));
 
+// 2026-08-24 — SHE HAS TO BE ASKING, NOT TALKING ABOUT ASKING. These three are
+// the ACTUAL rows that were sitting in this chat's own Questions tab the day
+// she asked "is that cuz ur rules are out of date?": all three false, none of
+// them a question she had marked. The bare word `question` anywhere was the
+// old gate, and it is what put them there.
+ok('describing the format is not asking',
+   !Q.flagsQuestion("i noticed ur still structuring ur response w bold questions"));
+ok('complaining about an answer is not asking',
+   !Q.flagsQuestion("did u check the answer? it didn't actually answer the question"));
+ok('specifying the feature is not asking',
+   !Q.flagsQuestion('it ONLY applies if i use the word question in my text'));
+ok('talking about asking is not asking',
+   !Q.flagsQuestion('sometimes like I ask questions to chat and it gets buried'));
+
+// The shapes her real feed actually carries, all of which must survive.
+ok('"Last question:"', Q.flagsQuestion('Last question: is the deploy live'));
+ok('"One more question —"', Q.flagsQuestion('One more question — did it merge'));
+ok('"A question:"', Q.flagsQuestion('A question: should the button go underneath'));
+ok('a bare count is framing too', Q.flagsQuestion('Two questions. Is it live? And is it merged?'));
+ok('and so is a bare "Questions:"', Q.flagsQuestion('Questions: is it live'));
+
+console.log('\nthe code word files on purpose');
+// HER IDEA (2026-08-24): "maybe a code word that triggers the chat to file the
+// answer intentionally?" — it files an exchange that was never shaped like a
+// question at all, which no phrase rule can reach.
+ok('"file this"', Q.filesOnPurpose('that explanation is great, file this'));
+ok('"save that answer"', Q.filesOnPurpose('save that answer, i will want it back'));
+ok('"for the questions tab"', Q.filesOnPurpose('grab that for the questions tab'));
+ok('ordinary filing talk is not the code word',
+   !Q.filesOnPurpose('file the prompt on the asset'));
+
+// A SMALL VOCABULARY, NOT ONE MAGIC STRING — she dictates and paraphrases, so
+// "file this" and "file that" have to be the same intent.
+ok('"file that" is the same intent', Q.filesOnPurpose('file that, it is worth keeping'));
+
+const filed = Q.findQuestions('so that is why the tiers are continuous. file this one');
+eq('the code word files a row', filed.length, 1);
+ok('and the row is her own sentence, minus the instruction',
+   filed[0].indexOf('so that is why the tiers are continuous') === 0, filed[0]);
+
+// It runs FIRST and then falls through, so a message carrying both still picks
+// the real ask rather than stopping at the code word.
+const both = Q.findQuestions('file this. my question is whether the tabs should be pink or tan');
+ok('a marked ask in the same message is still found',
+   both.indexOf('my question is whether the tabs should be pink or tan') >= 0, both.join(' | '));
+
 // The whole point of the gate: these all pass `isQuestion`, and none of them
 // reaches the list any more, because she did not mark the message.
 eq('an unflagged question mark yields nothing',
@@ -99,16 +145,25 @@ eq('both found', two.length, 2);
 ok('the framing sentence is not one of them', two.indexOf('Two questions.') < 0, two.join(' | '));
 
 console.log('\ninside a flagged message the old heuristics still pick the sentence');
-// Her actual message, 2026-08-14 — voice-to-text, and the question in it has NO
-// question mark anywhere. It carries the word, so it is still read; the
-// wondering is still the sentence that gets the row.
+// Her actual message, 2026-08-14 — voice-to-text, and the ask in it has NO
+// question mark anywhere, opens on a pronoun, and would be missed by every
+// heuristic in this file. Only her own framing finds it.
+//
+// AS SHE ACTUALLY SENT IT, it is a message ABOUT asking ("I ask questions to
+// chat") and files NOTHING — that is the 2026-08-24 tightening, and this is the
+// live shape it turns off.
 const real = "so basically, I have this idea that sometimes like I ask questions to chat and "
   + "then it's hard to find the answer cause it's buried under other stuff. "
   + "I'm wondering if this should be part of the message or "
   + "should be filed separately into a little hidden away tab called questions within each chat area.";
-const found = Q.findQuestions(real);
+eq('talking about asking files nothing', Q.findQuestions(real).length, 0);
+
+// Marked, the same message files, and the wondering is still the sentence that
+// gets the row — the heuristics below the gate are untouched.
+const found = Q.findQuestions('Quick question. ' + real);
 eq('one question found', found.length, 1);
-ok('it is her sentence, verbatim', found[0].indexOf("I'm wondering if this should be part of the message") === 0, found[0]);
+ok('it is her sentence, verbatim',
+   found[0].indexOf("I'm wondering if this should be part of the message") === 0, found[0]);
 
 console.log('\nanswer comes from the bold block that matches');
 const reply = [
