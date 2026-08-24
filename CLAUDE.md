@@ -2013,7 +2013,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
   with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
-  (chatfeed.js), which keeps two standing auto grid pages per chat — same
+  (chatfeed.js) — **on the FIRST filing of a batch as well as 45s after the
+  last** (2026-08-24: Sophie filed a low sheet beside a medium one, looked, and
+  the quality ladder was not there yet; it was, 45 seconds later). The trailing
+  run still coalesces a batch, but the leading one means the page is right
+  within a second — and it is what makes "automatic" survive a deploy, since
+  the debounce timer lives in the server PROCESS and a Render restart inside
+  the window used to drop the pending poke with nothing to re-run it. Running
+  twice is free: `runAutoCompare` makes no model call, and a test pins that.
+  It keeps two standing auto grid pages per chat — same
   content with a differing quality/model/style, and same style across
   different subjects — updated in place, her verdicts preserved. So FILE THE
   PROMPTS; an image with no prompt on record can never join a group.
