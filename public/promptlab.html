@@ -978,21 +978,42 @@
   var promptOpen = false;
   var OVERKEY = 'promptlab_prompt_';  // + gptStyle id
 
+  // Where a style's edit is stored. A gpt style is keyed by its SERVER id
+  // (shared by every tile pointing at it); a LoRA has no gptStyle, so it is
+  // keyed by its own key — that is what lets WTR carry an edit at all.
+  function overKey(k) {
+    var S = STYLES[k];
+    return S ? (S.gptStyle || k) : '';
+  }
+  // WHAT IS WRAPPED AROUND HER WORDS, for EVERY style — not just the
+  // gpt-image-2 ones (Sophie, 2026-08-24: "there's no way to see the style
+  // prompt in the playground"). She was right, and the reason was structural:
+  // everything here keyed off `S.gptStyle`, so the LoRA — which the page OPENS
+  // ON — fell through to null and the whole panel was hidden. WTR does wrap her
+  // words: the trigger word goes in front and a tail goes after, and both were
+  // invisible.
+  // The LoRA's shape is synthesised from its own STYLES row rather than served,
+  // because there is no server-side recipe for it to serve — the trigger and
+  // the tail ARE the style.
   function bakedFor(k) {
     var S = STYLES[k];
-    return (BAKED && S && S.gptStyle) ? BAKED[S.gptStyle] : null;
+    if (!S) return null;
+    if (S.gptStyle) return BAKED ? BAKED[S.gptStyle] : null;
+    if (S.engine !== 'replicate') return null;
+    return { label: S.label, prefix: '', suffix: S.suffix || '',
+      trigger: S.trigger || '', lora: true, refs: [] };
   }
   function overrideFor(k) {
-    var S = STYLES[k];
-    if (!S || !S.gptStyle) return null;
-    try { return JSON.parse(localStorage.getItem(OVERKEY + S.gptStyle) || 'null'); }
+    var key = overKey(k);
+    if (!key) return null;
+    try { return JSON.parse(localStorage.getItem(OVERKEY + key) || 'null'); }
     catch (e) { return null; }
   }
   function saveOverride(k, v) {
-    var S = STYLES[k];
-    if (!S || !S.gptStyle) return;
-    if (v) localStorage.setItem(OVERKEY + S.gptStyle, JSON.stringify(v));
-    else localStorage.removeItem(OVERKEY + S.gptStyle);
+    var key = overKey(k);
+    if (!key) return;
+    if (v) localStorage.setItem(OVERKEY + key, JSON.stringify(v));
+    else localStorage.removeItem(OVERKEY + key);
     syncControls();
   }
   // What WILL be sent for this style — her edit if she has one, else the house
@@ -1033,7 +1054,10 @@
 
   function paintPromptPanel() {
     var el = document.getElementById('promptpanel');
-    if (!promptOpen || !isGpt(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
+    // Every style with a wrapper gets the panel — a LoRA has one too (its
+    // trigger and its tail), and gating this on isGpt is what left the tile
+    // the page opens on with no way to see its style prompt at all.
+    if (!promptOpen || !bakedFor(styleKey)) { el.className = ''; el.innerHTML = ''; return; }
     var p = sentParts(styleKey);
     el.className = 'on';
     if (!p) { el.innerHTML = '<div class="plab">Prompt</div><div class="yours">Loading…</div>'; return; }
@@ -1044,7 +1068,20 @@
       t.addEventListener('input', stash);
       el.appendChild(l); el.appendChild(t);
     }
-    field('Before your words', p.prefix, 'prefix');
+    // A LoRA's trigger word is what SELECTS the model, so it is shown as an
+    // added line rather than as an editable half — editing it would quietly
+    // stop the style working. Its tail below IS hers to change.
+    if (p.baked.lora) {
+      if (p.baked.trigger) {
+        var tl = document.createElement('div'); tl.className = 'plab';
+        tl.textContent = 'Before your words';
+        var tv = document.createElement('div'); tv.className = 'added';
+        tv.textContent = p.baked.trigger;
+        el.appendChild(tl); el.appendChild(tv);
+      }
+    } else {
+      field('Before your words', p.prefix, 'prefix');
+    }
     // Whatever else actually rides this run, printed word for word. Read-only
     // on purpose: these are server-owned lines tied to an attachment, not a
     // half of the prompt she edits — taking the photo off is what removes the
@@ -1307,7 +1344,13 @@
     var pb = document.getElementById('promptbtn');
     var ct = document.getElementById('canvastog');
     var rt = document.getElementById('rpick');
-    if (pb) { pb.hidden = !gpt; pb.classList.toggle('edited', gpt && !!overrideFor(styleKey)); }
+    // The Prompt panel is for EVERY style now — the LoRA wraps her words too,
+    // and hiding it on the tile the page OPENS ON is what made her say there
+    // was no way to see the style prompt at all.
+    if (pb) {
+      pb.hidden = !bakedFor(styleKey);
+      pb.classList.toggle('edited', !!overrideFor(styleKey));
+    }
     if (ct) ct.style.display = gpt ? 'flex' : 'none';
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
@@ -1424,7 +1467,13 @@
           // always was.
           prefix: over ? over.prefix : undefined, suffix: over ? over.suffix : undefined,
           noText: noTextFor(styleKey) }
-      : { prompt: prompt, lora_scale: scale, model: S.model, suffix: S.suffix, seed: seed };
+      // Her edited tail wins for the LoRA too, exactly as it does for a gpt
+      // style — sentParts falls back to the baked text when she has not
+      // touched it, so an ordinary run is byte-for-byte what it always was.
+      : { prompt: prompt, lora_scale: scale, model: S.model,
+          suffix: (sentParts(styleKey) || {}).suffix != null
+            ? sentParts(styleKey).suffix : S.suffix,
+          seed: seed };
     return fetch('/api/promptlab', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
