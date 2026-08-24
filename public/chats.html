@@ -8594,7 +8594,20 @@ function buildFilters(mount, keys, onChange){
       })
       .catch(function(){ grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='<div class="state">Search unavailable.</div>'; });
   }
-  var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; wipePaint(); t=setTimeout(function(){ run(v); }, 220); });
+  // ── HOW LONG THE BOX WAITS BEFORE IT ASKS ──────────────────────────────
+  // Each keystroke restarts the timer, so a word is ONE request rather than one
+  // per letter — eight in-flight searches for "raincoat" would land out of order
+  // and churn the list under her thumb.
+  //
+  // 120ms since 2026-08-24, at Sophie's ask ("change it to 120 MS"). It was 220,
+  // which was nobody's standard — there is no standard number, only the usual
+  // 150-400ms range, and the old value was picked here rather than borrowed.
+  // The trade is real and small: 120 is under a typist's own gap between
+  // letters, so a mid-word request now goes out where 220 usually waited for
+  // the whole word. That costs the server's in-memory index a few more reads
+  // and nothing else — `run` drops any answer whose query is no longer what is
+  // in the box, so a stale one can never paint.
+  var live=liveInput(qi, function(){ clearTimeout(t); var v=qi.value; wipePaint(); t=setTimeout(function(){ run(v); }, 120); });
   // Return runs it immediately rather than waiting out the 220ms debounce,
   // then the keyboard goes — see enterSubmits.
   // …and `live.sync()` after it: the blur Return performs would otherwise be
