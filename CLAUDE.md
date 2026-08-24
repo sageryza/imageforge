@@ -36,6 +36,16 @@ The numbers are measured, not guessed.
    2026-08-14: 73 of her 88 archived chats showed nothing but a name.* You
    cannot be asked for it later — you are asleep by the time she archives.
 
+**Writing an image prompt (before any of the below)**
+- **Short, action-only, and NAME the thing rather than listing its parts** —
+  "meat raining from the ceiling", never "ribs, drumsticks, etc." (Sophie,
+  2026-08-24). An enumeration is a checklist the model satisfies literally, so
+  it lays the items out instead of drawing the event. Encourage the short form
+  when she asks for a prompt — but a prompt SHE dictated is sent as given, and
+  anything you change is named word for word. Full rules: *DESCRIBE THE
+  ACTION* · *WRITE IT SHORT* · *NAME THE PHENOMENON* in
+  `docs/image-pipeline.md`.
+
 **Delivering an image — every single one, including a test**
 4. **Label it.** `[Penny — the blue Kleenex](url)`, never `[p01](url)` or a bare
    URL. The label becomes what she reviews by.
@@ -1917,6 +1927,20 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     matching by downloaded content hash when unsure which is which). An
     experiment's versions MUST each carry their version label on EVERY copy —
     an unlabeled variant makes the whole comparison unreadable.
+- **WRITE THE PROMPT SHORT, AND NAME THE THING INSTEAD OF LISTING ITS PARTS
+  (Aug 2026, Sophie: "highly encourage short prompts that don't describe exact
+  things … 'meat raining from the ceiling' is better than 'ribs, drumsticks,
+  etc.'").** A list of exact things reads to the model as a checklist and it
+  satisfies it literally — every named object drawn, separately, arranged so
+  each can be seen — so what comes back is an inventory rather than the event.
+  The compact phrase names the whole happening and lets the model pick the
+  parts. It is the third handle on one rule: *DESCRIBE THE ACTION* (don't
+  specify the look), *WRITE IT SHORT* (don't specify at length), this one
+  (don't specify the parts) — all in `docs/image-pipeline.md`. The test is
+  whether a word could be swapped for another of its kind without changing the
+  idea: if "ribs" could be "drumsticks", ribs was never the idea. **Guidance
+  for prompts a CHAT writes** — a prompt Sophie dictated still goes verbatim,
+  and anything you add is named word for word (the rule below).
 - **POST THE PROMPT for every image you deliver**, split into style + content —
   `POST /api/gallery/assets/prompt`. It's what the PROMPT overlay in the Assets
   tab reads. **The EXACT text sent to the model — NEVER PARAPHRASE**; no exact
