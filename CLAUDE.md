@@ -970,6 +970,36 @@ them off the reference sheet, not off the old filenames.
     alone draws no arrow. `wrapLine` still holds the line for an older record
     with no three answers. Tests: `node scripts/test-chats-wrapup.js` (the two
     copies run over the same cases so they cannot drift).
+  - **AND THAT LINE IS HER OWN SENTENCE NOW, VERBATIM (2026-08-24, Sophie:
+    "right now the what I asked sentence is paraphrased. can you make it my
+    exact sentence and just truncate it if it gets too long, so basically just
+    the beginning of my last message. and have it say what I asked in bold
+    above it, and then the see more is as it was").** The other two answers are
+    the chat's account of its own work and have to be written; hers is the one
+    line nobody needs to write, and a model retelling it can only move it
+    further from what she meant — the house *nothing stands between the source
+    and the output* rule applied to the summary she reads months later. So the
+    server lifts the OPENING of her last message off the thread it already
+    stores (`herAskOf` + `lastHerText` in `chatfeed.js`) and files that, on all
+    three paths: her Summarize tap, a chat's own `POST /wrapup`, and the freeze
+    on the way into the archive. A chat's `asked` is the FALLBACK, for a chat
+    she never posted into.
+    - **TRUNCATED, NOT CUT AT A SENTENCE, and that is the whole difference from
+      `wrapPartOf`.** She dictates, so her punctuation is unreliable and a
+      sentence rule leaves "I have a question." as the line — the one shape
+      that says nothing. It is the first 200 characters at a word boundary
+      with an ellipsis. `wrapAskedHers:true` marks the answer as hers so the
+      page truncates rather than sentence-cutting it; `herAsk` in `chats.html`
+      is its twin, pinned equal by the test.
+    - **A COMPACTION SUMMARY IS NOT HER MESSAGE** — the harness hands it over
+      as a user turn and the hook lifts it exactly like something she typed, so
+      it would file 7,000 characters of recited rules as what she asked for.
+      `isCompacted` is exported from `questions.js` — ONE copy of that rule.
+    - **The bold question over the line** is `UPD_LABELS[0][1]` ("What you
+      asked"), the Update tab's own vocabulary, drawn ONLY when the line really
+      is the asked answer (`wrapLineIsAsk`) — labelling a line that fell
+      through to what the chat DID with a question it does not answer is worse
+      than no label. "See more…" is untouched, still inline on that line.
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just
@@ -2773,6 +2803,20 @@ before working on that module. Nothing was deleted — the moved text is verbati
   page holds no copy of the wording. **Rewording the tail's text clause without
   moving `noText.from` would make the toggle silently append instead of swap** —
   `node scripts/test-playground-notext.js` pins the two together.
+  **THE PROMPT PANEL IS FOR EVERY STYLE, THE LoRA INCLUDED (2026-08-24,
+  Sophie: "there's no way to see the style prompt in the playground").** She
+  was right, and the cause was structural: the panel, its button and the
+  stored override all keyed off `S.gptStyle`, so WTR — **the tile the page
+  OPENS ON** — fell through to null and the whole thing was hidden. WTR does
+  wrap her words (the `wtr` trigger in front, `White background` after) and
+  both were invisible on the first screen she sees. `bakedFor` now synthesises
+  a LoRA's shape from its own `STYLES` row (there is no server recipe to
+  serve — the trigger and the tail ARE the style), `overKey` falls back to the
+  style key so a LoRA can carry an edit, and the run sends her edited tail.
+  **The trigger is SHOWN, never editable** — changing it stops the LoRA being
+  selected at all. The canvas and tier toggles stay gpt-only, which was always
+  right: a LoRA has one output size. Test:
+  `node scripts/test-playground-prompt-panel.js`.
   **THE PROMPT BUTTON — see what is wrapped around her words, and change it
   (Aug 2026, Sophie: "add a prompt button so you can see what's being added
   and … allow yourself to edit it as well").** Two boxes under the style row —
@@ -3698,7 +3742,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   `<video>` on the pad), draws nothing, and in the film passes through whole
   with its own sound and its own length. The film stitches every beat with art, each held for its own audio's
   length — per-unit audio is PCM, never aac, or the voice walks out from under the
-  pictures. **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
+  pictures.
+  **A PAST PICTURE CAN BE PICKED BACK, AND THE DECISION HAPPENS BIG (Aug 2026,
+  Sophie: "make the past picture thumbnails so that I can actually pick
+  one").** The stacked-squares row held every generation a beat had ever had
+  and tapping one only opened it big — there was no way to put it back, so a
+  re-roll she liked less was final. It still opens big; the big view carries
+  **Use this one**, and never for the picture that already is the beat's art
+  (a thumb is 44px — she picks by looking, so the button lives where she is
+  looking). It is the inbox's own `POST /image`, so a pick and a fresh
+  placement are the same write.
+  **`pad-art.js` owns the row's bookkeeping — the ONE copy, read by `/image`
+  AND by a finished draw**, its own dependency-free file so the rules have a
+  test that needs no `node_modules`. Two of them: the picture LEAVING is kept
+  (nothing here deletes a picture — that row is what she picks from), and the
+  picture ARRIVING comes **OUT** of the history, because a url sitting in both
+  places draws TWICE in the row, once ringed as current and once as older —
+  the bug a naive pick ships. Provenance follows the picture: a version banked
+  from here carries the `src` that made it, so picking it back restores its
+  own prompt, and where nothing is known the src is DROPPED rather than left
+  behind (the previous picture's run is a lie about what drew this one).
+  Tests: `node scripts/test-pad-art.js` (pure) and `node
+  scripts/test-scratchpad-pick-version.js` (the real page headless, its stub
+  `/image` running the real `pad-art.js`).
+  **PHILOSOPHY — do not "improve" this: the pad is minimal, the frame
   colours are deliberately UNLABELLED, and no machinery lives on the canvas.**
   `ART.prefix`/`ART.characterLine` are COPIES of `PL_GPT.*` in server.js — keep
   them identical. **Full details: `docs/modules/story.md`.**
@@ -3930,12 +3997,29 @@ before working on that module. Nothing was deleted — the moved text is verbati
   illustrations, cut into quarters locally, each quarter filed as its own
   image (~0.125¢ apiece). Candidates go on a grid Compare page for her ♥
   before anything gets wired into a card or re-drawn at medium.
-  **SERIALIZE bulk Playground batches (measured 2026-08-19):** two parallel
-  4-run × 4-output batches each died "interrupted by a server restart"
-  partway (the 512MB box restarting under 16 concurrent buffered images +
-  whiten passes is the suspect, though one restart also happened idle);
-  13 draws run strictly one-run-at-a-time completed clean. One run at a
-  time, poll to done, then the next.
+  **SERIALIZE A BULK BATCH THE SERVER IS DRAWING — `/api/promptlab`, from a
+  script (measured 2026-08-19):** two parallel 4-run × 4-output batches each
+  died "interrupted by a server restart" partway (the 512MB box restarting
+  under **16 concurrent buffered images** + whiten passes is the suspect,
+  though one restart also happened idle); 13 draws run strictly
+  one-run-at-a-time completed clean. One run at a time, poll to done, then
+  the next.
+  **THE SCOPE IS THE BOX, NOT THE WORD "PLAYGROUND" (2026-08-20, Sophie
+  mid-run: "why are you doing them one at a time?").** This note read as a
+  rule about anything Playground-shaped and cost her five minutes on a
+  five-image batch that never touched the server. Two things it does NOT
+  cover:
+  - **A chat drawing in its OWN container** (`gen-dream-distilled.js` and
+    friends, posting straight to OpenAI). The Render box is not in the loop
+    at all, so there is nothing to protect — measured 2026-08-20, the same
+    five images took 4m39s serial and **57s in parallel**.
+  - **The PLAYGROUND ITSELF, which has never serialized** — its ladders fire
+    `Promise.all` (the pyramid starts low+low+medium at once, the oval
+    medium+high) and `runPromptLabGptJob` is fired without `await`, so
+    nothing queues server-side either. Her own taps are 2-3 at a time, nowhere
+    near the sixteen that broke it.
+  The number that mattered is **concurrent OUTPUTS on our box**, so scale a
+  bulk server batch by that and leave everything else parallel.
 - **The Dump** (`dropbox.js`, `/api/drop`, sort page at `/dump`, iOS tile with
   SEND and SORT tabs) — **dump first, label afterwards**. Dropping asks no
   questions; only the bundle (a Photos album) and the session are captured,

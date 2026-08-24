@@ -570,5 +570,10 @@ function answeredOnly(list) {
   return (list || []).filter((q) => q && q.answer);
 }
 
+// Exported so nothing else has to keep its own copy of the rule: the wrap-up's
+// "what you asked" line reads her LAST message verbatim, and a compaction
+// summary posted as hers would put 7,000 characters of harness recital there.
+function isCompacted(text) { return COMPACTED.test(String(text || '')); }
+
 module.exports = { sentences, isQuestion, flagsQuestion, filesOnPurpose, framing, findQuestions, boldBlocks, matchBlock,
-  bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };
+  bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly, isCompacted };
