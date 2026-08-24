@@ -116,7 +116,7 @@ struct InstagramView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("WHAT'S THE POST?")
                 .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("a moody flat lay of crystals and tarot cards…", text: $prompt, axis: .vertical)
+            TextField("…", text: $prompt, axis: .vertical)
                 .lineLimit(2...5).font(.body).foregroundColor(Theme.text)
                 .focused($focusedField, equals: .prompt)
                 .padding(12).background(Theme.surface)
@@ -155,7 +155,7 @@ struct InstagramView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CAPTION ON IMAGE (OPTIONAL)")
                 .font(.caption2.weight(.semibold)).tracking(1).foregroundColor(Theme.textDim)
-            TextField("e.g. things a witch finds in her purse: all crystals", text: $caption, axis: .vertical)
+            TextField("…", text: $caption, axis: .vertical)
                 .lineLimit(1...3).font(.body).foregroundColor(Theme.text)
                 .focused($focusedField, equals: .caption)
                 .padding(12).background(Theme.surface)
@@ -326,7 +326,7 @@ struct InstagramView: View {
                 }
                 .disabled(captionBusy)
             }
-            TextField("Write a caption, or tap Suggest…", text: $draftCaption, axis: .vertical)
+            TextField("Caption…", text: $draftCaption, axis: .vertical)
                 .lineLimit(2...6).font(.callout).foregroundColor(Theme.text)
                 .padding(10).background(Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.border, lineWidth: 1))

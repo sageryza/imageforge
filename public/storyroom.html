@@ -725,7 +725,7 @@ function openProj(p, jumpBeat){
   }
   function editProse(){
     showModal({ title: p.text? 'Edit the story':'The story', okLabel:'Save',
-      fields:[ {key:'text', type:'textarea', placeholder:'Once upon a time\u2026', value:p.text||''} ],
+      fields:[ {key:'text', type:'textarea', placeholder:'The story\u2026', value:p.text||''} ],
       onOk:function(v, close){
         api('/api/story/text',{method:'POST',body:JSON.stringify({projectId:p.id, text:v.text||''})})
           .then(function(r){return r.json()})
