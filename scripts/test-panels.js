@@ -336,6 +336,25 @@ t('the searchable text is her words first', () => {
   assert.strictEqual(hay, hay.toLowerCase(), 'lowercased for matching');
 });
 
+t('a wedged job is takeoverable, a working one is not', () => {
+  // Measured the first time this tool drew anything (2026-08-24): the sheet
+  // landed, two of four panels cut, and thirteen seconds later ANOTHER CHAT
+  // merged a PR — the Render deploy restarted the box mid-job and the doc sat
+  // `running` forever with no watchdog. Several chats merge here all day, so
+  // that is a normal event and the takeover is not optional.
+  const now = Date.now();
+  assert.strictEqual(P.isStale({ job: { status: 'running', startedAt: now - 1000 } }), false,
+    'a job that stamped a second ago is working');
+  assert.strictEqual(P.isStale({ job: { status: 'running', startedAt: now - P.STALE_MS - 1 } }), true,
+    'one silent past the window may be taken over');
+  // a finished or failed job is never "stale" — there is nothing to take over
+  assert.strictEqual(P.isStale({ job: { status: 'done', startedAt: 0 } }), false);
+  assert.strictEqual(P.isStale({ job: { status: 'failed', startedAt: 0 } }), false);
+  assert.strictEqual(P.isStale({}), false);
+  // a running job with no timestamp is stale, not immortal
+  assert.strictEqual(P.isStale({ job: { status: 'running' } }), true);
+});
+
 // --------------------------------------------------------------------------
 // THE CUT ITSELF, against real pixels. sharp is already a dependency; nothing
 // here touches the network and nothing is spent.
@@ -375,6 +394,28 @@ t('the searchable text is her words first', () => {
     n++;
     console.log(`  ok  the cut lands on the right pixels — grid ${grid} ${shape} `
       + `(${plan.sheet} -> ${plan.count} x ${plan.cell})`);
+  }
+
+  // A RESUME ONLY CUTS WHAT IS MISSING, and keeps reading order. The sheet is
+  // paid for, so a re-cut costs nothing — and must not re-upload a panel she
+  // may already have hearted.
+  {
+    const plan = G.sheetFor(4, 'portrait', '1k');
+    const blank = await sharp({ create: { width: plan.width, height: plan.height,
+      channels: 3, background: '#888' } }).webp({ lossless: true }).toBuffer();
+    const saved = [];
+    P.__setDeps({ saveBuffer: async () => { saved.push(1); return `https://x/${saved.length}.webp`; } });
+    const names = G.cellNames(4);
+    // exactly what was on the doc live: the first two landed, then the restart
+    const have = [{ url: 'https://x/old1.webp', cell: names[0] },
+      { url: 'https://x/old2.webp', cell: names[1] }];
+    const out = await P.cutSheet(blank, { plan, panels: ['a', 'b', 'c', 'd'], gridId: 4 },
+      async () => {}, have);
+    assert.strictEqual(out.length, 4, 'four panels in the end');
+    assert.strictEqual(saved.length, 2, 'only the TWO missing ones were cut and uploaded');
+    assert.strictEqual(out[0].url, 'https://x/old1.webp', 'the one she already has is untouched');
+    assert.deepStrictEqual(out.map((i) => i.cell), names, 'reading order is restored');
+    n++; console.log('  ok  a resume cuts only what is missing, in reading order');
   }
 
   await drivePage();
