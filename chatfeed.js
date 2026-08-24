@@ -3725,10 +3725,31 @@ async function chatAssetRows(chat) {
 const autoTimers = new Map();
 const AUTO_DEBOUNCE_MS = 45_000;
 
+// LEADING EDGE AS WELL AS TRAILING (2026-08-24). The poke was trailing-only:
+// a 45s timer, reset by every filing. Two consequences, both real.
+//
+// A batch of filings left the page 45 SECONDS STALE — Sophie filed a low sheet
+// beside a medium one, looked, and the quality ladder was not there yet. It
+// arrived; it just arrived after she had looked.
+//
+// And the timer lives in THIS PROCESS. Several chats merge here all day and a
+// Render deploy restarts the box — twice today it landed inside a running job —
+// so a deploy inside the window drops the pending poke on the floor and NOTHING
+// re-runs it. The page then stays wrong until the next unrelated filing.
+//
+// Running on the FIRST filing as well means the page is right within a second
+// of something landing, and a deploy can now only cost the trailing refresh
+// (the coalesced tail of a batch) rather than the whole update.
 function autoComparePoke(chat) {
   const slug = String(chat || '').trim().slice(0, 60);
   if (!slug) return;
-  clearTimeout(autoTimers.get(slug));
+  const pending = autoTimers.get(slug);
+  clearTimeout(pending);
+  // nothing was queued for this chat → this is the start of a batch, so run
+  // now as well. Free: Firestore reads and a page write, no model call.
+  if (!pending) {
+    runAutoCompare(slug).catch((e) => console.error('[auto-compare lead]', slug, e.message));
+  }
   const t = setTimeout(() => {
     autoTimers.delete(slug);
     runAutoCompare(slug).catch((e) => console.error('[auto-compare]', slug, e.message));

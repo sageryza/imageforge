@@ -129,6 +129,12 @@ router.get('/config', (req, res) => {
   }));
   res.json({
     grids, shapes, tiers: Object.keys(sheetGrid.TIERS), plans, styles,
+    // THE LINE THIS TOOL ADDS TO HER WORDS, served so the page can show it —
+    // the same rule the Playground's Prompt panel follows. Nothing should be
+    // wrapped around her prompt without a surface able to print it.
+    gridLines: Object.fromEntries(Object.keys(sheetGrid.GRIDS).map((g) =>
+      [g, sheetGrid.sheetFor(Number(g), 'portrait', '1k')
+        ? gridLine(sheetGrid.sheetFor(Number(g), 'portrait', '1k')) : ''])),
     qualities: (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'],
     defaults: { grid: 4, shape: 'portrait', res: '4k', quality: 'medium', style: 'dreamy' },
     model: (deps.gpt && deps.gpt.id) || 'gpt-image-2',
@@ -237,15 +243,27 @@ function buildPrompt({ plan, panels, prefix, suffix, cells }) {
 }
 
 /**
- * THE GRID SENTENCE STATES THE GEOMETRY THE CUT NEEDS, AND NOTHING ELSE.
- * The page is sliced along exact halves/thirds, so what actually matters is
- * that each illustration FILLS its own cell edge to edge — a gutter or a page
- * margin puts the art out of register with the cut lines and every panel comes
- * out with a slice of its neighbour.
- * It deliberately says nothing about borders, caption boxes or palette: those
- * are the STYLE's business, and a sentence here arguing with a style's own tail
- * is the exact failure this module's header warns about (Dreamy asks for a
- * hand-drawn frame, which is right per panel).
+ * THE GRID SENTENCE IS SHORT, AND THE REFERENCE DOES THE REST (Sophie's note
+ * on the first sheet, 2026-08-24: "add margins and gutters" · "less
+ * instructions because it's copying the reference image").
+ *
+ * Both halves of that are one insight. The style reference IS a multi-panel
+ * comic page — margins, gutters, framed panels — so the layout does not have
+ * to be described at all, only named. The first version spent three sentences
+ * forbidding what the reference was going to do anyway, and got a page with
+ * an uneven border for the trouble: the outer edges carried the page margin
+ * and the inner ones were cut flush, because "no gutters" won on the inside
+ * and the reference won on the outside.
+ *
+ * WITH A GUTTER, THE CUT COMES OUT EVEN. Slicing at exact halves puts half a
+ * gutter on each inner edge and the page margin on each outer one, so a panel
+ * is bordered on all four sides rather than on two. That is why asking for
+ * gutters makes the cut BETTER rather than worse — the thing the first version
+ * had backwards.
+ *
+ * It still says nothing about borders, caption boxes or palette: those are the
+ * STYLE's business, and a sentence here arguing with a style's own tail is the
+ * failure this module's header warns about.
  *
  * It is its own function because it is part of the WRAPPER around her words,
  * so the stored style half has to carry it — see fileRun. Built in one place
@@ -255,12 +273,9 @@ function gridLine(plan) {
   const shape = plan.down === 1
     ? `a single row of ${plan.count} separate illustrations, side by side`
     : `a ${plan.across}x${plan.down} grid of ${plan.count} separate illustrations`;
-  return `Draw ${shape} on one page, in reading order. They fill the page in equal `
-    + `${plan.count === 2 ? 'halves' : plan.count === 4 ? 'quarters' : 'parts'}`
-    + ' with no gutters and no page margin: each illustration must completely '
-    + 'fill its own part, edge to edge, because the page is going to be cut '
-    + 'along those lines. Each is a separate picture with its own subject — '
-    + 'do not continue one scene across them.';
+  return `Draw ${shape} on one page, in reading order, laid out like the panel `
+    + 'grid in the style reference — an even margin around the page and even '
+    + 'gutters between the panels. Each panel is its own separate picture.';
 }
 
 // A style's suffix, with any "one single illustration / not a grid" clause

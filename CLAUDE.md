@@ -2013,7 +2013,15 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   picture opens THE Assets-tab lightbox itself (`/asset-lightbox.js`, shared
   with chats.html), so ♥/✕/notes mirror to the Assets tab and the two agree. **The SERVER auto-files the objective comparisons ITSELF (Aug 2026
   v2)**: filing a prompt or a MODEL · QUALITY caption pokes `runAutoCompare`
-  (chatfeed.js), which keeps two standing auto grid pages per chat — same
+  (chatfeed.js) — **on the FIRST filing of a batch as well as 45s after the
+  last** (2026-08-24: Sophie filed a low sheet beside a medium one, looked, and
+  the quality ladder was not there yet; it was, 45 seconds later). The trailing
+  run still coalesces a batch, but the leading one means the page is right
+  within a second — and it is what makes "automatic" survive a deploy, since
+  the debounce timer lives in the server PROCESS and a Render restart inside
+  the window used to drop the pending poke with nothing to re-run it. Running
+  twice is free: `runAutoCompare` makes no model call, and a test pins that.
+  It keeps two standing auto grid pages per chat — same
   content with a differing quality/model/style, and same style across
   different subjects — updated in place, her verdicts preserved. So FILE THE
   PROMPTS; an image with no prompt on record can never join a group.
@@ -3195,6 +3203,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     `node scripts/playground-rerun-size.js <runId> --size WxH` — it re-sends
     the stored `fullPrompt` verbatim and prints the real `usage`.
   Test: `node scripts/test-playground-res.js`.
+  **WHAT AN ATTACHED REFERENCE COSTS IS PER-IMAGE, AND EVERY RUN NOW MEASURES
+  IT FOR FREE (2026-08-24).** Sophie: "another chat said it cost 1.85 to attach
+  an image can u check". Both numbers can be right — **image input is billed by
+  tokens and tokens scale with the reference's own dimensions**, so there is no
+  single answer, only a per-reference one. Measured on the Panels sheets, same
+  file, two qualities: `refs/dream-mystery.jpg` (3370x4096) is **1,505 image
+  tokens = 1.20c at $8/1M, identical at low and at medium** — the reference does
+  not get cheaper when the picture does. At LOW that is **45% of the whole
+  bill**, which is the real argument for drawing a sheet rather than N pictures.
+  1.85c would be ~2,313 tokens, i.e. a bigger reference (`sage-sandy-mirror.png`
+  is 3345x3455 against dream mystery's shape) — plausible, not yet measured.
+  **`runPromptLabGptJob` now KEEPS the `usage` the API returns** (one entry per
+  render, on the run doc). It was being thrown away, so the only way to price a
+  reference was to spend money on a probe — which Sophie has ruled out. Every
+  ordinary run is a free measurement now; read `usage.input_tokens_details.
+  image_tokens` off any run that used the style you are asking about.
   **MODERATION IS `low` ON EVERY gpt-image-2 EDIT (Aug 2026, Sophie's call).**
   `openaiImageEditRefs` sends it by default. The filter is STOCHASTIC on
   identical input — a Dreamy prompt of hers drew fine at two sizes and was then

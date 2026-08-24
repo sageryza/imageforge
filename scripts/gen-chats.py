@@ -1844,7 +1844,7 @@ document.getElementById('back').onclick=goHome;
 (function(){
   var toTop=document.getElementById('totop');
   toTop.onclick=function(){ if(window.__scrollStop) window.__scrollStop(); window.scrollTo({top:0,behavior:'smooth'}); };
-  function upd(){ toTop.classList.toggle('show', window.scrollY>400); }
+  function upd(){ toTop.classList.toggle('show', window.scrollY>40); }
   window.addEventListener('scroll', upd, {passive:true});
   upd();
 })();

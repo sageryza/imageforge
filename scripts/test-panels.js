@@ -171,22 +171,43 @@ t('her words go in VERBATIM, one line per cell, in reading order', () => {
   });
 });
 
-t('the grid sentence states the CUT, and says nothing about decoration', () => {
-  // A sentence here about borders or caption boxes would argue with a style's
-  // own tail — the exact failure the module header warns about, and Dreamy
-  // legitimately asks for a hand-drawn frame per panel.
+t('the grid sentence is SHORT, and asks for the margins and gutters', () => {
+  // Sophie's note on the first sheet (2026-08-24): "add margins and gutters" ·
+  // "less instructions because it's copying the reference image". Both halves
+  // are one insight — the style reference IS a multi-panel comic page, so the
+  // layout only has to be NAMED, not described.
+  //
+  // And with a gutter the cut comes out EVEN: slicing at exact halves puts
+  // half a gutter on each inner edge and the page margin on each outer one, so
+  // a panel is bordered on all four sides. The first version forbade gutters
+  // "because the cut needs that" and got a panel bordered on TWO sides.
   const plan = G.sheetFor(4, 'portrait', '4k');
+  const line = P.gridLine(plan);
+  assert.ok(/even margin/.test(line), 'it asks for the page margin');
+  assert.ok(/gutters between the panels/.test(line), 'and the gutters');
+  assert.ok(!/no gutters/.test(line), 'the old anti-gutter clause is gone');
+  assert.ok(/style reference/.test(line), 'it points at the reference to do the work');
+
+  // SHORT. The first version was three sentences and 300+ characters of
+  // forbidding what the reference was going to do anyway.
+  assert.ok(line.length < 240, `one short sentence-ish: ${line.length} chars`);
+  assert.ok(line.split(/[.!?] /).length <= 2, 'at most two sentences');
+
+  // Still silent about decoration — that is the STYLE's business, and a
+  // sentence here arguing with a style's own tail is the module's named
+  // failure mode. Dreamy legitimately asks for a hand-drawn frame per panel.
+  assert.ok(!/\bborder\b/i.test(line), 'it says nothing about borders');
+  assert.ok(!/caption box/i.test(line), 'it says nothing about caption boxes');
+
+  // and it still names the real geometry
+  assert.ok(line.includes('2x2 grid of 4'), 'names the grid');
+  assert.ok(/single row of 2 .* side by side/.test(P.gridLine(G.sheetFor(2, 'portrait', '4k'))),
+    'two reads as a row, not a grid');
+
+  // the line really is what goes into the prompt
   const out = P.buildPrompt({ plan, panels: ['a', 'b', 'c', 'd'],
     prefix: '', suffix: '', cells: G.cellNames(4) });
-  assert.ok(/no gutters/.test(out), 'it forbids gutters — the cut needs that');
-  assert.ok(/cut along those lines/.test(out), 'it says why');
-  assert.ok(!/\bborder\b/i.test(out), 'it says nothing about borders');
-  assert.ok(!/caption box/i.test(out), 'it says nothing about caption boxes');
-  // and it names the real geometry
-  assert.ok(out.includes('2x2 grid of 4'), 'names the grid');
-  const two = P.buildPrompt({ plan: G.sheetFor(2, 'portrait', '4k'),
-    panels: ['a', 'b'], prefix: '', suffix: '', cells: G.cellNames(2) });
-  assert.ok(/single row of 2 .* side by side/.test(two), 'two reads as a row, not a grid');
+  assert.ok(out.includes(line), 'buildPrompt sends the same sentence gridLine returns');
 });
 
 // --------------------------------------------------------------------------
@@ -283,6 +304,45 @@ t('the page holds NO price and NO prompt text of its own', () => {
   assert.ok(!/style reference/i.test(PAGE.replace(/reference is paid for/i, '')),
     'no style prefix baked in');
   assert.ok(PAGE.includes('/api/panels/config'), 'it asks the server instead');
+});
+
+t('no page class collides with one tool.css already owns', () => {
+  // THE BUG THIS EXISTS FOR (2026-08-24, Sophie: "layout is just really
+  // awkward"): the boxes were `class="cell"`, and tool.css owns `.tool .cell`
+  // — its image-grid TILE: aspect-ratio 1, a grey fill, centred contents,
+  // overflow hidden. At (0,0,2) that beats a bare `.cell` here whatever this
+  // page declares, so every panel box rendered as a 177x177 grey square with
+  // her writing space squeezed to 75px of it and the label floating in the
+  // middle. Nothing in either file was wrong on its own; the NAME was.
+  // Same shape as the `.morebtn` collision in the design rules.
+  const css = fs.readFileSync(path.join(ROOT, 'public', 'tool.css'), 'utf8');
+  const owned = new Set([...css.matchAll(/\.tool\s+\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+  // The shared HEADER KIT is used ON PURPOSE — the page wants those rules.
+  const kit = new Set(['head', 'eyebrow', 'helpcard', 'btn', 'note', 'row', 'chip', 'chips']);
+  const used = new Set();
+  for (const m of PAGE.matchAll(/class="([^"]+)"/g)) m[1].split(/\s+/).forEach((c) => used.add(c));
+  const clash = [...used].filter((c) => owned.has(c) && !kit.has(c));
+  assert.deepStrictEqual(clash, [],
+    `page classes tool.css also styles: ${clash.join(', ')} — rename them (see .pcell)`);
+  assert.ok(/class="pcell"/.test(PAGE), 'the boxes are .pcell, never .cell');
+});
+
+t('the control row is two deliberate lines, not three by accident', () => {
+  // Measured at 390pt before the fix: the pickers filled two lines and pushed
+  // Generate onto a third of its own — 38px of button in a 42px empty row.
+  // The zero-height break is what makes the split a decision; flex-wrap stays
+  // as the safety net if a longer style name grows line two.
+  assert.ok(/class="brk"/.test(PAGE), 'the row carries an explicit break');
+  assert.ok(/\.ctrls \.brk \{[^}]*flex:\s*1 0 100%/.test(PAGE), 'and it is a real flex row break');
+  const ctrls = /\$\('#ctrls'\)\.innerHTML =([\s\S]*?);\n/.exec(PAGE);
+  assert.ok(ctrls, 'found the control row');
+  const order = ['gridseg', 'shapeseg', 'id="go"', 'class="brk"', 'stylepick', 'respick', 'qpick'];
+  let at = -1;
+  for (const bit of order) {
+    const i = ctrls[1].indexOf(bit);
+    assert.ok(i > at, `${bit} comes after the one before it`);
+    at = i;
+  }
 });
 
 t('the boxes ship EMPTY — no placeholder, no example', () => {
