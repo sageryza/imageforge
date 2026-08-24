@@ -2149,7 +2149,11 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   inline, inheriting the surrounding type — no border, no padding, no
   background, and never a bare unstyled `<button>` (which draws the browser's
   own box). Still a `<button>` ELEMENT — the rule is about paint, not markup.
-  The class is `.moretxt` on every page. The full pattern, and the class-name
+  **It rides ON THE LAST LINE of the words, never parked beside them** (Aug
+  2026, Sophie: "Button should be part of the text, not separated from it on
+  the side") — a `max-height` clamp plus a right float behind a zero-width
+  float one line short of the cap, the dream cards' own solution. The class is
+  `.moretxt` on every page. The full pattern, and the class-name
   collision that actually caused this (`.morebtn` was the opener AND the
   "Older" paging button in one file, later rule wins), are in
   `docs/design-rules.md`; pinned by `node scripts/test-truncation-opener.js`.
