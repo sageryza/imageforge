@@ -15,7 +15,11 @@
 //      message is — it is being touched at this second,
 //   6. a chat with NO messages counts as untouched,
 //   7. no bar at all when nothing is stale,
-//   8. the seven-day boundary itself (chatStale, run for real).
+//   8. the seven-day boundary itself (chatStale, run for real),
+//   9. tapping the bar LEAVES HER WHERE SHE IS (Aug 2026, Sophie: "when I
+//      clicked the more button in the chat app, it takes me all the way back
+//      to the top. It should stay where I am") — measured on a list long
+//      enough to scroll, on the way open AND on the way closed.
 //
 //   npm install playwright-core --no-save && node scripts/test-chats-more.js
 //
@@ -59,13 +63,26 @@ const CHATS = {
 
 // flipped by §7 to serve a feed in which nothing is stale
 let freshOnly = false;
+// flipped by §9: the same three stale chats behind a list long enough that the
+// bar is well below the fold — the only shape in which her bug is visible
+let bulk = false;
+const BULK = [];
+for (let i = 0; i < 40; i++) BULK.push({
+  id: 'b' + i, chat: 'bulk-' + i, from: 'claude', text: 'x', tldr: 'x',
+  created: iso(T0 - 3600000 - i * 1000), postedAt: iso(T0 - 3600000 - i * 1000),
+});
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/chatfeed' && req.method === 'GET') {
     const since = url.searchParams.get('since');
-    const msgs = freshOnly ? MSGS.slice(0, 2) : MSGS;
-    const chats = freshOnly ? { 'fresh-a': CHATS['fresh-a'], 'fresh-b': CHATS['fresh-b'] } : CHATS;
+    let msgs = freshOnly ? MSGS.slice(0, 2) : MSGS;
+    let chats = freshOnly ? { 'fresh-a': CHATS['fresh-a'], 'fresh-b': CHATS['fresh-b'] } : CHATS;
+    if (bulk) {
+      msgs = MSGS.concat(BULK);
+      chats = Object.assign({}, CHATS);
+      BULK.forEach((m) => { chats[m.chat] = { lastSeen: m.created }; });
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       build: 'test-build-1', chats, settings: {}, truncated: [],
@@ -178,7 +195,49 @@ const folded = (page) => page.$$eval('#grid .morelist .crow[data-chat]', (ns) =>
   if (freshRows.indexOf('fresh-b') < 0) fail('the all-fresh list lost a chat: ' + freshRows.join(','));
   await ctx2.close();
 
+  // 9. IT LEAVES HER WHERE SHE IS. renderHome() empties #grid and rebuilds it,
+  //    so before repaintKeepingBar the page height collapsed mid-repaint and the
+  //    browser clamped her scroll to 0 — with the bar at the bottom of a long
+  //    list, the whole list scrolled away under her thumb. Measured on a phone
+  //    viewport with 40 extra chats above the bar; a short list cannot show it.
+  freshOnly = false; bulk = true;
+  const ctx3 = await browser.newContext({ viewport: { width: 390, height: 640 } });
+  const p3 = await ctx3.newPage();
+  await p3.goto(base + '/chats');
+  await p3.waitForSelector('.morebar');
+  // down to the bar, the way she gets there
+  await p3.$eval('.morebar', (n) => n.scrollIntoView({ block: 'center' }));
+  await p3.waitForTimeout(120);
+  const before = await p3.evaluate(() => ({
+    y: window.scrollY, top: document.querySelector('.morebar').getBoundingClientRect().top,
+  }));
+  if (before.y < 100) fail('§9 fixture is not tall enough to test the scroll (y=' + before.y + ')');
+  await p3.click('.morebar');
+  await p3.waitForSelector('#grid .morelist .crow[data-chat="old-read"]', { timeout: 4000 })
+    .catch(() => fail('§9 tapping More never opened the fold'));
+  await p3.waitForTimeout(120);
+  const after = await p3.evaluate(() => ({
+    y: window.scrollY, top: document.querySelector('.morebar').getBoundingClientRect().top,
+  }));
+  if (after.y < before.y - 4)
+    fail('opening More scrolled the page back up: ' + before.y + ' → ' + after.y);
+  if (Math.abs(after.top - before.top) > 4)
+    fail('the More bar moved on screen when it opened: ' + before.top + ' → ' + after.top);
+  // and folding it away again leaves the bar where it is too
+  await p3.click('.morebar');
+  await p3.waitForFunction(() => !document.querySelector('#grid .morelist'), null, { timeout: 4000 })
+    .catch(() => fail('§9 tapping More again did not fold it away'));
+  await p3.waitForTimeout(120);
+  const shut = await p3.evaluate(() => ({
+    y: window.scrollY, top: document.querySelector('.morebar').getBoundingClientRect().top,
+  }));
+  // closing shortens the page, so the browser may clamp the scroll — the bar
+  // must still be on screen, never jumped to the top of the list
+  if (shut.y === 0 && before.y > 0) fail('closing More threw her back to the top');
+  if (shut.top < 0 || shut.top > 640) fail('the More bar left the screen when it closed: ' + shut.top);
+  await ctx3.close();
+
   await browser.close();
   server.close();
-  if (!process.exitCode) console.log('OK: More fold — 7-day split, count, order, open/close, working exempt');
+  if (!process.exitCode) console.log('OK: More fold — 7-day split, count, order, open/close, working exempt, scroll held');
 })();
