@@ -92,7 +92,7 @@ struct TestStationView: View {
             Text("PROMPT")
                 .font(.caption2.weight(.semibold)).tracking(1)
                 .foregroundColor(Theme.textDim)
-            TextField("a teapot on a windowsill, a castle on a hill…",
+            TextField("…",
                       text: $prompt, axis: .vertical)
                 .lineLimit(2...5)
                 .font(.body)

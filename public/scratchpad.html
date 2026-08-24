@@ -113,16 +113,45 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   border-radius:6px; padding:7px 13px; font:600 13px -apple-system,'Helvetica Neue',sans-serif;
   cursor:pointer; -webkit-tap-highlight-color:transparent;}
 .scat.on{border-color:var(--gold); color:var(--gold);}
-#shelftiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px 8px;}
+/* THREE to a row (Aug 2026, Sophie), and the tile is a FRAMED picture: the
+   art sits on a white mat inside the one hairline outline, both corners
+   slightly rounded, the name centred underneath. The mat is the .cov's own
+   padding — so `inset:5px` on the art, not `inset:0`, because an absolutely
+   positioned child is placed against the PADDING BOX and would otherwise sit
+   on top of the mat — and the art's size is spelled out rather than left to
+   `inset`, because an absolutely positioned IMG with auto width shrinks to
+   its intrinsic size instead of stretching between two offsets. `box-sizing` is not global on this page, so the frame
+   declares its own or the padding pushes each tile out of its grid cell. */
+#shelftiles{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 10px;}
 .stile{display:block; padding:0; background:none; border:none; text-align:left; color:var(--ink);
   cursor:pointer; font-family:'EBGaramond',Georgia,serif; -webkit-tap-highlight-color:transparent;}
-.stile .cov{display:block; position:relative; width:100%; aspect-ratio:2/3;}
-.stile .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  border-radius:6px; border:1px solid var(--line); background:var(--barbg);}
-.stile .cov .none{position:absolute; inset:0; border-radius:6px; border:1px dashed var(--line);
-  background:var(--barbg);}
-.stile .snm{padding-top:5px; font-weight:700; font-size:.8em; line-height:1.25;
+.stile .cov{display:block; position:relative; box-sizing:border-box; width:100%; aspect-ratio:2/3;
+  padding:5px; background:#fff; border:1px solid var(--line); border-radius:4px;}
+.stile .cov img,.stile .cov .none{position:absolute; top:5px; left:5px;
+  width:calc(100% - 10px); height:calc(100% - 10px); border-radius:2px; background:var(--barbg);}
+.stile .cov img{object-fit:cover;}
+.stile .cov .none{box-sizing:border-box; border:1px dashed var(--line);}
+/* THE PUSHPIN — round head, straight spike, never the Maps teardrop (the
+   house rule). It rides the tile's top-left corner because the injected
+   autoscroll pill owns the top-RIGHT of the screen, and the first row's last
+   tile sits under it. Only the HEAD fills when it is set, as on the Chats
+   app's rows. Its plate is a ROUNDED SQUARE at the house 6px, never a circle
+   (2026-08-24, Sophie: rounded squares or a plain icon, not circles). */
+.stile .pinpin{position:absolute; top:4px; left:4px; z-index:2; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center; padding:0; border:none;
+  border-radius:6px; background:rgba(255,255,255,.92); color:var(--ink2);
+  box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+.stile .pinpin svg{width:14px; height:14px; display:block;}
+.stile .pinpin.on{color:var(--gold);}
+.stile .pinpin.on .pinhead{fill:var(--gold); stroke:var(--gold);}
+.stile .snm{padding-top:5px; text-align:center; font-weight:700; font-size:.8em; line-height:1.25;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+/* The way to the rest of the shelf. An underlined word, never a button with a
+   box round it — the house truncation-opener pattern. */
+#shelfmore{grid-column:1/-1; justify-self:center; margin:2px 0 0; padding:6px 4px;
+  background:none; border:none; color:var(--ink2); cursor:pointer;
+  font-family:'EBGaramond',Georgia,serif; font-size:.95em; text-decoration:underline;
+  -webkit-tap-highlight-color:transparent;}
 .stile .snm.blank{color:var(--ink2); font-style:italic; font-weight:400;}
 .stile.cur .snm{color:var(--gold);}
 /* The OLD shelf: every story as a row. Kept as a fallback only — NOTHING
@@ -265,9 +294,20 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    all around it is also the tap-out target). Capped at the screen and
    scrolls inside if content ever overflows. Everything — art, versions,
    chips, note, icons — lives ON the card. No scrim. */
+/* IT STARTS BELOW THE HEADER, AND CUTS THROUGH THE STORY'S NAME (2026-08-24,
+   Sophie: "someone made the beat one at a time popup too big. it shud
+   comfortably show the story room header, and part of the story name"). The
+   card's top used to be 18px down, which put it OVER both — so the one thing
+   on screen saying which room she was in and which story she was in was gone
+   the moment she opened a beat. Measured on the real page at 390x780: the
+   header runs y 4-38 and the name y 52-83, so a 68px top clears the header
+   whole and leaves the top half of the name showing above the card. The
+   number is a MEASUREMENT, not a taste — re-measure it if the header or the
+   title's type ever changes. The card is still screen-shaped and still
+   leaves a strip of pad all round as the tap-out target. */
 #beatpop{position:fixed; inset:0; z-index:50; background:none;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
+  padding:calc(env(safe-area-inset-top,0px) + 68px) 14px calc(env(safe-area-inset-bottom,0px) + 18px);}
 /* THE CARD IS NEARLY THE WHOLE SCREEN, AND SCREEN-SHAPED (Aug 2026, Sophie:
    "the whole popup gets bigger, so there's only room enough to comfortably
    see behind it. similar aspect ratio as total screen (not square)"). It
@@ -1258,6 +1298,46 @@ function paintShelfBack(){
   document.getElementById('shelfback').hidden =
     !padOpened || !document.getElementById('stories').hidden;
 }
+/* PINNED STORIES LEAD, THE REST GO BEHIND "see more" (Aug 2026, Sophie: "a
+   pinning feature where i can pin a couple stories i'm actively working on and
+   the rest go behind a see more toggle"). The fold only exists once something
+   in this category is pinned — with no pins the shelf is the whole shelf, as
+   it always was, because a "see more" hiding EVERY story would be a shelf with
+   nothing on it. Pinned ones keep the newest-first order among themselves.
+   The open/closed state is per category and per visit: tapping a chip is
+   asking for that shelf fresh. */
+var SHELF_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle class="pinhead" cx="12" cy="6.6" r="4.4"/><path d="M12 11V21.6"/></svg>';
+var shelfMore=false;
+function shelfTile(p){
+  var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
+  var cov=document.createElement('span'); cov.className='cov';
+  if(p.cover){
+    var im=document.createElement('img'); im.alt=''; im.loading='lazy';
+    im.src=thumbOf(p.cover); cov.appendChild(im);
+  } else {
+    var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
+  }
+  var pin=document.createElement('span');
+  pin.className='pinpin'+(p.pinned?' on':''); pin.innerHTML=SHELF_PIN;
+  pin.setAttribute('role','button');
+  pin.setAttribute('aria-label',p.pinned?'Unpin this story':'Pin this story to the top');
+  pin.title=pin.getAttribute('aria-label');
+  /* The pin sits INSIDE the tile, which is itself a button, so the tap has to
+     be stopped here or pinning a story would also open it. */
+  pin.onclick=function(e){ e.preventDefault(); e.stopPropagation(); togglePin(p); };
+  cov.appendChild(pin);
+  t.appendChild(cov);
+  var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
+  nm.textContent=p.title||'Untitled'; t.appendChild(nm);
+  t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
+  return t;
+}
+function togglePin(p){
+  var was=!!p.pinned; p.pinned=!was; renderShelf();
+  api('/pads/pin',{method:'POST',body:JSON.stringify({pad:p.id, pinned:!was})})
+    .then(function(r){ if(!r.ok) throw 0; })
+    .catch(function(){ p.pinned=was; renderShelf(); });
+}
 function renderShelf(){
   var cats=document.getElementById('shelfcats');
   var tiles=document.getElementById('shelftiles');
@@ -1267,26 +1347,21 @@ function renderShelf(){
   SHELF_CATS.forEach(function(c){
     var b=document.createElement('button'); b.className='scat'+(c[1]===shelfCat?' on':'');
     b.textContent=c[0];
-    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; renderShelf(); };
+    b.onclick=function(e){ e.stopPropagation(); shelfCat=c[1]; shelfMore=false; renderShelf(); };
     cats.appendChild(b);
   });
   tiles.innerHTML='';
-  shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; })
-    .forEach(function(p){
-      var t=document.createElement('button'); t.className='stile'+(p.id===padId?' cur':'');
-      var cov=document.createElement('span'); cov.className='cov';
-      if(p.cover){
-        var im=document.createElement('img'); im.alt=''; im.loading='lazy';
-        im.src=thumbOf(p.cover); cov.appendChild(im);
-      } else {
-        var n=document.createElement('span'); n.className='none'; cov.appendChild(n);
-      }
-      t.appendChild(cov);
-      var nm=document.createElement('span'); nm.className='snm'+(p.title?'':' blank');
-      nm.textContent=p.title||'Untitled'; t.appendChild(nm);
-      t.onclick=function(e){ e.stopPropagation(); openPad(p.id); };
-      tiles.appendChild(t);
-    });
+  var mine=shelfPads.filter(function(p){ return (p.category||'personal')===shelfCat; });
+  var pinned=mine.filter(function(p){ return p.pinned; });
+  var rest=mine.filter(function(p){ return !p.pinned; });
+  var show=pinned.length ? pinned.concat(shelfMore?rest:[]) : mine;
+  show.forEach(function(p){ tiles.appendChild(shelfTile(p)); });
+  if(pinned.length && rest.length){
+    var more=document.createElement('button'); more.id='shelfmore';
+    more.textContent=shelfMore?'see less':'see more ('+rest.length+')';
+    more.onclick=function(e){ e.stopPropagation(); shelfMore=!shelfMore; renderShelf(); };
+    tiles.appendChild(more);
+  }
 }
 function renderPlainShelf(){
   document.getElementById('shelfcats').hidden=true;

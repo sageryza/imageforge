@@ -1,6 +1,7 @@
 <!doctype html><html><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Playground</title>
+<link rel="stylesheet" href="/tritoggle.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
@@ -70,7 +71,7 @@
   .controls label { font-size: 12.5px; color: #6f675e; }
   /* Every boxed control on the row, in one place. */
   .controls .stylebtn, .controls .xthree, .controls #stylepick,
-  .controls .canvastog, .controls .swtog, .controls #charpick,
+  .controls .canvastog, .controls .tri, .controls #charpick,
   .controls #photopick, .controls .seedbtn, .controls button.go {
     height: var(--ctl-h); box-sizing: border-box; }
   .controls .stylebtn, .controls .xthree, .controls #stylepick {
@@ -104,49 +105,16 @@
   .seedbtn { width: var(--ctl-h); border-radius: 50%; border: 1px solid #d8d0c4; background: #fdfcf9; color: #2b2622; display: flex; align-items: center; justify-content: center; }
   .seedbtn svg { width: 19px; height: 19px; }
   .seedtag { font-size: 11.5px; color: #6f675e; }
-  /* THE TWO SLIDER TOGGLES — quality and resolution, one rule (Aug 2026).
-     Quality came first (Sophie: "make the low medium high drop down in the
-     playground into the exact three way toggle that the account switcher uses
-     … but black not red. and put the initial of the choice - L, M, or H"),
-     and the resolution tiers joined it on her next ask ("can you make the
-     1K 2K 4K at the same toggle format as the low medium and high quality
-     toggle thing where it's a slider that says the value … and can you make
-     the low medium high toggle a little bit wider so it's easier to change it
-     and can you make the 1K 2K 4K toggle the same width").
-     So `.swtog` is ONE rule wearing two hats. That is the whole point: two
-     copies of this geometry in one file would drift, and she asked for them to
-     be identical.
-     THE GEOMETRY STARTED AS `.swi` IN chats.html, VERBATIM — 48px track, 26
-     tall, an 18px knob — and has deliberately GROWN AWAY from it on her ask
-     above: 78px and a 26px knob, because a 48px track is a small target for a
-     control that decides what a run costs, and because "4K" does not fit on an
-     18px knob. The account switcher is unchanged and stays 48; what still has
-     to match is the SHAPE — a round knob inset in a filled track, three stops
-     DERIVED from --gap rather than typed, and a tap that moves to the next one
-     and wraps. `scripts/test-playground-quality-toggle.js` pins the shape and
-     asserts the width as a declared difference, the way it already does for
-     the colour.
-     THE STOPS ARE NUMBERED, NOT NAMED (`data-n`), so one rule serves both: the
-     quality toggle's three stops are low/medium/high and the resolution one's
-     are 1K/2K/4K, and neither needs a selector of its own. A fourth stop is
-     one more rule of this shape and nothing else.
-     Track ink instead of the account switcher's rose, per her earlier ask.
-     Still the sanctioned exception to no-pills: it is a toggle, not a text
-     button. */
-  .swtog { --tw: 78px; --k: 26px; --gap: 22px;
-    position: relative; box-sizing: border-box; width: var(--tw); height: 34px; border-radius: 17px;
-    border: 1.5px solid #2b2622; background: #2b2622;
-    padding: 0; margin: 0; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  /* The word rides the knob, so what it says and where it sits are one element
-     and can never disagree. 26px of knob is what "4K" needs; the quality one is
-     a single letter and has room to spare. */
-  .swtog::after { content: attr(data-i); position: absolute; top: 2.5px; left: 2.5px;
-    width: var(--k); height: var(--k); border-radius: 50%;
-    background: #faf7f2; color: #2b2622;
-    font: 600 11px/26px -apple-system, sans-serif; text-align: center;
-    transition: transform .18s; }
-  .swtog[data-n="1"]::after { transform: translateX(var(--gap)); }
-  .swtog[data-n="2"]::after { transform: translateX(calc(var(--gap) * 2)); }
+  /* The three-way toggle is /tritoggle.css now (Aug 2026, Sophie: "make a
+     reusable three toggle shell so we can change the styling all at once. make
+     color a per instance option"). This page keeps only its COLOUR and its
+     size — ink on paper rather than the account switcher's rose, and her own
+     wider track ("make the low medium high toggle a little bit wider so it's
+     easier to change it"; 26px of knob is what "4K" needs).
+     ONE rule for both toggles: the stops are NUMBERED (`data-n`), so quality
+     (low/medium/high) and size (1K/2K/4K) share it and neither needs a
+     selector of its own. Nothing here counts the notches. */
+  .tri { --tri-track: #2b2622; --tri-knob: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
   input[type=number] { width: 64px; border: 1px solid #d8d0c4; border-radius: 6px; padding: 7px; font: inherit; font-size: 16px; background: #fdfcf9; }
   /* Generate is the stars icon, not the word — one image, one tap. SQUARE
      since Aug 2026 (Sophie: "make the generate button a square"): 38x38, the
@@ -470,8 +438,8 @@
     <div class="canvastog" id="canvastog" role="group" aria-label="Canvas shape">
       <button id="c-portrait" type="button">Portrait</button><button id="c-square" type="button">Square</button>
     </div>
-    <button type="button" id="rpick" class="swtog" aria-label="Resolution"></button>
-    <button type="button" id="qpick" class="swtog" aria-label="Quality"></button>
+    <button type="button" id="rpick" class="tri" aria-label="Resolution"></button>
+    <button type="button" id="qpick" class="tri" aria-label="Quality"></button>
     <div class="gogroup">
       <button class="stepbtn" id="lowmed" hidden aria-label="Two low and one medium" title="Two low and one medium"></button>
       <button class="stepbtn" id="medhigh" hidden aria-label="One medium and one high" title="One medium and one high"></button>
@@ -847,7 +815,17 @@
   var STYLES = {
     watercolor: { model: 'sageryza/watercolordrawings', label: 'WTR', engine: 'replicate',
                   trigger: 'wtr', suffix: 'White background', baked: '' },
-    chatgpt:    { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'evan' },
+    // Sandy mirror = refs/sage-sandy-mirror.png. Its KEY stays `chatgpt` and
+    // its gptStyle stays `evan` (Aug 2026 rename, Sophie): both are stored —
+    // in localStorage, in ?style= deep links, in every run doc and in
+    // playground-port.js — so only the label she reads moved.
+    chatgpt:    { model: 'gpt-image-2', label: 'Sandy mirror', engine: 'gptimage', gptStyle: 'evan' },
+    // ChatGPT = her words and nothing else, no reference image at all (Aug
+    // 2026, her ask). The server sends it to the generations endpoint rather
+    // than edits; nothing here has to know that. noCharacter because the
+    // Sophie card is a style reference by another name.
+    plain:      { model: 'gpt-image-2', label: 'ChatGPT', engine: 'gptimage', gptStyle: 'plain',
+                  noCharacter: true },
     // Dreamy = refs/dream-mystery.jpg, her diary-comic page (Aug 2026). Sits
     // next to ChatGPT because those two are the references the chats actually
     // reach for; the server owns its bookended anti-content prompt.
@@ -879,7 +857,7 @@
   // without her meaning it.)
   var QUALITIES = ['low', 'medium', 'high'];
   var quality = 'medium';
-  // The three-way toggle (see .swtog). Nothing here counts the notches: the
+  // The three-way toggle (see .tri). Nothing here counts the notches: the
   // stops come from QUALITIES, so a fourth quality would be an entry in that
   // array plus one rule in the CSS — the same shape as the account switch.
   // `data-n` is the stop's INDEX and drives the knob's position; `data-i` is
@@ -1073,7 +1051,10 @@
     // photo line, and the Sophie button is what removes the character one.
     var extras = [];
     if (charOn && !STYLES[styleKey].noCharacter && p.baked.characterLine) extras.push(p.baked.characterLine);
-    if (photoRef && PHOTO_LINE) extras.push(PHOTO_LINE);
+    // The style's OWN photo line wins where it has one — the house sentence
+    // says the drawing style "comes from the style reference above", which is
+    // a lie on the plain ChatGPT tile where her photo is the only attachment.
+    if (photoRef) { var pl = (p.baked && p.baked.photoLine) || PHOTO_LINE; if (pl) extras.push(pl); }
     if (extras.length) {
       var al = document.createElement('div'); al.className = 'plab';
       al.textContent = 'Also added before your words';
@@ -1331,7 +1312,7 @@
     // The tiers are gpt-image-2's too — the WTR LoRA has one output size and
     // rides `aspect_ratio`, so the toggle comes off there rather than offering
     // a choice that would change nothing. `hidden` rather than a display
-    // style, exactly like the quality toggle beside it: .swtog declares no
+    // style, exactly like the quality toggle beside it: .tri declares no
     // display of its own, so the attribute is free to win.
     // The no-text toggle exists only for a style whose tail allows text — the
     // server says which, so a style that already bans text shows no button

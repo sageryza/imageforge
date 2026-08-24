@@ -26,7 +26,6 @@ const http = require('http');
 
 const ROOT = path.join(__dirname, '..');
 const pageSrc = fs.readFileSync(path.join(ROOT, 'public', 'promptlab.html'), 'utf8');
-const chatsSrc = fs.readFileSync(path.join(ROOT, 'public', 'chats.html'), 'utf8');
 
 let fails = 0;
 const ok = (cond, what) => {
@@ -51,82 +50,45 @@ const decl = (body, prop) => {
   return m ? m[1].trim().replace(/\s+/g, ' ') : null;
 };
 
-console.log('it is the account switcher\'s SHAPE, at her own width');
-const swi = rule(chatsSrc, '.swi{');
-const qtog = rule(pageSrc, '.swtog {');
-ok(swi && qtog, 'both rules exist to compare');
-// WHAT STILL HAS TO MATCH is the shape — a round knob inset in a filled track
-// with derived stops. The SIZE deliberately does not: Sophie asked for this
-// one wider ("can you make the low medium high quality toggle a little bit
-// wider so it's easier to change it"), and "4K" does not fit on an 18px knob.
-// So the width is asserted as a DIFFERENCE, the way the colour already is —
-// otherwise a later copy-paste would quietly shrink it back.
 const px = (v) => parseFloat(v);
-ok(px(decl(qtog, '--tw')) > px(decl(swi, '--tw')),
-  'the Playground toggle is WIDER than the account switcher ('
-  + decl(qtog, '--tw') + ' vs ' + decl(swi, '--tw') + ')');
-ok(px(decl(qtog, '--k')) > px(decl(swi, '--k')),
-  'and its knob is bigger, because it carries "4K" and not just a letter');
-ok(decl(qtog, 'width') === 'var(--tw)' && decl(swi, 'width') === 'var(--tw)',
-  'both still take their width from --tw rather than a typed number');
-['padding', 'margin', 'flex', 'position', 'box-sizing'].forEach((p) => {
-  ok(decl(swi, p) && decl(swi, p) === decl(qtog, p),
-    p + ' matches the account switcher (' + decl(swi, p) + ')');
-});
-const swiA = rule(chatsSrc, '.swi::after{');
-const qtogA = rule(pageSrc, '.swtog::after {');
-['top', 'left'].forEach((p) => {
-  ok(decl(qtogA, p), 'the knob declares its ' + p + ' inset (' + decl(qtogA, p) + ')');
-});
-ok(decl(swiA, 'border-radius') === decl(qtogA, 'border-radius'),
-  'the knob is still round (' + decl(qtogA, 'border-radius') + ')');
-ok(decl(swiA, 'transition') === decl(qtogA, 'transition'),
-  'and still slides rather than jumping (' + decl(qtogA, 'transition') + ')');
-ok(decl(qtogA, 'width') === 'var(--k)' && decl(qtogA, 'height') === 'var(--k)',
-  'the knob is a square of --k, so it cannot go oval when the track grows');
-// THE GEOMETRY MUST CLOSE. --gap is what puts the three stops where they are,
-// and it is typed rather than calc'd, so this is the one place a wrong number
-// would show as a knob that overshoots its track or stops short of the end.
-{
-  const tw = px(decl(qtog, '--tw')), k = px(decl(qtog, '--k')), gap = px(decl(qtog, '--gap'));
-  const border = px(decl(qtog, 'border')) || 1.5;
-  const inset = px(decl(qtogA, 'left'));
-  const travel = tw - 2 * border - 2 * inset - k;
-  ok(Math.abs(travel / 2 - gap) < 0.51,
-    'two --gaps land the knob exactly at the far end (travel ' + travel + ', gap ' + gap + ')');
-  const h = px(decl(qtog, 'height'));
-  ok(Math.abs((h - 2 * border - k) / 2 - inset) < 0.51,
-    'and the knob is vertically centred in the track');
-  ok(Math.abs(px(decl(qtog, 'border-radius')) - h / 2) < 0.51, 'the track is a full capsule');
-}
-// THREE stops, each a multiple of --gap — derived, never typed, exactly as the
-// account one derives them. The stops are NUMBERED, which is what lets the
-// resolution toggle share this rule instead of keeping a second copy.
-ok(/\.swtog\[data-n="1"\]::after\s*\{\s*transform:\s*translateX\(var\(--gap\)\)/.test(pageSrc),
-  'the middle stop is one --gap along');
-ok(/\.swtog\[data-n="2"\]::after\s*\{\s*transform:\s*translateX\(calc\(var\(--gap\) \* 2\)\)/.test(pageSrc),
-  'the last stop is two --gaps along');
+
+console.log('the geometry is the SHARED shell, and this page keeps only its own look');
+// The property-by-property comparison against `.swi` in chats.html that used
+// to live here is GONE, and so is the reason for it: the geometry moved into
+// /tritoggle.css (Aug 2026, Sophie: "make a reusable three toggle shell so we
+// can change the styling all at once"), which `scripts/test-tritoggle.js`
+// measures in a browser for every instance. What is left to pin HERE is that
+// this page did not quietly grow a copy back.
+const qtog = rule(pageSrc, '.tri {');
+ok(/<link rel="stylesheet" href="\/tritoggle\.css">/.test(pageSrc), 'the page links the shell');
+ok(qtog, 'and keeps a .tri rule of its own, for its colour and its size');
+ok(!/position\s*:|transition\s*:|border-radius\s*:/.test(qtog),
+  'which carries no geometry — no position, no transition, no radius');
+ok(!/\.swtog|--tw\s*:|--gap\s*:/.test(pageSrc), 'and no leftover of the old hand-copied rule');
+// The SIZE is still hers and still a declared difference from the account
+// switcher's ("make the low medium high toggle a little bit wider so it's
+// easier to change it"; "4K" does not fit on an 18px knob). The shell's own
+// defaults ARE the account switcher, so comparing against them is the same
+// assertion it always was, without reaching into another page.
+ok(px(decl(qtog, '--tri-w')) > 48, 'the Playground toggle is WIDER than the shell default (' + decl(qtog, '--tri-w') + ' vs 48px)');
+ok(px(decl(qtog, '--tri-k')) > 18, 'and its knob is bigger, because it carries "4K" and not just a letter');
 // ONE rule, two toggles — the whole reason the stops are numbered.
 ok(!/\.qtog\s*\{/.test(pageSrc) && !/\.rtog\s*\{/.test(pageSrc),
   'there is no second copy of the geometry for the resolution toggle');
-ok((pageSrc.match(/class="swtog"/g) || []).length === 2,
+ok((pageSrc.match(/class="tri"/g) || []).length === 2,
   'both toggles wear the one class');
 
 console.log('black, not red');
 // The one declared difference. chats.html paints the track with its own rose
 // token; here it is the page's ink, and the assertion is that they DIFFER —
 // otherwise a later copy-paste could quietly bring the rose back.
-ok(/var\(--chg\)/.test(decl(swi, 'background') || ''), 'the account switcher is its rose token');
-ok(decl(qtog, 'background') === '#2b2622', 'the Playground one is the page ink #2b2622');
-ok(decl(qtog, 'border') === '1.5px solid #2b2622', 'and its border is the same ink');
+ok(decl(qtog, '--tri-track') === '#2b2622', 'the Playground one sets its track to the page ink #2b2622');
+ok(decl(qtog, '--tri-knob') === '#faf7f2', 'and its knob to paper — the colour is the per-instance option');
 ok(!/--chg|#a1|rgb\(/i.test(qtog), 'no rose anywhere in the rule');
-// The knob keeps the paper fill and gains the letter.
-ok(decl(qtogA, 'content') === 'attr(data-i)', 'the knob draws its letter from data-i');
-ok(decl(qtogA, 'background') === '#faf7f2', 'the knob is still paper');
 
 console.log('the dropdown is gone');
 ok(!/<select id="qpick"/.test(pageSrc), 'no <select> left behind');
-ok(/<button type="button" id="qpick" class="swtog"/.test(pageSrc), 'it is a button now');
+ok(/<button type="button" id="qpick" class="tri"/.test(pageSrc), 'it is a button now');
 ok(!/qpick'\)\.innerHTML|qpick'\)\.value|qpick\.value/.test(pageSrc),
   'nothing still builds options or reads a .value off it');
 ok(/QUALITIES\[\(i \+ 1\) % QUALITIES\.length\]/.test(pageSrc),
@@ -164,6 +126,14 @@ catch {
         evan: { label: 'ChatGPT', prefix: 'E', suffix: 'E TAIL', refs: [] },
       } }));
     }
+    // The geometry is a SHARED stylesheet now — express.static serves it in
+    // production, so the stub has to as well. Without it the toggle collapses
+    // to a 4px sliver, which is worth knowing: a missing /tritoggle.css is not
+    // a subtle degradation.
+    if (url.pathname === '/tritoggle.css') {
+      res.writeHead(200, { 'Content-Type': 'text/css' });
+      return res.end(fs.readFileSync(path.join(ROOT, 'public', 'tritoggle.css')));
+    }
     if (url.pathname === '/playground-port.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(fs.readFileSync(path.join(ROOT, 'public', 'playground-port.js')));
@@ -194,7 +164,21 @@ catch {
       n: el.getAttribute('data-n'),
       w: el.getBoundingClientRect().width,
       h: el.getBoundingClientRect().height,
-      gap: parseFloat(track.getPropertyValue('--gap')),
+      // `--tri-gap` is a calc() and an UNREGISTERED custom property, so
+      // getPropertyValue hands back the unresolved expression, not a number.
+      // Measure the real travel instead: park a clone at the middle stop and
+      // read where it lands. That is also the honest question — what the
+      // browser did, not what the sheet says.
+      gap: (function () {
+        const c = el.cloneNode(true);
+        c.style.position = 'absolute'; c.style.left = '-9999px';
+        c.setAttribute('data-n', '1');
+        document.body.appendChild(c);
+        const cm = /matrix\(([^)]*)\)/.exec(getComputedStyle(c, '::after').transform);
+        const v = cm ? Math.round(parseFloat(cm[1].split(',')[4]) * 10) / 10 : 0;
+        c.remove();
+        return v;
+      })(),
     };
   }, id || 'qpick');
 

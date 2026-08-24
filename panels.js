@@ -69,6 +69,9 @@ let deps = {
   whiten: null,           // (buf) -> Promise<Buffer>
 };
 function init(d) { deps = Object.assign(deps, d || {}); }
+// Tests drive cutSheet directly with a stub uploader — the module owns none of
+// the credentials, so this needs no network and no Firebase.
+function __setDeps(d) { deps = Object.assign(deps, d || {}); }
 
 const router = express.Router();
 
@@ -114,7 +117,9 @@ router.get('/config', (req, res) => {
         const plan = sheetGrid.sheetFor(Number(gid), sid, tid);
         if (!plan) continue;
         const qs = (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'];
-        plans[`${gid}|${sid}|${tid}`] = Object.assign({ cents: sheetCents(plan, qs) }, plan);
+        // priced against the DEFAULT style's reference count — the page
+        // re-asks when she picks another, and most styles attach one
+        plans[`${gid}|${sid}|${tid}`] = Object.assign({ cents: sheetCents(plan, qs, 1) }, plan);
       }
     }
   }
@@ -172,21 +177,41 @@ function fitFor(ratio, quality) {
   const [bf, br] = b[quality] || b.medium;
   return { fixed: af + t * (bf - af), rate: ar + t * (br - ar) };
 }
-function sheetCents(plan, qualities) {
+// THE INPUT SIDE, measured on this tool's first real sheet (2026-08-24).
+// The fitted model above reproduces the OUTPUT-token cost, because PL_GPT.res
+// is an output-only table — so the first estimate this tool ever printed said
+// 11.74c and the API charged 13.06c. The missing 1.32c is what it costs to
+// SEND the style reference and the words:
+//     1,505 image tokens x $8/1M  = 1.20c   per attached reference
+//       246 text  tokens x $5/1M  = 0.12c   the prompt itself
+// This is the saving the whole tool exists for, so it is named rather than
+// folded into the fit: a sheet pays it ONCE where N separate draws pay it N
+// times. It does not move with quality or canvas — it is the input, not the
+// picture — so it is added after the fit rather than inside it.
+const REF_CENTS = 1.20;
+const TEXT_CENTS = 0.12;
+function sheetCents(plan, qualities, refs) {
   if (!plan) return null;
   const mp = plan.pixels / 1e6;
   const ratio = Math.max(plan.width, plan.height) / Math.min(plan.width, plan.height);
   const clamped = ratio > CENTS_FIT.portrait.ratio || ratio < CENTS_FIT.square.ratio;
+  const input = round2(Math.max(Number(refs) || 1, 1) * REF_CENTS + TEXT_CENTS);
   const out = {};
   for (const q of qualities || ['low', 'medium', 'high']) {
     const f = fitFor(ratio, q);
-    const total = f.fixed + f.rate * mp;
+    const total = f.fixed + f.rate * mp + input;
     out[q] = { sheet: round2(total), each: round2(total / plan.count),
-      approx: true, clamped };
+      // what a draw of the SAME picture on its own would pay in input, N times
+      // over — the number the comparison rests on
+      input, approx: true, clamped };
   }
   return out;
 }
 const round2 = (n) => Math.round(n * 100) / 100;
+// How many images ride along with the prompt — each one is charged as image
+// input, and it is the cost a sheet pays once instead of once per picture.
+const refCount = (st) => Math.max(
+  ((st && st.refFiles) || []).length + ((st && st.storageRefs) || []).length, 1);
 
 /**
  * THE PROMPT, built in one place so a test can read it without a network.
@@ -290,16 +315,19 @@ router.post('/', async (req, res) => {
       sheetSize: plan.sheet, cellSize: plan.cell, count: plan.count,
       aspectRatio: plan.aspectRatio, cellAspectRatio: plan.cellAspectRatio,
       panels, prefix, suffix, promptEdited, fullPrompt,
-      estimate: sheetCents(plan, qualities)[quality] || null,
+      estimate: sheetCents(plan, qualities, refCount(st))[quality] || null,
       sheetUrl: '', images: [],
       job: { kind: 'sheet', status: 'running', done: 0, total: plan.count + 1,
         label: 'drawing the sheet', startedAt: Date.now() },
       createdAt: admin.firestore.Timestamp.now(),
     });
-    runSheet(docRef, { plan, fullPrompt, quality, styleId, panels, gridId, shapeId, resId });
+    // prefix/suffix ride along so each filed picture carries the real wrapper
+    // — Sophie's hard rule, 2026-08-24: the whole prompt is stored wherever an
+    // image is made, and here ONE call makes several pictures.
+    runSheet(docRef, { plan, fullPrompt, quality, styleId, panels, gridId, shapeId, resId, prefix, suffix });
     return res.json({ id: docRef.id, poll: `/api/panels/${docRef.id}`,
       sheet: plan.sheet, cell: plan.cell, count: plan.count,
-      estimate: sheetCents(plan, qualities)[quality] || null });
+      estimate: sheetCents(plan, qualities, refCount(st))[quality] || null });
   } catch (err) {
     console.warn('panels start failed:', err.message);
     return res.status(500).json({ error: err.message });
@@ -340,51 +368,159 @@ async function runSheet(docRef, cfg) {
         label: 'cutting', startedAt: Date.now() },
     });
 
-    // THE CUT. Lossless — an exact crop of the sheet's own pixels, so a panel
-    // is the model's output and not a re-encode of it.
-    const sharp = require('sharp');
-    const boxes = sheetGrid.cutBoxes(cfg.plan);
-    const images = [];
-    for (let i = 0; i < boxes.length; i++) {
-      try {
-        const buf = await sharp(sheet).extract(boxes[i]).webp({ lossless: true }).toBuffer();
-        const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
-        images.push({ url, cell: sheetGrid.cellNames(cfg.gridId)[i] || `panel ${i + 1}`,
-          prompt: cfg.panels[i], size: cfg.plan.cell });
-      } catch (e) {
-        // one failed cut costs its panel, not the run — the sheet is paid for
-        console.warn(`panels cut ${i + 1} failed:`, e.message);
-      }
-      await patch({ images: images.slice(),
-        job: { kind: 'sheet', status: 'running', done: 1 + images.length,
-          total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
-    }
+    const images = await cutSheet(sheet, cfg, patch, []);
     if (!images.length) throw new Error('every cut failed — the sheet is saved, nothing was cut');
 
     await patch({ status: 'done', images,
       job: { kind: 'sheet', status: 'done', done: cfg.plan.count + 1,
         total: cfg.plan.count + 1, label: '', startedAt: Date.now() } });
 
-    // Into My Creations, like every other deliverable. The SHEET carries its
-    // own tier and each PANEL carries the fraction — see the header.
-    if (deps.fileCreation) {
-      const tier = sizeTier.captionSize(cfg.plan.sheet);
-      const cut = sizeTier.cutSize(cfg.plan.sheet, cfg.plan.count);
-      const model = (deps.gpt && deps.gpt.id) || 'gpt-image-2';
-      const label = (st && st.label) || cfg.styleId;
-      deps.fileCreation({ url: sheetUrl, source: 'panels',
-        prompt: `the sheet — ${cfg.plan.count} panels: ${cfg.panels.join(' · ')}`,
-        style: `${label} · ${cfg.quality}`, model, quality: cfg.quality,
-        canvas: cfg.plan.sheet, sizeSlot: tier });
-      images.forEach((im) => deps.fileCreation({ url: im.url, source: 'panels',
-        prompt: im.prompt, style: `${label} · ${cfg.quality}`, model,
-        quality: cfg.quality, canvas: cfg.plan.cell, sizeSlot: cut,
-      }));
-    }
+    fileRun(sheetUrl, images, cfg, 0);
   } catch (err) {
     console.warn('panels sheet failed:', err.message);
     await patch({ status: 'failed', error: err.message,
       job: { kind: 'sheet', status: 'failed', error: err.message, startedAt: Date.now() } });
+  }
+}
+
+/**
+ * INTO MY CREATIONS — shared by the first run and by a resume, so a re-cut
+ * panel is filed exactly like one that landed first time.
+ *
+ * The SHEET carries its own tier ("4K") and each PANEL carries the FRACTION
+ * ("1/4 (4K)") — a quarter of a 4K sheet is 1168x1752, which lands on the 1K
+ * rung by pixel count and would read as an ordinary small picture.
+ *
+ * `skip` is how many panels were already filed on an earlier pass; those are
+ * left alone rather than filed twice.
+ */
+function fileRun(sheetUrl, images, cfg, skip) {
+  if (!deps.fileCreation) return;
+  const st = deps.styles[cfg.styleId] || Object.values(deps.styles)[0] || {};
+  const tier = sizeTier.captionSize(cfg.plan.sheet);
+  const cut = sizeTier.cutSize(cfg.plan.sheet, cfg.plan.count);
+  const model = (deps.gpt && deps.gpt.id) || 'gpt-image-2';
+  const label = st.label || cfg.styleId;
+  const shared = { source: 'panels', style: `${label} · ${cfg.quality}`, model,
+    quality: cfg.quality };
+  if (!skip) {
+    deps.fileCreation(Object.assign({ url: sheetUrl,
+      prompt: `the sheet — ${cfg.plan.count} panels: ${(cfg.panels || []).join(' · ')}`,
+      canvas: cfg.plan.sheet, sizeSlot: tier }, shared));
+  }
+  images.slice(skip || 0).forEach((im) => deps.fileCreation(Object.assign({
+    url: im.url, prompt: im.prompt, canvas: cfg.plan.cell, sizeSlot: cut }, shared)));
+}
+
+/**
+ * THE CUT, shared by the first run and by a resume.
+ *
+ * DECODED ONCE. It used to be `sharp(sheet).extract(...)` per panel, which
+ * re-decodes the whole page every time — a 2336x3504 sheet is 24.5MB of raw
+ * pixels, so nine panels meant nine decodes on a 512MB box that is also
+ * serving the app. One decode, N crops.
+ *
+ * Lossless — an exact crop of the sheet's own pixels, so a panel is the
+ * model's output and not a re-encode of it.
+ *
+ * `have` is what already landed, so a resume only cuts the panels that are
+ * missing and never re-uploads one she may already have hearted.
+ */
+async function cutSheet(sheet, cfg, patch, have) {
+  const sharp = require('sharp');
+  const boxes = sheetGrid.cutBoxes(cfg.plan);
+  const names = sheetGrid.cellNames(cfg.gridId);
+  const images = (have || []).slice();
+  const done = new Set(images.map((im) => im.cell));
+  // ONE decode for the whole sheet; each crop is taken from this.
+  const page = sharp(sheet, { limitInputPixels: false });
+  for (let i = 0; i < boxes.length; i++) {
+    const cell = names[i] || `panel ${i + 1}`;
+    if (done.has(cell)) continue;
+    try {
+      const buf = await page.clone().extract(boxes[i]).webp({ lossless: true }).toBuffer();
+      const url = await deps.saveBuffer(buf, 'image/webp', 'panels/cuts');
+      images.push({ url, cell, prompt: cfg.panels[i], size: cfg.plan.cell });
+    } catch (e) {
+      // one failed cut costs its panel, not the run — the sheet is paid for
+      console.warn(`panels cut ${i + 1} failed:`, e.message);
+    }
+    // keep them in reading order however they were assembled
+    images.sort((a, b) => names.indexOf(a.cell) - names.indexOf(b.cell));
+    await patch({ images: images.slice(),
+      job: { kind: 'sheet', status: 'running', done: 1 + images.length,
+        total: cfg.plan.count + 1, label: 'cutting', startedAt: Date.now() } });
+  }
+  return images;
+}
+
+/**
+ * A WEDGED RUN IS RE-CUT FROM ITS OWN SHEET, FREE.
+ *
+ * Measured the first time this tool drew anything (2026-08-24): the sheet
+ * landed, two of four panels cut, and thirteen seconds later ANOTHER CHAT
+ * merged a PR — the Render deploy restarted the box mid-job and the doc sat
+ * `running` forever. Several chats merge here all day, so that is a normal
+ * event, not a freak one.
+ *
+ * The expensive half had already succeeded. So this re-cuts from the stored
+ * sheet: no model call, no money, and the panels that already landed are kept
+ * rather than re-uploaded. That is the whole reason the sheet is saved to
+ * Storage BEFORE the cutting starts.
+ *
+ * It refuses to touch a job that is genuinely still working — only one that
+ * has been silent past STALE_MS, the same stale-job takeover cutmarks.js uses,
+ * so a restart can never wedge a doc permanently.
+ */
+const STALE_MS = 5 * 60 * 1000;
+function isStale(d) {
+  const j = d.job || {};
+  if (j.status !== 'running') return false;
+  return Date.now() - (Number(j.startedAt) || 0) > STALE_MS;
+}
+
+router.post('/:id/resume', async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(503).json({ error: 'firebase not configured' });
+    const ref = admin.firestore().collection(COLLECTION).doc(String(req.params.id));
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'run not found' });
+    const d = doc.data();
+    if (!d.sheetUrl) return res.status(400).json({ error: 'no sheet to cut — nothing was drawn' });
+    if ((d.images || []).length >= d.count) {
+      return res.json({ ok: true, alreadyDone: true, images: d.images });
+    }
+    if (d.status === 'running' && !isStale(d)) {
+      return res.json({ ok: true, stillWorking: true, job: d.job || null });
+    }
+    const plan = sheetGrid.sheetFor(d.grid, d.shape, d.res);
+    if (!plan) return res.status(400).json({ error: 'this run has no legal canvas any more' });
+    await ref.update({ status: 'running',
+      job: { kind: 'recut', status: 'running', done: 1 + (d.images || []).length,
+        total: plan.count + 1, label: 'cutting', startedAt: Date.now() } });
+    recut(ref, d, plan);
+    return res.json({ ok: true, resumed: true, have: (d.images || []).length, want: plan.count });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+async function recut(ref, d, plan) {
+  const patch = (o) => ref.update(o).catch(() => {});
+  try {
+    const r = await fetch(d.sheetUrl);
+    if (!r.ok) throw new Error(`could not fetch the sheet (${r.status})`);
+    const sheet = Buffer.from(await r.arrayBuffer());
+    const cfg = { plan, panels: d.panels || [], gridId: d.grid,
+      quality: d.quality, styleId: d.style };
+    const images = await cutSheet(sheet, cfg, patch, d.images || []);
+    if (!images.length) throw new Error('every cut failed');
+    await patch({ status: 'done', images,
+      job: { kind: 'recut', status: 'done', done: plan.count + 1,
+        total: plan.count + 1, label: '', startedAt: Date.now() } });
+    fileRun(d.sheetUrl, images, cfg, (d.images || []).length);
+  } catch (err) {
+    console.warn('panels recut failed:', err.message);
+    await patch({ status: 'failed', error: err.message,
+      job: { kind: 'recut', status: 'failed', error: err.message, startedAt: Date.now() } });
   }
 }
 
@@ -435,4 +571,5 @@ function clean(d) {
   return o;
 }
 
-module.exports = { router, init, buildPrompt, sheetSuffix, sheetCents, hay, COLLECTION };
+module.exports = { router, init, __setDeps, buildPrompt, sheetSuffix, sheetCents,
+  hay, cutSheet, isStale, STALE_MS, COLLECTION };

@@ -29,11 +29,15 @@
 // the dashes pink" from "Can't wait to see it" reliably enough for a list she
 // trusts. One word from her settles it for free, and she is already saying it.
 //
-// So `findQuestions` returns NOTHING at all unless her message carries the word
-// `question` (`flagsQuestion`). Inside a flagged message the old sentence-level
-// heuristics still pick which sentence is the ask — a false positive there
-// costs one extra row in a message that really was about a question, which is a
-// different order of problem from filing her whole transcript.
+// So `findQuestions` returns NOTHING at all unless her message MARKS one
+// (`flagsQuestion`). Inside a marked message the old sentence-level heuristics
+// still pick which sentence is the ask — a false positive there costs one extra
+// row in a message that really was about a question, which is a different order
+// of problem from filing her whole transcript.
+//
+// **The gate has since tightened from the bare WORD to the asking PHRASES, and
+// gained a code word — see *Her flag* below**, which carries the measurement
+// that forced it (all 3 rows in this feature's own chat were false positives).
 //
 // AND THE FLAG IS WHAT BRINGS THE BOLD ECHO BACK. A blanket "repeat her
 // question verbatim in bold" rule shipped for one day (2026-08-14→15) and
@@ -116,28 +120,94 @@ function isQuestion(s) {
 }
 
 // ---- Her flag ---------------------------------------------------------------
-// THE GATE IS THE WORD ITSELF, not a phrase list. Her sentence was "if i use the
-// word question in my text", and the three shapes she gave — "i have a
-// question", "my question is:", "quick question" — are examples of saying it,
-// not a vocabulary to match. A phrase list would silently drop the fourth way
-// she says it, and the failure would be invisible: a question she marked simply
-// never appears, with nothing on screen admitting why.
+// SHE HAS TO BE ASKING, NOT TALKING ABOUT ASKING (2026-08-24, Sophie: "i
+// noticed ur still structuring ur response w bold questions. is that cuz ur
+// rules are out of date?").
 //
-// The cost is the other direction, and it is worth naming: a message ABOUT
-// questions trips it — this feature's own conversation would. That is one stray
-// row in a message that really was about a question, and an unanswered one is
-// never listed anyway (`answeredOnly`).
-const FLAG = /\bquestions?\b/i;
-function flagsQuestion(text) {
-  return FLAG.test(String(text || ''));
+// The rules were not out of date — the gate fired exactly as written, and that
+// WAS the bug. It read the bare word `question` anywhere in her message, so
+// every message ABOUT the feature tripped it. Measured in this very chat's own
+// tab the day she asked: **all 3 rows were false positives** and not one was a
+// question she had marked —
+//
+//   "…ur still structuring ur response w bold questions"        ← describing
+//   "it didn't actually answer the question"                    ← complaining
+//   "it ONLY applies if i use the word question in my text…"     ← specifying
+//
+// So the gate is the ASKING PHRASES now — the same list that already picked
+// WHICH sentence, promoted to deciding whether the message counts at all. All
+// three of the shapes she named still fire ("i have a question", "my question
+// is:", "quick question"), and so do the ones her real feed carries ("Last
+// question:", "One more question —", "two questions for you", "A question:").
+// The two live false positives above go quiet.
+//
+// ONE CASE NO PHRASE RULE CAN FIX, named rather than hidden: a message that
+// QUOTES the trigger phrases — her own spec above literally contains "i have a
+// question" and "my question is:" as examples — is indistinguishable from
+// asking one. It stays a false positive, it is rare (a message about this
+// feature), and it costs one stray row that an unanswered filter usually eats.
+const ASKING = /\b(?:i\s+(?:have|had|got)\s+(?:a|an|another|one|two|three|some|a\s+few|a\s+couple(?:\s+of)?)?\s*\w*\s*questions?|my\s+questions?\s+(?:is|are)|(?:quick|dumb|small|silly|random|serious|last|final|first|second|third|next|other|one\s+more|another)\s+questions?|questions?\s+for\s+(?:you|u)|questions?\s*[:—-])/i;
+
+// AND A WHOLE SENTENCE THAT IS NOTHING BUT A COUNT OF THEM is framing too —
+// "Two questions." / "Questions:" / "A question." — which no phrase above
+// catches, because it has no verb and no possessive to anchor on.
+//
+// It is safe ONLY as a WHOLE-SENTENCE test, and that is the load-bearing half:
+// the bare word `question.` at the END of "it didn't actually answer the
+// question." would match any looser rule, and that sentence is one of the three
+// measured false positives this gate was rewritten to kill. Anchored at both
+// ends, the framing has to BE the sentence.
+const BARE_FRAME = /^(?:ok(?:ay)?[,\s]+)?(?:a|an|one|two|three|four|another|some|first|second|third|next|other|last|final|a\s+few|a\s+couple(?:\s+of)?)?\s*questions?\s*[.:!—-]*$/i;
+
+/** Is this sentence of hers framing — either an asking phrase or a bare count? */
+function framing(s) {
+  const t = String(s || '').trim();
+  return ASKING.test(t) || BARE_FRAME.test(t);
 }
 
-// The asking phrases, used ONLY to decide WHICH sentence of a flagged message is
-// the ask — never to decide whether the message counts. They exist because her
-// commonest shape carries no other signal at all: "quick question, can you make
-// the dashes pink" has no mark and opens on a noun, so every heuristic below
-// misses it.
-const ASKING = /\b(?:i\s+(?:have|had|got)\s+(?:a|an|another|one|two|three|some|a\s+few|a\s+couple(?:\s+of)?)?\s*\w*\s*questions?|my\s+questions?\s+(?:is|are)|(?:quick|dumb|small|silly|random|serious|last|final|one\s+more|another)\s+questions?|questions?\s+for\s+(?:you|u)|questions?\s*[:—-])/i;
+// ---- The code word — filing on purpose --------------------------------------
+// HER IDEA (2026-08-24: "maybe a code word that triggers the chat to file the
+// answer intentionally?"), and it does something the phrases cannot: it files
+// an exchange that was never shaped like a question at all. She reads an
+// explanation, decides she will want it back in a month, and says so — no
+// question mark, no asking phrase, nothing for any detector to find.
+//
+// IT IS A SMALL VOCABULARY, NOT ONE MAGIC STRING, because she DICTATES and will
+// paraphrase herself. "file this" and "file that" are the same intent, and a
+// single exact string would silently drop the second one — the same failure the
+// phrase gate is built to avoid. Add to the list rather than swapping it.
+const FILE_IT = /\b(?:file (?:this|that|it)(?: one)?|save (?:this|that) (?:answer|one)|for the questions? tab)\b/i;
+function filesOnPurpose(text) {
+  return FILE_IT.test(String(text || ''));
+}
+
+// ---- Not her message at all -------------------------------------------------
+// A CONTEXT-COMPACTION SUMMARY IS FILED AS ONE OF HERS, AND IT QUOTES
+// EVERYTHING (found live 2026-08-24 in this feature's own chat). When a
+// session runs out of context the harness hands the model a summary as a USER
+// turn, so the hook lifts it exactly like a message she typed — 7,232
+// characters that recite her earlier words, this file's own rules, and the
+// trigger phrases as examples. Every gate in here fires on it, several times.
+//
+// Measured over her 120 recent chats: only **4 of 408** of her messages are
+// one of these, but they produced **5 of the 35** question rows — a summary
+// quotes, so it trips far above its weight.
+//
+// Matched on the harness's own opening line, ANCHORED AT THE START: the
+// sentence is fixed text nobody dictates, and anchoring means a message that
+// merely talks about compaction is untouched. It is not the deeper fix — the
+// feed still shows the thing as hers in the thread and under the search's
+// Mine filter — but it is the half that is derived, so it reaches every chat's
+// whole history at once with nothing migrated.
+const COMPACTED = /^\s*\[?\s*this session is being continued from a previous conversation/i;
+
+/** Does this message of hers put anything in the Questions tab at all? */
+function flagsQuestion(text) {
+  const t = String(text || '');
+  if (COMPACTED.test(t)) return false;   // not her message — the harness's
+  if (filesOnPurpose(t) || ASKING.test(t)) return true;
+  return sentences(t).some(framing);
+}
 
 // Is the ask IN the framing sentence, or is the framing a sentence of its own?
 // "my question is whether the tabs should be pink" carries it; "I have a
@@ -157,18 +227,43 @@ function findQuestions(text) {
   if (!flagsQuestion(text)) return [];      // she did not mark this one
   const ss = sentences(text);
   const out = [];
+  // THE CODE WORD FILES AN EXCHANGE THAT WAS NEVER A QUESTION. "file this" after
+  // an explanation has no mark, no auxiliary and no asking phrase — there is
+  // nothing in it for any detector below to find — so the row becomes her own
+  // sentence, minus the instruction. It runs FIRST and then falls through, so a
+  // message that carries both ("file this — my question is whether…") still
+  // picks the real ask rather than stopping at the code word.
+  if (filesOnPurpose(text)) {
+    const said = ss.filter((x) => !FILE_IT.test(x));
+    // The longest remaining sentence is the substance; "file this." on its own
+    // leaves nothing, and then the reply's answer stands alone under a row named
+    // by her whole message.
+    const best = said.slice().sort((a, b) => b.length - a.length)[0];
+    if (best && looksTyped(best)) out.push(best.trim());
+    else {
+      const whole = String(text).replace(/\s+/g, ' ').trim();
+      if (whole) out.push(whole.slice(0, 200));
+    }
+  }
   const add = (s) => {
     const t = String(s || '').trim();
     if (t && looksTyped(t) && out.indexOf(t) < 0) out.push(t);
   };
+  // The hand-off below is a LAST RESORT, not a first move: it exists for the
+  // message where nothing else in it looks like a question at all ("Quick
+  // question. The dashes at the top, pink or tan."). When some other sentence
+  // does read as one, the hand-off would file the setup line as well and put
+  // two rows in front of her for one ask — her own 2026-08-14 message does
+  // exactly that, opening "so basically, I have this idea…".
+  const hasReal = ss.some((x) => !framing(x) && isQuestion(x));
   ss.forEach((s, i) => {
-    if (ASKING.test(s)) {
+    if (framing(s)) {
       // Bare framing ("I have a question." / "Quick question.") hands the row to
       // the sentence AFTER it, whatever that sentence looks like — she has just
       // said in her own words that what follows is a question, and that beats
       // any test this file could run on it.
       if (carriesAsk(s)) add(s);
-      else if (ss[i + 1] && !ASKING.test(ss[i + 1])) add(ss[i + 1]);
+      else if (!hasReal && ss[i + 1] && !framing(ss[i + 1])) add(ss[i + 1]);
       return;
     }
     if (isQuestion(s)) add(s);
@@ -475,5 +570,5 @@ function answeredOnly(list) {
   return (list || []).filter((q) => q && q.answer);
 }
 
-module.exports = { sentences, isQuestion, flagsQuestion, findQuestions, boldBlocks, matchBlock,
+module.exports = { sentences, isQuestion, flagsQuestion, filesOnPurpose, framing, findQuestions, boldBlocks, matchBlock,
   bestParagraph, answerFor, collapseSharedAnswers, buildQuestions, answeredOnly };
