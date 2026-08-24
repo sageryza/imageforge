@@ -29,22 +29,28 @@
   `let raf` kills it at parse time.
 -->
 <style>
-  /* The pill is injected and carries its own palette ON the element, so a host
-     that wants it to match has to out-specify `.float` — see the new-page
-     skill. tool.css's paper and ink. */
-  body.tool .float { --paper: #faf7f2; --ink: #2b2622; --ink2: #6b6255;
-    --chg: #b4533a; --rose: #b4533a; }
+  /* ONE palette on the page — the Playground's paper and ink, because the
+     controls here are deliberately that tool's controls in a second surface.
+     Declared once as tokens: tool.css's chrome (the "?", the help card) reads
+     the overridden --ink/--accent/--border, the page's own rules read the same
+     vars instead of re-typing the hexes, and the INJECTED pill reads the five
+     it needs straight off :root (the settled pill contract — pill-inject.html
+     uses var(--x, fallback); nothing out-specifies .float any more). */
+  :root { --bg: #faf7f2; --paper: #faf7f2; --surface: #fdfcf9;
+    --ink: #2b2622; --ink2: #6b6255; --dim: #6b6255;
+    --chg: #b4533a; --rose: #b4533a; --accent: #b4533a;
+    --border: #d8d0c4; --line: #e6ded0; }
 
   .ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding-right: 64px; margin: 0 0 14px; }
-  .ctrls .seg { display: flex; border: 1.5px solid #2b2622; border-radius: 6px;
+  .ctrls .seg { display: flex; border: 1.5px solid var(--ink); border-radius: 6px;
     overflow: hidden; flex: none; height: 34px; }
-  .ctrls .seg button { border: 0; background: #fdfcf9; color: #2b2622;
+  .ctrls .seg button { border: 0; background: var(--surface); color: var(--ink);
     font: 600 12px/1 -apple-system, sans-serif; padding: 0 10px; cursor: pointer; }
-  .ctrls .seg button + button { border-left: 1.5px solid #2b2622; }
-  .ctrls .seg button[aria-pressed="true"] { background: #2b2622; color: #faf7f2; }
-  .ctrls select { height: 34px; border: 1.5px solid #2b2622; border-radius: 6px;
-    background: #fdfcf9; font: 600 12px -apple-system, sans-serif; padding: 0 6px; flex: none; }
+  .ctrls .seg button + button { border-left: 1.5px solid var(--ink); }
+  .ctrls .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .ctrls select { height: 34px; border: 1.5px solid var(--ink); border-radius: 6px;
+    background: var(--surface); font: 600 12px -apple-system, sans-serif; padding: 0 6px; flex: none; }
 
   /* The three-way toggle is /tritoggle.css — the ONE shell (Aug 2026). This
      block used to be "LIFTED VERBATIM from promptlab.html", which is exactly
@@ -56,8 +62,8 @@
   /* Generate: the house star, a 38px square — the same box the Playground's
      is, because a button that spends a model call must read the same in every
      surface (the one-generate-glyph rule). */
-  .go { width: 38px; height: 38px; border-radius: 6px; border: 1.5px solid #2b2622;
-    background: #2b2622; color: #faf7f2; display: inline-flex; align-items: center;
+  .go { width: 38px; height: 38px; border-radius: 6px; border: 1.5px solid var(--ink);
+    background: var(--ink); color: var(--paper); display: inline-flex; align-items: center;
     justify-content: center; margin-left: auto; flex: none; cursor: pointer; padding: 0; }
   .go svg { width: 21px; height: 21px; }
   .go[disabled] { opacity: .4; cursor: default; }
@@ -67,39 +73,37 @@
     gap: 8px; margin: 0 0 12px; }
   .cell { display: flex; flex-direction: column; }
   .cell label { font: 600 10px/1.4 -apple-system, sans-serif; letter-spacing: .06em;
-    text-transform: uppercase; color: #6b6255; margin-bottom: 3px; }
+    text-transform: uppercase; color: var(--ink2); margin-bottom: 3px; }
   /* Ships EMPTY — no placeholder, no example (the house rule). The label above
      names the cell, which is a name and not words. */
-  .cell textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8d0c4;
+  .cell textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border);
     border-radius: 6px; padding: 8px; font: inherit; font-size: 16px;
-    background: #fdfcf9; resize: vertical; min-height: 62px; }
-  .cell textarea.want { border-color: #b4533a; }
+    background: var(--surface); resize: vertical; min-height: 62px; }
+  .cell textarea.want { border-color: var(--chg); }
 
-  .plan { font: 500 12px/1.5 -apple-system, sans-serif; color: #6b6255; margin: 0 0 12px; }
-  .plan b { color: #2b2622; font-weight: 600; }
-  #msg { font: 500 12px/1.5 -apple-system, sans-serif; color: #b4533a; min-height: 18px; margin: 0 0 10px; }
+  .plan { font: 500 12px/1.5 -apple-system, sans-serif; color: var(--ink2); margin: 0 0 12px; }
+  .plan b { color: var(--ink); font-weight: 600; }
+  #msg { font: 500 12px/1.5 -apple-system, sans-serif; color: var(--chg); min-height: 18px; margin: 0 0 10px; }
 
-  .run { border-top: 1px solid #e6ded0; padding: 14px 0 4px; }
-  .runhead { font: 500 11px/1.5 -apple-system, sans-serif; color: #6b6255;
+  .run { border-top: 1px solid var(--line); padding: 14px 0 4px; }
+  .runhead { font: 500 11px/1.5 -apple-system, sans-serif; color: var(--ink2);
     display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  .runhead b { color: #2b2622; font-weight: 600; }
+  .runhead b { color: var(--ink); font-weight: 600; }
   .cuts { display: grid; grid-template-columns: repeat(var(--across, 2), minmax(0, 1fr));
     gap: 6px; align-items: start; }
   .cuts figure { margin: 0; }
-  .cuts img, .sheetimg { width: 100%; display: block; border-radius: 4px; background: #efe9dd; }
-  .cuts figcaption { font: 500 10px/1.35 -apple-system, sans-serif; color: #6b6255;
+  /* No rounded corner and no outline on a PICTURE (Sophie, 2026-08-24) — her
+     rounded boxes are for words; a radius on the art reads as a crop. */
+  .cuts img, .sheetimg { width: 100%; display: block; background: #efe9dd; }
+  .cuts figcaption { font: 500 10px/1.35 -apple-system, sans-serif; color: var(--ink2);
     margin-top: 3px; }
   .sheetwrap { margin-bottom: 8px; }
   .sheetwrap .sheetimg { max-width: 44%; }
-  /* Truncated text opens with an underlined word, never a button — the house
-     pattern (.moretxt). */
-  .moretxt { border: 0; background: none; padding: 0; font: inherit;
-    text-decoration: underline; cursor: pointer; color: inherit; }
 </style>
 
 <body class="tool">
-<header class="app-header">
-  <div class="htext"><h1 class="tool-eyebrow">Panels</h1></div>
+<header class="head">
+  <div class="eyebrow tool-eyebrow">PANELS</div>
   <button id="help" type="button" aria-label="What this is">?</button>
 </header>
 <div class="helpcard" id="helpcard" hidden></div>

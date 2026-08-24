@@ -188,14 +188,28 @@ const server = http.createServer((req, res) => {
   {
     const p = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await p.setContent('<body><script>window.__forgeLeave=function(){window.__left=1};</script>'
-      + '<div style="height:900px">bare</div>'
+      + '<div id="barecontent" style="height:900px">bare</div>'
       + `<script>${fs.readFileSync(path.join(PUB, 'pagehead.js'), 'utf8')}</script>`);
     await p.waitForTimeout(200);
-    is('it floats in the corner rather than vanishing',
+    // It used to FLOAT (position:fixed) — and on every row-less page whose
+    // content starts at the top it sat ON the title (measured 2026-08-23:
+    // films, instagram, the wall, the drop pages). It rides an in-flow row
+    // (#forgehead) at the very top now, so content flows below it and it can
+    // never cover anything.
+    is('it rides an in-flow row rather than vanishing or floating',
       await p.evaluate(() => {
         const b = document.getElementById('forgeback');
-        return b ? getComputedStyle(b).position : null;
-      }), 'fixed');
+        if (!b) return null;
+        const row = b.parentElement;
+        return row.id === 'forgehead' && row.parentElement === document.body
+          && getComputedStyle(b).position !== 'fixed' ? 'in-flow' : 'wrong';
+      }), 'in-flow');
+    is('and the page content sits below it, never under it',
+      await p.evaluate(() => {
+        const row = document.getElementById('forgehead').getBoundingClientRect();
+        const content = document.getElementById('barecontent').getBoundingClientRect();
+        return content.top >= row.bottom - 1;
+      }), true);
     await p.close();
   }
 

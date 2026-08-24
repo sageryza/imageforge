@@ -186,6 +186,13 @@
       || document.querySelector('.app-header')
       || document.querySelector('header');
     if (row) {
+      // Measured BEFORE the chevron joins: a row that is already tall is a
+      // STACKED masthead (the wall's eyebrow + big serif h1 + rule as direct
+      // children), and the `.fh` centring below would absolutize its h1 into
+      // the middle of the stack, over the eyebrow (seen 2026-08-23). A
+      // single-line row measures ~34-60px; anything taller keeps its own
+      // layout and just gets the chevron on top.
+      var stacked = row.getBoundingClientRect().height > 64;
       row.insertBefore(btn, row.firstChild);
       levelRow(btn, row);
       // `.fh` centres the row's title (see the CSS above) — but never inside
@@ -193,19 +200,25 @@
       // absolute title needs a positioned row — set relative only where the
       // page left it static, so a sticky header (tool.css's, Cutting
       // Blocks') keeps its own.
-      if (!row.querySelector('.brand')) {
+      if (!row.querySelector('.brand') && !stacked) {
         row.classList.add('fh');
         try {
           if (getComputedStyle(row).position === 'static') row.style.position = 'relative';
         } catch (e) { /* headless quirk — the title stays in flow */ }
       }
     } else {
-      btn.style.position = 'fixed';
-      btn.style.top = 'var(--headtop,4px)';
-      btn.style.left = '16px';
-      btn.style.marginLeft = '0';   // the in-flow -4 pull would land it at 12
-      btn.style.zIndex = '30';
-      document.body.appendChild(btn);
+      // No header row to sit in. This used to FLOAT the chevron (fixed,
+      // top-left) — and on every row-less page whose content starts at the
+      // top (films, instagram, the wall, the drop pages) it sat ON the
+      // title, seen only when the pages were screenshotted side by side
+      // (2026-08-23). An in-flow row can never cover anything: content
+      // flows below it, and levelRow levels it like any other header.
+      var bar = document.createElement('div');
+      bar.id = 'forgehead';
+      bar.style.cssText = 'display:flex;align-items:center;min-height:34px;';
+      bar.appendChild(btn);
+      document.body.insertBefore(bar, document.body.firstChild);
+      levelRow(btn, bar);
     }
   }
 

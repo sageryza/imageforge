@@ -176,7 +176,16 @@ function framing(s) {
 // paraphrase herself. "file this" and "file that" are the same intent, and a
 // single exact string would silently drop the second one — the same failure the
 // phrase gate is built to avoid. Add to the list rather than swapping it.
-const FILE_IT = /\b(?:file (?:this|that|it)(?: one)?|save (?:this|that) (?:answer|one)|for the questions? tab)\b/i;
+// SHE PARAPHRASED IT ON THE SECOND USE, EXACTLY AS THIS COMMENT PREDICTED
+// (2026-08-24: "Put that in my questions tab"). "for the questions tab" was
+// the only tab spelling on the list, so her instruction did nothing at all --
+// the message carried no asking phrase either, so the whole exchange would
+// have gone unfiled after she asked for it in so many words. The tab spelling
+// now takes a PUT-VERB and a preposition ("put/add/stick/throw/file/save ... in
+// my questions tab") rather than the bare phrase, so a message merely ABOUT
+// that tab ("the questions tab is showing the wrong answer") still files
+// nothing -- the same both-ends discipline BARE_FRAME above is built on.
+const FILE_IT = /\b(?:file (?:this|that|it)(?: one)?|save (?:this|that) (?:answer|one)|for the questions? tab|(?:put|add|stick|throw|file|save)\s+(?:this|that|it|these|those)?\s*(?:in|into|on|onto|to|under)\s+(?:my|the)\s+questions?\s+tab)\b/i;
 function filesOnPurpose(text) {
   return FILE_IT.test(String(text || ''));
 }

@@ -4070,6 +4070,23 @@ before working on that module. Nothing was deleted — the moved text is verbati
   show approval state. **Making art for the "Evan" story? `docs/evan-film-style.md`
   FIRST** — write NO style description at all.
   **Full details: `docs/modules/story.md`.**
+  - **THE MIGRATION TO THE PADS LEFT THINGS BEHIND, AND FIXING IT IS SOPHIE'S
+    CALL — `docs/story-room-unported.md` (2026-08-24, her ask: "document this
+    as something to possibly fix but that no chat should fix it without me
+    saying so").** Whatever moved `forge-story` onto the story pads followed
+    ONE field, `voiceover.url`, and dropped the art into each pad's INBOX. So
+    five stories (Jonas, Moon Milk, The Meteorite, Charlie, My Own Destiny)
+    have an empty canvas with their pictures waiting unplaced and **the
+    narration line that went under each picture carried nowhere**; nine pinned
+    covers were lost, so the shelf derives a different face; Charlie's and
+    Evan's chapter headings have no field to live in; and Wormsicles, which had
+    no voiceover to follow, had no pad at all until one was made. **The audio
+    half IS fixed** — every pad carries its `description`/`descriptionAudio`/
+    `voiceover` now, which is what finally lights the *About this story* button
+    (it had never appeared on any story). **Everything else is documented and
+    deliberately NOT done.** Do not place beats, pin covers or write narration
+    onto a pad from that doc: which of a beat's 2-5 candidate pictures wins is
+    the story's look, and that is hers. Propose it in a reply and wait for a go.
 - **Story Timeline** (`timeline.js` + `timeline-parse.js`, `/api/timeline`,
   page at `/timeline`, iOS tile) — a dictated list of moments becomes cards she
   can put in order. It started as one Compare page for one story (Aug 2026) and
