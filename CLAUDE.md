@@ -3124,26 +3124,30 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
-  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A
-  SMALL BAR IN A BIG ZONE (Aug 2026, Sophie: "make playground thumbnails 3 to
-  a row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
+  **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
+  WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
+  row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
   bigger. tap anywhere on the right or left of the screen in the image area
-  and it switches left or right. arrow bars are just about an inch tall").**
-  Four across stopped being enough to judge a picture by once the tiles were
-  no longer cropped squares. In the lightbox the two are now separate things:
-  `.lbnav` is a transparent 28% strip running the full height of the image
-  area — **over the picture, which is the point** — and `.lbbar` is the 26x96
-  chip drawn at its outer edge. The 52px of side padding the old 58vh bars
-  needed went with them, so the picture is bigger too. The stage
-  (`.lbstage`) exists so "the image area" is a real box: the zones are sized
-  to the picture, never to the window, so the caption and the ♥/✕ row under it
-  are never covered. Hidden at the ends of the feed takes the ZONE with it, so
-  a tap there closes exactly as it did before. Test:
-  `node scripts/test-playground-liked-arrows.js` — the chip measured small,
-  the zone measured over the picture, and the edge tap asked with
-  `elementFromPoint`; its fixture had to become a REAL-SIZED 2:3 picture,
-  because the lightbox sizes itself to the picture and a 1x1 pixel put the
-  zones nowhere near it.
+  and it switches left or right" · **"the top left and right bars cover part
+  of the image. Can you just make it tap and no buttons showing"**).** Four
+  across stopped being enough to judge a picture by once the tiles were no
+  longer cropped squares. In the lightbox `.lbnav` is a transparent 28% strip
+  running the full height of the image area — **over the picture, which is the
+  point** — and **that is the whole control: no chip, no glyph, no plate, no
+  background.** The 26x96 `.lbbar` chip that used to be drawn at each zone's
+  outer edge is GONE; the zone was always what she was tapping, so the mark
+  was buying nothing and paying for it in a covered strip of a portrait 2:3.
+  **A tap zone over a picture stays invisible** — the whole point of a big
+  target is that it does not have to be shown. The stage (`.lbstage`) exists
+  so "the image area" is a real box: the zones are sized to the picture, never
+  to the window, so the caption and the ♥/✕ row under it are never covered.
+  Hidden at the ends of the feed takes the ZONE with it, so a tap there
+  closes. Test: `node scripts/test-playground-liked-arrows.js` — nothing drawn
+  (child nodes, text, background and border all measured off the real
+  buttons), the zone measured over the picture, and the edge tap asked with
+  `elementFromPoint`; verified failing 3 against the pre-fix page. Its fixture
+  had to become a REAL-SIZED 2:3 picture, because the lightbox sizes itself to
+  the picture and a 1x1 pixel put the zones nowhere near it.
   **THE ✕ FILTER BESIDE THE HEART (Aug 2026, Sophie: "can u also add a button
   next to the heart that hides anything i've 'exed'").** The heart's opposite
   and its twin — a filter over PICTURES in whichever view she is in, sticky,
