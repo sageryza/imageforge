@@ -1128,9 +1128,15 @@
         parts[t.getAttribute('data-part')] = t.value;
       });
       var b = p.baked;
+      // A LoRA draws ONE box (its trigger is shown, not edited), so `prefix`
+      // is absent from `parts` — read the baked value for any half that has no
+      // box, or the comparison below is always false and her tail can never
+      // return to the house wording.
+      var pre = parts.prefix != null ? parts.prefix : b.prefix;
+      var suf = parts.suffix != null ? parts.suffix : b.suffix;
       // Back to the house text on both halves = not an edit at all, so the
       // override is dropped rather than stored as an identical twin.
-      if (parts.prefix === b.prefix && parts.suffix === b.suffix) saveOverride(styleKey, null);
+      if (pre === b.prefix && suf === b.suffix) saveOverride(styleKey, null);
       else saveOverride(styleKey, parts);
       note.textContent = overrideFor(styleKey) ? 'Your wording' : 'House wording';
     }
@@ -1368,7 +1374,14 @@
       nt.classList.toggle('on', on);
       nt.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    if (!gpt && promptOpen) { promptOpen = false; paintPromptPanel(); }
+    // NOTHING FORCE-CLOSES THE PANEL ANY MORE (2026-08-24). This line used to
+    // read `if (!gpt && promptOpen) { promptOpen = false; … }` — correct while
+    // the panel was gpt-only, and fatal once the LoRA got one: syncControls
+    // runs on every save, so on WTR — the tile the page OPENS ON — the panel
+    // slammed shut on the first character she typed into it. Her edit was
+    // saved, so this read as "the style prompt doesn't save". paintPromptPanel
+    // is already gated on `bakedFor`, so a style with no wrapper draws nothing
+    // without anyone having to close the panel behind her.
     ['scalewrap', 'xthree', 'seedbtn', 'seedtag'].forEach(function (id) {
       document.getElementById(id).hidden = gpt;
     });

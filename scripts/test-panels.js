@@ -11,6 +11,7 @@ const path = require('path');
 const G = require('../sheet-grid');
 const P = require('../panels');
 const sizeTier = require('../size-tier');
+const { promptRecord } = require('../prompt-record');
 
 // The two measured anchors' medium rates, read out of panels.js rather than
 // retyped — the direction of the clamp depends on them.
@@ -442,6 +443,42 @@ t('a wedged job is takeoverable, a working one is not', () => {
     assert.strictEqual(out[0].url, 'https://x/old1.webp', 'the one she already has is untouched');
     assert.deepStrictEqual(out.map((i) => i.cell), names, 'reading order is restored');
     n++; console.log('  ok  a resume cuts only what is missing, in reading order');
+  }
+
+  // THE WHOLE PROMPT IS FILED WITH EVERY PICTURE — the sheet and each cut
+  // panel (Sophie's hard rule, 2026-08-24). This module shipped filing neither,
+  // so a panel's PROMPT overlay had no style half at all.
+  {
+    const plan = G.sheetFor(4, 'portrait', '4k');
+    const filed = [];
+    P.__setDeps({ fileCreation: (a) => { filed.push(a); return 'id'; },
+      styles: { dreamy: { label: 'Dreamy', prefix: 'PRE', suffix: 'SUF' } },
+      gpt: { id: 'gpt-image-2' } });
+    const cfg = { plan, panels: ['a crow', 'a door', 'a bell', 'a hand'], quality: 'medium',
+      styleId: 'dreamy', prefix: 'PRE', suffix: 'SUF',
+      fullPrompt: P.buildPrompt({ plan, panels: ['a crow', 'a door', 'a bell', 'a hand'],
+        prefix: 'PRE', suffix: 'SUF', cells: G.cellNames(4) }) };
+    const images = G.cellNames(4).map((cell, i) => ({ url: `https://x/${i}.webp`, cell,
+      prompt: cfg.panels[i] }));
+    P.fileRun('https://x/sheet.webp', images, cfg, 0);
+    assert.strictEqual(filed.length, 5, 'the sheet and all four panels are filed');
+    filed.forEach((f, i) => assert.strictEqual(f.fullPrompt, cfg.fullPrompt,
+      `filing ${i} carries the LITERAL page-sized prompt that drew it`));
+    filed.forEach((f, i) => assert.ok(f.promptPrefix.includes(P.gridLine(plan)),
+      `filing ${i}'s style half carries the grid sentence this module adds`));
+    // What the shared builder would actually write onto the doc.
+    const sheetRec = promptRecord({ full: filed[0].fullPrompt, content: filed[0].promptContent,
+      prefix: filed[0].promptPrefix, suffix: filed[0].promptSuffix });
+    assert.ok(!/the sheet —/.test(sheetRec.promptContent),
+      "the sheet's content half is HER words, never our caption line");
+    assert.ok(cfg.panels.every((w) => sheetRec.promptContent.includes(w)),
+      'and it is every cell she wrote, verbatim');
+    const panelRec = promptRecord({ full: filed[1].fullPrompt, content: filed[1].prompt,
+      prefix: filed[1].promptPrefix, suffix: filed[1].promptSuffix });
+    assert.strictEqual(panelRec.promptContent, 'a crow', "a panel's content half is its own cell");
+    assert.ok(panelRec.promptStyle.includes('PRE') && panelRec.promptStyle.includes('SUF'),
+      "and its style half is the run's real wrapper");
+    n++; console.log('  ok  the sheet and every panel file the whole prompt');
   }
 
   await drivePage();
