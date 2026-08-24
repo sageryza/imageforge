@@ -35,11 +35,20 @@
    Here it ships with a deploy. */
 (function () {
   var CSS =
+    // THE ONE TOP INSET (2026-08-23, Sophie: "the header is different in both,
+    // and not at the top" — and it was the Nth time). Measured across all 39
+    // gated pages: the gap above the header ran 0 to 42px, no two families
+    // agreeing, because no one owned the number — every page improvised its
+    // own status-bar clearance (chats' 5vh IS ~the notch on an 844pt phone,
+    // by accident) and every new page copied its neighbour's. This token is
+    // the number now, and levelRow() below ENFORCES it (the pill's lesson:
+    // injected chrome declares and defends everything it needs).
+    ':root{--headtop:calc(env(safe-area-inset-top,0px) + 4px);}'
     // The chevron sits in the header row's own flow, so the title and the "?"
     // keep their places and nothing overlaps. IT WEARS A SMALL ROUNDED BOX
     // (Aug 2026, Sophie: "a small rounded box around the back chevron so it
     // has a bigger tap target") — a rounded rectangle, 6px, never a pill.
-    '#forgeback{flex:0 0 auto;width:34px;height:34px;margin:0 2px 0 -4px;padding:0;'
+    + '#forgeback{flex:0 0 auto;width:34px;height:34px;margin:0 2px 0 -4px;padding:0;'
     + 'display:flex;align-items:center;justify-content:center;'
     + 'border:1px solid var(--border,#ddd3c4);border-radius:6px;'
     + 'background:var(--surface,transparent);color:inherit;cursor:pointer;'
@@ -62,8 +71,14 @@
     // for it below).
     + 'body.pagehead .app-header:has(.brand){display:block !important;position:static;}'
     + 'body.pagehead .app-header h1{display:block !important;}'
-    + 'body.pagehead .tool .head{position:sticky;top:0;border-bottom:1px solid var(--border);'
-    + 'padding-top:calc(10px + env(safe-area-inset-top));padding-bottom:10px;}'
+    // `.tool` is sometimes a wrapper div and sometimes a class on <body>
+    // itself (studio, vector, review…) — `body.pagehead .tool .head` silently
+    // never matched the second kind, which is why those pages kept tool.css's
+    // own 12px and nobody noticed: the rule failing to apply looks identical
+    // to the rule not existing.
+    + 'body.pagehead .tool .head,body.pagehead.tool .head{position:sticky;top:0;'
+    + 'border-bottom:1px solid var(--border);'
+    + 'padding-top:var(--headtop);padding-bottom:10px;}'
     // THE TITLE SITS IN THE TOP MIDDLE (Aug 2026, Sophie: "the text shud be in
     // the top middle"). Centred on the SCREEN, not on the leftover flex space
     // — the chevron on the left and the "?" + the pill's corner on the right
@@ -172,6 +187,7 @@
       || document.querySelector('header');
     if (row) {
       row.insertBefore(btn, row.firstChild);
+      levelRow(btn, row);
       // `.fh` centres the row's title (see the CSS above) — but never inside
       // the web-hub brand row, whose h1 is "ImageForge" and not a title. The
       // absolute title needs a positioned row — set relative only where the
@@ -185,11 +201,117 @@
       }
     } else {
       btn.style.position = 'fixed';
-      btn.style.top = 'max(10px, env(safe-area-inset-top))';
-      btn.style.left = '8px';
+      btn.style.top = 'var(--headtop,4px)';
+      btn.style.left = '16px';
+      btn.style.marginLeft = '0';   // the in-flow -4 pull would land it at 12
       btn.style.zIndex = '30';
       document.body.appendChild(btn);
     }
+  }
+
+  /* THE ROW IS LEVELLED BY MEASUREMENT, NOT BY ASKING THE PAGE NICELY
+     (2026-08-23). The chevron's top comes from whatever the host page wrapped
+     around its header — a `.wrap{padding:5vh …}`, a flat 16px, nothing at all
+     — and pagehead cannot reach an unknown ancestor with CSS. So it does what
+     the pill does: measure the real box and correct until the chevron's top
+     edge sits at var(--headtop) and its left edge at 16px — the values
+     Sophie approved on the Story Room. Guards, each earned on a real page:
+     - viewport-fit=cover is ensured first — 16 pages ship without it, and
+       without it env(safe-area-inset-top) is 0 on a full-bleed build, which
+       is exactly why those pages improvised fixed-px clearances (chats' 5vh
+       IS roughly the notch on an 844pt phone, by accident).
+     - a STICKY or FIXED row is corrected through its PADDING, never its
+       margin: margin only moves the static position, and sticky re-pins the
+       row at top:0 the moment that goes negative — measured on /studio,
+       where a -10.5px margin moved the header exactly 0px.
+     - an in-flow row is corrected through its MARGIN, so the whole page
+       under it moves too and dead space is reclaimed rather than papered
+       over — and pulling one UP only happens when the space above it is
+       DEAD (only ancestors of the row paint there); a page that
+       deliberately stacks content above its header keeps it.
+     - a HIDDEN row (cutmarks, the editor — headers that wait for a
+       recording to load) is left alone: correcting a 0x0 rect writes
+       garbage. The IntersectionObserver below retries when it appears.
+     - nothing moves more than 64px (24px sideways): a page that far off is
+       a layout this code does not understand, and a wrong guess pasted over
+       it would be worse than the gap.
+     - sync() is a NO-OP while the chevron is already on target, which is
+       what lets the ResizeObserver watch layout without feeding back: our
+       own correction resizes the body, the observer fires, the check
+       passes, the loop ends. Measured only at scrollY 0 — a sticky row
+       mid-scroll reads its stuck position, not its static one. */
+  function levelRow(btn, row) {
+    try {
+      var vp = document.querySelector('meta[name="viewport"]');
+      if (vp && vp.content.indexOf('viewport-fit') < 0) {
+        vp.content += ',viewport-fit=cover';
+      } else if (!vp) {
+        vp = document.createElement('meta');
+        vp.name = 'viewport';
+        vp.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+        document.head.appendChild(vp);
+      }
+    } catch (e) { /* the correction below still lands, just without env() */ }
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;top:var(--headtop,4px);' +
+      'width:0;height:0;visibility:hidden;pointer-events:none;';
+    document.body.appendChild(probe);
+    function deadAbove(y) {
+      var xs = [window.innerWidth * 0.3, window.innerWidth * 0.7];
+      for (var i = 0; i < xs.length; i++) {
+        var el = document.elementFromPoint(xs[i], Math.max(1, y));
+        if (el && el !== document.documentElement && el !== document.body &&
+            !el.contains(row)) return false;
+      }
+      return true;
+    }
+    // What is levelled is the row's CONTENT-BOX top, not the chevron's own —
+    // a tall band (search: title + its box, 60px) centres the chevron inside
+    // itself, and chasing the chevron there would strip the band's padding
+    // and pin it to the glass (measured: search lost all 12px and sat at 0).
+    function contentTop(r) {
+      return r.getBoundingClientRect().top + (parseFloat(getComputedStyle(r).paddingTop) || 0);
+    }
+    function sync() {
+      if (window.scrollY > 0) return;
+      if (!btn.getBoundingClientRect().width) return;         // hidden row
+      var target = probe.getBoundingClientRect().top;
+      if (Math.abs(contentTop(row) - target) <= 1 &&
+          Math.abs(btn.getBoundingClientRect().left - 16) <= 1) return;
+      var sticky = /sticky|fixed/.test(getComputedStyle(row).position);
+      if (sticky) row.style.paddingTop = ''; else row.style.marginTop = '';
+      btn.style.marginLeft = '';
+      var ct = contentTop(row);                               // the natural box
+      var dy = target - ct;
+      if (Math.abs(dy) > 1 && Math.abs(dy) <= 64 && (dy > 0 || deadAbove(ct / 2))) {
+        if (sticky) {
+          var pad = parseFloat(getComputedStyle(row).paddingTop) || 0;
+          row.style.paddingTop = Math.max(0, pad + dy) + 'px';
+        } else {
+          var m = parseFloat(getComputedStyle(row).marginTop) || 0;
+          row.style.marginTop = (m + dy) + 'px';
+        }
+      }
+      var dx = 16 - btn.getBoundingClientRect().left;
+      // -4 is the chevron's own baked pull (see the #forgeback CSS)
+      if (Math.abs(dx) > 1 && Math.abs(dx) <= 24) {
+        btn.style.marginLeft = (-4 + dx) + 'px';
+      }
+    }
+    sync();
+    window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', function () { setTimeout(sync, 350); });
+    window.addEventListener('pageshow', sync);
+    if (document.readyState !== 'complete') {
+      window.addEventListener('load', function () { setTimeout(sync, 50); });
+    }
+    try { document.fonts.ready.then(function () { sync(); }); } catch (e) { /* older engine */ }
+    try { new ResizeObserver(function () { sync(); }).observe(document.body); } catch (e) { /* older engine */ }
+    try {
+      new IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) if (es[i].isIntersecting) sync();
+      }).observe(btn);
+    } catch (e) { /* older engine */ }
   }
 
   // `defer` normally means the body is parsed by now, but these pages are also
