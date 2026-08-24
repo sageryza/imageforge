@@ -2612,27 +2612,38 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
     `[hidden]` and was never affected — that is the difference between the two.
     Test: `node scripts/test-lightbox-nostop.js` (verified failing against the
     pre-fix file).
-  - **AND `/assets` (Meta Assets) IS A THIRD COPY OF THAT LIGHTBOX, STILL
-    UNMIGRATED — it drifts, and both of these bugs reached Sophie there a
-    second time (2026-08-24: "I can't get out of the light box in Meta assets
-    I think with tapping it's considering too many things part of the row").**
-    `asset-lightbox.js` exists precisely to end this and `public/assets.html`
-    was never moved onto it, because it grew extras the shared file has no
-    hook for (the action icons — open the chat · Playground · Save to Photos —
-    and the `clwho` origin line). So it kept the OLD close rule: a blanket
+  - **`/assets` (Meta Assets) WAS A THIRD COPY OF THAT LIGHTBOX, AND IS NOW
+    MIGRATED — the copy is what made both of these bugs reach Sophie a second
+    time (2026-08-24: "I can't get out of the light box in Meta assets I think
+    with tapping it's considering too many things part of the row").**
+    `asset-lightbox.js` was written to end exactly this and `public/assets.html`
+    was never moved onto it, so it kept the OLD close rule — a blanket
     `stopPropagation` on each row, which swallows the tap for the row's WHOLE
-    width — the ♥/✕ strip is `left:22px; right:22px`, the action icons and the
-    note block are full-width flex rows — leaving her with almost nowhere to
-    tap that closes. Both settled rules are ported now (target-based close,
-    innerHTML wiped a frame later, `data-nostop` on the overlay), but they are
-    a HAND COPY: **fix one and fix the other**, and the real repair is giving
-    the shared file an extras hook and deleting this copy. It also still runs
-    the OLD thread layout (letters above the box, no CHAT button) — the same
-    drift, visible.
-    Test: `node scripts/test-meta-assets-page.js` (step 11, the real page
-    headless — the dead space found by scanning the row with
-    `elementFromPoint`, which is the only honest way to ask what a tap reaches;
-    verified failing against the pre-fix page).
+    width (the ♥/✕ strip is `left:22px; right:22px`; the action icons and the
+    note block are full-width flex rows) — leaving her with almost nowhere to
+    tap that closes. **The reason nobody had migrated it is the lesson:** it had
+    grown two things the shared file had no place for, so every chat that looked
+    at it chose to patch the copy. The shared file grew HOOKS for them instead,
+    and 226 lines of duplicate came out of the page:
+    - **`actions:[{label, icon, onClick}]`** — a row of small circular icon
+      buttons directly under the picture (open the chat · Playground · Save to
+      Photos). `label` becomes the aria-label AND the title; the empty space
+      between them closes the lightbox, because the close rule asks the tap's
+      TARGET. `.hasacts` shrinks the picture to 46vh so the note box still fits.
+    - **`who`** — the small uppercase origin-chat line under the caption, for a
+      surface that mixes many chats.
+    Both optional and additive, so no existing caller changed. **The next
+    surface that needs something extra gets a hook, never a fourth copy.**
+    Three things came free with the move: the picture is no longer rounded (her
+    rule), the note thread is the settled box-first layout with the CHAT button,
+    and the note input's 16px iOS floor — which that copy had and the shared
+    file did not — now protects every caller.
+    Tests: `node scripts/test-asset-lightbox.js` (the two hooks, and that an
+    asset passing neither is untouched) and `node
+    scripts/test-meta-assets-page.js` (step 0 is a SOURCE PIN that the page
+    opens the shared lightbox and builds none of its own; step 11 taps the dead
+    space, found by scanning each row with `elementFromPoint` — the only honest
+    way to ask what a tap reaches; verified failing against the pre-fix page).
 - **iOS: pin bottom bars below the keyboard (never floating above it).** A
   custom bottom nav/tab bar laid out in a `VStack` rides UP and hovers above the
   keyboard, because SwiftUI's keyboard safe-area inset shrinks the stack. This

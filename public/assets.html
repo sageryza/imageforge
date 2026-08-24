@@ -107,54 +107,9 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 .assetgrid .nbadge{position:absolute; top:5px; left:50%; transform:translateX(-50%);
   min-width:18px; height:18px; border-radius:9px; background:#5d7a5a; color:#fff;
   font-family:-apple-system,sans-serif; font-size:11px; line-height:18px; text-align:center; padding:0 4px;}
-/* ── the lightbox, verbatim from chats.html ─────────────────────────────── */
-#clightbox{position:fixed; inset:0; background:rgba(15,13,10,.93); z-index:30; display:none; align-items:center; justify-content:center; padding:18px; flex-direction:column;}
-#clightbox img{max-width:100%; max-height:88vh; border-radius:6px;}
-#clightbox.hastalk img{max-height:46vh;}
-#clightbox .clcap{color:#b9b2a4; font-size:12px; margin-top:12px; text-align:center; letter-spacing:.02em;}
-#clightbox .cltag{color:#8a8377; font-size:11px; margin-top:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase;}
-#clightbox .cltag + .clcap{margin-top:4px;}
-/* compressed at birth — flat rose, its own element beside the words */
-#clightbox .compflag{color:#c98b7a; font-weight:600; letter-spacing:.04em;}
-#clightbox .lbptext .compflag{display:block; margin-bottom:6px; font-size:11px; text-transform:uppercase;}
-#clightbox .clwho{color:#8a8377; font-family:-apple-system,sans-serif; font-size:10px; margin-top:8px; text-align:center; letter-spacing:.12em; text-transform:uppercase;}
-#clightbox .clwrap{position:relative; display:flex; align-items:center; justify-content:center; max-width:100%;}
-#clightbox .clwrap.pon{min-width:min(86vw,420px); min-height:min(52vh,420px);}
-.lbtop{position:absolute; top:max(18px, env(safe-area-inset-top)); left:22px; right:22px; display:flex; gap:8px; align-items:center; justify-content:space-between; z-index:2;}
-.lbtop .vote{width:38px; height:38px;}
-.lbtop .vote svg{width:18px; height:18px;}
-/* The action icons under the image: open the chat it came from, re-run it in
-   the Playground, save to Photos. Small circles, one glyph each. */
-.lbacts{display:flex; gap:14px; margin-top:10px; justify-content:center;}
-.lbacts button{width:34px; height:34px; border-radius:50%; border:none; cursor:pointer;
-  background:rgba(250,247,240,.9); color:#3a3530; display:flex; align-items:center; justify-content:center; padding:0;}
-.lbacts button svg{width:17px; height:17px; display:block;}
-.promptbtn{border:none; border-radius:6px; background:rgba(250,247,240,.9); color:#26221c; padding:7px 11px; margin:0;
-  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;}
-.promptbtn.on{background:#3a3530; color:#faf7f0;}
-.lbp{position:absolute; inset:0; border-radius:6px; background:rgba(15,13,10,.95); display:flex; flex-direction:column;
-  padding:56px 16px 16px; box-sizing:border-box;}
-.lbp .lbptog{display:flex; gap:6px; flex:none; margin-bottom:10px;}
-.lbp .lbptog button{flex:1; margin:0; border:1px solid rgba(250,247,240,.35); border-radius:6px; background:none; color:#c8c1b3;
-  font-family:-apple-system,sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:7px 0; cursor:pointer;}
-.lbp .lbptog button.on{background:#faf7f0; border-color:#faf7f0; color:#26221c;}
-.lbp .lbptext{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; color:#ece6da;
-  font-size:14px; line-height:1.55; white-space:pre-wrap; word-break:break-word;}
-.lbtalk{width:min(92vw,360px); margin-top:12px;}
-.lbthread{max-height:26vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column; gap:6px;}
-.lbmsg{max-width:82%; padding:7px 10px; border-radius:6px; font-family:Georgia,serif;
-  font-size:14px; line-height:1.45; word-break:break-word; white-space:pre-wrap;}
-.lbmsg.me{align-self:flex-end; background:rgba(250,247,240,.92); color:#26221c;}
-.lbmsg.them{align-self:flex-start; background:rgba(250,247,240,.14); color:#ece6da;}
-.lbmsg.pending{opacity:.55;}
-.lbmsg.failed{opacity:1; box-shadow:inset 0 0 0 1px #c96a5e; cursor:pointer;}
-.lbnote{display:flex; gap:6px; width:100%; margin-top:8px;}
-.lbnote input{flex:1; min-width:0; border:none; border-radius:6px; background:rgba(250,247,240,.92); color:#26221c;
-  font-family:Georgia,serif; font-size:16px; padding:9px 11px;}   /* 16px floor — see .asearch */
-.lbnote .notesend{width:38px; height:38px; border-radius:50%; border:none; background:rgba(250,247,240,.92); color:#5d7a5a;
-  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
-.lbnote .notesend svg{width:18px; height:18px; display:block;}
+/* The lightbox brings its own CSS with it — see /asset-lightbox.js. The rules
+   that used to sit here were a hand copy of that file's, and they drifted
+   (this one rounded the picture's corners, which Sophie has ruled against). */
 #toast{position:fixed; bottom:calc(64px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
   background:var(--ink); color:var(--paper); font-family:-apple-system,sans-serif; font-size:13px;
   padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:40; white-space:nowrap;}
@@ -167,6 +122,7 @@ body{margin:0; touch-action:manipulation; background:var(--paper); color:var(--i
 <div id="clightbox"></div>
 <div id="toast"></div>
 <script src="/playground-port.js"></script>
+<script src="/asset-lightbox.js"></script>
 <script>
 (function(){   // IIFE — the injected pill runs in global scope; never collide
 'use strict';
@@ -176,7 +132,6 @@ function api(path,opt){ opt=opt||{}; opt.headers=Object.assign({'x-studio-token'
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(function(){t.style.opacity=0},1800); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function assetThumb(u){ return '/api/story/thumb?w=480&url='+encodeURIComponent(u); }
-function scrollStop(){ if(window.__scrollStop) window.__scrollStop(); }
 // Any tap PAUSES the autoscroll — and only pauses (found live 2026-08-18 on
 // Sophie's phone): __scrollTap is the tap-to-TOGGLE gesture, so wiring it to
 // every pointerdown made any tap on non-interactive content START the scroll.
@@ -319,193 +274,34 @@ function playgroundQuery(it){
 // What she calls the chat — the display name when the registry has one.
 function whoLabel(it){ return it.name || it.chat || ''; }
 
-// ── The lightbox — the chat tab's own, with the origin chat named under the
-//    caption. Votes and notes go to it.chat, which IS the sync. ────────────
+// ── The lightbox — THE shared Assets-tab one (/asset-lightbox.js), with this
+//    page's three action icons and the origin-chat line passed in as extras.
+//
+//    This used to be a HAND COPY of that file, and it drifted twice over: it
+//    never got the close rule (every row swallowed the tap for its whole
+//    width, so there was almost nowhere to tap that closed it — Sophie,
+//    2026-08-24) and it never got the note thread's rework. The extras it had
+//    grown are the reason nobody migrated it, so the shared file grew two
+//    hooks for them instead. Votes and notes still go to it.chat, which IS
+//    the sync with that chat's own Assets tab.
 function lightbox(url, asset){
-  scrollStop();
-  var lbY=window.scrollY;
-  var lb=document.getElementById('clightbox');
-  // A TAP IN HERE IS NEVER A REQUEST TO AUTOSCROLL — the host asks
-  // `t.closest('[data-nostop],img,figure,.cmp-lb')` on a bubbling click.
-  lb.setAttribute('data-nostop','');
-  lb.innerHTML='<div class="clwrap"><img alt="" src="'+url.replace(/"/g,'&quot;')+'"></div>';
-  lb.classList.remove('hastalk');
   prefetchBlob(url);   // so Save has the bytes in hand by the time she taps
-  // The action icons, directly under the picture: the chat it came from, the
-  // Playground with this prompt prefilled, save to Photos.
+  var acts=[];
   if(asset){
-    var acts=document.createElement('div'); acts.className='lbacts';
     if(asset.chat && !asset.app){
-      var cbn=document.createElement('button'); cbn.innerHTML=CHATICON;
-      cbn.setAttribute('aria-label','Open the chat');
-      cbn.onclick=function(e){ e.stopPropagation(); location.href='/chats?chat='+encodeURIComponent(asset.chat); };
-      acts.appendChild(cbn);
+      acts.push({label:'Open the chat', icon:CHATICON, onClick:function(){
+        location.href='/chats?chat='+encodeURIComponent(asset.chat); }});
     }
     var pq=playgroundQuery(asset);
     if(pq){
-      var pbn=document.createElement('button'); pbn.innerHTML=PLAYICON;
-      pbn.setAttribute('aria-label','Open in Playground');
-      pbn.onclick=function(e){ e.stopPropagation(); location.href='/playground?'+pq; };
-      acts.appendChild(pbn);
+      acts.push({label:'Open in Playground', icon:PLAYICON, onClick:function(){
+        location.href='/playground?'+pq; }});
     }
-    var dbn=document.createElement('button'); dbn.innerHTML=SAVEICON;
-    dbn.setAttribute('aria-label','Save to Photos');
-    dbn.onclick=function(e){ e.stopPropagation(); saveImage(url); };
-    acts.appendChild(dbn);
-    lb.appendChild(acts);
+    acts.push({label:'Save to Photos', icon:SAVEICON, onClick:function(){ saveImage(url); }});
+    asset.actions=acts;
+    asset.who=whoLabel(asset);
   }
-  var promptBtn=null;
-  if(asset && (asset.promptStyle||asset.promptContent)){
-    var wrap=lb.querySelector('.clwrap');
-    var ov=document.createElement('div'); ov.className='lbp'; ov.style.display='none';
-    var tog=document.createElement('div'); tog.className='lbptog';
-    var sb=document.createElement('button'); sb.textContent='Style';
-    var cb=document.createElement('button'); cb.textContent='Content';
-    var txt=document.createElement('div'); txt.className='lbptext';
-    // CONTENT IS THE DEFAULT SIDE (Sophie's rule; style wins only when it is
-    // the only half on file).
-    var side=asset.promptContent?'content':'style';
-    function paintSide(){
-      sb.classList.toggle('on', side==='style');
-      cb.classList.toggle('on', side==='content');
-      txt.textContent=(side==='style'?asset.promptStyle:asset.promptContent)||'';
-      // …with "[compressed]" in front of BOTH halves, as its own node so the
-      // prompt underneath stays the exact text that was sent to the model.
-      if(asset.compressedAtBirth){
-        var cf=document.createElement('span'); cf.className='compflag'; cf.textContent='[compressed]';
-        txt.insertBefore(cf, txt.firstChild);
-      }
-      txt.scrollTop=0;
-    }
-    sb.onclick=function(e){ e.stopPropagation(); side='style'; paintSide(); };
-    cb.onclick=function(e){ e.stopPropagation(); side='content'; paintSide(); };
-    tog.appendChild(sb); tog.appendChild(cb);
-    ov.appendChild(tog); ov.appendChild(txt);
-    paintSide();
-    wrap.appendChild(ov);
-    promptBtn=document.createElement('button');
-    promptBtn.className='promptbtn'; promptBtn.textContent='Prompt';
-    promptBtn.onclick=function(e){
-      e.stopPropagation();
-      var open=ov.style.display==='none';
-      ov.style.display=open?'flex':'none';
-      wrap.classList.toggle('pon', open);
-      promptBtn.classList.toggle('on', open);
-    };
-  }
-  if(asset && asset._cast){
-    var row=document.createElement('div'); row.className='lbtop';
-    var hb=document.createElement('button'); hb.className='vote heart'; hb.innerHTML=HEART;
-    var xb=document.createElement('button'); xb.className='vote nope'; xb.innerHTML=XMARK;
-    var talk=document.createElement('div'); talk.className='lbtalk';
-    var th=document.createElement('div'); th.className='lbthread';
-    function paintThread(){
-      th.innerHTML='';
-      var msgs=asset.thread||[];
-      msgs.forEach(function(m){
-        var b=document.createElement('div');
-        b.className='lbmsg '+(m.from==='chat'?'them':'me');
-        b.textContent=m.text;
-        th.appendChild(b);
-      });
-      th.style.display=msgs.length?'':'none';
-      th.scrollTop=th.scrollHeight;
-    }
-    var nw=document.createElement('div'); nw.className='lbnote';
-    var ni=document.createElement('input'); ni.placeholder='Write a note…';
-    var ns=document.createElement('button'); ns.className='notesend';
-    ns.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
-    function sendNote(){
-      var t=(ni.value||'').trim();
-      if(!t) return;
-      ni.value='';
-      asset.thread=(asset.thread||[]).concat([{from:'sophie',text:t,at:new Date().toISOString()}]);
-      paintThread();
-      var el=th.lastChild;
-      el.classList.add('pending');
-      function attempt(){
-        el.classList.remove('failed'); el.classList.add('pending');
-        asset._noteSend(t, function(ok){
-          el.classList.remove('pending');
-          if(ok) return;
-          el.classList.add('failed');
-          el.title='Not sent — tap to try again';
-          el.onclick=function(e){ e.stopPropagation(); attempt(); };
-        });
-      }
-      attempt();
-    }
-    ns.onclick=function(e){ e.stopPropagation(); sendNote(); };
-    ni.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); sendNote(); } };
-    nw.appendChild(ni); nw.appendChild(ns);
-    talk.appendChild(th); talk.appendChild(nw);
-    paintThread();
-    if(asset._markSeen) asset._markSeen();
-    asset._lbPaint=function(){
-      hb.classList.toggle('on', asset.vote==='like');
-      xb.classList.toggle('on', asset.vote==='dislike');
-    };
-    asset._lbPaint();
-    hb.onclick=function(e){ e.stopPropagation(); asset._cast('like'); };
-    xb.onclick=function(e){ e.stopPropagation(); asset._cast('dislike'); };
-    row.appendChild(hb); if(promptBtn) row.appendChild(promptBtn); row.appendChild(xb);
-    lb.appendChild(row);
-    lb.appendChild(talk);
-    lb.classList.add('hastalk');
-  }
-  if(promptBtn && !promptBtn.parentNode){
-    var prow=document.createElement('div'); prow.className='lbtop';
-    prow.style.justifyContent='center';
-    prow.appendChild(promptBtn); lb.appendChild(prow);
-  }
-  var tag=asset?String(asset.prompt||''):'';
-  if(/^from /.test(tag)) tag='';
-  var cap=asset?(asset.description||''):'';
-  if(!cap && tag){ cap=tag; tag=''; }
-  // "[compressed]" leads the MODEL · QUALITY line when this picture's only copy
-  // was encoded lossily before it reached us (compressedAtBirth, written by
-  // scripts/tag-compressed-at-birth.js). Its own node, never concatenated —
-  // and shown even when there is no caption to lead.
-  var comp=!!(asset && asset.compressedAtBirth);
-  if(comp || tag){
-    var tc=document.createElement('div'); tc.className='cltag';
-    if(comp){ var cf=document.createElement('span'); cf.className='compflag'; cf.textContent='[compressed]'; tc.appendChild(cf); if(tag) tc.appendChild(document.createTextNode(' ')); }
-    if(tag) tc.appendChild(document.createTextNode(tag));
-    lb.appendChild(tc);
-  }
-  if(cap){ var cc=document.createElement('div'); cc.className='clcap'; cc.textContent=cap; lb.appendChild(cc); }
-  var who=asset?whoLabel(asset):'';
-  if(who){ var wc=document.createElement('div'); wc.className='clwho'; wc.textContent=who; lb.appendChild(wc); }
-  lb.style.display='flex'; document.body.style.overflow='hidden';
-  // ANYWHERE THAT ISN'T A CONTROL, THE PICTURE OR THE CHAT CLOSES IT (Aug
-  // 2026, Sophie: "I can't get out of the light box in Meta assets, I think
-  // with tapping it's considering too many things part of the row"). Each row
-  // used to swallow the tap for its WHOLE width — the ♥/✕ strip runs
-  // left:22px to right:22px, the action icons are a full-width flex row, the
-  // note block another — so the empty space beside a button was dead, and
-  // that space is most of the row. One rule in one place now, asked of the
-  // tap's TARGET rather than of whichever box it landed in. This is the same
-  // rule asset-lightbox.js settled on; the two copies must not drift again.
-  // Called with no argument by __navBack (the app's chevron), which closes.
-  lb.onclick=function(e){
-    var t=e&&e.target;
-    if(t && t.closest
-       && t.closest('button,a,input,textarea,select,label,img,.lbp,.lbtalk')) return;
-    if(asset) asset._lbPaint=null;
-    var f=document.activeElement; if(f && f.blur) f.blur();
-    lb.style.display='none';
-    lb.classList.remove('hastalk'); document.body.style.overflow='';
-    // THE CONTENT IS DETACHED A FRAME LATER, NOT NOW: wiping innerHTML inside
-    // this handler leaves the tapped node parentless, so the host's bubbling
-    // closest() walks a detached subtree, misses [data-nostop], and starts the
-    // autoscroll behind the closing overlay.
-    requestAnimationFrame(function(){
-      if(lb.style.display!=='none') return;   // reopened in between
-      lb.innerHTML='';
-    });
-    window.scrollTo(0,lbY);
-    requestAnimationFrame(function(){ window.scrollTo(0,lbY); });
-  };
+  window.__assetLightbox(url, asset);
 }
 
 // ── The page: one grid over every chat, paged as she scrolls ──────────────
