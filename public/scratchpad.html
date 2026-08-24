@@ -363,7 +363,24 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   font-family:'EBGaramond',Georgia,serif; font-size:14px; color:var(--ink2); font-style:italic;}
 .tlab .chev{width:14px; height:14px; transition:transform .15s ease;}
 .tlab[aria-expanded="false"] .chev{transform:rotate(-90deg);}
-#pnote{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+/* THE CAPTION READS AS WORDS, NOT AS A BOX (2026-08-24, Sophie: "the caption
+   shows not in a edit box but default to just the ... text and then there's
+   an edit pencil button next to it so if I want to edit it"). A textarea
+   sitting open on every beat says "type here" at the moment she is usually
+   only reading; the words in the serif with a quiet pencil beside them say
+   what the beat says. The pencil is a TOGGLE and the box never collapses on
+   its own blur — a layout that reshuffles under her thumb eats the tap she
+   was aiming at the button below. The bare glyph, not a plate: the house
+   rule allows one where the ground behind it is this calm. */
+#capview{display:flex; align-items:flex-start; gap:8px; width:100%;}
+#captext{flex:1; min-width:0; font-family:'EBGaramond',Georgia,serif; font-size:17px;
+  line-height:1.4; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; padding:2px 0;}
+#captext:empty{min-height:22px;}
+#capedit{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  padding:0; border:none; background:none; color:var(--ink2); cursor:pointer;}
+#capedit svg{width:17px; height:17px;}
+#capedit.on{color:var(--ink);}
+#pnote{flex:1; min-width:0; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:17px;
   line-height:1.4; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px;
   padding:10px 12px; resize:none;}
 .poprow{flex:none; display:flex; gap:14px;}
@@ -398,6 +415,16 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
    make art sit in ONE place whether the beat has a picture or not. */
 #popblank{aspect-ratio:2/3; max-height:100%; border:3px solid var(--line); border-radius:4px;
   background:var(--paper); box-sizing:border-box;}
+/* NOTHING DRAWN YET → THE EMPTY PAPER GETS OUT OF THE WAY (2026-08-24,
+   Sophie: "if there's no image then make the image box smaller ... and show
+   the caption and the drawing prompt by default instead of just the
+   caption"). The blank tile used to take the whole room the picture takes,
+   so the one beat with no picture was mostly an empty rectangle — and it is
+   exactly the beat whose WORDS are all there is. Small tile, and both text
+   boxes open under it. #artwrap drops its flex:1 too, or the wrap keeps the
+   room the tile gave back. */
+#beatcard.noart #artwrap{flex:none; min-height:0;}
+#beatcard.noart #popblank{height:132px; max-height:132px;}
 /* The same two ways to art, ABOVE a beat that already has a picture — so it
    can be swapped for another (Sophie, Aug 2026). */
 /* THE WAYS TO ART, IN ROUNDED SQUARES, UNDER THE PICTURE (Aug 2026,
@@ -665,7 +692,11 @@ body.native #shelfback,body.pagehead #shelfback{display:none;}
   <div id="genstate" hidden></div>
   <div class="tbox" id="capbox">
     <button class="tlab" id="caplab" aria-expanded="true">Caption<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-    <textarea id="pnote" rows="3"></textarea>
+    <div id="capview">
+      <div id="captext"></div>
+      <textarea id="pnote" rows="3" hidden></textarea>
+      <button id="capedit" aria-label="Edit the caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>
+    </div>
   </div>
   <div class="tbox" id="prombox">
     <button class="tlab" id="promlab" aria-expanded="false">Drawing prompt<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -1777,6 +1808,13 @@ function openBeat(b){
   // SLOT's kind: a movie on the dreamy side leaves watercolor a picture.
   var su=slotOf(b);
   var clip=su.kind==='clip';
+  // NOTHING DRAWN YET is one state, computed once: the blank tile shrinks,
+  // and the drawing prompt opens beside the caption rather than folded away
+  // (2026-08-24, her two asks about the picture-less beat). A beat mid-draw
+  // is showing the blank paper too, so it counts as one.
+  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
+  var noart=!clip&&(!su.url||drawing);
+  document.getElementById('beatcard').classList.toggle('noart',noart);
   // The picture takes the room the card has left (Sophie: "that image is
   // bigger by default") — CSS sizes it inside #artwrap, so nothing here
   // pins a pixel width the way the old thumbnail-sized popup did.
@@ -1789,7 +1827,11 @@ function openBeat(b){
   else { bl.className=b.color?'c-'+b.color:''; }
   paintChips(b.color||null);
   closeColors();
+  // The caption opens as WORDS with a pencil beside them; the box behind it
+  // carries the same text so drawPrompt() and saveNote() read it either way.
+  capEditing=false;
   document.getElementById('pnote').value=b.text||'';
+  document.getElementById('captext').textContent=b.text||'';
   document.getElementById('coverbtn').hidden=!artOf(b);
   document.getElementById('coverbtn').classList.remove('on');
   // Every generation this beat has had — thumbnails, newest first, current
@@ -1833,11 +1875,10 @@ function openBeat(b){
   // "you are about to draw the caption", and Draw sent the caption). Empty
   // means FOLLOW THE CAPTION, which the hint line says out loud.
   document.getElementById('dprompt').value=String(b.prompt||'');
-  setBoxes(true,false);
+  setBoxes(true,noart);
   // Drawing (or a failure) is said in its own line — never by rewriting the
   // blank tile, whose children are the buttons.
   var st=document.getElementById('genstate');
-  var drawing=Boolean(su.gen&&su.gen.status==='drawing');
   st.hidden=!(drawing||(su.gen&&su.gen.status==='failed'));
   st.textContent=drawing?'drawing…':((su.gen&&su.gen.error)||'');
   if(drawing){ bl.hidden=clip; im.hidden=true; }
@@ -1883,7 +1924,12 @@ function openDraw(ev){
   // DREAMY never takes the Sophie card (the Playground's noCharacter rule:
   // her card is the watercolor look, the wrong reference there) — setBoxes
   // takes the toggle off rather than leaving it there doing nothing.
-  setBoxes(opening?false:document.getElementById('caplab').getAttribute('aria-expanded')==='true', opening);
+  // Opening the prompt folds the caption away only when there is a picture
+  // taking the room — on a picture-less beat both stay open, which is the
+  // state that beat now opens in.
+  var capNow=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  var noart=document.getElementById('beatcard').classList.contains('noart');
+  setBoxes((opening&&!noart)?false:capNow, opening);
   if(opening){
     // Only her own prompt goes in the box. An empty box is the honest
     // default and it still DRAWS — from the caption, live, exactly as it
@@ -1895,7 +1941,15 @@ function openDraw(ev){
     document.getElementById('dprompt').focus();
   }
 }
-document.getElementById('ardraw').onclick=openDraw;
+/* The star OPENS the drawing box — it never closes it. Since a beat with no
+   picture opens with the box already down (2026-08-24), a star that toggled
+   would fold away the very thing that beat is for; the chevron on Drawing
+   prompt is the toggle. Already open → put the caret in the box. */
+document.getElementById('ardraw').onclick=function(ev){
+  if(document.getElementById('drawbox').hidden)return openDraw(ev);
+  ev.stopPropagation();
+  document.getElementById('dprompt').focus();
+};
 /* The stacked squares: past pictures fold out under the row and fold back.
    A toggle, not a trip somewhere else — she is comparing against the one
    on screen. */
@@ -2003,21 +2057,47 @@ document.querySelectorAll('#colormenu .chip').forEach(function(c){
 /* Opening the PROMPT folds the caption away — the two together are taller
    than the card wants to be once the picture is big. She can always tap
    Caption to bring it back and have both. */
+var capEditing=false;
+/* The caption's two faces: the words, and the box. Both live inside
+   #capview so the pencil keeps its place either way — a control that
+   disappears the moment you use it is a control you have to find again. */
+function paintCap(){
+  var open=document.getElementById('caplab').getAttribute('aria-expanded')==='true';
+  document.getElementById('capview').hidden=!open;
+  document.getElementById('captext').hidden=capEditing;
+  document.getElementById('pnote').hidden=!capEditing;
+  document.getElementById('capedit').classList.toggle('on',capEditing);
+}
 function setBoxes(capOpen, promOpen){
   var cl=document.getElementById('caplab'), pl=document.getElementById('promlab');
-  document.getElementById('pnote').hidden=!capOpen;
   document.getElementById('drawbox').hidden=!promOpen;
   cl.setAttribute('aria-expanded',capOpen?'true':'false');
   pl.setAttribute('aria-expanded',promOpen?'true':'false');
+  paintCap();
   document.getElementById('dchar').hidden=(padStyle==='dreamy');
   paintPromptHint();
 }
+/* The pencil TOGGLES the box. Coming out of it saves and re-paints the
+   words, so what she reads is what she just wrote. */
+document.getElementById('capedit').onclick=function(ev){
+  ev.stopPropagation();
+  capEditing=!capEditing;
+  paintCap();
+  if(capEditing){ document.getElementById('pnote').focus(); }
+  else { document.getElementById('captext').textContent=document.getElementById('pnote').value; saveNote(); }
+};
+document.getElementById('capview').onclick=function(ev){ev.stopPropagation();};
+/* Blurring SAVES but never closes the box — closing on blur reshuffles the
+   card between her mousedown and mouseup and eats the tap. */
+document.getElementById('pnote').onblur=function(){
+  document.getElementById('captext').textContent=this.value;
+  saveNote();
+};
 document.getElementById('caplab').onclick=function(ev){
   ev.stopPropagation();
   var open=this.getAttribute('aria-expanded')==='true';
   if(open)savePrompt();
   setBoxes(!open, document.getElementById('promlab').getAttribute('aria-expanded')==='true');
-  if(!open)document.getElementById('pnote').focus();
 };
 document.getElementById('promlab').onclick=function(ev){ openDraw(ev); };
 document.getElementById('pnote').onclick=function(ev){ev.stopPropagation();};
