@@ -299,7 +299,12 @@ t('the boxes ship EMPTY — no placeholder, no example', () => {
 t('the pill contract: corner reserved, no page-level var collision, no own pill', () => {
   assert.ok(/padding-right:\s*64px/.test(PAGE), 'the control row reserves 64px for the pill');
   assert.ok(!/class="float"/.test(PAGE), 'the page adds no pill of its own — the server injects it');
-  assert.ok(/body\.tool \.float/.test(PAGE), 'it out-specifies .float to colour the injected pill');
+  // The settled pill contract (pill-inject.html reads var(--x, fallback)):
+  // the host defines the five tokens on :root — never out-specifies .float.
+  assert.ok(!/\.float\s*\{/.test(PAGE), 'nothing out-specifies .float — that contract is retired');
+  for (const tok of ['--paper:', '--ink:', '--ink2:', '--chg:', '--rose:']) {
+    assert.ok(PAGE.includes(tok), 'the page defines the pill token ' + tok);
+  }
   // the injected pill declares `var raf` / `var I` in global scope; a
   // page-level `let raf` kills its script at parse time
   assert.ok(/\(function \(\) \{/.test(PAGE), 'the page script is wrapped in an IIFE');
