@@ -2974,6 +2974,22 @@ before working on that module. Nothing was deleted — the moved text is verbati
     real `usage` the API returns, which is what a later comparison should read.
   - **An EMPTY box is refused** — the model fills an unnamed cell with whatever
     it likes and she pays for it at the sheet's price.
+  - **A WEDGED RUN IS RE-CUT FROM ITS OWN SHEET, FREE — `POST /:id/resume`
+    (found on the very first sheet this tool drew, 2026-08-24).** The sheet
+    landed, two of four panels cut, and **thirteen seconds later another chat
+    merged a PR**; the Render deploy restarted the box mid-job and the doc sat
+    `running` forever. Several chats merge here all day, so that is a NORMAL
+    event, not a freak one — and it is exactly the stale-job takeover the
+    `new-module` skill says to copy from cutmarks.js, which the first cut of
+    this module skipped. The expensive half had already succeeded, so a resume
+    costs nothing: it re-cuts from the stored sheet, KEEPS the panels that
+    already landed (she may have hearted one), and refuses to touch a job that
+    is genuinely still working — only one silent past `STALE_MS`. **That is why
+    the sheet is saved to Storage BEFORE the cutting starts.**
+  - **The sheet is DECODED ONCE for all the cuts.** It was `sharp(sheet)` per
+    panel, which re-decodes the whole page every time — a 2336x3504 sheet is
+    24.5MB of raw pixels, so nine panels meant nine decodes on a 512MB box that
+    is also serving the app.
   - Prices and prompt text are **SERVED** (`GET /api/panels/config`); the page
     holds no copy of either, and a test pins that. Nothing is deleted — a run
     hides. Tests: `node scripts/test-panels.js` — 26 pure checks including the
