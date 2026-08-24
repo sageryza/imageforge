@@ -1004,6 +1004,27 @@ them off the reference sheet, not off the old filenames.
       is the asked answer (`wrapLineIsAsk`) — labelling a line that fell
       through to what the chat DID with a question it does not answer is worse
       than no label. "See more…" is untouched, still inline on that line.
+    - **AND THE ONES ALREADY ON FILE NEEDED THEIR OWN PASS — `POST
+      /wrapup/rehers` (2026-08-24, her SECOND ask the next day: "what I asked,
+      which is the default note at the top of every chat, is paraphrased … make
+      it not paraphrase, just my actual words truncated").** The live paths were
+      already right and she was still looking at a paraphrase, because **a
+      wrap-up is STORED, not derived on read** — nothing rewrites one, so every
+      summary written before the fix kept its model sentence forever. Measured
+      the hour she asked: **9 chats carried her words, 70 carried a paraphrase.**
+      **A shipped fix to a WRITE path leaves the existing records wrong — ask
+      what is already on file before saying it is fixed.**
+      Free (pure text surgery, no model call), dry by default, `{chat}` for one
+      — the `/wrapup/trim` pattern. Three rules, each about not overreaching:
+      it touches **only `wrapAsked`** plus the `wrapUp` prose mirror when that
+      mirror provably IS the three answers joined (`wrapDid` / `wrapNext` /
+      `wrapLine` / `wrapLong` are the chat's own account of its work and are
+      never reworded); it reads her message **as of `wrapUpAt`**, not her
+      newest (`lastHerText`'s `before` — a summary is a moment, and pairing
+      today's question with last week's answers reads as nonsense); and a chat
+      she never posted into is **left alone and NAMED** in the answer, since
+      the chat's own `asked` is the honest fallback there exactly as on the
+      live paths.
   - **THE SUMMARY IS THE UPDATE CARD'S THREE QUESTIONS (Aug 2026 v4, Sophie:
     "I think what I really wanted was the what you asked, what I did, and next
     steps. Since chat already answered those three questions could you just
