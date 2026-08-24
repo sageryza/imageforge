@@ -2043,7 +2043,7 @@ window.__pillInteractive=pillInteractive;
 // again (at the current speed; default Fast). Speed changes stay on the −/+.
 window.__scrollTap=function(e){
   if(e && pillInteractive(e.target||e.srcElement)) return;
-  playing? scrollStop() : scrollStart(1);
+  playing? scrollStop() : scrollStart(dir||1);
 };
 vtop.onclick=function(){ if(playing){ si=Math.max(0,si-1); paintPill(); } else scrollStart(-1); };
 vbot.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paintPill(); } else scrollStart(1); };
@@ -7240,8 +7240,18 @@ function mkPagePill(getWin){
     minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>'
   };
   var pill=document.createElement('div'); pill.className='float';
-  pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>';
+  // BACK TO THE TOP RIDES HERE TOO (Aug 2026, Sophie: "I can't scroll back up
+  // only down"). The shared pill has had this button since it was asked for,
+  // and this parent-page copy — the pill she actually uses on every Compare
+  // page inside the app — never got it, so a long page in the app had no jump
+  // home at all. CLASS only, no id: chats.html's own pill owns `#ptop`, and
+  // `.ptop` is what the CSS is keyed on.
+  pill.innerHTML='<div class="vseg"><button class="ppt"></button><button class="ppm"></button><button class="ppb"></button></div><span class="pps"></span>'+
+    '<button class="ptop" aria-label="Back to the top" title="Back to the top">'+
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M5 4h14"/><path d="m18 14-6-6-6 6"/><path d="M12 8v12"/></svg></button>';
   var vt=pill.querySelector('.ppt'), vm=pill.querySelector('.ppm'), vb=pill.querySelector('.ppb'), sp=pill.querySelector('.pps');
+  var pt=pill.querySelector('.ptop');
   function paint(){
     if(playing){ vt.innerHTML=I.minus; vb.innerHTML=I.plus; vm.innerHTML=I.pause; vm.classList.add('on');
       vt.classList.toggle('dim',si===0); vb.classList.toggle('dim',si===SPEEDS.length-1);
@@ -7268,10 +7278,25 @@ function mkPagePill(getWin){
   function stop(){ playing=false; if(raf) cancelAnimationFrame(raf); raf=null; paint(); }
   vt.onclick=function(){ if(playing){ si=Math.max(0,si-1); paint(); } else start(-1); };
   vb.onclick=function(){ if(playing){ si=Math.min(SPEEDS.length-1,si+1); paint(); } else start(1); };
-  vm.onclick=function(){ playing? stop() : start(1); };
-  paint(); pill._stop=stop;
+  // A RESUMED SCROLL GOES THE WAY IT WAS GOING (Aug 2026, Sophie: "I can't
+  // scroll back up only down"). Both of these were a hardcoded start(1), so
+  // riding UP the page and pausing — with the pill's ‖ or with a tap on the
+  // page, which is the same toggle — sent her back DOWN on the very next tap,
+  // and the ▲ had to be found again after every pause. The shared pill has
+  // always resumed on `dir`; this copy now agrees with it.
+  vm.onclick=function(){ playing? stop() : start(dir||1); };
+  // the jump home: stop first, or the running scroll walks the page back down
+  // under the animation (the shared pill's own rule)
+  pt.onclick=function(){ stop(); var w=getWin(); if(!w) return;
+    try{ w.scrollTo({top:0, behavior:'smooth'}); }catch(_){ try{ w.scrollTo(0,0); }catch(__){} } };
+  function syncTop(){ var w=getWin(); if(!w){ pt.classList.remove('on'); return; }
+    try{ var d=w.document.documentElement;
+      pt.classList.toggle('on', w.scrollY > w.innerHeight && d.scrollHeight > w.innerHeight+4);
+    }catch(_){ pt.classList.remove('on'); } }
+  paint(); syncTop(); pill._stop=stop;
   pill._playing=function(){ return playing; };
-  pill._tap=function(){ playing? stop() : start(1); };   // tap the page to toggle
+  pill._topSync=syncTop;                                 // openPage wires the iframe's scroll to it
+  pill._tap=function(){ playing? stop() : start(dir||1); };   // tap the page to toggle
   return pill;
 }
 // Full-screen viewer for a Compare page: top bar (back + title) over an
@@ -7340,6 +7365,15 @@ function openPage(p){
       // a clock window either misses slow fingers or eats the next tap.
       var pausedThisTap=false;
       if(w) w.__scrollStop=function(){ if(pill._playing && pill._playing()) pausedThisTap=true; pill._stop(); };
+      // The back-to-top button lives in the parent but watches the IFRAME's
+      // scroll — the page it is actually driving. Re-checked on load too,
+      // because a Compare page fetches its pictures after it loads and is
+      // short until they land.
+      if(w && pill._topSync){
+        w.addEventListener('scroll', pill._topSync, {passive:true});
+        w.addEventListener('resize', pill._topSync, {passive:true});
+        pill._topSync(); setTimeout(pill._topSync, 700);
+      }
       // THE SKIP LIST IS ASKED AT POINTERDOWN, WHILE THE TARGET IS STILL IN THE
       // DOM (Aug 2026). A click handler bubbles, so it runs AFTER the page's own
       // handler for the same tap — and an overlay that closes by removing its
