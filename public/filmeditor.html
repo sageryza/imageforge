@@ -335,7 +335,7 @@ var FILM_ICON = '<svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="
   + '<path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>';
 
 /* ── state ── */
-var BUILD = 'fe-2026-08-23c';   // rides the telemetry — settles "which page is her phone actually running"
+var BUILD = 'fe-2026-08-23d';   // rides the telemetry — settles "which page is her phone actually running"
 var A = null;                 // the open cut doc {id,title,clips,audio,renders,job}
 var playhead = 0;
 var playing = false;
@@ -513,7 +513,9 @@ $('ttl').addEventListener('change', function () {
   api(B + '/' + A.id + '/title', { method: 'POST', body: { title: t } }).catch(function () {});
 });
 
+var lastEditAt = 0;   // the self-heal reload must never race an in-flight save
 function save() {
+  lastEditAt = Date.now();
   clearTimeout(saveT);
   saveT = setTimeout(function () {
     if (!A) return;
@@ -1345,6 +1347,29 @@ document.addEventListener('click', function (e) {
     $('helpcard').hidden = true;
   }
 });
+
+/* ── THE PAGE HEALS ITS OWN STALENESS (2026-08-23, the round-three finding —
+   measured, not guessed: her play posted NO beacon while the live route
+   round-tripped fine). The iOS app keeps the three recent tools ALIVE in a
+   ZStack, so this page loads ONCE per app process and re-entering the tool
+   shows the SAME page — Sophie spent a night reporting bugs that were fixed
+   all day, because no deploy can reach a page that never reloads. Every five
+   minutes the page asks which build is current and, when it is stale AND the
+   editor is idle — not playing, not uploading, no save in the last 10s, no
+   films sheet open — reloads itself in place (the ?c= in the url puts her
+   back inside the same cut). Exposed as window.__buildCheck for the tests. ── */
+function buildCheck() {
+  return api(B + '/build').then(function (r) {
+    if (!r || !r.build || r.build === BUILD) return false;
+    if (playing || uploading) return false;
+    if (Date.now() - lastEditAt < 10000) return false;
+    if (!$('filmsSheet').hidden) return false;
+    location.reload();
+    return true;
+  }).catch(function () { return false; });
+}
+window.__buildCheck = buildCheck;
+setInterval(buildCheck, 5 * 60 * 1000);
 
 /* ── launch: a ?c= link opens that cut cold; otherwise the shelf ── */
 actEl = $('vA');
