@@ -69,7 +69,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const fetch = require('node-fetch');
-const { buildQuestions, answeredOnly } = require('./questions');
+const { buildQuestions, answeredOnly, isCompacted } = require('./questions');
 const { parseQuery } = require('./search-grammar');
 const { shouldPushReply, chatNotifies, pushBody } = require('./push-gate');
 const chatSort = require('./chat-sort');
@@ -1170,6 +1170,58 @@ function wrapPartOf(s) {
   const sp = cut.lastIndexOf(' ');
   return (sp > WRAP_PART_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
 }
+// WHAT SHE ASKED IS HER OWN SENTENCE, NEVER A PARAPHRASE (2026-08-24, Sophie:
+// "right now the what I did — I mean what I asked — sentence is paraphrased.
+// can you make it my exact sentence and just truncate it if it gets too long,
+// so basically just the beginning of my last message").
+//
+// The other two answers are the chat's account of its own work, so they have to
+// be written. Hers is the one line nobody needs to write: she already said it,
+// and a model retelling it in its own words can only move it further from what
+// she meant — the house rule that her words reach the model verbatim, applied
+// to the summary she reads months later. So the server lifts the OPENING of her
+// last message off the thread it already stores and files that.
+//
+// TRUNCATED, NOT SUMMARISED, and deliberately NOT cut at the first sentence the
+// way `wrapPartOf` cuts a written answer: she dictates, so her punctuation is
+// unreliable and "I have a question." would be the whole line. It is the first
+// HER_ASK_MAX characters, at a word boundary, with an ellipsis — the beginning
+// of her message, exactly as she said it.
+const HER_ASK_MAX = 200;
+function herAskOf(s) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  if (t.length <= HER_ASK_MAX) return t;
+  const cut = t.slice(0, HER_ASK_MAX);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > HER_ASK_MAX * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\-\s]+$/, '') + '…';
+}
+// Her newest message in a loaded thread. A CONTEXT-COMPACTION SUMMARY is not
+// her message — the harness hands it to the model as a user turn and the hook
+// lifts it exactly like something she typed, so it would file 7,000 characters
+// of recited rules as what she asked for. One copy of that rule, in questions.js.
+function lastHerText(msgs) {
+  for (let i = (msgs || []).length - 1; i >= 0; i--) {
+    const m = msgs[i] || {};
+    if (m.from !== 'sophie') continue;
+    const t = String(m.text || '').trim();
+    if (!t || isCompacted(t)) continue;
+    return t;
+  }
+  return '';
+}
+// The same thing for a caller that has not loaded the thread. One equality
+// filter, sorted in memory — the house rule in this file, so Firestore needs no
+// composite index. Best-effort: a wrap-up must never fail because a read did.
+async function herAskFor(chat) {
+  try {
+    const snap = await db().collection(MSGS).where('chat', '==', chat).get();
+    const msgs = snap.docs.map((d) => d.data())
+      .sort((a, b) => (String(a.created || '') < String(b.created || '') ? -1 : 1));
+    return herAskOf(lastHerText(msgs));
+  } catch (_) { return ''; }
+}
+
 // The prose mirror for an older reader — unlabelled, because the labels are the
 // renderer's ("What you asked" / "What I did" / "What's next") and a reader
 // that cannot draw the three lines is better served by three plain sentences.
@@ -1207,9 +1259,12 @@ function capShort(s, cap = SHORT_CAP) {
 // the patch to merge, or null when there is nothing to freeze — never invents.
 // The Update card IS the summary's shape now, so this is a straight copy rather
 // than a translation into prose.
-function frozenWrapUp(r) {
+function frozenWrapUp(r, herAsk) {
   if (!r || r.wrapUp || r.wrapLine) return null;          // already has one
-  const asked = wrapPartOf(r.updAsked);
+  // HER OWN SENTENCE WINS THE ASKED LINE (2026-08-24) — the Update card's
+  // `updAsked` is the chat's paraphrase of it, and it is only the fallback now,
+  // for a chat she never posted a message into.
+  const asked = herAsk || wrapPartOf(r.updAsked);
   const did = wrapPartOf(r.updDid);
   const next = wrapPartOf(r.updNext);
   const doing = wrapPartOf(r.statusDoing);
@@ -1221,6 +1276,7 @@ function frozenWrapUp(r) {
   return {
     wrapLine: line,
     wrapAsked: asked || admin.firestore.FieldValue.delete(),
+    wrapAskedHers: herAsk ? true : admin.firestore.FieldValue.delete(),
     wrapDid: didPart || admin.firestore.FieldValue.delete(),
     wrapNext: next || admin.firestore.FieldValue.delete(),
     wrapUp: wrapProse(asked, didPart, next),
@@ -1240,7 +1296,11 @@ async function setArchived(chat, on) {
   let froze = false;
   if (on) {
     const snap = await ref.get();
-    const add = frozenWrapUp(snap.exists ? snap.data() : null);
+    const cur = snap.exists ? snap.data() : null;
+    // Only read the thread when there is actually a wrap-up to freeze — an
+    // archive tap on a chat that already has one must not cost a read.
+    const herAsk = (cur && !cur.wrapUp && !cur.wrapLine) ? await herAskFor(chat) : '';
+    const add = frozenWrapUp(cur, herAsk);
     if (add) { Object.assign(patch, add); froze = true; }
   }
   await ref.set(patch, { merge: true });
@@ -1269,7 +1329,13 @@ router.post('/wrapup', async (req, res) => {
     // THE THREE QUESTIONS — what she asked, what it did, what is next; one
     // sentence each. `next` doubles as the loose-ends half, so a chat that used
     // to send `open` has its answer land where she now reads for it.
-    const asked = wrapPartOf(req.body && req.body.asked);
+    // WHAT SHE ASKED IS HERS, VERBATIM (2026-08-24) — whatever the chat sends
+    // as `asked` is its retelling of a sentence she already wrote, so the
+    // server lifts the opening of her last message instead. Its own `asked` is
+    // the fallback for a chat she has never posted into (a backfill, a chat
+    // that only ever talked to itself).
+    const hers = await herAskFor(resolved);
+    const asked = hers || wrapPartOf(req.body && req.body.asked);
     const did = wrapPartOf(req.body && req.body.did);
     const next = wrapPartOf((req.body && req.body.next) || open);
     const three = asked || did || next;
@@ -1289,6 +1355,8 @@ router.post('/wrapup', async (req, res) => {
     await regRef(resolved).set({
       wrapLine: one || del,
       wrapAsked: asked || del,
+      // Her words, so the page truncates rather than cutting at a sentence.
+      wrapAskedHers: hers ? true : del,
       wrapDid: did || del,
       wrapNext: next || del,
       wrapUp: full || del,
@@ -1305,7 +1373,7 @@ router.post('/wrapup', async (req, res) => {
       wrapFrom: 'chat',
     }, { merge: true });
     res.json({ ok: true, chat: resolved, wrapLine: one, wrapUp: full,
-      wrapAsked: asked, wrapDid: did, wrapNext: next,
+      wrapAsked: asked, wrapAskedHers: !!hers, wrapDid: did, wrapNext: next,
       wrapLong: fuller, wrapOpen: three ? '' : still });
   } catch (err) { fail(res, err); }
 });
@@ -1534,7 +1602,13 @@ router.post('/wrapup/write', async (req, res) => {
     // for that"). `next` carries the loose ends the old `open` field held, so a
     // rewrite CLEARS that field rather than leaving her the same unfinished
     // business twice under two different headings.
-    const asked = wrapPartOf(out && out.asked);
+    // HER OWN SENTENCE, LIFTED OFF THE THREAD (2026-08-24, Sophie: "can you
+    // make it my exact sentence and just truncate it if it gets too long, so
+    // basically just the beginning of my last message"). The model still
+    // ANSWERS `asked` — it costs nothing extra and it is the fallback for a
+    // chat with no message of hers in it — but her words win when they exist.
+    const hers = herAskOf(lastHerText(msgs));
+    const asked = hers || wrapPartOf(out && out.asked);
     const did = wrapPartOf(out && out.did);
     const next = wrapPartOf(out && (out.next !== undefined ? out.next : out.open));
     const three = asked || did || next;
@@ -1547,6 +1621,7 @@ router.post('/wrapup/write', async (req, res) => {
     await regRef(target).set({
       wrapLine: one,
       wrapAsked: asked || del,
+      wrapAskedHers: hers ? true : del,
       wrapDid: did || del,
       wrapNext: next || del,
       wrapUp: prose,
@@ -1559,7 +1634,7 @@ router.post('/wrapup/write', async (req, res) => {
       wrapFrom: 'claude',
     }, { merge: true });
     res.json({ ok: true, chat: target, wrapLine: one, wrapUp: prose,
-      wrapAsked: asked, wrapDid: did, wrapNext: next, wrapLong: long,
+      wrapAsked: asked, wrapAskedHers: !!hers, wrapDid: did, wrapNext: next, wrapLong: long,
       wrapOpen: '', messages: msgs.length, unanswered: unanswered.length });
   } catch (err) { fail(res, err); }
 });

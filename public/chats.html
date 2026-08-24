@@ -882,6 +882,10 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .threadwrap{margin:-.4em 0 1em;}
 .threadwrap[hidden]{display:none !important;}
 .threadwrap .twline{color:var(--ink2); font-size:13.5px; line-height:1.4;}
+/* The bold question over the line (2026-08-24, her ask) — the same treatment
+   `.nwrow b` gives the two answers behind "See more…", so the three read as one
+   set instead of a bare sentence with two labelled ones under it. */
+.threadwrap .twq{display:block; font-weight:600; color:var(--ink); font-size:13.5px; line-height:1.4;}
 .threadwrap .wrapfull{margin-bottom:0;}
 /* MORE — the second depth, inside the expander (Aug 2026, Sophie: three lines,
    then a longer summary behind an arrow). Quiet by design: it sits at the end of
@@ -5792,8 +5796,23 @@ function onePart(v){
   var cut=one.slice(0,WRAP_PART_MAX), sp=cut.lastIndexOf(' ');
   return (sp>WRAP_PART_MAX*0.6 ? cut.slice(0,sp) : cut).replace(/[,;:.\-\s]+$/,'')+'…';
 }
+// HER OWN SENTENCE IS TRUNCATED, NEVER CUT AT A SENTENCE (2026-08-24, Sophie:
+// "can you make it my exact sentence and just truncate it if it gets too long,
+// so basically just the beginning of my last message"). `wrapAskedHers` marks
+// the asked answer as her verbatim words — she dictates, so a sentence rule
+// would leave "I have a question." as the whole line. The TWIN of `herAskOf`
+// in chatfeed.js, pinned equal by scripts/test-chats-wrapup.js.
+var HER_ASK_MAX=200;
+function herAsk(v){
+  var t=String(v||'').replace(/\s+/g,' ').trim();
+  if(!t) return '';
+  if(t.length<=HER_ASK_MAX) return t;
+  var cut=t.slice(0,HER_ASK_MAX), sp=cut.lastIndexOf(' ');
+  return (sp>HER_ASK_MAX*0.6 ? cut.slice(0,sp) : cut).replace(/[,;:.\-\s]+$/,'')+'…';
+}
 function wrapParts(r){
-  var a=onePart(r.wrapAsked), d=onePart(r.wrapDid), n=onePart(r.wrapNext);
+  var a=(r.wrapAskedHers===true ? herAsk(r.wrapAsked) : onePart(r.wrapAsked));
+  var d=onePart(r.wrapDid), n=onePart(r.wrapNext);
   if(a||d||n) return { asked:a, did:d, next:n };
   if(String(r.wrapUp||'').trim()) return null;          // an older prose one
   var u={ asked:onePart(r.updAsked), did:onePart(r.updDid), next:onePart(r.updNext) };
@@ -5810,6 +5829,14 @@ function wrapLineOf(r){
   var p=wrapParts(r);
   if(p) return p.asked || p.did || p.next;
   return String(r.wrapLine||'').trim() || String(r.wrapUp||'').trim();
+}
+// Is that line the ASKED answer, or did it fall through to what the chat did /
+// what is next / an older prose summary? Only the first earns the bold "What
+// you asked" over it — labelling a fallback line with a question it does not
+// answer is worse than no label at all.
+function wrapLineIsAsk(r){
+  var p=wrapParts(r);
+  return !!(p && p.asked);
 }
 // Draw the three answers, each under its own bold question.
 function fillWrapParts(el, parts, open){
@@ -6671,6 +6698,17 @@ function openChat(name, keepScroll, focusId, noFetch){
     wrow.innerHTML='';
     wrow.hidden=!line;
     if(!line) return;
+    // WHAT YOU ASKED, IN BOLD OVER IT (2026-08-24, Sophie: "have it say what I
+    // asked in bold above it, and then the see more is as it was"). The line
+    // used to sit here unlabelled while the two answers behind the opener each
+    // carried their question — so the one sentence she reads first was the only
+    // one that never said which question it was answering. Same vocabulary as
+    // the Update tab (`UPD_LABELS`), one set of words for all three.
+    if(wrapLineIsAsk(r)){
+      var q=document.createElement('div'); q.className='twq';
+      q.textContent=UPD_LABELS[0][1];
+      wrow.appendChild(q);
+    }
     var p=document.createElement('div'); p.className='twline';
     p.appendChild(document.createTextNode(line));
     wrow.appendChild(p);
@@ -8176,7 +8214,8 @@ function askArchive(name, cb){
         if(!d.ok||!(d.wrapLine||d.wrapUp||d.wrapDid||d.wrapAsked)) throw new Error(d.error||'nothing came back');
         chats[name]=chats[name]||{};
         chats[name].wrapLine=d.wrapLine||''; chats[name].wrapUp=d.wrapUp||'';
-        chats[name].wrapAsked=d.wrapAsked||''; chats[name].wrapDid=d.wrapDid||'';
+        chats[name].wrapAsked=d.wrapAsked||''; chats[name].wrapAskedHers=!!d.wrapAskedHers;
+        chats[name].wrapDid=d.wrapDid||'';
         chats[name].wrapNext=d.wrapNext||'';
         chats[name].wrapOpen=d.wrapOpen||''; chats[name].wrapLong=d.wrapLong||'';
         // The thread is still on screen behind this sheet — put the new
