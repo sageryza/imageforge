@@ -2972,6 +2972,14 @@ before working on that module. Nothing was deleted — the moved text is verbati
     **CLAMPED, never extrapolated** (a 2:1 page is quoted at the 2:3 price,
     which errs high). Every estimate carries `approx:true`; the run stores the
     real `usage` the API returns, which is what a later comparison should read.
+    **AND THE INPUT SIDE IS ADDED ON TOP, NAMED** (measured on the first live
+    sheet, 2026-08-24): `PL_GPT.res` is an OUTPUT-only table, so the first
+    estimate this tool ever printed said 11.74c and the API charged **13.06c**.
+    The missing 1.32c is 1,505 image tokens for the style reference (1.20c) plus
+    246 text tokens (0.12c) — **the very cost a sheet pays ONCE where N separate
+    draws pay it N times**, which is why it is a named `input` field rather than
+    folded into the fit. It scales with the style's reference count and not with
+    quality or canvas. Pinned against the real `usage` by the test.
   - **An EMPTY box is refused** — the model fills an unnamed cell with whatever
     it likes and she pays for it at the sheet's price.
   - **A WEDGED RUN IS RE-CUT FROM ITS OWN SHEET, FREE — `POST /:id/resume`

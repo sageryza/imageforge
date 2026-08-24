@@ -207,11 +207,34 @@ t('the cost model reproduces the MEASURED table it was not fitted on', () => {
   for (const [name, w, h, want] of cases) {
     const got = P.sheetCents({ pixels: w * h, width: w, height: h, count: 1 });
     for (const q of ['low', 'medium', 'high']) {
-      const err = Math.abs(got[q].sheet - want[q]) / want[q];
+      // PL_GPT.res is an OUTPUT-only table, so compare the output half —
+      // `input` is named separately on every estimate for exactly this reason
+      const err = Math.abs((got[q].sheet - got[q].input) - want[q]) / want[q];
       assert.ok(err < 0.05, `${name} ${w}x${h} ${q}: ${got[q].sheet} vs ${want[q]} (${(err * 100).toFixed(1)}%)`);
       assert.strictEqual(got[q].approx, true, 'every estimate says it is one');
     }
   }
+});
+
+t('the estimate matches the REAL bill from the first live sheet', () => {
+  // Measured 2026-08-24 on this tool's first real run — the API's own `usage`
+  // for a 2336x3504 Dreamy sheet at medium with ONE style reference:
+  //   output 3,912 image tokens x $30/1M = 11.74c
+  //   input  1,505 image tokens x  $8/1M =  1.20c   the reference
+  //   input    246 text  tokens x  $5/1M =  0.12c
+  //                                total = 13.06c
+  // The first estimate this tool printed said 11.74c, because PL_GPT.res is an
+  // OUTPUT-only table — it under-quoted by the cost of sending the reference,
+  // which is the very thing the sheet pays once instead of four times.
+  const plan = G.sheetFor(4, 'portrait', '4k');
+  const c = P.sheetCents(plan, ['medium'], 1).medium;
+  assert.ok(Math.abs(c.sheet - 13.06) < 0.05, `sheet: ${c.sheet} vs the billed 13.06`);
+  assert.ok(Math.abs(c.input - 1.32) < 0.01, `input side named separately: ${c.input}`);
+  // and a style with MORE references costs more to send, once
+  const four = P.sheetCents(plan, ['medium'], 4).medium;
+  assert.ok(four.sheet > c.sheet, 'four references cost more than one');
+  assert.ok(Math.abs((four.input - c.input) - 3 * 1.20) < 0.01,
+    'each extra reference is one more image-input charge');
 });
 
 t('"each" is the sheet split by the panel count — the number the tool is for', () => {

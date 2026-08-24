@@ -117,7 +117,9 @@ router.get('/config', (req, res) => {
         const plan = sheetGrid.sheetFor(Number(gid), sid, tid);
         if (!plan) continue;
         const qs = (deps.gpt && deps.gpt.qualities) || ['low', 'medium', 'high'];
-        plans[`${gid}|${sid}|${tid}`] = Object.assign({ cents: sheetCents(plan, qs) }, plan);
+        // priced against the DEFAULT style's reference count — the page
+        // re-asks when she picks another, and most styles attach one
+        plans[`${gid}|${sid}|${tid}`] = Object.assign({ cents: sheetCents(plan, qs, 1) }, plan);
       }
     }
   }
@@ -175,21 +177,41 @@ function fitFor(ratio, quality) {
   const [bf, br] = b[quality] || b.medium;
   return { fixed: af + t * (bf - af), rate: ar + t * (br - ar) };
 }
-function sheetCents(plan, qualities) {
+// THE INPUT SIDE, measured on this tool's first real sheet (2026-08-24).
+// The fitted model above reproduces the OUTPUT-token cost, because PL_GPT.res
+// is an output-only table — so the first estimate this tool ever printed said
+// 11.74c and the API charged 13.06c. The missing 1.32c is what it costs to
+// SEND the style reference and the words:
+//     1,505 image tokens x $8/1M  = 1.20c   per attached reference
+//       246 text  tokens x $5/1M  = 0.12c   the prompt itself
+// This is the saving the whole tool exists for, so it is named rather than
+// folded into the fit: a sheet pays it ONCE where N separate draws pay it N
+// times. It does not move with quality or canvas — it is the input, not the
+// picture — so it is added after the fit rather than inside it.
+const REF_CENTS = 1.20;
+const TEXT_CENTS = 0.12;
+function sheetCents(plan, qualities, refs) {
   if (!plan) return null;
   const mp = plan.pixels / 1e6;
   const ratio = Math.max(plan.width, plan.height) / Math.min(plan.width, plan.height);
   const clamped = ratio > CENTS_FIT.portrait.ratio || ratio < CENTS_FIT.square.ratio;
+  const input = round2(Math.max(Number(refs) || 1, 1) * REF_CENTS + TEXT_CENTS);
   const out = {};
   for (const q of qualities || ['low', 'medium', 'high']) {
     const f = fitFor(ratio, q);
-    const total = f.fixed + f.rate * mp;
+    const total = f.fixed + f.rate * mp + input;
     out[q] = { sheet: round2(total), each: round2(total / plan.count),
-      approx: true, clamped };
+      // what a draw of the SAME picture on its own would pay in input, N times
+      // over — the number the comparison rests on
+      input, approx: true, clamped };
   }
   return out;
 }
 const round2 = (n) => Math.round(n * 100) / 100;
+// How many images ride along with the prompt — each one is charged as image
+// input, and it is the cost a sheet pays once instead of once per picture.
+const refCount = (st) => Math.max(
+  ((st && st.refFiles) || []).length + ((st && st.storageRefs) || []).length, 1);
 
 /**
  * THE PROMPT, built in one place so a test can read it without a network.
@@ -293,7 +315,7 @@ router.post('/', async (req, res) => {
       sheetSize: plan.sheet, cellSize: plan.cell, count: plan.count,
       aspectRatio: plan.aspectRatio, cellAspectRatio: plan.cellAspectRatio,
       panels, prefix, suffix, promptEdited, fullPrompt,
-      estimate: sheetCents(plan, qualities)[quality] || null,
+      estimate: sheetCents(plan, qualities, refCount(st))[quality] || null,
       sheetUrl: '', images: [],
       job: { kind: 'sheet', status: 'running', done: 0, total: plan.count + 1,
         label: 'drawing the sheet', startedAt: Date.now() },
@@ -305,7 +327,7 @@ router.post('/', async (req, res) => {
     runSheet(docRef, { plan, fullPrompt, quality, styleId, panels, gridId, shapeId, resId, prefix, suffix });
     return res.json({ id: docRef.id, poll: `/api/panels/${docRef.id}`,
       sheet: plan.sheet, cell: plan.cell, count: plan.count,
-      estimate: sheetCents(plan, qualities)[quality] || null });
+      estimate: sheetCents(plan, qualities, refCount(st))[quality] || null });
   } catch (err) {
     console.warn('panels start failed:', err.message);
     return res.status(500).json({ error: err.message });
