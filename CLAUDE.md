@@ -3227,6 +3227,35 @@ before working on that module. Nothing was deleted — the moved text is verbati
   (promptlab.html, the picker) and `PORT_STYLES` (playground-port.js, the
   routing) — pinned equal by `node scripts/test-playground-port.js`, which also
   checks every prefix fragment is verbatim in the real prefix.
+  **THREE OR FOUR ACROSS IS HERS TO TAP (2026-08-24, Sophie: "add a 3 to a
+  row vs. 4 to a row toggle to the right of search in playground. square
+  button that cycles between 3 and 4").** A 30px square at the right end of
+  the feed row, drawing the count as N bars rather than saying it (the
+  pyramid's rule — a mark that says how many, never a word). Sticky, like the
+  view and the two filters; three is the default, where the wall already
+  stood.
+  - **IT IS ONE NUMBER — `--cols` on the root, read by the tile wall AND by a
+    run's own row of pictures in list view.** Two rules would let the two
+    surfaces disagree about what "3 to a row" means, and it is also what keeps
+    the button from being a dead control in list view.
+  - **TWO STATES IS NOT THE CYCLE THE HOUSE RULE FORBIDS.** *THREE OPTIONS = A
+    THREE-WAY TOGGLE* is about a control with stops she can AIM at, where a
+    blind step past the one she tapped is the surprise; with two there is
+    nowhere else a tap could mean.
+  - **IT COST THE ROW 38px AND THE ROW HAD NONE** — measured before building
+    it: the search box had 4px of slack over its own placeholder, and adding
+    the button naively left "Search" clipped again, the exact failure the ✕
+    filter's note already records. Two things paid for it, both measured: the
+    view switch gave back padding (15px → 9px, still legible), and **the ✕'s
+    clearance became conditional** (`.hasq`) — 28px of right padding was
+    reserved on an empty box for a button that is hidden on an empty box, and
+    the placeholder, which only ever shows on an empty box, was paying it.
+    Room now 60px against a 51px need.
+  - Test: `node scripts/test-playground-cols.js` — the count MEASURED off the
+    real cells (a wrong `--cols` and a wrong `repeat()` both compute to
+    plausible-looking text; only the boxes say how many sit on a row), the
+    button's centre asked with `elementFromPoint`, and its right edge measured
+    against the injected pill's column.
   **THE TILE WALL IS THREE TO A ROW, AND THE LIGHTBOX'S SIDE ARROWS ARE A TAP
   WITH NOTHING DRAWN (2026-08-24, Sophie: "make playground thumbnails 3 to a
   row not 4" · "the side arrow bars - buttons shud be smaller, tap targets
