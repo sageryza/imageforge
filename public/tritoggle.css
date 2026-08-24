@@ -1,0 +1,80 @@
+/* tritoggle.css — THE THREE-WAY TOGGLE, one shell for every copy of it.
+ *
+ * Aug 2026, Sophie: "for things with three options, it shud be a three way
+ * toggle. add the toggle as a likely pattern where it applies. make a reusable
+ * three toggle shell so we can change the styling all at once. make color a
+ * per instance option. apply it to the few instances that already exists."
+ *
+ * WHY THIS FILE EXISTS. The geometry had been hand-copied THREE times and had
+ * already drifted: `.swi` in chats.html (the account switcher, the original),
+ * `.swtog` in promptlab.html (quality + size), and `.swtog` again in
+ * panels.html, whose own comment says it is "LIFTED VERBATIM". Two attribute
+ * names, two typed gaps, two hardcoded palettes — and the only thing that ever
+ * noticed a copy drifting was a test written to compare two files property by
+ * property. One rule, linked by every page, is what she asked for instead.
+ *
+ * THE MARKUP CONTRACT, and it is the whole of it:
+ *
+ *     <button class="tri" data-n="0|1|2" data-i="L"></button>
+ *
+ * `data-n` is the stop, ZERO-BASED and NUMBERED rather than named — that is
+ * what lets quality (low/medium/high), size (1K/2K/4K), the account switcher
+ * (1/2/3) and a search filter share one rule instead of keeping a selector
+ * each. `data-i` is the short word riding the knob; leave it off and the knob
+ * is blank, which is the account switcher.
+ *
+ * NOTHING HERE COUNTS THE NOTCHES BUT THE STOP RULES THEMSELVES. A fourth stop
+ * is one more `[data-n="3"]` line and a wider `--tri-w`; no page declares how
+ * many there are.
+ *
+ * THE GEOMETRY IS DERIVED, NEVER TYPED — the lesson the hairline tab rows
+ * already carry (a row measures its own underline; no row declares a tab
+ * count). Both hand-typed copies had eyeballed their `--gap`, and one of them
+ * had eyeballed the knob's vertical inset half a pixel off centre. Here the
+ * only inputs are the track width, the knob, the inset and the border; the
+ * height, the radius and the travel between stops fall out of those, so a new
+ * instance sets a width and is done. The old typed values were:
+ *   account switcher  48/18 → gap 11.5 (derives to 11)
+ *   playground        78/26 → gap 22   (derives to 22, exactly)
+ *
+ * IT IS THE SANCTIONED EXCEPTION TO NO-PILLS. A toggle is not a text button.
+ */
+.tri {
+  /* ---- per-instance, all optional: a bare `.tri` IS the account switcher --
+     Colour first, because that is the one she named. A page that defines the
+     house tokens gets them for free; one with its own palette (the Playground
+     is ink on paper, not rose on cream) sets `--tri-track` and `--tri-knob`
+     on the element and changes nothing else. */
+  --tri-track: var(--chg, #b3443f);
+  --tri-knob: var(--paper, #faf7f2);
+  --tri-ink: var(--tri-track);        /* the letter on the knob, if any */
+  --tri-w: 48px;                      /* track width */
+  --tri-k: 18px;                      /* knob diameter */
+  --tri-inset: 2.5px;                 /* knob to the inside of the track */
+  --tri-bw: 1.5px;                    /* track border */
+  --tri-fs: 11px;
+
+  /* ---- derived — do not type these ------------------------------------- */
+  --tri-h: calc(var(--tri-k) + 2 * var(--tri-inset) + 2 * var(--tri-bw));
+  --tri-gap: calc((var(--tri-w) - 2 * var(--tri-bw) - 2 * var(--tri-inset) - var(--tri-k)) / 2);
+
+  position: relative; box-sizing: border-box;
+  width: var(--tri-w); height: var(--tri-h); border-radius: calc(var(--tri-h) / 2);
+  border: var(--tri-bw) solid var(--tri-track); background: var(--tri-track);
+  padding: 0; margin: 0; flex: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* The word rides the knob, so what it says and where it sits are ONE element
+   and can never disagree. `attr(data-i)` with no attribute renders nothing,
+   which is how the account switcher gets a blank knob out of the same rule. */
+.tri::after {
+  content: attr(data-i);
+  position: absolute; top: var(--tri-inset); left: var(--tri-inset);
+  width: var(--tri-k); height: var(--tri-k); border-radius: 50%;
+  background: var(--tri-knob); color: var(--tri-ink);
+  font: 600 var(--tri-fs) / var(--tri-k) -apple-system, sans-serif;
+  text-align: center;
+  transition: transform .18s;
+}
+.tri[data-n="1"]::after { transform: translateX(var(--tri-gap)); }
+.tri[data-n="2"]::after { transform: translateX(calc(var(--tri-gap) * 2)); }

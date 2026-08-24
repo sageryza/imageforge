@@ -1734,61 +1734,92 @@ them off the reference sheet, not off the old filenames.
   `node scripts/test-search-return-everywhere.js` (the other three pages,
   headless — verified failing against the pre-fix pages),
   `node scripts/test-chats-note-wrap-clear.js` (the clear control).
-- **WHO SAID IT — the search's FIRST filter, and the pattern the next ones
-  follow (Aug 2026, Sophie: "I'd like to add some filters to the search in
-  the chats thing that are optional. one would be a filter allowing me to
-  search through my messages versus Claude's messages. start with that and
-  then we can think of other filters").** Three chips under the search box —
-  **All · Mine · Claude** — on the `/chats` home bar AND inside a thread. Her
-  words and a chat's answers are two haystacks she hunts for different
-  reasons, and a search across both buries the shorter one: she posts about
-  40 messages to every 220 replies (measured on one live feed read), so the
-  one sentence she remembers saying loses to the twelve replies that quoted
-  it back at her.
-  - **HERS IS `from === 'sophie'` EXACTLY; EVERYTHING ELSE IS CLAUDE'S.** The
-    asymmetry is load-bearing and is the rule the app already used in three
-    places (`renderMsg`'s own me/claude label among them). A reply is stamped
-    `from:'claude'` today but older docs carry an empty `from` — and those are
-    replies, since her messages have only ever reached the feed through
-    `POST /reply` and the hook's her_words path, both of which stamp `sophie`.
-    So an unstamped record lands on HIS side, and a `from` value nobody has
-    seen is never counted as hers: silence is the safe direction for the
-    smaller pile.
-  - **THE HOME BAR ASKS THE SERVER — `GET /api/chatfeed/search?q=&from=me`.**
-    Filtering the 80 results already on screen would answer "my messages about
-    the image doc" out of whatever survived the UNFILTERED top-80 — the Assets
-    tab's hard-truncate lesson, re-learned rather than re-lived. The server
-    holds the whole index and filters BEFORE it ranks, so a hit five hundred
-    messages back is still found. **`all` sends no `from` at all**, which is
-    exactly what every older cached page on her phone already sends, and an
-    unknown value WIDENS to `all` rather than emptying the list — a filter she
-    cannot see must never silently delete results.
-  - **A chat's NAME was said by nobody**, so the `chatMatches` rows come off
-    while a side is picked rather than sitting above results that all share
-    one voice.
-  - **The THREAD's copy filters what is already rendered** — the thread is
-    fully loaded, so there is no truncate to fall through and no request to
-    make — and **it narrows with an EMPTY box**: "just show me what I said in
-    here" is a whole question, and the one a thread can answer without her
-    thinking of a search term first.
-  - **NEITHER FILTER OUTLIVES ITS HUNT.** It rides the home bar's one-minute
-    memory beside the words (the same hunt continuing), the GLASS resets it to
-    All with the query it forgets, and closing a thread's search takes the
-    filter off with the words — a thread reopened later silently missing half
-    its messages, with no box on screen saying why, is the failure to avoid.
-  - **Chips, never a typed `from:` prefix.** She dictates every word into that
-    box and would have to say the punctuation out loud. They are the house
-    `.catchip`, since a filter chip and a tag chip are the same gesture.
-  - **The next filter is a chip in the same row** (`SEARCH_WHO` +
-    `whoOf`/`whoParam`/`whoMatches` in `chatfeed.js`, `.searchfilters` in
-    `chats.html`) — the row keeps the search bar's own 56px pill reserve, so a
-    fourth chip cannot slide under the injected autoscroll pill. **A filter
-    that needs the whole history goes to the server like this one; one the
+- **THE SEARCH FILTERS — OPT IN, THREE-WAY, AND THE ROW THE NEXT ONES JOIN
+  (Aug 2026, Sophie: "I'd like to add some filters to the search in the chats
+  thing that are optional … one would be a filter allowing me to search
+  through my messages versus Claude's messages" → "now: make the filters opt
+  in" → "another filter to add can be archived as in does it search the
+  archive or not or just the archive").** One `Filters` chip under the search
+  box; the drawer under it is SHUT until she taps it. On the `/chats` home bar
+  and inside a thread.
+  - **OPT IN IS THE WHOLE SHAPE.** They shipped first as three chips always on
+    screen under the bar, which is not optional: every search she ran had to
+    step over a control she was not using. **The chip WEARS THE STATE when
+    anything is narrowed** ("Mine · Archive only") and lights — a filter she
+    cannot see must never be one she has forgotten she set, quietly deleting
+    results behind a closed drawer.
+  - **EVERY FILTER HERE HAS THREE OPTIONS, SO EVERY ONE IS A THREE-WAY
+    TOGGLE** (`/tritoggle.css` — the one shell; see the design rules). That is
+    not a coincidence and it is why the pattern fits: a search filter worth
+    having is `everything` plus the two OPPOSITE narrowings, and a checkbox
+    can only say two of those three. Her own words for the archive one — "or
+    not or just the archive" — are that shape exactly.
+  - **The value is spelled out BESIDE the knob, and the knob carries no
+    letter.** "Claude's" and "Archive only" are not initials, and a code to
+    learn is a worse control than a word. Tapping the word moves the knob too:
+    a label beside a switch is what a thumb aims at. **They take the Playground's
+    78px track, not the account switcher's 48**, and that is measured: at 48
+    the three stops are 11px apart, which the account switcher's own note
+    calls the floor — it can afford the floor because a toast names the
+    account after every tap, and here the stop is something she has to read
+    off the control. Two sizes in the house, not three.
+  - **The chip carries the state only while the drawer is SHUT.** Open, the
+    rows already say "Mine" and "Archive only" in full, and repeating them in
+    the heaviest treatment on the screen is the same answer twice — the lesson
+    the archive summary's one line already learned. It stays LIT either way,
+    because lit is the half that is not redundant.
+  - **WHO — hers is `from === 'sophie'` EXACTLY; everything else is
+    Claude's.** The asymmetry is load-bearing and is the rule the app already
+    used in three places (`renderMsg`'s own me/claude label among them). A
+    reply is stamped `from:'claude'` today but older docs carry an empty
+    `from` — and those are replies, since her messages have only ever reached
+    the feed through `POST /reply` and the hook's her_words path, both of
+    which stamp `sophie`. So an unstamped record lands on HIS side: silence is
+    the safe direction for the smaller pile. (Measured: she posts about 40
+    messages to every 220 replies, which is why a search across both buries
+    the shorter one.)
+  - **ARCHIVE — `all` · `live` · `only`, filtering by CHAT.** `archived` is a
+    flag on the registry doc, so the set is one read of the 5-minute cache the
+    route already takes. A chat with no flag at all is live.
+  - **THE HOME BAR ASKS THE SERVER — `?from=me&arch=only`.** Filtering the 80
+    results already on screen would answer "my messages about the image doc"
+    out of whatever survived the UNFILTERED top-80 — the Assets tab's
+    hard-truncate lesson, re-learned rather than re-lived. The server holds
+    the whole index and filters BEFORE it ranks. **`all` sends the param NOT
+    AT ALL**, which is exactly what every older cached page on her phone
+    already sends, and an unknown value WIDENS to `all` rather than emptying
+    the list (`pickOne` in chatfeed.js is the one reader for both).
+  - **ONLY THREE CHAT-NAME ROWS ARE PINNED (Aug 2026, Sophie: "right now, the
+    name instances in the name are pinned to the top just pin the first three
+    instances and then show content results").** It was ten. A common word
+    matches a dozen chat NAMES, and ten of those above the fold pushed the
+    message she was actually looking for off the first screen — the name rows
+    are a shortcut to the obvious answer, not a second list to read.
+    `pickNameRows` + `NAME_ROWS` in chatfeed.js, newest-seen first. They obey
+    the ARCHIVE filter (a name row is about the chat) and come off entirely
+    while a WHO side is picked (a name was said by nobody).
+  - **The THREAD's copy filters what is already rendered** — fully loaded, so
+    no truncate to fall through and no request to make — **narrows with an
+    EMPTY box** ("just show me what I said in here"), and offers WHO only: a
+    thread is one chat, so an archive filter there could show her everything
+    or nothing and never anything else.
+  - **NEITHER FILTER OUTLIVES ITS HUNT.** They ride the home bar's one-minute
+    memory beside the words (and the drawer comes back OPEN when the restored
+    hunt is narrowed), the GLASS resets them with the query it forgets, and
+    closing a thread's search takes the filter off with the words — a thread
+    reopened later silently missing half its messages, with no box on screen
+    saying why, is the failure to avoid.
+  - **ONE BUILDER for both boxes** — `buildFilters(mount, keys, onChange)` +
+    the `FILTERS` table in `chats.html`. The next filter is a row in that
+    table (values, words, and the query-string `param` kept together so a
+    caller cannot send it under a name the server does not read). **A filter
+    that needs the whole history goes to the server like these two; one the
     loaded page can answer honestly may stay client-side — say which you
     built.**
-  - Test: `node scripts/test-search-who-filter.js` (the decision table pure,
-    then the real page headless — including the chips' right edge measured
-    against the pill's column; verified failing against the pre-fix page).
+  - Test: `node scripts/test-search-filters.js` (the decision tables and the
+    name-row cap pure, then the real page headless — opt-in, both toggles
+    reaching the server, the chip wearing the state, and the controls' right
+    edge measured against the pill's column).
 - **A claim about what OTHER sessions do is a POPULATION fact — measure it, never
   reason it out.** See the case study at the top of this file. Most chats run an
   older hook than the repo's, so a feature that depends on a new hook simply does
@@ -2269,6 +2300,37 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   collision that actually caused this (`.morebtn` was the opener AND the
   "Older" paging button in one file, later rule wins), are in
   `docs/design-rules.md`; pinned by `node scripts/test-truncation-opener.js`.
+- **THREE OPTIONS = A THREE-WAY TOGGLE, AND THERE IS EXACTLY ONE SHELL (Aug
+  2026, Sophie: "for things with three options, it shud be a three way toggle.
+  add the toggle as a likely pattern where it applies. make a reusable three
+  toggle shell so we can change the styling all at once. make color a per
+  instance option. apply it to the few instances that already exists").**
+  `public/tritoggle.css`, class `.tri` — link it, never copy it.
+  - **The markup contract is the whole of it:** `<button class="tri"
+    data-n="0|1|2" data-i="L">`. `data-n` is the stop, ZERO-based and
+    NUMBERED, which is what lets the account switcher (1/2/3), the
+    Playground's quality (low/medium/high) and size (1K/2K/4K), and the
+    Chats search filters share one rule. `data-i` is the short word on the
+    knob; leave it off for a blank knob.
+  - **Colour and size are the per-instance options** — `--tri-track`,
+    `--tri-knob`, `--tri-ink`, `--tri-w`, `--tri-k`. A bare `.tri` IS the
+    account switcher (48px, the rose `--chg`); the Playground sets four
+    lines and gets ink-on-paper at 78px. **Everything else is DERIVED** —
+    the height, the capsule radius and the travel between stops fall out of
+    the width, the knob and the inset, so a new instance sets a width and is
+    done. Both hand-typed copies had eyeballed their gap and one had the
+    knob half a pixel off centre.
+  - **It had been hand-copied THREE times before this** (`.swi` in
+    chats.html, `.swtog` in promptlab.html, `.swtog` again in panels.html
+    whose own comment said "LIFTED VERBATIM"), with two attribute names and
+    two palettes, and the only thing that ever noticed a copy drifting was a
+    test comparing two files property by property.
+  - **A stub test server must serve `/tritoggle.css`** — express.static does
+    it in production, and without it the toggle renders as a 4px sliver.
+    Three existing harnesses had to learn this.
+  - Test: `node scripts/test-tritoggle.js` (nobody keeps a second copy, and
+    the geometry measured in a real browser at every stop, for every
+    instance).
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
   **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
   prefer rounded squares for buttons, or plain icons, rather than circles").**

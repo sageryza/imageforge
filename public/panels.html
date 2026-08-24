@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Panels</title>
 <link rel="stylesheet" href="/tool.css">
+<link rel="stylesheet" href="/tritoggle.css">
 <!--
   PANELS — one sheet, drawn once, cut into separate pictures.
 
@@ -44,24 +45,12 @@
   .ctrls select { height: 34px; border: 1.5px solid #2b2622; border-radius: 6px;
     background: #fdfcf9; font: 600 12px -apple-system, sans-serif; padding: 0 6px; flex: none; }
 
-  /* .swtog is LIFTED VERBATIM from promptlab.html — the three-way slider she
-     asked for there ("the exact three way toggle that the account switcher
-     uses … but black not red", then "make the 1K 2K 4K toggle the same
-     width"). The stops are NUMBERED, not named, so one rule serves both the
-     quality and the size toggle; a fourth stop is one more rule of this shape.
-     Kept identical to the Playground's on purpose — the same control in two
-     tools must not drift. A test pins the geometry against that file. */
-  .swtog { --tw: 78px; --k: 26px; --gap: 22px;
-    position: relative; box-sizing: border-box; width: var(--tw); height: 34px; border-radius: 17px;
-    border: 1.5px solid #2b2622; background: #2b2622;
-    padding: 0; margin: 0; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .swtog::after { content: attr(data-i); position: absolute; top: 2.5px; left: 2.5px;
-    width: var(--k); height: var(--k); border-radius: 50%;
-    background: #faf7f2; color: #2b2622;
-    font: 600 11px/26px -apple-system, sans-serif; text-align: center;
-    transition: transform .18s; }
-  .swtog[data-n="1"]::after { transform: translateX(var(--gap)); }
-  .swtog[data-n="2"]::after { transform: translateX(calc(var(--gap) * 2)); }
+  /* The three-way toggle is /tritoggle.css — the ONE shell (Aug 2026). This
+     block used to be "LIFTED VERBATIM from promptlab.html", which is exactly
+     the copying Sophie asked to end; the only thing this page still says
+     about it is that it wears the Playground's colour and width, because it
+     is the same control in a second tool. */
+  .tri { --tri-track: #2b2622; --tri-knob: #faf7f2; --tri-w: 78px; --tri-k: 26px; }
 
   /* Generate: the house star, a 38px square — the same box the Playground's
      is, because a button that spends a model call must read the same in every
@@ -173,9 +162,9 @@
       '<span class="seg" id="gridseg">' + gridBtns + '</span>'
       + '<span class="seg" id="shapeseg">' + shapeBtns + '</span>'
       + '<select id="stylepick" aria-label="Style">' + styleOpts + '</select>'
-      + '<button type="button" class="swtog" id="respick" aria-label="Size"'
+      + '<button type="button" class="tri" id="respick" aria-label="Size"'
       + ' data-n="' + ri + '" data-i="' + esc(cfg.tiers[ri].toUpperCase()) + '"></button>'
-      + '<button type="button" class="swtog" id="qpick" aria-label="Quality"'
+      + '<button type="button" class="tri" id="qpick" aria-label="Quality"'
       + ' data-n="' + qi + '" data-i="' + esc(pick.quality[0].toUpperCase()) + '"></button>'
       + '<button type="button" class="go" id="go" aria-label="Draw the sheet">' + STAR + '</button>';
   }
