@@ -3221,7 +3221,17 @@ router.get('/to-read', async (req, res) => {
       db().collection(MSGS).where('bmkTags', 'array-contains', 'to-read').limit(300).get(),
       db().collection(PAGES).where('bmkTags', 'array-contains', 'to-read').limit(300).get(),
     ]);
-    res.json({ ok: true, count: msgs.size + pages.size, messages: msgs.size, pages: pages.size });
+    // A THING SHE UN-KEPT MUST LEAVE THE COUNT, and the tag alone cannot say
+    // so: `bookmarked` and `bmkTags` are separate fields ON PURPOSE (a patch
+    // touches only what it names, so tagging never un-keeps and un-keeping
+    // never drops her words) — which left an un-kept page counting towards the
+    // To read door forever. Found live 2026-08-24 superseding a page: the door
+    // read 4 with 3 things in the pile. Filtered HERE rather than in the query
+    // because `array-contains` + an equality needs a composite index, and both
+    // reads are already capped at 300.
+    const kept = (snap) => snap.docs.filter((d) => d.data().bookmarked !== false).length;
+    const m = kept(msgs); const pg = kept(pages);
+    res.json({ ok: true, count: m + pg, messages: m, pages: pg });
   } catch (err) { fail(res, err); }
 });
 
