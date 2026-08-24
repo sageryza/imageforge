@@ -2270,11 +2270,19 @@ is `docs/compare-pages.md`.** The parts you must not get wrong:
   "Older" paging button in one file, later rule wins), are in
   `docs/design-rules.md`; pinned by `node scripts/test-truncation-opener.js`.
 - **No pills.** Text buttons are rounded rectangles — `border-radius: 6px`.
-  Circular icon buttons (toggles, dots) are the only exception. **Plus one
-  named exception Sophie asked for (Aug 2026): the Chats home screen's
-  REFRESH button (`.refreshbtn`) is pill-shaped.** It is the exception, not
-  a loosening of the rule — don't round anything else off, and don't "fix"
-  that one back.
+  **AND A CIRCLE IS NOT THE DEFAULT FOR AN ICON EITHER (2026-08-24, Sophie: "i
+  prefer rounded squares for buttons, or plain icons, rather than circles").**
+  An icon control is a **rounded square** at the house 6px, or the **bare
+  glyph** with no plate at all when the background behind it is calm enough to
+  read it against — a round plate is the one to stop reaching for. This
+  supersedes the line that used to sit here calling circular icon buttons "the
+  only exception", so an existing circle is history rather than a rule: don't
+  copy one into new work, and change one when you are already in that file.
+  Small round DOTS that are a mark rather than a button (a status dot, a
+  colour chip) are not this. **Plus one named exception Sophie asked for (Aug
+  2026): the Chats home screen's REFRESH button (`.refreshbtn`) is
+  pill-shaped.** It is the exception, not a loosening of the rule — don't
+  round anything else off, and don't "fix" that one back.
 - **THE PILL DEFENDS ITSELF NOW, AND READS ITS COLOURS FROM YOUR PAGE (Aug
   2026 v3, Sophie: "this is the wrong pill" → "it's still the wrong pill … it
   looks different"). Two rounds of the same bug; this is the settled
@@ -3508,7 +3516,8 @@ before working on that module. Nothing was deleted — the moved text is verbati
   stretching between two offsets, which draws a tiny picture in a big white
   box rather than a framed one. **Pinning**: the pushpin on a tile's top-left
   corner (round head, straight spike — never the Maps teardrop; top-LEFT
-  because the injected pill owns the top-right) writes `pinned` on the pad doc
+  because the injected pill owns the top-right; its plate is a rounded square
+  at the house 6px, never a circle) writes `pinned` on the pad doc
   via `POST /api/scratchpad/pads/pin`, which like `/pads/category`
   deliberately does NOT bump `updatedAt` — pinning is not an edit to the
   story. Pinned stories lead the shelf and the rest fold behind an underlined
