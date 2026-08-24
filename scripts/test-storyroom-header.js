@@ -9,12 +9,20 @@
    just like all the other pages have a header at the top. Make sure the
    pattern is consistent everywhere").
 
+   AND THE SHELF IS THE ROOM (2026-08-23, Sophie: "the story room architecture
+   is backwards. the shelf is the main room. the back button goes to the shelf.
+   story room opens on the shelf. we don't need a separate shelf button. the
+   back button IS the shelf button"). So there is no door to tap any more, the
+   page opens on the shelf, and __navBack runs the other way round: a bare
+   story steps UP to the shelf, and the shelf is where the app leaves.
+
    Three states have to hold, because the two halves ship at different times —
    the page with a deploy, the Swift half with a TestFlight build:
 
-     • WEB (no bridge, no native bar): the page's own name shows, the shelf
-       door sits at the RIGHT of the header, every sheet opens with a back
-       chevron at the left and its name centred.
+     • WEB (no bridge, no native bar): the page's own name shows, and because
+       nothing injects a chevron the page draws its own so a story is never a
+       dead end; every sheet opens with a back chevron at the left and its
+       name centred.
      • OLD BUILD (window.__nativeNavBar, no __forgeLeave): Apple's bar is
        still there and still says STORY ROOM, so the page's own name stays
        hidden — never two titles.
@@ -93,11 +101,13 @@ function serve() {
   });
 }
 
-/** Every header row this page draws: the page's own, and each sheet's. */
+/** Every header row this page draws, in the order she walks them: the shelf
+ *  she opens on, the story below it, and a sheet inside that story. `reach`
+ *  is cumulative — each step starts from where the one before it left her. */
 const HEADS = [
-  ['the page', 'header', null],
-  ['the shelf', '#stories .sheethead', '#storiesbtn'],
-  ['the inbox', '#inbox .sheethead', '#inboxbtn'],
+  ['the shelf', '#stories .sheethead', null],
+  ['the page', 'header', async (pg) => { await pg.click('.stile'); }],
+  ['the inbox', '#inbox .sheethead', async (pg) => { await pg.click('#inboxbtn'); }],
 ];
 
 (async () => {
@@ -137,15 +147,14 @@ const HEADS = [
       withChev.length === heads.length, withChev.length + ' of ' + heads.length);
   }
 
-  // ── THE SHELF SAYS WHAT IT IS ──────────────────────────────────────────
-  console.log('the shelf has a normal header');
+  // ── THE SHELF SAYS WHAT IT IS, AND IT IS WHERE THE PAGE OPENS ──────────
+  console.log('the shelf has a normal header, and the room opens on it');
   {
-    const { ctx, pg } = await open('web');
-    await pg.click('#storiesbtn');
-    await pg.waitForTimeout(400);
+    const { ctx, pg } = await open('new');
     const name = (await pg.textContent('#stories .sheethead > .no') || '').trim();
     ok('it is named "The shelf"', name === 'The shelf', JSON.stringify(name));
-    ok('the shelf is open', await pg.isVisible('#stories'));
+    ok('the page opens on it, with no door to tap', await pg.isVisible('#stories'));
+    ok('the separate shelf door is gone', !(await pg.$('#storiesbtn')));
 
     // Centred on the SCREEN, not on the leftover flex space — the reason the
     // rule is absolute rather than flex:1 (the pill owns the right 56px).
@@ -162,11 +171,13 @@ const HEADS = [
     ok('it is labelled Back',
       (await pg.getAttribute('#storiesclose', 'aria-label')) === 'Back');
 
-    // ...and it takes her back to the story she was on, which is what the ✕
-    // did. The chevron is the glyph, not a new destination.
+    // ...and because nothing is behind the shelf any more, it leaves the tool
+    // rather than dropping onto a story. That is the whole inversion: it used
+    // to close onto the pad, which is what made the pad read as the room.
     await pg.click('#storiesclose');
     await pg.waitForTimeout(300);
-    ok('back closes the shelf', !(await pg.isVisible('#stories')));
+    ok('back off the shelf leaves the tool', await pg.evaluate(() => window.__left === true));
+    ok('it does not drop onto a story', await pg.isVisible('#stories'));
     await ctx.close();
   }
 
@@ -174,8 +185,10 @@ const HEADS = [
   console.log('the pattern is the same in every row');
   {
     const { ctx, pg } = await open('new');
-    for (const [label, sel, opener] of HEADS) {
-      if (opener) { await pg.click(opener); await pg.waitForTimeout(350); }
+    await pg.waitForSelector('.stile');
+    const rows = [];
+    for (const [label, sel, reach] of HEADS) {
+      if (reach) { await reach(pg); await pg.waitForTimeout(400); }
       const shape = await pg.$eval(sel, el => {
         const cs = getComputedStyle(el);
         const name = el.querySelector(':scope > .no');
@@ -186,21 +199,35 @@ const HEADS = [
           nameAbs: name ? getComputedStyle(name).position : null,
           firstIsButton: Boolean(first && first.tagName === 'BUTTON'),
           firstLeft: first ? Math.round(first.getBoundingClientRect().left) : -1,
+          rowTop: Math.round(el.getBoundingClientRect().top),
         };
       });
+      rows.push([label, shape]);
       ok(label + ': the row is a flex row', shape.flex === 'flex', shape.flex);
       ok(label + ': it carries a name', shape.named);
       ok(label + ': the name is centred absolutely', shape.nameAbs === 'absolute');
       ok(label + ': a button leads the row', shape.firstIsButton);
       ok(label + ': that button is at the left', shape.firstLeft >= 0 && shape.firstLeft < 40,
         'left ' + shape.firstLeft);
-      if (opener) { await pg.keyboard.press('Escape'); await pg.waitForTimeout(200); }
-      // the sheets stack, so close by their own control rather than by Escape
-      const closeBtn = await pg.$(sel + ' > button');
-      if (opener && closeBtn && await closeBtn.isVisible()) {
-        await closeBtn.click(); await pg.waitForTimeout(250);
-      }
     }
+    /* THE SAME ROW, IN THE SAME PLACE, ON EVERY SURFACE (2026-08-23, Sophie's
+       two screenshots: "the header is different in both, and not at the
+       top"). Measured before the fix: the page's row started at y=8 and the
+       shelf's at y=25 (a flat `3vh` on `.sheet .wrap` that also ignored the
+       safe area), and the chevron sat at x=16 where pagehead drew it against
+       x=20 where the page drew its own. Both are MEASUREMENTS — a row that is
+       17px lower is perfectly valid markup and looks fine on its own screen;
+       it only reads as wrong beside the one it is supposed to match. */
+    const tops = rows.map(([, r]) => r.rowTop);
+    const lefts = rows.map(([, r]) => r.firstLeft);
+    ok('every row starts at the same height',
+      Math.max(...tops) - Math.min(...tops) === 0,
+      rows.map(([l, r]) => l + ' ' + r.rowTop).join(' · '));
+    ok('every leading chevron starts at the same x',
+      Math.max(...lefts) - Math.min(...lefts) === 0,
+      rows.map(([l, r]) => l + ' ' + r.firstLeft).join(' · '));
+    ok('and the row is at the TOP of the screen', Math.max(...tops) <= 8,
+      'top ' + Math.max(...tops));
     await ctx.close();
   }
 
@@ -220,35 +247,57 @@ const HEADS = [
       // it must sit BEFORE the name, at the left — the house position
       const l = await pg.$eval('#forgeback', el => el.getBoundingClientRect().left);
       ok(state + ': the chevron is at the left', l < 40, 'left ' + Math.round(l));
-      // and it must be the only chevron on screen: the page's own back
-      // control is the shelf door, which lives at the far right of the row as
-      // an ACTION. "The right" is the row's own content edge, NOT the screen's
-      // — the row reserves 56px for the injected pill's corner, so the door
-      // stops short of the glass by design.
-      const gap = await pg.$eval('#storiesbtn', el => {
-        const row = el.parentElement.getBoundingClientRect();
-        const cs = getComputedStyle(el.parentElement);
-        return row.right - parseFloat(cs.paddingRight) - el.getBoundingClientRect().right;
-      });
-      ok(state + ': the shelf door hugs the right of the row', Math.abs(gap) < 2,
-        'gap ' + Math.round(gap));
     }
+    // ...and on a STORY there must be exactly ONE chevron. The page draws its
+    // own (#shelfback, the way back up to the shelf) for a plain browser,
+    // where nothing is injected — so under either app build it stands down,
+    // or a story wears two identical chevrons side by side.
+    await pg.waitForSelector('.stile');
+    await pg.click('.stile');
+    await pg.waitForTimeout(400);
+    const mine = await pg.$eval('#shelfback',
+      el => getComputedStyle(el).display !== 'none');
+    ok(state + ": on a story the page's own chevron is "
+       + (state === 'web' ? 'the one there is' : 'stood down'),
+      mine === (state === 'web'), 'drawn: ' + mine);
+    ok(state + ': exactly one chevron on the row',
+      (mine ? 1 : 0) + (drawn ? 1 : 0) === (state === 'old' ? 0 : 1));
     await ctx.close();
   }
 
-  // ── THE CHEVRON WALKS THE PAGE'S OWN LEVELS FIRST ──────────────────────
-  // The whole reason the header moved off Apple's bar: __navBack steps the
-  // shelf shut before anything leaves the tool.
-  console.log('the chevron asks the page first');
+  // ── THE BACK BUTTON IS THE SHELF BUTTON ────────────────────────────────
+  // The inversion, asserted as the walk itself: a story steps UP to the shelf
+  // and the shelf is the floor. Before this it ran the other way — the shelf
+  // closed onto a story, and the story was what handed back to the app, which
+  // is what made the pad read as the room.
+  console.log('the back button is the shelf button');
   {
     const { ctx, pg } = await open('new');
-    await pg.click('#storiesbtn');
+    await pg.waitForSelector('.stile');
+    await pg.click('.stile');
     await pg.waitForTimeout(400);
+    ok('a tile opens that story', !(await pg.isVisible('#stories')));
     const stepped = await pg.evaluate(() => window.__navBack());
-    ok('__navBack closes the shelf rather than leaving', stepped === true);
-    ok('the shelf really shut', !(await pg.isVisible('#stories')));
+    ok('__navBack on a story opens the shelf rather than leaving', stepped === true);
+    ok('the shelf really came back', await pg.isVisible('#stories'));
     const outOf = await pg.evaluate(() => window.__navBack());
-    ok('a bare pad hands back to the app', outOf === false);
+    ok('the shelf hands back to the app', outOf === false);
+    ok('and it stays on screen while the app leaves', await pg.isVisible('#stories'));
+    await ctx.close();
+  }
+  {
+    // ...and the same walk by TAP in a plain browser, where the only chevron
+    // is the one the page drew for itself.
+    const { ctx, pg } = await open('web');
+    await pg.waitForSelector('.stile');
+    await pg.click('.stile');
+    await pg.waitForTimeout(400);
+    ok('web: the page draws its own way back', await pg.isVisible('#shelfback'));
+    await pg.click('#shelfback');
+    await pg.waitForTimeout(400);
+    ok('web: tapping it returns to the shelf', await pg.isVisible('#stories'));
+    ok('web: and it stands down once she is there',
+      !(await pg.isVisible('#shelfback')));
     await ctx.close();
   }
 

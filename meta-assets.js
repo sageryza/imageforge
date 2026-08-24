@@ -23,6 +23,7 @@
  */
 
 const assetUnion = require('./asset-union');
+const sizeTier = require('./size-tier');
 const grammar = require('./search-grammar');
 
 // The pseudo-chat that holds app-made creations (below). A real chat slug is
@@ -80,8 +81,31 @@ function buildMetaAssets(docs, creations) {
     // differ 5x in pixels and 3x in price. Absent on everything filed before
     // the field existed, and an absent slot is simply left out rather than
     // guessed — there is nothing on those records that says how big they are.
-    const made = [c.model, c.quality, c.size].map((v) => String(v || '').trim())
-      .filter(Boolean).join(' · ') || String(c.style || '').trim();
+    // The third slot is the TIER — "2K", not "1568x2352" (Sophie: "i asked for
+    // it to say 1k 2k or 4k"). Normalised on READ as well as on write, so the
+    // records filed with raw pixels before her correction show the tier too
+    // and nothing needs backfilling.
+    // THE STYLE LEADS THE CAPTION (2026-08-24, Sophie: "there's no style
+    // clause in Meta assets"). It was on the record the whole time — every
+    // Playground run files `style` (the tile's label: Dreamy, Pastel, WTR) —
+    // and this line only ever read it as a FALLBACK for a record carrying no
+    // model/quality/size, so on everything filed since those fields existed
+    // the style was fetched, ignored and dropped. It goes FIRST because it is
+    // the coarsest fact about a picture: which recipe drew it, before how
+    // well and how big.
+    //
+    // It is a LABEL, and a label belongs in the caption — not in the PROMPT
+    // overlay's style half, which the house rule says must be the exact text
+    // sent to the model. A creation doc stores her typed words and the style's
+    // NAME, never the prefix/suffix wrapped around them, so filing "Dreamy"
+    // as the style prompt would be a reconstruction. That half stays empty.
+    const made = [c.style, c.model, c.quality, sizeTier.captionSize(c.size)]
+      .map((v) => String(v || '').trim())
+      .filter(Boolean)
+      // A Replicate run files model === styleLabel (fileRunToCreations), so
+      // without this a LoRA picture reads "WTR · WTR · medium · 1K".
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join(' · ');
     appRecs.push({
       url: c.url, ms: c.ms || 0,
       prompt: made,                          // the MODEL · QUALITY · SIZE caption slot

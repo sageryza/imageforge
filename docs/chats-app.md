@@ -2530,6 +2530,43 @@
     - Tests: `node scripts/test-chats-search-persist.js` (verified failing
       against the old page — it named all five symptoms).
 
+- **WHO SAID IT — the first search FILTER, and the row the next ones join
+  (Aug 2026, Sophie: "I'd like to add some filters to the search in the chats
+  thing that are optional. one would be a filter allowing me to search through
+  my messages versus Claude's messages. start with that and then we can think
+  of other filters").** Three chips under the box — **All · Mine · Claude** —
+  on the home bar and inside a thread. The headline rules live in CLAUDE.md
+  (*WHO SAID IT*); what belongs here is the wiring and the two mistakes it is
+  shaped around.
+  - **`.searchfilters` is shown by its SIBLING'S state, never its own** —
+    `.searchrow.on ~ .searchfilters` on the home screen, `.msgsearch.open ~
+    .msgfilters` in a thread. So it inherits `paintSearch` for free, including
+    the to-do view, where the whole bar hides because that list is not chats,
+    and no second predicate can ever disagree with the first about whether a
+    search is open. A general sibling (`~`, not `+`) so a row landing between
+    the two later cannot silently take the filters off screen.
+  - **It keeps the search row's 56px pill reserve.** The injected autoscroll
+    pill is fixed over x 326-374 / y 14-192 at 390pt and this row sits inside
+    that band. Three chips measure ~170px from the left, so they clear it
+    today — the reserve is what stops a FOURTH filter sliding under the pill
+    when she asks for one, and the test measures the chips' real right edge
+    rather than asking `isVisible()`, which is true either way.
+  - **The home request is captured WITH its filter and checked again on the
+    way back** (`whoFilter !== who` beside the existing `qi.value !== q`
+    guard): tapping Mine while an All request is still in the air would
+    otherwise let the older, wider answer land on top of the narrow one. The
+    two guards are the same bug at two speeds.
+  - **The thread's `mrows` carry `who` as their own field**, derived once at
+    render (`m.from === 'sophie' ? 'me' : 'claude'`), not re-read off the
+    haystack — the haystack already ENDS with those words for the typed
+    search's sake, so matching on it would make searching for the literal word
+    "claude" behave like the filter.
+  - **`applyMsgFilter` narrows on `narrowing = q || mwho !== 'all'`**, which is
+    what lets the chips answer with an empty box — and it is also what keeps
+    the chapter headings hidden in that case, since a heading labels a block
+    that is mostly gone either way.
+  - The tests' way in: `window.__setSearchWho(w)` on the home bar.
+
 - **TWO WORDS MEAN THE SAME MESSAGE — the boxes speak a small boolean grammar
   (Aug 2026, Sophie: "sometimes I want to narrow it down by finding two words
   I know were in the same message but aren't in any other message but one of

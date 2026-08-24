@@ -350,6 +350,31 @@ function guardFiling(input) {
   return { block: false, reason: 'new' };
 }
 
+// WHAT A LATER FILING MAY DO TO A CAPTION ALREADY ON THE RECORD.
+// The `prompt` field on an asset doc is the MODEL · QUALITY · SIZE caption,
+// and two very different POSTs land here: a deliberate chat filing carrying a
+// real caption, and the hook's background catch carrying a generic
+// "from <chat>" line (or nothing at all).
+//
+// Found live 2026-08-23: the rule used to be "only write onto a BLANK or a
+// `from` record", which meant a caption could be SET but never CORRECTED —
+// re-POSTing a fix answered ok:true and changed nothing, silently, while
+// CLAUDE.md promised it upgraded the tile in place. That is why every image
+// filed before the third slot became the TIER was stuck showing a raw canvas.
+//
+// So: a curated caption always wins, including over another curated one
+// (nothing but a deliberate filing ever sends one, so curated → curated is
+// someone fixing something). A `from` line never overwrites anything — it is
+// the generic catch, and it is the case the old rule existed to stop.
+function captionUpgrade(oldCaption, newCaption) {
+  const next = String(newCaption == null ? '' : newCaption).trim();
+  const prev = String(oldCaption == null ? '' : oldCaption).trim();
+  if (!next) return null;                    // nothing offered
+  if (/^from /.test(next)) return null;       // the hook's generic catch
+  if (next === prev) return null;             // already says this
+  return next;
+}
+
 module.exports = {
   unresolvedUrl,
   DERIVED_PREFIXES,
@@ -365,4 +390,5 @@ module.exports = {
   needsDumpRecord,
   needsElsewhereQuery,
   guardFiling,
+  captionUpgrade,
 };

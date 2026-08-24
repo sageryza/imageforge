@@ -84,6 +84,32 @@ const shown = (page) => page.evaluate(() => ({
   if (s.up) fail('the up arrow shows at the top of the page');
   if (!s.down) fail('the down arrow is missing on a long list');
 
+  // 1b. STACKED, up ABOVE down (Aug 2026, Sophie: "the up shud be above").
+  //     Measured, not read off the CSS: a wrong flex-direction is perfectly
+  //     valid markup and both buttons stay "visible" either way — the only
+  //     honest question is where the two boxes actually land. Measured from
+  //     the MIDDLE of the list, the one place both arrows are on screen at
+  //     once — at the top there is no up arrow to be above anything.
+  await page.evaluate(() => window.scrollTo(0, Math.round(
+    (document.documentElement.scrollHeight - window.innerHeight) / 2)));
+  await page.waitForFunction(() => document.getElementById('totop').classList.contains('show')
+    && document.getElementById('tobot').classList.contains('show'),
+    null, { timeout: 4000 }).catch(() => fail('both arrows never showed mid-list'));
+  const box = await page.evaluate(() => {
+    const r = (id) => { const b = document.getElementById(id).getBoundingClientRect();
+      return { top: b.top, bottom: b.bottom, mid: b.left + b.width / 2 }; };
+    return { up: r('totop'), down: r('tobot') };
+  });
+  if (box.up.bottom > box.down.top + 1) {
+    fail('the up arrow is not above the down arrow: ' + JSON.stringify(box));
+  }
+  if (Math.abs(box.up.mid - box.down.mid) > 1) {
+    fail('the two arrows are not in one column: ' + JSON.stringify(box));
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForFunction(() => !document.getElementById('totop').classList.contains('show'),
+    null, { timeout: 4000 }).catch(() => {});
+
   // 5a. tapping stops the autoscroll — start it for real, and prove it really
   //     started, or 5b below would pass on a page that was never moving
   await page.evaluate(() => window.__scrollStart(1));   // 1 = downward

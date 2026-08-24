@@ -49,21 +49,66 @@ ok('a bulleted shape', !Q.isQuestion('- Beat shape: {id, url|null, color, src, t
 ok('real prose with punctuation in it survives',
    Q.isQuestion('So, like, what did I think of as the first time he said it?'));
 
-console.log('\npulling questions out of a real message');
+console.log('\nSHE FLAGS IT WITH THE WORD "QUESTION" — nothing else reaches the tab');
+// 2026-08-23: "it ONLY applies if i use the word question in my text". The
+// three shapes she named, plus the plural and the bare word.
+ok('"I have a question"', Q.flagsQuestion('I have a question about the tabs'));
+ok('"my question is:"', Q.flagsQuestion('my question is: should the tabs be pink'));
+ok('"quick question"', Q.flagsQuestion('quick question — is it merged'));
+ok('the plural counts', Q.flagsQuestion('two questions for you'));
+ok('a plain ask does NOT', !Q.flagsQuestion('Should the button go underneath?'));
+ok('an unmarked wondering does NOT', !Q.flagsQuestion("I'm wondering if that would work"));
+ok('"questionable" is not the word', !Q.flagsQuestion('that colour is questionable'));
+
+// The whole point of the gate: these all pass `isQuestion`, and none of them
+// reaches the list any more, because she did not mark the message.
+eq('an unflagged question mark yields nothing',
+  Q.findQuestions('Does the button go under the header?').length, 0);
+eq('an unflagged auxiliary lead yields nothing',
+  Q.findQuestions('Can you make the dashes at the top pink').length, 0);
+eq('an unflagged wondering yields nothing',
+  Q.findQuestions("I'm wondering if this should be part of the message").length, 0);
+
+console.log('\npicking the ask out of a flagged message');
+// The ask rides the framing sentence.
+const inline = Q.findQuestions('my question is whether the tabs should be pink or tan');
+eq('one question found', inline.length, 1);
+eq('and it is her sentence, verbatim', inline[0],
+  'my question is whether the tabs should be pink or tan');
+
+// Bare framing hands the row to the sentence after it — "I have a question." is
+// a heading, not a question, and filing it would put a heading in her list.
+const framed = Q.findQuestions('I have a question. Should the button go underneath?');
+eq('the framing sentence is not the row', framed.length, 1);
+eq('the sentence after it is', framed[0], 'Should the button go underneath?');
+
+// Her commonest dictated shape: no mark, opens on a noun, so every heuristic in
+// this file misses it and only her own word finds it.
+const quick = Q.findQuestions('quick question, can you make the dashes at the top pink');
+eq('a "quick question" with no mark is found', quick.length, 1);
+
+// The sentence after bare framing is taken WHATEVER it looks like — she has just
+// said in her own words that a question follows.
+const plain = Q.findQuestions('Quick question. The dashes at the top, pink or tan.');
+eq('an unmarked ask after framing is still the row', plain.length, 1);
+eq('and it reads as she said it', plain[0], 'The dashes at the top, pink or tan.');
+
+console.log('\nmultiple questions in one flagged message');
+const two = Q.findQuestions('Two questions. Does the button go under the header? And what colour should it be?');
+eq('both found', two.length, 2);
+ok('the framing sentence is not one of them', two.indexOf('Two questions.') < 0, two.join(' | '));
+
+console.log('\ninside a flagged message the old heuristics still pick the sentence');
 // Her actual message, 2026-08-14 — voice-to-text, and the question in it has NO
-// question mark anywhere. That is the case the whole detector exists for.
+// question mark anywhere. It carries the word, so it is still read; the
+// wondering is still the sentence that gets the row.
 const real = "so basically, I have this idea that sometimes like I ask questions to chat and "
-  + "then it's hard to find the answer cause it's buried under other stuff so I'm thinking I "
-  + "want something where my question is repeated verbatim and bold and then the answer is "
-  + "right underneath it not bold. I'm wondering if this should be part of the message or "
+  + "then it's hard to find the answer cause it's buried under other stuff. "
+  + "I'm wondering if this should be part of the message or "
   + "should be filed separately into a little hidden away tab called questions within each chat area.";
 const found = Q.findQuestions(real);
 eq('one question found', found.length, 1);
 ok('it is her sentence, verbatim', found[0].indexOf("I'm wondering if this should be part of the message") === 0, found[0]);
-
-console.log('\nmultiple questions in one message');
-const two = Q.findQuestions('Does the button go under the header? And what colour should it be?');
-eq('both found', two.length, 2);
 
 console.log('\nanswer comes from the bold block that matches');
 const reply = [
@@ -87,6 +132,82 @@ eq('no tldr and no block falls back to the first paragraph',
   Q.answerFor('It cost about four cents.\n\nMore detail after.', '', 'How much did it cost'),
   'It cost about four cents.');
 
+console.log('\nTHE ANSWER CAN LIVE ANYWHERE IN THE REPLY — bestParagraph digs it out');
+// A condensed version of the real reply that earned this (2026-08-23, Sophie:
+// "did u check the answer? it didn't actually answer the question. ull have to
+// be smarter about this whole thing"): the answer to each question is a
+// MIDDLE paragraph, the opening is progress lines, and there is no TLDR.
+const sizesReply = [
+  'Now the size tiers on the server:',
+  '',
+  '**Spent $2.35 this turn** — measuring the real price of every new size at every quality.',
+  '',
+  "**2K and 4K are not the only sizes — it's continuous.** Any canvas up to 3840px on the",
+  'long edge, with both edges a multiple of 16. Nothing between them is special.',
+  '',
+  "**Legal paper at 1024x1536: soft, and you'd see it.** Legal is 8.5x14 and your image is",
+  "2:3 — printed inside margins you're at roughly 137 dpi. At reading distance it reads mushy.",
+].join('\n');
+ok('a short question finds its middle paragraph',
+   /not the only sizes/.test(Q.answerFor(sizesReply, '', "are 2k and 4k the only sizes or are there in between sizes?")),
+   Q.answerFor(sizesReply, '', 'x'));
+// Her dictated questions run LONG — the denominator cap is what lets a real
+// 4-word match survive 13 words of framing.
+ok('a long dictated question still finds its paragraph',
+   /Legal paper/.test(Q.answerFor(sizesReply, '',
+     "Last question: if I were to print one of the normal images at the original size 1500 or whatever, let's say I printed it on legalize paper, how soft would it be")),
+   Q.answerFor(sizesReply, '', 'long'));
+// The stem must land singular and plural on the same root — her "images"
+// against the reply's "image" is exactly the hit the old stem lost.
+ok('singular and plural stem to the same root',
+   Q.matchBlock([{ q: 'the image sizes', body: 'yes' }], 'are the sizes of the images right') !== null);
+// Two shared words is a coincidence, not an answer — the floor is 3 distinct
+// hits, so "answer" + "question" appearing together cannot hijack a row.
+ok('two shared words do not pick a paragraph',
+   Q.bestParagraph('Here is context.\n\nI will answer your question soon.\n\nDone.', '',
+     "u didn't answer my question") === null);
+// The TLDR competes as a candidate — a summary that really is the answer wins.
+eq('a tldr that scores wins as the answer',
+  Q.bestParagraph('Unrelated opening.\n\nMore prose.', 'The witch lesson cards render at medium quality now.',
+    'what quality do the witch lesson cards render at'),
+  'The witch lesson cards render at medium quality now.');
+// Below the bar it stays out of the way entirely.
+ok('nothing scoring → null, the old chain runs',
+   Q.bestParagraph(sizesReply, '', 'how do I repoint the DNS at Hover') === null);
+
+console.log('\na paragraph ending in a colon is an introduction, not an answer');
+// Both of these were live rows in her Questions tab, 2026-08-23, on
+// playground-image-resolution — a fragment that answered nothing, because the
+// answer was in the paragraph the colon was introducing.
+const leadIn = "Sorry — here's the straight answer. Yes, there are more differences we never "
+  + 'considered. The bigger one I skipped is the difference between **ChatGPT the app** and what we call:'
+  + '\n\n**The app thinks before it draws.** ChatGPT runs a reasoning pass first.';
+ok('it reads on past the colon',
+   /reasoning pass/.test(Q.answerFor(leadIn, '', "u didn't answer my question")),
+   Q.answerFor(leadIn, '', 'x'));
+
+// Two colon-ended progress lines, then the real reply.
+const narrated = 'Now the size tiers on the server:\n\nNow the docs, then commit and merge:'
+  + '\n\n**Spent $2.35 this turn** — measuring the real price of every size.';
+ok('and past two of them', /Spent \$2\.35/.test(Q.answerFor(narrated, '', 'how soft would it be')),
+   Q.answerFor(narrated, '', 'x'));
+
+// It only ever reads FURTHER — a real lead-in keeps its own words.
+ok('the lead-in itself is kept, never dropped',
+   Q.answerFor('Two things:\n\nThe first one. The second one.', '', 'what changed')
+     .indexOf('Two things:') === 0);
+
+// THREE is the stop, so a reply that is nothing but headings cannot swallow
+// itself whole.
+eq('it stops after three paragraphs',
+  Q.answerFor('One:\n\nTwo:\n\nThree:\n\nFour:\n\nFive:', '', 'what changed'),
+  'One:\n\nTwo:\n\nThree:');
+
+// A paragraph that ends normally still stops at one, exactly as before.
+eq('a normal opening is still one paragraph',
+  Q.answerFor('It cost four cents.\n\nAnd here is why.', '', 'how much'),
+  'It cost four cents.');
+
 // Straight off her real threads, 2026-08-14: the stored TLDR had lost the words
 // its opening ** belonged to, so five answers in one chat began with literal
 // asterisks.
@@ -98,15 +219,15 @@ eq('real bold inside an answer is left alone',
 
 console.log('\nthe whole list');
 const msgs = [
-  { id: 'a', from: 'sophie', text: 'Should the button go underneath?', created: '2026-08-14T10:00:00Z' },
+  { id: 'a', from: 'sophie', text: 'Quick question. Should the button go underneath?', created: '2026-08-14T10:00:00Z' },
   { id: 'b', from: 'claude', text: '**Should the button go underneath?**\n\nYes, under the header.', tldr: 'Under the header.', created: '2026-08-14T10:01:00Z' },
   { id: 'c', from: 'sophie', text: 'Merge it when CI is green.', created: '2026-08-14T10:05:00Z' },
   { id: 'd', from: 'claude', text: 'Merged.', tldr: 'Merged.', created: '2026-08-14T10:06:00Z' },
-  { id: 'e', from: 'sophie', text: 'What did that cost?', created: '2026-08-14T10:10:00Z' },
+  { id: 'e', from: 'sophie', text: 'One more question — what did that cost?', created: '2026-08-14T10:10:00Z' },
 ];
 const built = Q.buildQuestions(msgs);
 eq('two questions, the instruction ignored', built.length, 2);
-eq('newest first', built[0].question, 'What did that cost?');
+eq('newest first', built[0].question, 'One more question — what did that cost?');
 eq('an unanswered question is still listed', built[0].answer, '');
 eq('the answered one carries its block', built[1].answer, 'Yes, under the header.');
 eq('it points at her message', built[1].id, 'a');
@@ -128,21 +249,28 @@ console.log('\none answer, one row');
 const runReply = 'You’re right, and it’s worse than intermittent — no turn from this repo has '
   + 'ever posted. The hook is installed and healthy; it just never loaded.';
 const run = [
-  { id: 's1', from: 'sophie', text: 'oh yeah also, can you make sure you’re posting the chats up?', created: '2026-08-14T10:00:00Z' },
-  { id: 's2', from: 'sophie', text: 'Who would do, like, just the vertical and horizontal?', created: '2026-08-14T10:01:00Z' },
-  { id: 's3', from: 'sophie', text: 'And then the other one I was thinking, was there another one?', created: '2026-08-14T10:02:00Z' },
+  { id: 's1', from: 'sophie', text: 'Quick question. oh yeah also, can you make sure you’re posting the chats up?', created: '2026-08-14T10:00:00Z' },
+  { id: 's2', from: 'sophie', text: 'Another question. Who would do the vertical and horizontal ones?', created: '2026-08-14T10:01:00Z' },
+  { id: 's3', from: 'sophie', text: 'One more question — was there another one I was thinking of?', created: '2026-08-14T10:02:00Z' },
   { id: 'r1', from: 'claude', text: runReply, tldr: runReply, created: '2026-08-14T10:03:00Z' },
 ];
 const collapsed = Q.buildQuestions(run);
 eq('three questions become one row', collapsed.length, 1);
-ok(/posting the chats up/.test(collapsed[0].question),
-   'and it keeps the one the answer is actually about: ' + collapsed[0].question);
+// THIS ASSERTION USED TO PASS ITS CONDITION AS THE NAME — `ok(name, cond)` — so
+// it printed "ok false" and tested nothing, and the fixture under it did not
+// actually hold: s2 read "Who would do, like, just the vertical and horizontal?"
+// and the word `just` also appears in the answer ("it just never loaded"), so a
+// filler word beat the real ask 0.167 to 0.143. The filler is gone from s2, so
+// the group now turns on the words that mean something.
+ok('and it keeps the one the answer is actually about',
+   /posting the chats up/.test(collapsed[0].question), collapsed[0].question);
 
-// A reply written to the house rule gives each question its OWN answer, so
-// nothing collapses.
+// A reply written to the house rule — each FLAGGED question repeated in bold
+// with its answer under it — gives every question its OWN answer, so nothing
+// collapses. That is the shape the bold echo exists for.
 const perQuestion = [
-  { id: 's1', from: 'sophie', text: 'Should the button go underneath?', created: '2026-08-14T11:00:00Z' },
-  { id: 's2', from: 'sophie', text: 'What colour should it be?', created: '2026-08-14T11:01:00Z' },
+  { id: 's1', from: 'sophie', text: 'A question: should the button go underneath?', created: '2026-08-14T11:00:00Z' },
+  { id: 's2', from: 'sophie', text: 'Second question. What colour should it be?', created: '2026-08-14T11:01:00Z' },
   { id: 'r1', from: 'claude', created: '2026-08-14T11:02:00Z', tldr: 'both',
     text: '**Should the button go underneath?**\n\nYes, under the header.\n\n'
         + '**What colour should it be?**\n\nThe same tan as the row.' },

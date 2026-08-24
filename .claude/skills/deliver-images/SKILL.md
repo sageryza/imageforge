@@ -19,17 +19,42 @@ gallery" + the Design rules on labels/prompts/captions); this is the working
 checklist. Do these AT GENERATION TIME — several of them are unrecoverable
 later.
 
+## Before you generate — the prompt itself
+
+- **Short, and action-only.** The content half says what HAPPENS; every
+  adjective about how a thing looks is a decision taken away from the model
+  and taken worse. ~300 characters of one situation is the target; past
+  ~1,000 the model stops drawing one picture at all (measured).
+- **Name the phenomenon, don't itemize it** (Sophie, Aug 2026): "meat raining
+  from the ceiling", never "ribs, drumsticks, etc." A list is a checklist the
+  model satisfies literally — each named object drawn separately and arranged
+  so it can be seen — so an inventory comes back instead of the event. Test a
+  word by swapping it for another of its kind: if "ribs" could be
+  "drumsticks", ribs was never the idea.
+- **A prompt SHE dictated goes verbatim.** This is how to write one when the
+  writing is yours, and what to encourage when she asks for one — never a
+  reason to trim her words. Anything you add is named word for word in the
+  reply.
+- Full rules: `docs/image-pipeline.md` (*DESCRIBE THE ACTION* · *WRITE IT
+  SHORT* · *NAME THE PHENOMENON*).
+
 ## At generation time (the unrecoverable steps)
 
 1. **Permanent URL first.** Replicate/OpenAI URLs expire in ~1hr — upload to
    Firebase Storage (`saveToFirebase()` in server.js, or `bucket.upload()`)
    before filing anything.
 2. **File the MODEL · QUALITY · SIZE caption — this is the step chats forget.**
-   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 1568x2352", description }`
+   `POST /api/gallery { assetsOnly:true, chat, url, prompt:"gpt-image-2 · medium · 2K", description }`
    The SIZE is a required third slot since Aug 2026 — gpt-image-2 draws any
    canvas, so model and quality alone no longer say what a picture is (one
-   prompt at one quality spans 5x in pixels and 3x in price). Filing a creation
-   as well? `post-to-gallery.js --size 1568x2352` writes the matching field.
+   prompt at one quality spans 5x in pixels and 3x in price). **It is the TIER
+   — 1K / 2K / 4K, not the pixels** ("i asked for it to say 1k 2k or 4k").
+   Filing a creation as well? `post-to-gallery.js --size 1568x2352` takes the
+   real canvas and writes the tier for the caption plus `canvas` beside it.
+   **A panel CUT out of a sheet says `1/4 (4K)`, not its own tier** — a quarter
+   of a 4K sheet is 1168x1752 and would otherwise read as an ordinary 1K
+   picture. `size-tier.js`'s `cutSize(sheetCanvas, parts)` builds the slot, and
+   `scripts/panel-sheet.js` prints the ready caption for every piece.
    — the asset doc's `prompt` field is the tile caption. Only the chat that
    generated an image ever knows its quality; a sweep of 171 chats found 1,938
    images with no caption and almost none recoverable. Never invent one for an

@@ -106,24 +106,88 @@ All 12 NDE-category stories were linked to their montage episodes on
   member's first line; tapping a slice opens that member's popup). Slots
   never appear inside a chunk. The lit chain icon dissolves the WHOLE
   chunk (`POST /chunk {id}` / `POST /unchunk {id}`). A beat's art is
-  made or swapped from the SAME two-or-three icons — centered in the blank
-  tile when empty, in a row ABOVE the picture when it already has one:
+  made or swapped from ONE row of icons UNDER the picture, there whether or
+  not there is a picture yet:
+  **THE POPUP WAS REMODELLED 2026-08-24 (Sophie, one message: "the whole
+  popup gets bigger, so there's only room enough to comfortably see behind
+  it. similar aspect ratio as total screen (not square)" · "that image is
+  bigger by default" · "stars, playground and inbox buttons get put into
+  rounded squares and go under the main (currently chosen) image" · "colors
+  become one multicolored rounded square in the corner, drop down" ·
+  "drawing a new picture replaces the old, but keeps it in the stacked
+  squares icon" · "two text boxes: caption, and drawing prompt. drawing
+  prompt is collapsed by default, and uncollapsing draw prompt automatically
+  collapses the caption but can be manually expanded again").** Every one of
+  those is a MEASUREMENT, which is why `node scripts/test-scratchpad-popup.js`
+  drives the real page in headless Chromium rather than grepping markup —
+  "square" is two numbers that must match, "under the image" is a y
+  coordinate, "multicoloured" is counting distinct fills, and "screen-shaped"
+  is the card's own ratio against the viewport's.
+  - **The card is `height:100%` of a padded fixed inset**, which IS the
+    screen's shape minus the strip of pad left showing all round it — and
+    that strip is still the tap-out target. It used to be only as tall as its
+    contents, so a beat with a small picture left a squat card mid-screen.
+  - **The picture is sized by CSS inside `#artwrap` (flex:1, min-height:0),
+    never by a pixel width in JS.** It was pinned to the pad tile's ~90px — a
+    thumbnail of a thumbnail — and max-height/max-width keep a 2:3 drawing its
+    own shape at any screen size. Measured on a 390pt phone: 79px → 273.
+  - **`#popblank` no longer carries its own two icons.** The star, the
+    Playground and the inbox live in ONE row of 38px squares under the
+    picture whether or not there IS one, so there is a single place to make
+    art rather than two that drift apart. The stacked-squares button joins
+    that row and appears only once a draw has actually replaced something.
+  - **The colour button stays multicoloured even when a colour is picked** —
+    the pick is already legible on the picture's own frame, and a single
+    filled square stops reading as "colour" at a glance.
+  - **`setBoxes(capOpen, promOpen)` is the one switch** behind both text
+    boxes. Opening the prompt folds the caption away; CLOSING it leaves the
+    caption as she left it rather than forcing it back open.
+  - **THE PROMPT BOX IS NOT THE CAPTION, AND AN EMPTY BOX SAYS WHAT IT WILL
+    DRAW (2026-08-24, Sophie: "I just made an image and it sent the wrong
+    prompt. I think it sent it from the caption part not the drawing
+    part").** It shipped seeding `#dprompt` with the caption's words whenever
+    the beat had no prompt of its own — so the two labelled boxes showed the
+    SAME text, nothing on screen distinguished "this beat has its own prompt"
+    from "you are about to draw the caption", and typing into the only box
+    that was open (the caption) then tapping Draw sent the caption. Measured
+    on the real page before the fix: caption "A RED DOOR IN THE SNOW" → the
+    prompt box seeded with it → `/generate` sent it.
+    - **The box now holds ONLY her stored `beat.prompt`** — that is her own
+      text, which is the one thing the never-pre-written-text rule allows a
+      box to open with. Empty is the honest default.
+    - **Empty still draws, from the CAPTION, live.** `drawPrompt()` is the
+      single place that decides — typed prompt, else the caption box's
+      current value with speech markup stripped — so the hint line and the
+      Draw button can never disagree. Reading the caption box rather than the
+      last SAVED text is what keeps the older "it doesn't take the words I
+      put in" fix working.
+    - **`#promhint` under the box says `empty — this beat draws from its
+      caption`** and clears the moment she types. It is CHROME under the
+      field, never text inside it.
   **sparkles = draw it here** (`POST /generate {id, prompt, quality,
   character}` — background job on `beat.gen`, gpt-image-2 edits at 1024x1536
   with `refs/sage-sandy-mirror.png` as the style ref and, by default,
-  `refs/sophie-book.png` as the character card; the prompt defaults to
-  the beat's own words, quality low/medium/high default medium, NO style
-  picker — one style per story; superseded art goes to `beat.imageHistory`,
-  never deleted), palette → `/playground?from=scratchpad`, inbox → pick a
+  `refs/sophie-book.png` as the character card; quality low/medium/high
+  default medium, NO style picker — one style per story; superseded art
+  goes to `beat.imageHistory`, never deleted. **The draw box holds the
+  beat's OWN PROMPT since Aug 2026** — `beat.prompt`, its own field, so
+  tuning what a picture shows never rewrites what the film says. It saves
+  ITSELF (`POST /prompt {id, prompt}` on blur / closing the popup / Draw —
+  no save button, her rule), seeds from the words with speech markup
+  stripped when empty, and a prompt edited back to just-the-words is
+  CLEARED server-side so the beat keeps following its note; `promptFor` in
+  scratchpad.js / `promptOf` on the page are the one fallback rule, pinned
+  equal by `node scripts/test-scratchpad-prompt.js`), palette → `/playground?from=scratchpad`, inbox → pick a
   hearted image straight INTO that beat (`POST /image {id, url, src?}`).
   **Draw-the-missing (Aug 2026):** a wand icon on the title row (visible
   only when some beat has words but no art) → a confirm box stating count
   and cost (`POST /drawall {quality}`, default LOW) → every such beat draws,
   two at a time. Chunk siblings without their own text are deliberately
   skipped (their art is the hand-made literal→metaphorical pair), and
-  speech-only markup ([pause], <break/>) is STRIPPED from bulk prompts —
-  the single-beat draw box still sends her words untouched. Safe to re-tap:
-  it only ever draws what is still missing.
+  the wand draws each beat's `promptFor` — a stored prompt stays tuned in
+  the bulk pass, and speech-only markup ([pause], <break/>) is stripped
+  wherever words become a prompt, the single-beat seed included. Safe to
+  re-tap: it only ever draws what is still missing.
   ART.prefix / ART.characterLine in scratchpad.js are COPIES of
   PL_GPT.prefix / PL_GPT.characterLine in server.js — keep all three
   identical. `/scratchpad-sophie.png` serves the character card to the
@@ -237,11 +301,37 @@ All 12 NDE-category stories were linked to their montage episodes on
   the current shape is settled.
 - **More than one story (Aug 2026):** every story is its own doc in
   `forge-scratchpad`; the original keeps doc id `pad` and is just one of the
-  list. The book icon in the title row opens the shelf (cover = first art,
-  name, beat count, newest-touched first); + there starts a new one. The
-  open story is remembered per device (`scratchpad_pad` in localStorage) and
-  rides on EVERY request — `?pad=` on GETs, `pad` in the body on POSTs
-  (`GET /pads`, `POST /pads {title}`).
+  list. The shelf lists them (cover = first art, name, newest-touched first);
+  the + on its header starts a new one. The open story is remembered per
+  device (`scratchpad_pad` in localStorage) and rides on EVERY request —
+  `?pad=` on GETs, `pad` in the body on POSTs (`GET /pads`, `POST /pads
+  {title}`).
+- **THE SHELF IS THE ROOM, AND THE BACK BUTTON IS THE SHELF BUTTON
+  (2026-08-23, Sophie: "i think the story room architecture is backwards. the
+  shelf is the main room. the back button goes to the shelf. story room opens
+  on the shelf. we don't need a separate shelf button. the back button IS the
+  shelf button").** It used to be the other way round: the page opened on the
+  story she was last on, a `library` door at the right of the header went and
+  fetched the shelf, and the shelf's chevron dropped back onto that story —
+  so the tool had two ways up and the pad read as the room.
+  - The page **opens on the shelf** and loads no story until she taps a tile.
+    `padId` is still remembered, but only to mark that tile as where she left
+    off — loading it would spend a fetch nobody is looking at and park a stale
+    story one chevron behind the shelf.
+  - **`__navBack` runs the other way**: after every layer it already walked
+    (film, lightbox, a confirm, the beat popup, the inbox), a bare story
+    answers TRUE and opens the shelf, and only the shelf answers false, which
+    is where the app leaves the tool.
+  - The shelf is still drawn as a `.sheet` — opaque, `inset:0`, its own
+    scroller and its own pill — which is why nothing else in the page had to
+    move. Its own chevron leaves the tool now (`__forgeLeave`), since nothing
+    is behind it.
+  - **A plain browser has no injected chevron**, so the page draws its own
+    (`#shelfback`, left of the header) and hides it under `body.native` /
+    `body.pagehead` — the same "whoever owns back draws it once" rule the ten
+    `__nativeNavBar` pages follow. Without it a story is a dead end in a
+    browser. Tests: `node scripts/test-storyroom-header.js` (all three
+    builds) and `node scripts/test-storyroom-shelf.js`.
 - **The film (Aug 2026) — a play button at the TOP of the pad.** `POST
   /film` stitches the story: every beat with art is its own shot (CHUNKS ARE
   DISPLAY-ONLY — Sophie), each held for exactly its own audio's length —

@@ -334,10 +334,29 @@ loadConfig().then(() => {
   app.use('/api/crystals', crystals.router); // crystal drop box (photos + metadata → Etsy listings)
   app.use('/api/drop', dropbox.router); // the Dump — one inbox for anything, labelled later
   app.use('/api/audio', audioDrop.router); // audio drop — recordings off the phone → permanent URLs
+  // Paste a video url, get the file — filed straight into the Dump (video) or
+  // the audio library (audio), so it is usable without a trip through her phone.
+  app.use('/api/ytdl', require('./ytdl').router);
   app.use('/api/scratchpad', require('./scratchpad').router); // Scratch Pad — stage one of a story (hearted Playground images → beats)
   // Freeform — your own reference images + your own words, sent verbatim. The
   // one image surface that adds NOTHING to a prompt (no style prefix/suffix).
   app.use('/api/freeform', require('./freeform').router);
+  // Panels: one sheet, drawn once, cut into separate pictures. It owns none of
+  // the credentials or the model call — server.js hands it the four things it
+  // needs here (the movies.init pattern), so the module drives whole from a
+  // test with stubs and no network.
+  const panels = require('./panels');
+  panels.init({
+    imageEdit: openaiImageEditRefs,
+    refsFor: playgroundRefs,
+    refBuffer: playgroundRef,
+    saveBuffer: saveBufferToFirebase,
+    fileCreation: fileCreationDoc,
+    styles: PL_GPT_STYLES,
+    gpt: PL_GPT,
+    whiten: whitenBackground,
+  });
+  app.use('/api/panels', panels.router);
   // Vector Studio — described drawings → a pastel sheet → cut-outs → SVG. The
   // one surface whose output is resolution-free, so a drawing can go on a
   // poster, a shirt or a die-cut sticker. Mounted here so config-loader has
@@ -828,6 +847,10 @@ app.get('/scratchpad', serveGated('scratchpad.html', { pill: true }));
 // Freeform: upload your own references, type your own words, pick the quality.
 // Nothing is added to the prompt here — that's the whole point of the page.
 app.get('/freeform', serveGated('freeform.html', { pill: true }));
+// Panels: the Playground's recipe with the run turned inside out — N prompts
+// drawn TOGETHER on one sheet and cut apart locally, which is cheaper twice
+// over (see panels.js's header). One text box per cell, laid out as the grid.
+app.get('/panels', serveGated('panels.html', { pill: true }));
 // Vector: describe drawings -> art that scales, and change its colours after
 // the fact for nothing. The front for /api/vector; see docs/vector-pipeline.md.
 app.get('/vector', serveGated('vector.html', { pill: true }));
@@ -2033,11 +2056,12 @@ app.post('/api/gallery', express.json({ limit: '14mb' }), async (req, res) => {
         // arrive after the hook's generic record — upgrade the existing doc in
         // place instead of silently dropping it.
         const patch = {};
-        const curated = String(prompt || '').trim();
-        const old = String(existing.data().prompt || '');
-        if (curated && !/^from /.test(curated) && (!old || /^from /.test(old))) {
-          patch.prompt = curated.slice(0, 500);
-        }
+        // What a later filing may do to the caption already on the record —
+        // ONE rule, shared with the sweep's own reasoning (asset-guard.js).
+        // A curated caption may CORRECT another curated one; the hook's
+        // generic "from <chat>" line never overwrites anything.
+        const nextCap = assetGuard.captionUpgrade(existing.data().prompt, prompt);
+        if (nextCap) patch.prompt = nextCap.slice(0, 500);
         if (description && description !== existing.data().description) patch.description = description;
         if (kind && !existing.data().kind) patch.kind = kind;
         // An older record filed before content-joining existed: give it its
@@ -5485,7 +5509,7 @@ setInterval(sweepStuckPromptlabRuns, 10 * 60 * 1000);
 // frame to decode, so without one it would tile as a blank square. Best-effort
 // throughout and de-duped by url: filing must never fail the work that made the
 // thing, and re-filing the same url must never add a second tile.
-async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs } = {}) {
+async function fileCreationDoc({ url, type, prompt, poster, model, quality, style, source, createdMs, canvas, sizeSlot } = {}) {
   try {
     if (!url) return null;
     await storyDb();
@@ -5506,6 +5530,15 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
     if (style) doc.style = String(style).slice(0, 80);
     if (model) doc.model = String(model).slice(0, 80);
     if (quality) doc.quality = String(quality).slice(0, 40);
+    // THE THIRD CAPTION SLOT, same as fileRunToCreations writes for a
+    // Playground run. `canvas` is the exact one; `size` is what the caption
+    // shows. A caller may pass `sizeSlot` to OVERRIDE the derivation, and the
+    // Panels tool has to: a cut panel's slot is "1/4 (4K)" — the fraction and
+    // the SHEET's tier — because its own 1168x1752 lands on the 1K rung and
+    // would read as an ordinary small picture.
+    if (canvas) doc.canvas = String(canvas).slice(0, 40);
+    const slot = sizeSlot || (canvas ? require('./size-tier').captionSize(canvas) : '');
+    if (slot) doc.size = String(slot).slice(0, 40);
     const ref = await col.add(doc);
     return ref.id;
   } catch (err) {
@@ -5521,6 +5554,7 @@ async function fileCreationDoc({ url, type, prompt, poster, model, quality, styl
 // Best-effort by design: a gallery hiccup must never fail a run whose images
 // are already saved and on the page.
 async function fileRunToCreations(images, { prompt, style, model, quality, size } = {}) {
+  const sizeTier = require('./size-tier');
   try {
     if (!images || !images.length) return;
     await storyDb();
@@ -5546,7 +5580,14 @@ async function fileRunToCreations(images, { prompt, style, model, quality, size 
       // the tiers. The gallery and Meta Assets both read it as the caption's
       // last part; absent on anything filed before the field existed, and an
       // absent slot is left out rather than guessed.
-      if (size) doc.size = String(size).slice(0, 40);
+      // IT IS THE TIER, NOT THE PIXELS (her correction: "i asked for it to say
+      // 1k 2k or 4k") — `size` is what the caption shows and `canvas` keeps
+      // the exact one, because 2K portrait and 2K square are different
+      // canvases at different prices.
+      if (size) {
+        doc.canvas = String(size).slice(0, 40);
+        doc.size = sizeTier.captionSize(size) || doc.canvas;
+      }
       await col.add(doc);
     }
   } catch (err) {

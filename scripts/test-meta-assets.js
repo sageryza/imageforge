@@ -65,8 +65,30 @@ assert.strictEqual(stick.description, 'seven woodland stickers', 'prompt is the 
 // (Sophie: "1K 2K 4K should be a third slot in the model/quality required
 // tagging"), because gpt-image-2 draws any canvas and the first two stopped
 // saying what a picture is.
-assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 1568x2352',
-  'model·quality·size fills the caption slot');
+// …and the third slot is the TIER, not the pixels ("i asked for it to say 1k
+// 2k or 4k"). Normalised on READ, so a record filed with the raw canvas before
+// her correction still displays the rung and needs no backfill.
+// …and the STYLE leads it since 2026-08-24 (Sophie: "there's no style clause
+// in Meta assets"). It was on every Playground creation all along and this
+// builder read it only as a fallback, so it was fetched and dropped.
+assert.strictEqual(stick.prompt, 'gpt-image-2 · medium · 2K',
+  'a record with no style keeps model·quality·size');
+{
+  const styled = buildMetaAssets([], [{ url: 'https://x/dre.png', prompt: 'a red door', type: 'image',
+    style: 'Dreamy', model: 'gpt-image-2', quality: 'medium', size: '1568x2352', ms: 8 }])[0];
+  assert.strictEqual(styled.prompt, 'Dreamy · gpt-image-2 · medium · 2K',
+    'the style leads the caption — which recipe drew it, before how well and how big');
+  // The style is a LABEL and belongs in the caption, never in the PROMPT
+  // overlay's style half: a creation doc stores the style's NAME, never the
+  // prefix/suffix actually sent, so filing it there would be a reconstruction.
+  assert.strictEqual(styled.promptStyle || '', '',
+    'the prompt overlay’s style half stays empty rather than carrying a label');
+  // A Replicate run files model === styleLabel, so the two must not double up.
+  const lora = buildMetaAssets([], [{ url: 'https://x/wtr.png', prompt: 'a crow', type: 'image',
+    style: 'WTR', model: 'WTR', quality: 'medium', ms: 7 }])[0];
+  assert.strictEqual(lora.prompt, 'WTR · medium',
+    'a LoRA run whose model IS its style reads once, not twice');
+}
 // An absent slot is LEFT OUT, never guessed — nothing on a record filed before
 // the field existed says how big it is, exactly as with quality.
 {

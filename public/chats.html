@@ -370,6 +370,25 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 #qsearch:focus{outline:none; border-color:var(--rose);}
 #qsearch::-webkit-search-cancel-button{-webkit-appearance:none; appearance:none;}
 .qclear{position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:none; color:var(--ink2); font-size:22px; line-height:1; cursor:pointer; border-radius:6px;}
+/* ---- WHO SAID IT — the search's first filter row (Aug 2026) --------------
+   Shown ONLY while the bar is open, driven off the row's own `.on` class so
+   it obeys `paintSearch` for free — including the to-do view, where the
+   whole search bar hides because that list is not chats. A general sibling
+   (`~`, not `+`) because a row landing between the two later must not
+   silently take the filters off screen.
+   The 56px reserve is the search row's own: the injected autoscroll pill is
+   fixed over x 326-374 / y 14-192 on a 390pt phone, and this row sits inside
+   that band. Three chips measure ~170px from the left, so they clear it
+   comfortably — the reserve is what keeps a FOURTH filter from sliding under
+   the pill when she asks for one. */
+.searchfilters{display:none; margin:-.2em 0 .8em; padding-right:56px;
+  gap:6px; flex-wrap:wrap; align-items:center;}
+.searchrow.on ~ .searchfilters{display:flex;}
+/* The in-thread twin follows its OWN box open (`.msgsearch.open`) and takes
+   no pill reserve: it sits well below the header band, and the thread's
+   search is collapsed behind the magnifier until she asks for it. */
+.msgfilters{padding-right:0; margin:-.4em 0 .9em;}
+.msgsearch.open ~ .msgfilters{display:flex;}
 .sres{display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:12px 2px; cursor:pointer; color:var(--ink); font-family:'EBGaramond',Georgia,serif;}
 .sr-top{display:flex; align-items:baseline; gap:8px; margin-bottom:3px;}
 .sr-chat{font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--rose); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
@@ -426,7 +445,10 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
    kept message does. */
 .bmk.pr-bmk{margin-left:4px; align-self:center; padding:4px 2px; flex:0 0 auto;}
 .bmk.pr-bmk svg{display:block;}
-.pagerow{display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
+/* `flex-wrap` so a kept page's note + tag row can ride UNDER the title on the
+   same row element (the message row's own trick — `flex:1 0 100%`), rather
+   than needing a wrapper that would change what `.pagerow` means everywhere. */
+.pagerow{display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--line); padding:15px 2px; cursor:pointer; color:var(--ink);
   /* THE SERIF, back again (Sophie, Aug 2026 — LATEST word: "I actually
      prefer the other font for the updates page and the compare pages"). It
      went sans for an evening to match the Current/Superseded labels above it;
@@ -464,6 +486,41 @@ h1{font-weight:600; font-size:2.3em; line-height:1; margin:.1em 0 .2em;}
 .bmknote input{width:100%; box-sizing:border-box; font-family:'EBGaramond',Georgia,serif; font-size:15px;
   color:var(--ink); background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:7px 10px;}
 .bmknote input:focus{outline:none; border-color:var(--chg);}
+/* WHAT THIS ONE IS — the tag row under a kept thing (Aug 2026, Sophie: "both
+   shud now have a set of tag buttons: to read, and 'important' level (1-3) -
+   icons, and review finished feature, review bug fix or information/question
+   answered"). It sits under her note, because the note is the sentence she
+   dictates and these are the four words she taps.
+
+   ONE ROW, drawn by ONE renderer (`mkBmkMarks`) wherever a bookmark is met —
+   under a message, under an artifact in the Compare tab, and on its row in the
+   keep-pile — so a tag can never look like two different controls.
+
+   The chips are the house `.catchip`: a filter chip and a tag chip are the
+   same gesture, and this is the same set of words she already taps in the
+   Organize sheet. */
+/* The lit tag filter at the top of the keep-pile. It takes the tab row's place,
+   so it takes the tab row's job of keeping out of the injected pill's corner
+   (x 324-374, y 14-192) with it. */
+.bmktagbar{margin:0 0 10px; padding-right:64px;}
+/* The note and the tags travel together — one node, so un-keeping a thing
+   takes its whole editor with it and a row can never keep half of it. */
+.bmkedit{flex:1 0 100%; min-width:0;}
+.bmkmarks{flex:1 0 100%; display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0 0;}
+/* IMPORTANCE IS A DIAL, NOT A TAG — a thing has ONE level, where it can carry
+   several words — so the three sit in one segmented box (the List/Tiles
+   pattern) rather than loose beside the chips. Each is a meter of three bars
+   with the ones above the level left faint, so the picture says "2 of 3"
+   without a number to read. Tapping the lit one clears it. */
+.lvlbox{display:inline-flex; border:1.5px solid var(--line); border-radius:6px; overflow:hidden; flex:none;}
+.lvlbox button{background:none; border:0; padding:4px 7px; cursor:pointer; color:var(--ink2);
+  display:flex; align-items:center; -webkit-tap-highlight-color:transparent;}
+.lvlbox button + button{border-left:1.5px solid var(--line);}
+.lvlbox button svg{width:15px; height:15px; display:block;}
+.lvlbox button.on{color:var(--chg); background:color-mix(in srgb, var(--chg) 12%, var(--paper));}
+/* the pile's rows are tighter than a message's — the note input above it
+   already carries the margin */
+.bmkrow .bmkmarks{margin:6px 0 0;}
 /* The note on a bookmark row is an INPUT that doesn't look like one until she
    taps it — the list has to read as a list, but every note has to be editable
    in place or naming a backlog means opening each message in turn. */
@@ -791,6 +848,18 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
 .noterow{display:flex; align-items:flex-start; gap:10px; margin:0 0 1em; font-size:15px; line-height:1.4;}
 .noterow .notewrap{flex:1 1 auto; min-width:0;}
 .noterow .qbtn{flex:none; margin-top:1px;}
+/* THE QUESTIONS BUTTON RAN UNDER THE AUTOSCROLL PILL (2026-08-23, from her
+   screenshot: the door to her Questions tab read "QUES" with the rest covered).
+   This row is the thread's LAST header line and it does not scroll, so on a
+   390pt phone its right end sits permanently inside the pill's fixed corner —
+   and the button is the rightmost thing on it. The home screen solved the same
+   collision with `#pillnotch`, but that float hardcodes the band as `192-top`,
+   which is the HOME header's geometry; in a thread the header is a different
+   height and her safe-area inset pushes the pill down (measured off the
+   screenshot: the pill ran y 63→222pt, not 14→192). So this reserve is
+   MEASURED against the pill's real rect instead of assumed — `fitNoteRow()`
+   sets the value and clears it to 0 when there is no pill on screen. */
+.noterow{padding-right:var(--pillgap, 0px);}
 /* Clamped to two lines: her own notes run 26-66 chars, but a chat wrote a
    464-char changelog in here once and it owned the whole top of the thread.
    Tapping opens the full text in the textarea, so nothing is hidden. */
@@ -868,12 +937,20 @@ button.sthead{-webkit-appearance:none; appearance:none; background:none; border:
   -webkit-tap-highlight-color:transparent;}
 .nwdoor .stn{font-weight:600;}
 /* The pair reads as ONE control: the word and its arrow share a box, split by
-   a hairline, the way the slab did. */
-.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--rose);
+   a hairline, the way the slab did.
+
+   NOT RED ANY MORE (Aug 2026, Sophie: "make the review button on updates tab
+   not red"). It was the one door on the screen painted in the accent, on the
+   reasoning that Review is the door that says something is owed — she looked
+   at it and said no, so it wears the quiet border every other chip on this
+   page wears, and the COUNT beside the word is what says how much is waiting.
+   The To read chip beside it is the same box for the same reason: two doors
+   that do the same kind of thing must not read as two different weights. */
+.nwrevpair{display:inline-flex; align-items:stretch; border:1.5px solid var(--line);
   border-radius:6px; overflow:hidden;}
-.nwrevpair .nwdoor{border:0; border-radius:0; color:var(--rose);}
-.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--rose);
-  cursor:pointer; color:var(--rose); display:flex; align-items:center; justify-content:center;
+.nwrevpair .nwdoor{border:0; border-radius:0;}
+.nwrevfold{flex:none; width:30px; background:none; border:0; border-left:1.5px solid var(--line);
+  cursor:pointer; color:var(--ink2); display:flex; align-items:center; justify-content:center;
   -webkit-tap-highlight-color:transparent;}
 .nwrevfold svg{width:15px; height:15px; display:block; transition:transform .18s ease;}
 .nwrevfold.folded svg{transform:rotate(-90deg);}
@@ -1240,13 +1317,17 @@ body.reading .backwrap{display:block;}
 .newbar svg{flex:none;}
 .nowplaying.show ~ .newbar{top:calc(max(14px, env(safe-area-inset-top)) + 48px);}
 /* Floating jump-to-top arrow — appears once you've scrolled down. */
-/* The jump pair, bottom-right: back to the top, and all the way DOWN beside it
-   (Aug 2026, Sophie). Each shows only when it would actually go somewhere, so
-   at the top of a short list there is nothing floating over the page at all.
-   Hidden in select mode — the filing bar owns the bottom of the screen then,
-   and these would sit on top of it. */
+/* The jump pair, bottom-right: back to the top, and all the way DOWN.
+   STACKED, up ABOVE down (Aug 2026, Sophie: "right now the scroll to top and
+   scroll to bottom arrows are adjacent. the up shud be above") — side by side
+   they read as one two-part control and the arrow pointing up sat to the LEFT
+   of the one pointing down, which says nothing about direction. In a column
+   the buttons ARE the directions they mean. Each shows only when it would
+   actually go somewhere, so at the top of a short list there is nothing
+   floating over the page at all. Hidden in select mode — the filing bar owns
+   the bottom of the screen then, and these would sit on top of it. */
 .jumps{position:fixed; right:max(14px,4vw); bottom:max(20px, env(safe-area-inset-bottom));
-  z-index:9; display:flex; gap:8px; transform:translateZ(0);}
+  z-index:9; display:flex; flex-direction:column; gap:8px; transform:translateZ(0);}
 body.selecting .jumps{display:none;}
 .totop{width:44px; height:44px; border-radius:6px; border:1px solid var(--line); background:var(--barbg);
   color:var(--ink2); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.09); display:none;
@@ -1565,6 +1646,20 @@ body.newspick > .float{display:none !important;}
       <button id="searchbtn" class="iconbtn" aria-label="Search all chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
       <div class="qwrap"><input id="qsearch" type="search" placeholder="Search all chats&hellip;" autocomplete="off" autocorrect="off"><button id="qwipe" class="qwipe" aria-label="Clear the words">&times;</button></div>
       <button id="qclear" class="qclear" aria-label="Close the search">&times;</button>
+    </div>
+    <!-- WHO SAID IT — the first search filter (Aug 2026, Sophie: "add some
+         filters to the search in the chats thing … one would be a filter
+         allowing me to search through my messages versus Claude's
+         messages"). Chips rather than a typed `from:` prefix because she
+         dictates every word she puts in that box and would have to say the
+         punctuation out loud. It rides UNDER the bar and only while the bar
+         is open (`.searchrow.on ~`), so a folded search costs the home
+         screen nothing — and it is deliberately the same `.catchip` box as
+         her tag chips, since both are "narrow this list to a word". -->
+    <div class="searchfilters" id="searchfilters" role="group" aria-label="Whose messages to search">
+      <button class="catchip whochip on" data-who="all">All</button>
+      <button class="catchip whochip" data-who="me">Mine</button>
+      <button class="catchip whochip" data-who="claude">Claude</button>
     </div>
     <div id="searchresults" style="display:none"></div>
     <!-- The witch shop sheet's Description/Reviews toggle, doing the same job
@@ -2481,6 +2576,8 @@ function setSearchOpen(on){
 // half-finished, not a state to carry to another screen and back.
 function setHomeView(v){
   homeView = (homeView===v ? 'live' : v);
+  // a tag filter belongs to one visit to the keep-pile, never to the next one
+  if(homeView!=='bookmarks') bmkTag='';
   if(homeView!=='news') newsPick={};
   document.body.classList.toggle('newspick', false);
   renderHome(); window.scrollTo(0,0);
@@ -2528,10 +2625,17 @@ var BMK_TABS=[['chat','Chats'],['page','Artifacts'],['msg','Messages']];
 // what the server's `kind` means for the tabs: code/read are both Messages
 function bmkTabOf(kind){ return kind==='chat' ? 'chat' : kind==='page' ? 'page' : 'msg'; }
 var bmkCache=null;
+// A TAG FILTER NARROWS THE PILE, IT DOES NOT SPLIT IT (Aug 2026) — which is
+// why it is a chip and the three kinds are tabs. It is what the To read door
+// on the Update tab opens, and it is session-only and cleared on the way out
+// of this view: a filter she cannot see, hiding most of what she kept, is the
+// failure to avoid.
+var bmkTag='';       // '' | one of BMK_TAGS' keys
 function paintBookmarks(el){
   var all=(bmkCache||[]);
-  var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   el.innerHTML='';
+  if(bmkTag){ paintBmkTagPile(el, all); return; }
+  var items=all.filter(function(m){ return bmkTabOf(m.kind||'read')===bmkTab; });
   // the hairline tab row — same markup and classes as the account tabs, so
   // the two can never drift apart. `.bmktabs` only adds the pill's corner
   // reserve (this row sits high, inside x 324–374 / y 14–192).
@@ -2575,6 +2679,29 @@ function paintBookmarks(el){
       refs.concat(kept).forEach(function(m){ el.appendChild(bmkRow(m, el)); });
     }
     return;
+  }
+  items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
+}
+// ONE FLAT LIST while a tag is lit — a message and an artifact tagged "to
+// read" are the same errand, so splitting them across tabs would make her tap
+// twice to find out whether she is finished. Kept chats carry no tags and are
+// simply not in it.
+function paintBmkTagPile(el, all){
+  var word='';
+  BMK_TAGS.forEach(function(t){ if(t[0]===bmkTag) word=t[1]; });
+  var bar=document.createElement('div'); bar.className='catrow bmktagbar';
+  var chip=document.createElement('button'); chip.className='catchip on';
+  chip.innerHTML=esc(word||bmkTag)+' \u2715';
+  chip.setAttribute('aria-label','Clear the '+(word||bmkTag)+' filter');
+  chip.onclick=function(){ bmkTag=''; paintBookmarks(el); };
+  bar.appendChild(chip);
+  el.appendChild(bar);
+  var items=all.filter(function(m){
+    return (m.tags||[]).indexOf(bmkTag)>=0 && (m.kind||'read')!=='chat'; });
+  if(!items.length){
+    var st=document.createElement('div'); st.className='state';
+    st.textContent='Nothing tagged \u201c'+(word||bmkTag)+'\u201d yet \u2014 tap the tag under a kept message or artifact.';
+    el.appendChild(st); return;
   }
   items.forEach(function(m){ el.appendChild(bmkRow(m, el)); });
 }
@@ -2666,9 +2793,15 @@ function bmkRow(m, el){
     var snip=document.createElement('div'); snip.className='sr-snip';
     snip.textContent=m.snippet||'';
     row.appendChild(head); row.appendChild(inp); row.appendChild(snip);
+    // The tag row rides here too — triaging a backlog is exactly what this
+    // screen is for, and the note above it is already editable in place. A
+    // kept CHAT gets none: its marks are the star/bell/pin in its own header,
+    // and the tags live on the message or the artifact, not on a whole chat.
+    if(kind!=='chat') row.appendChild(mkBmkMarks(m, kind==='page'?'page':'msg'));
     row.setAttribute('role','button'); row.tabIndex=0;
     row.onclick=function(e){
       if(e.target===inp) return;          // typing a name must not open the chat
+      if(e.target.closest && e.target.closest('.bmkmarks')) return;   // …nor tagging it
       // A kept ARTIFACT opens the artifact itself — that is the thing she
       // saved. openPage wants {id, title}; the title fills the snippet slot.
       if(kind==='page'){ openPage({ id:m.id, title:m.title||m.snippet||'' }); return; }
@@ -3771,6 +3904,40 @@ function newsUpdDoor(){
   b.onclick=function(){ location.href='/brief'; };
   return b;
 }
+// THE TO READ DOOR (Aug 2026, Sophie: "add a to read button next to it") —
+// the third chip in the row, beside Review. It is the one bookmark tag with a
+// door of its own: things she kept meaning to read back are the pile that goes
+// stale if it is only ever reachable by remembering it is there.
+//
+// It carries a COUNT, unlike Update, because unlike Update it can be empty —
+// and it goes to the keep-pile with the To read filter already lit, never to a
+// fourth pile of its own: there is ONE place kept things live.
+//
+// The count is its own tiny request (GET /to-read), asked once per load and
+// repainted when it lands: this tab paints on every poll, and the keep-pile
+// route returns up to a thousand documents.
+var toReadN=null;          // null = not asked yet; a number = what came back
+var toReadPend=false;
+var newsRevsLast=[];       // what the doors were last painted with, for the repaint
+function toReadFetch(){
+  if(toReadN!==null || toReadPend) return;
+  toReadPend=true;
+  api('/api/chatfeed/to-read?_='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      toReadPend=false; toReadN=(d&&d.count)||0;
+      if(homeView==='news') paintNewsDoors(newsRevsLast);
+    })
+    .catch(function(){ toReadPend=false; });   // silent — a door with no count still works
+}
+function newsToReadDoor(){
+  var b=document.createElement('button'); b.className='nwdoor';
+  var n=toReadN;
+  b.innerHTML='<span>To read</span>'+(n?'<span class="stn">'+n+'</span>':'');
+  b.setAttribute('aria-label','To read'+(n?' — '+n+' waiting':''));
+  b.onclick=function(){ bmkTag='to-read'; setHomeView('bookmarks'); };
+  return b;
+}
 // THE DOORS ROW — both of them, above the account tabs (Aug 2026, Sophie:
 // "both supposed to be smaller and they're supposed to go above the chats").
 // It is chrome, not list: it lives in #nwdoors between the search row and the
@@ -3786,8 +3953,13 @@ function paintNewsDoors(revs){
   row.innerHTML='';
   if(homeView!=='news'){ row.hidden=true; return; }
   row.hidden=false;
+  newsRevsLast = revs || [];
   row.appendChild(newsUpdDoor());
   if(!newsQ && revs && revs.length) row.appendChild(newsReviewDoor(revs));
+  // To read is on every paint, like Update: an empty pile is not a reason to
+  // take the door away, and its count says when there is something in it.
+  row.appendChild(newsToReadDoor());
+  toReadFetch();
 }
 function newsEmptyCheck(waiting){
   var el=document.getElementById('grid');
@@ -5773,9 +5945,10 @@ function renderMsg(m){
   ob.appendChild(bookmarkBtn(m, row));
   var murl=m.url||openUrl;
   if(murl){ ob.appendChild(openClaudeBtn(openHref(m.chat, murl))); }
-  // an already-bookmarked message carries its note box from the first paint,
-  // so what she wrote is visible and editable without hunting for a gesture
-  if(m.bookmarked) ob.appendChild(mkBmkNote(m));
+  // an already-bookmarked message carries its note box and its tags from the
+  // first paint, so what she wrote is visible and editable without hunting
+  // for a gesture
+  if(m.bookmarked) ob.appendChild(mkBmkEdit(m,'msg'));
   row.appendChild(ob);
   return row;
 }
@@ -5794,7 +5967,114 @@ function renderMsg(m){
 // That is why there is no separate "edit the note" gesture: the box is simply
 // there, holding whatever she wrote, and it saves on tap-away like everything
 // else she dictates into.
-function mkBmkNote(m){
+// ---- WHAT A KEPT THING IS — the tag row (Aug 2026, Sophie: "both shud now
+// have a set of tag buttons: to read, and 'important' level (1-3) - icons, and
+// review finished feature, review bug fix or information/question answered")
+// ---------------------------------------------------------------------------
+// Her note says WHY she kept it, in her own words; these say WHAT it is, in
+// the same four words every time, so the pile can be filtered instead of read
+// back one row at a time.
+//
+// A FIXED VOCABULARY pinned equal to BMK_TAGS in chatfeed.js by
+// `node scripts/test-chats-bookmark-tags.js` — the same contract TAG_LIST and
+// TAGS have kept since the archive sheet shipped. `to-read` is the one word
+// with a door of its own: the To read chip on the Update tab counts it.
+var BMK_TAGS=[['to-read','To read'],['feature','Finished feature'],
+              ['bugfix','Bug fix'],['answered','Answered']];
+// THE IMPORTANCE METER — three bars, the ones above the level left faint, so
+// the picture says "2 of 3" with no number to read. It is a DIAL, not a fifth
+// tag: a thing has one level where it can carry several words, which is why
+// the three live in one segmented box and tapping the lit one clears it.
+function LVL_SVG(n){
+  var bars=[[5,13,4,6],[11,8,4,11],[17,3,4,16]];
+  var out='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">';
+  for(var i=0;i<3;i++){ var b=bars[i];
+    out+='<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" rx="1"'
+       + (i<n?'':' opacity=".22"')+'/>'; }
+  return out+'</svg>';
+}
+// A bookmark reaches this renderer under three different shapes — a message in
+// a thread (`bmkTags`/`bmkLevel`, spread straight off its doc), a page in the
+// Compare tab (the same two), and a row in the keep-pile (`tags`/`level`, as
+// GET /bookmarks names them). Reading BOTH names, and writing both back, is
+// what lets one renderer serve all three without the caller caring.
+function bmkMarksOf(m){
+  var t = m.tags || m.bmkTags || [];
+  return { tags: t.slice(), level: Number(m.level || m.bmkLevel || 0) || 0 };
+}
+function bmkMarksSet(m, st){
+  m.tags=st.tags.slice(); m.bmkTags=st.tags.slice();
+  m.level=st.level; m.bmkLevel=st.level;
+}
+// The saver per kind — the note routes' own contract, field for field: a patch
+// sent on its own touches ONLY what it names, so tagging can never un-keep a
+// thing and naming one can never drop its tags.
+function bmkSaver(kind, m){
+  return function(patch){
+    var url = kind==='page' ? '/api/chatfeed/page/'+encodeURIComponent(m.id)+'/bookmark'
+                            : '/api/chatfeed/bookmark';
+    var body = kind==='page' ? patch : Object.assign({id:m.id}, patch);
+    return api(url,{method:'POST',body:JSON.stringify(body)})
+      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; });
+  };
+}
+// ONE ROW, drawn the same wherever a bookmark is met. `kind` is 'msg' or
+// 'page' — it only decides which route the taps go to.
+function mkBmkMarks(m, kind){
+  var save=bmkSaver(kind, m);
+  var row=document.createElement('div'); row.className='bmkmarks';
+  var st=bmkMarksOf(m);
+  function paint(){
+    row.innerHTML='';
+    BMK_TAGS.forEach(function(t){
+      var on=st.tags.indexOf(t[0])>=0;
+      var b=document.createElement('button');
+      b.className='catchip'+(on?' on':'');
+      b.textContent=t[1];
+      b.dataset.tag=t[0];
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.onclick=function(e){
+        e.stopPropagation();
+        var prev=st.tags.slice();
+        st.tags = on ? st.tags.filter(function(x){ return x!==t[0]; }) : st.tags.concat([t[0]]);
+        bmkMarksSet(m, st); paint();
+        // the To read door's count is now a turn old — drop it so the next
+        // paint of the Update tab asks again rather than showing a stale number
+        if(t[0]==='to-read') toReadN=null;
+        save({tags:st.tags}).catch(function(){
+          st.tags=prev; bmkMarksSet(m, st); paint(); toast('Couldn\u2019t save that');
+        });
+      };
+      row.appendChild(b);
+    });
+    var box=document.createElement('div'); box.className='lvlbox';
+    box.setAttribute('role','group');
+    box.setAttribute('aria-label','How important this is');
+    [1,2,3].forEach(function(n){
+      var b=document.createElement('button');
+      b.className=(st.level===n?'on':'');
+      b.innerHTML=LVL_SVG(n);
+      b.dataset.level=String(n);
+      b.setAttribute('aria-label','Important \u2014 level '+n+' of 3');
+      b.setAttribute('aria-pressed', st.level===n?'true':'false');
+      b.onclick=function(e){
+        e.stopPropagation();
+        var prev=st.level;
+        st.level = (st.level===n ? 0 : n);      // tapping the lit one clears it
+        bmkMarksSet(m, st); paint();
+        save({level:st.level}).catch(function(){
+          st.level=prev; bmkMarksSet(m, st); paint(); toast('Couldn\u2019t save that');
+        });
+      };
+      box.appendChild(b);
+    });
+    row.appendChild(box);
+  }
+  paint();
+  return row;
+}
+function mkBmkNote(m, kind){
+  var put=bmkSaver(kind||'msg', m);
   var box=document.createElement('div'); box.className='bmknote';
   var inp=document.createElement('input'); inp.type='text';
   inp.placeholder='Why keep this?'; inp.value=m.bookmarkNote||'';
@@ -5805,8 +6085,7 @@ function mkBmkNote(m){
     var prev=m.bookmarkNote||''; m.bookmarkNote=v;
     // note ONLY — sending it without `bookmarked` means saving a note can
     // never quietly un-save the message
-    api('/api/chatfeed/bookmark',{method:'POST',body:JSON.stringify({id:m.id, note:v})})
-      .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
+    put({note:v})
       .catch(function(){ m.bookmarkNote=prev; inp.value=prev; toast('Couldn’t save that'); });
   }
   inp.onblur=save;
@@ -5814,6 +6093,18 @@ function mkBmkNote(m){
   inp.onclick=function(e){ e.stopPropagation(); };
   box.appendChild(inp);
   return box;
+}
+// EVERYTHING A BOOKMARK CARRIES, in one node — the note she dictates and the
+// tags she taps (Aug 2026, Sophie: "when i bookmark a message it offers a
+// textbox to say whi i'm saving it. shud be same for artifact" · "both shud
+// now have a set of tag buttons"). One node so a bookmark toggled off takes
+// its whole editor with it, and so a message and an artifact can never end up
+// with two different sets of controls.
+function mkBmkEdit(m, kind){
+  var w=document.createElement('div'); w.className='bmkedit';
+  w.appendChild(mkBmkNote(m, kind));
+  w.appendChild(mkBmkMarks(m, kind));
+  return w;
 }
 // ONE bookmark glyph — a message row and a Compare page row both draw this,
 // so "kept" can never read as two different marks in two places.
@@ -5866,9 +6157,9 @@ function bookmarkBtn(m, row){
   b.onclick=function(e){
     e.stopPropagation();
     var nv=!m.bookmarked; m.bookmarked=nv; b.classList.toggle('on',nv);
-    var open=row.querySelector('.bmknote');
+    var open=row.querySelector('.bmkedit');
     if(nv && !open){
-      var box=mkBmkNote(m);
+      var box=mkBmkEdit(m,'msg');
       row.querySelector('.openrow').appendChild(box);
       box.querySelector('input').focus();   // the reason is in her head NOW
     } else if(!nv && open) open.remove();
@@ -5877,7 +6168,7 @@ function bookmarkBtn(m, row){
       .then(function(d){ if(!d.ok) throw 0; })
       .catch(function(){
         m.bookmarked=!nv; b.classList.toggle('on',!nv);
-        var bx=row.querySelector('.bmknote'); if(bx&&!m.bookmarked) bx.remove();
+        var bx=row.querySelector('.bmkedit'); if(bx&&!m.bookmarked) bx.remove();
         toast('Couldn’t save that');
       });
   };
@@ -5995,6 +6286,15 @@ function openPinned(pin, chatName){
 // it already stores (questions.js), so the list is complete over the chat's
 // whole history and no chat has to remember anything. Fetched on the first tap,
 // never on load — an unopened list costs nothing.
+//
+// SINCE 2026-08-23 A MESSAGE ONLY COUNTS IF SHE SAID THE WORD "QUESTION" in it
+// ("i have a question", "my question is:", "quick question") — her ask, after
+// the detector alone filled the list with dictated asides. Because the list is
+// derived rather than filed, that reached every chat's whole past on the next
+// read, with nothing migrated: an existing list simply got shorter and truer.
+// It is also why this panel can legitimately come up EMPTY on a chat full of
+// questions she never marked — "No answered questions in this chat yet." is the
+// honest answer there, not a bug.
 function renderQuestion(q){
   var row=document.createElement('div'); row.className='msg qrow';
   var short=q.question.slice(0,140)+(q.question.length>140?'\u2026':'');
@@ -6162,6 +6462,23 @@ function openChat(name, keepScroll, focusId, noFetch){
   var sclr=document.createElement('button'); sclr.className='qclear'; sclr.innerHTML='&times;';
   sclr.style.display='none'; sclr.setAttribute('aria-label','Clear search');
   srow.appendChild(sinp); srow.appendChild(sclr);
+  // WHO SAID IT, inside one thread too (Aug 2026 — the same ask as the home
+  // bar). This is where it earns the most: a thread is her question and its
+  // answer alternating, so "what did I ask this chat about the image doc"
+  // is a question the messages themselves can answer once the replies that
+  // quoted her back are out of the way. Unlike the home bar this one filters
+  // what is ALREADY rendered — the thread is fully loaded, so there is no
+  // truncate to fall through and no request to make.
+  var mwho='all';
+  var mfrow=document.createElement('div'); mfrow.className='searchfilters msgfilters';
+  mfrow.setAttribute('role','group');
+  mfrow.setAttribute('aria-label','Whose messages to search');
+  [['all','All'],['me','Mine'],['claude','Claude']].forEach(function(p){
+    var b=document.createElement('button'); b.className='catchip whochip'+(p[0]==='all'?' on':'');
+    b.setAttribute('data-who',p[0]); b.textContent=p[1];
+    b.setAttribute('aria-pressed', p[0]==='all'?'true':'false');
+    mfrow.appendChild(b);
+  });
   var scount=document.createElement('div'); scount.className='msgcount'; scount.style.display='none';
   // Her pinned note on this chat (Aug 2026): HER OWN reminder of what's going
   // on here ("waiting on the palette", "this one makes the zine"). Not
@@ -6217,6 +6534,27 @@ function openChat(name, keepScroll, focusId, noFetch){
   // opened, and her answer only appears after a reload.
   threadNote=paintNote;
   chatPanel.appendChild(nrow);
+  // Reserve exactly as much of this row as the pill actually covers — see the
+  // `.noterow` CSS note. Measured, never assumed: the pill is conditional (it
+  // hides in select mode and when there is nothing to scroll) and its top
+  // rides `env(safe-area-inset-top)`, so both the presence and the position
+  // have to be read rather than hardcoded.
+  function fitNoteRow(){
+    var pill=document.querySelector('body > .float');
+    if(!pill || !pill.getClientRects().length){ nrow.style.setProperty('--pillgap','0px'); return; }
+    nrow.style.setProperty('--pillgap','0px');          // measure the row unreserved
+    var r=nrow.getBoundingClientRect(), p=pill.getBoundingClientRect();
+    // Vertically clear of the pill → nothing to reserve.
+    if(r.bottom<=p.top || r.top>=p.bottom) return;
+    var gap=Math.max(0, Math.ceil(r.right-p.left)+8);   // +8 so the button never touches it
+    nrow.style.setProperty('--pillgap', gap+'px');
+  }
+  fitNoteRow();
+  // The pill appears LATE — it is injected and its own ResizeObserver only
+  // shows it once the thread has content to scroll — so one measurement at
+  // paint time would run against a pill that is not there yet.
+  setTimeout(fitNoteRow, 0); setTimeout(fitNoteRow, 400);
+  window.addEventListener('resize', fitNoteRow);
   // ---- THE WRAP-UP, UNDER HER NOTE (Aug 2026, Sophie: "i want the archive
   // summary to show below my note, as u said, including the down arrow to make
   // it longer") ------------------------------------------------------------
@@ -6259,7 +6597,7 @@ function openChat(name, keepScroll, focusId, noFetch){
   // from outside openChat, exactly like her note above it.
   threadWrap=paintThreadWrap;
   chatPanel.appendChild(wrow);
-  chatPanel.appendChild(srow); chatPanel.appendChild(scount);
+  chatPanel.appendChild(srow); chatPanel.appendChild(mfrow); chatPanel.appendChild(scount);
   // The messages live in their OWN box so the Questions list can take their
   // place without disturbing anything above it — the header, the tabs and her
   // note stay put, which is what she asked for after the first version came
@@ -6349,30 +6687,45 @@ function openChat(name, keepScroll, focusId, noFetch){
     }
     var row=renderMsg(m);
     if(m.id&&wasOpen[m.id]) row.classList.add('open');
-    mrows.push({row:row, hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
+    mrows.push({row:row, who:(m.from==='sophie'?'me':'claude'),
+      hay:((m.tldr||'')+' '+(m.text||'')+' '+(m.from==='sophie'?'me':'claude')).toLowerCase()});
     mlist.appendChild(row);
   });
   function applyMsgFilter(){
     var q=(sinp.value||'').trim().toLowerCase();
     sclr.style.display=q?'':'none';
+    // The FILTER narrows on its own, with no words at all — "just show me
+    // what I said in here" is a whole question, and one the thread can
+    // answer without her having to think of a search term first.
+    var narrowing=!!q || mwho!=='all';
     // A chapter heading labels the block under it, so it has no meaning over a
     // filtered list — the messages it named are mostly gone. Hide them while
     // she is searching and bring them back when she clears the box.
-    chaprows.forEach(function(h){ h.style.display=q?'none':''; });
-    if(!q){
+    chaprows.forEach(function(h){ h.style.display=narrowing?'none':''; });
+    if(!narrowing){
       mrows.forEach(function(r){ r.row.style.display=''; });
       scount.style.display='none';
       return;
     }
-    var hits=0, groups=qparse(q);
+    var hits=0, groups=q?qparse(q):[];
     mrows.forEach(function(r){
-      var on=groups.length? qmatch(r.hay, groups) : true;
+      var on=(mwho==='all'||r.who===mwho) && (groups.length? qmatch(r.hay, groups) : true);
       r.row.style.display=on?'':'none';
       if(on) hits++;
     });
     scount.style.display='';
     scount.textContent=hits? (hits+' message'+(hits===1?'':'s')) : 'No messages match that';
   }
+  mfrow.querySelectorAll('.whochip').forEach(function(b){ b.onclick=function(){
+    var w=b.getAttribute('data-who')||'all';
+    if(w===mwho) return;
+    mwho=w;
+    mfrow.querySelectorAll('.whochip').forEach(function(o){
+      var on=o.getAttribute('data-who')===mwho;
+      o.classList.toggle('on', on); o.setAttribute('aria-pressed', on?'true':'false');
+    });
+    applyMsgFilter();
+  }; });
   var sinpLive=liveInput(sinp, applyMsgFilter);
   // Return here just ends it and drops the keyboard (the filtering is already
   // live) — sync'd for the same reason as the home bar.
@@ -6407,6 +6760,7 @@ function openChat(name, keepScroll, focusId, noFetch){
     mlist.style.display=on?'none':'';
     comp.style.display=on?'none':'';         // the composer belongs to the messages
     srow.style.display=on?'none':'';         // that box searches messages
+    mfrow.style.display=on?'none':'';        // …and those chips filter them
     scount.style.display=on?'none':scount.textContent?'':'none';
     qpanel.style.display=on?'':'none';
     qbtn.classList.toggle('on', on);
@@ -6420,7 +6774,17 @@ function openChat(name, keepScroll, focusId, noFetch){
     var open=srow.classList.toggle('open');
     tsBtn.classList.toggle('on', open);
     if(open){ sinp.focus(); }
-    else { sinp.value=''; applyMsgFilter(); }   // closing always restores every message
+    else {
+      // Closing always restores every message — the FILTER has to come off
+      // with the words, or a thread she reopens later is silently missing
+      // half its messages with no box on screen saying why.
+      sinp.value=''; mwho='all';
+      mfrow.querySelectorAll('.whochip').forEach(function(o){
+        var isAll=o.getAttribute('data-who')==='all';
+        o.classList.toggle('on', isAll); o.setAttribute('aria-pressed', isAll?'true':'false');
+      });
+      applyMsgFilter();
+    }
   };
   // Every message carries its own Open button (added in renderMsg). With no
   // messages at all, fall back to one in the header row.
@@ -6728,7 +7092,13 @@ function openChat(name, keepScroll, focusId, noFetch){
           set.forEach(function(p){
             var row=document.createElement('div'); row.className='pagerow';
             row.innerHTML='<span class="pr-title">'+esc(p.title)+'</span><span class="pr-time">'+ago(p.created)+'</span>';
-            row.onclick=function(e){ if(e.target.closest('.pr-sup')||e.target.closest('.pr-bmk')) return; openPage(p); };
+            row.onclick=function(e){
+              if(e.target.closest('.pr-sup')||e.target.closest('.pr-bmk')) return;
+              // her note box and her tag chips live INSIDE this row now, so a
+              // tap on either must not launch the artifact behind them
+              if(e.target.closest('.bmkedit')) return;
+              openPage(p);
+            };
             // KEEP IT (Aug 2026, Sophie). The same bookmark as a message's,
             // and it sends the page to the same Bookmarks view — so there is
             // one pile of kept things, not two. Optimistic: the mark lights
@@ -6743,12 +7113,23 @@ function openChat(name, keepScroll, focusId, noFetch){
               var nv=!p.bookmarked; p.bookmarked=nv; bm.classList.toggle('on',nv);
               bm.setAttribute('aria-label', nv?'Remove from Bookmarks':'Keep in Bookmarks');
               bm.title = nv ? 'In Bookmarks' : 'Keep in Bookmarks';
+              // THE SAME BOX A MESSAGE GETS (Aug 2026, Sophie: "when i bookmark
+              // a message it offers a textbox to say whi i'm saving it. shud be
+              // same for artifact"). Keeping opens it straight away and focuses
+              // it — the reason is in her head at that moment and nowhere else.
+              var open=row.querySelector('.bmkedit');
+              if(nv && !open){
+                var ed=mkBmkEdit(p,'page');
+                row.appendChild(ed);
+                ed.querySelector('input').focus();
+              } else if(!nv && open) open.remove();
               api('/api/chatfeed/page/'+encodeURIComponent(p.id)+'/bookmark',{method:'POST',
                 headers:{'Content-Type':'application/json'},
                 body:JSON.stringify({bookmarked:nv})})
                 .then(function(r){return r.json()}).then(function(d){ if(!d.ok) throw 0; })
                 .catch(function(){
                   p.bookmarked=!nv; bm.classList.toggle('on',!nv);
+                  var bx=row.querySelector('.bmkedit'); if(bx&&!p.bookmarked) bx.remove();
                   toast('Couldn’t save that');
                 });
             };
@@ -6765,6 +7146,9 @@ function openChat(name, keepScroll, focusId, noFetch){
                 .then(function(){ loadPages(true); }).catch(function(){});
             };
             row.appendChild(sup);
+            // an artifact she already keeps carries its note and its tags from
+            // the first paint, exactly as a kept message does
+            if(p.bookmarked) row.appendChild(mkBmkEdit(p,'page'));
             list.appendChild(row);
           });
         }
@@ -7777,6 +8161,25 @@ document.getElementById('back').onclick=function(){ goHome(); };
   var qi=document.getElementById('qsearch'), qc=document.getElementById('qclear'),
       qw=document.getElementById('qwipe'),
       sr=document.getElementById('searchresults'), grid=document.getElementById('grid'), t=null;
+  // ---- WHO SAID IT (Aug 2026, Sophie: "a filter allowing me to search
+  // through my messages versus Claude's messages") ------------------------
+  // `all` | `me` | `claude`, and it rides the QUERY rather than the page:
+  // filtering client-side would only narrow the 80 results already on
+  // screen, so "my messages about the image doc" would answer from whatever
+  // happened to survive the unfiltered top-80 — the Assets tab's hard-
+  // truncate lesson. The server holds the whole index and filters before it
+  // ranks, so a hit five hundred messages back is still found.
+  var whoFilter='all';
+  var whochips=[].slice.call(document.querySelectorAll('#searchfilters .whochip'));
+  function paintWho(){
+    whochips.forEach(function(c){ var on=c.getAttribute('data-who')===whoFilter;
+      c.classList.toggle('on', on); c.setAttribute('aria-pressed', on?'true':'false'); });
+  }
+  // The one place the filter is read into a request, so a new caller cannot
+  // forget that `all` sends nothing at all — an absent `from` is what every
+  // older cached page on her phone already sends, and it must keep meaning
+  // "both".
+  function whoQuery(){ return whoFilter==='all' ? '' : '&from='+encodeURIComponent(whoFilter); }
   // The account tabs govern the GRID, and a search deliberately looks across
   // both accounts — so they come off with it and back with it.
   var accrow=document.getElementById('accrow');
@@ -7820,25 +8223,39 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // reload inside that minute (the app repaints its webview freely) keeps it,
   // and a cold launch never does.
   var RECENT_MS=60000, RECENT_KEY='forgeLastSearch';
+  // The FILTER rides in that memory beside the words, because it is part of
+  // the same hunt: coming back to "my messages about the image doc" with the
+  // words restored but the filter reset would answer a different question
+  // with her old query still in the box.
   function remember(q){
-    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now()})); }catch(_){ }
+    try{ sessionStorage.setItem(RECENT_KEY, JSON.stringify({q:q, at:Date.now(), who:whoFilter})); }catch(_){ }
   }
   function recent(){
     try{
       var r=JSON.parse(sessionStorage.getItem(RECENT_KEY)||'null');
-      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r.q : '';
-    }catch(_){ return ''; }
+      return (r && r.q && (Date.now()-r.at) < RECENT_MS) ? r : null;
+    }catch(_){ return null; }
   }
   // Tapping the glass while a search is open means "a NEW one" — so it forgets
   // the old words outright, or closing the bar right after would bring back
   // exactly the query she just cleared.
-  window._forgetSearch=function(){ try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ } };
+  // …and a NEW search is unfiltered. The filter is a narrowing of one hunt,
+  // not a mode she has switched the app into, so it goes with the words.
+  window._forgetSearch=function(){
+    try{ sessionStorage.removeItem(RECENT_KEY); }catch(_){ }
+    whoFilter='all'; paintWho();
+  };
   // Only ever fills a box she left EMPTY, and only on the way in — never over
   // words already in front of her.
   window._restoreRecentSearch=function(){
     if(!qi || qi.value.trim()) return false;
-    var q=recent(); if(!q) return false;
-    qi.value=q; live.sync(); run(q);
+    var r=recent();
+    // Nothing to come back to (a cold open, or more than the minute) opens
+    // on ALL — the filter must never outlive the search that set it and
+    // silently narrow a hunt she is starting fresh.
+    if(!r){ whoFilter='all'; paintWho(); return false; }
+    whoFilter=(r.who==='me'||r.who==='claude') ? r.who : 'all'; paintWho();
+    qi.value=r.q; live.sync(); run(r.q);
     return true;
   };
   function run(q){
@@ -7849,10 +8266,14 @@ document.getElementById('back').onclick=function(){ goHome(); };
     q=(q||'').trim();
     if(q.length<2){ showGrid(); return; }
     remember(q);
-    api('/api/chatfeed/search?q='+encodeURIComponent(q)+'&_='+Date.now())
+    // The filter is captured with the query and checked again on the way
+    // back: tapping Mine while an All request is still in the air would
+    // otherwise let the older, wider answer land on top of the narrow one.
+    var who=whoFilter;
+    api('/api/chatfeed/search?q='+encodeURIComponent(q)+whoQuery()+'&_='+Date.now())
       .then(function(r){return r.json()})
       .then(function(d){
-        if(qi.value.trim()!==q) return;   // a newer keystroke already fired
+        if(qi.value.trim()!==q || whoFilter!==who) return;   // a newer keystroke or filter already fired
         var rs=(d&&d.results)||[];
         var cm=(d&&d.chatMatches)||[];
         grid.style.display='none'; showAcc(false); sr.style.display=''; sr.innerHTML='';
@@ -7903,6 +8324,20 @@ document.getElementById('back').onclick=function(){ goHome(); };
     window._resetSearch();
     qi.focus();
   };
+  // Tapping a chip re-runs what is already in the box at once — no debounce,
+  // because a tap is a finished gesture the way Return is, not a keystroke
+  // that might be followed by another. With an empty box it just arms the
+  // filter for whatever she dictates next.
+  whochips.forEach(function(c){ c.onclick=function(){
+    var w=c.getAttribute('data-who')||'all';
+    if(w===whoFilter) return;
+    whoFilter=w; paintWho();
+    clearTimeout(t);
+    var v=(qi&&qi.value||'').trim();
+    if(v.length>=2) run(v); else showGrid();
+  }; });
+  paintWho();
+  window.__setSearchWho=function(w){ whoFilter=w; paintWho(); };  // the tests' way in
   wipePaint();
 })();
 
@@ -7964,10 +8399,23 @@ document.getElementById('back').onclick=function(){ goHome(); };
   // falls back to a hairline of air when neither arrow is showing, since then
   // there is nothing to clear. (The page-BOTTOM jump needs none of this:
   // `.wrap` already ends in 16vh of padding, which is more than the pair.)
+  // IT RESERVES ROOM FOR **BOTH** ARROWS, NOT THE ONE ON SCREEN RIGHT NOW
+  // (Aug 2026, when the pair was stacked into a column). At the top of the
+  // page only the DOWN arrow shows, so the group is one button tall — but the
+  // jump itself scrolls down, which brings the UP arrow out and grows the
+  // column UPWARD, straight over the Open button the landing had just cleared.
+  // Side by side that could not happen (the row's height never changed), which
+  // is why this only became a bug with the column. So: the group's bottom edge
+  // (stable, it is bottom-anchored) plus two buttons and the gap between them.
   function bottomReserve(){
     var j=document.querySelector('.jumps');
-    if(!j || !j.querySelector('.totop.show')) return 14;
-    return Math.max(14, Math.round(window.innerHeight - j.getBoundingClientRect().top + 10));
+    if(!j) return 14;
+    var btn=j.querySelector('.totop.show');
+    if(!btn) return 14;
+    var jr=j.getBoundingClientRect(), br=btn.getBoundingClientRect();
+    var gap=parseFloat(getComputedStyle(j).rowGap)||0;
+    var tall=br.height*2+gap;
+    return Math.max(14, Math.round(window.innerHeight - jr.bottom + tall + 10));
   }
   function openMsgEnd(){
     var rows=document.querySelectorAll('#thread .msg.open');
