@@ -17,6 +17,10 @@
 //      it only appears when there ARE past pictures.
 //   6. two text boxes: caption open, drawing prompt COLLAPSED; opening the
 //      prompt collapses the caption; the caption re-opens by hand.
+//   7. (2026-08-24) the caption opens as WORDS with a pencil beside them,
+//      never as an open box; the pencil is what swaps the box in.
+//   8. (2026-08-24) a beat with NO picture: the blank tile is small, and
+//      the drawing prompt opens beside the caption instead of folded away.
 //
 //   node scripts/test-scratchpad-popup.js
 //
@@ -203,14 +207,38 @@ const VW = 390, VH = 780;
   ok(!(await shown('#verrow')), 'and folds them back');
 
   // 6 — the two text boxes
-  ok(await shown('#pnote'), 'the caption is open by default');
+  ok(await shown('#capview'), 'the caption is open by default');
   ok(!(await shown('#drawbox')), 'the drawing prompt is collapsed by default');
   await page.click('#promlab');
   ok(await shown('#drawbox'), 'tapping Drawing prompt opens it');
-  ok(!(await shown('#pnote')), 'and that automatically collapses the caption');
+  ok(!(await shown('#capview')), 'and that automatically collapses the caption');
   await page.click('#caplab');
-  ok(await shown('#pnote'), 'the caption can be expanded again by hand');
+  ok(await shown('#capview'), 'the caption can be expanded again by hand');
   ok(await shown('#drawbox'), 'with the prompt still open beside it');
+
+  // 6b — THE CAPTION IS WORDS PLUS A PENCIL, NOT AN OPEN BOX (2026-08-24,
+  // Sophie: "the caption shows not in a edit box but default to just the ...
+  // text and then there's an edit pencil button next to it").
+  ok(!(await shown('#pnote')), 'the caption is NOT an open edit box');
+  ok(await shown('#captext'), 'its words show as text instead');
+  ok((await page.$eval('#captext', (el) => el.textContent)).includes('the beat says this'),
+    'and the text really is the beat\'s caption');
+  ok(await shown('#capedit'), 'a pencil sits beside them');
+  const cvw = await box('#captext'), pen = await box('#capedit');
+  ok(pen.x >= cvw.r - 1, 'the pencil is NEXT TO the words, not under them');
+  await page.click('#capedit');
+  ok(await shown('#pnote'), 'tapping the pencil swaps the box in');
+  ok(!(await shown('#captext')), 'and the read-only words step aside');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'pnote'),
+    'with the caret already in it');
+  ok(await shown('#capedit'), 'the pencil keeps its place while she edits');
+  await page.fill('#pnote', 'a caption she just wrote');
+  await page.click('#capedit');
+  ok(!(await shown('#pnote')), 'tapping it again puts the box away');
+  ok((await page.$eval('#captext', (el) => el.textContent)) === 'a caption she just wrote',
+    'and the words she wrote are what reads back');
+  ok(posted.some(([p2, b2]) => p2 === '/api/scratchpad/text' && b2.text === 'a caption she just wrote'),
+    'it saved on the way out — no save button');
   // 7 — THE PROMPT BOX IS NOT THE CAPTION (2026-08-24, Sophie: "it sent the
   // wrong prompt. I think it sent it from the caption part not the drawing
   // part"). The box used to seed with the caption's words, so a beat with no
@@ -223,6 +251,7 @@ const VW = 390, VH = 780;
     'it names the caption by name');
   // Empty still DRAWS — from the caption as it reads right now, which is the
   // old "it doesn't take the words I put in" fix and must stay fixed.
+  if (await page.$eval('#pnote', (el) => el.hidden)) await page.click('#capedit');
   await page.fill('#pnote', 'A RED DOOR IN THE SNOW');
   await page.click('#dgo');
   await page.waitForTimeout(300);
@@ -243,6 +272,35 @@ const VW = 390, VH = 780;
     'a written prompt is what gets drawn, never the caption');
   ok(posted.some(([p, b]) => p === '/api/scratchpad/prompt' && b.prompt === 'MY OWN DRAWING PROMPT'),
     'and it saved itself on the way');
+
+  // 8 — A BEAT WITH NO PICTURE (2026-08-24, Sophie: "if there's no image then
+  // make the image box smaller / and show the caption and the drawing prompt
+  // by default instead of just the caption"). Both halves MEASURED against
+  // the same card with a picture in it, because "smaller" is a comparison.
+  const artH = (await box('#artwrap')).h;
+  await page.evaluate(() => window.closeBeat());
+  await page.waitForFunction(() => document.getElementById('beatpop').hidden);
+  await page.evaluate(() => {
+    window.beats.push({ id: 'b2', text: 'a beat with nothing drawn yet', color: null });
+    window.render();
+  });
+  await page.waitForFunction(() => document.querySelectorAll('#pad .beat').length > 1);
+  await page.evaluate(() => {
+    const b = window.beats.find((x) => x.id === 'b2');
+    window.openBeat(b);
+  });
+  await page.waitForSelector('#beatpop:not([hidden])');
+  ok(await shown('#popblank'), 'the blank paper is what shows');
+  ok(!(await shown('#popimg')), 'and no picture');
+  const blank = await box('#popblank'), wrap = await box('#artwrap');
+  ok(blank.h < 200, 'the empty tile is small (' + Math.round(blank.h) + 'px tall)');
+  ok(wrap.h < artH * 0.6, 'the image box gave its room back (' +
+    Math.round(wrap.h) + 'px vs ' + Math.round(artH) + ' with a picture)');
+  ok(await shown('#capview'), 'the caption shows');
+  ok(await shown('#drawbox'), 'AND the drawing prompt is open beside it, not folded away');
+  ok(!(await shown('#pnote')), 'the caption is still words-plus-pencil here too');
+  ok((await box('#drawbox')).b <= (await box('#beatcard')).b + 1,
+    'both boxes fit inside the card');
 
   await browser.close();
   server.close();

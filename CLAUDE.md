@@ -3715,6 +3715,36 @@ before working on that module. Nothing was deleted — the moved text is verbati
     swap, the cancel POST, the in-flight poll, and the legend's drawings
     compared against the real buttons; verified failing against the pre-fix
     page, where the disabled button could not even be clicked).
+  **THE CAPTION IS WORDS WITH A PENCIL BESIDE THEM, AND A PICTURE-LESS BEAT
+  IS A DIFFERENT SHAPE (2026-08-24, Sophie: "the caption and the drawing
+  thing are editable by default. Can you make it that the caption shows not
+  in a edit box but default to just the ... text and then there's an edit
+  pencil button next to it" · "if there's no image then make the image box
+  smaller / and show the caption and the drawing prompt by default instead of
+  just the caption").** Two asks about the same card, and both are about a
+  beat she is READING rather than typing into.
+  - **The caption's default face is `#captext`, the words in the serif**, with
+    a bare pencil (`#capedit`) beside them; the pencil swaps in the same
+    `#pnote` textarea as before and takes the focus. **The pencil is a
+    TOGGLE and the box never closes on its own blur** — a card that
+    reshuffles between her mousedown and her mouseup eats the tap she was
+    aiming at the button underneath. Blur still SAVES. `#pnote` keeps the
+    caption's value whether it is showing or not, which is why `drawPrompt()`
+    and `saveNote()` are untouched.
+  - **`#beatcard.noart` is the picture-less state, computed once in
+    `openBeat`** (no url and not a clip — a beat mid-draw counts, since the
+    blank paper is what is on screen). It shrinks `#popblank` to 132px and
+    drops `#artwrap`'s `flex:1`, and it opens the drawing prompt beside the
+    caption: the empty tile used to take the whole card, on exactly the beat
+    whose WORDS are all there is.
+  - **The fold rule is now conditional on that** — opening the prompt folds
+    the caption away only when a picture is taking the room. And **the star
+    (`#ardraw`) opens the drawing box, never closes it**: it would otherwise
+    fold away the box a picture-less beat now opens with; the chevron on
+    Drawing prompt is the toggle, and the star focuses an open box.
+  - Test: `node scripts/test-scratchpad-popup.js` (the real page, headless —
+    the pencil measured beside the words, the empty tile measured against the
+    same card holding a picture).
   **Full details: `docs/modules/story.md`.**
 - **Scratch Pad / Story Room** (`scratchpad.js`, `/api/scratchpad`, page built by
   `scripts/gen-scratchpad.py`) — thinking with pictures. Hearted Playground images
