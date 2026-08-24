@@ -142,6 +142,23 @@ function unpackUnits(rows) {
     .filter((u) => u.length);
 }
 
+/* ---- a model's beat reply ----------------------------------------------
+   The beatout route (timeline.js) asks Claude for plain beat lines in the
+   exact dictation shape parseStory reads. Models occasionally wrap a reply in
+   code fences or lead with a "Here are the beats" line anyway; this strips
+   ONLY that wrapping — never the beats — so the parser sees clean lines.
+   Pure, so scripts/test-timeline.js pins it. */
+function cleanBeatLines(text) {
+  const lines = String(text || '').split(/\r?\n/)
+    .filter((l) => !/^\s*```/.test(l));            // fence lines, wherever
+  // a single conversational lead-in ending in ":" before the first real line
+  while (lines.length && !lines[0].trim()) lines.shift();
+  if (lines.length && /^[A-Z][^\n]{0,80}:\s*$/.test(lines[0].trim())
+      && !/^[^a-z]{2,40}$/.test(lines[0].trim())) lines.shift();
+  return lines.join('\n').trim();
+}
+
 module.exports = {
   parseStory, cleanMoments, cleanUnits, countMoments, packUnits, unpackUnits,
+  cleanBeatLines,
 };
