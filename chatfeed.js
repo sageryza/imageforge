@@ -2742,6 +2742,11 @@ router.get('/sort', async (_req, res) => {
       anthropic: require('./anthropic').available(),
       categories: cats,
       triage: chatSort.TRIAGE,
+      // Which of her folders are being read as WHAT THE WORK IS rather than as
+      // a subject area — the half that beats the subject when both fit (see
+      // WORK_KINDS in chat-sort.js). Printed here so the day the hint list goes
+      // stale against her vocabulary is measurable in one read, not silent.
+      workKinds: chatSort.workKinds(cats),
       examples,
       chats: names.length,
       filedBySophie: counted((n) => reg.chats[n].category && reg.chats[n].catBy !== 'auto'),

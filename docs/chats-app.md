@@ -1445,6 +1445,44 @@
     files two chats into it, with no code change. The sorter's own answers are
     excluded from the examples, or one early mistake would become a folder's
     definition and compound.
+  - **WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie: "for chats
+    that are tagging themselves, if it's in the story room but it's just a bug
+    fix for the story room then they shouldn't tag it story, they should just
+    tag it bug fix — and that applies to all the other categories
+    obviously").** Her vocabulary holds two DIFFERENT kinds of word and the
+    sorter could not tell them apart: some name a SUBJECT AREA (`witch` ·
+    `story` · `film` · `dream app` · `tech` · `meta` · `xi` · `chunk making` ·
+    `just for fun` · `pelt`) and some name WHAT THE WORK IS (`bug fix` · `new
+    feature` · `research` · `failure` · `built` · `quick question`). Every chat
+    has a subject, so the subject word always looked like the safe answer — and
+    that is useless in both directions: `story` fills with plumbing, and `bug
+    fix`, the pile she reaches for when she wants to know what has been going
+    wrong, stays empty.
+    - **ENFORCED IN CODE, NOT ONLY IN THE PROMPT** — the archive summary's
+      length cap taught that a prompt instruction is a hope. The model answers
+      `kind` in its OWN field beside `category`, and `pickCategory` PREFERS it;
+      forgetting the rule would take an active `"none"` rather than a slip.
+      The prompt still states the rule and marks each kind folder in the list
+      it is handed (`[what the work IS]`), because a model that cannot tell
+      which of her words are subjects is guessing.
+    - **Three things not to undo**, each a case in the test: a `kind` naming a
+      SUBJECT is IGNORED (otherwise the rule inverts — the field built to beat
+      subjects would carry one); an invented kind is refused exactly like any
+      other invented folder (rule 3 is untouched); and a kind with NO subject
+      beside it still files, because "sure it was a bug fix, unsure which
+      corner of the app" is an honest answer to what that pile is for.
+    - **`WORK_KINDS` is a HINT OVER HER LIVE VOCABULARY, never an addition to
+      it.** A word in it she does not have annotates nothing; a folder she
+      invents next month is still offered and still fileable, it just is not
+      read as a kind until it is named there. `GET /api/chatfeed/sort` prints
+      `workKinds` — the folders currently being read that way — so the day the
+      list goes stale against her words is measurable in one read rather than
+      silent. Deliberately NOT kinds: `to read`, `waiting for something`, `in a
+      minute`, `maybe never` — those say WHEN, the same reason `TRIAGE` is off
+      limits.
+    - **Chats she filed herself never move** (rule 1), and auto-filed ones
+      reach the new rule on their next re-check (`RESORT_*`) — or immediately
+      with `POST /api/chatfeed/sort {chat, force:true}`, ~a cent a chat.
   - **`look at` and `come back to` are OFF LIMITS** (`TRIAGE`). They say WHEN
     she wants something, not what it is; nothing outside her head can know
     that, and guessing buries real work in a to-do folder. She still files

@@ -1608,9 +1608,27 @@ them off the reference sheet, not off the old filenames.
   **"none" is a normal answer** (filing hides a chat from her main list, so a
   wrong folder costs her real work), and **it never invents a folder** — her
   vocabulary is read live and taught by her own filing. Her two WHEN folders,
-  `look at` and `come back to`, are off limits to it. Full rules in
-  `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the vocabulary and the
-  counts.
+  `look at` and `come back to`, are off limits to it.
+  **WHAT THE WORK IS BEATS WHERE IT HAPPENED (2026-08-24, Sophie: "if it's in
+  the story room but it's just a bug fix for the story room then they shouldn't
+  tag it story, they should just tag it bug fix — and that applies to all the
+  other categories obviously").** Her vocabulary holds two different kinds of
+  word and the sorter could not tell them apart: some name a SUBJECT AREA
+  (`witch` · `story` · `film` · `dream app` · `tech` · `meta`) and some name
+  WHAT THE WORK IS (`bug fix` · `new feature` · `research` · `failure` ·
+  `built` · `quick question`). Every chat has a subject, so the subject always
+  looked like the safe answer — which fills `story` with plumbing and leaves
+  `bug fix`, the pile she reaches for when she wants to know what has been
+  going wrong, empty. **It is enforced in CODE, not only in the prompt**: the
+  model answers `kind` in its own field and `pickCategory` prefers it, so
+  forgetting the rule would take an active "none". Three things not to undo — a
+  `kind` that names a SUBJECT is ignored (or the field built to beat subjects
+  carries one), an invented kind is refused like any other folder, and a kind
+  with no subject beside it still files. `WORK_KINDS` is a HINT over her live
+  vocabulary, never an addition to it; `GET /api/chatfeed/sort` prints
+  `workKinds` so the day it goes stale against her words is measurable.
+  Full rules in `docs/chats-app.md`; `GET /api/chatfeed/sort` shows the
+  vocabulary and the counts; test `node scripts/test-chat-sort.js`.
 - **Naming a chat: the Chats app is the source of truth (July 2026).** Sophie
   renames a chat with the pencil in its thread header; that writes `displayName`
   on the registry doc and is the name she sees everywhere. **The Claude app's own
